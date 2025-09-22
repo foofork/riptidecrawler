@@ -1,0 +1,145 @@
+package riptide:extractor@0.2.0;
+
+/// Main extractor world interface with embedded types
+world extractor {
+    /// Content extraction modes with specific behaviors
+    variant extraction-mode {
+        /// Extract article content using readability algorithms
+        article,
+        /// Extract full page content including sidebars and navigation
+        full,
+        /// Extract only metadata (title, description, structured data)
+        metadata,
+        /// Custom extraction using provided CSS selectors
+        custom(list<string>),
+    }
+
+    /// Comprehensive extraction result with rich metadata
+    record extracted-content {
+        /// Source URL for context and link resolution
+        url: string,
+        /// Extracted page title
+        title: option<string>,
+        /// Author/byline information
+        byline: option<string>,
+        /// Publication date in ISO 8601 format
+        published-iso: option<string>,
+        /// Content formatted as Markdown
+        markdown: string,
+        /// Plain text content with HTML tags removed
+        text: string,
+        /// List of extracted hyperlinks
+        links: list<string>,
+        /// List of media URLs (images, videos, audio)
+        media: list<string>,
+        /// Detected content language (ISO 639-1 code)
+        language: option<string>,
+        /// Estimated reading time in minutes
+        reading-time: option<u32>,
+        /// Content quality score (0-100, higher = better)
+        quality-score: option<u8>,
+        /// Word count of extracted text
+        word-count: option<u32>,
+        /// Content categories/tags if detected
+        categories: list<string>,
+        /// Site name/publisher if available
+        site-name: option<string>,
+        /// Meta description from page
+        description: option<string>,
+    }
+
+    /// Structured error types for better error handling
+    variant extraction-error {
+        /// Invalid or malformed HTML input
+        invalid-html(string),
+        /// Network-related errors during processing
+        network-error(string),
+        /// HTML parsing failures
+        parse-error(string),
+        /// Resource limits exceeded (memory, time, etc.)
+        resource-limit(string),
+        /// Trek-rs library errors
+        extractor-error(string),
+        /// Component internal processing errors
+        internal-error(string),
+        /// Unsupported extraction mode
+        unsupported-mode(string),
+    }
+
+    /// Component health status
+    record health-status {
+        /// Overall component health
+        status: string,
+        /// Component version
+        version: string,
+        /// Trek-rs library version
+        trek-version: string,
+        /// Supported extraction modes
+        capabilities: list<string>,
+        /// Memory usage in bytes
+        memory-usage: option<u64>,
+        /// Number of extractions performed
+        extraction-count: option<u64>,
+    }
+
+    /// Component information and metadata
+    record component-info {
+        /// Component name
+        name: string,
+        /// Component version
+        version: string,
+        /// Component model interface version
+        component-model-version: string,
+        /// Enabled features
+        features: list<string>,
+        /// Supported extraction modes
+        supported-modes: list<string>,
+        /// Build timestamp
+        build-timestamp: option<string>,
+        /// Git commit hash if available
+        git-commit: option<string>,
+    }
+
+    /// Statistics for extraction operation
+    record extraction-stats {
+        /// Time taken for extraction in milliseconds
+        processing-time-ms: u64,
+        /// Memory used during extraction in bytes
+        memory-used: u64,
+        /// Number of DOM nodes processed
+        nodes-processed: option<u32>,
+        /// Number of links found
+        links-found: u32,
+        /// Number of images found
+        images-found: u32,
+    }
+
+    /// Primary extraction function with enhanced error handling
+    export extract: func(
+        html: string,
+        url: string,
+        mode: extraction-mode
+    ) -> result<extracted-content, extraction-error>;
+
+    /// Extract content with detailed statistics
+    export extract-with-stats: func(
+        html: string,
+        url: string,
+        mode: extraction-mode
+    ) -> result<tuple<extracted-content, extraction-stats>, extraction-error>;
+
+    /// Validate HTML content without full extraction
+    export validate-html: func(html: string) -> result<bool, extraction-error>;
+
+    /// Health check for component monitoring
+    export health-check: func() -> health-status;
+
+    /// Get detailed component information
+    export get-info: func() -> component-info;
+
+    /// Reset component state and clear caches
+    export reset-state: func() -> result<string, extraction-error>;
+
+    /// Get supported extraction modes
+    export get-modes: func() -> list<string>;
+}

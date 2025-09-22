@@ -17,9 +17,9 @@ lint:
 test:
     cargo test --workspace -- --nocapture
 
-# Build WASM module
+# Build WASM component
 wasm:
-    cd wasm/riptide-extractor-wasm && cargo build --release --target wasm32-wasip1
+    cd wasm/riptide-extractor-wasm && cargo build --release --target wasm32-wasip2
 
 # Start Docker stack
 up:

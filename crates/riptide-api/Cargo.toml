@@ -11,16 +11,33 @@ path = "src/main.rs"
 anyhow = { workspace = true }
 axum = { workspace = true }
 bytes = { workspace = true }
+chrono = { workspace = true }
 clap = { workspace = true }
+futures = { workspace = true }
 http = { workspace = true }
+once_cell = { workspace = true }
 reqwest = { workspace = true }
 redis = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+url = { workspace = true }
 uuid = { workspace = true }
 tower = { workspace = true }
-tower-http = { workspace = true }
+tower-http = { workspace = true, features = ["timeout"] }
 tracing-subscriber = { workspace = true }
 riptide-core = { path = "../riptide-core" }
+axum-prometheus = "0.7"
+prometheus = "0.13"
+
+[dev-dependencies]
+tokio-test = "0.4"
+mockall = "0.13"
+tempfile = "3.8"
+proptest = "1.4"
+criterion = { version = "0.5", features = ["html_reports"] }
+httpmock = "0.7"
+wiremock = "0.6"
+rstest = "0.22"
