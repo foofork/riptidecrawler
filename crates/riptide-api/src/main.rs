@@ -1,10 +1,14 @@
 mod errors;
 mod handlers;
+mod health;
+mod metrics;
 mod models;
 mod pipeline;
 mod state;
 mod validation;
 
+use crate::health::HealthChecker;
+use crate::metrics::{create_metrics_layer, RipTideMetrics};
 use crate::state::{AppConfig, AppState};
 use axum::{
     routing::{get, post},
@@ -12,6 +16,7 @@ use axum::{
 };
 use clap::Parser;
 use std::net::SocketAddr;
+use std::sync::Arc;
 use std::time::Duration;
 use tower_http::{
     compression::CompressionLayer, cors::CorsLayer, timeout::TimeoutLayer, trace::TraceLayer,
@@ -61,9 +66,18 @@ async fn main() -> anyhow::Result<()> {
         "Application configuration loaded"
     );
 
+    // Initialize metrics
+    tracing::info!("Initializing Prometheus metrics");
+    let metrics = Arc::new(RipTideMetrics::new()?);
+    let (prometheus_layer, metric_handle) = create_metrics_layer()?;
+    tracing::info!("Prometheus metrics initialized");
+
+    // Initialize health checker
+    let health_checker = Arc::new(HealthChecker::new());
+
     // Initialize application state with all dependencies
     tracing::info!("Initializing application state and dependencies");
-    let app_state = AppState::new(config).await?;
+    let app_state = AppState::new(config, metrics.clone(), health_checker.clone()).await?;
     tracing::info!("Application state initialization complete");
 
     // Perform initial health check
@@ -84,10 +98,12 @@ async fn main() -> anyhow::Result<()> {
     // Build the application router with middleware stack
     let app = Router::new()
         .route("/healthz", get(handlers::health))
+        .route("/metrics", get(handlers::metrics))
         .route("/crawl", post(handlers::crawl))
         .route("/deepsearch", post(handlers::deepsearch))
         .fallback(handlers::not_found)
         .with_state(app_state)
+        .layer(prometheus_layer)
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(Duration::from_secs(30)))
         .layer(CorsLayer::permissive())

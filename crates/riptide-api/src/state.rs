@@ -1,3 +1,5 @@
+use crate::health::HealthChecker;
+use crate::metrics::RipTideMetrics;
 use anyhow::Result;
 use reqwest::Client;
 use riptide_core::{cache::CacheManager, extract::WasmExtractor, fetch::http_client};
@@ -21,6 +23,12 @@ pub struct AppState {
 
     /// Configuration settings
     pub config: AppConfig,
+
+    /// Prometheus metrics collector
+    pub metrics: Arc<RipTideMetrics>,
+
+    /// Health checker for enhanced diagnostics
+    pub health_checker: Arc<HealthChecker>,
 }
 
 /// Application configuration loaded from environment and config files.
@@ -84,6 +92,8 @@ impl AppState {
     /// # Arguments
     ///
     /// * `config` - Application configuration
+    /// * `metrics` - Prometheus metrics collector
+    /// * `health_checker` - Health checker for enhanced diagnostics
     ///
     /// # Returns
     ///
@@ -102,9 +112,15 @@ impl AppState {
     /// use riptide_api::state::{AppState, AppConfig};
     ///
     /// let config = AppConfig::default();
-    /// let state = AppState::new(config).await?;
+    /// let metrics = Arc::new(RipTideMetrics::new()?);
+    /// let health_checker = Arc::new(HealthChecker::new());
+    /// let state = AppState::new(config, metrics, health_checker).await?;
     /// ```
-    pub async fn new(config: AppConfig) -> Result<Self> {
+    pub async fn new(
+        config: AppConfig,
+        metrics: Arc<RipTideMetrics>,
+        health_checker: Arc<HealthChecker>,
+    ) -> Result<Self> {
         tracing::info!("Initializing application state");
 
         // Initialize HTTP client with optimized settings
@@ -128,6 +144,8 @@ impl AppState {
             cache,
             extractor,
             config,
+            metrics,
+            health_checker,
         })
     }
 

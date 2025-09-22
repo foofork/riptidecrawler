@@ -1,5 +1,5 @@
 # Build stage
-FROM rust:1.75 AS builder
+FROM rustlang/rust:nightly AS builder
 
 WORKDIR /app
 
@@ -12,9 +12,9 @@ COPY wasm wasm/
 RUN cargo build --release --bin riptide-api
 
 # Build WASM module
-RUN rustup target add wasm32-wasip1 && \
+RUN rustup target add wasm32-wasip2 && \
     cd wasm/riptide-extractor-wasm && \
-    cargo build --release --target wasm32-wasip1
+    cargo build --release --target wasm32-wasip2
 
 # Runtime stage
 FROM debian:bookworm-slim
@@ -28,7 +28,7 @@ WORKDIR /opt/riptide
 
 # Copy binary and WASM module
 COPY --from=builder /app/target/release/riptide-api /usr/local/bin/riptide-api
-COPY --from=builder /app/target/wasm32-wasip1/release/riptide_extractor_wasm.wasm /opt/riptide/extractor/extractor.wasm
+COPY --from=builder /app/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm /opt/riptide/extractor/extractor.wasm
 
 # Copy configs
 COPY configs /opt/riptide/configs

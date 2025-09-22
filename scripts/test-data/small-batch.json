@@ -1,0 +1,11 @@
+{
+  "urls": [
+    "https://httpbin.org/json",
+    "https://httpbin.org/html",
+    "https://example.com"
+  ],
+  "options": {
+    "concurrency": 3,
+    "cache_mode": "force_fresh"
+  }
+}

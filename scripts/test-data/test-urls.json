@@ -1,0 +1,28 @@
+{
+  "urls": [
+    "https://httpbin.org/html",
+    "https://httpbin.org/json",
+    "https://httpbin.org/xml",
+    "https://httpbin.org/delay/1",
+    "https://example.com",
+    "https://www.wikipedia.org",
+    "https://github.com",
+    "https://stackoverflow.com",
+    "https://news.ycombinator.com",
+    "https://httpbin.org/status/200",
+    "https://httpbin.org/headers",
+    "https://httpbin.org/user-agent",
+    "https://httpbin.org/ip",
+    "https://jsonplaceholder.typicode.com/posts/1",
+    "https://jsonplaceholder.typicode.com/users",
+    "https://www.google.com",
+    "https://www.reddit.com",
+    "https://medium.com",
+    "https://www.npmjs.com",
+    "https://crates.io"
+  ],
+  "options": {
+    "concurrency": 10,
+    "cache_mode": "auto"
+  }
+}

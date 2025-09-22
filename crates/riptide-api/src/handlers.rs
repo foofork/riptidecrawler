@@ -8,7 +8,7 @@ use std::time::Instant;
 use tracing::{debug, info};
 
 /// Application startup time for uptime calculation
-static START_TIME: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
+pub static START_TIME: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
 
 /// Initialize startup time tracking
 pub fn init_startup_time() {
@@ -132,7 +132,7 @@ pub async fn crawl(
     );
 
     // Create pipeline orchestrator
-    let pipeline = PipelineOrchestrator::new(state, options);
+    let pipeline = PipelineOrchestrator::new(state.clone(), options);
 
     // Execute batch crawling
     let (pipeline_results, stats) = pipeline.execute_batch(&body.urls).await;
@@ -220,7 +220,35 @@ pub async fn crawl(
         "Crawl request completed"
     );
 
+    // Record metrics for crawl request
+    state
+        .metrics
+        .record_http_request("POST", "/crawl", 200, start_time.elapsed().as_secs_f64());
+
     Ok(Json(response))
+}
+
+/// Prometheus metrics endpoint.
+///
+/// Returns metrics in Prometheus exposition format for scraping by monitoring systems.
+pub async fn metrics(State(state): State<AppState>) -> Result<impl IntoResponse, ApiError> {
+    let registry = &state.metrics.registry;
+    let encoder = prometheus::TextEncoder::new();
+
+    match encoder.encode_to_string(&registry.gather()) {
+        Ok(metrics_output) => Ok((
+            StatusCode::OK,
+            [("Content-Type", "text/plain; version=0.0.4")],
+            metrics_output,
+        )),
+        Err(e) => {
+            tracing::error!("Failed to encode metrics: {}", e);
+            Err(ApiError::dependency(
+                "prometheus",
+                "Failed to encode metrics",
+            ))
+        }
+    }
 }
 
 /// Deep search endpoint using Serper.dev API for web search and content extraction.
@@ -279,7 +307,7 @@ pub async fn deepsearch(
     let mut final_results = Vec::new();
     if include_content && !urls.is_empty() {
         let crawl_options = body.crawl_options.unwrap_or_default();
-        let pipeline = PipelineOrchestrator::new(state, crawl_options);
+        let pipeline = PipelineOrchestrator::new(state.clone(), crawl_options);
 
         debug!(
             url_count = urls.len(),
@@ -339,6 +367,14 @@ pub async fn deepsearch(
         urls_found = urls.len(),
         processing_time_ms = processing_time_ms,
         "Deep search completed"
+    );
+
+    // Record metrics for deepsearch request
+    state.metrics.record_http_request(
+        "POST",
+        "/deepsearch",
+        200,
+        start_time.elapsed().as_secs_f64(),
     );
 
     Ok(Json(response))

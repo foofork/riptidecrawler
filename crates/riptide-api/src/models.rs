@@ -13,7 +13,7 @@ pub struct CrawlBody {
 }
 
 /// Individual crawl result for a single URL
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CrawlResult {
     /// The original URL that was crawled
     pub url: String,
@@ -44,7 +44,7 @@ pub struct CrawlResult {
 }
 
 /// Error information for failed operations
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ErrorInfo {
     /// Error type identifier
     pub error_type: String,
@@ -57,7 +57,7 @@ pub struct ErrorInfo {
 }
 
 /// Response for batch crawl operations
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CrawlResponse {
     /// Total number of URLs in the request
     pub total_urls: usize,
@@ -79,7 +79,7 @@ pub struct CrawlResponse {
 }
 
 /// Statistics for crawl operations
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CrawlStatistics {
     /// Total processing time for the entire batch
     pub total_processing_time_ms: u64,
@@ -95,7 +95,7 @@ pub struct CrawlStatistics {
 }
 
 /// Breakdown of gate decisions made during crawling
-#[derive(Serialize, Debug, Clone, Default)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct GateDecisionBreakdown {
     /// Number of URLs that used raw/fast extraction
     pub raw: usize,
@@ -135,7 +135,7 @@ pub struct DeepSearchBody {
 }
 
 /// Response for deep search operations
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct DeepSearchResponse {
     /// Original search query
     pub query: String,
@@ -157,7 +157,7 @@ pub struct DeepSearchResponse {
 }
 
 /// Individual search result with extracted content
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SearchResult {
     /// Original URL from search results
     pub url: String,
@@ -179,7 +179,7 @@ pub struct SearchResult {
 }
 
 /// Health check response with detailed dependency status
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct HealthResponse {
     /// Overall health status ("healthy" or "unhealthy")
     pub status: String,
@@ -201,7 +201,7 @@ pub struct HealthResponse {
 }
 
 /// Health status of individual dependencies
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct DependencyStatus {
     /// Redis cache health
     pub redis: ServiceHealth,
@@ -217,7 +217,7 @@ pub struct DependencyStatus {
 }
 
 /// Health status for an individual service
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ServiceHealth {
     /// Service status ("healthy", "unhealthy", "unknown")
     pub status: String,
@@ -233,7 +233,7 @@ pub struct ServiceHealth {
 }
 
 /// System performance metrics
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SystemMetrics {
     /// Current memory usage in bytes
     pub memory_usage_bytes: u64,
