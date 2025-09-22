@@ -18,7 +18,6 @@ impl WasmExtractor {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

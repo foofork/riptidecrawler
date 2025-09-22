@@ -1,13 +1,21 @@
+mod errors;
 mod handlers;
 mod models;
+mod pipeline;
+mod state;
+mod validation;
 
+use crate::state::{AppConfig, AppState};
 use axum::{
     routing::{get, post},
     Router,
 };
 use clap::Parser;
 use std::net::SocketAddr;
-use tower_http::{compression::CompressionLayer, cors::CorsLayer, trace::TraceLayer};
+use std::time::Duration;
+use tower_http::{
+    compression::CompressionLayer, cors::CorsLayer, timeout::TimeoutLayer, trace::TraceLayer,
+};
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
@@ -23,28 +31,121 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // Initialize structured logging
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
         .json()
         .init();
 
     let args = Args::parse();
-    // TODO: load configs, init Redis, WasmExtractor, Reqwest client, etc.
 
+    tracing::info!(
+        version = env!("CARGO_PKG_VERSION"),
+        bind_address = %args.bind,
+        "Starting RipTide API Server"
+    );
+
+    // Initialize startup time tracking
+    handlers::init_startup_time();
+
+    // Load application configuration
+    let config = AppConfig::default();
+    tracing::info!(
+        redis_url = %config.redis_url,
+        wasm_path = %config.wasm_path,
+        max_concurrency = config.max_concurrency,
+        cache_ttl = config.cache_ttl,
+        gate_hi_threshold = config.gate_hi_threshold,
+        gate_lo_threshold = config.gate_lo_threshold,
+        headless_url = ?config.headless_url,
+        "Application configuration loaded"
+    );
+
+    // Initialize application state with all dependencies
+    tracing::info!("Initializing application state and dependencies");
+    let app_state = AppState::new(config).await?;
+    tracing::info!("Application state initialization complete");
+
+    // Perform initial health check
+    let initial_health = app_state.health_check().await;
+    if !initial_health.healthy {
+        tracing::error!(
+            redis_status = %initial_health.redis,
+            extractor_status = %initial_health.extractor,
+            http_client_status = %initial_health.http_client,
+            "Initial health check failed, but continuing startup"
+        );
+        // Note: We continue startup even if some deps are unhealthy
+        // The health endpoint will report the actual status
+    } else {
+        tracing::info!("Initial health check passed - all dependencies healthy");
+    }
+
+    // Build the application router with middleware stack
     let app = Router::new()
         .route("/healthz", get(handlers::health))
         .route("/crawl", post(handlers::crawl))
         .route("/deepsearch", post(handlers::deepsearch))
         .fallback(handlers::not_found)
+        .with_state(app_state)
+        .layer(TraceLayer::new_for_http())
+        .layer(TimeoutLayer::new(Duration::from_secs(30)))
         .layer(CorsLayer::permissive())
-        .layer(CompressionLayer::new())
-        .layer(TraceLayer::new_for_http());
+        .layer(CompressionLayer::new());
 
+    // Parse bind address
     let addr: SocketAddr = args.bind.parse()?;
-    tracing::info!("RipTide API listening on {}", addr);
+    tracing::info!("RipTide API server starting on {}", addr);
 
+    // Create TCP listener
     let listener = tokio::net::TcpListener::bind(addr).await?;
-    axum::serve(listener, app).await?;
 
+    // Log successful startup
+    tracing::info!(
+        bind_address = %addr,
+        version = env!("CARGO_PKG_VERSION"),
+        "RipTide API server successfully started and ready to accept connections"
+    );
+
+    // Start the server
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await?;
+
+    tracing::info!("RipTide API server shutdown complete");
     Ok(())
+}
+
+/// Graceful shutdown signal handler.
+///
+/// Listens for SIGTERM and SIGINT signals to gracefully shutdown the server.
+/// This allows for proper cleanup of connections and resources.
+async fn shutdown_signal() {
+    use tokio::signal;
+
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {
+            tracing::info!("Received Ctrl+C, initiating graceful shutdown");
+        },
+        _ = terminate => {
+            tracing::info!("Received SIGTERM, initiating graceful shutdown");
+        },
+    }
 }
