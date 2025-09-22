@@ -79,93 +79,140 @@ Based on the original RipTide specifications and current implementation state:
 
 ---
 
-## 🚀 PHASE 2: Production Readiness (3-4 weeks)
-*Priority: HIGH - Required for production deployment*
+## 🚀 PHASE 2 LITE: Minimal Reliability Foundation (2-4 days)
+*Priority: HIGH - Essential scaffolding before Crawl4AI parity work*
 
-### 2.1 Performance & Reliability
-- [ ] **Load testing and optimization**
-  - Implement performance benchmarks with k6/hey
-  - Optimize concurrent processing (current: 16 workers)
-  - Add connection pooling and HTTP/2 optimization
-  - Memory usage profiling and optimization
+**Goal**: Minimal production-readiness to enable safe Phase-3 development
 
-- [ ] **Monitoring and observability**
-  - Add `axum-prometheus` middleware & `/metrics` endpoint
-  - Include bucket config for p50/p95 duration histograms
-  - Implement distributed tracing with Jaeger
-  - Add health check endpoints for all services
-  - Dashboard for key performance indicators
+### 2.1 Metrics & Health (1 day)
+- [ ] **Prometheus `/metrics` endpoint**
+  - Add `axum-prometheus` middleware to API + headless
+  - Request counters, duration histograms (p50/p95)
+  - Export bucket config for performance monitoring
 
-- [ ] **Error handling and resilience**
-  - Circuit breaker pattern for external services
-  - Proper timeout handling and retries
-  - Graceful degradation when headless service fails
-  - Dead letter queue for failed crawl requests
+- [ ] **Enhanced `/healthz` endpoint**
+  - Report `git_sha`, `wit=riptide:extractor@version`, `trek=version`
+  - Component status checks (Redis, WASM, headless)
+  - Build metadata and dependency versions
 
-### 2.2 Security & Compliance
-- [ ] **Security hardening**
-  - Implement rate limiting per IP/API key
-  - Add input validation and sanitization
-  - Security headers and CORS configuration
-  - Secrets management (env vars, vault integration)
+- [ ] **Phase timing logs**
+  - Log phase timings: `fetch_ms`, `gate_ms`, `wasm_ms`, `render_ms`
+  - Structured logging for performance analysis
 
+### 2.2 Timeouts & Circuit Breakers (1 day)
+- [ ] **Fetch reliability**
+  - Connect timeout: 3s, total timeout: 15-20s
+  - 1 retry for idempotent requests only
+  - Proper error propagation and fallback
+
+- [ ] **Headless resilience**
+  - `DOMContentLoaded + 1s idle`, hard cap 3s
+  - Circuit breaker on consecutive headless failures
+  - Graceful degradation to fast path when headless fails
+
+### 2.3 Robots & Throttling (1 day)
 - [ ] **Robots.txt compliance**
-  - Use `robotstxt` crate (Google's parser port) for parsing
-  - Add per-host cache with TTL for robots.txt
-  - Add override mechanisms for testing
-  - Configurable user-agent strings
-  - Delay/throttling based on robot rules
+  - Parse `robots.txt` using `robotstxt` crate
+  - Toggle to bypass in development mode
+  - Per-host robots.txt cache with TTL
 
-### 2.3 Advanced Caching
-- [ ] **Redis caching strategy**
-  - Implement cache-aside pattern with TTL
-  - Add cache invalidation strategies
-  - Cache hit ratio monitoring
-  - Multiple cache strategies (read-through, write-behind)
+- [ ] **Per-host throttling**
+  - Token bucket per host (1-2 RPS default)
+  - Configurable delay/throttling based on robot rules
+  - Jitter (±20%) to avoid request pattern detection
+
+### 2.4 Cache & Input Hardening (1 day)
+- [ ] **Redis read-through + TTL**
+  - Cache key includes extractor version/options
+  - TTL 24h default, configurable per content type
+  - Respect `ETag`/`Last-Modified` with conditional GET
+
+- [ ] **Input validation**
+  - URL validation and content-type allowlist
+  - Max bytes limit (20MB default)
+  - CORS and header size limits
+  - XSS/injection protection
 
 ---
 
-## 🌟 PHASE 3: Advanced Features (4-6 weeks)
-*Priority: MEDIUM - Enhanced functionality*
+## 🌟 PHASE 3: Crawl4AI Parity Features (5 weeks)
+*Priority: HIGH - Feature parity with Crawl4AI*
 
-### 3.1 Crawl4AI Feature Parity
-- [ ] **Deep crawling with spider-rs**
-  - Site-wide crawling with depth limits
-  - Link discovery and sitemap parsing
-  - Budget-based crawling (time, request limits)
-  - Adaptive stopping based on content quality
+**Goal**: Complete feature parity with Crawl4AI for competitive positioning
 
-- [ ] **Dynamic content handling**
-  - JavaScript execution and DOM manipulation
-  - Wait-for conditions (CSS selectors, timers)
-  - Screenshot capture capability
+### 3.1 Dynamic Content Handling (Week 1)
+- [ ] **Enhanced `/render` endpoint**
+  - `wait_for` conditions (CSS selectors, custom JS)
+  - `scroll` configuration: steps, step_px, delay_ms
+  - `actions` support: click, type, evaluate JS
+  - Timeout handling and fallback to static
+
+- [ ] **Artifacts & Capture**
+  - Optional screenshot capture (PNG/WebP)
   - MHTML capture for complete page preservation
+  - Page metadata collection (title, description, OG tags)
 
-- [ ] **Stealth and anti-detection**
-  - User-agent rotation strategies
-  - Proxy support and rotation
-  - Browser fingerprint randomization
-  - Request timing randomization
+**Acceptance**: JS-heavy article (Next/React) → `wait_for` loads content → extracted text present → `scroll` loads lazy content → screenshot artifact saved when enabled
 
-### 3.2 Content Processing
-- [ ] **PDF processing with pdfium-render**
-  - PDF text extraction and OCR
-  - Image extraction from PDFs
-  - Metadata extraction (author, creation date)
-  - Multi-format output (text, markdown, JSON)
+### 3.2 Deep Crawling & Site Discovery (Week 2)
+- [ ] **Spider-rs integration**
+  - Site-wide crawling with depth limits (max 3-5 levels)
+  - Per-host budget controls (time, request limits)
+  - Sitemap discovery and parsing (XML sitemaps)
+  - Same-host filtering and URL normalization
 
-- [ ] **Advanced content extraction**
-  - Article vs non-article content detection
-  - Author and publication date extraction
-  - Social media metadata (Open Graph, Twitter Cards)
-  - Content chunking for large documents
+- [ ] **Adaptive stopping**
+  - Content quality scoring to stop early when goal met
+  - Duplicate content detection to avoid redundant crawling
+  - Link value scoring for priority queuing
 
-### 3.3 Output Formats & Streaming
-- [ ] **Multiple output formats**
-  - NDJSON streaming for large result sets
-  - CSV export for spreadsheet integration
-  - XML output for legacy system integration
-  - Structured data extraction (JSON-LD, microdata)
+**Acceptance**: Domain seed → crawler respects depth/budgets & robots → returns ≥N pages with per-page extraction + outlinks
+
+### 3.3 Stealth & Anti-Detection (Week 3)
+- [ ] **User-agent rotation**
+  - Configurable UA list with realistic browser signatures
+  - `--disable-blink-features=AutomationControlled` for headless
+  - Randomized viewport sizes and screen resolutions
+
+- [ ] **Request randomization**
+  - Per-host delay jitter (±20% of base delay)
+  - Header randomization (Accept-Language, Accept-Encoding)
+  - Optional proxy support (HTTP/SOCKS) via environment variables
+
+**Acceptance**: Repeat crawl to sensitive site completes without bot challenge in ≥80% of runs (small sample)
+
+### 3.4 PDF Processing & Content Types (Week 4)
+- [ ] **PDF pipeline with pdfium-render**
+  - PDF text extraction and metadata parsing
+  - Image extraction from PDFs with position data
+  - Skip headless rendering for direct PDF URLs
+  - Author, creation date, title metadata extraction
+
+- [ ] **Multi-format content handling**
+  - Content-type detection and routing
+  - Word/PowerPoint basic text extraction (if feasible)
+  - Archive file handling (ZIP with HTML/PDF contents)
+
+**Acceptance**: Known PDFs → extract returns text+metadata → image count > 0 for illustrated docs
+
+### 3.5 Output Formats & Streaming (Week 5)
+- [ ] **NDJSON streaming**
+  - Streaming output for `/crawl` and `/deepsearch`
+  - Real-time progress updates during batch processing
+  - Configurable batch sizes and flush intervals
+
+- [ ] **Content chunking**
+  - Token-aware chunks with configurable size/overlap
+  - Preserve paragraph boundaries in chunks
+  - Metadata preservation across chunks
+
+- [ ] **Enhanced extraction**
+  - Byline/date extraction from Open Graph and JSON-LD
+  - Fallback heuristics for author and publication date
+  - Mode switch: `article|generic|metadata` extraction
+  - Consistent Markdown formatting across runs
+
+**Acceptance**: Top-N URLs stream back record-by-record → chunks produced for long articles → links/media populated → byline/date captured in ≥80% where present
 
 ---
 
@@ -237,10 +284,26 @@ Based on the original RipTide specifications and current implementation state:
 
 ### Phase 1 (MVP) Success Criteria:
 - [x] All critical APIs functional (`/crawl`, `/deepsearch`, `/healthz`) ✅ COMPLETED
-- [x] WASM extraction working with trek-rs ✅ COMPLETED - Component Model migration
+- [x] WASM extraction working with trek-rs ✅ COMPLETED - Component Model migration with performance optimization
 - [x] Golden tests passing (comprehensive test suite with fixtures) ✅ COMPLETED
+- [x] Technical debt resolution (compilation errors, performance, monitoring) ✅ COMPLETED
 - [ ] Docker deployment working end-to-end
 - [ ] Basic load testing (100 concurrent requests, <2s p95)
+
+### Phase 2 Lite Success Criteria:
+- [ ] `/healthz` + `/metrics` endpoints reporting build info and performance
+- [ ] Timeouts, retries, and circuit breaker preventing cascading failures
+- [ ] Robots.txt compliance and per-host throttling active
+- [ ] Redis read-through cache with TTL and conditional GET support
+- [ ] Input validation and security hardening in place
+
+### Phase 3 (Crawl4AI Parity) Success Criteria:
+- [ ] Dynamic content: wait/scroll/actions + screenshot/MHTML working
+- [ ] Deep crawl: seeds → budgets/depth honored, sitemap parsed, robots respected
+- [ ] Stealth: UA rotation + stealth flags + proxy support, ≥80% no-challenge rate
+- [ ] PDF: text + metadata + images extracted from PDF documents
+- [ ] Streaming: NDJSON output, chunking, links/media lists populated
+- [ ] Extraction: byline/date from OG/JSON-LD, consistent Markdown output
 
 ### Phase 2 (Production) Success Criteria:
 - [ ] 99.9% uptime over 30 days
