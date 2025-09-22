@@ -1,0 +1,52 @@
+# Build stage
+FROM rust:1.75 AS builder
+
+WORKDIR /app
+
+# Copy workspace files
+COPY Cargo.toml Cargo.lock ./
+COPY crates crates/
+COPY wasm wasm/
+
+# Build the headless binary
+RUN cargo build --release --bin riptide-headless
+
+# Runtime stage
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    chromium \
+    chromium-driver \
+    fonts-liberation \
+    libappindicator3-1 \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcups2 \
+    libdbus-1-3 \
+    libdrm2 \
+    libgbm1 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libx11-6 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxrandr2 \
+    xdg-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt/riptide
+
+# Copy binary
+COPY --from=builder /app/target/release/riptide-headless /usr/local/bin/riptide-headless
+
+EXPOSE 9123
+
+ENV RUST_LOG=info
+ENV CHROME_BIN=/usr/bin/chromium
+
+CMD ["riptide-headless"]

@@ -1,0 +1,25 @@
+robots:
+  obey: true
+  allow_overrides:
+    - "docs.example.com/*"
+
+allowlist:
+  - "https://*"
+denylist:
+  - "data:*"
+  - "chrome:*"
+  - "file:*"
+  - "javascript:*"
+
+rate_limits:
+  default_rps: 10
+  per_domain:
+    "api.github.com": 30
+    "docs.microsoft.com": 5
+
+content_filters:
+  block_patterns:
+    - "\.exe$"
+    - "\.zip$"
+    - "\.dmg$"
+  max_size_mb: 20

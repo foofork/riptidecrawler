@@ -1,0 +1,61 @@
+search:
+  provider: serper
+  api_key_env: SERPER_API_KEY
+  country: us
+  locale: en
+  per_query_limit: 25
+
+crawl:
+  concurrency: 16
+  max_redirects: 5
+  timeout_ms: 20000
+  user_agent_mode: rotate
+  robots_policy: obey
+  cache: read_through
+  max_response_mb: 20
+  accept_compression: [gzip, br]
+  allowed_content_types: ["text/html", "application/xhtml+xml", "application/pdf"]
+
+extraction:
+  wasm_module_path: "/opt/riptide/extractor/extractor.wasm"
+  version_tag: "trek:0.1"
+  mode: "article"
+  produce_markdown: true
+  produce_json: true
+  token_chunk_max: 1200
+  token_overlap: 120
+  tokenizer: "tiktoken"
+
+dynamic:
+  enable_headless_fallback: true
+  wait_for: null
+  scroll:
+    enabled: true
+    steps: 8
+    step_px: 2000
+    delay_ms: 300
+  screenshot: false
+  pdf_snapshot: false
+  mhtml_capture: false
+
+stealth:
+  enabled: true
+  random_ua: true
+  viewport: [1280, 800]
+  timezone: "Europe/Amsterdam"
+  locale: "en-US"
+  geolocation: null
+
+proxies:
+  enabled: false
+  http_proxy_env: HTTP_PROXY
+  https_proxy_env: HTTPS_PROXY
+
+redis:
+  url: "redis://redis:6379/0"
+
+artifacts:
+  base_dir: "/data/artifacts"
+
+logging:
+  level: "info"

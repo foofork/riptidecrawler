@@ -1,0 +1,5 @@
+https://en.wikipedia.org/wiki/WebAssembly
+https://www.rust-lang.org/
+https://developer.mozilla.org/en-US/docs/Web/HTTP/Compression
+https://github.com/rust-lang/rust
+https://docs.rs/tokio/latest/tokio/
