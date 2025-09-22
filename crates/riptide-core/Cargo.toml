@@ -6,12 +6,14 @@ edition = "2021"
 [dependencies]
 anyhow = { workspace = true }
 bytes = { workspace = true }
+chrono = { workspace = true }
 futures = { workspace = true }
 http = { workspace = true }
 redis = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 url = { workspace = true }
@@ -22,6 +24,20 @@ wit-bindgen = "0.30"
 uuid = { workspace = true }
 pdfium-render = { workspace = true, optional = true }
 
+# Performance optimization dependencies
+criterion = { version = "0.5", optional = true }
+geohash = { version = "0.13", optional = true }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+tokio-test = "0.4"
+
 [features]
 default = []
 pdf = ["pdfium-render"]
+benchmarks = ["criterion", "geohash"]
+
+[[bench]]
+name = "performance_benches"
+harness = false
+required-features = ["benchmarks"]

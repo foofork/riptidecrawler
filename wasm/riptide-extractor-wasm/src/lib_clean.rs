@@ -1,5 +1,6 @@
 use once_cell::sync::Lazy;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::collections::HashMap;
 use trek_rs::{Trek, TrekOptions, TrekResponse};
 
 mod trek_helpers;
@@ -18,60 +19,68 @@ export!(Component);
 static EXTRACTION_COUNT: Lazy<AtomicU64> = Lazy::new(|| AtomicU64::new(0));
 
 /// Component state for caching and metrics
-static COMPONENT_STATE: Lazy<std::sync::Mutex<ComponentState>> =
-    Lazy::new(|| std::sync::Mutex::new(ComponentState::new()));
+static COMPONENT_STATE: Lazy<std::sync::Mutex<ComponentState>> = Lazy::new(|| {
+    std::sync::Mutex::new(ComponentState::new())
+});
 
 /// Internal component state
 struct ComponentState {
-    // Note: Trek doesn't implement Clone, so we create fresh instances
+    extractor_cache: HashMap<String, Trek>,
     memory_usage: u64,
-    #[allow(dead_code)]
     start_time: std::time::Instant,
 }
 
 impl ComponentState {
     fn new() -> Self {
         Self {
-            // No caching needed
+            extractor_cache: HashMap::new(),
             memory_usage: 0,
             start_time: std::time::Instant::now(),
         }
     }
+
+    fn get_or_create_extractor(&mut self, mode: &ExtractionMode) -> Trek {
+        let key = mode_to_cache_key(mode);
+
+        if let Some(extractor) = self.extractor_cache.get(&key) {
+            return extractor.clone();
+        }
+
+        let options = match mode {
+            ExtractionMode::Article => TrekOptions {
+                debug: false,
+                url: None,
+                output: trek_rs::types::OutputOptions {
+                    markdown: true,
+                    separate_markdown: true,
+                },
+                removal: trek_rs::types::RemovalOptions {
+                    remove_exact_selectors: true,
+                    remove_partial_selectors: true,
+                },
+            },
+            ExtractionMode::Full => TrekOptions {
+                debug: false,
+                url: None,
+                output: trek_rs::types::OutputOptions {
+                    markdown: false,
+                    separate_markdown: false,
+                },
+                removal: trek_rs::types::RemovalOptions {
+                    remove_exact_selectors: false,
+                    remove_partial_selectors: false,
+                },
+            },
+            ExtractionMode::Metadata | ExtractionMode::Custom(_) => TrekOptions::default(),
+        };
+
+        let extractor = Trek::new(options);
+        self.extractor_cache.insert(key, extractor.clone());
+        extractor
+    }
 }
 
-/// Create a new trek extractor for the given mode
-fn create_extractor(mode: &ExtractionMode) -> Trek {
-    let options = match mode {
-        ExtractionMode::Article => TrekOptions {
-            debug: false,
-            url: None,
-            output: trek_rs::types::OutputOptions {
-                markdown: true,
-                separate_markdown: true,
-            },
-            removal: trek_rs::types::RemovalOptions {
-                remove_exact_selectors: true,
-                remove_partial_selectors: true,
-            },
-        },
-        ExtractionMode::Full => TrekOptions {
-            debug: false,
-            url: None,
-            output: trek_rs::types::OutputOptions {
-                markdown: false,
-                separate_markdown: false,
-            },
-            removal: trek_rs::types::RemovalOptions {
-                remove_exact_selectors: false,
-                remove_partial_selectors: false,
-            },
-        },
-        ExtractionMode::Metadata | ExtractionMode::Custom(_) => TrekOptions::default(),
-    };
-
-    Trek::new(options)
-}
-#[allow(dead_code)]
+/// Convert extraction mode to cache key
 fn mode_to_cache_key(mode: &ExtractionMode) -> String {
     match mode {
         ExtractionMode::Article => "article".to_string(),
@@ -216,17 +225,12 @@ impl Guest for Component {
         // Clear caches and reset state
         if let Ok(mut state) = COMPONENT_STATE.lock() {
             let old_count = EXTRACTION_COUNT.load(Ordering::Relaxed);
-            // No cache to clear
+            state.extractor_cache.clear();
             state.memory_usage = 0;
             EXTRACTION_COUNT.store(0, Ordering::Relaxed);
-            Ok(format!(
-                "Component state reset successfully. Previous extraction count: {}",
-                old_count
-            ))
+            Ok(format!("Component state reset successfully. Previous extraction count: {}", old_count))
         } else {
-            Err(ExtractionError::InternalError(
-                "Failed to acquire state lock".to_string(),
-            ))
+            Err(ExtractionError::InternalError("Failed to acquire state lock".to_string()))
         }
     }
 
@@ -245,7 +249,7 @@ fn perform_extraction_with_trek(
     // Get or create an extractor for this mode
     let extractor = {
         match COMPONENT_STATE.lock() {
-            Ok(_state) => create_extractor(mode),
+            Ok(mut state) => state.get_or_create_extractor(mode),
             Err(_) => {
                 return Err(ExtractionError::InternalError(
                     "Failed to acquire component state lock".to_string(),
@@ -258,10 +262,9 @@ fn perform_extraction_with_trek(
     let response = match extractor.parse(html) {
         Ok(response) => response,
         Err(trek_error) => {
-            return Err(ExtractionError::ExtractorError(format!(
-                "Trek extraction failed: {}",
-                trek_error
-            )));
+            return Err(ExtractionError::ExtractorError(
+                format!("Trek extraction failed: {}", trek_error),
+            ));
         }
     };
 
@@ -287,8 +290,8 @@ fn convert_response_to_content(
         published_iso: Some(response.metadata.published).filter(|s| !s.is_empty()),
         markdown: response.content_markdown.unwrap_or_default(),
         text: response.content,
-        links: vec![],  // TODO: Extract links from content
-        media: vec![],  // TODO: Extract media URLs
+        links: vec![], // TODO: Extract links from content
+        media: vec![], // TODO: Extract media URLs
         language: None, // TODO: Language detection
         reading_time,
         quality_score: Some(quality_score),
