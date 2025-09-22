@@ -12,8 +12,8 @@ runner = "wasmtime run --wasm component-model --allow-unknown-exports"
 # Linker configuration for optimal WASM builds
 linker = "rust-lld"
 
-[target.wasm32-wasi]
-# Fallback configuration for legacy WASI builds
+[target.wasm32-wasip1]
+# Configuration for WASI Preview 1 builds (legacy compatibility)
 runner = "wasmtime run --allow-unknown-exports"
 
 [env]
