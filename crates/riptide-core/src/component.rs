@@ -1,9 +1,9 @@
 use anyhow::Result;
 use wasmtime::{component::*, Config, Engine, Store};
 
-use crate::types::ExtractedDoc;
+use crate::types::{ComponentInfo, ExtractedDoc, ExtractionMode, ExtractionStats, HealthStatus};
 
-// Generate bindings from WIT file
+// Generate bindings from enhanced WIT file
 wasmtime::component::bindgen!({
     world: "extractor",
     path: "wit",
@@ -127,19 +127,227 @@ impl CmExtractor {
     /// println!("Title: {:?}", doc.title);
     /// println!("Text: {}", doc.text);
     /// ```
+    /// Extract content using the legacy string-based mode for backward compatibility
     pub fn extract(&self, html: &str, url: &str, mode: &str) -> Result<ExtractedDoc> {
+        // Convert legacy mode string to new ExtractionMode enum
+        let extraction_mode = match mode {
+            "article" => ExtractionMode::Article,
+            "full" => ExtractionMode::Full,
+            "metadata" => ExtractionMode::Metadata,
+            _ => ExtractionMode::Article, // Default fallback
+        };
+
+        self.extract_typed(html, url, extraction_mode)
+    }
+
+    /// Extract content using the enhanced typed interface
+    pub fn extract_typed(
+        &self,
+        html: &str,
+        url: &str,
+        mode: ExtractionMode,
+    ) -> Result<ExtractedDoc> {
         // Create a new store for this extraction operation
         let mut store = Store::new(&self.engine, ());
 
         // Instantiate the component with the configured linker
-        let instance = Extractor::instantiate(&mut store, &self.component, &self.linker)?;
+        let bindings = Extractor::instantiate(&mut store, &self.component, &self.linker)?;
 
-        // Call the extraction function defined in the WIT interface
-        let json = instance.call_extract(&mut store, html, url, mode)?;
+        // Convert our ExtractionMode to the WIT extraction-mode
+        let wit_mode = match mode {
+            ExtractionMode::Article => {
+                exports::riptide::extractor::extract::ExtractionMode::Article
+            }
+            ExtractionMode::Full => exports::riptide::extractor::extract::ExtractionMode::Full,
+            ExtractionMode::Metadata => {
+                exports::riptide::extractor::extract::ExtractionMode::Metadata
+            }
+            ExtractionMode::Custom(selectors) => {
+                exports::riptide::extractor::extract::ExtractionMode::Custom(selectors)
+            }
+        };
 
-        // Parse the JSON response into our structured type
-        let doc: ExtractedDoc = serde_json::from_str(&json)?;
+        // Call the enhanced extraction function
+        let result = bindings
+            .interface0
+            .call_extract(&mut store, html, url, &wit_mode)?;
 
-        Ok(doc)
+        match result {
+            Ok(extracted_content) => {
+                // Convert from Component Model types to our internal types
+                Ok(ExtractedDoc {
+                    url: extracted_content.url,
+                    title: extracted_content.title,
+                    byline: extracted_content.byline,
+                    published_iso: extracted_content.published_iso,
+                    markdown: extracted_content.markdown,
+                    text: extracted_content.text,
+                    links: extracted_content.links,
+                    media: extracted_content.media,
+                    language: extracted_content.language,
+                    reading_time: extracted_content.reading_time,
+                    quality_score: extracted_content.quality_score,
+                    word_count: extracted_content.word_count,
+                    categories: extracted_content.categories,
+                    site_name: extracted_content.site_name,
+                    description: extracted_content.description,
+                })
+            }
+            Err(extraction_error) => {
+                // Convert Component Model error to anyhow::Error
+                let error_msg = match extraction_error {
+                    exports::riptide::extractor::extract::ExtractionError::InvalidHtml(msg) => {
+                        format!("Invalid HTML: {}", msg)
+                    }
+                    exports::riptide::extractor::extract::ExtractionError::NetworkError(msg) => {
+                        format!("Network error: {}", msg)
+                    }
+                    exports::riptide::extractor::extract::ExtractionError::ParseError(msg) => {
+                        format!("Parse error: {}", msg)
+                    }
+                    exports::riptide::extractor::extract::ExtractionError::ResourceLimit(msg) => {
+                        format!("Resource limit: {}", msg)
+                    }
+                    exports::riptide::extractor::extract::ExtractionError::ExtractorError(msg) => {
+                        format!("Extractor error: {}", msg)
+                    }
+                    exports::riptide::extractor::extract::ExtractionError::InternalError(msg) => {
+                        format!("Internal error: {}", msg)
+                    }
+                    exports::riptide::extractor::extract::ExtractionError::UnsupportedMode(msg) => {
+                        format!("Unsupported mode: {}", msg)
+                    }
+                };
+                Err(anyhow::anyhow!(error_msg))
+            }
+        }
+    }
+
+    /// Extract content with detailed performance statistics
+    pub fn extract_with_stats(
+        &self,
+        html: &str,
+        url: &str,
+        mode: ExtractionMode,
+    ) -> Result<(ExtractedDoc, ExtractionStats)> {
+        let mut store = Store::new(&self.engine, ());
+        let bindings = Extractor::instantiate(&mut store, &self.component, &self.linker)?;
+
+        // Convert our ExtractionMode to the WIT extraction-mode
+        let wit_mode = match mode {
+            ExtractionMode::Article => {
+                exports::riptide::extractor::extract::ExtractionMode::Article
+            }
+            ExtractionMode::Full => exports::riptide::extractor::extract::ExtractionMode::Full,
+            ExtractionMode::Metadata => {
+                exports::riptide::extractor::extract::ExtractionMode::Metadata
+            }
+            ExtractionMode::Custom(selectors) => {
+                exports::riptide::extractor::extract::ExtractionMode::Custom(selectors)
+            }
+        };
+
+        let result = bindings
+            .interface0
+            .call_extract_with_stats(&mut store, html, url, &wit_mode)?;
+
+        match result {
+            Ok((extracted_content, stats)) => {
+                let doc = ExtractedDoc {
+                    url: extracted_content.url,
+                    title: extracted_content.title,
+                    byline: extracted_content.byline,
+                    published_iso: extracted_content.published_iso,
+                    markdown: extracted_content.markdown,
+                    text: extracted_content.text,
+                    links: extracted_content.links,
+                    media: extracted_content.media,
+                    language: extracted_content.language,
+                    reading_time: extracted_content.reading_time,
+                    quality_score: extracted_content.quality_score,
+                    word_count: extracted_content.word_count,
+                    categories: extracted_content.categories,
+                    site_name: extracted_content.site_name,
+                    description: extracted_content.description,
+                };
+
+                let extraction_stats = ExtractionStats {
+                    processing_time_ms: stats.processing_time_ms,
+                    memory_used: stats.memory_used,
+                    nodes_processed: stats.nodes_processed,
+                    links_found: stats.links_found,
+                    images_found: stats.images_found,
+                };
+
+                Ok((doc, extraction_stats))
+            }
+            Err(extraction_error) => {
+                let error_msg = format!("Extraction failed: {:?}", extraction_error);
+                Err(anyhow::anyhow!(error_msg))
+            }
+        }
+    }
+
+    /// Validate HTML content without full extraction
+    pub fn validate_html(&self, html: &str) -> Result<bool> {
+        let mut store = Store::new(&self.engine, ());
+        let bindings = Extractor::instantiate(&mut store, &self.component, &self.linker)?;
+
+        match bindings.interface0.call_validate_html(&mut store, html)? {
+            Ok(is_valid) => Ok(is_valid),
+            Err(err) => Err(anyhow::anyhow!("Validation error: {:?}", err)),
+        }
+    }
+
+    /// Get component health status
+    pub fn health_check(&self) -> Result<HealthStatus> {
+        let mut store = Store::new(&self.engine, ());
+        let bindings = Extractor::instantiate(&mut store, &self.component, &self.linker)?;
+
+        let health = bindings.interface0.call_health_check(&mut store)?;
+        Ok(HealthStatus {
+            status: health.status,
+            version: health.version,
+            trek_version: health.trek_version,
+            capabilities: health.capabilities,
+            memory_usage: health.memory_usage,
+            extraction_count: health.extraction_count,
+        })
+    }
+
+    /// Get detailed component information
+    pub fn get_info(&self) -> Result<ComponentInfo> {
+        let mut store = Store::new(&self.engine, ());
+        let bindings = Extractor::instantiate(&mut store, &self.component, &self.linker)?;
+
+        let info = bindings.interface0.call_get_info(&mut store)?;
+        Ok(ComponentInfo {
+            name: info.name,
+            version: info.version,
+            component_model_version: info.component_model_version,
+            features: info.features,
+            supported_modes: info.supported_modes,
+            build_timestamp: info.build_timestamp,
+            git_commit: info.git_commit,
+        })
+    }
+
+    /// Reset component state and clear caches
+    pub fn reset_state(&self) -> Result<String> {
+        let mut store = Store::new(&self.engine, ());
+        let bindings = Extractor::instantiate(&mut store, &self.component, &self.linker)?;
+
+        match bindings.interface0.call_reset_state(&mut store)? {
+            Ok(message) => Ok(message),
+            Err(err) => Err(anyhow::anyhow!("Reset failed: {:?}", err)),
+        }
+    }
+
+    /// Get supported extraction modes
+    pub fn get_modes(&self) -> Result<Vec<String>> {
+        let mut store = Store::new(&self.engine, ());
+        let bindings = Extractor::instantiate(&mut store, &self.component, &self.linker)?;
+
+        Ok(bindings.interface0.call_get_modes(&mut store)?)
     }
 }

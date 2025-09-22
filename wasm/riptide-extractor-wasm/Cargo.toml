@@ -10,4 +10,11 @@ crate-type = ["cdylib"]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 wit-bindgen = "0.30"
-# trek-rs = "0.1"  # Disabled until Component Model is working
+trek-rs = "=0.2.1"  # Pinned version as specified in roadmap
+once_cell = "1"
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1"
+url = "2"
+
+[build-dependencies]
+vergen = { version = "8", features = ["build", "git", "gitcl"] }
