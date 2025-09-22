@@ -1,14 +1,13 @@
 mod handlers;
 mod models;
 
-use axum::{routing::{get, post}, Router};
+use axum::{
+    routing::{get, post},
+    Router,
+};
 use clap::Parser;
 use std::net::SocketAddr;
-use tower_http::{
-    cors::CorsLayer,
-    trace::TraceLayer,
-    compression::CompressionLayer,
-};
+use tower_http::{compression::CompressionLayer, cors::CorsLayer, trace::TraceLayer};
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]

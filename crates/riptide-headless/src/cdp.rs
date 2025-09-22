@@ -13,9 +13,7 @@ pub async fn render(Json(req): Json<RenderReq>) -> Json<RenderResp> {
         .await
         .expect("Failed to launch browser");
 
-    tokio::spawn(async move {
-        while let Some(_e) = handler.next().await {}
-    });
+    tokio::spawn(async move { while let Some(_e) = handler.next().await {} });
 
     let page = browser
         .new_page(&req.url)
@@ -23,7 +21,7 @@ pub async fn render(Json(req): Json<RenderReq>) -> Json<RenderResp> {
         .expect("Failed to create new page");
 
     if let Some(css) = &req.wait_for {
-        page.wait_for_element(css).await.ok();
+        page.find_element(css).await.ok();
     }
 
     if let Some(steps) = req.scroll_steps {
@@ -34,10 +32,10 @@ pub async fn render(Json(req): Json<RenderReq>) -> Json<RenderResp> {
     }
 
     let html = page.content().await.unwrap_or_default();
-    let final_url = page.url().await.unwrap_or_else(|_| req.url.clone());
+    let final_url = page.url().await.unwrap_or_else(|_| Some(req.url.clone()));
 
     Json(RenderResp {
-        final_url,
+        final_url: final_url.unwrap_or_else(|| req.url.clone()),
         html,
         screenshot_b64: None,
     })

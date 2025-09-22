@@ -1,0 +1,6 @@
+package riptide:extractor;
+
+world extractor {
+  /// Pass raw HTML + URL + mode ("article"|"generic") and receive a JSON string.
+  export extract: func(html: string, url: string, mode: string) -> string;
+}

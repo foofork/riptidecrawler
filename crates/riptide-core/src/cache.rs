@@ -1,8 +1,7 @@
 use anyhow::Result;
 use redis::aio::MultiplexedConnection;
-use redis::{Client, AsyncCommands};
+use redis::{AsyncCommands, Client};
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 
 pub struct CacheManager {
     conn: MultiplexedConnection,
@@ -28,14 +27,12 @@ impl CacheManager {
 
     pub async fn set<T: Serialize>(&mut self, key: &str, value: &T, ttl_secs: u64) -> Result<()> {
         let data = serde_json::to_vec(value)?;
-        self.conn
-            .set_ex(key, data, Duration::from_secs(ttl_secs))
-            .await?;
+        self.conn.set_ex::<_, _, ()>(key, data, ttl_secs).await?;
         Ok(())
     }
 
     pub async fn delete(&mut self, key: &str) -> Result<()> {
-        self.conn.del(key).await?;
+        self.conn.del::<_, ()>(key).await?;
         Ok(())
     }
 }

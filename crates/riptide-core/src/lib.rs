@@ -1,4 +1,5 @@
 pub mod cache;
+pub mod component;
 pub mod extract;
 pub mod fetch;
 pub mod gate;

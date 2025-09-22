@@ -18,7 +18,9 @@ pub struct CrawlResult {
 pub struct DeepSearchBody {
     pub query: String,
     pub limit: Option<u32>,
+    #[allow(dead_code)]
     pub country: Option<String>,
+    #[allow(dead_code)]
     pub locale: Option<String>,
 }
 

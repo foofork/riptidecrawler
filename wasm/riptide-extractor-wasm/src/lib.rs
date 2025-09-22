@@ -1,5 +1,10 @@
 use serde::Serialize;
-use std::io::{Read, Write};
+
+// Generate bindings from WIT file
+wit_bindgen::generate!({
+    world: "extractor",
+    path: "wit",
+});
 
 #[derive(Serialize)]
 struct ExtractedDocOut {
@@ -13,36 +18,30 @@ struct ExtractedDocOut {
     media: Vec<String>,
 }
 
-#[no_mangle]
-pub extern "C" fn _start() {
-    // Read HTML from stdin
-    let mut html = Vec::new();
-    std::io::stdin().read_to_end(&mut html).unwrap();
+// Export the Component Model interface
+export!(Component);
 
-    // Read URL & mode from env
-    let url = std::env::var("RIPTIDE_URL").unwrap_or_else(|_| "about:blank".into());
-    let _mode = std::env::var("RIPTIDE_MODE").unwrap_or_else(|_| "article".into());
+struct Component;
 
-    // Use simple extraction for now
-    let html_str = String::from_utf8_lossy(&html);
+impl Guest for Component {
+    fn extract(html: String, url: String, _mode: String) -> String {
+        // Use simple extraction for now (TODO: integrate trek-rs properly)
+        let title = extract_title(&html);
+        let content = extract_content(&html);
 
-    // Use simple extraction for now (TODO: integrate trek-rs properly)
-    let title = extract_title(&html_str);
-    let content = extract_content(&html_str);
+        let out = ExtractedDocOut {
+            url,
+            title,
+            byline: None,
+            published_iso: None,
+            markdown: content.clone(),
+            text: strip_html_tags(&content),
+            links: extract_links(&html),
+            media: extract_images(&html),
+        };
 
-    let out = ExtractedDocOut {
-        url,
-        title,
-        byline: None,
-        published_iso: None,
-        markdown: content.clone(),
-        text: strip_html_tags(&content),
-        links: extract_links(&html_str),
-        media: extract_images(&html_str),
-    };
-
-    let json = serde_json::to_vec(&out).unwrap();
-    std::io::stdout().write_all(&json).unwrap();
+        serde_json::to_string(&out).unwrap_or_else(|_| "{}".to_string())
+    }
 }
 
 fn extract_title(html: &str) -> Option<String> {
@@ -113,12 +112,21 @@ fn extract_images(html: &str) -> Vec<String> {
 
 fn extract_content(html: &str) -> String {
     // Simple content extraction - look for main content areas
-    let content_tags = ["<article", "<main", "<div class=\"content", "<div id=\"content"];
+    let content_tags = [
+        "<article",
+        "<main",
+        "<div class=\"content",
+        "<div id=\"content",
+    ];
 
     for tag in &content_tags {
         if let Some(start) = html.find(tag) {
             // Find the closing tag
-            let tag_name = tag.trim_start_matches('<').split(' ').next().unwrap_or("div");
+            let tag_name = tag
+                .trim_start_matches('<')
+                .split(' ')
+                .next()
+                .unwrap_or("div");
             let closing_tag = format!("</{}>", tag_name);
 
             if let Some(end) = html[start..].find(&closing_tag) {
