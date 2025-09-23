@@ -86,7 +86,7 @@ async fn render_internal(
         })?;
 
     // Launch browser with timeout
-    let (browser, mut handler) = timeout(
+    let (mut browser, mut handler) = timeout(
         Duration::from_millis(1500), // Allow 1.5s for browser launch
         Browser::launch(browser_config),
     )
@@ -188,14 +188,7 @@ async fn wait_for_content_and_idle(
     request_id: &str,
 ) -> Result<(), String> {
     // First, wait for DOMContentLoaded event
-    if let Err(e) = timeout(
-        Duration::from_millis(500),
-        page.wait_for_load_state(
-            chromiumoxide::cdp::browser_protocol::page::LoadState::DomContentLoaded,
-        ),
-    )
-    .await
-    {
+    if let Err(e) = timeout(Duration::from_millis(500), page.wait_for_navigation()).await {
         debug!(
             request_id = %request_id,
             "DOMContentLoaded timeout (proceeding anyway): {:?}", e

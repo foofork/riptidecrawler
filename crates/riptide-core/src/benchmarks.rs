@@ -1,9 +1,8 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tokio::runtime::Runtime;
 
 use crate::component::{CmExtractor, ExtractorConfig};
-use crate::types::ExtractedDoc;
 use crate::types::ExtractionMode;
 
 /// Performance benchmarking suite for RipTide extractors
@@ -14,7 +13,6 @@ use crate::types::ExtractionMode;
 /// - Memory usage patterns
 /// - Concurrent extraction capabilities
 /// - WASM component overhead analysis
-
 /// Sample HTML content for benchmarking
 const SAMPLE_HTML_SMALL: &str = r#"
 <!DOCTYPE html>
@@ -100,8 +98,6 @@ fn create_test_extractor(config: &BenchmarkConfig) -> CmExtractor {
 
 /// Benchmark single extraction performance
 fn bench_single_extraction(c: &mut Criterion) {
-    let rt = Runtime::new().unwrap();
-
     for (size_name, html) in BENCHMARK_SIZES {
         for config in BENCHMARK_CONFIGS {
             let bench_id = format!("{}_extraction_{}", config.name, size_name);
@@ -112,15 +108,14 @@ fn bench_single_extraction(c: &mut Criterion) {
                 |b, html| {
                     let extractor = create_test_extractor(config);
 
-                    b.to_async(&rt).iter(|| async {
+                    b.iter(|| {
                         black_box(
                             extractor
                                 .extract(
                                     black_box(html),
                                     black_box("https://example.com"),
                                     black_box("article"),
-                                )
-                                .await,
+                                ),
                         )
                     });
                 },
@@ -146,24 +141,26 @@ fn bench_concurrent_extraction(c: &mut Criterion) {
                 |b, (html, concurrent_requests)| {
                     let extractor = create_test_extractor(config);
 
-                    b.to_async(&rt).iter(|| async {
-                        let tasks: Vec<_> = (0..*concurrent_requests)
-                            .map(|_| {
-                                let extractor = &extractor;
-                                async move {
-                                    extractor
-                                        .extract(
-                                            black_box(html),
-                                            black_box("https://example.com"),
-                                            black_box("article"),
-                                        )
-                                        .await
-                                }
-                            })
-                            .collect();
+                    b.iter(|| {
+                        rt.block_on(async {
+                            let tasks: Vec<_> = (0..*concurrent_requests)
+                                .map(|_| {
+                                    let extractor = &extractor;
+                                    async move {
+                                        extractor
+                                            .extract(
+                                                black_box(html),
+                                                black_box("https://example.com"),
+                                                black_box("article"),
+                                            )
+                                            .await
+                                    }
+                                })
+                                .collect();
 
-                        let results = futures::future::join_all(tasks).await;
-                        black_box(results)
+                            let results = futures::future::join_all(tasks).await;
+                            black_box(results)
+                        })
                     });
                 },
             );
@@ -191,12 +188,14 @@ fn bench_pool_efficiency(c: &mut Criterion) {
             BenchmarkId::new("pool_warmup", pool_size),
             &pool_size,
             |b, _| {
-                b.to_async(&rt).iter(|| async {
-                    let extractor = CmExtractor::with_config("test.wasm", config.clone())
-                        .expect("Failed to create extractor");
+                b.iter(|| {
+                    rt.block_on(async {
+                        let extractor = CmExtractor::with_config("test.wasm", config.clone())
+                            .expect("Failed to create extractor");
 
-                    black_box(extractor.warm_up().await)
-                });
+                        black_box(extractor.warm_up().await)
+                    })
+                })
             },
         );
 
@@ -204,16 +203,18 @@ fn bench_pool_efficiency(c: &mut Criterion) {
             BenchmarkId::new("pool_scale", pool_size),
             &pool_size,
             |b, _| {
-                b.to_async(&rt).iter(|| async {
-                    let extractor = create_test_extractor(&BenchmarkConfig {
-                        name: "pool_test",
-                        pool_size,
-                        concurrent_requests: 1,
-                        enable_instance_reuse: true,
-                    });
+                b.iter(|| {
+                    rt.block_on(async {
+                        let extractor = create_test_extractor(&BenchmarkConfig {
+                            name: "pool_test",
+                            pool_size,
+                            concurrent_requests: 1,
+                            enable_instance_reuse: true,
+                        });
 
-                    black_box(extractor.scale_pool(pool_size * 2).await)
-                });
+                        black_box(extractor.scale_pool(pool_size * 2).await)
+                    })
+                })
             },
         );
     }
@@ -236,20 +237,22 @@ fn bench_memory_usage(c: &mut Criterion) {
             |b, html| {
                 let extractor = create_test_extractor(&BENCHMARK_CONFIGS[2]); // pooled_concurrent
 
-                b.to_async(&rt).iter(|| async {
-                    // Extract 100 times to test memory reuse
-                    for _ in 0..100 {
-                        let _ = black_box(
-                            extractor
-                                .extract(
-                                    black_box(html),
-                                    black_box("https://example.com"),
-                                    black_box("article"),
-                                )
-                                .await,
-                        );
-                    }
-                });
+                b.iter(|| {
+                    rt.block_on(async {
+                        // Extract 100 times to test memory reuse
+                        for _ in 0..100 {
+                            let _ = black_box(
+                                extractor
+                                    .extract(
+                                        black_box(html),
+                                        black_box("https://example.com"),
+                                        black_box("article"),
+                                    )
+                                    .await,
+                            );
+                        }
+                    })
+                })
             },
         );
     }
@@ -277,16 +280,18 @@ fn bench_extraction_modes(c: &mut Criterion) {
                 BenchmarkId::new("extraction_modes", &bench_id),
                 &(html, &mode),
                 |b, (html, mode)| {
-                    b.to_async(&rt).iter(|| async {
-                        black_box(
-                            extractor
-                                .extract_typed_with_timeout(
-                                    black_box(html),
-                                    black_box("https://example.com"),
-                                    black_box(mode.clone()),
-                                )
-                                .await,
-                        )
+                    b.iter(|| {
+                        rt.block_on(async {
+                            black_box(
+                                extractor
+                                    .extract_typed_with_timeout(
+                                        black_box(html),
+                                        black_box("https://example.com"),
+                                        black_box(mode.clone()),
+                                    )
+                                    .await,
+                            )
+                        })
                     });
                 },
             );
@@ -318,18 +323,20 @@ fn bench_error_handling(c: &mut Criterion) {
             BenchmarkId::new("error_handling", error_type),
             html,
             |b, html| {
-                b.to_async(&rt).iter(|| async {
-                    // These should fail gracefully and return typed errors
-                    let _ = black_box(
-                        extractor
-                            .extract(
-                                black_box(html),
-                                black_box("https://example.com"),
-                                black_box("article"),
-                            )
-                            .await,
-                    );
-                });
+                b.iter(|| {
+                    rt.block_on(async {
+                        // These should fail gracefully and return typed errors
+                        let _ = black_box(
+                            extractor
+                                .extract(
+                                    black_box(html),
+                                    black_box("https://example.com"),
+                                    black_box("article"),
+                                )
+                                .await,
+                        );
+                    })
+                })
             },
         );
     }
@@ -349,33 +356,35 @@ fn bench_circuit_breaker(c: &mut Criterion) {
     };
 
     c.bench_function("circuit_breaker_recovery", |b| {
-        b.to_async(&rt).iter(|| async {
-            let extractor = CmExtractor::with_config("test.wasm", config.clone())
-                .expect("Failed to create extractor");
+        b.iter(|| {
+            rt.block_on(async {
+                let extractor = CmExtractor::with_config("test.wasm", config.clone())
+                    .expect("Failed to create extractor");
 
-            // Trigger failures to open circuit breaker
-            for _ in 0..20 {
-                let _ = extractor
-                    .extract(
-                        black_box(SAMPLE_HTML_LARGE),
-                        black_box("https://example.com"),
-                        black_box("article"),
-                    )
-                    .await;
-            }
+                // Trigger failures to open circuit breaker
+                for _ in 0..20 {
+                    let _ = extractor
+                        .extract(
+                            black_box(SAMPLE_HTML_LARGE),
+                            black_box("https://example.com"),
+                            black_box("article"),
+                        )
+                        .await;
+                }
 
-            // Test recovery
-            tokio::time::sleep(Duration::from_secs(1)).await;
+                // Test recovery
+                tokio::time::sleep(Duration::from_secs(1)).await;
 
-            black_box(
-                extractor
-                    .extract(
-                        black_box(SAMPLE_HTML_SMALL),
-                        black_box("https://example.com"),
-                        black_box("article"),
-                    )
-                    .await,
-            )
+                black_box(
+                    extractor
+                        .extract(
+                            black_box(SAMPLE_HTML_SMALL),
+                            black_box("https://example.com"),
+                            black_box("article"),
+                        )
+                        .await,
+                )
+            })
         });
     });
 }

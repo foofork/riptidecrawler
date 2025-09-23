@@ -512,9 +512,10 @@ impl PipelineOrchestrator {
 
         let mut cache = self.state.cache.lock().await;
         cache
-            .get(cache_key)
+            .get::<ExtractedDoc>(cache_key)
             .await
             .map_err(|e| ApiError::cache(format!("Cache read failed: {}", e)))
+            .map(|entry| entry.map(|e| e.data))
     }
 
     /// Store content in cache.
@@ -525,7 +526,7 @@ impl PipelineOrchestrator {
 
         let mut cache = self.state.cache.lock().await;
         cache
-            .set(cache_key, document, self.state.config.cache_ttl)
+            .set_simple(cache_key, document, self.state.config.cache_ttl)
             .await
             .map_err(|e| ApiError::cache(format!("Cache write failed: {}", e)))
     }

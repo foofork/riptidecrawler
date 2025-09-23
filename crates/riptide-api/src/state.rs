@@ -194,7 +194,7 @@ impl AppState {
     /// Test Redis connection by performing a simple operation.
     async fn check_redis(&self) -> Result<()> {
         let mut cache = self.cache.lock().await;
-        cache.set("health_check", &"ok", 1).await?;
+        cache.set_simple("health_check", &"ok", 1).await?;
         cache.delete("health_check").await?;
         Ok(())
     }

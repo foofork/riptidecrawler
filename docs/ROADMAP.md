@@ -135,84 +135,286 @@ Based on the original RipTide specifications and current implementation state:
 
 ---
 
-## 🌟 PHASE 3: Crawl4AI Parity Features (5 weeks)
+## 🌟 PHASE 3: Crawl4AI Parity Features (4-6 weeks)
 *Priority: HIGH - Feature parity with Crawl4AI*
 
-**Goal**: Complete feature parity with Crawl4AI for competitive positioning
+**Goal**: Complete feature parity with Crawl4AI for competitive positioning using merge-ready PR strategy
 
-### 3.1 Dynamic Content Handling (Week 1)
-- [ ] **Enhanced `/render` endpoint**
-  - `wait_for` conditions (CSS selectors, custom JS)
-  - `scroll` configuration: steps, step_px, delay_ms
-  - `actions` support: click, type, evaluate JS
-  - Timeout handling and fallback to static
+### 📋 Implementation Strategy
 
-- [ ] **Artifacts & Capture**
-  - Optional screenshot capture (PNG/WebP)
-  - MHTML capture for complete page preservation
-  - Page metadata collection (title, description, OG tags)
+**Branch**: `feature/phase3`
+**Merge Strategy**: Low risk, fast landing with 6 sequential PRs (each releasable)
 
-**Acceptance**: JS-heavy article (Next/React) → `wait_for` loads content → extracted text present → `scroll` loads lazy content → screenshot artifact saved when enabled
+**Feature Flags Configuration**:
+```yaml
+features:
+  headless_v2: false      # PR-1: Actions/waits/scroll/sessions
+  stealth: false          # PR-2: UA rotation + JS evasion
+  streaming: true         # PR-3: NDJSON streaming endpoints
+  pdf: true              # PR-4: PDF pipeline with pdfium
+  spider: false          # PR-5: Spider integration with budgets
+  strategies: true       # PR-6: CSS/XPath/Regex + chunking
+```
 
-### 3.2 Deep Crawling & Site Discovery (Week 2)
-- [ ] **Spider-rs integration**
-  - Site-wide crawling with depth limits (max 3-5 levels)
-  - Per-host budget controls (time, request limits)
-  - Sitemap discovery and parsing (XML sitemaps)
-  - Same-host filtering and URL normalization
+**Performance Guardrails**:
+```yaml
+perf:
+  headless_pool_size: 3         # Hard cap on concurrent headless instances
+  headless_hard_cap_ms: 3000    # Maximum render time budget
+  fetch_connect_ms: 3000        # Connection timeout
+  fetch_total_ms: 20000         # Total fetch timeout
+  pdf_max_concurrent: 2         # Concurrent PDF processing limit
+  streaming_buf_bytes: 65536    # NDJSON streaming buffer size
+  crawl_queue_max: 1000         # Maximum crawl queue size
+  per_host_rps: 1.5            # Rate limiting per host
+```
 
-- [ ] **Adaptive stopping**
-  - Content quality scoring to stop early when goal met
-  - Duplicate content detection to avoid redundant crawling
-  - Link value scoring for priority queuing
+### 🚀 PR-1: Headless RPC v2 - Dynamic Content (Week 1)
+**Branch**: `feature/phase3-pr1-headless-v2`
+**Feature Flag**: `headless_v2: false` (default OFF)
 
-**Acceptance**: Domain seed → crawler respects depth/budgets & robots → returns ≥N pages with per-page extraction + outlinks
+**Files**: `crates/riptide-headless/src/models.rs`, `cdp.rs`
 
-### 3.3 Stealth & Anti-Detection (Week 3)
-- [ ] **User-agent rotation**
-  - Configurable UA list with realistic browser signatures
-  - `--disable-blink-features=AutomationControlled` for headless
-  - Randomized viewport sizes and screen resolutions
+- [ ] **Enhanced RenderRequest model**
+```rust
+#[derive(Deserialize)]
+pub struct RenderRequest {
+    pub session_id: Option<String>,    // Persistent browser sessions
+    pub url: String,
+    pub actions: Option<Vec<PageAction>>,  // Interactive page actions
+    pub timeouts: Option<Timeouts>,    // Configurable timing
+    pub artifacts: Option<Artifacts>,  // Screenshot/MHTML capture
+}
 
-- [ ] **Request randomization**
-  - Per-host delay jitter (±20% of base delay)
-  - Header randomization (Accept-Language, Accept-Encoding)
-  - Optional proxy support (HTTP/SOCKS) via environment variables
+#[derive(Deserialize)]
+#[serde(tag="type", rename_all="snake_case")]
+pub enum PageAction {
+    WaitForCss { css: String, timeout_ms: Option<u64> },
+    WaitForJs { expr: String, timeout_ms: Option<u64> },
+    Scroll { steps: u32, step_px: u32, delay_ms: u64 },
+    Js { code: String },
+    Click { css: String },
+    Type { css: String, text: String, delay_ms: Option<u64> },
+}
+```
 
-**Acceptance**: Repeat crawl to sensitive site completes without bot challenge in ≥80% of runs (small sample)
+- [ ] **Action executor implementation**
+```rust
+async fn exec_actions(page: &Page, actions: &[PageAction]) -> anyhow::Result<()> {
+    for action in actions {
+        match action {
+            PageAction::WaitForCss{css, timeout_ms} => {
+                page.wait_for_element_with_timeout(css, timeout_ms.unwrap_or(5000)).await?;
+            }
+            PageAction::Scroll{steps, step_px, delay_ms} => {
+                for _ in 0..*steps {
+                    page.evaluate(&format!("window.scrollBy(0,{step_px});")).await.ok();
+                    tokio::time::sleep(Duration::from_millis(*delay_ms)).await;
+                }
+            }
+            // ... other action implementations
+        }
+    }
+    Ok(())
+}
+```
 
-### 3.4 PDF Processing & Content Types (Week 4)
-- [ ] **PDF pipeline with pdfium-render**
-  - PDF text extraction and metadata parsing
-  - Image extraction from PDFs with position data
-  - Skip headless rendering for direct PDF URLs
-  - Author, creation date, title metadata extraction
+- [ ] **Session management**: Map `session_id -> user-data-dir` for cookie persistence
+- [ ] **Artifacts capture**: Optional screenshot/MHTML (base64 encoded)
+- [ ] **API passthrough**: Forward `RenderRequest` when `features.headless_v2=true`
 
-- [ ] **Multi-format content handling**
-  - Content-type detection and routing
-  - Word/PowerPoint basic text extraction (if feasible)
-  - Archive file handling (ZIP with HTML/PDF contents)
+**Acceptance**: JS-heavy article (Next/React) → `wait_for` loads content → `scroll` loads lazy content → screenshot artifact captured
 
-**Acceptance**: Known PDFs → extract returns text+metadata → image count > 0 for illustrated docs
+### 🚀 PR-2: Stealth Preset - Anti-Detection (Week 2)
+**Branch**: `feature/phase3-pr2-stealth`
+**Feature Flag**: `stealth: false` (default OFF)
 
-### 3.5 Output Formats & Streaming (Week 5)
-- [ ] **NDJSON streaming**
-  - Streaming output for `/crawl` and `/deepsearch`
-  - Real-time progress updates during batch processing
-  - Configurable batch sizes and flush intervals
+**Files**: `riptide-headless/src/launcher.rs`, `stealth.js`
 
-- [ ] **Content chunking**
-  - Token-aware chunks with configurable size/overlap
-  - Preserve paragraph boundaries in chunks
-  - Metadata preservation across chunks
+- [ ] **Launch flags**: `--disable-blink-features=AutomationControlled --no-first-run --mute-audio --headless=new`
+- [ ] **UA rotation**: Load `configs/ua_list.txt`, pick per `session_id` (stable hash)
+- [ ] **JS injection** (early page lifecycle):
+```javascript
+// stealth.js - injected before any page scripts
+navigator.webdriver = false;
+Object.defineProperty(navigator, 'languages', {
+  get: () => ['en-US', 'en']
+});
+// Canvas/WebGL fingerprint noise
+// Platform/plugin spoofing
+```
 
-- [ ] **Enhanced extraction**
-  - Byline/date extraction from Open Graph and JSON-LD
-  - Fallback heuristics for author and publication date
-  - Mode switch: `article|generic|metadata` extraction
-  - Consistent Markdown formatting across runs
+**Configuration**:
+```yaml
+stealth:
+  ua_pool_file: "configs/ua_list.txt"
+  canvas_noise: true
+  webgl_vendor: "Intel Inc."
+```
 
-**Acceptance**: Top-N URLs stream back record-by-record → chunks produced for long articles → links/media populated → byline/date captured in ≥80% where present
+**Acceptance**: Repeat crawl to bot-detection site → ≥80% success rate without challenges
+
+### 🚀 PR-3: NDJSON Streaming - Real-time Output (Week 2)
+**Branch**: `feature/phase3-pr3-streaming`
+**Feature Flag**: `streaming: true` (default ON)
+
+**Files**: `riptide-api/src/streaming.rs`, route handlers
+
+- [ ] **Streaming endpoints**: `/crawl/stream`, `/deepsearch/stream`
+```rust
+pub async fn crawl_stream(State(app): State<AppState>, Json(body): Json<CrawlBody>) -> impl IntoResponse {
+    let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(128);
+    tokio::spawn(async move {
+        if let Err(e) = orchestrate_stream(app, body, tx).await {
+            // Emit error line in NDJSON format
+        }
+    });
+    axum::response::Response::builder()
+        .header("Content-Type","application/x-ndjson")
+        .body(axum::body::Body::from_stream(ReceiverStream::new(rx).map(axum::body::Bytes::from)))
+        .unwrap()
+}
+```
+
+- [ ] **NDJSON format**: One JSON object per line for each completed URL
+- [ ] **Real-time progress**: Stream results as they complete, not batched
+- [ ] **Error handling**: Include failed URLs with error details in stream
+
+**Acceptance**: 10-URL batch → TTFB < 500ms → results stream as completed → all results captured
+
+### 🚀 PR-4: PDF Pipeline - Document Processing (Week 3)
+**Branch**: `feature/phase3-pr4-pdf`
+**Feature Flag**: `pdf: true` (default ON)
+
+**Files**: `riptide-core/src/pdf.rs`, `types.rs`
+
+- [ ] **PDF detection**: Content-type or URL suffix → skip headless rendering
+- [ ] **pdfium-render integration**: Extract text, metadata, images
+```rust
+pub async fn process_pdf(pdf_bytes: &[u8]) -> anyhow::Result<ExtractedDoc> {
+    let document = PdfDocument::from_bytes(pdf_bytes)?;
+    let text = extract_text_from_pages(&document)?;
+    let metadata = extract_metadata(&document)?; // Author, title, creation date
+    let images = extract_images(&document)?;
+
+    Ok(ExtractedDoc {
+        content: text,
+        metadata: Some(metadata),
+        images: Some(images),
+        ..Default::default()
+    })
+}
+```
+
+- [ ] **Concurrency control**: Semaphore with `pdf_max_concurrent: 2`
+- [ ] **Metadata extraction**: Author, title, creation/modification dates
+- [ ] **Image extraction**: Count and position data for illustrations
+
+**Acceptance**: PDF URLs → text extracted → metadata populated → image count > 0 for illustrated docs
+
+### 🚀 PR-5: Spider Integration - Deep Crawling (Week 4)
+**Branch**: `feature/phase3-pr5-spider`
+**Feature Flag**: `spider: false` (default OFF)
+
+**Files**: `riptide-core/src/crawl.rs`, `riptide-api/src/models.rs`
+
+- [ ] **Frontier strategies**: BFS, DFS, Best-First (priority on link hints + depth penalty)
+- [ ] **Sitemap parsing**: Discover from robots.txt, merge URLs while respecting robots
+- [ ] **Adaptive stopping**: Sliding window of unique_text_chars or scored chunk gain
+```rust
+pub struct CrawlConfig {
+    pub mode: FrontierMode,        // "best-first" | "bfs" | "dfs"
+    pub max_depth: u32,            // Hard limit: 3-5 levels
+    pub budget: CrawlBudget,       // Time and page limits
+    pub adaptive_stop: AdaptiveConfig,
+    pub sitemap: SitemapConfig,
+}
+
+pub struct AdaptiveConfig {
+    pub gain_threshold: u32,       // Min chars/chunk gain to continue
+    pub window: u32,               // Sliding window size
+    pub patience: u32,             // Stop after N consecutive low-gain pages
+}
+```
+
+**Configuration**:
+```yaml
+crawler:
+  mode: "best-first"
+  max_depth: 3
+  budget: { pages: 200, seconds: 120 }
+  adaptive_stop: { gain_threshold: 600, window: 10, patience: 3 }
+  sitemap: { enabled: true }
+```
+
+**Acceptance**: Domain seed → respects depth/budgets → sitemap parsed → returns ≥N pages with extraction
+
+### 🚀 PR-6: Strategies & Chunking - Enhanced Extraction (Week 5)
+**Branch**: `feature/phase3-pr6-strategies`
+**Feature Flag**: `strategies: true` (default ON)
+
+**Files**: `riptide-core/src/strategy/`, `riptide-core/src/chunking.rs`, `riptide-core/src/schema.rs`
+
+- [ ] **Extraction strategies**:
+  - `trek`: Default Trek-rs WASM extraction
+  - `css_json`: CSS selector-based extraction with JSON schema
+  - `regex`: Pattern-based extraction for structured content
+  - `llm`: LLM-powered extraction for complex layouts
+
+- [ ] **Content chunking** (5 methods):
+```rust
+pub enum ChunkingMethod {
+    Regex { pattern: String, max_chunks: u32 },
+    Sentence { max_sentences: u32, overlap: u32 },
+    Topic { similarity_threshold: f32 },
+    Fixed { chunk_size: u32, overlap: u32 },
+    Sliding { token_max: u32, overlap: u32 },  // Default
+}
+```
+
+- [ ] **Schema validation**: Use `schemars` to validate output before returning
+- [ ] **Default configuration**: TREK + sliding chunks (token_max=1200, overlap=120)
+
+**Configuration**:
+```yaml
+extraction:
+  strategy: "trek"              # trek|css_json|regex|llm
+  chunking: { method: "sliding", token_max: 1200, overlap: 120 }
+```
+
+**Acceptance**: Long articles → chunked appropriately → links/media lists populated → byline/date extracted ≥80%
+
+### 📊 Performance Targets & Acceptance Criteria
+
+**Fast-path Performance**:
+- **p50 ≤ 1.5s**, **p95 ≤ 5s** on 10-URL mixed batch
+- **Streaming TTFB < 500ms** for warm cache
+- **Headless fallback ratio < 15%** of total pages
+
+**Resource Limits**:
+- **PDF throughput**: 2 concurrent PDFs, no >200MB memory spikes per worker
+- **Headless pool**: Hard cap of 3 instances, 3s render budget
+- **Spider crawling**: Respects depth/budget, stops early on low content gain
+
+**Cache Performance**:
+- **Wasmtime**: Instantiate component once per worker, reuse store
+- **Redis**: Read-through cache, 24h TTL, keys include extractor version + strategy + chunking
+- **Threshold gates**: Headless fallback thresholds hi=0.55 / lo=0.35
+
+### 🚀 Rollout Plan
+
+1. **Initial Merge**: PR-1..3 merged, enable `streaming=true` + `pdf=true`, keep `headless_v2`/`stealth` OFF
+2. **Canary Testing**: Enable `headless_v2` on 10% traffic for 1 week, monitor error rates + render_ms
+3. **Stealth Activation**: Enable `stealth` flag, validate reduced bot challenge rate
+4. **Spider Integration**: Merge PR-5 with `spider=false`, test on staging domains
+5. **Full Activation**: Merge PR-6, keep TREK+sliding defaults, enable advanced strategies per job
+
+### 🧪 CI Additions
+
+- **WASM component**: Build once, cache as artifact across test jobs
+- **Test scope**: Unit + integration + streaming tests, exclude live-web tests from CI
+- **Resource gates**: Lint for large binaries, feature-flag PDF concurrent tests
+- **Performance regression**: Automated benchmarks on merge to detect slowdowns
 
 ---
 
@@ -311,12 +513,47 @@ Based on the original RipTide specifications and current implementation state:
   - ✅ XSS/injection protection implemented
 
 ### Phase 3 (Crawl4AI Parity) Success Criteria:
-- [ ] Dynamic content: wait/scroll/actions + screenshot/MHTML working
-- [ ] Deep crawl: seeds → budgets/depth honored, sitemap parsed, robots respected
-- [ ] Stealth: UA rotation + stealth flags + proxy support, ≥80% no-challenge rate
-- [ ] PDF: text + metadata + images extracted from PDF documents
-- [ ] Streaming: NDJSON output, chunking, links/media lists populated
-- [ ] Extraction: byline/date from OG/JSON-LD, consistent Markdown output
+**PR-1 (Headless RPC v2)**:
+- [ ] Enhanced RenderRequest with actions, timeouts, artifacts
+- [ ] Page actions: wait_for_css, wait_for_js, scroll, click, type
+- [ ] Session management with persistent browser instances
+- [ ] Screenshot/MHTML artifact capture (base64 encoded)
+
+**PR-2 (Stealth Preset)**:
+- [ ] Launch flags: `--disable-blink-features=AutomationControlled`
+- [ ] UA rotation from configurable list with stable session hashing
+- [ ] JS injection for navigator.webdriver spoofing and fingerprint noise
+- [ ] ≥80% success rate on bot-detection sites
+
+**PR-3 (NDJSON Streaming)**:
+- [ ] `/crawl/stream` and `/deepsearch/stream` endpoints
+- [ ] Real-time NDJSON output (one object per line per URL)
+- [ ] TTFB < 500ms for first result, results stream as completed
+- [ ] Proper error handling in stream format
+
+**PR-4 (PDF Pipeline)**:
+- [ ] PDF detection via content-type/URL suffix
+- [ ] pdfium-render integration for text + metadata + images
+- [ ] Concurrency control with semaphore (max 2 concurrent)
+- [ ] Author, title, creation date extraction
+
+**PR-5 (Spider Integration)**:
+- [ ] Frontier strategies: BFS, DFS, Best-First with priority scoring
+- [ ] Sitemap discovery and parsing from robots.txt
+- [ ] Adaptive stopping with gain threshold and sliding window
+- [ ] Budget enforcement: max_depth, max_pages, time limits
+
+**PR-6 (Strategies & Chunking)**:
+- [ ] Multiple extraction strategies: trek, css_json, regex, llm
+- [ ] 5 chunking methods with sliding window default (1200 tokens, 120 overlap)
+- [ ] Schema validation with schemars before output
+- [ ] Byline/date extraction from Open Graph and JSON-LD
+
+**Performance Targets**:
+- [ ] Fast-path p50 ≤ 1.5s, p95 ≤ 5s on 10-URL mixed batch
+- [ ] Streaming TTFB < 500ms for warm cache
+- [ ] Headless fallback ratio < 15% of total pages
+- [ ] PDF: 2 concurrent max, no >200MB memory spikes per worker
 
 ### Phase 2 (Production) Success Criteria:
 - [ ] 99.9% uptime over 30 days
@@ -385,20 +622,32 @@ Based on the original RipTide specifications and current implementation state:
 ## 🤝 Next Steps
 
 ### Immediate Actions (Next Steps - Phase 3):
-With Phase 1 fully completed, ready to proceed with Crawl4AI parity features:
+With Phase 1 & 2 fully completed, ready to proceed with Crawl4AI parity using the 6-PR strategy:
 
-1. **Dynamic Content Handling** - Enhanced `/render` endpoint with wait_for conditions
-2. **Deep Crawling** - Spider-rs integration for site-wide discovery
-3. **Stealth Features** - User-agent rotation and anti-detection measures
-4. **PDF Processing** - pdfium-render integration for document extraction
-5. **Output Formats** - NDJSON streaming and content chunking
+**Branch Setup**: Create `feature/phase3` branch for coordinated development
 
-### Phase 3 Development (4-6 weeks):
-1. Week 1: Dynamic content handling and artifacts
-2. Week 2: Deep crawling and site discovery
-3. Week 3: Stealth and anti-detection
-4. Week 4: PDF processing and multi-format content
-5. Week 5: Output formats and streaming
+**PR Sequence (merge in order)**:
+1. **PR-1**: Headless RPC v2 (actions/waits/scroll/sessions) - Feature flag OFF
+2. **PR-2**: Stealth preset (UA rotation + JS evasion) - Feature flag OFF
+3. **PR-3**: NDJSON streaming (/crawl/stream + /deepsearch/stream) - Feature flag ON
+4. **PR-4**: PDF pipeline (pdfium text+metadata) - Feature flag ON, cap concurrency
+5. **PR-5**: Spider integration (depth/budgets + sitemap) - Feature flag OFF
+6. **PR-6**: Strategies & chunking (css/xpath/regex + 5 chunkers) - Feature flag ON, default TREK
+
+**Rollout Strategy**:
+1. Merge PR-1..3, enable streaming + PDF, keep headless_v2/stealth OFF
+2. Canary headless_v2 on 10% traffic for 1 week, monitor metrics
+3. Enable stealth, validate reduced challenge rate
+4. Merge PR-5 (spider) OFF by default, test on staging
+5. Merge PR-6, keep TREK+sliding defaults, enable advanced strategies per job
+
+### Phase 3 Development Timeline (4-6 weeks):
+1. **Week 1**: PR-1 (Headless RPC v2) + PR-2 (Stealth) development
+2. **Week 2**: PR-3 (NDJSON Streaming) development and testing
+3. **Week 3**: PR-4 (PDF Pipeline) with pdfium-render integration
+4. **Week 4**: PR-5 (Spider Integration) with adaptive stopping
+5. **Week 5**: PR-6 (Strategies & Chunking) with schema validation
+6. **Week 6**: Integration testing, performance validation, rollout
 
 ### Month 2:
 1. Production deployment and hardening

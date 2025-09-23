@@ -207,10 +207,10 @@ impl HealthChecker {
         let test_key = "health_check_test";
         let test_value = "health_check_value";
 
-        cache.set(test_key, &test_value, 5).await?;
+        cache.set_simple(test_key, &test_value, 5).await?;
         let retrieved = cache.get::<String>(test_key).await?;
 
-        if retrieved.as_deref() != Some(test_value) {
+        if retrieved.is_none() || retrieved.as_ref().unwrap().data != test_value {
             return Err(anyhow::anyhow!("Redis value mismatch"));
         }
 
@@ -221,7 +221,7 @@ impl HealthChecker {
         let batch_value = "performance_test";
 
         for key in &batch_keys {
-            cache.set(key, &batch_value, 1).await?;
+            cache.set_simple(key, &batch_value, 1).await?;
         }
 
         for key in &batch_keys {

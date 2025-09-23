@@ -1,3 +1,5 @@
+pub mod render;
+
 use crate::errors::{ApiError, ApiResult};
 use crate::models::*;
 use crate::pipeline::PipelineOrchestrator;
@@ -6,6 +8,9 @@ use crate::validation::{validate_crawl_request, validate_deepsearch_request};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use std::time::Instant;
 use tracing::{debug, info};
+
+// Re-export render handler
+pub use render::render;
 
 /// Application startup time for uptime calculation
 pub static START_TIME: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
