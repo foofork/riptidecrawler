@@ -21,72 +21,10 @@
 - ✅ Build optimization (3.9GB recovered)
 - ✅ Legacy API removal complete
 
-### 0.1 Error Handling Improvements - HIGH PRIORITY
-**Status**: 🚧 IN PROGRESS
-**Effort**: 3-4 days
-**Scope**: 542 unwrap/expect calls identified (analysis shows higher count than original 305)
-
-- [ ] **Replace remaining unwrap/expect calls**
-  - Progress: 25 critical ones fixed, ~517 remaining
-  - Focus on production-critical paths first
-  - Implement proper Result/Option patterns
-  - Add comprehensive error recovery
-
-### 0.2 Test Coverage Gap - MEDIUM PRIORITY
-**Status**: 🟡 PENDING
-**Effort**: 3-5 days
-
-- [ ] **Achieve 80%+ test coverage** (currently 75%)
-  - Critical paths have 40% coverage gaps
-  - Add integration tests for refactored modules
-  - Implement golden tests for new features
-
-### 0.3 Monitoring & Observability - HIGH PRIORITY
+### 0.1 Core Integration Gaps - CRITICAL PRIORITY
 **Status**: 🟡 PENDING
 **Effort**: 1 week
-
-- [ ] **Production monitoring infrastructure**
-  - Add comprehensive tracing with OpenTelemetry (currently disabled in telemetry.rs:146)
-  - Implement performance benchmarking suite
-  - Create SLA monitoring dashboards
-  - Add detailed performance metrics
-  - Implement actual system metrics collection (placeholders in health.rs:358-366)
-  - Track active connections from middleware
-  - Calculate requests per second from metrics
-  - Implement average response time tracking
-  - Add disk usage tracking (telemetry.rs:525)
-  - Implement file descriptor tracking (telemetry.rs:528)
-  - Complete CPU and memory usage collection (monitoring/collector.rs:292-298)
-
-### 0.4 Resource Management & Performance - MEDIUM PRIORITY
-**Status**: 🟡 PENDING
-**Effort**: 3-4 days
-
-- [ ] **Browser pooling and memory optimization**
-  - Implement connection pooling for headless Chrome
-  - Add resource cleanup on timeout
-  - Monitor WASM component lifecycle
-  - Implement memory usage alerts
-  - Memory allocation improvements for better performance
-
-- [ ] **Build Pipeline Optimization**
-  - Address WASM compilation timeouts (5+ min build times)
-  - Implement dependency caching for CI/CD
-  - Enable incremental compilation
-  - Set up parallel builds
-  - Implement component pooling for WASM modules to reduce overhead
-
-- [ ] **Circuit Breaker Enhancements**
-  - Consider adaptive thresholds for dynamic adjustment
-  - Implement performance-based threshold tuning
-  - Add self-learning capabilities for failure patterns
-
----
-
-
-### 0.5 Core Integration Gaps - HIGH PRIORITY
-**Status**: 🟡 PENDING
-**Effort**: 1 week
+**Impact**: Core functionality non-operational without these
 
 - [ ] **WASM Extractor Integration**
   - Wire actual WASM extractor in handlers/render.rs:401 (currently placeholder)
@@ -100,6 +38,36 @@
   - Complete browser action execution (render.rs:290)
   - Implement content analysis for adaptive rendering (render.rs:382)
 
+### 0.2 Error Handling Improvements - CRITICAL PRIORITY
+**Status**: 🚧 IN PROGRESS
+**Effort**: 3-4 days
+**Impact**: 542 potential panic points in production
+
+- [ ] **Replace remaining unwrap/expect calls**
+  - Progress: 25 critical ones fixed, ~517 remaining
+  - Focus on production-critical paths first
+  - Implement proper Result/Option patterns
+  - Add comprehensive error recovery
+
+### 0.3 Monitoring & Observability - HIGH PRIORITY
+**Status**: 🟡 PENDING
+**Effort**: 1 week
+**Impact**: No production visibility without these
+
+- [ ] **Production monitoring infrastructure**
+  - Add comprehensive tracing with OpenTelemetry (currently disabled in telemetry.rs:146)
+  - Implement actual system metrics collection (placeholders in health.rs:358-366)
+  - Track active connections, RPS, response times
+  - Add disk usage and file descriptor tracking
+  - Complete CPU and memory usage collection
+  - Create SLA monitoring dashboards
+  - Implement performance benchmarking suite
+
+### 0.4 Session & Worker Management - HIGH PRIORITY
+**Status**: 🟡 PENDING
+**Effort**: 3-4 days
+**Impact**: Limited scalability and no stateful crawling
+
 - [ ] **Session & Cookie Management**
   - Implement session persistence across requests
   - Add cookie jar management for authentication
@@ -111,6 +79,44 @@
   - Implement batch processing queue
   - Add job scheduling and retry logic
   - Create worker pool management
+
+### 0.5 Resource Management & Performance - MEDIUM PRIORITY
+**Status**: 🟡 PENDING
+**Effort**: 3-4 days
+**Impact**: Performance bottlenecks and resource leaks
+
+- [ ] **Browser pooling and memory optimization**
+  - Implement connection pooling for headless Chrome
+  - Add resource cleanup on timeout
+  - Monitor WASM component lifecycle
+  - Implement memory usage alerts
+  - Memory allocation improvements
+
+- [ ] **Build Pipeline Optimization**
+  - Address WASM compilation timeouts (5+ min build times)
+  - Implement dependency caching for CI/CD
+  - Enable incremental compilation
+  - Set up parallel builds
+
+### 0.6 Test Coverage & Quality - MEDIUM PRIORITY
+**Status**: 🟡 PENDING
+**Effort**: 3-5 days
+**Impact**: Regression risk in production
+
+- [ ] **Achieve 80%+ test coverage** (currently 75%)
+  - Critical paths have 40% coverage gaps
+  - Add integration tests for refactored modules
+  - Implement golden tests for new features
+
+### 0.7 Circuit Breaker Enhancements - LOW PRIORITY
+**Status**: 🟡 PENDING
+**Effort**: 2 days
+**Impact**: Nice-to-have resilience improvements
+
+- [ ] **Adaptive thresholds**
+  - Dynamic threshold adjustment
+  - Performance-based tuning
+  - Self-learning failure patterns
 
 ---
 
@@ -487,25 +493,32 @@ extraction:
 
 | Phase | Duration | Key Deliverables | Risk Level | Status |
 |-------|----------|------------------|------------|---------|
-| **Phase 0** | 2-3 weeks | Critical tech debt, monitoring, integration gaps | CRITICAL | ⚠️ 60% COMPLETE |
+| **Phase 0** | 5 weeks | Core integration, error handling, monitoring, quality | CRITICAL | ⚠️ 60% COMPLETE |
 | **Phase 3** | 3-4 weeks | Advanced features and parity | MEDIUM | ✅ PR-1 & PR-2 COMPLETE, PR-3 NEXT |
 | **Phase 4** | 6-8 weeks | Enterprise capabilities | LOW | PLANNED |
 | **Phase 5** | Ongoing | Continuous optimization | LOW | PLANNED |
 
-**Total Estimated Timeline**: 3-3.5 months for remaining work (includes newly identified integration gaps)
+**Total Estimated Timeline**: 3.5-4 months for remaining work (properly prioritized with core functionality first)
 
 ---
 
 ## 🤝 Next Steps
 
-### Immediate Actions (Phase 0 Extended):
-**Priority**: Complete remaining technical debt and integration gaps
+### Immediate Actions (Phase 0 - Priority Order):
+**Week 1-2: CRITICAL Items (Production Blockers)**
+1. **Core Integration Gaps** (1 week): WASM extractor and dynamic rendering - system non-functional without these
+2. **Error Handling** (3-4 days): Replace 517 unwrap/expect calls to prevent production panics
 
-1. **Error Handling** (3-4 days): Replace remaining 517 unwrap/expect calls focusing on critical paths
-2. **Test Coverage** (3-5 days): Achieve 80% coverage target (currently 75%)
-3. **Monitoring & Observability** (1 week): Implement OpenTelemetry tracing, system metrics, and health monitoring
-4. **Resource Management** (3-4 days): Browser pooling, WASM build optimization, and memory management
-5. **Core Integration** (1 week): WASM extractor wiring, dynamic rendering, session management, worker service
+**Week 3: HIGH Priority (Production Readiness)**
+3. **Monitoring & Observability** (1 week): OpenTelemetry, metrics, dashboards - no visibility without these
+4. **Session & Worker Management** (3-4 days): Session persistence and background processing
+
+**Week 4: MEDIUM Priority (Performance & Quality)**
+5. **Resource Management** (3-4 days): Browser pooling, memory optimization, build pipeline
+6. **Test Coverage** (3-5 days): Achieve 80% coverage to reduce regression risk
+
+**Week 5: LOW Priority (Enhancements)**
+7. **Circuit Breaker Enhancements** (2 days): Adaptive thresholds and self-learning
 
 ### Following Actions (Phase 3 Continuation):
 After Phase 0 completion, resume Crawl4AI parity using the 6-PR strategy:
