@@ -1,3 +1,4 @@
+use riptide_core::stealth::StealthConfig;
 use serde::{Deserialize, Serialize};
 
 /// Enhanced render request with Phase 3 PR-1 features
@@ -13,7 +14,6 @@ pub struct RenderReq {
     pub scroll_steps: Option<u32>,
 
     // NEW Phase 3 PR-1 fields:
-
     /// Session ID for persistent browser sessions
     pub session_id: Option<String>,
 
@@ -25,6 +25,9 @@ pub struct RenderReq {
 
     /// Artifacts to capture
     pub artifacts: Option<Artifacts>,
+
+    /// Stealth configuration for anti-detection
+    pub stealth_config: Option<StealthConfig>,
 }
 
 /// Timeout configurations for rendering
@@ -64,14 +67,10 @@ pub enum PageAction {
     },
 
     /// Execute JavaScript code
-    Js {
-        code: String,
-    },
+    Js { code: String },
 
     /// Click an element
-    Click {
-        css: String,
-    },
+    Click { css: String },
 
     /// Type text into an element
     Type {
@@ -104,7 +103,6 @@ pub struct RenderResp {
     pub screenshot_b64: Option<String>,
 
     // NEW Phase 3 PR-1 fields:
-
     /// Session ID for reuse
     pub session_id: Option<String>,
 

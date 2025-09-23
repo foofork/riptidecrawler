@@ -5,6 +5,7 @@ mod metrics;
 mod models;
 mod pipeline;
 mod state;
+mod streaming;
 mod validation;
 
 use crate::health::HealthChecker;
@@ -100,7 +101,11 @@ async fn main() -> anyhow::Result<()> {
         .route("/healthz", get(handlers::health))
         .route("/metrics", get(handlers::metrics))
         .route("/crawl", post(handlers::crawl))
+        .route("/crawl/stream", post(streaming::ndjson_crawl_stream))
+        .route("/crawl/sse", post(streaming::crawl_sse))
+        .route("/crawl/ws", get(streaming::crawl_websocket))
         .route("/deepsearch", post(handlers::deepsearch))
+        .route("/deepsearch/stream", post(streaming::ndjson_deepsearch_stream))
         .fallback(handlers::not_found)
         .with_state(app_state)
         .layer(prometheus_layer)

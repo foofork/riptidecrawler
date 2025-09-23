@@ -1,5 +1,6 @@
 use riptide_core::stealth::{
-    StealthConfig, StealthController, StealthPreset, RotationStrategy, load_user_agents_from_file
+    StealthConfig, StealthController, StealthPreset, RotationStrategy, load_user_agents_from_file,
+    LocaleStrategy
 };
 use std::fs;
 use std::io::Write;
@@ -308,5 +309,142 @@ mod integration_tests {
 
         // Verify preset
         assert_eq!(*controller.get_preset(), StealthPreset::High);
+    }
+
+    #[test]
+    fn test_webgl_fingerprinting_config() {
+        let config = StealthConfig::from_preset(StealthPreset::High);
+
+        // Test WebGL configuration
+        assert!(config.fingerprinting.webgl.randomize_vendor);
+        assert!(config.fingerprinting.webgl.randomize_renderer);
+        assert_eq!(config.fingerprinting.webgl.noise_level, 0.2);
+    }
+
+    #[test]
+    fn test_canvas_fingerprinting_config() {
+        let config = StealthConfig::from_preset(StealthPreset::High);
+
+        // Test Canvas configuration
+        assert!(config.fingerprinting.canvas.add_noise);
+        assert_eq!(config.fingerprinting.canvas.noise_intensity, 0.1);
+        assert!(!config.fingerprinting.canvas.block_data_extraction); // Default is false
+    }
+
+    #[test]
+    fn test_audio_fingerprinting_config() {
+        let config = StealthConfig::from_preset(StealthPreset::High);
+
+        // Test Audio configuration
+        assert!(config.fingerprinting.audio.add_noise);
+        assert_eq!(config.fingerprinting.audio.noise_intensity, 0.001);
+        assert!(config.fingerprinting.audio.spoof_hardware);
+    }
+
+    #[test]
+    fn test_webrtc_fingerprinting_config() {
+        let config = StealthConfig::from_preset(StealthPreset::High);
+
+        // Test WebRTC configuration
+        assert!(config.fingerprinting.webrtc.block_ip_leak);
+        assert!(config.fingerprinting.webrtc.spoof_media_devices);
+        assert!(!config.fingerprinting.webrtc.disable_data_channels); // Default is false
+    }
+
+    #[test]
+    fn test_hardware_fingerprinting_config() {
+        let config = StealthConfig::from_preset(StealthPreset::High);
+
+        // Test Hardware configuration
+        assert!(config.fingerprinting.hardware.spoof_cpu_cores);
+        assert!(config.fingerprinting.hardware.spoof_device_memory);
+        assert!(config.fingerprinting.hardware.spoof_battery);
+        assert!(!config.fingerprinting.hardware.cpu_core_options.is_empty());
+        assert!(!config.fingerprinting.hardware.memory_options.is_empty());
+    }
+
+    #[test]
+    fn test_font_fingerprinting_config() {
+        let config = StealthConfig::default();
+
+        // Test Font configuration
+        assert!(config.fingerprinting.fonts.limit_fonts);
+        assert!(!config.fingerprinting.fonts.standard_fonts.is_empty());
+        assert!(config.fingerprinting.fonts.standard_fonts.contains(&"Arial".to_string()));
+    }
+
+    #[test]
+    fn test_locale_randomization() {
+        let config = StealthConfig::default();
+
+        // Test locale configuration
+        assert!(!config.request_randomization.locale.locales.is_empty());
+        assert!(!config.request_randomization.locale.timezones.is_empty());
+
+        // Verify timezone mapping exists for each locale
+        for locale in &config.request_randomization.locale.locales {
+            assert!(config.request_randomization.locale.timezones.contains_key(locale));
+        }
+    }
+
+    #[test]
+    fn test_stealth_preset_differences() {
+        let none_config = StealthConfig::from_preset(StealthPreset::None);
+        let low_config = StealthConfig::from_preset(StealthPreset::Low);
+        let medium_config = StealthConfig::from_preset(StealthPreset::Medium);
+        let high_config = StealthConfig::from_preset(StealthPreset::High);
+
+        // None should have minimal stealth
+        assert!(!none_config.fingerprinting.cdp_stealth.disable_automation_controlled);
+
+        // Low should have basic stealth
+        assert!(low_config.fingerprinting.cdp_stealth.disable_automation_controlled);
+        assert_eq!(low_config.request_randomization.timing_jitter.jitter_percentage, 0.1);
+
+        // Medium should be default (balanced)
+        assert!(medium_config.fingerprinting.cdp_stealth.disable_automation_controlled);
+
+        // High should have maximum stealth
+        assert!(high_config.fingerprinting.cdp_stealth.disable_automation_controlled);
+        assert_eq!(high_config.request_randomization.timing_jitter.jitter_percentage, 0.4);
+        assert_eq!(high_config.fingerprinting.webgl.noise_level, 0.2);
+        assert_eq!(high_config.fingerprinting.canvas.noise_intensity, 0.1);
+    }
+
+    #[test]
+    fn test_stealth_controller_multiple_requests() {
+        let mut controller = StealthController::from_preset(StealthPreset::High);
+
+        // Test multiple request workflow
+        for i in 0..5 {
+            let user_agent = controller.next_user_agent();
+            let headers = controller.generate_headers();
+            let (width, height) = controller.random_viewport();
+            let delay = controller.calculate_delay();
+
+            assert!(!user_agent.is_empty());
+            assert!(!headers.is_empty());
+            assert!(width > 0 && height > 0);
+            assert!(delay.as_millis() > 0);
+
+            // Request count should increment
+            assert_eq!(controller.request_count, (i + 1) as u64);
+        }
+    }
+
+    #[test]
+    fn test_comprehensive_cdp_flags() {
+        let high_controller = StealthController::from_preset(StealthPreset::High);
+        let flags = high_controller.get_cdp_flags();
+
+        // Check for essential stealth flags
+        assert!(flags.contains(&"--disable-blink-features=AutomationControlled".to_string()));
+        assert!(flags.contains(&"--no-first-run".to_string()));
+        assert!(flags.contains(&"--disable-default-apps".to_string()));
+        assert!(flags.contains(&"--disable-dev-shm-usage".to_string()));
+        assert!(flags.contains(&"--no-sandbox".to_string()));
+        assert!(flags.contains(&"--disable-web-security".to_string()));
+        assert!(flags.contains(&"--disable-extensions".to_string()));
+        assert!(flags.contains(&"--mute-audio".to_string()));
     }
 }

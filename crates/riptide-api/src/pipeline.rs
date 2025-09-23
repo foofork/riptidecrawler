@@ -4,7 +4,8 @@ use reqwest::Response;
 use riptide_core::{
     fetch,
     gate::{decide, score, Decision, GateFeatures},
-    types::{CrawlOptions, ExtractedDoc},
+    pdf::{self, utils as pdf_utils},
+    types::{CrawlOptions, ExtractedDoc, RenderMode},
 };
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
@@ -135,10 +136,38 @@ impl PipelineOrchestrator {
 
         // Step 2: Fetch content
         debug!(url = %url, "Cache miss, fetching content");
-        let (response, html_content) = self.fetch_content(url).await?;
+        let (response, content_bytes, content_type) = self.fetch_content_with_type(url).await?;
         let http_status = response.status().as_u16();
 
-        // Step 3: Gate analysis
+        // Step 3: Check if this is PDF content
+        if pdf_utils::is_pdf_content(content_type.as_deref(), &content_bytes)
+            || matches!(self.options.render_mode, RenderMode::Pdf)
+        {
+            info!(url = %url, "Detected PDF content, processing with PDF pipeline");
+            let document = self.process_pdf_content(&content_bytes, url).await?;
+
+            // Cache the PDF result
+            if let Err(e) = self.store_in_cache(&cache_key, &document).await {
+                warn!(error = %e, "Failed to cache PDF result, continuing anyway");
+            }
+
+            let processing_time_ms = start_time.elapsed().as_millis() as u64;
+
+            return Ok(PipelineResult {
+                document,
+                from_cache: false,
+                gate_decision: "pdf".to_string(),
+                quality_score: 0.95, // PDFs typically have high quality
+                processing_time_ms,
+                cache_key,
+                http_status,
+            });
+        }
+
+        // Convert bytes back to string for HTML processing
+        let html_content = String::from_utf8_lossy(&content_bytes).to_string();
+
+        // Step 4: Gate analysis for HTML content
         let gate_features = self.analyze_content(&html_content, url).await?;
         let quality_score = score(&gate_features);
         let decision = decide(
@@ -161,10 +190,10 @@ impl PipelineOrchestrator {
             "Gate analysis complete"
         );
 
-        // Step 4: Extract content based on gate decision
+        // Step 5: Extract content based on gate decision
         let document = self.extract_content(&html_content, url, decision).await?;
 
-        // Step 5: Cache the result
+        // Step 6: Cache the result
         if let Err(e) = self.store_in_cache(&cache_key, &document).await {
             warn!(error = %e, "Failed to cache result, continuing anyway");
         }
@@ -303,6 +332,92 @@ impl PipelineOrchestrator {
         );
 
         (pipeline_results, stats)
+    }
+
+    /// Fetch content with content type detection for PDF handling.
+    async fn fetch_content_with_type(
+        &self,
+        url: &str,
+    ) -> ApiResult<(Response, Vec<u8>, Option<String>)> {
+        let fetch_timeout = Duration::from_secs(15);
+        let response = timeout(fetch_timeout, fetch::get(&self.state.http_client, url))
+            .await
+            .map_err(|_| ApiError::timeout("content_fetch", format!("Timeout fetching {}", url)))?
+            .map_err(|e| ApiError::fetch(url, e.to_string()))?;
+
+        // Extract content type before consuming response
+        let content_type = response
+            .headers()
+            .get("content-type")
+            .and_then(|ct| ct.to_str().ok())
+            .map(|s| s.to_string());
+
+        let content_bytes = timeout(fetch_timeout, response.bytes())
+            .await
+            .map_err(|_| {
+                ApiError::timeout(
+                    "content_read",
+                    format!("Timeout reading content from {}", url),
+                )
+            })?
+            .map_err(|e| ApiError::fetch(url, format!("Failed to read response body: {}", e)))?
+            .to_vec();
+
+        // Recreate response for status code (since we consumed it for bytes)
+        let response = fetch::get(&self.state.http_client, url)
+            .await
+            .map_err(|e| ApiError::fetch(url, e.to_string()))?;
+
+        Ok((response, content_bytes, content_type))
+    }
+
+    /// Process PDF content using the PDF pipeline.
+    async fn process_pdf_content(&self, pdf_bytes: &[u8], url: &str) -> ApiResult<ExtractedDoc> {
+        let _pdf_config = self.options.pdf_config.clone().unwrap_or_default();
+
+        info!(
+            url = %url,
+            file_size = pdf_bytes.len(),
+            "Processing PDF content"
+        );
+
+        match pdf::process_pdf(pdf_bytes).await {
+            Ok(document) => {
+                info!(
+                    url = %url,
+                    text_length = document.text.len(),
+                    title = ?document.title,
+                    "PDF processing completed successfully"
+                );
+                Ok(document)
+            }
+            Err(e) => {
+                error!(
+                    url = %url,
+                    error = %e,
+                    "PDF processing failed"
+                );
+
+                // Return a fallback document with error information
+                Ok(ExtractedDoc {
+                    url: url.to_string(),
+                    title: Some("PDF Processing Failed".to_string()),
+                    byline: None,
+                    published_iso: None,
+                    markdown: format!("**PDF Processing Error**: {}", e),
+                    text: format!("PDF processing failed: {}", e),
+                    links: Vec::new(),
+                    media: Vec::new(),
+                    language: None,
+                    reading_time: Some(1),
+                    quality_score: Some(20), // Low quality due to error
+                    word_count: Some(5),
+                    categories: vec!["pdf".to_string(), "error".to_string()],
+                    site_name: None,
+                    description: Some("Failed to process PDF document".to_string()),
+                })
+            }
+        }
     }
 
     /// Fetch HTML content from a URL with timeout and error handling.

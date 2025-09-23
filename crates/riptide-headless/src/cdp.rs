@@ -2,6 +2,7 @@ use crate::models::*;
 use axum::{http::StatusCode, Json};
 use chromiumoxide::{Browser, BrowserConfig, Page};
 use futures::StreamExt;
+use riptide_core::stealth::{StealthController, StealthPreset};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -82,7 +83,8 @@ async fn exec_actions(page: &Page, actions: &[PageAction]) -> anyhow::Result<()>
         match action {
             PageAction::WaitForCss { css, timeout_ms } => {
                 let _timeout = Duration::from_millis(timeout_ms.unwrap_or(5000));
-                let _ = page.find_element(css)
+                let _ = page
+                    .find_element(css)
                     .await
                     .map_err(|e| anyhow::anyhow!("CSS selector not found: {}", e))?;
                 debug!("Waited for CSS selector: {}", css);
@@ -102,11 +104,14 @@ async fn exec_actions(page: &Page, actions: &[PageAction]) -> anyhow::Result<()>
                     sleep(Duration::from_millis(100)).await;
                 }
             }
-            PageAction::Scroll { steps, step_px, delay_ms } => {
+            PageAction::Scroll {
+                steps,
+                step_px,
+                delay_ms,
+            } => {
                 for i in 0..*steps {
                     let scroll_js = format!("window.scrollBy(0, {});", step_px);
-                    page.evaluate(scroll_js.as_str())
-                        .await?;
+                    page.evaluate(scroll_js.as_str()).await?;
                     debug!("Scrolled step {}/{}: {}px", i + 1, steps, step_px);
                     sleep(Duration::from_millis(*delay_ms)).await;
                 }
@@ -116,13 +121,14 @@ async fn exec_actions(page: &Page, actions: &[PageAction]) -> anyhow::Result<()>
                 debug!("Executed JavaScript code");
             }
             PageAction::Click { css } => {
-                page.find_element(css)
-                    .await?
-                    .click()
-                    .await?;
+                page.find_element(css).await?.click().await?;
                 debug!("Clicked element: {}", css);
             }
-            PageAction::Type { css, text, delay_ms } => {
+            PageAction::Type {
+                css,
+                text,
+                delay_ms,
+            } => {
                 let element = page.find_element(css).await?;
                 for ch in text.chars() {
                     element.type_str(&ch.to_string()).await?;
@@ -140,27 +146,39 @@ async fn render_internal(
     req: RenderReq,
     request_id: String,
 ) -> Result<RenderResp, RenderErrorResp> {
-    // Browser configuration with Phase 3 stealth flags (when enabled)
+    // Initialize stealth controller based on configuration or environment
+    let stealth_preset = determine_stealth_preset(&req)?;
+    let mut stealth_controller = StealthController::from_preset(stealth_preset.clone());
+
+    // Browser configuration with Phase 3 stealth integration
     let mut builder = BrowserConfig::builder();
 
-    // Add stealth flags if feature is enabled
-    if std::env::var("STEALTH_MODE").unwrap_or_default() == "true" {
-        builder = builder
-            .arg("--disable-blink-features=AutomationControlled")
-            .arg("--no-first-run")
-            .arg("--mute-audio")
-            .arg("--disable-dev-shm-usage");
+    // Apply stealth flags based on preset
+    if stealth_preset != StealthPreset::None {
+        let stealth_flags = stealth_controller.get_cdp_flags();
+        for flag in stealth_flags {
+            builder = builder.arg(&flag);
+        }
+
+        // Set user agent if stealth is enabled
+        let user_agent = stealth_controller.next_user_agent();
+        builder = builder.arg(&format!("--user-agent={}", user_agent));
+
+        debug!(
+            request_id = %request_id,
+            preset = ?stealth_preset,
+            user_agent = %user_agent,
+            "Applied stealth configuration"
+        );
     } else {
         builder = builder.with_head(); // Keep headful for debugging when not in stealth
     }
 
-    let browser_config = builder
-        .build()
-        .map_err(|e| RenderErrorResp {
-            error: format!("Failed to build browser config: {}", e),
-            request_id: Some(request_id.clone()),
-            duration_ms: 0,
-        })?;
+    let browser_config = builder.build().map_err(|e| RenderErrorResp {
+        error: format!("Failed to build browser config: {}", e),
+        request_id: Some(request_id.clone()),
+        duration_ms: 0,
+    })?;
 
     // Launch browser with timeout
     let (mut browser, mut handler) = timeout(
@@ -245,12 +263,16 @@ async fn render_internal(
     let mut artifacts_out = ArtifactsOut::default();
     if let Some(artifacts) = &req.artifacts {
         if artifacts.screenshot {
-            match page.screenshot(chromiumoxide::page::ScreenshotParams::default()).await {
+            match page
+                .screenshot(chromiumoxide::page::ScreenshotParams::default())
+                .await
+            {
                 Ok(screenshot_bytes) => {
                     use base64::Engine;
-                    artifacts_out.screenshot_b64 = Some(base64::engine::general_purpose::STANDARD.encode(&screenshot_bytes));
+                    artifacts_out.screenshot_b64 =
+                        Some(base64::engine::general_purpose::STANDARD.encode(&screenshot_bytes));
                     debug!(request_id = %request_id, "Screenshot captured");
-                },
+                }
                 Err(e) => {
                     warn!(request_id = %request_id, error = %e, "Screenshot capture failed");
                 }
@@ -272,9 +294,23 @@ async fn render_internal(
         final_url,
         html,
         screenshot_b64: artifacts_out.screenshot_b64.clone(), // For backward compatibility
-        session_id: req.session_id.clone(), // Echo back session ID for now
+        session_id: req.session_id.clone(),                   // Echo back session ID for now
         artifacts: artifacts_out,
     })
+}
+
+/// Inject stealth JavaScript early in page lifecycle
+async fn inject_stealth_js(page: &Page) -> Result<(), String> {
+    // Read the stealth.js file and inject it
+    let stealth_js = include_str!("stealth.js");
+
+    // Use addScriptToEvaluateOnNewDocument to inject before any page scripts run
+    page.evaluate_on_new_document(stealth_js)
+        .await
+        .map_err(|e| format!("Failed to inject stealth JS: {}", e))?;
+
+    debug!("Stealth JavaScript injected successfully");
+    Ok(())
 }
 
 /// Create page and navigate with proper error handling
@@ -283,6 +319,11 @@ async fn create_and_navigate_page(browser: &Browser, url: &str) -> Result<Page, 
         .new_page(url)
         .await
         .map_err(|e| format!("Failed to create page: {}", e))?;
+
+    // Inject stealth JavaScript early in page lifecycle
+    if let Err(e) = inject_stealth_js(&page).await {
+        debug!("Stealth JS injection failed (non-critical): {}", e);
+    }
 
     // Wait for basic navigation to complete
     if let Err(e) = page.wait_for_navigation().await {
@@ -391,4 +432,25 @@ async fn extract_page_content(
     );
 
     Ok((html, final_url))
+}
+
+/// Determine stealth preset based on request configuration and environment
+fn determine_stealth_preset(req: &RenderReq) -> Result<StealthPreset, RenderErrorResp> {
+    // Check if stealth is explicitly configured in request
+    if let Some(stealth_config) = &req.stealth_config {
+        return Ok(stealth_config.preset.clone());
+    }
+
+    // Check environment variables for stealth mode
+    match std::env::var("STEALTH_MODE")
+        .unwrap_or_default()
+        .to_lowercase()
+        .as_str()
+    {
+        "none" | "false" | "0" => Ok(StealthPreset::None),
+        "low" => Ok(StealthPreset::Low),
+        "medium" | "true" | "1" => Ok(StealthPreset::Medium),
+        "high" => Ok(StealthPreset::High),
+        _ => Ok(StealthPreset::Medium), // Default to medium stealth
+    }
 }

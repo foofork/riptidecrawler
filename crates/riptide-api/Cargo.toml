@@ -22,6 +22,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
+tokio-stream = { workspace = true }
 tracing = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true }
@@ -41,3 +42,6 @@ criterion = { version = "0.5", features = ["html_reports"] }
 httpmock = "0.7"
 wiremock = "0.6"
 rstest = "0.22"
+axum-extra = { version = "0.9" }
+futures-util = "0.3"
+tokio-tungstenite = "0.23"

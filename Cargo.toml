@@ -15,7 +15,7 @@ authors = ["RipTide Team"]
 
 [workspace.dependencies]
 anyhow = "1"
-axum = { version = "0.7", features = ["json"] }  # Keep 0.7 for stability
+axum = { version = "0.7", features = ["json", "ws"] }  # Keep 0.7 for stability
 bytes = "1"
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4", features = ["derive"] }

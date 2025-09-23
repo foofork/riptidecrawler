@@ -390,7 +390,7 @@ pub trait WasmExtractor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
+    // use std::collections::HashMap;
 
     struct MockWasmExtractor;
 

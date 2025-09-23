@@ -109,14 +109,11 @@ fn bench_single_extraction(c: &mut Criterion) {
                     let extractor = create_test_extractor(config);
 
                     b.iter(|| {
-                        black_box(
-                            extractor
-                                .extract(
-                                    black_box(html),
-                                    black_box("https://example.com"),
-                                    black_box("article"),
-                                ),
-                        )
+                        black_box(extractor.extract(
+                            black_box(html),
+                            black_box("https://example.com"),
+                            black_box("article"),
+                        ))
                     });
                 },
             );
@@ -153,7 +150,6 @@ fn bench_concurrent_extraction(c: &mut Criterion) {
                                                 black_box("https://example.com"),
                                                 black_box("article"),
                                             )
-                                            .await
                                     }
                                 })
                                 .collect();
@@ -190,10 +186,11 @@ fn bench_pool_efficiency(c: &mut Criterion) {
             |b, _| {
                 b.iter(|| {
                     rt.block_on(async {
-                        let extractor = CmExtractor::with_config("test.wasm", config.clone())
+                        let _extractor = CmExtractor::with_config("test.wasm", config.clone())
                             .expect("Failed to create extractor");
 
-                        black_box(extractor.warm_up().await)
+                        // Warm-up functionality not yet implemented
+                        black_box(Ok::<(), String>(()))
                     })
                 })
             },
@@ -205,14 +202,15 @@ fn bench_pool_efficiency(c: &mut Criterion) {
             |b, _| {
                 b.iter(|| {
                     rt.block_on(async {
-                        let extractor = create_test_extractor(&BenchmarkConfig {
+                        let _extractor = create_test_extractor(&BenchmarkConfig {
                             name: "pool_test",
                             pool_size,
                             concurrent_requests: 1,
                             enable_instance_reuse: true,
                         });
 
-                        black_box(extractor.scale_pool(pool_size * 2).await)
+                        // Pool scaling functionality not yet implemented
+                        black_box(Ok::<(), String>(()))
                     })
                 })
             },
@@ -247,8 +245,7 @@ fn bench_memory_usage(c: &mut Criterion) {
                                         black_box(html),
                                         black_box("https://example.com"),
                                         black_box("article"),
-                                    )
-                                    .await,
+                                    ),
                             );
                         }
                     })
@@ -284,12 +281,11 @@ fn bench_extraction_modes(c: &mut Criterion) {
                         rt.block_on(async {
                             black_box(
                                 extractor
-                                    .extract_typed_with_timeout(
+                                    .extract_typed(
                                         black_box(html),
                                         black_box("https://example.com"),
-                                        black_box(mode.clone()),
-                                    )
-                                    .await,
+                                        black_box((*mode).clone()),
+                                    ),
                             )
                         })
                     });
@@ -321,7 +317,7 @@ fn bench_error_handling(c: &mut Criterion) {
     for (error_type, html) in invalid_html_samples {
         c.bench_with_input(
             BenchmarkId::new("error_handling", error_type),
-            html,
+            &html,
             |b, html| {
                 b.iter(|| {
                     rt.block_on(async {
@@ -332,8 +328,7 @@ fn bench_error_handling(c: &mut Criterion) {
                                     black_box(html),
                                     black_box("https://example.com"),
                                     black_box("article"),
-                                )
-                                .await,
+                                ),
                         );
                     })
                 })
@@ -368,8 +363,7 @@ fn bench_circuit_breaker(c: &mut Criterion) {
                             black_box(SAMPLE_HTML_LARGE),
                             black_box("https://example.com"),
                             black_box("article"),
-                        )
-                        .await;
+                        );
                 }
 
                 // Test recovery
@@ -381,8 +375,7 @@ fn bench_circuit_breaker(c: &mut Criterion) {
                             black_box(SAMPLE_HTML_SMALL),
                             black_box("https://example.com"),
                             black_box("article"),
-                        )
-                        .await,
+                        ),
                 )
             })
         });
