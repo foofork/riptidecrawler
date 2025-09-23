@@ -95,7 +95,8 @@ fn create_test_extractor(
     // For benchmarking, we'll use a mock WASM path
     // In real tests, this would point to the actual WASM component
     Ok(CmExtractor::with_config("test.wasm", extractor_config)
-        .await.map_err(|e| format!("Failed to create extractor for benchmarking: {}", e))?)
+        .await
+        .map_err(|e| format!("Failed to create extractor for benchmarking: {}", e))?)
 }
 
 /// Benchmark single extraction performance
@@ -190,7 +191,8 @@ fn bench_pool_efficiency(c: &mut Criterion) {
                 b.iter(|| {
                     rt.block_on(async {
                         let _extractor = CmExtractor::with_config("test.wasm", config.clone())
-                            .await.expect("Failed to create extractor for benchmark");
+                            .await
+                            .expect("Failed to create extractor for benchmark");
 
                         // Warm-up functionality not yet implemented
                         black_box(Ok::<(), String>(()))
@@ -352,7 +354,8 @@ fn bench_circuit_breaker(c: &mut Criterion) {
         b.iter(|| {
             rt.block_on(async {
                 let extractor = CmExtractor::with_config("test.wasm", config.clone())
-                    .await.expect("Failed to create extractor for benchmark");
+                    .await
+                    .expect("Failed to create extractor for benchmark");
 
                 // Trigger failures to open circuit breaker
                 for _ in 0..20 {

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::path::PathBuf;
-use wasmtime::{Config, Engine, Store};
 use wasmtime::component::{bindgen, Component, Linker};
+use wasmtime::{Config, Engine, Store};
 
 // Generate typed bindings from the WIT world
 bindgen!({

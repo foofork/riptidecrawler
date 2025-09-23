@@ -30,7 +30,6 @@ pub use crate::circuit::State as CircuitState;
 
 // Circuit breaker implementation moved to circuit.rs module
 
-
 /// Retry configuration with exponential backoff
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RetryConfig {
@@ -167,7 +166,11 @@ impl ReliableHttpClient {
         for attempt in 0..self.retry_config.max_attempts {
             // Use circuit breaker for the request
             match circuit::guarded_call(&self.circuit_breaker, || async {
-                self.client.get(url).send().await.map_err(Into::into)
+                self.client
+                    .get(url)
+                    .send()
+                    .await
+                    .map_err(|e| anyhow::anyhow!(e))
             })
             .await
             {
@@ -380,7 +383,9 @@ mod tests {
         assert!(circuit.try_acquire().is_err());
 
         // Advance time past cooldown
-        test_clock.now.store(1100, std::sync::atomic::Ordering::Relaxed);
+        test_clock
+            .now
+            .store(1100, std::sync::atomic::Ordering::Relaxed);
 
         // Next acquire should transition to half-open and return permit
         let permit = circuit.try_acquire().expect("should get permit");
@@ -392,7 +397,9 @@ mod tests {
         assert_eq!(circuit.state(), circuit::State::Closed);
 
         // Can acquire again when closed
-        let permit2 = circuit.try_acquire().expect("should get permit when closed");
+        let permit2 = circuit
+            .try_acquire()
+            .expect("should get permit when closed");
         assert!(permit2.is_none()); // Closed state doesn't require permits
     }
 

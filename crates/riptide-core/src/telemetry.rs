@@ -8,6 +8,24 @@ use opentelemetry_sdk::{runtime, Resource};
 use opentelemetry_semantic_conventions::resource::{SERVICE_NAME, SERVICE_VERSION};
 use regex::Regex;
 use std::collections::HashMap;
+
+// Export telemetry macros
+#[macro_export]
+macro_rules! telemetry_info {
+    ($($arg:tt)*) => {
+        tracing::info!($($arg)*);
+    };
+}
+
+#[macro_export]
+macro_rules! telemetry_span {
+    ($name:expr) => {
+        tracing::info_span!($name)
+    };
+    ($name:expr, $($field:tt)*) => {
+        tracing::info_span!($name, $($field)*)
+    };
+}
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::info;
@@ -169,38 +187,38 @@ impl DataSanitizer {
         let patterns = vec![
             // API Keys and tokens
             (
-                Regex::new(r#"(?i)(api[_-]?key|token|secret|password|auth)[\s=:]+([a-zA-Z0-9+/=-]{20,})"#)
-                    .unwrap(),
+                Regex::new(
+                    r#"(?i)(api[_-]?key|token|secret|password|auth)[\s=:]+([a-zA-Z0-9+/=-]{20,})"#,
+                )
+                .unwrap(),
                 "$1=***REDACTED***".to_string(),
             ),
             // Authorization headers
             (
-                Regex::new(r#"(?i)(authorization|bearer)["':\s=]*["']?([a-zA-Z0-9+/=._-]{20,})["']?"#)
-                    .unwrap(),
+                Regex::new(
+                    r#"(?i)(authorization|bearer)["':\s=]*["']?([a-zA-Z0-9+/=._-]{20,})["']?"#,
+                )
+                .unwrap(),
                 "$1: ***REDACTED***".to_string(),
             ),
             // Email addresses (PII)
             (
-                Regex::new(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b")
-                    .unwrap(),
+                Regex::new(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b").unwrap(),
                 "***EMAIL_REDACTED***".to_string(),
             ),
             // IP addresses (partial)
             (
-                Regex::new(r"\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.)\d{1,3}\b")
-                    .unwrap(),
+                Regex::new(r"\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.)\d{1,3}\b").unwrap(),
                 "${1}XXX".to_string(),
             ),
             // Credit card numbers
             (
-                Regex::new(r"\b(?:\d{4}[-\s]?){3}\d{4}\b")
-                    .unwrap(),
+                Regex::new(r"\b(?:\d{4}[-\s]?){3}\d{4}\b").unwrap(),
                 "***CC_REDACTED***".to_string(),
             ),
             // Social security numbers
             (
-                Regex::new(r"\b\d{3}-?\d{2}-?\d{4}\b")
-                    .unwrap(),
+                Regex::new(r"\b\d{3}-?\d{2}-?\d{4}\b").unwrap(),
                 "***SSN_REDACTED***".to_string(),
             ),
             // Phone numbers

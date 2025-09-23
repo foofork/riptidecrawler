@@ -36,11 +36,11 @@ impl Default for Config {
     }
 }
 
-pub trait Clock: Send + Sync {
+pub trait Clock: Send + Sync + std::fmt::Debug {
     fn now_ms(&self) -> u64;
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct RealClock;
 
 impl Clock for RealClock {
@@ -98,7 +98,7 @@ impl CircuitBreaker {
                 // fallthrough to HalfOpen path
                 self.try_acquire()
             }
-            State::HalfOpen => match self.half_open_permits.clone().try_acquire_owned() {
+            State::HalfOpen => match Arc::clone(&self.half_open_permits).try_acquire_owned() {
                 Ok(permit) => Ok(Some(permit)),
                 Err(_) => Err("half-open saturated"),
             },
@@ -168,10 +168,7 @@ impl CircuitBreaker {
 }
 
 /// Helper function to wrap async calls with circuit breaker protection
-pub async fn guarded_call<T, E, F, Fut>(
-    cb: &Arc<CircuitBreaker>,
-    f: F,
-) -> Result<T, anyhow::Error>
+pub async fn guarded_call<T, E, F, Fut>(cb: &Arc<CircuitBreaker>, f: F) -> Result<T, anyhow::Error>
 where
     F: FnOnce() -> Fut,
     Fut: std::future::Future<Output = Result<T, E>>,
