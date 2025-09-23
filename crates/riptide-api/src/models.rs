@@ -157,7 +157,7 @@ pub struct DeepSearchResponse {
 }
 
 /// Individual search result with extracted content
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SearchResult {
     /// Original URL from search results
     pub url: String,

@@ -136,6 +136,49 @@ pub fn score(features: &GateFeatures) -> f32 {
     (score + domain_adjustment).clamp(0.0, 1.0)
 }
 
+/// Determines if a URL or content type should skip headless rendering for PDF content.
+///
+/// PDFs should be processed directly with the PDF pipeline rather than through
+/// headless browser rendering for better performance and accuracy.
+///
+/// # Arguments
+///
+/// * `url` - The URL being processed
+/// * `content_type` - Optional HTTP Content-Type header value
+///
+/// # Returns
+///
+/// `true` if headless rendering should be used, `false` if PDF processing should be used instead
+///
+/// # Examples
+///
+/// ```rust
+/// use riptide_core::gate::should_use_headless;
+///
+/// // PDF URLs should skip headless
+/// assert!(!should_use_headless("https://example.com/document.pdf", None));
+/// assert!(!should_use_headless("https://example.com/file", Some("application/pdf")));
+///
+/// // Regular web content should use headless if needed
+/// assert!(should_use_headless("https://example.com/article", Some("text/html")));
+/// ```
+pub fn should_use_headless(url: &str, content_type: Option<&str>) -> bool {
+    // Skip headless for PDFs - use direct PDF processing instead
+    let url_lower = url.to_lowercase();
+    if url_lower.ends_with(".pdf") {
+        return false;
+    }
+
+    if let Some(ct) = content_type {
+        if ct.contains("application/pdf") {
+            return false;
+        }
+    }
+
+    // For all other content, allow headless rendering
+    true
+}
+
 /// Decides which extraction strategy to use based on content features and thresholds.
 ///
 /// This function implements a three-tier decision system:
@@ -239,5 +282,44 @@ mod tests {
             domain_prior: 0.5,
         };
         assert_eq!(decide(&features, 0.7, 0.3), Decision::Headless);
+    }
+
+    #[test]
+    fn test_should_use_headless_pdf_urls() {
+        // PDF file extensions should skip headless
+        assert!(!should_use_headless(
+            "https://example.com/document.pdf",
+            None
+        ));
+        assert!(!should_use_headless("https://example.com/file.PDF", None));
+        assert!(!should_use_headless("/local/path/document.pdf", None));
+
+        // PDF content type should skip headless
+        assert!(!should_use_headless(
+            "https://example.com/document",
+            Some("application/pdf")
+        ));
+        assert!(!should_use_headless(
+            "https://example.com/file",
+            Some("application/pdf; charset=utf-8")
+        ));
+
+        // Regular web content should allow headless
+        assert!(should_use_headless(
+            "https://example.com/article",
+            Some("text/html")
+        ));
+        assert!(should_use_headless("https://example.com/page", None));
+        assert!(should_use_headless(
+            "https://example.com/app.js",
+            Some("application/javascript")
+        ));
+
+        // Edge cases
+        assert!(should_use_headless("https://example.com/pdf-viewer", None));
+        assert!(should_use_headless(
+            "https://example.com/file.pdf.html",
+            Some("text/html")
+        ));
     }
 }

@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use wasmtime::{component::*, Config, Engine, Store};
 
+use crate::memory_manager::{MemoryManager, MemoryManagerConfig};
 use crate::types::{ComponentInfo, ExtractedDoc, ExtractionMode, ExtractionStats, HealthStatus};
 
 /// Configuration for instance pooling and performance optimization
@@ -125,6 +126,12 @@ pub struct CmExtractor {
 
     /// WebAssembly linker for component instantiation
     linker: Linker<()>,
+
+    /// Memory manager for WASM instance lifecycle
+    memory_manager: Arc<MemoryManager>,
+
+    /// Path to the component file
+    component_path: String,
 }
 
 /// Circuit breaker states for handling failures
@@ -264,12 +271,12 @@ impl InstancePool {
 
 impl CmExtractor {
     /// Creates a new component model extractor with default configuration.
-    pub fn new(wasm_path: &str) -> Result<Self> {
-        Self::with_config(wasm_path, ExtractorConfig::default())
+    pub async fn new(wasm_path: &str) -> Result<Self> {
+        Self::with_config(wasm_path, ExtractorConfig::default()).await
     }
 
     /// Creates a new component model extractor with custom configuration.
-    pub fn with_config(wasm_path: &str, config: ExtractorConfig) -> Result<Self> {
+    pub async fn with_config(wasm_path: &str, config: ExtractorConfig) -> Result<Self> {
         // Configure Wasmtime for optimal performance
         let mut wasmtime_config = Config::new();
         wasmtime_config.wasm_component_model(true);
@@ -297,8 +304,19 @@ impl CmExtractor {
 
         // Pre-warm the pool
         if config.initial_pool_size > 0 {
-            pool.lock().unwrap().warm_up(config.initial_pool_size)?;
+            pool.lock()
+                .map_err(|e| anyhow::anyhow!("Failed to acquire pool lock for warm-up: {}", e))?
+                .warm_up(config.initial_pool_size)?;
         }
+
+        // Create memory manager with appropriate configuration
+        let memory_config = MemoryManagerConfig {
+            max_total_memory_mb: config.memory_limit / (1024 * 1024), // Convert bytes to MB
+            max_instances: config.max_pool_size,
+            min_instances: config.initial_pool_size,
+            ..Default::default()
+        };
+        let memory_manager = Arc::new(MemoryManager::new(memory_config, engine.clone()).await?);
 
         Ok(Self {
             pool,
@@ -308,6 +326,8 @@ impl CmExtractor {
             engine,
             component,
             linker,
+            memory_manager,
+            component_path: wasm_path.to_string(),
         })
     }
 
@@ -344,7 +364,7 @@ impl CmExtractor {
     /// ```rust
     /// use riptide_core::component::CmExtractor;
     ///
-    /// let extractor = CmExtractor::new("./extractor.wasm")?;
+    /// let extractor = CmExtractor::new("./extractor.wasm").await?;
     /// let html = "<html><body><h1>Title</h1><p>Content</p></body></html>";
     /// let doc = extractor.extract(html, "https://example.com", "article")?;
     ///
@@ -512,8 +532,14 @@ impl CmExtractor {
         }
     }
 
-    /// Validate HTML content without full extraction
-    pub fn validate_html(&self, html: &str) -> Result<bool> {
+    /// Validate HTML content without full extraction using memory management
+    pub async fn validate_html(&self, html: &str) -> Result<bool> {
+        // Get a managed WASM instance from the memory manager
+        let _instance_handle = self
+            .memory_manager
+            .get_instance(&self.component_path)
+            .await?;
+
         let mut store = Store::new(&self.engine, ());
         let bindings = Extractor::instantiate(&mut store, &self.component, &self.linker)?;
 
@@ -523,8 +549,14 @@ impl CmExtractor {
         }
     }
 
-    /// Get component health status
-    pub fn health_check(&self) -> Result<HealthStatus> {
+    /// Get component health status using memory management
+    pub async fn health_check(&self) -> Result<HealthStatus> {
+        // Get a managed WASM instance from the memory manager
+        let _instance_handle = self
+            .memory_manager
+            .get_instance(&self.component_path)
+            .await?;
+
         let mut store = Store::new(&self.engine, ());
         let bindings = Extractor::instantiate(&mut store, &self.component, &self.linker)?;
 
@@ -539,8 +571,14 @@ impl CmExtractor {
         })
     }
 
-    /// Get detailed component information
-    pub fn get_info(&self) -> Result<ComponentInfo> {
+    /// Get detailed component information using memory management
+    pub async fn get_info(&self) -> Result<ComponentInfo> {
+        // Get a managed WASM instance from the memory manager
+        let _instance_handle = self
+            .memory_manager
+            .get_instance(&self.component_path)
+            .await?;
+
         let mut store = Store::new(&self.engine, ());
         let bindings = Extractor::instantiate(&mut store, &self.component, &self.linker)?;
 
@@ -556,8 +594,14 @@ impl CmExtractor {
         })
     }
 
-    /// Reset component state and clear caches
-    pub fn reset_state(&self) -> Result<String> {
+    /// Reset component state and clear caches using memory management
+    pub async fn reset_state(&self) -> Result<String> {
+        // Get a managed WASM instance from the memory manager
+        let _instance_handle = self
+            .memory_manager
+            .get_instance(&self.component_path)
+            .await?;
+
         let mut store = Store::new(&self.engine, ());
         let bindings = Extractor::instantiate(&mut store, &self.component, &self.linker)?;
 

@@ -1,169 +1,35 @@
+use crate::circuit::{self, CircuitBreaker, Config as CircuitConfig};
 use crate::robots::{RobotsConfig, RobotsManager};
+use crate::{telemetry_info, telemetry_span};
 use anyhow::Result;
 use reqwest::{Client, Response};
 use serde::{Deserialize, Serialize};
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
-use tokio::sync::RwLock;
-use tracing::{debug, warn};
-
-/// Circuit breaker state for managing service reliability
-#[derive(Debug, Clone, PartialEq)]
-pub enum CircuitState {
-    Closed,
-    Open,
-    HalfOpen,
-}
+use std::time::Duration;
+use tracing::{debug, error, info, instrument, warn};
 
 /// Circuit breaker configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CircuitBreakerConfig {
-    /// Failure threshold to trigger circuit breaker
-    pub failure_threshold: u64,
-    /// Recovery timeout before attempting half-open
-    pub recovery_timeout: Duration,
-    /// Success threshold in half-open state
-    pub success_threshold: u64,
-    /// Time window for failure counting
-    pub failure_window: Duration,
+    pub failure_threshold: u32,
+    pub open_cooldown_ms: u64,
+    pub half_open_max_in_flight: u32,
 }
 
 impl Default for CircuitBreakerConfig {
     fn default() -> Self {
         Self {
             failure_threshold: 5,
-            recovery_timeout: Duration::from_secs(30),
-            success_threshold: 3,
-            failure_window: Duration::from_secs(60),
+            open_cooldown_ms: 30_000,
+            half_open_max_in_flight: 3,
         }
     }
 }
 
-/// Circuit breaker for protecting against cascading failures
-#[derive(Debug)]
-pub struct CircuitBreaker {
-    state: Arc<RwLock<CircuitState>>,
-    failure_count: Arc<AtomicU64>,
-    success_count: Arc<AtomicU64>,
-    last_failure_time: Arc<RwLock<Option<Instant>>>,
-    config: CircuitBreakerConfig,
-}
+pub use crate::circuit::State as CircuitState;
 
-impl CircuitBreaker {
-    pub fn new(config: CircuitBreakerConfig) -> Self {
-        Self {
-            state: Arc::new(RwLock::new(CircuitState::Closed)),
-            failure_count: Arc::new(AtomicU64::new(0)),
-            success_count: Arc::new(AtomicU64::new(0)),
-            last_failure_time: Arc::new(RwLock::new(None)),
-            config,
-        }
-    }
+// Circuit breaker implementation moved to circuit.rs module
 
-    pub async fn call<F, Fut, T, E>(&self, operation: F) -> Result<T, CircuitBreakerError<E>>
-    where
-        F: FnOnce() -> Fut,
-        Fut: std::future::Future<Output = Result<T, E>>,
-    {
-        // Check if circuit is open
-        if let CircuitState::Open = *self.state.read().await {
-            if self.should_attempt_reset().await {
-                self.transition_to_half_open().await;
-            } else {
-                return Err(CircuitBreakerError::CircuitOpen);
-            }
-        }
-
-        // Execute operation
-        match operation().await {
-            Ok(result) => {
-                self.on_success().await;
-                Ok(result)
-            }
-            Err(error) => {
-                self.on_failure().await;
-                Err(CircuitBreakerError::OperationFailed(error))
-            }
-        }
-    }
-
-    async fn should_attempt_reset(&self) -> bool {
-        if let Some(last_failure) = *self.last_failure_time.read().await {
-            last_failure.elapsed() >= self.config.recovery_timeout
-        } else {
-            false
-        }
-    }
-
-    async fn transition_to_half_open(&self) {
-        *self.state.write().await = CircuitState::HalfOpen;
-        self.success_count.store(0, Ordering::SeqCst);
-        debug!("Circuit breaker transitioned to half-open state");
-    }
-
-    async fn on_success(&self) {
-        let current_state = self.state.read().await.clone();
-        match current_state {
-            CircuitState::HalfOpen => {
-                let success_count = self.success_count.fetch_add(1, Ordering::SeqCst) + 1;
-                if success_count >= self.config.success_threshold {
-                    *self.state.write().await = CircuitState::Closed;
-                    self.failure_count.store(0, Ordering::SeqCst);
-                    debug!("Circuit breaker closed after {} successes", success_count);
-                }
-            }
-            CircuitState::Closed => {
-                // Reset failure count on success
-                self.failure_count.store(0, Ordering::SeqCst);
-            }
-            CircuitState::Open => {
-                // Should not happen, but log it
-                warn!("Received success while circuit is open");
-            }
-        }
-    }
-
-    async fn on_failure(&self) {
-        let current_state = self.state.read().await.clone();
-        match current_state {
-            CircuitState::Closed => {
-                let failure_count = self.failure_count.fetch_add(1, Ordering::SeqCst) + 1;
-                if failure_count >= self.config.failure_threshold {
-                    *self.state.write().await = CircuitState::Open;
-                    *self.last_failure_time.write().await = Some(Instant::now());
-                    warn!("Circuit breaker opened after {} failures", failure_count);
-                }
-            }
-            CircuitState::HalfOpen => {
-                *self.state.write().await = CircuitState::Open;
-                *self.last_failure_time.write().await = Some(Instant::now());
-                warn!("Circuit breaker reopened during half-open state");
-            }
-            CircuitState::Open => {
-                // Update last failure time
-                *self.last_failure_time.write().await = Some(Instant::now());
-            }
-        }
-    }
-
-    pub async fn get_state(&self) -> CircuitState {
-        self.state.read().await.clone()
-    }
-
-    pub fn get_failure_count(&self) -> u64 {
-        self.failure_count.load(Ordering::SeqCst)
-    }
-}
-
-/// Circuit breaker error types
-#[derive(Debug, thiserror::Error)]
-pub enum CircuitBreakerError<E> {
-    #[error("Circuit breaker is open")]
-    CircuitOpen,
-    #[error("Operation failed: {0}")]
-    OperationFailed(E),
-}
 
 /// Retry configuration with exponential backoff
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -193,7 +59,6 @@ impl Default for RetryConfig {
 }
 
 /// Enhanced HTTP client with reliability patterns and robots.txt compliance
-#[derive(Debug, Clone)]
 pub struct ReliableHttpClient {
     client: Client,
     retry_config: RetryConfig,
@@ -202,7 +67,10 @@ pub struct ReliableHttpClient {
 }
 
 impl ReliableHttpClient {
-    pub fn new(retry_config: RetryConfig, circuit_breaker_config: CircuitBreakerConfig) -> Self {
+    pub fn new(
+        retry_config: RetryConfig,
+        circuit_breaker_config: CircuitBreakerConfig,
+    ) -> Result<Self> {
         let client = Client::builder()
             .user_agent("RipTide/1.0")
             .http2_prior_knowledge()
@@ -211,14 +79,20 @@ impl ReliableHttpClient {
             .connect_timeout(Duration::from_secs(3))
             .timeout(Duration::from_secs(20)) // Increased to 20s for total timeout
             .build()
-            .expect("Failed to create HTTP client");
+            .map_err(|e| anyhow::anyhow!("Failed to create HTTP client: {}", e))?;
 
-        Self {
+        let cb_config = CircuitConfig {
+            failure_threshold: circuit_breaker_config.failure_threshold,
+            open_cooldown_ms: circuit_breaker_config.open_cooldown_ms,
+            half_open_max_in_flight: circuit_breaker_config.half_open_max_in_flight,
+        };
+
+        Ok(Self {
             client,
             retry_config,
-            circuit_breaker: Arc::new(CircuitBreaker::new(circuit_breaker_config)),
+            circuit_breaker: CircuitBreaker::new(cb_config, Arc::new(circuit::RealClock)),
             robots_manager: None,
-        }
+        })
     }
 
     /// Create a new client with robots.txt compliance enabled
@@ -226,7 +100,7 @@ impl ReliableHttpClient {
         retry_config: RetryConfig,
         circuit_breaker_config: CircuitBreakerConfig,
         robots_config: RobotsConfig,
-    ) -> Self {
+    ) -> Result<Self> {
         let client = Client::builder()
             .user_agent(&robots_config.user_agent)
             .http2_prior_knowledge()
@@ -235,39 +109,66 @@ impl ReliableHttpClient {
             .connect_timeout(Duration::from_secs(3))
             .timeout(Duration::from_secs(20))
             .build()
-            .expect("Failed to create HTTP client");
+            .map_err(|e| anyhow::anyhow!("Failed to create HTTP client: {}", e))?;
 
-        Self {
+        let cb_config = CircuitConfig {
+            failure_threshold: circuit_breaker_config.failure_threshold,
+            open_cooldown_ms: circuit_breaker_config.open_cooldown_ms,
+            half_open_max_in_flight: circuit_breaker_config.half_open_max_in_flight,
+        };
+
+        Ok(Self {
             client,
             retry_config,
-            circuit_breaker: Arc::new(CircuitBreaker::new(circuit_breaker_config)),
-            robots_manager: Some(Arc::new(RobotsManager::new(robots_config))),
-        }
+            circuit_breaker: CircuitBreaker::new(cb_config, Arc::new(circuit::RealClock)),
+            robots_manager: Some(Arc::new(RobotsManager::new(robots_config)?)),
+        })
     }
 
     /// Enable robots.txt compliance for existing client
     pub fn with_robots_manager(mut self, robots_config: RobotsConfig) -> Self {
-        self.robots_manager = Some(Arc::new(RobotsManager::new(robots_config)));
+        match RobotsManager::new(robots_config) {
+            Ok(manager) => {
+                self.robots_manager = Some(Arc::new(manager));
+            }
+            Err(e) => {
+                tracing::warn!("Failed to create robots manager: {}", e);
+                // Continue without robots manager
+            }
+        }
         self
     }
 
     /// Perform HTTP GET with retry logic, circuit breaker protection, and robots.txt compliance
+    #[instrument(skip(self), fields(url = %url))]
     pub async fn get_with_retry(&self, url: &str) -> Result<Response> {
+        let _span = telemetry_span!(
+            "http_fetch_with_retry",
+            "url" => url,
+            "max_attempts" => self.retry_config.max_attempts.to_string()
+        );
+
+        info!("Starting HTTP GET request with retry");
+        let _overall_start = Instant::now();
+
         // Check robots.txt compliance first if manager is available
         if let Some(robots_manager) = &self.robots_manager {
+            let _robots_span = telemetry_span!("robots_check", "url" => url);
             if !robots_manager.can_crawl_with_wait(url).await? {
+                error!("URL blocked by robots.txt: {}", url);
                 return Err(anyhow::anyhow!("URL blocked by robots.txt: {}", url));
             }
+            info!("Robots.txt check passed");
         }
 
         let mut last_error = None;
 
         for attempt in 0..self.retry_config.max_attempts {
             // Use circuit breaker for the request
-            match self
-                .circuit_breaker
-                .call(|| async { self.client.get(url).send().await })
-                .await
+            match circuit::guarded_call(&self.circuit_breaker, || async {
+                self.client.get(url).send().await.map_err(Into::into)
+            })
+            .await
             {
                 Ok(response) => {
                     match response.error_for_status() {
@@ -329,11 +230,11 @@ impl ReliableHttpClient {
     }
 
     pub async fn get_circuit_breaker_state(&self) -> CircuitState {
-        self.circuit_breaker.get_state().await
+        self.circuit_breaker.state()
     }
 
-    pub fn get_circuit_breaker_failure_count(&self) -> u64 {
-        self.circuit_breaker.get_failure_count()
+    pub fn get_circuit_breaker_failure_count(&self) -> u32 {
+        self.circuit_breaker.failure_count()
     }
 
     /// Get robots manager if available
@@ -353,7 +254,7 @@ fn is_retryable_error(error: &reqwest::Error) -> bool {
 }
 
 /// Legacy function for backward compatibility
-pub fn http_client() -> Client {
+pub fn http_client() -> Result<Client> {
     Client::builder()
         .user_agent("RipTide/1.0")
         .http2_prior_knowledge()
@@ -362,13 +263,46 @@ pub fn http_client() -> Client {
         .connect_timeout(Duration::from_secs(3))
         .timeout(Duration::from_secs(20)) // Updated to 20s
         .build()
-        .expect("client")
+        .map_err(|e| anyhow::anyhow!("Failed to create HTTP client: {}", e))
 }
 
-/// Legacy function for backward compatibility
+/// Legacy function for backward compatibility with telemetry
+#[instrument(skip(client), fields(url = %url))]
 pub async fn get(client: &Client, url: &str) -> Result<Response> {
-    let res = client.get(url).send().await?;
-    Ok(res.error_for_status()?)
+    let _span = telemetry_span!(
+        "http_fetch",
+        "url" => url,
+        "method" => "GET"
+    );
+
+    info!("Starting HTTP GET request");
+    let start_time = Instant::now();
+
+    match client.get(url).send().await {
+        Ok(response) => {
+            let duration = start_time.elapsed();
+            let status = response.status();
+
+            telemetry_info!(
+                "HTTP request completed",
+                "status_code" => status.as_u16().to_string(),
+                "duration_ms" => duration.as_millis().to_string()
+            );
+
+            if status.is_success() {
+                Ok(response)
+            } else {
+                let error_msg = format!("HTTP error: {}", status);
+                error!("{}", error_msg);
+                Err(anyhow::anyhow!(error_msg))
+            }
+        }
+        Err(e) => {
+            let duration = start_time.elapsed();
+            error!("HTTP request failed after {:?}: {}", duration, e);
+            Err(anyhow::anyhow!("Request failed: {}", e))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -400,6 +334,7 @@ mod tests {
     fn test_robots_manager_integration() {
         let client =
             ReliableHttpClient::new(RetryConfig::default(), CircuitBreakerConfig::default())
+                .unwrap()
                 .with_robots_manager(RobotsConfig::default());
 
         assert!(client.is_robots_enabled());
@@ -408,38 +343,57 @@ mod tests {
 
     #[tokio::test]
     async fn test_circuit_breaker_transitions() {
-        let circuit = CircuitBreaker::new(CircuitBreakerConfig {
-            failure_threshold: 2,
-            recovery_timeout: Duration::from_millis(100),
-            success_threshold: 2,
-            failure_window: Duration::from_secs(60),
-        });
-
-        // Initially closed
-        assert_eq!(circuit.get_state().await, CircuitState::Closed);
-
-        // Trigger failures
-        for _ in 0..2 {
-            let _ = circuit
-                .call(|| async { Err::<(), &str>("test error") })
-                .await;
+        // Using TestClock for deterministic testing
+        struct TestClock {
+            now: std::sync::atomic::AtomicU64,
+        }
+        impl circuit::Clock for TestClock {
+            fn now_ms(&self) -> u64 {
+                self.now.load(std::sync::atomic::Ordering::Relaxed)
+            }
         }
 
-        // Should be open now
-        assert_eq!(circuit.get_state().await, CircuitState::Open);
-        assert_eq!(circuit.get_failure_count(), 2);
+        let test_clock = Arc::new(TestClock {
+            now: std::sync::atomic::AtomicU64::new(1000),
+        });
 
-        // Wait for recovery timeout
-        sleep(Duration::from_millis(150)).await;
+        let circuit = CircuitBreaker::new(
+            circuit::Config {
+                failure_threshold: 2,
+                open_cooldown_ms: 100,
+                half_open_max_in_flight: 2,
+            },
+            test_clock.clone(),
+        );
 
-        // Next call should transition to half-open
-        let _ = circuit.call(|| async { Ok::<(), &str>(()) }).await;
-        // After one success in half-open, still half-open
-        assert_eq!(circuit.get_state().await, CircuitState::HalfOpen);
+        // Initially closed
+        assert_eq!(circuit.state(), circuit::State::Closed);
 
-        // Another success should close the circuit
-        let _ = circuit.call(|| async { Ok::<(), &str>(()) }).await;
-        assert_eq!(circuit.get_state().await, CircuitState::Closed);
+        // Trigger failures to open circuit
+        circuit.on_failure();
+        assert_eq!(circuit.state(), circuit::State::Closed);
+        circuit.on_failure();
+        assert_eq!(circuit.state(), circuit::State::Open);
+        assert_eq!(circuit.failure_count(), 0); // Reset after tripping
+
+        // Should reject while in open state
+        assert!(circuit.try_acquire().is_err());
+
+        // Advance time past cooldown
+        test_clock.now.store(1100, std::sync::atomic::Ordering::Relaxed);
+
+        // Next acquire should transition to half-open and return permit
+        let permit = circuit.try_acquire().expect("should get permit");
+        assert!(permit.is_some());
+        assert_eq!(circuit.state(), circuit::State::HalfOpen);
+
+        // Success should close the circuit
+        circuit.on_success();
+        assert_eq!(circuit.state(), circuit::State::Closed);
+
+        // Can acquire again when closed
+        let permit2 = circuit.try_acquire().expect("should get permit when closed");
+        assert!(permit2.is_none()); // Closed state doesn't require permits
     }
 
     #[test]
@@ -453,7 +407,8 @@ mod tests {
                 max_attempts: 3,
             },
             CircuitBreakerConfig::default(),
-        );
+        )
+        .unwrap();
 
         assert_eq!(client.calculate_delay(0), Duration::from_millis(100));
         assert_eq!(client.calculate_delay(1), Duration::from_millis(200));

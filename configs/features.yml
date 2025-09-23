@@ -1,0 +1,116 @@
+# Phase 3 Feature Flags Configuration
+# Controls the gradual rollout of Phase 3 features
+# Each PR can be independently enabled/disabled
+
+features:
+  # PR-1: Headless RPC v2 - Dynamic content handling
+  # Includes actions, waits, scroll, sessions
+  headless_v2: false      # Default OFF (high-risk feature)
+
+  # PR-2: Stealth preset - Anti-detection capabilities
+  # UA rotation, JS evasion, fingerprint modification
+  stealth: false          # Default OFF (detection complexity)
+
+  # PR-3: NDJSON streaming - Real-time output
+  # /crawl/stream and /deepsearch/stream endpoints
+  streaming: true         # Default ON (low-risk, performance benefit)
+
+  # PR-4: PDF pipeline - Document processing
+  # pdfium-render integration for PDF text/metadata extraction
+  pdf: true              # Default ON (low-risk, isolated feature)
+
+  # PR-5: Spider integration - Deep crawling
+  # Site-wide crawling with depth/budget controls
+  spider: false          # Default OFF (resource intensive)
+
+  # PR-6: Strategies & chunking - Enhanced extraction
+  # Multiple extraction strategies + content chunking
+  strategies: true       # Default ON (backward compatible with TREK default)
+
+# Performance guardrails to prevent system overload
+perf:
+  # Headless browser limits
+  headless_pool_size: 3         # Hard cap on concurrent browser instances
+  headless_hard_cap_ms: 3000    # Maximum render time budget per page
+
+  # HTTP fetch limits
+  fetch_connect_ms: 3000        # Connection timeout for HTTP requests
+  fetch_total_ms: 20000         # Total timeout for HTTP requests
+
+  # PDF processing limits
+  pdf_max_concurrent: 2         # Maximum concurrent PDF processing
+
+  # Streaming configuration
+  streaming_buf_bytes: 65536    # NDJSON streaming buffer size (64KB)
+
+  # Spider crawling limits
+  crawl_queue_max: 1000         # Maximum URLs in crawl queue
+  per_host_rps: 1.5            # Rate limiting per host (requests per second)
+
+# Dynamic content configuration
+dynamic:
+  defaults:
+    actions: []                               # Default: no actions
+    timeouts:
+      nav_ms: 15000                          # Navigation timeout
+      idle_after_dcl_ms: 1000               # Idle time after DOMContentLoaded
+      hard_cap_ms: 3000                     # Hard cap for rendering
+
+# Stealth configuration
+stealth:
+  ua_pool_file: "configs/ua_list.txt"       # User agent rotation list
+  canvas_noise: true                         # Add canvas fingerprint noise
+  webgl_vendor: "Intel Inc."                # WebGL vendor spoofing
+
+# Spider/crawler configuration
+crawler:
+  mode: "best-first"                         # Frontier mode: bfs|dfs|best-first
+  max_depth: 3                               # Maximum crawl depth
+  budget:
+    pages: 200                               # Maximum pages to crawl
+    seconds: 120                             # Time budget in seconds
+  adaptive_stop:
+    gain_threshold: 600                      # Minimum content gain to continue
+    window: 10                               # Sliding window size
+    patience: 3                              # Stop after N low-gain pages
+  sitemap:
+    enabled: true                            # Parse and use sitemaps
+
+# Extraction strategies configuration
+extraction:
+  strategy: "trek"                           # Default: trek|css_json|regex|llm
+  chunking:
+    method: "sliding"                        # Chunking method
+    token_max: 1200                          # Maximum tokens per chunk
+    overlap: 120                             # Token overlap between chunks
+
+# Circuit breaker configuration for safety
+circuit_breakers:
+  headless:
+    error_threshold: 5                      # Errors before circuit opens
+    timeout_ms: 30000                        # Circuit reset timeout
+    half_open_requests: 2                    # Test requests in half-open state
+
+  pdf:
+    error_threshold: 3
+    timeout_ms: 20000
+    half_open_requests: 1
+
+  spider:
+    error_threshold: 10
+    timeout_ms: 60000
+    half_open_requests: 3
+
+# Rollout configuration
+rollout:
+  # Canary testing percentages (0-100)
+  canary:
+    headless_v2_percent: 0                  # Start at 0%, gradually increase
+    stealth_percent: 0                      # Start at 0%, test carefully
+    spider_percent: 0                       # Start at 0%, resource intensive
+
+  # Automatic rollback triggers
+  rollback_triggers:
+    error_rate_threshold: 0.05              # Rollback if error rate > 5%
+    latency_p95_threshold_ms: 10000         # Rollback if p95 latency > 10s
+    memory_threshold_gb: 8                  # Rollback if memory usage > 8GB

@@ -164,6 +164,52 @@ pub struct CrawlOptions {
     pub scroll_steps: u32,
     pub token_chunk_max: usize,
     pub token_overlap: usize,
+    // Phase 3 dynamic content options
+    pub dynamic_config: Option<crate::dynamic::DynamicConfig>,
+    pub stealth_config: Option<crate::stealth::StealthConfig>,
+    pub pdf_config: Option<crate::pdf::PdfConfig>,
+    pub render_mode: RenderMode,
+    pub output_format: OutputFormat,
+}
+
+/// Rendering mode for content processing
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum RenderMode {
+    /// Fast path: static HTML processing only
+    Static,
+    /// Dynamic rendering with JavaScript execution
+    Dynamic,
+    /// Adaptive: choose based on content analysis
+    Adaptive,
+    /// PDF processing mode
+    Pdf,
+}
+
+impl Default for RenderMode {
+    fn default() -> Self {
+        RenderMode::Adaptive
+    }
+}
+
+/// Output format for extracted content
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum OutputFormat {
+    /// Standard structured document
+    Document,
+    /// NDJSON streaming format
+    NdJson,
+    /// Chunked content with tokens
+    Chunked,
+    /// Raw text only
+    Text,
+    /// Markdown format
+    Markdown,
+}
+
+impl Default for OutputFormat {
+    fn default() -> Self {
+        OutputFormat::Document
+    }
 }
 
 impl Default for CrawlOptions {
@@ -175,6 +221,11 @@ impl Default for CrawlOptions {
             scroll_steps: 8,
             token_chunk_max: 1200,
             token_overlap: 120,
+            dynamic_config: None,
+            stealth_config: None,
+            pdf_config: None,
+            render_mode: RenderMode::default(),
+            output_format: OutputFormat::default(),
         }
     }
 }

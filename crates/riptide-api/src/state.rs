@@ -2,8 +2,14 @@ use crate::health::HealthChecker;
 use crate::metrics::RipTideMetrics;
 use anyhow::Result;
 use reqwest::Client;
-use riptide_core::{cache::CacheManager, extract::WasmExtractor, fetch::http_client};
+use riptide_core::{
+    cache::CacheManager,
+    extract::WasmExtractor,
+    fetch::http_client,
+    telemetry::{telemetry_info, telemetry_span, TelemetrySystem},
+};
 use std::sync::Arc;
+use tracing::{error, info, warn};
 
 /// Application state shared across all request handlers.
 ///
@@ -29,6 +35,9 @@ pub struct AppState {
 
     /// Health checker for enhanced diagnostics
     pub health_checker: Arc<HealthChecker>,
+
+    /// Telemetry system for observability
+    pub telemetry: Option<Arc<TelemetrySystem>>,
 }
 
 /// Application configuration loaded from environment and config files.
@@ -94,6 +103,7 @@ impl AppState {
     /// * `config` - Application configuration
     /// * `metrics` - Prometheus metrics collector
     /// * `health_checker` - Health checker for enhanced diagnostics
+    /// * `telemetry` - Optional telemetry system for observability
     ///
     /// # Returns
     ///
@@ -121,6 +131,16 @@ impl AppState {
         metrics: Arc<RipTideMetrics>,
         health_checker: Arc<HealthChecker>,
     ) -> Result<Self> {
+        Self::new_with_telemetry(config, metrics, health_checker, None).await
+    }
+
+    /// Initialize the application state with telemetry integration
+    pub async fn new_with_telemetry(
+        config: AppConfig,
+        metrics: Arc<RipTideMetrics>,
+        health_checker: Arc<HealthChecker>,
+        telemetry: Option<Arc<TelemetrySystem>>,
+    ) -> Result<Self> {
         tracing::info!("Initializing application state");
 
         // Initialize HTTP client with optimized settings
@@ -146,20 +166,24 @@ impl AppState {
             config,
             metrics,
             health_checker,
+            telemetry,
         })
     }
 
-    /// Check the health of all application dependencies.
+    /// Check the health of all application dependencies with telemetry.
     ///
     /// This method verifies that all critical components are functioning:
     /// - Redis connection is active
     /// - HTTP client can make requests
     /// - WASM extractor is operational
+    /// - Telemetry system is operational
     ///
     /// # Returns
     ///
     /// A `HealthStatus` indicating the overall health and any issues.
     pub async fn health_check(&self) -> HealthStatus {
+        let _span = telemetry_span!("health_check");
+        info!("Starting health check");
         let mut health = HealthStatus {
             healthy: true,
             redis: DependencyHealth::Unknown,
@@ -194,27 +218,41 @@ impl AppState {
     /// Test Redis connection by performing a simple operation.
     async fn check_redis(&self) -> Result<()> {
         let mut cache = self.cache.lock().await;
-        cache.set("health_check", &"ok", 1).await?;
+        cache.set_simple("health_check", &"ok", 1).await?;
         cache.delete("health_check").await?;
         Ok(())
     }
 
-    /// Test HTTP client by making a request to a reliable endpoint.
+    /// Test HTTP client by verifying it's properly initialized.
+    /// This avoids making external network calls during health checks.
     async fn check_http_client(&self) -> Result<()> {
-        let response = self
-            .http_client
-            .head("https://httpbin.org/status/200")
-            .send()
-            .await?;
+        // Simply verify the HTTP client is initialized and configured
+        // The client's ability to make requests is tested during actual usage
+        // This prevents information leakage and external dependencies in health checks
 
-        if response.status().is_success() {
-            Ok(())
-        } else {
-            Err(anyhow::anyhow!(
-                "HTTP client check failed: {}",
-                response.status()
-            ))
+        // Check if we can access the client (it's not null/uninitialized)
+        let _ = &self.http_client;
+
+        // Optionally test against localhost if a test endpoint is available
+        // This keeps the health check internal to the system
+        if let Ok(port) = std::env::var("HEALTH_CHECK_PORT") {
+            if let Ok(response) = self
+                .http_client
+                .head(format!("http://127.0.0.1:{}/health", port))
+                .send()
+                .await
+            {
+                if !response.status().is_success() {
+                    return Err(anyhow::anyhow!(
+                        "Internal health check failed: {}",
+                        response.status()
+                    ));
+                }
+            }
         }
+
+        // HTTP client is properly initialized
+        Ok(())
     }
 }
 

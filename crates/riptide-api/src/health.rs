@@ -207,11 +207,16 @@ impl HealthChecker {
         let test_key = "health_check_test";
         let test_value = "health_check_value";
 
-        cache.set(test_key, &test_value, 5).await?;
+        cache.set_simple(test_key, &test_value, 5).await?;
         let retrieved = cache.get::<String>(test_key).await?;
 
-        if retrieved.as_deref() != Some(test_value) {
-            return Err(anyhow::anyhow!("Redis value mismatch"));
+        match retrieved.as_ref() {
+            Some(cached_value) if cached_value.data == test_value => {
+                // Value matches, continue
+            }
+            _ => {
+                return Err(anyhow::anyhow!("Redis value mismatch"));
+            }
         }
 
         cache.delete(test_key).await?;
@@ -221,7 +226,7 @@ impl HealthChecker {
         let batch_value = "performance_test";
 
         for key in &batch_keys {
-            cache.set(key, &batch_value, 1).await?;
+            cache.set_simple(key, &batch_value, 1).await?;
         }
 
         for key in &batch_keys {
@@ -296,6 +301,13 @@ impl HealthChecker {
             response_time_ms: None,
             last_check: chrono::Utc::now().to_rfc3339(),
         }
+    }
+
+    /// Verify HTTP client configuration is valid
+    fn verify_http_client_config(_state: &AppState) -> bool {
+        // Verify timeout settings, connection pool, etc.
+        // This is a placeholder - add actual configuration checks as needed
+        true
     }
 
     /// Check headless service health

@@ -135,20 +135,20 @@ pub struct RobotsManager {
 }
 
 impl RobotsManager {
-    pub fn new(config: RobotsConfig) -> Self {
+    pub fn new(config: RobotsConfig) -> Result<Self> {
         let http_client = Client::builder()
             .user_agent(&config.user_agent)
             .timeout(config.fetch_timeout)
             .gzip(true)
             .build()
-            .expect("Failed to create HTTP client for robots manager");
+            .context("Failed to create HTTP client for robots manager")?;
 
-        Self {
+        Ok(Self {
             config,
             robots_cache: DashMap::new(),
             rate_limiters: DashMap::new(),
             http_client,
-        }
+        })
     }
 
     /// Check if a URL is allowed to be crawled according to robots.txt
@@ -435,17 +435,18 @@ mod tests {
             development_mode: true,
             ..Default::default()
         };
-        let manager = RobotsManager::new(config);
+        let manager = RobotsManager::new(config).expect("Failed to create manager for test");
 
         // Should allow everything in development mode
         let result = manager.is_allowed("https://example.com/blocked-path").await;
         assert!(result.is_ok());
-        assert!(result.unwrap());
+        assert!(result.expect("Should succeed in development mode"));
     }
 
     #[tokio::test]
     async fn test_crawl_delay_parsing() {
-        let manager = RobotsManager::new(RobotsConfig::default());
+        let manager =
+            RobotsManager::new(RobotsConfig::default()).expect("Failed to create manager for test");
 
         let robots_content = r#"
 User-agent: *
@@ -463,7 +464,7 @@ Disallow: /admin
             max_crawl_delay: 5.0,
             ..Default::default()
         };
-        let manager = RobotsManager::new(config);
+        let manager = RobotsManager::new(config).expect("Failed to create manager for test");
 
         let robots_content = "Crawl-delay: 100"; // Very high delay
         let delay = manager.extract_crawl_delay(robots_content);
@@ -473,8 +474,8 @@ Disallow: /admin
     #[test]
     fn test_url_parsing() {
         let url = "https://example.com/path/to/resource";
-        let parsed = Url::parse(url).unwrap();
-        assert_eq!(parsed.host_str().unwrap(), "example.com");
+        let parsed = Url::parse(url).expect("Valid URL for test");
+        assert_eq!(parsed.host_str().expect("URL has host"), "example.com");
         assert_eq!(parsed.path(), "/path/to/resource");
     }
 }
