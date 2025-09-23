@@ -1,6 +1,7 @@
 use crate::circuit::{self, CircuitBreaker, Config as CircuitConfig};
 use crate::robots::{RobotsConfig, RobotsManager};
 use crate::{telemetry_info, telemetry_span};
+// Removed unused error imports
 use anyhow::Result;
 use reqwest::{Client, Response};
 use serde::{Deserialize, Serialize};
@@ -144,8 +145,8 @@ impl ReliableHttpClient {
     pub async fn get_with_retry(&self, url: &str) -> Result<Response> {
         let _span = telemetry_span!(
             "http_fetch_with_retry",
-            "url" => url,
-            "max_attempts" => self.retry_config.max_attempts.to_string()
+            url = %url,
+            max_attempts = %self.retry_config.max_attempts
         );
 
         info!("Starting HTTP GET request with retry");
@@ -153,7 +154,7 @@ impl ReliableHttpClient {
 
         // Check robots.txt compliance first if manager is available
         if let Some(robots_manager) = &self.robots_manager {
-            let _robots_span = telemetry_span!("robots_check", "url" => url);
+            let _robots_span = telemetry_span!("robots_check", url = %url);
             if !robots_manager.can_crawl_with_wait(url).await? {
                 error!("URL blocked by robots.txt: {}", url);
                 return Err(anyhow::anyhow!("URL blocked by robots.txt: {}", url));
@@ -274,8 +275,8 @@ pub fn http_client() -> Result<Client> {
 pub async fn get(client: &Client, url: &str) -> Result<Response> {
     let _span = telemetry_span!(
         "http_fetch",
-        "url" => url,
-        "method" => "GET"
+        url = %url,
+        method = "GET"
     );
 
     info!("Starting HTTP GET request");
@@ -287,9 +288,9 @@ pub async fn get(client: &Client, url: &str) -> Result<Response> {
             let status = response.status();
 
             telemetry_info!(
-                "HTTP request completed",
-                "status_code" => status.as_u16().to_string(),
-                "duration_ms" => duration.as_millis().to_string()
+                status_code = status.as_u16(),
+                duration_ms = duration.as_millis(),
+                "HTTP request completed"
             );
 
             if status.is_success() {
@@ -337,7 +338,7 @@ mod tests {
     fn test_robots_manager_integration() {
         let client =
             ReliableHttpClient::new(RetryConfig::default(), CircuitBreakerConfig::default())
-                .unwrap()
+                .expect("Failed to create reliable HTTP client for test")
                 .with_robots_manager(RobotsConfig::default());
 
         assert!(client.is_robots_enabled());
@@ -347,6 +348,7 @@ mod tests {
     #[tokio::test]
     async fn test_circuit_breaker_transitions() {
         // Using TestClock for deterministic testing
+        #[derive(Debug)]
         struct TestClock {
             now: std::sync::atomic::AtomicU64,
         }
@@ -388,7 +390,7 @@ mod tests {
             .store(1100, std::sync::atomic::Ordering::Relaxed);
 
         // Next acquire should transition to half-open and return permit
-        let permit = circuit.try_acquire().expect("should get permit");
+        let permit = circuit.try_acquire().expect("should get permit in test conditions");
         assert!(permit.is_some());
         assert_eq!(circuit.state(), circuit::State::HalfOpen);
 
@@ -399,7 +401,7 @@ mod tests {
         // Can acquire again when closed
         let permit2 = circuit
             .try_acquire()
-            .expect("should get permit when closed");
+            .expect("should get permit when closed in test conditions");
         assert!(permit2.is_none()); // Closed state doesn't require permits
     }
 
@@ -415,7 +417,7 @@ mod tests {
             },
             CircuitBreakerConfig::default(),
         )
-        .unwrap();
+        .expect("Failed to create reliable HTTP client for test");
 
         assert_eq!(client.calculate_delay(0), Duration::from_millis(100));
         assert_eq!(client.calculate_delay(1), Duration::from_millis(200));

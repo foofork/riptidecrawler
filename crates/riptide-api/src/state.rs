@@ -1,5 +1,8 @@
+use crate::config::ApiConfig;
 use crate::health::HealthChecker;
 use crate::metrics::RipTideMetrics;
+use crate::resource_manager::ResourceManager;
+use crate::sessions::{SessionConfig, SessionManager};
 use anyhow::Result;
 use reqwest::Client;
 use riptide_core::{
@@ -30,11 +33,20 @@ pub struct AppState {
     /// Configuration settings
     pub config: AppConfig,
 
+    /// API configuration with resource controls
+    pub api_config: ApiConfig,
+
+    /// Comprehensive resource manager
+    pub resource_manager: Arc<ResourceManager>,
+
     /// Prometheus metrics collector
     pub metrics: Arc<RipTideMetrics>,
 
     /// Health checker for enhanced diagnostics
     pub health_checker: Arc<HealthChecker>,
+
+    /// Session manager for persistent browser sessions
+    pub session_manager: Arc<SessionManager>,
 
     /// Telemetry system for observability
     pub telemetry: Option<Arc<TelemetrySystem>>,
@@ -61,6 +73,9 @@ pub struct AppConfig {
 
     /// Headless service URL for dynamic content rendering
     pub headless_url: Option<String>,
+
+    /// Session configuration
+    pub session_config: SessionConfig,
 }
 
 impl Default for AppConfig {
@@ -88,6 +103,7 @@ impl Default for AppConfig {
                 .parse()
                 .unwrap_or(0.3),
             headless_url: std::env::var("HEADLESS_URL").ok(),
+            session_config: SessionConfig::default(),
         }
     }
 }
@@ -134,6 +150,16 @@ impl AppState {
         Self::new_with_telemetry(config, metrics, health_checker, None).await
     }
 
+    /// Initialize with custom API configuration
+    pub async fn new_with_api_config(
+        config: AppConfig,
+        api_config: ApiConfig,
+        metrics: Arc<RipTideMetrics>,
+        health_checker: Arc<HealthChecker>,
+    ) -> Result<Self> {
+        Self::new_with_telemetry_and_api_config(config, api_config, metrics, health_checker, None).await
+    }
+
     /// Initialize the application state with telemetry integration
     pub async fn new_with_telemetry(
         config: AppConfig,
@@ -141,7 +167,23 @@ impl AppState {
         health_checker: Arc<HealthChecker>,
         telemetry: Option<Arc<TelemetrySystem>>,
     ) -> Result<Self> {
-        tracing::info!("Initializing application state");
+        let api_config = ApiConfig::from_env();
+        Self::new_with_telemetry_and_api_config(config, api_config, metrics, health_checker, telemetry).await
+    }
+
+    /// Initialize the application state with telemetry and custom API configuration
+    pub async fn new_with_telemetry_and_api_config(
+        config: AppConfig,
+        api_config: ApiConfig,
+        metrics: Arc<RipTideMetrics>,
+        health_checker: Arc<HealthChecker>,
+        telemetry: Option<Arc<TelemetrySystem>>,
+    ) -> Result<Self> {
+        tracing::info!("Initializing application state with resource controls");
+
+        // Validate API configuration
+        api_config.validate()
+            .map_err(|e| anyhow::anyhow!("Invalid API configuration: {}", e))?;
 
         // Initialize HTTP client with optimized settings
         let http_client = http_client();
@@ -157,15 +199,33 @@ impl AppState {
         let extractor = Arc::new(extractor);
         tracing::info!("WASM extractor loaded: {}", config.wasm_path);
 
-        tracing::info!("Application state initialization complete");
+        // Initialize session manager
+        let session_manager = SessionManager::new(config.session_config.clone()).await?;
+        let session_manager = Arc::new(session_manager);
+        tracing::info!("Session manager initialized");
+
+        // Initialize comprehensive resource manager
+        let resource_manager = ResourceManager::new(api_config.clone()).await?;
+        let resource_manager = Arc::new(resource_manager);
+        tracing::info!(
+            "Resource manager initialized with controls: pool_cap={}, pdf_semaphore={}, rate_limit={}rps",
+            api_config.headless.max_pool_size,
+            api_config.pdf.max_concurrent,
+            api_config.rate_limiting.requests_per_second_per_host
+        );
+
+        tracing::info!("Application state initialization complete with resource controls");
 
         Ok(Self {
             http_client,
             cache,
             extractor,
             config,
+            api_config,
+            resource_manager,
             metrics,
             health_checker,
+            session_manager,
             telemetry,
         })
     }
@@ -176,6 +236,7 @@ impl AppState {
     /// - Redis connection is active
     /// - HTTP client can make requests
     /// - WASM extractor is operational
+    /// - Resource manager is operational
     /// - Telemetry system is operational
     ///
     /// # Returns
@@ -189,6 +250,7 @@ impl AppState {
             redis: DependencyHealth::Unknown,
             extractor: DependencyHealth::Unknown,
             http_client: DependencyHealth::Unknown,
+            resource_manager: DependencyHealth::Unknown,
         };
 
         // Check Redis connection
@@ -211,6 +273,18 @@ impl AppState {
 
         // WASM extractor is checked at startup, assume healthy if state exists
         health.extractor = DependencyHealth::Healthy;
+
+        // Check resource manager status
+        let resource_status = self.resource_manager.get_resource_status().await;
+        health.resource_manager = if resource_status.memory_pressure || resource_status.degradation_score > 0.8 {
+            health.healthy = false;
+            DependencyHealth::Unhealthy(format!(
+                "Resource constraints: memory_pressure={}, degradation_score={:.2}",
+                resource_status.memory_pressure, resource_status.degradation_score
+            ))
+        } else {
+            DependencyHealth::Healthy
+        };
 
         health
     }
@@ -263,6 +337,7 @@ pub struct HealthStatus {
     pub redis: DependencyHealth,
     pub extractor: DependencyHealth,
     pub http_client: DependencyHealth,
+    pub resource_manager: DependencyHealth,
 }
 
 /// Health status of an individual dependency.

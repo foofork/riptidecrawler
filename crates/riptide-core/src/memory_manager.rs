@@ -1,4 +1,6 @@
 use anyhow::{anyhow, Result};
+use crate::error::{CoreError, CoreResult};
+use crate::{report_error, report_panic_prevention};
 use std::collections::{HashMap, VecDeque};
 use std::sync::{
     atomic::{AtomicU64, AtomicUsize, Ordering},
@@ -440,14 +442,21 @@ impl MemoryManager {
         self.event_receiver.clone()
     }
 
-    /// Create a new WASM instance
+    /// Create a new WASM instance with error recovery
     async fn create_new_instance(&self, component_path: &str) -> Result<TrackedWasmInstance> {
         let id = uuid::Uuid::new_v4().to_string();
 
         debug!(instance_id = %id, component_path = %component_path, "Creating new WASM instance");
 
         let store = Store::new(&self.engine, ());
-        let component = Component::from_file(&self.engine, component_path)?;
+
+        // Create component with recovery strategy
+        let component = Component::from_file(&self.engine, component_path)
+            .map_err(|e| {
+                let error = CoreError::from(e); // Use From trait conversion
+                report_error!(&error, "create_wasm_instance", "component_path" => component_path);
+                error
+            })?;
 
         let instance = TrackedWasmInstance::new(id, store, component);
 
@@ -569,7 +578,23 @@ impl MemoryManager {
                     || (config.aggressive_gc && available.len() > config.min_instances);
 
                 if should_remove {
-                    let instance = available.remove(i).unwrap();
+                    // Prevent potential panic with bounds checking
+                    let instance = match available.get(i) {
+                        Some(_) => {
+                            available.remove(i).expect("Index verified to exist through bounds check")
+                        }
+                        None => {
+                            let error_msg = format!("Index {} out of bounds during garbage collection", i);
+                            error!("{}", error_msg);
+                            report_panic_prevention!(
+                                "garbage_collection",
+                                "vector_index_out_of_bounds",
+                                "bounds_check_and_skip"
+                            );
+                            i += 1;
+                            continue;
+                        }
+                    };
                     let freed = instance.current_memory_mb();
                     memory_freed += freed;
                     instances_affected += 1;
@@ -694,7 +719,7 @@ mod tests {
     use wasmtime::{Config, Engine};
 
     #[tokio::test]
-    async fn test_memory_manager_creation() {
+    async fn test_memory_manager_creation() -> Result<(), Box<dyn std::error::Error>> {
         let config = MemoryManagerConfig {
             min_instances: 1,
             max_instances: 3,
@@ -703,33 +728,31 @@ mod tests {
 
         let mut wasmtime_config = Config::new();
         wasmtime_config.wasm_component_model(true);
-        let engine = Engine::new(&wasmtime_config).unwrap();
+        let engine = Engine::new(&wasmtime_config)?;
 
-        let manager = MemoryManager::new(config, engine).await;
-        assert!(manager.is_ok());
+        let manager = MemoryManager::new(config, engine).await?;
+        let stats = manager.stats();
+        assert_eq!(stats.instances_count, 0);
+        assert_eq!(stats.active_instances, 0);
 
-        if let Ok(manager) = manager {
-            let stats = manager.stats();
-            assert_eq!(stats.instances_count, 0);
-            assert_eq!(stats.active_instances, 0);
-
-            let _ = manager.shutdown().await;
-        }
+        let _ = manager.shutdown().await;
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_memory_stats_tracking() {
+    async fn test_memory_stats_tracking() -> Result<(), Box<dyn std::error::Error>> {
         let config = MemoryManagerConfig::default();
         let mut wasmtime_config = Config::new();
         wasmtime_config.wasm_component_model(true);
-        let engine = Engine::new(&wasmtime_config).unwrap();
+        let engine = Engine::new(&wasmtime_config)?;
 
-        let manager = MemoryManager::new(config, engine).await.unwrap();
+        let manager = MemoryManager::new(config, engine).await?;
 
         let initial_stats = manager.stats();
         assert_eq!(initial_stats.total_used_mb, 0);
         assert_eq!(initial_stats.instances_count, 0);
 
         let _ = manager.shutdown().await;
+        Ok(())
     }
 }

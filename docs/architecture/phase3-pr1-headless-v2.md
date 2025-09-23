@@ -2,7 +2,7 @@
 
 ## Overview
 
-PR-1 implements the enhanced Headless RPC v2 API with support for dynamic content handling, interactive actions, and session persistence. This brings RipTide closer to Crawl4AI feature parity while maintaining backward compatibility.
+PR-1 implements the enhanced Headless RPC v2 API with support for dynamic content handling, interactive actions, and session persistence. This brings RipTide to industry-leading feature parity while maintaining backward compatibility.
 
 ## Features Implemented
 

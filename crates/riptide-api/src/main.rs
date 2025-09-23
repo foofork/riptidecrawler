@@ -1,15 +1,21 @@
+mod config;
 mod errors;
 mod handlers;
 mod health;
 mod metrics;
 mod models;
 mod pipeline;
+mod resource_manager;
+mod rpc_client;
+mod sessions;
 mod state;
 mod streaming;
+mod tests;
 mod validation;
 
 use crate::health::HealthChecker;
 use crate::metrics::{create_metrics_layer, RipTideMetrics};
+use crate::sessions::middleware::create_session_layer;
 use crate::state::{AppConfig, AppState};
 use axum::{
     routing::{get, post},
@@ -100,6 +106,7 @@ async fn main() -> anyhow::Result<()> {
     let app = Router::new()
         .route("/healthz", get(handlers::health))
         .route("/metrics", get(handlers::metrics))
+        .route("/render", post(handlers::render))
         .route("/crawl", post(handlers::crawl))
         .route("/crawl/stream", post(streaming::ndjson_crawl_stream))
         .route("/crawl/sse", post(streaming::crawl_sse))
@@ -109,8 +116,22 @@ async fn main() -> anyhow::Result<()> {
             "/deepsearch/stream",
             post(streaming::ndjson_deepsearch_stream),
         )
+        // Session management endpoints
+        .route("/sessions", post(handlers::sessions::create_session))
+        .route("/sessions", get(handlers::sessions::list_sessions))
+        .route("/sessions/stats", get(handlers::sessions::get_session_stats))
+        .route("/sessions/cleanup", post(handlers::sessions::cleanup_expired_sessions))
+        .route("/sessions/:session_id", get(handlers::sessions::get_session_info))
+        .route("/sessions/:session_id", axum::routing::delete(handlers::sessions::delete_session))
+        .route("/sessions/:session_id/extend", post(handlers::sessions::extend_session))
+        .route("/sessions/:session_id/cookies", post(handlers::sessions::set_cookie))
+        .route("/sessions/:session_id/cookies", axum::routing::delete(handlers::sessions::clear_cookies))
+        .route("/sessions/:session_id/cookies/:domain", get(handlers::sessions::get_cookies_for_domain))
+        .route("/sessions/:session_id/cookies/:domain/:name", get(handlers::sessions::get_cookie))
+        .route("/sessions/:session_id/cookies/:domain/:name", axum::routing::delete(handlers::sessions::delete_cookie))
         .fallback(handlers::not_found)
-        .with_state(app_state)
+        .with_state(app_state.clone())
+        .layer(create_session_layer(app_state.session_manager.clone()))
         .layer(prometheus_layer)
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(Duration::from_secs(30)))

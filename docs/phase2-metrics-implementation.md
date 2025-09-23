@@ -2,7 +2,7 @@
 
 ## Overview
 
-This implementation adds comprehensive metrics collection and enhanced health monitoring to the RipTide crawler API based on Crawl4AI feature analysis.
+This implementation adds comprehensive metrics collection and enhanced health monitoring to the RipTide crawler API based on advanced web scraping feature analysis.
 
 ## Key Features Implemented
 

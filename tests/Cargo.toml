@@ -1,0 +1,47 @@
+[package]
+name = "eventmesh-tests"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Core dependencies
+tokio = { workspace = true, features = ["test-util", "macros", "rt-multi-thread", "time"] }
+tokio-test = "0.4"
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Testing frameworks
+mockall = "0.13"
+proptest = "1.5"
+criterion = { version = "0.5", features = ["html_reports"] }
+wiremock = "0.6"
+
+# HTTP and web testing
+reqwest = { workspace = true }
+axum = { workspace = true }
+tower = { workspace = true, features = ["test-util"] }
+hyper = { workspace = true }
+
+# WASM testing
+wasmtime = { workspace = true }
+wasmtime-wasi = { workspace = true }
+
+# EventMesh crates
+riptide-core = { path = "../crates/riptide-core" }
+riptide-api = { path = "../crates/riptide-api" }
+riptide-headless = { path = "../crates/riptide-headless" }
+
+# Utilities
+uuid = { workspace = true }
+tracing = { workspace = true }
+tracing-test = "0.2"
+tempfile = "3.10"
+rand = { workspace = true }
+
+[[bench]]
+name = "performance_benchmarks"
+harness = false
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }

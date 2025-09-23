@@ -1,4 +1,4 @@
-/// Phase 3 implementation tests for Crawl4AI parity features
+/// Phase 3 implementation tests for advanced features
 ///
 /// This module contains comprehensive tests for the new dynamic content handling,
 /// stealth features, and PDF processing capabilities introduced in Phase 3.

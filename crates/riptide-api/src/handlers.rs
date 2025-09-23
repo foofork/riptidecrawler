@@ -1,4 +1,5 @@
 pub mod render;
+pub mod sessions;
 
 use crate::errors::{ApiError, ApiResult};
 use crate::models::*;

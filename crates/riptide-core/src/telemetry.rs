@@ -571,40 +571,8 @@ pub enum TelemetryError {
     SlaMonitoring(String),
 }
 
-/// Macro for creating spans with automatic sanitization
-#[macro_export]
-macro_rules! telemetry_span {
-    ($name:expr) => {
-        tracing::span!(tracing::Level::INFO, $name)
-    };
-    ($name:expr, $($key:expr => $value:expr),*) => {
-        {
-            let sanitizer = $crate::telemetry::DataSanitizer::new();
-            tracing::span!(
-                tracing::Level::INFO,
-                $name,
-                $($key = %sanitizer.sanitize(&$value.to_string())),*
-            )
-        }
-    };
-}
-
-/// Macro for logging with automatic sanitization
-#[macro_export]
-macro_rules! telemetry_info {
-    ($msg:expr) => {
-        tracing::info!($msg)
-    };
-    ($msg:expr, $($key:literal => $value:expr),*) => {
-        {
-            let sanitizer = $crate::telemetry::DataSanitizer::new();
-            tracing::info!(
-                message = $msg,
-                $($key = sanitizer.sanitize(&$value.to_string())),*
-            )
-        }
-    };
-}
+// Note: telemetry_span and telemetry_info macros are defined at the top of the file
+// to avoid duplicate definitions
 
 #[cfg(test)]
 mod tests {

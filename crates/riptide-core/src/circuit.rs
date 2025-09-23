@@ -48,7 +48,12 @@ impl Clock for RealClock {
         use std::time::{SystemTime, UNIX_EPOCH};
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .unwrap_or_else(|e| {
+                tracing::error!("System time is before Unix epoch: {}", e);
+                // Fallback: return 0 for current time if system clock is broken
+                // This allows the circuit breaker to continue functioning
+                std::time::Duration::from_secs(0)
+            })
             .as_millis() as u64
     }
 }
@@ -192,7 +197,7 @@ mod tests {
     use super::*;
     use std::sync::atomic::AtomicU64;
 
-    #[derive(Default)]
+    #[derive(Default, Debug)]
     struct TestClock {
         now: AtomicU64,
     }
