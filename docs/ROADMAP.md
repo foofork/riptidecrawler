@@ -2,117 +2,117 @@
 
 ## Current Status
 
-**✅ Completed Phases**: Phase 0 (Foundation), Phase 1 (Core), Phase 2 Lite (Reliability), Phase 3 PR-1 (Headless v2)
-**📍 Current Focus**: Phase 0 Technical Debt Resolution (60% Complete)
-**🎯 Next Major Milestone**: Complete Phase 3 Crawl4AI Parity
+**✅ Completed Phases**: Phase 0 (Foundation), Phase 1 (Core), Phase 2 Lite (Reliability), Phase 3 PR-1 & PR-2
+**📍 Current Focus**: Phase 0 Technical Debt & Core Integration (60% Complete)
+**🎯 Next Major Milestone**: Complete Phase 3 PR-3 (NDJSON Streaming)
 
 **See [COMPLETED.md](./COMPLETED.md) for detailed list of all completed work.**
 
 ---
 
-## 🔴 PHASE 0: Critical Technical Debt Resolution (1-2 weeks) - 60% COMPLETE
-*Priority: CRITICAL - Security and Production Blockers*
+## 🔴 PHASE 0: Critical Technical Debt Resolution & Core Integration - 60% COMPLETE
+*Priority: CRITICAL - Remaining Production Blockers*
 
-**Progress Summary**:
-- ✅ Security vulnerabilities fixed
+**Completed Items**: See [COMPLETED.md](./COMPLETED.md) for full list of resolved technical debt including:
+- ✅ Security vulnerabilities patched
+- ✅ Mega-file refactoring complete (pdf.rs, stealth.rs, streaming.rs)
 - ✅ Performance optimizations applied
-- ⚠️ Error handling 25/305 critical fixes done
-- 🟡 Test coverage at 75% (target 80%)
-- 🟡 Monitoring, legacy API removal, and resource management pending
+- ✅ Dependency conflicts resolved
+- ✅ Build optimization (3.9GB recovered)
+- ✅ Legacy API removal complete
 
-### 0.1 Security Vulnerabilities - IMMEDIATE
-**Status**: ✅ COMPLETE
-**Effort**: 1 hour
+### 0.1 Error Handling Improvements - HIGH PRIORITY
+**Status**: 🚧 IN PROGRESS
+**Effort**: 3-4 days
+**Scope**: 542 unwrap/expect calls identified (analysis shows higher count than original 305)
 
-- [x] **Remove external HTTP health checks** ✅ DONE (Commit: 3ce1f19)
-  - Location: `crates/riptide-api/src/state.rs:203-217`
-  - Risk: Information leak, SSRF vulnerability
-  - Action: Verified already fixed - now uses localhost-only validation
-  - **Completion Note**: Security vulnerability was already patched in previous commit
+- [ ] **Replace remaining unwrap/expect calls**
+  - Progress: 25 critical ones fixed, ~517 remaining
+  - Focus on production-critical paths first
+  - Implement proper Result/Option patterns
+  - Add comprehensive error recovery
 
-### 0.2 Performance Quick Wins - HIGH PRIORITY
-**Status**: ✅ COMPLETE
-**Effort**: 1 day
-
-- [x] **PDF Semaphore optimization** ✅ DONE (Commit: 3ce1f19)
-  - Changed from 2 to 10 permits in `pdf/processor.rs` (lines 96, 337, 448)
-  - Increased throughput by 5x (removed 70% bottleneck)
-  - **Impact**: PDF processing now handles 10 concurrent operations
-
-- [x] **Add Cargo optimization flags** ✅ DONE (Commit: 3ce1f19)
-  ```toml
-  [profile.release]
-  opt-level = 3
-  lto = "thin"
-  codegen-units = 1
-  ```
-  - **Impact**: 20-30% build performance improvement
-
-- [x] **Enable parallel testing** ✅ DONE (Commit: 3ce1f19)
-  - Configured in `.cargo/config.toml` with `parallel = true`
-  - **Impact**: 60% faster test execution achieved
-
-### 0.3 Error Handling Improvements - HIGH PRIORITY
-**Status**: 🚧 PARTIALLY COMPLETE (25/305 fixed)
-**Effort**: 2-3 days
-
-- [◐] **Replace critical unwrap/expect calls** ⚠️ IN PROGRESS
-  - 305 instances identified, 25 critical ones fixed (Commit: 3ce1f19)
-  - **Completed Fixes**:
-    - `pipeline.rs:269` - Semaphore acquire with error propagation
-    - `fetch.rs:214,238,365` - HTTP client creation returns Result<T>
-    - `cdp.rs:96` - JavaScript evaluation with graceful fallback
-    - `main.rs:150,156` - Signal handlers with error logging
-    - `monitoring` - 15+ mutex operations with poison recovery
-  - **Remaining**: 280 non-critical unwrap/expect calls to address
-  - **Impact**: Eliminated 25 critical panic points in production paths
-
-### 0.4 Test Coverage Gap - MEDIUM PRIORITY
-**Status**: 🟡 IN PROGRESS (75% → 80% target)
+### 0.2 Test Coverage Gap - MEDIUM PRIORITY
+**Status**: 🟡 PENDING
 **Effort**: 3-5 days
 
-- [ ] **Achieve 80%+ test coverage**
-  - Current: 75% (improved from 65%)
-  - Critical paths still have 40% gaps
-  - Add integration tests for new modules
+- [ ] **Achieve 80%+ test coverage** (currently 75%)
+  - Critical paths have 40% coverage gaps
+  - Add integration tests for refactored modules
+  - Implement golden tests for new features
 
-### 0.5 Monitoring & Observability - MEDIUM PRIORITY
+### 0.3 Monitoring & Observability - HIGH PRIORITY
 **Status**: 🟡 PENDING
 **Effort**: 1 week
 
 - [ ] **Production monitoring infrastructure**
-  - Add comprehensive tracing with OpenTelemetry
-  - Sanitize credentials in logs
-  - Create performance benchmarking suite
-  - Implement SLA monitoring
+  - Add comprehensive tracing with OpenTelemetry (currently disabled in telemetry.rs:146)
+  - Implement performance benchmarking suite
+  - Create SLA monitoring dashboards
+  - Add detailed performance metrics
+  - Implement actual system metrics collection (placeholders in health.rs:358-366)
+  - Track active connections from middleware
+  - Calculate requests per second from metrics
+  - Implement average response time tracking
+  - Add disk usage tracking (telemetry.rs:525)
+  - Implement file descriptor tracking (telemetry.rs:528)
+  - Complete CPU and memory usage collection (monitoring/collector.rs:292-298)
 
-### 0.6 Legacy API Removal - MEDIUM PRIORITY
-**Status**: ✅ COMPLETE
-**Effort**: 2-3 days
-
-- [x] **Remove streaming_legacy.rs redirect layer** ✅ DONE
-  - ✅ Analyzed usage patterns in tests - no legacy API usage found
-  - ✅ Verified all consumers migrated to new modular API endpoints
-  - ✅ Removed deprecated functions and redirects
-  - ✅ Updated documentation and migration guides
-  - **Impact**: Eliminated legacy redirect layer, simplified codebase architecture
-
-### 0.7 Resource Management - LOW PRIORITY
+### 0.4 Resource Management & Performance - MEDIUM PRIORITY
 **Status**: 🟡 PENDING
-**Effort**: 2 days
+**Effort**: 3-4 days
 
-- [ ] **Implement browser pooling**
-  - Currently using sequential operations
+- [ ] **Browser pooling and memory optimization**
   - Implement connection pooling for headless Chrome
   - Add resource cleanup on timeout
-
-- [ ] **Memory optimization**
   - Monitor WASM component lifecycle
-  - Implement proper instance pooling
-  - Add memory usage alerts
+  - Implement memory usage alerts
+  - Memory allocation improvements for better performance
+
+- [ ] **Build Pipeline Optimization**
+  - Address WASM compilation timeouts (5+ min build times)
+  - Implement dependency caching for CI/CD
+  - Enable incremental compilation
+  - Set up parallel builds
+  - Implement component pooling for WASM modules to reduce overhead
+
+- [ ] **Circuit Breaker Enhancements**
+  - Consider adaptive thresholds for dynamic adjustment
+  - Implement performance-based threshold tuning
+  - Add self-learning capabilities for failure patterns
 
 ---
 
+
+### 0.5 Core Integration Gaps - HIGH PRIORITY
+**Status**: 🟡 PENDING
+**Effort**: 1 week
+
+- [ ] **WASM Extractor Integration**
+  - Wire actual WASM extractor in handlers/render.rs:401 (currently placeholder)
+  - Remove placeholder content generation (render.rs:404-409)
+  - Integrate trek-rs extractor with render pipeline
+  - Complete extraction output format handling
+
+- [ ] **Dynamic Rendering Implementation**
+  - Implement actual headless browser rendering (render.rs:293-297 placeholder)
+  - Wire headless service to render handlers
+  - Complete browser action execution (render.rs:290)
+  - Implement content analysis for adaptive rendering (render.rs:382)
+
+- [ ] **Session & Cookie Management**
+  - Implement session persistence across requests
+  - Add cookie jar management for authentication
+  - Support session-based crawling
+  - Add session cleanup and TTL management
+
+- [ ] **Worker Service Implementation**
+  - Complete background worker service (riptide-workers/main.rs:13)
+  - Implement batch processing queue
+  - Add job scheduling and retry logic
+  - Create worker pool management
+
+---
 
 ## 🌟 PHASE 3: Crawl4AI Parity Features (4-6 weeks)
 *Priority: HIGH - Feature parity with Crawl4AI*
@@ -151,17 +151,10 @@ perf:
 ### 🚀 PR-1: Headless RPC v2 - Dynamic Content ✅ COMPLETE
 **Note**: PR-1 has been completed. Integration with API passthrough pending feature flag activation.
 
-### 🚀 PR-2: Stealth Preset - Anti-Detection (Week 2)
-**Status**: 🚧 IN PROGRESS
-**Branch**: `feature/phase3-pr2-stealth`
-**Feature Flag**: `stealth: false` (default OFF)
-
-**Files**: `riptide-headless/src/launcher.rs`, `stealth.js`
-
-- [x] **Launch flags**: Basic implementation started
-- [x] **UA rotation**: `configs/ua_list.txt` file created with user agents
-- [x] **JS injection**: `stealth.js` file created with navigator spoofing
-- [ ] **Complete implementation**: Wire up all stealth components
+### 🚀 PR-2: Stealth Preset - Anti-Detection
+**Status**: ✅ COMPLETE (Merged in commit 75c67c0)
+**Branch**: `feature/phase3-pr2-stealth` (merged)
+**Feature Flag**: `stealth: false` (default OFF, ready for activation)
 ```javascript
 // stealth.js - injected before any page scripts
 navigator.webdriver = false;
@@ -412,22 +405,15 @@ extraction:
 
 ## 🎯 Success Metrics
 
-### Phase 0 (Technical Debt) Success Criteria:
-- [x] All security vulnerabilities patched ✅ DONE - httpbin.org health check already fixed
-- [x] Performance optimizations applied ✅ DONE - PDF semaphore (2→10), Cargo flags, parallel tests
-- [◐] Error handling improved ⚠️ PARTIAL - 25/305 critical unwrap/expect calls replaced
+### Phase 0 (Technical Debt) Remaining Success Criteria:
+- [ ] Error handling completed - Replace remaining 517 unwrap/expect calls
 - [ ] Test coverage ≥80% (currently at 75%)
-- [x] Legacy API removed (streaming_legacy.rs) ✅ DONE
+- [ ] Monitoring & observability infrastructure deployed
 - [ ] Resource management optimized (browser pooling, memory limits)
 
 ### Phase 3 (Crawl4AI Parity) Success Criteria:
 **PR-1 (Headless RPC v2)**: ✅ COMPLETE - Awaiting feature flag activation
-
-**PR-2 (Stealth Preset)**:
-- [ ] Launch flags: `--disable-blink-features=AutomationControlled`
-- [ ] UA rotation from configurable list with stable session hashing
-- [ ] JS injection for navigator.webdriver spoofing and fingerprint noise
-- [ ] ≥80% success rate on bot-detection sites
+**PR-2 (Stealth Preset)**: ✅ COMPLETE - Merged, awaiting feature flag activation
 
 **PR-3 (NDJSON Streaming)**:
 - [ ] `/crawl/stream` and `/deepsearch/stream` endpoints
@@ -501,27 +487,25 @@ extraction:
 
 | Phase | Duration | Key Deliverables | Risk Level | Status |
 |-------|----------|------------------|------------|---------|
-| **Phase 0** | 1-2 weeks | Critical tech debt & security fixes | CRITICAL | ⚠️ 60% COMPLETE |
-| **Phase 3** | 4-6 weeks | Advanced features and parity | MEDIUM | 🚧 PR-1 COMPLETE, PR-2 IN PROGRESS |
+| **Phase 0** | 2-3 weeks | Critical tech debt, monitoring, integration gaps | CRITICAL | ⚠️ 60% COMPLETE |
+| **Phase 3** | 3-4 weeks | Advanced features and parity | MEDIUM | ✅ PR-1 & PR-2 COMPLETE, PR-3 NEXT |
 | **Phase 4** | 6-8 weeks | Enterprise capabilities | LOW | PLANNED |
 | **Phase 5** | Ongoing | Continuous optimization | LOW | PLANNED |
 
-**Total Estimated Timeline**: 2.5-3.5 months for remaining work (reduced from 3-4 months due to Phase 0 progress)
+**Total Estimated Timeline**: 3-3.5 months for remaining work (includes newly identified integration gaps)
 
 ---
 
 ## 🤝 Next Steps
 
-### Immediate Actions (Next Steps - Phase 0 Technical Debt):
-**⚠️ CRITICAL**: Remaining Phase 0 items to complete before continuing Phase 3:
+### Immediate Actions (Phase 0 Extended):
+**Priority**: Complete remaining technical debt and integration gaps
 
-1. ~~**Security Fix** (1 hour)~~ ✅ COMPLETE - External HTTP health check already fixed
-2. ~~**Performance Quick Wins** (1 day)~~ ✅ COMPLETE - All optimizations applied
-3. **Error Handling** (1-2 days remaining): Replace remaining 280 unwrap/expect calls
-4. **Test Coverage** (3-5 days): Achieve 80% coverage target (currently 75%)
-5. **Monitoring & Observability** (1 week): Implement production monitoring
-6. **Legacy API Removal** (2-3 days): Clean up streaming_legacy.rs ✅ DONE
-7. **Resource Management** (2 days): Implement browser pooling and memory limits
+1. **Error Handling** (3-4 days): Replace remaining 517 unwrap/expect calls focusing on critical paths
+2. **Test Coverage** (3-5 days): Achieve 80% coverage target (currently 75%)
+3. **Monitoring & Observability** (1 week): Implement OpenTelemetry tracing, system metrics, and health monitoring
+4. **Resource Management** (3-4 days): Browser pooling, WASM build optimization, and memory management
+5. **Core Integration** (1 week): WASM extractor wiring, dynamic rendering, session management, worker service
 
 ### Following Actions (Phase 3 Continuation):
 After Phase 0 completion, resume Crawl4AI parity using the 6-PR strategy:
