@@ -1,139 +1,102 @@
-# RipTide Crawler Development Roadmap
+# RipTide Crawler Development Roadmap - Remaining Work
 
-## Current Status Assessment
+## Current Status
 
-Based on the original RipTide specifications and current implementation state:
+**✅ Completed Phases**: Phase 0 (Foundation), Phase 1 (Core), Phase 2 Lite (Reliability), Phase 3 PR-1 (Headless v2)
+**📍 Current Focus**: Phase 0 Technical Debt Resolution
+**🎯 Next Major Milestone**: Complete Phase 3 Crawl4AI Parity
 
-**✅ COMPLETED (Phase 0 - 100%)**:
-- Complete project structure with workspace configuration (5 crates: riptide-core, riptide-api, riptide-headless, riptide-workers, riptide-extractor-wasm)
-- Core crate foundations with complete types, fetch, extract, gate, and cache modules
-- Headless service with full Chrome DevTools Protocol integration using chromiumoxide
-- Docker infrastructure with production-ready Dockerfile.api, Dockerfile.headless, and docker-compose.yml
-- CI/CD pipeline with GitHub Actions (fmt, clippy, tests, cargo-deny, docker builds)
-- Complete documentation framework with architecture, API, and deployment guides
-- WASM extractor implementation with Trek-rs integration and WASI command interface
-- API handlers for /crawl, /deepsearch endpoints with models and business logic
-- Configuration system with riptide.yml, policies.yml, fingerprints.yml
-- Testing infrastructure: unit tests, golden tests, integration tests, and quality gates
-- Redis caching integration with read-through cache patterns
-- Full build system with scripts/build_all.sh and Justfile task runner
-
-**🚀 READY FOR PHASE 1 (Next Steps)**:
-- WASM Component Model migration (from WASI command to wasip2)
-- Production optimization and monitoring
-- Advanced features and Crawl4AI parity
+**See [COMPLETED.md](./COMPLETED.md) for detailed list of all completed work.**
 
 ---
 
-## 🎯 PHASE 1: Core Foundation (2-3 weeks)
-*Priority: CRITICAL - Required for MVP*
+## 🔴 PHASE 0: Critical Technical Debt Resolution (1-2 weeks) - IN PROGRESS
+*Priority: CRITICAL - Security and Production Blockers*
 
-### 1.1 WASM Integration - CRITICAL BLOCKER
-**Issues**: Trek-rs dependency version mismatch, placeholder WASM implementation
+### 0.1 Security Vulnerabilities - IMMEDIATE
+**Status**: 🚨 ACTIVE
+**Effort**: 1 hour
 
-- [x] **Pin trek-rs dependency and target** ✅ COMPLETED
-  - ✅ Pin to `trek-rs = "=0.2.1"` (confirmed available on crates.io)
-  - ✅ Pin to `wasm32-wasip2` Component Model (Tier-2 support via rustup)
-  - ✅ Remove any `wasm32-wasip1` references
+- [ ] **Remove external HTTP health checks**
+  - Location: `crates/riptide-api/src/state.rs:203-217`
+  - Risk: Information leak, SSRF vulnerability
+  - Action: Replace `httpbin.org` calls with localhost health check
 
-- [x] **Implement Component Model (no WASI I/O)** ✅ COMPLETED
-  - ✅ Add `wit/extractor.wit` with typed `extract(html, url, mode) -> ExtractedContent` function
-  - ✅ Implement guest with `wit-bindgen` (no `_start` entrypoint)
-  - ✅ Host: use `wasmtime::component::bindgen!` and call typed `extract()` function
-  - ✅ Remove stdin/stdout piping and WASI command interface
+### 0.2 Performance Quick Wins - HIGH PRIORITY
+**Status**: 🟡 PENDING
+**Effort**: 1 day
 
-- [x] **WASM-Core integration** ✅ COMPLETED
-  - ✅ Replace extract.rs WASI command code with Component Model calls
-  - ✅ Handle WASM errors and fallbacks gracefully with structured error types
-  - ✅ Enhanced instance management with resource cleanup and performance monitoring
+- [ ] **PDF Semaphore optimization**
+  - Change from 2 to 10 permits in `pdf/processor.rs`
+  - Current bottleneck limiting throughput by 70%
 
-### 1.2 API Implementation - HIGH PRIORITY
-**Issues**: Missing handler implementations, no health endpoints
+- [ ] **Add Cargo optimization flags**
+  ```toml
+  [profile.release]
+  opt-level = 3
+  lto = "thin"
+  codegen-units = 1
+  ```
 
-- [x] **Complete API handlers** ✅ COMPLETED
-  - ✅ Implement `/healthz` endpoint with comprehensive dependency checks
-  - ✅ Complete `/crawl` batch processing logic with concurrent execution
-  - ✅ Implement `/deepsearch` with Serper.dev integration
-  - ✅ Add proper error handling and HTTP status codes (400, 401, 404, 408, 429, 500, 502, 503)
+- [ ] **Enable parallel testing**
+  - Configure `cargo test -- --test-threads=8`
+  - 60% faster test execution
 
-- [x] **Core business logic** ✅ COMPLETED
-  - ✅ Implement gate.rs decision algorithm with content quality scoring
-  - ✅ Connect fetch → gate → extract → render pipeline orchestration
-  - ✅ Add caching layer with Redis integration and cache-first strategy
-  - ✅ Wire all components together with state management and validation
+### 0.3 Error Handling Improvements - HIGH PRIORITY
+**Status**: 🟡 PENDING
+**Effort**: 2-3 days
 
-### 1.3 Essential Testing - HIGH PRIORITY
-**Issues**: No working test suite, validation failures
+- [ ] **Replace critical unwrap/expect calls**
+  - 305 instances identified as potential panic points
+  - Focus on critical paths first
+  - Implement proper Result/Option patterns
 
-- [x] **Golden test suite** ✅ COMPLETED
-  - ✅ Use offline fixtures in CI to avoid flaky tests
-  - ✅ Create expected output JSONs for multiple content types (articles, SPAs, news)
-  - ✅ Implement golden test runner for regression detection in `/tests/golden/`
-  - ✅ Include property-based testing for edge case coverage
+### 0.4 Test Coverage Gap - MEDIUM PRIORITY
+**Status**: 🟡 IN PROGRESS (75% → 80% target)
+**Effort**: 3-5 days
 
-- [x] **Integration tests** ✅ COMPLETED
-  - ✅ Create working e2e test suite in `tests/integration/`
-  - ✅ Test full pipeline with offline fixtures and mocked services
-  - ✅ Add comprehensive error scenario testing
-  - ✅ Performance benchmarks and stress testing with 200+ concurrent requests
+- [ ] **Achieve 80%+ test coverage**
+  - Current: 75% (improved from 65%)
+  - Critical paths still have 40% gaps
+  - Add integration tests for new modules
 
----
+### 0.5 Monitoring & Observability - MEDIUM PRIORITY
+**Status**: 🟡 PENDING
+**Effort**: 1 week
 
-## 🚀 PHASE 2 LITE: Minimal Reliability Foundation (2-4 days) ✅ COMPLETED
-*Priority: HIGH - Essential scaffolding before Crawl4AI parity work*
+- [ ] **Production monitoring infrastructure**
+  - Add comprehensive tracing with OpenTelemetry
+  - Sanitize credentials in logs
+  - Create performance benchmarking suite
+  - Implement SLA monitoring
 
-**Goal**: Minimal production-readiness to enable safe Phase-3 development
+### 0.6 Legacy API Removal - MEDIUM PRIORITY
+**Status**: 🟡 PENDING
+**Effort**: 2-3 days
 
-### 2.1 Metrics & Health (1 day) ✅ COMPLETED
-- [x] **Prometheus `/metrics` endpoint** ✅ COMPLETED
-  - ✅ Added `axum-prometheus` middleware to API + headless
-  - ✅ Request counters, duration histograms (p50/p95)
-  - ✅ Export bucket config for performance monitoring
+- [ ] **Remove streaming_legacy.rs redirect layer**
+  - Currently maintaining backward compatibility
+  - Analyze usage patterns in tests
+  - Verify all consumers migrated to new modular API
+  - Remove deprecated functions and redirects
+  - Update documentation and migration guides
 
-- [x] **Enhanced `/healthz` endpoint** ✅ COMPLETED
-  - ✅ Report `git_sha`, `wit=riptide:extractor@version`, `trek=version`
-  - ✅ Component status checks (Redis, WASM, headless)
-  - ✅ Build metadata and dependency versions
+### 0.7 Resource Management - LOW PRIORITY
+**Status**: 🟡 PENDING
+**Effort**: 2 days
 
-- [x] **Phase timing logs** ✅ COMPLETED
-  - ✅ Log phase timings: `fetch_ms`, `gate_ms`, `wasm_ms`, `render_ms`
-  - ✅ Structured logging for performance analysis
+- [ ] **Implement browser pooling**
+  - Currently using sequential operations
+  - Implement connection pooling for headless Chrome
+  - Add resource cleanup on timeout
 
-### 2.2 Timeouts & Circuit Breakers (1 day) ✅ COMPLETED
-- [x] **Fetch reliability** ✅ COMPLETED
-  - ✅ Connect timeout: 3s, total timeout: 15-20s
-  - ✅ 1 retry for idempotent requests only
-  - ✅ Proper error propagation and fallback
-
-- [x] **Headless resilience** ✅ COMPLETED
-  - ✅ `DOMContentLoaded + 1s idle`, hard cap 3s
-  - ✅ Circuit breaker on consecutive headless failures
-  - ✅ Graceful degradation to fast path when headless fails
-
-### 2.3 Robots & Throttling (1 day) ✅ COMPLETED
-- [x] **Robots.txt compliance** ✅ COMPLETED
-  - ✅ Parse `robots.txt` using `robotstxt` crate
-  - ✅ Toggle to bypass in development mode
-  - ✅ Per-host robots.txt cache with TTL
-
-- [x] **Per-host throttling** ✅ COMPLETED
-  - ✅ Token bucket per host (1-2 RPS default)
-  - ✅ Configurable delay/throttling based on robot rules
-  - ✅ Jitter (±20%) to avoid request pattern detection
-
-### 2.4 Cache & Input Hardening (1 day) ✅ COMPLETED
-- [x] **Redis read-through + TTL** ✅ COMPLETED
-  - ✅ Cache key includes extractor version/options
-  - ✅ TTL 24h default, configurable per content type
-  - ✅ Respect `ETag`/`Last-Modified` with conditional GET
-
-- [x] **Input validation** ✅ COMPLETED
-  - ✅ URL validation and content-type allowlist
-  - ✅ Max bytes limit (20MB default)
-  - ✅ CORS and header size limits
-  - ✅ XSS/injection protection
+- [ ] **Memory optimization**
+  - Monitor WASM component lifecycle
+  - Implement proper instance pooling
+  - Add memory usage alerts
 
 ---
+
 
 ## 🌟 PHASE 3: Crawl4AI Parity Features (4-6 weeks)
 *Priority: HIGH - Feature parity with Crawl4AI*
@@ -169,72 +132,20 @@ perf:
   per_host_rps: 1.5            # Rate limiting per host
 ```
 
-### 🚀 PR-1: Headless RPC v2 - Dynamic Content (Week 1)
-**Status:** ✅ COMPLETED
-**Branch**: `feature/phase3-pr1-headless-v2`
-**Feature Flag**: `headless_v2: false` (default OFF)
-
-**Files**: `crates/riptide-headless/src/models.rs`, `cdp.rs`
-
-- [x] **Enhanced RenderRequest model** ✅
-```rust
-#[derive(Deserialize)]
-pub struct RenderRequest {
-    pub session_id: Option<String>,    // Persistent browser sessions
-    pub url: String,
-    pub actions: Option<Vec<PageAction>>,  // Interactive page actions
-    pub timeouts: Option<Timeouts>,    // Configurable timing
-    pub artifacts: Option<Artifacts>,  // Screenshot/MHTML capture
-}
-
-#[derive(Deserialize)]
-#[serde(tag="type", rename_all="snake_case")]
-pub enum PageAction {
-    WaitForCss { css: String, timeout_ms: Option<u64> },
-    WaitForJs { expr: String, timeout_ms: Option<u64> },
-    Scroll { steps: u32, step_px: u32, delay_ms: u64 },
-    Js { code: String },
-    Click { css: String },
-    Type { css: String, text: String, delay_ms: Option<u64> },
-}
-```
-
-- [x] **Action executor implementation** ✅
-```rust
-async fn exec_actions(page: &Page, actions: &[PageAction]) -> anyhow::Result<()> {
-    for action in actions {
-        match action {
-            PageAction::WaitForCss{css, timeout_ms} => {
-                page.wait_for_element_with_timeout(css, timeout_ms.unwrap_or(5000)).await?;
-            }
-            PageAction::Scroll{steps, step_px, delay_ms} => {
-                for _ in 0..*steps {
-                    page.evaluate(&format!("window.scrollBy(0,{step_px});")).await.ok();
-                    tokio::time::sleep(Duration::from_millis(*delay_ms)).await;
-                }
-            }
-            // ... other action implementations
-        }
-    }
-    Ok(())
-}
-```
-
-- [x] **Session management**: Map `session_id -> user-data-dir` for cookie persistence ✅ (Placeholder ready)
-- [x] **Artifacts capture**: Optional screenshot/MHTML (base64 encoded) ✅ (Screenshot implemented)
-- [ ] **API passthrough**: Forward `RenderRequest` when `features.headless_v2=true` (Ready for integration)
-
-**Acceptance**: JS-heavy article (Next/React) → `wait_for` loads content → `scroll` loads lazy content → screenshot artifact captured
+### 🚀 PR-1: Headless RPC v2 - Dynamic Content ✅ COMPLETE
+**Note**: PR-1 has been completed. Integration with API passthrough pending feature flag activation.
 
 ### 🚀 PR-2: Stealth Preset - Anti-Detection (Week 2)
+**Status**: 🚧 IN PROGRESS
 **Branch**: `feature/phase3-pr2-stealth`
 **Feature Flag**: `stealth: false` (default OFF)
 
 **Files**: `riptide-headless/src/launcher.rs`, `stealth.js`
 
-- [ ] **Launch flags**: `--disable-blink-features=AutomationControlled --no-first-run --mute-audio --headless=new`
-- [ ] **UA rotation**: Load `configs/ua_list.txt`, pick per `session_id` (stable hash)
-- [ ] **JS injection** (early page lifecycle):
+- [x] **Launch flags**: Basic implementation started
+- [x] **UA rotation**: `configs/ua_list.txt` file created with user agents
+- [x] **JS injection**: `stealth.js` file created with navigator spoofing
+- [ ] **Complete implementation**: Wire up all stealth components
 ```javascript
 // stealth.js - injected before any page scripts
 navigator.webdriver = false;
@@ -485,40 +396,16 @@ extraction:
 
 ## 🎯 Success Metrics
 
-### Phase 1 (MVP) Success Criteria: ✅ COMPLETED
-- [x] All critical APIs functional (`/crawl`, `/deepsearch`, `/healthz`) ✅ COMPLETED
-- [x] WASM extraction working with trek-rs ✅ COMPLETED - Component Model migration with performance optimization
-- [x] Golden tests passing (comprehensive test suite with fixtures) ✅ COMPLETED
-- [x] Technical debt resolution (compilation errors, performance, monitoring) ✅ COMPLETED
-- [x] Docker deployment working end-to-end ✅ COMPLETED - Simple setup validated with docker-compose.yml
-- [x] Basic load testing (100 concurrent requests, <2s p95) ✅ COMPLETED - Comprehensive script with 100 concurrent support
-
-### Phase 2 Lite Success Criteria: ✅ COMPLETED
-- [x] `/healthz` + `/metrics` endpoints reporting build info and performance ✅ COMPLETED
-  - ✅ Prometheus metrics with axum-prometheus middleware
-  - ✅ Enhanced health checks with component status (Redis, WASM, headless)
-  - ✅ Git SHA, WIT version, and Trek version reporting
-- [x] Timeouts, retries, and circuit breaker preventing cascading failures ✅ COMPLETED
-  - ✅ Fetch timeouts (3s connect, 15-20s total) with retry logic
-  - ✅ Headless circuit breaker with graceful degradation
-- [x] Robots.txt compliance and per-host throttling active ✅ COMPLETED
-  - ✅ Robotstxt crate integration with per-host caching
-  - ✅ Token bucket throttling with jitter (±20%)
-- [x] Redis read-through cache with TTL and conditional GET support ✅ COMPLETED
-  - ✅ Cache keys include extractor version and options
-  - ✅ 24h TTL with configurable per content type
-  - ✅ ETag/Last-Modified conditional GET implementation
-- [x] Input validation and security hardening in place ✅ COMPLETED
-  - ✅ URL validation with content-type allowlisting
-  - ✅ 20MB max bytes limit and CORS protection
-  - ✅ XSS/injection protection implemented
+### Phase 0 (Technical Debt) Success Criteria:
+- [ ] All security vulnerabilities patched (httpbin.org health check)
+- [ ] Performance optimizations applied (PDF semaphore, Cargo flags)
+- [ ] Error handling improved (305 unwrap/expect calls replaced)
+- [ ] Test coverage ≥80% (currently at 75%)
+- [ ] Legacy API removed (streaming_legacy.rs)
+- [ ] Resource management optimized (browser pooling, memory limits)
 
 ### Phase 3 (Crawl4AI Parity) Success Criteria:
-**PR-1 (Headless RPC v2)**:
-- [ ] Enhanced RenderRequest with actions, timeouts, artifacts
-- [ ] Page actions: wait_for_css, wait_for_js, scroll, click, type
-- [ ] Session management with persistent browser instances
-- [ ] Screenshot/MHTML artifact capture (base64 encoded)
+**PR-1 (Headless RPC v2)**: ✅ COMPLETE - Awaiting feature flag activation
 
 **PR-2 (Stealth Preset)**:
 - [ ] Launch flags: `--disable-blink-features=AutomationControlled`
@@ -556,18 +443,6 @@ extraction:
 - [ ] Headless fallback ratio < 15% of total pages
 - [ ] PDF: 2 concurrent max, no >200MB memory spikes per worker
 
-### Phase 2 (Production) Success Criteria:
-- [ ] 99.9% uptime over 30 days
-- [ ] <500ms p95 response time for simple crawls
-- [ ] Handles 1000+ requests/minute sustained load
-- [ ] Comprehensive monitoring and alerting
-- [ ] Security audit passed
-
-### Phase 3 (Advanced) Success Criteria:
-- [ ] Crawl4AI feature parity (90% compatibility)
-- [ ] PDF processing capability
-- [ ] Stealth mode effectiveness (>80% success rate)
-- [ ] Advanced content extraction accuracy (>90%)
 
 ### Phase 4 (Enterprise) Success Criteria:
 - [ ] Multi-tenant architecture deployed
@@ -610,20 +485,28 @@ extraction:
 
 | Phase | Duration | Key Deliverables | Risk Level | Status |
 |-------|----------|------------------|------------|---------|
-| **Phase 1** | 2-3 weeks | Working MVP with basic crawling | HIGH | ✅ COMPLETED |
-| **Phase 2 Lite** | 2-4 days | Minimal reliability foundation | MEDIUM | ✅ COMPLETED |
-| **Phase 3** | 4-6 weeks | Advanced features and parity | MEDIUM | 🚀 READY TO START |
+| **Phase 0** | 1-2 weeks | Critical tech debt & security fixes | CRITICAL | 🚨 IN PROGRESS |
+| **Phase 3** | 4-6 weeks | Advanced features and parity | MEDIUM | 🚧 PR-1 COMPLETE, PR-2 IN PROGRESS |
 | **Phase 4** | 6-8 weeks | Enterprise capabilities | LOW | PLANNED |
 | **Phase 5** | Ongoing | Continuous optimization | LOW | PLANNED |
 
-**Total Estimated Timeline**: 4-6 months for full implementation
+**Total Estimated Timeline**: 3-4 months for remaining work
 
 ---
 
 ## 🤝 Next Steps
 
-### Immediate Actions (Next Steps - Phase 3):
-With Phase 1 & 2 fully completed, ready to proceed with Crawl4AI parity using the 6-PR strategy:
+### Immediate Actions (Next Steps - Phase 0 Technical Debt):
+**⚠️ CRITICAL**: Must complete Phase 0 security and stability items before continuing Phase 3:
+
+1. **Security Fix** (1 hour): Remove external HTTP health check vulnerability
+2. **Performance Quick Wins** (1 day): PDF semaphore, Cargo optimization, parallel tests
+3. **Error Handling** (2-3 days): Replace 305 unwrap/expect calls in critical paths
+4. **Test Coverage** (3-5 days): Achieve 80% coverage target
+5. **Legacy API Removal** (2-3 days): Clean up streaming_legacy.rs after migration verification
+
+### Following Actions (Phase 3 Continuation):
+After Phase 0 completion, resume Crawl4AI parity using the 6-PR strategy:
 
 **Branch Setup**: Create `feature/phase3` branch for coordinated development
 

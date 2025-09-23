@@ -93,7 +93,10 @@ async fn exec_actions(page: &Page, actions: &[PageAction]) -> anyhow::Result<()>
                 let deadline = Instant::now() + Duration::from_millis(timeout_ms.unwrap_or(5000));
                 loop {
                     let result = page.evaluate(expr.as_str()).await?;
-                    let ok: bool = result.into_value().unwrap_or(false);
+                    let ok: bool = result.into_value().unwrap_or_else(|e| {
+                        debug!("JavaScript evaluation failed, treating as false: {}", e);
+                        false
+                    });
                     if ok {
                         debug!("JavaScript condition met: {}", expr);
                         break;

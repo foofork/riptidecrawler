@@ -48,3 +48,9 @@ strip = true           # Strip debug symbols
 inherits = "dev"
 opt-level = 1          # Some optimization for better performance
 debug = 1             # Reduced debug info for smaller binaries
+
+# Test parallelization settings for improved test performance
+[test]
+parallel = true
+jobs = 0               # Use all available CPU cores
+timeout = 600          # 10 minute timeout for long-running tests

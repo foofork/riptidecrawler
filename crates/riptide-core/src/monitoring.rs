@@ -248,54 +248,60 @@ impl MetricsCollector {
     ) {
         // Record extraction time
         {
-            let mut times = self.extraction_times.lock().unwrap();
-            times.add_point(duration.as_millis() as f64, HashMap::new());
+            if let Ok(mut times) = self.extraction_times.lock() {
+                times.add_point(duration.as_millis() as f64, HashMap::new());
+            } else {
+                tracing::warn!("Failed to acquire lock for extraction times recording");
+            }
         }
 
         // Update current metrics
         {
-            let mut metrics = self.current_metrics.write().unwrap();
-            metrics.total_extractions += 1;
+            if let Ok(mut metrics) = self.current_metrics.write() {
+                metrics.total_extractions += 1;
 
-            if success {
-                metrics.successful_extractions += 1;
-            } else {
-                metrics.failed_extractions += 1;
-            }
+                if success {
+                    metrics.successful_extractions += 1;
+                } else {
+                    metrics.failed_extractions += 1;
+                }
 
-            if let Some(score) = quality_score {
-                // Update running average of quality score
+                if let Some(score) = quality_score {
+                    // Update running average of quality score
+                    let total_weight = metrics.total_extractions as f64;
+                    let current_weight = (total_weight - 1.0) / total_weight;
+                    let new_weight = 1.0 / total_weight;
+
+                    metrics.avg_content_quality_score =
+                        metrics.avg_content_quality_score * current_weight + score as f64 * new_weight;
+                }
+
+                if let Some(words) = word_count {
+                    // Update running average of word count
+                    let total_weight = metrics.total_extractions as f64;
+                    let current_weight = (total_weight - 1.0) / total_weight;
+                    let new_weight = 1.0 / total_weight;
+
+                    metrics.avg_extracted_word_count =
+                        metrics.avg_extracted_word_count * current_weight + words as f64 * new_weight;
+                }
+
+                // Update cache hit ratio
                 let total_weight = metrics.total_extractions as f64;
-                let current_weight = (total_weight - 1.0) / total_weight;
-                let new_weight = 1.0 / total_weight;
+                if was_cached {
+                    // This is a simplified calculation - in practice you'd track cache hits/misses separately
+                    metrics.cache_hit_ratio =
+                        (metrics.cache_hit_ratio * (total_weight - 1.0) + 1.0) / total_weight;
+                } else {
+                    metrics.cache_hit_ratio =
+                        (metrics.cache_hit_ratio * (total_weight - 1.0)) / total_weight;
+                }
 
-                metrics.avg_content_quality_score =
-                    metrics.avg_content_quality_score * current_weight + score as f64 * new_weight;
-            }
-
-            if let Some(words) = word_count {
-                // Update running average of word count
-                let total_weight = metrics.total_extractions as f64;
-                let current_weight = (total_weight - 1.0) / total_weight;
-                let new_weight = 1.0 / total_weight;
-
-                metrics.avg_extracted_word_count =
-                    metrics.avg_extracted_word_count * current_weight + words as f64 * new_weight;
-            }
-
-            // Update cache hit ratio
-            let total_weight = metrics.total_extractions as f64;
-            if was_cached {
-                // This is a simplified calculation - in practice you'd track cache hits/misses separately
-                metrics.cache_hit_ratio =
-                    (metrics.cache_hit_ratio * (total_weight - 1.0) + 1.0) / total_weight;
+                metrics.last_updated = Instant::now();
+                metrics.last_updated_utc = Utc::now();
             } else {
-                metrics.cache_hit_ratio =
-                    (metrics.cache_hit_ratio * (total_weight - 1.0)) / total_weight;
+                tracing::warn!("Failed to acquire write lock for current metrics");
             }
-
-            metrics.last_updated = Instant::now();
-            metrics.last_updated_utc = Utc::now();
         }
     }
 
@@ -306,53 +312,83 @@ impl MetricsCollector {
         error_metadata.insert("is_timeout".to_string(), is_timeout.to_string());
 
         {
-            let mut errors = self.error_rates.lock().unwrap();
-            errors.add_point(1.0, error_metadata);
+            if let Ok(mut errors) = self.error_rates.lock() {
+                errors.add_point(1.0, error_metadata);
+            } else {
+                tracing::warn!("Failed to acquire lock for error rates recording");
+            }
         }
 
         {
-            let mut metrics = self.current_metrics.write().unwrap();
-            if is_timeout {
-                // Update timeout rate - this is simplified, in practice you'd track more precisely
-                let total = metrics.total_extractions as f64;
-                metrics.timeout_rate = (metrics.timeout_rate * (total - 1.0) + 1.0) / total;
+            if let Ok(mut metrics) = self.current_metrics.write() {
+                if is_timeout {
+                    // Update timeout rate - this is simplified, in practice you'd track more precisely
+                    let total = metrics.total_extractions as f64;
+                    metrics.timeout_rate = (metrics.timeout_rate * (total - 1.0) + 1.0) / total;
+                }
+                metrics.last_updated = Instant::now();
+                metrics.last_updated_utc = Utc::now();
+            } else {
+                tracing::warn!("Failed to acquire write lock for error metrics");
             }
-            metrics.last_updated = Instant::now();
-            metrics.last_updated_utc = Utc::now();
         }
     }
 
     /// Record circuit breaker trip
     pub async fn record_circuit_breaker_trip(&self) {
-        let mut metrics = self.current_metrics.write().unwrap();
-        metrics.circuit_breaker_trips += 1;
-        metrics.last_updated = Instant::now();
-        metrics.last_updated_utc = Utc::now();
+        if let Ok(mut metrics) = self.current_metrics.write() {
+            metrics.circuit_breaker_trips += 1;
+            metrics.last_updated = Instant::now();
+            metrics.last_updated_utc = Utc::now();
+        } else {
+            tracing::warn!("Failed to acquire write lock for circuit breaker metrics");
+        }
     }
 
     /// Update pool statistics
     pub async fn update_pool_stats(&self, pool_size: usize, active: usize, idle: usize) {
-        let mut metrics = self.current_metrics.write().unwrap();
-        metrics.pool_size = pool_size;
-        metrics.active_instances = active;
-        metrics.idle_instances = idle;
-        metrics.last_updated = Instant::now();
-        metrics.last_updated_utc = Utc::now();
+        if let Ok(mut metrics) = self.current_metrics.write() {
+            metrics.pool_size = pool_size;
+            metrics.active_instances = active;
+            metrics.idle_instances = idle;
+            metrics.last_updated = Instant::now();
+            metrics.last_updated_utc = Utc::now();
+        } else {
+            tracing::warn!("Failed to acquire write lock for pool stats update");
+        }
     }
 
     /// Get current metrics snapshot
     pub async fn get_current_metrics(&self) -> PerformanceMetrics {
-        self.current_metrics.read().unwrap().clone()
+        self.current_metrics.read().unwrap_or_else(|_| {
+            tracing::warn!("Failed to acquire read lock for current metrics, returning default");
+            PerformanceMetrics::default()
+        }).clone()
     }
 
     /// Get detailed performance report
     pub async fn get_performance_report(&self, duration: Duration) -> PerformanceReport {
-        let times = self.extraction_times.lock().unwrap();
-        let _rates = self.request_rates.lock().unwrap();
-        let memory = self.memory_usage.lock().unwrap();
-        let errors = self.error_rates.lock().unwrap();
+        let times = self.extraction_times.lock().unwrap_or_else(|poison_err| {
+            tracing::warn!("Failed to acquire lock for extraction times in performance report");
+            poison_err.into_inner()
+        });
+        let _rates = self.request_rates.lock().unwrap_or_else(|poison_err| {
+            tracing::warn!("Failed to acquire lock for request rates in performance report");
+            poison_err.into_inner()
+        });
+        let memory = self.memory_usage.lock().unwrap_or_else(|poison_err| {
+            tracing::warn!("Failed to acquire lock for memory usage in performance report");
+            poison_err.into_inner()
+        });
+        let errors = self.error_rates.lock().unwrap_or_else(|poison_err| {
+            tracing::warn!("Failed to acquire lock for error rates in performance report");
+            poison_err.into_inner()
+        });
 
-        let current = self.current_metrics.read().unwrap().clone();
+        let current = self.current_metrics.read().unwrap_or_else(|poison_err| {
+            tracing::warn!("Failed to acquire read lock for current metrics in performance report");
+            poison_err.into_inner()
+        }).clone();
 
         PerformanceReport {
             current_metrics: current.clone(),
@@ -387,17 +423,23 @@ impl MetricsCollector {
         // Calculate request rate
         let request_rate = self.calculate_request_rate().await;
         {
-            let mut rates = self.request_rates.lock().unwrap();
-            rates.add_point(request_rate, HashMap::new());
+            if let Ok(mut rates) = self.request_rates.lock() {
+                rates.add_point(request_rate, HashMap::new());
+            } else {
+                tracing::warn!("Failed to acquire lock for request rates in background update");
+            }
         }
 
         // Update metrics with calculated values
         {
-            let mut metrics = self.current_metrics.write().unwrap();
+            if let Ok(mut metrics) = self.current_metrics.write() {
 
-            // Calculate percentiles
-            let times = self.extraction_times.lock().unwrap();
-            metrics.p95_extraction_time_ms = times
+                // Calculate percentiles
+                let times = self.extraction_times.lock().unwrap_or_else(|poison_err| {
+                    tracing::warn!("Failed to acquire lock for extraction times in background update");
+                    poison_err.into_inner()
+                });
+                metrics.p95_extraction_time_ms = times
                 .calculate_percentile(95.0, Duration::from_secs(5 * 60))
                 .unwrap_or(0.0);
             metrics.p99_extraction_time_ms = times
@@ -410,22 +452,28 @@ impl MetricsCollector {
             metrics.requests_per_second = request_rate;
             metrics.uptime_seconds = self.start_time.elapsed().as_secs();
 
-            // Calculate error rate
-            let recent_errors = self
-                .error_rates
-                .lock()
-                .unwrap()
-                .get_recent_data(Duration::from_secs(5 * 60))
-                .len();
-            let recent_total =
-                std::cmp::max(1, times.get_recent_data(Duration::from_secs(5 * 60)).len());
+                // Calculate error rate
+                let recent_errors = self
+                    .error_rates
+                    .lock()
+                    .unwrap_or_else(|poison_err| {
+                        tracing::warn!("Failed to acquire lock for error rates calculation");
+                        poison_err.into_inner()
+                    })
+                    .get_recent_data(Duration::from_secs(5 * 60))
+                    .len();
+                let recent_total =
+                    std::cmp::max(1, times.get_recent_data(Duration::from_secs(5 * 60)).len());
             metrics.error_rate = (recent_errors as f64 / recent_total as f64) * 100.0;
 
             // Calculate health score
-            metrics.health_score = self.calculate_health_score(&metrics);
+                metrics.health_score = self.calculate_health_score(&metrics);
 
-            metrics.last_updated = Instant::now();
-            metrics.last_updated_utc = Utc::now();
+                metrics.last_updated = Instant::now();
+                metrics.last_updated_utc = Utc::now();
+            } else {
+                tracing::warn!("Failed to acquire write lock for metrics update in background");
+            }
         }
     }
 
@@ -442,7 +490,10 @@ impl MetricsCollector {
     }
 
     async fn calculate_request_rate(&self) -> f64 {
-        let metrics = self.current_metrics.read().unwrap();
+        let metrics = self.current_metrics.read().unwrap_or_else(|poison_err| {
+            tracing::warn!("Failed to acquire read lock for request rate calculation");
+            poison_err.into_inner()
+        });
         let duration_minutes = self.start_time.elapsed().as_secs() as f64 / 60.0;
 
         if duration_minutes > 0.0 {

@@ -266,7 +266,13 @@ impl PipelineOrchestrator {
                 let url = url.clone();
 
                 tokio::spawn(async move {
-                    let _permit = semaphore.acquire().await.unwrap();
+                    let _permit = match semaphore.acquire().await {
+                        Ok(permit) => permit,
+                        Err(e) => {
+                            error!(url = %url, index = index, error = %e, "Failed to acquire semaphore permit");
+                            return None;
+                        }
+                    };
 
                     match pipeline.execute_single(&url).await {
                         Ok(result) => {

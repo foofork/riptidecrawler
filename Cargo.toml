@@ -44,6 +44,12 @@ chromiumoxide = "0.7"  # Keep for stability
 spider = "2"
 pdfium-render = "0.8"
 
+# Performance optimization settings
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+
 # Optional safety switch (leave commented by default):
 # [patch.crates-io]
 # trek-rs = { git = "https://github.com/officialunofficial/trek.git", rev = "PUT_A_PINNED_COMMIT" }

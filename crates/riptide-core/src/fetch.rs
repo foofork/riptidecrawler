@@ -202,7 +202,7 @@ pub struct ReliableHttpClient {
 }
 
 impl ReliableHttpClient {
-    pub fn new(retry_config: RetryConfig, circuit_breaker_config: CircuitBreakerConfig) -> Self {
+    pub fn new(retry_config: RetryConfig, circuit_breaker_config: CircuitBreakerConfig) -> Result<Self> {
         let client = Client::builder()
             .user_agent("RipTide/1.0")
             .http2_prior_knowledge()
@@ -211,14 +211,14 @@ impl ReliableHttpClient {
             .connect_timeout(Duration::from_secs(3))
             .timeout(Duration::from_secs(20)) // Increased to 20s for total timeout
             .build()
-            .expect("Failed to create HTTP client");
+            .map_err(|e| anyhow::anyhow!("Failed to create HTTP client: {}", e))?;
 
-        Self {
+        Ok(Self {
             client,
             retry_config,
             circuit_breaker: Arc::new(CircuitBreaker::new(circuit_breaker_config)),
             robots_manager: None,
-        }
+        })
     }
 
     /// Create a new client with robots.txt compliance enabled
@@ -226,7 +226,7 @@ impl ReliableHttpClient {
         retry_config: RetryConfig,
         circuit_breaker_config: CircuitBreakerConfig,
         robots_config: RobotsConfig,
-    ) -> Self {
+    ) -> Result<Self> {
         let client = Client::builder()
             .user_agent(&robots_config.user_agent)
             .http2_prior_knowledge()
@@ -235,14 +235,14 @@ impl ReliableHttpClient {
             .connect_timeout(Duration::from_secs(3))
             .timeout(Duration::from_secs(20))
             .build()
-            .expect("Failed to create HTTP client");
+            .map_err(|e| anyhow::anyhow!("Failed to create HTTP client: {}", e))?;
 
-        Self {
+        Ok(Self {
             client,
             retry_config,
             circuit_breaker: Arc::new(CircuitBreaker::new(circuit_breaker_config)),
             robots_manager: Some(Arc::new(RobotsManager::new(robots_config))),
-        }
+        })
     }
 
     /// Enable robots.txt compliance for existing client
@@ -353,7 +353,7 @@ fn is_retryable_error(error: &reqwest::Error) -> bool {
 }
 
 /// Legacy function for backward compatibility
-pub fn http_client() -> Client {
+pub fn http_client() -> Result<Client> {
     Client::builder()
         .user_agent("RipTide/1.0")
         .http2_prior_knowledge()
@@ -362,7 +362,7 @@ pub fn http_client() -> Client {
         .connect_timeout(Duration::from_secs(3))
         .timeout(Duration::from_secs(20)) // Updated to 20s
         .build()
-        .expect("client")
+        .map_err(|e| anyhow::anyhow!("Failed to create HTTP client: {}", e))
 }
 
 /// Legacy function for backward compatibility

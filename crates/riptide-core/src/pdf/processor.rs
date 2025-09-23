@@ -93,7 +93,7 @@ impl PdfiumProcessor {
         let start_time = std::time::Instant::now();
 
         // Acquire semaphore permit for concurrency control
-        let semaphore = PDF_SEMAPHORE.get_or_init(|| Arc::new(Semaphore::new(2)));
+        let semaphore = PDF_SEMAPHORE.get_or_init(|| Arc::new(Semaphore::new(10)));
         let _permit = semaphore
             .acquire()
             .await
@@ -334,7 +334,7 @@ impl PdfiumProcessor {
         pdf_bytes: &[u8],
     ) -> PdfResult<crate::types::ExtractedDoc> {
         // Acquire semaphore permit
-        let semaphore = PDF_SEMAPHORE.get_or_init(|| Arc::new(Semaphore::new(2)));
+        let semaphore = PDF_SEMAPHORE.get_or_init(|| Arc::new(Semaphore::new(10)));
         let _permit = semaphore
             .acquire()
             .await
@@ -445,7 +445,7 @@ impl PdfProcessor for PdfiumProcessor {
 
     async fn detect_ocr_need(&self, data: &[u8]) -> PdfResult<bool> {
         // Quick check for OCR need without full processing
-        let semaphore = PDF_SEMAPHORE.get_or_init(|| Arc::new(Semaphore::new(2)));
+        let semaphore = PDF_SEMAPHORE.get_or_init(|| Arc::new(Semaphore::new(10)));
         let _permit = semaphore
             .acquire()
             .await
