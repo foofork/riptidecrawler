@@ -298,6 +298,13 @@ impl HealthChecker {
         }
     }
 
+    /// Verify HTTP client configuration is valid
+    fn verify_http_client_config(_state: &AppState) -> bool {
+        // Verify timeout settings, connection pool, etc.
+        // This is a placeholder - add actual configuration checks as needed
+        true
+    }
+
     /// Check headless service health
     async fn check_headless_health(&self, state: &AppState) -> ServiceHealth {
         if let Some(headless_url) = &state.config.headless_url {
