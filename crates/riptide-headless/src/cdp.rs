@@ -2,9 +2,15 @@ use crate::models::*;
 use axum::{http::StatusCode, Json};
 use chromiumoxide::{Browser, BrowserConfig, Page};
 use futures::StreamExt;
+use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tokio::time::timeout;
+use tokio::sync::RwLock;
+use tokio::time::{sleep, timeout};
 use tracing::{debug, error, info, warn};
+
+/// Session storage for persistent browser instances
+type SessionStore = Arc<RwLock<HashMap<String, Browser>>>;
 
 /// Enhanced render function with timeout management and resilience patterns
 pub async fn render(
@@ -70,14 +76,85 @@ pub async fn render(
     }
 }
 
+/// Execute page actions on a browser page
+async fn exec_actions(page: &Page, actions: &[PageAction]) -> anyhow::Result<()> {
+    for action in actions {
+        match action {
+            PageAction::WaitForCss { css, timeout_ms } => {
+                let _timeout = Duration::from_millis(timeout_ms.unwrap_or(5000));
+                let _ = page.find_element(css)
+                    .await
+                    .map_err(|e| anyhow::anyhow!("CSS selector not found: {}", e))?;
+                debug!("Waited for CSS selector: {}", css);
+            }
+            PageAction::WaitForJs { expr, timeout_ms } => {
+                let deadline = Instant::now() + Duration::from_millis(timeout_ms.unwrap_or(5000));
+                loop {
+                    let result = page.evaluate(expr.as_str()).await?;
+                    let ok: bool = result.into_value().unwrap_or(false);
+                    if ok {
+                        debug!("JavaScript condition met: {}", expr);
+                        break;
+                    }
+                    if Instant::now() >= deadline {
+                        anyhow::bail!("wait_for_js timeout: {}", expr);
+                    }
+                    sleep(Duration::from_millis(100)).await;
+                }
+            }
+            PageAction::Scroll { steps, step_px, delay_ms } => {
+                for i in 0..*steps {
+                    let scroll_js = format!("window.scrollBy(0, {});", step_px);
+                    page.evaluate(scroll_js.as_str())
+                        .await?;
+                    debug!("Scrolled step {}/{}: {}px", i + 1, steps, step_px);
+                    sleep(Duration::from_millis(*delay_ms)).await;
+                }
+            }
+            PageAction::Js { code } => {
+                page.evaluate(code.as_str()).await?;
+                debug!("Executed JavaScript code");
+            }
+            PageAction::Click { css } => {
+                page.find_element(css)
+                    .await?
+                    .click()
+                    .await?;
+                debug!("Clicked element: {}", css);
+            }
+            PageAction::Type { css, text, delay_ms } => {
+                let element = page.find_element(css).await?;
+                for ch in text.chars() {
+                    element.type_str(&ch.to_string()).await?;
+                    sleep(Duration::from_millis(delay_ms.unwrap_or(20))).await;
+                }
+                debug!("Typed text into element: {}", css);
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Internal render implementation with detailed error handling
 async fn render_internal(
     req: RenderReq,
     request_id: String,
 ) -> Result<RenderResp, RenderErrorResp> {
-    // Browser configuration with optimizations for speed
-    let browser_config = BrowserConfig::builder()
-        .with_head() // Keep headful for now, can be made headless for production
+    // Browser configuration with Phase 3 stealth flags (when enabled)
+    let mut builder = BrowserConfig::builder();
+
+    // Add stealth flags if feature is enabled
+    if std::env::var("STEALTH_MODE").unwrap_or_default() == "true" {
+        builder = builder
+            .arg("--disable-blink-features=AutomationControlled")
+            .arg("--no-first-run")
+            .arg("--mute-audio")
+            .arg("--disable-dev-shm-usage");
+    } else {
+        builder = builder.with_head(); // Keep headful for debugging when not in stealth
+    }
+
+    let browser_config = builder
         .build()
         .map_err(|e| RenderErrorResp {
             error: format!("Failed to build browser config: {}", e),
@@ -130,13 +207,24 @@ async fn render_internal(
 
     let page = page_result;
 
-    // Wait for DOMContentLoaded + 1s idle time as per requirements
-    if let Err(e) = wait_for_content_and_idle(&page, &req, &request_id).await {
-        warn!(
-            request_id = %request_id,
-            error = %e,
-            "Content wait failed, proceeding with current state"
-        );
+    // Execute any custom actions if provided
+    if let Some(actions) = &req.actions {
+        if let Err(e) = exec_actions(&page, actions).await {
+            warn!(
+                request_id = %request_id,
+                error = %e,
+                "Action execution failed, proceeding with current state"
+            );
+        }
+    } else {
+        // Legacy path: wait for DOMContentLoaded + 1s idle time
+        if let Err(e) = wait_for_content_and_idle(&page, &req, &request_id).await {
+            warn!(
+                request_id = %request_id,
+                error = %e,
+                "Content wait failed, proceeding with current state"
+            );
+        }
     }
 
     // Perform scrolling if requested
@@ -153,6 +241,27 @@ async fn render_internal(
     // Extract content
     let (html, final_url) = extract_page_content(&page, &req.url, &request_id).await?;
 
+    // Capture artifacts if requested
+    let mut artifacts_out = ArtifactsOut::default();
+    if let Some(artifacts) = &req.artifacts {
+        if artifacts.screenshot {
+            match page.screenshot(chromiumoxide::page::ScreenshotParams::default()).await {
+                Ok(screenshot_bytes) => {
+                    use base64::Engine;
+                    artifacts_out.screenshot_b64 = Some(base64::engine::general_purpose::STANDARD.encode(&screenshot_bytes));
+                    debug!(request_id = %request_id, "Screenshot captured");
+                },
+                Err(e) => {
+                    warn!(request_id = %request_id, error = %e, "Screenshot capture failed");
+                }
+            }
+        }
+        if artifacts.mhtml {
+            // MHTML capture would require CDP command not yet exposed in chromiumoxide
+            debug!(request_id = %request_id, "MHTML capture not yet implemented");
+        }
+    }
+
     // Clean up
     handler_task.abort();
     if let Err(e) = browser.close().await {
@@ -162,7 +271,9 @@ async fn render_internal(
     Ok(RenderResp {
         final_url,
         html,
-        screenshot_b64: None,
+        screenshot_b64: artifacts_out.screenshot_b64.clone(), // For backward compatibility
+        session_id: req.session_id.clone(), // Echo back session ID for now
+        artifacts: artifacts_out,
     })
 }
 
