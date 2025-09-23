@@ -101,7 +101,10 @@ mod tests {
         assert_eq!(error.to_string(), "Invalid PDF: Not a PDF file");
 
         let error = PdfError::EncryptedPdf;
-        assert_eq!(error.to_string(), "PDF is encrypted and cannot be processed");
+        assert_eq!(
+            error.to_string(),
+            "PDF is encrypted and cannot be processed"
+        );
 
         let error = PdfError::FileTooLarge {
             size: 1000000,

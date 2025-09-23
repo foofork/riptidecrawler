@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use super::config::{PdfConfig, PdfCapabilities};
+use super::config::{PdfCapabilities, PdfConfig};
 use super::errors::{PdfError, PdfResult};
-use super::types::{PdfProcessingResult, PdfImage, PdfMetadata, PdfStats, ProgressCallback};
+use super::types::{PdfImage, PdfMetadata, PdfProcessingResult, PdfStats, ProgressCallback};
 use super::utils;
 
 #[cfg(feature = "pdf")]
@@ -13,6 +13,13 @@ use std::sync::OnceLock;
 #[cfg(feature = "pdf")]
 use tokio::sync::Semaphore;
 
+#[cfg(feature = "pdf")]
+type Pdfium = pdfium_render::prelude::Pdfium;
+#[cfg(feature = "pdf")]
+type PdfDocument<'a> = pdfium_render::prelude::PdfDocument<'a>;
+#[cfg(feature = "pdf")]
+type PdfPage<'a> = pdfium_render::prelude::PdfPage<'a>;
+
 // Global semaphore for PDF processing concurrency control
 #[cfg(feature = "pdf")]
 static PDF_SEMAPHORE: OnceLock<Arc<Semaphore>> = OnceLock::new();
@@ -20,11 +27,7 @@ static PDF_SEMAPHORE: OnceLock<Arc<Semaphore>> = OnceLock::new();
 /// PDF processor trait for different implementations
 pub trait PdfProcessor {
     /// Process a PDF from bytes
-    async fn process_pdf(
-        &self,
-        data: &[u8],
-        config: &PdfConfig,
-    ) -> PdfResult<PdfProcessingResult>;
+    async fn process_pdf(&self, data: &[u8], config: &PdfConfig) -> PdfResult<PdfProcessingResult>;
 
     /// Process a PDF with progress tracking
     async fn process_pdf_with_progress(
@@ -57,6 +60,7 @@ impl Default for PdfiumProcessor {
     }
 }
 
+#[cfg(feature = "pdf")]
 impl PdfiumProcessor {
     pub fn new() -> Self {
         Self {
@@ -155,6 +159,7 @@ impl PdfiumProcessor {
         ))
     }
 
+    #[cfg(feature = "pdf")]
     fn validate_pdf_input(&self, data: &[u8], config: &PdfConfig) -> PdfResult<()> {
         // Check file size
         if data.len() as u64 > config.max_size_bytes {
@@ -165,23 +170,23 @@ impl PdfiumProcessor {
         }
 
         // Validate PDF header
-        utils::validate_pdf_header(data)
-            .map_err(|msg| PdfError::InvalidPdf { message: msg })?;
+        utils::validate_pdf_header(data).map_err(|msg| PdfError::InvalidPdf { message: msg })?;
 
         Ok(())
     }
 
+    #[cfg(feature = "pdf")]
     fn initialize_pdfium(&self) -> PdfResult<Pdfium> {
-        let pdfium = Pdfium::new(
-            Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path("./"))
-                .or_else(|_| Pdfium::bind_to_system_library())
-                .map_err(|e| PdfError::ProcessingError {
-                    message: format!("Failed to initialize Pdfium: {}", e),
-                })?,
-        );
-        Ok(pdfium)
+        let binding = Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path("./"))
+            .or_else(|_| Pdfium::bind_to_system_library())
+            .map_err(|e| PdfError::ProcessingError {
+                message: format!("Failed to initialize Pdfium: {}", e),
+            })?;
+
+        Ok(Pdfium::new(binding))
     }
 
+    #[cfg(feature = "pdf")]
     fn load_document<'a>(&self, pdfium: &'a Pdfium, data: &'a [u8]) -> PdfResult<PdfDocument<'a>> {
         pdfium
             .load_pdf_from_byte_slice(data, None)
@@ -190,6 +195,7 @@ impl PdfiumProcessor {
             })
     }
 
+    #[cfg(feature = "pdf")]
     fn extract_page_content(
         &self,
         page: &PdfPage,
@@ -227,6 +233,7 @@ impl PdfiumProcessor {
         Ok(())
     }
 
+    #[cfg(feature = "pdf")]
     fn extract_images_from_page(
         &self,
         page: &PdfPage,
@@ -255,6 +262,7 @@ impl PdfiumProcessor {
         Ok(())
     }
 
+    #[cfg(feature = "pdf")]
     fn handle_ocr_if_needed(&self, results: &mut ExtractionResults, config: &PdfConfig) {
         let needs_ocr = !results.has_text_content && config.ocr_config.enable_ocr;
         if needs_ocr && results.text.trim().is_empty() {
@@ -262,6 +270,7 @@ impl PdfiumProcessor {
         }
     }
 
+    #[cfg(feature = "pdf")]
     fn extract_metadata(
         &self,
         _document: &PdfDocument,
@@ -293,6 +302,7 @@ impl PdfiumProcessor {
         })
     }
 
+    #[cfg(feature = "pdf")]
     fn build_processing_result(
         &self,
         results: ExtractionResults,
@@ -329,6 +339,7 @@ impl PdfiumProcessor {
     }
 
     /// Process PDF with pdfium-render library for ExtractedDoc
+    #[cfg(feature = "pdf")]
     pub async fn process_pdf_bytes(
         &self,
         pdf_bytes: &[u8],
@@ -425,11 +436,7 @@ impl PdfiumProcessor {
 
 #[cfg(feature = "pdf")]
 impl PdfProcessor for PdfiumProcessor {
-    async fn process_pdf(
-        &self,
-        data: &[u8],
-        config: &PdfConfig,
-    ) -> PdfResult<PdfProcessingResult> {
+    async fn process_pdf(&self, data: &[u8], config: &PdfConfig) -> PdfResult<PdfProcessingResult> {
         self.process_pdf_enhanced(data, config, None).await
     }
 
@@ -453,8 +460,7 @@ impl PdfProcessor for PdfiumProcessor {
                 message: "Failed to acquire processing permit".to_string(),
             })?;
 
-        utils::validate_pdf_header(data)
-            .map_err(|msg| PdfError::InvalidPdf { message: msg })?;
+        utils::validate_pdf_header(data).map_err(|msg| PdfError::InvalidPdf { message: msg })?;
 
         let pdfium = self.initialize_pdfium()?;
         let document = self.load_document(&pdfium, data)?;
@@ -490,9 +496,16 @@ impl PdfProcessor for PdfiumProcessor {
     }
 
     fn is_available(&self) -> bool {
-        Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path("./"))
-            .or_else(|_| Pdfium::bind_to_system_library())
-            .is_ok()
+        #[cfg(feature = "pdf")]
+        {
+            Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path("./"))
+                .or_else(|_| Pdfium::bind_to_system_library())
+                .is_ok()
+        }
+        #[cfg(not(feature = "pdf"))]
+        {
+            false
+        }
     }
 
     fn capabilities(&self) -> PdfCapabilities {
@@ -504,6 +517,13 @@ impl PdfProcessor for PdfiumProcessor {
 #[cfg(not(feature = "pdf"))]
 pub struct DefaultPdfProcessor {
     capabilities: PdfCapabilities,
+}
+
+#[cfg(not(feature = "pdf"))]
+impl Default for DefaultPdfProcessor {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(not(feature = "pdf"))]
@@ -566,6 +586,7 @@ impl PdfProcessor for DefaultPdfProcessor {
 }
 
 /// Helper struct to collect extraction results
+#[cfg(feature = "pdf")]
 struct ExtractionResults {
     text: String,
     images: Vec<PdfImage>,
@@ -573,6 +594,7 @@ struct ExtractionResults {
     has_text_content: bool,
 }
 
+#[cfg(feature = "pdf")]
 impl ExtractionResults {
     fn new() -> Self {
         Self {
@@ -593,6 +615,21 @@ pub fn create_pdf_processor() -> PdfiumProcessor {
 #[cfg(not(feature = "pdf"))]
 pub fn create_pdf_processor() -> DefaultPdfProcessor {
     DefaultPdfProcessor::new()
+}
+
+/// Fallback implementation for when PDF feature is disabled
+#[cfg(not(feature = "pdf"))]
+impl DefaultPdfProcessor {
+    /// Process PDF bytes (fallback implementation)
+    pub async fn process_pdf_bytes(
+        &self,
+        _pdf_bytes: &[u8],
+    ) -> PdfResult<crate::types::ExtractedDoc> {
+        Err(PdfError::ProcessingError {
+            message: "PDF processing feature is not enabled. Enable with --features pdf"
+                .to_string(),
+        })
+    }
 }
 
 #[cfg(test)]

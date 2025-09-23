@@ -1,8 +1,11 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::runtime::Runtime;
 
 use riptide_core::monitoring::{MetricsCollector, TimeSeriesBuffer};
+use riptide_core::telemetry::{DataSanitizer, ResourceTracker, SlaMonitor, TelemetrySystem};
 
 /// Performance benchmarks for the monitoring and metrics system
 /// This file contains Criterion benchmarks that can be run with:
@@ -270,6 +273,113 @@ fn bench_metrics_serialization(c: &mut Criterion) {
     group.finish();
 }
 
+fn bench_telemetry_system(c: &mut Criterion) {
+    // Test telemetry system performance if available
+    if let Ok(telemetry) = TelemetrySystem::init() {
+        let telemetry = Arc::new(telemetry);
+
+        c.bench_function("telemetry_create_span", |b| {
+            b.iter(|| {
+                let tracer = telemetry.tracer();
+                let _span = tracer.start("benchmark_span");
+                black_box(_span);
+            });
+        });
+
+        c.bench_function("telemetry_get_resource_usage", |b| {
+            b.iter(|| {
+                black_box(telemetry.get_resource_usage());
+            });
+        });
+    }
+}
+
+fn bench_data_sanitization(c: &mut Criterion) {
+    let sanitizer = DataSanitizer::new();
+
+    let test_strings = vec![
+        "Normal log message without sensitive data",
+        "API key: sk-1234567890abcdef1234567890abcdef in the request",
+        "User email user@example.com contacted support",
+        "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        "Credit card 4532-1234-5678-9012 was used for payment",
+        "Server IP: 192.168.1.100 is experiencing issues",
+        "Phone number +1-555-123-4567 called for support",
+        "SSN 123-45-6789 was provided for verification",
+        "Mixed data: api_key=secret123, email=test@test.com, ip=10.0.0.1",
+    ];
+
+    let mut group = c.benchmark_group("data_sanitization");
+
+    for (i, test_string) in test_strings.iter().enumerate() {
+        group.bench_with_input(
+            BenchmarkId::new("sanitize_string", i),
+            test_string,
+            |b, s| {
+                b.iter(|| {
+                    black_box(sanitizer.sanitize(black_box(s)));
+                });
+            },
+        );
+    }
+
+    // Benchmark map sanitization
+    let test_map: HashMap<String, String> = [
+        ("api_key".to_string(), "sk-1234567890abcdef".to_string()),
+        ("user_email".to_string(), "user@example.com".to_string()),
+        ("server_ip".to_string(), "192.168.1.100".to_string()),
+        ("normal_field".to_string(), "normal_value".to_string()),
+    ]
+    .iter()
+    .cloned()
+    .collect();
+
+    group.bench_function("sanitize_map", |b| {
+        b.iter(|| {
+            black_box(sanitizer.sanitize_map(black_box(&test_map)));
+        });
+    });
+
+    group.finish();
+}
+
+fn bench_sla_monitoring(c: &mut Criterion) {
+    let mut monitor = SlaMonitor::new();
+
+    // Pre-populate with some data
+    for i in 0..1000 {
+        let duration = Duration::from_millis(50 + (i % 200));
+        let success = i % 10 != 0; // 10% failure rate
+        monitor.record_metric("test_operation", duration, success);
+    }
+
+    c.bench_function("sla_record_metric", |b| {
+        b.iter(|| {
+            monitor.record_metric(
+                black_box("benchmark_op"),
+                black_box(Duration::from_millis(100)),
+                black_box(true),
+            );
+        });
+    });
+
+    c.bench_function("sla_get_status", |b| {
+        b.iter(|| {
+            black_box(monitor.get_status());
+        });
+    });
+}
+
+fn bench_resource_tracking(c: &mut Criterion) {
+    let tracker = ResourceTracker::new();
+
+    c.bench_function("resource_get_usage", |b| {
+        b.iter(|| {
+            black_box(tracker.get_usage());
+        });
+    });
+}
+
 criterion_group!(
     performance_benches,
     bench_metrics_collection,
@@ -278,7 +388,11 @@ criterion_group!(
     bench_concurrent_metrics_collection,
     bench_memory_usage_patterns,
     bench_alert_processing,
-    bench_metrics_serialization
+    bench_metrics_serialization,
+    bench_telemetry_system,
+    bench_data_sanitization,
+    bench_sla_monitoring,
+    bench_resource_tracking
 );
 
 criterion_main!(performance_benches);

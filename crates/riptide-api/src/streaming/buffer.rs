@@ -36,8 +36,8 @@ pub struct BufferConfig {
 impl Default for BufferConfig {
     fn default() -> Self {
         Self {
-            initial_size: 256,      // Increased from 128
-            max_size: 2048,         // Dynamic maximum
+            initial_size: 256, // Increased from 128
+            max_size: 2048,    // Dynamic maximum
             min_size: 64,
             growth_factor: 1.5,
             shrink_factor: 0.75,
@@ -185,7 +185,8 @@ impl DynamicBuffer {
             };
 
             // Grow buffer if we're dropping messages
-            if drop_ratio > 0.01 {  // More than 1% drop rate
+            if drop_ratio > 0.01 {
+                // More than 1% drop rate
                 let new_capacity = ((current_capacity as f64 * self.config.growth_factor) as usize)
                     .min(self.config.max_size);
 
@@ -287,11 +288,13 @@ impl BackpressureHandler {
         let duration_ms = duration.as_millis() as f64;
 
         // Update running average
-        let total_time = self.metrics.average_send_time_ms * (self.metrics.total_messages - 1) as f64;
+        let total_time =
+            self.metrics.average_send_time_ms * (self.metrics.total_messages - 1) as f64;
         self.metrics.average_send_time_ms =
             (total_time + duration_ms) / self.metrics.total_messages as f64;
 
-        if duration_ms > 100.0 {  // 100ms threshold
+        if duration_ms > 100.0 {
+            // 100ms threshold
             self.metrics.slow_sends += 1;
         }
 
@@ -404,7 +407,10 @@ mod tests {
 
         // Simulate slow sends
         for _ in 0..30 {
-            buffer.record_send(Duration::from_millis(150)).await.unwrap();
+            buffer
+                .record_send(Duration::from_millis(150))
+                .await
+                .unwrap();
         }
 
         assert!(buffer.is_under_backpressure().await);

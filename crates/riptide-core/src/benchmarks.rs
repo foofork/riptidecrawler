@@ -80,7 +80,9 @@ const BENCHMARK_CONFIGS: &[BenchmarkConfig] = &[
 ];
 
 /// Initialize extractor for benchmarking
-fn create_test_extractor(config: &BenchmarkConfig) -> CmExtractor {
+fn create_test_extractor(
+    config: &BenchmarkConfig,
+) -> Result<CmExtractor, Box<dyn std::error::Error>> {
     let extractor_config = ExtractorConfig {
         max_pool_size: config.pool_size,
         initial_pool_size: config.pool_size / 2,
@@ -92,8 +94,8 @@ fn create_test_extractor(config: &BenchmarkConfig) -> CmExtractor {
 
     // For benchmarking, we'll use a mock WASM path
     // In real tests, this would point to the actual WASM component
-    CmExtractor::with_config("test.wasm", extractor_config)
-        .expect("Failed to create extractor for benchmarking")
+    Ok(CmExtractor::with_config("test.wasm", extractor_config)
+        .map_err(|e| format!("Failed to create extractor for benchmarking: {}", e))?)
 }
 
 /// Benchmark single extraction performance
@@ -106,7 +108,8 @@ fn bench_single_extraction(c: &mut Criterion) {
                 BenchmarkId::new("single_extraction", &bench_id),
                 html,
                 |b, html| {
-                    let extractor = create_test_extractor(config);
+                    let extractor = create_test_extractor(config)
+                        .expect("Failed to create extractor for benchmark");
 
                     b.iter(|| {
                         black_box(extractor.extract(
@@ -123,7 +126,7 @@ fn bench_single_extraction(c: &mut Criterion) {
 
 /// Benchmark concurrent extraction performance
 fn bench_concurrent_extraction(c: &mut Criterion) {
-    let rt = Runtime::new().unwrap();
+    let rt = Runtime::new().expect("Failed to create runtime for benchmark");
 
     for (size_name, html) in BENCHMARK_SIZES {
         for config in BENCHMARK_CONFIGS
@@ -136,7 +139,8 @@ fn bench_concurrent_extraction(c: &mut Criterion) {
                 BenchmarkId::new("concurrent_extraction", &bench_id),
                 &(html, config.concurrent_requests),
                 |b, (html, concurrent_requests)| {
-                    let extractor = create_test_extractor(config);
+                    let extractor = create_test_extractor(config)
+                        .expect("Failed to create extractor for benchmark");
 
                     b.iter(|| {
                         rt.block_on(async {
@@ -144,12 +148,11 @@ fn bench_concurrent_extraction(c: &mut Criterion) {
                                 .map(|_| {
                                     let extractor = &extractor;
                                     async move {
-                                        extractor
-                                            .extract(
-                                                black_box(html),
-                                                black_box("https://example.com"),
-                                                black_box("article"),
-                                            )
+                                        extractor.extract(
+                                            black_box(html),
+                                            black_box("https://example.com"),
+                                            black_box("article"),
+                                        )
                                     }
                                 })
                                 .collect();
@@ -166,7 +169,7 @@ fn bench_concurrent_extraction(c: &mut Criterion) {
 
 /// Benchmark instance pool performance
 fn bench_pool_efficiency(c: &mut Criterion) {
-    let rt = Runtime::new().unwrap();
+    let rt = Runtime::new().expect("Failed to create runtime for benchmark");
 
     let mut group = c.benchmark_group("pool_efficiency");
 
@@ -187,7 +190,7 @@ fn bench_pool_efficiency(c: &mut Criterion) {
                 b.iter(|| {
                     rt.block_on(async {
                         let _extractor = CmExtractor::with_config("test.wasm", config.clone())
-                            .expect("Failed to create extractor");
+                            .expect("Failed to create extractor for benchmark");
 
                         // Warm-up functionality not yet implemented
                         black_box(Ok::<(), String>(()))
@@ -207,7 +210,8 @@ fn bench_pool_efficiency(c: &mut Criterion) {
                             pool_size,
                             concurrent_requests: 1,
                             enable_instance_reuse: true,
-                        });
+                        })
+                        .expect("Failed to create extractor for benchmark");
 
                         // Pool scaling functionality not yet implemented
                         black_box(Ok::<(), String>(()))
@@ -222,7 +226,7 @@ fn bench_pool_efficiency(c: &mut Criterion) {
 
 /// Benchmark memory usage patterns
 fn bench_memory_usage(c: &mut Criterion) {
-    let rt = Runtime::new().unwrap();
+    let rt = Runtime::new().expect("Failed to create runtime for benchmark");
 
     let mut group = c.benchmark_group("memory_usage");
     group.throughput(Throughput::Elements(100));
@@ -233,20 +237,18 @@ fn bench_memory_usage(c: &mut Criterion) {
             BenchmarkId::new("memory_reuse", size_name),
             html,
             |b, html| {
-                let extractor = create_test_extractor(&BENCHMARK_CONFIGS[2]); // pooled_concurrent
+                let extractor = create_test_extractor(&BENCHMARK_CONFIGS[2])
+                    .expect("Failed to create extractor for benchmark"); // pooled_concurrent
 
                 b.iter(|| {
                     rt.block_on(async {
                         // Extract 100 times to test memory reuse
                         for _ in 0..100 {
-                            let _ = black_box(
-                                extractor
-                                    .extract(
-                                        black_box(html),
-                                        black_box("https://example.com"),
-                                        black_box("article"),
-                                    ),
-                            );
+                            let _ = black_box(extractor.extract(
+                                black_box(html),
+                                black_box("https://example.com"),
+                                black_box("article"),
+                            ));
                         }
                     })
                 })
@@ -259,7 +261,7 @@ fn bench_memory_usage(c: &mut Criterion) {
 
 /// Benchmark extraction mode performance
 fn bench_extraction_modes(c: &mut Criterion) {
-    let rt = Runtime::new().unwrap();
+    let rt = Runtime::new().expect("Failed to create runtime for benchmark");
 
     let modes = [
         ("article", ExtractionMode::Article),
@@ -267,7 +269,8 @@ fn bench_extraction_modes(c: &mut Criterion) {
         ("metadata", ExtractionMode::Metadata),
     ];
 
-    let extractor = create_test_extractor(&BENCHMARK_CONFIGS[1]); // pooled_small
+    let extractor = create_test_extractor(&BENCHMARK_CONFIGS[1])
+        .expect("Failed to create extractor for benchmark"); // pooled_small
 
     for (mode_name, mode) in modes {
         for (size_name, html) in BENCHMARK_SIZES {
@@ -279,14 +282,11 @@ fn bench_extraction_modes(c: &mut Criterion) {
                 |b, (html, mode)| {
                     b.iter(|| {
                         rt.block_on(async {
-                            black_box(
-                                extractor
-                                    .extract_typed(
-                                        black_box(html),
-                                        black_box("https://example.com"),
-                                        black_box((*mode).clone()),
-                                    ),
-                            )
+                            black_box(extractor.extract_typed(
+                                black_box(html),
+                                black_box("https://example.com"),
+                                black_box((*mode).clone()),
+                            ))
                         })
                     });
                 },
@@ -297,7 +297,7 @@ fn bench_extraction_modes(c: &mut Criterion) {
 
 /// Benchmark error handling and recovery
 fn bench_error_handling(c: &mut Criterion) {
-    let rt = Runtime::new().unwrap();
+    let rt = Runtime::new().expect("Failed to create runtime for benchmark");
 
     let invalid_html_samples = [
         (
@@ -312,7 +312,8 @@ fn bench_error_handling(c: &mut Criterion) {
         ("huge_content", &"<p>".repeat(10000)),
     ];
 
-    let extractor = create_test_extractor(&BENCHMARK_CONFIGS[1]); // pooled_small
+    let extractor = create_test_extractor(&BENCHMARK_CONFIGS[1])
+        .expect("Failed to create extractor for benchmark"); // pooled_small
 
     for (error_type, html) in invalid_html_samples {
         c.bench_with_input(
@@ -322,14 +323,11 @@ fn bench_error_handling(c: &mut Criterion) {
                 b.iter(|| {
                     rt.block_on(async {
                         // These should fail gracefully and return typed errors
-                        let _ = black_box(
-                            extractor
-                                .extract(
-                                    black_box(html),
-                                    black_box("https://example.com"),
-                                    black_box("article"),
-                                ),
-                        );
+                        let _ = black_box(extractor.extract(
+                            black_box(html),
+                            black_box("https://example.com"),
+                            black_box("article"),
+                        ));
                     })
                 })
             },
@@ -339,7 +337,7 @@ fn bench_error_handling(c: &mut Criterion) {
 
 /// Benchmark circuit breaker performance
 fn bench_circuit_breaker(c: &mut Criterion) {
-    let rt = Runtime::new().unwrap();
+    let rt = Runtime::new().expect("Failed to create runtime for benchmark");
 
     let config = ExtractorConfig {
         max_pool_size: 4,
@@ -354,29 +352,25 @@ fn bench_circuit_breaker(c: &mut Criterion) {
         b.iter(|| {
             rt.block_on(async {
                 let extractor = CmExtractor::with_config("test.wasm", config.clone())
-                    .expect("Failed to create extractor");
+                    .expect("Failed to create extractor for benchmark");
 
                 // Trigger failures to open circuit breaker
                 for _ in 0..20 {
-                    let _ = extractor
-                        .extract(
-                            black_box(SAMPLE_HTML_LARGE),
-                            black_box("https://example.com"),
-                            black_box("article"),
-                        );
+                    let _ = extractor.extract(
+                        black_box(SAMPLE_HTML_LARGE),
+                        black_box("https://example.com"),
+                        black_box("article"),
+                    );
                 }
 
                 // Test recovery
                 tokio::time::sleep(Duration::from_secs(1)).await;
 
-                black_box(
-                    extractor
-                        .extract(
-                            black_box(SAMPLE_HTML_SMALL),
-                            black_box("https://example.com"),
-                            black_box("article"),
-                        ),
-                )
+                black_box(extractor.extract(
+                    black_box(SAMPLE_HTML_SMALL),
+                    black_box("https://example.com"),
+                    black_box("article"),
+                ))
             })
         });
     });
@@ -418,7 +412,7 @@ fn bench_initialization(c: &mut Criterion) {
                 b.iter(|| {
                     black_box(
                         CmExtractor::with_config("test.wasm", config.clone())
-                            .expect("Failed to create extractor"),
+                            .expect("Failed to create extractor for benchmark"),
                     )
                 });
             },
@@ -448,7 +442,7 @@ mod tests {
     #[tokio::test]
     async fn test_benchmark_extractor_creation() {
         let config = &BENCHMARK_CONFIGS[0];
-        let result = std::panic::catch_unwind(|| create_test_extractor(config));
+        let result = create_test_extractor(config);
 
         // This test will fail in the benchmark environment since we don't have a real WASM file
         // But it verifies the benchmark setup is correct

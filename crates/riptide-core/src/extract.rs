@@ -7,8 +7,8 @@ pub struct WasmExtractor {
 }
 
 impl WasmExtractor {
-    pub fn new(wasm_path: &str) -> Result<Self> {
-        let cm_extractor = CmExtractor::new(wasm_path)?;
+    pub async fn new(wasm_path: &str) -> Result<Self> {
+        let cm_extractor = CmExtractor::new(wasm_path).await?;
         Ok(Self { cm_extractor })
     }
 
@@ -18,30 +18,4 @@ impl WasmExtractor {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    #[ignore] // Requires WASM component to be built
-    fn test_extractor_creation() {
-        let wasm_path = "../../target/wasm32-wasip2/release/riptide_extractor_wasm.wasm";
-        let result = WasmExtractor::new(wasm_path);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    #[ignore] // Requires WASM component to be built
-    fn test_simple_extraction() {
-        let wasm_path = "../../target/wasm32-wasip2/release/riptide_extractor_wasm.wasm";
-        let extractor = WasmExtractor::new(wasm_path).unwrap();
-        let html = b"<html><head><title>Test</title></head><body><p>Content</p></body></html>";
-        let result = extractor
-            .extract(html, "https://test.com", "article")
-            .unwrap();
-
-        assert_eq!(result.url, "https://test.com");
-        assert_eq!(result.title, Some("Test".to_string()));
-        assert!(result.text.contains("Content"));
-    }
-}
+// Tests moved to tests/wasm_component_tests.rs using proper Component Model

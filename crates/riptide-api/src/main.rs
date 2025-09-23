@@ -105,7 +105,10 @@ async fn main() -> anyhow::Result<()> {
         .route("/crawl/sse", post(streaming::crawl_sse))
         .route("/crawl/ws", get(streaming::crawl_websocket))
         .route("/deepsearch", post(handlers::deepsearch))
-        .route("/deepsearch/stream", post(streaming::ndjson_deepsearch_stream))
+        .route(
+            "/deepsearch/stream",
+            post(streaming::ndjson_deepsearch_stream),
+        )
         .fallback(handlers::not_found)
         .with_state(app_state)
         .layer(prometheus_layer)

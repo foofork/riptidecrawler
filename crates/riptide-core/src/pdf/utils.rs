@@ -39,10 +39,10 @@ pub fn extract_pdf_version(data: &[u8]) -> Option<String> {
 #[allow(dead_code)]
 pub fn estimate_complexity(file_size: u64) -> ProcessingComplexity {
     match file_size {
-        0..=1_048_575 => ProcessingComplexity::Low,         // < 1MB
+        0..=1_048_575 => ProcessingComplexity::Low, // < 1MB
         1_048_576..=10_485_759 => ProcessingComplexity::Medium, // 1-10MB
         10_485_760..=52_428_800 => ProcessingComplexity::High, // 10-50MB
-        _ => ProcessingComplexity::VeryHigh,                // > 50MB
+        _ => ProcessingComplexity::VeryHigh,        // > 50MB
     }
 }
 
@@ -122,9 +122,9 @@ impl ProcessingComplexity {
     #[allow(dead_code)]
     pub fn memory_limit_bytes(&self) -> u64 {
         match self {
-            ProcessingComplexity::Low => 50 * 1024 * 1024,      // 50MB
-            ProcessingComplexity::Medium => 200 * 1024 * 1024,  // 200MB
-            ProcessingComplexity::High => 500 * 1024 * 1024,    // 500MB
+            ProcessingComplexity::Low => 50 * 1024 * 1024, // 50MB
+            ProcessingComplexity::Medium => 200 * 1024 * 1024, // 200MB
+            ProcessingComplexity::High => 500 * 1024 * 1024, // 500MB
             ProcessingComplexity::VeryHigh => 1024 * 1024 * 1024, // 1GB
         }
     }
@@ -144,9 +144,18 @@ mod tests {
 
     #[test]
     fn test_should_skip_headless() {
-        assert!(should_skip_headless("application/pdf", "http://example.com/doc.pdf"));
-        assert!(should_skip_headless("text/html", "http://example.com/doc.pdf"));
-        assert!(!should_skip_headless("text/html", "http://example.com/page.html"));
+        assert!(should_skip_headless(
+            "application/pdf",
+            "http://example.com/doc.pdf"
+        ));
+        assert!(should_skip_headless(
+            "text/html",
+            "http://example.com/doc.pdf"
+        ));
+        assert!(!should_skip_headless(
+            "text/html",
+            "http://example.com/page.html"
+        ));
     }
 
     #[test]
@@ -166,7 +175,10 @@ mod tests {
         assert_eq!(estimate_complexity(500_000), ProcessingComplexity::Low);
         assert_eq!(estimate_complexity(5_000_000), ProcessingComplexity::Medium);
         assert_eq!(estimate_complexity(25_000_000), ProcessingComplexity::High);
-        assert_eq!(estimate_complexity(100_000_000), ProcessingComplexity::VeryHigh);
+        assert_eq!(
+            estimate_complexity(100_000_000),
+            ProcessingComplexity::VeryHigh
+        );
     }
 
     #[test]
@@ -185,8 +197,14 @@ mod tests {
     #[test]
     fn test_likely_needs_ocr() {
         assert!(likely_needs_ocr("", 5)); // No text, has images
-        assert!(!likely_needs_ocr("This is a long text content with meaningful information", 0)); // Has text, no images
-        assert!(!likely_needs_ocr("This is a long text content with meaningful information", 2)); // Has text and images
+        assert!(!likely_needs_ocr(
+            "This is a long text content with meaningful information",
+            0
+        )); // Has text, no images
+        assert!(!likely_needs_ocr(
+            "This is a long text content with meaningful information",
+            2
+        )); // Has text and images
         assert!(likely_needs_ocr("OCR", 3)); // Very short text, has images
     }
 

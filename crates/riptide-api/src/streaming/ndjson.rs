@@ -3,7 +3,7 @@
 //! This module provides streaming JSON responses where each line contains
 //! a complete JSON object, allowing for efficient streaming of large datasets.
 
-use super::buffer::{BufferManager, BackpressureHandler};
+use super::buffer::{BackpressureHandler, BufferManager};
 use super::config::StreamConfig;
 use super::error::{StreamingError, StreamingResult};
 use crate::errors::{ApiError, ApiResult};
@@ -12,7 +12,7 @@ use crate::pipeline::PipelineOrchestrator;
 use crate::state::AppState;
 use crate::validation::{validate_crawl_request, validate_deepsearch_request};
 use axum::body::Body;
-use axum::extract::{State, Json};
+use axum::extract::{Json, State};
 use axum::http::{header, StatusCode};
 use axum::response::{IntoResponse, Response};
 use bytes::Bytes;
@@ -47,7 +47,10 @@ pub async fn crawl_stream(
     // Create streaming handler
     let streaming_handler = NdjsonStreamingHandler::new(app.clone(), request_id.clone());
 
-    match streaming_handler.handle_crawl_stream(body, start_time).await {
+    match streaming_handler
+        .handle_crawl_stream(body, start_time)
+        .await
+    {
         Ok(response) => response,
         Err(e) => create_error_response(ApiError::from(e)),
     }
@@ -76,7 +79,10 @@ pub async fn deepsearch_stream(
     // Create streaming handler
     let streaming_handler = NdjsonStreamingHandler::new(app.clone(), request_id.clone());
 
-    match streaming_handler.handle_deepsearch_stream(body, start_time).await {
+    match streaming_handler
+        .handle_deepsearch_stream(body, start_time)
+        .await
+    {
         Ok(response) => response,
         Err(e) => create_error_response(ApiError::from(e)),
     }
@@ -118,7 +124,8 @@ impl NdjsonStreamingHandler {
 
         // Spawn the streaming orchestration task
         tokio::spawn(async move {
-            let mut backpressure_handler = BackpressureHandler::new(request_id.clone(), buffer_clone);
+            let mut backpressure_handler =
+                BackpressureHandler::new(request_id.clone(), buffer_clone);
 
             if let Err(e) = orchestrate_crawl_stream(
                 app_clone,
@@ -127,7 +134,9 @@ impl NdjsonStreamingHandler {
                 start_time,
                 request_id,
                 &mut backpressure_handler,
-            ).await {
+            )
+            .await
+            {
                 error!(request_id = %request_id, error = %e, "NDJSON crawl stream orchestration error");
             }
         });
@@ -162,7 +171,8 @@ impl NdjsonStreamingHandler {
 
         // Spawn the streaming orchestration task
         tokio::spawn(async move {
-            let mut backpressure_handler = BackpressureHandler::new(request_id.clone(), buffer_clone);
+            let mut backpressure_handler =
+                BackpressureHandler::new(request_id.clone(), buffer_clone);
 
             if let Err(e) = orchestrate_deepsearch_stream(
                 app_clone,
@@ -171,7 +181,9 @@ impl NdjsonStreamingHandler {
                 start_time,
                 request_id,
                 &mut backpressure_handler,
-            ).await {
+            )
+            .await
+            {
                 error!(request_id = %request_id, error = %e, "NDJSON deep search stream orchestration error");
             }
         });
@@ -312,7 +324,8 @@ async fn orchestrate_crawl_stream(
                     - chrono::Duration::milliseconds(start_time.elapsed().as_millis() as i64))
                 .to_rfc3339(),
                 current_phase: "processing".to_string(),
-                progress_percentage: (completed_count + error_count) as f64 / urls.len() as f64 * 100.0,
+                progress_percentage: (completed_count + error_count) as f64 / urls.len() as f64
+                    * 100.0,
                 items_completed: completed_count + error_count,
                 items_total: urls.len(),
                 estimated_completion: estimate_completion(
@@ -323,19 +336,28 @@ async fn orchestrate_crawl_stream(
                 current_item: Some(url.clone()),
             };
 
-            if send_ndjson_line(&tx, &progress_update, backpressure_handler).await.is_err() {
+            if send_ndjson_line(&tx, &progress_update, backpressure_handler)
+                .await
+                .is_err()
+            {
                 debug!(request_id = %request_id, "Client disconnected during progress update");
                 break;
             }
         }
 
         // Check for backpressure before sending
-        if backpressure_handler.should_drop_message(tx.capacity()).await {
+        if backpressure_handler
+            .should_drop_message(tx.capacity())
+            .await
+        {
             warn!(request_id = %request_id, "Dropping message due to backpressure");
             continue;
         }
 
-        if send_ndjson_line(&tx, &stream_result, backpressure_handler).await.is_err() {
+        if send_ndjson_line(&tx, &stream_result, backpressure_handler)
+            .await
+            .is_err()
+        {
             debug!(request_id = %request_id, "Client disconnected, stopping stream");
             break;
         }
@@ -391,8 +413,9 @@ async fn orchestrate_deepsearch_stream(
     let include_content = body.include_content.unwrap_or(true);
 
     // Check for Serper API key
-    let serper_api_key = std::env::var("SERPER_API_KEY")
-        .map_err(|_| StreamingError::invalid_request("SERPER_API_KEY environment variable not set"))?;
+    let serper_api_key = std::env::var("SERPER_API_KEY").map_err(|_| {
+        StreamingError::invalid_request("SERPER_API_KEY environment variable not set")
+    })?;
 
     debug!(
         request_id = %request_id,
@@ -415,7 +438,9 @@ async fn orchestrate_deepsearch_stream(
     info!(request_id = %request_id, query = %body.query, "Performing web search");
     let search_results = perform_web_search(&app, &body.query, limit, &serper_api_key)
         .await
-        .map_err(|e| StreamingError::Pipeline { source: anyhow::anyhow!("Search failed: {}", e) })?;
+        .map_err(|e| StreamingError::Pipeline {
+            source: anyhow::anyhow!("Search failed: {}", e),
+        })?;
 
     // Send search metadata
     let search_metadata = DeepSearchMetadata {
@@ -437,11 +462,17 @@ async fn orchestrate_deepsearch_stream(
                 crawl_result: None,
             };
 
-            if backpressure_handler.should_drop_message(tx.capacity()).await {
+            if backpressure_handler
+                .should_drop_message(tx.capacity())
+                .await
+            {
                 continue;
             }
 
-            if send_ndjson_line(&tx, &stream_result, backpressure_handler).await.is_err() {
+            if send_ndjson_line(&tx, &stream_result, backpressure_handler)
+                .await
+                .is_err()
+            {
                 debug!(request_id = %request_id, "Client disconnected, stopping stream");
                 break;
             }
@@ -494,11 +525,17 @@ async fn orchestrate_deepsearch_stream(
                 crawl_result,
             };
 
-            if backpressure_handler.should_drop_message(tx.capacity()).await {
+            if backpressure_handler
+                .should_drop_message(tx.capacity())
+                .await
+            {
                 continue;
             }
 
-            if send_ndjson_line(&tx, &stream_result, backpressure_handler).await.is_err() {
+            if send_ndjson_line(&tx, &stream_result, backpressure_handler)
+                .await
+                .is_err()
+            {
                 debug!(request_id = %request_id, "Client disconnected, stopping stream");
                 break;
             }
@@ -541,8 +578,7 @@ async fn send_ndjson_line<T: Serialize>(
 ) -> StreamingResult<()> {
     let send_start = Instant::now();
 
-    let json_str = serde_json::to_string(obj)
-        .map_err(StreamingError::from)?;
+    let json_str = serde_json::to_string(obj).map_err(StreamingError::from)?;
     let line = format!("{}\n", json_str);
 
     tx.send(Bytes::from(line.into_bytes()))
@@ -570,10 +606,11 @@ fn create_error_response(error: ApiError) -> Response {
         .header("Content-Type", "application/json")
         .body(Body::from(error_json.to_string()))
         .unwrap_or_else(|_| {
+            // If we can't even build this simple error response, return a minimal one
             Response::builder()
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
                 .body(Body::empty())
-                .unwrap()
+                .expect("Failed to build minimal error response")
         })
 }
 

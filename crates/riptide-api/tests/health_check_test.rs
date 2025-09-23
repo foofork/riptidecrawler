@@ -41,8 +41,14 @@ mod health_check_tests {
 
         // Verify no external endpoints are referenced
         let body_str = body.to_string();
-        assert!(!body_str.contains("httpbin.org"), "Health check should not reference httpbin.org");
-        assert!(!body_str.contains("google.com"), "Health check should not reference google.com");
+        assert!(
+            !body_str.contains("httpbin.org"),
+            "Health check should not reference httpbin.org"
+        );
+        assert!(
+            !body_str.contains("google.com"),
+            "Health check should not reference google.com"
+        );
     }
 
     #[tokio::test]
@@ -120,8 +126,14 @@ mod health_check_tests {
 
         // Verify no external references
         let body_str = body.to_string();
-        assert!(!body_str.contains("httpbin.org"), "Should not contain httpbin.org");
-        assert!(!body_str.contains("google.com"), "Should not contain google.com");
+        assert!(
+            !body_str.contains("httpbin.org"),
+            "Should not contain httpbin.org"
+        );
+        assert!(
+            !body_str.contains("google.com"),
+            "Should not contain google.com"
+        );
 
         // Verify metrics if available
         if let Some(metrics) = body["metrics"].as_object() {
@@ -149,8 +161,17 @@ mod health_check_tests {
         let body_str = body.to_string();
 
         // Ensure no secrets are exposed in health check
-        assert!(!body_str.contains("super-secret-key"), "API key should not be exposed");
-        assert!(!body_str.contains("sk-secret"), "OpenAI key should not be exposed");
-        assert!(!body_str.contains("password"), "Passwords should not be exposed");
+        assert!(
+            !body_str.contains("super-secret-key"),
+            "API key should not be exposed"
+        );
+        assert!(
+            !body_str.contains("sk-secret"),
+            "OpenAI key should not be exposed"
+        );
+        assert!(
+            !body_str.contains("password"),
+            "Passwords should not be exposed"
+        );
     }
 }

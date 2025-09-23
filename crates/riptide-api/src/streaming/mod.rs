@@ -79,28 +79,26 @@ pub mod sse;
 pub mod websocket;
 
 // Re-export commonly used types for convenience
-pub use buffer::{
-    BackpressureHandler, BufferConfig, BufferManager, BufferStats, DynamicBuffer,
-};
+pub use buffer::{BackpressureHandler, BufferConfig, BufferManager, BufferStats, DynamicBuffer};
 pub use config::{
     GeneralConfig, NdjsonConfig, RateLimitAction, RateLimitConfig, SseConfig, StreamConfig,
     WebSocketConfig,
 };
-pub use error::{
-    ClientType, ConnectionContext, RecoveryStrategy, StreamingError, StreamingResult,
-};
+pub use error::{ClientType, ConnectionContext, RecoveryStrategy, StreamingError, StreamingResult};
 pub use pipeline::{
     DeepSearchMetadata, DeepSearchResultData, DeepSearchSummary, StreamEvent,
     StreamExecutionSummary, StreamMetadata, StreamResultData, StreamingPipeline,
 };
 pub use processor::{
     OperationProgress, PerformanceAnalysis, PerformanceCheckpoint, PerformanceMonitor,
-    PhaseDuration, ProcessedResult, ProcessingStats, StreamProgress, StreamProcessor,
+    PhaseDuration, ProcessedResult, ProcessingStats, StreamProcessor, StreamProgress,
     StreamSummary,
 };
 
 // Re-export public API functions
-pub use ndjson::{crawl_stream as ndjson_crawl_stream, deepsearch_stream as ndjson_deepsearch_stream};
+pub use ndjson::{
+    crawl_stream as ndjson_crawl_stream, deepsearch_stream as ndjson_deepsearch_stream,
+};
 pub use sse::crawl_sse;
 pub use websocket::crawl_websocket;
 
@@ -294,7 +292,9 @@ impl StreamingModule {
         Self {
             config,
             buffer_manager: std::sync::Arc::new(BufferManager::new()),
-            metrics: std::sync::Arc::new(tokio::sync::RwLock::new(GlobalStreamingMetrics::default())),
+            metrics: std::sync::Arc::new(tokio::sync::RwLock::new(
+                GlobalStreamingMetrics::default(),
+            )),
         }
     }
 
@@ -347,13 +347,16 @@ impl StreamingModule {
                 interval.tick().await;
 
                 // Clean up old buffers
-                buffer_manager.cleanup_old_buffers(std::time::Duration::from_secs(3600)).await;
+                buffer_manager
+                    .cleanup_old_buffers(std::time::Duration::from_secs(3600))
+                    .await;
 
                 // Update metrics
                 let mut metrics_guard = metrics.write().await;
                 let buffer_stats = buffer_manager.global_stats().await;
 
-                metrics_guard.memory_usage_bytes = buffer_stats.values()
+                metrics_guard.memory_usage_bytes = buffer_stats
+                    .values()
                     .map(|stats| stats.current_size * 1024) // Estimate memory usage
                     .sum();
 
@@ -385,7 +388,10 @@ pub fn validate_config(config: &StreamConfig) -> Result<(), String> {
 }
 
 /// Get protocol-specific optimal configuration
-pub fn get_protocol_config(protocol: StreamingProtocol, base_config: &StreamConfig) -> StreamConfig {
+pub fn get_protocol_config(
+    protocol: StreamingProtocol,
+    base_config: &StreamConfig,
+) -> StreamConfig {
     let mut config = base_config.clone();
 
     // Adjust buffer configuration based on protocol
@@ -394,7 +400,8 @@ pub fn get_protocol_config(protocol: StreamingProtocol, base_config: &StreamConf
     // Adjust other settings
     match protocol {
         StreamingProtocol::Ndjson => {
-            config.general.default_timeout = std::time::Duration::from_secs(600); // Longer for batch ops
+            config.general.default_timeout = std::time::Duration::from_secs(600);
+            // Longer for batch ops
         }
         StreamingProtocol::Sse => {
             config.sse.keep_alive_interval = protocol.keep_alive_interval();
@@ -413,21 +420,36 @@ mod tests {
 
     #[test]
     fn test_streaming_protocol_parsing() {
-        assert_eq!("ndjson".parse::<StreamingProtocol>().unwrap(), StreamingProtocol::Ndjson);
-        assert_eq!("sse".parse::<StreamingProtocol>().unwrap(), StreamingProtocol::Sse);
-        assert_eq!("websocket".parse::<StreamingProtocol>().unwrap(), StreamingProtocol::WebSocket);
+        assert_eq!(
+            "ndjson".parse::<StreamingProtocol>().unwrap(),
+            StreamingProtocol::Ndjson
+        );
+        assert_eq!(
+            "sse".parse::<StreamingProtocol>().unwrap(),
+            StreamingProtocol::Sse
+        );
+        assert_eq!(
+            "websocket".parse::<StreamingProtocol>().unwrap(),
+            StreamingProtocol::WebSocket
+        );
 
         assert!("invalid".parse::<StreamingProtocol>().is_err());
     }
 
     #[test]
     fn test_streaming_protocol_properties() {
-        assert_eq!(StreamingProtocol::Ndjson.content_type(), "application/x-ndjson");
+        assert_eq!(
+            StreamingProtocol::Ndjson.content_type(),
+            "application/x-ndjson"
+        );
         assert!(!StreamingProtocol::Ndjson.is_bidirectional());
         assert!(StreamingProtocol::WebSocket.is_bidirectional());
 
         assert_eq!(StreamingProtocol::WebSocket.default_buffer_size(), 64);
-        assert!(StreamingProtocol::Ndjson.default_buffer_size() > StreamingProtocol::WebSocket.default_buffer_size());
+        assert!(
+            StreamingProtocol::Ndjson.default_buffer_size()
+                > StreamingProtocol::WebSocket.default_buffer_size()
+        );
     }
 
     #[test]
@@ -475,7 +497,13 @@ mod tests {
         let base_config = StreamConfig::default();
         let ws_config = get_protocol_config(StreamingProtocol::WebSocket, &base_config);
 
-        assert_eq!(ws_config.buffer.default_size, StreamingProtocol::WebSocket.default_buffer_size());
-        assert_eq!(ws_config.websocket.ping_interval, StreamingProtocol::WebSocket.keep_alive_interval());
+        assert_eq!(
+            ws_config.buffer.default_size,
+            StreamingProtocol::WebSocket.default_buffer_size()
+        );
+        assert_eq!(
+            ws_config.websocket.ping_interval,
+            StreamingProtocol::WebSocket.keep_alive_interval()
+        );
     }
 }

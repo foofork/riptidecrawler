@@ -4,10 +4,10 @@
 //! streaming operations across different protocols and managing the
 //! interaction between processors, buffers, and output streams.
 
-use super::buffer::{BufferManager, BackpressureHandler};
+use super::buffer::{BackpressureHandler, BufferManager};
 use super::config::StreamConfig;
 use super::error::{StreamingError, StreamingResult};
-use super::processor::{StreamProcessor, ProcessedResult};
+use super::processor::{ProcessedResult, StreamProcessor};
 use crate::models::*;
 use crate::pipeline::PipelineOrchestrator;
 use crate::state::AppState;
@@ -58,7 +58,8 @@ impl StreamingPipeline {
 
         // Create pipeline components
         let pipeline = PipelineOrchestrator::new(self.app.clone(), options);
-        let mut processor = StreamProcessor::new(pipeline, self.request_id.clone(), body.urls.len());
+        let mut processor =
+            StreamProcessor::new(pipeline, self.request_id.clone(), body.urls.len());
         let buffer = self.buffer_manager.get_buffer(&self.request_id).await;
         let mut backpressure_handler = BackpressureHandler::new(self.request_id.clone(), buffer);
 
@@ -70,7 +71,10 @@ impl StreamingPipeline {
             stream_type: "crawl".to_string(),
         });
 
-        if let Err(e) = self.send_event(&metadata_event, &sender_fn, &mut backpressure_handler).await {
+        if let Err(e) = self
+            .send_event(&metadata_event, &sender_fn, &mut backpressure_handler)
+            .await
+        {
             warn!(request_id = %self.request_id, error = %e, "Failed to send metadata event");
         }
 
@@ -93,7 +97,10 @@ impl StreamingPipeline {
             });
 
             // Send result with backpressure handling
-            if let Err(e) = self.send_event(&result_event, &sender_fn, &mut backpressure_handler).await {
+            if let Err(e) = self
+                .send_event(&result_event, &sender_fn, &mut backpressure_handler)
+                .await
+            {
                 debug!(
                     request_id = %self.request_id,
                     error = %e,
@@ -104,8 +111,12 @@ impl StreamingPipeline {
 
             // Send periodic progress updates for long operations
             if processor.should_send_progress_update(5) {
-                let progress_event = StreamEvent::Progress(processor.create_operation_progress(Some(url)));
-                if let Err(e) = self.send_event(&progress_event, &sender_fn, &mut backpressure_handler).await {
+                let progress_event =
+                    StreamEvent::Progress(processor.create_operation_progress(Some(url)));
+                if let Err(e) = self
+                    .send_event(&progress_event, &sender_fn, &mut backpressure_handler)
+                    .await
+                {
                     debug!(request_id = %self.request_id, error = %e, "Failed to send progress update");
                 }
             }
@@ -115,7 +126,10 @@ impl StreamingPipeline {
         let summary = processor.create_summary();
         let summary_event = StreamEvent::Summary(summary.clone());
 
-        if let Err(e) = self.send_event(&summary_event, &sender_fn, &mut backpressure_handler).await {
+        if let Err(e) = self
+            .send_event(&summary_event, &sender_fn, &mut backpressure_handler)
+            .await
+        {
             warn!(request_id = %self.request_id, error = %e, "Failed to send summary event");
         }
 
@@ -168,8 +182,9 @@ impl StreamingPipeline {
         );
 
         // Check for Serper API key
-        let serper_api_key = std::env::var("SERPER_API_KEY")
-            .map_err(|_| StreamingError::invalid_request("SERPER_API_KEY environment variable not set"))?;
+        let serper_api_key = std::env::var("SERPER_API_KEY").map_err(|_| {
+            StreamingError::invalid_request("SERPER_API_KEY environment variable not set")
+        })?;
 
         let buffer = self.buffer_manager.get_buffer(&self.request_id).await;
         let mut backpressure_handler = BackpressureHandler::new(self.request_id.clone(), buffer);
@@ -182,12 +197,17 @@ impl StreamingPipeline {
             stream_type: "deepsearch".to_string(),
         });
 
-        if let Err(e) = self.send_event(&metadata_event, &sender_fn, &mut backpressure_handler).await {
+        if let Err(e) = self
+            .send_event(&metadata_event, &sender_fn, &mut backpressure_handler)
+            .await
+        {
             warn!(request_id = %self.request_id, error = %e, "Failed to send metadata event");
         }
 
         // Perform web search
-        let search_results = self.perform_web_search(&body.query, limit, &serper_api_key).await?;
+        let search_results = self
+            .perform_web_search(&body.query, limit, &serper_api_key)
+            .await?;
 
         // Send search metadata
         let search_metadata_event = StreamEvent::SearchMetadata(DeepSearchMetadata {
@@ -196,7 +216,14 @@ impl StreamingPipeline {
             search_time_ms: start_time.elapsed().as_millis() as u64,
         });
 
-        if let Err(e) = self.send_event(&search_metadata_event, &sender_fn, &mut backpressure_handler).await {
+        if let Err(e) = self
+            .send_event(
+                &search_metadata_event,
+                &sender_fn,
+                &mut backpressure_handler,
+            )
+            .await
+        {
             warn!(request_id = %self.request_id, error = %e, "Failed to send search metadata");
         }
 
@@ -220,7 +247,10 @@ impl StreamingPipeline {
                     crawl_result: None,
                 });
 
-                if let Err(e) = self.send_event(&search_result_event, &sender_fn, &mut backpressure_handler).await {
+                if let Err(e) = self
+                    .send_event(&search_result_event, &sender_fn, &mut backpressure_handler)
+                    .await
+                {
                     debug!(request_id = %self.request_id, error = %e, "Client disconnected during search results");
                     break;
                 }
@@ -262,7 +292,10 @@ impl StreamingPipeline {
                     crawl_result,
                 });
 
-                if let Err(e) = self.send_event(&search_result_event, &sender_fn, &mut backpressure_handler).await {
+                if let Err(e) = self
+                    .send_event(&search_result_event, &sender_fn, &mut backpressure_handler)
+                    .await
+                {
                     debug!(request_id = %self.request_id, error = %e, "Client disconnected during deep search");
                     break;
                 }
@@ -286,7 +319,10 @@ impl StreamingPipeline {
             status: "completed".to_string(),
         });
 
-        if let Err(e) = self.send_event(&summary_event, &sender_fn, &mut backpressure_handler).await {
+        if let Err(e) = self
+            .send_event(&summary_event, &sender_fn, &mut backpressure_handler)
+            .await
+        {
             warn!(request_id = %self.request_id, error = %e, "Failed to send final summary");
         }
 
@@ -364,7 +400,8 @@ impl StreamingPipeline {
             "hl": "en"
         });
 
-        let response = self.app
+        let response = self
+            .app
             .http_client
             .post("https://google.serper.dev/search")
             .header("X-API-KEY", api_key)

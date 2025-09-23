@@ -3,17 +3,17 @@
 //! This module provides SSE endpoints for real-time streaming with automatic
 //! keep-alive, reconnection handling, and proper event formatting.
 
-use super::buffer::{BufferManager, BackpressureHandler};
+use super::buffer::{BackpressureHandler, BufferManager};
 use super::config::StreamConfig;
-use super::error::{StreamingError, StreamingResult, ConnectionContext, ClientType};
+use super::error::{ClientType, ConnectionContext, StreamingError, StreamingResult};
 use crate::errors::ApiError;
 use crate::models::*;
 use crate::pipeline::PipelineOrchestrator;
 use crate::state::AppState;
 use crate::validation::validate_crawl_request;
-use axum::extract::{State, Json};
-use axum::response::{IntoResponse, Sse};
+use axum::extract::{Json, State};
 use axum::response::sse::{Event, KeepAlive};
+use axum::response::{IntoResponse, Sse};
 use serde::Serialize;
 use std::convert::Infallible;
 use std::sync::Arc;
@@ -89,7 +89,8 @@ impl SseStreamingHandler {
 
         // Spawn the SSE orchestration task
         tokio::spawn(async move {
-            let mut backpressure_handler = BackpressureHandler::new(request_id.clone(), buffer_clone);
+            let mut backpressure_handler =
+                BackpressureHandler::new(request_id.clone(), buffer_clone);
 
             if let Err(e) = orchestrate_crawl_sse(
                 app_clone,
@@ -99,7 +100,9 @@ impl SseStreamingHandler {
                 request_id,
                 &mut backpressure_handler,
                 config,
-            ).await {
+            )
+            .await
+            {
                 error!(request_id = %request_id, error = %e, "SSE orchestration error");
             }
         });
@@ -227,7 +230,14 @@ async fn orchestrate_crawl_sse(
             },
         };
 
-        send_sse_event(&tx, "progress", &progress, Some(index), backpressure_handler).await?;
+        send_sse_event(
+            &tx,
+            "progress",
+            &progress,
+            Some(index),
+            backpressure_handler,
+        )
+        .await?;
 
         // Send result event
         let result_data = SseResult {
@@ -236,7 +246,14 @@ async fn orchestrate_crawl_sse(
             processing_time_ms: start_time.elapsed().as_millis() as u64,
         };
 
-        send_sse_event(&tx, "result", &result_data, Some(index), backpressure_handler).await?;
+        send_sse_event(
+            &tx,
+            "result",
+            &result_data,
+            Some(index),
+            backpressure_handler,
+        )
+        .await?;
 
         // Send periodic status updates for long operations
         if body.urls.len() > 20 && (completed_count + error_count) % 10 == 0 {
@@ -244,8 +261,15 @@ async fn orchestrate_crawl_sse(
                 phase: "processing".to_string(),
                 items_processed: completed_count + error_count,
                 items_remaining: body.urls.len() - (completed_count + error_count),
-                estimated_completion: estimate_completion(start_time, completed_count + error_count, body.urls.len()),
-                throughput_per_minute: calculate_throughput(start_time, completed_count + error_count),
+                estimated_completion: estimate_completion(
+                    start_time,
+                    completed_count + error_count,
+                    body.urls.len(),
+                ),
+                throughput_per_minute: calculate_throughput(
+                    start_time,
+                    completed_count + error_count,
+                ),
             };
 
             send_sse_event(&tx, "status", &status, None, backpressure_handler).await?;
@@ -309,19 +333,19 @@ async fn send_sse_event<T: Serialize>(
     backpressure_handler: &mut BackpressureHandler,
 ) -> StreamingResult<()> {
     // Check for backpressure
-    if backpressure_handler.should_drop_message(tx.capacity()).await {
+    if backpressure_handler
+        .should_drop_message(tx.capacity())
+        .await
+    {
         warn!("Dropping SSE event due to backpressure: {}", event_type);
         return Ok(());
     }
 
     let send_start = Instant::now();
 
-    let data_str = serde_json::to_string(data)
-        .map_err(StreamingError::from)?;
+    let data_str = serde_json::to_string(data).map_err(StreamingError::from)?;
 
-    let mut event = Event::default()
-        .event(event_type)
-        .data(data_str);
+    let mut event = Event::default().event(event_type).data(data_str);
 
     if let Some(id) = id {
         event = event.id(id.to_string());
@@ -352,9 +376,7 @@ fn create_sse_error_response(error: ApiError) -> impl IntoResponse {
         }
     });
 
-    let error_event = Event::default()
-        .event("error")
-        .data(error_data.to_string());
+    let error_event = Event::default().event("error").data(error_data.to_string());
 
     let (tx, rx) = mpsc::channel(1);
 
@@ -466,7 +488,8 @@ impl SseMetrics {
         self.active_connections = self.active_connections.saturating_sub(1);
 
         // Update average duration
-        let total_duration = self.average_connection_duration_ms * (self.total_connections - 1) as f64;
+        let total_duration =
+            self.average_connection_duration_ms * (self.total_connections - 1) as f64;
         self.average_connection_duration_ms =
             (total_duration + duration.as_millis() as f64) / self.total_connections as f64;
     }

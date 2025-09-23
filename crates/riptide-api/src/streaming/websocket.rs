@@ -3,9 +3,9 @@
 //! This module provides WebSocket endpoints for real-time streaming with
 //! backpressure handling, connection management, and message routing.
 
-use super::buffer::{BufferManager, BackpressureHandler};
+use super::buffer::{BackpressureHandler, BufferManager};
 use super::config::StreamConfig;
-use super::error::{StreamingError, StreamingResult, ConnectionContext, ClientType};
+use super::error::{ClientType, ConnectionContext, StreamingError, StreamingResult};
 use crate::errors::ApiError;
 use crate::models::*;
 use crate::pipeline::PipelineOrchestrator;
@@ -167,7 +167,9 @@ impl WebSocketHandler {
     async fn cleanup_connection(&self) {
         let mut connections = self.connections.write().await;
         connections.remove(&self.context.session_id);
-        self.buffer_manager.remove_buffer(&self.context.session_id).await;
+        self.buffer_manager
+            .remove_buffer(&self.context.session_id)
+            .await;
     }
 
     /// Send welcome message to newly connected client
@@ -222,8 +224,9 @@ impl WebSocketHandler {
         request: WebSocketRequest,
         sender: &mut SplitSink<WebSocket, Message>,
     ) -> StreamingResult<()> {
-        let crawl_body: CrawlBody = serde_json::from_value(request.data)
-            .map_err(|e| StreamingError::invalid_request(format!("Invalid crawl request: {}", e)))?;
+        let crawl_body: CrawlBody = serde_json::from_value(request.data).map_err(|e| {
+            StreamingError::invalid_request(format!("Invalid crawl request: {}", e))
+        })?;
 
         // Validate the request
         if let Err(e) = validate_crawl_request(&crawl_body) {
@@ -290,8 +293,12 @@ impl WebSocketHandler {
         let options = body.options.unwrap_or_default();
 
         // Get buffer and create backpressure handler
-        let buffer = self.buffer_manager.get_buffer(&self.context.session_id).await;
-        let mut backpressure_handler = BackpressureHandler::new(self.context.session_id.clone(), buffer);
+        let buffer = self
+            .buffer_manager
+            .get_buffer(&self.context.session_id)
+            .await;
+        let mut backpressure_handler =
+            BackpressureHandler::new(self.context.session_id.clone(), buffer);
 
         // Send initial metadata
         let metadata_msg = WebSocketMessage {
@@ -305,7 +312,8 @@ impl WebSocketHandler {
             timestamp: chrono::Utc::now().to_rfc3339(),
         };
 
-        self.send_message_with_backpressure(sender, &metadata_msg, &mut backpressure_handler).await?;
+        self.send_message_with_backpressure(sender, &metadata_msg, &mut backpressure_handler)
+            .await?;
 
         // Create pipeline orchestrator
         let pipeline = PipelineOrchestrator::new(self.app.clone(), options);
@@ -390,7 +398,10 @@ impl WebSocketHandler {
             };
 
             // Send with backpressure handling
-            if let Err(e) = self.send_message_with_backpressure(sender, &result_msg, &mut backpressure_handler).await {
+            if let Err(e) = self
+                .send_message_with_backpressure(sender, &result_msg, &mut backpressure_handler)
+                .await
+            {
                 debug!(session_id = %self.context.session_id, error = %e, "Client disconnected or error sending");
                 break;
             }
@@ -408,7 +419,8 @@ impl WebSocketHandler {
             timestamp: chrono::Utc::now().to_rfc3339(),
         };
 
-        self.send_message_with_backpressure(sender, &summary_msg, &mut backpressure_handler).await?;
+        self.send_message_with_backpressure(sender, &summary_msg, &mut backpressure_handler)
+            .await?;
 
         info!(
             session_id = %self.context.session_id,
@@ -428,13 +440,14 @@ impl WebSocketHandler {
         sender: &mut SplitSink<WebSocket, Message>,
         message: &WebSocketMessage,
     ) -> StreamingResult<()> {
-        let message_text = serde_json::to_string(message)
-            .map_err(StreamingError::from)?;
+        let message_text = serde_json::to_string(message).map_err(StreamingError::from)?;
 
         sender
             .send(Message::Text(message_text))
             .await
-            .map_err(|e| StreamingError::connection(format!("Failed to send WebSocket message: {}", e)))?;
+            .map_err(|e| {
+                StreamingError::connection(format!("Failed to send WebSocket message: {}", e))
+            })?;
 
         // Update message count
         let mut connections = self.connections.write().await;
@@ -466,7 +479,11 @@ impl WebSocketHandler {
         backpressure_handler.record_send_time(send_duration).await?;
 
         // Update backpressure metrics in connection info
-        if send_duration > Duration::from_millis(self.config.websocket.client_response_timeout.as_millis() as u64 / 10) {
+        if send_duration
+            > Duration::from_millis(
+                self.config.websocket.client_response_timeout.as_millis() as u64 / 10,
+            )
+        {
             let mut connections = self.connections.write().await;
             if let Some(conn) = connections.get_mut(&self.context.session_id) {
                 conn.backpressure_count += 1;
@@ -539,7 +556,8 @@ impl WebSocketMetrics {
         self.active_connections = self.active_connections.saturating_sub(1);
 
         // Update average duration
-        let total_duration = self.average_connection_duration_ms * (self.total_connections - 1) as f64;
+        let total_duration =
+            self.average_connection_duration_ms * (self.total_connections - 1) as f64;
         self.average_connection_duration_ms =
             (total_duration + duration.as_millis() as f64) / self.total_connections as f64;
     }

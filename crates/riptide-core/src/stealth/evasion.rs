@@ -232,7 +232,10 @@ impl StealthController {
 
     /// Generate randomized hardware specifications
     pub fn random_hardware_specs(&self) -> (u32, u32) {
-        self.config.fingerprinting.hardware.get_random_hardware_specs()
+        self.config
+            .fingerprinting
+            .hardware
+            .get_random_hardware_specs()
     }
 
     /// Get randomized WebGL vendor and renderer

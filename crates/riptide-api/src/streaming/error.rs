@@ -130,21 +130,21 @@ impl From<StreamingError> for ApiError {
     fn from(err: StreamingError) -> Self {
         match err {
             StreamingError::InvalidRequest { message } => ApiError::validation(message),
-            StreamingError::Timeout { seconds } => {
-                ApiError::timeout("streaming_operation", format!("Operation timed out after {} seconds", seconds))
-            }
-            StreamingError::BackpressureExceeded { connection_id } => {
-                ApiError::RateLimited {
-                    message: format!("Connection {} is too slow, dropping messages", connection_id)
-                }
-            }
-            StreamingError::ClientDisconnected { reason } => {
-                ApiError::InternalError {
-                    message: format!("Client disconnected: {}", reason)
-                }
-            }
+            StreamingError::Timeout { seconds } => ApiError::timeout(
+                "streaming_operation",
+                format!("Operation timed out after {} seconds", seconds),
+            ),
+            StreamingError::BackpressureExceeded { connection_id } => ApiError::RateLimited {
+                message: format!(
+                    "Connection {} is too slow, dropping messages",
+                    connection_id
+                ),
+            },
+            StreamingError::ClientDisconnected { reason } => ApiError::InternalError {
+                message: format!("Client disconnected: {}", reason),
+            },
             _ => ApiError::InternalError {
-                message: err.to_string()
+                message: err.to_string(),
             },
         }
     }

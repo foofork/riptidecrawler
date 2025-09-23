@@ -2,8 +2,14 @@ use crate::health::HealthChecker;
 use crate::metrics::RipTideMetrics;
 use anyhow::Result;
 use reqwest::Client;
-use riptide_core::{cache::CacheManager, extract::WasmExtractor, fetch::http_client};
+use riptide_core::{
+    cache::CacheManager,
+    extract::WasmExtractor,
+    fetch::http_client,
+    telemetry::{telemetry_info, telemetry_span, TelemetrySystem},
+};
 use std::sync::Arc;
+use tracing::{error, info, warn};
 
 /// Application state shared across all request handlers.
 ///
@@ -29,6 +35,9 @@ pub struct AppState {
 
     /// Health checker for enhanced diagnostics
     pub health_checker: Arc<HealthChecker>,
+
+    /// Telemetry system for observability
+    pub telemetry: Option<Arc<TelemetrySystem>>,
 }
 
 /// Application configuration loaded from environment and config files.
@@ -94,6 +103,7 @@ impl AppState {
     /// * `config` - Application configuration
     /// * `metrics` - Prometheus metrics collector
     /// * `health_checker` - Health checker for enhanced diagnostics
+    /// * `telemetry` - Optional telemetry system for observability
     ///
     /// # Returns
     ///
@@ -121,6 +131,16 @@ impl AppState {
         metrics: Arc<RipTideMetrics>,
         health_checker: Arc<HealthChecker>,
     ) -> Result<Self> {
+        Self::new_with_telemetry(config, metrics, health_checker, None).await
+    }
+
+    /// Initialize the application state with telemetry integration
+    pub async fn new_with_telemetry(
+        config: AppConfig,
+        metrics: Arc<RipTideMetrics>,
+        health_checker: Arc<HealthChecker>,
+        telemetry: Option<Arc<TelemetrySystem>>,
+    ) -> Result<Self> {
         tracing::info!("Initializing application state");
 
         // Initialize HTTP client with optimized settings
@@ -146,20 +166,24 @@ impl AppState {
             config,
             metrics,
             health_checker,
+            telemetry,
         })
     }
 
-    /// Check the health of all application dependencies.
+    /// Check the health of all application dependencies with telemetry.
     ///
     /// This method verifies that all critical components are functioning:
     /// - Redis connection is active
     /// - HTTP client can make requests
     /// - WASM extractor is operational
+    /// - Telemetry system is operational
     ///
     /// # Returns
     ///
     /// A `HealthStatus` indicating the overall health and any issues.
     pub async fn health_check(&self) -> HealthStatus {
+        let _span = telemetry_span!("health_check");
+        info!("Starting health check");
         let mut health = HealthStatus {
             healthy: true,
             redis: DependencyHealth::Unknown,

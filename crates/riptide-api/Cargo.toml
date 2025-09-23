@@ -24,6 +24,14 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 tokio-stream = { workspace = true }
 tracing = { workspace = true }
+opentelemetry = { workspace = true }
+opentelemetry-otlp = { workspace = true }
+opentelemetry_sdk = { workspace = true }
+opentelemetry-semantic-conventions = { workspace = true }
+tracing-opentelemetry = { workspace = true }
+regex = { workspace = true }
+sysinfo = { workspace = true }
+psutil = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true }
 tower = { workspace = true }

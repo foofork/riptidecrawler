@@ -3,8 +3,8 @@
 //! This module provides centralized configuration for all streaming
 //! protocols including NDJSON, SSE, and WebSocket endpoints.
 
-use std::time::Duration;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 /// Global streaming configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -357,7 +357,9 @@ impl StreamConfig {
 
         // Validate rate limiting
         if self.general.rate_limit.enabled && self.general.rate_limit.requests_per_second == 0 {
-            return Err("rate_limit requests_per_second must be greater than 0 when enabled".to_string());
+            return Err(
+                "rate_limit requests_per_second must be greater than 0 when enabled".to_string(),
+            );
         }
 
         Ok(())
@@ -377,7 +379,8 @@ impl StreamConfig {
 
     /// Check if streaming is healthy based on current metrics
     pub fn is_streaming_healthy(&self, current_connections: usize, error_rate: f64) -> bool {
-        let connection_ratio = current_connections as f64 / self.general.max_concurrent_streams as f64;
+        let connection_ratio =
+            current_connections as f64 / self.general.max_concurrent_streams as f64;
         connection_ratio < 0.9 && error_rate < 0.05 // Less than 90% capacity and 5% error rate
     }
 }
@@ -410,13 +413,19 @@ mod tests {
         let config = StreamConfig::default();
 
         // Slow connection should get minimum buffer
-        assert_eq!(config.optimal_buffer_size(true, 10.0), config.buffer.min_size);
+        assert_eq!(
+            config.optimal_buffer_size(true, 10.0),
+            config.buffer.min_size
+        );
 
         // High message rate should get larger buffer
         assert!(config.optimal_buffer_size(false, 150.0) > config.buffer.default_size);
 
         // Normal rate should get default buffer
-        assert_eq!(config.optimal_buffer_size(false, 50.0), config.buffer.default_size);
+        assert_eq!(
+            config.optimal_buffer_size(false, 50.0),
+            config.buffer.default_size
+        );
     }
 
     #[test]

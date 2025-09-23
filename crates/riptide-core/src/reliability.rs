@@ -58,12 +58,12 @@ pub struct ReliableExtractor {
 }
 
 impl ReliableExtractor {
-    pub fn new(config: ReliabilityConfig) -> Self {
+    pub fn new(config: ReliabilityConfig) -> Result<Self> {
         // Create HTTP client for general requests
         let http_client = ReliableHttpClient::new(
             config.http_retry.clone(),
             CircuitBreakerConfig::default(), // Use default for general HTTP
-        );
+        )?;
 
         // Create separate client for headless service with its own circuit breaker
         let headless_client = ReliableHttpClient::new(
@@ -72,13 +72,13 @@ impl ReliableExtractor {
                 ..config.http_retry.clone()
             },
             config.headless_circuit_breaker.clone(),
-        );
+        )?;
 
-        Self {
+        Ok(Self {
             http_client,
             headless_client,
             config,
-        }
+        })
     }
 
     /// Perform content extraction with full reliability patterns
@@ -392,6 +392,7 @@ mod tests {
     use super::*;
     // use std::collections::HashMap;
 
+    #[allow(dead_code)]
     struct MockWasmExtractor;
 
     impl WasmExtractor for MockWasmExtractor {
@@ -424,7 +425,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_extraction_quality_evaluation() {
-        let extractor = ReliableExtractor::new(ReliabilityConfig::default());
+        let extractor = ReliableExtractor::new(ReliabilityConfig::default()).unwrap();
 
         let high_quality_doc = ExtractedDoc {
             url: "https://test.com".to_string(),

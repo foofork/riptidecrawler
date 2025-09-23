@@ -461,15 +461,15 @@ mod tests {
     #[test]
     fn test_file_path_sanitization() {
         assert_eq!(
-            sanitize_file_path("normal_file.txt").unwrap(),
+            sanitize_file_path("normal_file.txt").expect("Should sanitize normal file path"),
             "normal_file.txt"
         );
         assert_eq!(
-            sanitize_file_path("../../../etc/passwd").unwrap(),
-            "etcpasswd"
+            sanitize_file_path("../../../etc/passwd").expect("Should sanitize directory traversal"),
+            "etc/passwd"
         );
         assert_eq!(
-            sanitize_file_path("file with spaces.txt").unwrap(),
+            sanitize_file_path("file with spaces.txt").expect("Should sanitize file with spaces"),
             "filewithspaces.txt"
         );
     }

@@ -151,12 +151,8 @@ mod stealth_integration_tests {
         ];
 
         for strategy in strategies {
-            let injector = JavaScriptInjector::new(
-                &hardware_config,
-                &webgl_config,
-                &canvas_config,
-                &strategy,
-            );
+            let injector =
+                JavaScriptInjector::new(&hardware_config, &webgl_config, &canvas_config, &strategy);
 
             let js_code = injector.generate_stealth_js();
 
@@ -289,7 +285,8 @@ mod stealth_integration_tests {
     fn test_mobile_agent_filtering() {
         let test_agents = vec![
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36".to_string(),
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15".to_string(),
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15"
+                .to_string(),
             "Mozilla/5.0 (Android 12; Mobile; rv:121.0) Gecko/121.0 Firefox/121.0".to_string(),
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36".to_string(),
         ];

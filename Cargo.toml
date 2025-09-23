@@ -35,6 +35,14 @@ tower = { version = "0.5", features = [] }  # Updated from 0.4
 tower-http = { version = "0.6", features = ["trace", "cors", "compression-full", "decompression-full"] }  # Updated from 0.5
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
+opentelemetry = "0.26"
+opentelemetry-otlp = "0.26"
+opentelemetry_sdk = { version = "0.26", features = ["rt-tokio"] }
+opentelemetry-semantic-conventions = "0.26"
+tracing-opentelemetry = "0.27"
+regex = "1.10"
+sysinfo = "0.32"
+psutil = "3.3"
 url = "2"
 uuid = { version = "1", features = ["v4", "serde"] }
 lol_html = "2"  # Updated from 1
@@ -49,6 +57,8 @@ pdfium-render = "0.8"
 opt-level = 3
 lto = "thin"
 codegen-units = 1
+
+# Integration tests configuration
 
 # Optional safety switch (leave commented by default):
 # [patch.crates-io]

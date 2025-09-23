@@ -162,9 +162,7 @@ fn matches_browser_type(user_agent: &str, browser_type: &BrowserType) -> bool {
     match browser_type {
         BrowserType::Chrome => user_agent.contains("Chrome") && !user_agent.contains("Edge"),
         BrowserType::Firefox => user_agent.contains("Firefox"),
-        BrowserType::Safari => {
-            user_agent.contains("Safari") && !user_agent.contains("Chrome")
-        }
+        BrowserType::Safari => user_agent.contains("Safari") && !user_agent.contains("Chrome"),
         BrowserType::Edge => user_agent.contains("Edge"),
         BrowserType::Mixed => true,
     }
@@ -243,7 +241,8 @@ mod tests {
 
     #[test]
     fn test_mobile_detection() {
-        let mobile_ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15";
+        let mobile_ua =
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15";
         let desktop_ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
 
         assert!(is_mobile_user_agent(mobile_ua));

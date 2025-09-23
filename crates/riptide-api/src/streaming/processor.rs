@@ -65,7 +65,8 @@ impl ProcessingStats {
         // Update running average
         let total_processed = self.completed_count + self.error_count;
         if total_processed > 0 {
-            self.average_processing_ms = self.total_processing_time_ms as f64 / total_processed as f64;
+            self.average_processing_ms =
+                self.total_processing_time_ms as f64 / total_processed as f64;
         }
     }
 
@@ -110,11 +111,7 @@ impl ProcessingStats {
 
 impl StreamProcessor {
     /// Create a new stream processor
-    pub fn new(
-        pipeline: PipelineOrchestrator,
-        request_id: String,
-        total_urls: usize,
-    ) -> Self {
+    pub fn new(pipeline: PipelineOrchestrator, request_id: String, total_urls: usize) -> Self {
         Self {
             pipeline,
             start_time: Instant::now(),
@@ -173,14 +170,15 @@ impl StreamProcessor {
     }
 
     /// Convert pipeline result to crawl result
-    pub fn convert_to_crawl_result(
-        &mut self,
-        processed_result: ProcessedResult,
-    ) -> CrawlResult {
+    pub fn convert_to_crawl_result(&mut self, processed_result: ProcessedResult) -> CrawlResult {
         match processed_result.result {
             Ok(pipeline_result) => {
                 let from_cache = pipeline_result.from_cache;
-                let processing_time = if from_cache { 0 } else { processed_result.processing_time_ms };
+                let processing_time = if from_cache {
+                    0
+                } else {
+                    processed_result.processing_time_ms
+                };
 
                 self.stats.update(processing_time, from_cache, true);
 
@@ -197,7 +195,8 @@ impl StreamProcessor {
                 }
             }
             Err(e) => {
-                self.stats.update(processed_result.processing_time_ms, false, false);
+                self.stats
+                    .update(processed_result.processing_time_ms, false, false);
 
                 warn!(
                     request_id = %self.request_id,
@@ -405,7 +404,9 @@ impl PerformanceMonitor {
     /// Get performance analysis
     pub fn analyze(&self) -> PerformanceAnalysis {
         let total_duration = self.start_time.elapsed();
-        let total_items = self.checkpoints.last()
+        let total_items = self
+            .checkpoints
+            .last()
             .map(|c| c.items_processed)
             .unwrap_or(0);
 

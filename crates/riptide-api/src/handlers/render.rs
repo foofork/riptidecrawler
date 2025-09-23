@@ -380,8 +380,7 @@ async fn process_adaptive(
 
     // For now, default to static processing
     // TODO: Implement content analysis to determine if dynamic rendering is needed
-    if request.dynamic_config.is_some() {
-        let dynamic_config = request.dynamic_config.as_ref().unwrap();
+    if let Some(dynamic_config) = request.dynamic_config.as_ref() {
         process_dynamic(state, url, dynamic_config, stealth_controller).await
     } else {
         process_static(state, url, stealth_controller).await

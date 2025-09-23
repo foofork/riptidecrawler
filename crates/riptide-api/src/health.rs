@@ -210,8 +210,13 @@ impl HealthChecker {
         cache.set_simple(test_key, &test_value, 5).await?;
         let retrieved = cache.get::<String>(test_key).await?;
 
-        if retrieved.is_none() || retrieved.as_ref().unwrap().data != test_value {
-            return Err(anyhow::anyhow!("Redis value mismatch"));
+        match retrieved.as_ref() {
+            Some(cached_value) if cached_value.data == test_value => {
+                // Value matches, continue
+            }
+            _ => {
+                return Err(anyhow::anyhow!("Redis value mismatch"));
+            }
         }
 
         cache.delete(test_key).await?;

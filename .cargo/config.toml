@@ -4,6 +4,14 @@
 [build]
 # Default target for development builds
 target-dir = "target"
+jobs = 8
+incremental = true
+
+[target.x86_64-unknown-linux-gnu]
+rustflags = [
+    "-C", "split-debuginfo=packed",
+    "-C", "target-cpu=native"
+]
 
 [target.wasm32-wasip2]
 # Use wasmtime as the runner for testing WASM components
@@ -29,10 +37,26 @@ TREK_FEATURES = "full"
 [net]
 # Use sparse registry for faster dependency resolution
 git-fetch-with-cli = true
+retry = 3
 
-[registry]
-# Use the sparse protocol for crates.io
-default = "sparse+"
+[registries.crates-io]
+protocol = "sparse"
+
+[profile.dev]
+opt-level = 0
+debug = 0
+split-debuginfo = "packed"
+incremental = true
+overflow-checks = false
+
+[profile.test]
+opt-level = 0
+debug = 0
+incremental = true
+
+[profile.bench]
+opt-level = 3
+lto = "thin"
 
 [profile.release-wasm]
 # Optimized profile specifically for WASM builds
@@ -52,5 +76,5 @@ debug = 1             # Reduced debug info for smaller binaries
 # Test parallelization settings for improved test performance
 [test]
 parallel = true
-jobs = 0               # Use all available CPU cores
+jobs = 8               # Use 8 CPU cores for balance
 timeout = 600          # 10 minute timeout for long-running tests

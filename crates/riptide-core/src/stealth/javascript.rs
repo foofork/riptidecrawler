@@ -105,7 +105,7 @@ impl JavaScriptInjector {
     navigator.toString = function() {
         return navigatorToString.call(this).replace(/webdriver/gi, '');
     };"#
-            .to_string()
+        .to_string()
     }
 
     /// Generate plugins override
@@ -359,7 +359,7 @@ impl JavaScriptInjector {
             return context;
         };
     }"#
-            .to_string()
+        .to_string()
     }
 
     /// Generate locale based on strategy

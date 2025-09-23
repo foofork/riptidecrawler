@@ -164,7 +164,8 @@ pub fn score(features: &GateFeatures) -> f32 {
 /// ```
 pub fn should_use_headless(url: &str, content_type: Option<&str>) -> bool {
     // Skip headless for PDFs - use direct PDF processing instead
-    if url.ends_with(".pdf") {
+    let url_lower = url.to_lowercase();
+    if url_lower.ends_with(".pdf") {
         return false;
     }
 
