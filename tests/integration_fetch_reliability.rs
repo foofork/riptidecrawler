@@ -1,5 +1,5 @@
 use riptide_core::fetch::{
-    ReliableHttpClient, RetryConfig, CircuitBreakerConfig, CircuitState, CircuitBreakerError
+    ReliableHttpClient, RetryConfig, CircuitBreakerConfig, CircuitState
 };
 use riptide_core::robots::{RobotsConfig, RobotsManager};
 use std::time::Duration;
@@ -17,9 +17,8 @@ use wiremock::{
 async fn test_circuit_breaker_full_lifecycle() {
     let config = CircuitBreakerConfig {
         failure_threshold: 2,
-        recovery_timeout: Duration::from_millis(100),
-        success_threshold: 2,
-        failure_window: Duration::from_secs(60),
+        open_cooldown_ms: 100,
+        half_open_max_in_flight: 2,
     };
 
     let retry_config = RetryConfig {
@@ -282,9 +281,8 @@ async fn test_client_configuration_with_robots() {
 async fn test_circuit_breaker_half_open_failure() {
     let config = CircuitBreakerConfig {
         failure_threshold: 1,
-        recovery_timeout: Duration::from_millis(50),
-        success_threshold: 2,
-        failure_window: Duration::from_secs(60),
+        open_cooldown_ms: 50,
+        half_open_max_in_flight: 2,
     };
 
     let client = ReliableHttpClient::new(

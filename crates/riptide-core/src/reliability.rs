@@ -38,9 +38,8 @@ impl Default for ReliabilityConfig {
             },
             headless_circuit_breaker: CircuitBreakerConfig {
                 failure_threshold: 3, // More lenient for headless service
-                recovery_timeout: Duration::from_secs(60),
-                success_threshold: 2,
-                failure_window: Duration::from_secs(120),
+                open_cooldown_ms: 60_000,
+                half_open_max_in_flight: 2,
             },
             enable_graceful_degradation: true,
             headless_timeout: Duration::from_secs(3), // 3s hard cap
@@ -356,9 +355,9 @@ impl ReliableExtractor {
 
         ReliabilityMetrics {
             http_circuit_breaker_state: format!("{:?}", http_cb_state),
-            http_failure_count: http_failures,
+            http_failure_count: http_failures as u64,
             headless_circuit_breaker_state: format!("{:?}", headless_cb_state),
-            headless_failure_count: headless_failures,
+            headless_failure_count: headless_failures as u64,
             graceful_degradation_enabled: self.config.enable_graceful_degradation,
         }
     }

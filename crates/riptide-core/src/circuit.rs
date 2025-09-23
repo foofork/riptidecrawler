@@ -53,12 +53,13 @@ impl Clock for RealClock {
     }
 }
 
+#[derive(Debug)]
 pub struct CircuitBreaker {
     state: AtomicU8,
     failures: AtomicU32,
     successes: AtomicU32,
     open_until_ms: AtomicU64,
-    half_open_permits: Semaphore,
+    half_open_permits: Arc<Semaphore>,
     cfg: Config,
     clock: Arc<dyn Clock>,
 }
@@ -70,7 +71,7 @@ impl CircuitBreaker {
             failures: AtomicU32::new(0),
             successes: AtomicU32::new(0),
             open_until_ms: AtomicU64::new(0),
-            half_open_permits: Semaphore::new(cfg.half_open_max_in_flight as usize),
+            half_open_permits: Arc::new(Semaphore::new(cfg.half_open_max_in_flight as usize)),
             cfg,
             clock,
         })

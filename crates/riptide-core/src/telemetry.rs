@@ -579,7 +579,7 @@ macro_rules! telemetry_info {
     };
     ($msg:expr, $($key:literal => $value:expr),*) => {
         {
-            let sanitizer = crate::telemetry::DataSanitizer::new();
+            let sanitizer = $crate::telemetry::DataSanitizer::new();
             tracing::info!(
                 message = $msg,
                 $($key = sanitizer.sanitize(&$value.to_string())),*

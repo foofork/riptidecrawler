@@ -6,7 +6,7 @@ use reqwest::{Client, Response};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
-use tracing::{debug, error, info, instrument, warn};
+use tracing::{debug, error, info, instrument};
 
 /// Circuit breaker configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -59,6 +59,7 @@ impl Default for RetryConfig {
 }
 
 /// Enhanced HTTP client with reliability patterns and robots.txt compliance
+#[derive(Debug)]
 pub struct ReliableHttpClient {
     client: Client,
     retry_config: RetryConfig,
@@ -149,7 +150,7 @@ impl ReliableHttpClient {
         );
 
         info!("Starting HTTP GET request with retry");
-        let _overall_start = Instant::now();
+        let _overall_start = std::time::Instant::now();
 
         // Check robots.txt compliance first if manager is available
         if let Some(robots_manager) = &self.robots_manager {
@@ -192,15 +193,14 @@ impl ReliableHttpClient {
                         }
                     }
                 }
-                Err(CircuitBreakerError::CircuitOpen) => {
-                    return Err(anyhow::anyhow!("Circuit breaker is open for {}", url));
-                }
-                Err(CircuitBreakerError::OperationFailed(req_error)) => {
-                    // Check if error is retryable
-                    if !is_retryable_error(&req_error) {
-                        return Err(req_error.into());
+                Err(err) => {
+                    let err_str = err.to_string();
+                    if err_str.contains("circuit open") {
+                        return Err(anyhow::anyhow!("Circuit breaker is open for {}", url));
                     }
-                    last_error = Some(req_error.into());
+                    // For other circuit breaker errors, treat as generic failure
+                    // Treat other circuit breaker errors as non-retryable for now
+                    return Err(err);
                 }
             }
 
@@ -276,7 +276,7 @@ pub async fn get(client: &Client, url: &str) -> Result<Response> {
     );
 
     info!("Starting HTTP GET request");
-    let start_time = Instant::now();
+    let start_time = std::time::Instant::now();
 
     match client.get(url).send().await {
         Ok(response) => {
@@ -308,7 +308,7 @@ pub async fn get(client: &Client, url: &str) -> Result<Response> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tokio::time::{sleep, Duration};
+    use tokio::time::Duration;
 
     #[test]
     fn test_client_creation() {
