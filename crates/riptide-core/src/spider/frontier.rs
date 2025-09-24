@@ -253,6 +253,13 @@ impl FrontierManager {
             }
         }
 
+        // Clone request for host queue if needed
+        let request_for_host = if self.config.enable_host_balancing {
+            Some(request.clone())
+        } else {
+            None
+        };
+
         // Add to appropriate queue based on priority and score
         if let Some(score) = request.score {
             let priority_request = PriorityRequest {
@@ -276,15 +283,16 @@ impl FrontierManager {
         }
 
         // Update host queue if host balancing is enabled
-        if self.config.enable_host_balancing {
+        if let Some(request_for_host) = request_for_host {
             if let Some(host) = &request_host {
-                let _host_queue = self
+                let host_queue = self
                     .host_queues
                     .entry(host.to_string())
                     .or_insert_with(|| Arc::new(Mutex::new(HostQueue::new(host.to_string()))));
 
-                // Note: We already added to main queue, so we don't add to host queue here
-                // Host queue is used for balancing decisions
+                // Add to host queue for proper tracking and balancing
+                let mut queue = host_queue.lock().await;
+                queue.push_request(request_for_host);
             }
         }
 
