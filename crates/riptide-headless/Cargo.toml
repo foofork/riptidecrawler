@@ -3,6 +3,10 @@ name = "riptide-headless"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "riptide_headless"
+path = "src/lib.rs"
+
 [[bin]]
 name = "riptide-headless"
 path = "src/main.rs"

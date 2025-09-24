@@ -11,9 +11,10 @@ Absolutely — here’s a **single, consolidated roadmap** that **replaces** the
 * **✅ Spider Module:** All compilation errors resolved, ready for integration
 * **✅ Strategies Module:** All 14 strategy files implemented and compiling
 * **✅ PDF Processing:** Module complete with processor, config, and tests
-* **📍 Now:** **PR-3 (NDJSON Streaming)** - Ready to implement
+* **📍 Now:** **Critical Integration Gap - Browser Pool & Streaming Pipeline disconnected**
 * **⚡ IN PROGRESS:** Error handling cleanup (424 unwrap/expect remaining, down from 517)
 * **⚡ IN PROGRESS:** API streaming endpoints (NDJSON implementation in riptide-api)
+* **🔴 CRITICAL:** Browser Pool, Streaming Pipeline, and Session System not wired to handlers
 * **🧭 Guardrails:** Feature flags, Prometheus metrics, strict timeouts/pools
 * **📜 Reference:** See `COMPLETED.md` for all shipped work.
 
@@ -21,52 +22,91 @@ Absolutely — here’s a **single, consolidated roadmap** that **replaces** the
 
 ## 1) Critical Path (do in this order)
 
-### **✅ COMPLETED: File Corruption Fix — RESOLVED**
+### **🔴 URGENT: Integration Gaps (Based on Unused Code Analysis)**
 
-* **Spider Module:** [FIXED] - All syntax errors resolved, files properly formatted, SpiderPresets added
-  * ✅ `/crates/riptide-core/src/spider/spider.rs` - Fully functional with proper formatting
-  * ✅ **All Issues Resolved:** Proper newlines, correct syntax, compilation successful
-  * ✅ **Configuration Presets:** SpiderPresets added with 6 common use cases
-  * ✅ **Missing Fields Added:** FrontierConfig, ScoringConfig, SessionConfig updated
-  * ✅ **Status:** 100% fixed, compiled, and functional
-  * **Next:** Ready for integration into main pipeline
-* **Status:** No longer blocking - spider module ready for use
+**Critical unused components that MUST be wired:**
+1. **Browser Pool System** - BrowserPool, LaunchSession, ResourceGuard never constructed
+2. **Streaming Pipeline** - StreamProcessor, StreamingModule, StreamingPipeline disconnected
+3. **Session System** - SessionSystem, SessionHeaders implemented but not integrated
+4. **Performance Monitoring** - PerformanceMonitor, metrics collection unused
+5. **Deep Search** - DeepSearchMetadata, DeepSearchResultData structs never used
 
-### 1.1 Core Wiring (unblocks everything) — **P0 / 2–3 days**
+### 1.0 Browser Pool Integration — **🔴 CRITICAL BLOCKER / 1-2 days**
+
+* **Issue:** BrowserPool, BrowserPoolRef, LaunchSession never instantiated
+* **Impact:** Headless rendering non-functional without browser management
+* **Fix Required:**
+  * Wire BrowserPool initialization in main.rs startup
+  * Connect LaunchSession to render handlers
+  * Implement ResourceGuard lifecycle management
+  * Add browser checkout/checkin flow to handlers
+* **Files:** `browser/pool.rs`, `browser/launcher.rs`, `handlers/render.rs`
+* **Acceptance:** Browser pool initialized, browsers checked out/in properly
+
+### 1.1 Streaming Pipeline Integration — **🔴 CRITICAL / 1-2 days**
+
+* **Issue:** StreamProcessor, StreamingModule, StreamingPipeline never constructed
+* **Impact:** NDJSON streaming endpoints non-functional
+* **Fix Required:**
+  * Initialize StreamingModule in API startup
+  * Wire StreamProcessor to `/crawl/stream` and `/deepsearch/stream` endpoints
+  * Connect pipeline to buffer management and backpressure handling
+  * Implement proper stream lifecycle (start/flush/close)
+* **Files:** `streaming/mod.rs`, `streaming/processor.rs`, `handlers/streaming.rs`
+* **Acceptance:** Streaming endpoints produce NDJSON output, TTFB < 500ms
+
+### 1.2 Session System Wiring — **P0 / 1 day**
+
+* **Issue:** SessionSystem, SessionManager implemented but not connected to handlers
+* **Impact:** No session persistence, cookies lost between requests
+* **Fix Required:**
+  * Initialize SessionSystem in main.rs
+  * Wire session middleware to all routes
+  * Connect cookie jar to browser sessions
+  * Implement session cleanup task
+* **Files:** `session/manager.rs`, `middleware/session.rs`, `handlers/*.rs`
+* **Acceptance:** Same session_id preserves cookies across requests
+
+### 1.3 Core WASM & Rendering — **P0 / 2–3 days**
 
 * **WASM Extractor Integration**
-
-  * Wire *actual* component calls in `handlers/render.rs:401`, remove placeholders (`render.rs:404-409`).
-  * Integrate Trek-rs extractor into the render pipeline; finalize output mapping to `ExtractedDoc`.
+  * Wire *actual* component calls in `handlers/render.rs:401`, remove placeholders
+  * Integrate Trek-rs extractor into the render pipeline
 * **Dynamic Rendering Implementation**
+  * Replace `render.rs:293-297` placeholders with real headless rendering
+  * Connect to Browser Pool for resource management
+* **Acceptance:** 5-URL mixed set returns title/text/links; SPA fixture renders properly
 
-  * Replace `render.rs:293-297` placeholders with real headless rendering via RPC v2.
-  * Execute actions (waits/scroll/js/type/click), content analysis for adaptive rendering (`render.rs:382`).
-* **Acceptance:** 5-URL mixed set returns title/text/links; SPA fixture renders with waits/scroll; logs show `phase=fast|headless`.
-
-### 1.2 Eliminate Panics in Prod Paths — **P0 / 3–4 days**
+### 1.4 Eliminate Panics in Prod Paths — **P0 / 3–4 days**
 
 * Replace **517** remaining `unwrap/expect` (25 already fixed); focus on request/fetch/render/WASM/JSON I/O.
 * Introduce `ApiError` via `thiserror`; structured error lines in NDJSON.
 * **Acceptance:** `clippy -D warnings` green; chaos cases (bad URL, 404, oversize, render timeout) return **error records**, not panics.
 
-### 1.3 Observability (minimal) — **P0 / 1–2 days**
+### 1.5 Performance Monitoring Integration — **P0 / 1-2 days**
+
+* **Issue:** PerformanceMonitor, GlobalStreamingMetrics, metrics never used
+* **Impact:** No visibility into system performance, can't identify bottlenecks
+* **Fix Required:**
+  * Initialize PerformanceMonitor in main.rs
+  * Wire metrics collection to all handlers
+  * Connect to Prometheus exporter
+  * Add performance checkpoints throughout pipeline
+* **Files:** `monitoring/performance.rs`, `metrics/mod.rs`, `handlers/*.rs`
+* **Acceptance:** `/metrics` endpoint shows real metrics, performance tracked
+
+### 1.6 Observability (minimal) — **P0 / 1–2 days**
 
 * `/metrics` (Prometheus) + `/healthz` (status/git\_sha/wit/trek).
 * Histograms: request, fetch, wasm, render; counters: gate decisions, phase errors; cache hit/miss.
-* (Leave OpenTelemetry tracing disabled for now per `telemetry.rs:146`.)
+* Wire existing PerformanceMonitor and GlobalStreamingMetrics
 * **Acceptance:** Grafana shows RPS, error-rate, p95 overall/fetch/wasm/render, cache hit-ratio, headless pool gauge.
 
-### 1.4 Sessions & Cookies — **✅ COMPLETED**
+### 1.7 NDJSON Streaming (PR-3) — **P0 / 2–3 days**
 
-* ✅ Persistent `session_id` → user-data-dir + cookie jar; TTL & cleanup implemented
-* ✅ Session storage, middleware, and manager fully functional
-* ✅ Session types and configuration properly structured
-* **Acceptance:** ✅ Same `session_id` preserves login across two `/render` calls - implementation ready
-
-### 1.5 NDJSON Streaming (PR-3) — **P0 / 2–3 days**
-
+* **Depends on:** Streaming Pipeline Integration (1.1)
 * Endpoints: `/crawl/stream`, `/deepsearch/stream` (ON by default).
+* Connect to StreamProcessor and StreamingPipeline
 * Flush one JSON object **per completed URL** (include `metrics`; emit structured error objects on failures).
 * **Acceptance:** 10-URL batch → **TTFB < 500ms** (warm cache); all results arrive as lines; Playground viewer shows live lines/sec.
 
@@ -325,28 +365,38 @@ stealth:
 
 ## 14) Immediate Next Steps (exact order)
 
+**🔴 Week 0 - CRITICAL INTEGRATION (Must do first)**
+
+1. **Browser Pool Integration** - Initialize pool, wire to handlers (1 day)
+2. **Streaming Pipeline Integration** - Wire StreamProcessor to endpoints (1 day)
+3. **Session System Wiring** - Connect SessionManager to middleware (1 day)
+4. **Performance Monitoring** - Initialize and wire PerformanceMonitor (1 day)
+
 **Week 1**
 
-1. Core wiring (WASM + /render)
-2. Remove panics on hot paths
-3. `/metrics` + `/healthz` minimal set
+5. Core WASM wiring + dynamic rendering via Browser Pool
+6. Remove panics on hot paths (424 unwrap/expect)
+7. `/metrics` + `/healthz` with real metrics from PerformanceMonitor
 
 **Week 2**
-4\) Sessions (cookies)
-5\) PR-3: `/crawl/stream` + `/deepsearch/stream`
-6\) Report packs + static serving
+8\) PR-3: `/crawl/stream` + `/deepsearch/stream` (using wired StreamingPipeline)
+9\) Deep Search implementation (wire DeepSearchMetadata structures)
+10\) Report packs + static serving
 
 **Week 3**
-7\) Resource controls (pools/caps)
-8\) PDF pipeline (PR-4) + PDF concurrency guard
+11\) Resource controls (pools/caps) - leverage existing Browser Pool
+12\) PDF pipeline (PR-4) + PDF concurrency guard
+13\) Wire remaining unused methods (push_request, recovery_strategy, etc.)
 
 **Week 4**
-9\) Spider (PR-5) behind flag; staging tests
+14\) Spider (PR-5) integration - connect to main pipeline
+15\) Worker service integration (batch processing, job scheduling)
 
 **Week 5**
-10\) Strategies & chunking (PR-6); defaults to trek+sliding
+16\) Strategies & chunking (PR-6) - wire to extraction pipeline
+17\) Complete integration testing of all wired components
 
-**Parallel (Weeks 1–5)**
+**Parallel (Weeks 0–5)**
 
 * Build/CI speedups, test coverage to ≥80%, circuit breaker tuning (low priority).
 

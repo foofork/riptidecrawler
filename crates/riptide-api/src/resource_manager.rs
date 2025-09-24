@@ -10,6 +10,7 @@
 
 use crate::config::ApiConfig;
 use anyhow::{anyhow, Result};
+use riptide_headless::pool::{BrowserPool, BrowserPoolConfig, BrowserCheckout};
 use std::{
     collections::HashMap,
     sync::{
@@ -30,8 +31,8 @@ use url::Url;
 pub struct ResourceManager {
     /// Configuration
     config: ApiConfig,
-    /// Headless browser pool manager
-    pub headless_pool: Arc<HeadlessBrowserPool>,
+    /// Headless browser pool manager (using proper BrowserPool from riptide-headless)
+    pub browser_pool: Arc<BrowserPool>,
     /// Per-host rate limiter
     pub rate_limiter: Arc<PerHostRateLimiter>,
     /// PDF processing semaphore
@@ -46,26 +47,8 @@ pub struct ResourceManager {
     metrics: Arc<ResourceMetrics>,
 }
 
-/// Headless browser pool with health monitoring
-pub struct HeadlessBrowserPool {
-    config: ApiConfig,
-    available_browsers: Mutex<Vec<BrowserInstance>>,
-    total_browsers: AtomicUsize,
-    semaphore: Semaphore,
-    metrics: Arc<ResourceMetrics>,
-    last_health_check: AtomicU64,
-}
-
-/// Browser instance with health tracking
-#[derive(Debug, Clone)]
-pub struct BrowserInstance {
-    pub id: String,
-    pub created_at: Instant,
-    pub last_used: Instant,
-    pub operations_count: u32,
-    pub failed_operations: u32,
-    pub is_healthy: bool,
-}
+// Browser pool implementation moved to riptide-headless crate
+// Using proper BrowserPool from riptide-headless::pool
 
 /// Per-host rate limiter with jitter
 pub struct PerHostRateLimiter {
@@ -172,9 +155,31 @@ impl ResourceManager {
 
         let metrics = Arc::new(ResourceMetrics::default());
 
-        // Initialize headless browser pool
-        let headless_pool =
-            Arc::new(HeadlessBrowserPool::new(config.clone(), metrics.clone()).await?);
+        // Initialize proper BrowserPool from riptide-headless
+        let browser_pool_config = BrowserPoolConfig {
+            min_pool_size: 1,
+            max_pool_size: config.headless.max_pool_size,
+            initial_pool_size: 2,
+            idle_timeout: Duration::from_secs(30),
+            max_lifetime: Duration::from_secs(300),
+            health_check_interval: Duration::from_secs(10),
+            memory_threshold_mb: 500,
+            enable_recovery: true,
+            max_retries: config.headless.max_retries,
+        };
+
+        // Configure browser with headless settings
+        let browser_config = chromiumoxide::BrowserConfig::builder()
+            .with_head()
+            .no_sandbox()
+            .build()
+            .map_err(|e| anyhow!("Failed to build browser config: {}", e))?;
+
+        let browser_pool = Arc::new(
+            BrowserPool::new(browser_pool_config, browser_config)
+                .await
+                .map_err(|e| anyhow!("Failed to initialize browser pool: {}", e))?,
+        );
 
         // Initialize per-host rate limiter
         let rate_limiter =
@@ -203,7 +208,7 @@ impl ResourceManager {
 
         Ok(Self {
             config,
-            headless_pool,
+            browser_pool,
             rate_limiter,
             pdf_semaphore,
             wasm_manager,
@@ -239,12 +244,12 @@ impl ResourceManager {
         // 3. Acquire headless browser with timeout
         let browser_result = timeout(
             self.config.get_timeout("render"),
-            self.headless_pool.acquire_browser(),
+            self.browser_pool.checkout(),
         )
         .await;
 
-        let browser_guard = match browser_result {
-            Ok(Ok(guard)) => guard,
+        let browser_checkout = match browser_result {
+            Ok(Ok(checkout)) => checkout,
             Ok(Err(e)) => {
                 error!(error = %e, "Failed to acquire browser");
                 return Ok(ResourceResult::ResourceExhausted);
@@ -271,7 +276,7 @@ impl ResourceManager {
         );
 
         Ok(ResourceResult::Success(RenderResourceGuard {
-            browser_guard,
+            browser_checkout,
             wasm_guard,
             memory_tracked: 256,
             acquired_at: start_time,
@@ -336,9 +341,11 @@ impl ResourceManager {
 
     /// Get current resource status
     pub async fn get_resource_status(&self) -> ResourceStatus {
+        let pool_stats = self.browser_pool.get_stats().await;
+
         ResourceStatus {
-            headless_pool_available: self.headless_pool.available_count().await,
-            headless_pool_total: self.headless_pool.total_count(),
+            headless_pool_available: pool_stats.available,
+            headless_pool_total: pool_stats.total_capacity,
             pdf_available: self.pdf_semaphore.available_permits(),
             pdf_total: self.config.pdf.max_concurrent,
             memory_usage_mb: self.memory_manager.current_usage_mb(),
@@ -367,7 +374,7 @@ impl ResourceManager {
 
 /// Resource guard for render operations
 pub struct RenderResourceGuard {
-    browser_guard: BrowserGuard,
+    pub browser_checkout: BrowserCheckout,
     wasm_guard: WasmGuard,
     memory_tracked: usize,
     acquired_at: Instant,
@@ -382,11 +389,7 @@ pub struct PdfResourceGuard {
     manager: ResourceManager,
 }
 
-/// Browser guard with automatic return to pool
-pub struct BrowserGuard {
-    instance: BrowserInstance,
-    pool: Arc<HeadlessBrowserPool>,
-}
+// Browser guard is now provided by BrowserCheckout from riptide-headless
 
 /// WASM guard with instance tracking
 pub struct WasmGuard {
@@ -410,123 +413,7 @@ pub struct ResourceStatus {
 
 // Implementation of individual managers follows...
 
-impl HeadlessBrowserPool {
-    async fn new(config: ApiConfig, metrics: Arc<ResourceMetrics>) -> Result<Self> {
-        let pool = Self {
-            config,
-            available_browsers: Mutex::new(Vec::new()),
-            total_browsers: AtomicUsize::new(0),
-            semaphore: Semaphore::new(3), // Hard requirement: pool cap = 3
-            metrics,
-            last_health_check: AtomicU64::new(0),
-        };
-
-        // Pre-warm the pool with minimum browsers
-        pool.ensure_minimum_browsers().await?;
-
-        Ok(pool)
-    }
-
-    async fn acquire_browser(self: &Arc<Self>) -> Result<BrowserGuard> {
-        let _permit = self.semaphore.acquire().await?;
-
-        let mut browsers = self.available_browsers.lock().await;
-
-        // Try to get an existing healthy browser
-        if let Some(mut instance) = browsers.pop() {
-            if self.is_browser_healthy(&instance) {
-                instance.last_used = Instant::now();
-                instance.operations_count += 1;
-                self.metrics.headless_active.fetch_add(1, Ordering::Relaxed);
-
-                return Ok(BrowserGuard {
-                    instance,
-                    pool: self.clone(),
-                });
-            }
-        }
-
-        // Create new browser if pool not at capacity
-        if self.total_browsers.load(Ordering::Relaxed) < self.config.headless.max_pool_size {
-            let instance = self.create_browser().await?;
-            self.total_browsers.fetch_add(1, Ordering::Relaxed);
-            self.metrics
-                .headless_pool_size
-                .fetch_add(1, Ordering::Relaxed);
-            self.metrics.headless_active.fetch_add(1, Ordering::Relaxed);
-
-            return Ok(BrowserGuard {
-                instance,
-                pool: self.clone(),
-            });
-        }
-
-        Err(anyhow!("Browser pool exhausted"))
-    }
-
-    async fn create_browser(&self) -> Result<BrowserInstance> {
-        info!("Creating new browser instance");
-
-        let instance = BrowserInstance {
-            id: format!("browser_{}", uuid::Uuid::new_v4()),
-            created_at: Instant::now(),
-            last_used: Instant::now(),
-            operations_count: 0,
-            failed_operations: 0,
-            is_healthy: true,
-        };
-
-        Ok(instance)
-    }
-
-    fn is_browser_healthy(&self, instance: &BrowserInstance) -> bool {
-        instance.is_healthy
-            && instance.operations_count < self.config.headless.max_pages_per_browser as u32
-            && instance.failed_operations < self.config.headless.restart_threshold
-            && instance.last_used.elapsed()
-                < Duration::from_secs(self.config.headless.idle_timeout_secs)
-    }
-
-    async fn return_browser(&self, mut instance: BrowserInstance) {
-        if self.is_browser_healthy(&instance) {
-            let mut browsers = self.available_browsers.lock().await;
-            browsers.push(instance);
-        } else {
-            info!(browser_id = %instance.id, "Discarding unhealthy browser");
-            self.total_browsers.fetch_sub(1, Ordering::Relaxed);
-            self.metrics
-                .headless_pool_size
-                .fetch_sub(1, Ordering::Relaxed);
-        }
-
-        self.metrics.headless_active.fetch_sub(1, Ordering::Relaxed);
-    }
-
-    async fn ensure_minimum_browsers(&self) -> Result<()> {
-        let current_count = self.total_browsers.load(Ordering::Relaxed);
-        if current_count < self.config.headless.min_pool_size {
-            for _ in current_count..self.config.headless.min_pool_size {
-                let instance = self.create_browser().await?;
-                let mut browsers = self.available_browsers.lock().await;
-                browsers.push(instance);
-                self.total_browsers.fetch_add(1, Ordering::Relaxed);
-                self.metrics
-                    .headless_pool_size
-                    .fetch_add(1, Ordering::Relaxed);
-            }
-        }
-        Ok(())
-    }
-
-    async fn available_count(&self) -> usize {
-        self.available_browsers.lock().await.len()
-    }
-
-    fn total_count(&self) -> usize {
-        self.total_browsers.load(Ordering::Relaxed)
-    }
-}
-
+// HeadlessBrowserPool implementation removed - using BrowserPool from riptide-headless
 
 
 impl PerHostRateLimiter {
@@ -773,16 +660,7 @@ impl Drop for PdfResourceGuard {
     }
 }
 
-impl Drop for BrowserGuard {
-    fn drop(&mut self) {
-        let pool = self.pool.clone();
-        let instance = self.instance.clone();
-
-        tokio::spawn(async move {
-            pool.return_browser(instance).await;
-        });
-    }
-}
+// Drop implementation for BrowserCheckout is handled by riptide-headless
 
 #[cfg(test)]
 mod tests {

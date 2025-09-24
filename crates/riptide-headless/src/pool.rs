@@ -575,6 +575,25 @@ impl BrowserPool {
         }
     }
 
+    /// Get current pool statistics
+    pub async fn get_stats(&self) -> PoolStats {
+        let available = self.available.lock().await.len();
+        let in_use = self.in_use.read().await.len();
+        let total_capacity = self.config.max_pool_size;
+        let utilization = if total_capacity > 0 {
+            in_use as f64 / total_capacity as f64
+        } else {
+            0.0
+        };
+
+        PoolStats {
+            available,
+            in_use,
+            total_capacity,
+            utilization,
+        }
+    }
+
     /// Shutdown the pool and clean up all resources
     pub async fn shutdown(&self) -> Result<()> {
         info!("Shutting down browser pool");

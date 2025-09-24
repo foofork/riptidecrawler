@@ -120,6 +120,8 @@ pub struct HeadlessConfig {
     pub enable_recycling: bool,
     /// Browser launch timeout
     pub launch_timeout_secs: u64,
+    /// Maximum retries for browser operations
+    pub max_retries: u32,
 }
 
 /// PDF processing configuration
@@ -239,6 +241,7 @@ impl Default for HeadlessConfig {
             restart_threshold: 5,
             enable_recycling: true,
             launch_timeout_secs: 30,
+            max_retries: 3,
         }
     }
 }
