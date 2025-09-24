@@ -11,13 +11,8 @@ Absolutely — here’s a **single, consolidated roadmap** that **replaces** the
 * **✅ Streaming Pipeline:** StreamingModule integrated with lifecycle management
 * **✅ Session Management:** SessionManager fully integrated with all endpoints
 * **✅ WASM & Rendering:** Trek-rs extractor and dynamic rendering operational
-* **✅ Spider Module (PR-5):** COMPLETED - Fully integrated into API endpoints with /spider/crawl, /spider/status, /spider/control
-* **✅ Strategies Module (PR-6):** COMPLETED - All 4 extraction strategies & 5 chunking modes integrated into pipeline
-* **✅ PDF Processing:** Module complete with processor, config, and memory optimization benchmarks
-* **✅ Error Handling:** Reduced unwrap/expect from 595 to 259 total (production: 204 → 15)
-* **✅ Metrics Integration:** GlobalStreamingMetrics wired to /metrics, comprehensive monitoring added
-* **✅ Workers Integration (PR-7):** COMPLETED - Full worker service with job queue, scheduler, processors
-* **✅ Compilation Fixes:** COMPLETED - Zero compilation errors achieved across all crates
+* **✅ Core Integration Complete:** All major modules (Spider, Strategies, Workers) → See COMPLETED.md
+* **✅ Zero Compilation Errors:** All crates compile successfully → See COMPLETED.md
 * **🎉 MAJOR MILESTONE:** All core integration complete - system compiles without errors and fully operational
 * **🧭 Guardrails:** Feature flags, Prometheus metrics, strict timeouts/pools
 * **📜 Reference:** See `COMPLETED.md` for all shipped work.
@@ -219,52 +214,11 @@ stealth:
 * **Status:** 85% complete - implementation done, final optimizations needed
 * **Acceptance:** PDFs yield text + metadata; images > 0 for illustrated docs; stable memory.
 
-### PR-5: Spider Integration — **✅ COMPLETED (September 24, 2025)**
+### PR-5: Spider Integration — **✅ COMPLETED** → See COMPLETED.md
 
-* ✅ **Infrastructure:** Full spider module implemented with all components
-* ✅ **Core Engine:** Spider, FrontierManager, StrategyEngine, BudgetManager complete
-* ✅ **Components:** Sitemap parser, URL utils, adaptive stopping, session management
-* ✅ **Integration Complete:** Spider fully wired into main API endpoints
-* ✅ **New Endpoints:** `/spider/crawl`, `/spider/status`, `/spider/control`
-* ✅ **Enhanced `/crawl`:** Supports `use_spider: true` option
-* ✅ **Compilation Status:** All spider components successfully integrated and compiling
-* **Frontier strategies:** BFS/DFS/Best-First with priority scoring; sitemap parsing from robots; budgets (`max_depth`, `max_pages`, time).
-* **Adaptive stop:** sliding window of unique_text_chars or scored chunk gain with `gain_threshold`, `window`, `patience`.
-* **Status:** 100% complete - fully integrated and operational
-* **Acceptance:** ✅ domain seed respects budgets; sitemap merged; early stop on low gain; returns ≥N pages with extraction.
+### PR-6: Strategies & Chunking — **✅ COMPLETED** → See COMPLETED.md
 
-### PR-6: Strategies & Chunking — **✅ COMPLETED (September 24, 2025)**
-
-* ✅ **Module Structure:** Complete strategies module with extraction and chunking
-* ✅ **Extraction Strategies:** `trek`, `css_json`, `regex`, `llm` (hook-based) all implemented
-* ✅ **Chunking System:** 5 modes - regex, sentence, topic, fixed, sliding (default `token_max=1200`, `overlap=120`)
-* ✅ **Manager:** StrategyManager with performance metrics and processing pipeline
-* ✅ **Integration Complete:** Strategies fully wired into extraction pipeline
-* ✅ **New Endpoints:** `/strategies/crawl`, `/strategies/info`
-* ✅ **Auto-Strategy Detection:** Smart strategy selection based on URL patterns
-* ✅ **Compilation Status:** All strategies components successfully integrated and compiling
-* **Schema validation:** `schemars` before output; byline/date from **OG**/**JSON-LD**.
-* **Status:** 100% complete - fully integrated and operational
-* **Acceptance:** ✅ long articles chunk deterministically; CSS/regex extract expected fields; byline/date ≥80% where present.
-
-### PR-7: Worker Service Integration — **✅ COMPLETED (September 24, 2025)**
-
-* ✅ **Architecture:** Worker service foundation implemented in `riptide-workers` crate
-* ✅ **Components:** Job, Queue, Scheduler, Worker, Processors, Service, and Metrics modules complete
-* ✅ **Integration Complete:** Worker handlers added to API (`handlers/workers.rs`)
-* ✅ **Compilation Status:** All worker components compile successfully (minor warnings only)
-* ✅ **Handler Integration:** Workers handlers implemented with endpoint structure
-* **Key Features:** Background job processing, batch crawling, retry mechanisms, queue management
-* **Status:** 100% complete - full worker service implementation with Redis queue backend
-
-### Current Compilation Status — **✅ COMPLETED (September 24, 2025)**
-
-* **Achievement:** ZERO compilation errors across all crates
-* **Fixed Files:** All affected files in `riptide-api`, `riptide-core`, `riptide-workers`
-* **Resolution:** Complete module reorganization, dependency fixes, type system corrections
-* **Build Status:** All crates compile successfully with warnings only (non-blocking)
-* **Status:** ✅ Full compilation success - system ready for testing and deployment
-* **Priority:** COMPLETED - no longer blocking any development work
+### PR-7: Worker Service Integration — **✅ COMPLETED** → See COMPLETED.md
 
 ---
 
@@ -372,9 +326,7 @@ stealth:
 
 * PR-1 ✅; PR-2 ✅; PR-3 ✅.
 * **PR-4:** detect PDFs; extract text/meta/images; concurrency = 2. (85% complete)
-* **PR-5:** ✅ BFS/DFS/Best-First; sitemap; adaptive stop; budget enforcement.
-* **PR-6:** ✅ strategies + 5 chunkers; schema validate; OG/JSON-LD byline/date.
-* **PR-7:** ✅ worker service integration; background jobs; queue management.
+* **PR-5/6/7:** ✅ All completed → See COMPLETED.md for details.
 
 ### Phase 4
 
@@ -411,11 +363,14 @@ stealth:
 
 **🔴 CURRENT PRIORITIES (September 24, 2025) - MAJOR MILESTONES ACHIEVED**
 
-1. ✅ **Spider Integration (PR-5)** - COMPLETED: Fully integrated with API endpoints
-2. ✅ **Strategies Integration (PR-6)** - COMPLETED: All extraction and chunking modes operational
-3. ✅ **Compilation Fixes** - COMPLETED: Zero compilation errors achieved across all crates
-4. ✅ **Worker Service Integration (PR-7)** - COMPLETED: Full implementation with Redis backend
-5. 🔧 **PDF Pipeline Optimization** - NEXT: Complete final 15% of PR-4 (memory management)
+**Major Milestones Completed** → See COMPLETED.md for full details
+1. ✅ **Spider Integration (PR-5)** - All endpoints, strategies, and features
+2. ✅ **Strategies Integration (PR-6)** - All extraction and chunking modes
+3. ✅ **Worker Service (PR-7)** - Complete job processing system
+4. ✅ **Zero Compilation Errors** - All crates build successfully
+
+**Remaining Work:**
+5. 🔧 **PDF Pipeline Optimization (PR-4)** - Complete final 15% (memory management)
 
 **✅ COMPLETED WEEKS (Historical)**
 
