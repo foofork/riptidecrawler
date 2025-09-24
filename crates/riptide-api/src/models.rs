@@ -1,6 +1,8 @@
 use crate::state::DependencyHealth;
 use riptide_core::types::{CrawlOptions, ExtractedDoc};
+use riptide_core::spider::{SpiderResult, CrawlState, PerformanceMetrics, Priority};
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 /// Request body for crawling multiple URLs
 #[derive(Deserialize, Debug, Clone)]
@@ -214,6 +216,9 @@ pub struct DependencyStatus {
 
     /// Headless service health (if configured)
     pub headless_service: Option<ServiceHealth>,
+
+    /// Spider engine health (if configured)
+    pub spider_engine: Option<ServiceHealth>,
 }
 
 /// Health status for an individual service
@@ -274,4 +279,97 @@ impl From<DependencyHealth> for ServiceHealth {
             },
         }
     }
+}
+
+/// Request body for spider crawl operations
+#[derive(Deserialize, Debug, Clone)]
+pub struct SpiderCrawlBody {
+    /// Seed URLs to start crawling from
+    pub seed_urls: Vec<String>,
+
+    /// Maximum depth to crawl (optional)
+    pub max_depth: Option<usize>,
+
+    /// Maximum pages to crawl (optional)
+    pub max_pages: Option<usize>,
+
+    /// Crawling strategy: "breadth_first", "depth_first", "best_first"
+    pub strategy: Option<String>,
+
+    /// Request timeout in seconds
+    pub timeout_seconds: Option<u64>,
+
+    /// Delay between requests in milliseconds
+    pub delay_ms: Option<u64>,
+
+    /// Maximum concurrent requests
+    pub concurrency: Option<usize>,
+
+    /// Whether to respect robots.txt
+    pub respect_robots: Option<bool>,
+
+    /// Whether to follow redirects
+    pub follow_redirects: Option<bool>,
+}
+
+/// Response for spider crawl operations
+#[derive(Serialize, Debug)]
+pub struct SpiderCrawlResponse {
+    /// Spider crawl result
+    pub result: SpiderApiResult,
+
+    /// Current crawl state
+    pub state: CrawlState,
+
+    /// Performance metrics
+    pub performance: PerformanceMetrics,
+}
+
+/// API-friendly version of SpiderResult
+#[derive(Serialize, Debug)]
+pub struct SpiderApiResult {
+    /// Total pages crawled
+    pub pages_crawled: u64,
+
+    /// Total pages failed
+    pub pages_failed: u64,
+
+    /// Crawl duration in seconds
+    pub duration_seconds: f64,
+
+    /// Reason for stopping
+    pub stop_reason: String,
+
+    /// Domains crawled
+    pub domains: Vec<String>,
+}
+
+/// Request body for spider status
+#[derive(Deserialize, Debug, Clone)]
+pub struct SpiderStatusRequest {
+    /// Whether to include detailed metrics
+    pub include_metrics: Option<bool>,
+}
+
+/// Response for spider status
+#[derive(Serialize, Debug)]
+pub struct SpiderStatusResponse {
+    /// Current crawl state
+    pub state: CrawlState,
+
+    /// Performance metrics (if requested)
+    pub performance: Option<PerformanceMetrics>,
+
+    /// Frontier statistics
+    pub frontier_stats: Option<riptide_core::spider::types::FrontierMetrics>,
+
+    /// Adaptive stop statistics
+    pub adaptive_stop_stats: Option<riptide_core::spider::adaptive_stop::AdaptiveStopStats>,
+}
+
+/// Request body for spider control operations
+#[derive(Deserialize, Debug, Clone)]
+pub struct SpiderControlRequest {
+    /// Action to perform: "start", "stop", "reset"
+    pub action: String,
 }

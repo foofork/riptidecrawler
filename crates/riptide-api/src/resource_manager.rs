@@ -117,6 +117,9 @@ pub struct ResourceMetrics {
     pub timeouts_count: AtomicU64,
     pub cleanup_operations: AtomicU64,
     pub gc_triggers: AtomicU64,
+    pub render_operations: AtomicU64,
+    pub successful_renders: AtomicU64,
+    pub failed_renders: AtomicU64,
 }
 
 /// Result of resource acquisition
@@ -575,13 +578,15 @@ impl MemoryManager {
     async fn trigger_cleanup(&self) {
         info!("Triggering memory cleanup");
         // Implement memory cleanup logic
-        self.last_cleanup.store(
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
-            Ordering::Relaxed,
-        );
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or_else(|e| {
+                warn!(error = %e, "Failed to get system time for cleanup timestamp");
+                0 // Fallback to epoch
+            });
+
+        self.last_cleanup.store(timestamp, Ordering::Relaxed);
         self.metrics
             .cleanup_operations
             .fetch_add(1, Ordering::Relaxed);
@@ -590,13 +595,15 @@ impl MemoryManager {
     async fn trigger_gc(&self) {
         info!("Triggering garbage collection");
         // Force garbage collection
-        self.last_gc.store(
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
-            Ordering::Relaxed,
-        );
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or_else(|e| {
+                warn!(error = %e, "Failed to get system time for GC timestamp");
+                0 // Fallback to epoch
+            });
+
+        self.last_gc.store(timestamp, Ordering::Relaxed);
         self.metrics.gc_triggers.fetch_add(1, Ordering::Relaxed);
     }
 
@@ -625,6 +632,47 @@ impl PerformanceMonitor {
     async fn get_degradation_score(&self) -> f64 {
         // Convert from u64 back to f64
         f64::from_bits(self.degradation_score.load(Ordering::Relaxed))
+    }
+
+    /// Record render operation metrics for performance monitoring
+    pub async fn record_render_operation(
+        &self,
+        url: &str,
+        duration: Duration,
+        success: bool,
+        actions_executed: u32,
+        network_requests: u32,
+    ) -> Result<()> {
+        // Record render timing
+        {
+            let mut render_times = self.render_times.lock().await;
+            render_times.push(duration);
+
+            // Keep only recent measurements (last 100)
+            if render_times.len() > 100 {
+                render_times.remove(0);
+            }
+        }
+
+        // Update metrics
+        self.metrics.render_operations.fetch_add(1, Ordering::Relaxed);
+        if success {
+            self.metrics.successful_renders.fetch_add(1, Ordering::Relaxed);
+        } else {
+            self.metrics.failed_renders.fetch_add(1, Ordering::Relaxed);
+        }
+
+        // Log performance details
+        debug!(
+            url = %url,
+            duration_ms = duration.as_millis(),
+            success = success,
+            actions_executed = actions_executed,
+            network_requests = network_requests,
+            "Recorded render operation metrics"
+        );
+
+        Ok(())
     }
 }
 

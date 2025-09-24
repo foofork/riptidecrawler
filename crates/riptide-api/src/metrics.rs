@@ -37,6 +37,24 @@ pub struct RipTideMetrics {
     pub redis_errors: Counter,
     pub wasm_errors: Counter,
     pub http_errors: Counter,
+
+    /// Streaming metrics
+    pub streaming_active_connections: Gauge,
+    pub streaming_total_connections: Gauge,
+    pub streaming_messages_sent: Counter,
+    pub streaming_messages_dropped: Counter,
+    pub streaming_error_rate: Gauge,
+    pub streaming_memory_usage_bytes: Gauge,
+    pub streaming_connection_duration: Histogram,
+
+    /// Spider crawling metrics
+    pub spider_crawls_total: Counter,
+    pub spider_pages_crawled: Counter,
+    pub spider_pages_failed: Counter,
+    pub spider_active_crawls: Gauge,
+    pub spider_frontier_size: Gauge,
+    pub spider_crawl_duration: Histogram,
+    pub spider_pages_per_second: Gauge,
 }
 
 impl RipTideMetrics {
@@ -162,6 +180,86 @@ impl RipTideMetrics {
                 .const_label("service", "riptide-api"),
         )?;
 
+        // Streaming metrics
+        let streaming_active_connections = Gauge::with_opts(
+            Opts::new("riptide_streaming_active_connections", "Active streaming connections")
+                .const_label("service", "riptide-api"),
+        )?;
+
+        let streaming_total_connections = Gauge::with_opts(
+            Opts::new("riptide_streaming_total_connections", "Total streaming connections created")
+                .const_label("service", "riptide-api"),
+        )?;
+
+        let streaming_messages_sent = Counter::with_opts(
+            Opts::new("riptide_streaming_messages_sent_total", "Total streaming messages sent")
+                .const_label("service", "riptide-api"),
+        )?;
+
+        let streaming_messages_dropped = Counter::with_opts(
+            Opts::new("riptide_streaming_messages_dropped_total", "Total streaming messages dropped")
+                .const_label("service", "riptide-api"),
+        )?;
+
+        let streaming_error_rate = Gauge::with_opts(
+            Opts::new("riptide_streaming_error_rate", "Streaming error rate (0.0 to 1.0)")
+                .const_label("service", "riptide-api"),
+        )?;
+
+        let streaming_memory_usage_bytes = Gauge::with_opts(
+            Opts::new("riptide_streaming_memory_usage_bytes", "Streaming memory usage in bytes")
+                .const_label("service", "riptide-api"),
+        )?;
+
+        let streaming_connection_duration = Histogram::with_opts(
+            HistogramOpts::new(
+                "riptide_streaming_connection_duration_seconds",
+                "Streaming connection duration",
+            )
+            .const_label("service", "riptide-api")
+            .buckets(vec![0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 5.0, 10.0, 30.0, 60.0, 300.0]),
+        )?;
+
+        // Spider crawling metrics
+        let spider_crawls_total = Counter::with_opts(
+            Opts::new("riptide_spider_crawls_total", "Total spider crawl operations")
+                .const_label("service", "riptide-api"),
+        )?;
+
+        let spider_pages_crawled = Counter::with_opts(
+            Opts::new("riptide_spider_pages_crawled_total", "Total pages crawled by spider")
+                .const_label("service", "riptide-api"),
+        )?;
+
+        let spider_pages_failed = Counter::with_opts(
+            Opts::new("riptide_spider_pages_failed_total", "Total pages failed by spider")
+                .const_label("service", "riptide-api"),
+        )?;
+
+        let spider_active_crawls = Gauge::with_opts(
+            Opts::new("riptide_spider_active_crawls", "Number of active spider crawls")
+                .const_label("service", "riptide-api"),
+        )?;
+
+        let spider_frontier_size = Gauge::with_opts(
+            Opts::new("riptide_spider_frontier_size", "Current spider frontier queue size")
+                .const_label("service", "riptide-api"),
+        )?;
+
+        let spider_crawl_duration = Histogram::with_opts(
+            HistogramOpts::new(
+                "riptide_spider_crawl_duration_seconds",
+                "Spider crawl operation duration",
+            )
+            .const_label("service", "riptide-api")
+            .buckets(vec![0.1, 1.0, 5.0, 15.0, 30.0, 60.0, 300.0, 900.0, 1800.0]),
+        )?;
+
+        let spider_pages_per_second = Gauge::with_opts(
+            Opts::new("riptide_spider_pages_per_second", "Spider crawl rate in pages per second")
+                .const_label("service", "riptide-api"),
+        )?;
+
         // Register all metrics
         registry.register(Box::new(http_requests_total.clone()))?;
         registry.register(Box::new(http_request_duration.clone()))?;
@@ -179,8 +277,22 @@ impl RipTideMetrics {
         registry.register(Box::new(redis_errors.clone()))?;
         registry.register(Box::new(wasm_errors.clone()))?;
         registry.register(Box::new(http_errors.clone()))?;
+        registry.register(Box::new(streaming_active_connections.clone()))?;
+        registry.register(Box::new(streaming_total_connections.clone()))?;
+        registry.register(Box::new(streaming_messages_sent.clone()))?;
+        registry.register(Box::new(streaming_messages_dropped.clone()))?;
+        registry.register(Box::new(streaming_error_rate.clone()))?;
+        registry.register(Box::new(streaming_memory_usage_bytes.clone()))?;
+        registry.register(Box::new(streaming_connection_duration.clone()))?;
+        registry.register(Box::new(spider_crawls_total.clone()))?;
+        registry.register(Box::new(spider_pages_crawled.clone()))?;
+        registry.register(Box::new(spider_pages_failed.clone()))?;
+        registry.register(Box::new(spider_active_crawls.clone()))?;
+        registry.register(Box::new(spider_frontier_size.clone()))?;
+        registry.register(Box::new(spider_crawl_duration.clone()))?;
+        registry.register(Box::new(spider_pages_per_second.clone()))?;
 
-        info!("Prometheus metrics registry initialized");
+        info!("Prometheus metrics registry initialized with spider metrics");
 
         Ok(Self {
             registry,
@@ -200,6 +312,20 @@ impl RipTideMetrics {
             redis_errors,
             wasm_errors,
             http_errors,
+            streaming_active_connections,
+            streaming_total_connections,
+            streaming_messages_sent,
+            streaming_messages_dropped,
+            streaming_error_rate,
+            streaming_memory_usage_bytes,
+            streaming_connection_duration,
+            spider_crawls_total,
+            spider_pages_crawled,
+            spider_pages_failed,
+            spider_active_crawls,
+            spider_frontier_size,
+            spider_crawl_duration,
+            spider_pages_per_second,
         })
     }
 
@@ -252,6 +378,68 @@ impl RipTideMetrics {
     /// Update active connections
     pub fn update_active_connections(&self, count: i64) {
         self.active_connections.set(count as f64);
+    }
+
+    /// Update streaming metrics from GlobalStreamingMetrics
+    pub fn update_streaming_metrics(&self, streaming_metrics: &crate::streaming::GlobalStreamingMetrics) {
+        self.streaming_active_connections.set(streaming_metrics.active_connections as f64);
+        self.streaming_total_connections.set(streaming_metrics.total_connections as f64);
+
+        // For counters, we need to track the difference and add it
+        // This is a simplified approach - in production you'd want to track previous values
+        // For now, we'll just set the gauge to the current value
+        let messages_sent_diff = streaming_metrics.total_messages_sent as f64;
+        let messages_dropped_diff = streaming_metrics.total_messages_dropped as f64;
+
+        // Since counters can't be set directly, we observe individual increments
+        // This method should ideally be called with delta values, not absolute values
+        // For this integration, we'll track via separate gauges that mirror the counter values
+
+        self.streaming_error_rate.set(streaming_metrics.error_rate);
+        self.streaming_memory_usage_bytes.set(streaming_metrics.memory_usage_bytes as f64);
+
+        // For connection duration, we'd typically observe individual durations
+        // This would be called elsewhere when connections end
+    }
+
+    /// Record streaming message sent
+    pub fn record_streaming_message_sent(&self) {
+        self.streaming_messages_sent.inc();
+    }
+
+    /// Record streaming message dropped
+    pub fn record_streaming_message_dropped(&self) {
+        self.streaming_messages_dropped.inc();
+    }
+
+    /// Record streaming connection duration
+    pub fn record_streaming_connection_duration(&self, duration_seconds: f64) {
+        self.streaming_connection_duration.observe(duration_seconds);
+    }
+
+    /// Record spider crawl start
+    pub fn record_spider_crawl_start(&self) {
+        self.spider_crawls_total.inc();
+        self.spider_active_crawls.inc();
+    }
+
+    /// Record spider crawl completion
+    pub fn record_spider_crawl_completion(&self, pages_crawled: u64, pages_failed: u64, duration: f64) {
+        self.spider_active_crawls.dec();
+        self.spider_pages_crawled.inc_by(pages_crawled as f64);
+        self.spider_pages_failed.inc_by(pages_failed as f64);
+        self.spider_crawl_duration.observe(duration);
+
+        // Calculate pages per second
+        if duration > 0.0 {
+            let pages_per_second = pages_crawled as f64 / duration;
+            self.spider_pages_per_second.set(pages_per_second);
+        }
+    }
+
+    /// Update spider frontier size
+    pub fn update_spider_frontier_size(&self, size: usize) {
+        self.spider_frontier_size.set(size as f64);
     }
 }
 

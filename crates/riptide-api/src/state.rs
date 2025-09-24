@@ -10,10 +10,12 @@ use riptide_core::{
     cache::CacheManager,
     extract::WasmExtractor,
     fetch::http_client,
+    spider::{Spider, SpiderConfig},
     telemetry::TelemetrySystem,
     telemetry_info, telemetry_span,
 };
 use std::sync::Arc;
+use std::time::Duration;
 use tracing::{error, info, warn};
 
 /// Application state shared across all request handlers.
@@ -55,6 +57,9 @@ pub struct AppState {
 
     /// Telemetry system for observability
     pub telemetry: Option<Arc<TelemetrySystem>>,
+
+    /// Spider engine for deep crawling
+    pub spider: Option<Arc<Spider>>,
 }
 
 /// Application configuration loaded from environment and config files.
@@ -81,6 +86,9 @@ pub struct AppConfig {
 
     /// Session configuration
     pub session_config: SessionConfig,
+
+    /// Spider configuration for deep crawling
+    pub spider_config: Option<SpiderConfig>,
 }
 
 impl Default for AppConfig {
@@ -109,9 +117,80 @@ impl Default for AppConfig {
                 .unwrap_or(0.3),
             headless_url: std::env::var("HEADLESS_URL").ok(),
             session_config: SessionConfig::default(),
+            spider_config: Self::init_spider_config(),
         }
     }
-}
+
+    /// Initialize spider configuration based on environment variables
+    fn init_spider_config() -> Option<SpiderConfig> {
+        // Check if spider is enabled
+        let spider_enabled = std::env::var("SPIDER_ENABLE")
+            .unwrap_or_else(|_| "false".to_string())
+            .parse::<bool>()
+            .unwrap_or(false);
+
+        if !spider_enabled {
+            return None;
+        }
+
+        // Create default spider config
+        let base_url = std::env::var("SPIDER_BASE_URL")
+            .unwrap_or_else(|_| "https://example.com".to_string());
+
+        let base_url = match url::Url::parse(&base_url) {
+            Ok(url) => url,
+            Err(e) => {
+                tracing::warn!("Invalid SPIDER_BASE_URL '{}': {}, using default", base_url, e);
+                url::Url::parse("https://example.com").unwrap()
+            }
+        };
+
+        let mut config = SpiderConfig::new(base_url);
+
+        // Override with environment variables
+        if let Ok(user_agent) = std::env::var("SPIDER_USER_AGENT") {
+            config.user_agent = user_agent;
+        }
+
+        if let Ok(timeout_str) = std::env::var("SPIDER_TIMEOUT_SECONDS") {
+            if let Ok(timeout_secs) = timeout_str.parse::<u64>() {
+                config.timeout = Duration::from_secs(timeout_secs);
+            }
+        }
+
+        if let Ok(delay_str) = std::env::var("SPIDER_DELAY_MS") {
+            if let Ok(delay_ms) = delay_str.parse::<u64>() {
+                config.delay = Duration::from_millis(delay_ms);
+            }
+        }
+
+        if let Ok(concurrency_str) = std::env::var("SPIDER_CONCURRENCY") {
+            if let Ok(concurrency) = concurrency_str.parse::<usize>() {
+                config.concurrency = concurrency;
+            }
+        }
+
+        if let Ok(max_depth_str) = std::env::var("SPIDER_MAX_DEPTH") {
+            if let Ok(max_depth) = max_depth_str.parse::<usize>() {
+                config.max_depth = Some(max_depth);
+            }
+        }
+
+        if let Ok(max_pages_str) = std::env::var("SPIDER_MAX_PAGES") {
+            if let Ok(max_pages) = max_pages_str.parse::<usize>() {
+                config.max_pages = Some(max_pages);
+            }
+        }
+
+        if let Ok(respect_robots_str) = std::env::var("SPIDER_RESPECT_ROBOTS") {
+            if let Ok(respect_robots) = respect_robots_str.parse::<bool>() {
+                config.respect_robots = respect_robots;
+            }
+        }
+
+        tracing::info!("Spider configuration initialized from environment variables");
+        Some(config)
+    }
 
 impl AppState {
     /// Initialize the application state with all required components.
@@ -232,6 +311,30 @@ impl AppState {
         let streaming = Arc::new(streaming_module);
         tracing::info!("Streaming module initialized with backpressure handling and lifecycle management");
 
+        // Initialize Spider if enabled
+        let spider = if let Some(ref spider_config) = config.spider_config {
+            tracing::info!("Initializing Spider engine for deep crawling");
+
+            let spider_config = spider_config.clone();
+            match Spider::new(spider_config).await {
+                Ok(spider_engine) => {
+                    let spider_with_integrations = spider_engine
+                        .with_fetch_engine(Arc::new(riptide_core::fetch::FetchEngine::new(http_client.clone())))
+                        .with_memory_manager(Arc::new(riptide_core::memory_manager::MemoryManager::new()));
+
+                    tracing::info!("Spider engine initialized successfully with fetch and memory integrations");
+                    Some(Arc::new(spider_with_integrations))
+                }
+                Err(e) => {
+                    tracing::error!("Failed to initialize Spider engine: {}", e);
+                    None
+                }
+            }
+        } else {
+            tracing::debug!("Spider engine disabled");
+            None
+        };
+
         // Initialize comprehensive resource manager
         let resource_manager = ResourceManager::new(api_config.clone()).await?;
         let resource_manager = Arc::new(resource_manager);
@@ -256,6 +359,7 @@ impl AppState {
             session_manager,
             streaming,
             telemetry,
+            spider,
         })
     }
 
@@ -281,6 +385,7 @@ impl AppState {
             http_client: DependencyHealth::Unknown,
             resource_manager: DependencyHealth::Unknown,
             streaming: DependencyHealth::Unknown,
+            spider: DependencyHealth::Unknown,
         };
 
         // Check Redis connection
@@ -327,6 +432,20 @@ impl AppState {
                 "Streaming unhealthy: active_connections={}, error_rate={:.2}",
                 streaming_metrics.active_connections, streaming_metrics.error_rate
             ))
+        };
+
+        // Check spider engine health if available
+        health.spider = if let Some(spider) = &self.spider {
+            let spider_state = spider.get_crawl_state().await;
+            if spider_state.active {
+                DependencyHealth::Healthy
+            } else {
+                // Spider is available but not actively crawling
+                DependencyHealth::Healthy
+            }
+        } else {
+            // Spider is disabled, consider it healthy (not an error condition)
+            DependencyHealth::Healthy
         };
 
         health
@@ -382,6 +501,7 @@ pub struct HealthStatus {
     pub http_client: DependencyHealth,
     pub resource_manager: DependencyHealth,
     pub streaming: DependencyHealth,
+    pub spider: DependencyHealth,
 }
 
 /// Health status of an individual dependency.

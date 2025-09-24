@@ -1260,7 +1260,10 @@ fn create_error_response(error: ApiError) -> Response {
             Response::builder()
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
                 .body(Body::empty())
-                .expect("Failed to build minimal error response")
+                .unwrap_or_else(|e| {
+                    error!(error = %e, "Failed to build minimal error response, returning empty response");
+                    Response::new(Body::empty())
+                })
         })
 }
 

@@ -170,6 +170,10 @@ pub struct CrawlOptions {
     pub pdf_config: Option<crate::pdf::PdfConfig>,
     pub render_mode: RenderMode,
     pub output_format: OutputFormat,
+    // Spider deep crawling mode
+    pub use_spider: Option<bool>,
+    pub spider_max_depth: Option<usize>,
+    pub spider_strategy: Option<String>,
 }
 
 /// Rendering mode for content processing
@@ -226,6 +230,9 @@ impl Default for CrawlOptions {
             pdf_config: None,
             render_mode: RenderMode::default(),
             output_format: OutputFormat::default(),
+            use_spider: None,
+            spider_max_depth: None,
+            spider_strategy: None,
         }
     }
 }

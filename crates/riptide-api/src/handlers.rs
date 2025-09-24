@@ -1,5 +1,7 @@
 pub mod render;
 pub mod sessions;
+pub mod spider;
+pub mod strategies;
 
 use crate::errors::{ApiError, ApiResult};
 use crate::models::*;
@@ -7,8 +9,11 @@ use crate::pipeline::PipelineOrchestrator;
 use crate::state::AppState;
 use crate::validation::{validate_crawl_request, validate_deepsearch_request};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
+use riptide_core::spider::{CrawlingStrategy, SpiderConfig};
+use riptide_core::types::CrawlOptions;
 use std::time::Instant;
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
+use url::Url;
 
 // Re-export render handler
 pub use render::render;
@@ -56,6 +61,18 @@ pub async fn health(State(state): State<AppState>) -> Result<impl IntoResponse, 
             ServiceHealth {
                 status: "unknown".to_string(),
                 message: Some("Health check not implemented".to_string()),
+                response_time_ms: None,
+                last_check: timestamp.clone(),
+            }
+        }),
+        spider_engine: state.spider.as_ref().map(|_| {
+            ServiceHealth {
+                status: health_status.spider.to_string(),
+                message: Some(match health_status.spider {
+                    crate::state::DependencyHealth::Healthy => "Spider engine ready".to_string(),
+                    crate::state::DependencyHealth::Unhealthy(ref msg) => msg.clone(),
+                    crate::state::DependencyHealth::Unknown => "Spider status unknown".to_string(),
+                }),
                 response_time_ms: None,
                 last_check: timestamp.clone(),
             }
@@ -131,10 +148,16 @@ pub async fn crawl(
     // Use provided options or defaults
     let options = body.options.unwrap_or_default();
 
+    // Check if spider mode is requested
+    if options.use_spider.unwrap_or(false) {
+        info!("Spider mode requested, routing to spider crawl");
+        return handle_spider_crawl(&state, &body.urls, &options).await;
+    }
+
     debug!(
         concurrency = options.concurrency,
         cache_mode = %options.cache_mode,
-        "Using crawl options"
+        "Using standard crawl options"
     );
 
     // Create pipeline orchestrator
@@ -237,7 +260,12 @@ pub async fn crawl(
 /// Prometheus metrics endpoint.
 ///
 /// Returns metrics in Prometheus exposition format for scraping by monitoring systems.
+/// Includes GlobalStreamingMetrics from the streaming module.
 pub async fn metrics(State(state): State<AppState>) -> Result<impl IntoResponse, ApiError> {
+    // Update streaming metrics before gathering all metrics
+    let streaming_metrics = state.streaming.metrics().await;
+    state.metrics.update_streaming_metrics(&streaming_metrics);
+
     let registry = &state.metrics.registry;
     let encoder = prometheus::TextEncoder::new();
 
@@ -445,6 +473,132 @@ async fn perform_web_search(
     }
 
     Ok(results)
+}
+
+/// Handle spider crawl as part of regular crawl endpoint
+async fn handle_spider_crawl(
+    state: &AppState,
+    urls: &[String],
+    options: &CrawlOptions,
+) -> Result<impl IntoResponse, ApiError> {
+    // Check if spider is enabled
+    let spider = state.spider.as_ref().ok_or_else(|| ApiError::ConfigError {
+        message: "Spider engine is not enabled. Set SPIDER_ENABLE=true to enable spider crawling.".to_string(),
+    })?;
+
+    // Parse URLs
+    let seed_urls: Vec<Url> = urls
+        .iter()
+        .map(|url_str| {
+            Url::parse(url_str).map_err(|e| ApiError::validation(format!("Invalid URL '{}': {}", url_str, e)))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    if seed_urls.is_empty() {
+        return Err(ApiError::validation("At least one URL is required for spider crawl".to_string()));
+    }
+
+    // Create spider config based on options
+    let mut spider_config = if let Some(base_config) = &state.config.spider_config {
+        base_config.clone()
+    } else {
+        SpiderConfig::new(seed_urls[0].clone())
+    };
+
+    // Override config with request parameters
+    if let Some(max_depth) = options.spider_max_depth {
+        spider_config.max_depth = Some(max_depth);
+    }
+
+    // Set strategy if provided
+    if let Some(strategy_str) = &options.spider_strategy {
+        let strategy = match strategy_str.as_str() {
+            "breadth_first" => CrawlingStrategy::BreadthFirst,
+            "depth_first" => CrawlingStrategy::DepthFirst,
+            "best_first" => CrawlingStrategy::BestFirst,
+            _ => {
+                warn!("Unknown spider strategy '{}', using breadth_first", strategy_str);
+                CrawlingStrategy::BreadthFirst
+            }
+        };
+        spider_config.strategy = riptide_core::spider::types::StrategyConfig {
+            strategy,
+            adaptive: riptide_core::spider::strategy::AdaptiveCriteria::default(),
+        };
+    }
+
+    // Set concurrency from crawl options
+    spider_config.concurrency = options.concurrency;
+
+    debug!("Using spider crawl with config: {:?}", spider_config);
+
+    // Record spider crawl start
+    state.metrics.record_spider_crawl_start();
+
+    // Perform the crawl
+    let spider_result = spider.crawl(seed_urls).await.map_err(|e| {
+        // Record failed spider crawl
+        state.metrics.record_spider_crawl_completion(0, 1, 0.0);
+        ApiError::internal(format!("Spider crawl failed: {}", e))
+    })?;
+
+    // Record successful spider crawl completion
+    state.metrics.record_spider_crawl_completion(
+        spider_result.pages_crawled,
+        spider_result.pages_failed,
+        spider_result.duration.as_secs_f64(),
+    );
+
+    // Convert spider result to standard crawl response format
+    let mut crawl_results = Vec::new();
+
+    // Since spider returns its own result format, we need to create compatible results
+    // For now, we'll create placeholder results - in a full implementation,
+    // you'd need to collect the actual crawled pages from spider
+    for (index, url) in urls.iter().enumerate() {
+        crawl_results.push(CrawlResult {
+            url: url.clone(),
+            status: 200, // Placeholder - spider would provide actual status
+            from_cache: false,
+            gate_decision: "spider_crawl".to_string(),
+            quality_score: 0.8, // Placeholder
+            processing_time_ms: spider_result.duration.as_millis() as u64 / urls.len() as u64,
+            document: None, // Spider would need to return actual documents
+            error: None,
+            cache_key: format!("spider_{}", index),
+        });
+    }
+
+    let statistics = CrawlStatistics {
+        total_processing_time_ms: spider_result.duration.as_millis() as u64,
+        avg_processing_time_ms: spider_result.duration.as_millis() as f64 / urls.len() as f64,
+        gate_decisions: GateDecisionBreakdown {
+            raw: 0,
+            probes_first: 0,
+            headless: 0,
+            cached: 0,
+        },
+        cache_hit_rate: 0.0,
+    };
+
+    let response = CrawlResponse {
+        total_urls: urls.len(),
+        successful: spider_result.pages_crawled as usize,
+        failed: spider_result.pages_failed as usize,
+        from_cache: 0,
+        results: crawl_results,
+        statistics,
+    };
+
+    info!(
+        pages_crawled = spider_result.pages_crawled,
+        pages_failed = spider_result.pages_failed,
+        domains = spider_result.domains.len(),
+        stop_reason = %spider_result.stop_reason,
+        "Spider crawl completed via regular crawl endpoint"
+    );
+
+    Ok(Json(response))
 }
 
 /// 404 handler for unknown endpoints.

@@ -5,6 +5,8 @@ mod health;
 mod metrics;
 mod models;
 mod pipeline;
+mod pipeline_enhanced;
+mod strategies_pipeline;
 mod resource_manager;
 mod rpc_client;
 mod sessions;
@@ -112,6 +114,13 @@ async fn main() -> anyhow::Result<()> {
         .route("/crawl/sse", post(streaming::crawl_sse))
         .route("/crawl/ws", get(streaming::crawl_websocket))
         .route("/deepsearch", post(handlers::deepsearch))
+        // Strategies endpoints for advanced extraction
+        .route("/strategies/crawl", post(handlers::strategies::strategies_crawl))
+        .route("/strategies/info", get(handlers::strategies::get_strategies_info))
+        // Spider endpoints for deep crawling
+        .route("/spider/crawl", post(handlers::spider::spider_crawl))
+        .route("/spider/status", post(handlers::spider::spider_status))
+        .route("/spider/control", post(handlers::spider::spider_control))
         .route(
             "/deepsearch/stream",
             post(streaming::ndjson_deepsearch_stream),

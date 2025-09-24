@@ -256,15 +256,28 @@ async fn render_with_resources(
             Ok(Some(session)) => {
                 // Extract domain from URL for cookie context
                 let domain = url::Url::parse(&url)
-                    .map(|parsed_url| parsed_url.host_str().unwrap_or("").to_string())
-                    .unwrap_or_else(|_| "unknown".to_string());
+                    .map(|parsed_url| {
+                        parsed_url.host_str()
+                            .map(|host| host.to_string())
+                            .unwrap_or_else(|| {
+                                warn!(url = %url, "URL has no host, using 'localhost'");
+                                "localhost".to_string()
+                            })
+                    })
+                    .unwrap_or_else(|e| {
+                        warn!(url = %url, error = %e, "Failed to parse URL for domain extraction");
+                        "unknown".to_string()
+                    });
 
                 let cookies_for_domain = state
                     .session_manager
                     .get_cookies_for_domain(sid, &domain)
                     .await
-                    .unwrap_or_default()
-                    .len();
+                    .map(|cookies| cookies.len())
+                    .unwrap_or_else(|e| {
+                        warn!(session_id = %sid, domain = %domain, error = %e, "Failed to get session cookies for domain");
+                        0
+                    });
 
                 Some(SessionRenderInfo {
                     session_id: sid.clone(),
@@ -372,11 +385,29 @@ async fn render_with_resources(
         session_info,
     };
 
+    // Record metrics for monitoring and performance tracking
+    if let Err(e) = state
+        .performance_monitor
+        .record_render_operation(
+            &url,
+            start_time.elapsed(),
+            response.success,
+            response.stats.actions_executed,
+            response.stats.network_requests
+        )
+        .await
+    {
+        warn!(error = %e, "Failed to record render operation metrics");
+    }
+
     info!(
         url = %url,
         success = response.success,
         total_time_ms = response.stats.total_time_ms,
-        "Render request completed with resource controls"
+        mode = %response.mode,
+        actions_executed = response.stats.actions_executed,
+        network_requests = response.stats.network_requests,
+        "Render request completed with resource controls and metrics recorded"
     );
 
     Ok(Json(response))
@@ -521,9 +552,18 @@ async fn process_dynamic(
             let final_url = render_result
                 .artifacts
                 .as_ref()
-                .map(|a| a.metadata.final_url.clone())
-                .filter(|url| !url.is_empty())
-                .unwrap_or_else(|| url.to_string());
+                .and_then(|a| {
+                    let final_url = &a.metadata.final_url;
+                    if final_url.is_empty() {
+                        None
+                    } else {
+                        Some(final_url.clone())
+                    }
+                })
+                .unwrap_or_else(|| {
+                    debug!(url = %url, "No final URL from render artifacts, using original URL");
+                    url.to_string()
+                });
 
             // Update render result with correct final URL
             if let Some(ref mut artifacts) = render_result.artifacts {
