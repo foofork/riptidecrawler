@@ -1,0 +1,453 @@
+openapi: 3.0.3
+info:
+  title: RipTide Streaming API
+  description: NDJSON streaming endpoints for real-time web crawling and search
+  version: "3.0.0"
+  contact:
+    name: RipTide API Support
+    email: support@riptide.dev
+
+servers:
+  - url: http://localhost:8080
+    description: Development server
+
+paths:
+  /crawl/stream:
+    post:
+      summary: Stream crawl results in real-time using NDJSON
+      description: |
+        Crawl multiple URLs and stream results as they complete using NDJSON format.
+
+        **Key Features:**
+        - TTFB < 500ms with warm cache
+        - Buffer management with 65536 bytes limit
+        - Results stream as they complete (no batching)
+        - Zero unwrap/expect error handling
+        - Structured error objects for failures
+
+        **Performance Guarantees:**
+        - 10-URL batch → TTFB < 500ms with warm cache
+        - All results arrive as individual NDJSON lines
+        - Progress updates for batches > 10 URLs
+
+      tags:
+        - Streaming
+        - Crawling
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - urls
+              properties:
+                urls:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+                  description: URLs to crawl
+                  minItems: 1
+                  maxItems: 100
+                  example:
+                    - "https://example.com"
+                    - "https://test.com"
+                options:
+                  type: object
+                  properties:
+                    cache_mode:
+                      type: string
+                      enum: ["disabled", "read_only", "write_through", "read_through"]
+                      default: "read_through"
+                      description: Cache behavior mode
+                    concurrency:
+                      type: integer
+                      minimum: 1
+                      maximum: 10
+                      default: 3
+                      description: Number of concurrent requests
+                    stream:
+                      type: boolean
+                      default: true
+                      description: Enable streaming mode (default ON)
+                    timeout_ms:
+                      type: integer
+                      minimum: 1000
+                      maximum: 60000
+                      default: 30000
+                      description: Request timeout in milliseconds
+                    user_agent:
+                      type: string
+                      description: Custom user agent string
+                    respect_robots:
+                      type: boolean
+                      default: true
+                      description: Respect robots.txt rules
+            example:
+              urls:
+                - "https://example.com"
+                - "https://test.com"
+              options:
+                cache_mode: "write_through"
+                concurrency: 3
+                stream: true
+                timeout_ms: 30000
+
+      responses:
+        '200':
+          description: Streaming NDJSON response with crawl results
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: "application/x-ndjson"
+            Transfer-Encoding:
+              schema:
+                type: string
+                example: "chunked"
+            X-Request-ID:
+              schema:
+                type: string
+                format: uuid
+                description: Unique request identifier
+            X-Stream-Buffer-Limit:
+              schema:
+                type: string
+                example: "65536"
+                description: Buffer size limit in bytes
+            X-Stream-Start-Time:
+              schema:
+                type: string
+                description: Time to first response in milliseconds
+          content:
+            application/x-ndjson:
+              schema:
+                type: string
+                description: |
+                  NDJSON stream with the following line types:
+                  1. Stream metadata (first line)
+                  2. Individual crawl results (as they complete)
+                  3. Progress updates (for large batches)
+                  4. Final summary (last line)
+              examples:
+                stream_metadata:
+                  summary: Stream metadata (first line)
+                  value: |
+                    {"total_urls":2,"request_id":"123e4567-e89b-12d3-a456-426614174000","timestamp":"2024-01-01T12:00:00Z","stream_type":"crawl"}
+                crawl_result:
+                  summary: Individual crawl result
+                  value: |
+                    {"index":0,"result":{"url":"https://example.com","status":200,"from_cache":false,"gate_decision":"allow","quality_score":0.85,"processing_time_ms":150,"document":{"url":"https://example.com","title":"Example","content":"..."},"error":null,"cache_key":"hash123"},"progress":{"completed":1,"total":2,"success_rate":1.0}}
+                progress_update:
+                  summary: Progress update (for large batches)
+                  value: |
+                    {"operation_id":"crawl_stream","operation_type":"batch_crawl","started_at":"2024-01-01T12:00:00Z","current_phase":"processing","progress_percentage":50.0,"items_completed":5,"items_total":10,"estimated_completion":"2024-01-01T12:00:30Z","current_item":"https://example.com"}
+                error_result:
+                  summary: Error result for failed URL
+                  value: |
+                    {"index":1,"result":{"url":"https://invalid.com","status":0,"from_cache":false,"gate_decision":"failed","quality_score":0.0,"processing_time_ms":100,"document":null,"error":{"error_type":"processing_error","message":"Failed to process URL","retryable":true},"cache_key":""},"progress":{"completed":2,"total":2,"success_rate":0.5}}
+                final_summary:
+                  summary: Final summary (last line)
+                  value: |
+                    {"total_urls":2,"successful":1,"failed":1,"from_cache":0,"total_processing_time_ms":250,"cache_hit_rate":0.0}
+
+        '400':
+          description: Bad request - validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        example: "validation_error"
+                      message:
+                        type: string
+                        example: "URLs array cannot be empty"
+                      retryable:
+                        type: boolean
+                        example: false
+
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        example: "rate_limited"
+                      message:
+                        type: string
+                        example: "Too many requests"
+                      retryable:
+                        type: boolean
+                        example: true
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        example: "internal_error"
+                      message:
+                        type: string
+                        example: "Streaming infrastructure error"
+                      retryable:
+                        type: boolean
+                        example: true
+
+  /deepsearch/stream:
+    post:
+      summary: Stream deep search results in real-time using NDJSON
+      description: |
+        Perform web search and optionally crawl results, streaming data as it becomes available.
+
+        **Key Features:**
+        - Search integration with real-time streaming
+        - Content extraction streaming in parallel
+        - TTFB optimization for search operations
+        - Zero unwrap/expect error handling
+
+        **Performance Characteristics:**
+        - Search metadata arrives quickly after query completes
+        - Content extraction streams as URLs complete
+        - Structured error handling for both search and crawl failures
+
+      tags:
+        - Streaming
+        - Search
+        - Deep Search
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  description: Search query
+                  minLength: 1
+                  maxLength: 1000
+                  example: "machine learning tutorials"
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 50
+                  default: 10
+                  description: Maximum number of search results
+                include_content:
+                  type: boolean
+                  default: true
+                  description: Whether to extract content from search result URLs
+                crawl_options:
+                  type: object
+                  description: Options for content extraction (when include_content=true)
+                  properties:
+                    cache_mode:
+                      type: string
+                      enum: ["disabled", "read_only", "write_through", "read_through"]
+                      default: "read_through"
+                    concurrency:
+                      type: integer
+                      minimum: 1
+                      maximum: 5
+                      default: 2
+                    stream:
+                      type: boolean
+                      default: true
+                    timeout_ms:
+                      type: integer
+                      default: 30000
+            example:
+              query: "machine learning tutorials"
+              limit: 5
+              include_content: true
+              crawl_options:
+                cache_mode: "write_through"
+                concurrency: 2
+
+      responses:
+        '200':
+          description: Streaming NDJSON response with search and crawl results
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: "application/x-ndjson"
+            Transfer-Encoding:
+              schema:
+                type: string
+                example: "chunked"
+            X-Request-ID:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/x-ndjson:
+              schema:
+                type: string
+                description: |
+                  NDJSON stream with the following line types:
+                  1. Stream metadata (first line)
+                  2. Search metadata (after search completes)
+                  3. Individual search results with optional crawl data
+                  4. Final summary (last line)
+              examples:
+                stream_metadata:
+                  summary: Stream metadata (first line)
+                  value: |
+                    {"total_urls":0,"request_id":"123e4567-e89b-12d3-a456-426614174000","timestamp":"2024-01-01T12:00:00Z","stream_type":"deepsearch"}
+                search_metadata:
+                  summary: Search metadata (after search completes)
+                  value: |
+                    {"query":"machine learning tutorials","urls_found":5,"search_time_ms":250}
+                search_result_with_content:
+                  summary: Search result with extracted content
+                  value: |
+                    {"index":0,"search_result":{"url":"https://example.com/ml-tutorial","rank":1,"search_title":"Machine Learning Tutorial","search_snippet":"Learn ML basics..."},"crawl_result":{"url":"https://example.com/ml-tutorial","status":200,"from_cache":false,"gate_decision":"allow","quality_score":0.9,"processing_time_ms":300,"document":{"url":"https://example.com/ml-tutorial","title":"ML Tutorial","content":"..."},"error":null,"cache_key":"hash456"}}
+                search_result_without_content:
+                  summary: Search result without content extraction
+                  value: |
+                    {"index":1,"search_result":{"url":"https://example.com/ml-guide","rank":2,"search_title":"ML Guide","search_snippet":"Comprehensive guide..."},"crawl_result":null}
+                search_result_with_error:
+                  summary: Search result with crawl error
+                  value: |
+                    {"index":2,"search_result":{"url":"https://broken.com/ml","rank":3,"search_title":"Broken ML Site","search_snippet":"..."},"crawl_result":{"url":"https://broken.com/ml","status":0,"from_cache":false,"gate_decision":"failed","quality_score":0.0,"processing_time_ms":100,"document":null,"error":{"error_type":"crawl_error","message":"Crawl failed for https://broken.com/ml: timeout","retryable":true},"cache_key":""}}
+                final_summary:
+                  summary: Final summary (last line)
+                  value: |
+                    {"query":"machine learning tutorials","total_urls_found":5,"total_processing_time_ms":1500,"status":"completed"}
+
+        '400':
+          description: Bad request - validation error or missing API key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        example: "validation_error"
+                      message:
+                        type: string
+                        example: "SERPER_API_KEY environment variable not set"
+                      retryable:
+                        type: boolean
+                        example: false
+
+        '429':
+          description: Rate limit exceeded
+        '500':
+          description: Internal server error or search API failure
+
+components:
+  schemas:
+    CrawlResult:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+        status:
+          type: integer
+          description: HTTP status code
+        from_cache:
+          type: boolean
+        gate_decision:
+          type: string
+          enum: ["allow", "block", "failed"]
+        quality_score:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+        processing_time_ms:
+          type: integer
+          description: Processing time in milliseconds
+        document:
+          type: object
+          nullable: true
+          description: Extracted document content
+        error:
+          type: object
+          nullable: true
+          properties:
+            error_type:
+              type: string
+            message:
+              type: string
+            retryable:
+              type: boolean
+        cache_key:
+          type: string
+
+    SearchResult:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+        rank:
+          type: integer
+          minimum: 1
+        search_title:
+          type: string
+          nullable: true
+        search_snippet:
+          type: string
+          nullable: true
+
+    StreamProgress:
+      type: object
+      properties:
+        completed:
+          type: integer
+        total:
+          type: integer
+        success_rate:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+
+    ErrorInfo:
+      type: object
+      properties:
+        error_type:
+          type: string
+        message:
+          type: string
+        retryable:
+          type: boolean
+
+tags:
+  - name: Streaming
+    description: Real-time streaming endpoints
+  - name: Crawling
+    description: Web crawling operations
+  - name: Search
+    description: Web search operations
+  - name: Deep Search
+    description: Search with content extraction
