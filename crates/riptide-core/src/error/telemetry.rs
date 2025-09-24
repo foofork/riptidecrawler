@@ -28,17 +28,11 @@ impl ErrorTelemetry {
         }
 
         // Send telemetry info with all context
-        let context_vec: Vec<_> = context.iter()
-            .map(|(k, v)| (*k, v.as_str()))
-            .collect();
+        let context_vec: Vec<_> = context.iter().map(|(k, v)| (*k, v.as_str())).collect();
 
         // Use tracing for structured logging instead of telemetry_info!
         for (key, value) in context_vec {
-            tracing::info!(
-                key = key,
-                value = value,
-                "error_occurred"
-            );
+            tracing::info!(key = key, value = value, "error_occurred");
         }
     }
 
@@ -48,7 +42,7 @@ impl ErrorTelemetry {
         operation: &str,
         attempt: u32,
         max_attempts: u32,
-        delay_ms: u64
+        delay_ms: u64,
     ) {
         warn!(
             error = %error,
@@ -75,7 +69,7 @@ impl ErrorTelemetry {
         original_error: &CoreError,
         operation: &str,
         attempts_used: u32,
-        total_duration_ms: u64
+        total_duration_ms: u64,
     ) {
         warn!(
             operation = operation,
@@ -99,7 +93,7 @@ impl ErrorTelemetry {
         original_error: &CoreError,
         operation: &str,
         attempts_used: u32,
-        final_error: &CoreError
+        final_error: &CoreError,
     ) {
         error!(
             operation = operation,
@@ -123,7 +117,7 @@ impl ErrorTelemetry {
     pub fn report_critical_error(
         error: &CoreError,
         operation: &str,
-        system_state: &[(&str, String)]
+        system_state: &[(&str, String)],
     ) {
         let mut context = error.telemetry_context();
         context.push(("operation", operation.to_string()));
@@ -138,11 +132,7 @@ impl ErrorTelemetry {
 
         // Fixed critical error telemetry format
         for (key, value) in context {
-            tracing::error!(
-                key = key,
-                value = value,
-                "critical_error"
-            );
+            tracing::error!(key = key, value = value, "critical_error");
         }
     }
 
@@ -150,7 +140,7 @@ impl ErrorTelemetry {
     pub fn report_panic_prevention(
         operation: &str,
         potential_panic_reason: &str,
-        recovery_action: &str
+        recovery_action: &str,
     ) {
         warn!(
             operation = operation,
@@ -173,7 +163,7 @@ impl ErrorTelemetry {
         error_type: &str,
         frequency: u32,
         time_window_mins: u32,
-        affected_operations: &[&str]
+        affected_operations: &[&str],
     ) {
         warn!(
             error_type = error_type,
@@ -227,9 +217,7 @@ macro_rules! report_critical_error {
 macro_rules! report_panic_prevention {
     ($operation:expr, $reason:expr, $action:expr) => {
         $crate::error::telemetry::ErrorTelemetry::report_panic_prevention(
-            $operation,
-            $reason,
-            $action
+            $operation, $reason, $action,
         );
     };
 }
@@ -249,7 +237,7 @@ mod tests {
         ErrorTelemetry::report_error(
             &error,
             "test_operation",
-            &[("test_key", "test_value".to_string())]
+            &[("test_key", "test_value".to_string())],
         );
     }
 
@@ -271,7 +259,7 @@ mod tests {
         ErrorTelemetry::report_critical_error(
             &error,
             "wasm_initialization",
-            &[("system_memory_mb", "8192".to_string())]
+            &[("system_memory_mb", "8192".to_string())],
         );
     }
 
@@ -280,7 +268,7 @@ mod tests {
         ErrorTelemetry::report_panic_prevention(
             "vector_remove",
             "index_out_of_bounds",
-            "bounds_check_added"
+            "bounds_check_added",
         );
     }
 }

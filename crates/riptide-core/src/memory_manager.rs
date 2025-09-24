@@ -1,6 +1,6 @@
-use anyhow::{anyhow, Result};
-use crate::error::{CoreError, CoreResult};
+use crate::error::CoreError;
 use crate::{report_error, report_panic_prevention};
+use anyhow::{anyhow, Result};
 use std::collections::{HashMap, VecDeque};
 use std::sync::{
     atomic::{AtomicU64, AtomicUsize, Ordering},
@@ -451,12 +451,11 @@ impl MemoryManager {
         let store = Store::new(&self.engine, ());
 
         // Create component with recovery strategy
-        let component = Component::from_file(&self.engine, component_path)
-            .map_err(|e| {
-                let error = CoreError::from(e); // Use From trait conversion
-                report_error!(&error, "create_wasm_instance", "component_path" => component_path);
-                error
-            })?;
+        let component = Component::from_file(&self.engine, component_path).map_err(|e| {
+            let error = CoreError::from(e); // Use From trait conversion
+            report_error!(&error, "create_wasm_instance", "component_path" => component_path);
+            error
+        })?;
 
         let instance = TrackedWasmInstance::new(id, store, component);
 
@@ -580,11 +579,12 @@ impl MemoryManager {
                 if should_remove {
                     // Prevent potential panic with bounds checking
                     let instance = match available.get(i) {
-                        Some(_) => {
-                            available.remove(i).expect("Index verified to exist through bounds check")
-                        }
+                        Some(_) => available
+                            .remove(i)
+                            .expect("Index verified to exist through bounds check"),
                         None => {
-                            let error_msg = format!("Index {} out of bounds during garbage collection", i);
+                            let error_msg =
+                                format!("Index {} out of bounds during garbage collection", i);
                             error!("{}", error_msg);
                             report_panic_prevention!(
                                 "garbage_collection",

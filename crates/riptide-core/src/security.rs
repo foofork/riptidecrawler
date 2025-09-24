@@ -314,9 +314,9 @@ pub fn sanitize_file_path(path: &str) -> Result<String> {
     // Remove dangerous characters and patterns
     let sanitized = path
         .replace("../", "")
-        .replace("..\\", "")
+        .replace("..", "")
         .replace("./", "")
-        .replace(".\\", "")
+        .replace(".", "")
         .replace("~", "")
         .chars()
         .filter(|c| c.is_alphanumeric() || "._-/".contains(*c))

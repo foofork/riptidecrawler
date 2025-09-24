@@ -1,5 +1,5 @@
-use thiserror::Error;
 use std::time::SystemTimeError;
+use thiserror::Error;
 
 pub mod telemetry;
 
@@ -97,7 +97,7 @@ impl CoreError {
     /// Create a WASM engine error with source
     pub fn wasm_engine<E>(message: impl Into<String>, source: E) -> Self
     where
-        E: std::error::Error + Send + Sync + 'static
+        E: std::error::Error + Send + Sync + 'static,
     {
         Self::WasmError {
             message: message.into(),
@@ -122,7 +122,11 @@ impl CoreError {
     }
 
     /// Create a memory error with usage info
-    pub fn memory(message: impl Into<String>, current_mb: Option<u64>, max_mb: Option<u64>) -> Self {
+    pub fn memory(
+        message: impl Into<String>,
+        current_mb: Option<u64>,
+        max_mb: Option<u64>,
+    ) -> Self {
         Self::MemoryError {
             message: message.into(),
             current_usage_mb: current_mb,
@@ -149,7 +153,7 @@ impl CoreError {
     /// Create an HTTP client error
     pub fn http_client<E>(message: impl Into<String>, source: E) -> Self
     where
-        E: Into<reqwest::Error>
+        E: Into<reqwest::Error>,
     {
         Self::HttpClientError {
             message: message.into(),
@@ -168,7 +172,7 @@ impl CoreError {
     /// Create a serialization error
     pub fn serialization<E>(message: impl Into<String>, source: E) -> Self
     where
-        E: Into<serde_json::Error>
+        E: Into<serde_json::Error>,
     {
         Self::SerializationError {
             message: message.into(),
@@ -181,7 +185,7 @@ impl CoreError {
         resource: impl Into<String>,
         message: impl Into<String>,
         current: Option<u64>,
-        limit: Option<u64>
+        limit: Option<u64>,
     ) -> Self {
         Self::ResourceExhaustion {
             resource: resource.into(),
@@ -192,7 +196,11 @@ impl CoreError {
     }
 
     /// Create a recovery error
-    pub fn recovery(message: impl Into<String>, attempts: u32, original_error: Option<String>) -> Self {
+    pub fn recovery(
+        message: impl Into<String>,
+        attempts: u32,
+        original_error: Option<String>,
+    ) -> Self {
         Self::RecoveryError {
             message: message.into(),
             attempts,
@@ -229,9 +237,13 @@ impl CoreError {
     pub fn recovery_suggestion(&self) -> &'static str {
         match self {
             CoreError::WasmError { .. } => "Check WASM engine configuration and component files",
-            CoreError::WasmInstanceError { .. } => "Retry instance creation or check resource availability",
+            CoreError::WasmInstanceError { .. } => {
+                "Retry instance creation or check resource availability"
+            }
             CoreError::MemoryError { .. } => "Trigger garbage collection or increase memory limits",
-            CoreError::CircuitBreakerError { .. } => "Wait for circuit breaker cooldown or check service health",
+            CoreError::CircuitBreakerError { .. } => {
+                "Wait for circuit breaker cooldown or check service health"
+            }
             CoreError::TimeError { .. } => "Check system clock and NTP synchronization",
             CoreError::HttpClientError { .. } => "Retry request or check network connectivity",
             CoreError::SerializationError { .. } => "Validate data format and schema",
@@ -247,7 +259,10 @@ impl CoreError {
         let mut context = vec![
             ("error_type", format!("{:?}", std::mem::discriminant(self))),
             ("is_retryable", self.is_retryable().to_string()),
-            ("recovery_suggestion", self.recovery_suggestion().to_string()),
+            (
+                "recovery_suggestion",
+                self.recovery_suggestion().to_string(),
+            ),
         ];
 
         match self {
@@ -259,7 +274,11 @@ impl CoreError {
                     context.push(("instance_id", id.clone()));
                 }
             }
-            CoreError::MemoryError { current_usage_mb, max_usage_mb, .. } => {
+            CoreError::MemoryError {
+                current_usage_mb,
+                max_usage_mb,
+                ..
+            } => {
                 if let Some(current) = current_usage_mb {
                     context.push(("current_memory_mb", current.to_string()));
                 }
@@ -272,7 +291,12 @@ impl CoreError {
                     context.push(("circuit_state", s.clone()));
                 }
             }
-            CoreError::ResourceExhaustion { resource, current, limit, .. } => {
+            CoreError::ResourceExhaustion {
+                resource,
+                current,
+                limit,
+                ..
+            } => {
                 context.push(("resource_type", resource.clone()));
                 if let Some(c) = current {
                     context.push(("current_usage", c.to_string()));
@@ -281,7 +305,11 @@ impl CoreError {
                     context.push(("limit", l.to_string()));
                 }
             }
-            CoreError::RecoveryError { attempts, original_error, .. } => {
+            CoreError::RecoveryError {
+                attempts,
+                original_error,
+                ..
+            } => {
                 context.push(("recovery_attempts", attempts.to_string()));
                 if let Some(orig) = original_error {
                     context.push(("original_error", orig.clone()));
@@ -343,7 +371,8 @@ impl Default for RecoveryStrategy {
 impl RecoveryStrategy {
     /// Calculate delay for retry attempt
     pub fn calculate_delay(&self, attempt: u32) -> std::time::Duration {
-        let delay_ms = (self.base_delay_ms as f64 * self.backoff_multiplier.powi(attempt as i32)) as u64;
+        let delay_ms =
+            (self.base_delay_ms as f64 * self.backoff_multiplier.powi(attempt as i32)) as u64;
         let delay_ms = delay_ms.min(self.max_delay_ms);
         std::time::Duration::from_millis(delay_ms)
     }

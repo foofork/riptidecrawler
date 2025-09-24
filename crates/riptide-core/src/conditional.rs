@@ -337,7 +337,7 @@ mod tests {
     fn test_weak_etag() {
         let content = b"Dynamic content";
         let weak_etag = generate_weak_etag(content);
-        assert!(weak_etag.starts_with("W/\""));
+        assert!(weak_etag.starts_with(r#"W/""#));
         assert!(weak_etag.ends_with("\""));
     }
 
@@ -365,7 +365,7 @@ mod tests {
     #[test]
     fn test_conditional_request_from_headers() {
         let mut headers = HeaderMap::new();
-        headers.insert("if-none-match", "\"abc123\"".parse().unwrap());
+        headers.insert("if-none-match", "abc123".parse().unwrap());
         headers.insert(
             "if-modified-since",
             "Wed, 21 Oct 2015 07:28:00 GMT".parse().unwrap(),

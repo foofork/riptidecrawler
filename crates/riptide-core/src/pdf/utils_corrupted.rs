@@ -137,7 +137,8 @@ pub fn sanitize_text_content(text: &str) -> String {
         .map(|line| line.trim())
         .filter(|line| !line.is_empty())
         .collect::<Vec<_>>()
-        .join("\n")
+        .join("
+")
 }
 
 /// Processing complexity levels
@@ -180,7 +181,8 @@ mod tests {
 
     #[test]
     fn test_is_pdf_content() {
-        let pdf_data = b"%PDF-1.7\n...";
+        let pdf_data = b"%PDF-1.7
+...";
         assert!(is_pdf_content(Some("application/pdf"), pdf_data));
         assert!(is_pdf_content(Some("APPLICATION/PDF"), pdf_data));
         assert!(is_pdf_content(None, pdf_data));
@@ -190,11 +192,12 @@ mod tests {
 
     #[test]
     fn test_detect_pdf_by_magic_bytes() {
-        assert!(detect_pdf_by_magic_bytes(b"%PDF-1.7\n..."));
+        assert!(detect_pdf_by_magic_bytes(b"%PDF-1.7
+..."));
         assert!(detect_pdf_by_magic_bytes(b"%PDF-1.4"));
         assert!(!detect_pdf_by_magic_bytes(b"PDF-1.7"));
         assert!(!detect_pdf_by_magic_bytes(b"not"));
-        assert!(!detect_pdf_by_magic_bytes(b""));
+        assert!(!detect_pdf_by_magic_bytes(b"));
     }
 
     #[test]
@@ -209,7 +212,8 @@ mod tests {
 
     #[test]
     fn test_comprehensive_pdf_detection() {
-        let pdf_data = b"%PDF-1.7\n...";
+        let pdf_data = b"%PDF-1.7
+...";
 
         // Content-type should take priority
         assert!(detect_pdf_content(Some("application/pdf"), None, None));
@@ -253,7 +257,8 @@ mod tests {
 
     #[test]
     fn test_extract_pdf_version() {
-        let pdf_data = b"%PDF-1.7\n...";
+        let pdf_data = b"%PDF-1.7
+...";
         assert_eq!(extract_pdf_version(pdf_data), Some("1.7".to_string()));
 
         let invalid_data = b"not a pdf";
@@ -276,7 +281,8 @@ mod tests {
 
     #[test]
     fn test_validate_pdf_header() {
-        let valid_pdf = b"%PDF-1.7\n...";
+        let valid_pdf = b"%PDF-1.7
+...";
         assert!(validate_pdf_header(valid_pdf).is_ok());
         assert_eq!(validate_pdf_header(valid_pdf).unwrap(), "1.7");
 
@@ -289,7 +295,7 @@ mod tests {
 
     #[test]
     fn test_likely_needs_ocr() {
-        assert!(likely_needs_ocr("", 5)); // No text, has images
+        assert!(likely_needs_ocr(", 5)); // No text, has images
         assert!(!likely_needs_ocr(
             "This is a long text content with meaningful information",
             0
@@ -310,8 +316,15 @@ mod tests {
 
     #[test]
     fn test_sanitize_text_content() {
-        let messy_text = "  Line 1  \n\n  \n  Line 2  \n   \n  Line 3  ";
-        let expected = "Line 1\nLine 2\nLine 3";
+        let messy_text = "  Line 1  
+
+  
+  Line 2  
+   
+  Line 3  ";
+        let expected = "Line 1
+Line 2
+Line 3";
         assert_eq!(sanitize_text_content(messy_text), expected);
     }
 

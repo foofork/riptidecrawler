@@ -157,7 +157,7 @@ impl ReportGenerator {
         let second_half: f64 =
             second_half_data.iter().map(|p| p.value).sum::<f64>() / second_half_data.len() as f64;
 
-        let change_percent = ((second_half - first_half) / first_half.abs().max(0.001)) * 100.0;
+        let change_percent = ((second_half - first_half) / first_half.abs().max(0.001_f64)) * 100.0;
 
         if change_percent < -5.0 {
             TrendDirection::Improving // Values decreasing

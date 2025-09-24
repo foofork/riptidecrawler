@@ -309,7 +309,7 @@ fn bench_error_handling(c: &mut Criterion) {
         ("empty_content", ""),
         (
             "invalid_encoding",
-            "<?xml version=\"1.0\" encoding=\"invalid\"?><html></html>",
+            r#"<?xml version="1.0" encoding="invalid"?><html></html>"#,
         ),
         ("huge_content", &"<p>".repeat(10000)),
     ];

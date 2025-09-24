@@ -252,6 +252,76 @@ impl ReliableHttpClient {
     }
 }
 
+/// FetchEngine provides a high-level interface for fetching content with full integration
+#[derive(Debug)]
+pub struct FetchEngine {
+    client: ReliableHttpClient,
+}
+
+impl FetchEngine {
+    /// Create a new fetch engine with default configuration
+    pub fn new() -> Result<Self> {
+        let client = ReliableHttpClient::new(
+            RetryConfig::default(),
+            CircuitBreakerConfig::default(),
+        )?;
+
+        Ok(Self { client })
+    }
+
+    /// Create a fetch engine with custom configuration
+    pub fn with_config(
+        retry_config: RetryConfig,
+        circuit_breaker_config: CircuitBreakerConfig,
+    ) -> Result<Self> {
+        let client = ReliableHttpClient::new(retry_config, circuit_breaker_config)?;
+        Ok(Self { client })
+    }
+
+    /// Create a fetch engine with robots.txt compliance
+    pub fn with_robots(
+        retry_config: RetryConfig,
+        circuit_breaker_config: CircuitBreakerConfig,
+        robots_config: RobotsConfig,
+    ) -> Result<Self> {
+        let client = ReliableHttpClient::new_with_robots(
+            retry_config,
+            circuit_breaker_config,
+            robots_config,
+        )?;
+        Ok(Self { client })
+    }
+
+    /// Fetch content from a URL with full retry and circuit breaker protection
+    pub async fn fetch(&self, url: &str) -> Result<Response> {
+        self.client.get_with_retry(url).await
+    }
+
+    /// Fetch content and return as text
+    pub async fn fetch_text(&self, url: &str) -> Result<String> {
+        let response = self.client.get_with_retry(url).await?;
+        let text = response.text().await.map_err(|e| anyhow::anyhow!(e))?;
+        Ok(text)
+    }
+
+    /// Fetch content and return as bytes
+    pub async fn fetch_bytes(&self, url: &str) -> Result<Vec<u8>> {
+        let response = self.client.get_with_retry(url).await?;
+        let bytes = response.bytes().await.map_err(|e| anyhow::anyhow!(e))?;
+        Ok(bytes.to_vec())
+    }
+
+    /// Get circuit breaker status
+    pub async fn get_circuit_breaker_status(&self) -> CircuitState {
+        self.client.get_circuit_breaker_state().await
+    }
+
+    /// Check if robots.txt compliance is enabled
+    pub fn is_robots_enabled(&self) -> bool {
+        self.client.is_robots_enabled()
+    }
+}
+
 /// Check if an error is retryable
 fn is_retryable_error(error: &reqwest::Error) -> bool {
     error.is_timeout() || error.is_connect() || error.is_request() // Connection-level issues
@@ -390,7 +460,9 @@ mod tests {
             .store(1100, std::sync::atomic::Ordering::Relaxed);
 
         // Next acquire should transition to half-open and return permit
-        let permit = circuit.try_acquire().expect("should get permit in test conditions");
+        let permit = circuit
+            .try_acquire()
+            .expect("should get permit in test conditions");
         assert!(permit.is_some());
         assert_eq!(circuit.state(), circuit::State::HalfOpen);
 

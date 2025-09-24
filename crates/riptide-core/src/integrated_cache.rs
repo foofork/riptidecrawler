@@ -1,7 +1,7 @@
-//! RipTide Phase-2 Lite Integration Module
+//! RipTide Integrated Cache Module
 //!
 //! This module provides integrated cache optimization, input validation,
-//! and security features for RipTide Phase-2 Lite implementation.
+//! and security features with comprehensive middleware support.
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
@@ -17,9 +17,9 @@ use crate::{
     validation::{InputValidator, ValidationConfig},
 };
 
-/// Phase-2 Lite configuration combining all security and performance features
+/// Integrated cache configuration combining all security and performance features
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Phase2Config {
+pub struct IntegratedCacheConfig {
     /// Cache configuration
     pub cache: CacheConfig,
     /// Security middleware configuration
@@ -32,7 +32,7 @@ pub struct Phase2Config {
     pub debug: bool,
 }
 
-impl Default for Phase2Config {
+impl Default for IntegratedCacheConfig {
     fn default() -> Self {
         Self {
             cache: CacheConfig::default(),
@@ -44,26 +44,26 @@ impl Default for Phase2Config {
     }
 }
 
-/// Integrated Phase-2 Lite manager
-pub struct Phase2Manager {
+/// Integrated cache manager with security and validation
+pub struct IntegratedCacheManager {
     cache_manager: CacheManager,
     security_middleware: SecurityMiddleware,
     input_validator: InputValidator,
-    config: Phase2Config,
+    config: IntegratedCacheConfig,
 }
 
-impl Phase2Manager {
-    /// Create new Phase-2 manager with default configuration
+impl IntegratedCacheManager {
+    /// Create new integrated cache manager with default configuration
     pub async fn new(redis_url: &str) -> Result<Self> {
-        let config = Phase2Config {
+        let config = IntegratedCacheConfig {
             redis_url: redis_url.to_string(),
             ..Default::default()
         };
         Self::new_with_config(config).await
     }
 
-    /// Create new Phase-2 manager with custom configuration
-    pub async fn new_with_config(config: Phase2Config) -> Result<Self> {
+    /// Create new integrated cache manager with custom configuration
+    pub async fn new_with_config(config: IntegratedCacheConfig) -> Result<Self> {
         let cache_manager =
             CacheManager::new_with_config(&config.redis_url, config.cache.clone()).await?;
         let security_middleware = SecurityMiddleware::new(config.security.clone());
@@ -229,10 +229,10 @@ impl Phase2Manager {
     }
 
     /// Get comprehensive cache statistics
-    pub async fn get_cache_stats(&mut self) -> Result<Phase2Stats> {
+    pub async fn get_cache_stats(&mut self) -> Result<IntegratedCacheStats> {
         let cache_stats = self.cache_manager.get_stats().await?;
 
-        Ok(Phase2Stats {
+        Ok(IntegratedCacheStats {
             cache_stats,
             security_config: self.config.security.clone(),
             validation_config: self.config.validation.clone(),
@@ -274,7 +274,7 @@ impl Phase2Manager {
     }
 
     /// Get configuration
-    pub fn get_config(&self) -> &Phase2Config {
+    pub fn get_config(&self) -> &IntegratedCacheConfig {
         &self.config
     }
 }
@@ -308,9 +308,9 @@ pub struct CachedContent {
     pub cached_at: DateTime<Utc>,
 }
 
-/// Comprehensive Phase-2 statistics
+/// Comprehensive integrated cache statistics
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Phase2Stats {
+pub struct IntegratedCacheStats {
     /// Cache statistics
     pub cache_stats: crate::cache::CacheStats,
     /// Security configuration summary
@@ -321,9 +321,9 @@ pub struct Phase2Stats {
     pub uptime: u64,
 }
 
-/// Convenience function to create Phase-2 manager with optimal defaults
-pub async fn create_optimized_phase2_manager(redis_url: &str) -> Result<Phase2Manager> {
-    let config = Phase2Config {
+/// Convenience function to create integrated cache manager with optimal defaults
+pub async fn create_optimized_integrated_cache_manager(redis_url: &str) -> Result<IntegratedCacheManager> {
+    let config = IntegratedCacheConfig {
         redis_url: redis_url.to_string(),
         cache: CacheConfig {
             default_ttl: 24 * 60 * 60,          // 24 hours
@@ -350,7 +350,7 @@ pub async fn create_optimized_phase2_manager(redis_url: &str) -> Result<Phase2Ma
         debug: false,
     };
 
-    Phase2Manager::new_with_config(config).await
+    IntegratedCacheManager::new_with_config(config).await
 }
 
 #[cfg(test)]
@@ -359,8 +359,8 @@ mod tests {
     use std::collections::HashMap;
 
     #[test]
-    fn test_phase2_config_creation() {
-        let config = Phase2Config::default();
+    fn test_integrated_cache_config_creation() {
+        let config = IntegratedCacheConfig::default();
         assert_eq!(config.redis_url, "redis://localhost:6379/0");
         assert_eq!(config.cache.default_ttl, 24 * 60 * 60);
         assert_eq!(config.security.max_request_size, 20 * 1024 * 1024);
@@ -372,23 +372,23 @@ mod tests {
         options.insert("mode".to_string(), "article".to_string());
         options.insert("language".to_string(), "en".to_string());
 
-        let hash1 = Phase2Manager::hash_options(&options);
-        let hash2 = Phase2Manager::hash_options(&options);
+        let hash1 = IntegratedCacheManager::hash_options(&options);
+        let hash2 = IntegratedCacheManager::hash_options(&options);
         assert_eq!(hash1, hash2);
 
         // Different order should produce same hash
         let mut options2 = HashMap::new();
         options2.insert("language".to_string(), "en".to_string());
         options2.insert("mode".to_string(), "article".to_string());
-        let hash3 = Phase2Manager::hash_options(&options2);
+        let hash3 = IntegratedCacheManager::hash_options(&options2);
         assert_eq!(hash1, hash3);
     }
 
     #[test]
     fn test_hash_url() {
         let url = "https://example.com/page";
-        let hash1 = Phase2Manager::hash_url(url);
-        let hash2 = Phase2Manager::hash_url(url);
+        let hash1 = IntegratedCacheManager::hash_url(url);
+        let hash2 = IntegratedCacheManager::hash_url(url);
         assert_eq!(hash1, hash2);
         assert_eq!(hash1.len(), 16);
     }

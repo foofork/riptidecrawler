@@ -289,7 +289,7 @@ impl RobotsManager {
                 if let Some(delay_str) = line.split(':').nth(1) {
                     if let Ok(delay) = delay_str.trim().parse::<f64>() {
                         // Clamp to reasonable bounds
-                        let clamped_delay = delay.max(0.1).min(self.config.max_crawl_delay);
+                        let clamped_delay = delay.max(0.1_f64).min(self.config.max_crawl_delay);
                         debug!(
                             original_delay = delay,
                             clamped_delay = clamped_delay,
@@ -347,7 +347,7 @@ impl RobotsManager {
         let jitter = rand::thread_rng().gen_range(-jitter_range..=jitter_range);
         let final_delay = base_delay.as_secs_f64() + jitter;
 
-        Duration::from_secs_f64(final_delay.max(0.1)) // Minimum 100ms delay
+        Duration::from_secs_f64(final_delay.max(0.1_f64)) // Minimum 100ms delay
     }
 
     /// Check if a URL can be crawled and wait for rate limit

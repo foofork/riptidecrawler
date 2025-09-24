@@ -343,7 +343,7 @@ impl ReliableExtractor {
 
         score += metadata_score;
 
-        score.min(1.0)
+        score.min(1.0_f32)
     }
 
     /// Get circuit breaker metrics for monitoring
@@ -430,7 +430,9 @@ mod tests {
             url: "https://test.com".to_string(),
             title: Some("Great Article Title".to_string()),
             text: "This is a long and comprehensive article with lots of valuable content that should score well on quality metrics.".repeat(20),
-            markdown: "# Title\n## Subtitle\n*emphasis* and [links](url)".to_string(),
+            markdown: "# Title
+## Subtitle
+*emphasis* and [links](url)".to_string(),
             byline: Some("Author Name".to_string()),
             description: Some("Article description".to_string()),
             ..Default::default()
