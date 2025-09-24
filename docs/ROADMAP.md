@@ -7,14 +7,15 @@ Absolutely — here’s a **single, consolidated roadmap** that **replaces** the
 ## 0) Snapshot (Updated: 2025-09-24)
 
 * **✅ Done:** Phase 0 (Foundation), Phase 1 (Core), Phase 2-Lite (Reliability), Phase 3 PR-1 (Headless RPC v2), PR-2 (Stealth)
-* **✅ Session Management:** Session manager implementation complete and functional
-* **✅ Spider Module:** All compilation errors resolved, ready for integration
+* **✅ Browser Pool Integration:** Fully wired and functional in ResourceManager
+* **✅ Streaming Pipeline:** StreamingModule integrated with lifecycle management
+* **✅ Session Management:** SessionManager fully integrated with all endpoints
+* **✅ WASM & Rendering:** Trek-rs extractor and dynamic rendering operational
+* **✅ Spider Module:** All compilation errors resolved, HostQueue.push_request fixed
 * **✅ Strategies Module:** All 14 strategy files implemented and compiling
 * **✅ PDF Processing:** Module complete with processor, config, and tests
-* **📍 Now:** **Critical Integration Gap - Browser Pool & Streaming Pipeline disconnected**
-* **⚡ IN PROGRESS:** Error handling cleanup (424 unwrap/expect remaining, down from 517)
-* **⚡ IN PROGRESS:** API streaming endpoints (NDJSON implementation in riptide-api)
-* **🔴 CRITICAL:** Browser Pool, Streaming Pipeline, and Session System not wired to handlers
+* **📍 Now:** Production hardening - reducing unwrap/expect in critical paths
+* **⚡ IN PROGRESS:** Error handling cleanup (204 unwrap/expect in production, down from 595 total)
 * **🧭 Guardrails:** Feature flags, Prometheus metrics, strict timeouts/pools
 * **📜 Reference:** See `COMPLETED.md` for all shipped work.
 
