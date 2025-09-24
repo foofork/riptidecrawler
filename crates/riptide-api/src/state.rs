@@ -9,7 +9,8 @@ use riptide_core::{
     cache::CacheManager,
     extract::WasmExtractor,
     fetch::http_client,
-    telemetry::{telemetry_info, telemetry_span, TelemetrySystem},
+    telemetry::TelemetrySystem,
+    telemetry_info, telemetry_span,
 };
 use std::sync::Arc;
 use tracing::{error, info, warn};

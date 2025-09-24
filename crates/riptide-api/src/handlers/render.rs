@@ -424,7 +424,7 @@ async fn process_pdf(
     }
 
     // Process the PDF
-    let pdf_processor = riptide_core::pdf::DefaultPdfProcessor::new();
+    let pdf_processor = riptide_core::pdf::create_pdf_processor();
     let config = pdf_config.cloned().unwrap_or_default();
 
     let pdf_result = pdf_processor
@@ -753,9 +753,10 @@ async fn extract_content(
         // Use the actual WASM extractor to process the HTML
         let extraction_mode = match output_format {
             OutputFormat::Markdown => riptide_core::types::ExtractionMode::Article,
-            OutputFormat::Html => riptide_core::types::ExtractionMode::Full,
+            OutputFormat::Document => riptide_core::types::ExtractionMode::Full,
             OutputFormat::Text => riptide_core::types::ExtractionMode::Article,
-            OutputFormat::Json => riptide_core::types::ExtractionMode::Article,
+            OutputFormat::NdJson => riptide_core::types::ExtractionMode::Article,
+            OutputFormat::Chunked => riptide_core::types::ExtractionMode::Article,
         };
 
         match extract_with_wasm_extractor(

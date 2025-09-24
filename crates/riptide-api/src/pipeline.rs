@@ -387,7 +387,9 @@ impl PipelineOrchestrator {
             "Processing PDF content"
         );
 
-        match pdf::process_pdf(pdf_bytes).await {
+        let processor = pdf::create_pdf_processor();
+        let config = pdf::PdfConfig::default();
+        match processor.process_pdf_bytes(pdf_bytes).await {
             Ok(document) => {
                 info!(
                     url = %url,

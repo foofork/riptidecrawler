@@ -8,6 +8,7 @@ use super::config::StreamConfig;
 use super::error::{StreamingError, StreamingResult};
 use crate::errors::{ApiError, ApiResult};
 use crate::models::*;
+use std::time::Duration;
 use crate::pipeline::PipelineOrchestrator;
 use crate::state::AppState;
 use crate::validation::{validate_crawl_request, validate_deepsearch_request};

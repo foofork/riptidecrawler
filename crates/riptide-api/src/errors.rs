@@ -137,6 +137,36 @@ impl ApiError {
         }
     }
 
+    /// Create a service unavailable error.
+    pub fn service_unavailable<S: Into<String>>(message: S) -> Self {
+        Self::DependencyError {
+            service: "service".into(),
+            message: message.into(),
+        }
+    }
+
+    /// Create a rate limited error.
+    pub fn rate_limited<S: Into<String>>(message: S) -> Self {
+        Self::RateLimited {
+            message: message.into(),
+        }
+    }
+
+    /// Create an internal error.
+    pub fn internal<S: Into<String>>(message: S) -> Self {
+        Self::InternalError {
+            message: message.into(),
+        }
+    }
+
+    /// Create a not found error.
+    pub fn not_found<S: Into<String>>(message: S) -> Self {
+        Self::NotFound {
+            resource: "resource".into(),
+            message: message.into(),
+        }
+    }
+
     /// Get the appropriate HTTP status code for this error.
     pub fn status_code(&self) -> StatusCode {
         match self {
