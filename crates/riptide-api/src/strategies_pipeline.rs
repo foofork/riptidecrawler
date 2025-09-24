@@ -168,20 +168,20 @@ impl StrategiesPipelineOrchestrator {
                     Ok(rendered_html) => {
                         // Use strategies on rendered content
                         strategy_manager.extract_and_chunk(&rendered_html, url).await
-                            .map_err(|e| ApiError::extraction(format!("Strategy processing failed: {}", e)))?
+                            .map_err(|e| ApiError::pipeline(format!("Strategy processing failed: {}", e)))?
                     }
                     Err(e) => {
                         warn!(url = %url, error = %e, "Headless rendering failed, using direct strategies");
                         // Fallback to processing original HTML with strategies
                         strategy_manager.extract_and_chunk(&html_content, url).await
-                            .map_err(|e| ApiError::extraction(format!("Strategy processing failed: {}", e)))?
+                            .map_err(|e| ApiError::pipeline(format!("Strategy processing failed: {}", e)))?
                     }
                 }
             }
             _ => {
                 // Use strategies directly on HTML content
                 strategy_manager.extract_and_chunk(&html_content, url).await
-                    .map_err(|e| ApiError::extraction(format!("Strategy processing failed: {}", e)))?
+                    .map_err(|e| ApiError::pipeline(format!("Strategy processing failed: {}", e)))?
             }
         };
 
@@ -235,7 +235,7 @@ impl StrategiesPipelineOrchestrator {
 
         let processor = pdf::create_pdf_processor();
         let extracted_doc = processor.process_pdf_bytes(pdf_bytes).await
-            .map_err(|e| ApiError::extraction(format!("PDF processing failed: {}", e)))?;
+            .map_err(|e| ApiError::pipeline(format!("PDF processing failed: {}", e)))?;
 
         // Convert PDF extracted doc to strategies format
         let pdf_html = format!(
@@ -247,7 +247,7 @@ impl StrategiesPipelineOrchestrator {
         // Process through strategies
         let mut strategy_manager = StrategyManager::new(self.strategy_config.clone());
         let processed_content = strategy_manager.extract_and_chunk(&pdf_html, url).await
-            .map_err(|e| ApiError::extraction(format!("PDF strategy processing failed: {}", e)))?;
+            .map_err(|e| ApiError::pipeline(format!("PDF strategy processing failed: {}", e)))?;
 
         // Cache the result
         if let Err(e) = self.store_in_cache(&cache_key, &processed_content).await {

@@ -326,7 +326,14 @@ pub async fn deepsearch(
     );
 
     // Perform web search using Serper.dev
-    let search_results = perform_web_search(&state, &body.query, limit, &serper_api_key).await?;
+    let search_results = perform_web_search(
+        &state,
+        &body.query,
+        limit,
+        body.country.as_deref(),
+        body.locale.as_deref(),
+        &serper_api_key
+    ).await?;
 
     info!(
         query = %body.query,
@@ -419,13 +426,15 @@ async fn perform_web_search(
     state: &AppState,
     query: &str,
     limit: u32,
+    country: Option<&str>,
+    locale: Option<&str>,
     api_key: &str,
 ) -> ApiResult<Vec<SearchResult>> {
     let search_request = serde_json::json!({
         "q": query,
         "num": limit,
-        "gl": "us",
-        "hl": "en"
+        "gl": country.unwrap_or("us"),
+        "hl": locale.unwrap_or("en")
     });
 
     let response = state

@@ -122,11 +122,9 @@ pub struct DeepSearchBody {
     pub limit: Option<u32>,
 
     /// Country code for search localization (e.g., "US", "GB")
-    #[allow(dead_code)]
     pub country: Option<String>,
 
     /// Locale for search results (e.g., "en", "es")
-    #[allow(dead_code)]
     pub locale: Option<String>,
 
     /// Whether to include the full crawled content in results

@@ -191,6 +191,7 @@ impl Default for AppConfig {
         tracing::info!("Spider configuration initialized from environment variables");
         Some(config)
     }
+}
 
 impl AppState {
     /// Initialize the application state with all required components.

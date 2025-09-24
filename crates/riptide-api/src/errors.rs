@@ -11,7 +11,6 @@ use thiserror::Error;
 /// This enum covers all error scenarios that can occur during crawling operations,
 /// from validation errors to internal system failures. Each error type maps to
 /// an appropriate HTTP status code and user-friendly error message.
-#[allow(dead_code)]
 #[derive(Error, Debug)]
 pub enum ApiError {
     /// Input validation errors (400 Bad Request)
@@ -114,7 +113,6 @@ impl ApiError {
     }
 
     /// Create a pipeline error.
-    #[allow(dead_code)]
     pub fn pipeline<S: Into<String>>(message: S) -> Self {
         Self::PipelineError {
             message: message.into(),
