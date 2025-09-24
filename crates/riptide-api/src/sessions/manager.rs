@@ -9,7 +9,7 @@ use tokio::fs;
 use tracing::{debug, info, warn};
 
 /// High-level session manager providing a convenient API for session operations
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SessionManager {
     storage: SessionStorage,
     config: SessionConfig,
@@ -55,7 +55,7 @@ impl SessionManager {
     /// Create a new session with auto-generated ID
     pub async fn create_session(&self) -> Result<Session> {
         let session_id = Session::generate_session_id();
-        self.storage.create_session(session_id).await
+        self.storage.create_session(session_id).await.map_err(|e| e.into())
     }
 
     /// Update session metadata
@@ -82,7 +82,7 @@ impl SessionManager {
         })?;
 
         session.cookies.set_cookie(domain, cookie.clone());
-        self.storage.store_session(session).await?;
+        self.storage.store_session(session.clone()).await?;
 
         // Persist cookies to disk if enabled
         if self.config.persist_cookies {

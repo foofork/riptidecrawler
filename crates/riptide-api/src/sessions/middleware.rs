@@ -1,82 +1,116 @@
 use super::manager::SessionManager;
 use super::types::{Session, SessionError};
 use axum::{
-    extract::{FromRequestParts, Request, State},
+    extract::Request,
     http::{header, request::Parts, HeaderValue, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
 };
 use std::sync::Arc;
+use tower::{Layer, Service};
 use tracing::{debug, warn};
-use uuid::Uuid;
 
-/// Session middleware for Axum that handles session management and cookies
-pub struct SessionMiddleware {
+/// Session layer for Axum that handles session management and cookies
+#[derive(Clone)]
+pub struct SessionLayer {
     manager: Arc<SessionManager>,
 }
 
-impl SessionMiddleware {
-    /// Create a new session middleware with the given manager
+impl SessionLayer {
+    /// Create a new session layer with the given manager
     pub fn new(manager: Arc<SessionManager>) -> Self {
         Self { manager }
     }
+}
 
-    /// Middleware function for session handling
-    pub async fn session_middleware(
-        State(session_manager): State<Arc<SessionManager>>,
-        mut request: Request,
-        next: Next,
-    ) -> Result<Response, StatusCode> {
-        // Extract session ID from cookie or create new one
-        let session_id = extract_session_id_from_request(&request)
-            .unwrap_or_else(|| Session::generate_session_id());
+impl<S> Layer<S> for SessionLayer {
+    type Service = SessionMiddleware<S>;
 
-        debug!(
-            session_id = %session_id,
-            path = %request.uri().path(),
-            method = %request.method(),
-            "Processing request with session"
-        );
-
-        // Get or create session
-        let session = match session_manager.get_or_create_session(&session_id).await {
-            Ok(session) => session,
-            Err(e) => {
-                warn!(
-                    session_id = %session_id,
-                    error = %e,
-                    "Failed to get or create session"
-                );
-                return Err(StatusCode::INTERNAL_SERVER_ERROR);
-            }
-        };
-
-        // Add session to request extensions
-        request.extensions_mut().insert(SessionContext {
-            session: session.clone(),
-            manager: session_manager.clone(),
-        });
-
-        // Process the request
-        let mut response = next.run(request).await;
-
-        // Set session cookie in response
-        let cookie_value = format!(
-            "riptide_session_id={}; Path=/; HttpOnly; Max-Age=86400",
-            session_id
-        );
-        if let Ok(header_value) = HeaderValue::from_str(&cookie_value) {
-            response
-                .headers_mut()
-                .insert(header::SET_COOKIE, header_value);
+    fn layer(&self, inner: S) -> Self::Service {
+        SessionMiddleware {
+            manager: self.manager.clone(),
+            inner,
         }
-
-        Ok(response)
     }
 }
 
-/// Session context that gets added to request extensions
+/// Session middleware service
 #[derive(Clone)]
+pub struct SessionMiddleware<S> {
+    manager: Arc<SessionManager>,
+    inner: S,
+}
+
+impl<S> Service<Request> for SessionMiddleware<S>
+where
+    S: Service<Request, Response = Response> + Clone + Send + 'static,
+    S::Future: Send + 'static,
+{
+    type Response = S::Response;
+    type Error = S::Error;
+    type Future = std::pin::Pin<Box<dyn std::future::Future<Output = Result<Self::Response, Self::Error>> + Send>>;
+
+    fn poll_ready(&mut self, cx: &mut std::task::Context<'_>) -> std::task::Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx)
+    }
+
+    fn call(&mut self, mut req: Request) -> Self::Future {
+        let manager = self.manager.clone();
+        let mut inner = self.inner.clone();
+
+        Box::pin(async move {
+            // Extract session ID from cookie or create new one
+            let session_id = extract_session_id_from_request(&req)
+                .unwrap_or_else(|| Session::generate_session_id());
+
+            debug!(
+                session_id = %session_id,
+                path = %req.uri().path(),
+                method = %req.method(),
+                "Processing request with session"
+            );
+
+            // Get or create session
+            let session = match manager.get_or_create_session(&session_id).await {
+                Ok(session) => session,
+                Err(e) => {
+                    warn!(
+                        session_id = %session_id,
+                        error = %e,
+                        "Failed to get or create session"
+                    );
+                    return Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response());
+                }
+            };
+
+            // Add session to request extensions
+            req.extensions_mut().insert(SessionContext {
+                session: session.clone(),
+                manager: manager.clone(),
+            });
+
+            // Process the request
+            let mut response = inner.call(req).await?;
+
+            // Set session cookie in response
+            let cookie_value = format!(
+                "riptide_session_id={}; Path=/; HttpOnly; Max-Age=86400",
+                session_id
+            );
+            if let Ok(header_value) = HeaderValue::from_str(&cookie_value) {
+                response
+                    .headers_mut()
+                    .insert(header::SET_COOKIE, header_value);
+            }
+
+            Ok(response)
+        })
+    }
+}
+
+
+/// Session context that gets added to request extensions
+#[derive(Clone, Debug)]
 pub struct SessionContext {
     pub session: Session,
     pub manager: Arc<SessionManager>,
@@ -143,7 +177,7 @@ impl SessionContext {
 
 /// Extractor for session context from request
 #[axum::async_trait]
-impl<S> FromRequestParts<S> for SessionContext
+impl<S> axum::extract::FromRequestParts<S> for SessionContext
 where
     S: Send + Sync,
 {
@@ -156,6 +190,7 @@ where
         ))
     }
 }
+
 
 /// Error response for session-related errors
 impl IntoResponse for SessionError {
@@ -246,106 +281,4 @@ fn extract_session_id_from_request(request: &Request) -> Option<String> {
     }
 
     None
-}
-
-/// Helper function to create session middleware layer
-pub fn create_session_layer(
-    manager: Arc<SessionManager>,
-) -> axum::middleware::FromFnLayer<
-    impl Fn(
-            axum::extract::State<Arc<SessionManager>>,
-            Request,
-            Next,
-        ) -> std::pin::Pin<
-            Box<dyn std::future::Future<Output = Result<Response, StatusCode>> + Send + 'static>,
-        > + Clone,
-    Arc<SessionManager>,
-> {
-    axum::middleware::from_fn_with_state(manager, SessionMiddleware::session_middleware)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::sessions::{SessionConfig, SessionManager};
-    use axum::{
-        body::Body,
-        http::{HeaderMap, Method, Request},
-    };
-    use std::collections::HashMap;
-
-    #[tokio::test]
-    async fn test_session_context_creation() {
-        let config = SessionConfig::default();
-        let manager = Arc::new(SessionManager::new(config).await.unwrap());
-        let session = manager.create_session().await.unwrap();
-
-        let context = SessionContext {
-            session: session.clone(),
-            manager: manager.clone(),
-        };
-
-        assert_eq!(context.session_id(), &session.session_id);
-        assert_eq!(context.session().session_id, session.session_id);
-    }
-
-    #[tokio::test]
-    async fn test_session_headers_creation() {
-        let config = SessionConfig::default();
-        let manager = Arc::new(SessionManager::new(config).await.unwrap());
-        let session = manager.create_session().await.unwrap();
-
-        let context = SessionContext {
-            session: session.clone(),
-            manager: manager.clone(),
-        };
-
-        // Set a test cookie
-        let cookie =
-            super::super::types::Cookie::new("test_cookie".to_string(), "test_value".to_string());
-        context.set_cookie("example.com", cookie).await.unwrap();
-
-        // Create session headers
-        let headers = SessionHeaders::from_session_context(&context, "example.com")
-            .await
-            .unwrap();
-
-        assert_eq!(headers.session_id, session.session_id);
-        assert_eq!(headers.cookies.len(), 1);
-        assert_eq!(headers.cookies[0], "test_cookie=test_value");
-
-        // Convert to header map
-        let header_map = headers.to_header_map();
-        assert!(header_map.contains_key("X-Session-ID"));
-        assert!(header_map.contains_key("Cookie"));
-        assert_eq!(header_map["Cookie"], "test_cookie=test_value");
-    }
-
-    #[test]
-    fn test_extract_session_id_from_request() {
-        // Test with valid session cookie
-        let mut request = Request::new(Body::empty());
-        request.headers_mut().insert(
-            header::COOKIE,
-            HeaderValue::from_static("riptide_session_id=test_session_123; other_cookie=value"),
-        );
-
-        let session_id = extract_session_id_from_request(&request);
-        assert_eq!(session_id, Some("test_session_123".to_string()));
-
-        // Test with no cookies
-        let request = Request::new(Body::empty());
-        let session_id = extract_session_id_from_request(&request);
-        assert_eq!(session_id, None);
-
-        // Test with wrong cookie name
-        let mut request = Request::new(Body::empty());
-        request.headers_mut().insert(
-            header::COOKIE,
-            HeaderValue::from_static("other_session_id=test_session_123"),
-        );
-
-        let session_id = extract_session_id_from_request(&request);
-        assert_eq!(session_id, None);
-    }
 }

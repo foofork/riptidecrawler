@@ -196,7 +196,7 @@ impl AppState {
             .map_err(|e| anyhow::anyhow!("Invalid API configuration: {}", e))?;
 
         // Initialize HTTP client with optimized settings
-        let http_client = http_client();
+        let http_client = http_client()?;
         tracing::debug!("HTTP client initialized");
 
         // Establish Redis connection
@@ -205,7 +205,7 @@ impl AppState {
         tracing::info!("Redis connection established: {}", config.redis_url);
 
         // Initialize WASM extractor
-        let extractor = WasmExtractor::new(&config.wasm_path)?;
+        let extractor = WasmExtractor::new(&config.wasm_path).await?;
         let extractor = Arc::new(extractor);
         tracing::info!("WASM extractor loaded: {}", config.wasm_path);
 

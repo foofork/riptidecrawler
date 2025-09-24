@@ -172,6 +172,7 @@ impl StreamingPipeline {
         let start_time = Instant::now();
         let limit = body.limit.unwrap_or(10).min(50);
         let include_content = body.include_content.unwrap_or(true);
+        let mut total_urls_found = 0;
 
         info!(
             request_id = %self.request_id,
@@ -240,7 +241,9 @@ impl StreamingPipeline {
 
         if !include_content || search_results.is_empty() {
             // Send search results without content extraction
-            for (index, result) in search_results.into_iter().enumerate() {
+            let search_results_len = search_results.len();
+            total_urls_found = search_results.len();
+            for (index, result) in search_results.clone().into_iter().enumerate() {
                 let search_result_event = StreamEvent::SearchResult(DeepSearchResultData {
                     index,
                     search_result: result,
@@ -255,7 +258,7 @@ impl StreamingPipeline {
                     break;
                 }
             }
-            summary.successful = search_results.len();
+            summary.successful = search_results_len;
         } else {
             // Extract URLs and crawl with streaming
             let urls: Vec<String> = search_results.iter().map(|r| r.url.clone()).collect();
@@ -314,7 +317,7 @@ impl StreamingPipeline {
 
         let summary_event = StreamEvent::DeepSearchSummary(DeepSearchSummary {
             query: body.query,
-            total_urls_found: search_results.len(),
+            total_urls_found: total_urls_found,
             total_processing_time_ms: summary.total_duration_ms,
             status: "completed".to_string(),
         });

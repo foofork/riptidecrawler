@@ -10,7 +10,7 @@ use riptide_core::stealth::StealthController;
 use riptide_core::types::{ExtractedDoc, OutputFormat, RenderMode};
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
-use tracing::{debug, info, warn};
+use tracing::{debug, error, info, warn};
 use url;
 
 /// Request body for enhanced render endpoint
@@ -128,7 +128,7 @@ pub struct SessionRenderInfo {
 /// Enhanced render endpoint with dynamic content handling and resource controls
 pub async fn render(
     State(state): State<AppState>,
-    session_ctx: Option<SessionContext>,
+    session_ctx: SessionContext,
     Json(body): Json<RenderRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
     let start_time = Instant::now();
@@ -142,7 +142,7 @@ pub async fn render(
         Ok(ResourceResult::Success(guard)) => guard,
         Ok(ResourceResult::Timeout) => {
             warn!(url = %body.url, "Render request timed out during resource acquisition");
-            return Err(ApiError::timeout("Resource acquisition timed out"));
+            return Err(ApiError::timeout("Resource acquisition", "Resource acquisition timed out"));
         }
         Ok(ResourceResult::ResourceExhausted) => {
             warn!(url = %body.url, "Render request rejected - resources exhausted");
@@ -179,7 +179,7 @@ pub async fn render(
     // Apply hard timeout wrapper around entire operation (3s requirement)
     let render_timeout = state.api_config.get_timeout("render");
     let render_result = tokio::time::timeout(render_timeout, async {
-        render_with_resources(state, session_ctx, body, resource_guard).await
+        render_with_resources(state.clone(), session_ctx, body, resource_guard).await
     })
     .await;
 
@@ -193,6 +193,7 @@ pub async fn render(
                 render_timeout.as_millis()
             );
             Err(ApiError::timeout(
+                "Render operation",
                 "Render operation exceeded maximum time limit",
             ))
         }
@@ -202,18 +203,16 @@ pub async fn render(
 /// Internal render function with resource management
 async fn render_with_resources(
     state: AppState,
-    session_ctx: Option<SessionContext>,
+    session_ctx: SessionContext,
     body: RenderRequest,
     _resource_guard: RenderResourceGuard,
 ) -> Result<impl IntoResponse, ApiError> {
     let start_time = Instant::now();
 
     // Determine session to use (from request or middleware)
-    let session_id = body
-        .session_id
-        .as_ref()
-        .or_else(|| session_ctx.as_ref().map(|ctx| ctx.session_id()))
-        .cloned();
+    let session_id = body.session_id.clone().or_else(|| {
+        Some(session_ctx.session_id().to_string())
+    });
 
     info!(
         url = %body.url,
@@ -330,7 +329,7 @@ async fn render_with_resources(
 
     // Extract content from the rendered result
     let extraction_start = Instant::now();
-    let content = extract_content(&state, &render_result, &output_format).await?;
+    let content = extract_content(&state, &render_result, &output_format, &final_url).await?;
     let extraction_time_ms = extraction_start.elapsed().as_millis() as u64;
 
     // Build statistics
@@ -440,7 +439,7 @@ async fn process_dynamic(
     state: &AppState,
     url: &str,
     dynamic_config: &DynamicConfig,
-    stealth_controller: Option<&mut StealthController>,
+    mut stealth_controller: Option<&mut StealthController>,
     session_id: Option<&str>,
 ) -> ApiResult<(
     String,
@@ -450,7 +449,7 @@ async fn process_dynamic(
     debug!(url = %url, "Processing with dynamic rendering");
 
     // Apply stealth measures if configured
-    if let Some(stealth) = stealth_controller {
+    if let Some(stealth) = stealth_controller.as_mut() {
         let _user_agent = stealth.next_user_agent();
         let _headers = stealth.generate_headers();
         let _delay = stealth.calculate_delay();
@@ -460,7 +459,7 @@ async fn process_dynamic(
     // Get stealth configuration for RPC call
     let stealth_config = stealth_controller
         .as_ref()
-        .map(|controller| controller.get_config().clone());
+        .map(|controller| controller.config().clone());
 
     // Create RPC client with configured headless URL
     let rpc_client = if let Some(headless_url) = &state.config.headless_url {
@@ -550,7 +549,7 @@ async fn process_dynamic(
 async fn process_static(
     state: &AppState,
     url: &str,
-    stealth_controller: Option<&mut StealthController>,
+    mut stealth_controller: Option<&mut StealthController>,
     session_id: Option<&str>,
 ) -> ApiResult<(
     String,
@@ -636,7 +635,7 @@ async fn process_adaptive(
     state: &AppState,
     url: &str,
     request: &RenderRequest,
-    stealth_controller: Option<&mut StealthController>,
+    mut stealth_controller: Option<&mut StealthController>,
     session_id: Option<&str>,
 ) -> ApiResult<(
     String,
@@ -744,6 +743,7 @@ async fn extract_content(
     state: &AppState,
     render_result: &Option<DynamicRenderResult>,
     output_format: &OutputFormat,
+    url: &str,
 ) -> ApiResult<Option<ExtractedDoc>> {
     if let Some(result) = render_result {
         if !result.success {
@@ -762,7 +762,7 @@ async fn extract_content(
         match extract_with_wasm_extractor(
             &state.extractor,
             &result.html,
-            &result.url,
+            url,
             extraction_mode,
         )
         .await
@@ -791,7 +791,7 @@ async fn extract_content(
             Err(e) => {
                 warn!(
                     error = %e,
-                    url = %result.url,
+                    url = %url,
                     "WASM extraction failed, falling back to empty result"
                 );
 

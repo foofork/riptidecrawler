@@ -15,7 +15,7 @@ mod validation;
 
 use crate::health::HealthChecker;
 use crate::metrics::{create_metrics_layer, RipTideMetrics};
-use crate::sessions::middleware::create_session_layer;
+use crate::sessions::middleware::SessionLayer;
 use crate::state::{AppConfig, AppState};
 use axum::{
     routing::{get, post},
@@ -161,7 +161,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .fallback(handlers::not_found)
         .with_state(app_state.clone())
-        .layer(create_session_layer(app_state.session_manager.clone()))
+        .layer(SessionLayer::new(app_state.session_manager.clone()))
         .layer(prometheus_layer)
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(Duration::from_secs(30)))

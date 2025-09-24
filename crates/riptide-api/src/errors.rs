@@ -160,10 +160,9 @@ impl ApiError {
     }
 
     /// Create a not found error.
-    pub fn not_found<S: Into<String>>(message: S) -> Self {
+    pub fn not_found<S: Into<String>>(resource: S) -> Self {
         Self::NotFound {
-            resource: "resource".into(),
-            message: message.into(),
+            resource: resource.into(),
         }
     }
 

@@ -13,7 +13,7 @@ use crate::state::AppState;
 use crate::validation::validate_crawl_request;
 use axum::extract::{Json, State};
 use axum::response::sse::{Event, KeepAlive};
-use axum::response::{IntoResponse, Sse};
+use axum::response::{IntoResponse, Response, Sse};
 use serde::Serialize;
 use std::convert::Infallible;
 use std::sync::Arc;
@@ -27,7 +27,7 @@ use uuid::Uuid;
 pub async fn crawl_sse(
     State(app): State<AppState>,
     Json(body): Json<CrawlBody>,
-) -> impl IntoResponse {
+) -> Response {
     let start_time = Instant::now();
     let request_id = Uuid::new_v4().to_string();
 
@@ -40,15 +40,15 @@ pub async fn crawl_sse(
 
     // Validate the request early to fail fast
     if let Err(e) = validate_crawl_request(&body) {
-        return create_sse_error_response(e);
+        return create_sse_error_response(e).into_response();
     }
 
     // Create SSE handler
     let sse_handler = SseStreamingHandler::new(app.clone(), request_id.clone());
 
     match sse_handler.handle_crawl_stream(body, start_time).await {
-        Ok(response) => response,
-        Err(e) => create_sse_error_response(ApiError::from(e)),
+        Ok(response) => response.into_response(),
+        Err(e) => create_sse_error_response(ApiError::from(e)).into_response(),
     }
 }
 
@@ -92,6 +92,7 @@ impl SseStreamingHandler {
             let mut backpressure_handler =
                 BackpressureHandler::new(request_id.clone(), buffer_clone);
 
+let request_id_clone = request_id.clone();
             if let Err(e) = orchestrate_crawl_sse(
                 app_clone,
                 body_clone,
@@ -103,7 +104,7 @@ impl SseStreamingHandler {
             )
             .await
             {
-                error!(request_id = %request_id, error = %e, "SSE orchestration error");
+                error!(request_id = %request_id_clone, error = %e, "SSE orchestration error");
             }
         });
 
@@ -378,7 +379,7 @@ fn create_sse_error_response(error: ApiError) -> impl IntoResponse {
 
     let error_event = Event::default().event("error").data(error_data.to_string());
 
-    let (tx, rx) = mpsc::channel(1);
+    let (tx, rx) = mpsc::channel::<Result<Event, Infallible>>(1);
 
     // Send error event and close
     tokio::spawn(async move {

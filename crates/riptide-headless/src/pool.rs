@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use chromiumoxide::{Browser, BrowserConfig};
+use chromiumoxide::{Browser, BrowserConfig, Page};
 use futures::StreamExt;
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Weak};
@@ -138,7 +138,7 @@ impl PooledBrowser {
     /// Perform health check on browser instance
     pub async fn health_check(&mut self, memory_threshold_mb: u64) -> BrowserHealth {
         // Check if browser is still responsive
-        match timeout(Duration::from_secs(5), self.browser.get_pages()).await {
+        match timeout(Duration::from_secs(5), self.browser.pages()).await {
             Ok(Ok(_pages)) => {
                 // Check memory usage
                 if self.stats.memory_usage_mb > memory_threshold_mb {
@@ -377,12 +377,12 @@ impl BrowserPool {
 
     /// Check in a browser back to the pool
     pub async fn checkin(&self, browser_id: &str) -> Result<()> {
-        let mut browser = {
+        let mut browser_opt = {
             let mut in_use = self.in_use.write().await;
             in_use.remove(browser_id)
         };
 
-        if let Some(ref mut browser) = browser {
+        if let Some(mut browser) = browser_opt.take() {
             browser.in_use = false;
 
             // Perform health check before returning to pool
@@ -392,7 +392,7 @@ impl BrowserPool {
                 BrowserHealth::Healthy => {
                     // Return healthy browser to pool
                     let mut available = self.available.lock().await;
-                    available.push_back(browser.take().unwrap());
+                    available.push_back(browser);
 
                     let _ = self.event_sender.send(PoolEvent::BrowserCheckedIn {
                         id: browser_id.to_string(),
@@ -402,9 +402,7 @@ impl BrowserPool {
                 }
                 _ => {
                     // Clean up unhealthy browser
-                    if let Some(mut browser) = browser {
-                        browser.cleanup().await;
-                    }
+                    browser.cleanup().await;
 
                     let _ = self.event_sender.send(PoolEvent::BrowserRemoved {
                         id: browser_id.to_string(),
@@ -650,14 +648,15 @@ impl BrowserCheckout {
         &self.browser_id
     }
 
-    /// Get the actual browser instance (requires pool access)
-    pub async fn browser(&self) -> Result<Option<Browser>> {
+    /// Create a new page in the browser
+    pub async fn new_page(&self, url: &str) -> Result<Page> {
         if let Some(pool) = self.pool.pool.upgrade() {
             let in_use = pool.in_use.read().await;
             if let Some(pooled_browser) = in_use.get(&self.browser_id) {
-                Ok(Some(pooled_browser.browser.clone()))
+                let page = pooled_browser.browser.new_page(url).await?;
+                Ok(page)
             } else {
-                Ok(None)
+                Err(anyhow!("Browser not found in pool"))
             }
         } else {
             Err(anyhow!("Browser pool has been dropped"))

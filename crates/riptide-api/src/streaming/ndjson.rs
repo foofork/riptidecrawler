@@ -24,6 +24,7 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
+use futures_util::StreamExt;
 
 /// NDJSON streaming handler for crawl operations
 ///
@@ -222,7 +223,8 @@ impl NdjsonStreamingHandler {
             .header("X-Request-ID", &self.request_id)
             .body(Body::from_stream(
                 ReceiverStream::new(rx).map(Ok::<_, std::io::Error>),
-            ))?)
+            ))
+            .map_err(|e| StreamingError::channel(e.to_string()))?)
     }
 
     /// Handle deep search streaming with proper buffer management
@@ -277,7 +279,8 @@ impl NdjsonStreamingHandler {
             .header("X-Request-ID", &self.request_id)
             .body(Body::from_stream(
                 ReceiverStream::new(rx).map(Ok::<_, std::io::Error>),
-            ))?)
+            ))
+            .map_err(|e| StreamingError::channel(e.to_string()))?)
     }
 }
 
@@ -347,7 +350,7 @@ async fn orchestrate_crawl_stream_optimized(
 
             // Send result immediately when complete (no batching)
             let send_result = result_tx_clone
-                .send((index, url_clone, single_result, processing_time))
+                .send((index, url_clone.clone(), single_result, processing_time))
                 .await;
 
             if let Err(_) = send_result {

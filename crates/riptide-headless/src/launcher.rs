@@ -1,6 +1,6 @@
 use crate::pool::{BrowserCheckout, BrowserPool, BrowserPoolConfig, PoolEvent};
 use anyhow::{anyhow, Result};
-use chromiumoxide::{BrowserConfig, Page};
+use chromiumoxide::{cdp::browser_protocol::emulation::SetDeviceMetricsOverrideParams, BrowserConfig, Page};
 use riptide_core::stealth::{StealthController, StealthPreset};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -116,10 +116,10 @@ impl HeadlessLauncher {
         );
 
         // Update stealth controller if different preset requested
-        if let Some(preset) = stealth_preset {
+        if let Some(ref preset) = stealth_preset {
             let mut stealth_controller = self.stealth_controller.write().await;
-            if preset != StealthPreset::None {
-                *stealth_controller = StealthController::from_preset(preset);
+            if *preset != StealthPreset::None {
+                *stealth_controller = StealthController::from_preset(preset.clone());
             }
         }
 
@@ -129,14 +129,8 @@ impl HeadlessLauncher {
             .map_err(|_| anyhow!("Browser checkout timed out"))?
             .map_err(|e| anyhow!("Failed to checkout browser: {}", e))?;
 
-        // Get the browser instance
-        let browser = browser_checkout
-            .browser()
-            .await?
-            .ok_or_else(|| anyhow!("Browser instance not available"))?;
-
         // Create new page
-        let page = timeout(Duration::from_secs(5), browser.new_page(url))
+        let page = timeout(Duration::from_secs(5), browser_checkout.new_page(url))
             .await
             .map_err(|_| anyhow!("Page creation timed out"))?
             .map_err(|e| anyhow!("Failed to create page: {}", e))?;
@@ -223,7 +217,7 @@ impl HeadlessLauncher {
         let mut builder = BrowserConfig::builder();
 
         if config.enable_stealth && config.default_stealth_preset != StealthPreset::None {
-            let stealth_controller =
+            let mut stealth_controller =
                 StealthController::from_preset(config.default_stealth_preset.clone());
 
             // Apply stealth flags
@@ -262,7 +256,7 @@ impl HeadlessLauncher {
             .arg("--disable-renderer-backgrounding")
             .arg("--memory-pressure-off");
 
-        Ok(builder.build()?)
+        Ok(builder.build().map_err(|e| anyhow!(e))?)
     }
 
     /// Apply stealth configurations to a page
@@ -277,13 +271,15 @@ impl HeadlessLauncher {
         let stealth_controller = self.stealth_controller.read().await;
 
         // Set viewport to common resolution
-        page.set_viewport(chromiumoxide::page::Viewport {
-            width: 1920,
-            height: 1080,
-            device_scale_factor: Some(1.0),
-            is_mobile: Some(false),
-            has_touch: Some(false),
-        })
+        page.execute(
+            SetDeviceMetricsOverrideParams::builder()
+                .width(1920)
+                .height(1080)
+                .device_scale_factor(1.0)
+                .mobile(false)
+                .build()
+                .unwrap(),
+        )
         .await
         .map_err(|e| anyhow!("Failed to set viewport: {}", e))?;
 
@@ -306,7 +302,7 @@ impl HeadlessLauncher {
             "#
         );
 
-        page.evaluate(&override_script)
+        page.evaluate(&*override_script)
             .await
             .map_err(|e| anyhow!("Failed to apply navigator overrides: {}", e))?;
 

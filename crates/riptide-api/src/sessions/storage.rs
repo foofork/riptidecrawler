@@ -10,7 +10,7 @@ use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
 
 /// Thread-safe session storage with TTL and cleanup mechanisms
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SessionStorage {
     /// In-memory session cache for fast access
     sessions: Arc<RwLock<HashMap<String, Session>>>,

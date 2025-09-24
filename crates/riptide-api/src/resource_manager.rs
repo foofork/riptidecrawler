@@ -137,12 +137,21 @@ pub struct ResourceMetrics {
 }
 
 /// Result of resource acquisition
-#[derive(Debug)]
 pub struct ResourceGuard {
     pub resource_type: String,
     pub acquired_at: Instant,
     pub timeout: Duration,
     _guard: Option<Arc<dyn Send + Sync>>,
+}
+
+impl std::fmt::Debug for ResourceGuard {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ResourceGuard")
+            .field("resource_type", &self.resource_type)
+            .field("acquired_at", &self.acquired_at)
+            .field("timeout", &self.timeout)
+            .finish_non_exhaustive()
+    }
 }
 
 /// Resource operation result
@@ -279,7 +288,7 @@ impl ResourceManager {
 
         // Acquire PDF semaphore with timeout
         let permit_result =
-            timeout(self.config.get_timeout("pdf"), self.pdf_semaphore.acquire()).await;
+            timeout(self.config.get_timeout("pdf"), self.pdf_semaphore.clone().acquire_owned()).await;
 
         let permit = match permit_result {
             Ok(Ok(permit)) => permit,
@@ -352,7 +361,7 @@ impl ResourceManager {
 
     fn get_worker_id(&self) -> String {
         // Use current task ID as worker identifier
-        format!("worker_{}", std::thread::current().id().as_u64())
+        format!("worker_{:?}", std::thread::current().id())
     }
 }
 
@@ -367,7 +376,7 @@ pub struct RenderResourceGuard {
 
 /// Resource guard for PDF operations
 pub struct PdfResourceGuard {
-    _permit: tokio::sync::SemaphorePermit<'static>,
+    _permit: tokio::sync::OwnedSemaphorePermit,
     memory_tracked: usize,
     acquired_at: Instant,
     manager: ResourceManager,
@@ -418,7 +427,7 @@ impl HeadlessBrowserPool {
         Ok(pool)
     }
 
-    async fn acquire_browser(&self) -> Result<BrowserGuard> {
+    async fn acquire_browser(self: &Arc<Self>) -> Result<BrowserGuard> {
         let _permit = self.semaphore.acquire().await?;
 
         let mut browsers = self.available_browsers.lock().await;
@@ -432,7 +441,7 @@ impl HeadlessBrowserPool {
 
                 return Ok(BrowserGuard {
                     instance,
-                    pool: Arc::new(self.clone()),
+                    pool: self.clone(),
                 });
             }
         }
@@ -448,7 +457,7 @@ impl HeadlessBrowserPool {
 
             return Ok(BrowserGuard {
                 instance,
-                pool: Arc::new(self.clone()),
+                pool: self.clone(),
             });
         }
 
@@ -518,20 +527,7 @@ impl HeadlessBrowserPool {
     }
 }
 
-impl Clone for HeadlessBrowserPool {
-    fn clone(&self) -> Self {
-        // Note: This is a simplified clone for the Arc wrapper
-        // In practice, you'd want proper shared state
-        Self {
-            config: self.config.clone(),
-            available_browsers: Mutex::new(Vec::new()),
-            total_browsers: AtomicUsize::new(self.total_browsers.load(Ordering::Relaxed)),
-            semaphore: Semaphore::new(self.config.headless.max_pool_size),
-            metrics: self.metrics.clone(),
-            last_health_check: AtomicU64::new(self.last_health_check.load(Ordering::Relaxed)),
-        }
-    }
-}
+
 
 impl PerHostRateLimiter {
     async fn new(config: ApiConfig, metrics: Arc<ResourceMetrics>) -> Result<Self> {
@@ -609,7 +605,7 @@ impl WasmInstanceManager {
         })
     }
 
-    async fn acquire_instance(&self, worker_id: &str) -> Result<WasmGuard> {
+    async fn acquire_instance(self: &Arc<Self>, worker_id: &str) -> Result<WasmGuard> {
         let mut instances = self.worker_instances.write().await;
 
         // Ensure single instance per worker (requirement)
@@ -634,20 +630,12 @@ impl WasmInstanceManager {
 
         Ok(WasmGuard {
             worker_id: worker_id.to_string(),
-            manager: Arc::new(self.clone()),
+            manager: self.clone(),
         })
     }
 }
 
-impl Clone for WasmInstanceManager {
-    fn clone(&self) -> Self {
-        Self {
-            config: self.config.clone(),
-            worker_instances: RwLock::new(HashMap::new()),
-            metrics: self.metrics.clone(),
-        }
-    }
-}
+
 
 impl MemoryManager {
     async fn new(config: ApiConfig, metrics: Arc<ResourceMetrics>) -> Result<Self> {

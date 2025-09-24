@@ -109,76 +109,78 @@ impl PdfiumProcessor {
                 message: "Failed to acquire processing permit".to_string(),
             })?;
 
-        // Validate PDF before processing
-        self.validate_pdf_input(data, config)?;
+        let processor_clone = self.clone();
+        let data = data.to_vec(); // Clone data to move into blocking task
+        let config = config.clone(); // Clone config to move into blocking task
+        let progress_callback_moved = progress_callback; // Move callback into blocking task
 
-        // Initialize progress tracking
-        if let Some(ref callback) = progress_callback {
-            callback(0, 1); // Start with unknown page count
-        }
+        tokio::task::spawn_blocking(move || {
+            // Validate PDF before processing
+            processor_clone.validate_pdf_input(&data, &config)?;
 
-        // Initialize Pdfium with error handling
-        let pdfium = self.initialize_pdfium()?;
-        let document = self.load_document(&pdfium, data)?;
+            // Initialize progress tracking
+            if let Some(ref callback) = progress_callback_moved {
+                callback(0, 1); // Start with unknown page count
+            }
 
-        let total_pages = document.pages().len() as u32;
-        let mut extraction_results = ExtractionResults::new();
+            // Initialize Pdfium with error handling
+            let pdfium = processor_clone.initialize_pdfium()?;
+            let document = processor_clone.load_document(&pdfium, &data)?;
 
-        // Update progress with actual page count
-        if let Some(ref callback) = progress_callback {
-            callback(0, total_pages);
-        }
+            let total_pages = document.pages().len() as u32;
+            let mut extraction_results = ExtractionResults::new();
 
-        // Extract content page by page with memory monitoring
-        for page_index in 0..document.pages().len() {
-            // Check memory usage periodically
-            if page_index % 10 == 0 {
-                let current_memory = self.get_memory_usage();
-                if current_memory > initial_memory + (200 * 1024 * 1024) { // 200MB spike threshold
-                    return Err(PdfError::MemoryLimit {
-                        used: current_memory,
-                        limit: initial_memory + (200 * 1024 * 1024),
-                    });
+            // Update progress with actual page count
+            if let Some(ref callback) = progress_callback_moved {
+                callback(0, total_pages);
+            }
+
+            // Extract content page by page with memory monitoring
+            for page_index in 0..document.pages().len() {
+                // Check memory usage periodically
+                if page_index % 10 == 0 {
+                    let current_memory = processor_clone.get_memory_usage();
+                    if current_memory > initial_memory + (200 * 1024 * 1024) { // 200MB spike threshold
+                        return Err(PdfError::MemoryLimit {
+                            used: current_memory,
+                            limit: initial_memory + (200 * 1024 * 1024),
+                        });
+                    }
+                }
+
+                let page = document
+                    .pages()
+                    .get(page_index)
+                    .map_err(|e| PdfError::ProcessingError {
+                        message: format!("Failed to get page {}: {}", page_index, e),
+                    })?;
+
+                processor_clone.extract_page_content(&page, page_index.into(), &config, &mut extraction_results)?;
+
+                // Update progress after each page
+                if let Some(ref callback) = progress_callback_moved {
+                    callback(page_index as u32 + 1, total_pages);
                 }
             }
 
-            let page = document
-                .pages()
-                .get(page_index)
-                .map_err(|e| PdfError::ProcessingError {
-                    message: format!("Failed to get page {}: {}", page_index, e),
-                })?;
+            // Check if OCR is needed
+            processor_clone.handle_ocr_if_needed(&mut extraction_results, &config);
 
-            self.extract_page_content(&page, page_index.into(), config, &mut extraction_results)?;
+            // Extract comprehensive metadata
+            let metadata = processor_clone.extract_metadata(&document, total_pages, &config)?;
 
-            // Update progress after each page
-            if let Some(ref callback) = progress_callback {
-                callback(page_index as u32 + 1, total_pages);
-            }
+            let processing_time = start_time.elapsed().as_millis() as u64;
+            let final_memory = processor_clone.get_memory_usage();
 
-            // Yield control periodically for large documents
-            if page_index % 5 == 0 {
-                tokio::task::yield_now().await;
-            }
-        }
-
-        // Check if OCR is needed
-        self.handle_ocr_if_needed(&mut extraction_results, config);
-
-        // Extract comprehensive metadata
-        let metadata = self.extract_metadata(&document, total_pages, config)?;
-
-        let processing_time = start_time.elapsed().as_millis() as u64;
-        let final_memory = self.get_memory_usage();
-
-        Ok(self.build_processing_result(
-            extraction_results,
-            metadata,
-            processing_time,
-            data.len() as u64,
-            config,
-            final_memory.saturating_sub(initial_memory),
-        ))
+            Ok(processor_clone.build_processing_result(
+                extraction_results,
+                metadata,
+                processing_time,
+                data.len() as u64,
+                &config,
+                final_memory.saturating_sub(initial_memory),
+            ))
+        }).await.map_err(|e| PdfError::ProcessingError { message: format!("Blocking task failed: {}", e) })?
     }
 
     #[cfg(feature = "pdf")]
@@ -498,84 +500,89 @@ impl PdfiumProcessor {
                 message: "Failed to acquire processing permit".to_string(),
             })?;
 
-        // Validate input
-        if pdf_bytes.len() as u64 > self.capabilities.max_file_size {
-            return Err(PdfError::FileTooLarge {
-                size: pdf_bytes.len() as u64,
-                max_size: self.capabilities.max_file_size,
-            });
-        }
+        let processor_clone = self.clone();
+        let pdf_bytes = pdf_bytes.to_vec();
 
-        utils::validate_pdf_header(pdf_bytes)
-            .map_err(|msg| PdfError::InvalidPdf { message: msg })?;
+        tokio::task::spawn_blocking(move || {
+            // Validate input
+            if pdf_bytes.len() as u64 > processor_clone.capabilities.max_file_size {
+                return Err(PdfError::FileTooLarge {
+                    size: pdf_bytes.len() as u64,
+                    max_size: processor_clone.capabilities.max_file_size,
+                });
+            }
 
-        // Initialize and process
-        let pdfium = self.initialize_pdfium()?;
-        let document = self.load_document(&pdfium, pdf_bytes)?;
+            utils::validate_pdf_header(&pdf_bytes)
+                .map_err(|msg| PdfError::InvalidPdf { message: msg })?;
 
-        let mut text = String::new();
-        let mut metadata = HashMap::new();
-        let mut images_count = 0;
-        let links = Vec::new();
-        let mut media = Vec::new();
+            // Initialize and process
+            let pdfium = processor_clone.initialize_pdfium()?;
+            let document = processor_clone.load_document(&pdfium, &pdf_bytes)?;
 
-        // Extract content
-        for page_index in 0..document.pages().len() {
-            let page = document
-                .pages()
-                .get(page_index)
-                .map_err(|e| PdfError::ProcessingError {
-                    message: format!("Failed to get page {}: {}", page_index, e),
-                })?;
+            let mut text = String::new();
+            let mut metadata = HashMap::new();
+            let mut images_count = 0;
+            let links = Vec::new();
+            let mut media = Vec::new();
 
-            let page_text = page
-                .text()
-                .map_err(|e| PdfError::ProcessingError {
-                    message: format!("Failed to extract text from page {}: {}", page_index, e),
-                })?
-                .all();
+            // Extract content
+            for page_index in 0..document.pages().len() {
+                let page = document
+                    .pages()
+                    .get(page_index)
+                    .map_err(|e| PdfError::ProcessingError {
+                        message: format!("Failed to get page {}: {}", page_index, e),
+                    })?;
 
-            text.push_str(&page_text);
-            text.push('\n');
+                let page_text = page
+                    .text()
+                    .map_err(|e| PdfError::ProcessingError {
+                        message: format!("Failed to extract text from page {}: {}", page_index, e),
+                    })?
+                    .all();
 
-            // Count images
-            images_count += page
-                .objects()
-                .iter()
-                .filter(|obj| matches!(obj.object_type(), PdfPageObjectType::Image))
-                .count();
-        }
+                text.push_str(&page_text);
+                text.push('\n');
 
-        // Add metadata
-        metadata.insert("extracted_by".to_string(), "riptide-pdf".to_string());
-        metadata.insert("pages".to_string(), document.pages().len().to_string());
+                // Count images
+                images_count += page
+                    .objects()
+                    .iter()
+                    .filter(|obj| matches!(obj.object_type(), PdfPageObjectType::Image))
+                    .count();
+            }
 
-        // Add image placeholders
-        for i in 0..images_count {
-            media.push(format!("pdf:image:{}", i));
-        }
+            // Add metadata
+            metadata.insert("extracted_by".to_string(), "riptide-pdf".to_string());
+            metadata.insert("pages".to_string(), document.pages().len().to_string());
 
-        // Calculate reading time
-        let word_count = text.split_whitespace().count() as u32;
-        let reading_time = Some(utils::estimate_reading_time(word_count));
+            // Add image placeholders
+            for i in 0..images_count {
+                media.push(format!("pdf:image:{}", i));
+            }
 
-        Ok(crate::types::ExtractedDoc {
-            url: "pdf://document".to_string(),
-            title: metadata.get("title").cloned(),
-            byline: metadata.get("author").cloned(),
-            published_iso: None,
-            markdown: text.clone(),
-            text: text.clone(),
-            links,
-            media,
-            language: None,
-            reading_time,
-            quality_score: Some(85),
-            word_count: Some(word_count),
-            categories: vec!["document".to_string(), "pdf".to_string()],
-            site_name: metadata.get("producer").cloned(),
-            description: metadata.get("subject").cloned(),
-        })
+            // Calculate reading time
+            let word_count = text.split_whitespace().count() as u32;
+            let reading_time = Some(utils::estimate_reading_time(word_count));
+
+            Ok(crate::types::ExtractedDoc {
+                url: "pdf://document".to_string(),
+                title: metadata.get("title").cloned(),
+                byline: metadata.get("author").cloned(),
+                published_iso: None,
+                markdown: text.clone(),
+                text: text.clone(),
+                links,
+                media,
+                language: None,
+                reading_time,
+                quality_score: Some(85),
+                word_count: Some(word_count),
+                categories: vec!["document".to_string(), "pdf".to_string()],
+                site_name: metadata.get("producer").cloned(),
+                description: metadata.get("subject").cloned(),
+            })
+        }).await.map_err(|e| PdfError::ProcessingError { message: format!("Blocking task failed: {}", e) })?
     }
 }
 
@@ -605,39 +612,44 @@ impl PdfProcessor for PdfiumProcessor {
                 message: "Failed to acquire processing permit".to_string(),
             })?;
 
-        utils::validate_pdf_header(data).map_err(|msg| PdfError::InvalidPdf { message: msg })?;
+        let processor_clone = self.clone();
+        let data = data.to_vec();
 
-        let pdfium = self.initialize_pdfium()?;
-        let document = self.load_document(&pdfium, data)?;
+        tokio::task::spawn_blocking(move || {
+            utils::validate_pdf_header(&data).map_err(|msg| PdfError::InvalidPdf { message: msg })?;
 
-        // Check first few pages for text content
-        let pages_to_check = (document.pages().len().min(3)) as usize;
-        let mut has_text = false;
+            let pdfium = processor_clone.initialize_pdfium()?;
+            let document = processor_clone.load_document(&pdfium, &data)?;
 
-        for page_index in 0..pages_to_check {
-            if let Ok(page) = document.pages().get(page_index as u16) {
-                if let Ok(text_obj) = page.text() {
-                    let page_text = text_obj.all();
-                    if !page_text.trim().is_empty() {
-                        has_text = true;
-                        break;
+            // Check first few pages for text content
+            let pages_to_check = (document.pages().len().min(3)) as usize;
+            let mut has_text = false;
+
+            for page_index in 0..pages_to_check {
+                if let Ok(page) = document.pages().get(page_index as u16) {
+                    if let Ok(text_obj) = page.text() {
+                        let page_text = text_obj.all();
+                        if !page_text.trim().is_empty() {
+                            has_text = true;
+                            break;
+                        }
                     }
                 }
             }
-        }
 
-        // If no text found but has images, likely needs OCR
-        if !has_text {
-            if let Ok(page) = document.pages().get(0u16) {
-                let has_images = page
-                    .objects()
-                    .iter()
-                    .any(|obj| matches!(obj.object_type(), PdfPageObjectType::Image));
-                return Ok(has_images);
+            // If no text found but has images, likely needs OCR
+            if !has_text {
+                if let Ok(page) = document.pages().get(0u16) {
+                    let has_images = page
+                        .objects()
+                        .iter()
+                        .any(|obj| matches!(obj.object_type(), PdfPageObjectType::Image));
+                    return Ok(has_images);
+                }
             }
-        }
 
-        Ok(false)
+            Ok(false)
+        }).await.map_err(|e| PdfError::ProcessingError { message: format!("Blocking task failed: {}", e) })?
     }
 
     fn is_available(&self) -> bool {

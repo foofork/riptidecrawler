@@ -50,7 +50,7 @@ wasmtime = { version = "26", features = ["cache", "component-model"] }  # Keep 2
 wasmtime-wasi = "26"
 chromiumoxide = "0.7"  # Keep for stability
 spider = "2"
-pdfium-render = "0.8"
+pdfium-render = { version = "0.8", features = ["sync", "thread_safe"] }
 
 # Performance optimization settings
 [profile.release]
