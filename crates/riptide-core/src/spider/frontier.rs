@@ -53,6 +53,7 @@ impl Default for FrontierConfig {
 struct PriorityRequest {
     request: CrawlRequest,
     score: f64,
+    #[allow(dead_code)]
     insertion_time: Instant,
 }
 
@@ -81,6 +82,7 @@ impl Ord for PriorityRequest {
 #[derive(Debug)]
 struct HostQueue {
     /// Host name
+    #[allow(dead_code)]
     host: String,
     /// Requests for this host
     requests: VecDeque<CrawlRequest>,

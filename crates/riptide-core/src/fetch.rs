@@ -323,6 +323,7 @@ impl FetchEngine {
 }
 
 /// Check if an error is retryable
+#[allow(dead_code)]
 fn is_retryable_error(error: &reqwest::Error) -> bool {
     error.is_timeout() || error.is_connect() || error.is_request() // Connection-level issues
 }

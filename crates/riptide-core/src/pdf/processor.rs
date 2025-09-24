@@ -394,7 +394,7 @@ impl PdfiumProcessor {
         let producer = None;
         let creation_date = None;
         let modification_date = None;
-        let mut pdf_version = None;
+        let pdf_version;
 
         // Extract PDF version from document
         let version = document.version();
@@ -402,7 +402,7 @@ impl PdfiumProcessor {
         pdf_version = Some(format!("{:?}", version));
 
         // Check document permissions - use conservative defaults if API unavailable
-        let permissions = document.permissions();
+        let _permissions = document.permissions();
         // Note: API methods changed - using safe defaults until proper methods are found
         let allows_copying = true; // Default to allowed
         let allows_printing = true; // Default to allowed
