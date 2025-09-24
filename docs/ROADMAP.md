@@ -4,7 +4,7 @@ Absolutely — here’s a **single, consolidated roadmap** that **replaces** the
 
 # RipTide Crawler — Consolidated & Prioritized Roadmap (Supersedes Prior Draft)
 
-## 0) Snapshot (Updated: 2025-09-24)
+## 0) Snapshot (Updated: 2025-01-24 - Latest Review)
 
 * **✅ Done:** Phase 0 (Foundation), Phase 1 (Core), Phase 2-Lite (Reliability), Phase 3 PR-1 (Headless RPC v2), PR-2 (Stealth)
 * **✅ Browser Pool Integration:** Fully wired and functional in ResourceManager
@@ -200,10 +200,10 @@ stealth:
 
 * **Acceptance:** ≥80% success on bot-detection targets.
 
-### PR-3: NDJSON Streaming — **NEXT**
+### PR-3: NDJSON Streaming — **✅ COMPLETED**
 
-* Code sketch already defined; see §1.5.
-* **Acceptance:** see §1.5.
+* Implementation complete with all requirements met
+* See §1.7 for detailed status
 
 ### PR-4: PDF Pipeline (pdfium) — **IN PROGRESS / Week 3**
 
