@@ -164,22 +164,26 @@ impl ResourceManager {
         let metrics = Arc::new(ResourceMetrics::default());
 
         // Initialize headless browser pool
-        let headless_pool = Arc::new(HeadlessBrowserPool::new(config.clone(), metrics.clone()).await?);
+        let headless_pool =
+            Arc::new(HeadlessBrowserPool::new(config.clone(), metrics.clone()).await?);
 
         // Initialize per-host rate limiter
-        let rate_limiter = Arc::new(PerHostRateLimiter::new(config.clone(), metrics.clone()).await?);
+        let rate_limiter =
+            Arc::new(PerHostRateLimiter::new(config.clone(), metrics.clone()).await?);
 
         // Initialize PDF semaphore
         let pdf_semaphore = Arc::new(Semaphore::new(config.pdf.max_concurrent));
 
         // Initialize WASM instance manager
-        let wasm_manager = Arc::new(WasmInstanceManager::new(config.clone(), metrics.clone()).await?);
+        let wasm_manager =
+            Arc::new(WasmInstanceManager::new(config.clone(), metrics.clone()).await?);
 
         // Initialize memory manager
         let memory_manager = Arc::new(MemoryManager::new(config.clone(), metrics.clone()).await?);
 
         // Initialize performance monitor
-        let performance_monitor = Arc::new(PerformanceMonitor::new(config.clone(), metrics.clone()).await?);
+        let performance_monitor =
+            Arc::new(PerformanceMonitor::new(config.clone(), metrics.clone()).await?);
 
         info!(
             headless_pool_cap = config.headless.max_pool_size,
@@ -201,7 +205,10 @@ impl ResourceManager {
     }
 
     /// Acquire resources for render operation with comprehensive controls
-    pub async fn acquire_render_resources(&self, url: &str) -> Result<ResourceResult<RenderResourceGuard>> {
+    pub async fn acquire_render_resources(
+        &self,
+        url: &str,
+    ) -> Result<ResourceResult<RenderResourceGuard>> {
         let start_time = Instant::now();
 
         // 1. Check memory pressure first
@@ -213,7 +220,7 @@ impl ResourceManager {
         // 2. Apply per-host rate limiting with jitter
         let host = self.extract_host(url)?;
         match self.rate_limiter.check_rate_limit(&host).await {
-            Ok(()) => {},
+            Ok(()) => {}
             Err(retry_after) => {
                 debug!(host = %host, retry_after_ms = retry_after.as_millis(), "Rate limited");
                 return Ok(ResourceResult::RateLimited { retry_after });
@@ -223,8 +230,9 @@ impl ResourceManager {
         // 3. Acquire headless browser with timeout
         let browser_result = timeout(
             self.config.get_timeout("render"),
-            self.headless_pool.acquire_browser()
-        ).await;
+            self.headless_pool.acquire_browser(),
+        )
+        .await;
 
         let browser_guard = match browser_result {
             Ok(Ok(guard)) => guard,
@@ -270,10 +278,8 @@ impl ResourceManager {
         }
 
         // Acquire PDF semaphore with timeout
-        let permit_result = timeout(
-            self.config.get_timeout("pdf"),
-            self.pdf_semaphore.acquire()
-        ).await;
+        let permit_result =
+            timeout(self.config.get_timeout("pdf"), self.pdf_semaphore.acquire()).await;
 
         let permit = match permit_result {
             Ok(Ok(permit)) => permit,
@@ -314,7 +320,9 @@ impl ResourceManager {
             self.memory_manager.trigger_gc().await;
         }
 
-        self.metrics.cleanup_operations.fetch_add(1, Ordering::Relaxed);
+        self.metrics
+            .cleanup_operations
+            .fetch_add(1, Ordering::Relaxed);
     }
 
     /// Get current resource status
@@ -334,10 +342,10 @@ impl ResourceManager {
 
     // Helper methods
     fn extract_host(&self, url: &str) -> Result<String> {
-        let parsed = Url::parse(url)
-            .map_err(|e| anyhow!("Invalid URL: {}", e))?;
+        let parsed = Url::parse(url).map_err(|e| anyhow!("Invalid URL: {}", e))?;
 
-        Ok(parsed.host_str()
+        Ok(parsed
+            .host_str()
             .ok_or_else(|| anyhow!("No host in URL"))?
             .to_string())
     }
@@ -433,7 +441,9 @@ impl HeadlessBrowserPool {
         if self.total_browsers.load(Ordering::Relaxed) < self.config.headless.max_pool_size {
             let instance = self.create_browser().await?;
             self.total_browsers.fetch_add(1, Ordering::Relaxed);
-            self.metrics.headless_pool_size.fetch_add(1, Ordering::Relaxed);
+            self.metrics
+                .headless_pool_size
+                .fetch_add(1, Ordering::Relaxed);
             self.metrics.headless_active.fetch_add(1, Ordering::Relaxed);
 
             return Ok(BrowserGuard {
@@ -464,7 +474,8 @@ impl HeadlessBrowserPool {
         instance.is_healthy
             && instance.operations_count < self.config.headless.max_pages_per_browser as u32
             && instance.failed_operations < self.config.headless.restart_threshold
-            && instance.last_used.elapsed() < Duration::from_secs(self.config.headless.idle_timeout_secs)
+            && instance.last_used.elapsed()
+                < Duration::from_secs(self.config.headless.idle_timeout_secs)
     }
 
     async fn return_browser(&self, mut instance: BrowserInstance) {
@@ -474,7 +485,9 @@ impl HeadlessBrowserPool {
         } else {
             info!(browser_id = %instance.id, "Discarding unhealthy browser");
             self.total_browsers.fetch_sub(1, Ordering::Relaxed);
-            self.metrics.headless_pool_size.fetch_sub(1, Ordering::Relaxed);
+            self.metrics
+                .headless_pool_size
+                .fetch_sub(1, Ordering::Relaxed);
         }
 
         self.metrics.headless_active.fetch_sub(1, Ordering::Relaxed);
@@ -488,7 +501,9 @@ impl HeadlessBrowserPool {
                 let mut browsers = self.available_browsers.lock().await;
                 browsers.push(instance);
                 self.total_browsers.fetch_add(1, Ordering::Relaxed);
-                self.metrics.headless_pool_size.fetch_add(1, Ordering::Relaxed);
+                self.metrics
+                    .headless_pool_size
+                    .fetch_add(1, Ordering::Relaxed);
             }
         }
         Ok(())
@@ -541,17 +556,20 @@ impl PerHostRateLimiter {
         let now = Instant::now();
         let mut buckets = self.host_buckets.write().await;
 
-        let bucket = buckets.entry(host.to_string()).or_insert_with(|| HostBucket {
-            tokens: self.config.rate_limiting.requests_per_second_per_host,
-            last_refill: now,
-            request_count: 0,
-            last_request: now,
-        });
+        let bucket = buckets
+            .entry(host.to_string())
+            .or_insert_with(|| HostBucket {
+                tokens: self.config.rate_limiting.requests_per_second_per_host,
+                last_refill: now,
+                request_count: 0,
+                last_request: now,
+            });
 
         // Refill tokens based on time elapsed
         let time_passed = now.duration_since(bucket.last_refill).as_secs_f64();
         let tokens_to_add = time_passed * self.config.rate_limiting.requests_per_second_per_host;
-        bucket.tokens = (bucket.tokens + tokens_to_add).min(self.config.rate_limiting.burst_capacity_per_host as f64);
+        bucket.tokens = (bucket.tokens + tokens_to_add)
+            .min(self.config.rate_limiting.burst_capacity_per_host as f64);
         bucket.last_refill = now;
 
         // Check if request can be served
@@ -569,7 +587,9 @@ impl PerHostRateLimiter {
             Ok(())
         } else {
             self.metrics.rate_limit_hits.fetch_add(1, Ordering::Relaxed);
-            let retry_after = Duration::from_secs_f64(1.0 / self.config.rate_limiting.requests_per_second_per_host);
+            let retry_after = Duration::from_secs_f64(
+                1.0 / self.config.rate_limiting.requests_per_second_per_host,
+            );
             Err(retry_after)
         }
     }
@@ -643,7 +663,9 @@ impl MemoryManager {
 
     async fn track_allocation(&self, size_mb: usize) {
         let current = self.current_usage.fetch_add(size_mb, Ordering::Relaxed);
-        self.metrics.memory_usage_mb.store(current + size_mb, Ordering::Relaxed);
+        self.metrics
+            .memory_usage_mb
+            .store(current + size_mb, Ordering::Relaxed);
 
         // Check for memory pressure
         if self.config.is_memory_pressure(current + size_mb) {
@@ -654,10 +676,15 @@ impl MemoryManager {
 
     async fn track_deallocation(&self, size_mb: usize) {
         let current = self.current_usage.fetch_sub(size_mb, Ordering::Relaxed);
-        self.metrics.memory_usage_mb.store(current.saturating_sub(size_mb), Ordering::Relaxed);
+        self.metrics
+            .memory_usage_mb
+            .store(current.saturating_sub(size_mb), Ordering::Relaxed);
 
         // Update pressure status
-        if !self.config.is_memory_pressure(current.saturating_sub(size_mb)) {
+        if !self
+            .config
+            .is_memory_pressure(current.saturating_sub(size_mb))
+        {
             self.pressure_detected.store(false, Ordering::Relaxed);
         }
     }
@@ -678,9 +705,11 @@ impl MemoryManager {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_secs(),
-            Ordering::Relaxed
+            Ordering::Relaxed,
         );
-        self.metrics.cleanup_operations.fetch_add(1, Ordering::Relaxed);
+        self.metrics
+            .cleanup_operations
+            .fetch_add(1, Ordering::Relaxed);
     }
 
     async fn trigger_gc(&self) {
@@ -691,7 +720,7 @@ impl MemoryManager {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_secs(),
-            Ordering::Relaxed
+            Ordering::Relaxed,
         );
         self.metrics.gc_triggers.fetch_add(1, Ordering::Relaxed);
     }
@@ -732,7 +761,10 @@ impl Drop for RenderResourceGuard {
 
         // Spawn cleanup task
         tokio::spawn(async move {
-            manager.memory_manager.track_deallocation(memory_tracked).await;
+            manager
+                .memory_manager
+                .track_deallocation(memory_tracked)
+                .await;
         });
     }
 }
@@ -745,7 +777,10 @@ impl Drop for PdfResourceGuard {
         manager.metrics.pdf_active.fetch_sub(1, Ordering::Relaxed);
 
         tokio::spawn(async move {
-            manager.memory_manager.track_deallocation(memory_tracked).await;
+            manager
+                .memory_manager
+                .track_deallocation(memory_tracked)
+                .await;
         });
     }
 }

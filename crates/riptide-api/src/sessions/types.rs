@@ -345,13 +345,12 @@ impl CookieJar {
     pub fn remove_expired(&mut self) {
         let now = SystemTime::now();
         for domain_cookies in self.cookies.values_mut() {
-            domain_cookies.retain(|_, cookie| {
-                cookie.expires.map_or(true, |expires| expires > now)
-            });
+            domain_cookies.retain(|_, cookie| cookie.expires.map_or(true, |expires| expires > now));
         }
 
         // Remove empty domains
-        self.cookies.retain(|_, domain_cookies| !domain_cookies.is_empty());
+        self.cookies
+            .retain(|_, domain_cookies| !domain_cookies.is_empty());
     }
 }
 
@@ -408,6 +407,7 @@ impl Cookie {
 
     /// Check if the cookie has expired
     pub fn is_expired(&self) -> bool {
-        self.expires.map_or(false, |expires| SystemTime::now() > expires)
+        self.expires
+            .map_or(false, |expires| SystemTime::now() > expires)
     }
 }

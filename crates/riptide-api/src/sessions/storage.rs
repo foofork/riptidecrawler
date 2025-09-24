@@ -46,11 +46,11 @@ impl SessionStorage {
     pub async fn new(config: SessionConfig) -> Result<Self> {
         // Ensure base directory exists
         if !config.base_data_dir.exists() {
-            fs::create_dir_all(&config.base_data_dir).await.map_err(|e| {
-                SessionError::DirectoryCreationFailed {
+            fs::create_dir_all(&config.base_data_dir)
+                .await
+                .map_err(|e| SessionError::DirectoryCreationFailed {
                     path: config.base_data_dir.to_string_lossy().to_string(),
-                }
-            })?;
+                })?;
             info!(
                 path = %config.base_data_dir.display(),
                 "Created session storage directory"
@@ -101,7 +101,8 @@ impl SessionStorage {
         {
             let sessions = self.sessions.read().await;
             if sessions.len() >= self.config.max_sessions
-                && !sessions.contains_key(&session.session_id) {
+                && !sessions.contains_key(&session.session_id)
+            {
                 return Err(SessionError::MaxSessionsReached {
                     max_sessions: self.config.max_sessions,
                 });
@@ -143,11 +144,11 @@ impl SessionStorage {
 
         // Ensure user data directory exists
         if !session.user_data_dir.exists() {
-            fs::create_dir_all(&session.user_data_dir).await.map_err(|e| {
-                SessionError::DirectoryCreationFailed {
+            fs::create_dir_all(&session.user_data_dir)
+                .await
+                .map_err(|e| SessionError::DirectoryCreationFailed {
                     path: session.user_data_dir.to_string_lossy().to_string(),
-                }
-            })?;
+                })?;
         }
 
         self.store_session(session.clone()).await?;
@@ -220,10 +221,7 @@ impl SessionStorage {
         }
 
         if removed_count > 0 {
-            info!(
-                expired_count = removed_count,
-                "Cleaned up expired sessions"
-            );
+            info!(expired_count = removed_count, "Cleaned up expired sessions");
         }
 
         Ok(removed_count)
@@ -271,17 +269,19 @@ impl SessionStorage {
     async fn load_existing_sessions(&self) -> Result<()> {
         let mut loaded_count = 0;
 
-        let mut entries = fs::read_dir(&self.config.base_data_dir).await.map_err(|e| {
-            SessionError::IoError {
+        let mut entries = fs::read_dir(&self.config.base_data_dir)
+            .await
+            .map_err(|e| SessionError::IoError {
                 error: format!("Failed to read session directory: {}", e),
-            }
-        })?;
+            })?;
 
-        while let Some(entry) = entries.next_entry().await.map_err(|e| {
-            SessionError::IoError {
+        while let Some(entry) = entries
+            .next_entry()
+            .await
+            .map_err(|e| SessionError::IoError {
                 error: format!("Failed to read directory entry: {}", e),
-            }
-        })? {
+            })?
+        {
             let path = entry.path();
             if path.is_dir() {
                 let session_file = path.join("session.json");
@@ -320,8 +320,13 @@ impl SessionStorage {
     }
 
     /// Load a specific session from disk
-    async fn load_session_from_disk(&self, session_id: &str) -> Result<Option<Session>, SessionError> {
-        let session_file = self.config.base_data_dir
+    async fn load_session_from_disk(
+        &self,
+        session_id: &str,
+    ) -> Result<Option<Session>, SessionError> {
+        let session_file = self
+            .config
+            .base_data_dir
             .join(session_id)
             .join("session.json");
 
@@ -333,18 +338,21 @@ impl SessionStorage {
     }
 
     /// Load session from a specific file
-    async fn load_session_file(&self, session_file: &PathBuf) -> Result<Option<Session>, SessionError> {
-        let content = fs::read_to_string(session_file).await.map_err(|e| {
-            SessionError::IoError {
-                error: format!("Failed to read session file: {}", e),
-            }
-        })?;
+    async fn load_session_file(
+        &self,
+        session_file: &PathBuf,
+    ) -> Result<Option<Session>, SessionError> {
+        let content =
+            fs::read_to_string(session_file)
+                .await
+                .map_err(|e| SessionError::IoError {
+                    error: format!("Failed to read session file: {}", e),
+                })?;
 
-        let session: Session = serde_json::from_str(&content).map_err(|e| {
-            SessionError::DeserializationError {
+        let session: Session =
+            serde_json::from_str(&content).map_err(|e| SessionError::DeserializationError {
                 error: format!("Failed to deserialize session: {}", e),
-            }
-        })?;
+            })?;
 
         if session.is_expired() {
             // Clean up expired session
@@ -392,11 +400,11 @@ impl SessionStorage {
         })?;
 
         // Write to file
-        fs::write(&session_file, content).await.map_err(|e| {
-            SessionError::IoError {
+        fs::write(&session_file, content)
+            .await
+            .map_err(|e| SessionError::IoError {
                 error: format!("Failed to write session file: {}", e),
-            }
-        })?;
+            })?;
 
         debug!(
             session_id = %session.session_id,
@@ -410,11 +418,11 @@ impl SessionStorage {
     /// Remove session data from disk
     async fn remove_session_from_disk(&self, session: &Session) -> Result<(), SessionError> {
         if session.user_data_dir.exists() {
-            fs::remove_dir_all(&session.user_data_dir).await.map_err(|e| {
-                SessionError::IoError {
+            fs::remove_dir_all(&session.user_data_dir)
+                .await
+                .map_err(|e| SessionError::IoError {
                     error: format!("Failed to remove session directory: {}", e),
-                }
-            })?;
+                })?;
 
             debug!(
                 session_id = %session.session_id,

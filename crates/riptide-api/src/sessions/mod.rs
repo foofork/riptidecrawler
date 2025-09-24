@@ -1,12 +1,12 @@
-pub mod storage;
-pub mod middleware;
-pub mod types;
 pub mod manager;
+pub mod middleware;
+pub mod storage;
+pub mod types;
 
-pub use types::*;
-pub use storage::*;
-pub use middleware::*;
 pub use manager::*;
+pub use middleware::*;
+pub use storage::*;
+pub use types::*;
 
 use anyhow::Result;
 use std::sync::Arc;

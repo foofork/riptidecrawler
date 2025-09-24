@@ -117,9 +117,7 @@ impl RpcClient {
     pub async fn health_check(&self) -> Result<()> {
         let response = tokio::time::timeout(
             Duration::from_secs(2),
-            self.client
-                .get(&format!("{}/health", self.base_url))
-                .send(),
+            self.client.get(&format!("{}/health", self.base_url)).send(),
         )
         .await
         .map_err(|_| anyhow!("Health check timed out"))?
@@ -333,7 +331,11 @@ mod tests {
         }
 
         match &converted[1] {
-            HeadlessPageAction::Type { css, text, delay_ms } => {
+            HeadlessPageAction::Type {
+                css,
+                text,
+                delay_ms,
+            } => {
                 assert_eq!(css, "#input");
                 assert_eq!(text, "test");
                 assert_eq!(*delay_ms, Some(500));

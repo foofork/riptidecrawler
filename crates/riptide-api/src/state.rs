@@ -157,7 +157,8 @@ impl AppState {
         metrics: Arc<RipTideMetrics>,
         health_checker: Arc<HealthChecker>,
     ) -> Result<Self> {
-        Self::new_with_telemetry_and_api_config(config, api_config, metrics, health_checker, None).await
+        Self::new_with_telemetry_and_api_config(config, api_config, metrics, health_checker, None)
+            .await
     }
 
     /// Initialize the application state with telemetry integration
@@ -168,7 +169,14 @@ impl AppState {
         telemetry: Option<Arc<TelemetrySystem>>,
     ) -> Result<Self> {
         let api_config = ApiConfig::from_env();
-        Self::new_with_telemetry_and_api_config(config, api_config, metrics, health_checker, telemetry).await
+        Self::new_with_telemetry_and_api_config(
+            config,
+            api_config,
+            metrics,
+            health_checker,
+            telemetry,
+        )
+        .await
     }
 
     /// Initialize the application state with telemetry and custom API configuration
@@ -182,7 +190,8 @@ impl AppState {
         tracing::info!("Initializing application state with resource controls");
 
         // Validate API configuration
-        api_config.validate()
+        api_config
+            .validate()
             .map_err(|e| anyhow::anyhow!("Invalid API configuration: {}", e))?;
 
         // Initialize HTTP client with optimized settings
@@ -276,15 +285,16 @@ impl AppState {
 
         // Check resource manager status
         let resource_status = self.resource_manager.get_resource_status().await;
-        health.resource_manager = if resource_status.memory_pressure || resource_status.degradation_score > 0.8 {
-            health.healthy = false;
-            DependencyHealth::Unhealthy(format!(
-                "Resource constraints: memory_pressure={}, degradation_score={:.2}",
-                resource_status.memory_pressure, resource_status.degradation_score
-            ))
-        } else {
-            DependencyHealth::Healthy
-        };
+        health.resource_manager =
+            if resource_status.memory_pressure || resource_status.degradation_score > 0.8 {
+                health.healthy = false;
+                DependencyHealth::Unhealthy(format!(
+                    "Resource constraints: memory_pressure={}, degradation_score={:.2}",
+                    resource_status.memory_pressure, resource_status.degradation_score
+                ))
+            } else {
+                DependencyHealth::Healthy
+            };
 
         health
     }

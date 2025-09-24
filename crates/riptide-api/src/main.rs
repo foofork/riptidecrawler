@@ -119,16 +119,46 @@ async fn main() -> anyhow::Result<()> {
         // Session management endpoints
         .route("/sessions", post(handlers::sessions::create_session))
         .route("/sessions", get(handlers::sessions::list_sessions))
-        .route("/sessions/stats", get(handlers::sessions::get_session_stats))
-        .route("/sessions/cleanup", post(handlers::sessions::cleanup_expired_sessions))
-        .route("/sessions/:session_id", get(handlers::sessions::get_session_info))
-        .route("/sessions/:session_id", axum::routing::delete(handlers::sessions::delete_session))
-        .route("/sessions/:session_id/extend", post(handlers::sessions::extend_session))
-        .route("/sessions/:session_id/cookies", post(handlers::sessions::set_cookie))
-        .route("/sessions/:session_id/cookies", axum::routing::delete(handlers::sessions::clear_cookies))
-        .route("/sessions/:session_id/cookies/:domain", get(handlers::sessions::get_cookies_for_domain))
-        .route("/sessions/:session_id/cookies/:domain/:name", get(handlers::sessions::get_cookie))
-        .route("/sessions/:session_id/cookies/:domain/:name", axum::routing::delete(handlers::sessions::delete_cookie))
+        .route(
+            "/sessions/stats",
+            get(handlers::sessions::get_session_stats),
+        )
+        .route(
+            "/sessions/cleanup",
+            post(handlers::sessions::cleanup_expired_sessions),
+        )
+        .route(
+            "/sessions/:session_id",
+            get(handlers::sessions::get_session_info),
+        )
+        .route(
+            "/sessions/:session_id",
+            axum::routing::delete(handlers::sessions::delete_session),
+        )
+        .route(
+            "/sessions/:session_id/extend",
+            post(handlers::sessions::extend_session),
+        )
+        .route(
+            "/sessions/:session_id/cookies",
+            post(handlers::sessions::set_cookie),
+        )
+        .route(
+            "/sessions/:session_id/cookies",
+            axum::routing::delete(handlers::sessions::clear_cookies),
+        )
+        .route(
+            "/sessions/:session_id/cookies/:domain",
+            get(handlers::sessions::get_cookies_for_domain),
+        )
+        .route(
+            "/sessions/:session_id/cookies/:domain/:name",
+            get(handlers::sessions::get_cookie),
+        )
+        .route(
+            "/sessions/:session_id/cookies/:domain/:name",
+            axum::routing::delete(handlers::sessions::delete_cookie),
+        )
         .fallback(handlers::not_found)
         .with_state(app_state.clone())
         .layer(create_session_layer(app_state.session_manager.clone()))

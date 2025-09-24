@@ -205,7 +205,7 @@ impl Default for RateLimitingConfig {
         Self {
             enabled: true,
             requests_per_second_per_host: 1.5, // Requirement: 1.5 RPS
-            jitter_factor: 0.1, // 10% jitter
+            jitter_factor: 0.1,                // 10% jitter
             burst_capacity_per_host: 3,
             window_duration_secs: 60,
             cleanup_interval_secs: 300,
@@ -434,15 +434,9 @@ mod tests {
     fn test_timeout_selection() {
         let config = ApiConfig::default();
 
-        assert_eq!(
-            config.get_timeout("render"),
-            Duration::from_secs(3)
-        );
+        assert_eq!(config.get_timeout("render"), Duration::from_secs(3));
 
-        assert_eq!(
-            config.get_timeout("pdf"),
-            Duration::from_secs(10)
-        );
+        assert_eq!(config.get_timeout("pdf"), Duration::from_secs(10));
     }
 
     #[test]

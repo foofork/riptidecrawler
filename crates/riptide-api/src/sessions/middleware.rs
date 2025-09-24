@@ -61,9 +61,14 @@ impl SessionMiddleware {
         let mut response = next.run(request).await;
 
         // Set session cookie in response
-        let cookie_value = format!("riptide_session_id={}; Path=/; HttpOnly; Max-Age=86400", session_id);
+        let cookie_value = format!(
+            "riptide_session_id={}; Path=/; HttpOnly; Max-Age=86400",
+            session_id
+        );
         if let Ok(header_value) = HeaderValue::from_str(&cookie_value) {
-            response.headers_mut().insert(header::SET_COOKIE, header_value);
+            response
+                .headers_mut()
+                .insert(header::SET_COOKIE, header_value);
         }
 
         Ok(response)
@@ -145,14 +150,10 @@ where
     type Rejection = (StatusCode, &'static str);
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        parts
-            .extensions
-            .get::<SessionContext>()
-            .cloned()
-            .ok_or((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Session context not found",
-            ))
+        parts.extensions.get::<SessionContext>().cloned().ok_or((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Session context not found",
+        ))
     }
 }
 
@@ -166,7 +167,9 @@ impl IntoResponse for SessionError {
                 StatusCode::SERVICE_UNAVAILABLE,
                 "Maximum number of sessions reached",
             ),
-            SessionError::InvalidSessionId { .. } => (StatusCode::BAD_REQUEST, "Invalid session ID"),
+            SessionError::InvalidSessionId { .. } => {
+                (StatusCode::BAD_REQUEST, "Invalid session ID")
+            }
             _ => (StatusCode::INTERNAL_SERVER_ERROR, "Internal session error"),
         };
 
@@ -250,16 +253,12 @@ pub fn create_session_layer(
     manager: Arc<SessionManager>,
 ) -> axum::middleware::FromFnLayer<
     impl Fn(
-        axum::extract::State<Arc<SessionManager>>,
-        Request,
-        Next,
-    ) -> std::pin::Pin<
-        Box<
-            dyn std::future::Future<Output = Result<Response, StatusCode>>
-                + Send
-                + 'static,
-        >,
-    > + Clone,
+            axum::extract::State<Arc<SessionManager>>,
+            Request,
+            Next,
+        ) -> std::pin::Pin<
+            Box<dyn std::future::Future<Output = Result<Response, StatusCode>> + Send + 'static>,
+        > + Clone,
     Arc<SessionManager>,
 > {
     axum::middleware::from_fn_with_state(manager, SessionMiddleware::session_middleware)
@@ -302,7 +301,8 @@ mod tests {
         };
 
         // Set a test cookie
-        let cookie = super::super::types::Cookie::new("test_cookie".to_string(), "test_value".to_string());
+        let cookie =
+            super::super::types::Cookie::new("test_cookie".to_string(), "test_value".to_string());
         context.set_cookie("example.com", cookie).await.unwrap();
 
         // Create session headers

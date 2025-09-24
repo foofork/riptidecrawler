@@ -73,9 +73,7 @@ pub struct ListSessionsQuery {
 }
 
 /// Create a new session
-pub async fn create_session(
-    State(state): State<AppState>,
-) -> Result<impl IntoResponse, ApiError> {
+pub async fn create_session(State(state): State<AppState>) -> Result<impl IntoResponse, ApiError> {
     let session = state
         .session_manager
         .create_session()

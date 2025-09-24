@@ -24,7 +24,9 @@ async fn test_headless_browser_pool_cap() -> Result<()> {
     // Should be able to acquire up to 3 browser instances
     let mut guards = Vec::new();
     for i in 0..3 {
-        let result = manager.acquire_render_resources(&format!("https://example{}.com", i)).await?;
+        let result = manager
+            .acquire_render_resources(&format!("https://example{}.com", i))
+            .await?;
         match result {
             ResourceResult::Success(guard) => guards.push(guard),
             other => panic!("Expected success, got {:?}", other),
@@ -32,7 +34,9 @@ async fn test_headless_browser_pool_cap() -> Result<()> {
     }
 
     // 4th acquisition should fail or timeout
-    let result = manager.acquire_render_resources("https://example4.com").await?;
+    let result = manager
+        .acquire_render_resources("https://example4.com")
+        .await?;
     match result {
         ResourceResult::ResourceExhausted | ResourceResult::Timeout => {
             // Expected behavior
@@ -44,7 +48,9 @@ async fn test_headless_browser_pool_cap() -> Result<()> {
     drop(guards.pop());
 
     // Should be able to acquire again
-    let result = manager.acquire_render_resources("https://example5.com").await?;
+    let result = manager
+        .acquire_render_resources("https://example5.com")
+        .await?;
     assert!(matches!(result, ResourceResult::Success(_)));
 
     Ok(())
@@ -63,17 +69,24 @@ async fn test_render_timeout_hard_cap() -> Result<()> {
     let result = tokio::time::timeout(
         Duration::from_secs(4), // Longer than the 3s cap
         async {
-            let _guard = manager.acquire_render_resources("https://example.com").await?;
+            let _guard = manager
+                .acquire_render_resources("https://example.com")
+                .await?;
             sleep(Duration::from_secs(5)).await; // Simulate slow operation
             Ok::<(), anyhow::Error>(())
-        }
-    ).await;
+        },
+    )
+    .await;
 
     // Should timeout within the 3s limit
     assert!(result.is_err(), "Operation should have timed out");
 
     let elapsed = start_time.elapsed();
-    assert!(elapsed < Duration::from_secs(4), "Timeout should occur within 4s, got {:?}", elapsed);
+    assert!(
+        elapsed < Duration::from_secs(4),
+        "Timeout should occur within 4s, got {:?}",
+        elapsed
+    );
 
     Ok(())
 }
@@ -121,7 +134,10 @@ async fn test_per_host_rate_limiting() -> Result<()> {
     assert!(rate_limited_requests > 0, "Expected some rate limiting");
     assert!(successful_requests > 0, "Expected some successful requests");
 
-    println!("Successful: {}, Rate limited: {}", successful_requests, rate_limited_requests);
+    println!(
+        "Successful: {}, Rate limited: {}",
+        successful_requests, rate_limited_requests
+    );
 
     Ok(())
 }
@@ -162,7 +178,10 @@ async fn test_memory_pressure_detection() -> Result<()> {
 
     // Initially should not be under pressure
     let status = manager.get_resource_status().await;
-    assert!(!status.memory_pressure, "Should not be under pressure initially");
+    assert!(
+        !status.memory_pressure,
+        "Should not be under pressure initially"
+    );
 
     // Simulate high memory usage
     for _ in 0..20 {
@@ -173,7 +192,9 @@ async fn test_memory_pressure_detection() -> Result<()> {
     assert!(status.memory_pressure, "Should detect memory pressure");
 
     // Requests should be rejected under memory pressure
-    let result = manager.acquire_render_resources("https://example.com").await?;
+    let result = manager
+        .acquire_render_resources("https://example.com")
+        .await?;
     assert!(matches!(result, ResourceResult::MemoryPressure));
 
     Ok(())
@@ -205,13 +226,22 @@ async fn test_timeout_cleanup_triggers() -> Result<()> {
     let config = ApiConfig::default();
     let manager = ResourceManager::new(config).await?;
 
-    let initial_cleanups = manager.metrics.cleanup_operations.load(std::sync::atomic::Ordering::Relaxed);
+    let initial_cleanups = manager
+        .metrics
+        .cleanup_operations
+        .load(std::sync::atomic::Ordering::Relaxed);
 
     // Trigger timeout cleanup
     manager.cleanup_on_timeout("render").await;
 
-    let final_cleanups = manager.metrics.cleanup_operations.load(std::sync::atomic::Ordering::Relaxed);
-    assert!(final_cleanups > initial_cleanups, "Cleanup operations should increase");
+    let final_cleanups = manager
+        .metrics
+        .cleanup_operations
+        .load(std::sync::atomic::Ordering::Relaxed);
+    assert!(
+        final_cleanups > initial_cleanups,
+        "Cleanup operations should increase"
+    );
 
     Ok(())
 }
@@ -250,9 +280,7 @@ async fn test_jitter_variance() -> Result<()> {
 
     // Verify jitter introduces variance
     let mean = delays.iter().sum::<f64>() / delays.len() as f64;
-    let variance = delays.iter()
-        .map(|&x| (x - mean).powi(2))
-        .sum::<f64>() / delays.len() as f64;
+    let variance = delays.iter().map(|&x| (x - mean).powi(2)).sum::<f64>() / delays.len() as f64;
 
     assert!(variance > 0.0, "Jitter should introduce variance");
 
@@ -260,11 +288,17 @@ async fn test_jitter_variance() -> Result<()> {
     let base_delay = 1.0 / 1.5;
     for &delay in &delays {
         assert!(delay > 0.0, "Delay should be positive");
-        assert!(delay < base_delay * 2.0, "Delay should be reasonable: {}", delay);
+        assert!(
+            delay < base_delay * 2.0,
+            "Delay should be reasonable: {}",
+            delay
+        );
     }
 
-    println!("Jitter analysis: mean={:.3}s, variance={:.6}, base={:.3}s",
-             mean, variance, base_delay);
+    println!(
+        "Jitter analysis: mean={:.3}s, variance={:.6}, base={:.3}s",
+        mean, variance, base_delay
+    );
 
     Ok(())
 }
@@ -332,7 +366,10 @@ async fn test_concurrent_operations_stress() -> Result<()> {
     let successful = results.iter().filter(|&&x| x).count();
     let total = results.len();
 
-    println!("Stress test: {}/{} operations successful", successful, total);
+    println!(
+        "Stress test: {}/{} operations successful",
+        successful, total
+    );
 
     // Should have some successful operations but not all due to limits
     assert!(successful > 0, "Should have some successful operations");
@@ -350,7 +387,9 @@ async fn test_complete_resource_pipeline() -> Result<()> {
     println!("Testing complete resource control pipeline...");
 
     // 1. Test normal operation
-    let result = manager.acquire_render_resources("https://example.com").await?;
+    let result = manager
+        .acquire_render_resources("https://example.com")
+        .await?;
     assert!(matches!(result, ResourceResult::Success(_)));
     println!("✓ Normal render resource acquisition");
 
@@ -361,11 +400,17 @@ async fn test_complete_resource_pipeline() -> Result<()> {
 
     // 3. Test rate limiting
     for i in 0..5 {
-        let result = manager.acquire_render_resources("https://same-host.com").await?;
+        let result = manager
+            .acquire_render_resources("https://same-host.com")
+            .await?;
         match result {
             ResourceResult::Success(_) => println!("  Request {} succeeded", i + 1),
             ResourceResult::RateLimited { retry_after } => {
-                println!("  Request {} rate limited (retry after {:?})", i + 1, retry_after);
+                println!(
+                    "  Request {} rate limited (retry after {:?})",
+                    i + 1,
+                    retry_after
+                );
                 break;
             }
             other => println!("  Request {} result: {:?}", i + 1, other),
@@ -375,10 +420,14 @@ async fn test_complete_resource_pipeline() -> Result<()> {
 
     // 4. Test resource status monitoring
     let status = manager.get_resource_status().await;
-    println!("✓ Resource status: pool={}/{}, pdf={}/{}, memory={}MB",
-             status.headless_pool_available, status.headless_pool_total,
-             status.pdf_available, status.pdf_total,
-             status.memory_usage_mb);
+    println!(
+        "✓ Resource status: pool={}/{}, pdf={}/{}, memory={}MB",
+        status.headless_pool_available,
+        status.headless_pool_total,
+        status.pdf_available,
+        status.pdf_total,
+        status.memory_usage_mb
+    );
 
     // 5. Test cleanup on timeout
     manager.cleanup_on_timeout("test").await;

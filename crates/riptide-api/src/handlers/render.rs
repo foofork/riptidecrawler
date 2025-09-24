@@ -1,6 +1,6 @@
 use crate::errors::{ApiError, ApiResult};
 use crate::models::*;
-use crate::resource_manager::{ResourceResult, RenderResourceGuard};
+use crate::resource_manager::{RenderResourceGuard, ResourceResult};
 use crate::sessions::middleware::SessionContext;
 use crate::state::AppState;
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
@@ -134,28 +134,42 @@ pub async fn render(
     let start_time = Instant::now();
 
     // Apply comprehensive resource controls first
-    let resource_guard = match state.resource_manager.acquire_render_resources(&body.url).await {
+    let resource_guard = match state
+        .resource_manager
+        .acquire_render_resources(&body.url)
+        .await
+    {
         Ok(ResourceResult::Success(guard)) => guard,
         Ok(ResourceResult::Timeout) => {
             warn!(url = %body.url, "Render request timed out during resource acquisition");
             return Err(ApiError::timeout("Resource acquisition timed out"));
-        },
+        }
         Ok(ResourceResult::ResourceExhausted) => {
             warn!(url = %body.url, "Render request rejected - resources exhausted");
-            return Err(ApiError::service_unavailable("All rendering resources are currently in use"));
-        },
+            return Err(ApiError::service_unavailable(
+                "All rendering resources are currently in use",
+            ));
+        }
         Ok(ResourceResult::RateLimited { retry_after }) => {
             warn!(url = %body.url, retry_after_ms = retry_after.as_millis(), "Render request rate limited");
-            return Err(ApiError::rate_limited(format!("Rate limited. Retry after {}ms", retry_after.as_millis())));
-        },
+            return Err(ApiError::rate_limited(format!(
+                "Rate limited. Retry after {}ms",
+                retry_after.as_millis()
+            )));
+        }
         Ok(ResourceResult::MemoryPressure) => {
             warn!(url = %body.url, "Render request rejected due to memory pressure");
-            return Err(ApiError::service_unavailable("System under memory pressure"));
-        },
+            return Err(ApiError::service_unavailable(
+                "System under memory pressure",
+            ));
+        }
         Ok(ResourceResult::Error(e)) => {
             error!(url = %body.url, error = %e, "Resource acquisition failed");
-            return Err(ApiError::internal(format!("Resource acquisition failed: {}", e)));
-        },
+            return Err(ApiError::internal(format!(
+                "Resource acquisition failed: {}",
+                e
+            )));
+        }
         Err(e) => {
             error!(url = %body.url, error = %e, "Unexpected error during resource acquisition");
             return Err(ApiError::internal("Failed to acquire rendering resources"));
@@ -166,15 +180,21 @@ pub async fn render(
     let render_timeout = state.api_config.get_timeout("render");
     let render_result = tokio::time::timeout(render_timeout, async {
         render_with_resources(state, session_ctx, body, resource_guard).await
-    }).await;
+    })
+    .await;
 
     match render_result {
         Ok(result) => result,
         Err(_) => {
             // Timeout occurred - trigger cleanup
             state.resource_manager.cleanup_on_timeout("render").await;
-            warn!("Render operation timed out after {}ms", render_timeout.as_millis());
-            Err(ApiError::timeout("Render operation exceeded maximum time limit"))
+            warn!(
+                "Render operation timed out after {}ms",
+                render_timeout.as_millis()
+            );
+            Err(ApiError::timeout(
+                "Render operation exceeded maximum time limit",
+            ))
         }
     }
 }
@@ -189,7 +209,9 @@ async fn render_with_resources(
     let start_time = Instant::now();
 
     // Determine session to use (from request or middleware)
-    let session_id = body.session_id.as_ref()
+    let session_id = body
+        .session_id
+        .as_ref()
         .or_else(|| session_ctx.as_ref().map(|ctx| ctx.session_id()))
         .cloned();
 
@@ -238,7 +260,8 @@ async fn render_with_resources(
                     .map(|parsed_url| parsed_url.host_str().unwrap_or("").to_string())
                     .unwrap_or_else(|_| "unknown".to_string());
 
-                let cookies_for_domain = state.session_manager
+                let cookies_for_domain = state
+                    .session_manager
                     .get_cookies_for_domain(sid, &domain)
                     .await
                     .unwrap_or_default()
@@ -273,15 +296,35 @@ async fn render_with_resources(
         RenderMode::Dynamic => {
             // Force dynamic rendering
             let dynamic_config = body.dynamic_config.unwrap_or_default();
-            process_dynamic(&state, &url, &dynamic_config, stealth_controller.as_mut(), session_id.as_deref()).await?
+            process_dynamic(
+                &state,
+                &url,
+                &dynamic_config,
+                stealth_controller.as_mut(),
+                session_id.as_deref(),
+            )
+            .await?
         }
         RenderMode::Static => {
             // Force static processing
-            process_static(&state, &url, stealth_controller.as_mut(), session_id.as_deref()).await?
+            process_static(
+                &state,
+                &url,
+                stealth_controller.as_mut(),
+                session_id.as_deref(),
+            )
+            .await?
         }
         RenderMode::Adaptive => {
             // Adaptive processing based on content analysis
-            process_adaptive(&state, &url, &body, stealth_controller.as_mut(), session_id.as_deref()).await?
+            process_adaptive(
+                &state,
+                &url,
+                &body,
+                stealth_controller.as_mut(),
+                session_id.as_deref(),
+            )
+            .await?
         }
     };
 
@@ -440,7 +483,8 @@ async fn process_dynamic(
 
     // Get session user data directory if available
     let user_data_dir = if let Some(sid) = session_id {
-        state.session_manager
+        state
+            .session_manager
             .get_user_data_dir(sid)
             .await
             .ok()
@@ -533,7 +577,11 @@ async fn process_static(
     if let Some(sid) = session_id {
         if let Ok(parsed_url) = url::Url::parse(url) {
             if let Some(domain) = parsed_url.host_str() {
-                if let Ok(cookies) = state.session_manager.get_cookies_for_domain(sid, domain).await {
+                if let Ok(cookies) = state
+                    .session_manager
+                    .get_cookies_for_domain(sid, domain)
+                    .await
+                {
                     if !cookies.is_empty() {
                         let cookie_header = cookies
                             .iter()
@@ -609,9 +657,10 @@ async fn process_adaptive(
         debug!(url = %url, "Content analysis suggests dynamic rendering");
 
         // Use provided config or create adaptive config
-        let dynamic_config = request.dynamic_config.clone().unwrap_or_else(|| {
-            create_adaptive_dynamic_config(url)
-        });
+        let dynamic_config = request
+            .dynamic_config
+            .clone()
+            .unwrap_or_else(|| create_adaptive_dynamic_config(url));
 
         process_dynamic(state, url, &dynamic_config, stealth_controller, session_id).await
     } else {
@@ -626,7 +675,10 @@ async fn extract_with_wasm_extractor(
     html: &str,
     url: &str,
     mode: riptide_core::types::ExtractionMode,
-) -> Result<(ExtractedDoc, riptide_core::types::ExtractionStats), Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<
+    (ExtractedDoc, riptide_core::types::ExtractionStats),
+    Box<dyn std::error::Error + Send + Sync>,
+> {
     let start_time = Instant::now();
 
     // Validate inputs before processing
@@ -647,7 +699,8 @@ async fn extract_with_wasm_extractor(
     let html_bytes = html.as_bytes();
 
     // Validate HTML size (prevent excessive memory usage)
-    if html_bytes.len() > 50 * 1024 * 1024 { // 50MB limit
+    if html_bytes.len() > 50 * 1024 * 1024 {
+        // 50MB limit
         return Err("HTML content too large (>50MB)".into());
     }
 
@@ -661,12 +714,15 @@ async fn extract_with_wasm_extractor(
 
     // Perform extraction using the legacy string-based interface
     // This will internally convert to the typed interface in CmExtractor
-    let extracted_doc = extractor.extract(html_bytes, url, mode_str)
-        .map_err(|e| {
-            // Enhance error context for better debugging
-            let context = format!("WASM extraction failed for URL '{}' with mode '{}': {}", url, mode_str, e);
-            Box::new(std::io::Error::new(std::io::ErrorKind::Other, context)) as Box<dyn std::error::Error + Send + Sync>
-        })?;
+    let extracted_doc = extractor.extract(html_bytes, url, mode_str).map_err(|e| {
+        // Enhance error context for better debugging
+        let context = format!(
+            "WASM extraction failed for URL '{}' with mode '{}': {}",
+            url, mode_str, e
+        );
+        Box::new(std::io::Error::new(std::io::ErrorKind::Other, context))
+            as Box<dyn std::error::Error + Send + Sync>
+    })?;
 
     // Calculate processing time
     let processing_time_ms = start_time.elapsed().as_millis() as u64;
@@ -675,7 +731,7 @@ async fn extract_with_wasm_extractor(
     let stats = riptide_core::types::ExtractionStats {
         processing_time_ms,
         memory_used: html_bytes.len() as u64, // Approximate memory usage
-        nodes_processed: None, // Not available from legacy interface
+        nodes_processed: None,                // Not available from legacy interface
         links_found: extracted_doc.links.len() as u32,
         images_found: extracted_doc.media.len() as u32,
     };
@@ -707,7 +763,9 @@ async fn extract_content(
             &result.html,
             &result.url,
             extraction_mode,
-        ).await {
+        )
+        .await
+        {
             Ok((doc, stats)) => {
                 // Log WASM execution statistics
                 info!(
@@ -753,11 +811,28 @@ async fn analyze_url_for_dynamic_content(url: &str) -> bool {
 
     // Social media platforms and news sites with dynamic content
     let dynamic_domains = [
-        "twitter.com", "x.com", "facebook.com", "instagram.com", "linkedin.com",
-        "youtube.com", "tiktok.com", "reddit.com", "medium.com", "substack.com",
-        "github.com", "stackoverflow.com", "discord.com", "slack.com",
-        "notion.so", "airtable.com", "figma.com", "miro.com",
-        "shopify.com", "woocommerce.com", "squarespace.com", "webflow.com"
+        "twitter.com",
+        "x.com",
+        "facebook.com",
+        "instagram.com",
+        "linkedin.com",
+        "youtube.com",
+        "tiktok.com",
+        "reddit.com",
+        "medium.com",
+        "substack.com",
+        "github.com",
+        "stackoverflow.com",
+        "discord.com",
+        "slack.com",
+        "notion.so",
+        "airtable.com",
+        "figma.com",
+        "miro.com",
+        "shopify.com",
+        "woocommerce.com",
+        "squarespace.com",
+        "webflow.com",
     ];
 
     // Check if URL contains dynamic domain patterns
@@ -770,8 +845,16 @@ async fn analyze_url_for_dynamic_content(url: &str) -> bool {
 
     // Check for SPA indicators in URL
     let spa_indicators = [
-        "/#/", "#!/", "/app/", "/dashboard/", "/admin/",
-        "?page=", "&view=", "#page", "#view", "#section"
+        "/#/",
+        "#!/",
+        "/app/",
+        "/dashboard/",
+        "/admin/",
+        "?page=",
+        "&view=",
+        "#page",
+        "#view",
+        "#section",
     ];
 
     for indicator in &spa_indicators {
@@ -783,8 +866,19 @@ async fn analyze_url_for_dynamic_content(url: &str) -> bool {
 
     // Check for JavaScript framework patterns
     let js_frameworks = [
-        "react", "angular", "vue", "svelte", "next", "nuxt", "gatsby",
-        "webpack", "vite", "parcel", "app.js", "bundle.js", "main.js"
+        "react",
+        "angular",
+        "vue",
+        "svelte",
+        "next",
+        "nuxt",
+        "gatsby",
+        "webpack",
+        "vite",
+        "parcel",
+        "app.js",
+        "bundle.js",
+        "main.js",
     ];
 
     for framework in &js_frameworks {
@@ -801,7 +895,7 @@ async fn analyze_url_for_dynamic_content(url: &str) -> bool {
 
 /// Create adaptive dynamic configuration based on URL analysis
 fn create_adaptive_dynamic_config(url: &str) -> DynamicConfig {
-    use riptide_core::dynamic::{WaitCondition, ScrollConfig, ScrollMode, ViewportConfig};
+    use riptide_core::dynamic::{ScrollConfig, ScrollMode, ViewportConfig, WaitCondition};
     use std::time::Duration;
 
     let url_lower = url.to_lowercase();
@@ -842,15 +936,20 @@ fn create_adaptive_dynamic_config(url: &str) -> DynamicConfig {
     };
 
     // Determine scroll strategy
-    let scroll = if url_lower.contains("twitter.com") || url_lower.contains("x.com")
-        || url_lower.contains("instagram.com") || url_lower.contains("linkedin.com") {
+    let scroll = if url_lower.contains("twitter.com")
+        || url_lower.contains("x.com")
+        || url_lower.contains("instagram.com")
+        || url_lower.contains("linkedin.com")
+    {
         // Social media needs more scrolling for infinite feeds
         Some(ScrollConfig {
             steps: 5,
             step_px: Some(800),
             delay_ms: 800,
             mode: ScrollMode::Stepped,
-            after_scroll_js: Some("window.scrollBy(0, 200); await new Promise(r => setTimeout(r, 300));".to_string()),
+            after_scroll_js: Some(
+                "window.scrollBy(0, 200); await new Promise(r => setTimeout(r, 300));".to_string(),
+            ),
             stop_condition: None,
         })
     } else if url_lower.contains("medium.com") || url_lower.contains("substack.com") {
@@ -887,8 +986,8 @@ fn create_adaptive_dynamic_config(url: &str) -> DynamicConfig {
     DynamicConfig {
         wait_for,
         scroll,
-        actions: Vec::new(), // No custom actions for adaptive mode
-        capture_artifacts: false, // Controlled by request parameter
+        actions: Vec::new(),             // No custom actions for adaptive mode
+        capture_artifacts: false,        // Controlled by request parameter
         timeout: Duration::from_secs(3), // Hard cap requirement
         viewport,
     }
@@ -921,9 +1020,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_extract_with_wasm_extractor_validation() {
-        use std::sync::Arc;
         use riptide_core::extract::WasmExtractor;
         use riptide_core::types::ExtractionMode;
+        use std::sync::Arc;
 
         // Skip if WASM file doesn't exist (for CI/development environments)
         let wasm_path = "./target/wasm32-wasip2/release/riptide_extractor_wasm.wasm";
@@ -947,7 +1046,8 @@ mod tests {
             "",
             "https://example.com",
             ExtractionMode::Article,
-        ).await;
+        )
+        .await;
         assert!(result.is_err(), "Should reject empty HTML");
 
         // Test 2: Empty URL validation
@@ -956,7 +1056,8 @@ mod tests {
             "<html><body>Test</body></html>",
             "",
             ExtractionMode::Article,
-        ).await;
+        )
+        .await;
         assert!(result.is_err(), "Should reject empty URL");
 
         // Test 3: Invalid URL validation
@@ -965,7 +1066,8 @@ mod tests {
             "<html><body>Test</body></html>",
             "not-a-url",
             ExtractionMode::Article,
-        ).await;
+        )
+        .await;
         assert!(result.is_err(), "Should reject invalid URL");
 
         // Test 4: Valid extraction (basic HTML)
@@ -985,7 +1087,8 @@ mod tests {
             html,
             "https://example.com/article",
             ExtractionMode::Article,
-        ).await;
+        )
+        .await;
 
         match result {
             Ok((doc, stats)) => {
@@ -995,14 +1098,23 @@ mod tests {
                 assert!(!doc.text.trim().is_empty(), "Should extract text content");
 
                 // Verify stats are populated
-                assert!(stats.processing_time_ms > 0, "Should measure processing time");
+                assert!(
+                    stats.processing_time_ms > 0,
+                    "Should measure processing time"
+                );
                 assert!(stats.memory_used > 0, "Should measure memory usage");
 
-                println!("WASM extraction test passed: {} chars processed in {}ms",
-                    html.len(), stats.processing_time_ms);
+                println!(
+                    "WASM extraction test passed: {} chars processed in {}ms",
+                    html.len(),
+                    stats.processing_time_ms
+                );
             }
             Err(e) => {
-                println!("WASM extraction failed (may be expected in test environment): {}", e);
+                println!(
+                    "WASM extraction failed (may be expected in test environment): {}",
+                    e
+                );
                 // Don't fail the test in CI environments where WASM might not work
             }
         }

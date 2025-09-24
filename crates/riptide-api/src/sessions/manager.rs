@@ -75,13 +75,11 @@ impl SessionManager {
         domain: &str,
         cookie: Cookie,
     ) -> Result<(), SessionError> {
-        let mut session = self
-            .storage
-            .get_session(session_id)
-            .await?
-            .ok_or_else(|| SessionError::SessionNotFound {
+        let mut session = self.storage.get_session(session_id).await?.ok_or_else(|| {
+            SessionError::SessionNotFound {
                 session_id: session_id.to_string(),
-            })?;
+            }
+        })?;
 
         session.cookies.set_cookie(domain, cookie.clone());
         self.storage.store_session(session).await?;
@@ -109,13 +107,11 @@ impl SessionManager {
         domain: &str,
         name: &str,
     ) -> Result<Option<Cookie>, SessionError> {
-        let session = self
-            .storage
-            .get_session(session_id)
-            .await?
-            .ok_or_else(|| SessionError::SessionNotFound {
+        let session = self.storage.get_session(session_id).await?.ok_or_else(|| {
+            SessionError::SessionNotFound {
                 session_id: session_id.to_string(),
-            })?;
+            }
+        })?;
 
         Ok(session.cookies.get_cookie(domain, name).cloned())
     }
@@ -126,13 +122,11 @@ impl SessionManager {
         session_id: &str,
         domain: &str,
     ) -> Result<Vec<Cookie>, SessionError> {
-        let session = self
-            .storage
-            .get_session(session_id)
-            .await?
-            .ok_or_else(|| SessionError::SessionNotFound {
+        let session = self.storage.get_session(session_id).await?.ok_or_else(|| {
+            SessionError::SessionNotFound {
                 session_id: session_id.to_string(),
-            })?;
+            }
+        })?;
 
         Ok(session
             .cookies
@@ -143,13 +137,11 @@ impl SessionManager {
 
     /// Get all cookies from a session
     pub async fn get_all_cookies(&self, session_id: &str) -> Result<CookieJar, SessionError> {
-        let session = self
-            .storage
-            .get_session(session_id)
-            .await?
-            .ok_or_else(|| SessionError::SessionNotFound {
+        let session = self.storage.get_session(session_id).await?.ok_or_else(|| {
+            SessionError::SessionNotFound {
                 session_id: session_id.to_string(),
-            })?;
+            }
+        })?;
 
         Ok(session.cookies)
     }
@@ -161,13 +153,11 @@ impl SessionManager {
         domain: &str,
         name: &str,
     ) -> Result<Option<Cookie>, SessionError> {
-        let mut session = self
-            .storage
-            .get_session(session_id)
-            .await?
-            .ok_or_else(|| SessionError::SessionNotFound {
+        let mut session = self.storage.get_session(session_id).await?.ok_or_else(|| {
+            SessionError::SessionNotFound {
                 session_id: session_id.to_string(),
-            })?;
+            }
+        })?;
 
         let removed_cookie = session.cookies.remove_cookie(domain, name);
         self.storage.store_session(session.clone()).await?;
@@ -191,13 +181,11 @@ impl SessionManager {
 
     /// Clear all cookies from a session
     pub async fn clear_cookies(&self, session_id: &str) -> Result<(), SessionError> {
-        let mut session = self
-            .storage
-            .get_session(session_id)
-            .await?
-            .ok_or_else(|| SessionError::SessionNotFound {
+        let mut session = self.storage.get_session(session_id).await?.ok_or_else(|| {
+            SessionError::SessionNotFound {
                 session_id: session_id.to_string(),
-            })?;
+            }
+        })?;
 
         session.cookies.clear();
         self.storage.store_session(session.clone()).await?;
@@ -222,13 +210,11 @@ impl SessionManager {
         session_id: &str,
         additional_time: Duration,
     ) -> Result<(), SessionError> {
-        let mut session = self
-            .storage
-            .get_session(session_id)
-            .await?
-            .ok_or_else(|| SessionError::SessionNotFound {
+        let mut session = self.storage.get_session(session_id).await?.ok_or_else(|| {
+            SessionError::SessionNotFound {
                 session_id: session_id.to_string(),
-            })?;
+            }
+        })?;
 
         session.expires_at = session.expires_at + additional_time;
         session.touch(self.config.default_ttl);
@@ -245,13 +231,11 @@ impl SessionManager {
 
     /// Get session user data directory
     pub async fn get_user_data_dir(&self, session_id: &str) -> Result<PathBuf, SessionError> {
-        let session = self
-            .storage
-            .get_session(session_id)
-            .await?
-            .ok_or_else(|| SessionError::SessionNotFound {
+        let session = self.storage.get_session(session_id).await?.ok_or_else(|| {
+            SessionError::SessionNotFound {
                 session_id: session_id.to_string(),
-            })?;
+            }
+        })?;
 
         Ok(session.user_data_dir.clone())
     }
@@ -277,22 +261,21 @@ impl SessionManager {
         session_id: &str,
         cookie_file_path: &PathBuf,
     ) -> Result<usize, SessionError> {
-        let content = fs::read_to_string(cookie_file_path).await.map_err(|e| {
-            SessionError::IoError {
-                error: format!("Failed to read cookie file: {}", e),
-            }
-        })?;
+        let content =
+            fs::read_to_string(cookie_file_path)
+                .await
+                .map_err(|e| SessionError::IoError {
+                    error: format!("Failed to read cookie file: {}", e),
+                })?;
 
         let cookies = self.parse_netscape_cookies(&content)?;
         let cookie_count = cookies.len();
 
-        let mut session = self
-            .storage
-            .get_session(session_id)
-            .await?
-            .ok_or_else(|| SessionError::SessionNotFound {
+        let mut session = self.storage.get_session(session_id).await?.ok_or_else(|| {
+            SessionError::SessionNotFound {
                 session_id: session_id.to_string(),
-            })?;
+            }
+        })?;
 
         // Add cookies to session
         for (domain, cookie) in cookies {
@@ -323,22 +306,20 @@ impl SessionManager {
         session_id: &str,
         cookie_file_path: &PathBuf,
     ) -> Result<usize, SessionError> {
-        let session = self
-            .storage
-            .get_session(session_id)
-            .await?
-            .ok_or_else(|| SessionError::SessionNotFound {
+        let session = self.storage.get_session(session_id).await?.ok_or_else(|| {
+            SessionError::SessionNotFound {
                 session_id: session_id.to_string(),
-            })?;
+            }
+        })?;
 
         let content = self.format_netscape_cookies(&session.cookies);
         let cookie_count = session.cookies.all_cookies().len();
 
-        fs::write(cookie_file_path, content).await.map_err(|e| {
-            SessionError::IoError {
+        fs::write(cookie_file_path, content)
+            .await
+            .map_err(|e| SessionError::IoError {
                 error: format!("Failed to write cookie file: {}", e),
-            }
-        })?;
+            })?;
 
         info!(
             session_id = %session_id,
@@ -365,11 +346,11 @@ impl SessionManager {
             }
         })?;
 
-        fs::write(&cookies_file, content).await.map_err(|e| {
-            SessionError::IoError {
+        fs::write(&cookies_file, content)
+            .await
+            .map_err(|e| SessionError::IoError {
                 error: format!("Failed to write cookies file: {}", e),
-            }
-        })?;
+            })?;
 
         debug!(
             session_id = %session_id,
@@ -381,10 +362,7 @@ impl SessionManager {
     }
 
     /// Parse Netscape format cookies
-    fn parse_netscape_cookies(
-        &self,
-        content: &str,
-    ) -> Result<Vec<(String, Cookie)>, SessionError> {
+    fn parse_netscape_cookies(&self, content: &str) -> Result<Vec<(String, Cookie)>, SessionError> {
         let mut cookies = Vec::new();
 
         for line in content.lines() {
