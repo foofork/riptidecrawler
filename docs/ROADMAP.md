@@ -8,11 +8,12 @@ Absolutely — here’s a **single, consolidated roadmap** that **replaces** the
 
 * **✅ Done:** Phase 0 (Foundation), Phase 1 (Core), Phase 2-Lite (Reliability), Phase 3 PR-1 (Headless RPC v2), PR-2 (Stealth)
 * **✅ Session Management:** Session manager implementation complete and functional
-* **📍 Now:** Critical file corruption fixes + **PR-3 (NDJSON Streaming)**
-* **🚨 BLOCKED:** Spider integration (corrupted files with literal \n characters - needs immediate fix)
-* **⚡ IN PROGRESS:** Strategies implementation (14 files active, needs integration)
-* **⚡ IN PROGRESS:** PDF processing (functional but needs final integration)
+* **✅ Spider Module:** All compilation errors resolved, ready for integration
+* **✅ Strategies Module:** All 14 strategy files implemented and compiling
+* **✅ PDF Processing:** Module complete with processor, config, and tests
+* **📍 Now:** **PR-3 (NDJSON Streaming)** - Ready to implement
 * **⚡ IN PROGRESS:** Error handling cleanup (424 unwrap/expect remaining, down from 517)
+* **⚡ IN PROGRESS:** API streaming endpoints (NDJSON implementation in riptide-api)
 * **🧭 Guardrails:** Feature flags, Prometheus metrics, strict timeouts/pools
 * **📜 Reference:** See `COMPLETED.md` for all shipped work.
 
@@ -22,10 +23,12 @@ Absolutely — here’s a **single, consolidated roadmap** that **replaces** the
 
 ### **✅ COMPLETED: File Corruption Fix — RESOLVED**
 
-* **Spider Module:** [FIXED] - All syntax errors resolved, files properly formatted
+* **Spider Module:** [FIXED] - All syntax errors resolved, files properly formatted, SpiderPresets added
   * ✅ `/crates/riptide-core/src/spider/spider.rs` - Fully functional with proper formatting
-  * ✅ **All Issues Resolved:** Proper newlines, correct syntax, compilation ready
-  * ✅ **Status:** 100% fixed and functional
+  * ✅ **All Issues Resolved:** Proper newlines, correct syntax, compilation successful
+  * ✅ **Configuration Presets:** SpiderPresets added with 6 common use cases
+  * ✅ **Missing Fields Added:** FrontierConfig, ScoringConfig, SessionConfig updated
+  * ✅ **Status:** 100% fixed, compiled, and functional
   * **Next:** Ready for integration into main pipeline
 * **Status:** No longer blocking - spider module ready for use
 
