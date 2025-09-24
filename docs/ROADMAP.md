@@ -92,7 +92,7 @@ perf:
 
 ### PR-3: NDJSON Streaming — **✅ COMPLETED** → See COMPLETED.md
 
-### PR-4: PDF Pipeline (pdfium) — **95% COMPLETE / Week 3**
+### PR-4: PDF Pipeline (pdfium) — **✅ COMPLETED** → See COMPLETED.md
 
 * ✅ **Module Structure:** Complete PDF module with processor, config, types, and utils
 * ✅ **Detection:** PDF detection by content-type, extension, and magic bytes
@@ -101,8 +101,10 @@ perf:
 * ✅ **Concurrency Controls:** Semaphore-limited to 2 concurrent operations
 * ✅ **Memory Management:** Stable memory usage with proper cleanup
 * ✅ **Benchmarks:** Performance benchmarks fixed and operational
+* ✅ **Metrics Integration:** PDF metrics connected to monitoring system
+* ✅ **Error Propagation:** Proper error handling through pipeline
 * Detect by content-type or suffix; extract **text**, **author/title/dates**, **images**; concurrency cap **=2**.
-* **Status:** 95% complete - final testing and optimization in progress
+* **Status:** 100% complete - all requirements met
 * **Acceptance:** PDFs yield text + metadata; images > 0 for illustrated docs; stable memory.
 
 ### PR-5: Spider Integration — **✅ COMPLETED** → See COMPLETED.md

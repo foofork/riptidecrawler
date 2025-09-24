@@ -418,7 +418,7 @@ fn bench_initialization(c: &mut Criterion) {
             |b, config| {
                 b.iter(|| {
                     black_box(
-                        rt.block_on(CmExtractor::with_config("test.wasm", config.clone()))
+                        Runtime::new().unwrap().block_on(CmExtractor::with_config("test.wasm", config.clone()))
                             .expect("Failed to create extractor for benchmark"),
                     )
                 });

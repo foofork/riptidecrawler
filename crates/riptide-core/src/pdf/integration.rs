@@ -7,7 +7,7 @@ use super::metrics::PdfMetricsCollector;
 use crate::types::ExtractedDoc;
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use tracing::{debug, info, warn};
 
 /// PDF pipeline integration handler with comprehensive monitoring
