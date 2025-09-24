@@ -203,6 +203,7 @@ pub struct SessionManager {
     /// Session checkpoints for persistence
     checkpoints: Arc<RwLock<HashMap<String, SessionCheckpoint>>>,
     /// Last checkpoint time
+    #[allow(dead_code)]
     last_checkpoint: Arc<RwLock<Instant>>,
 }
 

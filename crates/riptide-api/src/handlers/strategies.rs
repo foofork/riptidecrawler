@@ -383,7 +383,7 @@ fn build_chunking_config(
             pattern: config.regex_pattern.clone().unwrap_or_else(|| r"\.".to_string()),
             min_chunk_size: config.min_chunk_size.unwrap_or(100),
         },
-        _ => return build_default_chunking_config(default_mode)?.mode,
+        _ => return build_default_chunking_config(default_mode),
     };
 
     Ok(ChunkingConfig {

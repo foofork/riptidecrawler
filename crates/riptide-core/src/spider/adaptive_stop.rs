@@ -86,7 +86,7 @@ impl Default for SiteTypeHints {
 }
 
 /// Detected site type based on content analysis
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum SiteType {
     News,
     ECommerce,
@@ -137,7 +137,7 @@ impl ContentMetrics {
 }
 
 /// Adaptive stop decision information
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StopDecision {
     /// Whether to stop crawling
     pub should_stop: bool,
@@ -440,7 +440,7 @@ impl AdaptiveStopEngine {
             score += 0.2;
         }
 
-        score.min(1.0_f64).max(0.0_f64)
+        score.clamp(0.0_f64, 1.0_f64)
     }
 
     /// Calculate adaptive threshold based on site type and performance
@@ -571,7 +571,7 @@ impl AdaptiveStopEngine {
 }
 
 /// Statistics for adaptive stopping
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AdaptiveStopStats {
     pub pages_analyzed: usize,
     pub consecutive_low_gain: usize,

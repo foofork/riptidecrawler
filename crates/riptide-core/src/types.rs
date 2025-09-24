@@ -187,6 +187,10 @@ pub enum RenderMode {
     Adaptive,
     /// PDF processing mode
     Pdf,
+    /// HTML output mode
+    Html,
+    /// Markdown output mode
+    Markdown,
 }
 
 impl Default for RenderMode {

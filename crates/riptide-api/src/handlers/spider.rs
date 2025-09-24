@@ -2,7 +2,7 @@ use crate::errors::{ApiError, ApiResult};
 use crate::models::*;
 use crate::state::AppState;
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use riptide_core::spider::{SpiderConfig, CrawlingStrategy};
+use riptide_core::spider::{SpiderConfig, CrawlingStrategy, ScoringConfig};
 use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
 use url::Url;
@@ -83,15 +83,19 @@ pub async fn spider_crawl(
         let strategy = match strategy_str.as_str() {
             "breadth_first" => CrawlingStrategy::BreadthFirst,
             "depth_first" => CrawlingStrategy::DepthFirst,
-            "best_first" => CrawlingStrategy::BestFirst,
+            "best_first" => CrawlingStrategy::BestFirst {
+                scoring_config: ScoringConfig::default(),
+            },
             _ => {
                 warn!("Unknown strategy '{}', using default", strategy_str);
                 CrawlingStrategy::BreadthFirst
             }
         };
         spider_config.strategy = riptide_core::spider::types::StrategyConfig {
-            strategy,
-            adaptive: riptide_core::spider::strategy::AdaptiveCriteria::default(),
+            default_strategy: "breadth_first".to_string(),
+            scoring: ScoringConfig::default(),
+            enable_adaptive: true,
+            adaptive_criteria: Default::default(),
         };
     }
 

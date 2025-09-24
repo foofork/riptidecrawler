@@ -14,6 +14,7 @@ use crate::spider::{
     url_utils::UrlUtils,
 };
 use anyhow::{Context, Result};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -21,6 +22,27 @@ use tokio::sync::{RwLock, Semaphore};
 use tokio::time::sleep;
 use tracing::{debug, error, info, instrument};
 use url::Url;
+
+/// Serde module for Duration serialization
+mod duration_serde {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    use std::time::Duration;
+
+    pub fn serialize<S>(duration: &Duration, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        duration.as_secs_f64().serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let secs = f64::deserialize(deserializer)?;
+        Ok(Duration::from_secs_f64(secs))
+    }
+}
 
 /// Main Spider engine for deep crawling
 pub struct Spider {
@@ -53,11 +75,12 @@ pub struct Spider {
 }
 
 /// Current crawl state
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct CrawlState {
     /// Whether crawling is currently active
     pub active: bool,
     /// Crawl start time
+    #[serde(skip)]
     pub start_time: Option<Instant>,
     /// Total pages crawled
     pub pages_crawled: u64,
@@ -72,17 +95,19 @@ pub struct CrawlState {
 }
 
 /// Performance metrics
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct PerformanceMetrics {
     /// Pages per second
     pub pages_per_second: f64,
     /// Average response time
+    #[serde(with = "duration_serde")]
     pub avg_response_time: Duration,
     /// Memory usage
     pub memory_usage: usize,
     /// Error rate
     pub error_rate: f64,
     /// Last metrics update
+    #[serde(skip)]
     pub last_update: Option<Instant>,
 }
 

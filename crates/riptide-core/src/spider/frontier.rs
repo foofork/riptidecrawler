@@ -67,8 +67,7 @@ impl Eq for PriorityRequest {}
 
 impl PartialOrd for PriorityRequest {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        // Reverse for max-heap behavior
-        other.score.partial_cmp(&self.score)
+        Some(self.cmp(other))
     }
 }
 
@@ -520,6 +519,7 @@ impl FrontierManager {
 mod tests {
     use super::*;
     use std::str::FromStr;
+    use url::Url;
 
     #[tokio::test]
     async fn test_frontier_basic_operations() {

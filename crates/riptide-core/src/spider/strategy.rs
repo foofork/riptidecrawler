@@ -170,7 +170,7 @@ impl ScoringFunction for DefaultScoring {
         }
 
         // File extension scoring
-        if let Some(extension) = url.path().split('.').last() {
+        if let Some(extension) = url.path().split('.').next_back() {
             if let Some(ext_score) = self.config.extension_scores.get(extension) {
                 score += self.config.content_type_weight * ext_score;
             }
@@ -470,9 +470,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_breadth_first_processing() {
-        let strategy_engine = StrategyEngine::new(breadth_first_strategy());
+        let mut strategy_engine = StrategyEngine::new(breadth_first_strategy());
 
-        let mut requests = vec![
+        let requests = vec![
             CrawlRequest::new(Url::from_str("https://example.com/deep").expect("Valid URL")).with_depth(5),
             CrawlRequest::new(Url::from_str("https://example.com/shallow").expect("Valid URL")).with_depth(1),
             CrawlRequest::new(Url::from_str("https://example.com/medium").expect("Valid URL")).with_depth(3),
@@ -488,9 +488,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_depth_first_processing() {
-        let strategy_engine = StrategyEngine::new(depth_first_strategy());
+        let mut strategy_engine = StrategyEngine::new(depth_first_strategy());
 
-        let mut requests = vec![
+        let requests = vec![
             CrawlRequest::new(Url::from_str("https://example.com/shallow").expect("Valid URL")).with_depth(1),
             CrawlRequest::new(Url::from_str("https://example.com/deep").expect("Valid URL")).with_depth(5),
             CrawlRequest::new(Url::from_str("https://example.com/medium").expect("Valid URL")).with_depth(3),
@@ -506,7 +506,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_best_first_processing() {
-        let strategy_engine = StrategyEngine::new(best_first_strategy());
+        let mut strategy_engine = StrategyEngine::new(best_first_strategy());
 
         let requests = vec![
             CrawlRequest::new(Url::from_str("https://example.com/low.pdf").expect("Valid URL")),

@@ -336,6 +336,13 @@ impl StrategiesPipelineOrchestrator {
                 preserve_sentences: true,
                 deterministic: true,
             },
+            RenderMode::Static | RenderMode::Dynamic | RenderMode::Adaptive => ChunkingConfig {
+                mode: riptide_core::strategies::chunking::ChunkingMode::Sliding,
+                token_max: 1200,
+                overlap: 120,
+                preserve_sentences: true,
+                deterministic: true,
+            },
         };
 
         config

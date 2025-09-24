@@ -286,7 +286,7 @@ impl HostState {
 }
 
 /// Frontier metrics and statistics
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FrontierMetrics {
     /// Total requests in frontier
     pub total_requests: usize,

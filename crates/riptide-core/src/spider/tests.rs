@@ -1,5 +1,5 @@
 use crate::spider::{
-    config::{SpiderConfig, SpiderPresets},
+    config::SpiderPresets,
     spider::Spider,
     types::{CrawlRequest, Priority},
 };

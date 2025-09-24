@@ -159,7 +159,7 @@ impl StrategyManager {
 }
 
 /// Processed content result
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessedContent {
     pub extracted: ExtractedContent,
     pub metadata: DocumentMetadata,
@@ -168,7 +168,7 @@ pub struct ProcessedContent {
 }
 
 /// Base extracted content structure
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtractedContent {
     pub title: String,
     pub content: String,

@@ -276,7 +276,7 @@ impl UrlUtils {
         self.total_processed.fetch_add(1, Ordering::Relaxed);
 
         // Check file extension exclusions
-        if let Some(extension) = url.path().split('.').last() {
+        if let Some(extension) = url.path().split('.').next_back() {
             if self.config.exclude_extensions.contains(&extension.to_lowercase()) {
                 self.excluded_count.fetch_add(1, Ordering::Relaxed);
                 debug!(url = %url, extension = %extension, "URL excluded by extension");

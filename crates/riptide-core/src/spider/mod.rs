@@ -20,7 +20,7 @@ pub mod types;
 
 // Re-export main types
 pub use config::SpiderConfig;
-pub use spider::Spider;
+pub use spider::{Spider, SpiderResult, CrawlState, PerformanceMetrics};
 pub use types::*;
 pub use frontier::FrontierManager;
 pub use strategy::{CrawlingStrategy, StrategyEngine};

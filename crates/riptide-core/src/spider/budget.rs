@@ -311,6 +311,7 @@ pub struct BudgetManager {
     host_budgets: Arc<RwLock<HashMap<String, HostBudget>>>,
 
     // Per-session budget tracking
+    #[allow(dead_code)]
     session_budgets: Arc<RwLock<HashMap<String, BudgetUsage>>>,
 
     // Atomic counters for performance
@@ -723,7 +724,7 @@ mod tests {
         let url = Url::from_str("https://example.com/page").expect("Valid URL");
 
         // First two requests should work
-        for i in 0..2 {
+        for _i in 0..2 {
             assert!(budget_manager.can_make_request(&url, 0).await.expect("Should work"));
             budget_manager.start_request(&url, 0).await.expect("Should work");
             budget_manager.complete_request(&url, 1024, true).await.expect("Should work");
