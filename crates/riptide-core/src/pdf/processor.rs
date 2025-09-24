@@ -29,18 +29,25 @@ static PDF_SEMAPHORE: OnceLock<Arc<Semaphore>> = OnceLock::new();
 /// Note: This trait is object-safe (dyn compatible) for use with trait objects
 pub trait PdfProcessor: Send + Sync {
     /// Process a PDF from bytes
-    async fn process_pdf(&self, data: &[u8], config: &PdfConfig) -> PdfResult<PdfProcessingResult>;
+    fn process_pdf<'a>(
+        &'a self,
+        data: &'a [u8],
+        config: &'a PdfConfig,
+    ) -> impl std::future::Future<Output = PdfResult<PdfProcessingResult>> + Send + 'a;
 
     /// Process a PDF with progress tracking
-    async fn process_pdf_with_progress(
-        &self,
-        data: &[u8],
-        config: &PdfConfig,
+    fn process_pdf_with_progress<'a>(
+        &'a self,
+        data: &'a [u8],
+        config: &'a PdfConfig,
         progress_callback: Option<ProgressCallback>,
-    ) -> PdfResult<PdfProcessingResult>;
+    ) -> impl std::future::Future<Output = PdfResult<PdfProcessingResult>> + Send + 'a;
 
     /// Detect if OCR is needed for this PDF
-    async fn detect_ocr_need(&self, data: &[u8]) -> PdfResult<bool>;
+    fn detect_ocr_need<'a>(
+        &'a self,
+        data: &'a [u8],
+    ) -> impl std::future::Future<Output = PdfResult<bool>> + Send + 'a;
 
     /// Check if the processor is available
     fn is_available(&self) -> bool;

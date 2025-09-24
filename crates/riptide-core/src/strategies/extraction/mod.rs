@@ -11,7 +11,11 @@ use crate::strategies::ExtractedContent;
 
 /// Common extraction trait for all strategies
 pub trait ContentExtractor {
-    async fn extract(&self, html: &str, url: &str) -> Result<ExtractedContent>;
+    fn extract<'a>(
+        &'a self,
+        html: &'a str,
+        url: &'a str,
+    ) -> impl std::future::Future<Output = Result<ExtractedContent>> + Send + 'a;
     fn confidence_score(&self, html: &str) -> f64;
     fn strategy_name(&self) -> &'static str;
 }

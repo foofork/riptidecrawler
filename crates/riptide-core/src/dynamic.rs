@@ -324,14 +324,14 @@ pub struct DynamicRenderResult {
 /// Dynamic content handler trait for different rendering backends
 pub trait DynamicHandler {
     /// Render a page with dynamic content handling
-    async fn render_dynamic(
-        &self,
-        url: &str,
-        config: &DynamicConfig,
-    ) -> Result<DynamicRenderResult, DynamicError>;
+    fn render_dynamic<'a>(
+        &'a self,
+        url: &'a str,
+        config: &'a DynamicConfig,
+    ) -> impl std::future::Future<Output = Result<DynamicRenderResult, DynamicError>> + Send + 'a;
 
     /// Check if the handler is available and working
-    async fn health_check(&self) -> Result<(), DynamicError>;
+    fn health_check<'a>(&'a self) -> impl std::future::Future<Output = Result<(), DynamicError>> + Send + 'a;
 
     /// Get handler capabilities
     fn capabilities(&self) -> DynamicCapabilities;
