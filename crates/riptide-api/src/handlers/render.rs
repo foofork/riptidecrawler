@@ -338,6 +338,26 @@ async fn render_with_resources(
             )
             .await?
         }
+        RenderMode::Html => {
+            // HTML output mode - process as static
+            process_static(
+                &state,
+                &url,
+                stealth_controller.as_mut(),
+                session_id.as_deref(),
+            )
+            .await?
+        }
+        RenderMode::Markdown => {
+            // Markdown output mode - process as static
+            process_static(
+                &state,
+                &url,
+                stealth_controller.as_mut(),
+                session_id.as_deref(),
+            )
+            .await?
+        }
     };
 
     // Extract content from the rendered result
@@ -387,6 +407,7 @@ async fn render_with_resources(
 
     // Record metrics for monitoring and performance tracking
     if let Err(e) = state
+        .resource_manager
         .performance_monitor
         .record_render_operation(
             &url,

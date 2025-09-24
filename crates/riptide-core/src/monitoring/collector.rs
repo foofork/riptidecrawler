@@ -268,8 +268,7 @@ impl MetricsCollector {
             let error_count = self
                 .error_rates
                 .lock()
-                .ok()
-                .and_then(|rates| Some(rates.get_recent_data(Duration::from_secs(5 * 60)).len()))
+                .ok().map(|rates| rates.get_recent_data(Duration::from_secs(5 * 60)).len())
                 .unwrap_or(0);
 
             let total_count = times

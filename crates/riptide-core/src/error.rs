@@ -269,10 +269,10 @@ impl CoreError {
             CoreError::WasmError { message, .. } => {
                 context.push(("wasm_error_message", message.clone()));
             }
-            CoreError::WasmInstanceError { instance_id, .. } => {
-                if let Some(id) = instance_id {
-                    context.push(("instance_id", id.clone()));
-                }
+            CoreError::WasmInstanceError { instance_id: Some(id), .. } => {
+                context.push(("instance_id", id.clone()));
+            }
+            CoreError::WasmInstanceError { instance_id: None, .. } => {
             }
             CoreError::MemoryError {
                 current_usage_mb,
@@ -286,10 +286,10 @@ impl CoreError {
                     context.push(("max_memory_mb", max.to_string()));
                 }
             }
-            CoreError::CircuitBreakerError { state, .. } => {
-                if let Some(s) = state {
-                    context.push(("circuit_state", s.clone()));
-                }
+            CoreError::CircuitBreakerError { state: Some(s), .. } => {
+                context.push(("circuit_state", s.clone()));
+            }
+            CoreError::CircuitBreakerError { state: None, .. } => {
             }
             CoreError::ResourceExhaustion {
                 resource,

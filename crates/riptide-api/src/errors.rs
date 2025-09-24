@@ -82,6 +82,13 @@ impl ApiError {
         }
     }
 
+    /// Create an invalid request error (alias for validation error).
+    pub fn invalid_request<S: Into<String>>(message: S) -> Self {
+        Self::ValidationError {
+            message: message.into(),
+        }
+    }
+
     /// Create an invalid URL error.
     pub fn invalid_url<S1: Into<String>, S2: Into<String>>(url: S1, message: S2) -> Self {
         Self::InvalidUrl {

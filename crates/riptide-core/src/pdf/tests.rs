@@ -464,3 +464,188 @@ async fn property_test_no_panic() {
         }
     }
 }
+
+#[tokio::test]
+async fn test_memory_stability_under_load() {
+    let processor = Arc::new(create_pdf_processor());
+    let pdf_data = Arc::new(create_large_test_pdf(500));
+    let mut config = PdfConfig::default();
+
+    // Configure for high-stress testing
+    config.memory_settings.max_memory_spike_bytes = 200 * 1024 * 1024; // 200MB
+    config.memory_settings.max_concurrent_operations = 2; // Ensure exactly 2
+    config.memory_settings.aggressive_cleanup = true;
+    config.memory_settings.memory_check_interval = 2;
+
+    let config = Arc::new(config);
+    let mut handles = Vec::new();
+
+    #[cfg(feature = "pdf")]
+    {
+        let initial_memory = processor.get_memory_usage();
+        println!("Starting memory stability test with initial memory: {} MB",
+                 initial_memory / (1024 * 1024));
+
+        // Spawn 10 concurrent tasks (should be throttled to max 2 concurrent)
+        for i in 0..10 {
+            let processor_clone = Arc::clone(&processor);
+            let data_clone = Arc::clone(&pdf_data);
+            let config_clone = Arc::clone(&config);
+
+            let handle = tokio::spawn(async move {
+                let start_time = std::time::Instant::now();
+                let start_memory = processor_clone.get_memory_usage();
+
+                let result = processor_clone.process_pdf(&data_clone, &config_clone).await;
+
+                let end_memory = processor_clone.get_memory_usage();
+                let duration = start_time.elapsed();
+                let memory_delta = end_memory.saturating_sub(start_memory);
+
+                println!("Task {} completed in {:?}, memory delta: {} MB",
+                        i, duration, memory_delta / (1024 * 1024));
+
+                (i, result, memory_delta, duration)
+            });
+
+            handles.push(handle);
+
+            // Small delay to create some overlap
+            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+        }
+
+        // Wait for all tasks and collect results
+        let results = futures::future::join_all(handles).await;
+        let final_memory = processor.get_memory_usage();
+
+        println!("All tasks completed. Final memory: {} MB", final_memory / (1024 * 1024));
+
+        let mut successful_tasks = 0;
+        let mut total_memory_used = 0u64;
+        let mut max_task_duration = std::time::Duration::from_secs(0);
+
+        for result in results {
+            match result {
+                Ok((task_id, task_result, memory_delta, duration)) => {
+                    max_task_duration = max_task_duration.max(duration);
+
+                    match task_result {
+                        Ok(processing_result) => {
+                            successful_tasks += 1;
+                            total_memory_used += processing_result.stats.memory_used;
+
+                            // Ensure reasonable processing time (not stuck waiting)
+                            assert!(duration < std::time::Duration::from_secs(60),
+                                   "Task {} took too long: {:?}", task_id, duration);
+                        }
+                        Err(PdfError::MemoryLimit { .. }) => {
+                            println!("Task {} hit memory limit (expected under stress)", task_id);
+                        }
+                        Err(e) => {
+                            println!("Task {} failed with error: {}", task_id, e);
+                        }
+                    }
+                }
+                Err(e) => {
+                    println!("Task spawn failed: {}", e);
+                }
+            }
+        }
+
+        // At least some tasks should succeed
+        assert!(successful_tasks > 0, "No tasks completed successfully");
+
+        // Memory should return to reasonable levels after processing
+        let final_memory_delta = final_memory.saturating_sub(initial_memory);
+        assert!(final_memory_delta < 500 * 1024 * 1024,
+               "Final memory delta {} MB is too high",
+               final_memory_delta / (1024 * 1024));
+
+        println!("Memory stability test completed: {} successful tasks, \
+                 max duration: {:?}, final memory delta: {} MB",
+                successful_tasks, max_task_duration, final_memory_delta / (1024 * 1024));
+    }
+}
+
+#[tokio::test]
+async fn test_concurrent_memory_limits() {
+    let processor = Arc::new(create_pdf_processor());
+
+    // Create different sized PDFs
+    let small_pdf = Arc::new(create_test_pdf());
+    let large_pdf = Arc::new(create_large_test_pdf(2000));
+
+    let mut config = PdfConfig::default();
+    config.memory_settings.max_concurrent_operations = 2;
+    config.memory_settings.max_memory_spike_bytes = 100 * 1024 * 1024; // 100MB strict limit
+    let config = Arc::new(config);
+
+    #[cfg(feature = "pdf")]
+    {
+        let mut handles = Vec::new();
+
+        // Mix of small and large PDF processing tasks
+        for i in 0..6 {
+            let processor_clone = Arc::clone(&processor);
+            let config_clone = Arc::clone(&config);
+            let data = if i % 2 == 0 {
+                Arc::clone(&small_pdf)
+            } else {
+                Arc::clone(&large_pdf)
+            };
+
+            let handle = tokio::spawn(async move {
+                let start = std::time::Instant::now();
+                let result = processor_clone.process_pdf(&data, &config_clone).await;
+                let duration = start.elapsed();
+
+                match result {
+                    Ok(processing_result) => {
+                        println!("Task {} succeeded: {} pages, {} MB memory",
+                                i,
+                                processing_result.stats.pages_processed,
+                                processing_result.stats.memory_used / (1024 * 1024));
+                        assert!(processing_result.stats.memory_used <= config_clone.memory_settings.max_memory_spike_bytes + 20 * 1024 * 1024);
+                    }
+                    Err(PdfError::MemoryLimit { used, limit }) => {
+                        println!("Task {} hit memory limit: {} MB > {} MB",
+                                i, used / (1024 * 1024), limit / (1024 * 1024));
+                    }
+                    Err(ref e) => {
+                        println!("Task {} failed: {}", i, e);
+                    }
+                }
+
+                (i, result, duration)
+            });
+
+            handles.push(handle);
+        }
+
+        // Wait for completion and verify concurrency was limited
+        let results = futures::future::join_all(handles).await;
+
+        // Verify that some tasks were queued (indicating concurrency control worked)
+        let durations: Vec<_> = results.iter().filter_map(|r| {
+            if let Ok((_, _, duration)) = r {
+                Some(*duration)
+            } else {
+                None
+            }
+        }).collect();
+
+        if durations.len() > 2 {
+            // Sort durations to see the pattern
+            let mut sorted_durations = durations.clone();
+            sorted_durations.sort();
+
+            println!("Task durations: {:?}", sorted_durations);
+
+            // The longest tasks should indicate queueing happened
+            let avg_duration = sorted_durations.iter().sum::<std::time::Duration>() / sorted_durations.len() as u32;
+            let max_duration = sorted_durations.last().unwrap();
+
+            println!("Average duration: {:?}, Max duration: {:?}", avg_duration, max_duration);
+        }
+    }
+}

@@ -11,6 +11,7 @@ use tokio::time::{sleep, timeout};
 use tracing::{debug, error, info, warn};
 
 /// Session storage for persistent browser instances
+#[allow(dead_code)]
 type SessionStore = Arc<RwLock<HashMap<String, Browser>>>;
 
 /// Enhanced render function with timeout management and resilience patterns

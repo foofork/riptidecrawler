@@ -79,6 +79,7 @@ struct SentenceWithTopic {
     text: String,
     position: usize,
     topic_keywords: Vec<String>,
+    #[allow(dead_code)]
     topic_score: HashMap<String, f64>,
 }
 
@@ -88,6 +89,7 @@ struct TopicGroup {
     sentences: Vec<String>,
     primary_topic: String,
     topic_keywords: Vec<String>,
+    #[allow(dead_code)]
     similarity_score: f64,
 }
 

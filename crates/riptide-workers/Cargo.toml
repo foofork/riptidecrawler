@@ -16,3 +16,15 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 redis = { workspace = true }
 riptide-core = { path = "../riptide-core" }
+chrono = { workspace = true }
+uuid = { workspace = true }
+futures = { workspace = true }
+thiserror = { workspace = true }
+async-trait = "0.1"
+cron = "0.13"
+dashmap = "6"
+clap = { workspace = true }
+reqwest = { workspace = true }
+parking_lot = "0.12"
+num_cpus = "1.0"
+rand = { workspace = true }

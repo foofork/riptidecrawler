@@ -136,7 +136,7 @@ pub async fn spider_crawl(
         pages_crawled: crawl_result.pages_crawled,
         pages_failed: crawl_result.pages_failed,
         duration_seconds: crawl_result.duration.as_secs_f64(),
-        stop_reason: crawl_result.stop_reason,
+        stop_reason: crawl_result.stop_reason.clone(),
         domains: crawl_result.domains,
     };
 

@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true }
+async-trait = { workspace = true }
 bytes = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
@@ -37,6 +38,7 @@ robotstxt = "0.2"
 dashmap = "6.0"
 sha2 = "0.10"
 xml = "0.8"
+libc = "0.2"
 
 # Strategy and chunking dependencies
 schemars = { version = "0.8", features = ["chrono"] }

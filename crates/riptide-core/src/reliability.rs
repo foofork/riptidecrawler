@@ -274,7 +274,7 @@ impl ReliableExtractor {
                         request_id = %request_id,
                         "Headless extraction succeeded after fast extraction issues"
                     );
-                    return Ok(doc);
+                    Ok(doc)
                 }
                 Err(e) => {
                     warn!(
@@ -292,13 +292,13 @@ impl ReliableExtractor {
                         return Ok(doc);
                     }
 
-                    return Err(e);
+                    Err(e)
                 }
             }
         } else {
-            return Err(anyhow::anyhow!(
+            Err(anyhow::anyhow!(
                 "Fast extraction quality poor and graceful degradation disabled"
-            ));
+            ))
         }
     }
 
@@ -307,7 +307,7 @@ impl ReliableExtractor {
         let mut score = 0.0;
 
         // Title presence (20%)
-        if doc.title.as_ref().map_or(false, |t| !t.trim().is_empty()) {
+        if doc.title.as_ref().is_some_and(|t| !t.trim().is_empty()) {
             score += 0.2;
         }
 

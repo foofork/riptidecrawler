@@ -168,6 +168,16 @@ async fn main() -> anyhow::Result<()> {
             "/sessions/:session_id/cookies/:domain/:name",
             axum::routing::delete(handlers::sessions::delete_cookie),
         )
+        // Worker management endpoints
+        .route("/workers/jobs", post(handlers::workers::submit_job))
+        .route("/workers/jobs/:job_id", get(handlers::workers::get_job_status))
+        .route("/workers/jobs/:job_id/result", get(handlers::workers::get_job_result))
+        .route("/workers/stats/queue", get(handlers::workers::get_queue_stats))
+        .route("/workers/stats/workers", get(handlers::workers::get_worker_stats))
+        .route("/workers/metrics", get(handlers::workers::get_worker_metrics))
+        .route("/workers/schedule", post(handlers::workers::create_scheduled_job))
+        .route("/workers/schedule", get(handlers::workers::list_scheduled_jobs))
+        .route("/workers/schedule/:job_id", axum::routing::delete(handlers::workers::delete_scheduled_job))
         .fallback(handlers::not_found)
         .with_state(app_state.clone())
         .layer(SessionLayer::new(app_state.session_manager.clone()))

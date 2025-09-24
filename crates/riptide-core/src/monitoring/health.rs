@@ -70,7 +70,7 @@ impl HealthCalculator {
             score += 5.0;
         }
 
-        score.max(0.0_f64).min(100.0_f64) as f32
+        score.clamp(0.0_f64, 100.0_f64) as f32
     }
 
     /// Generate health summary text

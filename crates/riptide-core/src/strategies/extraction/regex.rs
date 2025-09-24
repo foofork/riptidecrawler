@@ -11,6 +11,7 @@ pub struct RegexExtractor {
 
 #[derive(Debug)]
 struct CompiledPattern {
+    #[allow(dead_code)]
     name: String,
     regex: Regex,
     field: String,

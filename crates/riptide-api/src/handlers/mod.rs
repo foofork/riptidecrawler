@@ -134,7 +134,7 @@ pub async fn health(State(state): State<AppState>) -> Result<impl IntoResponse, 
 pub async fn crawl(
     State(state): State<AppState>,
     Json(body): Json<CrawlBody>,
-) -> Result<impl IntoResponse, ApiError> {
+) -> Result<Json<CrawlResponse>, ApiError> {
     let start_time = Instant::now();
 
     info!(
@@ -490,7 +490,7 @@ async fn handle_spider_crawl(
     state: &AppState,
     urls: &[String],
     options: &CrawlOptions,
-) -> Result<impl IntoResponse, ApiError> {
+) -> Result<Json<CrawlResponse>, ApiError> {
     // Check if spider is enabled
     let spider = state.spider.as_ref().ok_or_else(|| ApiError::ConfigError {
         message: "Spider engine is not enabled. Set SPIDER_ENABLE=true to enable spider crawling.".to_string(),

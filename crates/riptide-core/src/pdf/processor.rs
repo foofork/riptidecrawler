@@ -1,8 +1,12 @@
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::Instant;
+use async_trait::async_trait;
 
 use super::config::{PdfCapabilities, PdfConfig};
 use super::errors::{PdfError, PdfResult};
+use super::metrics::PdfMetricsCollector;
 use super::types::{PdfImage, PdfMetadata, PdfProcessingResult, PdfStats, ProgressCallback};
 use super::utils;
 
@@ -24,30 +28,42 @@ type PdfPage<'a> = pdfium_render::prelude::PdfPage<'a>;
 #[cfg(feature = "pdf")]
 static PDF_SEMAPHORE: OnceLock<Arc<Semaphore>> = OnceLock::new();
 
+// Global memory usage tracking for better monitoring
+#[cfg(feature = "pdf")]
+static ACTIVE_PROCESSORS: AtomicU64 = AtomicU64::new(0);
+#[cfg(feature = "pdf")]
+static PEAK_MEMORY_USAGE: AtomicU64 = AtomicU64::new(0);
+
+// Global metrics collector for production monitoring
+#[cfg(feature = "pdf")]
+#[allow(dead_code)]
+static PDF_METRICS: std::sync::OnceLock<Arc<PdfMetricsCollector>> = std::sync::OnceLock::new();
+
 /// PDF processor trait for different implementations
 ///
-/// Note: This trait is object-safe (dyn compatible) for use with trait objects
+/// Uses async-trait to make this trait dyn-compatible (object-safe)
+#[async_trait]
 pub trait PdfProcessor: Send + Sync {
     /// Process a PDF from bytes
-    fn process_pdf<'a>(
-        &'a self,
-        data: &'a [u8],
-        config: &'a PdfConfig,
-    ) -> impl std::future::Future<Output = PdfResult<PdfProcessingResult>> + Send + 'a;
+    async fn process_pdf(
+        &self,
+        data: &[u8],
+        config: &PdfConfig,
+    ) -> PdfResult<PdfProcessingResult>;
 
     /// Process a PDF with progress tracking
-    fn process_pdf_with_progress<'a>(
-        &'a self,
-        data: &'a [u8],
-        config: &'a PdfConfig,
+    async fn process_pdf_with_progress(
+        &self,
+        data: &[u8],
+        config: &PdfConfig,
         progress_callback: Option<ProgressCallback>,
-    ) -> impl std::future::Future<Output = PdfResult<PdfProcessingResult>> + Send + 'a;
+    ) -> PdfResult<PdfProcessingResult>;
 
     /// Detect if OCR is needed for this PDF
-    fn detect_ocr_need<'a>(
-        &'a self,
-        data: &'a [u8],
-    ) -> impl std::future::Future<Output = PdfResult<bool>> + Send + 'a;
+    async fn detect_ocr_need(
+        &self,
+        data: &[u8],
+    ) -> PdfResult<bool>;
 
     /// Check if the processor is available
     fn is_available(&self) -> bool;
@@ -55,6 +71,8 @@ pub trait PdfProcessor: Send + Sync {
     /// Get processor capabilities
     fn capabilities(&self) -> PdfCapabilities;
 }
+
+// Type alias removed - using enum dispatch pattern instead
 
 /// Pdfium-based PDF processor with concurrency control
 #[cfg(feature = "pdf")]
@@ -104,11 +122,21 @@ impl PdfiumProcessor {
         config: &PdfConfig,
         progress_callback: Option<ProgressCallback>,
     ) -> PdfResult<PdfProcessingResult> {
+        // Create a resource guard to ensure cleanup
+        let _resource_guard = ProcessingResourceGuard::new();
         let start_time = std::time::Instant::now();
-        let initial_memory = self.get_memory_usage();
+        let initial_memory_stats = self.get_memory_stats();
 
-        // Acquire semaphore permit for concurrency control (limit to 2 concurrent operations)
-        let semaphore = PDF_SEMAPHORE.get_or_init(|| Arc::new(Semaphore::new(2)));
+        // Check for memory pressure before starting
+        if initial_memory_stats.memory_pressure {
+            tracing::warn!("Starting PDF processing under memory pressure: {} MB RSS",
+                          initial_memory_stats.current_rss / (1024 * 1024));
+        }
+
+        // Acquire semaphore permit for concurrency control (configurable limit)
+        let semaphore = PDF_SEMAPHORE.get_or_init(|| {
+            Arc::new(Semaphore::new(config.memory_settings.max_concurrent_operations))
+        });
         let _permit = semaphore
             .acquire()
             .await
@@ -142,16 +170,27 @@ impl PdfiumProcessor {
                 callback(0, total_pages);
             }
 
-            // Extract content page by page with memory monitoring
+            // Extract content page by page with enhanced memory monitoring
             for page_index in 0..document.pages().len() {
-                // Check memory usage periodically
-                if page_index % 10 == 0 {
-                    let current_memory = processor_clone.get_memory_usage();
-                    if current_memory > initial_memory + (200 * 1024 * 1024) { // 200MB spike threshold
+                // Check memory usage periodically and perform adaptive cleanup
+                if (page_index as usize).is_multiple_of(config.memory_settings.memory_check_interval) {
+                    let memory_stats = processor_clone.get_memory_stats();
+                    let memory_spike = memory_stats.current_rss.saturating_sub(initial_memory_stats.current_rss);
+
+                    if memory_spike > config.memory_settings.max_memory_spike_bytes {
+                        tracing::warn!("Memory spike detected: {} MB above initial (limit: {} MB)",
+                                      memory_spike / (1024 * 1024),
+                                      config.memory_settings.max_memory_spike_bytes / (1024 * 1024));
                         return Err(PdfError::MemoryLimit {
-                            used: current_memory,
-                            limit: initial_memory + (200 * 1024 * 1024),
+                            used: memory_stats.current_rss,
+                            limit: initial_memory_stats.current_rss + config.memory_settings.max_memory_spike_bytes,
                         });
+                    }
+
+                    // Perform memory cleanup if under pressure or at cleanup intervals
+                    if (memory_stats.memory_pressure || (page_index as usize).is_multiple_of(config.memory_settings.cleanup_interval))
+                        && config.memory_settings.aggressive_cleanup {
+                        processor_clone.perform_memory_cleanup();
                     }
                 }
 
@@ -168,6 +207,18 @@ impl PdfiumProcessor {
                 if let Some(ref callback) = progress_callback_moved {
                     callback(page_index as u32 + 1, total_pages);
                 }
+
+                // Adaptive processing: if we're using too much memory, process in smaller batches
+                if page_index > 0 && page_index % 50 == 0 {
+                    let current_memory = processor_clone.get_memory_usage();
+                    let memory_per_page = (current_memory.saturating_sub(initial_memory_stats.current_rss)) / (page_index as u64 + 1);
+
+                    if memory_per_page > 1024 * 1024 { // More than 1MB per page
+                        tracing::info!("High memory usage per page detected: {} KB/page, performing intermediate cleanup",
+                                      memory_per_page / 1024);
+                        processor_clone.perform_memory_cleanup();
+                    }
+                }
             }
 
             // Check if OCR is needed
@@ -177,7 +228,15 @@ impl PdfiumProcessor {
             let metadata = processor_clone.extract_metadata(&document, total_pages, &config)?;
 
             let processing_time = start_time.elapsed().as_millis() as u64;
-            let final_memory = processor_clone.get_memory_usage();
+            let final_memory_stats = processor_clone.get_memory_stats();
+
+            // Log final memory statistics
+            tracing::info!("PDF processing completed: {} pages, {} ms, memory usage: {} -> {} MB (delta: {} MB)",
+                          total_pages,
+                          processing_time,
+                          initial_memory_stats.current_rss / (1024 * 1024),
+                          final_memory_stats.current_rss / (1024 * 1024),
+                          final_memory_stats.current_rss.saturating_sub(initial_memory_stats.current_rss) / (1024 * 1024));
 
             Ok(processor_clone.build_processing_result(
                 extraction_results,
@@ -185,7 +244,7 @@ impl PdfiumProcessor {
                 processing_time,
                 data.len() as u64,
                 &config,
-                final_memory.saturating_sub(initial_memory),
+                final_memory_stats.current_rss.saturating_sub(initial_memory_stats.current_rss),
             ))
         }).await.map_err(|e| PdfError::ProcessingError { message: format!("Blocking task failed: {}", e) })?
     }
@@ -394,12 +453,10 @@ impl PdfiumProcessor {
         let producer = None;
         let creation_date = None;
         let modification_date = None;
-        let pdf_version;
-
         // Extract PDF version from document
         let version = document.version();
         // PdfDocumentVersion is an enum, convert to string representation
-        pdf_version = Some(format!("{:?}", version));
+        let pdf_version = Some(format!("{:?}", version));
 
         // Check document permissions - use conservative defaults if API unavailable
         let _permissions = document.permissions();
@@ -435,7 +492,10 @@ impl PdfiumProcessor {
         {
             if let Ok(usage) = psutil::process::Process::current() {
                 if let Ok(memory_info) = usage.memory_info() {
-                    return memory_info.rss();
+                    let rss = memory_info.rss();
+                    // Update peak memory tracking
+                    PEAK_MEMORY_USAGE.fetch_max(rss, Ordering::Relaxed);
+                    return rss;
                 }
             }
         }
@@ -443,7 +503,71 @@ impl PdfiumProcessor {
         // Fallback: estimate based on system info
         let mut sys = sysinfo::System::new();
         sys.refresh_memory();
-        sys.used_memory()
+        let used = sys.used_memory();
+        PEAK_MEMORY_USAGE.fetch_max(used, Ordering::Relaxed);
+        used
+    }
+
+    /// Get enhanced memory statistics including peak usage
+    fn get_memory_stats(&self) -> MemoryStats {
+        let current = self.get_memory_usage();
+        let peak = PEAK_MEMORY_USAGE.load(Ordering::Relaxed);
+        let active_processors = ACTIVE_PROCESSORS.load(Ordering::Relaxed);
+
+        MemoryStats {
+            current_rss: current,
+            peak_rss: peak,
+            active_processors,
+            memory_pressure: self.detect_memory_pressure(current),
+        }
+    }
+
+    /// Get memory statistics with configurable pressure threshold
+    #[allow(dead_code)]
+    fn get_memory_stats_with_config(&self, config: &PdfConfig) -> MemoryStats {
+        let current = self.get_memory_usage();
+        let peak = PEAK_MEMORY_USAGE.load(Ordering::Relaxed);
+        let active_processors = ACTIVE_PROCESSORS.load(Ordering::Relaxed);
+
+        MemoryStats {
+            current_rss: current,
+            peak_rss: peak,
+            active_processors,
+            memory_pressure: self.detect_memory_pressure_with_threshold(
+                current,
+                config.memory_settings.memory_pressure_threshold
+            ),
+        }
+    }
+
+    /// Detect if we're under memory pressure
+    fn detect_memory_pressure(&self, current_memory: u64) -> bool {
+        // Default threshold, but this could be made configurable per-call
+        self.detect_memory_pressure_with_threshold(current_memory, 0.8)
+    }
+
+    /// Detect memory pressure with configurable threshold
+    fn detect_memory_pressure_with_threshold(&self, current_memory: u64, threshold: f64) -> bool {
+        let mut sys = sysinfo::System::new();
+        sys.refresh_memory();
+        let total_memory = sys.total_memory();
+        let memory_usage_ratio = (current_memory as f64) / (total_memory as f64);
+
+        memory_usage_ratio > threshold
+    }
+
+    /// Force garbage collection and memory cleanup hints
+    fn perform_memory_cleanup(&self) {
+        // On Unix systems, we can suggest to the allocator to release memory
+        #[cfg(unix)]
+        {
+            unsafe {
+                libc::malloc_trim(0);
+            }
+        }
+
+        // Hint to the runtime that it's a good time to collect garbage
+        std::thread::yield_now();
     }
 
     #[cfg(feature = "pdf")]
@@ -585,6 +709,7 @@ impl PdfiumProcessor {
 }
 
 #[cfg(feature = "pdf")]
+#[async_trait]
 impl PdfProcessor for PdfiumProcessor {
     async fn process_pdf(&self, data: &[u8], config: &PdfConfig) -> PdfResult<PdfProcessingResult> {
         self.process_pdf_enhanced(data, config, None).await
@@ -670,6 +795,7 @@ impl PdfProcessor for PdfiumProcessor {
 
 /// Default PDF processor implementation (fallback when pdf feature is disabled)
 #[cfg(not(feature = "pdf"))]
+#[derive(Clone)]
 pub struct DefaultPdfProcessor {
     capabilities: PdfCapabilities,
 }
@@ -700,6 +826,7 @@ impl DefaultPdfProcessor {
 }
 
 #[cfg(not(feature = "pdf"))]
+#[async_trait]
 impl PdfProcessor for DefaultPdfProcessor {
     async fn process_pdf(
         &self,
@@ -737,6 +864,49 @@ impl PdfProcessor for DefaultPdfProcessor {
 
     fn capabilities(&self) -> PdfCapabilities {
         self.capabilities.clone()
+    }
+}
+
+/// Memory statistics for monitoring
+#[cfg(feature = "pdf")]
+#[allow(dead_code)]
+struct MemoryStats {
+    current_rss: u64,
+    peak_rss: u64,
+    active_processors: u64,
+    memory_pressure: bool,
+}
+
+/// Resource guard to ensure cleanup on drop
+#[cfg(feature = "pdf")]
+struct ProcessingResourceGuard {
+    start_time: Instant,
+}
+
+#[cfg(feature = "pdf")]
+impl ProcessingResourceGuard {
+    fn new() -> Self {
+        ACTIVE_PROCESSORS.fetch_add(1, Ordering::Relaxed);
+        Self {
+            start_time: Instant::now(),
+        }
+    }
+}
+
+#[cfg(feature = "pdf")]
+impl Drop for ProcessingResourceGuard {
+    fn drop(&mut self) {
+        ACTIVE_PROCESSORS.fetch_sub(1, Ordering::Relaxed);
+        let duration = self.start_time.elapsed();
+        tracing::debug!("PDF processing completed in {:?}", duration);
+
+        // Perform cleanup on drop (including panics)
+        #[cfg(unix)]
+        {
+            unsafe {
+                libc::malloc_trim(0);
+            }
+        }
     }
 }
 

@@ -170,6 +170,7 @@ impl HealthChecker {
             extractor: extractor_health,
             http_client: http_health,
             headless_service: headless_health,
+            spider_engine: None, // TODO: Implement spider health check
         }
     }
 
@@ -359,7 +360,7 @@ impl HealthChecker {
         let memory_usage_bytes = Self::get_memory_usage();
 
         // Get metrics from Prometheus registry
-        let metrics_data = state.metrics.gather();
+        let metrics_data = state.metrics.registry.gather();
 
         // Extract key metrics from the prometheus data
         let mut total_requests = 0u64;
@@ -370,13 +371,15 @@ impl HealthChecker {
         for family in &metrics_data {
             if family.get_name() == "riptide_http_requests_total" {
                 for metric in family.get_metric() {
-                    if let Some(counter) = metric.counter.as_ref() {
+                    if metric.has_counter() {
+                        let counter = metric.get_counter();
                         total_requests += counter.get_value() as u64;
                     }
                 }
             } else if family.get_name() == "riptide_request_duration_seconds" {
                 for metric in family.get_metric() {
-                    if let Some(histogram) = metric.histogram.as_ref() {
+                    if metric.has_histogram() {
+                        let histogram = metric.get_histogram();
                         sum_response_time += histogram.get_sample_sum();
                         count_response_time += histogram.get_sample_count();
                     }
@@ -405,7 +408,7 @@ impl HealthChecker {
 
         SystemMetrics {
             memory_usage_bytes,
-            active_connections: state.resource_manager.browser_pool.active_count() as u32,
+            active_connections: state.resource_manager.browser_pool.get_stats().await.in_use as u32,
             total_requests,
             requests_per_second,
             avg_response_time_ms,

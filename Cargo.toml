@@ -15,6 +15,7 @@ authors = ["RipTide Team"]
 
 [workspace.dependencies]
 anyhow = "1"
+async-trait = "0.1"
 axum = { version = "0.7", features = ["json", "ws"] }  # Keep 0.7 for stability
 bytes = "1"
 chrono = { version = "0.4", features = ["serde"] }
@@ -57,6 +58,17 @@ pdfium-render = { version = "0.8", features = ["sync", "thread_safe"] }
 opt-level = 3
 lto = "thin"
 codegen-units = 1
+incremental = false  # Disable for release builds to improve optimization
+
+# WASM-optimized build profile
+[profile.wasm]
+inherits = "release"
+opt-level = "s"          # Optimize for size
+lto = "fat"              # Full link-time optimization
+codegen-units = 1        # Single codegen unit for better optimization
+panic = "abort"          # Reduce binary size
+strip = true             # Strip debug symbols
+incremental = false      # Disable for better optimization
 
 # Integration tests configuration
 

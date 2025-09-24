@@ -117,10 +117,12 @@ impl Default for AppConfig {
                 .unwrap_or(0.3),
             headless_url: std::env::var("HEADLESS_URL").ok(),
             session_config: SessionConfig::default(),
-            spider_config: Self::init_spider_config(),
+            spider_config: AppConfig::init_spider_config(),
         }
     }
+}
 
+impl AppConfig {
     /// Initialize spider configuration based on environment variables
     fn init_spider_config() -> Option<SpiderConfig> {
         // Check if spider is enabled
@@ -320,8 +322,16 @@ impl AppState {
             match Spider::new(spider_config).await {
                 Ok(spider_engine) => {
                     let spider_with_integrations = spider_engine
-                        .with_fetch_engine(Arc::new(riptide_core::fetch::FetchEngine::new(http_client.clone())))
-                        .with_memory_manager(Arc::new(riptide_core::memory_manager::MemoryManager::new()));
+                        .with_fetch_engine(Arc::new(riptide_core::fetch::FetchEngine::new()?))
+                        .with_memory_manager(Arc::new({
+                            let mut wasmtime_config = wasmtime::Config::new();
+                            wasmtime_config.wasm_component_model(true);
+                            let engine = wasmtime::Engine::new(&wasmtime_config).map_err(|e| anyhow::anyhow!("Failed to create wasmtime engine: {}", e))?;
+                            riptide_core::memory_manager::MemoryManager::new(
+                                riptide_core::memory_manager::MemoryManagerConfig::default(),
+                                engine
+                            ).await?
+                        }));
 
                     tracing::info!("Spider engine initialized successfully with fetch and memory integrations");
                     Some(Arc::new(spider_with_integrations))

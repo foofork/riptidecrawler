@@ -4,8 +4,9 @@
 [build]
 # Default target for development builds
 target-dir = "target"
-jobs = 8
+jobs = 16  # Increase parallel jobs for faster builds
 incremental = true
+# rustc-wrapper = "sccache"  # Use sccache for compilation caching - Disabled (not available)
 
 [target.x86_64-unknown-linux-gnu]
 rustflags = [
@@ -17,8 +18,20 @@ rustflags = [
 # Use wasmtime as the runner for testing WASM components
 runner = "wasmtime run --wasm component-model --allow-unknown-exports"
 
-# Linker configuration for optimal WASM builds
+# Optimized linker configuration for WASM builds
 linker = "rust-lld"
+rustflags = [
+    "-C", "target-feature=+simd128",
+    "-C", "opt-level=s",
+    "-C", "lto=fat",
+    "-C", "codegen-units=1",
+    "-C", "panic=abort",
+    "-C", "strip=symbols",
+    "-C", "link-arg=-O2",
+    # Additional WASM-specific optimizations
+    "-C", "link-arg=--gc-sections",
+    "-C", "link-arg=--strip-all",
+]
 
 [target.wasm32-wasip1]
 # Configuration for WASI Preview 1 builds (legacy compatibility)
@@ -76,5 +89,13 @@ debug = 1             # Reduced debug info for smaller binaries
 # Test parallelization settings for improved test performance
 [test]
 parallel = true
-jobs = 8               # Use 8 CPU cores for balance
+jobs = 16              # Increased for faster parallel testing
 timeout = 600          # 10 minute timeout for long-running tests
+
+# WASM-specific build cache and optimization settings (merged with earlier config)
+# [target.wasm32-wasip1] - Removed duplicate, using earlier definition
+# Additional flags merged into earlier configuration
+
+# Improved build cache configuration (merged with earlier [build] section)
+
+# Cache configuration for sccache (moved to earlier [env] section to avoid duplicates)

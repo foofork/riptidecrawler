@@ -73,8 +73,10 @@ pub async fn chunk_by_sentences(
 #[derive(Debug, Clone)]
 struct Sentence {
     text: String,
+    #[allow(dead_code)]
     start_pos: usize,
     end_pos: usize,
+    #[allow(dead_code)]
     confidence: f64,
 }
 

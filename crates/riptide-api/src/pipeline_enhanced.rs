@@ -237,14 +237,20 @@ impl EnhancedPipelineOrchestrator {
         // Simplified implementation - integrate with actual WASM extraction
         let doc = ExtractedDoc {
             url: url.to_string(),
-            title: "Extracted Title".to_string(),
-            content: content.chars().take(1000).collect(),
+            title: Some("Extracted Title".to_string()),
+            byline: None,
+            published_iso: None,
+            markdown: content.chars().take(1000).collect::<String>(),
+            text: content.chars().take(1000).collect::<String>(),
             links: vec![],
-            images: vec![],
-            metadata: std::collections::HashMap::new(),
-            word_count: content.split_whitespace().count(),
+            media: vec![],
             language: Some("en".to_string()),
             reading_time: Some(5),
+            quality_score: None,
+            word_count: Some(content.split_whitespace().count() as u32),
+            categories: vec![],
+            site_name: None,
+            description: None,
         };
 
         Ok(doc)
@@ -260,14 +266,20 @@ impl EnhancedPipelineOrchestrator {
         // For now, return a placeholder
         let doc = ExtractedDoc {
             url: url.to_string(),
-            title: "Headless Rendered Title".to_string(),
-            content: "Enhanced content from headless rendering".to_string(),
+            title: Some("Headless Rendered Title".to_string()),
+            byline: None,
+            published_iso: None,
+            markdown: "Enhanced content from headless rendering".to_string(),
+            text: "Enhanced content from headless rendering".to_string(),
             links: vec![],
-            images: vec![],
-            metadata: std::collections::HashMap::new(),
-            word_count: 100,
+            media: vec![],
             language: Some("en".to_string()),
             reading_time: Some(2),
+            quality_score: None,
+            word_count: Some(100),
+            categories: vec![],
+            site_name: None,
+            description: None,
         };
 
         Ok(doc)

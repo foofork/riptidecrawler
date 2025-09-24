@@ -6,6 +6,8 @@
 pub mod config;
 pub mod errors;
 pub mod integration;
+pub mod memory_benchmark;
+pub mod metrics;
 pub mod processor;
 pub mod types;
 pub mod utils;
@@ -17,10 +19,12 @@ pub mod tests;
 pub mod benchmarks;
 
 // Re-export main types and functions
-pub use config::{ImageFormat, OcrConfig, PdfCapabilities, PdfConfig};
+pub use config::{ImageFormat, MemorySettings, OcrConfig, PdfCapabilities, PdfConfig};
 pub use errors::{PdfError, PdfResult};
 pub use integration::{PdfPipelineIntegration, create_pdf_integration_for_pipeline, detect_and_process_pdf};
-pub use processor::{create_pdf_processor, PdfProcessor};
+pub use memory_benchmark::{PdfMemoryBenchmark, MemoryBenchmarkResults};
+pub use metrics::{PdfMetricsCollector, PdfMetricsSnapshot, PdfOperationTimer};
+pub use processor::{create_pdf_processor, PdfProcessor, AnyPdfProcessor};
 pub use types::{
     PdfImage, PdfMetadata, PdfProcessingResult, PdfStats, ProgressCallback, StructuredContent,
 };

@@ -477,6 +477,7 @@ impl MemoryManager {
     }
 
     /// Update memory statistics
+    #[allow(clippy::too_many_arguments)]
     async fn update_memory_stats(
         config: &MemoryManagerConfig,
         available_instances: &Arc<Mutex<VecDeque<TrackedWasmInstance>>>,
@@ -553,6 +554,7 @@ impl MemoryManager {
     }
 
     /// Perform garbage collection on WASM instances
+    #[allow(clippy::too_many_arguments)]
     async fn perform_garbage_collection(
         config: &MemoryManagerConfig,
         available_instances: &Arc<Mutex<VecDeque<TrackedWasmInstance>>>,

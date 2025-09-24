@@ -29,6 +29,9 @@ pub struct PdfConfig {
 
     /// Enable page-by-page processing with progress tracking
     pub enable_progress_tracking: bool,
+
+    /// Memory management settings
+    pub memory_settings: MemorySettings,
 }
 
 impl Default for PdfConfig {
@@ -43,6 +46,7 @@ impl Default for PdfConfig {
             timeout_seconds: 30,
             ocr_config: OcrConfig::default(),
             enable_progress_tracking: false,
+            memory_settings: MemorySettings::default(),
         }
     }
 }
@@ -180,6 +184,41 @@ pub struct PdfCapabilities {
 
     /// Supported PDF versions
     pub supported_versions: Vec<String>,
+}
+
+/// Memory management settings for PDF processing
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MemorySettings {
+    /// Maximum memory spike allowed per worker (in bytes)
+    pub max_memory_spike_bytes: u64,
+
+    /// Memory check interval (number of pages)
+    pub memory_check_interval: usize,
+
+    /// Cleanup interval (number of pages)
+    pub cleanup_interval: usize,
+
+    /// Memory pressure threshold (0.0 to 1.0)
+    pub memory_pressure_threshold: f64,
+
+    /// Maximum concurrent PDF processing operations
+    pub max_concurrent_operations: usize,
+
+    /// Enable aggressive memory cleanup
+    pub aggressive_cleanup: bool,
+}
+
+impl Default for MemorySettings {
+    fn default() -> Self {
+        Self {
+            max_memory_spike_bytes: 200 * 1024 * 1024, // 200MB
+            memory_check_interval: 5,
+            cleanup_interval: 20,
+            memory_pressure_threshold: 0.8, // 80%
+            max_concurrent_operations: 2,
+            aggressive_cleanup: true,
+        }
+    }
 }
 
 #[cfg(test)]

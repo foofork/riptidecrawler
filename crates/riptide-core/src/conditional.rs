@@ -29,7 +29,7 @@ impl ConditionalRequest {
         let if_modified_since = headers
             .get("if-modified-since")
             .and_then(|v| v.to_str().ok())
-            .and_then(|s| parse_http_date(s));
+            .and_then(parse_http_date);
 
         let if_match = headers
             .get("if-match")
@@ -39,7 +39,7 @@ impl ConditionalRequest {
         let if_unmodified_since = headers
             .get("if-unmodified-since")
             .and_then(|v| v.to_str().ok())
-            .and_then(|s| parse_http_date(s));
+            .and_then(parse_http_date);
 
         Ok(Self {
             if_none_match,

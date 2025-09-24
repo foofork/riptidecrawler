@@ -6,10 +6,11 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use tokio::time::timeout;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info, warn};
 
 /// Configuration for the headless browser launcher
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct LauncherConfig {
     /// Browser pool configuration
     pub pool_config: BrowserPoolConfig,
@@ -100,11 +101,11 @@ impl HeadlessLauncher {
     }
 
     /// Launch a browser page with the specified URL and stealth configuration
-    pub async fn launch_page(
-        &self,
+    pub async fn launch_page<'a>(
+        &'a self,
         url: &str,
         stealth_preset: Option<StealthPreset>,
-    ) -> Result<LaunchSession> {
+    ) -> Result<LaunchSession<'a>> {
         let start_time = Instant::now();
         let session_id = uuid::Uuid::new_v4().to_string();
 
@@ -182,7 +183,7 @@ impl HeadlessLauncher {
     }
 
     /// Launch a browser page with default stealth settings
-    pub async fn launch_page_default(&self, url: &str) -> Result<LaunchSession> {
+    pub async fn launch_page_default<'a>(&'a self, url: &str) -> Result<LaunchSession<'a>> {
         let stealth_preset = if self.config.enable_stealth {
             Some(self.config.default_stealth_preset.clone())
         } else {
@@ -193,7 +194,7 @@ impl HeadlessLauncher {
     }
 
     /// Launch a browser page without stealth (for testing/debugging)
-    pub async fn launch_page_no_stealth(&self, url: &str) -> Result<LaunchSession> {
+    pub async fn launch_page_no_stealth<'a>(&'a self, url: &str) -> Result<LaunchSession<'a>> {
         self.launch_page(url, Some(StealthPreset::None)).await
     }
 
@@ -268,7 +269,7 @@ impl HeadlessLauncher {
             .map_err(|e| anyhow!("Failed to inject stealth JS: {}", e))?;
 
         // Apply additional stealth measures
-        let stealth_controller = self.stealth_controller.read().await;
+        let _stealth_controller = self.stealth_controller.read().await;
 
         // Set viewport to common resolution
         page.execute(
@@ -313,7 +314,7 @@ impl HeadlessLauncher {
     /// Start monitoring task for pool and performance metrics
     async fn start_monitoring_task(
         browser_pool: Arc<BrowserPool>,
-        stats: Arc<RwLock<LauncherStats>>,
+        _stats: Arc<RwLock<LauncherStats>>,
     ) {
         let pool_events = browser_pool.events();
 
@@ -368,6 +369,7 @@ impl HeadlessLauncher {
 pub struct LaunchSession<'a> {
     pub session_id: String,
     pub page: Page,
+    #[allow(dead_code)]
     browser_checkout: BrowserCheckout,
     start_time: Instant,
     launcher: &'a HeadlessLauncher,
