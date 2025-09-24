@@ -396,13 +396,95 @@ stealth:
 16\) Strategies & chunking (PR-6) - wire to extraction pipeline
 17\) Complete integration testing of all wired components
 
-**Parallel (Weeks 0–5)**
+**Week 6 - INTEGRATION RECONCILIATION (Critical Step)**
+
+18\) **Cross-Component Wiring Audit**
+    * Verify all imports are properly connected between modules
+    * Ensure session cookies flow through browser pool → render handlers
+    * Connect performance metrics from all components to monitoring
+    * Wire error types consistently across boundaries
+    * Verify WASM extractor receives data from all sources
+
+19\) **Dependency Graph Validation**
+    * Map all inter-component dependencies
+    * Identify missing connections (e.g., PDF processor → metrics)
+    * Ensure streaming pipeline receives from all producers
+    * Verify cleanup handlers triggered from all failure paths
+
+20\) **Integration Touch-ups**
+    * Add missing trait implementations (From, Into, Error conversions)
+    * Wire up orphaned event handlers and callbacks
+    * Connect rate limiter to ALL HTTP operations (not just render)
+    * Ensure memory manager tracks ALL allocations
+    * Complete bidirectional connections (request → response paths)
+
+21\) **End-to-End Flow Verification**
+    * Trace a request through entire pipeline
+    * Verify all telemetry/metrics collected
+    * Ensure all resources properly released
+    * Check all error paths return appropriate responses
+
+**Parallel (Weeks 0–6)**
 
 * Build/CI speedups, test coverage to ≥80%, circuit breaker tuning (low priority).
 
 ---
 
-## 15) Crosswalk (nothing lost)
+## 15) Integration Reconciliation Phase (New Section)
+
+### What This Phase Addresses:
+When we build components in isolation, we often miss:
+- **Forgotten Imports**: Components that should use shared types/traits but don't
+- **Partial Wirings**: A→B connected but B→C forgotten
+- **Orphaned Features**: Implemented but never called from anywhere
+- **Inconsistent Patterns**: Different error handling/logging/metrics across modules
+- **Missing Backpressure**: Component A floods B without flow control
+- **Dangling Resources**: Cleanup in error paths not wired to all callers
+
+### Key Reconciliation Tasks:
+1. **Import Audit**: Ensure all shared types (SessionId, RequestId, etc.) used consistently
+2. **Metrics Wiring**: Every operation reports to performance monitor
+3. **Error Propagation**: All errors properly converted and bubbled up
+4. **Resource Lifecycle**: All guards/locks/handles properly released
+5. **Event Flow**: All events have publishers AND subscribers
+6. **Configuration Propagation**: Settings reach all relevant components
+7. **Telemetry Coverage**: No blind spots in observability
+
+### Success Criteria:
+- No unused imports remain
+- No unreachable code warnings
+- All pub methods have at least one caller
+- Resource leak detection shows clean
+- Integration tests pass with all components active
+- Metrics dashboard shows data from ALL components
+
+### Integration Checklist (Run After Each Component):
+```
+□ Does this component import all relevant shared types?
+□ Does it emit metrics to the performance monitor?
+□ Are errors properly wrapped with context?
+□ Do cleanup paths trigger in ALL failure scenarios?
+□ Are resources (browsers, memory, handles) released?
+□ Is backpressure/rate limiting applied?
+□ Do callbacks/event handlers have subscribers?
+□ Is configuration read from the global config?
+□ Are there integration tests with real dependencies?
+□ Does telemetry show this component's activity?
+```
+
+### Common Integration Misses (Watch For These):
+- **Browser Pool** → Need to wire checkout/checkin to ALL render paths
+- **Session Manager** → Must flow through middleware to handlers to browser
+- **Rate Limiter** → Often forgotten on secondary HTTP paths (health, metrics)
+- **Memory Manager** → PDF/WASM/Spider allocations often not tracked
+- **Performance Monitor** → Checkpoints missing in async continuation points
+- **Error Context** → Lost when crossing async boundaries
+- **Streaming Pipeline** → Backpressure not propagated to producers
+- **Resource Guards** → Drop implementations not triggering cleanup
+
+---
+
+## 16) Crosswalk (nothing lost)
 
 * Your **Phase 0** items → §§1.1–1.5 and §5; 0.3/0.5/0.6/0.7 kept verbatim in §5 & §2/§7/§8.
 * Your **Phase 3 PR-1..PR-6** → §4 (unchanged content, clearer sequence).
