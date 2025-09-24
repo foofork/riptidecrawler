@@ -3,29 +3,36 @@
 //! This module demonstrates how to integrate PDF processing with the main extraction pipeline.
 
 use super::*;
+use super::metrics::PdfMetricsCollector;
 use crate::types::ExtractedDoc;
 use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+use tracing::{debug, info, warn};
 
-/// PDF pipeline integration handler
+/// PDF pipeline integration handler with comprehensive monitoring
 pub struct PdfPipelineIntegration {
     processor: super::processor::AnyPdfProcessor,
     config: PdfConfig,
+    metrics: Arc<PdfMetricsCollector>,
 }
 
 impl PdfPipelineIntegration {
-    /// Create a new PDF pipeline integration
+    /// Create a new PDF pipeline integration with metrics
     pub fn new() -> Self {
         Self {
             processor: create_pdf_processor(),
             config: PdfConfig::default(),
+            metrics: Arc::new(PdfMetricsCollector::new()),
         }
     }
 
-    /// Create with custom configuration
+    /// Create with custom configuration and metrics
     pub fn with_config(config: PdfConfig) -> Self {
         Self {
             processor: create_pdf_processor(),
             config,
+            metrics: Arc::new(PdfMetricsCollector::new()),
         }
     }
 
@@ -39,17 +46,51 @@ impl PdfPipelineIntegration {
         utils::detect_pdf_content(content_type, url, data)
     }
 
-    /// Process PDF bytes and convert to ExtractedDoc
+    /// Process PDF bytes and convert to ExtractedDoc with comprehensive monitoring
     #[cfg(feature = "pdf")]
     pub async fn process_pdf_to_extracted_doc(
         &self,
         pdf_bytes: &[u8],
         url: Option<&str>,
     ) -> PdfResult<ExtractedDoc> {
-        // For now, use the standard processing path since downcasting is complex
-        // In a real implementation, this could be optimized to use PdfiumProcessor directly
-        let result = self.processor.process_pdf(pdf_bytes, &self.config).await?;
-        Ok(self.convert_pdf_result_to_extracted_doc(result, url))
+        let start_time = Instant::now();
+
+        info!("Starting PDF processing: {} bytes, url: {:?}", pdf_bytes.len(), url);
+
+        // Validate size against ROADMAP limits
+        if pdf_bytes.len() as u64 > self.config.max_size_bytes {
+            self.metrics.record_processing_failure(false);
+            return Err(PdfError::FileTooLarge {
+                size: pdf_bytes.len() as u64,
+                max_size: self.config.max_size_bytes,
+            });
+        }
+
+        // Process with error handling and metrics
+        match self.processor.process_pdf(pdf_bytes, &self.config).await {
+            Ok(result) => {
+                let processing_time = start_time.elapsed();
+                let pages = result.metadata.page_count;
+                let memory_used = result.stats.memory_used;
+
+                // Record successful operation with metrics
+                self.metrics.record_processing_success(processing_time, pages, memory_used);
+
+                info!("PDF processing successful: {} pages, {:?} processing time, {} bytes memory",
+                     pages, processing_time, memory_used);
+
+                Ok(self.convert_pdf_result_to_extracted_doc(result, url))
+            },
+            Err(e) => {
+                let processing_time = start_time.elapsed();
+                let is_memory_limit = matches!(e, PdfError::MemoryLimit { .. });
+
+                self.metrics.record_processing_failure(is_memory_limit);
+
+                warn!("PDF processing failed after {:?}: {:?}", processing_time, e);
+                Err(e)
+            }
+        }
     }
 
     /// Fallback for when PDF feature is not available
@@ -134,6 +175,21 @@ impl PdfPipelineIntegration {
     pub fn is_available(&self) -> bool {
         self.processor.is_available()
     }
+
+    /// Get comprehensive PDF processing metrics
+    pub fn get_metrics_snapshot(&self) -> super::metrics::PdfMetricsSnapshot {
+        self.metrics.get_snapshot()
+    }
+
+    /// Export metrics for monitoring systems (Prometheus format)
+    pub fn export_metrics_for_monitoring(&self) -> std::collections::HashMap<String, f64> {
+        self.metrics.export_for_prometheus()
+    }
+
+    /// Reset metrics (useful for testing and periodic resets)
+    pub fn reset_metrics(&self) {
+        self.metrics.reset();
+    }
 }
 
 impl Default for PdfPipelineIntegration {
@@ -142,7 +198,7 @@ impl Default for PdfPipelineIntegration {
     }
 }
 
-/// Factory function to create PDF integration with custom settings
+/// Factory function to create PDF integration with ROADMAP-compliant settings
 pub fn create_pdf_integration_for_pipeline() -> PdfPipelineIntegration {
     let config = PdfConfig {
         max_size_bytes: 50 * 1024 * 1024, // 50MB limit for pipeline
@@ -151,13 +207,21 @@ pub fn create_pdf_integration_for_pipeline() -> PdfPipelineIntegration {
         extract_metadata: true,
         enable_progress_tracking: false, // Disable for pipeline use
         timeout_seconds: 30,
+        memory_settings: super::config::MemorySettings {
+            max_memory_spike_bytes: 200 * 1024 * 1024, // ROADMAP: No >200MB RSS spikes
+            max_concurrent_operations: 2, // ROADMAP: Max 2 concurrent PDF operations
+            memory_check_interval: 3, // Check every 3 pages
+            cleanup_interval: 10, // Cleanup every 10 pages
+            memory_pressure_threshold: 0.8, // 80% memory pressure threshold
+            aggressive_cleanup: true, // Enable aggressive cleanup
+        },
         ..Default::default()
     };
 
     PdfPipelineIntegration::with_config(config)
 }
 
-/// Quick utility function to detect and process PDF content
+/// Quick utility function to detect and process PDF content with monitoring
 pub async fn detect_and_process_pdf(
     content_type: Option<&str>,
     url: Option<&str>,
@@ -166,8 +230,10 @@ pub async fn detect_and_process_pdf(
     let integration = create_pdf_integration_for_pipeline();
 
     if integration.should_process_as_pdf(content_type, url, Some(data)) {
+        debug!("Detected PDF content, processing: {} bytes", data.len());
         Some(integration.process_pdf_to_extracted_doc(data, url).await)
     } else {
+        debug!("Content not detected as PDF, skipping PDF processing");
         None
     }
 }

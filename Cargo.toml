@@ -60,6 +60,30 @@ lto = "thin"
 codegen-units = 1
 incremental = false  # Disable for release builds to improve optimization
 
+# Development profile optimized for faster builds
+[profile.dev]
+opt-level = 0
+debug = 2
+incremental = true
+codegen-units = 256  # More parallel compilation
+split-debuginfo = "unpacked"  # Faster linking on supported platforms
+
+# CI-optimized profile for faster builds in CI
+[profile.ci]
+inherits = "dev"
+opt-level = 1
+debug = 1
+incremental = true
+codegen-units = 16
+
+# Fast compilation profile for development iteration
+[profile.fast-dev]
+inherits = "dev"
+opt-level = 1
+debug = 1
+codegen-units = 512
+incremental = true
+
 # WASM-optimized build profile
 [profile.wasm]
 inherits = "release"
@@ -69,6 +93,23 @@ codegen-units = 1        # Single codegen unit for better optimization
 panic = "abort"          # Reduce binary size
 strip = true             # Strip debug symbols
 incremental = false      # Disable for better optimization
+
+# WASM development profile for faster iteration
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+lto = "off"
+codegen-units = 4
+panic = "abort"
+incremental = true
+
+# Build caching and workspace optimization
+[workspace.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[workspace.metadata.cargo-machete]
+ignored = ["vergen"]  # Keep build dependencies
 
 # Integration tests configuration
 

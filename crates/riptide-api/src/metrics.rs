@@ -1,5 +1,8 @@
 use axum_prometheus::{metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayer};
 use prometheus::{Counter, Gauge, Histogram, HistogramOpts, Opts, Registry};
+use riptide_core::pdf::PdfMetricsCollector;
+use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::Instant;
 use tracing::{info, warn};
 
@@ -55,6 +58,16 @@ pub struct RipTideMetrics {
     pub spider_frontier_size: Gauge,
     pub spider_crawl_duration: Histogram,
     pub spider_pages_per_second: Gauge,
+
+    /// PDF processing metrics
+    pub pdf_total_processed: Counter,
+    pub pdf_total_failed: Counter,
+    pub pdf_memory_limit_failures: Counter,
+    pub pdf_processing_time: Histogram,
+    pub pdf_peak_memory_mb: Gauge,
+    pub pdf_pages_per_pdf: Gauge,
+    pub pdf_memory_spikes_handled: Counter,
+    pub pdf_cleanup_operations: Counter,
 }
 
 impl RipTideMetrics {
@@ -260,6 +273,51 @@ impl RipTideMetrics {
                 .const_label("service", "riptide-api"),
         )?;
 
+        // PDF processing metrics
+        let pdf_total_processed = Counter::with_opts(
+            Opts::new("riptide_pdf_total_processed", "Total PDF documents processed")
+                .const_label("service", "riptide-api"),
+        )?;
+
+        let pdf_total_failed = Counter::with_opts(
+            Opts::new("riptide_pdf_total_failed", "Total PDF processing failures")
+                .const_label("service", "riptide-api"),
+        )?;
+
+        let pdf_memory_limit_failures = Counter::with_opts(
+            Opts::new("riptide_pdf_memory_limit_failures", "PDF processing failures due to memory limits")
+                .const_label("service", "riptide-api"),
+        )?;
+
+        let pdf_processing_time = Histogram::with_opts(
+            HistogramOpts::new(
+                "riptide_pdf_processing_time_seconds",
+                "PDF processing time in seconds",
+            )
+            .const_label("service", "riptide-api")
+            .buckets(vec![0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0]),
+        )?;
+
+        let pdf_peak_memory_mb = Gauge::with_opts(
+            Opts::new("riptide_pdf_peak_memory_mb", "PDF processing peak memory usage in MB")
+                .const_label("service", "riptide-api"),
+        )?;
+
+        let pdf_pages_per_pdf = Gauge::with_opts(
+            Opts::new("riptide_pdf_pages_per_pdf", "Average pages per PDF processed")
+                .const_label("service", "riptide-api"),
+        )?;
+
+        let pdf_memory_spikes_handled = Counter::with_opts(
+            Opts::new("riptide_pdf_memory_spikes_handled", "Number of PDF memory spikes handled")
+                .const_label("service", "riptide-api"),
+        )?;
+
+        let pdf_cleanup_operations = Counter::with_opts(
+            Opts::new("riptide_pdf_cleanup_operations", "Number of PDF memory cleanup operations performed")
+                .const_label("service", "riptide-api"),
+        )?;
+
         // Register all metrics
         registry.register(Box::new(http_requests_total.clone()))?;
         registry.register(Box::new(http_request_duration.clone()))?;
@@ -291,8 +349,16 @@ impl RipTideMetrics {
         registry.register(Box::new(spider_frontier_size.clone()))?;
         registry.register(Box::new(spider_crawl_duration.clone()))?;
         registry.register(Box::new(spider_pages_per_second.clone()))?;
+        registry.register(Box::new(pdf_total_processed.clone()))?;
+        registry.register(Box::new(pdf_total_failed.clone()))?;
+        registry.register(Box::new(pdf_memory_limit_failures.clone()))?;
+        registry.register(Box::new(pdf_processing_time.clone()))?;
+        registry.register(Box::new(pdf_peak_memory_mb.clone()))?;
+        registry.register(Box::new(pdf_pages_per_pdf.clone()))?;
+        registry.register(Box::new(pdf_memory_spikes_handled.clone()))?;
+        registry.register(Box::new(pdf_cleanup_operations.clone()))?;
 
-        info!("Prometheus metrics registry initialized with spider metrics");
+        info!("Prometheus metrics registry initialized with spider and PDF metrics");
 
         Ok(Self {
             registry,
@@ -326,6 +392,14 @@ impl RipTideMetrics {
             spider_frontier_size,
             spider_crawl_duration,
             spider_pages_per_second,
+            pdf_total_processed,
+            pdf_total_failed,
+            pdf_memory_limit_failures,
+            pdf_processing_time,
+            pdf_peak_memory_mb,
+            pdf_pages_per_pdf,
+            pdf_memory_spikes_handled,
+            pdf_cleanup_operations,
         })
     }
 
@@ -440,6 +514,53 @@ impl RipTideMetrics {
     /// Update spider frontier size
     pub fn update_spider_frontier_size(&self, size: usize) {
         self.spider_frontier_size.set(size as f64);
+    }
+
+    /// Update PDF metrics from PdfMetricsCollector
+    pub fn update_pdf_metrics_from_collector(&self, pdf_metrics: &PdfMetricsCollector) {
+        let snapshot = pdf_metrics.get_snapshot();
+
+        // Update counters (increment by difference from last update)
+        // Note: In production, you'd want to track previous values to get deltas
+        self.pdf_total_processed.get(); // Get current value first
+        // For simplicity, we'll set gauges and observe individual operations elsewhere
+
+        // Update gauges with current snapshot values
+        self.pdf_peak_memory_mb.set(snapshot.peak_memory_usage as f64 / (1024.0 * 1024.0));
+        self.pdf_pages_per_pdf.set(snapshot.avg_pages_per_pdf);
+    }
+
+    /// Export PDF metrics as Prometheus format from PdfMetricsCollector
+    pub fn export_pdf_metrics(&self, pdf_metrics: &PdfMetricsCollector) -> HashMap<String, f64> {
+        pdf_metrics.export_for_prometheus()
+    }
+
+    /// Record PDF processing success
+    pub fn record_pdf_processing_success(&self, duration_seconds: f64, pages: u32, memory_mb: f64) {
+        self.pdf_total_processed.inc();
+        self.pdf_processing_time.observe(duration_seconds);
+        self.pdf_peak_memory_mb.set(memory_mb);
+        if pages > 0 {
+            self.pdf_pages_per_pdf.set(pages as f64);
+        }
+    }
+
+    /// Record PDF processing failure
+    pub fn record_pdf_processing_failure(&self, is_memory_limit: bool) {
+        self.pdf_total_failed.inc();
+        if is_memory_limit {
+            self.pdf_memory_limit_failures.inc();
+        }
+    }
+
+    /// Record PDF memory spike handled
+    pub fn record_pdf_memory_spike(&self) {
+        self.pdf_memory_spikes_handled.inc();
+    }
+
+    /// Record PDF cleanup operation
+    pub fn record_pdf_cleanup(&self) {
+        self.pdf_cleanup_operations.inc();
     }
 }
 

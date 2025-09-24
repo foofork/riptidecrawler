@@ -80,7 +80,7 @@ const BENCHMARK_CONFIGS: &[BenchmarkConfig] = &[
 ];
 
 /// Initialize extractor for benchmarking
-fn create_test_extractor(
+async fn create_test_extractor(
     config: &BenchmarkConfig,
 ) -> Result<CmExtractor, Box<dyn std::error::Error>> {
     let extractor_config = ExtractorConfig {
@@ -109,7 +109,8 @@ fn bench_single_extraction(c: &mut Criterion) {
                 BenchmarkId::new("single_extraction", &bench_id),
                 html,
                 |b, html| {
-                    let extractor = create_test_extractor(config)
+                    let rt = Runtime::new().unwrap();
+                    let extractor = rt.block_on(create_test_extractor(config))
                         .expect("Failed to create extractor for benchmark");
 
                     b.iter(|| {
@@ -140,7 +141,7 @@ fn bench_concurrent_extraction(c: &mut Criterion) {
                 BenchmarkId::new("concurrent_extraction", &bench_id),
                 &(html, config.concurrent_requests),
                 |b, (html, concurrent_requests)| {
-                    let extractor = create_test_extractor(config)
+                    let extractor = rt.block_on(create_test_extractor(config))
                         .expect("Failed to create extractor for benchmark");
 
                     b.iter(|| {
@@ -213,6 +214,7 @@ fn bench_pool_efficiency(c: &mut Criterion) {
                             concurrent_requests: 1,
                             enable_instance_reuse: true,
                         })
+                        .await
                         .expect("Failed to create extractor for benchmark");
 
                         // Pool scaling functionality not yet implemented
@@ -239,7 +241,7 @@ fn bench_memory_usage(c: &mut Criterion) {
             BenchmarkId::new("memory_reuse", size_name),
             html,
             |b, html| {
-                let extractor = create_test_extractor(&BENCHMARK_CONFIGS[2])
+                let extractor = rt.block_on(create_test_extractor(&BENCHMARK_CONFIGS[2]))
                     .expect("Failed to create extractor for benchmark"); // pooled_concurrent
 
                 b.iter(|| {
@@ -271,7 +273,8 @@ fn bench_extraction_modes(c: &mut Criterion) {
         ("metadata", ExtractionMode::Metadata),
     ];
 
-    let extractor = create_test_extractor(&BENCHMARK_CONFIGS[1])
+    let rt = Runtime::new().unwrap();
+    let extractor = rt.block_on(create_test_extractor(&BENCHMARK_CONFIGS[1]))
         .expect("Failed to create extractor for benchmark"); // pooled_small
 
     for (mode_name, mode) in modes {
@@ -314,7 +317,8 @@ fn bench_error_handling(c: &mut Criterion) {
         ("huge_content", &"<p>".repeat(10000)),
     ];
 
-    let extractor = create_test_extractor(&BENCHMARK_CONFIGS[1])
+    let rt = Runtime::new().unwrap();
+    let extractor = rt.block_on(create_test_extractor(&BENCHMARK_CONFIGS[1]))
         .expect("Failed to create extractor for benchmark"); // pooled_small
 
     for (error_type, html) in invalid_html_samples {
@@ -445,7 +449,7 @@ mod tests {
     #[tokio::test]
     async fn test_benchmark_extractor_creation() {
         let config = &BENCHMARK_CONFIGS[0];
-        let result = create_test_extractor(config);
+        let result = create_test_extractor(config).await;
 
         // This test will fail in the benchmark environment since we don't have a real WASM file
         // But it verifies the benchmark setup is correct

@@ -1,40 +1,96 @@
-# Build stage
+# Multi-stage optimized build with caching
 FROM rustlang/rust:nightly AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy workspace files
+# Copy dependency files first for better caching
 COPY Cargo.toml Cargo.lock ./
-COPY crates crates/
-COPY wasm wasm/
+COPY crates/*/Cargo.toml crates/
+COPY wasm/*/Cargo.toml wasm/
 
-# Build the API binary
-RUN cargo build --release --bin riptide-api
+# Create stub source files for dependency caching
+RUN mkdir -p crates/riptide-core/src crates/riptide-api/src \
+    crates/riptide-headless/src crates/riptide-workers/src \
+    wasm/riptide-extractor-wasm/src && \
+    echo "fn main() {}" > crates/riptide-core/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-api/src/main.rs && \
+    echo "fn main() {}" > crates/riptide-headless/src/main.rs && \
+    echo "fn main() {}" > crates/riptide-workers/src/lib.rs && \
+    echo "fn main() {}" > wasm/riptide-extractor-wasm/src/lib.rs
 
-# Build WASM module
+# Build dependencies only (cached layer)
 RUN rustup target add wasm32-wasip2 && \
+    cargo build --release --bin riptide-api && \
     cd wasm/riptide-extractor-wasm && \
     cargo build --release --target wasm32-wasip2
 
-# Runtime stage
-FROM debian:bookworm-slim
+# Copy actual source code
+COPY crates crates/
+COPY wasm wasm/
 
-RUN apt-get update && apt-get install -y \
+# Build with real source (uses cached dependencies)
+RUN touch crates/*/src/lib.rs crates/*/src/main.rs wasm/*/src/lib.rs && \
+    cargo build --release --bin riptide-api
+
+# Build optimized WASM module
+RUN cd wasm/riptide-extractor-wasm && \
+    cargo build --release --target wasm32-wasip2
+
+# Install wasm-opt for optimization
+RUN apt-get update && apt-get install -y binaryen && \
+    wasm-opt -Oz wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm \
+    -o wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.optimized.wasm || \
+    cp wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm \
+       wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.optimized.wasm
+
+# Optimized runtime stage
+FROM debian:bookworm-slim AS runtime
+
+# Install runtime dependencies in single layer
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libssl3 \
-    && rm -rf /var/lib/apt/lists/*
+    tini \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Create non-root user for security
+RUN groupadd -r riptide && useradd -r -g riptide riptide
 
 WORKDIR /opt/riptide
 
-# Copy binary and WASM module
-COPY --from=builder /app/target/release/riptide-api /usr/local/bin/riptide-api
-COPY --from=builder /app/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm /opt/riptide/extractor/extractor.wasm
+# Create required directories
+RUN mkdir -p /opt/riptide/extractor /opt/riptide/configs \
+    && chown -R riptide:riptide /opt/riptide
+
+# Copy optimized binary
+COPY --from=builder --chown=riptide:riptide \
+    /app/target/release/riptide-api /usr/local/bin/riptide-api
+
+# Copy optimized WASM module
+COPY --from=builder --chown=riptide:riptide \
+    /app/wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.optimized.wasm \
+    /opt/riptide/extractor/extractor.wasm
 
 # Copy configs
-COPY configs /opt/riptide/configs
+COPY --chown=riptide:riptide configs /opt/riptide/configs
+
+# Switch to non-root user
+USER riptide
 
 EXPOSE 8080
 
-ENV RUST_LOG=info
+# Environment optimization
+ENV RUST_LOG=info \
+    RUST_BACKTRACE=1 \
+    MALLOC_ARENA_MAX=2
 
+# Use tini for proper signal handling
+ENTRYPOINT ["tini", "--"]
 CMD ["riptide-api", "--config", "/opt/riptide/configs/riptide.yml"]

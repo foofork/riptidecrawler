@@ -10,6 +10,7 @@ use riptide_core::{
     cache::CacheManager,
     extract::WasmExtractor,
     fetch::http_client,
+    pdf::PdfMetricsCollector,
     spider::{Spider, SpiderConfig},
     telemetry::TelemetrySystem,
     telemetry_info, telemetry_span,
@@ -60,6 +61,9 @@ pub struct AppState {
 
     /// Spider engine for deep crawling
     pub spider: Option<Arc<Spider>>,
+
+    /// PDF metrics collector for monitoring PDF processing
+    pub pdf_metrics: Arc<PdfMetricsCollector>,
 }
 
 /// Application configuration loaded from environment and config files.
@@ -356,6 +360,10 @@ impl AppState {
             api_config.rate_limiting.requests_per_second_per_host
         );
 
+        // Initialize PDF metrics collector for monitoring
+        let pdf_metrics = Arc::new(PdfMetricsCollector::new());
+        tracing::info!("PDF metrics collector initialized for monitoring PDF processing");
+
         tracing::info!("Application state initialization complete with resource controls");
 
         Ok(Self {
@@ -371,6 +379,7 @@ impl AppState {
             streaming,
             telemetry,
             spider,
+            pdf_metrics,
         })
     }
 

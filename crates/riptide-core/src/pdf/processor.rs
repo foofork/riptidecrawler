@@ -133,15 +133,15 @@ impl PdfiumProcessor {
                           initial_memory_stats.current_rss / (1024 * 1024));
         }
 
-        // Acquire semaphore permit for concurrency control (configurable limit)
+        // Acquire semaphore permit for concurrency control (FIXED: max 2 concurrent operations)
         let semaphore = PDF_SEMAPHORE.get_or_init(|| {
-            Arc::new(Semaphore::new(config.memory_settings.max_concurrent_operations))
+            Arc::new(Semaphore::new(2)) // ROADMAP requirement: max 2 concurrent PDF operations
         });
         let _permit = semaphore
             .acquire()
             .await
             .map_err(|_| PdfError::ProcessingError {
-                message: "Failed to acquire processing permit".to_string(),
+                message: "Failed to acquire processing permit (max 2 concurrent)".to_string(),
             })?;
 
         let processor_clone = self.clone();
@@ -172,22 +172,34 @@ impl PdfiumProcessor {
 
             // Extract content page by page with enhanced memory monitoring
             for page_index in 0..document.pages().len() {
-                // Check memory usage periodically and perform adaptive cleanup
+                // Enhanced memory monitoring guards (ROADMAP requirement: prevent >200MB RSS spikes)
                 if (page_index as usize).is_multiple_of(config.memory_settings.memory_check_interval) {
                     let memory_stats = processor_clone.get_memory_stats();
                     let memory_spike = memory_stats.current_rss.saturating_sub(initial_memory_stats.current_rss);
 
-                    if memory_spike > config.memory_settings.max_memory_spike_bytes {
-                        tracing::warn!("Memory spike detected: {} MB above initial (limit: {} MB)",
-                                      memory_spike / (1024 * 1024),
-                                      config.memory_settings.max_memory_spike_bytes / (1024 * 1024));
+                    // ROADMAP requirement: No >200MB RSS spikes per worker
+                    if memory_spike > 200 * 1024 * 1024 { // Hard limit: 200MB spike
+                        tracing::error!("Memory spike detected: {} MB above initial (HARD LIMIT: 200MB)",
+                                      memory_spike / (1024 * 1024));
+                        // Record metrics before failing
+                        if let Some(metrics) = PDF_METRICS.get() {
+                            metrics.record_memory_spike_detected();
+                            metrics.record_processing_failure(true);
+                        }
                         return Err(PdfError::MemoryLimit {
                             used: memory_stats.current_rss,
-                            limit: initial_memory_stats.current_rss + config.memory_settings.max_memory_spike_bytes,
+                            limit: initial_memory_stats.current_rss + (200 * 1024 * 1024),
                         });
                     }
 
-                    // Perform memory cleanup if under pressure or at cleanup intervals
+                    // Early warning at 150MB spike
+                    if memory_spike > 150 * 1024 * 1024 {
+                        tracing::warn!("Approaching memory limit: {} MB above initial (warning at 150MB)",
+                                      memory_spike / (1024 * 1024));
+                        processor_clone.perform_aggressive_cleanup();
+                    }
+
+                    // Standard cleanup intervals
                     if (memory_stats.memory_pressure || (page_index as usize).is_multiple_of(config.memory_settings.cleanup_interval))
                         && config.memory_settings.aggressive_cleanup {
                         processor_clone.perform_memory_cleanup();
@@ -558,6 +570,11 @@ impl PdfiumProcessor {
 
     /// Force garbage collection and memory cleanup hints
     fn perform_memory_cleanup(&self) {
+        // Record cleanup operation
+        if let Some(metrics) = PDF_METRICS.get() {
+            metrics.record_cleanup_performed();
+        }
+
         // On Unix systems, we can suggest to the allocator to release memory
         #[cfg(unix)]
         {
@@ -568,6 +585,34 @@ impl PdfiumProcessor {
 
         // Hint to the runtime that it's a good time to collect garbage
         std::thread::yield_now();
+    }
+
+    /// Aggressive memory cleanup for critical situations
+    fn perform_aggressive_cleanup(&self) {
+        tracing::info!("Performing aggressive memory cleanup");
+
+        // Record cleanup operation
+        if let Some(metrics) = PDF_METRICS.get() {
+            metrics.record_cleanup_performed();
+        }
+
+        // More aggressive memory management
+        #[cfg(unix)]
+        {
+            unsafe {
+                // Force allocator to trim memory more aggressively
+                libc::malloc_trim(0);
+                // Additional system-level memory management
+                let _ = libc::sync();
+            }
+        }
+
+        // Force context switches and encourage garbage collection
+        for _ in 0..3 {
+            std::thread::yield_now();
+        }
+
+        tracing::debug!("Aggressive cleanup completed");
     }
 
     #[cfg(feature = "pdf")]
@@ -613,7 +658,7 @@ impl PdfiumProcessor {
         &self,
         pdf_bytes: &[u8],
     ) -> PdfResult<crate::types::ExtractedDoc> {
-        // Acquire semaphore permit (limit to 2 concurrent operations)
+        // Acquire semaphore permit (ROADMAP requirement: limit to 2 concurrent operations)
         let semaphore = PDF_SEMAPHORE.get_or_init(|| Arc::new(Semaphore::new(2)));
         let _permit = semaphore
             .acquire()
@@ -726,7 +771,7 @@ impl PdfProcessor for PdfiumProcessor {
     }
 
     async fn detect_ocr_need(&self, data: &[u8]) -> PdfResult<bool> {
-        // Quick check for OCR need without full processing (limit to 2 concurrent operations)
+        // Quick check for OCR need without full processing (ROADMAP requirement: limit to 2 concurrent operations)
         let semaphore = PDF_SEMAPHORE.get_or_init(|| Arc::new(Semaphore::new(2)));
         let _permit = semaphore
             .acquire()
@@ -900,13 +945,24 @@ impl Drop for ProcessingResourceGuard {
         let duration = self.start_time.elapsed();
         tracing::debug!("PDF processing completed in {:?}", duration);
 
-        // Perform cleanup on drop (including panics)
+        // Record metrics on completion
+        if let Some(metrics) = PDF_METRICS.get() {
+            // This is called on both success and failure paths
+            metrics.record_cleanup_performed();
+        }
+
+        // Perform cleanup on drop (including panics and all failure paths)
         #[cfg(unix)]
         {
             unsafe {
                 libc::malloc_trim(0);
             }
         }
+
+        // Additional cleanup for critical resource management
+        std::thread::yield_now();
+
+        tracing::debug!("Resource guard cleanup completed after {:?}", duration);
     }
 }
 

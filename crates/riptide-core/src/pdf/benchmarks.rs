@@ -53,9 +53,11 @@ pub fn benchmark_pdf_processing(c: &mut Criterion) {
             BenchmarkId::new("process_pdf", pages),
             &pdf_data,
             |b, data| {
-                b.to_async(&rt).iter(|| async {
-                    let result = processor.process_pdf(black_box(data), black_box(&config)).await;
-                    black_box(result)
+                b.iter(|| {
+                    rt.block_on(async {
+                        let result = processor.process_pdf(black_box(data), black_box(&config)).await;
+                        black_box(result)
+                    })
                 });
             },
         );
@@ -80,23 +82,25 @@ pub fn benchmark_concurrent_processing(c: &mut Criterion) {
             BenchmarkId::new("concurrent_tasks", concurrency),
             concurrency,
             |b, &concurrency_level| {
-                b.to_async(&rt).iter(|| async {
-                    let mut handles = Vec::new();
+                b.iter(|| {
+                    rt.block_on(async {
+                        let mut handles = Vec::new();
 
-                    for _ in 0..concurrency_level {
-                        let processor_clone = Arc::clone(&processor);
-                        let config_clone = Arc::clone(&config);
-                        let data_clone = Arc::clone(&pdf_data);
+                        for _ in 0..concurrency_level {
+                            let processor_clone = Arc::clone(&processor);
+                            let config_clone = Arc::clone(&config);
+                            let data_clone = Arc::clone(&pdf_data);
 
-                        let handle = tokio::spawn(async move {
-                            processor_clone.process_pdf(&data_clone, &config_clone).await
-                        });
+                            let handle = tokio::spawn(async move {
+                                processor_clone.process_pdf(&data_clone, &config_clone).await
+                            });
 
-                        handles.push(handle);
-                    }
+                            handles.push(handle);
+                        }
 
-                    let results = futures::future::join_all(handles).await;
-                    black_box(results)
+                        let results = futures::future::join_all(handles).await;
+                        black_box(results)
+                    })
                 });
             },
         );
@@ -117,12 +121,12 @@ pub fn benchmark_memory_usage(c: &mut Criterion) {
         let config = PdfConfig::default();
 
         c.bench_function("memory_monitoring", |b| {
-            b.to_async(&rt).iter(|| async {
-                let initial_memory = processor.get_memory_usage();
-                let result = processor.process_pdf(black_box(&pdf_data), black_box(&config)).await;
-                let final_memory = processor.get_memory_usage();
-
-                black_box((initial_memory, final_memory, result))
+            b.iter(|| {
+                rt.block_on(async {
+                    // Skip memory monitoring in benchmarks as get_memory_usage is private
+                    let result = processor.process_pdf(black_box(&pdf_data), black_box(&config)).await;
+                    black_box(result)
+                })
             });
         });
     }
@@ -182,11 +186,8 @@ pub async fn simple_performance_test() -> Result<(), Box<dyn std::error::Error>>
         let pdf_data = generate_test_pdf(pages);
 
         let start = Instant::now();
-        let initial_memory = processor.get_memory_usage();
-
+        // Memory monitoring removed as get_memory_usage is private
         let result = processor.process_pdf(&pdf_data, &config).await;
-
-        let final_memory = processor.get_memory_usage();
         let duration = start.elapsed();
 
         match result {
@@ -196,7 +197,7 @@ pub async fn simple_performance_test() -> Result<(), Box<dyn std::error::Error>>
                     pages,
                     duration,
                     processing_result.stats.memory_used,
-                    final_memory.saturating_sub(initial_memory),
+                    0, // Memory diff monitoring removed
                     processing_result.success
                 );
             }

@@ -252,6 +252,21 @@ pub struct SystemMetrics {
 
     /// Average response time in milliseconds
     pub avg_response_time_ms: f64,
+
+    /// CPU usage percentage (0-100)
+    pub cpu_usage_percent: Option<f32>,
+
+    /// Disk usage in bytes
+    pub disk_usage_bytes: Option<u64>,
+
+    /// File descriptor count
+    pub file_descriptor_count: Option<u32>,
+
+    /// Thread count
+    pub thread_count: Option<u32>,
+
+    /// Load average [1min, 5min, 15min]
+    pub load_average: Option<[f32; 3]>,
 }
 
 impl From<DependencyHealth> for ServiceHealth {
