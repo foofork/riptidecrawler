@@ -259,20 +259,39 @@ impl BackpressureHandler {
         }
     }
 
-    /// Check if a message should be dropped due to backpressure
+    /// Check if a message should be dropped due to backpressure with adaptive thresholds
     pub async fn should_drop_message(&mut self, queue_size: usize) -> bool {
         let is_backpressure = self.buffer.is_under_backpressure().await;
+        let buffer_stats = self.buffer.stats().await;
 
-        if queue_size > self.drop_threshold || is_backpressure {
+        // Adaptive drop threshold based on connection performance
+        let adaptive_threshold = if self.is_connection_slow() {
+            self.drop_threshold / 2 // More aggressive dropping for slow connections
+        } else {
+            self.drop_threshold
+        };
+
+        // Consider memory pressure and error rate
+        let should_drop = queue_size > adaptive_threshold
+            || is_backpressure
+            || (buffer_stats.dropped_messages as f64 / buffer_stats.total_messages.max(1) as f64) > 0.15; // 15% drop rate
+
+        if should_drop {
             self.metrics.dropped_messages += 1;
             self.metrics.last_drop_time = Some(Instant::now());
             self.buffer.record_drop().await;
 
+            // Adjust drop threshold dynamically
+            if self.metrics.total_messages % 100 == 0 {
+                self.adjust_drop_threshold().await;
+            }
+
             warn!(
                 connection_id = %self.connection_id,
                 queue_size = queue_size,
-                drop_threshold = self.drop_threshold,
+                adaptive_threshold = adaptive_threshold,
                 is_backpressure = is_backpressure,
+                is_slow = self.is_connection_slow(),
                 "Dropping message due to backpressure"
             );
 
@@ -280,6 +299,37 @@ impl BackpressureHandler {
         } else {
             false
         }
+    }
+
+    /// Adjust drop threshold based on connection performance
+    async fn adjust_drop_threshold(&mut self) {
+        let performance_ratio = if self.metrics.total_messages > 0 {
+            (self.metrics.total_messages - self.metrics.dropped_messages) as f64
+                / self.metrics.total_messages as f64
+        } else {
+            1.0
+        };
+
+        // If performance is good (low drop rate), increase threshold
+        // If performance is bad (high drop rate), decrease threshold
+        if performance_ratio > 0.95 {
+            self.drop_threshold = (self.drop_threshold as f64 * 1.1) as usize;
+            debug!(
+                connection_id = %self.connection_id,
+                new_threshold = self.drop_threshold,
+                "Increased drop threshold due to good performance"
+            );
+        } else if performance_ratio < 0.8 {
+            self.drop_threshold = (self.drop_threshold as f64 * 0.9) as usize;
+            debug!(
+                connection_id = %self.connection_id,
+                new_threshold = self.drop_threshold,
+                "Decreased drop threshold due to poor performance"
+            );
+        }
+
+        // Keep threshold within reasonable bounds
+        self.drop_threshold = self.drop_threshold.max(100).min(5000);
     }
 
     /// Record a successful send operation

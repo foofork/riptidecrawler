@@ -3,6 +3,7 @@ use crate::health::HealthChecker;
 use crate::metrics::RipTideMetrics;
 use crate::resource_manager::ResourceManager;
 use crate::sessions::{SessionConfig, SessionManager};
+use crate::streaming::StreamingModule;
 use anyhow::Result;
 use reqwest::Client;
 use riptide_core::{
@@ -48,6 +49,9 @@ pub struct AppState {
 
     /// Session manager for persistent browser sessions
     pub session_manager: Arc<SessionManager>,
+
+    /// Streaming module for real-time data delivery
+    pub streaming: Arc<StreamingModule>,
 
     /// Telemetry system for observability
     pub telemetry: Option<Arc<TelemetrySystem>>,
@@ -214,6 +218,20 @@ impl AppState {
         let session_manager = Arc::new(session_manager);
         tracing::info!("Session manager initialized");
 
+        // Initialize streaming module with lifecycle management
+        let streaming_module = StreamingModule::with_lifecycle_manager(None, metrics.clone());
+        if let Err(e) = streaming_module.validate() {
+            tracing::warn!("Streaming configuration validation failed: {}", e);
+        }
+
+        // Start streaming maintenance tasks
+        if let Err(e) = streaming_module.start_maintenance_tasks().await {
+            tracing::warn!("Failed to start streaming maintenance tasks: {}", e);
+        }
+
+        let streaming = Arc::new(streaming_module);
+        tracing::info!("Streaming module initialized with backpressure handling and lifecycle management");
+
         // Initialize comprehensive resource manager
         let resource_manager = ResourceManager::new(api_config.clone()).await?;
         let resource_manager = Arc::new(resource_manager);
@@ -236,6 +254,7 @@ impl AppState {
             metrics,
             health_checker,
             session_manager,
+            streaming,
             telemetry,
         })
     }
@@ -261,6 +280,7 @@ impl AppState {
             extractor: DependencyHealth::Unknown,
             http_client: DependencyHealth::Unknown,
             resource_manager: DependencyHealth::Unknown,
+            streaming: DependencyHealth::Unknown,
         };
 
         // Check Redis connection
@@ -296,6 +316,18 @@ impl AppState {
             } else {
                 DependencyHealth::Healthy
             };
+
+        // Check streaming module health
+        health.streaming = if self.streaming.is_healthy().await {
+            DependencyHealth::Healthy
+        } else {
+            let streaming_metrics = self.streaming.metrics().await;
+            health.healthy = false;
+            DependencyHealth::Unhealthy(format!(
+                "Streaming unhealthy: active_connections={}, error_rate={:.2}",
+                streaming_metrics.active_connections, streaming_metrics.error_rate
+            ))
+        };
 
         health
     }
@@ -349,6 +381,7 @@ pub struct HealthStatus {
     pub extractor: DependencyHealth,
     pub http_client: DependencyHealth,
     pub resource_manager: DependencyHealth,
+    pub streaming: DependencyHealth,
 }
 
 /// Health status of an individual dependency.

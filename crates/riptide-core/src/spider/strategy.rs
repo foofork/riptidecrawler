@@ -1,5 +1,5 @@
 use crate::spider::types::{CrawlRequest, ScoringConfig, Priority};
-use anyhow::{Context, Result};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -236,7 +236,7 @@ impl StrategyEngine {
                     });
                     break;
                 }
-                CrawlingStrategy::BestFirst { scoring_config } => {
+                CrawlingStrategy::BestFirst { scoring_config: _ } => {
                     // Best-First: calculate scores and sort by score
                     if let Some(scoring_fn) = &self.scoring_function {
                         for request in &mut requests {

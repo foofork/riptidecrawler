@@ -383,27 +383,18 @@ impl PdfiumProcessor {
         }
 
         // Extract comprehensive metadata from document info
-        let mut title = None;
-        let mut author = None;
-        let mut subject = None;
-        let mut keywords = None;
-        let mut creator = None;
-        let mut producer = None;
-        let mut creation_date = None;
-        let mut modification_date = None;
-        let mut pdf_version = None;
-
         // For now, skip complex metadata extraction due to API changes
         // The pdfium_render metadata API has changed and needs further investigation
         // TODO: Update when stable API methods are determined
-        title = None;
-        author = None;
-        subject = None;
-        keywords = None;
-        creator = None;
-        producer = None;
-        creation_date = None;
-        modification_date = None;
+        let title = None;
+        let author = None;
+        let subject = None;
+        let keywords = None;
+        let creator = None;
+        let producer = None;
+        let creation_date = None;
+        let modification_date = None;
+        let mut pdf_version = None;
 
         // Extract PDF version from document
         let version = document.version();

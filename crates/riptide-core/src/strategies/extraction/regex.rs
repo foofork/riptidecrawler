@@ -2,7 +2,6 @@
 
 use anyhow::Result;
 use ::regex::Regex;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use crate::strategies::{ExtractedContent, extraction::*, RegexPattern};
 

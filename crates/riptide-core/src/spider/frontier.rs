@@ -8,7 +8,6 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::{Mutex, RwLock};
 use tracing::{debug, info, warn};
-use url::Url;
 
 /// Configuration for frontier management
 #[derive(Debug, Clone, Serialize, Deserialize)]

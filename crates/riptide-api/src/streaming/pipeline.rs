@@ -136,12 +136,25 @@ impl StreamingPipeline {
         // Log completion
         processor.log_completion();
 
-        // Record metrics
+        // Record comprehensive metrics
         self.app.metrics.record_http_request(
             "POST",
             "/crawl/stream",
             200,
             start_time.elapsed().as_secs_f64(),
+        );
+
+        // Record streaming-specific metrics
+        info!(
+            request_id = %self.request_id,
+            total_urls = body.urls.len(),
+            successful = summary.successful,
+            failed = summary.failed,
+            cache_hits = summary.from_cache,
+            throughput = summary.throughput_per_second,
+            total_duration_ms = start_time.elapsed().as_millis(),
+            backpressure_events = backpressure_handler.metrics().dropped_messages,
+            "Crawl streaming pipeline completed with metrics"
         );
 
         // Clean up buffer
@@ -316,7 +329,7 @@ impl StreamingPipeline {
         summary.backpressure_events = backpressure_handler.metrics().dropped_messages;
 
         let summary_event = StreamEvent::DeepSearchSummary(DeepSearchSummary {
-            query: body.query,
+            query: body.query.clone(),
             total_urls_found: total_urls_found,
             total_processing_time_ms: summary.total_duration_ms,
             status: "completed".to_string(),
@@ -329,19 +342,26 @@ impl StreamingPipeline {
             warn!(request_id = %self.request_id, error = %e, "Failed to send final summary");
         }
 
-        info!(
-            request_id = %self.request_id,
-            urls_found = search_results.len(),
-            total_time_ms = summary.total_duration_ms,
-            "Deep search streaming pipeline completed"
-        );
-
-        // Record metrics
+        // Record comprehensive metrics for deep search
         self.app.metrics.record_http_request(
             "POST",
             "/deepsearch/stream",
             200,
             start_time.elapsed().as_secs_f64(),
+        );
+
+        info!(
+            request_id = %self.request_id,
+            query = %body.query,
+            urls_found = search_results.len(),
+            successful = summary.successful,
+            failed = summary.failed,
+            cache_hits = summary.from_cache,
+            include_content = include_content,
+            throughput = summary.throughput,
+            total_duration_ms = summary.total_duration_ms,
+            backpressure_events = summary.backpressure_events,
+            "Deep search streaming pipeline completed with comprehensive metrics"
         );
 
         // Clean up buffer

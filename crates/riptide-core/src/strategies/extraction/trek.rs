@@ -1,10 +1,8 @@
 //! Trek extraction strategy - Default WASM-based extraction
 
-use anyhow::{Result, anyhow};
-use serde::{Deserialize, Serialize};
+use anyhow::Result;
 use crate::strategies::{ExtractedContent, extraction::*};
 use crate::component::CmExtractor;
-use crate::types::ExtractedDoc;
 
 pub struct TrekExtractor {
     wasm_extractor: Option<CmExtractor>,

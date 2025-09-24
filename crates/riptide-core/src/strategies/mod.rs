@@ -8,8 +8,12 @@ pub mod chunking;
 pub mod metadata;
 pub mod performance;
 
-pub use extraction::*;
-pub use chunking::*;
+// Re-export specific items to avoid ambiguity
+pub use extraction::{trek, css_json, llm};
+pub use extraction::regex as extraction_regex;
+pub use chunking::{fixed, sentence, topic, sliding};
+pub use chunking::regex as chunking_regex;
+pub use chunking::{ChunkingConfig, ContentChunk, chunk_content};
 pub use metadata::*;
 pub use performance::*;
 

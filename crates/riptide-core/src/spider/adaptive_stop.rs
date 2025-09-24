@@ -5,7 +5,7 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 /// Configuration for adaptive stopping algorithm
 #[derive(Debug, Clone, Serialize, Deserialize)]

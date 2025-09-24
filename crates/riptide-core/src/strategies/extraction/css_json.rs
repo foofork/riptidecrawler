@@ -1,7 +1,6 @@
 //! CSS selector to JSON extraction strategy
 
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
 use scraper::{Html, Selector};
 use std::collections::HashMap;
 use crate::strategies::{ExtractedContent, extraction::*};

@@ -2,7 +2,6 @@
 
 use anyhow::Result;
 use crate::strategies::chunking::*;
-use unicode_segmentation::UnicodeSegmentation;
 
 /// Chunk content by sentence boundaries
 pub async fn chunk_by_sentences(

@@ -1,7 +1,7 @@
 //! LLM-based extraction strategy (hook-based, disabled by default)
 
 use anyhow::{Result, anyhow};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::process::Command;
 use crate::strategies::{ExtractedContent, extraction::*};
 

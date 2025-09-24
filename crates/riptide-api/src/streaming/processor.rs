@@ -123,6 +123,80 @@ impl StreamProcessor {
         }
     }
 
+    /// Start the stream processor with initialization tasks
+    pub async fn start(&mut self) -> StreamingResult<()> {
+        info!(
+            request_id = %self.request_id,
+            total_urls = self.stats.total_urls,
+            "Starting stream processor"
+        );
+
+        self.start_time = Instant::now();
+
+        // Reset stats for a fresh start
+        self.stats = ProcessingStats {
+            total_urls: self.stats.total_urls,
+            ..Default::default()
+        };
+
+        // Log initialization
+        info!(
+            request_id = %self.request_id,
+            "Stream processor started successfully"
+        );
+
+        Ok(())
+    }
+
+    /// Flush any pending operations and ensure consistency
+    pub async fn flush(&mut self) -> StreamingResult<()> {
+        debug!(
+            request_id = %self.request_id,
+            "Flushing stream processor operations"
+        );
+
+        // Ensure all stats are up-to-date
+        let processing_time = self.start_time.elapsed();
+
+        // Update final stats
+        let completed_total = self.stats.completed_count + self.stats.error_count;
+        if completed_total > 0 && self.stats.total_processing_time_ms == 0 {
+            self.stats.total_processing_time_ms = processing_time.as_millis() as u64;
+        }
+
+        info!(
+            request_id = %self.request_id,
+            completed = self.stats.completed_count,
+            failed = self.stats.error_count,
+            processing_time_ms = processing_time.as_millis(),
+            "Stream processor flush completed"
+        );
+
+        Ok(())
+    }
+
+    /// Close the stream processor and perform cleanup
+    pub async fn close(&mut self) -> StreamingResult<()> {
+        info!(
+            request_id = %self.request_id,
+            "Closing stream processor"
+        );
+
+        // Flush any remaining operations
+        self.flush().await?;
+
+        // Log final statistics
+        self.log_completion();
+
+        info!(
+            request_id = %self.request_id,
+            total_duration_ms = self.start_time.elapsed().as_millis(),
+            "Stream processor closed successfully"
+        );
+
+        Ok(())
+    }
+
     /// Process URLs concurrently and return a receiver for results
     pub async fn process_urls_concurrent(
         &self,

@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use reqwest::Client;
-use reqwest::cookie::{Cookie, Jar};
+use reqwest::cookie::Jar;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;

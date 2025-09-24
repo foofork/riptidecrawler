@@ -2,7 +2,6 @@
 
 use anyhow::Result;
 use crate::strategies::chunking::*;
-use unicode_segmentation::UnicodeSegmentation;
 
 /// Chunk content using sliding windows with overlap
 pub async fn chunk_sliding_window(

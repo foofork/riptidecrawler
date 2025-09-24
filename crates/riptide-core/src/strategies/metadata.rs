@@ -6,7 +6,6 @@ use regex::Regex;
 use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
-use std::collections::HashMap;
 
 /// Document metadata with validation
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

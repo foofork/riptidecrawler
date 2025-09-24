@@ -72,6 +72,7 @@
 pub mod buffer;
 pub mod config;
 pub mod error;
+pub mod lifecycle;
 pub mod ndjson;
 pub mod pipeline;
 pub mod processor;
@@ -85,6 +86,9 @@ pub use config::{
     WebSocketConfig,
 };
 pub use error::{ClientType, ConnectionContext, RecoveryStrategy, StreamingError, StreamingResult};
+pub use lifecycle::{
+    ConnectionInfo, LifecycleEvent, StreamCompletionSummary, StreamLifecycleManager,
+};
 pub use pipeline::{
     DeepSearchMetadata, DeepSearchResultData, DeepSearchSummary, StreamEvent,
     StreamExecutionSummary, StreamMetadata, StreamResultData, StreamingPipeline,
@@ -282,6 +286,7 @@ pub struct StreamingModule {
     config: StreamConfig,
     buffer_manager: std::sync::Arc<BufferManager>,
     metrics: std::sync::Arc<tokio::sync::RwLock<GlobalStreamingMetrics>>,
+    lifecycle_manager: Option<std::sync::Arc<StreamLifecycleManager>>,
 }
 
 impl StreamingModule {
@@ -295,6 +300,25 @@ impl StreamingModule {
             metrics: std::sync::Arc::new(tokio::sync::RwLock::new(
                 GlobalStreamingMetrics::default(),
             )),
+            lifecycle_manager: None, // Will be initialized with metrics when available
+        }
+    }
+
+    /// Initialize with lifecycle manager
+    pub fn with_lifecycle_manager(
+        config: Option<StreamConfig>,
+        metrics: std::sync::Arc<crate::metrics::RipTideMetrics>,
+    ) -> Self {
+        let config = config.unwrap_or_else(StreamConfig::from_env);
+        let lifecycle_manager = std::sync::Arc::new(StreamLifecycleManager::new(metrics));
+
+        Self {
+            config,
+            buffer_manager: std::sync::Arc::new(BufferManager::new()),
+            metrics: std::sync::Arc::new(tokio::sync::RwLock::new(
+                GlobalStreamingMetrics::default(),
+            )),
+            lifecycle_manager: Some(lifecycle_manager),
         }
     }
 
@@ -306,6 +330,11 @@ impl StreamingModule {
     /// Get the buffer manager
     pub fn buffer_manager(&self) -> &std::sync::Arc<BufferManager> {
         &self.buffer_manager
+    }
+
+    /// Get the lifecycle manager
+    pub fn lifecycle_manager(&self) -> Option<&std::sync::Arc<StreamLifecycleManager>> {
+        self.lifecycle_manager.as_ref()
     }
 
     /// Get global metrics
