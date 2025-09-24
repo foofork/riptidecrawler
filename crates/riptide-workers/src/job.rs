@@ -347,8 +347,7 @@ mod tests {
             url: "https://example.com".to_string(),
             options: None,
         };
-        let mut job = Job::with_retry_config(
-            job_type,
+        let mut job = Job::new(job_type).with_retry_config(
             RetryConfig {
                 max_attempts: 2,
                 ..Default::default()

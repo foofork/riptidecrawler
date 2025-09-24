@@ -1,6 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use std::time::Duration;
 use tokio::runtime::Runtime;
+use futures::future;
 
 use crate::component::{CmExtractor, ExtractorConfig};
 use crate::types::ExtractionMode;
@@ -159,7 +160,7 @@ fn bench_concurrent_extraction(c: &mut Criterion) {
                                 })
                                 .collect();
 
-                            let results = futures::future::join_all(tasks).await;
+                            let results = future::join_all(tasks).await;
                             black_box(results)
                         })
                     });
@@ -265,15 +266,13 @@ fn bench_memory_usage(c: &mut Criterion) {
 
 /// Benchmark extraction mode performance
 fn bench_extraction_modes(c: &mut Criterion) {
-    let rt = Runtime::new().expect("Failed to create runtime for benchmark");
-
     let modes = [
         ("article", ExtractionMode::Article),
         ("full", ExtractionMode::Full),
         ("metadata", ExtractionMode::Metadata),
     ];
 
-    let rt = Runtime::new().unwrap();
+    let rt = Runtime::new().expect("Failed to create runtime for benchmark");
     let extractor = rt.block_on(create_test_extractor(&BENCHMARK_CONFIGS[1]))
         .expect("Failed to create extractor for benchmark"); // pooled_small
 
@@ -302,8 +301,6 @@ fn bench_extraction_modes(c: &mut Criterion) {
 
 /// Benchmark error handling and recovery
 fn bench_error_handling(c: &mut Criterion) {
-    let rt = Runtime::new().expect("Failed to create runtime for benchmark");
-
     let invalid_html_samples = [
         (
             "malformed_tags",
@@ -317,7 +314,7 @@ fn bench_error_handling(c: &mut Criterion) {
         ("huge_content", &"<p>".repeat(10000)),
     ];
 
-    let rt = Runtime::new().unwrap();
+    let rt = Runtime::new().expect("Failed to create runtime for benchmark");
     let extractor = rt.block_on(create_test_extractor(&BENCHMARK_CONFIGS[1]))
         .expect("Failed to create extractor for benchmark"); // pooled_small
 

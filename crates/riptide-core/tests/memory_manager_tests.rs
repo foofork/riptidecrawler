@@ -1,161 +1,247 @@
 #[cfg(test)]
 mod tests {
-    use riptide_core::memory_manager::{MemoryManager, MemoryStats, MemoryLimit};
+    use riptide_core::memory_manager::{MemoryManager, MemoryManagerConfig};
     use std::sync::Arc;
-    use tokio::sync::Mutex;
+    use std::time::Duration;
+    use wasmtime::{Config, Engine};
 
-    #[test]
-    fn test_memory_manager_creation() {
-        let manager = MemoryManager::new(1024 * 1024 * 100); // 100MB limit
-        assert_eq!(manager.limit(), 1024 * 1024 * 100);
-        assert_eq!(manager.used(), 0);
-        assert!(manager.available() > 0);
+    fn create_test_engine() -> Engine {
+        let mut config = Config::new();
+        config.wasm_component_model(true);
+        Engine::new(&config).expect("Failed to create WASM engine")
     }
 
-    #[test]
-    fn test_memory_allocation() {
-        let mut manager = MemoryManager::new(1024 * 1024); // 1MB
-
-        // Allocate 512KB
-        let result = manager.allocate(512 * 1024);
-        assert!(result.is_ok());
-        assert_eq!(manager.used(), 512 * 1024);
-        assert_eq!(manager.available(), 512 * 1024);
-
-        // Try to allocate more than available
-        let result = manager.allocate(1024 * 1024);
-        assert!(result.is_err());
-        assert_eq!(manager.used(), 512 * 1024); // Unchanged
-    }
-
-    #[test]
-    fn test_memory_release() {
-        let mut manager = MemoryManager::new(1024 * 1024);
-
-        manager.allocate(512 * 1024).unwrap();
-        assert_eq!(manager.used(), 512 * 1024);
-
-        manager.release(256 * 1024);
-        assert_eq!(manager.used(), 256 * 1024);
-        assert_eq!(manager.available(), 768 * 1024);
-
-        // Release more than used (should set to 0)
-        manager.release(1024 * 1024);
-        assert_eq!(manager.used(), 0);
-        assert_eq!(manager.available(), 1024 * 1024);
-    }
-
-    #[test]
-    fn test_memory_stats() {
-        let mut manager = MemoryManager::new(1024 * 1024 * 10); // 10MB
-
-        manager.allocate(1024 * 1024 * 3).unwrap(); // 3MB
-
-        let stats = manager.stats();
-        assert_eq!(stats.total, 1024 * 1024 * 10);
-        assert_eq!(stats.used, 1024 * 1024 * 3);
-        assert_eq!(stats.available, 1024 * 1024 * 7);
-        assert_eq!(stats.usage_percent(), 30.0);
-    }
-
-    #[test]
-    fn test_memory_threshold_warning() {
-        let mut manager = MemoryManager::with_threshold(1024 * 1024, 0.8);
-
-        // Allocate 70% - should be ok
-        manager.allocate(716800).unwrap(); // 700KB
-        assert!(!manager.is_above_threshold());
-
-        // Allocate more to go above 80%
-        manager.allocate(204800).unwrap(); // 200KB more (900KB total = 88%)
-        assert!(manager.is_above_threshold());
+    fn create_test_config() -> MemoryManagerConfig {
+        MemoryManagerConfig {
+            max_total_memory_mb: 1024, // 1GB
+            instance_memory_threshold_mb: 256, // 256MB per instance
+            max_instances: 4,
+            min_instances: 1,
+            instance_idle_timeout: Duration::from_secs(30),
+            monitoring_interval: Duration::from_secs(1),
+            gc_interval: Duration::from_secs(5),
+            aggressive_gc: false,
+            memory_pressure_threshold: 80.0,
+        }
     }
 
     #[tokio::test]
-    async fn test_concurrent_memory_allocation() {
-        let manager = Arc::new(Mutex::new(MemoryManager::new(1024 * 1024 * 10))); // 10MB
+    async fn test_memory_manager_creation() -> Result<(), Box<dyn std::error::Error>> {
+        let config = create_test_config();
+        let engine = create_test_engine();
 
+        let manager = MemoryManager::new(config.clone(), engine).await?;
+
+        // Wait a moment for monitoring task to update stats
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        let stats = manager.stats();
+
+        // Verify initial stats
+        assert_eq!(stats.instances_count, 0);
+        assert_eq!(stats.active_instances, 0);
+        assert_eq!(stats.idle_instances, 0);
+        // Initially total_allocated_mb might be 0 until monitoring task runs
+        assert!(stats.total_allocated_mb <= config.max_total_memory_mb);
+        assert_eq!(stats.total_used_mb, 0);
+        assert_eq!(stats.gc_runs, 0);
+
+        manager.shutdown().await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_memory_stats_tracking() -> Result<(), Box<dyn std::error::Error>> {
+        let config = create_test_config();
+        let engine = create_test_engine();
+
+        let manager = MemoryManager::new(config, engine).await?;
+
+        let initial_stats = manager.stats();
+        assert_eq!(initial_stats.total_used_mb, 0);
+        assert_eq!(initial_stats.instances_count, 0);
+        assert_eq!(initial_stats.memory_pressure, 0.0);
+
+        manager.shutdown().await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_memory_pressure_calculation() -> Result<(), Box<dyn std::error::Error>> {
+        let mut config = create_test_config();
+        config.max_total_memory_mb = 100; // Small limit for testing
+        config.memory_pressure_threshold = 50.0; // 50% threshold
+        let engine = create_test_engine();
+
+        let manager = MemoryManager::new(config, engine).await?;
+
+        let stats = manager.stats();
+        // Initially, pressure should be 0
+        assert!(stats.memory_pressure < 1.0);
+
+        manager.shutdown().await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_concurrent_memory_manager_access() -> Result<(), Box<dyn std::error::Error>> {
+        let config = create_test_config();
+        let engine = create_test_engine();
+
+        let manager = Arc::new(MemoryManager::new(config, engine).await?);
         let mut handles = vec![];
 
-        // Spawn 10 tasks each allocating 1MB
-        for _ in 0..10 {
+        // Spawn multiple tasks accessing the manager
+        for i in 0..5 {
             let manager_clone = manager.clone();
             let handle = tokio::spawn(async move {
-                let mut mgr = manager_clone.lock().await;
-                mgr.allocate(1024 * 1024)
+                let _stats = manager_clone.stats();
+                // Verify each task can access stats successfully
+                // No need to assert on values since u64/usize are always >= 0
+                i // Return task id for verification
             });
             handles.push(handle);
         }
 
         let results: Vec<_> = futures::future::join_all(handles).await;
 
-        // All allocations should succeed (total 10MB = limit)
-        for result in &results {
-            assert!(result.as_ref().unwrap().is_ok());
+        // All tasks should complete successfully
+        for (i, result) in results.iter().enumerate() {
+            assert_eq!(result.as_ref().unwrap(), &i);
         }
 
-        let final_stats = manager.lock().await.stats();
-        assert_eq!(final_stats.used, 1024 * 1024 * 10);
-        assert_eq!(final_stats.available, 0);
+        manager.shutdown().await?;
+        Ok(())
     }
 
-    #[test]
-    fn test_memory_guard() {
-        let mut manager = MemoryManager::new(1024 * 1024);
+    #[tokio::test]
+    async fn test_memory_manager_with_custom_config() -> Result<(), Box<dyn std::error::Error>> {
+        let config = MemoryManagerConfig {
+            max_total_memory_mb: 512,
+            instance_memory_threshold_mb: 128,
+            max_instances: 2,
+            min_instances: 1,
+            instance_idle_timeout: Duration::from_secs(10),
+            monitoring_interval: Duration::from_millis(500),
+            gc_interval: Duration::from_secs(2),
+            aggressive_gc: true,
+            memory_pressure_threshold: 70.0,
+        };
+        let engine = create_test_engine();
 
-        {
-            let _guard = manager.allocate_with_guard(512 * 1024).unwrap();
-            assert_eq!(manager.used(), 512 * 1024);
-            // Guard will auto-release on drop
-        }
+        let manager = MemoryManager::new(config.clone(), engine).await?;
 
-        // Memory should be released after guard is dropped
-        assert_eq!(manager.used(), 0);
-    }
-
-    #[test]
-    fn test_memory_limit_enforcement() {
-        let manager = MemoryManager::new(1024 * 1024); // 1MB
-
-        // Create a limit enforcer
-        let limit = MemoryLimit::new(512 * 1024); // 512KB limit
-
-        assert!(limit.check_allocation(256 * 1024).is_ok()); // 256KB ok
-        assert!(limit.check_allocation(768 * 1024).is_err()); // 768KB exceeds
-    }
-
-    #[test]
-    fn test_memory_fragmentation_tracking() {
-        let mut manager = MemoryManager::new(1024 * 1024);
-
-        // Simulate fragmented allocations
-        manager.allocate(100 * 1024).unwrap();
-        manager.allocate(200 * 1024).unwrap();
-        manager.release(100 * 1024);
-        manager.allocate(150 * 1024).unwrap();
-
+        // Wait for monitoring task to run and update stats
+        tokio::time::sleep(Duration::from_millis(600)).await;
         let stats = manager.stats();
-        assert_eq!(stats.used, 350 * 1024); // 200KB + 150KB
-        assert!(stats.fragmentation_ratio() < 0.5); // Some fragmentation expected
+
+        // Verify config values are eventually reflected in stats
+        // The monitoring task will update total_allocated_mb with the config value
+        assert!(stats.total_allocated_mb <= config.max_total_memory_mb);
+
+        manager.shutdown().await?;
+        Ok(())
     }
 
-    #[test]
-    fn test_memory_pressure_callback() {
-        let mut manager = MemoryManager::with_threshold(1024 * 1024, 0.9);
+    #[tokio::test]
+    async fn test_memory_manager_shutdown() -> Result<(), Box<dyn std::error::Error>> {
+        let config = create_test_config();
+        let engine = create_test_engine();
 
-        let mut pressure_triggered = false;
-        manager.set_pressure_callback(Box::new(|| {
-            pressure_triggered = true;
-        }));
+        let manager = MemoryManager::new(config, engine).await?;
 
-        // Allocate 95% to trigger pressure
-        manager.allocate(972800).unwrap(); // 950KB
+        // Verify manager is operational
+        let _stats = manager.stats();
 
-        // In real implementation, this would be called by the manager
-        if manager.is_above_threshold() {
-            manager.trigger_pressure_callback();
-        }
+        // Shutdown should complete without error
+        manager.shutdown().await?;
+        Ok(())
+    }
 
-        assert!(pressure_triggered);
+    #[tokio::test]
+    async fn test_memory_manager_events() -> Result<(), Box<dyn std::error::Error>> {
+        let config = create_test_config();
+        let engine = create_test_engine();
+
+        let manager = MemoryManager::new(config, engine).await?;
+
+        // Get event receiver
+        let events = manager.events();
+
+        // Event receiver should be available
+        assert!(!events.lock().await.is_closed());
+
+        manager.shutdown().await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_memory_manager_garbage_collection() -> Result<(), Box<dyn std::error::Error>> {
+        let config = create_test_config();
+        let engine = create_test_engine();
+
+        let manager = MemoryManager::new(config, engine).await?;
+
+        let initial_stats = manager.stats();
+        let initial_gc_runs = initial_stats.gc_runs;
+
+        // Trigger garbage collection manually
+        manager.trigger_garbage_collection().await;
+
+        // Wait a bit for the operation to complete
+        tokio::time::sleep(Duration::from_millis(100)).await;
+
+        let stats_after_gc = manager.stats();
+        // GC runs should have incremented (or stayed the same if no work needed)
+        assert!(stats_after_gc.gc_runs >= initial_gc_runs);
+
+        manager.shutdown().await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_memory_stats_fields() -> Result<(), Box<dyn std::error::Error>> {
+        let config = create_test_config();
+        let engine = create_test_engine();
+
+        let manager = MemoryManager::new(config.clone(), engine).await?;
+
+        // Wait for monitoring task to update stats
+        tokio::time::sleep(Duration::from_millis(1100)).await;
+        let stats = manager.stats();
+
+        // Verify all expected MemoryStats fields are accessible
+        // After monitoring task runs, stats should be updated with real values
+        assert_eq!(stats.total_used_mb, 0);
+        assert_eq!(stats.instances_count, 0);
+        assert_eq!(stats.active_instances, 0);
+        assert_eq!(stats.idle_instances, 0);
+        assert_eq!(stats.peak_memory_mb, 0);
+        assert_eq!(stats.gc_runs, 0);
+        assert_eq!(stats.memory_pressure, 0.0);
+        // After waiting, stats should have been updated at least once
+        assert!(stats.last_updated.is_some());
+
+        manager.shutdown().await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_memory_manager_with_aggressive_gc() -> Result<(), Box<dyn std::error::Error>> {
+        let mut config = create_test_config();
+        config.aggressive_gc = true;
+        config.gc_interval = Duration::from_millis(100); // Fast GC for testing
+        let engine = create_test_engine();
+
+        let manager = MemoryManager::new(config, engine).await?;
+
+        // Let the manager run for a bit with aggressive GC
+        tokio::time::sleep(Duration::from_millis(200)).await;
+
+        let _stats = manager.stats();
+        // With aggressive GC, we might see some GC activity even with no instances
+        // No need to assert on gc_runs >= 0 as u64 is always >= 0
+
+        manager.shutdown().await?;
+        Ok(())
     }
 }

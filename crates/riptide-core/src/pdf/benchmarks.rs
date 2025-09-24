@@ -6,8 +6,11 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
 
 use super::*;
+use super::processor::{create_pdf_processor, PdfiumProcessor};
+use super::config::PdfConfig;
 use std::sync::Arc;
 use std::time::Duration;
+use futures::future;
 
 /// Generate test PDFs of various sizes for benchmarking
 fn generate_test_pdf(pages: usize) -> Vec<u8> {
@@ -98,7 +101,7 @@ pub fn benchmark_concurrent_processing(c: &mut Criterion) {
                             handles.push(handle);
                         }
 
-                        let results = futures::future::join_all(handles).await;
+                        let results = future::join_all(handles).await;
                         black_box(results)
                     })
                 });
@@ -123,7 +126,7 @@ pub fn benchmark_memory_usage(c: &mut Criterion) {
         c.bench_function("memory_monitoring", |b| {
             b.iter(|| {
                 rt.block_on(async {
-                    // Skip memory monitoring in benchmarks as get_memory_usage is private
+                    // Use standard benchmarking without private method access
                     let result = processor.process_pdf(black_box(&pdf_data), black_box(&config)).await;
                     black_box(result)
                 })
@@ -233,7 +236,7 @@ pub async fn simple_performance_test() -> Result<(), Box<dyn std::error::Error>>
         handles.push(handle);
     }
 
-    let results = futures::future::join_all(handles).await;
+    let results = future::join_all(handles).await;
     let total_duration = start.elapsed();
 
     println!("All concurrent tasks completed in {:?}", total_duration);

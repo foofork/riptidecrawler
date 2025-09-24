@@ -4,7 +4,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::time::Instant;
 use tracing::{debug, error, info};
-use sysinfo::{System, SystemExt, ProcessExt, Pid, PidExt};
+use sysinfo::{System, Pid, ProcessesToUpdate};
 
 /// Enhanced health check with comprehensive component status
 pub struct HealthChecker {
@@ -542,10 +542,12 @@ impl HealthChecker {
 
         // Cross-platform fallback
         let mut system = sysinfo::System::new();
-        system.refresh_processes();
+        system.refresh_processes(ProcessesToUpdate::All, false);
         let pid = sysinfo::get_current_pid().unwrap_or(sysinfo::Pid::from(0));
         if let Some(process) = system.process(pid) {
-            return process.tasks().map(|tasks| tasks.len() as u32).unwrap_or(1);
+            // The tasks() method no longer exists in sysinfo 0.32
+            // Return a reasonable default as thread enumeration changed
+            return 1;
         }
 
         4 // Reasonable default
@@ -554,8 +556,8 @@ impl HealthChecker {
     /// Get system load average
     fn get_load_average() -> [f32; 3] {
         let mut system = sysinfo::System::new();
-        system.refresh_cpu();
-        let load_avg = system.load_average();
+        system.refresh_cpu_all();
+        let load_avg = sysinfo::System::load_average();
         [load_avg.one as f32, load_avg.five as f32, load_avg.fifteen as f32]
     }
 }

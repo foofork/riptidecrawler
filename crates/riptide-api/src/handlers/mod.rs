@@ -87,6 +87,11 @@ pub async fn health(State(state): State<AppState>) -> Result<impl IntoResponse, 
         total_requests: 0,        // Placeholder
         requests_per_second: 0.0, // Placeholder
         avg_response_time_ms: start_time.elapsed().as_millis() as f64,
+        cpu_usage_percent: None,  // Optional field
+        disk_usage_bytes: None,   // Optional field
+        file_descriptor_count: None, // Optional field
+        thread_count: None,       // Optional field
+        load_average: None,       // Optional field
     });
 
     let overall_status = if health_status.healthy {

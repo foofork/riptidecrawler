@@ -3,6 +3,10 @@ name = "riptide-api"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "riptide_api"
+path = "src/lib.rs"
+
 [[bin]]
 name = "riptide-api"
 path = "src/main.rs"
