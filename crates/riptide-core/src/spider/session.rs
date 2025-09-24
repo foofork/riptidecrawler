@@ -14,6 +14,10 @@ use url::Url;
 pub struct SessionConfig {
     /// Enable session persistence
     pub enable_session_persistence: bool,
+    /// Enable authentication support
+    pub enable_authentication: bool,
+    /// Enable cookie persistence across requests
+    pub enable_cookie_persistence: bool,
     /// Session timeout duration
     pub session_timeout: Duration,
     /// Maximum number of concurrent sessions
@@ -38,6 +42,8 @@ impl Default for SessionConfig {
     fn default() -> Self {
         Self {
             enable_session_persistence: true,
+            enable_authentication: false,
+            enable_cookie_persistence: true,
             session_timeout: Duration::from_secs(1800), // 30 minutes
             max_concurrent_sessions: 5,
             enable_auto_login: false,

@@ -4,6 +4,7 @@
 //! and integration tests for the PDF pipeline.
 
 use super::*;
+use crate::pdf::config::ImageExtractionSettings;
 use std::sync::Arc;
 use tokio::time::{timeout, Duration};
 

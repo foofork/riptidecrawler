@@ -294,6 +294,122 @@ impl SpiderConfig {
 
         memory
     }
+
+    /// Optimize configuration for available resources
+    pub fn optimize_for_resources(&mut self, available_memory_mb: usize, available_cores: usize) {
+        // Adjust concurrency based on cores
+        self.concurrency = (available_cores * 2).min(16);
+        self.performance.max_concurrent_global = self.concurrency;
+        self.performance.max_concurrent_per_host = (self.concurrency / 4).max(1);
+
+        // Adjust memory-based settings
+        if available_memory_mb < 1024 {
+            // Low memory: optimize for efficiency
+            self.url_processing.bloom_filter_capacity = 10_000;
+            self.url_processing.max_exact_urls = 1_000;
+            self.frontier.memory_limit_mb = 50;
+        } else if available_memory_mb < 4096 {
+            // Medium memory
+            self.url_processing.bloom_filter_capacity = 100_000;
+            self.url_processing.max_exact_urls = 10_000;
+            self.frontier.memory_limit_mb = 200;
+        } else {
+            // High memory
+            self.url_processing.bloom_filter_capacity = 1_000_000;
+            self.url_processing.max_exact_urls = 100_000;
+            self.frontier.memory_limit_mb = 500;
+        }
+    }
+}
+
+/// Preset spider configurations for common use cases
+pub struct SpiderPresets;
+
+impl SpiderPresets {
+    /// Development and testing configuration
+    pub fn development() -> SpiderConfig {
+        let mut config = SpiderConfig::default();
+        config.concurrency = 2;
+        config.max_pages = Some(50);
+        config.max_depth = Some(3);
+        config.delay = Duration::from_millis(100);
+        config.respect_robots = false;
+        config.performance.max_concurrent_global = 2;
+        config.performance.max_concurrent_per_host = 1;
+        config
+    }
+
+    /// High-performance crawling configuration
+    pub fn high_performance() -> SpiderConfig {
+        let mut config = SpiderConfig::default();
+        config.concurrency = 16;
+        config.max_pages = Some(10000);
+        config.max_depth = Some(10);
+        config.delay = Duration::from_millis(50);
+        config.timeout = Duration::from_secs(20);
+        config.performance.max_concurrent_global = 16;
+        config.performance.max_concurrent_per_host = 4;
+        config.url_processing.enable_deduplication = true;
+        config.url_processing.bloom_filter_capacity = 1_000_000;
+        config
+    }
+
+    /// News site crawling configuration
+    pub fn news_site() -> SpiderConfig {
+        let mut config = SpiderConfig::default();
+        config.concurrency = 8;
+        config.max_pages = Some(5000);
+        config.max_depth = Some(5);
+        config.delay = Duration::from_millis(200);
+        config.enable_javascript = true;
+        config.adaptive_stop.min_gain_threshold = 200.0;
+        config.adaptive_stop.patience = 10;
+        config.strategy.default_strategy = "BreadthFirst".to_string();
+        config
+    }
+
+    /// E-commerce site crawling configuration
+    pub fn ecommerce_site() -> SpiderConfig {
+        let mut config = SpiderConfig::default();
+        config.concurrency = 6;
+        config.max_pages = Some(10000);
+        config.max_depth = Some(8);
+        config.delay = Duration::from_millis(500);
+        config.enable_javascript = true;
+        config.follow_redirects = true;
+        config.strategy.default_strategy = "BestFirst".to_string();
+        config.strategy.scoring.content_keywords = vec![
+            "price".to_string(),
+            "product".to_string(),
+            "buy".to_string(),
+            "cart".to_string(),
+        ];
+        config
+    }
+
+    /// Documentation site crawling configuration
+    pub fn documentation_site() -> SpiderConfig {
+        let mut config = SpiderConfig::default();
+        config.concurrency = 4;
+        config.max_pages = Some(2000);
+        config.max_depth = Some(15);
+        config.delay = Duration::from_millis(100);
+        config.strategy.default_strategy = "DepthFirst".to_string();
+        config.adaptive_stop.min_gain_threshold = 100.0;
+        config
+    }
+
+    /// Authenticated crawling configuration
+    pub fn authenticated_crawling() -> SpiderConfig {
+        let mut config = SpiderConfig::default();
+        config.concurrency = 2;
+        config.max_pages = Some(1000);
+        config.delay = Duration::from_millis(1000);
+        config.session.enable_authentication = true;
+        config.session.enable_cookie_persistence = true;
+        config.session.session_timeout = Duration::from_secs(3600);
+        config
+    }
 }
 
 impl StrategyConfig {

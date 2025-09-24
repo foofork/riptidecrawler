@@ -327,6 +327,8 @@ pub struct ScoringConfig {
     pub parameter_weight: f64,
     /// Weight for content type hints
     pub content_type_weight: f64,
+    /// Keywords to prioritize in content
+    pub content_keywords: Vec<String>,
     /// Custom domain scoring
     pub domain_scores: HashMap<String, f64>,
     /// File extension scoring
@@ -347,6 +349,7 @@ impl Default for ScoringConfig {
 
         Self {
             depth_weight: -0.1,
+            content_keywords: Vec::new(),
             path_length_weight: -0.05,
             parameter_weight: -0.02,
             content_type_weight: 0.3,

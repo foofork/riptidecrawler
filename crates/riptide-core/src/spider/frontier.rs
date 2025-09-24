@@ -15,6 +15,8 @@ use url::Url;
 pub struct FrontierConfig {
     /// Maximum number of requests to keep in memory
     pub memory_limit: usize,
+    /// Memory limit in MB for the frontier
+    pub memory_limit_mb: usize,
     /// Enable disk spillover for large frontiers
     pub enable_disk_spillover: bool,
     /// Path for disk spillover storage
@@ -35,6 +37,7 @@ impl Default for FrontierConfig {
     fn default() -> Self {
         Self {
             memory_limit: 100_000,
+            memory_limit_mb: 100,
             enable_disk_spillover: true,
             spillover_path: None,
             max_requests_per_host: 1000,
