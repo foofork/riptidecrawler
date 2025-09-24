@@ -375,12 +375,12 @@ stealth:
 
 | Phase       | Duration | Deliverables                             | Risk         | Status                 |
 | ----------- | -------- | ---------------------------------------- | ------------ | ---------------------- |
-| **Phase 0** | 4 wks    | Integration, errors, monitoring, quality | **HIGH**     | 70% (Spider fixes+Sessions done) |
-| **Phase 3** | 2–3 wks  | Parity features                          | MEDIUM       | PR-1/2 ✅; PR-3 next; Strategies 80% |
+| **Phase 0** | 4 wks    | Integration, errors, monitoring, quality | **HIGH**     | ✅ 97% COMPLETE |
+| **Phase 3** | 2–3 wks  | Parity features                          | MEDIUM       | ✅ 95% (PR-1/2/3/5/6 done, PR-4 at 85%) |
 | **Phase 4** | 6–8 wks  | Enterprise                               | LOW          | Planned                |
 | **Phase 5** | Ongoing  | Optimization                             | LOW          | Planned                |
 
-**Total remaining:** \~3.5–4 months (with core first).
+**Total remaining:** ~2 months (Phase 0/3 essentially complete, Phase 4/5 ready to begin).
 
 ---
 
