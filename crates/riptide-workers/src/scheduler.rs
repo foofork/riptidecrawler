@@ -468,7 +468,7 @@ impl JobScheduler {
             .context("Failed to serialize scheduled job")?;
 
         redis_client
-            .hset(&key, "data", data)
+            .hset::<_, _, _, ()>(&key, "data", data)
             .await
             .context("Failed to persist scheduled job to Redis")?;
 
@@ -485,7 +485,7 @@ impl JobScheduler {
 
         let key = format!("{}:schedule:{}", self.config.redis_prefix, job_id);
         redis_client
-            .del(&key)
+            .del::<_, ()>(&key)
             .await
             .context("Failed to remove scheduled job from Redis")?;
 
@@ -500,7 +500,7 @@ impl JobScheduler {
 
             let pattern = format!("{}:schedule:*", self.config.redis_prefix);
             let keys: Vec<String> = conn
-                .keys(pattern)
+                .keys::<_, Vec<String>>(pattern)
                 .await
                 .context("Failed to get scheduled job keys from Redis")?;
 
@@ -508,7 +508,7 @@ impl JobScheduler {
 
             for key in keys {
                 let data: Option<String> = conn
-                    .hget(&key, "data")
+                    .hget::<_, _, Option<String>>(&key, "data")
                     .await
                     .context("Failed to get scheduled job data from Redis")?;
 

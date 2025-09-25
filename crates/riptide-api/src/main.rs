@@ -114,6 +114,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/crawl/sse", post(streaming::crawl_sse))
         .route("/crawl/ws", get(streaming::crawl_websocket))
         .route("/deepsearch", post(handlers::deepsearch))
+        // PDF processing endpoints with progress tracking
+        .nest("/pdf", routes::pdf::pdf_routes())
         // Strategies endpoints for advanced extraction
         .route("/strategies/crawl", post(handlers::strategies::strategies_crawl))
         .route("/strategies/info", get(handlers::strategies::get_strategies_info))

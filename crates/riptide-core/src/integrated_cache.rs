@@ -14,7 +14,7 @@ use crate::{
     cache::{CacheConfig, CacheEntry, CacheManager, CacheMetadata, ConditionalResult},
     conditional::{extract_conditional_info, generate_etag, ConditionalRequest},
     security::{SecurityConfig, SecurityMiddleware},
-    validation::{InputValidator, ValidationConfig},
+    common::validation::{CommonValidator, ValidationConfig},
 };
 
 /// Integrated cache configuration combining all security and performance features
@@ -48,7 +48,7 @@ impl Default for IntegratedCacheConfig {
 pub struct IntegratedCacheManager {
     cache_manager: CacheManager,
     security_middleware: SecurityMiddleware,
-    input_validator: InputValidator,
+    input_validator: CommonValidator,
     config: IntegratedCacheConfig,
 }
 
@@ -67,7 +67,7 @@ impl IntegratedCacheManager {
         let cache_manager =
             CacheManager::new_with_config(&config.redis_url, config.cache.clone()).await?;
         let security_middleware = SecurityMiddleware::new(config.security.clone());
-        let input_validator = InputValidator::new(config.validation.clone());
+        let input_validator = CommonValidator::new(config.validation.clone());
 
         Ok(Self {
             cache_manager,

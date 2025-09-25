@@ -13,7 +13,7 @@ use riptide_core::{
     conditional::ConditionalRequest,
     cache::CacheConfig,
     security::SecurityConfig,
-    validation::ValidationConfig,
+    common::validation::ValidationConfig,
 };
 
 #[tokio::main]
@@ -123,7 +123,7 @@ async fn demo_input_validation_security() -> Result<()> {
     for url in valid_urls {
         match phase2_manager.get_config().validation.clone() {
             config => {
-                let validator = riptide_core::validation::InputValidator::new(config);
+                let validator = riptide_core::common::validation::CommonValidator::new(config);
                 match validator.validate_url(url) {
                     Ok(_) => println!("✅ Valid URL: {}", url),
                     Err(e) => println!("❌ Invalid URL {}: {}", url, e),
@@ -143,7 +143,7 @@ async fn demo_input_validation_security() -> Result<()> {
     for url in invalid_urls {
         match phase2_manager.get_config().validation.clone() {
             config => {
-                let validator = riptide_core::validation::InputValidator::new(config);
+                let validator = riptide_core::common::validation::CommonValidator::new(config);
                 match validator.validate_url(url) {
                     Ok(_) => println!("⚠️  Unexpected valid URL: {}", url),
                     Err(e) => println!("✅ Correctly blocked URL {}: {}", url, e),
@@ -160,7 +160,7 @@ async fn demo_input_validation_security() -> Result<()> {
         ("image/png", false),
     ];
 
-    let validator = riptide_core::validation::InputValidator::new(
+    let validator = riptide_core::common::validation::CommonValidator::new(
         phase2_manager.get_config().validation.clone()
     );
 

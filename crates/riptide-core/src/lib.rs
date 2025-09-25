@@ -20,9 +20,13 @@ pub mod stealth;
 pub mod strategies;
 pub mod telemetry;
 pub mod types;
-pub mod validation;
 
 #[cfg(feature = "benchmarks")]
 pub mod benchmarks;
 
 pub use types::*;
+pub use common::{
+    validation::{CommonValidator, ValidationConfig, ContentTypeValidator, UrlValidator, SizeValidator, ParameterValidator},
+    error_conversions::{IntoCore, WithErrorContext, CoreErrorConverter, ErrorPatterns},
+    config_builder::{ConfigBuilder, DefaultConfigBuilder, ConfigValue, ValidationPatterns},
+};

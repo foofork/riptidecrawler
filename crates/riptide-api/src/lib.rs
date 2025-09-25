@@ -8,6 +8,7 @@ pub mod pipeline;
 pub mod pipeline_enhanced;
 pub mod strategies_pipeline;
 pub mod resource_manager;
+pub mod routes;
 pub mod rpc_client;
 pub mod sessions;
 pub mod state;
