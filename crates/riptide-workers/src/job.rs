@@ -3,6 +3,36 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
+/// Options for PDF extraction jobs
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PdfExtractionOptions {
+    /// Extract text from PDF
+    pub extract_text: bool,
+    /// Extract images from PDF
+    pub extract_images: bool,
+    /// Extract metadata from PDF
+    pub extract_metadata: bool,
+    /// Maximum file size in bytes
+    pub max_size_bytes: u64,
+    /// Enable progress tracking
+    pub enable_progress: bool,
+    /// Custom extraction settings
+    pub custom_settings: HashMap<String, serde_json::Value>,
+}
+
+impl Default for PdfExtractionOptions {
+    fn default() -> Self {
+        Self {
+            extract_text: true,
+            extract_images: false,
+            extract_metadata: true,
+            max_size_bytes: 100 * 1024 * 1024, // 100MB
+            enable_progress: true,
+            custom_settings: HashMap::new(),
+        }
+    }
+}
+
 /// Job priority levels for queue management
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum JobPriority {
@@ -41,6 +71,12 @@ pub enum JobType {
     SingleCrawl {
         url: String,
         options: Option<riptide_core::types::CrawlOptions>,
+    },
+    /// PDF extraction and processing
+    PdfExtraction {
+        pdf_data: Vec<u8>,
+        url: Option<String>,
+        options: Option<PdfExtractionOptions>,
     },
     /// Scheduled maintenance task
     Maintenance {

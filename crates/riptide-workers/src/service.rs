@@ -209,6 +209,7 @@ impl WorkerService {
         let job_type_name = match &job.job_type {
             JobType::BatchCrawl { .. } => "BatchCrawl",
             JobType::SingleCrawl { .. } => "SingleCrawl",
+            JobType::PdfExtraction { .. } => "PdfExtraction",
             JobType::Maintenance { .. } => "Maintenance",
             JobType::Custom { job_name, .. } => job_name,
         };

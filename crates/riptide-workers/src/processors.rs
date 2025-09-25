@@ -1,4 +1,4 @@
-use crate::job::{Job, JobType};
+use crate::job::{Job, JobType, PdfExtractionOptions};
 use crate::worker::JobProcessor;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -473,6 +473,292 @@ pub struct CustomJobResult {
     pub processing_info: serde_json::Value,
 }
 
+/// PDF processor for handling PDF extraction jobs
+pub struct PdfProcessor {
+    /// PDF pipeline integration for processing
+    pdf_pipeline: Arc<riptide_core::pdf::PdfPipelineIntegration>,
+    /// Default PDF configuration
+    default_config: riptide_core::pdf::PdfConfig,
+    /// Maximum concurrent PDF processing operations
+    #[allow(dead_code)]
+    max_concurrent: usize,
+}
+
+impl PdfProcessor {
+    /// Create a new PDF processor
+    pub fn new() -> Self {
+        let default_config = riptide_core::pdf::PdfConfig {
+            extract_text: true,
+            extract_images: false,
+            extract_metadata: true,
+            max_size_bytes: 100 * 1024 * 1024, // 100MB
+            ..Default::default()
+        };
+
+        Self {
+            pdf_pipeline: Arc::new(riptide_core::pdf::PdfPipelineIntegration::with_config(default_config.clone())),
+            default_config,
+            max_concurrent: 2, // ROADMAP requirement: max 2 concurrent operations
+        }
+    }
+
+    /// Create PDF processor with custom configuration
+    pub fn with_config(config: riptide_core::pdf::PdfConfig) -> Self {
+        Self {
+            pdf_pipeline: Arc::new(riptide_core::pdf::PdfPipelineIntegration::with_config(config.clone())),
+            default_config: config,
+            max_concurrent: 2,
+        }
+    }
+
+    /// Convert PDF extraction options to PDF config
+    fn create_pdf_config(&self, options: &Option<PdfExtractionOptions>) -> riptide_core::pdf::PdfConfig {
+        match options {
+            Some(opts) => {
+                let mut config = self.default_config.clone();
+                config.extract_text = opts.extract_text;
+                config.extract_images = opts.extract_images;
+                config.extract_metadata = opts.extract_metadata;
+                config.max_size_bytes = opts.max_size_bytes;
+
+                // Apply custom settings if any
+                for (key, value) in &opts.custom_settings {
+                    match key.as_str() {
+                        "memory_pressure_threshold" => {
+                            if let Some(threshold) = value.as_f64() {
+                                config.memory_settings.memory_pressure_threshold = threshold;
+                            }
+                        },
+                        "aggressive_cleanup" => {
+                            if let Some(cleanup) = value.as_bool() {
+                                config.memory_settings.aggressive_cleanup = cleanup;
+                            }
+                        },
+                        "preserve_formatting" => {
+                            if let Some(preserve) = value.as_bool() {
+                                config.text_settings.preserve_formatting = preserve;
+                            }
+                        },
+                        _ => {
+                            debug!("Unknown PDF config setting: {}", key);
+                        }
+                    }
+                }
+                config
+            },
+            None => self.default_config.clone(),
+        }
+    }
+
+    /// Process PDF with progress tracking
+    async fn process_pdf_with_progress(
+        &self,
+        pdf_data: &[u8],
+        url: Option<&str>,
+        _config: &riptide_core::pdf::PdfConfig,
+        enable_progress: bool,
+    ) -> Result<ExtractedDoc> {
+        if enable_progress {
+            // Create progress channel for tracking using the correct type
+            let (progress_tx, mut progress_rx) = riptide_core::pdf::types::create_progress_channel();
+
+            // Spawn progress monitoring task
+            let progress_task = tokio::spawn(async move {
+                while let Some(progress) = progress_rx.recv().await {
+                    debug!("PDF processing progress: {:?}", progress);
+                }
+            });
+
+            // Process with progress tracking
+            let result = self.pdf_pipeline
+                .process_pdf_bytes_with_progress(pdf_data, progress_tx)
+                .await
+                .context("Failed to process PDF with progress tracking")?;
+
+            // Wait for progress monitoring to complete
+            progress_task.abort();
+
+            Ok(result)
+        } else {
+            // Process without progress tracking
+            self.pdf_pipeline
+                .process_pdf_to_extracted_doc(pdf_data, url)
+                .await
+                .context("Failed to process PDF")
+        }
+    }
+
+    /// Create result with metadata and statistics
+    fn create_pdf_result(
+        &self,
+        extracted_doc: ExtractedDoc,
+        file_size: usize,
+        processing_time_ms: u64,
+        job_id: uuid::Uuid,
+    ) -> serde_json::Value {
+        let mut result = serde_json::json!({
+            "success": true,
+            "document": extracted_doc,
+            "stats": {
+                "file_size_bytes": file_size,
+                "processing_time_ms": processing_time_ms,
+                "text_length": extracted_doc.text.len(),
+                "word_count": extracted_doc.word_count.unwrap_or(0),
+                "pages_processed": 0, // Will be populated from PDF processing result later
+                "media_count": extracted_doc.media.len(),
+            },
+            "metadata": {
+                "job_id": job_id,
+                "processor": "PdfProcessor",
+                "extracted_by": "riptide-pdf",
+                "timestamp": chrono::Utc::now().to_rfc3339(),
+            }
+        });
+
+        // Add PDF-specific metadata
+        if let Some(metadata) = result.get_mut("metadata") {
+            if let Some(obj) = metadata.as_object_mut() {
+                obj.insert("content_type".to_string(), serde_json::json!("application/pdf"));
+                obj.insert("quality_score".to_string(), serde_json::json!(extracted_doc.quality_score.unwrap_or(0)));
+                if let Some(reading_time) = extracted_doc.reading_time {
+                    obj.insert("reading_time_minutes".to_string(), serde_json::json!(reading_time));
+                }
+            }
+        }
+
+        result
+    }
+}
+
+impl Default for PdfProcessor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[async_trait]
+impl JobProcessor for PdfProcessor {
+    async fn process_job(&self, job: &Job) -> Result<serde_json::Value> {
+        match &job.job_type {
+            JobType::PdfExtraction { pdf_data, url, options } => {
+                let start_time = std::time::Instant::now();
+
+                info!(
+                    job_id = %job.id,
+                    file_size = pdf_data.len(),
+                    url = ?url,
+                    "Processing PDF extraction job"
+                );
+
+                // Validate input size
+                let config = self.create_pdf_config(options);
+                if pdf_data.len() as u64 > config.max_size_bytes {
+                    return Err(anyhow::anyhow!(
+                        "PDF file too large: {} bytes (max: {} bytes)",
+                        pdf_data.len(),
+                        config.max_size_bytes
+                    ));
+                }
+
+                // Check if progress tracking is enabled
+                let enable_progress = options
+                    .as_ref()
+                    .map(|o| o.enable_progress)
+                    .unwrap_or(true);
+
+                // Process PDF with appropriate method
+                match self.process_pdf_with_progress(
+                    pdf_data,
+                    url.as_deref(),
+                    &config,
+                    enable_progress,
+                ).await {
+                    Ok(extracted_doc) => {
+                        let processing_time_ms = start_time.elapsed().as_millis() as u64;
+
+                        info!(
+                            job_id = %job.id,
+                            processing_time_ms = processing_time_ms,
+                            text_length = extracted_doc.text.len(),
+                            word_count = extracted_doc.word_count.unwrap_or(0),
+                            media_count = extracted_doc.media.len(),
+                            "PDF extraction completed successfully"
+                        );
+
+                        Ok(self.create_pdf_result(
+                            extracted_doc,
+                            pdf_data.len(),
+                            processing_time_ms,
+                            job.id,
+                        ))
+                    },
+                    Err(e) => {
+                        let processing_time_ms = start_time.elapsed().as_millis() as u64;
+
+                        error!(
+                            job_id = %job.id,
+                            error = %e,
+                            processing_time_ms = processing_time_ms,
+                            "PDF extraction failed"
+                        );
+
+                        // Create error result with diagnostic information
+                        let error_result = serde_json::json!({
+                            "success": false,
+                            "error": {
+                                "message": e.to_string(),
+                                "type": "PdfProcessingError",
+                                "file_size_bytes": pdf_data.len(),
+                                "processing_time_ms": processing_time_ms,
+                            },
+                            "metadata": {
+                                "job_id": job.id,
+                                "processor": "PdfProcessor",
+                                "timestamp": chrono::Utc::now().to_rfc3339(),
+                            }
+                        });
+
+                        // Return as successful job result but with error content
+                        // This allows the worker to handle the error appropriately
+                        Ok(error_result)
+                    }
+                }
+            }
+            _ => Err(anyhow::anyhow!("Unsupported job type for PdfProcessor")),
+        }
+    }
+
+    fn supported_job_types(&self) -> Vec<String> {
+        vec!["PdfExtraction".to_string()]
+    }
+
+    fn processor_name(&self) -> String {
+        "PdfProcessor".to_string()
+    }
+}
+
+/// Result structure for PDF extraction operations
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct PdfExtractionResult {
+    pub success: bool,
+    pub document: Option<ExtractedDoc>,
+    pub error: Option<String>,
+    pub stats: PdfExtractionStats,
+    pub metadata: HashMap<String, serde_json::Value>,
+}
+
+/// Statistics for PDF extraction
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct PdfExtractionStats {
+    pub file_size_bytes: usize,
+    pub processing_time_ms: u64,
+    pub pages_processed: u32,
+    pub text_length: usize,
+    pub word_count: u32,
+    pub media_count: usize,
+    pub memory_used_bytes: u64,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -503,5 +789,50 @@ mod tests {
         let processor = CustomJobProcessor;
         assert_eq!(processor.processor_name(), "CustomJobProcessor");
         assert_eq!(processor.supported_job_types(), vec!["Custom"]);
+    }
+
+    #[test]
+    fn test_pdf_processor_creation() {
+        let processor = PdfProcessor::new();
+        assert_eq!(processor.processor_name(), "PdfProcessor");
+        assert_eq!(processor.supported_job_types(), vec!["PdfExtraction"]);
+        assert_eq!(processor.max_concurrent, 2);
+    }
+
+    #[test]
+    fn test_pdf_config_creation() {
+        let processor = PdfProcessor::new();
+
+        // Test default options
+        let config = processor.create_pdf_config(&None);
+        assert!(config.extract_text);
+        assert!(config.extract_metadata);
+        assert!(!config.extract_images);
+
+        // Test custom options
+        let custom_options = PdfExtractionOptions {
+            extract_text: false,
+            extract_images: true,
+            extract_metadata: false,
+            max_size_bytes: 50 * 1024 * 1024,
+            enable_progress: false,
+            custom_settings: HashMap::new(),
+        };
+
+        let config = processor.create_pdf_config(&Some(custom_options));
+        assert!(!config.extract_text);
+        assert!(config.extract_images);
+        assert!(!config.extract_metadata);
+        assert_eq!(config.max_size_bytes, 50 * 1024 * 1024);
+    }
+
+    #[test]
+    fn test_pdf_extraction_options_default() {
+        let options = PdfExtractionOptions::default();
+        assert!(options.extract_text);
+        assert!(!options.extract_images);
+        assert!(options.extract_metadata);
+        assert_eq!(options.max_size_bytes, 100 * 1024 * 1024);
+        assert!(options.enable_progress);
     }
 }
