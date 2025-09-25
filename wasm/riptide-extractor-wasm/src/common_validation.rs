@@ -1,7 +1,7 @@
-//! Common validation functions for WASM extractors using riptide-core validation.
+//! Common validation functions for WASM extractors.
 //!
-//! This module provides validation utilities that wrap the common validation
-//! module from riptide-core for use in WASM components.
+//! This module provides validation utilities for WASM components.
+//! Note: Cannot use riptide-core directly due to WASM compilation constraints.
 
 use crate::ExtractionError;
 
@@ -27,7 +27,7 @@ pub fn validate_extraction_input(html: &str, url: &str) -> Result<(), Extraction
     Ok(())
 }
 
-/// Validate URL format (adapted from common validation)
+/// Validate URL format (follows same patterns as riptide-core common validation)
 pub fn validate_url_format(url: &str) -> Result<(), String> {
     // Basic URL validation using the same pattern as common validation
     if url.len() > 2048 {
@@ -73,7 +73,7 @@ pub fn validate_html_structure(html: &str) -> Result<(), ExtractionError> {
     }
 }
 
-/// Validate content size against limits
+/// Validate content size against limits (follows same limits as riptide-core)
 pub fn validate_content_size(size: usize) -> Result<(), ExtractionError> {
     const MAX_CONTENT_SIZE: usize = 20 * 1024 * 1024; // 20MB, same as common validation
 
@@ -129,6 +129,7 @@ pub mod parameter_validation {
     use super::*;
 
     /// Validate that a string parameter is not empty
+    #[allow(dead_code)]
     pub fn validate_non_empty_string(value: &str, param_name: &str) -> Result<(), ExtractionError> {
         if value.trim().is_empty() {
             return Err(ExtractionError::InvalidHtml(
@@ -139,6 +140,7 @@ pub mod parameter_validation {
     }
 
     /// Validate that a number is within a valid range
+    #[allow(dead_code)]
     pub fn validate_number_range<T>(value: T, min: T, max: T, param_name: &str) -> Result<(), ExtractionError>
     where
         T: PartialOrd + std::fmt::Display,
@@ -152,6 +154,7 @@ pub mod parameter_validation {
     }
 
     /// Validate that a collection has elements within size limits
+    #[allow(dead_code)]
     pub fn validate_collection_size<T>(
         collection: &[T],
         min_size: usize,
@@ -179,6 +182,7 @@ pub mod error_patterns {
     use super::*;
 
     /// Convert common validation errors to extraction errors
+    #[allow(dead_code)]
     pub fn validation_error_to_extraction_error(
         field: &str,
         reason: &str,
@@ -189,6 +193,7 @@ pub mod error_patterns {
     }
 
     /// Create a standard invalid input error
+    #[allow(dead_code)]
     pub fn invalid_input_error(input_type: &str, details: &str) -> ExtractionError {
         ExtractionError::InvalidHtml(
             format!("Invalid {} input: {}", input_type, details)
@@ -196,6 +201,7 @@ pub mod error_patterns {
     }
 
     /// Create a standard resource limit error
+    #[allow(dead_code)]
     pub fn resource_limit_error(resource: &str, current: usize, limit: usize) -> ExtractionError {
         ExtractionError::InternalError(
             format!("{} limit exceeded: {} > {}", resource, current, limit)
