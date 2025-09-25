@@ -72,15 +72,12 @@ impl SitemapParser {
         for event in parser {
             match event {
                 Ok(XmlEvent::StartElement { name, .. }) => {
-                    match name.local_name.as_str() {
-                        "url" => {
-                            // Reset current entry
-                            current_url = None;
-                            current_lastmod = None;
-                            current_changefreq = None;
-                            current_priority = None;
-                        }
-                        _ => {}
+                    if name.local_name.as_str() == "url" {
+                        // Reset current entry
+                        current_url = None;
+                        current_lastmod = None;
+                        current_changefreq = None;
+                        current_priority = None;
                     }
                 }
                 Ok(XmlEvent::Characters(data)) => {

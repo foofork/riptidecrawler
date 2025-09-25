@@ -6,23 +6,19 @@
 
 use axum::{
     extract::State,
-    http::StatusCode,
-    response::{IntoResponse, Response},
+    response::Response,
     Json,
 };
 use futures_util::stream::Stream;
 use base64::prelude::*;
 use riptide_core::pdf::{
-    integration::PdfPipelineIntegration,
-    types::{ProgressUpdate, ProgressSender, ProgressReceiver},
+    types::{ProgressUpdate, ProgressReceiver},
 };
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use tokio_stream::wrappers::UnboundedReceiverStream;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 
 use crate::{
-    errors::{ApiError, ApiResult},
+    errors::ApiError,
     state::AppState,
     streaming::response_helpers::{StreamingResponseBuilder, StreamingResponseType},
 };

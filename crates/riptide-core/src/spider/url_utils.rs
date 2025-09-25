@@ -382,16 +382,12 @@ impl UrlUtils {
 
     /// Get statistics about URL processing
     pub async fn get_stats(&self) -> UrlUtilsStats {
-        let bloom_stats = if let Some(ref bloom) = *self.bloom_filter.lock().await {
-            Some(BloomFilterStats {
-                estimated_fpr: bloom.estimated_fpr(),
-                insertions: bloom.insertions.load(Ordering::Relaxed),
-                capacity: bloom.capacity,
-                hash_functions: bloom.hash_functions,
-            })
-        } else {
-            None
-        };
+        let bloom_stats = (*self.bloom_filter.lock().await).as_ref().map(|bloom| BloomFilterStats {
+            estimated_fpr: bloom.estimated_fpr(),
+            insertions: bloom.insertions.load(Ordering::Relaxed),
+            capacity: bloom.capacity,
+            hash_functions: bloom.hash_functions,
+        });
 
         UrlUtilsStats {
             total_processed: self.total_processed.load(Ordering::Relaxed),

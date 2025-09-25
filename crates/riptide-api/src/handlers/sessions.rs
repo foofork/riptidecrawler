@@ -1,5 +1,5 @@
-use crate::errors::{ApiError, ApiResult};
-use crate::sessions::{Cookie, SessionContext, SessionManager, SessionStats};
+use crate::errors::ApiError;
+use crate::sessions::Cookie;
 use crate::state::AppState;
 use axum::{
     extract::{Path, Query, State},
@@ -8,7 +8,6 @@ use axum::{
     Json,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use tracing::{debug, info};
 
 /// Request body for setting a cookie

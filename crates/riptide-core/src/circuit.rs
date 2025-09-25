@@ -207,6 +207,7 @@ mod tests {
             self.now.fetch_add(ms, Relaxed);
         }
 
+        #[allow(dead_code)]
         fn set(&self, ms: u64) {
             self.now.store(ms, Relaxed);
         }

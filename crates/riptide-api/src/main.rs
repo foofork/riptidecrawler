@@ -8,6 +8,7 @@ mod pipeline;
 mod pipeline_enhanced;
 mod strategies_pipeline;
 mod resource_manager;
+mod routes;
 mod rpc_client;
 mod sessions;
 mod state;

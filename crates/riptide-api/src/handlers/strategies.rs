@@ -3,7 +3,6 @@ use crate::strategies_pipeline::{StrategiesPipelineOrchestrator, StrategiesPipel
 use crate::state::AppState;
 use axum::{
     extract::{Query, State},
-    http::StatusCode,
     response::Json,
 };
 use riptide_core::{

@@ -461,25 +461,4 @@ mod tests {
         );
     }
 
-    impl Default for ExtractedDoc {
-        fn default() -> Self {
-            Self {
-                url: String::new(),
-                title: None,
-                byline: None,
-                published_iso: None,
-                markdown: String::new(),
-                text: String::new(),
-                links: vec![],
-                media: vec![],
-                language: None,
-                reading_time: None,
-                quality_score: None,
-                word_count: None,
-                categories: vec![],
-                site_name: None,
-                description: None,
-            }
-        }
-    }
 }

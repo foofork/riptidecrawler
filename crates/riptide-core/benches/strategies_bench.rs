@@ -3,7 +3,6 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use riptide_core::strategies::*;
 use riptide_core::strategies::chunking::ChunkingMode;
-use std::collections::HashMap;
 use tokio::runtime::Runtime;
 
 fn create_test_content(size: usize) -> String {

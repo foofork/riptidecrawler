@@ -115,7 +115,7 @@ impl WebGlConfig {
             );
         }
 
-        let gpu_configs = vec![
+        let gpu_configs = [
             ("Intel Inc.", "Intel Iris OpenGL Engine"),
             ("Intel Inc.", "Intel UHD Graphics 630"),
             ("NVIDIA Corporation", "NVIDIA GeForce GTX 1060/PCIe/SSE2"),

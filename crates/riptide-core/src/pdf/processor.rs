@@ -603,7 +603,7 @@ impl PdfiumProcessor {
                 // Force allocator to trim memory more aggressively
                 libc::malloc_trim(0);
                 // Additional system-level memory management
-                let _ = libc::sync();
+                libc::sync();
             }
         }
 

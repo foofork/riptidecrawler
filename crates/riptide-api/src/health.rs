@@ -4,7 +4,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::time::Instant;
 use tracing::{debug, error, info};
-use sysinfo::{System, Pid, ProcessesToUpdate};
+use sysinfo::{System, ProcessesToUpdate};
 
 /// Enhanced health check with comprehensive component status
 pub struct HealthChecker {

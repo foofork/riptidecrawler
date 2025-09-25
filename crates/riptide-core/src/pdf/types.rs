@@ -303,7 +303,7 @@ pub enum ProgressUpdate {
     },
     /// Processing completed successfully
     Completed {
-        result: PdfProcessingResult,
+        result: Box<PdfProcessingResult>,
         timestamp: String,
     },
     /// Processing failed with error

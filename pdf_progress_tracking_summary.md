@@ -168,6 +168,7 @@ while let Some(update) = receiver.recv().await {
         }
         ProgressUpdate::Completed { result, .. } => {
             println!("Completed successfully");
+            // Note: result is now Box<PdfProcessingResult>, use *result to access the value
             break;
         }
         _ => {}

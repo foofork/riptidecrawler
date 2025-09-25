@@ -755,7 +755,7 @@ mod tests {
         let valid_url = Url::from_str("https://example.com/page.html").expect("Valid URL");
         let valid_request = CrawlRequest::new(valid_url);
         
-        let should_crawl = spider.should_crawl_url(&valid_request).await.expect("Check should work");
+        let _should_crawl = spider.should_crawl_url(&valid_request).await.expect("Check should work");
         // Result depends on URL utils configuration
     }
     

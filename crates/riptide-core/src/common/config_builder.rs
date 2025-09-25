@@ -39,10 +39,10 @@ pub trait ConfigBuilder<T> {
     fn validate(&self) -> BuilderResult<()>;
 
     /// Set a field from environment variable
-    fn from_env_var(&mut self, field: &str, env_var: &str) -> &mut Self;
+    fn load_from_env_var(&mut self, field: &str, env_var: &str) -> &mut Self;
 
     /// Set multiple fields from environment
-    fn from_env(&mut self) -> &mut Self;
+    fn load_from_env(&mut self) -> &mut Self;
 }
 
 /// Trait for configuration validation

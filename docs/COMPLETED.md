@@ -1,7 +1,8 @@
-# RipTide Crawler - Development Work (Sorted & Deduplicated)
+# RipTide Crawler - Completed Work Archive
 
-*Document generated: 2025-09-24*
-*Status: Zero compilation errors across all crates*
+*Document updated: 2025-09-25*
+*Status: Major milestones achieved - Zero compilation errors across all crates*
+*Cross-reference: See [ROADMAP.md](./ROADMAP.md) for active/pending work*
 
 ---
 
@@ -288,5 +289,89 @@
 
 ---
 
-**System Status:** Production-ready with all major features implemented and tested
-**Next Steps:** PDF optimization completion and comprehensive system testing
+## 🎯 Recently Completed Major Items (Moved from ROADMAP.md)
+
+### ✅ Core Integration Complete (September 2025)
+- **Browser Pool Integration** — Fully wired and functional in ResourceManager
+- **Streaming Pipeline** — StreamingModule integrated with lifecycle management
+- **Session Management** — SessionManager fully integrated with all endpoints
+- **WASM & Rendering** — Trek-rs extractor and dynamic rendering operational
+- **All major modules integrated** (Spider, Strategies, Workers)
+- **Zero Compilation Errors** — All crates compile successfully
+- **WASM Target Standardized** — Migrated exclusively to `wasm32-wasip2`, removed all `wasip1` support
+- **WASM Validation Consolidated** — Eliminated duplicate validation logic in extractors
+
+### ✅ Phase 3 - Advanced Features PRs (All Complete)
+
+#### PR-1: Headless RPC v2 - Dynamic Content ✅ COMPLETED
+- Enhanced RenderRequest model with session_id, actions, timeouts
+- Page action implementations: WaitForCss, WaitForJs, Scroll, Click, Type
+- JavaScript code execution capability
+- Session management integration
+- Screenshot artifacts (base64 encoded)
+
+#### PR-2: Stealth Preset - Anti-Detection ✅ COMPLETED
+- Launch flags: `--disable-blink-features=AutomationControlled`
+- User agent rotation from `configs/ua_list.txt`
+- JavaScript injection for navigator spoofing
+- Canvas/WebGL fingerprint noise
+- Feature flag controlled activation
+
+#### PR-3: NDJSON Streaming ✅ COMPLETED
+- Real-time streaming endpoints with NDJSON format
+- Streaming pipeline with backpressure management
+- TTFB < 500ms performance target achieved
+- Stream lifecycle management
+
+#### PR-5: Spider Integration ✅ COMPLETED
+- Complete spider module with all components
+- Core Engine: Spider, FrontierManager, StrategyEngine, BudgetManager
+- Frontier strategies: BFS/DFS/Best-First
+- Sitemap parsing and integration
+- Budget enforcement (max_depth, max_pages, time limits)
+- Adaptive stopping with gain detection
+- API Endpoints: `/spider/crawl`, `/spider/status`, `/spider/control`
+
+#### PR-6: Strategies & Chunking ✅ COMPLETED
+- Extraction Strategies: Trek (WASM), CSS/JSON selector, Regex, LLM extractors
+- Chunking System: 5 modes (regex, sentence, topic, fixed, sliding)
+- Default: `token_max=1200`, `overlap=120`
+- Schema validation with `schemars`
+- Metadata extraction from OG/JSON-LD
+- Performance metrics tracking
+- API Endpoints: `/strategies/crawl`, `/strategies/info`
+
+#### PR-7: Worker Service Integration ✅ COMPLETED
+- Complete worker service in `riptide-workers` crate
+- Job system with lifecycle management
+- Redis-based queue with persistence
+- Cron-like scheduler with delays
+- Multi-threaded worker execution
+- Specialized job processors
+- Performance metrics collection
+- Background job processing
+- Batch crawling coordination
+- Automatic retry with exponential backoff
+- Priority queues and dead letter handling
+- Dynamic worker allocation
+
+### ✅ Critical Path Items (All Complete)
+- **1.0 Browser Pool Integration** — ResourceManager fully operational
+- **1.1 Streaming Pipeline Integration** — StreamingModule with lifecycle management
+- **1.2 Session System Wiring** — SessionManager integrated across all endpoints
+- **1.3 Core WASM & Rendering** — Trek-rs extractor operational
+- **1.4 Eliminate Panics in Prod Paths** — Production code panic-free
+- **1.5 Performance Monitoring Integration** — Prometheus metrics active
+- **1.6 Observability (minimal)** — Health checks and monitoring
+- **1.7 NDJSON Streaming (PR-3)** — Real-time streaming operational
+
+### ✅ Resource Controls Complete
+- **2.1 Resource Controls** — Browser pooling, memory optimization, cleanup on timeouts
+- **WASM lifecycle monitoring** — Instance management with proper cleanup
+- **Memory alerts** — Performance monitoring integration
+- **Build pipeline optimization** — 5.6GB → 1.7GB (69.6% reduction)
+
+---
+
+**Historical Status:** All major foundational work complete - System achieved production-ready status
+**Archive Note:** This document contains completed work. See [ROADMAP.md](./ROADMAP.md) for current active tasks.

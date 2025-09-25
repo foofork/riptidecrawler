@@ -360,8 +360,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_session_expiration() {
-        let mut config = SessionConfig::default();
-        config.session_timeout = Duration::from_millis(10); // Very short timeout
+        let config = SessionConfig {
+            session_timeout: Duration::from_millis(10), // Very short timeout
+            ..Default::default()
+        };
 
         let manager = SessionManager::new(config);
 
@@ -421,8 +423,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_session_limits() {
-        let mut config = SessionConfig::default();
-        config.max_concurrent_sessions = 2;
+        let config = SessionConfig {
+            max_concurrent_sessions: 2,
+            ..Default::default()
+        };
 
         let manager = SessionManager::new(config);
 
@@ -439,8 +443,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_session_validation() {
-        let mut config = SessionConfig::default();
-        config.enable_state_validation = true;
+        let config = SessionConfig {
+            enable_state_validation: true,
+            ..Default::default()
+        };
 
         let manager = SessionManager::new(config);
 

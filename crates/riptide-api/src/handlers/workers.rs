@@ -1,19 +1,17 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, State},
     http::StatusCode,
     response::Json,
 };
 use chrono::{DateTime, Utc};
 use riptide_workers::{
-    Job, JobType, JobPriority, JobStatus, ScheduledJob, WorkerService,
-    prelude::*,
+    Job, JobType, JobPriority, JobStatus, ScheduledJob,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::state::AppState;
-use crate::models::ErrorInfo;
 
 /// Request body for submitting a job
 #[derive(Deserialize, Debug, Clone)]

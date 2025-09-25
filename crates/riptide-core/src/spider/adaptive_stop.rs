@@ -615,10 +615,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_adaptive_stopping_decision() {
-        let mut config = AdaptiveStopConfig::default();
-        config.min_pages_before_stop = 5;
-        config.patience = 3;
-        config.min_gain_threshold = 10.0;
+        let config = AdaptiveStopConfig {
+            min_pages_before_stop: 5,
+            patience: 3,
+            min_gain_threshold: 10.0,
+            ..Default::default()
+        };
 
         let engine = AdaptiveStopEngine::new(config);
 
@@ -698,8 +700,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_adaptive_threshold_calculation() {
-        let mut config = AdaptiveStopConfig::default();
-        config.enable_adaptive_threshold = true;
+        let config = AdaptiveStopConfig {
+            enable_adaptive_threshold: true,
+            ..Default::default()
+        };
 
         let engine = AdaptiveStopEngine::new(config);
 

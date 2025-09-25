@@ -199,8 +199,10 @@ pub struct StrategyEngine {
 
 impl StrategyEngine {
     pub fn new(strategy: CrawlingStrategy) -> Self {
-        let mut context = StrategyContext::default();
-        context.current_strategy = strategy_name(&strategy);
+        let context = StrategyContext {
+            current_strategy: strategy_name(&strategy),
+            ..Default::default()
+        };
 
         let scoring_function = match &strategy {
             CrawlingStrategy::BestFirst { scoring_config } => {

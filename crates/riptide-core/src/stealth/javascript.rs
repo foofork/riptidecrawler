@@ -367,7 +367,7 @@ impl JavaScriptInjector {
         use rand::Rng;
         let mut rng = rand::thread_rng();
 
-        let locales_and_timezones = vec![
+        let locales_and_timezones = [
             ("en-US", "America/New_York"),
             ("en-GB", "Europe/London"),
             ("de-DE", "Europe/Berlin"),

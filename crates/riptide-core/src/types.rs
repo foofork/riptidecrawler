@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Enhanced extraction result with comprehensive metadata
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ExtractedDoc {
     /// Source URL for context and link resolution
     pub url: String,
@@ -177,13 +177,14 @@ pub struct CrawlOptions {
 }
 
 /// Rendering mode for content processing
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum RenderMode {
     /// Fast path: static HTML processing only
     Static,
     /// Dynamic rendering with JavaScript execution
     Dynamic,
     /// Adaptive: choose based on content analysis
+    #[default]
     Adaptive,
     /// PDF processing mode
     Pdf,
@@ -193,16 +194,11 @@ pub enum RenderMode {
     Markdown,
 }
 
-impl Default for RenderMode {
-    fn default() -> Self {
-        RenderMode::Adaptive
-    }
-}
-
 /// Output format for extracted content
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum OutputFormat {
     /// Standard structured document
+    #[default]
     Document,
     /// NDJSON streaming format
     NdJson,
@@ -212,12 +208,6 @@ pub enum OutputFormat {
     Text,
     /// Markdown format
     Markdown,
-}
-
-impl Default for OutputFormat {
-    fn default() -> Self {
-        OutputFormat::Document
-    }
 }
 
 impl Default for CrawlOptions {

@@ -2,6 +2,7 @@
 
 use anyhow::Result;
 use riptide_core::strategies::*;
+use riptide_core::strategies::chunking::ChunkingMode;
 use std::collections::HashMap;
 
 #[tokio::main]

@@ -1,4 +1,4 @@
-use crate::errors::{ApiError, ApiResult};
+use crate::errors::ApiError;
 use crate::models::*;
 use crate::state::AppState;
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};

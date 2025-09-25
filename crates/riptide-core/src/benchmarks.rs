@@ -14,6 +14,7 @@ use crate::types::ExtractionMode;
 /// - Memory usage patterns
 /// - Concurrent extraction capabilities
 /// - WASM component overhead analysis
+///
 /// Sample HTML content for benchmarking
 const SAMPLE_HTML_SMALL: &str = r#"
 <!DOCTYPE html>
@@ -459,7 +460,6 @@ mod tests {
     #[test]
     fn test_benchmark_data_validity() {
         // Verify our test data is valid
-        assert!(!SAMPLE_HTML_SMALL.is_empty());
         assert!(SAMPLE_HTML_SMALL.contains("<title>"));
         assert!(SAMPLE_HTML_SMALL.contains("<article>"));
 

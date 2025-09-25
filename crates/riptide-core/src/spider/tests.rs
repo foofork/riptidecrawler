@@ -18,7 +18,7 @@ pub mod scenarios {
         let spider = Spider::new(config).await.expect("Spider creation should work");
         
         // Simulate crawling a simple website structure
-        let seeds = vec![
+        let _seeds = [
             Url::from_str("https://example.com/").expect("Valid URL"),
         ];
         
@@ -62,8 +62,8 @@ pub mod scenarios {
         
         // Cart should potentially be excluded, product should be allowed
         // (exact behavior depends on URL utils configuration)
-        let should_crawl_cart = spider.should_crawl_url(&request_cart).await.expect("Check should work");
-        let should_crawl_product = spider.should_crawl_url(&request_product).await.expect("Check should work");
+        let _should_crawl_cart = spider.should_crawl_url(&request_cart).await.expect("Check should work");
+        let _should_crawl_product = spider.should_crawl_url(&request_product).await.expect("Check should work");
         
         // Results depend on configuration but both checks should complete
     }
@@ -586,17 +586,19 @@ pub mod test_helpers {
     }
     
     /// Create a spider with custom configuration for testing
+    #[allow(dead_code)]
     pub async fn create_test_spider() -> Spider {
         let config = SpiderPresets::development();
         Spider::new(config).await.expect("Test spider creation should work")
     }
     
     /// Simulate crawling without actual HTTP requests
+    #[allow(dead_code)]
     pub async fn simulate_crawl(spider: &Spider, pages: usize) {
         for i in 0..pages {
             let url = format!("https://test.example.com/page{}", i);
             let content = format!("Test content for page {} with some unique text.", i);
-            let links = vec![format!("https://test.example.com/page{}", i + 1)];
+            let links = [format!("https://test.example.com/page{}", i + 1)];
             
             let result = create_mock_result(&url, &content, links.iter().map(|s| s.as_str()).collect());
             

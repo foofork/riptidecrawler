@@ -497,10 +497,8 @@ mod tests {
         assert_eq!(client.calculate_delay(2), Duration::from_millis(400));
     }
 
-    #[test]
-    fn test_retryable_error_detection() {
-        // This is a simplified test - in practice, you'd need to create actual reqwest errors
-        // The function checks error types that are typically retryable
-        assert!(true); // Placeholder for actual error type tests
-    }
+    // TODO: Implement test_retryable_error_detection
+    // This test would require creating actual reqwest::Error instances to test the
+    // is_retryable_error function, which checks for timeout, connect, and request errors.
+    // Consider using mock HTTP servers or error injection for comprehensive testing.
 }

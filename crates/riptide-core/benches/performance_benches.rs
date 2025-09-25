@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::runtime::Runtime;
+use opentelemetry::trace::Tracer;
 
 use riptide_core::monitoring::{MetricsCollector, TimeSeriesBuffer};
 use riptide_core::telemetry::{DataSanitizer, ResourceTracker, SlaMonitor, TelemetrySystem};
@@ -21,18 +22,20 @@ fn bench_metrics_collection(c: &mut Criterion) {
     group.bench_function("record_extraction", |b| {
         let collector = MetricsCollector::new();
 
-        b.to_async(&rt).iter(|| async {
-            black_box(
-                collector
-                    .record_extraction(
-                        black_box(Duration::from_millis(100)),
-                        black_box(true),
-                        black_box(Some(85)),
-                        black_box(Some(500)),
-                        black_box(false),
-                    )
-                    .await,
-            )
+        b.iter(|| {
+            rt.block_on(async {
+                black_box(
+                    collector
+                        .record_extraction(
+                            black_box(Duration::from_millis(100)),
+                            black_box(true),
+                            black_box(Some(85)),
+                            black_box(Some(500)),
+                            black_box(false),
+                        )
+                        .await,
+                )
+            })
         });
     });
 
@@ -44,20 +47,22 @@ fn bench_metrics_collection(c: &mut Criterion) {
             |b, &batch_size| {
                 let collector = MetricsCollector::new();
 
-                b.to_async(&rt).iter(|| async {
-                    for _ in 0..batch_size {
-                        black_box(
-                            collector
-                                .record_extraction(
-                                    black_box(Duration::from_millis(100)),
-                                    black_box(true),
-                                    black_box(Some(85)),
-                                    black_box(Some(500)),
-                                    black_box(false),
-                                )
-                                .await,
-                        );
-                    }
+                b.iter(|| {
+                    rt.block_on(async {
+                        for _ in 0..batch_size {
+                            black_box(
+                                collector
+                                    .record_extraction(
+                                        black_box(Duration::from_millis(100)),
+                                        black_box(true),
+                                        black_box(Some(85)),
+                                        black_box(Some(500)),
+                                        black_box(false),
+                                    )
+                                    .await,
+                            );
+                        }
+                    })
                 });
             },
         );
@@ -72,7 +77,7 @@ fn bench_time_series_operations(c: &mut Criterion) {
     // Benchmark time series buffer operations
     group.bench_function("add_data_point", |b| {
         b.iter(|| {
-            let mut buffer = TimeSeriesBuffer::new(1000, Duration::from_hours(1));
+            let mut buffer = TimeSeriesBuffer::new(1000, Duration::from_secs(1 * 3600));
 
             for i in 0..100 {
                 black_box(buffer.add_point(
@@ -85,7 +90,7 @@ fn bench_time_series_operations(c: &mut Criterion) {
 
     // Benchmark percentile calculations
     group.bench_function("calculate_percentile", |b| {
-        let mut buffer = TimeSeriesBuffer::new(1000, Duration::from_hours(1));
+        let mut buffer = TimeSeriesBuffer::new(1000, Duration::from_secs(1 * 3600));
 
         // Pre-populate buffer with data
         for i in 0..1000 {
@@ -123,12 +128,14 @@ fn bench_performance_report_generation(c: &mut Criterion) {
             }
         });
 
-        b.to_async(&rt).iter(|| async {
-            black_box(
-                collector
-                    .get_performance_report(black_box(Duration::from_minutes(5)))
-                    .await,
-            )
+        b.iter(|| {
+            rt.block_on(async {
+                black_box(
+                    collector
+                        .get_performance_report(black_box(Duration::from_minutes(5)))
+                        .await,
+                )
+            })
         });
     });
 }
@@ -145,27 +152,29 @@ fn bench_concurrent_metrics_collection(c: &mut Criterion) {
             |b, &thread_count| {
                 let collector = MetricsCollector::new();
 
-                b.to_async(&rt).iter(|| async {
-                    let tasks: Vec<_> = (0..thread_count)
-                        .map(|_| {
-                            let collector = &collector;
-                            async move {
-                                for _ in 0..100 {
-                                    collector
-                                        .record_extraction(
-                                            Duration::from_millis(100),
-                                            true,
-                                            Some(85),
-                                            Some(500),
-                                            false,
-                                        )
-                                        .await;
+                b.iter(|| {
+                    rt.block_on(async {
+                        let tasks: Vec<_> = (0..thread_count)
+                            .map(|_| {
+                                let collector = &collector;
+                                async move {
+                                    for _ in 0..100 {
+                                        collector
+                                            .record_extraction(
+                                                Duration::from_millis(100),
+                                                true,
+                                                Some(85),
+                                                Some(500),
+                                                false,
+                                            )
+                                            .await;
+                                    }
                                 }
-                            }
-                        })
-                        .collect();
+                            })
+                            .collect();
 
-                    futures::future::join_all(tasks).await;
+                        futures::future::join_all(tasks).await;
+                    })
                 });
             },
         );
@@ -188,7 +197,7 @@ fn bench_memory_usage_patterns(c: &mut Criterion) {
             |b, &retention_hours| {
                 b.iter(|| {
                     let mut buffer =
-                        TimeSeriesBuffer::new(10000, Duration::from_hours(retention_hours));
+                        TimeSeriesBuffer::new(10000, Duration::from_secs(retention_hours * 3600));
 
                     // Simulate continuous data collection
                     for i in 0..1000 {
@@ -221,8 +230,10 @@ fn bench_alert_processing(c: &mut Criterion) {
             ..Default::default()
         };
 
-        b.to_async(&rt).iter(|| async {
-            black_box(alert_manager.check_alerts(black_box(&test_metrics)).await)
+        b.iter(|| {
+            rt.block_on(async {
+                black_box(alert_manager.check_alerts(black_box(&test_metrics)).await)
+            })
         });
     });
 }
@@ -252,6 +263,7 @@ fn bench_metrics_serialization(c: &mut Criterion) {
         health_score: 85.0,
         uptime_seconds: 86400,
         last_updated: std::time::Instant::now(),
+        last_updated_utc: chrono::Utc::now(),
     };
 
     let mut group = c.benchmark_group("serialization");

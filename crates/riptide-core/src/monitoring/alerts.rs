@@ -128,7 +128,7 @@ impl AlertManager {
 
                 let alert = Alert {
                     rule_name: rule.name.clone(),
-                    message: self.format_alert_message(&rule, current_value),
+                    message: self.format_alert_message(rule, current_value),
                     severity: rule.severity.clone(),
                     timestamp: now,
                     timestamp_utc: Utc::now(),

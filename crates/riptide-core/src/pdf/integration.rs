@@ -244,15 +244,11 @@ impl PdfPipelineIntegration {
                 // Convert PdfProcessingResult to ExtractedDoc
                 let extracted_doc = self.convert_pdf_result_to_extracted_doc(pdf_result.clone(), None);
 
-                match extracted_doc {
-                    result => {
-                        let _ = progress_sender.send(ProgressUpdate::Completed {
-                            result: pdf_result,
-                            timestamp: chrono::Utc::now().to_rfc3339(),
-                        });
-                        Ok(result)
-                    }
-                }
+                let _ = progress_sender.send(ProgressUpdate::Completed {
+                    result: Box::new(pdf_result),
+                    timestamp: chrono::Utc::now().to_rfc3339(),
+                });
+                Ok(extracted_doc)
             }
             Err(e) => {
                 let _ = progress_sender.send(ProgressUpdate::Failed {

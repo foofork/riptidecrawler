@@ -365,7 +365,7 @@ async fn test_pdf_metadata_extraction() {
                 println!("Extracted metadata: {:?}", metadata);
 
                 // Basic metadata should be present
-                assert!(metadata.page_count >= 0);
+                assert!(metadata.page_count > 0, "PDF should have at least one page");
                 assert!(metadata.custom_metadata.contains_key("extracted_by"));
 
                 // Should indicate no encryption for our test PDF

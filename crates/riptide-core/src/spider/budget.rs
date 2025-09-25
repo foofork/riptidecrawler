@@ -326,8 +326,10 @@ pub struct BudgetManager {
 
 impl BudgetManager {
     pub fn new(config: BudgetConfig) -> Self {
-        let mut global_usage = BudgetUsage::default();
-        global_usage.start_time = Some(Instant::now());
+        let global_usage = BudgetUsage {
+            start_time: Some(Instant::now()),
+            ..Default::default()
+        };
 
         Self {
             config,
@@ -800,9 +802,11 @@ mod tests {
 
     #[test]
     fn test_budget_usage_calculations() {
-        let mut usage = BudgetUsage::default();
-        usage.start_time = Some(Instant::now() - Duration::from_secs(60));
-        usage.pages_crawled = 50;
+        let usage = BudgetUsage {
+            start_time: Some(Instant::now() - Duration::from_secs(60)),
+            pages_crawled: 50,
+            ..Default::default()
+        };
 
         assert!(usage.duration().as_secs() >= 60);
         assert_eq!(usage.utilization_percentage(BudgetLimitType::Pages, 100), 0.5);
