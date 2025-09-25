@@ -5,6 +5,9 @@ use trek_rs::{Trek, TrekOptions, TrekResponse};
 mod trek_helpers;
 use trek_helpers::*;
 
+mod common_validation;
+use common_validation::*;
+
 // Generate bindings from enhanced WIT file
 wit_bindgen::generate!({
     world: "extractor",
@@ -99,6 +102,8 @@ fn get_git_commit() -> &'static str {
 
 struct Component;
 
+// Note: Validation logic moved to common_validation module
+
 impl Guest for Component {
     /// Primary extraction function with enhanced error handling and trek-rs integration
     fn extract(
@@ -111,19 +116,10 @@ impl Guest for Component {
         // Increment extraction counter
         EXTRACTION_COUNT.fetch_add(1, Ordering::Relaxed);
 
-        // Validate HTML input
-        if html.trim().is_empty() {
-            return Err(ExtractionError::InvalidHtml(
-                "Empty HTML content".to_string(),
-            ));
-        }
-
-        // Validate URL format
-        if url::Url::parse(&url).is_err() {
-            return Err(ExtractionError::InvalidHtml(
-                "Invalid URL format".to_string(),
-            ));
-        }
+        // Use common validation logic
+        validate_extraction_input(&html, &url)?;
+        validate_content_size(html.len())?;
+        validate_extraction_mode(&mode)?;
 
         // Perform extraction with trek-rs
         perform_extraction_with_trek(&html, &url, &mode)
@@ -161,20 +157,11 @@ impl Guest for Component {
 
     /// Validate HTML content without full extraction
     fn validate_html(html: String) -> Result<bool, ExtractionError> {
-        if html.trim().is_empty() {
-            return Ok(false);
+        // Use common validation logic
+        match validate_html_structure(&html) {
+            Ok(_) => Ok(true),
+            Err(_) => Ok(false),
         }
-
-        // Basic HTML validation
-        let html_lower = html.to_lowercase();
-        let has_html_tags = html_lower.contains("<html") || html_lower.contains("<!doctype");
-        let has_body = html_lower.contains("<body");
-        let has_content_tags = html_lower.contains("<p>")
-            || html_lower.contains("<div")
-            || html_lower.contains("<article")
-            || html_lower.contains("<main");
-
-        Ok(has_html_tags && (has_body || has_content_tags))
     }
 
     /// Health check for component monitoring

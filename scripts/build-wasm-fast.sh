@@ -13,7 +13,7 @@ export CARGO_INCREMENTAL=1
 
 # Ensure WASM targets are available
 echo "🎯 Installing WASM targets..."
-rustup target add wasm32-wasip2 wasm32-wasip1
+rustup target add wasm32-wasip2
 
 # Clean and prepare
 echo "🧹 Cleaning previous builds..."

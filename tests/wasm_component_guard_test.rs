@@ -18,7 +18,6 @@ fn test_wasm_component_file_exists() {
          Make sure to build the WASM component first with: \
          cargo build -p riptide-extractor-wasm --target wasm32-wasip2 --release && \
          wasm-tools component new target/wasm32-wasip2/release/riptide_extractor_wasm.wasm \
-         --adapt wasi_snapshot_preview1=/tmp/wasi_snapshot_preview1.reactor.wasm \
          -o target/wasm32-wasip2/release/riptide-extractor-wasm.component.wasm",
         component_path
     );

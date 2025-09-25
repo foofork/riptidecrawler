@@ -76,6 +76,7 @@ pub mod lifecycle;
 pub mod ndjson;
 pub mod pipeline;
 pub mod processor;
+pub mod response_helpers;
 pub mod sse;
 pub mod websocket;
 
@@ -97,6 +98,10 @@ pub use processor::{
     OperationProgress, PerformanceAnalysis, PerformanceCheckpoint, PerformanceMonitor,
     PhaseDuration, ProcessedResult, ProcessingStats, StreamProcessor, StreamProgress,
     StreamSummary,
+};
+pub use response_helpers::{
+    StreamingResponseBuilder, StreamingResponseType, StreamingErrorResponse,
+    KeepAliveHelper, CompletionHelper, ProgressHelper,
 };
 
 // Re-export public API functions

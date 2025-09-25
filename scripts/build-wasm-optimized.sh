@@ -25,7 +25,7 @@ export RUSTC_WRAPPER=sccache
 
 # Ensure WASM target is available
 echo "🎯 Ensuring WASM targets are installed..."
-rustup target add wasm32-wasip2 wasm32-wasip1
+rustup target add wasm32-wasip2
 
 # Pre-compile shared dependencies
 echo "🔧 Pre-compiling shared dependencies..."

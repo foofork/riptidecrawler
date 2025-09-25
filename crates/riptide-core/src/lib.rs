@@ -1,5 +1,6 @@
 pub mod cache;
 pub mod circuit;
+pub mod common;
 pub mod component;
 pub mod conditional;
 pub mod dynamic;

@@ -1,5 +1,8 @@
 use crate::errors::{ApiError, ApiResult};
 use crate::models::{CrawlBody, DeepSearchBody};
+use riptide_core::common::validation::{
+    CommonValidator, ValidationConfig, UrlValidator, SizeValidator, ParameterValidator
+};
 use url::Url;
 
 /// Maximum number of URLs allowed in a single crawl request
@@ -116,108 +119,34 @@ pub fn validate_deepsearch_request(body: &DeepSearchBody) -> ApiResult<()> {
     Ok(())
 }
 
-/// Validate a single URL for crawling.
+/// Validate a single URL for crawling using common validation patterns.
 ///
-/// Performs comprehensive URL validation including:
-/// - Proper URL format and parsing
-/// - Allowed schemes (http/https only)
-/// - No localhost or private network access
-/// - Reasonable URL length limits
-/// - No obviously malicious patterns
-///
-/// # Arguments
-///
-/// * `url_str` - The URL string to validate
-/// * `index` - Index in the request (for error reporting)
-///
-/// # Returns
-///
-/// `Ok(())` if URL is valid, `Err(ApiError)` with details if invalid.
+/// Uses the common validation module for consistent URL validation across
+/// the codebase while providing API-specific error formatting.
 fn validate_url(url_str: &str, index: usize) -> ApiResult<()> {
-    // Basic length check
-    if url_str.len() > 2048 {
-        return Err(ApiError::invalid_url(
-            url_str,
-            format!("URL {} is too long (maximum: 2048 characters)", index + 1),
-        ));
-    }
+    let validator = CommonValidator::new_default();
 
-    // Parse the URL
-    let url = Url::parse(url_str).map_err(|e| {
-        ApiError::invalid_url(url_str, format!("URL {} parsing failed: {}", index + 1, e))
-    })?;
-
-    // Check scheme
-    if !ALLOWED_SCHEMES.contains(&url.scheme()) {
-        return Err(ApiError::invalid_url(
-            url_str,
-            format!(
-                "URL {} has unsupported scheme '{}' (allowed: {})",
-                index + 1,
-                url.scheme(),
-                ALLOWED_SCHEMES.join(", ")
-            ),
-        ));
-    }
-
-    // Check for localhost and private networks
-    if let Some(host) = url.host_str() {
-        if is_private_or_localhost(host) {
-            return Err(ApiError::invalid_url(
+    // Use common URL validation
+    match validator.validate_url(url_str) {
+        Ok(_) => {
+            // Check for suspicious patterns specific to API validation
+            validate_url_patterns(url_str, index)?;
+            Ok(())
+        }
+        Err(e) => {
+            // Convert common validation error to API error
+            Err(ApiError::invalid_url(
                 url_str,
-                format!(
-                    "URL {} targets private/localhost address: {}",
-                    index + 1,
-                    host
-                ),
-            ));
+                format!("URL {} validation failed: {}", index + 1, e)
+            ))
         }
     }
-
-    // Check for suspicious patterns
-    validate_url_patterns(url_str, index)?;
-
-    Ok(())
 }
 
-/// Check if a hostname points to localhost or private networks.
-///
-/// This prevents SSRF attacks by blocking requests to:
-/// - localhost, 127.0.0.1, ::1
-/// - Private IPv4 ranges (10.x.x.x, 172.16-31.x.x, 192.168.x.x)
-/// - Private IPv6 ranges
-/// - Link-local addresses
+// Use common validator for private/localhost checking
 fn is_private_or_localhost(host: &str) -> bool {
-    // Check for localhost variants
-    if host == "localhost" || host == "127.0.0.1" || host == "::1" {
-        return true;
-    }
-
-    // Try to parse as IP address
-    if let Ok(ip) = host.parse::<std::net::IpAddr>() {
-        match ip {
-            std::net::IpAddr::V4(ipv4) => {
-                // Check private IPv4 ranges
-                let octets = ipv4.octets();
-                match octets[0] {
-                    10 => true,                                        // 10.0.0.0/8
-                    172 if octets[1] >= 16 && octets[1] <= 31 => true, // 172.16.0.0/12
-                    192 if octets[1] == 168 => true,                   // 192.168.0.0/16
-                    127 => true,                                       // 127.0.0.0/8 (loopback)
-                    169 if octets[1] == 254 => true, // 169.254.0.0/16 (link-local)
-                    _ => false,
-                }
-            }
-            std::net::IpAddr::V6(ipv6) => {
-                // Check private IPv6 ranges
-                ipv6.is_loopback() || ipv6.is_multicast() || ipv6.segments()[0] == 0xfe80
-                // link-local
-            }
-        }
-    } else {
-        // Check for obviously local hostnames
-        host.ends_with(".local") || host.ends_with(".localhost")
-    }
+    let validator = CommonValidator::new_default();
+    validator.is_private_or_local_address(host)
 }
 
 /// Validate URL patterns to detect potentially malicious URLs.
@@ -251,46 +180,17 @@ fn validate_url_patterns(url_str: &str, index: usize) -> ApiResult<()> {
     Ok(())
 }
 
-/// Validate search query content for basic security.
-///
-/// Checks for:
-/// - SQL injection patterns
-/// - Script injection attempts
-/// - Excessive special characters
-/// - Control characters
+/// Validate search query content using common validation patterns.
 fn validate_query_content(query: &str) -> ApiResult<()> {
-    // Check for control characters
-    if query
-        .chars()
-        .any(|c| c.is_control() && c != '\t' && c != '\n')
-    {
-        return Err(ApiError::validation(
-            "Query contains invalid control characters",
-        ));
-    }
+    let validator = CommonValidator::new_default();
 
-    // Check for obvious SQL injection patterns
-    let sql_patterns = &["union select", "drop table", "insert into", "delete from"];
-    let query_lower = query.to_lowercase();
-    for pattern in sql_patterns {
-        if query_lower.contains(pattern) {
-            return Err(ApiError::validation(
-                "Query contains suspicious SQL patterns",
-            ));
-        }
+    // Use common query validation
+    match validator.validate_query_content(query) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(ApiError::validation(
+            format!("Query validation failed: {}", e)
+        ))
     }
-
-    // Check for script injection patterns
-    let script_patterns = &["<script", "javascript:", "data:text/html"];
-    for pattern in script_patterns {
-        if query_lower.contains(pattern) {
-            return Err(ApiError::validation(
-                "Query contains suspicious script patterns",
-            ));
-        }
-    }
-
-    Ok(())
 }
 
 #[cfg(test)]

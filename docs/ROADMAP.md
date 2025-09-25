@@ -4,7 +4,7 @@ Absolutely — here’s a **single, consolidated roadmap** that **replaces** the
 
 # RipTide Crawler — Consolidated & Prioritized Roadmap (Supersedes Prior Draft)
 
-## 0) Snapshot (Updated: 2025-09-24 - Zero Compilation Errors Achieved)
+## 0) Snapshot (Updated: 2025-09-25 - WASM Standardization Complete)
 
 * **✅ Done:** Phase 0 (Foundation), Phase 1 (Core), Phase 2-Lite (Reliability), Phase 3 PR-1 (Headless RPC v2), PR-2 (Stealth)
 * **✅ Browser Pool Integration:** Fully wired and functional in ResourceManager
@@ -13,6 +13,8 @@ Absolutely — here’s a **single, consolidated roadmap** that **replaces** the
 * **✅ WASM & Rendering:** Trek-rs extractor and dynamic rendering operational
 * **✅ Core Integration Complete:** All major modules (Spider, Strategies, Workers) → See COMPLETED.md
 * **✅ Zero Compilation Errors:** All crates compile successfully → See COMPLETED.md
+* **✅ WASM Target Standardized:** Migrated exclusively to `wasm32-wasip2`, removed all `wasip1` support
+* **✅ WASM Validation Consolidated:** Eliminated duplicate validation logic in extractors
 * **🎉 MAJOR MILESTONE:** All core integration complete - system compiles without errors and fully operational
 * **🧭 Guardrails:** Feature flags, Prometheus metrics, strict timeouts/pools
 * **📜 Reference:** See `COMPLETED.md` for all shipped work.
@@ -150,6 +152,8 @@ perf:
 ### 0.6 Test Coverage & Quality — **MED / 3–5 days**
 
 * Raise to **≥80%** (currently **75%**); cover refactored modules & new features; golden tests for new outputs.
+* **Tool Migration:** Use `cargo llvm-cov --html` instead of tarpaulin for better performance and accuracy.
+* **Command:** `cargo llvm-cov --html --open` to generate and view coverage report.
 
 ### 0.7 Circuit Breaker Enhancements — **LOW / 2 days**
 
@@ -223,13 +227,13 @@ perf:
 
 ## 12) Risks & Mitigations (unchanged, all preserved)
 
-* **WASM (wasip2):** use `wasmtime::component::bindgen!`, single instance/worker.
+* **WASM (wasip2 only):** use `wasmtime::component::bindgen!`, single instance/worker. ✅ Standardized on wasip2.
 * **Scale perf:** gradual load tests; monitor p95/p99.
 * **Headless stability:** container restart policies; health checks; breaker to fast path.
 * **Memory leaks:** WASM/Chrome lifecycle; semaphores & timeouts.
 
 **External:** Serper.dev limits; infra stability; Redis; site blocks.
-**Version locks:** `trek-rs = "=0.2.1"`, `wasm32-wasip2`, `chromiumoxide`, `robotstxt`, `axum-prometheus`.
+**Version locks:** `trek-rs = "=0.2.1"`, `wasm32-wasip2` (wasip1 removed), `chromiumoxide`, `robotstxt`, `axum-prometheus`.
 
 ---
 
