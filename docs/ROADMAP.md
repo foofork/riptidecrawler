@@ -261,11 +261,19 @@ perf:
 4. 🔄 **Duplicate Code** - 47 distinct patterns of code duplication identified
 5. ⚠️ **Technical Debt** - Estimated 15-20 hours to address all issues
 
+**High Priority Implementation Tasks:**
+1. 📊 **PDF Progress Tracking** - Wire up existing progress callback infrastructure
+   - Already implemented but not connected to production pipeline
+   - Needed for: Large PDFs (100+ MB), Worker service integration, Streaming updates
+   - Implementation: Modify PdfPipeline to accept callbacks, add to worker service
+   - Benefits: Real-time progress for long operations, better UX, monitoring metrics
+
 **Remaining Work:**
 1. 🔧 **PDF Pipeline Optimization (PR-4)** - Complete final 15% (memory management)
-2. **Build/CI Speed Optimization** - Cache WASM artifacts, incremental builds
-3. **Integration Reconciliation** - Final cross-component wiring audit (see §15)
-4. **Code Quality Cleanup** - Remove dead code, fix unused imports, refactor duplicates
+2. **PDF Progress Integration** - Connect progress callbacks to production (2-3 hours)
+3. **Build/CI Speed Optimization** - Cache WASM artifacts, incremental builds
+4. **Integration Reconciliation** - Final cross-component wiring audit (see §15)
+5. **Code Quality Cleanup** - Remove dead code, fix unused imports, refactor duplicates
 
 **Major Milestones Recently Completed** → See COMPLETED.md for full details
 
