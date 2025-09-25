@@ -293,7 +293,7 @@ impl Spider {
                                 .with_parent(result.request.url.clone());
                             
                             // Check if URL should be crawled
-                            if self.should_crawl_url(&child_request).await? {
+                            if self.should_crawl_url_internal(&child_request).await? {
                                 // Calculate priority based on strategy
                                 let priority = self.strategy_engine.read().await.calculate_priority(&child_request).await;
                                 let final_request = child_request.with_priority(priority);
@@ -502,7 +502,13 @@ impl Spider {
     }
     
     /// Check if a URL should be crawled
-    async fn should_crawl_url(&self, request: &CrawlRequest) -> Result<bool> {
+    #[cfg(test)]
+    pub async fn should_crawl_url(&self, request: &CrawlRequest) -> Result<bool> {
+        self.should_crawl_url_internal(request).await
+    }
+
+    /// Check if a URL should be crawled (internal)
+    async fn should_crawl_url_internal(&self, request: &CrawlRequest) -> Result<bool> {
         // Check URL validity
         if !self.url_utils.read().await.is_valid_for_crawling(&request.url).await? {
             return Ok(false);
@@ -603,6 +609,43 @@ impl Spider {
     pub async fn get_adaptive_stop_stats(&self) -> crate::spider::adaptive_stop::AdaptiveStopStats {
         self.adaptive_stop_engine.get_stats().await
     }
+
+    /// Get reference to session manager for testing
+    #[cfg(test)]
+    pub fn session_manager(&self) -> &Arc<SessionManager> {
+        &self.session_manager
+    }
+
+    /// Get reference to adaptive stop engine for testing
+    #[cfg(test)]
+    pub fn adaptive_stop_engine(&self) -> &Arc<AdaptiveStopEngine> {
+        &self.adaptive_stop_engine
+    }
+
+    /// Get reference to frontier manager for testing
+    #[cfg(test)]
+    pub fn frontier_manager(&self) -> &Arc<FrontierManager> {
+        &self.frontier_manager
+    }
+
+    /// Get reference to robots manager for testing
+    #[cfg(test)]
+    pub fn robots_manager(&self) -> &Arc<RobotsManager> {
+        &self.robots_manager
+    }
+
+    /// Get reference to budget manager for testing
+    #[cfg(test)]
+    pub fn budget_manager(&self) -> &Arc<BudgetManager> {
+        &self.budget_manager
+    }
+
+    /// Get reference to URL utils for testing
+    #[cfg(test)]
+    pub fn url_utils(&self) -> &Arc<RwLock<UrlUtils>> {
+        &self.url_utils
+    }
+
     
     /// Stop the current crawl
     pub async fn stop(&self) {

@@ -2,6 +2,7 @@
 
 use anyhow::Result;
 use riptide_core::strategies::*;
+use riptide_core::strategies::chunking::ChunkingMode;
 use std::collections::HashMap;
 
 #[tokio::test]
@@ -281,7 +282,7 @@ async fn test_byline_extraction_accuracy() -> Result<()> {
 
     let mut correct_extractions = 0;
 
-    for (html_snippet, expected_author) in test_cases {
+    for (html_snippet, expected_author) in &test_cases {
         let full_html = format!(r#"
             <html>
             <head><title>Test</title></head>
@@ -292,7 +293,7 @@ async fn test_byline_extraction_accuracy() -> Result<()> {
         let metadata = metadata::extract_metadata(&full_html, "http://example.com").await?;
 
         if let Some(extracted_author) = metadata.author {
-            if extracted_author.contains(expected_author) {
+            if extracted_author.contains(*expected_author) {
                 correct_extractions += 1;
             }
         }
@@ -315,7 +316,7 @@ async fn test_date_extraction_accuracy() -> Result<()> {
 
     let mut correct_extractions = 0;
 
-    for (html_snippet, expected_date) in test_cases {
+    for (html_snippet, expected_date) in &test_cases {
         let full_html = format!(r#"
             <html>
             <head><title>Test</title></head>
@@ -327,7 +328,7 @@ async fn test_date_extraction_accuracy() -> Result<()> {
 
         if let Some(extracted_date) = metadata.published_date {
             let date_str = extracted_date.format("%Y-%m-%d").to_string();
-            if date_str == expected_date {
+            if date_str == *expected_date {
                 correct_extractions += 1;
             }
         }

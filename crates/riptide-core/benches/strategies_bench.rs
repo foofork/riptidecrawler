@@ -2,6 +2,7 @@
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use riptide_core::strategies::*;
+use riptide_core::strategies::chunking::ChunkingMode;
 use std::collections::HashMap;
 use tokio::runtime::Runtime;
 
@@ -66,12 +67,14 @@ fn bench_extraction_strategies(c: &mut Criterion) {
             BenchmarkId::new("trek", size),
             &content,
             |b, content| {
-                b.to_async(&rt).iter(|| async {
-                    black_box(
-                        extraction::trek::extract(black_box(content), "http://example.com")
-                            .await
-                            .unwrap()
-                    )
+                b.iter(|| {
+                    rt.block_on(async {
+                        black_box(
+                            extraction::trek::extract(black_box(content), "http://example.com")
+                                .await
+                                .unwrap()
+                        )
+                    })
                 })
             },
         );
@@ -82,12 +85,15 @@ fn bench_extraction_strategies(c: &mut Criterion) {
             BenchmarkId::new("css_json", size),
             &content,
             |b, content| {
-                b.to_async(&rt).iter(|| async {
-                    black_box(
-                        extraction::css_json::extract(black_box(content), "http://example.com", &selectors)
-                            .await
-                            .unwrap()
-                    )
+                let selectors = selectors.clone();
+                b.iter(|| {
+                    rt.block_on(async {
+                        black_box(
+                            extraction::css_json::extract(black_box(content), "http://example.com", &selectors)
+                                .await
+                                .unwrap()
+                        )
+                    })
                 })
             },
         );
@@ -98,12 +104,15 @@ fn bench_extraction_strategies(c: &mut Criterion) {
             BenchmarkId::new("regex", size),
             &content,
             |b, content| {
-                b.to_async(&rt).iter(|| async {
-                    black_box(
-                        extraction::regex::extract(black_box(content), "http://example.com", &patterns)
-                            .await
-                            .unwrap()
-                    )
+                let patterns = patterns.clone();
+                b.iter(|| {
+                    rt.block_on(async {
+                        black_box(
+                            extraction::regex::extract(black_box(content), "http://example.com", &patterns)
+                                .await
+                                .unwrap()
+                        )
+                    })
                 })
             },
         );
@@ -129,12 +138,14 @@ fn bench_chunking_strategies(c: &mut Criterion) {
     };
 
     group.bench_function("sliding_window", |b| {
-        b.to_async(&rt).iter(|| async {
-            black_box(
-                chunking::sliding::chunk_sliding_window(black_box(&content), &sliding_config)
-                    .await
-                    .unwrap()
-            )
+        b.iter(|| {
+            rt.block_on(async {
+                black_box(
+                    chunking::sliding::chunk_sliding_window(black_box(&content), &sliding_config)
+                        .await
+                        .unwrap()
+                )
+            })
         })
     });
 
@@ -148,12 +159,14 @@ fn bench_chunking_strategies(c: &mut Criterion) {
     };
 
     group.bench_function("sentence", |b| {
-        b.to_async(&rt).iter(|| async {
-            black_box(
-                chunking::sentence::chunk_by_sentences(black_box(&content), 5, &sentence_config)
-                    .await
-                    .unwrap()
-            )
+        b.iter(|| {
+            rt.block_on(async {
+                black_box(
+                    chunking::sentence::chunk_by_sentences(black_box(&content), 5, &sentence_config)
+                        .await
+                        .unwrap()
+                )
+            })
         })
     });
 
@@ -167,12 +180,14 @@ fn bench_chunking_strategies(c: &mut Criterion) {
     };
 
     group.bench_function("fixed_size", |b| {
-        b.to_async(&rt).iter(|| async {
-            black_box(
-                chunking::fixed::chunk_fixed_size(black_box(&content), 200, false, &fixed_config)
-                    .await
-                    .unwrap()
-            )
+        b.iter(|| {
+            rt.block_on(async {
+                black_box(
+                    chunking::fixed::chunk_fixed_size(black_box(&content), 200, false, &fixed_config)
+                        .await
+                        .unwrap()
+                )
+            })
         })
     });
 
@@ -181,12 +196,14 @@ fn bench_chunking_strategies(c: &mut Criterion) {
     let pattern = r"\.\s+";
 
     group.bench_function("regex_chunking", |b| {
-        b.to_async(&rt).iter(|| async {
-            black_box(
-                chunking::regex::chunk_by_regex(black_box(&content), pattern, 50, &regex_config)
-                    .await
-                    .unwrap()
-            )
+        b.iter(|| {
+            rt.block_on(async {
+                black_box(
+                    chunking::regex::chunk_by_regex(black_box(&content), pattern, 50, &regex_config)
+                        .await
+                        .unwrap()
+                )
+            })
         })
     });
 
@@ -194,12 +211,14 @@ fn bench_chunking_strategies(c: &mut Criterion) {
     let topic_config = ChunkingConfig::default();
 
     group.bench_function("topic", |b| {
-        b.to_async(&rt).iter(|| async {
-            black_box(
-                chunking::topic::chunk_by_topics(black_box(&content), 0.3, &topic_config)
-                    .await
-                    .unwrap()
-            )
+        b.iter(|| {
+            rt.block_on(async {
+                black_box(
+                    chunking::topic::chunk_by_topics(black_box(&content), 0.3, &topic_config)
+                        .await
+                        .unwrap()
+                )
+            })
         })
     });
 
@@ -258,12 +277,14 @@ fn bench_metadata_extraction(c: &mut Criterion) {
     "#;
 
     c.bench_function("metadata_extraction", |b| {
-        b.to_async(&rt).iter(|| async {
-            black_box(
-                metadata::extract_metadata(black_box(complex_html), "https://example.com")
-                    .await
-                    .unwrap()
-            )
+        b.iter(|| {
+            rt.block_on(async {
+                black_box(
+                    metadata::extract_metadata(black_box(complex_html), "https://example.com")
+                        .await
+                        .unwrap()
+                )
+            })
         })
     });
 }
@@ -323,13 +344,15 @@ fn bench_strategy_manager(c: &mut Criterion) {
             BenchmarkId::new("full_pipeline", name),
             &config,
             |b, config| {
-                b.to_async(&rt).iter(|| async {
-                    let mut manager = StrategyManager::new(config.clone());
-                    black_box(
-                        manager.extract_and_chunk(black_box(&content), "https://example.com")
-                            .await
-                            .unwrap()
-                    )
+                b.iter(|| {
+                    rt.block_on(async {
+                        let mut manager = StrategyManager::new(config.clone());
+                        black_box(
+                            manager.extract_and_chunk(black_box(&content), "https://example.com")
+                                .await
+                                .unwrap()
+                        )
+                    })
                 })
             },
         );
@@ -339,10 +362,11 @@ fn bench_strategy_manager(c: &mut Criterion) {
 }
 
 fn bench_token_counting(c: &mut Criterion) {
+    let long_text = "This is a much longer text sample that contains many more words and should provide a better test of the token counting algorithm performance. It includes various types of content and punctuation marks.".repeat(10);
     let texts = vec![
         ("short", "Short text."),
         ("medium", "This is a medium length text with several words and punctuation."),
-        ("long", "This is a much longer text sample that contains many more words and should provide a better test of the token counting algorithm performance. It includes various types of content and punctuation marks.".repeat(10)),
+        ("long", long_text.as_str()),
     ];
 
     let mut group = c.benchmark_group("token_counting");

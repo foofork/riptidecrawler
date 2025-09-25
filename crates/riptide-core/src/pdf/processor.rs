@@ -1061,6 +1061,16 @@ impl AnyPdfProcessor {
             AnyPdfProcessor::Default(processor) => processor.process_pdf_bytes(pdf_bytes).await,
         }
     }
+
+    /// Get current memory usage in bytes
+    pub fn get_memory_usage(&self) -> u64 {
+        match self {
+            #[cfg(feature = "pdf")]
+            AnyPdfProcessor::Pdfium(processor) => processor.get_memory_usage(),
+            #[cfg(not(feature = "pdf"))]
+            AnyPdfProcessor::Default(_processor) => 0, // No memory usage for default processor
+        }
+    }
 }
 
 /// Create appropriate PDF processor based on available features

@@ -86,13 +86,13 @@ pub mod scenarios {
         let spider = Spider::new(config).await.expect("Spider creation should work");
         
         // Test session creation
-        let session_id = spider.session_manager.get_or_create_session("members.example.com")
+        let session_id = spider.session_manager().get_or_create_session("members.example.com")
             .await.expect("Session creation should work");
         
         assert!(!session_id.is_empty());
         
         // Check that session is not authenticated initially
-        assert!(!spider.session_manager.is_authenticated("members.example.com").await);
+        assert!(!spider.session_manager().is_authenticated("members.example.com").await);
     }
     
     /// Test high-performance crawling configuration
@@ -113,7 +113,7 @@ pub mod scenarios {
         ];
         
         for domain in domains {
-            let _session = spider.session_manager.get_or_create_session(domain)
+            let _session = spider.session_manager().get_or_create_session(domain)
                 .await.expect("Session creation should work");
         }
     }
@@ -134,7 +134,7 @@ pub mod integration {
         
         // This would normally check actual robots.txt
         // In development mode, should allow most URLs
-        let allowed = spider.robots_manager.is_allowed(test_url)
+        let allowed = spider.robots_manager().is_allowed(test_url)
             .await.expect("Robots check should work");
         
         // In development mode, should typically be allowed
@@ -153,12 +153,12 @@ pub mod integration {
         let test_url = Url::from_str("https://example.com/").expect("Valid URL");
         
         // Should be able to make initial requests
-        let can_crawl_0 = spider.budget_manager.can_make_request(&test_url, 0)
+        let can_crawl_0 = spider.budget_manager().can_make_request(&test_url, 0)
             .await.expect("Budget check should work");
         assert!(can_crawl_0);
         
         // Deep URLs should be rejected
-        let can_crawl_deep = spider.budget_manager.can_make_request(&test_url, 10)
+        let can_crawl_deep = spider.budget_manager().can_make_request(&test_url, 10)
             .await.expect("Budget check should work");
         assert!(!can_crawl_deep);
     }
@@ -176,7 +176,7 @@ pub mod integration {
             Url::from_str("https://example.com/style.css").expect("Valid URL"), // Should be excluded
         ];
         
-        let filtered = spider.url_utils.read().await.filter_urls(urls)
+        let filtered = spider.url_utils().read().await.filter_urls(urls)
             .await.expect("URL filtering should work");
         
         // Should exclude CSS file and normalize duplicates
@@ -205,12 +205,12 @@ pub mod integration {
             result.text_content = Some("short".to_string()); // Very low content
             result.content_size = 50;
             
-            spider.adaptive_stop_engine.analyze_result(&result)
+            spider.adaptive_stop_engine().analyze_result(&result)
                 .await.expect("Analysis should work");
         }
         
         // Should eventually recommend stopping
-        let decision = spider.adaptive_stop_engine.should_stop()
+        let decision = spider.adaptive_stop_engine().should_stop()
             .await.expect("Stop decision should work");
         
         assert!(decision.should_stop);
@@ -232,11 +232,11 @@ pub mod integration {
             Url::from_str("https://example.com/optional").expect("Valid URL")
         ).with_priority(Priority::Low);
         
-        spider.frontier_manager.add_request(low_priority).await.expect("Add should work");
-        spider.frontier_manager.add_request(high_priority).await.expect("Add should work");
+        spider.frontier_manager().add_request(low_priority).await.expect("Add should work");
+        spider.frontier_manager().add_request(high_priority).await.expect("Add should work");
         
         // High priority should come first
-        let next_request = spider.frontier_manager.next_request().await.expect("Get should work");
+        let next_request = spider.frontier_manager().next_request().await.expect("Get should work");
         assert!(next_request.is_some());
         
         let request = next_request.unwrap();
@@ -255,11 +255,11 @@ pub mod integration {
         let domain = "test.example.com";
         
         // Create session
-        let session_id1 = spider.session_manager.get_or_create_session(domain)
+        let session_id1 = spider.session_manager().get_or_create_session(domain)
             .await.expect("Session creation should work");
         
         // Should return same session immediately
-        let session_id2 = spider.session_manager.get_or_create_session(domain)
+        let session_id2 = spider.session_manager().get_or_create_session(domain)
             .await.expect("Session retrieval should work");
         assert_eq!(session_id1, session_id2);
         
@@ -267,7 +267,7 @@ pub mod integration {
         sleep(Duration::from_millis(150)).await;
         
         // Should create new session after expiration
-        let session_id3 = spider.session_manager.get_or_create_session(domain)
+        let session_id3 = spider.session_manager().get_or_create_session(domain)
             .await.expect("New session creation should work");
         assert_ne!(session_id1, session_id3);
     }
@@ -289,7 +289,7 @@ pub mod performance {
         for i in 0..1000 {
             let url = Url::from_str(&format!("https://example.com/page{}", i)).expect("Valid URL");
             let request = CrawlRequest::new(url);
-            spider.frontier_manager.add_request(request).await.expect("Add should work");
+            spider.frontier_manager().add_request(request).await.expect("Add should work");
         }
         
         let add_time = start_time.elapsed();
@@ -299,7 +299,7 @@ pub mod performance {
         let start_time = std::time::Instant::now();
         
         let mut retrieved = 0;
-        while let Some(_) = spider.frontier_manager.next_request().await.expect("Get should work") {
+        while let Some(_) = spider.frontier_manager().next_request().await.expect("Get should work") {
             retrieved += 1;
             if retrieved >= 100 {
                 break; // Test first 100
@@ -323,7 +323,7 @@ pub mod performance {
         }
         
         let start_time = std::time::Instant::now();
-        let filtered = spider.url_utils.read().await.filter_urls(urls)
+        let filtered = spider.url_utils().read().await.filter_urls(urls)
             .await.expect("Filtering should work");
         let filter_time = start_time.elapsed();
         
@@ -341,7 +341,7 @@ pub mod performance {
         for i in 0..5000 {
             let url = Url::from_str(&format!("https://example.com/page{}", i)).expect("Valid URL");
             let request = CrawlRequest::new(url);
-            spider.frontier_manager.add_request(request).await.expect("Add should work");
+            spider.frontier_manager().add_request(request).await.expect("Add should work");
         }
         
         let metrics = spider.get_frontier_stats().await;
@@ -367,7 +367,7 @@ pub mod performance {
                     let url = Url::from_str(&format!("https://example.com/task{}/page{}", task_id, i))
                         .expect("Valid URL");
                     let request = CrawlRequest::new(url);
-                    spider_clone.frontier_manager.add_request(request)
+                    spider_clone.frontier_manager().add_request(request)
                         .await.expect("Add should work");
                 }
             });
@@ -404,7 +404,7 @@ pub mod edge_cases {
         .filter_map(|s| Url::from_str(s).ok())
         .collect();
         
-        let filtered = spider.url_utils.read().await.filter_urls(urls)
+        let filtered = spider.url_utils().read().await.filter_urls(urls)
             .await.expect("Filtering should work even with some invalid URLs");
         
         // Should have at least the valid HTTPS URL
@@ -422,16 +422,16 @@ pub mod edge_cases {
         let url = Url::from_str("https://example.com/").expect("Valid URL");
         
         // First request should be allowed
-        let can_make_first = spider.budget_manager.can_make_request(&url, 0)
+        let can_make_first = spider.budget_manager().can_make_request(&url, 0)
             .await.expect("Budget check should work");
         assert!(can_make_first);
         
         // Simulate completing a request
-        spider.budget_manager.start_request(&url, 0).await.expect("Start should work");
-        spider.budget_manager.complete_request(&url, 1024, true).await.expect("Complete should work");
+        spider.budget_manager().start_request(&url, 0).await.expect("Start should work");
+        spider.budget_manager().complete_request(&url, 1024, true).await.expect("Complete should work");
         
         // Second request should be rejected due to budget
-        let can_make_second = spider.budget_manager.can_make_request(&url, 0)
+        let can_make_second = spider.budget_manager().can_make_request(&url, 0)
             .await.expect("Budget check should work");
         assert!(!can_make_second);
     }
@@ -451,11 +451,11 @@ pub mod edge_cases {
             result.text_content = None; // No content
             result.content_size = 0;
             
-            spider.adaptive_stop_engine.analyze_result(&result)
+            spider.adaptive_stop_engine().analyze_result(&result)
                 .await.expect("Analysis should work");
         }
         
-        let decision = spider.adaptive_stop_engine.should_stop()
+        let decision = spider.adaptive_stop_engine().should_stop()
             .await.expect("Stop decision should work");
         
         // Should recommend stopping due to lack of content
@@ -471,17 +471,17 @@ pub mod edge_cases {
         // Add a single request
         let url = Url::from_str("https://example.com/only-page").expect("Valid URL");
         let request = CrawlRequest::new(url);
-        spider.frontier_manager.add_request(request).await.expect("Add should work");
+        spider.frontier_manager().add_request(request).await.expect("Add should work");
         
         // Retrieve the request
-        let retrieved = spider.frontier_manager.next_request().await.expect("Get should work");
+        let retrieved = spider.frontier_manager().next_request().await.expect("Get should work");
         assert!(retrieved.is_some());
         
         // Frontier should now be empty
-        let empty_get = spider.frontier_manager.next_request().await.expect("Get should work");
+        let empty_get = spider.frontier_manager().next_request().await.expect("Get should work");
         assert!(empty_get.is_none());
         
-        assert!(spider.frontier_manager.is_empty().await);
+        assert!(spider.frontier_manager().is_empty().await);
     }
     
     /// Test session limit enforcement
@@ -493,16 +493,16 @@ pub mod edge_cases {
         let spider = Spider::new(config).await.expect("Spider creation should work");
         
         // Create maximum sessions
-        let _session1 = spider.session_manager.get_or_create_session("site1.com")
+        let _session1 = spider.session_manager().get_or_create_session("site1.com")
             .await.expect("First session should work");
-        let _session2 = spider.session_manager.get_or_create_session("site2.com")
+        let _session2 = spider.session_manager().get_or_create_session("site2.com")
             .await.expect("Second session should work");
         
         // Third session should evict oldest
-        let _session3 = spider.session_manager.get_or_create_session("site3.com")
+        let _session3 = spider.session_manager().get_or_create_session("site3.com")
             .await.expect("Third session should work");
         
-        let stats = spider.session_manager.get_stats().await;
+        let stats = spider.session_manager().get_stats().await;
         assert_eq!(stats.active_sessions, 2); // Should still be at limit
     }
 }
@@ -601,7 +601,7 @@ pub mod test_helpers {
             let result = create_mock_result(&url, &content, links.iter().map(|s| s.as_str()).collect());
             
             // Simulate analysis
-            spider.adaptive_stop_engine.analyze_result(&result)
+            spider.adaptive_stop_engine().analyze_result(&result)
                 .await.expect("Analysis should work");
         }
     }

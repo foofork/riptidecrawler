@@ -250,10 +250,18 @@ perf:
 
 **🔴 CURRENT PRIORITIES (September 24, 2025)**
 
+**Code Quality Issues Discovered (NEW):**
+1. 🐛 **Compilation Errors** - Several test files have compilation errors (spider/tests.rs, strategies benchmarks)
+2. 🧹 **Dead Code** - 45+ functions/structs marked with #[allow(dead_code)] need removal
+3. 📦 **Unused Imports** - 78+ unused imports across multiple files need cleanup
+4. 🔄 **Duplicate Code** - 47 distinct patterns of code duplication identified
+5. ⚠️ **Technical Debt** - Estimated 15-20 hours to address all issues
+
 **Remaining Work:**
 1. 🔧 **PDF Pipeline Optimization (PR-4)** - Complete final 15% (memory management)
 2. **Build/CI Speed Optimization** - Cache WASM artifacts, incremental builds
 3. **Integration Reconciliation** - Final cross-component wiring audit (see §15)
+4. **Code Quality Cleanup** - Remove dead code, fix unused imports, refactor duplicates
 
 **Major Milestones Recently Completed** → See COMPLETED.md for full details
 

@@ -5,6 +5,7 @@
 
 use super::*;
 use crate::pdf::config::ImageExtractionSettings;
+use futures::FutureExt;
 use std::sync::Arc;
 use tokio::time::{timeout, Duration};
 
@@ -599,7 +600,7 @@ async fn test_concurrent_memory_limits() {
                 let result = processor_clone.process_pdf(&data, &config_clone).await;
                 let duration = start.elapsed();
 
-                match result {
+                match &result {
                     Ok(processing_result) => {
                         println!("Task {} succeeded: {} pages, {} MB memory",
                                 i,
@@ -611,7 +612,7 @@ async fn test_concurrent_memory_limits() {
                         println!("Task {} hit memory limit: {} MB > {} MB",
                                 i, used / (1024 * 1024), limit / (1024 * 1024));
                     }
-                    Err(ref e) => {
+                    Err(e) => {
                         println!("Task {} failed: {}", i, e);
                     }
                 }
