@@ -440,6 +440,7 @@ dependencies = [
  "matchit",
  "memchr",
  "mime",
+ "multer",
  "percent-encoding",
  "pin-project-lite",
  "rustversion",
@@ -4347,9 +4348,11 @@ name = "riptide-api"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-stream",
  "axum",
  "axum-extra",
  "axum-prometheus",
+ "base64 0.22.1",
  "bytes",
  "chromiumoxide",
  "chrono",

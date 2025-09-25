@@ -5,12 +5,13 @@
 //! and streaming endpoints for different use cases.
 
 use axum::{
-    extract::{Multipart, State},
+    extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
-use futures_util::{stream::Stream, StreamExt};
+use futures_util::stream::Stream;
+use base64::prelude::*;
 use riptide_core::pdf::{
     integration::PdfPipelineIntegration,
     types::{ProgressUpdate, ProgressSender, ProgressReceiver},
@@ -75,26 +76,19 @@ pub struct ProcessingStats {
 /// Supports both JSON and multipart/form-data requests.
 pub async fn process_pdf(
     State(state): State<AppState>,
-    request: PdfProcessingRequest,
+    Json(request): Json<PdfProcessRequest>,
 ) -> Result<Json<PdfProcessResponse>, ApiError> {
     let start_time = std::time::Instant::now();
 
     // Extract PDF data from request
-    let (pdf_data, filename, url) = match request {
-        PdfProcessingRequest::Json(Json(req)) => {
-            let pdf_data = req
-                .pdf_data
-                .ok_or_else(|| ApiError::validation("PDF data is required in JSON requests"))?;
+    let pdf_data = request
+        .pdf_data
+        .ok_or_else(|| ApiError::validation("PDF data is required"))?;
 
-            let decoded_data = base64::decode(&pdf_data)
-                .map_err(|e| ApiError::validation(format!("Invalid base64 PDF data: {}", e)))?;
+    let decoded_data = BASE64_STANDARD.decode(&pdf_data)
+        .map_err(|e| ApiError::validation(format!("Invalid base64 PDF data: {}", e)))?;
 
-            (decoded_data, req.filename, req.url)
-        }
-        PdfProcessingRequest::Multipart(multipart) => {
-            extract_pdf_from_multipart(multipart).await?
-        }
-    };
+    let (pdf_data, filename, url) = (decoded_data, request.filename, request.url);
 
     debug!(
         file_size = pdf_data.len(),
@@ -148,7 +142,7 @@ pub async fn process_pdf(
                 processing_time_ms: processing_time.as_millis() as u64,
                 file_size: pdf_data.len() as u64,
                 pages_processed: 1, // Estimated from document
-                memory_used: pdf_metrics.memory_usage.peak_rss,
+                memory_used: pdf_metrics.peak_memory_usage,
                 pages_per_second,
                 progress_overhead_us: None, // No progress callback used
             };
@@ -202,26 +196,19 @@ pub async fn process_pdf(
 /// Each line in the response is a JSON object representing a progress update.
 pub async fn process_pdf_stream(
     State(state): State<AppState>,
-    request: PdfProcessingRequest,
+    Json(request): Json<PdfProcessRequest>,
 ) -> Result<Response, ApiError> {
     let start_time = std::time::Instant::now();
 
     // Extract PDF data from request
-    let (pdf_data, filename, url) = match request {
-        PdfProcessingRequest::Json(Json(req)) => {
-            let pdf_data = req
-                .pdf_data
-                .ok_or_else(|| ApiError::validation("PDF data is required in JSON requests"))?;
+    let pdf_data = request
+        .pdf_data
+        .ok_or_else(|| ApiError::validation("PDF data is required"))?;
 
-            let decoded_data = base64::decode(&pdf_data)
-                .map_err(|e| ApiError::validation(format!("Invalid base64 PDF data: {}", e)))?;
+    let decoded_data = BASE64_STANDARD.decode(&pdf_data)
+        .map_err(|e| ApiError::validation(format!("Invalid base64 PDF data: {}", e)))?;
 
-            (decoded_data, req.filename, req.url)
-        }
-        PdfProcessingRequest::Multipart(multipart) => {
-            extract_pdf_from_multipart(multipart).await?
-        }
-    };
+    let (pdf_data, filename, url) = (decoded_data, request.filename, request.url);
 
     debug!(
         file_size = pdf_data.len(),
@@ -244,12 +231,10 @@ pub async fn process_pdf_stream(
     }
 
     // Spawn PDF processing task
-    let pdf_integration_clone = pdf_integration.clone();
     let pdf_data_clone = pdf_data.clone();
-    let url_clone = url.clone();
 
     tokio::spawn(async move {
-        let _ = pdf_integration_clone
+        let _ = pdf_integration
             .process_pdf_bytes_with_progress(&pdf_data_clone, progress_sender)
             .await;
     });
@@ -412,95 +397,13 @@ pub struct EnhancedProgressUpdate {
 }
 
 /// Request type enum for handling both JSON and multipart requests
+#[derive(Debug)]
 pub enum PdfProcessingRequest {
-    Json(Json<PdfProcessRequest>),
-    Multipart(Multipart),
+    Json(PdfProcessRequest),
+    Multipart(Vec<u8>, Option<String>, Option<String>), // data, filename, url
 }
 
-impl<S> axum::extract::FromRequest<S> for PdfProcessingRequest
-where
-    S: Send + Sync,
-{
-    type Rejection = ApiError;
-
-    async fn from_request(
-        req: axum::extract::Request,
-        state: &S,
-    ) -> Result<Self, Self::Rejection> {
-        let content_type = req
-            .headers()
-            .get("content-type")
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("");
-
-        if content_type.starts_with("multipart/form-data") {
-            Ok(PdfProcessingRequest::Multipart(
-                Multipart::from_request(req, state)
-                    .await
-                    .map_err(|e| ApiError::validation(format!("Invalid multipart data: {}", e)))?,
-            ))
-        } else {
-            Ok(PdfProcessingRequest::Json(
-                Json::from_request(req, state)
-                    .await
-                    .map_err(|e| ApiError::validation(format!("Invalid JSON data: {}", e)))?,
-            ))
-        }
-    }
-}
-
-/// Extract PDF data from multipart form
-async fn extract_pdf_from_multipart(
-    mut multipart: Multipart,
-) -> Result<(Vec<u8>, Option<String>, Option<String>), ApiError> {
-    let mut pdf_data: Option<Vec<u8>> = None;
-    let mut filename: Option<String> = None;
-    let mut url: Option<String> = None;
-
-    while let Some(field) = multipart
-        .next_field()
-        .await
-        .map_err(|e| ApiError::validation(format!("Multipart field error: {}", e)))?
-    {
-        let field_name = field
-            .name()
-            .ok_or_else(|| ApiError::validation("Field name missing"))?
-            .to_string();
-
-        match field_name.as_str() {
-            "pdf" | "file" => {
-                filename = field.file_name().map(|s| s.to_string());
-                let data = field
-                    .bytes()
-                    .await
-                    .map_err(|e| ApiError::validation(format!("Failed to read PDF data: {}", e)))?;
-                pdf_data = Some(data.to_vec());
-            }
-            "filename" => {
-                let value = field
-                    .text()
-                    .await
-                    .map_err(|e| ApiError::validation(format!("Failed to read filename: {}", e)))?;
-                filename = Some(value);
-            }
-            "url" => {
-                let value = field
-                    .text()
-                    .await
-                    .map_err(|e| ApiError::validation(format!("Failed to read URL: {}", e)))?;
-                url = Some(value);
-            }
-            _ => {
-                // Skip unknown fields
-                warn!(field_name = %field_name, "Unknown multipart field ignored");
-            }
-        }
-    }
-
-    let pdf_data = pdf_data.ok_or_else(|| ApiError::validation("PDF file is required"))?;
-
-    Ok((pdf_data, filename, url))
-}
+// Note: For multipart support, add a separate handler endpoint
 
 #[cfg(test)]
 mod tests {
