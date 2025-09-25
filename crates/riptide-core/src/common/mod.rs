@@ -13,9 +13,13 @@ pub use validation::{
     UrlValidator, SizeValidator, ParameterValidator,
 };
 pub use error_conversions::{
-    ErrorConverter, CoreErrorConverter, ApiErrorConverter,
-    IntoCore, IntoApi, WithErrorContext,
+    ErrorConverter, CoreErrorConverter, WithErrorContext,
+    IntoCore, ErrorPatterns,
 };
+
+// Export API integration features conditionally
+#[cfg(feature = "api-integration")]
+pub use error_conversions::{ApiErrorConverter, IntoApiString};
 pub use config_builder::{
     ConfigBuilder, ConfigValidator, DefaultConfigBuilder,
     BuilderError, BuilderResult,

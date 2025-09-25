@@ -522,18 +522,18 @@ async fn test_memory_stability_under_load() {
         println!("All tasks completed. Final memory: {} MB", final_memory / (1024 * 1024));
 
         let mut successful_tasks = 0;
-        let mut total_memory_used = 0u64;
+        let mut _total_memory_used = 0u64;
         let mut max_task_duration = std::time::Duration::from_secs(0);
 
         for result in results {
             match result {
-                Ok((task_id, task_result, memory_delta, duration)) => {
+                Ok((task_id, task_result, _memory_delta, duration)) => {
                     max_task_duration = max_task_duration.max(duration);
 
                     match task_result {
                         Ok(processing_result) => {
                             successful_tasks += 1;
-                            total_memory_used += processing_result.stats.memory_used;
+                            _total_memory_used += processing_result.stats.memory_used;
 
                             // Ensure reasonable processing time (not stuck waiting)
                             assert!(duration < std::time::Duration::from_secs(60),

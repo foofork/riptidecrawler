@@ -122,7 +122,7 @@ impl StreamingResponseBuilder {
     pub fn header<K, V>(mut self, key: K, value: V) -> Self
     where
         K: axum::http::header::IntoHeaderName,
-        V: axum::http::header::IntoHeaderValue,
+        V: TryInto<HeaderValue>,
     {
         if let Ok(value) = value.try_into() {
             self.headers.insert(key, value);
@@ -140,7 +140,7 @@ impl StreamingResponseBuilder {
     pub fn build<S, T>(self, stream: S) -> Response
     where
         S: Stream<Item = T> + Send + 'static,
-        T: Serialize + Send,
+        T: Serialize + Send + 'static,
     {
         match self.response_type {
             StreamingResponseType::Ndjson => self.build_ndjson_response(stream),
@@ -216,7 +216,7 @@ impl StreamingResponseBuilder {
     fn build_json_response<S, T>(self, stream: S) -> Response
     where
         S: Stream<Item = T> + Send + 'static,
-        T: Serialize + Send,
+        T: Serialize + Send + 'static,
     {
         // For JSON responses, we collect all items into a single JSON array
         let stream = stream.collect::<Vec<_>>();
@@ -427,16 +427,13 @@ pub fn safe_stream_response<S, T>(
 ) -> Response
 where
     S: Stream<Item = Result<T, Box<dyn std::error::Error + Send + Sync>>> + Send + 'static,
-    T: Serialize + Send,
+    T: Serialize + Send + 'static + Default,
 {
     let safe_stream = stream.map(|result| match result {
         Ok(item) => item,
-        Err(e) => {
-            // Convert error to a serializable format
-            serde_json::from_str(&json!({
-                "error": "stream_item_failed",
-                "message": e.to_string()
-            }).to_string()).unwrap_or_default()
+        Err(_e) => {
+            // Return default value on error (T must implement Default)
+            T::default()
         }
     });
 

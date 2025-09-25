@@ -190,6 +190,79 @@ impl PdfPipelineIntegration {
     pub fn reset_metrics(&self) {
         self.metrics.reset();
     }
+
+    /// Create async progress channel for streaming updates
+    pub fn create_progress_channel(&self) -> (super::types::ProgressSender, super::types::ProgressReceiver) {
+        super::types::create_progress_channel()
+    }
+
+    /// Process PDF with streaming progress updates
+    #[cfg(feature = "pdf")]
+    pub async fn process_pdf_bytes_with_progress(
+        &self,
+        pdf_bytes: &[u8],
+        progress_sender: super::types::ProgressSender,
+    ) -> PdfResult<crate::types::ExtractedDoc> {
+        use super::types::ProgressUpdate;
+
+        let _start_time = std::time::Instant::now();
+
+        // Send started event
+        let _ = progress_sender.send(ProgressUpdate::Started {
+            total_pages: 0, // Will be updated once document loads
+            file_size: pdf_bytes.len() as u64,
+            timestamp: chrono::Utc::now().to_rfc3339(),
+        });
+
+        // Create progress callback that sends updates
+        let progress_callback = {
+            let sender = progress_sender.clone();
+            Some(Box::new(move |current_page: u32, total_pages: u32| {
+                let percentage = if total_pages > 0 {
+                    (current_page as f32 / total_pages as f32) * 100.0
+                } else {
+                    0.0
+                };
+                let progress = super::types::ProcessingProgress {
+                    current_page,
+                    total_pages,
+                    percentage,
+                    estimated_remaining_ms: None,
+                    stage: super::types::ProcessingStage::ExtractingText(current_page),
+                };
+                let _ = sender.send(ProgressUpdate::Progress(progress));
+            }) as super::types::ProgressCallback)
+        };
+
+        // Create a PdfConfig with progress enabled
+        let mut config = self.config.clone();
+        config.enable_progress_tracking = true;
+
+        // Use the processor's process_pdf_with_progress method
+        match self.processor.process_pdf_with_progress(pdf_bytes, &config, progress_callback).await {
+            Ok(pdf_result) => {
+                // Convert PdfProcessingResult to ExtractedDoc
+                let extracted_doc = self.convert_pdf_result_to_extracted_doc(pdf_result.clone(), None);
+
+                match extracted_doc {
+                    result => {
+                        let _ = progress_sender.send(ProgressUpdate::Completed {
+                            result: pdf_result,
+                            timestamp: chrono::Utc::now().to_rfc3339(),
+                        });
+                        Ok(result)
+                    }
+                }
+            }
+            Err(e) => {
+                let _ = progress_sender.send(ProgressUpdate::Failed {
+                    error: format!("{:?}", e),
+                    timestamp: chrono::Utc::now().to_rfc3339(),
+                });
+                Err(e)
+            }
+        }
+    }
 }
 
 impl Default for PdfPipelineIntegration {

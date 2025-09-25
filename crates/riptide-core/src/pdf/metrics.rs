@@ -33,6 +33,14 @@ struct PdfMetricsStorage {
     // Memory spike tracking
     memory_spikes_detected: AtomicU64,
     cleanup_operations_performed: AtomicU64,
+
+    // New metrics for production tracking
+    pages_per_second_total: AtomicU64,
+    processing_count: AtomicU64,
+    progress_overhead_total: AtomicU64,
+    progress_callback_count: AtomicU64,
+    page_processing_time_total: AtomicU64,
+    pages_processed_total_for_timing: AtomicU64,
 }
 
 /// Snapshot of current PDF processing metrics
@@ -74,6 +82,15 @@ pub struct PdfMetricsSnapshot {
     /// Memory efficiency ratio (useful output per memory used)
     pub memory_efficiency: f64,
 
+    /// Average pages per second processing rate
+    pub average_pages_per_second: f64,
+
+    /// Average progress callback overhead in microseconds
+    pub average_progress_overhead_us: f64,
+
+    /// Average processing time per page in milliseconds
+    pub average_page_processing_time_ms: f64,
+
     /// Timestamp when snapshot was taken
     pub timestamp: u64,
 }
@@ -91,6 +108,12 @@ impl Default for PdfMetricsStorage {
             total_queue_wait_time_ms: AtomicU64::new(0),
             memory_spikes_detected: AtomicU64::new(0),
             cleanup_operations_performed: AtomicU64::new(0),
+            pages_per_second_total: AtomicU64::new(0),
+            processing_count: AtomicU64::new(0),
+            progress_overhead_total: AtomicU64::new(0),
+            progress_callback_count: AtomicU64::new(0),
+            page_processing_time_total: AtomicU64::new(0),
+            pages_processed_total_for_timing: AtomicU64::new(0),
         }
     }
 }
@@ -150,6 +173,26 @@ impl PdfMetricsCollector {
         self.metrics.cleanup_operations_performed.fetch_add(1, Ordering::Relaxed);
     }
 
+    /// Record pages per second processing rate
+    pub fn record_pages_per_second(&self, pages_per_second: f64) {
+        // Store as integer (pages per second * 100 for precision)
+        let scaled_rate = (pages_per_second * 100.0) as u64;
+        self.metrics.pages_per_second_total.fetch_add(scaled_rate, Ordering::Relaxed);
+        self.metrics.processing_count.fetch_add(1, Ordering::Relaxed);
+    }
+
+    /// Record progress callback overhead
+    pub fn record_progress_overhead(&self, overhead_us: u64) {
+        self.metrics.progress_overhead_total.fetch_add(overhead_us, Ordering::Relaxed);
+        self.metrics.progress_callback_count.fetch_add(1, Ordering::Relaxed);
+    }
+
+    /// Record average processing time per page
+    pub fn record_page_processing_time(&self, time_ms: u64) {
+        self.metrics.page_processing_time_total.fetch_add(time_ms, Ordering::Relaxed);
+        self.metrics.pages_processed_total_for_timing.fetch_add(1, Ordering::Relaxed);
+    }
+
     /// Get current metrics snapshot
     pub fn get_snapshot(&self) -> PdfMetricsSnapshot {
         let total_processed = self.metrics.total_processed.load(Ordering::Relaxed);
@@ -188,6 +231,28 @@ impl PdfMetricsCollector {
             0.0
         };
 
+        // Calculate averages for new metrics
+        let processing_count = self.metrics.processing_count.load(Ordering::Relaxed);
+        let average_pages_per_second = if processing_count > 0 {
+            (self.metrics.pages_per_second_total.load(Ordering::Relaxed) as f64 / 100.0) / processing_count as f64
+        } else {
+            0.0
+        };
+
+        let progress_callback_count = self.metrics.progress_callback_count.load(Ordering::Relaxed);
+        let average_progress_overhead_us = if progress_callback_count > 0 {
+            self.metrics.progress_overhead_total.load(Ordering::Relaxed) as f64 / progress_callback_count as f64
+        } else {
+            0.0
+        };
+
+        let pages_processed_total_timing = self.metrics.pages_processed_total_for_timing.load(Ordering::Relaxed);
+        let average_page_processing_time_ms = if pages_processed_total_timing > 0 {
+            self.metrics.page_processing_time_total.load(Ordering::Relaxed) as f64 / pages_processed_total_timing as f64
+        } else {
+            0.0
+        };
+
         PdfMetricsSnapshot {
             total_processed,
             total_failed,
@@ -201,6 +266,9 @@ impl PdfMetricsCollector {
             memory_spikes_handled: self.metrics.memory_spikes_detected.load(Ordering::Relaxed),
             cleanup_operations: self.metrics.cleanup_operations_performed.load(Ordering::Relaxed),
             memory_efficiency,
+            average_pages_per_second,
+            average_progress_overhead_us,
+            average_page_processing_time_ms,
             timestamp: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap_or_default()
@@ -220,6 +288,12 @@ impl PdfMetricsCollector {
         self.metrics.total_queue_wait_time_ms.store(0, Ordering::Relaxed);
         self.metrics.memory_spikes_detected.store(0, Ordering::Relaxed);
         self.metrics.cleanup_operations_performed.store(0, Ordering::Relaxed);
+        self.metrics.pages_per_second_total.store(0, Ordering::Relaxed);
+        self.metrics.processing_count.store(0, Ordering::Relaxed);
+        self.metrics.progress_overhead_total.store(0, Ordering::Relaxed);
+        self.metrics.progress_callback_count.store(0, Ordering::Relaxed);
+        self.metrics.page_processing_time_total.store(0, Ordering::Relaxed);
+        self.metrics.pages_processed_total_for_timing.store(0, Ordering::Relaxed);
     }
 
     /// Export metrics in various formats for monitoring systems
@@ -239,6 +313,11 @@ impl PdfMetricsCollector {
         metrics.insert("pdf_memory_spikes_handled".to_string(), snapshot.memory_spikes_handled as f64);
         metrics.insert("pdf_cleanup_operations".to_string(), snapshot.cleanup_operations as f64);
         metrics.insert("pdf_memory_efficiency_pages_per_mb".to_string(), snapshot.memory_efficiency);
+
+        // Add new performance metrics
+        metrics.insert("pdf_average_pages_per_second".to_string(), snapshot.average_pages_per_second);
+        metrics.insert("pdf_average_progress_overhead_us".to_string(), snapshot.average_progress_overhead_us);
+        metrics.insert("pdf_average_page_processing_time_ms".to_string(), snapshot.average_page_processing_time_ms);
 
         metrics
     }

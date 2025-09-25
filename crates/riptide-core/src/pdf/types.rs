@@ -249,7 +249,6 @@ pub struct PdfStats {
 
 /// Page processing progress information
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ProcessingProgress {
     /// Current page being processed
     pub current_page: u32,
@@ -269,7 +268,6 @@ pub struct ProcessingProgress {
 
 /// Processing stages for progress tracking
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub enum ProcessingStage {
     Loading,
     ExtractingMetadata,
@@ -283,6 +281,58 @@ pub enum ProcessingStage {
 
 /// Progress callback type for page-by-page processing
 pub type ProgressCallback = Box<dyn Fn(u32, u32) + Send + Sync>;
+
+/// Enhanced progress callback with detailed progress information
+pub type DetailedProgressCallback = Box<dyn Fn(ProcessingProgress) + Send + Sync>;
+
+/// Progress update events for streaming
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ProgressUpdate {
+    /// Processing started with document info
+    Started {
+        total_pages: u32,
+        file_size: u64,
+        timestamp: String,
+    },
+    /// Page processing progress
+    Progress(ProcessingProgress),
+    /// Processing stage changed
+    StageChanged {
+        stage: ProcessingStage,
+        timestamp: String,
+    },
+    /// Processing completed successfully
+    Completed {
+        result: PdfProcessingResult,
+        timestamp: String,
+    },
+    /// Processing failed with error
+    Failed {
+        error: String,
+        timestamp: String,
+    },
+    /// Keep-alive message
+    KeepAlive {
+        timestamp: String,
+    },
+}
+
+impl Default for ProgressUpdate {
+    fn default() -> Self {
+        ProgressUpdate::KeepAlive {
+            timestamp: chrono::Utc::now().to_rfc3339(),
+        }
+    }
+}
+
+/// Progress channel for async communication
+pub type ProgressSender = tokio::sync::mpsc::UnboundedSender<ProgressUpdate>;
+pub type ProgressReceiver = tokio::sync::mpsc::UnboundedReceiver<ProgressUpdate>;
+
+/// Create a progress channel pair
+pub fn create_progress_channel() -> (ProgressSender, ProgressReceiver) {
+    tokio::sync::mpsc::unbounded_channel()
+}
 
 #[cfg(test)]
 mod tests {

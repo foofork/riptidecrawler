@@ -1,3 +1,4 @@
+pub mod pdf;
 pub mod render;
 pub mod sessions;
 pub mod spider;
