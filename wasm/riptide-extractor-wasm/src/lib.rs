@@ -8,6 +8,9 @@ use trek_helpers::*;
 mod common_validation;
 use common_validation::*;
 
+mod extraction;
+use extraction::*;
+
 // Generate bindings from enhanced WIT file
 wit_bindgen::generate!({
     world: "extractor",
@@ -121,8 +124,8 @@ impl Guest for Component {
         validate_content_size(html.len())?;
         validate_extraction_mode(&mode)?;
 
-        // Perform extraction with trek-rs
-        perform_extraction_with_trek(&html, &url, &mode)
+        // Perform enhanced extraction with all features
+        perform_enhanced_extraction(&html, &url, &mode)
     }
 
     /// Extract content with detailed performance statistics
@@ -188,6 +191,11 @@ impl Guest for Component {
                 "metadata-extraction".to_string(),
                 "custom-selectors".to_string(),
                 "trek-rs-integration".to_string(),
+                "links-extraction".to_string(),
+                "media-extraction".to_string(),
+                "language-detection".to_string(),
+                "category-extraction".to_string(),
+                "url-resolution".to_string(),
             ],
             supported_modes: get_supported_modes(),
             build_timestamp: Some(get_build_timestamp().to_string()),
@@ -267,6 +275,11 @@ fn convert_response_to_content(
     let word_count = response.metadata.word_count as u32;
     let reading_time = estimate_reading_time(response.metadata.word_count);
 
+    // For full extraction, we need the original HTML to extract additional features
+    // Trek-rs provides the processed content, but we need to re-parse for links/media
+    // Note: In a real implementation, we would need access to the original HTML
+    // For now, we'll extract what we can from the processed content
+
     Ok(ExtractedContent {
         url: url.to_string(),
         title: Some(response.metadata.title).filter(|s| !s.is_empty()),
@@ -274,16 +287,70 @@ fn convert_response_to_content(
         published_iso: Some(response.metadata.published).filter(|s| !s.is_empty()),
         markdown: response.content_markdown.unwrap_or_default(),
         text: response.content,
-        links: vec![],  // TODO: Extract links from content
-        media: vec![],  // TODO: Extract media URLs
-        language: None, // TODO: Language detection
+        links: vec![],  // Will be populated by enhanced extraction
+        media: vec![],  // Will be populated by enhanced extraction
+        language: None, // Will be populated by enhanced extraction
         reading_time,
         quality_score: Some(quality_score),
         word_count: Some(word_count),
-        categories: vec![], // TODO: Category extraction
+        categories: vec![], // Will be populated by enhanced extraction
         site_name: Some(response.metadata.site).filter(|s| !s.is_empty()),
         description: Some(response.metadata.description).filter(|s| !s.is_empty()),
     })
+}
+
+/// Enhanced extraction function that combines trek-rs with our custom extractors
+fn perform_enhanced_extraction(
+    html: &str,
+    url: &str,
+    mode: &ExtractionMode,
+) -> Result<ExtractedContent, ExtractionError> {
+    // First, get the base extraction from trek-rs
+    let mut content = perform_extraction_with_trek(html, url, mode)?;
+
+    // Then enhance with our custom extractors
+    content.links = extract_links(html, url);
+    content.media = extract_media(html, url);
+    content.language = detect_language(html);
+    content.categories = extract_categories(html);
+
+    // Recalculate quality score based on enhanced data
+    content.quality_score = Some(calculate_enhanced_quality_score(&content));
+
+    Ok(content)
+}
+
+/// Calculate enhanced quality score based on all extracted features
+fn calculate_enhanced_quality_score(content: &ExtractedContent) -> u8 {
+    let mut score = content.quality_score.unwrap_or(30);
+
+    // Bonus points for rich link extraction
+    let link_count = content.links.len();
+    if link_count > 10 {
+        score = score.saturating_add(10);
+    } else if link_count > 5 {
+        score = score.saturating_add(5);
+    }
+
+    // Bonus points for media content
+    let media_count = content.media.len();
+    if media_count > 5 {
+        score = score.saturating_add(10);
+    } else if media_count > 0 {
+        score = score.saturating_add(5);
+    }
+
+    // Bonus for language detection
+    if content.language.is_some() {
+        score = score.saturating_add(5);
+    }
+
+    // Bonus for categories
+    if !content.categories.is_empty() {
+        score = score.saturating_add(5);
+    }
+
+    score.min(100)
 }
 
 /// Get supported extraction modes

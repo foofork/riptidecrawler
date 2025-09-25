@@ -68,6 +68,14 @@ pub struct RipTideMetrics {
     pub pdf_pages_per_pdf: Gauge,
     pub pdf_memory_spikes_handled: Counter,
     pub pdf_cleanup_operations: Counter,
+
+    /// WASM memory metrics
+    pub wasm_memory_pages: Gauge,
+    pub wasm_grow_failed_total: Counter,
+    pub wasm_peak_memory_pages: Gauge,
+    pub wasm_cold_start_time_ms: Gauge,
+    pub wasm_aot_cache_hits: Counter,
+    pub wasm_aot_cache_misses: Counter,
 }
 
 impl RipTideMetrics {
@@ -318,6 +326,37 @@ impl RipTideMetrics {
                 .const_label("service", "riptide-api"),
         )?;
 
+        // WASM memory metrics
+        let wasm_memory_pages = Gauge::with_opts(
+            Opts::new("riptide_wasm_memory_pages", "Current WASM memory usage in pages (64KB each)")
+                .const_label("service", "riptide-api"),
+        )?;
+
+        let wasm_grow_failed_total = Counter::with_opts(
+            Opts::new("riptide_wasm_grow_failed_total", "Total WASM memory growth failures")
+                .const_label("service", "riptide-api"),
+        )?;
+
+        let wasm_peak_memory_pages = Gauge::with_opts(
+            Opts::new("riptide_wasm_peak_memory_pages", "Peak WASM memory usage in pages")
+                .const_label("service", "riptide-api"),
+        )?;
+
+        let wasm_cold_start_time_ms = Gauge::with_opts(
+            Opts::new("riptide_wasm_cold_start_time_ms", "WASM cold start time in milliseconds")
+                .const_label("service", "riptide-api"),
+        )?;
+
+        let wasm_aot_cache_hits = Counter::with_opts(
+            Opts::new("riptide_wasm_aot_cache_hits_total", "WASM AOT cache hits")
+                .const_label("service", "riptide-api"),
+        )?;
+
+        let wasm_aot_cache_misses = Counter::with_opts(
+            Opts::new("riptide_wasm_aot_cache_misses_total", "WASM AOT cache misses")
+                .const_label("service", "riptide-api"),
+        )?
+
         // Register all metrics
         registry.register(Box::new(http_requests_total.clone()))?;
         registry.register(Box::new(http_request_duration.clone()))?;
@@ -357,8 +396,14 @@ impl RipTideMetrics {
         registry.register(Box::new(pdf_pages_per_pdf.clone()))?;
         registry.register(Box::new(pdf_memory_spikes_handled.clone()))?;
         registry.register(Box::new(pdf_cleanup_operations.clone()))?;
+        registry.register(Box::new(wasm_memory_pages.clone()))?;
+        registry.register(Box::new(wasm_grow_failed_total.clone()))?;
+        registry.register(Box::new(wasm_peak_memory_pages.clone()))?;
+        registry.register(Box::new(wasm_cold_start_time_ms.clone()))?;
+        registry.register(Box::new(wasm_aot_cache_hits.clone()))?;
+        registry.register(Box::new(wasm_aot_cache_misses.clone()))?;
 
-        info!("Prometheus metrics registry initialized with spider and PDF metrics");
+        info!("Prometheus metrics registry initialized with spider, PDF, and WASM metrics");
 
         Ok(Self {
             registry,
@@ -400,6 +445,12 @@ impl RipTideMetrics {
             pdf_pages_per_pdf,
             pdf_memory_spikes_handled,
             pdf_cleanup_operations,
+            wasm_memory_pages,
+            wasm_grow_failed_total,
+            wasm_peak_memory_pages,
+            wasm_cold_start_time_ms,
+            wasm_aot_cache_hits,
+            wasm_aot_cache_misses,
         })
     }
 
@@ -561,6 +612,64 @@ impl RipTideMetrics {
     /// Record PDF cleanup operation
     pub fn record_pdf_cleanup(&self) {
         self.pdf_cleanup_operations.inc();
+    }
+
+    /// Update WASM memory metrics
+    pub fn update_wasm_memory_metrics(&self, current_pages: usize, grow_failed: u64, peak_pages: usize) {
+        self.wasm_memory_pages.set(current_pages as f64);
+        self.wasm_peak_memory_pages.set(peak_pages as f64);
+
+        // For counter, we need to track the difference (simplified approach)
+        let current_failures = self.wasm_grow_failed_total.get();
+        if grow_failed > current_failures {
+            let diff = grow_failed - current_failures;
+            for _ in 0..diff {
+                self.wasm_grow_failed_total.inc();
+            }
+        }
+    }
+
+    /// Update WASM cold start time
+    pub fn update_wasm_cold_start_time(&self, time_ms: f64) {
+        self.wasm_cold_start_time_ms.set(time_ms);
+    }
+
+    /// Record WASM AOT cache hit
+    pub fn record_wasm_aot_cache_hit(&self) {
+        self.wasm_aot_cache_hits.inc();
+    }
+
+    /// Record WASM AOT cache miss
+    pub fn record_wasm_aot_cache_miss(&self) {
+        self.wasm_aot_cache_misses.inc();
+    }
+
+    /// Update WASM metrics from component extractor
+    pub fn update_wasm_metrics_from_extractor(&self, wasm_metrics: &std::collections::HashMap<String, f64>) {
+        if let Some(&pages) = wasm_metrics.get("riptide_wasm_memory_pages") {
+            self.wasm_memory_pages.set(pages);
+        }
+        if let Some(&peak_pages) = wasm_metrics.get("riptide_wasm_peak_memory_pages") {
+            self.wasm_peak_memory_pages.set(peak_pages);
+        }
+        if let Some(&cold_start) = wasm_metrics.get("riptide_wasm_cold_start_time_ms") {
+            self.wasm_cold_start_time_ms.set(cold_start);
+        }
+        if let Some(&cache_hits) = wasm_metrics.get("riptide_wasm_aot_cache_hits") {
+            // Set to current value (in practice, you'd track deltas)
+            let current = self.wasm_aot_cache_hits.get();
+            let diff = (cache_hits - current).max(0.0);
+            for _ in 0..diff as u64 {
+                self.wasm_aot_cache_hits.inc();
+            }
+        }
+        if let Some(&cache_misses) = wasm_metrics.get("riptide_wasm_aot_cache_misses") {
+            let current = self.wasm_aot_cache_misses.get();
+            let diff = (cache_misses - current).max(0.0);
+            for _ in 0..diff as u64 {
+                self.wasm_aot_cache_misses.inc();
+            }
+        }
     }
 }
 

@@ -1,0 +1,34 @@
+{
+  "timestamp": "2025-09-25 13:30:28",
+  "success_rate": 100.0,
+  "total_tests": 12,
+  "successful_tests": 12,
+  "performance": {
+    "avg_extraction_ms": 0.06401538848876953,
+    "extraction_times": [
+      0.09322166442871094,
+      0.0667572021484375,
+      0.12040138244628906,
+      0.03218650817871094,
+      0.07128715515136719,
+      0.0591278076171875,
+      0.10919570922851562,
+      0.029325485229492188,
+      0.06890296936035156,
+      0.05650520324707031
+    ]
+  },
+  "error_rates": {},
+  "features_tested": {
+    "Links extraction": true,
+    "Media extraction": true,
+    "Language detection": true,
+    "Categories extraction": true,
+    "Quality scoring": true,
+    "All extraction modes": true,
+    "Edge case handling": true,
+    "Memory limits": true,
+    "Concurrent processing": true
+  },
+  "wasm_module_size_mb": 2.6372594833374023
+}

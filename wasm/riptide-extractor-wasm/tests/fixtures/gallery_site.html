@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urban Photography Collection - Street Life in Tokyo</title>
+    <meta name="description" content="Explore stunning urban photography capturing the vibrant street life and architectural beauty of modern Tokyo through the lens of acclaimed photographer Yuki Tanaka.">
+    <meta name="author" content="Yuki Tanaka">
+    <meta name="published" content="2024-09-20T09:00:00Z">
+    <meta property="og:title" content="Urban Photography Collection - Street Life in Tokyo">
+    <meta property="og:description" content="Stunning urban photography capturing the vibrant street life of Tokyo">
+    <meta property="og:image" content="https://photogallery.example.com/images/tokyo-street-main.jpg">
+    <meta property="og:url" content="https://photogallery.example.com/collections/tokyo-street-life">
+    <meta property="og:site_name" content="Urban Lens Gallery">
+    <link rel="canonical" href="https://photogallery.example.com/collections/tokyo-street-life">
+    <style>
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .photo-card { border: 1px solid #ddd; padding: 10px; }
+        .photo-meta { font-size: 12px; color: #666; }
+        .lightbox { display: none; }
+        nav.breadcrumb { padding: 10px 0; }
+        .filter-bar { background: #f5f5f5; padding: 15px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <nav class="main-nav">
+            <div class="logo">Urban Lens Gallery</div>
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="/collections">Collections</a></li>
+                <li><a href="/photographers">Photographers</a></li>
+                <li><a href="/exhibitions">Exhibitions</a></li>
+                <li><a href="/shop">Shop</a></li>
+                <li><a href="/about">About</a></li>
+            </ul>
+        </nav>
+
+        <nav class="breadcrumb">
+            <a href="/">Home</a> >
+            <a href="/collections">Collections</a> >
+            <a href="/collections/urban">Urban Photography</a> >
+            Tokyo Street Life
+        </nav>
+    </header>
+
+    <main class="gallery-main">
+        <section class="collection-header">
+            <div class="collection-info">
+                <h1>Urban Photography Collection - Street Life in Tokyo</h1>
+                <div class="collection-meta">
+                    <div class="photographer">
+                        <img src="https://photogallery.example.com/avatars/yuki-tanaka.jpg" alt="Yuki Tanaka" class="photographer-avatar">
+                        <div>
+                            <h3>Yuki Tanaka</h3>
+                            <p>Professional street photographer based in Tokyo</p>
+                        </div>
+                    </div>
+                    <div class="collection-stats">
+                        <span>47 photographs</span> |
+                        <span>Published: September 20, 2024</span> |
+                        <span>12,847 views</span>
+                    </div>
+                </div>
+
+                <div class="collection-description">
+                    <p>This collection captures the essence of modern Tokyo through intimate street photography, showcasing the intersection of traditional Japanese culture and contemporary urban life. Each image tells a story of the city's rhythm, from the quiet moments in temple courtyards to the bustling energy of Shibuya crossing.</p>
+
+                    <p>Shot over six months during different seasons, these photographs reveal the subtle changes in light, mood, and atmosphere that define Tokyo's unique character. The series focuses on human connection, architectural details, and the poetry found in everyday urban moments.</p>
+                </div>
+            </div>
+
+            <div class="hero-image">
+                <img src="https://photogallery.example.com/images/tokyo-street-main.jpg" alt="Silhouettes of people walking through a sunlit alley in Shibuya, Tokyo, with traditional lanterns overhead">
+            </div>
+        </section>
+
+        <section class="filter-bar">
+            <div class="filter-options">
+                <label>Filter by:</label>
+                <select id="location-filter">
+                    <option value="all">All Locations</option>
+                    <option value="shibuya">Shibuya</option>
+                    <option value="harajuku">Harajuku</option>
+                    <option value="asakusa">Asakusa</option>
+                    <option value="ginza">Ginza</option>
+                    <option value="shinjuku">Shinjuku</option>
+                </select>
+
+                <select id="time-filter">
+                    <option value="all">All Times</option>
+                    <option value="morning">Morning</option>
+                    <option value="afternoon">Afternoon</option>
+                    <option value="evening">Evening</option>
+                    <option value="night">Night</option>
+                </select>
+
+                <select id="season-filter">
+                    <option value="all">All Seasons</option>
+                    <option value="spring">Spring</option>
+                    <option value="summer">Summer</option>
+                    <option value="autumn">Autumn</option>
+                    <option value="winter">Winter</option>
+                </select>
+            </div>
+
+            <div class="sort-options">
+                <label>Sort by:</label>
+                <select id="sort-order">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="popular">Most Popular</option>
+                    <option value="title">Title A-Z</option>
+                </select>
+            </div>
+        </section>
+
+        <section class="gallery-grid">
+            <div class="photo-card" data-location="shibuya" data-time="evening" data-season="autumn">
+                <img src="https://photogallery.example.com/images/tokyo-01-shibuya-crossing.jpg" alt="Aerial view of Shibuya crossing at dusk with thousands of pedestrians crossing in organized chaos" loading="lazy">
+                <div class="photo-info">
+                    <h3>The Dance of Shibuya</h3>
+                    <p class="photo-description">The iconic Shibuya crossing captures Tokyo's organized chaos, where thousands of people move in perfect synchronization despite the apparent disorder.</p>
+                    <div class="photo-meta">
+                        <span>Location: Shibuya Crossing</span> |
+                        <span>Time: Evening</span> |
+                        <span>Season: Autumn 2024</span>
+                    </div>
+                    <div class="photo-tech">
+                        <span>Canon EOS R5</span> |
+                        <span>85mm f/1.4</span> |
+                        <span>1/125s ISO 800</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="photo-card" data-location="asakusa" data-time="morning" data-season="spring">
+                <img src="https://photogallery.example.com/images/tokyo-02-temple-morning.jpg" alt="Early morning light streaming through traditional temple gates with incense smoke rising" loading="lazy">
+                <div class="photo-info">
+                    <h3>Sacred Morning Light</h3>
+                    <p class="photo-description">The first rays of sunlight pierce through incense smoke at Senso-ji Temple, creating an ethereal atmosphere where tradition meets the new day.</p>
+                    <div class="photo-meta">
+                        <span>Location: Senso-ji Temple, Asakusa</span> |
+                        <span>Time: Early Morning</span> |
+                        <span>Season: Spring 2024</span>
+                    </div>
+                    <div class="photo-tech">
+                        <span>Canon EOS R5</span> |
+                        <span>24-70mm f/2.8</span> |
+                        <span>1/60s ISO 400</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="photo-card" data-location="harajuku" data-time="afternoon" data-season="summer">
+                <img src="https://photogallery.example.com/images/tokyo-03-harajuku-youth.jpg" alt="Colorfully dressed young people in Harajuku expressing individual style and creativity" loading="lazy">
+                <div class="photo-info">
+                    <h3>Colors of Expression</h3>
+                    <p class="photo-description">Harajuku's vibrant youth culture bursts with creativity and individuality, representing Tokyo's embrace of self-expression and artistic freedom.</p>
+                    <div class="photo-meta">
+                        <span>Location: Takeshita Street, Harajuku</span> |
+                        <span>Time: Afternoon</span> |
+                        <span>Season: Summer 2024</span>
+                    </div>
+                    <div class="photo-tech">
+                        <span>Canon EOS R5</span> |
+                        <span>50mm f/1.8</span> |
+                        <span>1/200s ISO 200</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="photo-card" data-location="ginza" data-time="night" data-season="winter">
+                <img src="https://photogallery.example.com/images/tokyo-04-ginza-reflections.jpg" alt="Neon signs reflecting on wet pavement after winter rain in upscale Ginza district" loading="lazy">
+                <div class="photo-info">
+                    <h3>Neon Reflections</h3>
+                    <p class="photo-description">Winter rain transforms Ginza's streets into a mirror for neon signs, creating a dreamlike reflection of Tokyo's sophisticated nightlife.</p>
+                    <div class="photo-meta">
+                        <span>Location: Ginza Main Street</span> |
+                        <span>Time: Night</span> |
+                        <span>Season: Winter 2024</span>
+                    </div>
+                    <div class="photo-tech">
+                        <span>Canon EOS R5</span> |
+                        <span>35mm f/2</span> |
+                        <span>1/30s ISO 1600</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="photo-card" data-location="shinjuku" data-time="evening" data-season="spring">
+                <img src="https://photogallery.example.com/images/tokyo-05-cherry-blossoms.jpg" alt="Office workers having hanami parties under cherry blossoms in a Shinjuku park" loading="lazy">
+                <div class="photo-info">
+                    <h3>Urban Hanami</h3>
+                    <p class="photo-description">Spring cherry blossoms bring Tokyo together as office workers and families gather for traditional hanami celebrations amidst the urban landscape.</p>
+                    <div class="photo-meta">
+                        <span>Location: Shinjuku Park</span> |
+                        <span>Time: Evening</span> |
+                        <span>Season: Spring 2024</span>
+                    </div>
+                    <div class="photo-tech">
+                        <span>Canon EOS R5</span> |
+                        <span>85mm f/1.4</span> |
+                        <span>1/100s ISO 400</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="photo-card" data-location="shibuya" data-time="night" data-season="winter">
+                <img src="https://photogallery.example.com/images/tokyo-06-train-station.jpg" alt="Commuters rushing through illuminated underground passages of Shibuya station" loading="lazy">
+                <div class="photo-info">
+                    <h3>Underground Rivers</h3>
+                    <p class="photo-description">The underground passages of Shibuya station flow with streams of commuters, resembling underground rivers of human movement.</p>
+                    <div class="photo-meta">
+                        <span>Location: Shibuya Station Underground</span> |
+                        <span>Time: Night</span> |
+                        <span>Season: Winter 2024</span>
+                    </div>
+                    <div class="photo-tech">
+                        <span>Canon EOS R5</span> |
+                        <span>24mm f/2.8</span> |
+                        <span>1/15s ISO 3200</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="load-more">
+            <button class="btn-load-more">Load More Photos (41 remaining)</button>
+        </section>
+
+        <section class="photographer-bio">
+            <div class="bio-content">
+                <img src="https://photogallery.example.com/avatars/yuki-tanaka-full.jpg" alt="Yuki Tanaka with camera equipment in Tokyo street">
+                <div>
+                    <h2>About the Photographer</h2>
+                    <h3>Yuki Tanaka</h3>
+                    <p>Born and raised in Tokyo, Yuki Tanaka has spent the last decade documenting the evolving face of Japan's capital city. Her work focuses on the human experience within urban environments, capturing moments that reveal the soul of the city beneath its bustling surface.</p>
+
+                    <p>Yuki's photography has been featured in numerous international exhibitions and publications, including National Geographic, Time Magazine, and the Tokyo Metropolitan Museum of Photography. She is particularly known for her ability to find intimate moments within crowded spaces.</p>
+
+                    <div class="awards">
+                        <h4>Recent Awards</h4>
+                        <ul>
+                            <li>World Press Photo - Urban Life Category (2023)</li>
+                            <li>Sony World Photography Awards - Street Photography (2022)</li>
+                            <li>Tokyo Photography Prize - Grand Prize (2021)</li>
+                        </ul>
+                    </div>
+
+                    <div class="social-links">
+                        <a href="https://instagram.com/yukitanaka_photo">Instagram</a> |
+                        <a href="https://twitter.com/yukiphoto">Twitter</a> |
+                        <a href="https://yukitanaka.com">Website</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="related-collections">
+            <h2>Related Collections</h2>
+            <div class="collection-grid">
+                <div class="collection-card">
+                    <img src="https://photogallery.example.com/images/osaka-nights-thumb.jpg" alt="Neon-lit street in Osaka at night">
+                    <h3><a href="/collections/osaka-nights">Osaka After Dark</a></h3>
+                    <p>28 photographs exploring the nightlife and neon culture of Japan's kitchen</p>
+                    <span class="photographer">by Kenji Nakamura</span>
+                </div>
+
+                <div class="collection-card">
+                    <img src="https://photogallery.example.com/images/kyoto-seasons-thumb.jpg" alt="Traditional Kyoto temple in autumn">
+                    <h3><a href="/collections/kyoto-seasons">Kyoto Through the Seasons</a></h3>
+                    <p>52 photographs capturing the ancient capital's beauty throughout the year</p>
+                    <span class="photographer">by Miyuki Sato</span>
+                </div>
+
+                <div class="collection-card">
+                    <img src="https://photogallery.example.com/images/rural-japan-thumb.jpg" alt="Traditional farmhouse in Japanese countryside">
+                    <h3><a href="/collections/rural-japan">Rural Japan: Forgotten Villages</a></h3>
+                    <p>36 photographs documenting disappearing rural communities</p>
+                    <span class="photographer">by Hiroshi Yamada</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>Urban Lens Gallery</h4>
+                <p>Showcasing the world's finest urban and street photography</p>
+                <div class="social-media">
+                    <a href="https://instagram.com/urbanlensgallery">Instagram</a> |
+                    <a href="https://facebook.com/urbanlensgallery">Facebook</a> |
+                    <a href="https://twitter.com/urbanlensphoto">Twitter</a>
+                </div>
+            </div>
+
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="/submit">Submit Your Work</a></li>
+                    <li><a href="/licensing">Licensing</a></li>
+                    <li><a href="/prints">Order Prints</a></li>
+                    <li><a href="/workshops">Workshops</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-section">
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="/privacy">Privacy Policy</a></li>
+                    <li><a href="/terms">Terms of Use</a></li>
+                    <li><a href="/copyright">Copyright Info</a></li>
+                    <li><a href="/contact">Contact</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2024 Urban Lens Gallery. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>
