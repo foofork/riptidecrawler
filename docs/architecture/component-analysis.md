@@ -1,8 +1,8 @@
-# RipTide Crawler - Component Analysis
+# RipTide - Component Analysis
 
 ## Component Overview
 
-RipTide Crawler consists of 5 main components organized in a workspace architecture. Each component has specific responsibilities and well-defined interfaces.
+RipTide consists of 5 main components organized in a Rust workspace architecture. Each component has specific responsibilities and well-defined interfaces based on the actual implementation.
 
 ## Core Components
 
@@ -10,7 +10,7 @@ RipTide Crawler consists of 5 main components organized in a workspace architect
 
 **Purpose**: Foundation library providing shared functionality across all services.
 
-**Module Structure**:
+**Module Structure** (as implemented):
 ```
 riptide-core/
 ├── src/
@@ -20,16 +20,25 @@ riptide-core/
 │   ├── extract.rs      # Content extraction logic
 │   ├── fetch.rs        # HTTP client utilities
 │   ├── gate.rs         # Content routing decisions
-│   └── types.rs        # Shared data structures
+│   ├── types.rs        # Shared data structures
+│   ├── pdf.rs          # PDF processing with pdfium
+│   ├── spider.rs       # Deep crawling capabilities
+│   ├── strategies.rs   # Advanced extraction strategies
+│   ├── security.rs     # Security utilities
+│   ├── monitoring.rs   # Performance monitoring
+│   ├── memory_manager.rs # Memory management
+│   └── common/         # Common utilities and validation
 └── Cargo.toml
 ```
 
-**Key Dependencies**:
-- `wasmtime` + `wasmtime-wasi` - WASM runtime
-- `redis` - Caching backend
-- `reqwest` - HTTP client
-- `lol_html` - HTML parsing
-- `wit-bindgen` - WASM component bindings
+**Key Dependencies** (current versions):
+- `wasmtime` 26 with component-model feature - WASM runtime
+- `redis` 0.26 with tokio-comp - Caching backend
+- `reqwest` 0.12 with http2, rustls-tls - HTTP client
+- `lol_html` 2 - HTML parsing and manipulation
+- `chromiumoxide` 0.7 - Browser automation
+- `pdfium-render` 0.8 - PDF processing
+- `spider` 2 - Deep crawling engine
 
 **Public API**:
 ```rust
@@ -66,7 +75,7 @@ pub struct CrawlOptions {
 ```rust
 // Optimized for performance and reliability
 Client::builder()
-    .user_agent("RipTide/1.0")
+    .user_agent("RipTide-RipTide/1.0")
     .http2_prior_knowledge()
     .gzip(true)
     .brotli(true)
@@ -78,30 +87,51 @@ Client::builder()
 
 ### 2. riptide-api (REST API Gateway)
 
-**Purpose**: Main API service exposing HTTP endpoints for crawling operations.
+**Purpose**: Main API service exposing HTTP endpoints for all crawling operations.
 
-**Architecture**: Axum-based async web server
+**Architecture**: Axum 0.7-based async web server with comprehensive middleware stack
 
-**Module Structure**:
+**Module Structure** (as implemented):
 ```
 riptide-api/
 ├── src/
 │   ├── main.rs         # Server bootstrap and routing
-│   ├── handlers.rs     # HTTP request handlers
-│   └── models.rs       # Request/response schemas
+│   ├── handlers/       # Organized request handlers
+│   ├── models.rs       # Request/response schemas
+│   ├── state.rs        # Application state management
+│   ├── pipeline.rs     # Request processing pipeline
+│   ├── streaming/      # Real-time streaming endpoints
+│   ├── sessions/       # Session management
+│   ├── routes/         # Route organization
+│   ├── health.rs       # Health check implementation
+│   ├── metrics.rs      # Prometheus metrics
+│   └── validation.rs   # Input validation
 └── Cargo.toml
 ```
 
 **Dependencies**:
-- `axum` - Web framework
-- `tower-http` - Middleware (CORS, compression, tracing)
+- `axum` 0.7 - Web framework with WebSocket support
+- `tower-http` 0.6 - Middleware (CORS, compression, tracing, timeouts)
+- `tokio` 1 - Async runtime with all features
 - `riptide-core` - Shared functionality
+- `serde` 1 with derive - Serialization
+- `tracing` 0.1 - Structured logging
 
-**Endpoints**:
-- `GET /healthz` → `handlers::health`
-- `POST /crawl` → `handlers::crawl`
-- `POST /deepsearch` → `handlers::deepsearch`
-- Fallback → `handlers::not_found`
+**Endpoints** (complete implementation):
+- `GET /healthz` → System health status
+- `GET /metrics` → Prometheus metrics
+- `POST /crawl` → Batch URL crawling
+- `POST /render` → Dynamic content rendering
+- `POST /deepsearch` → Search-driven crawling
+- `POST /crawl/stream` → NDJSON streaming results
+- `POST /crawl/sse` → Server-sent events streaming
+- `GET /crawl/ws` → WebSocket streaming
+- `/pdf/*` → PDF processing endpoints with progress
+- `/strategies/*` → Advanced extraction strategies
+- `/spider/*` → Deep crawling with site mapping
+- `/sessions/*` → Session management (8 endpoints)
+- `/workers/*` → Background job management (8 endpoints)
+- Fallback → 404 handler
 
 **Middleware Stack**:
 1. `CorsLayer::permissive()` - Cross-origin support
@@ -158,17 +188,17 @@ pub struct HealthResponse {
 
 ### 3. riptide-headless (Browser Service)
 
-**Purpose**: Chrome DevTools Protocol (CDP) service for dynamic content rendering.
+**Purpose**: Chrome DevTools Protocol (CDP) service for dynamic content rendering and browser automation.
 
-**Technology**: Chromiumoxide for browser automation
+**Technology**: chromiumoxide 0.7 for CDP integration
 
-**Module Structure**:
+**Module Structure** (as implemented):
 ```
 riptide-headless/
 ├── src/
-│   ├── main.rs         # Server and routing
-│   ├── cdp.rs          # Chrome DevTools Protocol
-│   └── models.rs       # CDP request/response models
+│   ├── main.rs         # Server bootstrap
+│   ├── lib.rs          # Library exports
+│   └── launcher.rs     # Browser launching logic
 └── Cargo.toml
 ```
 
@@ -202,17 +232,23 @@ riptide-headless/
 
 ### 4. riptide-extractor-wasm (WASM Component)
 
-**Purpose**: High-performance content extraction using WebAssembly Component Model.
+**Purpose**: High-performance content extraction using WebAssembly Component Model with Trek-rs integration.
 
-**Architecture**: WASM Component with WIT (WebAssembly Interface Types)
+**Architecture**: WASM Component targeting wasm32-wasip2 with WIT bindings
 
-**Module Structure**:
+**Module Structure** (as implemented):
 ```
 riptide-extractor-wasm/
 ├── src/
-│   └── lib.rs          # WASM component implementation
+│   ├── lib.rs              # Main WASM component
+│   ├── extraction.rs       # Core extraction logic
+│   ├── trek_helpers.rs     # Trek-rs integration helpers
+│   ├── common_validation.rs# Input validation
+│   └── lib_clean.rs        # Clean implementation variant
+├── tests/                  # Comprehensive test suite
+├── wit/                    # Component interface definitions
 ├── Cargo.toml
-└── wit/                # Component interface definitions
+└── build.rs               # Build script for metadata
 ```
 
 **Build Configuration**:
@@ -261,53 +297,71 @@ interface extractor {
 
 ### 5. riptide-workers (Background Processing)
 
-**Purpose**: Dedicated worker service for background crawling tasks.
+**Purpose**: Fully implemented asynchronous job processing and task scheduling service.
 
-**Status**: Defined in workspace but not yet implemented
+**Status**: Production ready with comprehensive job management
 
-**Planned Architecture**:
+**Module Structure** (as implemented):
 ```
 riptide-workers/
 ├── src/
-│   ├── main.rs         # Worker service
-│   ├── queue.rs        # Job queue management
-│   ├── worker.rs       # Task processing
-│   └── scheduler.rs    # Job scheduling
+│   ├── lib.rs          # Library exports
+│   ├── jobs/           # Job management system
+│   ├── scheduler.rs    # Job scheduling with cron support
+│   ├── queue.rs        # Redis-based job queue
+│   └── metrics.rs      # Worker performance metrics
+├── tests/              # Integration tests
 └── Cargo.toml
 ```
 
-**Planned Features**:
-- Redis-based job queue
-- Distributed worker scaling
-- Task prioritization
-- Retry mechanisms
-- Progress tracking
+**Implemented Features**:
+- Redis-based job queue with persistence
+- Priority-based job processing
+- Scheduled job execution with cron syntax
+- Comprehensive retry mechanisms with exponential backoff
+- Real-time progress tracking and status reporting
+- Worker pool management with auto-scaling
+- Job metrics and performance monitoring
 
 ---
 
 ## Component Interactions
 
-### Data Flow Diagram
+### Data Flow Diagram (Actual Implementation)
 
 ```
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│   Client    │───▶│ riptide-api │───▶│ riptide-    │
-│   Request   │    │ (Gateway)   │    │ core        │
-└─────────────┘    └─────────────┘    │ (Logic)     │
+│   Client    │───▶│ riptide-api │───▶│ Pipeline    │
+│   Request   │    │ (Axum)      │    │ Orchestrator│
+└─────────────┘    └─────────────┘    │ (riptide-   │
+                           │           │  core)      │
                            │           └─────────────┘
-                           │                   │
-                           ▼                   ▼
-                   ┌─────────────┐    ┌─────────────┐
-                   │ riptide-    │    │   Redis     │
-                   │ headless    │    │  (Cache)    │
-                   │ (Dynamic)   │    └─────────────┘
+                           ▼                   │
+                   ┌─────────────┐            │
+                   │  Streaming  │            │
+                   │  Module     │◄───────────┤
+                   │ (NDJSON/SSE)│            │
+                   └─────────────┘            ▼
+                           │           ┌─────────────┐
+                           ▼           │   Cache     │
+                   ┌─────────────┐    │  (Redis)    │
+                   │ riptide-    │◄───┤ + Sessions  │
+                   │ headless    │    │ + Jobs      │
+                   │ (Chrome)    │    └─────────────┘
                    └─────────────┘           │
                            │                 │
                            ▼                 ▼
                    ┌─────────────────────────────────┐
                    │    riptide-extractor-wasm      │
-                   │      (Content Processing)      │
+                   │      (Trek-rs + Component)     │
                    └─────────────────────────────────┘
+                                   │
+                                   ▼
+                           ┌─────────────┐
+                           │ riptide-    │
+                           │ workers     │
+                           │ (Async Jobs)│
+                           └─────────────┘
 ```
 
 ### Component Dependencies
@@ -501,4 +555,4 @@ artifacts:
 2. Implement worker service for background processing
 3. Use Redis for distributed coordination
 
-This component analysis provides a comprehensive understanding of how each part of the RipTide Crawler system works individually and in concert with others.
+This component analysis provides an accurate understanding of how each part of the RipTide system works individually and in concert with others based on the current implementation.

@@ -1,4 +1,4 @@
-# Code Quality Analysis Report - RipTide EventMesh
+# Code Quality Analysis Report - RipTide riptide
 
 ## Summary
 - **Analysis Scope**: Rust codebase focusing on lock-free circuit breaker, WASM componentization, and performance patterns

@@ -2,19 +2,19 @@
 
 ## Overview
 
-The RipTide API is a high-performance web crawling and content extraction service powered by WebAssembly (WASM) components, featuring dynamic rendering, streaming capabilities, and intelligent content processing. This documentation provides comprehensive guides for integrating and optimizing your use of the RipTide API.
+The RipTide API is a web crawling and content extraction service powered by WebAssembly (WASM) components, featuring dynamic rendering, streaming capabilities, and content processing. This documentation provides guides for integrating and optimizing your use of the RipTide API.
 
-## What's New 🆕
+## What's New
 
 ### Latest Documentation Updates (v2.1.0)
 
-- **🏗️ Architecture Integration**: New [Integration Crosswalk](../architecture/integration-crosswalk.md) mapping system flows to implementation
-- **📚 Enhanced REST API Guide**: Completely restructured [REST API documentation](./rest-api.md) with production examples
-- **⚡ Advanced Streaming**: Comprehensive [Streaming Guide](./streaming.md) with WebSocket, SSE, and NDJSON protocols
-- **🧪 Integration Testing**: New [Integration Testing Guide](./integration-testing.md) with automated testing patterns
-- **🖥️ Browser Pool Management**: Advanced [Browser Pool Integration](./browser-pool-integration.md) for dynamic rendering
-- **📊 Performance Monitoring**: Enhanced [Performance Guide](./performance.md) with real-time metrics and optimization
-- **🔧 WASM Optimization**: Updated [WASM Integration Guide](./wasm-integration.md) with performance tuning
+- **Architecture Integration**: New [Integration Crosswalk](../architecture/integration-crosswalk.md) mapping system flows to implementation
+- **REST API Guide**: Restructured [REST API documentation](./rest-api.md) with production examples
+- **Streaming**: [Streaming Guide](./streaming.md) with WebSocket, SSE, and NDJSON protocols
+- **Integration Testing**: New [Integration Testing Guide](./integration-testing.md) with automated testing patterns
+- **Browser Pool Management**: [Browser Pool Integration](./browser-pool-integration.md) for dynamic rendering
+- **Performance Monitoring**: [Performance Guide](./performance.md) with real-time metrics and optimization
+- **WASM Optimization**: Updated [WASM Integration Guide](./wasm-integration.md) with performance tuning
 
 ### Documentation Improvements Summary
 
@@ -26,17 +26,17 @@ The RipTide API is a high-performance web crawling and content extraction servic
 
 ## Features
 
-- **🚀 High-Performance Extraction**: WASM-powered content extraction with near-native speed
-- **🎯 Intelligent Routing**: Adaptive gate system for optimal processing path selection
-- **⚡ Streaming Support**: Real-time processing with NDJSON, SSE, and WebSocket protocols
-- **🎭 Dynamic Rendering**: JavaScript execution with stealth capabilities for complex sites
-- **📄 PDF Processing**: Native PDF content extraction and analysis
-- **🔍 Deep Search**: Web search integration with content extraction
-- **🗄️ Advanced Caching**: Redis-backed distributed caching with intelligent TTL management
-- **🛡️ Security Features**: Rate limiting, input validation, and anti-detection measures
-- **📊 Performance Monitoring**: Comprehensive metrics and health checks
-- **🧪 Production Testing**: Comprehensive integration testing framework
-- **🔧 Browser Management**: Advanced browser pool orchestration
+- **Content Extraction**: WASM-powered content extraction with optimized performance
+- **Routing**: Adaptive gate system for optimal processing path selection
+- **Streaming Support**: Real-time processing with NDJSON, SSE, and WebSocket protocols
+- **Dynamic Rendering**: JavaScript execution with stealth capabilities for complex sites
+- **PDF Processing**: Native PDF content extraction and analysis
+- **Deep Search**: Web search integration with content extraction
+- **Caching**: Redis-backed distributed caching with TTL management
+- **Security Features**: Rate limiting, input validation, and anti-detection measures
+- **Performance Monitoring**: Metrics and health checks
+- **Testing**: Integration testing framework
+- **Browser Management**: Browser pool orchestration
 
 ## Quick Start
 
@@ -47,8 +47,8 @@ The RipTide API is a high-performance web crawling and content extraction servic
 docker run -p 8080:8080 riptide/api:latest
 
 # Or use the development setup
-git clone https://github.com/your-org/eventmesh.git
-cd eventmesh
+git clone https://github.com/your-org/RipTide.git
+cd RipTide
 cargo run --bin riptide-api
 ```
 
@@ -75,44 +75,44 @@ console.log(result.results[0].document.title);
 
 ## Documentation Structure
 
-### 📚 Essential Guides
+### Essential Guides
 
 | Document | Description | Use Case | Status |
 |----------|-------------|----------|---------|
-| **[REST API Reference](./rest-api.md)** | Complete endpoint documentation with examples | API integration, client development | ✅ Updated |
-| **[OpenAPI Specification](./openapi.yaml)** | Machine-readable API schema | Client generation, validation | ✅ Complete |
-| **[Error Handling Guide](./error-handling.md)** | Error types, response formats, retry strategies | Robust error handling | ✅ Complete |
-| **[Examples Collection](./examples.md)** | Production-ready code in multiple languages | Implementation reference | ✅ Complete |
+| **[REST API Reference](./rest-api.md)** | Endpoint documentation with examples | API integration, client development | Updated |
+| **[OpenAPI Specification](./openapi.yaml)** | Machine-readable API schema | Client generation, validation | Complete |
+| **[Error Handling Guide](./error-handling.md)** | Error types, response formats, retry strategies | Error handling | Complete |
+| **[Examples Collection](./examples.md)** | Code examples in multiple languages | Implementation reference | Complete |
 
-### 🚀 Advanced Integration
-
-| Document | Description | Use Case | Status |
-|----------|-------------|----------|---------|
-| **[Architecture Integration Crosswalk](../architecture/integration-crosswalk.md)** | System flows to implementation mapping | System understanding, architecture | ✅ New |
-| **[Streaming API Guide](./streaming.md)** | NDJSON, SSE, WebSocket protocols | Real-time processing, large-scale ops | ✅ Updated |
-| **[WASM Integration Guide](./wasm-integration.md)** | High-performance extraction optimization | Performance tuning, custom extractors | ✅ Updated |
-| **[Browser Pool Integration](./browser-pool-integration.md)** | Dynamic rendering orchestration | Complex sites, JavaScript-heavy content | ✅ New |
-
-### 🧪 Testing & Quality
+### Advanced Integration
 
 | Document | Description | Use Case | Status |
 |----------|-------------|----------|---------|
-| **[Integration Testing Guide](./integration-testing.md)** | End-to-end testing patterns | Quality assurance, CI/CD | ✅ New |
-| **[Dynamic Rendering Guide](./dynamic-rendering.md)** | JavaScript execution, stealth mode | Complex websites, SPAs | ✅ Complete |
+| **[Architecture Integration Crosswalk](../architecture/integration-crosswalk.md)** | System flows to implementation mapping | System understanding, architecture | New |
+| **[Streaming API Guide](./streaming.md)** | NDJSON, SSE, WebSocket protocols | Real-time processing, large-scale ops | Updated |
+| **[WASM Integration Guide](./wasm-integration.md)** | Performance optimization | Performance tuning, custom extractors | Updated |
+| **[Browser Pool Integration](./browser-pool-integration.md)** | Dynamic rendering orchestration | Complex sites, JavaScript-heavy content | New |
 
-### 🔧 Operations & Monitoring
-
-| Document | Description | Use Case | Status |
-|----------|-------------|----------|---------|
-| **[Performance Monitoring](./performance.md)** | Real-time metrics, optimization, alerting | Production monitoring | ✅ Updated |
-| **[Security Guide](./security.md)** | Authentication, rate limiting, validation | Secure deployment | ✅ Complete |
-| **[Session Management](./session-management.md)** | State management, tracking, coordination | Multi-request workflows | ✅ Complete |
-
-### 🔄 Migration & Deployment
+### Testing & Quality
 
 | Document | Description | Use Case | Status |
 |----------|-------------|----------|---------|
-| **[Migration Guide](./migration-guide.md)** | Upgrade from placeholder implementations | Version migration | ✅ Complete |
+| **[Integration Testing Guide](./integration-testing.md)** | End-to-end testing patterns | Quality assurance, CI/CD | New |
+| **[Dynamic Rendering Guide](./dynamic-rendering.md)** | JavaScript execution, stealth mode | Complex websites, SPAs | Complete |
+
+### Operations & Monitoring
+
+| Document | Description | Use Case | Status |
+|----------|-------------|----------|---------|
+| **[Performance Monitoring](./performance.md)** | Real-time metrics, optimization, alerting | Production monitoring | Updated |
+| **[Security Guide](./security.md)** | Authentication, rate limiting, validation | Secure deployment | Complete |
+| **[Session Management](./session-management.md)** | State management, tracking, coordination | Multi-request workflows | Complete |
+
+### Migration & Deployment
+
+| Document | Description | Use Case | Status |
+|----------|-------------|----------|---------|
+| **[Migration Guide](./migration-guide.md)** | Upgrade from placeholder implementations | Version migration | Complete |
 
 ## API Endpoints Overview
 
@@ -396,8 +396,8 @@ curl http://localhost:8080/browser/status
 ### Getting Help
 
 - **Documentation**: [api.riptide.dev/docs](https://api.riptide.dev/docs)
-- **Issues**: [GitHub Issues](https://github.com/your-org/eventmesh/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-org/eventmesh/discussions)
+- **Issues**: [GitHub Issues](https://github.com/your-org/RipTide/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/your-org/RipTide/discussions)
 - **Discord**: [Community Chat](https://discord.gg/riptide)
 
 ### Contributing
@@ -466,4 +466,4 @@ MIT License - see [LICENSE](../../LICENSE) file for details.
 - **Quick Start**: [REST API Reference](./rest-api.md) and [examples](./examples.md)
 - **Advanced Features**: [Streaming](./streaming.md), [WASM](./wasm-integration.md), [Browser Pools](./browser-pool-integration.md)
 - **Production**: [Testing](./integration-testing.md), [Performance](./performance.md), [Monitoring](./performance.md)
-- **Issues**: [GitHub Issues](https://github.com/your-org/eventmesh/issues) for specific questions
+- **Issues**: [GitHub Issues](https://github.com/your-org/RipTide/issues) for specific questions

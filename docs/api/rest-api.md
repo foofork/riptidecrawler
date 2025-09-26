@@ -1,8 +1,8 @@
-# RipTide Crawler - REST API Documentation
+# RipTide - REST API Documentation
 
 ## Overview
 
-The RipTide Crawler provides a comprehensive REST API for web crawling, content extraction, deep search, and advanced processing capabilities. The system features WASM-powered extraction, dynamic rendering, streaming protocols, PDF processing, and intelligent crawling strategies.
+The RipTide provides a comprehensive REST API for web crawling, content extraction, deep search, and advanced processing capabilities. The system features WASM-powered extraction, dynamic rendering, streaming protocols, PDF processing, and intelligent crawling strategies.
 
 ### Key Features
 - **WASM Extractor Integration**: High-performance content extraction using WebAssembly
@@ -1306,5 +1306,5 @@ The API supports advanced development methodologies:
 **API Version**: 1.0.0
 **System Status**: Production Ready - All Major Components Completed
 
-**Repository**: https://github.com/your-org/eventmesh
+**Repository**: https://github.com/your-org/RipTide
 **Support**: API documentation and integration guides available in `/docs/`

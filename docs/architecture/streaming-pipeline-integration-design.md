@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This document outlines the comprehensive streaming pipeline integration architecture for the EventMesh system, focusing on high-performance real-time data delivery with TTFB < 500ms requirements. The design integrates the existing StreamingModule with the API startup sequence and defines clear patterns for stream lifecycle management, buffer optimization, and backpressure handling.
+This document outlines the comprehensive streaming pipeline integration architecture for the riptide system, focusing on high-performance real-time data delivery with TTFB < 500ms requirements. The design integrates the existing StreamingModule with the API startup sequence and defines clear patterns for stream lifecycle management, buffer optimization, and backpressure handling.
 
 ## Architecture Overview
 
@@ -868,7 +868,7 @@ Implement zero-unwrap error handling with structured error types and graceful de
 
 ## Conclusion
 
-This streaming pipeline integration architecture provides a comprehensive foundation for high-performance real-time data streaming in the EventMesh system. The design emphasizes:
+This streaming pipeline integration architecture provides a comprehensive foundation for high-performance real-time data streaming in the riptide system. The design emphasizes:
 
 1. **Performance**: TTFB < 500ms through immediate metadata response
 2. **Reliability**: Robust error handling and graceful degradation
@@ -879,7 +879,7 @@ The architecture supports future enhancements while maintaining backward compati
 
 ## References
 
-- [EventMesh System Documentation]
+- [riptide System Documentation]
 - [NDJSON Specification](http://ndjson.org/)
 - [Server-Sent Events Standard](https://html.spec.whatwg.org/multipage/server-sent-events.html)
 - [WebSocket RFC 6455](https://tools.ietf.org/html/rfc6455)

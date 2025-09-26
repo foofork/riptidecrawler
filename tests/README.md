@@ -1,4 +1,4 @@
-# EventMesh Test Suite - London School TDD
+# riptide Test Suite - London School TDD
 
 This comprehensive test suite follows the **London School (mockist) approach** to Test-Driven Development, emphasizing behavior verification through mock collaborations and contract testing rather than state-based testing.
 
@@ -328,4 +328,4 @@ async fn test_behavior_contract() {
 }
 ```
 
-This comprehensive test suite ensures the EventMesh system is robust, performant, and maintainable while following best practices in Test-Driven Development.
+This comprehensive test suite ensures the riptide system is robust, performant, and maintainable while following best practices in Test-Driven Development.

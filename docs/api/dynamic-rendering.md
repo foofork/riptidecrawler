@@ -322,7 +322,7 @@ await page.waitForTimeout(delay);
       "width": 1920,
       "height": 1080
     },
-    "user_agent": "Mozilla/5.0 (compatible; RipTide/1.0)",
+    "user_agent": "Mozilla/5.0 (compatible; RipTide-RipTide/1.0)",
     "javascript_enabled": true,
     "timeout": 30000
   },

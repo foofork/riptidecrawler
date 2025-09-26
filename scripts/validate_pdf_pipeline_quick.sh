@@ -19,7 +19,7 @@ PASSED_CHECKS=0
 FAILED_CHECKS=0
 
 # Project root
-PROJECT_ROOT="/workspaces/eventmesh"
+PROJECT_ROOT="/workspaces/riptide"
 
 # Log functions
 log_info() {

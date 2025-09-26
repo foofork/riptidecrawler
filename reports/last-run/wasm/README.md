@@ -212,10 +212,10 @@ fetch('/reports/last-run/wasm/results.json')
 
 ### Support Contacts
 
-- **Test Suite Issues**: qa-team@eventmesh.dev
-- **Performance Problems**: performance-team@eventmesh.dev
-- **WASM Component**: wasm-team@eventmesh.dev
-- **Infrastructure**: devops@eventmesh.dev
+- **Test Suite Issues**: qa-team@riptide.dev
+- **Performance Problems**: performance-team@riptide.dev
+- **WASM Component**: wasm-team@riptide.dev
+- **Infrastructure**: devops@riptide.dev
 
 ## Report Generation
 

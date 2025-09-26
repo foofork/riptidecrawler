@@ -354,9 +354,9 @@ fn calculate_performance_summary(categories: &[&TestCategoryResult]) -> Result<P
 /// Setup test coordination directories and data
 fn setup_test_coordination() -> Result<(), String> {
     let test_dirs = [
-        "/workspaces/eventmesh/hive/test-data",
-        "/workspaces/eventmesh/hive/test-results",
-        "/workspaces/eventmesh/reports/last-run/wasm",
+        "/workspaces/riptide/hive/test-data",
+        "/workspaces/riptide/hive/test-results",
+        "/workspaces/riptide/reports/last-run/wasm",
     ];
 
     for dir in &test_dirs {
@@ -423,7 +423,7 @@ fn create_test_data_manifest() -> Result<(), String> {
         }
     });
 
-    let manifest_path = "/workspaces/eventmesh/hive/test-data/manifest.json";
+    let manifest_path = "/workspaces/riptide/hive/test-data/manifest.json";
     fs::write(manifest_path, serde_json::to_string_pretty(&manifest).unwrap())
         .map_err(|e| format!("Failed to write test manifest: {}", e))?;
 
@@ -718,7 +718,7 @@ fn generate_html_report(results: &TestSuiteResults) -> Result<(), String> {
         generate_recommendations(results)
     );
 
-    let report_path = "/workspaces/eventmesh/reports/last-run/wasm/index.html";
+    let report_path = "/workspaces/riptide/reports/last-run/wasm/index.html";
     fs::write(report_path, html_content)
         .map_err(|e| format!("Failed to write HTML report: {}", e))?;
 
@@ -730,7 +730,7 @@ fn generate_json_report(results: &TestSuiteResults) -> Result<(), String> {
     let json_content = serde_json::to_string_pretty(results)
         .map_err(|e| format!("Failed to serialize results: {}", e))?;
 
-    let report_path = "/workspaces/eventmesh/reports/last-run/wasm/results.json";
+    let report_path = "/workspaces/riptide/reports/last-run/wasm/results.json";
     fs::write(report_path, json_content)
         .map_err(|e| format!("Failed to write JSON report: {}", e))?;
 
@@ -834,7 +834,7 @@ fn generate_markdown_report(results: &TestSuiteResults) -> Result<(), String> {
         format_test_category_details("Integration tests verify end-to-end functionality and real-world scenarios", &results.integration_tests),
     );
 
-    let report_path = "/workspaces/eventmesh/reports/last-run/wasm/README.md";
+    let report_path = "/workspaces/riptide/reports/last-run/wasm/README.md";
     fs::write(report_path, markdown_content)
         .map_err(|e| format!("Failed to write Markdown report: {}", e))?;
 
@@ -844,7 +844,7 @@ fn generate_markdown_report(results: &TestSuiteResults) -> Result<(), String> {
 /// Coordinate test results with hive system
 fn coordinate_with_hive(results: &TestSuiteResults) -> Result<(), String> {
     // Write results to hive test-results directory
-    let hive_results_path = "/workspaces/eventmesh/hive/test-results/wasm-extractor.json";
+    let hive_results_path = "/workspaces/riptide/hive/test-results/wasm-extractor.json";
     let hive_results = serde_json::json!({
         "component": "wasm-extractor",
         "timestamp": results.timestamp,

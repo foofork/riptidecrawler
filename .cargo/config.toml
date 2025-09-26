@@ -78,6 +78,13 @@ codegen-units = 1       # Single codegen unit for better optimization
 panic = "abort"         # Reduce binary size by aborting on panic
 strip = true           # Strip debug symbols
 
+[profile.release-ci]
+# CI-specific release profile for faster builds
+inherits = "release"
+lto = false             # Disable LTO for faster CI
+codegen-units = 16      # More parallelism for CI
+incremental = true      # Use incremental compilation
+
 [profile.dev-wasm]
 # Development profile for faster WASM builds
 inherits = "dev"

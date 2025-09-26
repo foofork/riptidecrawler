@@ -14,8 +14,8 @@ import statistics
 
 class WASMExtractorTester:
     def __init__(self):
-        self.wasm_path = "/workspaces/eventmesh/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm"
-        self.fixtures_dir = Path("/workspaces/eventmesh/wasm/riptide-extractor-wasm/tests/fixtures")
+        self.wasm_path = "/workspaces/riptide/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm"
+        self.fixtures_dir = Path("/workspaces/riptide/wasm/riptide-extractor-wasm/tests/fixtures")
         self.results = []
         self.performance_data = {
             "cold_starts": [],
@@ -335,7 +335,7 @@ class WASMExtractorTester:
             print(f"   {status} {feature}")
 
         # Save detailed JSON report
-        report_path = Path("/workspaces/eventmesh/wasm/riptide-extractor-wasm/test-report.json")
+        report_path = Path("/workspaces/riptide/wasm/riptide-extractor-wasm/test-report.json")
         report = {
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
             "success_rate": success_rate,

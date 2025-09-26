@@ -1,8 +1,8 @@
-# RipTide Crawler - System Architecture Overview
+# RipTide - System Architecture Overview
 
 ## Project Overview
 
-RipTide Crawler is a high-performance web crawling and content extraction system built in Rust, designed to handle large-scale web scraping operations with advanced content processing capabilities.
+RipTide is a high-performance web crawling and content extraction system built in Rust, designed to handle large-scale web scraping operations with advanced content processing capabilities.
 
 ## Architecture Summary
 
@@ -10,7 +10,7 @@ RipTide follows a modular, microservices-based architecture with the following c
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    RipTide Crawler Ecosystem                   │
+│                    RipTide Ecosystem                   │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌─────────────┐    ┌─────────────┐    ┌─────────────────────┐  │

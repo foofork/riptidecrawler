@@ -2,7 +2,7 @@
 
 ## Overview
 
-The RipTide EventMesh implements a comprehensive performance monitoring system with Prometheus metrics integration, real-time alerting, and distributed tracing capabilities. This architecture ensures production-grade observability and proactive performance management.
+The riptide implements a comprehensive performance monitoring system with Prometheus metrics integration, real-time alerting, and distributed tracing capabilities. This architecture ensures production-grade observability and proactive performance management.
 
 ## Monitoring Architecture
 
@@ -177,7 +177,7 @@ metrics_collector.update_pool_stats(
 {
   "dashboard": {
     "id": null,
-    "title": "RipTide EventMesh - System Overview",
+    "title": "riptide - System Overview",
     "tags": ["riptide", "performance", "monitoring"],
     "timezone": "browser",
     "panels": [
@@ -233,7 +233,7 @@ metrics_collector.update_pool_stats(
 ```json
 {
   "dashboard": {
-    "title": "RipTide EventMesh - Performance Trends",
+    "title": "riptide - Performance Trends",
     "panels": [
       {
         "id": 3,
@@ -288,7 +288,7 @@ metrics_collector.update_pool_stats(
 ```json
 {
   "dashboard": {
-    "title": "RipTide EventMesh - Alerts & Health",
+    "title": "riptide - Alerts & Health",
     "panels": [
       {
         "id": 6,
@@ -337,7 +337,7 @@ groups:
 - name: riptide.rules
   rules:
   # High Error Rate
-  - alert: RipTideHighErrorRate
+  - alert: riptideHighErrorRate
     expr: (
       rate(riptide_errors_total[5m]) /
       rate(riptide_requests_total[5m])
@@ -347,11 +347,11 @@ groups:
       severity: critical
       service: riptide
     annotations:
-      summary: "RipTide error rate is above 10%"
+      summary: "riptide error rate is above 10%"
       description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
 
   # High Latency
-  - alert: RipTideHighLatency
+  - alert: riptideHighLatency
     expr: (
       histogram_quantile(0.95,
         rate(riptide_extraction_duration_seconds_bucket[5m])
@@ -362,61 +362,61 @@ groups:
       severity: warning
       service: riptide
     annotations:
-      summary: "RipTide P95 latency is above 10 seconds"
+      summary: "riptide P95 latency is above 10 seconds"
       description: "P95 latency is {{ $value }}s for the last 10 minutes"
 
   # High CPU Usage
-  - alert: RipTideHighCPU
+  - alert: riptideHighCPU
     expr: riptide_cpu_usage_ratio > 0.90
     for: 15m
     labels:
       severity: critical
       service: riptide
     annotations:
-      summary: "RipTide CPU usage is above 90%"
+      summary: "riptide CPU usage is above 90%"
       description: "CPU usage is {{ $value | humanizePercentage }} for the last 15 minutes"
 
   # High Memory Usage
-  - alert: RipTideHighMemory
+  - alert: riptideHighMemory
     expr: riptide_memory_usage_bytes > 4294967296  # 4GB
     for: 10m
     labels:
       severity: warning
       service: riptide
     annotations:
-      summary: "RipTide memory usage is above 4GB"
+      summary: "riptide memory usage is above 4GB"
       description: "Memory usage is {{ $value | humanizeBytes }} for the last 10 minutes"
 
   # Low Health Score
-  - alert: RipTideLowHealthScore
+  - alert: riptideLowHealthScore
     expr: riptide_health_score_ratio < 0.50
     for: 5m
     labels:
       severity: critical
       service: riptide
     annotations:
-      summary: "RipTide health score is below 50%"
+      summary: "riptide health score is below 50%"
       description: "Health score is {{ $value | humanizePercentage }} indicating system degradation"
 
   # Circuit Breaker Trips
-  - alert: RipTideCircuitBreakerTrips
+  - alert: riptideCircuitBreakerTrips
     expr: increase(riptide_circuit_breaker_trips_total[10m]) > 5
     labels:
       severity: warning
       service: riptide
     annotations:
-      summary: "RipTide circuit breaker trips detected"
+      summary: "riptide circuit breaker trips detected"
       description: "{{ $value }} circuit breaker trips in the last 10 minutes"
 
   # Low Cache Hit Ratio
-  - alert: RipTideLowCacheHitRatio
+  - alert: riptideLowCacheHitRatio
     expr: riptide_cache_hit_ratio < 0.30
     for: 15m
     labels:
       severity: warning
       service: riptide
     annotations:
-      summary: "RipTide cache hit ratio is below 30%"
+      summary: "riptide cache hit ratio is below 30%"
       description: "Cache hit ratio is {{ $value | humanizePercentage }} for the last 15 minutes"
 ```
 
@@ -441,7 +441,7 @@ receivers:
   slack_configs:
   - api_url: 'YOUR_SLACK_WEBHOOK_URL'
     channel: '#riptide-monitoring'
-    title: 'RipTide Alert - {{ .Status }}'
+    title: 'riptide Alert - {{ .Status }}'
     text: |
       {{ range .Alerts }}
       *Alert:* {{ .Annotations.summary }}
@@ -453,7 +453,7 @@ receivers:
   slack_configs:
   - api_url: 'YOUR_SLACK_WEBHOOK_URL'
     channel: '#riptide-critical'
-    title: '🚨 CRITICAL: RipTide Alert'
+    title: '🚨 CRITICAL: riptide Alert'
     text: |
       {{ range .Alerts }}
       *CRITICAL ALERT:* {{ .Annotations.summary }}
@@ -1504,4 +1504,4 @@ pub enum CircuitBreakerError {
 
 ---
 
-**Note**: This monitoring architecture provides comprehensive observability for production environments. Regular review and optimization of these systems ensures optimal performance and reliability of the RipTide EventMesh platform.
+**Note**: This monitoring architecture provides comprehensive observability for production environments. Regular review and optimization of these systems ensures optimal performance and reliability of the riptide platform.

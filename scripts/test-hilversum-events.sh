@@ -3,7 +3,7 @@
 # Test script for Serper API - Events in Hilversum Netherlands August 2025
 # This script fetches 20 URLs for the specified query
 
-source /workspaces/eventmesh/.env
+source /workspaces/riptide/.env
 
 if [ -z "$SERPER_API_KEY" ]; then
     echo "Error: SERPER_API_KEY not set"
@@ -43,7 +43,7 @@ if ! echo "$response" | jq '.' >/dev/null 2>&1; then
 fi
 
 # Save full response for analysis
-echo "$response" > /workspaces/eventmesh/scripts/serper-hilversum-response.json
+echo "$response" > /workspaces/riptide/scripts/serper-hilversum-response.json
 echo -e "${GREEN}✅ Serper API request successful!${NC}"
 echo ""
 
@@ -66,7 +66,7 @@ echo "$urls" | while IFS= read -r url; do
 done
 
 # Save URLs to file for batch processing
-echo "$urls" > /workspaces/eventmesh/scripts/hilversum-urls.txt
+echo "$urls" > /workspaces/riptide/scripts/hilversum-urls.txt
 
 echo ""
 echo -e "${BLUE}=== Summary ===${NC}"
@@ -91,7 +91,7 @@ echo -e "${BLUE}=== Creating RipTide Batch Request ===${NC}"
 urls_json=$(echo "$urls" | jq -R . | jq -s .)
 
 # Create the crawl request
-cat > /workspaces/eventmesh/scripts/hilversum-crawl-request.json <<EOF
+cat > /workspaces/riptide/scripts/hilversum-crawl-request.json <<EOF
 {
     "urls": $urls_json,
     "options": {
@@ -114,11 +114,11 @@ if curl -s -f http://localhost:8080/healthz > /dev/null 2>&1; then
     # Send the crawl request
     crawl_response=$(curl -s -X POST http://localhost:8080/crawl \
         -H "Content-Type: application/json" \
-        -d @/workspaces/eventmesh/scripts/hilversum-crawl-request.json)
+        -d @/workspaces/riptide/scripts/hilversum-crawl-request.json)
 
     if echo "$crawl_response" | jq '.' >/dev/null 2>&1; then
         echo -e "${GREEN}✅ Crawl request processed${NC}"
-        echo "$crawl_response" > /workspaces/eventmesh/scripts/hilversum-crawl-response.json
+        echo "$crawl_response" > /workspaces/riptide/scripts/hilversum-crawl-response.json
 
         # Show summary
         success_count=$(echo "$crawl_response" | jq '.results | map(select(.error == null)) | length' 2>/dev/null)
@@ -140,7 +140,7 @@ echo -e "${BLUE}=== Files Created ===${NC}"
 echo "• serper-hilversum-response.json - Full Serper API response"
 echo "• hilversum-urls.txt - List of extracted URLs"
 echo "• hilversum-crawl-request.json - RipTide batch crawl request"
-[ -f /workspaces/eventmesh/scripts/hilversum-crawl-response.json ] && echo "• hilversum-crawl-response.json - RipTide crawl results"
+[ -f /workspaces/riptide/scripts/hilversum-crawl-response.json ] && echo "• hilversum-crawl-response.json - RipTide crawl results"
 
 echo ""
 echo -e "${GREEN}✅ Test complete!${NC}"

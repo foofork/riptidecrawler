@@ -1,12 +1,30 @@
-# RipTide Crawler - Documentation
+# RipTide - Technical Documentation
 
-## Overview
+## Project Status: Production Ready
 
-RipTide Crawler is a high-performance web crawling and content extraction system built in Rust, designed to handle large-scale web scraping operations with advanced content processing capabilities.
+RipTide is a high-performance web content extraction system built in Rust with advanced RipTide extraction technology. The system uses WASM-based content processing, resource management, and monitoring capabilities.
 
-## 📝 Updating This Documentation
+**Major Milestones Complete**: WASM enhancements, PDF pipeline integration, CI optimization, and code quality improvements are finished.
 
-**Keep documentation current as the project evolves:**
+## 📚 Documentation Navigation
+
+**New to RipTide?** Start with the [Documentation Map](DOCUMENTATION_MAP.md) for navigation.
+
+### Quick Access
+- [Getting Started](#quick-start) - Set up and run the system
+- [Active Roadmap](ROADMAP.md) - Current development status
+- [API Reference](api/rest-api.md) - REST API documentation
+- [Architecture](architecture/system-overview.md) - System design and components
+- [Development Setup](development/getting-started.md) - Contributor onboarding
+
+### By Role
+- **Users**: [Installation](user/installation.md) → [API Usage](user/api-usage.md) → [Troubleshooting](user/troubleshooting.md)
+- **Developers**: [Development Setup](development/getting-started.md) → [Architecture](architecture/system-overview.md) → [Contributing](development/contributing.md)
+- **Operators**: [Production Deployment](deployment/production.md) → [Configuration](architecture/configuration-guide.md) → [Monitoring](monitoring-implementation-report.md)
+
+## 📝 Documentation Maintenance
+
+Keep documentation current as the project evolves:
 
 - **API Changes**: Update [REST API Reference](api/rest-api.md) when adding/modifying endpoints
 - **New Components**: Update [Component Analysis](architecture/component-analysis.md) and system diagrams
@@ -20,14 +38,14 @@ RipTide Crawler is a high-performance web crawling and content extraction system
 
 ## Documentation Structure
 
-### 📋 Architecture Documentation
+### Architecture Documentation
 
 - **[System Overview](architecture/system-overview.md)** - Complete system architecture and data flow
 - **[Component Analysis](architecture/component-analysis.md)** - Detailed analysis of each component and their interactions
 - **[Configuration Guide](architecture/configuration-guide.md)** - Comprehensive configuration reference and best practices
 - **[Deployment Guide](architecture/deployment-guide.md)** - Production deployment instructions for Docker and Kubernetes
 
-### 🔗 API Documentation
+### API Documentation
 
 - **[REST API Reference](api/rest-api.md)** - Complete API documentation with examples and schemas
 
@@ -108,18 +126,18 @@ kubectl apply -f k8s/
 - **HTTP/2 Optimization**: Prior knowledge and multiplexing
 - **Compression**: Gzip and Brotli support
 - **Caching**: Redis-backed read-through cache
-- **WASM Processing**: High-performance content extraction
+- **WASM Processing**: Content extraction
 
 ### Web Scraping Capabilities
-- **Static Content**: Fast HTTP-based crawling
-- **Dynamic Content**: Headless browser rendering for JavaScript-heavy sites
+- **Static Content**: HTTP-based crawling
+- **Dynamic Content**: Headless browser rendering for JavaScript-based sites
 - **Content Extraction**: Article text, metadata, links, and media
 - **Format Support**: HTML, PDF, and other document types
 - **Output Formats**: Markdown, JSON, and plain text
 
 ### Security & Compliance
 - **Robots.txt**: Configurable compliance
-- **Rate Limiting**: Respectful crawling with delays
+- **Rate Limiting**: Configurable crawling delays
 - **Stealth Mode**: Anti-detection capabilities
 - **Proxy Support**: Optional proxy rotation
 
@@ -337,14 +355,14 @@ Apache-2.0 License - see [LICENSE](../LICENSE) file for details.
 ## Changelog
 
 ### v0.1.0 (Current - Production Ready)
-- Complete REST API with /health, /crawl, and /deepsearch endpoints
+- REST API with /health, /crawl, and /deepsearch endpoints
 - WASM Component Model content extraction with trek-rs integration
-- Enterprise-grade error handling and performance monitoring
-- Instance pooling and circuit breaker patterns for reliability
-- Comprehensive test suite with golden tests and benchmarks
-- Production-ready codebase with zero compilation errors
+- Error handling and performance monitoring
+- Instance pooling and circuit breaker patterns
+- Test suite with golden tests and benchmarks
+- Codebase with zero compilation errors
 - Redis caching integration with read-through patterns
-- Advanced performance optimization and monitoring system
+- Performance optimization and monitoring system
 
 ### Roadmap
 - Worker service for background processing

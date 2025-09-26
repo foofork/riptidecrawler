@@ -1,5 +1,5 @@
 [package]
-name = "eventmesh-tests"
+name = "riptide-tests"
 version = "0.1.0"
 edition = "2021"
 
@@ -27,7 +27,7 @@ hyper = { workspace = true }
 wasmtime = { workspace = true }
 wasmtime-wasi = { workspace = true }
 
-# EventMesh crates
+# riptide crates
 riptide-core = { path = "../crates/riptide-core" }
 riptide-api = { path = "../crates/riptide-api" }
 riptide-headless = { path = "../crates/riptide-headless" }

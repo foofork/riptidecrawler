@@ -3,7 +3,7 @@
 
 ### Executive Summary
 
-The Spider Integration system enables sophisticated deep crawling capabilities for the EventMesh Riptide engine. Building on Phase 1-3 architectural learnings, this system implements frontier-based crawling with adaptive strategies, budget controls, and intelligent stopping mechanisms.
+The Spider Integration system enables sophisticated deep crawling capabilities for the riptide Riptide engine. Building on Phase 1-3 architectural learnings, this system implements frontier-based crawling with adaptive strategies, budget controls, and intelligent stopping mechanisms.
 
 ### System Architecture Overview
 
@@ -331,4 +331,4 @@ pub struct SpiderConfig {
 - Advanced monitoring and analytics
 - Performance optimization
 
-This architecture provides a solid foundation for sophisticated web crawling while maintaining integration with the existing EventMesh ecosystem and respecting the modular design principles demonstrated in previous phases.
+This architecture provides a solid foundation for sophisticated web crawling while maintaining integration with the existing riptide ecosystem and respecting the modular design principles demonstrated in previous phases.

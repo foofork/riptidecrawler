@@ -1,6 +1,6 @@
-# Rust Coding Standards for RipTide Crawler
+# Rust Coding Standards for RipTide
 
-This document outlines the coding standards and best practices for RipTide Crawler development. Following these guidelines ensures consistency, maintainability, and performance across the codebase.
+This document outlines the coding standards and best practices for RipTide development. Following these guidelines ensures consistency, maintainability, and performance across the codebase.
 
 ## General Principles
 
@@ -621,4 +621,4 @@ Enable these clippy lints in your code:
 #![allow(clippy::missing_errors_doc)] // When errors are obvious
 ```
 
-These standards ensure that RipTide Crawler maintains high code quality, performance, and maintainability as it grows and evolves.
+These standards ensure that RipTide maintains high code quality, performance, and maintainability as it grows and evolves.

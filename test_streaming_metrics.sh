@@ -2,7 +2,7 @@
 
 # Test script to verify streaming metrics are working in the /metrics endpoint
 
-echo "🚀 Testing EventMesh Streaming Metrics Integration"
+echo "🚀 Testing riptide Streaming Metrics Integration"
 echo "=================================================="
 
 # Check if the API server is running

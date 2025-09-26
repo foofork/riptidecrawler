@@ -2,11 +2,11 @@
 
 ## Overview
 
-As the System Architecture Designer for the EventMesh project, I have completed a comprehensive design for integrating the StreamingModule into the API startup sequence and defining the complete streaming pipeline architecture. This document provides an executive summary of the integration design, key decisions, and implementation roadmap.
+As the System Architecture Designer for the riptide project, I have completed a comprehensive design for integrating the StreamingModule into the API startup sequence and defining the complete streaming pipeline architecture. This document provides an executive summary of the integration design, key decisions, and implementation roadmap.
 
 ## Executive Summary
 
-The streaming pipeline integration design provides a robust, high-performance foundation for real-time data delivery in the EventMesh system. The architecture successfully addresses all requirements while maintaining system reliability, performance, and scalability.
+The streaming pipeline integration design provides a robust, high-performance foundation for real-time data delivery in the riptide system. The architecture successfully addresses all requirements while maintaining system reliability, performance, and scalability.
 
 ### Key Achievements
 
@@ -404,7 +404,7 @@ The streaming pipeline integration design successfully addresses all architectur
 4. **Comprehensive Integration**: Clean integration with existing system components
 5. **Operational Excellence**: Full monitoring, health checking, and observability
 
-The architecture provides EventMesh with enterprise-grade streaming capabilities that can scale to meet growing demand while maintaining exceptional performance and reliability characteristics.
+The architecture provides riptide with enterprise-grade streaming capabilities that can scale to meet growing demand while maintaining exceptional performance and reliability characteristics.
 
 ---
 

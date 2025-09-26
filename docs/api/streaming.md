@@ -2,7 +2,7 @@
 
 ## Overview
 
-The EventMesh streaming infrastructure provides high-performance, real-time data delivery for web crawling and content extraction operations. Built on Rust's async runtime with Tokio, it delivers enterprise-grade streaming with sub-500ms TTFB (Time to First Byte), dynamic buffer management, and sophisticated backpressure handling.
+The riptide streaming infrastructure provides high-performance, real-time data delivery for web crawling and content extraction operations. Built on Rust's async runtime with Tokio, it delivers enterprise-grade streaming with sub-500ms TTFB (Time to First Byte), dynamic buffer management, and sophisticated backpressure handling.
 
 **Key Performance Characteristics:**
 - **TTFB**: < 500ms with warm cache
@@ -223,7 +223,7 @@ curl -X POST 'http://localhost:8080/crawl/stream' \
 ### JavaScript Implementation with Backpressure Monitoring
 
 ```javascript
-class EventMeshStreamClient {
+class riptideStreamClient {
   constructor(options = {}) {
     this.options = {
       bufferSize: options.bufferSize || 1024,
@@ -398,7 +398,7 @@ class EventMeshStreamClient {
 }
 
 // Usage with event handlers
-const client = new EventMeshStreamClient({
+const client = new riptideStreamClient({
   bufferSize: 2048,
   enableBackpressure: true,
   slowClientThreshold: 150
@@ -502,8 +502,8 @@ class StreamMetrics:
         time_span = self.event_rates[-1] - self.event_rates[0]
         return (len(self.event_rates) - 1) / time_span if time_span > 0 else 0.0
 
-class EventMeshStreamClient:
-    """Advanced Python client for EventMesh streaming with performance monitoring"""
+class riptideStreamClient:
+    """Advanced Python client for riptide streaming with performance monitoring"""
 
     def __init__(self, base_url: str = "http://localhost:8080", **options):
         self.base_url = base_url
@@ -707,7 +707,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     # Create client with custom options
-    client = EventMeshStreamClient(
+    client = riptideStreamClient(
         buffer_size=2048,
         enable_backpressure=True,
         slow_client_threshold_ms=150
@@ -1054,7 +1054,7 @@ pub struct SseConfig {
 ### Browser SSE Client with Reconnection
 
 ```javascript
-class EventMeshSSEClient {
+class riptideSSEClient {
   constructor(options = {}) {
     this.options = {
       maxReconnectAttempts: options.maxReconnectAttempts || 5,
@@ -1176,7 +1176,7 @@ class EventMeshSSEClient {
 }
 
 // Usage
-const sseClient = new EventMeshSSEClient({
+const sseClient = new riptideSSEClient({
   maxReconnectAttempts: 3,
   baseRetryDelay: 2000
 });
@@ -1259,7 +1259,7 @@ pub struct WebSocketRequest {
 ### JavaScript WebSocket Client with Control Features
 
 ```javascript
-class EventMeshWebSocketClient {
+class riptideWebSocketClient {
   constructor(baseUrl = 'ws://localhost:8080') {
     this.baseUrl = baseUrl;
     this.ws = null;
@@ -1450,7 +1450,7 @@ class EventMeshWebSocketClient {
 }
 
 // Usage with real-time control
-const wsClient = new EventMeshWebSocketClient();
+const wsClient = new riptideWebSocketClient();
 
 try {
   await wsClient.connect();
@@ -2543,8 +2543,8 @@ pub async fn stream_pipeline_results(
 ```mermaid
 graph TB
     subgraph "Client Layer"
-        JS["JavaScript Client<br/>EventMeshStreamClient"]
-        Python["Python Client<br/>EventMeshStreamClient"]
+        JS["JavaScript Client<br/>riptideStreamClient"]
+        Python["Python Client<br/>riptideStreamClient"]
         CLI["CLI Tools<br/>Direct HTTP"]
     end
 
@@ -2606,7 +2606,7 @@ graph TB
 
 **JavaScript (NDJSON):**
 ```javascript
-const client = new EventMeshStreamClient({
+const client = new riptideStreamClient({
   bufferSize: 1024,
   enableBackpressure: true
 });
@@ -2619,7 +2619,7 @@ await client.streamCrawlResults(urls, {
 
 **Python:**
 ```python
-client = EventMeshStreamClient(
+client = riptideStreamClient(
     buffer_size=1024,
     enable_backpressure=True
 )
@@ -2730,4 +2730,4 @@ resources:
 - **Monitoring**: Prometheus metrics and Grafana dashboards included
 - **Load Testing**: Use provided test framework for capacity planning
 
-This documentation provides a complete guide to implementing, optimizing, and deploying the EventMesh streaming infrastructure in production environments with enterprise-grade performance and reliability.
+This documentation provides a complete guide to implementing, optimizing, and deploying the riptide streaming infrastructure in production environments with enterprise-grade performance and reliability.

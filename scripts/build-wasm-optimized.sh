@@ -29,7 +29,7 @@ rustup target add wasm32-wasip2
 
 # Pre-compile shared dependencies
 echo "🔧 Pre-compiling shared dependencies..."
-cd /workspaces/eventmesh
+cd /workspaces/riptide
 
 # Build workspace dependencies first to cache them
 echo "📦 Caching workspace dependencies..."

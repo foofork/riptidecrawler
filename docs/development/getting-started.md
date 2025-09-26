@@ -1,15 +1,15 @@
-# Getting Started with RipTide Crawler Development
+# Getting Started with RipTide Development
 
 ## Quick Setup
 
-RipTide is a high-performance web crawler built in Rust with WebAssembly acceleration and Chrome DevTools Protocol fallback. This guide will get you up and running for development.
+RipTide is a high-performance web content extraction system built in Rust with WebAssembly acceleration and Chrome DevTools Protocol fallback. This guide will get you up and running for development.
 
 ## Prerequisites
 
-- **Rust**: Latest stable toolchain
-- **Docker**: For containerized services
+- **Rust**: 1.70+ stable toolchain
+- **Docker**: For containerized services (Redis, etc.)
 - **Git**: For version control
-- **Just**: Task runner (optional but recommended)
+- **Chrome/Chromium**: For headless service development
 
 ## Environment Setup
 
@@ -21,7 +21,6 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source ~/.cargo/env
 
 # Add WebAssembly target
-rustup target add wasm32-wasi
 rustup target add wasm32-wasip2
 
 # Install development tools
@@ -34,24 +33,26 @@ cargo install cargo-audit
 
 ```bash
 git clone <repository-url>
-cd eventmesh
+cd RipTide
 
-# Build everything (uses Justfile)
-just build
+# Build everything
+cargo build --workspace --release
 
-# Alternative: use scripts directly
-./scripts/build_all.sh
+# Build WASM module
+cd wasm/riptide-extractor-wasm
+cargo build --release --target wasm32-wasip2
 ```
 
 ### 3. Environment Configuration
 
 ```bash
-# Copy environment template
-cp .env.example .env
+# Set required environment variables
+export SERPER_API_KEY=your_serper_api_key_here
+export REDIS_URL=redis://localhost:6379/0
+export RUST_LOG=info
 
-# Edit .env and add your API keys:
-# SERPER_API_KEY=your_serper_api_key_here
-# REDIS_URL=redis://localhost:6379
+# Optional: set headless service URL
+export HEADLESS_URL=http://localhost:9123
 ```
 
 ## Development Workflow
@@ -60,7 +61,7 @@ cp .env.example .env
 
 ```bash
 # Start dependencies (Redis)
-docker-compose -f docker-compose.simple.yml up -d
+docker run -d -p 6379:6379 redis:7-alpine
 
 # Run API server in development mode
 cargo run --bin riptide-api
@@ -69,24 +70,24 @@ cargo run --bin riptide-api
 cargo run --bin riptide-headless
 
 # Run tests
-just test
+cargo test --workspace
 
 # Check code formatting
-just fmt
-just lint
+cargo fmt --all
+cargo clippy --workspace --all-targets
 ```
 
 ### Docker Development
 
 ```bash
 # Build and start all services
-just up
+docker-compose up -d --build
 
 # View logs
 docker-compose logs -f
 
 # Stop services
-just down
+docker-compose down
 ```
 
 ## Project Structure
@@ -122,7 +123,7 @@ The heart of the crawler containing:
 REST API providing:
 - `/crawl` - Crawl URLs and extract content
 - `/deepsearch` - Search-driven crawling via SERP APIs
-- Health checks and metrics endpoints
+- `/healthz` - Health checks and service status
 
 ### Headless Service (`crates/riptide-headless`)
 
@@ -190,19 +191,24 @@ cargo audit
 
 ## First Steps
 
-1. **Explore the codebase**: Start with `crates/riptide-core/src/lib.rs`
-2. **Run tests**: Ensure everything works with `cargo test --workspace`
-3. **Start services**: Use `just up` to run the full stack
-4. **Make a test request**: Try the examples in the API documentation
-5. **Check logs**: Monitor `docker-compose logs -f` for any issues
+1. **Set environment variables**: Export required environment variables
+2. **Start Redis**: `docker run -d -p 6379:6379 redis:7-alpine`
+3. **Run tests**: Ensure everything works with `cargo test --workspace`
+4. **Start API service**: `cargo run --bin riptide-api`
+5. **Test health check**: `curl http://localhost:8080/healthz`
+6. **Start headless service**: `cargo run --bin riptide-headless` (optional)
+7. **Make a test request**: Try the examples in the API documentation
 
 ## Configuration
 
-RipTide uses YAML configuration files in the `configs/` directory:
+RipTide primarily uses environment variables for configuration:
 
-- `riptide.yml` - Main configuration
-- `policies.yml` - Crawling policies and restrictions
-- `fingerprints.yml` - User agents and stealth settings
+- `REDIS_URL` - Redis connection string
+- `SERPER_API_KEY` - Search API key
+- `HEADLESS_URL` - Headless service URL
+- `RUST_LOG` - Logging level
+
+Optional YAML configuration files are in the `configs/` directory for advanced settings.
 
 See the [Configuration Guide](../user/configuration.md) for detailed options.
 

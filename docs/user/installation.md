@@ -1,24 +1,24 @@
 # Installation Guide
 
-This guide covers all the ways to install and run RipTide Crawler, from Docker containers to building from source.
+This guide covers all the ways to install and run riptide, from Docker containers to building from source.
 
 ## Quick Start with Docker (Recommended)
 
-The fastest way to get RipTide running is with Docker:
+To get riptide running with Docker:
 
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd riptide-crawler
+cd riptide
 
 # Start all services
 docker-compose up -d
 
 # Verify installation
-curl http://localhost:8080/health
+curl http://localhost:8080/healthz
 ```
 
-That's it! RipTide is now running on `http://localhost:8080`.
+riptide is now running on `http://localhost:8080`.
 
 ## Installation Methods
 
@@ -53,7 +53,7 @@ docker-compose ps
 ```bash
 # Download full repository for custom configs
 git clone <repository-url>
-cd riptide-crawler
+cd riptide
 
 # Edit configuration
 cp configs/riptide.yml.example configs/riptide.yml
@@ -172,7 +172,7 @@ xcode-select --install
 ```bash
 # Clone repository
 git clone <repository-url>
-cd riptide-crawler
+cd riptide
 
 # Build all components
 just build
@@ -292,7 +292,7 @@ Create service files for automatic startup:
 # Create API service
 sudo tee /etc/systemd/system/riptide-api.service > /dev/null << EOF
 [Unit]
-Description=RipTide Crawler API
+Description=riptide API
 After=network.target redis.service
 
 [Service]
@@ -341,7 +341,7 @@ sudo systemctl start riptide-api riptide-headless
 ### Health Checks
 ```bash
 # Check API health
-curl http://localhost:8080/health
+curl http://localhost:8080/healthz
 # Expected: {"status":"healthy","version":"0.1.0"}
 
 # Check headless service
@@ -515,7 +515,7 @@ iotop
 
 ### Getting Help
 
-- **Documentation**: Check the full documentation in `docs/`
+- **Documentation**: Check the documentation in `docs/`
 - **Configuration**: See [Configuration Guide](configuration.md)
 - **API Usage**: See [API Usage Guide](api-usage.md)
 - **Troubleshooting**: See [Troubleshooting Guide](troubleshooting.md)
@@ -523,7 +523,7 @@ iotop
 
 ## Next Steps
 
-1. **Configure** RipTide for your use case: [Configuration Guide](configuration.md)
-2. **Learn the API**: [API Usage Examples](api-usage.md)
-3. **Deploy to production**: [Production Deployment](../deployment/production.md)
-4. **Scale up**: [Scaling Guide](../deployment/scaling.md)
+1. Configure riptide for your use case: [Configuration Guide](configuration.md)
+2. Learn the API: [API Usage Examples](api-usage.md)
+3. Deploy to production: [Production Deployment](../deployment/production.md)
+4. Scale up: [Scaling Guide](../deployment/scaling.md)

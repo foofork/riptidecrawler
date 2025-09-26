@@ -16,7 +16,7 @@ echo "🎯 Installing WASM targets..."
 rustup target add wasm32-wasip2
 
 # Change to project root
-cd /workspaces/eventmesh
+cd /workspaces/riptide
 
 # Pre-cache workspace dependencies for faster builds
 echo "📦 Pre-caching workspace dependencies..."

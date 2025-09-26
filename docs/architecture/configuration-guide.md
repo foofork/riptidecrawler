@@ -1,8 +1,8 @@
-# RipTide Crawler - Configuration Guide
+# RipTide - Configuration Guide
 
 ## Overview
 
-RipTide Crawler uses a centralized YAML configuration file with environment variable overrides for sensitive data. This guide covers all configuration options and their effects on system behavior.
+RipTide configuration is managed through environment variables with sensible defaults defined in code. This guide covers all configuration options and their effects on system behavior.
 
 ## Configuration Files
 

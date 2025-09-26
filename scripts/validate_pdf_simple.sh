@@ -16,7 +16,7 @@ echo "    Simple PDF Pipeline Validation"
 echo "=============================================="
 echo ""
 
-cd "/workspaces/eventmesh"
+cd "/workspaces/riptide"
 
 PASSED=0
 FAILED=0

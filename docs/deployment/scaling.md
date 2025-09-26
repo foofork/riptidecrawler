@@ -1,10 +1,10 @@
 # Scaling and Performance Guide
 
-This guide covers scaling RipTide Crawler from small deployments to high-throughput, enterprise-grade systems handling millions of URLs per day.
+This guide covers scaling RipTide from small deployments to high-throughput, enterprise-grade systems handling millions of URLs per day.
 
 ## Scaling Overview
 
-RipTide Crawler supports multiple scaling dimensions:
+RipTide supports multiple scaling dimensions:
 
 1. **Horizontal Scaling** - Add more instances
 2. **Vertical Scaling** - Increase instance resources
@@ -16,17 +16,19 @@ RipTide Crawler supports multiple scaling dimensions:
 
 ### Single Instance Performance
 
-**Standard Configuration:**
-- 4 CPU cores, 8GB RAM
-- Concurrency: 16
-- ~500-1000 URLs/hour
-- ~10-50 requests/second
+**Standard Configuration (Docker Compose):**
+- API: 2 CPU cores, 2GB RAM
+- Headless: 2 CPU cores, 2GB RAM
+- Redis: 1 CPU core, 1GB RAM
+- Typical throughput: 100-500 URLs/hour
+- Concurrent requests: 10-25
 
-**Optimized Configuration:**
-- 8 CPU cores, 16GB RAM
-- Concurrency: 32
-- ~2000-5000 URLs/hour
-- ~50-200 requests/second
+**Scaled Configuration:**
+- Multiple API instances (2-4)
+- Multiple Headless instances (1-2)
+- Redis with persistence/clustering
+- Typical throughput: 1000-5000 URLs/hour
+- Concurrent requests: 50-200
 
 ### Scaling Targets
 
@@ -45,7 +47,7 @@ RipTide Crawler supports multiple scaling dimensions:
 
 ```nginx
 # nginx.conf - Advanced load balancing
-upstream riptide_api {
+upstream RipTide_api {
     # Load balancing method
     least_conn;  # or ip_hash, hash $uri, random
 
@@ -76,7 +78,7 @@ server {
     limit_req zone=req_limit burst=20 nodelay;
 
     location / {
-        proxy_pass http://riptide_api;
+        proxy_pass http://RipTide_api;
 
         # Load balancing headers
         proxy_set_header Host $host;
@@ -116,7 +118,7 @@ version: '3.8'
 
 services:
   api:
-    image: riptide/api:v0.1.0
+    image: RipTide/api:v0.1.0
     deploy:
       replicas: 5
       update_config:
@@ -138,7 +140,7 @@ services:
 
   # Auto-scaler service (custom)
   autoscaler:
-    image: riptide/autoscaler:latest
+    image: RipTide/autoscaler:latest
     environment:
       - DOCKER_HOST=unix:///var/run/docker.sock
       - SCALE_TARGET=api
@@ -439,7 +441,7 @@ cluster-migration-barrier 1
 # Headless service with multiple Chrome instances
 services:
   headless-1:
-    image: riptide/headless:v0.1.0
+    image: RipTide/headless:v0.1.0
     environment:
       - CHROME_INSTANCES=4
       - INSTANCE_MEMORY_LIMIT=2gb
@@ -452,7 +454,7 @@ services:
     shm_size: 4gb
 
   headless-2:
-    image: riptide/headless:v0.1.0
+    image: RipTide/headless:v0.1.0
     environment:
       - CHROME_INSTANCES=4
       - INSTANCE_MEMORY_LIMIT=2gb
@@ -466,7 +468,7 @@ services:
 
   # Chrome instance pool manager
   chrome-pool-manager:
-    image: riptide/chrome-pool:latest
+    image: RipTide/chrome-pool:latest
     environment:
       - POOL_SIZE=16
       - INSTANCE_LIFETIME=3600  # 1 hour
@@ -598,7 +600,7 @@ cloudflare:
 services:
   # API Gateway (lightweight)
   api-gateway:
-    image: riptide/api-gateway:latest
+    image: RipTide/api-gateway:latest
     ports:
       - "8080:8080"
     environment:
@@ -623,7 +625,7 @@ services:
 
   # Worker nodes
   worker:
-    image: riptide/worker:latest
+    image: RipTide/worker:latest
     environment:
       - QUEUE_BACKEND=rabbitmq
       - RABBITMQ_URL=amqp://rabbitmq:5672
@@ -637,7 +639,7 @@ services:
 
   # Result aggregator
   aggregator:
-    image: riptide/aggregator:latest
+    image: RipTide/aggregator:latest
     environment:
       - QUEUE_BACKEND=rabbitmq
       - RABBITMQ_URL=amqp://rabbitmq:5672
@@ -675,7 +677,7 @@ services:
 
   # Kafka producer (URL intake)
   url-producer:
-    image: riptide/kafka-producer:latest
+    image: RipTide/kafka-producer:latest
     environment:
       - KAFKA_BROKERS=kafka:9092
       - TOPIC_URLS=riptide-urls
@@ -683,7 +685,7 @@ services:
 
   # Kafka consumer (URL processing)
   url-consumer:
-    image: riptide/kafka-consumer:latest
+    image: RipTide/kafka-consumer:latest
     environment:
       - KAFKA_BROKERS=kafka:9092
       - TOPIC_URLS=riptide-urls
@@ -1023,4 +1025,4 @@ if __name__ == '__main__':
     analyze_bottlenecks()
 ```
 
-This comprehensive scaling guide provides the foundation for growing RipTide Crawler from a small deployment to an enterprise-scale system capable of handling millions of requests efficiently and cost-effectively.
+This comprehensive scaling guide provides the foundation for growing RipTide from a small deployment to an enterprise-scale system capable of handling millions of requests efficiently and cost-effectively.

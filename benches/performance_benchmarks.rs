@@ -1,11 +1,11 @@
-/// Performance Benchmarks for EventMesh - Criterion Integration
+/// Performance Benchmarks for riptide - Criterion Integration
 ///
 /// Comprehensive performance benchmarks using Criterion for detailed
 /// statistical analysis of system performance characteristics.
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
-use eventmesh_tests::fixtures::test_data::*;
-use eventmesh_tests::common::generate_test_html;
+use riptide_tests::fixtures::test_data::*;
+use riptide_tests::common::generate_test_html;
 use std::time::Duration;
 
 /// Benchmark WASM extraction performance across different content sizes

@@ -1,4 +1,4 @@
-# Contributing to RipTide Crawler
+# Contributing to RipTide
 
 Thank you for your interest in contributing to RipTide! This guide will help you get started with contributing code, documentation, and bug reports.
 

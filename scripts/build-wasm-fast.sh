@@ -21,7 +21,7 @@ cargo clean
 
 # Pre-warm the build cache by building dependencies first
 echo "📦 Pre-building dependencies..."
-cd /workspaces/eventmesh
+cd /workspaces/riptide
 
 # Build workspace first to cache common dependencies
 cargo check --workspace --release --lib

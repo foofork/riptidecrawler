@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document provides comprehensive guidance for integrating browser pool management with session persistence in the EventMesh RipTide system. The architecture combines high-performance browser resource pooling with Redis-backed session management to enable stateful, scalable web scraping operations.
+This document provides comprehensive guidance for integrating browser pool management with session persistence in the riptide RipTide system. The architecture combines high-performance browser resource pooling with Redis-backed session management to enable stateful, scalable web scraping operations.
 
 ## Architecture Components
 

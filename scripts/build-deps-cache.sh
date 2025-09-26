@@ -7,7 +7,7 @@ set -e
 
 echo "🔧 Pre-building dependencies for faster WASM builds..."
 
-cd /workspaces/eventmesh
+cd /workspaces/riptide
 
 # Build all workspace libraries to cache dependencies
 echo "📦 Building workspace libraries..."

@@ -1,24 +1,24 @@
 # Docker Deployment Guide
 
-This guide covers deploying RipTide Crawler using Docker containers, from simple single-machine setups to complex multi-node deployments.
+This guide covers deploying riptide using Docker containers, from simple single-machine setups to complex multi-node deployments.
 
 ## Quick Start
 
 ```bash
 # Clone repository
 git clone <repository-url>
-cd riptide-crawler
+cd riptide
 
 # Start with default configuration
 docker-compose up -d
 
 # Verify deployment
-curl http://localhost:8080/health
+curl http://localhost:8080/healthz
 ```
 
 ## Container Architecture
 
-RipTide Crawler consists of three main services:
+riptide RipTide consists of three main services:
 
 1. **API Service** (`riptide-api`) - REST API server
 2. **Headless Service** (`riptide-headless`) - Chrome DevTools Protocol service
@@ -37,16 +37,17 @@ RipTide Crawler consists of three main services:
 
 ## Docker Images
 
-### Official Images
+### Building Images
 
 ```bash
-# Pull official images
-docker pull riptide/api:latest
-docker pull riptide/headless:latest
+# Build API service
+docker build -f infra/docker/Dockerfile.api -t riptide-api:latest .
 
-# Or specific versions
-docker pull riptide/api:v0.1.0
-docker pull riptide/headless:v0.1.0
+# Build headless service
+docker build -f infra/docker/Dockerfile.headless -t riptide-headless:latest .
+
+# Or use docker-compose to build
+docker-compose build
 ```
 
 ### Building Custom Images
@@ -58,10 +59,8 @@ docker build -f infra/docker/Dockerfile.api -t riptide-api:custom .
 # Build headless service
 docker build -f infra/docker/Dockerfile.headless -t riptide-headless:custom .
 
-# Build with specific WASM extractor
-docker build -f infra/docker/Dockerfile.api \
-  --build-arg WASM_MODULE=./target/wasm32-wasip2/release/custom-extractor.wasm \
-  -t riptide-api:custom .
+# WASM extractor is built automatically during API build
+# The optimized WASM module is included in the API container
 ```
 
 ## Basic Docker Compose Setup
@@ -74,28 +73,36 @@ version: '3.8'
 
 services:
   api:
-    image: riptide/api:latest
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.api
     ports:
       - "8080:8080"
     environment:
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://redis:6379/0
+      - HEADLESS_URL=http://headless:9123
       - RUST_LOG=info
-      - RIPTIDE_HEADLESS_SERVICE_URL=http://headless:9123
+      - SERPER_API_KEY=${SERPER_API_KEY}
     depends_on:
       - redis
       - headless
     volumes:
-      - ./data:/data
-      - ./configs:/etc/riptide
+      - artifacts-data:/data/artifacts
     restart: unless-stopped
 
   headless:
-    image: riptide/headless:latest
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.headless
     ports:
       - "9123:9123"
     environment:
       - RUST_LOG=info
-    shm_size: 2gb
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
     restart: unless-stopped
 
   redis:
@@ -118,18 +125,16 @@ SERPER_API_KEY=your_serper_api_key_here
 REDIS_URL=redis://redis:6379
 RUST_LOG=info
 
-# API Configuration
-RIPTIDE_API_HOST=0.0.0.0
-RIPTIDE_API_PORT=8080
-RIPTIDE_CRAWL_CONCURRENCY=16
+# API Configuration (uses defaults, override if needed)
+# RUST_LOG=info (default)
+# API runs on 0.0.0.0:8080 by default
 
-# Headless Configuration
-RIPTIDE_HEADLESS_HOST=0.0.0.0
-RIPTIDE_HEADLESS_PORT=9123
-RIPTIDE_HEADLESS_MAX_SESSIONS=2
+# Headless Configuration (uses defaults, override if needed)
+# RUST_LOG=info (default)
+# Headless runs on 0.0.0.0:9123 by default
 
-# Chrome flags for stability
-CHROME_FLAGS=--no-sandbox --disable-dev-shm-usage --disable-gpu --remote-debugging-port=9222
+# Chrome flags are pre-configured in the container
+# Additional flags can be set via CHROME_FLAGS environment variable
 ```
 
 ### Start Services
@@ -158,20 +163,21 @@ version: '3.8'
 
 services:
   api:
-    image: riptide/api:v0.1.0
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.api
     ports:
       - "8080:8080"
     environment:
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://redis:6379/0
+      - HEADLESS_URL=http://headless:9123
       - RUST_LOG=warn
-      - RIPTIDE_CONFIG_FILE=/etc/riptide/production.yml
+      - SERPER_API_KEY=${SERPER_API_KEY}
     depends_on:
       - redis
       - headless
     volumes:
-      - ./configs:/etc/riptide:ro
-      - ./data:/data
-      - ./logs:/var/log/riptide
+      - artifacts-data:/data/artifacts
     restart: always
     deploy:
       resources:
@@ -182,29 +188,29 @@ services:
           memory: 1G
           cpus: '1.0'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
   headless:
-    image: riptide/headless:v0.1.0
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.headless
     environment:
       - RUST_LOG=warn
-      - CHROME_FLAGS=--no-sandbox --disable-dev-shm-usage --disable-gpu
-    shm_size: 2gb
-    restart: always
     deploy:
       resources:
         limits:
-          memory: 4G
-          cpus: '2.0'
-        reservations:
           memory: 2G
-          cpus: '1.0'
+          cpus: '2'
+        reservations:
+          memory: 1G
+          cpus: '1'
+    restart: always
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9123/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:9123/healthz"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -248,7 +254,9 @@ volumes:
 # Security-focused setup
 services:
   api:
-    image: riptide/api:v0.1.0
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.api
     user: "1000:1000"  # Non-root user
     read_only: true
     tmpfs:
@@ -265,7 +273,9 @@ services:
       - no-new-privileges:true
 
   headless:
-    image: riptide/headless:v0.1.0
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.headless
     user: "1000:1000"
     cap_drop:
       - ALL
@@ -326,11 +336,15 @@ services:
 
   # Headless instances
   headless-1:
-    image: riptide/headless:v0.1.0
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.headless
     shm_size: 2gb
 
   headless-2:
-    image: riptide/headless:v0.1.0
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.headless
     shm_size: 2gb
 
   # Redis cluster
@@ -519,7 +533,9 @@ services:
       - riptide-network
 
   headless:
-    image: riptide/headless:v0.1.0
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.headless
     deploy:
       replicas: 2
       placement:
@@ -650,7 +666,7 @@ services:
 
 ```dockerfile
 # Use official, minimal base images
-FROM rust:1.75-slim-bookworm AS builder
+FROM rustlang/rust:nightly AS builder
 
 # Create non-root user
 RUN addgroup --system --gid 1000 riptide && \
@@ -809,8 +825,8 @@ docker-compose up -d --force-recreate
 docker-compose ps
 
 # Service health checks
-curl http://localhost:8080/health
-curl http://localhost:9123/health
+curl http://localhost:8080/healthz
+curl http://localhost:9123/healthz
 
 # Redis connectivity
 docker-compose exec redis redis-cli ping

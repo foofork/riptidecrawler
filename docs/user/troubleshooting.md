@@ -1,18 +1,18 @@
 # Troubleshooting Guide
 
-This guide helps you diagnose and resolve common issues with RipTide Crawler.
+This guide helps you diagnose and resolve common issues with RipTide.
 
 ## Quick Diagnostics
 
 ### Health Check
 ```bash
 # Check all services
-curl http://localhost:8080/health
+curl http://localhost:8080/healthz
 
 # Check specific components
-curl http://localhost:8080/health?component=redis
-curl http://localhost:8080/health?component=headless
-curl http://localhost:8080/health?component=wasm
+curl http://localhost:8080/healthz?component=redis
+curl http://localhost:8080/healthz?component=headless
+curl http://localhost:8080/healthz?component=wasm
 ```
 
 ### Service Status
@@ -108,7 +108,7 @@ Crawling 100 URLs takes over 10 minutes
 **Diagnosis:**
 ```bash
 # Check current configuration
-curl http://localhost:8080/health | jq '.config.crawl'
+curl http://localhost:8080/healthz | jq '.config.crawl'
 
 # Monitor resource usage
 htop
@@ -607,7 +607,7 @@ docker-compose version
 
 echo "=== Service Status ==="
 docker-compose ps
-curl -s http://localhost:8080/health | jq '.'
+curl -s http://localhost:8080/healthz | jq '.'
 
 echo "=== Resource Usage ==="
 free -h
@@ -619,8 +619,11 @@ docker-compose logs --tail=50 api
 docker-compose logs --tail=50 headless
 
 echo "=== Configuration ==="
-cat riptide.yml | head -50
-env | grep RIPTIDE
+# Show environment variables (sanitized)
+echo "REDIS_URL: ${REDIS_URL:-not set}"
+echo "SERPER_API_KEY: $([ -n "$SERPER_API_KEY" ] && echo 'SET' || echo 'NOT SET')"
+echo "HEADLESS_URL: ${HEADLESS_URL:-not set}"
+echo "RUST_LOG: ${RUST_LOG:-not set}"
 ```
 
 ### Performance Benchmarking
@@ -645,11 +648,39 @@ for i in {1..100}; do
 done
 ```
 
+## Current Version Specific Issues
+
+### WASM Extractor Path
+If you get WASM module not found errors:
+```bash
+# The correct WASM path for current version:
+ls -la ./wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
+
+# Build if missing:
+cd wasm/riptide-extractor-wasm
+rustup target add wasm32-wasip2
+cargo build --release --target wasm32-wasip2
+```
+
+### Docker Compose Services
+Current architecture uses these services:
+- `api` - Main API service (port 8080)
+- `headless` - Browser service (port 9123)
+- `redis` - Cache service (port 6379)
+
+### Health Endpoint
+Use `/healthz` instead of `/health`:
+```bash
+# Correct health check
+curl http://localhost:8080/healthz
+curl http://localhost:9123/healthz
+```
+
 ### Report Issues
 When reporting issues, include:
 
 1. **System Information**: OS, Docker version, available resources
-2. **Configuration**: Sanitized configuration file and environment variables
+2. **Environment Variables**: Sanitized environment variables (hide API keys)
 3. **Error Messages**: Complete error messages and stack traces
 4. **Reproduction Steps**: Minimal example to reproduce the issue
 5. **Expected vs Actual Behavior**: What you expected vs what happened

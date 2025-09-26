@@ -1,19 +1,35 @@
 # Configuration Guide
 
-This guide covers all configuration options for RipTide Crawler, from basic settings to advanced performance tuning.
+This guide covers all configuration options for RipTide, from basic settings to advanced performance tuning.
 
 ## Configuration Overview
 
 RipTide uses a hierarchical configuration system:
 
 1. **Default values** - Built-in sensible defaults
-2. **Configuration file** - YAML file (usually `riptide.yml`)
-3. **Environment variables** - Override any setting
+2. **Configuration file** - YAML file (optional, most settings via environment variables)
+3. **Environment variables** - Primary configuration method
 4. **Command line flags** - Highest priority
 
-## Configuration File Structure
+## Environment Variable Configuration (Recommended)
 
-The main configuration file is typically named `riptide.yml`:
+RipTide primarily uses environment variables for configuration:
+
+```bash
+# Required
+SERPER_API_KEY=your_serper_api_key
+REDIS_URL=redis://localhost:6379/0
+
+# Optional service URLs
+HEADLESS_URL=http://localhost:9123
+
+# Optional logging
+RUST_LOG=info
+```
+
+## Configuration File Structure (Advanced)
+
+For complex setups, you can use a YAML configuration file:
 
 ```yaml
 # Search provider settings
@@ -36,7 +52,7 @@ crawl:
 
 # Content extraction settings
 extraction:
-  wasm_module_path: "/opt/riptide/extractor/extractor.wasm"
+  wasm_module_path: "./wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm"
   version_tag: "trek:0.1"
   mode: "article"
   produce_markdown: true
@@ -241,7 +257,7 @@ crawl:
 ```yaml
 extraction:
   # Path to WASM extraction module
-  wasm_module_path: "/opt/riptide/extractor/extractor.wasm"
+  wasm_module_path: "./wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm"
 
   # WASM module version/tag for cache invalidation
   version_tag: "trek:0.1"

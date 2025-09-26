@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide provides comprehensive integration testing strategies for the EventMesh system, covering all components from the browser pool and WASM modules to streaming endpoints and API services.
+This guide provides comprehensive integration testing strategies for the riptide system, covering all components from the browser pool and WASM modules to streaming endpoints and API services.
 
 ## Table of Contents
 
@@ -19,7 +19,7 @@ This guide provides comprehensive integration testing strategies for the EventMe
 
 ## Integration Testing Strategy
 
-### 1. Testing Pyramid for EventMesh
+### 1. Testing Pyramid for riptide
 
 ```
          /\
@@ -1610,7 +1610,7 @@ impl TestDataGenerator {
                 "headless": true,
                 "disable_images": false,
                 "disable_javascript": false,
-                "user_agent": "EventMesh-Test-Agent/1.0"
+                "user_agent": "riptide-Test-Agent/1.0"
             },
             "retry_config": {
                 "max_attempts": 3,
@@ -1657,7 +1657,7 @@ impl TestDataGenerator {
                         </aside>
                     </main>
                     <footer>
-                        <p>&copy; 2024 EventMesh Test Suite</p>
+                        <p>&copy; 2024 riptide Test Suite</p>
                         <div class="social-links">
                             <a href="https://twitter.com/test">Twitter</a>
                             <a href="https://facebook.com/test">Facebook</a>
@@ -1940,4 +1940,4 @@ BROWSER_EXECUTABLE=/usr/bin/chromium-browser cargo test --test browser_pool_inte
 - **Performance Monitoring**: Built-in performance assertions and monitoring
 - **Error Handling**: Comprehensive error scenarios and recovery testing
 
-This comprehensive integration testing guide provides the foundation for ensuring EventMesh system reliability, performance, and correctness across all components and deployment scenarios.
+This comprehensive integration testing guide provides the foundation for ensuring riptide system reliability, performance, and correctness across all components and deployment scenarios.

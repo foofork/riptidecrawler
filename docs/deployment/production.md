@@ -1,6 +1,6 @@
 # Production Deployment Guide
 
-This comprehensive guide covers deploying RipTide Crawler in production environments, including cloud platforms, infrastructure setup, security hardening, and operational best practices.
+This comprehensive guide covers deploying RipTide RipTide in production environments, including cloud platforms, infrastructure setup, security hardening, and operational best practices.
 
 ## Production Architecture Overview
 
@@ -52,7 +52,7 @@ Internet
   "containerDefinitions": [
     {
       "name": "riptide-api",
-      "image": "riptide/api:v0.1.0",
+      "image": "your-registry/RipTide-api:latest",
       "cpu": 1024,
       "memory": 2048,
       "essential": true,
@@ -65,10 +65,10 @@ Internet
       "environment": [
         {
           "name": "REDIS_URL",
-          "value": "redis://riptide-redis.elasticache.amazonaws.com:6379"
+          "value": "redis://riptide-redis.elasticache.amazonaws.com:6379/0"
         },
         {
-          "name": "RIPTIDE_HEADLESS_SERVICE_URL",
+          "name": "HEADLESS_URL",
           "value": "http://headless.riptide.local:9123"
         }
       ],
@@ -87,7 +87,7 @@ Internet
         }
       },
       "healthCheck": {
-        "command": ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"],
+        "command": ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"],
         "interval": 30,
         "timeout": 5,
         "retries": 3,
@@ -96,7 +96,7 @@ Internet
     },
     {
       "name": "riptide-headless",
-      "image": "riptide/headless:v0.1.0",
+      "image": "your-registry/RipTide-headless:latest",
       "cpu": 1024,
       "memory": 2048,
       "essential": true,
@@ -200,7 +200,7 @@ resource "aws_elasticache_subnet_group" "riptide_redis" {
 
 resource "aws_elasticache_replication_group" "riptide_redis" {
   replication_group_id         = "riptide-redis"
-  description                  = "Redis cluster for RipTide Crawler"
+  description                  = "Redis cluster for RipTide"
 
   node_type                    = "cache.r6g.large"
   port                         = 6379
@@ -577,7 +577,7 @@ spec:
           {
             "name": "riptide-api",
             "properties": {
-              "image": "riptide/api:v0.1.0",
+              "image": "your-registry/RipTide-api:latest",
               "ports": [
                 {
                   "port": 8080,
@@ -605,7 +605,7 @@ spec:
           {
             "name": "riptide-headless",
             "properties": {
-              "image": "riptide/headless:v0.1.0",
+              "image": "your-registry/RipTide-headless:latest",
               "ports": [
                 {
                   "port": 9123,
@@ -1322,4 +1322,4 @@ resource "aws_appautoscaling_policy" "riptide_up" {
 }
 ```
 
-This production deployment guide provides a comprehensive foundation for deploying RipTide Crawler at scale with proper security, monitoring, and operational practices.
+This production deployment guide provides a comprehensive foundation for deploying RipTide at scale with proper security, monitoring, and operational practices.

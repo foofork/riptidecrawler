@@ -1,6 +1,6 @@
-# Testing Strategies for RipTide Crawler
+# Testing Strategies for RipTide
 
-This guide outlines the comprehensive testing approach for RipTide Crawler, covering unit tests, integration tests, performance tests, and end-to-end validation.
+This guide outlines the comprehensive testing approach for RipTide, covering unit tests, integration tests, performance tests, and end-to-end validation.
 
 ## Testing Philosophy
 
@@ -893,4 +893,4 @@ echo "All tests passed!"
 - Monitor test reliability and fix flaky tests
 - Generate and publish test reports
 
-This comprehensive testing strategy ensures that RipTide Crawler maintains high quality, reliability, and performance as it evolves.
+This comprehensive testing strategy ensures that RipTide maintains high quality, reliability, and performance as it evolves.

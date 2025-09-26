@@ -1,14 +1,14 @@
-# WASM Integration Analysis - EventMesh/RipTide Pipeline
+# WASM Integration Analysis - riptide/RipTide Pipeline
 
 ## Executive Summary
 
-This document provides a comprehensive analysis of WebAssembly (WASM) integration in the EventMesh/RipTide content extraction pipeline, identifying current usage patterns, optional configurations, and strategic extension opportunities.
+This document provides a comprehensive analysis of WebAssembly (WASM) integration in the riptide/RipTide content extraction pipeline, identifying current usage patterns, optional configurations, and strategic extension opportunities.
 
 ## 1. Current WASM Implementation
 
 ### 1.1 Architecture Overview
 
-The EventMesh/RipTide pipeline employs a **WebAssembly Component Model** architecture using WASI-P2 (WebAssembly System Interface Preview 2) for content extraction operations.
+The riptide/RipTide pipeline employs a **WebAssembly Component Model** architecture using WASI-P2 (WebAssembly System Interface Preview 2) for content extraction operations.
 
 ```mermaid
 graph TD
@@ -323,7 +323,7 @@ cache.store(module_hash, compiled);
 
 ## 7. Conclusion
 
-The current WASM integration in EventMesh/RipTide is well-architected but underutilized. The immediate priority should be completing the existing extraction features and implementing proper memory tracking.
+The current WASM integration in riptide/RipTide is well-architected but underutilized. The immediate priority should be completing the existing extraction features and implementing proper memory tracking.
 
 Strategic expansion should focus on:
 1. **Modularization**: Separate WASM modules for different content types

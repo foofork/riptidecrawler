@@ -1450,4 +1450,4 @@ mod integration_tests {
 }
 ```
 
-This comprehensive integration guide covers all aspects of WASM Component Model integration with RipTide EventMesh, from basic usage to production deployment and troubleshooting.
+This comprehensive integration guide covers all aspects of WASM Component Model integration with RipTide riptide, from basic usage to production deployment and troubleshooting.

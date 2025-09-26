@@ -2,13 +2,13 @@
 
 ## Overview
 
-This document provides detailed technical specifications for integrating the StreamingModule into the EventMesh API startup sequence, connection patterns to endpoints, and comprehensive data flow mappings. This complements the main architecture document with implementation-specific details.
+This document provides detailed technical specifications for integrating the StreamingModule into the riptide API startup sequence, connection patterns to endpoints, and comprehensive data flow mappings. This complements the main architecture document with implementation-specific details.
 
 ## 1. StreamingModule Initialization Integration
 
 ### 1.1 API Startup Sequence Integration
 
-Based on analysis of `/workspaces/eventmesh/crates/riptide-api/src/main.rs`, the StreamingModule has been successfully integrated into the startup sequence with the following modifications:
+Based on analysis of `/workspaces/riptide/crates/riptide-api/src/main.rs`, the StreamingModule has been successfully integrated into the startup sequence with the following modifications:
 
 #### Current Integration Points (Lines 217-229 in state.rs)
 
@@ -687,7 +687,7 @@ flowchart TD
 
 ## Conclusion
 
-The streaming pipeline integration provides a robust, high-performance foundation for real-time data delivery in the EventMesh system. The implementation achieves the key requirements:
+The streaming pipeline integration provides a robust, high-performance foundation for real-time data delivery in the riptide system. The implementation achieves the key requirements:
 
 - **TTFB < 500ms** through immediate metadata response
 - **Dynamic buffer management** with adaptive backpressure handling

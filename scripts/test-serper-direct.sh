@@ -2,7 +2,7 @@
 
 # Direct Serper API test to verify the API key works
 
-source /workspaces/eventmesh/.env
+source /workspaces/riptide/.env
 
 if [ -z "$SERPER_API_KEY" ]; then
     echo "Error: SERPER_API_KEY not set"

@@ -6,14 +6,14 @@ Successfully implemented comprehensive PDF progress tracking in production with 
 
 ## ✅ Completed Features
 
-### 1. Enhanced PDF Pipeline Integration (`/workspaces/eventmesh/crates/riptide-core/src/pdf/integration.rs`)
+### 1. Enhanced PDF Pipeline Integration (`/workspaces/riptide/crates/riptide-core/src/pdf/integration.rs`)
 - ✅ Added optional progress callback parameter to `process_pdf_bytes()`
 - ✅ Created `process_pdf_to_extracted_doc_with_progress()` method
 - ✅ Added `process_pdf_bytes_with_progress()` for streaming updates
 - ✅ Integrated with existing processor's `process_pdf_with_progress()` method
 - ✅ Added async progress channel creation
 
-### 2. Progress Types Enhancement (`/workspaces/eventmesh/crates/riptide-core/src/pdf/types.rs`)
+### 2. Progress Types Enhancement (`/workspaces/riptide/crates/riptide-core/src/pdf/types.rs`)
 - ✅ Removed `#[allow(dead_code)]` from `ProcessingProgress` and `ProcessingStage`
 - ✅ Added `ProgressUpdate` enum with serialization for different progress events:
   - `Started` - Processing initialization with document info
@@ -26,7 +26,7 @@ Successfully implemented comprehensive PDF progress tracking in production with 
 - ✅ Added `ProgressSender`/`ProgressReceiver` types for async communication
 - ✅ Added `create_progress_channel()` utility function
 
-### 3. Streaming PDF Processing Endpoint (`/workspaces/eventmesh/crates/riptide-api/src/handlers/pdf.rs`)
+### 3. Streaming PDF Processing Endpoint (`/workspaces/riptide/crates/riptide-api/src/handlers/pdf.rs`)
 - ✅ Created `/pdf/process` synchronous endpoint
 - ✅ Created `/pdf/process-stream` NDJSON streaming endpoint
 - ✅ Supports both JSON and multipart/form-data requests
@@ -34,7 +34,7 @@ Successfully implemented comprehensive PDF progress tracking in production with 
 - ✅ Comprehensive error handling and validation
 - ✅ File size limits (50MB) with proper error responses
 
-### 4. Enhanced Metrics Collection (`/workspaces/eventmesh/crates/riptide-core/src/pdf/metrics.rs`)
+### 4. Enhanced Metrics Collection (`/workspaces/riptide/crates/riptide-core/src/pdf/metrics.rs`)
 - ✅ Added pages per second processing rate tracking
 - ✅ Added average processing time per page monitoring
 - ✅ Added progress callback overhead measurement

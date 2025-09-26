@@ -1,4 +1,4 @@
-/// EventMesh Test Suite - London School TDD
+/// riptide Test Suite - London School TDD
 ///
 /// Comprehensive test suite following the London School (mockist) approach
 /// to Test-Driven Development, emphasizing behavior verification through

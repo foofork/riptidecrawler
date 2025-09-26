@@ -1,8 +1,8 @@
-# EventMesh Hive Critical Path - System Architecture Design
+# riptide Hive Critical Path - System Architecture Design
 
 ## Executive Summary
 
-This document presents the comprehensive system architecture for EventMesh's critical path implementation, focusing on WASM extractor integration, dynamic rendering capabilities, and high-performance streaming infrastructure. The architecture supports sub-500ms TTFB streaming, persistent session management, and robust error handling.
+This document presents the comprehensive system architecture for riptide's critical path implementation, focusing on WASM extractor integration, dynamic rendering capabilities, and high-performance streaming infrastructure. The architecture supports sub-500ms TTFB streaming, persistent session management, and robust error handling.
 
 ## 1. Core Architecture Overview
 
@@ -946,4 +946,4 @@ pub enum TestScenario {
 - JavaScript code sandboxing
 - Content-type verification
 
-This architecture provides a robust foundation for the EventMesh critical path implementation, ensuring high performance, reliability, and maintainability while meeting all specified requirements.
+This architecture provides a robust foundation for the riptide critical path implementation, ensuring high performance, reliability, and maintainability while meeting all specified requirements.

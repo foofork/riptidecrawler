@@ -1,14 +1,14 @@
-# RipTide Crawler - Deployment Guide
+# RipTide - Deployment Guide
 
 ## Overview
 
-This guide covers deploying RipTide Crawler in various environments, from local development to production Kubernetes clusters.
+This guide covers deploying RipTide in various environments, from local development to production Kubernetes clusters.
 
 ## Architecture Summary
 
-RipTide Crawler consists of 3 main services:
-- **riptide-api**: REST API gateway (Port 8080)
-- **riptide-headless**: Browser automation service (Port 9123)
+RipTide consists of 3 main services:
+- **riptide-api**: RipTide API service component (Port 8080)
+- **riptide-headless**: RipTide browser automation component (Port 9123)
 - **redis**: Cache and queue backend (Port 6379)
 
 ## Local Development Deployment
@@ -761,4 +761,4 @@ kubectl top pods -n riptide --watch
 kubectl logs -n riptide -l app=api --since=1h | grep "slow_request"
 ```
 
-This deployment guide provides comprehensive instructions for running RipTide Crawler in any environment, from local development to production Kubernetes clusters.
+This deployment guide provides practical instructions for running RipTide based on the actual system architecture and tested configurations.

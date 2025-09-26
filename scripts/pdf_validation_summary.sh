@@ -8,7 +8,7 @@ echo "    PDF Pipeline Validation Summary"
 echo "=============================================="
 echo ""
 
-cd "/workspaces/eventmesh"
+cd "/workspaces/riptide"
 
 echo "🔍 Running Quick Structural Validation..."
 mkdir -p /tmp/validation_logs

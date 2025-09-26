@@ -5,7 +5,7 @@ info:
   version: "3.0.0"
   contact:
     name: RipTide API Support
-    email: support@riptide.dev
+    email: support@RipTide.dev
 
 servers:
   - url: http://localhost:8080

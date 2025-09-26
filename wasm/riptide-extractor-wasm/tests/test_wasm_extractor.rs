@@ -7,8 +7,8 @@ use wasmtime::*;
 use wasmtime::component::*;
 
 // Test configuration
-const WASM_PATH: &str = "/workspaces/eventmesh/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm";
-const FIXTURES_DIR: &str = "/workspaces/eventmesh/wasm/riptide-extractor-wasm/tests/fixtures";
+const WASM_PATH: &str = "/workspaces/riptide/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm";
+const FIXTURES_DIR: &str = "/workspaces/riptide/wasm/riptide-extractor-wasm/tests/fixtures";
 
 /// Test results structure
 #[derive(Debug)]
@@ -346,7 +346,7 @@ fn generate_report(results: &[TestResult], metrics: &PerformanceMetrics) -> Resu
     println!("   Avg Extract <50ms: {}", if perf_target_met { "✅" } else { "❌" });
 
     // Save detailed report
-    let report_path = "/workspaces/eventmesh/wasm/riptide-extractor-wasm/test-report.json";
+    let report_path = "/workspaces/riptide/wasm/riptide-extractor-wasm/test-report.json";
     let report = json!({
         "timestamp": chrono::Utc::now().to_rfc3339(),
         "success_rate": success_rate,

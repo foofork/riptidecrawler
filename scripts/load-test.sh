@@ -256,7 +256,7 @@ EOF
 start_riptide_server() {
     echo -e "${BLUE}Starting RipTide server...${NC}"
 
-    local server_dir="/workspaces/eventmesh"
+    local server_dir="/workspaces/riptide"
     if [ ! -d "$server_dir" ]; then
         echo -e "${RED}Error: RipTide server directory not found at $server_dir${NC}"
         return 1

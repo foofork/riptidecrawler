@@ -8,7 +8,7 @@ This document describes the implementation of cache optimization and input valid
 
 ### 1. Enhanced Redis Cache with TTL and Version-Aware Keys
 
-**File**: `/workspaces/eventmesh/crates/riptide-core/src/cache.rs`
+**File**: `/workspaces/riptide/crates/riptide-core/src/cache.rs`
 
 - **Redis read-through caching** with configurable TTL (default 24 hours)
 - **Version-aware cache keys** including extractor version and options hash
@@ -39,7 +39,7 @@ cache_manager.set(
 
 ### 2. HTTP Conditional GET Support
 
-**File**: `/workspaces/eventmesh/crates/riptide-core/src/conditional.rs`
+**File**: `/workspaces/riptide/crates/riptide-core/src/conditional.rs`
 
 - **ETag generation** from content using SHA-256
 - **Last-Modified header** support
@@ -68,7 +68,7 @@ match cache_manager.check_conditional(&key,
 
 ### 3. Comprehensive Input Validation
 
-**File**: `/workspaces/eventmesh/crates/riptide-core/src/validation.rs`
+**File**: `/workspaces/riptide/crates/riptide-core/src/validation.rs`
 
 - **URL validation** with scheme checking (http/https only)
 - **Content-type allowlist** for safe content types
@@ -89,7 +89,7 @@ match cache_manager.check_conditional(&key,
 
 ### 4. Security Middleware
 
-**File**: `/workspaces/eventmesh/crates/riptide-core/src/security.rs`
+**File**: `/workspaces/riptide/crates/riptide-core/src/security.rs`
 
 - **CORS headers** with configurable origins
 - **XSS protection** headers
@@ -111,7 +111,7 @@ Referrer-Policy: strict-origin-when-cross-origin
 
 ### 5. Integrated Phase-2 Manager
 
-**File**: `/workspaces/eventmesh/crates/riptide-core/src/phase2.rs`
+**File**: `/workspaces/riptide/crates/riptide-core/src/phase2.rs`
 
 - **Unified interface** combining all Phase-2 features
 - **Configuration management** with sensible defaults

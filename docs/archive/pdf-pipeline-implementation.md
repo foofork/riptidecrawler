@@ -8,7 +8,7 @@ This document summarizes the implementation of PR-4: PDF Pipeline with pdfium in
 
 ### Key Components
 
-#### 1. Core PDF Processing (`/workspaces/eventmesh/crates/riptide-core/src/pdf/`)
+#### 1. Core PDF Processing (`/workspaces/riptide/crates/riptide-core/src/pdf/`)
 
 - **`processor.rs`**: Enhanced PdfiumProcessor with semaphore-based concurrency control
 - **`config.rs`**: Comprehensive configuration options for PDF processing
@@ -269,14 +269,14 @@ cargo bench --features benchmarks
 ## Files Created/Modified
 
 ### New Files
-- `/workspaces/eventmesh/crates/riptide-core/src/pdf/integration.rs`
-- `/workspaces/eventmesh/crates/riptide-core/src/pdf/tests.rs`
-- `/workspaces/eventmesh/crates/riptide-core/src/pdf/benchmarks.rs`
-- `/workspaces/eventmesh/docs/pdf-pipeline-implementation.md`
+- `/workspaces/riptide/crates/riptide-core/src/pdf/integration.rs`
+- `/workspaces/riptide/crates/riptide-core/src/pdf/tests.rs`
+- `/workspaces/riptide/crates/riptide-core/src/pdf/benchmarks.rs`
+- `/workspaces/riptide/docs/pdf-pipeline-implementation.md`
 
 ### Modified Files
-- `/workspaces/eventmesh/crates/riptide-core/src/pdf/processor.rs` - Enhanced concurrency, memory monitoring, metadata extraction
-- `/workspaces/eventmesh/crates/riptide-core/src/pdf/utils.rs` - Enhanced PDF detection methods
-- `/workspaces/eventmesh/crates/riptide-core/src/pdf/mod.rs` - Added new module exports
+- `/workspaces/riptide/crates/riptide-core/src/pdf/processor.rs` - Enhanced concurrency, memory monitoring, metadata extraction
+- `/workspaces/riptide/crates/riptide-core/src/pdf/utils.rs` - Enhanced PDF detection methods
+- `/workspaces/riptide/crates/riptide-core/src/pdf/mod.rs` - Added new module exports
 
 The PDF pipeline implementation is now complete and ready for production use with comprehensive testing, monitoring, and integration capabilities.

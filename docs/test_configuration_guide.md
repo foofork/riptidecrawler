@@ -1,8 +1,8 @@
-# Test Configuration Guide for EventMesh RipTide
+# Test Configuration Guide for riptide
 
 ## Overview
 
-This guide provides specific instructions for configuring and running tests in the EventMesh RipTide project. It focuses on getting existing tests to pass and establishing a solid foundation for test-driven development.
+This guide provides specific instructions for configuring and running tests in the riptide project with RipTide extraction components. It focuses on getting existing tests to pass and establishing a solid foundation for test-driven development.
 
 ## Test Configuration Structure
 
@@ -97,7 +97,7 @@ hyper = { workspace = true }
 wasmtime = { workspace = true }
 wasmtime-wasi = { workspace = true }
 
-# EventMesh crates
+# riptide crates
 riptide-core = { path = "../crates/riptide-core" }
 riptide-api = { path = "../crates/riptide-api" }
 riptide-headless = { path = "../crates/riptide-headless" }
@@ -543,4 +543,4 @@ impl TestFixtures {
 - Use statistical significance testing
 - Monitor for performance regressions in CI
 
-This configuration guide provides a comprehensive framework for testing in the EventMesh RipTide project, focusing on reliability, maintainability, and comprehensive coverage while ensuring existing tests can pass successfully.
+This configuration guide provides a comprehensive framework for testing in the riptide project, focusing on reliability, maintainability, and comprehensive coverage while ensuring existing tests can pass successfully.
