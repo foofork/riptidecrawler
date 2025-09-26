@@ -200,6 +200,139 @@ impl Default for SearchConfig {
     }
 }
 
+/// Advanced configuration for search provider creation with circuit breaker settings.
+#[derive(Debug, Clone)]
+pub struct AdvancedSearchConfig {
+    /// The search backend to use
+    pub backend: SearchBackend,
+    /// API key for external services (if required)
+    pub api_key: Option<String>,
+    /// Base URL for self-hosted services (e.g., SearXNG)
+    pub base_url: Option<String>,
+    /// Request timeout in seconds
+    pub timeout_seconds: u64,
+    /// Whether to enable URL parsing from query for None backend
+    pub enable_url_parsing: bool,
+    /// Circuit breaker configuration
+    pub circuit_breaker: CircuitBreakerConfigOptions,
+}
+
+/// Circuit breaker configuration options.
+#[derive(Debug, Clone)]
+pub struct CircuitBreakerConfigOptions {
+    /// Failure threshold percentage (0-100) to trigger circuit opening
+    pub failure_threshold: u32,
+    /// Minimum number of requests before circuit can open
+    pub min_requests: u32,
+    /// Time to wait before attempting to close an open circuit (in seconds)
+    pub recovery_timeout_secs: u64,
+}
+
+impl Default for CircuitBreakerConfigOptions {
+    fn default() -> Self {
+        Self {
+            failure_threshold: 50,
+            min_requests: 5,
+            recovery_timeout_secs: 60,
+        }
+    }
+}
+
+impl Default for AdvancedSearchConfig {
+    fn default() -> Self {
+        Self {
+            backend: SearchBackend::Serper,
+            api_key: None,
+            base_url: None,
+            timeout_seconds: 30,
+            enable_url_parsing: true,
+            circuit_breaker: CircuitBreakerConfigOptions::default(),
+        }
+    }
+}
+
+impl AdvancedSearchConfig {
+    /// Create configuration from environment variables.
+    pub fn from_env() -> Self {
+        Self {
+            backend: std::env::var("SEARCH_BACKEND")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(SearchBackend::Serper),
+            api_key: match std::env::var("SEARCH_BACKEND").ok().as_deref() {
+                Some("serper") | None => std::env::var("SERPER_API_KEY").ok(),
+                _ => None,
+            },
+            base_url: match std::env::var("SEARCH_BACKEND").ok().as_deref() {
+                Some("searxng") => std::env::var("SEARXNG_BASE_URL").ok(),
+                _ => None,
+            },
+            timeout_seconds: std::env::var("SEARCH_TIMEOUT")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(30),
+            enable_url_parsing: std::env::var("SEARCH_ENABLE_URL_PARSING")
+                .map(|s| s.to_lowercase() == "true")
+                .unwrap_or(true),
+            circuit_breaker: CircuitBreakerConfigOptions {
+                failure_threshold: std::env::var("CIRCUIT_BREAKER_FAILURE_THRESHOLD")
+                    .ok()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(50),
+                min_requests: std::env::var("CIRCUIT_BREAKER_MIN_REQUESTS")
+                    .ok()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(5),
+                recovery_timeout_secs: std::env::var("CIRCUIT_BREAKER_RECOVERY_TIMEOUT")
+                    .ok()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(60),
+            },
+        }
+    }
+
+    /// Validate the configuration and return an error if invalid.
+    pub fn validate(&self) -> Result<()> {
+        // Validate backend-specific requirements
+        match self.backend {
+            SearchBackend::Serper => {
+                if self.api_key.is_none() || self.api_key.as_ref().unwrap().trim().is_empty() {
+                    return Err(anyhow::anyhow!("Serper backend requires a valid API key"));
+                }
+            }
+            SearchBackend::SearXNG => {
+                if self.base_url.is_none() || self.base_url.as_ref().unwrap().trim().is_empty() {
+                    return Err(anyhow::anyhow!("SearXNG backend requires a valid base URL"));
+                }
+            }
+            SearchBackend::None => {
+                // None backend has no external dependencies
+            }
+        }
+
+        // Validate timeout
+        if self.timeout_seconds == 0 {
+            return Err(anyhow::anyhow!("Timeout must be greater than 0"));
+        }
+        if self.timeout_seconds > 3600 {
+            return Err(anyhow::anyhow!("Timeout cannot exceed 1 hour (3600 seconds)"));
+        }
+
+        // Validate circuit breaker settings
+        if self.circuit_breaker.failure_threshold > 100 {
+            return Err(anyhow::anyhow!("Failure threshold cannot exceed 100%"));
+        }
+        if self.circuit_breaker.min_requests == 0 {
+            return Err(anyhow::anyhow!("Minimum requests must be greater than 0"));
+        }
+        if self.circuit_breaker.recovery_timeout_secs == 0 {
+            return Err(anyhow::anyhow!("Recovery timeout must be greater than 0"));
+        }
+
+        Ok(())
+    }
+}
+
 /// Factory function to create a search provider based on configuration.
 ///
 /// This function handles the creation of the appropriate provider implementation
@@ -248,6 +381,85 @@ pub async fn create_search_provider(config: SearchConfig) -> Result<Box<dyn Sear
     let circuit_breaker_provider = CircuitBreakerWrapper::new(provider);
 
     Ok(Box::new(circuit_breaker_provider))
+}
+
+/// Advanced SearchProvider factory with enhanced configuration support.
+pub struct SearchProviderFactory;
+
+impl SearchProviderFactory {
+    /// Create a search provider with advanced configuration options.
+    ///
+    /// This factory method provides enhanced configuration support including:
+    /// - Circuit breaker customization
+    /// - Provider-specific timeouts
+    /// - Health check configuration
+    /// - Retry policies
+    ///
+    /// # Parameters
+    ///
+    /// - `config`: Advanced configuration for the search provider
+    ///
+    /// # Returns
+    ///
+    /// A configured SearchProvider with circuit breaker protection.
+    pub async fn create_provider(config: AdvancedSearchConfig) -> Result<Box<dyn SearchProvider>> {
+        use providers::SerperProvider;
+        use none_provider::NoneProvider;
+        use circuit_breaker::CircuitBreakerWrapper;
+
+        // Validate configuration first
+        config.validate()?;
+
+        let provider: Box<dyn SearchProvider> = match config.backend {
+            SearchBackend::Serper => {
+                let api_key = config.api_key.ok_or_else(|| {
+                    anyhow::anyhow!("API key is required for Serper backend")
+                })?;
+                Box::new(SerperProvider::new(api_key, config.timeout_seconds))
+            }
+            SearchBackend::None => {
+                Box::new(NoneProvider::new(config.enable_url_parsing))
+            }
+            SearchBackend::SearXNG => {
+                let _base_url = config.base_url.ok_or_else(|| {
+                    anyhow::anyhow!("Base URL is required for SearXNG backend")
+                })?;
+                // Note: SearXNG provider is not yet implemented
+                return Err(anyhow::anyhow!(
+                    "SearXNG backend is not yet implemented. Use 'serper' or 'none' instead."
+                ));
+            }
+        };
+
+        // Create custom circuit breaker configuration
+        let cb_config = circuit_breaker::CircuitBreakerConfig {
+            failure_threshold_percentage: config.circuit_breaker.failure_threshold,
+            minimum_request_threshold: config.circuit_breaker.min_requests,
+            recovery_timeout: std::time::Duration::from_secs(config.circuit_breaker.recovery_timeout_secs),
+            half_open_max_requests: 3, // Fixed value for now
+        };
+
+        // Wrap with configured circuit breaker
+        let circuit_breaker_provider = CircuitBreakerWrapper::with_config(provider, cb_config);
+
+        Ok(Box::new(circuit_breaker_provider))
+    }
+
+    /// Create a provider from environment variables with fallback to defaults.
+    ///
+    /// This method reads configuration from environment variables and provides
+    /// sensible defaults for missing values.
+    pub async fn create_from_env() -> Result<Box<dyn SearchProvider>> {
+        let config = AdvancedSearchConfig::from_env();
+        Self::create_provider(config).await
+    }
+
+    /// Create a provider with a specific backend, using environment for other settings.
+    pub async fn create_with_backend(backend: SearchBackend) -> Result<Box<dyn SearchProvider>> {
+        let mut config = AdvancedSearchConfig::from_env();
+        config.backend = backend;
+        Self::create_provider(config).await
+    }
 }
 
 /// Convenience function to create a search provider from environment and backend type.

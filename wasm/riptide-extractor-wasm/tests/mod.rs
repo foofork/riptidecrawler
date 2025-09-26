@@ -337,7 +337,7 @@ fn generate_coverage_report() -> Result<CoverageReport, String> {
 }
 
 /// Calculate performance summary from test results
-fn calculate_performance_summary(categories: &[&TestCategoryResult]) -> Result<PerformanceSummary, String> {
+fn calculate_performance_summary(_categories: &[&TestCategoryResult]) -> Result<PerformanceSummary, String> {
     // Simulate performance metrics calculation
     Ok(PerformanceSummary {
         average_extraction_time_ms: 15.5, // Based on benchmark results

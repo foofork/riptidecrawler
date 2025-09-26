@@ -25,6 +25,7 @@ use std::time::Duration;
 pub struct SerperProvider {
     api_key: String,
     client: reqwest::Client,
+    #[allow(dead_code)]
     timeout_seconds: u64,
 }
 

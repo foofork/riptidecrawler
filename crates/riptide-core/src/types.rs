@@ -50,7 +50,7 @@ pub struct ExtractedDoc {
 }
 
 /// Content extraction modes with specific behaviors
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ExtractionMode {
     /// Extract article content using readability algorithms
     Article,

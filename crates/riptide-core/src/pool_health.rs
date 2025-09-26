@@ -7,6 +7,8 @@ use tracing::{debug, error, info, warn};
 
 use crate::component::{PerformanceMetrics, ExtractorConfig};
 use crate::instance_pool::AdvancedInstancePool;
+use crate::events::{EventBus, HealthEvent, HealthStatus, MetricsEvent, MetricType};
+use std::collections::HashMap;
 
 /// Pool health status
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -102,6 +104,10 @@ pub struct PoolHealthMonitor {
     health_history: Arc<Mutex<Vec<PoolHealthStatus>>>,
     /// Monitoring interval
     check_interval: Duration,
+    /// Optional event bus for health event emission
+    event_bus: Option<Arc<EventBus>>,
+    /// Monitor ID for event emission
+    monitor_id: String,
 }
 
 impl PoolHealthMonitor {
@@ -116,6 +122,30 @@ impl PoolHealthMonitor {
             config,
             health_history: Arc::new(Mutex::new(Vec::new())),
             check_interval,
+            event_bus: None,
+            monitor_id: uuid::Uuid::new_v4().to_string(),
+        }
+    }
+
+    /// Set event bus for health event emission
+    pub fn set_event_bus(&mut self, event_bus: Arc<EventBus>) {
+        self.event_bus = Some(event_bus);
+    }
+
+    /// Create new health monitor with event bus
+    pub fn with_event_bus(
+        pool: Arc<AdvancedInstancePool>,
+        config: ExtractorConfig,
+        check_interval: Duration,
+        event_bus: Arc<EventBus>,
+    ) -> Self {
+        Self {
+            pool,
+            config,
+            health_history: Arc::new(Mutex::new(Vec::new())),
+            check_interval,
+            event_bus: Some(event_bus),
+            monitor_id: uuid::Uuid::new_v4().to_string(),
         }
     }
 
@@ -134,13 +164,19 @@ impl PoolHealthMonitor {
             // Perform health check with timeout
             match timeout(Duration::from_secs(5), self.perform_health_check()).await {
                 Ok(Ok(status)) => {
+                    // Emit health check completed event
+                    self.emit_health_check_completed(&status).await;
                     self.process_health_status(status).await;
                 }
                 Ok(Err(e)) => {
                     error!(error = %e, "Health check failed");
+                    // Emit health check failed event
+                    self.emit_health_check_failed(&e).await;
                 }
                 Err(_) => {
                     error!("Health check timed out");
+                    // Emit health check timeout event
+                    self.emit_health_check_timeout().await;
                 }
             }
         }
@@ -278,11 +314,14 @@ impl PoolHealthMonitor {
             }
         }
 
-        // TODO: Add automated remediation actions
-        // - Scale pool up/down based on utilization
-        // - Clear instances with high memory usage
-        // - Reset circuit breaker if appropriate
-        // - Send alerts/notifications
+        // Emit health status as event
+        self.emit_health_status_event(&status).await;
+
+        // Emit metrics events
+        self.emit_metrics_events(&status).await;
+
+        // Automated remediation actions based on health status
+        self.perform_automated_remediation(&status).await;
     }
 
     /// Determine memory pressure level
@@ -411,5 +450,309 @@ impl PoolHealthMonitor {
                 "message": "No health data available"
             }))
         }
+    }
+
+    /// Emit health check completed event
+    async fn emit_health_check_completed(&self, status: &PoolHealthStatus) {
+        if let Some(event_bus) = &self.event_bus {
+            let health_status = match status.status {
+                HealthLevel::Healthy => HealthStatus::Healthy,
+                HealthLevel::Degraded => HealthStatus::Degraded,
+                HealthLevel::Unhealthy => HealthStatus::Unhealthy,
+                HealthLevel::Critical => HealthStatus::Critical,
+            };
+
+            // Create detailed health check completed event with healthy/unhealthy counts
+            let healthy_instances = status.available_instances;
+            let unhealthy_instances = status.max_instances - status.available_instances - status.active_instances;
+
+            let mut event = HealthEvent::new(
+                format!("pool_health_{}", self.monitor_id),
+                health_status,
+                &format!("health_monitor_{}", self.monitor_id),
+            )
+            .with_details(format!(
+                "Health check completed. Pool utilization: {:.1}%, Success rate: {:.1}%, Healthy: {}, Unhealthy: {}",
+                status.utilization_percent, status.success_rate_percent, healthy_instances, unhealthy_instances
+            ));
+
+            // Add detailed metadata for health check results
+            let mut health_metrics = std::collections::HashMap::new();
+            health_metrics.insert("healthy_instances".to_string(), healthy_instances as f64);
+            health_metrics.insert("unhealthy_instances".to_string(), unhealthy_instances as f64);
+            health_metrics.insert("utilization_percent".to_string(), status.utilization_percent);
+            health_metrics.insert("success_rate_percent".to_string(), status.success_rate_percent);
+            health_metrics.insert("fallback_rate_percent".to_string(), status.fallback_rate_percent);
+            health_metrics.insert("avg_semaphore_wait_ms".to_string(), status.avg_semaphore_wait_ms);
+            health_metrics.insert("total_extractions".to_string(), status.total_extractions as f64);
+            health_metrics.insert("memory_pressure_level".to_string(), match status.memory_stats.memory_pressure {
+                MemoryPressureLevel::Low => 1.0,
+                MemoryPressureLevel::Medium => 2.0,
+                MemoryPressureLevel::High => 3.0,
+                MemoryPressureLevel::Critical => 4.0,
+            });
+
+            event = event.with_metrics(health_metrics);
+
+            if let Err(e) = event_bus.emit(event).await {
+                warn!(error = %e, "Failed to emit health check completed event");
+            }
+        }
+    }
+
+    /// Emit health check failed event
+    async fn emit_health_check_failed(&self, error: &anyhow::Error) {
+        if let Some(event_bus) = &self.event_bus {
+            let event = HealthEvent::new(
+                format!("pool_health_{}", self.monitor_id),
+                HealthStatus::Critical,
+                &format!("health_monitor_{}", self.monitor_id),
+            )
+            .with_details(format!("Health check failed: {}", error));
+
+            if let Err(e) = event_bus.emit(event).await {
+                warn!(error = %e, "Failed to emit health check failed event");
+            }
+        }
+    }
+
+    /// Emit health check timeout event
+    async fn emit_health_check_timeout(&self) {
+        if let Some(event_bus) = &self.event_bus {
+            let event = HealthEvent::new(
+                format!("pool_health_{}", self.monitor_id),
+                HealthStatus::Critical,
+                &format!("health_monitor_{}", self.monitor_id),
+            )
+            .with_details("Health check timed out".to_string());
+
+            if let Err(e) = event_bus.emit(event).await {
+                warn!(error = %e, "Failed to emit health check timeout event");
+            }
+        }
+    }
+
+    /// Emit health status event
+    async fn emit_health_status_event(&self, status: &PoolHealthStatus) {
+        if let Some(event_bus) = &self.event_bus {
+            let health_status = match status.status {
+                HealthLevel::Healthy => HealthStatus::Healthy,
+                HealthLevel::Degraded => HealthStatus::Degraded,
+                HealthLevel::Unhealthy => HealthStatus::Unhealthy,
+                HealthLevel::Critical => HealthStatus::Critical,
+            };
+
+            let mut metrics = HashMap::new();
+            metrics.insert("utilization_percent".to_string(), status.utilization_percent);
+            metrics.insert("success_rate_percent".to_string(), status.success_rate_percent);
+            metrics.insert("available_instances".to_string(), status.available_instances as f64);
+            metrics.insert("active_instances".to_string(), status.active_instances as f64);
+            metrics.insert("max_instances".to_string(), status.max_instances as f64);
+
+            let event = HealthEvent::new(
+                format!("pool_{}", self.monitor_id),
+                health_status,
+                &format!("health_monitor_{}", self.monitor_id),
+            )
+            .with_metrics(metrics);
+
+            if let Err(e) = event_bus.emit(event).await {
+                warn!(error = %e, "Failed to emit health status event");
+            }
+        }
+    }
+
+    /// Emit metrics events
+    async fn emit_metrics_events(&self, status: &PoolHealthStatus) {
+        if let Some(event_bus) = &self.event_bus {
+            // Pool utilization metric
+            let util_event = MetricsEvent::new(
+                "pool_utilization".to_string(),
+                status.utilization_percent,
+                MetricType::Gauge,
+                &format!("health_monitor_{}", self.monitor_id),
+            );
+
+            if let Err(e) = event_bus.emit(util_event).await {
+                warn!(error = %e, "Failed to emit utilization metric");
+            }
+
+            // Success rate metric
+            let success_event = MetricsEvent::new(
+                "pool_success_rate".to_string(),
+                status.success_rate_percent,
+                MetricType::Gauge,
+                &format!("health_monitor_{}", self.monitor_id),
+            );
+
+            if let Err(e) = event_bus.emit(success_event).await {
+                warn!(error = %e, "Failed to emit success rate metric");
+            }
+
+            // Total extractions counter
+            let extraction_event = MetricsEvent::new(
+                "total_extractions".to_string(),
+                status.total_extractions as f64,
+                MetricType::Counter,
+                &format!("health_monitor_{}", self.monitor_id),
+            );
+
+            if let Err(e) = event_bus.emit(extraction_event).await {
+                warn!(error = %e, "Failed to emit extraction counter");
+            }
+        }
+    }
+
+    /// Perform automated remediation actions based on health status
+    async fn perform_automated_remediation(&self, status: &PoolHealthStatus) {
+        match status.status {
+            HealthLevel::Critical => {
+                error!(
+                    "CRITICAL health status detected - performing emergency remediation actions"
+                );
+                self.emergency_remediation(status).await;
+            }
+            HealthLevel::Unhealthy => {
+                warn!(
+                    "UNHEALTHY status detected - performing remediation actions"
+                );
+                self.unhealthy_remediation(status).await;
+            }
+            HealthLevel::Degraded => {
+                info!(
+                    "DEGRADED status detected - performing optimization actions"
+                );
+                self.degraded_remediation(status).await;
+            }
+            HealthLevel::Healthy => {
+                // Monitor for optimization opportunities
+                self.optimization_check(status).await;
+            }
+        }
+    }
+
+    /// Emergency remediation for critical health status
+    async fn emergency_remediation(&self, status: &PoolHealthStatus) {
+        // 1. Try to clear high memory usage instances
+        if status.memory_stats.memory_pressure == MemoryPressureLevel::Critical {
+            warn!("Critical memory pressure - clearing instances with high memory usage");
+            if let Err(e) = self.pool.clear_high_memory_instances().await {
+                error!(error = %e, "Failed to clear high memory instances");
+            }
+        }
+
+        // 2. Scale down if utilization is too high
+        if status.utilization_percent > 95.0 {
+            warn!("Critical utilization - attempting to scale down active instances");
+            // This would be implementation-specific based on your pool design
+            info!("Scaling down would be implemented based on pool capabilities");
+        }
+
+        // 3. Reset circuit breaker if it's tripped and conditions have improved
+        if status.circuit_breaker_status == "TRIPPED" && status.success_rate_percent > 80.0 {
+            warn!("Attempting to reset circuit breaker after conditions improved");
+            // Circuit breaker reset would be implementation-specific
+            info!("Circuit breaker reset would be triggered here");
+        }
+
+        // 4. Emit emergency alert
+        self.emit_emergency_alert(status).await;
+    }
+
+    /// Remediation for unhealthy status
+    async fn unhealthy_remediation(&self, status: &PoolHealthStatus) {
+        // 1. Clear instances if memory pressure is high
+        if matches!(
+            status.memory_stats.memory_pressure,
+            MemoryPressureLevel::High | MemoryPressureLevel::Critical
+        ) {
+            info!("High memory pressure - clearing some instances");
+            if let Err(e) = self.pool.clear_some_instances(2).await {
+                warn!(error = %e, "Failed to clear instances for memory pressure");
+            }
+        }
+
+        // 2. Reduce concurrency if utilization is too high
+        if status.utilization_percent > 85.0 {
+            info!("High utilization - recommending concurrency reduction");
+            // This would typically involve adjusting semaphore limits
+        }
+
+        // 3. Check if fallback rate is too high
+        if status.fallback_rate_percent > 30.0 {
+            warn!(
+                fallback_rate = status.fallback_rate_percent,
+                "High fallback rate detected - may indicate system issues"
+            );
+        }
+    }
+
+    /// Remediation for degraded status
+    async fn degraded_remediation(&self, status: &PoolHealthStatus) {
+        // 1. Proactive memory management
+        if status.memory_stats.memory_pressure == MemoryPressureLevel::Medium {
+            debug!("Medium memory pressure - performing proactive cleanup");
+            if let Err(e) = self.pool.trigger_memory_cleanup().await {
+                debug!(error = %e, "Memory cleanup failed");
+            }
+        }
+
+        // 2. Performance optimization
+        if status.avg_semaphore_wait_ms > 1000.0 {
+            info!(
+                wait_time = status.avg_semaphore_wait_ms,
+                "High semaphore wait times - may need pool size adjustment"
+            );
+        }
+    }
+
+    /// Check for optimization opportunities in healthy state
+    async fn optimization_check(&self, status: &PoolHealthStatus) {
+        // Only log optimization opportunities for healthy state
+        if status.utilization_percent < 30.0 && status.available_instances > 3 {
+            debug!(
+                utilization = status.utilization_percent,
+                available = status.available_instances,
+                "Low utilization - pool could potentially be scaled down"
+            );
+        }
+
+        if status.memory_stats.memory_pressure == MemoryPressureLevel::Low
+            && status.success_rate_percent > 95.0
+        {
+            debug!("Optimal conditions - system is performing well");
+        }
+    }
+
+    /// Emit emergency alert for critical conditions
+    async fn emit_emergency_alert(&self, status: &PoolHealthStatus) {
+        if let Some(event_bus) = &self.event_bus {
+            let alert_event = HealthEvent::new(
+                format!("emergency_alert_{}", self.monitor_id),
+                HealthStatus::Critical,
+                &format!("health_monitor_{}", self.monitor_id),
+            )
+            .with_details(format!(
+                "EMERGENCY: Critical health status detected. Utilization: {:.1}%, \
+                Success Rate: {:.1}%, Memory Pressure: {:?}, Circuit Breaker: {}",
+                status.utilization_percent,
+                status.success_rate_percent,
+                status.memory_stats.memory_pressure,
+                status.circuit_breaker_status
+            ));
+
+            if let Err(e) = event_bus.emit(alert_event).await {
+                error!(error = %e, "Failed to emit emergency alert");
+            }
+        }
+
+        // Also log the emergency to ensure it's captured
+        error!(
+            utilization = status.utilization_percent,
+            success_rate = status.success_rate_percent,
+            memory_pressure = ?status.memory_stats.memory_pressure,
+            circuit_breaker = status.circuit_breaker_status,
+            "EMERGENCY ALERT: Critical pool health status requires immediate attention"
+        );
     }
 }

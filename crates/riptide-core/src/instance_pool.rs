@@ -11,6 +11,8 @@ use wasmtime::{component::*, Engine, Store};
 
 use crate::component::{ExtractorConfig, PerformanceMetrics, WasmResourceTracker};
 use crate::types::{ExtractedDoc, ExtractionMode};
+use crate::events::{Event, EventEmitter, EventBus, PoolEvent, PoolOperation, PoolMetrics};
+use async_trait::async_trait;
 
 wasmtime::component::bindgen!({
     world: "extractor",
@@ -124,7 +126,12 @@ pub struct AdvancedInstancePool {
     /// Circuit breaker state
     circuit_state: Arc<Mutex<CircuitBreakerState>>,
     /// Component path for creation
+    #[allow(dead_code)]
     component_path: String,
+    /// Pool unique identifier
+    pool_id: String,
+    /// Optional event bus for event emission
+    event_bus: Option<Arc<EventBus>>,
 }
 
 impl AdvancedInstancePool {
@@ -158,10 +165,25 @@ impl AdvancedInstancePool {
                 last_failure: None,
             })),
             component_path: component_path.to_string(),
+            pool_id: Uuid::new_v4().to_string(),
+            event_bus: None,
         };
 
         // Pre-warm the pool
         pool.warm_up().await?;
+
+        // Emit pool warmup event if event bus is available
+        if let Some(event_bus) = &pool.event_bus {
+            let warmup_event = PoolEvent::new(
+                PoolOperation::PoolWarmup,
+                pool.pool_id.clone(),
+                "instance_pool",
+            );
+
+            if let Err(e) = event_bus.emit(warmup_event).await {
+                warn!(error = %e, pool_id = %pool.pool_id, "Failed to emit pool warmup event");
+            }
+        }
 
         info!("Advanced instance pool initialized successfully");
         Ok(pool)
@@ -171,21 +193,35 @@ impl AdvancedInstancePool {
     async fn warm_up(&self) -> Result<()> {
         debug!(warm_count = self.config.initial_pool_size, "Warming up instance pool");
 
-        let mut instances = self.available_instances.lock().unwrap();
+        // Create instances without holding the lock
+        let mut created_instances = Vec::new();
         for i in 0..self.config.initial_pool_size {
             let instance = self.create_instance().await?;
-            instances.push_back(instance);
+            created_instances.push(instance);
             debug!(instance_index = i, "Instance pre-warmed");
         }
 
+        // Now add all instances to the pool in one go
+        {
+            let mut instances = self.available_instances.lock().unwrap();
+            for instance in created_instances {
+                instances.push_back(instance);
+            }
+        }
+
         // Update metrics
+        let pool_size = {
+            let instances = self.available_instances.lock().unwrap();
+            instances.len()
+        };
+
         {
             let mut metrics = self.metrics.lock().unwrap();
-            metrics.pool_size = instances.len();
+            metrics.pool_size = pool_size;
         }
 
         info!(
-            pool_size = instances.len(),
+            pool_size = pool_size,
             "Pool warm-up completed"
         );
 
@@ -215,6 +251,21 @@ impl AdvancedInstancePool {
             Ok(Err(_)) => return Err(anyhow!("Semaphore closed")),
             Err(_) => {
                 self.record_timeout();
+
+                // Emit timeout event
+                if let Some(event_bus) = &self.event_bus {
+                    let event = crate::events::ExtractionEvent::new(
+                        crate::events::ExtractionOperation::Timeout,
+                        url.to_string(),
+                        format!("{:?}", mode),
+                        &format!("pool-{}", self.pool_id),
+                    ).with_duration(start_time.elapsed());
+
+                    if let Err(e) = event_bus.emit(event).await {
+                        warn!(error = %e, "Failed to emit timeout event");
+                    }
+                }
+
                 return self.fallback_extract(html, url, mode).await;
             }
         };
@@ -224,12 +275,52 @@ impl AdvancedInstancePool {
         // Get or create instance
         let mut instance = self.get_or_create_instance().await?;
 
+        // Emit instance acquired event
+        if let Some(event_bus) = &self.event_bus {
+            let event = PoolEvent::new(
+                PoolOperation::InstanceAcquired,
+                self.pool_id.clone(),
+                "instance_pool",
+            )
+            .with_instance_id(instance.id.clone());
+
+            if let Err(e) = event_bus.emit(event).await {
+                warn!(error = %e, instance_id = %instance.id, "Failed to emit instance acquired event");
+            }
+        }
+
         // Perform extraction with epoch timeout
-        let extraction_result = self.extract_with_instance(&mut instance, html, url, mode).await;
+        let extraction_result = self.extract_with_instance(&mut instance, html, url, mode.clone()).await;
 
         // Update metrics and return instance
         let success = extraction_result.is_ok();
         instance.record_usage(success);
+
+        // Emit extraction completion event
+        if let Some(event_bus) = &self.event_bus {
+            let duration = start_time.elapsed();
+            let operation = if success {
+                crate::events::ExtractionOperation::Completed
+            } else {
+                crate::events::ExtractionOperation::Failed
+            };
+
+            let mut event = crate::events::ExtractionEvent::new(
+                operation,
+                url.to_string(),
+                format!("{:?}", mode),
+                &format!("pool-{}", self.pool_id),
+            ).with_duration(duration);
+
+            if let Err(ref error) = extraction_result {
+                event = event.with_error(error.to_string());
+            }
+
+            if let Err(e) = event_bus.emit(event).await {
+                warn!(error = %e, "Failed to emit extraction event");
+            }
+        }
+
         self.return_instance(instance).await;
 
         // Update circuit breaker
@@ -254,15 +345,40 @@ impl AdvancedInstancePool {
     /// Get or create instance from pool
     async fn get_or_create_instance(&self) -> Result<PooledInstance> {
         // Try to get from pool first
-        {
+        let (maybe_instance, pool_empty) = {
             let mut instances = self.available_instances.lock().unwrap();
-            if let Some(instance) = instances.pop_front() {
-                if instance.is_healthy(&self.config) {
-                    return Ok(instance);
-                }
-                // Instance is unhealthy, create new one
-                debug!(instance_id = %instance.id, "Discarding unhealthy instance");
+            let pool_empty = instances.is_empty();
+            let maybe_instance = instances.pop_front();
+            (maybe_instance, pool_empty)
+        }; // Lock dropped here
+
+        if let Some(instance) = maybe_instance {
+            if instance.is_healthy(&self.config) {
+                return Ok(instance);
             }
+            // Instance is unhealthy, create new one
+            debug!(instance_id = %instance.id, "Discarding unhealthy instance");
+
+            // Emit unhealthy instance event
+            if let Some(event_bus) = &self.event_bus {
+                let mut event = PoolEvent::new(
+                    PoolOperation::InstanceUnhealthy,
+                    self.pool_id.clone(),
+                    "instance_pool",
+                )
+                .with_instance_id(instance.id.clone());
+
+                event.add_metadata("reason", "health_check_failed");
+                event.add_metadata("use_count", &instance.use_count.to_string());
+                event.add_metadata("failure_count", &instance.failure_count.to_string());
+
+                if let Err(e) = event_bus.emit(event).await {
+                    warn!(error = %e, instance_id = %instance.id, "Failed to emit instance unhealthy event");
+                }
+            }
+        } else if pool_empty {
+            // Pool is empty, emit pool exhausted event
+            self.emit_pool_exhausted_event().await;
         }
 
         // Create new instance if needed
@@ -281,6 +397,21 @@ impl AdvancedInstancePool {
         );
 
         debug!(instance_id = %instance.id, "New WASM instance created");
+
+        // Emit instance created event
+        if let Some(event_bus) = &self.event_bus {
+            let event = PoolEvent::new(
+                PoolOperation::InstanceCreated,
+                self.pool_id.clone(),
+                "instance_pool",
+            )
+            .with_instance_id(instance.id.clone());
+
+            if let Err(e) = event_bus.emit(event).await {
+                warn!(error = %e, instance_id = %instance.id, "Failed to emit instance created event");
+            }
+        }
+
         Ok(instance)
     }
 
@@ -349,16 +480,55 @@ impl AdvancedInstancePool {
 
     /// Return instance to pool
     async fn return_instance(&self, instance: PooledInstance) {
-        if instance.is_healthy(&self.config) {
-            let mut instances = self.available_instances.lock().unwrap();
-            instances.push_back(instance);
+        let instance_id = instance.id.clone();
+        let is_healthy = instance.is_healthy(&self.config);
+
+        if is_healthy {
+            // Add healthy instance back to pool
+            {
+                let mut instances = self.available_instances.lock().unwrap();
+                instances.push_back(instance);
+            } // Lock dropped here
+
+            // Emit instance released event
+            if let Some(event_bus) = &self.event_bus {
+                let event = PoolEvent::new(
+                    PoolOperation::InstanceReleased,
+                    self.pool_id.clone(),
+                    "instance_pool",
+                )
+                .with_instance_id(instance_id.clone());
+
+                if let Err(e) = event_bus.emit(event).await {
+                    warn!(error = %e, instance_id = %instance_id, "Failed to emit instance released event");
+                }
+            }
+        } else {
+            // Emit instance destroyed event for unhealthy instances
+            if let Some(event_bus) = &self.event_bus {
+                let event = PoolEvent::new(
+                    PoolOperation::InstanceDestroyed,
+                    self.pool_id.clone(),
+                    "instance_pool",
+                )
+                .with_instance_id(instance_id.clone());
+
+                if let Err(e) = event_bus.emit(event).await {
+                    warn!(error = %e, instance_id = %instance_id, "Failed to emit instance destroyed event");
+                }
+            }
         }
-        // Otherwise, let instance drop for cleanup
 
         // Update pool size metric
-        let pool_size = self.available_instances.lock().unwrap().len();
-        let mut metrics = self.metrics.lock().unwrap();
-        metrics.pool_size = pool_size;
+        let pool_size = {
+            let instances = self.available_instances.lock().unwrap();
+            instances.len()
+        };
+
+        {
+            let mut metrics = self.metrics.lock().unwrap();
+            metrics.pool_size = pool_size;
+        }
     }
 
     /// Fallback to native extraction
@@ -366,12 +536,26 @@ impl AdvancedInstancePool {
         &self,
         html: &str,
         url: &str,
-        _mode: ExtractionMode,
+        mode: ExtractionMode,
     ) -> Result<ExtractedDoc> {
         // Record fallback usage
         {
             let mut metrics = self.metrics.lock().unwrap();
             metrics.fallback_extractions += 1;
+        }
+
+        // Emit fallback used event
+        if let Some(event_bus) = &self.event_bus {
+            let event = crate::events::ExtractionEvent::new(
+                crate::events::ExtractionOperation::FallbackUsed,
+                url.to_string(),
+                format!("{:?}", mode),
+                &format!("pool-{}", self.pool_id),
+            );
+
+            if let Err(e) = event_bus.emit(event).await {
+                warn!(error = %e, "Failed to emit fallback used event");
+            }
         }
 
         warn!("Using fallback extraction for URL: {}", url);
@@ -518,6 +702,35 @@ impl AdvancedInstancePool {
                             threshold = self.config.circuit_breaker_failure_threshold,
                             "Circuit breaker opened due to high failure rate"
                         );
+
+                        // Emit circuit breaker tripped event
+                        if let Some(event_bus) = &self.event_bus {
+                            let rt = tokio::runtime::Handle::current();
+                            let event_bus = event_bus.clone();
+                            let pool_id = self.pool_id.clone();
+                            let failure_threshold = self.config.circuit_breaker_failure_threshold;
+                            let total_trips = metrics.circuit_breaker_trips;
+                            let failed_extractions = metrics.failed_extractions;
+                            let total_extractions = metrics.total_extractions;
+
+                            rt.spawn(async move {
+                                let mut event = PoolEvent::new(
+                                    PoolOperation::CircuitBreakerTripped,
+                                    pool_id,
+                                    "instance_pool",
+                                );
+
+                                event.add_metadata("failure_threshold", &failure_threshold.to_string());
+                                event.add_metadata("total_trips", &total_trips.to_string());
+                                event.add_metadata("failed_extractions", &failed_extractions.to_string());
+                                event.add_metadata("total_extractions", &total_extractions.to_string());
+
+                                if let Err(e) = event_bus.emit(event).await {
+                                    warn!(error = %e, "Failed to emit circuit breaker tripped event");
+                                }
+                            });
+                        }
+
                         CircuitBreakerState::Open {
                             opened_at: Instant::now(),
                             failure_count: new_failure_count,
@@ -554,6 +767,31 @@ impl AdvancedInstancePool {
             CircuitBreakerState::HalfOpen { test_requests, start_time } => {
                 if success {
                     info!("Circuit breaker closing after successful test request");
+
+                    // Emit circuit breaker reset event
+                    if let Some(event_bus) = &self.event_bus {
+                        let rt = tokio::runtime::Handle::current();
+                        let event_bus = event_bus.clone();
+                        let pool_id = self.pool_id.clone();
+                        let total_trips = metrics.circuit_breaker_trips;
+                        let successful_extractions = metrics.successful_extractions;
+
+                        rt.spawn(async move {
+                            let mut event = PoolEvent::new(
+                                PoolOperation::CircuitBreakerReset,
+                                pool_id,
+                                "instance_pool",
+                            );
+
+                            event.add_metadata("total_trips", &total_trips.to_string());
+                            event.add_metadata("successful_extractions", &successful_extractions.to_string());
+
+                            if let Err(e) = event_bus.emit(event).await {
+                                warn!(error = %e, "Failed to emit circuit breaker reset event");
+                            }
+                        });
+                    }
+
                     CircuitBreakerState::Closed {
                         failure_count: 0,
                         success_count: 1,
@@ -585,6 +823,7 @@ impl AdvancedInstancePool {
     }
 
     /// Record epoch timeout
+    #[allow(dead_code)]
     fn record_epoch_timeout(&self) {
         let mut metrics = self.metrics.lock().unwrap();
         metrics.epoch_timeouts += 1;
@@ -613,6 +852,77 @@ impl AdvancedInstancePool {
         let active = max_size - available;
         (available, active, max_size)
     }
+
+    /// Set event bus for event emission
+    pub fn set_event_bus(&mut self, event_bus: Arc<EventBus>) {
+        self.event_bus = Some(event_bus);
+    }
+
+    /// Add pool health monitoring extension methods (placeholder implementations)
+    pub async fn clear_high_memory_instances(&self) -> Result<usize> {
+        // This would clear instances with high memory usage
+        // Implementation would depend on specific memory tracking
+        info!("Clearing high memory instances - placeholder implementation");
+        Ok(0)
+    }
+
+    pub async fn clear_some_instances(&self, count: usize) -> Result<usize> {
+        // This would clear a specific number of instances
+        // Implementation would manage the available instances queue
+        info!(count = count, "Clearing some instances - placeholder implementation");
+        Ok(0)
+    }
+
+    pub async fn trigger_memory_cleanup(&self) -> Result<()> {
+        // This would trigger garbage collection or memory cleanup
+        info!("Triggering memory cleanup - placeholder implementation");
+        Ok(())
+    }
+
+    /// Get pool ID
+    pub fn pool_id(&self) -> &str {
+        &self.pool_id
+    }
+
+    /// Create pool metrics for event emission
+    pub fn get_pool_metrics_for_events(&self) -> PoolMetrics {
+        let (available, active, total) = self.get_pool_status();
+        let performance_metrics = self.get_metrics();
+
+        PoolMetrics {
+            available_instances: available,
+            active_instances: active,
+            total_instances: total,
+            pending_acquisitions: 0, // TODO: Track this if needed
+            success_rate: if performance_metrics.total_extractions > 0 {
+                performance_metrics.successful_extractions as f64 / performance_metrics.total_extractions as f64
+            } else {
+                1.0
+            },
+            avg_acquisition_time_ms: performance_metrics.semaphore_wait_time_ms,
+        }
+    }
+
+    /// Emit pool exhausted event when no instances are available
+    async fn emit_pool_exhausted_event(&self) {
+        if let Some(event_bus) = &self.event_bus {
+            let mut event = PoolEvent::new(
+                PoolOperation::PoolExhausted,
+                self.pool_id.clone(),
+                "instance_pool",
+            );
+
+            // Add pool status information
+            let (available, active, total) = self.get_pool_status();
+            event.add_metadata("available_instances", &available.to_string());
+            event.add_metadata("active_instances", &active.to_string());
+            event.add_metadata("total_instances", &total.to_string());
+
+            if let Err(e) = event_bus.emit(event).await {
+                warn!(error = %e, "Failed to emit pool exhausted event");
+            }
+        }
+    }
 }
 
 /// Configuration for RIPTIDE_WASM_INSTANCES_PER_WORKER environment variable
@@ -621,4 +931,48 @@ pub fn get_instances_per_worker() -> usize {
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(8)
+}
+
+/// Implement EventEmitter trait for AdvancedInstancePool
+#[async_trait]
+impl EventEmitter for AdvancedInstancePool {
+    async fn emit_event<E: Event + 'static>(&self, event: E) -> Result<()> {
+        if let Some(event_bus) = &self.event_bus {
+            event_bus.emit(event).await
+        } else {
+            // Log a warning but don't fail if no event bus is configured
+            debug!("No event bus configured for pool {}, skipping event emission", self.pool_id);
+            Ok(())
+        }
+    }
+
+    async fn emit_events<E: Event + 'static>(&self, events: Vec<E>) -> Result<()> {
+        if let Some(event_bus) = &self.event_bus {
+            for event in events {
+                event_bus.emit(event).await?;
+            }
+        } else {
+            debug!("No event bus configured for pool {}, skipping batch event emission", self.pool_id);
+        }
+        Ok(())
+    }
+}
+
+/// Factory function to create an event-aware instance pool
+pub async fn create_event_aware_pool(
+    config: ExtractorConfig,
+    engine: Engine,
+    component_path: &str,
+    event_bus: Option<Arc<EventBus>>,
+) -> Result<AdvancedInstancePool> {
+    let mut pool = AdvancedInstancePool::new(config, engine, component_path).await?;
+
+    if let Some(bus) = event_bus {
+        pool.set_event_bus(bus);
+        info!(pool_id = %pool.pool_id(), "Created event-aware instance pool");
+    } else {
+        info!(pool_id = %pool.pool_id(), "Created standard instance pool (no event bus)");
+    }
+
+    Ok(pool)
 }

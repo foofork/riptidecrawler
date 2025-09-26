@@ -288,15 +288,51 @@ impl MetricsCollector {
     }
 
     fn get_memory_usage(&self) -> u64 {
-        // TODO: Implement actual memory usage collection
-        // For now, return a placeholder value
-        std::process::id() as u64 * 1024 * 1024
+        // Implement actual memory usage collection using sysinfo
+        use sysinfo::{System, Pid, ProcessesToUpdate};
+        use std::process;
+
+        let mut sys = System::new_all();
+        sys.refresh_memory();
+        sys.refresh_processes(ProcessesToUpdate::All, true);
+
+        // Get current process memory usage
+        let current_pid = process::id();
+        if let Some(process) = sys.process(Pid::from(current_pid as usize)) {
+            // Return RSS (Resident Set Size) in bytes
+            process.memory() * 1024 // sysinfo returns KB, convert to bytes
+        } else {
+            // Fallback: get system memory usage if process not found
+            (sys.total_memory() - sys.available_memory()) * 1024
+        }
     }
 
     fn get_cpu_usage(&self) -> f32 {
-        // TODO: Implement actual CPU usage collection
-        // For now, return a placeholder value
-        15.5
+        // Implement actual CPU usage collection using sysinfo
+        use sysinfo::{System, Pid, ProcessesToUpdate};
+        use std::process;
+
+        let mut sys = System::new_all();
+        sys.refresh_cpu_all();
+        sys.refresh_processes(ProcessesToUpdate::All, true);
+
+        // Wait a bit for CPU usage calculation to be accurate
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        sys.refresh_cpu_all();
+
+        // Get current process CPU usage first
+        let current_pid = process::id();
+        if let Some(process) = sys.process(Pid::from(current_pid as usize)) {
+            process.cpu_usage()
+        } else {
+            // Fallback: get system-wide CPU usage average
+            if !sys.cpus().is_empty() {
+                let total_cpu: f32 = sys.cpus().iter().map(|cpu| cpu.cpu_usage()).sum();
+                total_cpu / sys.cpus().len() as f32
+            } else {
+                0.0
+            }
+        }
     }
 
     async fn calculate_request_rate(&self) -> Result<f64> {
@@ -308,6 +344,68 @@ impl MetricsCollector {
         } else {
             0.0
         })
+    }
+
+    /// Record pool operation metrics (for event handlers)
+    pub async fn record_pool_operation(
+        &self,
+        operation: &str,
+        value: f64,
+        timestamp: u64,
+    ) -> Result<()> {
+        // For now, just log the operation - can be expanded later
+        tracing::debug!(operation = %operation, value = %value, timestamp = %timestamp, "Pool operation recorded");
+        Ok(())
+    }
+
+    /// Record pool state metrics (for event handlers)
+    pub async fn record_pool_state(
+        &self,
+        available: usize,
+        active: usize,
+        total: usize,
+    ) -> Result<()> {
+        self.update_pool_stats(total, active, available.saturating_sub(active)).await
+    }
+
+    /// Record extraction time metrics (for event handlers)
+    pub async fn record_extraction_time(
+        &self,
+        duration: Duration,
+        success: bool,
+    ) -> Result<()> {
+        self.record_extraction(duration, success, None, None, false).await
+    }
+
+    /// Record extraction outcome (for event handlers)
+    pub async fn record_extraction_outcome(
+        &self,
+        operation: &str,
+        url: &str,
+    ) -> Result<()> {
+        tracing::debug!(operation = %operation, url = %url, "Extraction outcome recorded");
+        Ok(())
+    }
+
+    /// Record custom metric (for event handlers)
+    pub async fn record_custom_metric(
+        &self,
+        metric_name: &str,
+        metric_value: f64,
+        tags: &HashMap<String, String>,
+    ) -> Result<()> {
+        tracing::debug!(metric_name = %metric_name, metric_value = %metric_value, ?tags, "Custom metric recorded");
+        Ok(())
+    }
+
+    /// Record health status (for event handlers)
+    pub async fn record_health_status(
+        &self,
+        component: &str,
+        health_score: f64,
+    ) -> Result<()> {
+        tracing::debug!(component = %component, health_score = %health_score, "Health status recorded");
+        Ok(())
     }
 }
 

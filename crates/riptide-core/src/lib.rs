@@ -5,6 +5,7 @@ pub mod component;
 pub mod conditional;
 pub mod dynamic;
 pub mod error;
+pub mod events;
 pub mod extract;
 pub mod fetch;
 pub mod gate;

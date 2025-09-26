@@ -1,13 +1,5 @@
 # RipTide Development Roadmap - AI-First Evolution
 
-## Current Status (Updated: 2025-09-26)
-
-* **Project Name**: RipTide (note: folder is `/workspaces/eventmesh` for legacy reasons)
-* **v1.0.0 Production Release**: Complete - See [`COMPLETED.md`](./COMPLETED.md) for shipped features
-* **Focus**: Achieving feature parity while maintaining production strengths
-* **Architecture**: Production-first (queues, WASM isolation, streaming) + AI-first features
-* **LLM Integration**: **OPTIONAL** - System works perfectly without API keys
-
 ---
 
 ## 🏗️ Project Structure Evolution

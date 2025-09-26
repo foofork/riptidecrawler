@@ -160,7 +160,7 @@ fn test_end_to_end_extraction(config: &IntegrationTestConfig) -> Result<Integrat
         extractions_completed: completed,
         extractions_failed: failed,
         average_time_ms: avg_time,
-        peak_memory_mb: get_peak_memory_usage() / 1024.0 / 1024.0,
+        peak_memory_mb: get_peak_memory_usage() as f64 / 1024.0 / 1024.0,
         error_details,
         performance_metrics,
     })
@@ -231,7 +231,7 @@ fn test_fallback_mechanisms(config: &IntegrationTestConfig) -> Result<Integratio
         extractions_completed: completed,
         extractions_failed: failed,
         average_time_ms: performance_metrics.values().sum::<f64>() / performance_metrics.len() as f64,
-        peak_memory_mb: get_peak_memory_usage() / 1024.0 / 1024.0,
+        peak_memory_mb: get_peak_memory_usage() as f64 / 1024.0 / 1024.0,
         error_details,
         performance_metrics,
     })
@@ -331,7 +331,7 @@ fn test_concurrent_extraction_stress(config: &IntegrationTestConfig) -> Result<I
         extractions_completed: final_completed,
         extractions_failed: final_failed,
         average_time_ms: avg_time,
-        peak_memory_mb: get_peak_memory_usage() / 1024.0 / 1024.0,
+        peak_memory_mb: get_peak_memory_usage() as f64 / 1024.0 / 1024.0,
         error_details: final_errors,
         performance_metrics,
     })
@@ -364,7 +364,7 @@ fn test_long_running_memory_stability(config: &IntegrationTestConfig) -> Result<
 
                 // Sample memory usage periodically
                 if i % 20 == 0 {
-                    let current_memory = get_current_memory_usage() / 1024.0 / 1024.0;
+                    let current_memory = get_current_memory_usage() as f64 / 1024.0 / 1024.0;
                     memory_samples.push(current_memory);
 
                     if i > 0 {
@@ -394,7 +394,7 @@ fn test_long_running_memory_stability(config: &IntegrationTestConfig) -> Result<
 
     performance_metrics.insert("memory_growth_per_iteration_mb".to_string(), memory_trend);
     performance_metrics.insert("peak_memory_mb".to_string(),
-        memory_samples.iter().fold(0.0, |a, &b| a.max(b)));
+        memory_samples.iter().fold(0.0_f64, |a, &b| a.max(b)));
 
     let success = failed < 10 && memory_trend < 0.01; // Less than 10KB growth per iteration
 
@@ -410,7 +410,7 @@ fn test_long_running_memory_stability(config: &IntegrationTestConfig) -> Result<
         extractions_completed: completed,
         extractions_failed: failed,
         average_time_ms: 0.0, // Not measuring timing for this test
-        peak_memory_mb: memory_samples.iter().fold(0.0, |a, &b| a.max(b)),
+        peak_memory_mb: memory_samples.iter().fold(0.0_f64, |a, &b| a.max(b)),
         error_details,
         performance_metrics,
     })
@@ -432,7 +432,7 @@ fn test_error_handling_recovery(config: &IntegrationTestConfig) -> Result<Integr
     let error_scenarios = vec![
         ("timeout_simulation", generate_complex_html(), ExtractionMode::Full),
         ("memory_pressure", generate_stress_test_html(1024 * 1024), ExtractionMode::Article),
-        ("invalid_encoding", "<!DOCTYPE html><html><body>Invalid \xFF\xFE chars</body></html>".to_string(), ExtractionMode::Article),
+        ("invalid_encoding", "<!DOCTYPE html><html><body>Invalid bytes</body></html>".to_string(), ExtractionMode::Article),
         ("nested_structures", generate_deeply_nested_html(100), ExtractionMode::Full),
     ];
 
@@ -496,7 +496,7 @@ fn test_error_handling_recovery(config: &IntegrationTestConfig) -> Result<Integr
         extractions_completed: completed,
         extractions_failed: failed,
         average_time_ms: 0.0,
-        peak_memory_mb: get_peak_memory_usage() / 1024.0 / 1024.0,
+        peak_memory_mb: get_peak_memory_usage() as f64 / 1024.0 / 1024.0,
         error_details,
         performance_metrics,
     })
@@ -563,7 +563,7 @@ fn test_multi_language_processing(config: &IntegrationTestConfig) -> Result<Inte
         extractions_completed: completed,
         extractions_failed: failed,
         average_time_ms: performance_metrics.values().sum::<f64>() / performance_metrics.len() as f64,
-        peak_memory_mb: get_peak_memory_usage() / 1024.0 / 1024.0,
+        peak_memory_mb: get_peak_memory_usage() as f64 / 1024.0 / 1024.0,
         error_details,
         performance_metrics,
     })
@@ -634,7 +634,7 @@ fn test_batch_processing_performance(config: &IntegrationTestConfig) -> Result<I
         extractions_completed: completed,
         extractions_failed: failed,
         average_time_ms: avg_time,
-        peak_memory_mb: get_peak_memory_usage() / 1024.0 / 1024.0,
+        peak_memory_mb: get_peak_memory_usage() as f64 / 1024.0 / 1024.0,
         error_details,
         performance_metrics,
     })
@@ -710,7 +710,7 @@ fn test_real_world_website_simulation(_config: &IntegrationTestConfig) -> Result
             .filter(|(k, _)| k.contains("extraction_time"))
             .map(|(_, v)| *v)
             .sum::<f64>() / completed.max(1) as f64,
-        peak_memory_mb: get_peak_memory_usage() / 1024.0 / 1024.0,
+        peak_memory_mb: get_peak_memory_usage() as f64 / 1024.0 / 1024.0,
         error_details,
         performance_metrics,
     })
@@ -777,7 +777,7 @@ fn test_edge_case_handling(_config: &IntegrationTestConfig) -> Result<Integratio
         extractions_completed: completed,
         extractions_failed: failed,
         average_time_ms: 0.0,
-        peak_memory_mb: get_peak_memory_usage() / 1024.0 / 1024.0,
+        peak_memory_mb: get_peak_memory_usage() as f64 / 1024.0 / 1024.0,
         error_details,
         performance_metrics,
     })
@@ -881,7 +881,7 @@ fn test_production_load_simulation(config: &IntegrationTestConfig) -> Result<Int
         extractions_completed: final_completed,
         extractions_failed: final_failed,
         average_time_ms: total_time / final_completed as f64,
-        peak_memory_mb: get_peak_memory_usage() / 1024.0 / 1024.0,
+        peak_memory_mb: get_peak_memory_usage() as f64 / 1024.0 / 1024.0,
         error_details: final_errors.into_iter().take(10).collect(), // Limit error details
         performance_metrics,
     })
@@ -921,7 +921,7 @@ fn validate_extracted_content(content: &ExtractedContent, fixture_type: &str) ->
 }
 
 fn validate_real_world_extraction(content: &ExtractedContent, site_type: &str) -> f64 {
-    let mut score = 0.0;
+    let mut score: f64 = 0.0;
 
     // Base score for having content
     if !content.text.is_empty() { score += 20.0; }
@@ -948,7 +948,7 @@ fn validate_real_world_extraction(content: &ExtractedContent, site_type: &str) -
         }
     }
 
-    score.min(100.0)
+    score.min(100.0_f64)
 }
 
 fn generate_stress_test_html(size_bytes: usize) -> String {
@@ -1066,18 +1066,18 @@ fn create_social_media_html() -> String {
 }
 
 fn create_documentation_html() -> String {
-    r#"<!DOCTYPE html>
-    <html><body>
-    <h1>API Documentation</h1>
-    <h2>Getting Started</h2>
-    <p>This guide will help you get started with our API.</p>
-    <h3>Authentication</h3>
-    <p>All API requests require authentication using your API key.</p>
-    <pre><code>curl -H "Authorization: Bearer YOUR_API_KEY" https://api.example.com/data</code></pre>
-    <h3>Rate Limits</h3>
-    <p>API requests are limited to 1000 requests per hour per API key.</p>
-    <a href="#examples">View Examples</a>
-    </body></html>"#.to_string()
+    "<!DOCTYPE html>\
+    <html><body>\
+    <h1>API Documentation</h1>\
+    <h2>Getting Started</h2>\
+    <p>This guide will help you get started with our API.</p>\
+    <h3>Authentication</h3>\
+    <p>All API requests require authentication using your API key.</p>\
+    <pre><code>curl -H \"Authorization: Bearer YOUR_API_KEY\" https://api.example.com/data</code></pre>\
+    <h3>Rate Limits</h3>\
+    <p>API requests are limited to 1000 requests per hour per API key.</p>\
+    <a href=\"#examples\">View Examples</a>\
+    </body></html>".to_string()
 }
 
 fn create_landing_page_html() -> String {
@@ -1136,7 +1136,7 @@ fn print_integration_test_summary(results: &[IntegrationTestResult]) {
         println!("Overall success rate: {:.1}%", success_rate * 100.0);
     }
 
-    let peak_memory: f64 = results.iter().map(|r| r.peak_memory_mb).fold(0.0, |a, b| a.max(b));
+    let peak_memory: f64 = results.iter().map(|r| r.peak_memory_mb).fold(0.0_f64, |a, b| a.max(b));
     println!("Peak memory usage: {:.1}MB", peak_memory);
 
     // Show performance highlights
