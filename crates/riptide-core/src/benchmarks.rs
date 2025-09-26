@@ -425,6 +425,7 @@ fn bench_initialization(c: &mut Criterion) {
                 circuit_breaker_timeout: Duration::from_secs(30),
                 circuit_breaker_failure_threshold: 3,
                 circuit_breaker_success_threshold: 2,
+                health_check_interval: Duration::from_secs(30),
             },
         ),
         ("standard", ExtractorConfig::default()),
@@ -445,6 +446,7 @@ fn bench_initialization(c: &mut Criterion) {
                 circuit_breaker_timeout: Duration::from_secs(120),
                 circuit_breaker_failure_threshold: 10,
                 circuit_breaker_success_threshold: 5,
+                health_check_interval: Duration::from_secs(30),
             },
         ),
     ];

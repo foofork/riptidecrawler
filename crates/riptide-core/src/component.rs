@@ -126,6 +126,8 @@ pub struct ExtractorConfig {
     pub circuit_breaker_failure_threshold: u32,
     /// Circuit breaker success threshold
     pub circuit_breaker_success_threshold: u32,
+    /// Health check interval for continuous monitoring
+    pub health_check_interval: Duration,
 }
 
 impl Default for ExtractorConfig {
@@ -192,6 +194,12 @@ impl Default for ExtractorConfig {
                 .ok()
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(3),
+            health_check_interval: Duration::from_secs(
+                std::env::var("RIPTIDE_HEALTH_CHECK_INTERVAL_SECS")
+                    .ok()
+                    .and_then(|v| v.parse().ok())
+                    .unwrap_or(30)
+            ),
         }
     }
 }

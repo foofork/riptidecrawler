@@ -1,4 +1,6 @@
 pub mod cache;
+pub mod cache_warming;
+pub mod cache_warming_integration;
 pub mod circuit;
 pub mod common;
 pub mod component;

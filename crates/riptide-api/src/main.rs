@@ -25,13 +25,13 @@ use axum::{
     Router,
 };
 use clap::Parser;
+use riptide_core::telemetry::TelemetrySystem;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 use tower_http::{
     compression::CompressionLayer, cors::CorsLayer, timeout::TimeoutLayer, trace::TraceLayer,
 };
-use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
 #[command(name = "riptide-api")]
@@ -46,11 +46,8 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // Initialize structured logging
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .json()
-        .init();
+    // Initialize telemetry system with OpenTelemetry
+    let _telemetry_system = TelemetrySystem::init()?;
 
     let args = Args::parse();
 

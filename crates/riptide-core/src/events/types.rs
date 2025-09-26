@@ -22,6 +22,7 @@ impl PoolEvent {
                 EventSeverity::Error
             }
             PoolOperation::InstanceUnhealthy | PoolOperation::PoolExhausted => EventSeverity::Warn,
+            PoolOperation::InstanceHealthy | PoolOperation::HealthCheck | PoolOperation::MemoryCleanup => EventSeverity::Debug,
             _ => EventSeverity::Info,
         };
 
@@ -91,6 +92,9 @@ pub enum PoolOperation {
     InstanceReleased,
     InstanceCreationFailed,
     InstanceUnhealthy,
+    InstanceHealthy,
+    HealthCheck,
+    MemoryCleanup,
     PoolWarmup,
     PoolExhausted,
     CircuitBreakerTripped,
@@ -106,6 +110,9 @@ impl PoolOperation {
             PoolOperation::InstanceReleased => "instance_released",
             PoolOperation::InstanceCreationFailed => "instance_creation_failed",
             PoolOperation::InstanceUnhealthy => "instance_unhealthy",
+            PoolOperation::InstanceHealthy => "instance_healthy",
+            PoolOperation::HealthCheck => "health_check",
+            PoolOperation::MemoryCleanup => "memory_cleanup",
             PoolOperation::PoolWarmup => "pool_warmup",
             PoolOperation::PoolExhausted => "pool_exhausted",
             PoolOperation::CircuitBreakerTripped => "circuit_breaker_tripped",
@@ -123,6 +130,7 @@ pub struct PoolMetrics {
     pub pending_acquisitions: usize,
     pub success_rate: f64,
     pub avg_acquisition_time_ms: u64,
+    pub avg_latency_ms: u64,
 }
 
 /// Extraction operation events

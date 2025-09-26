@@ -446,6 +446,7 @@ impl EventAwarePoolFactory {
                         1.0
                     },
                     avg_acquisition_time_ms: performance_metrics.semaphore_wait_time_ms,
+                    avg_latency_ms: performance_metrics.avg_processing_time_ms as u64,
                 };
 
                 let helper = PoolEventEmissionHelper::new(
