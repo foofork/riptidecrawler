@@ -16,6 +16,7 @@ pub mod pdf;
 pub mod integrated_cache;
 pub mod reliability;
 pub mod robots;
+pub mod search;
 pub mod security;
 pub mod spider;
 pub mod stealth;
