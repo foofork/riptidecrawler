@@ -92,6 +92,14 @@ async fn create_test_extractor(
         memory_limit: 512 * 1024 * 1024, // 512MB
         enable_instance_reuse: config.enable_instance_reuse,
         enable_metrics: true,
+        memory_limit_pages: 8192, // 512MB / 64KB per page
+        enable_simd: true,
+        enable_aot_cache: true,
+        cold_start_target_ms: 15,
+        epoch_timeout_ms: 5000,
+        circuit_breaker_timeout: Duration::from_secs(60),
+        circuit_breaker_failure_threshold: 5,
+        circuit_breaker_success_threshold: 3,
     };
 
     // For benchmarking, we'll use a mock WASM path
@@ -185,6 +193,14 @@ fn bench_pool_efficiency(c: &mut Criterion) {
             memory_limit: 256 * 1024 * 1024,
             enable_instance_reuse: true,
             enable_metrics: true,
+            memory_limit_pages: 4096, // 256MB / 64KB per page
+            enable_simd: true,
+            enable_aot_cache: true,
+            cold_start_target_ms: 15,
+            epoch_timeout_ms: 5000,
+            circuit_breaker_timeout: Duration::from_secs(60),
+            circuit_breaker_failure_threshold: 5,
+            circuit_breaker_success_threshold: 3,
         };
 
         group.bench_with_input(
@@ -350,6 +366,14 @@ fn bench_circuit_breaker(c: &mut Criterion) {
         memory_limit: 64 * 1024 * 1024,                 // Small limit to trigger resource errors
         enable_instance_reuse: true,
         enable_metrics: true,
+        memory_limit_pages: 1024, // 64MB / 64KB per page
+        enable_simd: true,
+        enable_aot_cache: true,
+        cold_start_target_ms: 15,
+        epoch_timeout_ms: 5000,
+        circuit_breaker_timeout: Duration::from_secs(60),
+        circuit_breaker_failure_threshold: 5,
+        circuit_breaker_success_threshold: 3,
     };
 
     c.bench_function("circuit_breaker_recovery", |b| {
@@ -393,6 +417,14 @@ fn bench_initialization(c: &mut Criterion) {
                 memory_limit: 128 * 1024 * 1024,
                 enable_instance_reuse: false,
                 enable_metrics: false,
+                memory_limit_pages: 2048, // 128MB / 64KB per page
+                enable_simd: false,
+                enable_aot_cache: false,
+                cold_start_target_ms: 50,
+                epoch_timeout_ms: 2000,
+                circuit_breaker_timeout: Duration::from_secs(30),
+                circuit_breaker_failure_threshold: 3,
+                circuit_breaker_success_threshold: 2,
             },
         ),
         ("standard", ExtractorConfig::default()),
@@ -405,6 +437,14 @@ fn bench_initialization(c: &mut Criterion) {
                 memory_limit: 1024 * 1024 * 1024,
                 enable_instance_reuse: true,
                 enable_metrics: true,
+                memory_limit_pages: 16384, // 1GB / 64KB per page
+                enable_simd: true,
+                enable_aot_cache: true,
+                cold_start_target_ms: 10,
+                epoch_timeout_ms: 10000,
+                circuit_breaker_timeout: Duration::from_secs(120),
+                circuit_breaker_failure_threshold: 10,
+                circuit_breaker_success_threshold: 5,
             },
         ),
     ];

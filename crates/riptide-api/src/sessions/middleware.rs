@@ -3,7 +3,6 @@ use super::types::{Session, SessionError};
 use axum::{
     extract::Request,
     http::{header, request::Parts, HeaderValue, StatusCode},
-    middleware::Next,
     response::{IntoResponse, Response},
 };
 use std::sync::Arc;
@@ -61,7 +60,7 @@ where
         Box::pin(async move {
             // Extract session ID from cookie or create new one
             let session_id = extract_session_id_from_request(&req)
-                .unwrap_or_else(|| Session::generate_session_id());
+                .unwrap_or_else(Session::generate_session_id);
 
             debug!(
                 session_id = %session_id,

@@ -12,12 +12,11 @@ use riptide_core::{
     fetch::http_client,
     pdf::PdfMetricsCollector,
     spider::{Spider, SpiderConfig},
-    telemetry::TelemetrySystem,
-    telemetry_info, telemetry_span,
+    telemetry::TelemetrySystem, telemetry_span,
 };
 use std::sync::Arc;
 use std::time::Duration;
-use tracing::{error, info, warn};
+use tracing::info;
 
 /// Application state shared across all request handlers.
 ///

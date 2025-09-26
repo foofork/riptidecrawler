@@ -166,7 +166,7 @@ async fn render_internal(
 
         // Set user agent if stealth is enabled
         let user_agent = stealth_controller.next_user_agent();
-        builder = builder.arg(&format!("--user-agent={}", user_agent));
+        builder = builder.arg(format!("--user-agent={}", user_agent));
 
         debug!(
             request_id = %request_id,

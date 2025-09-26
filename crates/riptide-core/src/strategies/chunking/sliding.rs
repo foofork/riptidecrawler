@@ -30,7 +30,7 @@ pub async fn chunk_sliding_window(
     let mut chunk_index = 0;
     let mut sentence_buffer = Vec::new();
 
-    for (_sentence_idx, sentence) in sentences.iter().enumerate() {
+    for sentence in sentences.iter() {
         let sentence_tokens = count_tokens(sentence);
 
         // If adding this sentence would exceed token limit, create a chunk

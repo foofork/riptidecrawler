@@ -1,0 +1,20 @@
+{
+    "hits": [
+      {
+        "url": "https://eventmesh.apache.org/",
+        "title": "Apache EventMesh",
+        "snippet": "Dynamic event-driven application runtime",
+        "score": 0.95
+      },
+      {
+        "url": "https://github.com/apache/eventmesh",
+        "title": "EventMesh Repository",
+        "snippet": "Cloud-native eventing infrastructure",
+        "score": 0.87
+      }
+    ],
+    "metadata": {
+      "total_results": 2,
+      "query_time": "0.123s"
+    }
+  }

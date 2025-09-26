@@ -262,7 +262,7 @@ impl JobScheduler {
         // Persist if Redis is available
         if let Some(ref redis_client) = self.redis_client {
             let mut conn = redis_client.lock().await;
-            self.persist_scheduled_job(&scheduled_job, &mut *conn).await?;
+            self.persist_scheduled_job(&scheduled_job, &mut conn).await?;
         }
 
         self.scheduled_jobs.insert(job_id, scheduled_job);
@@ -281,7 +281,7 @@ impl JobScheduler {
             // Remove from persistence if Redis is available
             if let Some(ref redis_client) = self.redis_client {
                 let mut conn = redis_client.lock().await;
-                self.remove_persisted_job(job_id, &mut *conn).await?;
+                self.remove_persisted_job(job_id, &mut conn).await?;
             }
             info!(schedule_id = %job_id, "Scheduled job removed successfully");
         } else {
@@ -308,7 +308,7 @@ impl JobScheduler {
         // Persist if Redis is available
         if let Some(ref redis_client) = self.redis_client {
             let mut conn = redis_client.lock().await;
-            self.persist_scheduled_job(&scheduled_job, &mut *conn).await?;
+            self.persist_scheduled_job(&scheduled_job, &mut conn).await?;
         }
 
         self.scheduled_jobs.insert(job_id, scheduled_job);
@@ -431,7 +431,7 @@ impl JobScheduler {
                             // Persist updated schedule if Redis is available
                             if let Some(ref redis_client) = self.redis_client {
                                 let mut conn = redis_client.lock().await;
-                                if let Err(e) = self.persist_scheduled_job(schedule, &mut *conn).await {
+                                if let Err(e) = self.persist_scheduled_job(schedule, &mut conn).await {
                                     warn!(
                                         schedule_id = %schedule_id,
                                         error = %e,

@@ -4,7 +4,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::time::Instant;
 use tracing::{debug, error, info};
-use sysinfo::{System, ProcessesToUpdate};
+use sysinfo::ProcessesToUpdate;
 
 /// Enhanced health check with comprehensive component status
 pub struct HealthChecker {
@@ -89,7 +89,7 @@ impl HealthChecker {
             "degraded"
         };
 
-        let mut enhanced_response = HealthResponse {
+        let enhanced_response = HealthResponse {
             status: status.to_string(),
             version: env!("CARGO_PKG_VERSION").to_string(),
             timestamp: chrono::Utc::now().to_rfc3339(),

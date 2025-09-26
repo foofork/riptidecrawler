@@ -9,6 +9,7 @@ use schemars::JsonSchema;
 
 /// Document metadata with validation
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Default)]
 pub struct DocumentMetadata {
     pub title: Option<String>,
     pub description: Option<String>,
@@ -39,6 +40,7 @@ pub struct MetadataConfidence {
 
 /// Method used for metadata extraction
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Default)]
 pub struct ExtractionMethod {
     pub open_graph: bool,
     pub json_ld: bool,
@@ -70,27 +72,6 @@ pub async fn extract_metadata(html: &str, url: &str) -> Result<DocumentMetadata>
     Ok(metadata)
 }
 
-impl Default for DocumentMetadata {
-    fn default() -> Self {
-        Self {
-            title: None,
-            description: None,
-            author: None,
-            published_date: None,
-            modified_date: None,
-            keywords: Vec::new(),
-            language: None,
-            canonical_url: None,
-            image_url: None,
-            site_name: None,
-            article_section: None,
-            word_count: None,
-            reading_time: None,
-            confidence_scores: MetadataConfidence::default(),
-            extraction_method: ExtractionMethod::default(),
-        }
-    }
-}
 
 impl Default for MetadataConfidence {
     fn default() -> Self {
@@ -104,17 +85,6 @@ impl Default for MetadataConfidence {
     }
 }
 
-impl Default for ExtractionMethod {
-    fn default() -> Self {
-        Self {
-            open_graph: false,
-            json_ld: false,
-            microdata: false,
-            meta_tags: false,
-            heuristics: false,
-        }
-    }
-}
 
 /// Extract Open Graph metadata
 fn extract_open_graph(

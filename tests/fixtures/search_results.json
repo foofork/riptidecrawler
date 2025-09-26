@@ -1,0 +1,71 @@
+{
+  "serper_success_response": {
+    "organic": [
+      {
+        "title": "EventMesh - Apache EventMesh Documentation",
+        "link": "https://eventmesh.apache.org/",
+        "snippet": "Apache EventMesh is a dynamic event-driven application runtime used to decouple the application and backend middleware layer."
+      },
+      {
+        "title": "EventMesh GitHub Repository",
+        "link": "https://github.com/apache/eventmesh",
+        "snippet": "A dynamic event-driven application runtime used to decouple the application and backend middleware layer."
+      },
+      {
+        "title": "EventMesh Architecture Overview",
+        "link": "https://eventmesh.apache.org/docs/design-document/",
+        "snippet": "EventMesh is a fully event-driven architecture that supports cloud native applications."
+      }
+    ],
+    "searchParameters": {
+      "q": "EventMesh Apache",
+      "type": "search",
+      "engine": "google"
+    }
+  },
+  "serper_error_response": {
+    "error": "Invalid API key",
+    "status": 401
+  },
+  "expected_search_results": [
+    {
+      "title": "EventMesh - Apache EventMesh Documentation",
+      "url": "https://eventmesh.apache.org/",
+      "snippet": "Apache EventMesh is a dynamic event-driven application runtime used to decouple the application and backend middleware layer.",
+      "relevance_score": 0.95
+    },
+    {
+      "title": "EventMesh GitHub Repository",
+      "url": "https://github.com/apache/eventmesh",
+      "snippet": "A dynamic event-driven application runtime used to decouple the application and backend middleware layer.",
+      "relevance_score": 0.88
+    }
+  ],
+  "url_detection_test_cases": [
+    {
+      "query": "https://eventmesh.apache.org/docs",
+      "expected_is_url": true,
+      "expected_result": {
+        "title": "Direct URL Access",
+        "url": "https://eventmesh.apache.org/docs",
+        "snippet": "Direct access to EventMesh documentation",
+        "relevance_score": 1.0
+      }
+    },
+    {
+      "query": "eventmesh architecture",
+      "expected_is_url": false,
+      "expected_search_needed": true
+    },
+    {
+      "query": "http://localhost:8080/api",
+      "expected_is_url": true,
+      "expected_result": {
+        "title": "Local API Endpoint",
+        "url": "http://localhost:8080/api",
+        "snippet": "Local development API endpoint",
+        "relevance_score": 1.0
+      }
+    }
+  ]
+}

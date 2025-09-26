@@ -41,7 +41,7 @@ use tracing_subscriber::{layer::SubscriberExt, Registry};
 /// - SLA monitoring and alerting
 /// - Resource usage tracking
 pub struct TelemetrySystem {
-    tracer: Arc<opentelemetry_sdk::trace::Tracer>,
+    tracer: Arc<opentelemetry::global::BoxedTracer>,
     sanitizer: DataSanitizer,
     sla_monitor: SlaMonitor,
     resource_tracker: ResourceTracker,
@@ -52,14 +52,15 @@ impl TelemetrySystem {
     pub fn init() -> Result<Self> {
         info!("Initializing telemetry system");
 
-        // Initialize OpenTelemetry
-        let tracer = init_opentelemetry()?;
-
         // Initialize tracing subscriber with OpenTelemetry layer
+        // This also initializes OpenTelemetry internally
         init_tracing_subscriber()?;
 
         // Set up global propagator
         global::set_text_map_propagator(TraceContextPropagator::new());
+
+        // Get the global tracer for internal use
+        let tracer = global::tracer("riptide-crawler");
 
         let sanitizer = DataSanitizer::new();
         let sla_monitor = SlaMonitor::new();
@@ -76,7 +77,7 @@ impl TelemetrySystem {
     }
 
     /// Get a reference to the tracer for creating spans
-    pub fn tracer(&self) -> &opentelemetry_sdk::trace::Tracer {
+    pub fn tracer(&self) -> &opentelemetry::global::BoxedTracer {
         self.tracer.as_ref()
     }
 
@@ -160,16 +161,24 @@ fn init_tracing_subscriber() -> Result<()> {
     let env_filter =
         EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info,riptide=debug"));
 
-    // Create a simple subscriber without OpenTelemetry layer for now to avoid version conflicts
-    // TODO: Re-enable once OpenTelemetry versions are aligned
-    let subscriber = Registry::default().with(env_filter).with(
-        tracing_subscriber::fmt::layer()
-            .with_target(true)
-            .with_thread_ids(true)
-            .with_file(true)
-            .with_line_number(true)
-            .json(),
-    );
+    // Initialize OpenTelemetry tracer for distributed tracing
+    let tracer = init_opentelemetry()?;
+
+    // Create OpenTelemetry layer
+    let telemetry_layer = tracing_opentelemetry::layer().with_tracer(tracer);
+
+    // Create subscriber with both OpenTelemetry and fmt layers
+    let subscriber = Registry::default()
+        .with(env_filter)
+        .with(telemetry_layer)
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_target(true)
+                .with_thread_ids(true)
+                .with_file(true)
+                .with_line_number(true)
+                .json(),
+        );
 
     tracing::subscriber::set_global_default(subscriber)
         .context("Failed to set tracing subscriber")?;

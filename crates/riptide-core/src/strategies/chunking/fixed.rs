@@ -154,7 +154,7 @@ fn create_fixed_chunk(
 
     // Count sentences
     let sentence_count = content
-        .split(|c| c == '.' || c == '!' || c == '?')
+        .split(['.', '!', '?'])
         .filter(|s| !s.trim().is_empty())
         .count();
 

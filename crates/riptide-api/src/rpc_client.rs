@@ -3,7 +3,7 @@ use reqwest::Client;
 use riptide_core::dynamic::{DynamicConfig, DynamicRenderResult, PageAction, RenderArtifacts};
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info, warn};
 
 /// RPC v2 client for communicating with headless browser service
 #[derive(Clone)]
@@ -11,6 +11,12 @@ pub struct RpcClient {
     client: Client,
     base_url: String,
     timeout: Duration,
+}
+
+impl Default for RpcClient {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl RpcClient {
@@ -70,7 +76,7 @@ impl RpcClient {
         let response = tokio::time::timeout(
             self.timeout,
             self.client
-                .post(&format!("{}/render", self.base_url))
+                .post(format!("{}/render", self.base_url))
                 .json(&request)
                 .send(),
         )
@@ -117,7 +123,7 @@ impl RpcClient {
     pub async fn health_check(&self) -> Result<()> {
         let response = tokio::time::timeout(
             Duration::from_secs(2),
-            self.client.get(&format!("{}/health", self.base_url)).send(),
+            self.client.get(format!("{}/health", self.base_url)).send(),
         )
         .await
         .map_err(|_| anyhow!("Health check timed out"))?

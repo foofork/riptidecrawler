@@ -337,7 +337,7 @@ fn build_strategy_config(
         }
         "auto" => ExtractionStrategy::Trek, // Will be handled by auto-detection
         strategy => {
-            return Err(ApiError::invalid_request(&format!(
+            return Err(ApiError::invalid_request(format!(
                 "Unknown extraction strategy: {}",
                 strategy
             )));

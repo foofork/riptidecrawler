@@ -84,6 +84,12 @@ pub struct StrategyComparison {
     pub recommendations: Vec<String>,
 }
 
+impl Default for PerformanceMetrics {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PerformanceMetrics {
     pub fn new() -> Self {
         Self {
@@ -155,7 +161,7 @@ impl PerformanceMetrics {
         csv.push_str("Strategy,Runs,AvgDuration,Throughput,SuccessRate,AvgQuality,MemoryPeak
 ");
 
-        for (_, metrics) in &self.strategy_metrics {
+        for metrics in self.strategy_metrics.values() {
             csv.push_str(&format!(
                 "{},{},{:.2},{:.2},{:.2},{:.2},{:.2}
 ",

@@ -2,7 +2,6 @@ use axum_prometheus::{metrics_exporter_prometheus::PrometheusHandle, PrometheusM
 use prometheus::{Counter, Gauge, Histogram, HistogramOpts, Opts, Registry};
 use riptide_core::pdf::PdfMetricsCollector;
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::time::Instant;
 use tracing::{info, warn};
 
@@ -355,7 +354,7 @@ impl RipTideMetrics {
         let wasm_aot_cache_misses = Counter::with_opts(
             Opts::new("riptide_wasm_aot_cache_misses_total", "WASM AOT cache misses")
                 .const_label("service", "riptide-api"),
-        )?
+        )?;
 
         // Register all metrics
         registry.register(Box::new(http_requests_total.clone()))?;
@@ -621,8 +620,8 @@ impl RipTideMetrics {
 
         // For counter, we need to track the difference (simplified approach)
         let current_failures = self.wasm_grow_failed_total.get();
-        if grow_failed > current_failures {
-            let diff = grow_failed - current_failures;
+        if grow_failed as f64 > current_failures {
+            let diff = (grow_failed as f64 - current_failures) as u64;
             for _ in 0..diff {
                 self.wasm_grow_failed_total.inc();
             }

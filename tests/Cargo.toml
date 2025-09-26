@@ -1,47 +1,63 @@
 [package]
-name = "riptide-tests"
+name = "search-provider-tests"
 version = "0.1.0"
 edition = "2021"
 
+# Empty workspace to avoid conflict with parent workspace
+[workspace]
+
+[lib]
+name = "search_provider_tests"
+path = "lib.rs"
+
 [dependencies]
-# Core dependencies
-tokio = { workspace = true, features = ["test-util", "macros", "rt-multi-thread", "time"] }
+# Async runtime for testing
+tokio = { version = "1.0", features = ["full"] }
+
+# HTTP client for testing external APIs
+reqwest = { version = "0.11", features = ["json"] }
+
+# JSON serialization/deserialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# URL parsing and validation
+url = "2.4"
+
+# Regular expressions for URL detection
+regex = "1.10"
+
+# Future utilities for concurrent testing
+futures = "0.3"
+
+# Testing framework extensions
 tokio-test = "0.4"
-anyhow = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-
-# Testing frameworks
-mockall = "0.13"
-proptest = "1.5"
-criterion = { version = "0.5", features = ["html_reports"] }
-wiremock = "0.6"
-
-# HTTP and web testing
-reqwest = { workspace = true }
-axum = { workspace = true }
-tower = { workspace = true, features = ["test-util"] }
-hyper = { workspace = true }
-
-# WASM testing
-wasmtime = { workspace = true }
-wasmtime-wasi = { workspace = true }
-
-# riptide crates
-riptide-core = { path = "../crates/riptide-core" }
-riptide-api = { path = "../crates/riptide-api" }
-riptide-headless = { path = "../crates/riptide-headless" }
-
-# Utilities
-uuid = { workspace = true }
-tracing = { workspace = true }
-tracing-test = "0.2"
-tempfile = "3.10"
-rand = { workspace = true }
-
-[[bench]]
-name = "performance_benchmarks"
-harness = false
 
 [dev-dependencies]
+# Mocking framework
+mockall = "0.12"
+
+# Test utilities
+assert_matches = "1.5"
+
+# Property-based testing
+proptest = "1.4"
+
+# Criterion for benchmarking
 criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "search_provider_benchmarks"
+harness = false
+
+[features]
+default = []
+
+# Enable network tests (requires API keys)
+network-tests = []
+
+# Enable performance benchmarks
+benchmarks = []
+
+# Enable additional debugging output in tests
+test-debug = []

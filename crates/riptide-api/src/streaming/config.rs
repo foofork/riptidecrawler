@@ -8,6 +8,7 @@ use std::time::Duration;
 
 /// Global streaming configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct StreamConfig {
     /// Buffer configuration
     pub buffer: BufferConfig,
@@ -155,17 +156,6 @@ pub struct HealthCheckConfig {
     pub healthy_threshold: u32,
 }
 
-impl Default for StreamConfig {
-    fn default() -> Self {
-        Self {
-            buffer: BufferConfig::default(),
-            websocket: WebSocketConfig::default(),
-            sse: SseConfig::default(),
-            ndjson: NdjsonConfig::default(),
-            general: GeneralConfig::default(),
-        }
-    }
-}
 
 impl Default for BufferConfig {
     fn default() -> Self {

@@ -1,0 +1,27 @@
+{
+  "organic": [
+    {
+      "position": 1,
+      "title": "Apache EventMesh",
+      "link": "https://eventmesh.apache.org/",
+      "snippet": "Apache EventMesh is a dynamic event-driven application runtime used to decouple the application and backend middleware layer, which supports a wide range of use cases."
+    },
+    {
+      "position": 2,
+      "title": "EventMesh GitHub Repository",
+      "link": "https://github.com/apache/eventmesh",
+      "snippet": "EventMesh is a dynamic cloud-native eventing infrastructure used to decouple the application and backend middleware layer."
+    },
+    {
+      "position": 3,
+      "title": "EventMesh Documentation",
+      "link": "https://eventmesh.apache.org/docs/",
+      "snippet": "Comprehensive documentation for Apache EventMesh including getting started guides, tutorials, and API references."
+    }
+  ],
+  "searchInformation": {
+    "totalResults": "150000",
+    "formattedTotalResults": "150,000",
+    "formattedSearchTime": "0.45"
+  }
+}

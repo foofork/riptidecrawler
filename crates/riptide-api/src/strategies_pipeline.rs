@@ -5,16 +5,16 @@ use riptide_core::{
     fetch,
     gate::{decide, score, Decision, GateFeatures},
     pdf::{self, utils as pdf_utils},
-    types::{CrawlOptions, ExtractedDoc, RenderMode},
+    types::{CrawlOptions, RenderMode},
     strategies::{
         StrategyManager, StrategyConfig, ExtractionStrategy, ChunkingConfig,
-        ProcessedContent, ExtractedContent, DocumentMetadata, PerformanceMetrics,
+        ProcessedContent, PerformanceMetrics,
     },
 };
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
 use tokio::time::timeout;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info, warn};
 use url::Url;
 
 /// Enhanced pipeline result with strategies integration

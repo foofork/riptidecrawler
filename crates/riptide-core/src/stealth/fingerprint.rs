@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 /// Browser fingerprinting countermeasures
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct FingerprintingConfig {
     /// Chrome DevTools Protocol stealth flags
     pub cdp_stealth: CdpStealthConfig,
@@ -33,20 +34,6 @@ pub struct FingerprintingConfig {
     pub fonts: FontConfig,
 }
 
-impl Default for FingerprintingConfig {
-    fn default() -> Self {
-        Self {
-            cdp_stealth: CdpStealthConfig::default(),
-            webgl: WebGlConfig::default(),
-            canvas: CanvasConfig::default(),
-            audio: AudioConfig::default(),
-            plugins: PluginConfig::default(),
-            webrtc: WebRtcConfig::default(),
-            hardware: HardwareConfig::default(),
-            fonts: FontConfig::default(),
-        }
-    }
-}
 
 /// Chrome DevTools Protocol stealth configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]

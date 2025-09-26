@@ -4,7 +4,7 @@ use anyhow::Result;
 use riptide_core::types::{CrawlOptions, ExtractedDoc};
 use std::sync::Arc;
 use std::time::Instant;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info, warn};
 
 /// Enhanced pipeline orchestrator with comprehensive phase timing and metrics
 pub struct EnhancedPipelineOrchestrator {

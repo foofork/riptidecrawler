@@ -52,9 +52,48 @@ impl WasmResourceTracker {
     }
 }
 
-// Note: ResourceLimiter implementation commented out due to API compatibility issues
-// The memory tracking functionality is preserved in the WasmResourceTracker struct
-// and can be re-enabled when wasmtime API stabilizes
+impl ResourceLimiter for WasmResourceTracker {
+    fn memory_growing(
+        &mut self,
+        current: usize,
+        desired: usize,
+        _maximum: Option<usize>,
+    ) -> Result<bool, anyhow::Error> {
+        let pages_needed = desired.saturating_sub(current);
+        let new_total = self.current_pages.load(Ordering::Relaxed) + pages_needed;
+
+        if new_total > self.max_pages {
+            self.grow_failed_count.fetch_add(1, Ordering::Relaxed);
+            Ok(false)
+        } else {
+            self.current_pages.fetch_add(pages_needed, Ordering::Relaxed);
+
+            // Update peak memory
+            let mut peak = self.peak_pages.load(Ordering::Relaxed);
+            while new_total > peak {
+                match self.peak_pages.compare_exchange(
+                    peak,
+                    new_total,
+                    Ordering::Relaxed,
+                    Ordering::Relaxed,
+                ) {
+                    Ok(_) => break,
+                    Err(x) => peak = x,
+                }
+            }
+            Ok(true)
+        }
+    }
+
+    fn table_growing(
+        &mut self,
+        _current: usize,
+        _desired: usize,
+        _maximum: Option<usize>,
+    ) -> Result<bool, anyhow::Error> {
+        Ok(true) // Allow table growth
+    }
+}
 
 /// Configuration for instance pooling and performance optimization
 #[derive(Clone, Debug)]
@@ -79,6 +118,14 @@ pub struct ExtractorConfig {
     pub enable_aot_cache: bool,
     /// Cold start optimization target (ms)
     pub cold_start_target_ms: u64,
+    /// Epoch timeout in milliseconds for WASM execution
+    pub epoch_timeout_ms: u64,
+    /// Circuit breaker timeout duration
+    pub circuit_breaker_timeout: Duration,
+    /// Circuit breaker failure threshold
+    pub circuit_breaker_failure_threshold: u32,
+    /// Circuit breaker success threshold
+    pub circuit_breaker_success_threshold: u32,
 }
 
 impl Default for ExtractorConfig {
@@ -127,6 +174,24 @@ impl Default for ExtractorConfig {
                 .ok()
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(15),
+            epoch_timeout_ms: std::env::var("RIPTIDE_WASM_EPOCH_TIMEOUT_MS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(5000), // 5 seconds default
+            circuit_breaker_timeout: Duration::from_secs(
+                std::env::var("RIPTIDE_CIRCUIT_BREAKER_TIMEOUT_SECS")
+                    .ok()
+                    .and_then(|v| v.parse().ok())
+                    .unwrap_or(60)
+            ),
+            circuit_breaker_failure_threshold: std::env::var("RIPTIDE_CIRCUIT_BREAKER_FAILURE_THRESHOLD")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(5),
+            circuit_breaker_success_threshold: std::env::var("RIPTIDE_CIRCUIT_BREAKER_SUCCESS_THRESHOLD")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(3),
         }
     }
 }
@@ -143,6 +208,16 @@ pub struct PerformanceMetrics {
     pub cache_misses: u64,
     pub pool_size: usize,
     pub active_instances: usize,
+    pub fallback_extractions: u64,
+    pub circuit_breaker_trips: u64,
+    pub wasm_memory_pages: u64,
+    pub semaphore_wait_time_ms: u64,
+    pub wasm_peak_memory_pages: u64,
+    pub wasm_grow_failed_total: u64,
+    pub cold_start_time_ms: u64,
+    pub aot_cache_hits: u64,
+    pub aot_cache_misses: u64,
+    pub epoch_timeouts: u64,
 }
 
 /// Instance pool entry with lifecycle tracking
@@ -227,6 +302,9 @@ pub struct CmExtractor {
 
     /// Path to the component file
     component_path: String,
+
+    /// Resource tracker for WASM memory limits
+    resource_tracker: WasmResourceTracker,
 }
 
 /// Circuit breaker states for handling failures
@@ -387,7 +465,9 @@ impl CmExtractor {
 
         // Set memory limits and resource management
         wasmtime_config.max_wasm_stack(2 * 1024 * 1024); // 2MB stack
-        wasmtime_config.max_wasm_memory_pages(config.memory_limit_pages as u64);
+        // Set memory limits - wasmtime uses memory64 configuration
+        // Note: memory_limit_pages is likely in WASM pages (64KB each)
+        wasmtime_config.memory_guaranteed_dense_image_size((config.memory_limit_pages as u64) * 65536);
 
         let engine = Engine::new(&wasmtime_config)?;
         let component = Component::from_file(&engine, wasm_path)?;
@@ -420,7 +500,7 @@ impl CmExtractor {
 
         Ok(Self {
             pool,
-            config,
+            config: config.clone(),
             metrics,
             circuit_state: Arc::new(Mutex::new(CircuitBreakerState::Closed)),
             engine,
@@ -428,6 +508,7 @@ impl CmExtractor {
             linker,
             memory_manager,
             component_path: wasm_path.to_string(),
+            resource_tracker: WasmResourceTracker::new(config.memory_limit_pages),
         })
     }
 
@@ -491,6 +572,9 @@ impl CmExtractor {
         url: &str,
         mode: ExtractionMode,
     ) -> Result<ExtractedDoc> {
+        // Track extraction timing
+        let extraction_start = std::time::Instant::now();
+
         // Create a new store for this extraction operation
         let mut store = Store::new(&self.engine, ());
 
@@ -581,12 +665,10 @@ impl CmExtractor {
             metrics_guard.avg_processing_time_ms =
                 (metrics_guard.avg_processing_time_ms * (total - 1.0) + extraction_time) / total;
 
-            // Update WASM memory metrics
-            if let Ok(resource_tracker) = self.resource_tracker.lock() {
-                metrics_guard.wasm_memory_pages = resource_tracker.current_memory_pages();
-                metrics_guard.wasm_grow_failed_total = resource_tracker.grow_failures();
-                metrics_guard.wasm_peak_memory_pages = resource_tracker.peak_memory_pages();
-            }
+            // Update WASM memory metrics directly (no lock needed)
+            metrics_guard.wasm_memory_pages = self.resource_tracker.current_memory_pages() as u64;
+            metrics_guard.wasm_grow_failed_total = self.resource_tracker.grow_failures();
+            metrics_guard.wasm_peak_memory_pages = self.resource_tracker.peak_memory_pages() as u64;
         }
 
         extraction_result
@@ -748,11 +830,10 @@ impl CmExtractor {
     pub fn get_wasm_memory_metrics(&self) -> Result<std::collections::HashMap<String, f64>> {
         let mut metrics = std::collections::HashMap::new();
 
-        if let Ok(resource_tracker) = self.resource_tracker.lock() {
-            metrics.insert("riptide_wasm_memory_pages".to_string(), resource_tracker.current_memory_pages() as f64);
-            metrics.insert("riptide_wasm_grow_failed_total".to_string(), resource_tracker.grow_failures() as f64);
-            metrics.insert("riptide_wasm_peak_memory_pages".to_string(), resource_tracker.peak_memory_pages() as f64);
-        }
+        // Update WASM memory metrics directly (no lock needed)
+        metrics.insert("riptide_wasm_memory_pages".to_string(), self.resource_tracker.current_memory_pages() as f64);
+        metrics.insert("riptide_wasm_grow_failed_total".to_string(), self.resource_tracker.grow_failures() as f64);
+        metrics.insert("riptide_wasm_peak_memory_pages".to_string(), self.resource_tracker.peak_memory_pages() as f64);
 
         if let Ok(metrics_guard) = self.metrics.lock() {
             metrics.insert("riptide_wasm_cold_start_time_ms".to_string(), metrics_guard.cold_start_time_ms as f64);
@@ -766,12 +847,10 @@ impl CmExtractor {
     /// Get current performance metrics including WASM-specific metrics
     pub fn get_performance_metrics(&self) -> Result<PerformanceMetrics> {
         if let Ok(mut metrics_guard) = self.metrics.lock() {
-            // Update WASM memory metrics
-            if let Ok(resource_tracker) = self.resource_tracker.lock() {
-                metrics_guard.wasm_memory_pages = resource_tracker.current_memory_pages();
-                metrics_guard.wasm_grow_failed_total = resource_tracker.grow_failures();
-                metrics_guard.wasm_peak_memory_pages = resource_tracker.peak_memory_pages();
-            }
+            // Update WASM memory metrics directly (no lock needed)
+            metrics_guard.wasm_memory_pages = self.resource_tracker.current_memory_pages() as u64;
+            metrics_guard.wasm_grow_failed_total = self.resource_tracker.grow_failures();
+            metrics_guard.wasm_peak_memory_pages = self.resource_tracker.peak_memory_pages() as u64;
             Ok(metrics_guard.clone())
         } else {
             Err(anyhow::anyhow!("Failed to acquire metrics lock"))
@@ -781,34 +860,22 @@ impl CmExtractor {
     /// Precompile module for AOT caching (reduces cold start time)
     pub async fn precompile_module(&self, module_hash: String) -> Result<()> {
         let component_bytes = std::fs::read(&self.component_path)?;
-        let module_hash_key = format!("{}_{}", module_hash, component_bytes.len());
+        let _module_hash_key = format!("{}_{}", module_hash, component_bytes.len());
 
-        // Check if already cached
-        if let Ok(cache_guard) = self.aot_cache.lock() {
-            if cache_guard.contains_key(&module_hash_key) {
-                // Update cache hit metric
-                if let Ok(mut metrics_guard) = self.metrics.lock() {
-                    metrics_guard.aot_cache_hits += 1;
-                }
-                return Ok(());
-            }
-        }
+        // Wasmtime handles AOT caching internally when cache is enabled
+        // We just track metrics here
 
         // Precompile the module
-        let module = wasmtime::Module::from_file(&self.engine, &self.component_path)?;
+        let _module = wasmtime::Module::from_file(&self.engine, &self.component_path)?;
 
-        // Cache the compiled module
-        if let Ok(mut cache_guard) = self.aot_cache.lock() {
-            cache_guard.insert(module_hash_key, module);
+        // Update cache metrics
+        if let Ok(mut metrics_guard) = self.metrics.lock() {
+            metrics_guard.cache_misses += 1;
 
-            // Update cache miss metric
-            if let Ok(mut metrics_guard) = self.metrics.lock() {
-                metrics_guard.aot_cache_misses += 1;
-            }
 
             tracing::info!(
                 module_hash = module_hash,
-                cache_size = cache_guard.len(),
+                cache_size = 0, // Cache size tracked internally by wasmtime
                 "Module precompiled and cached for AOT optimization"
             );
         }

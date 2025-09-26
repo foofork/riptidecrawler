@@ -90,7 +90,7 @@ pub fn extract_media(html: &str, base_url: &str) -> Vec<String> {
             if let Some(srcset) = element.value().attr("srcset") {
                 // Parse srcset format: "url 1x, url 2x" or "url 100w, url 200w"
                 for src_part in srcset.split(',') {
-                    let src = src_part.trim().split_whitespace().next().unwrap_or("");
+                    let src = src_part.split_whitespace().next().unwrap_or("");
                     if !src.is_empty() {
                         if let Ok(absolute_url) = base.join(src) {
                             media.push(format!("image:{}", absolute_url));
@@ -106,7 +106,7 @@ pub fn extract_media(html: &str, base_url: &str) -> Vec<String> {
         for element in document.select(&selector) {
             if let Some(srcset) = element.value().attr("srcset") {
                 for src_part in srcset.split(',') {
-                    let src = src_part.trim().split_whitespace().next().unwrap_or("");
+                    let src = src_part.split_whitespace().next().unwrap_or("");
                     if !src.is_empty() {
                         if let Ok(absolute_url) = base.join(src) {
                             media.push(format!("image:{}", absolute_url));
@@ -521,15 +521,13 @@ fn extract_breadcrumb_categories(document: &Html, categories: &mut Vec<String>) 
             if let Ok(json) = serde_json::from_str::<Value>(&text) {
                 if let Some(type_val) = json.get("@type") {
                     if type_val == "BreadcrumbList" {
-                        if let Some(items) = json.get("itemListElement") {
-                            if let Value::Array(arr) = items {
-                                for item in arr {
-                                    if let Some(name) = item.get("name") {
-                                        if let Some(name_str) = name.as_str() {
-                                            let trimmed = name_str.trim().to_string();
-                                            if !trimmed.is_empty() && !categories.contains(&trimmed) {
-                                                categories.push(trimmed);
-                                            }
+                        if let Some(Value::Array(arr)) = json.get("itemListElement") {
+                            for item in arr {
+                                if let Some(name) = item.get("name") {
+                                    if let Some(name_str) = name.as_str() {
+                                        let trimmed = name_str.trim().to_string();
+                                        if !trimmed.is_empty() && !categories.contains(&trimmed) {
+                                            categories.push(trimmed);
                                         }
                                     }
                                 }
@@ -553,10 +551,8 @@ fn extract_breadcrumb_categories(document: &Html, categories: &mut Vec<String>) 
         if let Ok(selector) = Selector::parse(selector_str) {
             for element in document.select(&selector) {
                 let text = element.text().collect::<String>().trim().to_string();
-                if !text.is_empty() && text.len() < 100 && !categories.contains(&text) {
-                    if is_likely_category(&text) {
-                        categories.push(text);
-                    }
+                if !text.is_empty() && text.len() < 100 && !categories.contains(&text) && is_likely_category(&text) {
+                    categories.push(text);
                 }
             }
         }

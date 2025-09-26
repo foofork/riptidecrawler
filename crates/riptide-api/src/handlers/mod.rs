@@ -292,16 +292,16 @@ pub async fn metrics(State(state): State<AppState>) -> Result<impl IntoResponse,
     }
 }
 
-/// Deep search endpoint using Serper.dev API for web search and content extraction.
+/// Deep search endpoint using configurable search providers for web search and content extraction.
 ///
 /// This endpoint:
 /// 1. Validates the search query and parameters
-/// 2. Performs a web search using Serper.dev API
+/// 2. Performs a web search using the configured SearchProvider (Serper, None, etc.)
 /// 3. Extracts URLs from search results
 /// 4. Crawls the discovered URLs using the standard pipeline
 /// 5. Returns combined search and content results
 ///
-/// Requires SERPER_API_KEY environment variable to be set.
+/// Supports multiple search backends configured via environment variables.
 pub async fn deepsearch(
     State(state): State<AppState>,
     Json(body): Json<DeepSearchBody>,
@@ -321,25 +321,19 @@ pub async fn deepsearch(
     let limit = body.limit.unwrap_or(10).min(50); // Cap at 50 results
     let include_content = body.include_content.unwrap_or(true);
 
-    // Check for Serper API key
-    let serper_api_key = std::env::var("SERPER_API_KEY").map_err(|_| ApiError::ConfigError {
-        message: "SERPER_API_KEY environment variable not set".to_string(),
-    })?;
-
     debug!(
         limit = limit,
         include_content = include_content,
-        "Performing web search"
+        "Performing web search using SearchProvider"
     );
 
-    // Perform web search using Serper.dev
-    let search_results = perform_web_search(
+    // Perform web search using configured SearchProvider
+    let search_results = perform_search_with_provider(
         &state,
         &body.query,
         limit,
         body.country.as_deref(),
         body.locale.as_deref(),
-        &serper_api_key
     ).await?;
 
     info!(
@@ -428,65 +422,64 @@ pub async fn deepsearch(
     Ok(Json(response))
 }
 
-/// Perform web search using Serper.dev API.
-async fn perform_web_search(
-    state: &AppState,
+/// Perform web search using configured SearchProvider.
+async fn perform_search_with_provider(
+    _state: &AppState,
     query: &str,
     limit: u32,
     country: Option<&str>,
     locale: Option<&str>,
-    api_key: &str,
 ) -> ApiResult<Vec<SearchResult>> {
-    let search_request = serde_json::json!({
-        "q": query,
-        "num": limit,
-        "gl": country.unwrap_or("us"),
-        "hl": locale.unwrap_or("en")
-    });
+    use riptide_core::search::{create_search_provider_from_env, SearchBackend};
 
-    let response = state
-        .http_client
-        .post("https://google.serper.dev/search")
-        .header("X-API-KEY", api_key)
-        .header("Content-Type", "application/json")
-        .json(&search_request)
-        .send()
-        .await
-        .map_err(|e| ApiError::dependency("serper_api", format!("Search request failed: {}", e)))?;
-
-    if !response.status().is_success() {
-        return Err(ApiError::dependency(
-            "serper_api",
-            format!("Search API returned status: {}", response.status()),
-        ));
-    }
-
-    let search_response: serde_json::Value = response.json().await.map_err(|e| {
-        ApiError::dependency("serper_api", format!("Failed to parse response: {}", e))
+    // Determine search backend from environment variable
+    let backend_str = std::env::var("SEARCH_BACKEND").unwrap_or_else(|_| "serper".to_string());
+    let backend: SearchBackend = backend_str.parse().map_err(|e| ApiError::ConfigError {
+        message: format!("Invalid search backend '{}': {}", backend_str, e),
     })?;
 
-    // Parse search results
-    let mut results = Vec::new();
-    if let Some(organic) = search_response.get("organic").and_then(|o| o.as_array()) {
-        for (index, result) in organic.iter().enumerate() {
-            if let (Some(link), Some(title)) = (
-                result.get("link").and_then(|l| l.as_str()),
-                result.get("title").and_then(|t| t.as_str()),
-            ) {
-                results.push(SearchResult {
-                    url: link.to_string(),
-                    rank: (index + 1) as u32,
-                    search_title: Some(title.to_string()),
-                    search_snippet: result
-                        .get("snippet")
-                        .and_then(|s| s.as_str())
-                        .map(|s| s.to_string()),
-                    content: None,
-                    crawl_result: None,
-                });
-            }
-        }
-    }
+    // Create search provider based on configuration
+    let provider = create_search_provider_from_env(backend).await.map_err(|e| {
+        ApiError::dependency("search_provider", format!("Failed to create search provider: {}", e))
+    })?;
+
+    debug!(
+        backend = %provider.backend_type(),
+        query = query,
+        "Using search provider"
+    );
+
+    // Perform search using the provider
+    let search_hits = provider
+        .search(
+            query,
+            limit,
+            country.unwrap_or("us"),
+            locale.unwrap_or("en"),
+        )
+        .await
+        .map_err(|e| {
+            ApiError::dependency("search_provider", format!("Search failed: {}", e))
+        })?;
+
+    // Convert SearchHit results to API SearchResult format
+    let results: Vec<SearchResult> = search_hits
+        .into_iter()
+        .map(|hit| SearchResult {
+            url: hit.url,
+            rank: hit.rank,
+            search_title: hit.title,
+            search_snippet: hit.snippet,
+            content: None,
+            crawl_result: None,
+        })
+        .collect();
+
+    info!(
+        backend = %provider.backend_type(),
+        results_count = results.len(),
+        "Search completed successfully"
+    );
 
     Ok(results)
 }

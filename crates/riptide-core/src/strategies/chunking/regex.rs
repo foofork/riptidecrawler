@@ -99,7 +99,7 @@ fn create_regex_chunk(
 
     // Count sentences (rough estimate)
     let sentence_count = content
-        .matches(|c| c == '.' || c == '!' || c == '?')
+        .matches(['.', '!', '?'])
         .count()
         .max(1); // At least 1 if content exists
 

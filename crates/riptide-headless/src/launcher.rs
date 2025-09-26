@@ -229,7 +229,7 @@ impl HeadlessLauncher {
 
             // Set stealth user agent
             let user_agent = stealth_controller.next_user_agent();
-            builder = builder.arg(&format!("--user-agent={}", user_agent));
+            builder = builder.arg(format!("--user-agent={}", user_agent));
 
             debug!(
                 preset = ?config.default_stealth_preset,
@@ -257,7 +257,7 @@ impl HeadlessLauncher {
             .arg("--disable-renderer-backgrounding")
             .arg("--memory-pressure-off");
 
-        Ok(builder.build().map_err(|e| anyhow!(e))?)
+        builder.build().map_err(|e| anyhow!(e))
     }
 
     /// Apply stealth configurations to a page
@@ -285,23 +285,21 @@ impl HeadlessLauncher {
         .map_err(|e| anyhow!("Failed to set viewport: {}", e))?;
 
         // Override navigator properties
-        let override_script = format!(
-            r#"
-            Object.defineProperty(navigator, 'webdriver', {{
+        let override_script = r#"
+            Object.defineProperty(navigator, 'webdriver', {
                 get: () => undefined,
-            }});
-            Object.defineProperty(navigator, 'plugins', {{
-                get: () => [{{
+            });
+            Object.defineProperty(navigator, 'plugins', {
+                get: () => [{
                     name: 'Chrome PDF Plugin',
                     description: 'Portable Document Format',
                     filename: 'internal-pdf-viewer'
-                }}],
-            }});
-            Object.defineProperty(navigator, 'languages', {{
+                }],
+            });
+            Object.defineProperty(navigator, 'languages', {
                 get: () => ['en-US', 'en'],
-            }});
-            "#
-        );
+            });
+            "#.to_string();
 
         page.evaluate(&*override_script)
             .await

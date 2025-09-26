@@ -320,6 +320,26 @@ impl CacheManager {
         Ok(())
     }
 
+    /// Warm the cache with frequently accessed keys
+    /// This should be called at startup or after cache clear operations
+    pub async fn warm_cache(&mut self, frequent_keys: Vec<String>) -> Result<u32> {
+        let mut warmed_count = 0;
+
+        for key in frequent_keys {
+            // Check if key exists, if not it will be populated on first access
+            let exists: bool = self.conn.exists(&key).await?;
+            if exists {
+                warmed_count += 1;
+                debug!(key = %key, "Cache key already warmed");
+            } else {
+                debug!(key = %key, "Cache key will be populated on first access");
+            }
+        }
+
+        info!(warmed_count = warmed_count, "Cache warming completed");
+        Ok(warmed_count)
+    }
+
     /// Clear all cache entries for this version
     pub async fn clear_cache(&mut self) -> Result<u64> {
         let pattern = format!("riptide:{}:*", self.config.cache_version);

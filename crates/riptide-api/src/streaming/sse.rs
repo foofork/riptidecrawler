@@ -5,7 +5,7 @@
 
 use super::buffer::{BackpressureHandler, BufferManager};
 use super::config::StreamConfig;
-use super::error::{ClientType, ConnectionContext, StreamingError, StreamingResult};
+use super::error::{StreamingError, StreamingResult};
 use crate::errors::ApiError;
 use crate::models::*;
 use crate::pipeline::PipelineOrchestrator;

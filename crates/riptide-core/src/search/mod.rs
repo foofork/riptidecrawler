@@ -234,7 +234,7 @@ pub async fn create_search_provider(config: SearchConfig) -> Result<Box<dyn Sear
             Box::new(NoneProvider::new(config.enable_url_parsing))
         }
         SearchBackend::SearXNG => {
-            let base_url = config.base_url.ok_or_else(|| {
+            let _base_url = config.base_url.ok_or_else(|| {
                 anyhow::anyhow!("Base URL is required for SearXNG backend")
             })?;
             // Note: SearXNG provider is not yet implemented

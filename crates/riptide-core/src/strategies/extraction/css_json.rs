@@ -90,7 +90,7 @@ impl ContentExtractor for CssJsonExtractor {
         let mut found_selectors = 0;
         let total_selectors = self.selectors.len();
 
-        for (_, selector_str) in &self.selectors {
+        for selector_str in self.selectors.values() {
             if let Ok(selector) = Selector::parse(selector_str) {
                 if document.select(&selector).next().is_some() {
                     found_selectors += 1;

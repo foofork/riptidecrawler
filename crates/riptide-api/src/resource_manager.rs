@@ -21,7 +21,7 @@ use std::{
 };
 use tokio::{
     sync::{Mutex, RwLock, Semaphore},
-    time::{sleep, timeout},
+    time::timeout,
 };
 use tracing::{debug, error, info, warn};
 use url::Url;

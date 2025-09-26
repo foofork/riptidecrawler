@@ -81,28 +81,11 @@ pub mod sse;
 pub mod websocket;
 
 // Re-export commonly used types for convenience
-pub use buffer::{BackpressureHandler, BufferConfig, BufferManager, BufferStats, DynamicBuffer};
-pub use config::{
-    GeneralConfig, NdjsonConfig, RateLimitAction, RateLimitConfig, SseConfig, StreamConfig,
-    WebSocketConfig,
-};
-pub use error::{ClientType, ConnectionContext, RecoveryStrategy, StreamingError, StreamingResult};
-pub use lifecycle::{
-    ConnectionInfo, LifecycleEvent, StreamCompletionSummary, StreamLifecycleManager,
-};
-pub use pipeline::{
-    DeepSearchMetadata, DeepSearchResultData, DeepSearchSummary, StreamEvent,
-    StreamExecutionSummary, StreamMetadata, StreamResultData, StreamingPipeline,
-};
-pub use processor::{
-    OperationProgress, PerformanceAnalysis, PerformanceCheckpoint, PerformanceMonitor,
-    PhaseDuration, ProcessedResult, ProcessingStats, StreamProcessor, StreamProgress,
-    StreamSummary,
-};
-pub use response_helpers::{
-    StreamingResponseBuilder, StreamingResponseType, StreamingErrorResponse,
-    KeepAliveHelper, CompletionHelper, ProgressHelper,
-};
+pub use buffer::BufferManager;
+pub use config::StreamConfig;
+pub use error::StreamingError;
+pub use lifecycle::StreamLifecycleManager;
+pub use pipeline::StreamingPipeline;
 
 // Re-export public API functions
 pub use ndjson::{
@@ -181,8 +164,10 @@ impl std::str::FromStr for StreamingProtocol {
 
 /// Streaming health status
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Default)]
 pub enum StreamingHealth {
     /// All systems operating normally
+    #[default]
     Healthy,
     /// Some degradation but still operational
     Degraded,
@@ -209,11 +194,6 @@ impl StreamingHealth {
     }
 }
 
-impl Default for StreamingHealth {
-    fn default() -> Self {
-        StreamingHealth::Healthy
-    }
-}
 
 /// Global streaming metrics aggregated across all protocols
 #[derive(Debug, Default, Clone)]
@@ -353,7 +333,7 @@ impl StreamingModule {
         F: FnOnce(&mut GlobalStreamingMetrics),
     {
         let mut metrics = self.metrics.write().await;
-        update_fn(&mut *metrics);
+        update_fn(&mut metrics);
         metrics.update_health_status();
     }
 

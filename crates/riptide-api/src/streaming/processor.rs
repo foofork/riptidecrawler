@@ -4,7 +4,7 @@
 //! streaming protocols (NDJSON, SSE, WebSocket) including result conversion,
 //! progress tracking, and performance monitoring.
 
-use super::error::{StreamingError, StreamingResult};
+use super::error::StreamingResult;
 use crate::models::*;
 use crate::pipeline::{PipelineOrchestrator, PipelineResult};
 use serde::Serialize;
@@ -365,7 +365,7 @@ impl StreamProcessor {
     /// Check if processing should send progress update
     pub fn should_send_progress_update(&self, update_interval: usize) -> bool {
         let completed = self.stats.completed_count + self.stats.error_count;
-        self.stats.total_urls > 10 && completed % update_interval == 0
+        self.stats.total_urls > 10 && completed.is_multiple_of(update_interval)
     }
 
     /// Get current statistics

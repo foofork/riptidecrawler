@@ -48,11 +48,14 @@ impl BatchCrawlProcessor {
         let start_time = std::time::Instant::now();
 
         // Check cache first
-        let _cache_key = self.generate_cache_key(url, options);
-        let cache = self.cache.lock().await;
+        let cache_key = self.generate_cache_key(url, options);
+        let mut cache = self.cache.lock().await;
 
-        // TODO: Implement proper cache lookup once CacheManager API is available
-        // For now, skip caching to get compilation working
+        // Try to get cached result
+        if let Ok(Some(cached_result)) = cache.get_simple::<CrawlResult>(&cache_key).await {
+            debug!(url = %url, cache_key = %cache_key, "Cache hit for URL");
+            return Ok(cached_result);
+        }
 
         drop(cache); // Release cache lock
 
@@ -91,16 +94,23 @@ impl BatchCrawlProcessor {
 
         match extraction_result {
             Ok(document) => {
-                // TODO: Cache the result once CacheManager API is available
-
-                Ok(CrawlResult {
+                let result = CrawlResult {
                     url: url.to_string(),
                     status,
                     from_cache: false,
                     processing_time_ms: processing_time,
                     document: Some(document),
                     error: None,
-                })
+                };
+
+                // Cache the successful result
+                let mut cache = self.cache.lock().await;
+                if let Err(e) = cache.set_simple(&cache_key, &result, 3600).await { // 1 hour TTL
+                    debug!(error = %e, cache_key = %cache_key, "Failed to cache result");
+                }
+                drop(cache);
+
+                Ok(result)
             }
             Err(e) => {
                 Ok(CrawlResult {

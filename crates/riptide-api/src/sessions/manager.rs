@@ -1,12 +1,10 @@
 use super::storage::SessionStorage;
 use super::types::{Cookie, CookieJar, Session, SessionConfig, SessionError, SessionStats};
 use anyhow::Result;
-use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 use tokio::fs;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 /// High-level session manager providing a convenient API for session operations
 #[derive(Clone, Debug)]
@@ -216,7 +214,7 @@ impl SessionManager {
             }
         })?;
 
-        session.expires_at = session.expires_at + additional_time;
+        session.expires_at += additional_time;
         session.touch(self.config.default_ttl);
         self.storage.store_session(session).await?;
 

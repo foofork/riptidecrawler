@@ -5,14 +5,13 @@
 
 use axum::{
     http::{HeaderMap, HeaderValue, StatusCode},
-    response::{IntoResponse, Response},
+    response::Response,
 };
 use futures_util::{stream::Stream, StreamExt};
 use serde::Serialize;
 use serde_json::json;
 use std::convert::Infallible;
 use tokio_stream::wrappers::ReceiverStream;
-use tower_http::compression::CompressionLayer;
 
 /// Common streaming response types
 #[derive(Debug, Clone)]

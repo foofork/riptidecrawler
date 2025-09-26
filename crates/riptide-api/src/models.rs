@@ -1,8 +1,7 @@
 use crate::state::DependencyHealth;
 use riptide_core::types::{CrawlOptions, ExtractedDoc};
-use riptide_core::spider::{SpiderResult, CrawlState, PerformanceMetrics, Priority};
+use riptide_core::spider::{CrawlState, PerformanceMetrics};
 use serde::{Deserialize, Serialize};
-use url::Url;
 
 /// Request body for crawling multiple URLs
 #[derive(Deserialize, Debug, Clone)]

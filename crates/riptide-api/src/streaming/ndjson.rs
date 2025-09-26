@@ -14,7 +14,7 @@ use crate::state::AppState;
 use crate::validation::{validate_crawl_request, validate_deepsearch_request};
 use axum::body::Body;
 use axum::extract::{Json, State};
-use axum::http::{header, StatusCode};
+use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use bytes::Bytes;
 use serde::Serialize;
@@ -214,7 +214,7 @@ impl NdjsonStreamingHandler {
         });
 
         // Return streaming response with appropriate headers
-        Ok(Response::builder()
+        Response::builder()
             .status(StatusCode::OK)
             .header("Content-Type", "application/x-ndjson")
             .header("Transfer-Encoding", "chunked")
@@ -224,7 +224,7 @@ impl NdjsonStreamingHandler {
             .body(Body::from_stream(
                 ReceiverStream::new(rx).map(Ok::<_, std::io::Error>),
             ))
-            .map_err(|e| StreamingError::channel(e.to_string()))?)
+            .map_err(|e| StreamingError::channel(e.to_string()))
     }
 
     /// Handle deep search streaming with proper buffer management
@@ -270,7 +270,7 @@ impl NdjsonStreamingHandler {
         });
 
         // Return streaming response with appropriate headers
-        Ok(Response::builder()
+        Response::builder()
             .status(StatusCode::OK)
             .header("Content-Type", "application/x-ndjson")
             .header("Transfer-Encoding", "chunked")
@@ -280,7 +280,7 @@ impl NdjsonStreamingHandler {
             .body(Body::from_stream(
                 ReceiverStream::new(rx).map(Ok::<_, std::io::Error>),
             ))
-            .map_err(|e| StreamingError::channel(e.to_string()))?)
+            .map_err(|e| StreamingError::channel(e.to_string()))
     }
 }
 
@@ -353,7 +353,7 @@ async fn orchestrate_crawl_stream_optimized(
                 .send((index, url_clone.clone(), single_result, processing_time))
                 .await;
 
-            if let Err(_) = send_result {
+            if send_result.is_err() {
                 warn!(
                     request_id = %request_id_clone,
                     url = %url_clone,
@@ -878,7 +878,7 @@ async fn orchestrate_deepsearch_stream_optimized(
                     .send((index, search_result, crawl_result, processing_time))
                     .await;
 
-                if let Err(_) = send_result {
+                if send_result.is_err() {
                     warn!(
                         request_id = %request_id_clone,
                         url = %url_clone,

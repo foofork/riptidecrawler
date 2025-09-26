@@ -53,7 +53,7 @@ impl ContentExtractor for RegexExtractor {
             if !matches.is_empty() {
                 extracted_data
                     .entry(pattern.field.clone())
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .extend(matches);
             }
         }

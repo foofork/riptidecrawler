@@ -14,22 +14,19 @@ use crate::stealth::user_agent::{RotationStrategy, UserAgentConfig};
 
 /// Stealth preset levels for easy configuration
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Default)]
 pub enum StealthPreset {
     /// No stealth measures applied
     None,
     /// Basic stealth: minimal fingerprint changes
     Low,
     /// Moderate stealth: balanced detection vs performance
+    #[default]
     Medium,
     /// Maximum stealth: all countermeasures enabled
     High,
 }
 
-impl Default for StealthPreset {
-    fn default() -> Self {
-        StealthPreset::Medium
-    }
-}
 
 /// Stealth configuration for anti-detection measures
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -198,6 +195,7 @@ impl StealthConfig {
 
 /// Request randomization settings
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct RequestRandomization {
     /// Header randomization
     pub headers: HeaderRandomization,
@@ -212,16 +210,6 @@ pub struct RequestRandomization {
     pub locale: LocaleRandomization,
 }
 
-impl Default for RequestRandomization {
-    fn default() -> Self {
-        Self {
-            headers: HeaderRandomization::default(),
-            timing_jitter: TimingJitter::default(),
-            viewport: ViewportRandomization::default(),
-            locale: LocaleRandomization::default(),
-        }
-    }
-}
 
 /// Header randomization configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -431,6 +419,7 @@ pub struct ProxyAuth {
 
 /// Timing configuration for request pacing
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct TimingConfig {
     /// Per-domain timing settings
     pub per_domain: HashMap<String, DomainTiming>,
@@ -442,15 +431,6 @@ pub struct TimingConfig {
     pub global_rate_limit: Option<RateLimit>,
 }
 
-impl Default for TimingConfig {
-    fn default() -> Self {
-        Self {
-            per_domain: HashMap::new(),
-            default_timing: DomainTiming::default(),
-            global_rate_limit: None,
-        }
-    }
-}
 
 /// Per-domain timing configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]

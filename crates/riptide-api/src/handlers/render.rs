@@ -610,7 +610,7 @@ async fn process_dynamic(
 async fn process_static(
     state: &AppState,
     url: &str,
-    mut stealth_controller: Option<&mut StealthController>,
+    stealth_controller: Option<&mut StealthController>,
     session_id: Option<&str>,
 ) -> ApiResult<(
     String,
@@ -696,7 +696,7 @@ async fn process_adaptive(
     state: &AppState,
     url: &str,
     request: &RenderRequest,
-    mut stealth_controller: Option<&mut StealthController>,
+    stealth_controller: Option<&mut StealthController>,
     session_id: Option<&str>,
 ) -> ApiResult<(
     String,
@@ -780,7 +780,7 @@ async fn extract_with_wasm_extractor(
             "WASM extraction failed for URL '{}' with mode '{}': {}",
             url, mode_str, e
         );
-        Box::new(std::io::Error::new(std::io::ErrorKind::Other, context))
+        Box::new(std::io::Error::other(context))
             as Box<dyn std::error::Error + Send + Sync>
     })?;
 

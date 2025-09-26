@@ -8,6 +8,7 @@ use std::time::Duration;
 
 /// Global API configuration with resource management
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct ApiConfig {
     /// Resource management configuration
     pub resources: ResourceConfig,
@@ -23,6 +24,8 @@ pub struct ApiConfig {
     pub pdf: PdfConfig,
     /// WASM runtime configuration
     pub wasm: WasmConfig,
+    /// Search provider configuration
+    pub search: SearchProviderConfig,
 }
 
 /// Resource management configuration
@@ -160,19 +163,23 @@ pub struct WasmConfig {
     pub restart_threshold: u32,
 }
 
-impl Default for ApiConfig {
-    fn default() -> Self {
-        Self {
-            resources: ResourceConfig::default(),
-            performance: PerformanceConfig::default(),
-            rate_limiting: RateLimitingConfig::default(),
-            memory: MemoryConfig::default(),
-            headless: HeadlessConfig::default(),
-            pdf: PdfConfig::default(),
-            wasm: WasmConfig::default(),
-        }
-    }
+/// Search provider configuration for deep search functionality
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SearchProviderConfig {
+    /// Search backend to use: "serper", "none", or "searxng"
+    pub backend: String,
+    /// Default timeout for search operations in seconds
+    pub timeout_secs: u64,
+    /// Enable URL parsing for None provider
+    pub enable_url_parsing: bool,
+    /// Circuit breaker failure threshold percentage (0-100)
+    pub circuit_breaker_failure_threshold: u32,
+    /// Circuit breaker minimum requests before opening
+    pub circuit_breaker_min_requests: u32,
+    /// Circuit breaker recovery timeout in seconds
+    pub circuit_breaker_recovery_timeout_secs: u64,
 }
+
 
 impl Default for ResourceConfig {
     fn default() -> Self {
@@ -273,6 +280,19 @@ impl Default for WasmConfig {
     }
 }
 
+impl Default for SearchProviderConfig {
+    fn default() -> Self {
+        Self {
+            backend: "serper".to_string(), // Default to Serper for compatibility
+            timeout_secs: 30,
+            enable_url_parsing: true,
+            circuit_breaker_failure_threshold: 50, // 50% failure rate
+            circuit_breaker_min_requests: 5,
+            circuit_breaker_recovery_timeout_secs: 60,
+        }
+    }
+}
+
 impl ApiConfig {
     /// Load configuration from environment variables
     pub fn from_env() -> Self {
@@ -325,6 +345,21 @@ impl ApiConfig {
             }
         }
 
+        // Search provider configuration
+        if let Ok(val) = std::env::var("SEARCH_BACKEND") {
+            config.search.backend = val;
+        }
+
+        if let Ok(val) = std::env::var("SEARCH_TIMEOUT") {
+            if let Ok(val) = val.parse() {
+                config.search.timeout_secs = val;
+            }
+        }
+
+        if let Ok(val) = std::env::var("SEARCH_ENABLE_URL_PARSING") {
+            config.search.enable_url_parsing = val.to_lowercase() == "true";
+        }
+
         config
     }
 
@@ -374,6 +409,29 @@ impl ApiConfig {
             return Err("wasm instances_per_worker must be greater than 0".to_string());
         }
 
+        // Validate search provider settings
+        if self.search.backend.is_empty() {
+            return Err("search backend cannot be empty".to_string());
+        }
+
+        match self.search.backend.as_str() {
+            "serper" | "none" | "searxng" => {} // Valid backends
+            _ => {
+                return Err(format!(
+                    "Invalid search backend '{}'. Valid options: serper, none, searxng",
+                    self.search.backend
+                ));
+            }
+        }
+
+        if self.search.timeout_secs == 0 {
+            return Err("search timeout_secs must be greater than 0".to_string());
+        }
+
+        if self.search.circuit_breaker_failure_threshold > 100 {
+            return Err("search circuit_breaker_failure_threshold must be <= 100".to_string());
+        }
+
         Ok(())
     }
 
@@ -384,6 +442,7 @@ impl ApiConfig {
             "pdf" => Duration::from_secs(self.performance.pdf_timeout_secs),
             "wasm" => Duration::from_secs(self.performance.wasm_timeout_secs),
             "http" => Duration::from_secs(self.performance.http_timeout_secs),
+            "search" => Duration::from_secs(self.search.timeout_secs),
             _ => Duration::from_secs(self.resources.global_timeout_secs),
         }
     }

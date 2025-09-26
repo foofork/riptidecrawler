@@ -3,8 +3,7 @@
 //! This module provides dynamic buffer sizing, backpressure detection, and
 //! adaptive throttling to handle varying client connection speeds.
 
-use super::error::{StreamingError, StreamingResult};
-use bytes::Bytes;
+use super::error::StreamingResult;
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
@@ -66,6 +65,12 @@ pub struct DynamicBuffer {
     current_capacity: AtomicUsize,
     stats: Arc<RwLock<BufferStats>>,
     send_times: Arc<RwLock<VecDeque<Duration>>>,
+}
+
+impl Default for DynamicBuffer {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl DynamicBuffer {
@@ -282,7 +287,7 @@ impl BackpressureHandler {
             self.buffer.record_drop().await;
 
             // Adjust drop threshold dynamically
-            if self.metrics.total_messages % 100 == 0 {
+            if self.metrics.total_messages.is_multiple_of(100) {
                 self.adjust_drop_threshold().await;
             }
 

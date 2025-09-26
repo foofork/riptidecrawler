@@ -6,18 +6,15 @@ use url::Url;
 
 /// Priority levels for crawl requests
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Default)]
 pub enum Priority {
     Low = 1,
+    #[default]
     Medium = 2,
     High = 3,
     Critical = 4,
 }
 
-impl Default for Priority {
-    fn default() -> Self {
-        Priority::Medium
-    }
-}
 
 /// A request to crawl a specific URL with metadata
 #[derive(Debug, Clone, Serialize, Deserialize)]

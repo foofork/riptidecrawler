@@ -1,0 +1,20 @@
+[
+    {
+      "url": "https://eventmesh.apache.org/",
+      "rank": 1,
+      "title": "Apache EventMesh",
+      "snippet": "Dynamic event-driven application runtime",
+      "relevance_score": 0.95,
+      "formatted_date": "2023-10-01",
+      "source": "official"
+    },
+    {
+      "url": "https://github.com/apache/eventmesh",
+      "rank": 2,
+      "title": "EventMesh Repository",
+      "snippet": "Cloud-native eventing infrastructure",
+      "relevance_score": 0.87,
+      "formatted_date": "2023-10-01",
+      "source": "github"
+    }
+  ]

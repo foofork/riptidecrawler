@@ -157,9 +157,9 @@ impl Worker {
     pub fn get_stats(&self) -> WorkerStatsSnapshot {
         let jobs_processed = self.stats.jobs_processed.load(Ordering::Relaxed);
         let jobs_failed = self.stats.jobs_failed.load(Ordering::Relaxed);
-        let last_heartbeat = self.stats.last_heartbeat.read().clone();
-        let started_at = self.stats.started_at.read().clone();
-        let current_job = self.stats.current_job.read().clone();
+        let last_heartbeat = *self.stats.last_heartbeat.read();
+        let started_at = *self.stats.started_at.read();
+        let current_job = *self.stats.current_job.read();
 
         // Calculate average processing time
         let processing_times = self.stats.processing_times.read();

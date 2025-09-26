@@ -34,6 +34,7 @@ pub struct PoolHealthStatus {
     /// Memory usage statistics
     pub memory_stats: MemoryHealthStats,
     /// Last health check timestamp
+    #[serde(skip)]
     pub last_check: Option<Instant>,
     /// Health trend over time
     pub trend: HealthTrend,
@@ -202,14 +203,14 @@ impl PoolHealthMonitor {
             active_instances: active,
             max_instances: max_size,
             utilization_percent,
-            avg_semaphore_wait_ms: metrics.semaphore_wait_time_ms,
+            avg_semaphore_wait_ms: metrics.semaphore_wait_time_ms as f64,
             circuit_breaker_status,
             total_extractions: metrics.total_extractions,
             success_rate_percent,
             fallback_rate_percent,
             memory_stats: MemoryHealthStats {
-                wasm_memory_pages: metrics.wasm_memory_pages,
-                peak_memory_pages: metrics.wasm_peak_memory_pages,
+                wasm_memory_pages: metrics.wasm_memory_pages as usize,
+                peak_memory_pages: metrics.wasm_peak_memory_pages as usize,
                 grow_failures: metrics.wasm_grow_failed_total,
                 memory_pressure,
             },
@@ -340,7 +341,7 @@ impl PoolHealthMonitor {
     }
 
     /// Calculate health trend based on recent history
-    async fn calculate_health_trend(&self, current_level: &HealthLevel) -> HealthTrend {
+    async fn calculate_health_trend(&self, _current_level: &HealthLevel) -> HealthTrend {
         let history = self.health_history.lock().unwrap();
 
         if history.len() < 3 {
@@ -402,7 +403,6 @@ impl PoolHealthMonitor {
                 "fallback_rate_percent": latest.fallback_rate_percent,
                 "memory_pressure": latest.memory_stats.memory_pressure,
                 "trend": latest.trend,
-                "last_check": latest.last_check,
                 "total_extractions": latest.total_extractions
             }))
         } else {

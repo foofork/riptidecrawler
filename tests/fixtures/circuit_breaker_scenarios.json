@@ -1,0 +1,47 @@
+{
+  "failure_scenarios": [
+    {
+      "name": "api_timeout",
+      "description": "API request times out after configured duration",
+      "failure_count": 1,
+      "expected_state": "closed",
+      "mock_response": null,
+      "mock_error": "RequestTimeout"
+    },
+    {
+      "name": "consecutive_failures",
+      "description": "Multiple consecutive API failures trigger circuit breaker",
+      "failure_count": 3,
+      "expected_state": "open",
+      "mock_responses": [
+        {"error": "API Error", "status": 500},
+        {"error": "Service Unavailable", "status": 503},
+        {"error": "Internal Server Error", "status": 500}
+      ]
+    },
+    {
+      "name": "half_open_recovery",
+      "description": "Circuit breaker allows test request in half-open state",
+      "initial_state": "open",
+      "recovery_attempt": {
+        "success": true,
+        "response": {
+          "organic": [
+            {
+              "title": "Test Recovery Result",
+              "link": "https://example.com",
+              "snippet": "Circuit breaker recovery test"
+            }
+          ]
+        }
+      },
+      "expected_final_state": "closed"
+    }
+  ],
+  "performance_thresholds": {
+    "max_response_time_ms": 5000,
+    "failure_threshold": 3,
+    "recovery_timeout_ms": 60000,
+    "half_open_max_calls": 1
+  }
+}

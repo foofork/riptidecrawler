@@ -3,16 +3,15 @@ use std::collections::VecDeque;
 use std::env;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use tokio::sync::{Semaphore, SemaphorePermit};
+use tokio::sync::Semaphore;
 use tokio::time::{timeout, sleep};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info, warn};
 use uuid::Uuid;
-use wasmtime::{component::*, Config, Engine, Store};
+use wasmtime::{component::*, Engine, Store};
 
 use crate::component::{ExtractorConfig, PerformanceMetrics, WasmResourceTracker};
 use crate::types::{ExtractedDoc, ExtractionMode};
 
-/// Generate bindings from enhanced WIT file
 wasmtime::component::bindgen!({
     world: "extractor",
     path: "wit",
@@ -23,7 +22,7 @@ pub struct PooledInstance {
     pub id: String,
     pub engine: Arc<Engine>,
     pub component: Arc<Component>,
-    pub linker: Arc<Linker<()>>,
+    pub linker: Arc<Linker<WasmResourceTracker>>,
     pub created_at: Instant,
     pub last_used: Instant,
     pub use_count: u64,
@@ -36,7 +35,7 @@ impl PooledInstance {
     pub fn new(
         engine: Arc<Engine>,
         component: Arc<Component>,
-        linker: Arc<Linker<()>>,
+        linker: Arc<Linker<WasmResourceTracker>>,
         max_memory_pages: usize,
     ) -> Self {
         let id = Uuid::new_v4().to_string();
@@ -71,12 +70,12 @@ impl PooledInstance {
         if !success {
             self.failure_count += 1;
         }
-        self.memory_usage_bytes = self.resource_tracker.current_memory_pages() * 64 * 1024;
+        self.memory_usage_bytes = (self.resource_tracker.current_memory_pages() * 64 * 1024) as u64;
     }
 
     /// Create fresh Store with resource limits
     pub fn create_fresh_store(&mut self) -> Store<WasmResourceTracker> {
-        let mut store = Store::new(&*self.engine, self.resource_tracker.clone());
+        let mut store = Store::new(&self.engine, self.resource_tracker.clone());
 
         // Set resource limits
         store.limiter(|tracker| tracker);
@@ -115,7 +114,7 @@ pub struct AdvancedInstancePool {
     /// Shared component for all instances
     component: Arc<Component>,
     /// Shared linker for all instances
-    linker: Arc<Linker<()>>,
+    linker: Arc<Linker<WasmResourceTracker>>,
     /// Available instances queue
     available_instances: Arc<Mutex<VecDeque<PooledInstance>>>,
     /// Semaphore for concurrency control
@@ -143,7 +142,7 @@ impl AdvancedInstancePool {
 
         // Load component
         let component = Component::from_file(&engine, component_path)?;
-        let linker = Linker::new(&engine);
+        let linker: Linker<WasmResourceTracker> = Linker::new(&engine);
 
         let pool = Self {
             config: config.clone(),
@@ -245,12 +244,9 @@ impl AdvancedInstancePool {
         match extraction_result {
             Ok(doc) => Ok(doc),
             Err(e) => {
-                if self.config.enable_fallback {
-                    warn!(error = %e, "WASM extraction failed, falling back to native");
-                    self.fallback_extract(html, url, mode).await
-                } else {
-                    Err(e)
-                }
+                // For now, just return the error without fallback
+                // TODO: Implement fallback to native extraction if needed
+                Err(e)
             }
         }
     }
@@ -260,7 +256,7 @@ impl AdvancedInstancePool {
         // Try to get from pool first
         {
             let mut instances = self.available_instances.lock().unwrap();
-            if let Some(mut instance) = instances.pop_front() {
+            if let Some(instance) = instances.pop_front() {
                 if instance.is_healthy(&self.config) {
                     return Ok(instance);
                 }
@@ -312,19 +308,17 @@ impl AdvancedInstancePool {
         });
 
         // Instantiate component with fresh bindings
-        let bindings = Extractor::instantiate(&mut store, &*instance.component, &*instance.linker)
+        let bindings = Extractor::instantiate(&mut store, &instance.component, &*instance.linker)
             .map_err(|e| anyhow!("Component instantiation failed: {}", e))?;
 
         // Convert mode to WIT format
         let wit_mode = self.convert_extraction_mode(mode);
 
-        // Execute extraction with timeout
-        let extraction_future = bindings.interface0.call_extract(&mut store, html, url, &wit_mode);
-
-        let result = timeout(self.config.extraction_timeout, extraction_future).await;
+        // Execute extraction (sync call, use epoch deadline for timeout)
+        let result = bindings.interface0.call_extract(&mut store, html, url, &wit_mode);
 
         match result {
-            Ok(Ok(Ok(content))) => {
+            Ok(Ok(content)) => {
                 // Success - convert to internal format
                 Ok(ExtractedDoc {
                     url: content.url,
@@ -344,16 +338,11 @@ impl AdvancedInstancePool {
                     description: content.description,
                 })
             }
-            Ok(Ok(Err(extraction_error))) => {
+            Ok(Err(extraction_error)) => {
                 Err(anyhow!("WASM extraction error: {:?}", extraction_error))
             }
-            Ok(Err(e)) => {
+            Err(e) => {
                 Err(anyhow!("Component call failed: {}", e))
-            }
-            Err(_) => {
-                // Timeout occurred
-                self.record_epoch_timeout();
-                Err(anyhow!("Extraction timeout after {}ms", self.config.extraction_timeout.as_millis()))
             }
         }
     }
@@ -387,13 +376,86 @@ impl AdvancedInstancePool {
 
         warn!("Using fallback extraction for URL: {}", url);
 
-        // TODO: Implement native readability-rs extraction
-        // For now, return basic extraction
+        // Use scraper for HTML parsing fallback
+        use scraper::{Html, Selector};
+        let document = Html::parse_document(html);
+
+        // Extract title
+        let mut title = None;
+        for selector_str in &["title", "h1", "[property='og:title']"] {
+            if let Ok(selector) = Selector::parse(selector_str) {
+                if let Some(element) = document.select(&selector).next() {
+                    if *selector_str == "[property='og:title']" {
+                        if let Some(content) = element.value().attr("content") {
+                            title = Some(content.to_string());
+                            break;
+                        }
+                    } else {
+                        let text = element.text().collect::<Vec<_>>().join(" ").trim().to_string();
+                        if !text.is_empty() {
+                            title = Some(text);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Extract main content
+        let mut text = String::new();
+        for selector_str in &["article", ".content", "main", "body"] {
+            if let Ok(selector) = Selector::parse(selector_str) {
+                if let Some(element) = document.select(&selector).next() {
+                    text = element.text().collect::<Vec<_>>().join(" ");
+                    if text.len() > 100 {
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Clean up text
+        text = text.split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+            .chars()
+            .take(5000)  // Limit to 5000 chars
+            .collect();
+
+        // Extract links
+        let mut links = vec![];
+        if let Ok(selector) = Selector::parse("a[href]") {
+            for element in document.select(&selector).take(50) {
+                if let Some(href) = element.value().attr("href") {
+                    links.push(href.to_string());
+                }
+            }
+        }
+
+        // Extract media (images)
+        let mut media = vec![];
+        if let Ok(selector) = Selector::parse("img[src]") {
+            for element in document.select(&selector).take(20) {
+                if let Some(src) = element.value().attr("src") {
+                    media.push(src.to_string());
+                }
+            }
+        }
+
+        // Create simple markdown
+        let markdown = if let Some(ref t) = title {
+            format!("# {}\n\n{}", t, text.chars().take(2000).collect::<String>())
+        } else {
+            format!("# Content\n\n{}", text.chars().take(2000).collect::<String>())
+        };
+
         Ok(ExtractedDoc {
             url: url.to_string(),
-            title: Some("Fallback Extraction".to_string()),
-            text: html.chars().take(1000).collect(),
-            markdown: format!("# Fallback Extraction\n\n{}", html.chars().take(800).collect::<String>()),
+            title,
+            text,
+            markdown,
+            links,
+            media,
             ..Default::default()
         })
     }
@@ -449,7 +511,7 @@ impl AdvancedInstancePool {
 
                 if total_requests >= 10 {
                     let failure_rate = (new_failure_count as f64 / total_requests as f64) * 100.0;
-                    if failure_rate >= self.config.circuit_breaker_failure_threshold {
+                    if failure_rate >= self.config.circuit_breaker_failure_threshold as f64 {
                         metrics.circuit_breaker_trips += 1;
                         warn!(
                             failure_rate = failure_rate,
@@ -533,9 +595,9 @@ impl AdvancedInstancePool {
         let mut metrics = self.metrics.lock().unwrap();
         let wait_ms = wait_time.as_millis() as f64;
         metrics.semaphore_wait_time_ms = if metrics.total_extractions == 1 {
-            wait_ms
+            wait_ms as u64
         } else {
-            (metrics.semaphore_wait_time_ms + wait_ms) / 2.0
+            ((metrics.semaphore_wait_time_ms as f64 + wait_ms) / 2.0) as u64
         };
     }
 

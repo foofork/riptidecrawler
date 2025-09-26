@@ -365,7 +365,7 @@ fn sanitize_topic(topic: &str) -> String {
 /// Simple sentence splitting for topic analysis
 fn split_into_sentences(content: &str) -> Vec<String> {
     content
-        .split(|c| c == '.' || c == '!' || c == '?')
+        .split(['.', '!', '?'])
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty() && s.split_whitespace().count() >= 3)
         .collect()

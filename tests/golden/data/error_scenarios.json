@@ -1,0 +1,35 @@
+[
+    {
+      "error_response": {
+        "error": {
+          "code": 403,
+          "message": "Invalid API key",
+          "details": "The provided API key is not valid or has expired"
+        }
+      },
+      "expected_error_type": "authentication_error",
+      "expected_message_contains": "API key"
+    },
+    {
+      "error_response": {
+        "error": {
+          "code": 429,
+          "message": "Rate limit exceeded",
+          "details": "Too many requests. Please try again later."
+        }
+      },
+      "expected_error_type": "rate_limit_error",
+      "expected_message_contains": "rate limit"
+    },
+    {
+      "error_response": {
+        "error": {
+          "code": 500,
+          "message": "Internal server error",
+          "details": "An unexpected error occurred"
+        }
+      },
+      "expected_error_type": "server_error",
+      "expected_message_contains": "server error"
+    }
+  ]

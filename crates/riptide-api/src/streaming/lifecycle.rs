@@ -3,7 +3,7 @@
 //! This module provides sophisticated lifecycle management for streaming operations,
 //! including event handlers for connection establishment, data flow, errors, and cleanup.
 
-use super::error::{StreamingError, StreamingResult};
+use super::error::StreamingError;
 use super::processor::StreamProcessor;
 use crate::metrics::RipTideMetrics;
 use serde::Serialize;

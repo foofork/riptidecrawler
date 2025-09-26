@@ -7,14 +7,13 @@
 use super::buffer::{BackpressureHandler, BufferManager};
 use super::config::StreamConfig;
 use super::error::{StreamingError, StreamingResult};
-use super::processor::{ProcessedResult, StreamProcessor};
+use super::processor::StreamProcessor;
 use crate::models::*;
 use crate::pipeline::PipelineOrchestrator;
 use crate::state::AppState;
 use serde::Serialize;
 use std::sync::Arc;
 use std::time::Instant;
-use tokio::sync::mpsc;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
@@ -277,7 +276,7 @@ impl StreamingPipeline {
             let urls: Vec<String> = search_results.iter().map(|r| r.url.clone()).collect();
             let crawl_options = body.crawl_options.unwrap_or_default();
             let pipeline = PipelineOrchestrator::new(self.app.clone(), crawl_options);
-            let mut processor = StreamProcessor::new(pipeline, self.request_id.clone(), urls.len());
+            let processor = StreamProcessor::new(pipeline, self.request_id.clone(), urls.len());
 
             // Process URLs concurrently
             let mut result_rx = processor.process_urls_concurrent(urls).await?;
@@ -330,7 +329,7 @@ impl StreamingPipeline {
 
         let summary_event = StreamEvent::DeepSearchSummary(DeepSearchSummary {
             query: body.query.clone(),
-            total_urls_found: total_urls_found,
+            total_urls_found,
             total_processing_time_ms: summary.total_duration_ms,
             status: "completed".to_string(),
         });
