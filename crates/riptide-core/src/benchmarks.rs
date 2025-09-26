@@ -100,6 +100,7 @@ async fn create_test_extractor(
         circuit_breaker_timeout: Duration::from_secs(60),
         circuit_breaker_failure_threshold: 5,
         circuit_breaker_success_threshold: 3,
+        health_check_interval: Duration::from_secs(30),
     };
 
     // For benchmarking, we'll use a mock WASM path
@@ -201,6 +202,7 @@ fn bench_pool_efficiency(c: &mut Criterion) {
             circuit_breaker_timeout: Duration::from_secs(60),
             circuit_breaker_failure_threshold: 5,
             circuit_breaker_success_threshold: 3,
+            health_check_interval: Duration::from_secs(30),
         };
 
         group.bench_with_input(
@@ -374,6 +376,7 @@ fn bench_circuit_breaker(c: &mut Criterion) {
         circuit_breaker_timeout: Duration::from_secs(60),
         circuit_breaker_failure_threshold: 5,
         circuit_breaker_success_threshold: 3,
+        health_check_interval: Duration::from_secs(30),
     };
 
     c.bench_function("circuit_breaker_recovery", |b| {
