@@ -235,10 +235,10 @@ pub trait LlmProvider: Send + Sync {
 **Why**: Review without building a UI
 
 **Track A - Intelligence Crate Setup**
-- [ ] **INTEL-001**: Create `riptide-intelligence` crate
-- [ ] **INTEL-002**: Move LLM extraction strategy
-- [ ] **INTEL-003**: Extract AI-powered components
-- [ ] **INTEL-004**: Define IntelligenceProvider trait
+- [x] **INTEL-001**: Create `riptide-intelligence` crate ✅
+- [x] **INTEL-002**: Move LLM extraction strategy ✅
+- [x] **INTEL-003**: Extract AI-powered components ✅
+- [x] **INTEL-004**: Define IntelligenceProvider trait ✅
 
 **Track B - Streaming & Reports**
 - [ ] **UX-001**: NDJSON viewer page

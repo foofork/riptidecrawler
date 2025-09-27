@@ -7,6 +7,7 @@ members = [
   "crates/riptide-headless",
   "crates/riptide-workers",
   "crates/riptide-intelligence",
+  "crates/riptide-persistence",
   "wasm/riptide-extractor-wasm",
 ]
 resolver = "2"
