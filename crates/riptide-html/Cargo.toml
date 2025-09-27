@@ -1,0 +1,43 @@
+[package]
+name = "riptide-html"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "HTML processing and extraction capabilities for RipTide"
+keywords = ["html", "extraction", "css", "regex", "dom"]
+categories = ["text-processing", "web-programming"]
+
+[dependencies]
+# Core dependencies
+anyhow.workspace = true
+async-trait.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+# HTML processing
+scraper = "0.20"
+lol_html.workspace = true
+regex.workspace = true
+
+# Optional features
+futures.workspace = true
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile.workspace = true
+
+[features]
+default = ["css-extraction", "regex-extraction", "dom-utils"]
+css-extraction = []
+regex-extraction = []
+dom-utils = []
+table-extraction = []
+chunking = []
+
+[[example]]
+name = "basic_extraction"
+required-features = ["css-extraction", "regex-extraction"]
+

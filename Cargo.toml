@@ -1,10 +1,12 @@
 [workspace]
 members = [
   "crates/riptide-core",
+  "crates/riptide-html",
   "crates/riptide-search",
   "crates/riptide-api",
   "crates/riptide-headless",
   "crates/riptide-workers",
+  "crates/riptide-intelligence",
   "wasm/riptide-extractor-wasm",
 ]
 resolver = "2"
@@ -48,6 +50,7 @@ psutil = "3.3"
 url = "2"
 uuid = { version = "1", features = ["v4", "serde"] }
 lol_html = "2"  # Updated from 1
+scraper = "0.20"
 wasmtime = { version = "26", features = ["cache", "component-model"] }  # Keep 26 for compatibility
 wasmtime-wasi = "26"
 chromiumoxide = "0.7"  # Keep for stability

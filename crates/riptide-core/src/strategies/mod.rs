@@ -9,8 +9,9 @@ pub mod metadata;
 pub mod performance;
 
 // Re-export specific items to avoid ambiguity
-pub use extraction::{trek, css_json, llm};
-pub use extraction::regex as extraction_regex;
+pub use extraction::{trek, llm};
+// Re-export from riptide-html crate for backward compatibility
+pub use riptide_html::{css_extraction as css_json, regex_extraction as extraction_regex};
 pub use chunking::{fixed, sentence, topic, sliding};
 pub use chunking::regex as chunking_regex;
 pub use chunking::{ChunkingConfig, ContentChunk, chunk_content};
@@ -66,14 +67,7 @@ pub enum ExtractionStrategy {
     },
 }
 
-/// Regex pattern configuration
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct RegexPattern {
-    pub name: String,
-    pub pattern: String,
-    pub field: String,
-    pub required: bool,
-}
+// RegexPattern now re-exported from riptide-html above
 
 /// Strategy manager for coordinating extraction and chunking
 pub struct StrategyManager {
@@ -129,10 +123,10 @@ impl StrategyManager {
                 extraction::trek::extract(html, url).await
             },
             ExtractionStrategy::CssJson { selectors } => {
-                extraction::css_json::extract(html, url, selectors).await
+                riptide_html::css_extraction::extract(html, url, selectors).await
             },
             ExtractionStrategy::Regex { patterns } => {
-                extraction::regex::extract(html, url, patterns).await
+                riptide_html::regex_extraction::extract(html, url, patterns).await
             },
             ExtractionStrategy::Llm { enabled, model, prompt_template } => {
                 if *enabled {
@@ -167,13 +161,5 @@ pub struct ProcessedContent {
     pub metrics: Option<PerformanceMetrics>,
 }
 
-/// Base extracted content structure
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExtractedContent {
-    pub title: String,
-    pub content: String,
-    pub summary: Option<String>,
-    pub url: String,
-    pub strategy_used: String,
-    pub extraction_confidence: f64,
-}
+// Re-export from riptide-html for backward compatibility
+pub use riptide_html::{ExtractedContent, RegexPattern};
