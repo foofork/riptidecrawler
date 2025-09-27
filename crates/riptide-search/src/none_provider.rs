@@ -9,7 +9,7 @@ use regex::Regex;
 /// This provider doesn't perform actual web searches but instead
 /// parses URLs directly from the query string, useful for when
 /// users paste URLs directly or when no search API is configured.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct NoneProvider {
     enable_url_parsing: bool,
     url_regex: Regex,
@@ -142,5 +142,13 @@ mod tests {
         assert_eq!(urls.len(), 2);
         assert_eq!(urls[0], "https://example.com");
         assert_eq!(urls[1], "http://valid.com");
+    }
+}
+
+impl std::fmt::Debug for NoneProvider {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("NoneProvider")
+            .field("enable_url_parsing", &self.enable_url_parsing)
+            .finish()
     }
 }

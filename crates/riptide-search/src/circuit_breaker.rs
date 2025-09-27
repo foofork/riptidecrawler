@@ -311,7 +311,7 @@ impl std::fmt::Debug for CircuitBreakerWrapper {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::search::none_provider::NoneProvider;
+    use crate::none_provider::NoneProvider;
 
     #[tokio::test]
     async fn test_circuit_breaker_closed_state() {

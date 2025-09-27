@@ -19,7 +19,44 @@ pub mod pdf;
 pub mod integrated_cache;
 pub mod reliability;
 pub mod robots;
-pub mod search;
+// Re-export search functionality from riptide-search crate for backward compatibility
+// TODO: Deprecate in Week 8 - use riptide-search directly
+pub mod search {
+    //! Search provider abstraction - DEPRECATED
+    //!
+    //! This module re-exports types from the `riptide-search` crate for backward compatibility.
+    //!
+    //! **DEPRECATION NOTICE**: This re-export will be removed in a future version.
+    //! Please migrate to using `riptide-search` crate directly:
+    //!
+    //! ```rust
+    //! // Old (deprecated):
+    //! use riptide_core::search::{SearchProvider, SearchBackend};
+    //!
+    //! // New (recommended):
+    //! use riptide_search::{SearchProvider, SearchBackend};
+    //! ```
+
+    pub use riptide_search::{
+        SearchProvider, SearchHit, SearchBackend, SearchConfig, AdvancedSearchConfig,
+        CircuitBreakerConfigOptions, SearchProviderFactory,
+        create_search_provider, create_search_provider_from_env,
+        SerperProvider, NoneProvider, CircuitBreakerWrapper, CircuitBreakerConfig, CircuitState
+    };
+
+    // Re-export the mod structure for backward compatibility
+    pub mod providers {
+        pub use riptide_search::SerperProvider;
+    }
+
+    pub mod circuit_breaker {
+        pub use riptide_search::{CircuitBreakerWrapper, CircuitBreakerConfig, CircuitState};
+    }
+
+    pub mod none_provider {
+        pub use riptide_search::NoneProvider;
+    }
+}
 pub mod security;
 pub mod spider;
 pub mod stealth;

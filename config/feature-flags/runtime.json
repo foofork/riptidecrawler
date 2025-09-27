@@ -1,0 +1,75 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "last_updated": "2025-09-27T14:00:00Z",
+    "description": "Runtime feature flags for RipTide EventMesh - can be changed without recompilation"
+  },
+  "performance": {
+    "adaptive_batching": true,
+    "request_coalescing": true,
+    "connection_pooling": true,
+    "lazy_initialization": true,
+    "cache_optimization": true
+  },
+  "monitoring": {
+    "detailed_metrics": true,
+    "performance_tracking": true,
+    "memory_profiling": false,
+    "trace_collection": true,
+    "health_checks": true
+  },
+  "safety": {
+    "golden_test_enforcement": true,
+    "regression_blocking": true,
+    "memory_monitoring": true,
+    "circuit_breaker": true,
+    "rate_limiting": true
+  },
+  "refactoring": {
+    "behavior_validation": true,
+    "baseline_checking": true,
+    "rollback_enabled": true,
+    "safe_mode": false,
+    "canary_deployment": false
+  },
+  "thresholds": {
+    "max_regression_percent": 5.0,
+    "memory_limit_mb": 600,
+    "response_timeout_ms": 5000,
+    "health_check_interval_ms": 30000,
+    "metric_collection_interval_ms": 1000
+  },
+  "features": {
+    "search_provider": {
+      "enabled": true,
+      "cache_ttl_seconds": 3600,
+      "max_concurrent_requests": 10,
+      "retry_attempts": 3
+    },
+    "event_system": {
+      "enabled": true,
+      "buffer_size": 1000,
+      "batch_timeout_ms": 100,
+      "max_batch_size": 50
+    },
+    "telemetry": {
+      "enabled": true,
+      "sampling_rate": 0.1,
+      "export_interval_ms": 5000,
+      "max_trace_length": 100
+    }
+  },
+  "rollback": {
+    "auto_rollback_enabled": true,
+    "rollback_threshold_failures": 5,
+    "rollback_window_minutes": 10,
+    "notification_webhooks": [],
+    "rollback_strategy": "gradual"
+  },
+  "experimental": {
+    "ml_predictions": false,
+    "auto_scaling": false,
+    "predictive_caching": false,
+    "advanced_analytics": false
+  }
+}

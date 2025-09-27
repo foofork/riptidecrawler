@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "crates/riptide-core",
+  "crates/riptide-search",
   "crates/riptide-api",
   "crates/riptide-headless",
   "crates/riptide-workers",
@@ -19,7 +20,7 @@ async-trait = "0.1"
 axum = { version = "0.7", features = ["json", "ws"] }  # Keep 0.7 for stability
 bytes = "1"
 chrono = { version = "0.4", features = ["serde"] }
-clap = { version = "4", features = ["derive"] }
+clap = { version = "4", features = ["derive", "env"] }
 futures = "0.3"
 http = "1"
 hyper = { version = "1", features = ["full"] }
@@ -52,6 +53,8 @@ wasmtime-wasi = "26"
 chromiumoxide = "0.7"  # Keep for stability
 spider = "2"
 pdfium-render = { version = "0.8", features = ["sync", "thread_safe"] }
+env_logger = { version = "0.10" }
+tempfile = { version = "3" }
 
 # Performance optimization settings
 [profile.release]
@@ -116,3 +119,4 @@ ignored = ["vergen"]  # Keep build dependencies
 # Optional safety switch (leave commented by default):
 # [patch.crates-io]
 # trek-rs = { git = "https://github.com/officialunofficial/trek.git", rev = "PUT_A_PINNED_COMMIT" }
+

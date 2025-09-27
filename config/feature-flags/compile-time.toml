@@ -1,0 +1,47 @@
+# Compile-time Feature Flags for RipTide EventMesh
+# These flags are compiled into the binary and cannot be changed at runtime
+
+[performance]
+# Enable performance optimizations
+optimized_memory_allocation = true
+simd_acceleration = true
+vectorized_processing = true
+zero_copy_optimization = true
+
+[safety]
+# Safety and validation features
+golden_tests_enabled = true
+regression_detection = true
+memory_limit_enforcement = true
+performance_monitoring = true
+
+[features]
+# Major feature toggles
+search_provider_integration = true
+event_system_enabled = true
+telemetry_collection = true
+opentelemetry_export = true
+redis_caching = true
+
+[refactoring]
+# Refactoring safety features
+behavior_capture = true
+baseline_comparison = true
+rollback_support = true
+safe_deployment = true
+
+# Maximum allowed performance regression percentage
+max_regression_percent = 5.0
+
+# Memory constraints
+max_memory_mb = 600
+
+# Test timeouts
+test_timeout_seconds = 300
+
+[experimental]
+# Experimental features (disabled by default)
+wasm_optimization = false
+neural_prediction = false
+adaptive_scaling = false
+cloud_integration = false

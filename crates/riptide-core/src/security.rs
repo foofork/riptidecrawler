@@ -5,6 +5,22 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use tracing::{debug, warn};
 
+// Re-export all security modules
+pub mod types;
+pub mod api_keys;
+pub mod audit;
+pub mod budget;
+pub mod middleware;
+pub mod pii;
+
+// Re-export commonly used types and structs
+pub use types::*;
+pub use api_keys::{ApiKeyManager, ApiKey};
+pub use audit::{AuditLogger, AuditLogEntry, AuditConfig};
+pub use budget::{BudgetManager, BudgetLimits, BudgetHealthStatus};
+pub use middleware::{SecurityMiddleware, RequestSecurityContext, SecurityHealthStatus};
+pub use pii::{PiiRedactor, PiiRedactionMiddleware, PiiConfig};
+
 /// Security middleware configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityConfig {

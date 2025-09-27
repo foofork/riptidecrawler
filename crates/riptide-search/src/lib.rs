@@ -1,29 +1,69 @@
-//! Search provider abstraction for flexible search backend implementations.
+//! # RipTide Search Provider
 //!
-//! This module provides a trait-based abstraction over different search providers,
-//! allowing RipTide to work with multiple search backends without hard dependencies.
+//! A flexible search provider abstraction for RipTide that supports multiple backends.
 //!
-//! ## Supported Backends
+//! ## Features
 //!
-//! - **Serper**: Google search via Serper.dev API (requires API key)
-//! - **None**: URL parsing from query string, no external API required
-//! - **SearXNG**: Self-hosted SearXNG instance (optional, future implementation)
+//! - **Multiple Backends**: Support for Serper.dev, None (URL parsing), and SearXNG
+//! - **Circuit Breaker**: Built-in reliability with circuit breaker pattern
+//! - **Async/Await**: Full async support for non-blocking operations
+//! - **Type Safety**: Strong typing with comprehensive error handling
+//! - **Configuration**: Environment-based and programmatic configuration
 //!
-//! ## Example Usage
+//! ## Quick Start
 //!
 //! ```rust,no_run
-//! use riptide_core::search::{SearchProvider, SearchBackend, create_search_provider};
+//! use riptide_search::{SearchProvider, SearchBackend, create_search_provider, SearchConfig};
 //!
 //! # tokio_test::block_on(async {
-//! let provider = create_search_provider(SearchBackend::Serper, Some("api-key".to_string())).await?;
+//! let config = SearchConfig {
+//!     backend: SearchBackend::Serper,
+//!     api_key: Some("your-api-key".to_string()),
+//!     ..Default::default()
+//! };
+//!
+//! let provider = create_search_provider(config).await?;
 //! let results = provider.search("rust programming", 10, "us", "en").await?;
+//!
+//! for hit in results {
+//!     println!("{}: {}", hit.rank, hit.url);
+//! }
 //! # Ok::<(), anyhow::Error>(())
 //! # });
+//! ```
+//!
+//! ## Backends
+//!
+//! ### Serper (Google Search)
+//! ```rust,no_run
+//! use riptide_search::{SearchConfig, SearchBackend};
+//!
+//! let config = SearchConfig {
+//!     backend: SearchBackend::Serper,
+//!     api_key: Some(std::env::var("SERPER_API_KEY").unwrap()),
+//!     ..Default::default()
+//! };
+//! ```
+//!
+//! ### None (URL Parsing)
+//! ```rust
+//! use riptide_search::{SearchConfig, SearchBackend};
+//!
+//! let config = SearchConfig {
+//!     backend: SearchBackend::None,
+//!     enable_url_parsing: true,
+//!     ..Default::default()
+//! };
 //! ```
 
 pub mod providers;
 pub mod circuit_breaker;
 pub mod none_provider;
+
+// Re-export main types for convenience
+pub use providers::SerperProvider;
+pub use none_provider::NoneProvider;
+pub use circuit_breaker::{CircuitBreakerWrapper, CircuitBreakerConfig, CircuitState};
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -133,7 +173,7 @@ impl std::str::FromStr for SearchBackend {
 /// All implementations must be thread-safe (`Send + Sync`) to support
 /// concurrent usage in the web server.
 #[async_trait::async_trait]
-pub trait SearchProvider: Send + Sync {
+pub trait SearchProvider: Send + Sync + std::fmt::Debug {
     /// Perform a web search with the given parameters.
     ///
     /// # Parameters

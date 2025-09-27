@@ -1,0 +1,351 @@
+# Monitoring Dashboards Configuration for RipTide EventMesh
+# Compatible with Grafana, Prometheus, and OpenTelemetry
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: riptide-monitoring-dashboards
+  namespace: monitoring
+data:
+  golden-tests-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "RipTide Golden Tests & Performance",
+        "tags": ["riptide", "golden-tests", "performance"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Golden Test Success Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "riptide_golden_tests_passed / riptide_golden_tests_total * 100",
+                "legendFormat": "Success Rate %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "min": 0,
+                "max": 100,
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 95},
+                    {"color": "green", "value": 99}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Performance Regression Detection",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "riptide_performance_p50_change_percent",
+                "legendFormat": "P50 Change %"
+              },
+              {
+                "expr": "riptide_performance_p95_change_percent",
+                "legendFormat": "P95 Change %"
+              },
+              {
+                "expr": "riptide_performance_p99_change_percent",
+                "legendFormat": "P99 Change %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "lineWidth": 2,
+                  "fillOpacity": 10
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": -10},
+                    {"color": "yellow", "value": 5},
+                    {"color": "red", "value": 10}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 6, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Memory Usage vs Limit",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "riptide_memory_rss_bytes / 1024 / 1024",
+                "legendFormat": "RSS Memory (MB)"
+              },
+              {
+                "expr": "riptide_memory_limit_bytes / 1024 / 1024",
+                "legendFormat": "Memory Limit (MB)"
+              },
+              {
+                "expr": "riptide_memory_peak_rss_bytes / 1024 / 1024",
+                "legendFormat": "Peak RSS (MB)"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "mbytes",
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "lineWidth": 2,
+                  "fillOpacity": 20
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "yellow", "value": 500},
+                    {"color": "red", "value": 600}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 18, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Test Execution Time",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "riptide_golden_test_duration_seconds",
+                "legendFormat": "Test: {{test_name}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "s",
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "lineWidth": 1,
+                  "fillOpacity": 5
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+          },
+          {
+            "id": 5,
+            "title": "Violation Alerts",
+            "type": "logs",
+            "targets": [
+              {
+                "expr": "{job=\"riptide-eventmesh\"} |= \"VIOLATION\" or \"REGRESSION\"",
+                "legendFormat": ""
+              }
+            ],
+            "gridPos": {"h": 8, "w": 6, "x": 12, "y": 16}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+    }
+
+  system-performance-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "RipTide System Performance",
+        "tags": ["riptide", "system", "performance"],
+        "panels": [
+          {
+            "id": 1,
+            "title": "Request Latency Percentiles",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.50, rate(riptide_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "P50"
+              },
+              {
+                "expr": "histogram_quantile(0.95, rate(riptide_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "P95"
+              },
+              {
+                "expr": "histogram_quantile(0.99, rate(riptide_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "P99"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "s",
+                "custom": {
+                  "drawStyle": "line",
+                  "lineWidth": 2
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "yellow", "value": 1.2},
+                    {"color": "red", "value": 4.5}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Throughput",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rate(riptide_requests_total[5m])",
+                "legendFormat": "Requests/sec"
+              },
+              {
+                "expr": "rate(riptide_pages_extracted_total[5m])",
+                "legendFormat": "Pages/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "reqps",
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 1},
+                    {"color": "green", "value": 5}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Error Rate",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(riptide_requests_total{status=~'5..'}[5m]) / rate(riptide_requests_total[5m]) * 100",
+                "legendFormat": "5xx Error Rate %"
+              },
+              {
+                "expr": "rate(riptide_requests_total{status=~'4..'}[5m]) / rate(riptide_requests_total[5m]) * 100",
+                "legendFormat": "4xx Error Rate %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 5}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 18, "x": 0, "y": 8}
+          }
+        ]
+      }
+    }
+
+  alerting-rules.yaml: |
+    groups:
+      - name: riptide.golden_tests
+        rules:
+          - alert: GoldenTestFailure
+            expr: riptide_golden_tests_failed > 0
+            for: 0m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Golden test failure detected"
+              description: "{{ $value }} golden test(s) failed, indicating potential regression"
+
+          - alert: PerformanceRegression
+            expr: riptide_performance_p95_change_percent > 5
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Performance regression detected"
+              description: "P95 latency increased by {{ $value }}%, exceeding 5% threshold"
+
+          - alert: MemoryLimitExceeded
+            expr: riptide_memory_rss_bytes > 600 * 1024 * 1024
+            for: 30s
+            labels:
+              severity: critical
+            annotations:
+              summary: "Memory limit exceeded"
+              description: "RSS memory usage is {{ $value | humanizeBytes }}, exceeding 600MB limit"
+
+          - alert: MemoryUsageHigh
+            expr: riptide_memory_rss_bytes > 500 * 1024 * 1024
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High memory usage detected"
+              description: "RSS memory usage is {{ $value | humanizeBytes }}, approaching 600MB limit"
+
+          - alert: TestExecutionSlow
+            expr: riptide_golden_test_duration_seconds > 300
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Golden test execution is slow"
+              description: "Test {{ $labels.test_name }} took {{ $value }}s to execute, exceeding 300s threshold"
+
+      - name: riptide.system_performance
+        rules:
+          - alert: HighLatency
+            expr: histogram_quantile(0.95, rate(riptide_request_duration_seconds_bucket[5m])) > 4.5
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "High request latency detected"
+              description: "P95 latency is {{ $value }}s, exceeding 4.5s threshold"
+
+          - alert: LowThroughput
+            expr: rate(riptide_requests_total[5m]) < 1
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Low throughput detected"
+              description: "Request rate is {{ $value }} req/s, below expected threshold"
+
+          - alert: HighErrorRate
+            expr: rate(riptide_requests_total{status=~'5..'}[5m]) / rate(riptide_requests_total[5m]) * 100 > 5
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "High error rate detected"
+              description: "5xx error rate is {{ $value }}%, exceeding 5% threshold"
+
+  notification-channels.yaml: |
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: riptide-alerting-config
+    data:
+      slack-webhook: ""  # Base64 encoded Slack webhook URL
+      pagerduty-key: ""  # Base64 encoded PagerDuty integration key
+      email-smtp: ""     # Base64 encoded SMTP configuration

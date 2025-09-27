@@ -42,5 +42,13 @@
       "namespace": "default",
       "timestamp": 1758612620254
     }
+  ],
+  "swarm": [
+    {
+      "key": "swarm/tester/optimal-roadmap-summary",
+      "value": "Comprehensive optimal roadmap created with excellent separation of concerns. Key features: 6-module architecture (core, html, intelligence, search, api, future-pdf), 12-week phased implementation, comprehensive testing strategy (70/20/10 pyramid), performance SLOs maintained, risk mitigation strategies, and production-grade monitoring. Document location: /workspaces/eventmesh/docs/OPTIMAL_ROADMAP_SYNTHESIS.md",
+      "namespace": "swarm",
+      "timestamp": 1758956310510
+    }
   ]
 }

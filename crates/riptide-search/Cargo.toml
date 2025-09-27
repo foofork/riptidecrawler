@@ -1,0 +1,25 @@
+[package]
+name = "riptide-search"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+authors = ["RipTide Team"]
+description = "Search provider abstraction for RipTide with multiple backend support"
+keywords = ["search", "web-search", "api", "provider"]
+categories = ["web-programming", "api-bindings"]
+
+[dependencies]
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+reqwest = { workspace = true }
+regex = { workspace = true }
+url = { workspace = true }
+tokio = { workspace = true, features = ["time"] }
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[features]
+default = []

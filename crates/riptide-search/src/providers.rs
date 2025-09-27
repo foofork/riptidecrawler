@@ -21,7 +21,7 @@ use std::time::Duration;
 /// - Configurable timeout and result limits
 /// - Proper error handling and retry logic
 /// - Rate limiting awareness
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct SerperProvider {
     api_key: String,
     client: reqwest::Client,
@@ -148,5 +148,14 @@ impl SerperProvider {
         }
 
         Ok(results)
+    }
+}
+
+impl std::fmt::Debug for SerperProvider {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SerperProvider")
+            .field("api_key", &"***")
+            .field("timeout_seconds", &self.timeout_seconds)
+            .finish()
     }
 }
