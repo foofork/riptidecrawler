@@ -395,14 +395,14 @@ impl Spider {
             Ok((content, size)) => {
                 // Extract URLs and analyze content
                 let extracted_urls = self.extract_urls(&content, &request.url).await?;
-                let text_content = self.extract_text_content(&content);
-                
+                let text_content = self.extract_text_content(&content).await;
+
                 let mut result = CrawlResult::success(request.clone());
                 result.content_size = size;
                 result.text_content = text_content;
                 result.extracted_urls = extracted_urls;
                 result.processing_time = start_time.elapsed();
-                
+
                 self.budget_manager.complete_request(&request.url, size, true).await?;
                 return Ok(result);
             }
@@ -456,35 +456,36 @@ impl Spider {
         self.basic_fetch(request, None).await
     }
     
-    /// Extract URLs from content
+    /// Extract URLs from content using riptide-html DOM parser
     async fn extract_urls(&self, content: &str, base_url: &Url) -> Result<Vec<Url>> {
-        // Simple URL extraction - in production, use proper HTML parser
-        let mut urls = Vec::new();
-        
-        // Look for href attributes
-        for line in content.lines() {
-            if let Some(start) = line.find("href=\"") {
-                let start = start + 6; // Skip 'href="'
-                if let Some(end) = line[start..].find('"') {
-                    let url_str = &line[start..start + end];
-                    if let Ok(absolute_url) = base_url.join(url_str) {
-                        urls.push(absolute_url);
-                    }
-                }
-            }
-        }
-        
+        // Use riptide-html for proper DOM-based link extraction
+        let dom_crawler = riptide_html::HtmlDomCrawler::default();
+        let links = dom_crawler.extract_links(content, base_url).await
+            .context("Failed to extract links using HTML DOM parser")?;
+
         // Filter URLs using URL utils
-        let filtered_urls = self.url_utils.read().await.filter_urls(urls).await?;
+        let filtered_urls = self.url_utils.read().await.filter_urls(links).await?;
         Ok(filtered_urls)
     }
     
-    /// Extract text content from HTML
-    fn extract_text_content(&self, content: &str) -> Option<String> {
-        // Simple text extraction - in production, use proper HTML parser
+    /// Extract text content from HTML using riptide-html DOM parser
+    async fn extract_text_content(&self, content: &str) -> Option<String> {
+        // Use riptide-html for proper DOM-based text extraction
+        let dom_crawler = riptide_html::HtmlDomCrawler::default();
+        match dom_crawler.extract_text_content(content).await {
+            Ok(text) => text,
+            Err(_) => {
+                // Fallback to simple extraction if DOM parsing fails
+                self.simple_text_extraction(content)
+            }
+        }
+    }
+
+    /// Simple text extraction fallback method
+    fn simple_text_extraction(&self, content: &str) -> Option<String> {
         let mut text = String::new();
         let mut in_tag = false;
-        
+
         for char in content.chars() {
             match char {
                 '<' => in_tag = true,
@@ -493,7 +494,7 @@ impl Spider {
                 _ => {}
             }
         }
-        
+
         if text.trim().is_empty() {
             None
         } else {

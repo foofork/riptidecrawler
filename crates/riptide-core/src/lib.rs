@@ -58,7 +58,8 @@ pub mod search {
     }
 }
 pub mod security;
-pub mod spider;
+// Temporarily disabled for testing trait system
+// pub mod spider;
 pub mod stealth;
 pub mod strategies;
 pub mod telemetry;

@@ -4540,7 +4540,6 @@ dependencies = [
  "redis",
  "regex",
  "reqwest",
- "riptide-html",
  "riptide-search",
  "robotstxt",
  "schemars",
@@ -4623,8 +4622,10 @@ dependencies = [
  "serde_json",
  "tempfile",
  "thiserror 1.0.69",
+ "tiktoken-rs",
  "tokio",
  "tokio-test",
+ "url",
 ]
 
 [[package]]

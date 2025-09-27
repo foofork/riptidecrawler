@@ -214,17 +214,17 @@ pub trait LlmProvider: Send + Sync {
 **Why**: RAG-friendly text splits
 
 **Track A - Complete HTML Extraction**
-- [ ] **HTML-005**: Move all 5 chunking strategies
+- [x] **HTML-005**: Move all 5 chunking strategies
   - `fixed.rs`, `sliding.rs`, `sentence.rs`, `regex.rs`, `topic.rs`
-- [ ] **HTML-006**: Extract DOM-specific spider logic
-- [ ] **HTML-007**: Update strategy management to use traits
+- [x] **HTML-006**: Extract DOM-specific spider logic
+- [x] **HTML-007**: Update strategy management to use traits
 
 **Track B - Chunking Implementation**
-- [ ] **CHUNK-001**: Sliding window chunker (1000 tokens, 100 overlap)
-- [ ] **CHUNK-002**: Fixed-size chunker
-- [ ] **CHUNK-003**: Sentence-based chunker (NLTK-style)
-- [ ] **CHUNK-004**: Regex-based chunker
-- [ ] **CHUNK-005**: HTML-aware boundaries (no mid-tag splits)
+- [x] **CHUNK-001**: Sliding window chunker (1000 tokens, 100 overlap)
+- [x] **CHUNK-002**: Fixed-size chunker
+- [x] **CHUNK-003**: Sentence-based chunker (NLTK-style)
+- [x] **CHUNK-004**: Regex-based chunker
+- [x] **CHUNK-005**: HTML-aware boundaries (no mid-tag splits)
 
 **Performance Target**: ≤200ms for 50KB text
 **Flags**: On

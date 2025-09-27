@@ -9,7 +9,7 @@ keywords = ["html", "extraction", "css", "regex", "dom"]
 categories = ["text-processing", "web-programming"]
 
 [dependencies]
-# Core dependencies
+# Core dependencies (removed to avoid circular dependency)
 anyhow.workspace = true
 async-trait.workspace = true
 serde = { workspace = true, features = ["derive"] }
@@ -21,6 +21,10 @@ tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 scraper = "0.20"
 lol_html.workspace = true
 regex.workspace = true
+url.workspace = true
+
+# Chunking dependencies
+tiktoken-rs = "0.5"
 
 # Optional features
 futures.workspace = true
@@ -30,12 +34,14 @@ tokio-test = "0.4"
 tempfile.workspace = true
 
 [features]
-default = ["css-extraction", "regex-extraction", "dom-utils"]
+default = ["css-extraction", "regex-extraction", "dom-utils", "chunking"]
 css-extraction = []
 regex-extraction = []
 dom-utils = []
 table-extraction = []
 chunking = []
+spider = []
+strategy-traits = []
 
 [[example]]
 name = "basic_extraction"

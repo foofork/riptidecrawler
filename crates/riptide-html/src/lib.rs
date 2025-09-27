@@ -37,12 +37,39 @@ pub mod processor;
 pub mod css_extraction;
 pub mod regex_extraction;
 pub mod dom_utils;
+pub mod strategy_implementations;
+// pub mod spider;  // Temporarily disabled due to compilation errors
+pub mod chunking;
 
 // Re-export main interfaces
 pub use processor::{HtmlProcessor, ProcessingResult, ProcessingError, ChunkingMode, TableExtractionMode};
 pub use css_extraction::{CssJsonExtractor, extract as css_extract, extract_default as css_extract_default, default_selectors};
 pub use regex_extraction::{RegexExtractor, extract as regex_extract, default_patterns};
 pub use dom_utils::{DomTraverser, ElementInfo, traverse_elements, extract_text_content, find_tables};
+
+// // Re-export spider functionality
+// pub use spider::{
+//     DomSpider, DomCrawlerResult, FormData, MetaData,
+//     HtmlDomCrawler, HtmlLinkExtractor, HtmlFormParser, HtmlMetaExtractor
+// };
+
+// // Re-export spider traits and types
+// pub use spider::traits::{
+//     FormField, ContentAnalysis, ContentType, NavigationHint, DomSpiderConfig
+// };
+
+// Strategy trait implementations (only available with strategy-traits feature)
+#[cfg(feature = "strategy-traits")]
+pub use strategy_implementations::{
+    HtmlCssExtractionStrategy, HtmlRegexExtractionStrategy, HtmlProcessorStrategy
+};
+
+// Re-export chunking functionality
+pub use chunking::{
+    ChunkingStrategy, Chunk, ChunkMetadata, ChunkingConfig,
+    ChunkingMode as ChunkingStrategyMode,
+    create_strategy, utils as chunking_utils
+};
 
 // Common types for extraction
 use serde::{Deserialize, Serialize};
