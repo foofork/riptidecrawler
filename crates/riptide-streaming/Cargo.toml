@@ -1,0 +1,79 @@
+[package]
+name = "riptide-streaming"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "riptide_streaming"
+path = "src/lib.rs"
+
+[[bin]]
+name = "riptide-cli"
+path = "src/cli.rs"
+
+[dependencies]
+riptide-core = { path = "../riptide-core" }
+riptide-html = { path = "../riptide-html" }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+axum = { workspace = true, features = ["ws"] }
+bytes = { workspace = true }
+chrono = { workspace = true }
+clap = { workspace = true, features = ["color"] }
+futures = { workspace = true }
+futures-util = "0.3"
+http = { workspace = true }
+hyper = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
+tokio-stream = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+uuid = { workspace = true }
+url = { workspace = true }
+
+# Streaming specific dependencies
+async-stream = "0.3"
+pin-project-lite = "0.2"
+tokio-util = { version = "0.7", features = ["codec"] }
+
+# HTML report generation dependencies
+handlebars = "6.0"
+base64 = "0.22"
+plotters = { version = "0.3", features = ["bitmap_backend"] }
+image = "0.25"
+
+# CLI and configuration
+directories = "5.0"
+config = "0.14"
+colored = "2.1"
+indicatif = "0.17"
+crossterm = "0.28"
+
+# Additional dependencies
+rand = { workspace = true }
+serde_yaml = "0.9"
+toml = "0.8"
+utoipa = { version = "4.2", features = ["axum_extras", "chrono", "uuid"] }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+tokio-test = "0.4"
+mockall = "0.13"
+criterion = { version = "0.5", features = ["html_reports"] }
+rstest = "0.22"
+
+[features]
+default = ["reports", "cli"]
+reports = []
+cli = []
+
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
