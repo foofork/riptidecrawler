@@ -122,18 +122,18 @@ runtime:
 ### Week 0: Preparation Phase
 
 #### Feature Preservation Audit
-- [ ] **AUDIT-001**: Document all existing features in each module
-- [ ] **AUDIT-002**: Create migration plan for PDF system
-- [ ] **AUDIT-003**: Create migration plan for stealth system
-- [ ] **AUDIT-004**: Verify session management preservation
-- [ ] **AUDIT-005**: Map event bus dependencies
+- [x] **AUDIT-001**: Document all existing features in each module
+- [x] **AUDIT-002**: Create migration plan for PDF system
+- [x] **AUDIT-003**: Create migration plan for stealth system
+- [x] **AUDIT-004**: Verify session management preservation
+- [x] **AUDIT-005**: Map event bus dependencies
 
 #### Infrastructure Setup
-- [ ] **INFRA-001**: Set up golden test framework
-- [ ] **INFRA-002**: Capture performance baselines (p50: 1.2s, p95: 4.5s)
-- [ ] **INFRA-003**: Implement feature flag system
-- [ ] **DOC-001**: Create rollback runbooks
-- [ ] **DOC-002**: Set up monitoring dashboards
+- [x] **INFRA-001**: Set up golden test framework
+- [x] **INFRA-002**: Capture performance baselines (p50: 1.2s, p95: 4.5s)
+- [x] **INFRA-003**: Implement feature flag system
+- [x] **DOC-001**: Create rollback runbooks
+- [x] **DOC-002**: Set up monitoring dashboards
 
 ---
 
@@ -154,22 +154,22 @@ runtime:
 #### Week 1: R1 — Search & Profiles + Security
 
 **Track A - Search Module Extraction (Refactoring Team)**
-- [ ] **SEARCH-001**: Create `riptide-search` crate structure
-- [ ] **SEARCH-002**: Capture golden tests for search module
-- [ ] **SEARCH-003**: Move 4 search files to new crate
+- [x] **SEARCH-001**: Create `riptide-search` crate structure
+- [x] **SEARCH-002**: Capture golden tests for search module
+- [x] **SEARCH-003**: Move 4 search files to new crate
   - `providers.rs` (19.5KB)
   - `circuit_breaker.rs` (14.6KB)
   - `none_provider.rs` (4.6KB)
   - `mod.rs`
-- [ ] **SEARCH-004**: Update SearchProvider trait location
-- [ ] **SEARCH-005**: Fix compilation and imports
-- [ ] **SEARCH-006**: Validate against golden tests
+- [x] **SEARCH-004**: Update SearchProvider trait location
+- [x] **SEARCH-005**: Fix compilation and imports
+- [x] **SEARCH-006**: Validate against golden tests
 
 **Track B - Security Implementation (Feature Team)**
-- [ ] **SEC-001**: API key management system
-- [ ] **SEC-002**: Budget enforcement ($2k/month global, $10/job)
-- [ ] **SEC-003**: PII redaction system
-- [ ] **SEC-004**: Audit logging
+- [x] **SEC-001**: API key management system
+- [x] **SEC-002**: Budget enforcement ($2k/month global, $10/job)
+- [x] **SEC-003**: PII redaction system
+- [x] **SEC-004**: Audit logging
 
 **Deliverables**: riptide-search operational, security layer complete
 

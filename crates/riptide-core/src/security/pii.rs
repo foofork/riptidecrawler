@@ -239,7 +239,7 @@ impl PiiRedactor {
         let url_pattern = PiiPattern {
             name: "url".to_string(),
             pattern_type: PiiType::URL,
-            regex: r"https?://[^\s<>\"\{\}\|\\\^`\[\]]+".to_string(),
+            regex: r"https?://[^\s<>\"{}|\\^`\[\]]+".to_string(),
             confidence_level: ConfidenceLevel::Medium,
             replacement_template: "[URL]".to_string(),
         };
