@@ -288,7 +288,7 @@ async fn chunk_content_impl(content: &str, mode: ChunkingMode) -> anyhow::Result
             }
         }
         ChunkingMode::Sentence { max_sentences } => {
-            let sentences: Vec<&str> = content.split(|c| c == '.' || c == '!' || c == '?').collect();
+            let sentences: Vec<&str> = content.split(['.', '!', '?']).collect();
             let mut current_chunk = String::new();
             let mut sentence_count = 0;
             let mut start_pos = 0;

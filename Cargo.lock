@@ -4540,6 +4540,7 @@ dependencies = [
  "redis",
  "regex",
  "reqwest",
+ "riptide-html",
  "riptide-search",
  "robotstxt",
  "schemars",

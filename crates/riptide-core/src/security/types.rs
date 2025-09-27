@@ -1,6 +1,6 @@
 //! Security module type definitions and common structures
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

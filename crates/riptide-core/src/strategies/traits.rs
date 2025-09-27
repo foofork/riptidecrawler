@@ -11,7 +11,6 @@ use std::sync::Arc;
 
 use crate::strategies::{
     ExtractedContent, ContentChunk, ChunkingConfig,
-    metadata::DocumentMetadata,
     performance::PerformanceMetrics,
 };
 

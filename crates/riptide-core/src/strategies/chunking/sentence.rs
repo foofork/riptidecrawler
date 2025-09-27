@@ -233,7 +233,7 @@ fn calculate_sentence_confidence(sentence: &str, ending_word: &str) -> f64 {
         confidence += 0.1;
     }
 
-    confidence.max(0.0_f64).min(1.0_f64)
+    confidence.clamp(0.0_f64, 1.0_f64)
 }
 
 /// Enhanced abbreviation detection

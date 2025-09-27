@@ -91,10 +91,7 @@ impl LlmProvider for TimeoutWrapper {
     }
 
     async fn is_available(&self) -> bool {
-        match timeout(self.timeout_duration, self.inner.is_available()).await {
-            Ok(available) => available,
-            Err(_) => false, // Timeout means provider is not responsive
-        }
+        timeout(self.timeout_duration, self.inner.is_available()).await.unwrap_or(false)
     }
 }
 
@@ -227,10 +224,7 @@ impl LlmProvider for AdvancedTimeoutWrapper {
     }
 
     async fn is_available(&self) -> bool {
-        match timeout(self.config.health_check_timeout, self.inner.is_available()).await {
-            Ok(available) => available,
-            Err(_) => false,
-        }
+        timeout(self.config.health_check_timeout, self.inner.is_available()).await.unwrap_or(false)
     }
 }
 

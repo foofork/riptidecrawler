@@ -894,18 +894,26 @@ impl AdvancedInstancePool {
         let mut healthy_count = 0;
 
         // Check available instances
-        {
-            let mut instances = self.available_instances.lock().unwrap();
-            let mut i = 0;
-            while i < instances.len() {
-                let instance = &instances[i];
-                if !self.validate_instance_health(instance).await {
-                    let unhealthy_instance = instances.remove(i).unwrap();
+        let instance_health_data = {
+            let instances = self.available_instances.lock().unwrap();
+            instances.iter().map(|i| {
+                (i.id.clone(), i.created_at, i.failure_count)
+            }).collect::<Vec<_>>()
+        };
+
+        for (id, created_at, failure_count) in instance_health_data {
+            // Simple health check without full instance
+            let is_healthy = created_at.elapsed() <= Duration::from_secs(3600) && failure_count <= 5;
+
+            if !is_healthy {
+                let mut instances = self.available_instances.lock().unwrap();
+                if let Some(pos) = instances.iter().position(|i| i.id == id) {
+                    let unhealthy_instance = instances.remove(pos).unwrap();
+                    drop(instances);
                     unhealthy_instances.push(unhealthy_instance);
-                } else {
-                    healthy_count += 1;
-                    i += 1;
                 }
+            } else {
+                healthy_count += 1;
             }
         }
 
@@ -934,6 +942,7 @@ impl AdvancedInstancePool {
     }
 
     /// Validate health of a specific instance
+    #[allow(dead_code)]
     async fn validate_instance_health(&self, instance: &PooledInstance) -> bool {
         // Check age - instances older than 1 hour should be recycled
         if instance.created_at.elapsed() > Duration::from_secs(3600) {
@@ -1029,22 +1038,28 @@ impl AdvancedInstancePool {
         let memory_threshold = (self.config.memory_limit as f64 * 0.8) as u64; // 80% of limit
         let mut cleared = 0;
 
-        {
+        let high_memory_instances = {
             let mut instances = self.available_instances.lock().unwrap();
+            let mut high_memory_instances = Vec::new();
             let mut i = 0;
             while i < instances.len() {
                 if instances[i].memory_usage_bytes > memory_threshold {
                     let instance = instances.remove(i).unwrap();
-                    info!(instance_id = %instance.id, memory_usage = instance.memory_usage_bytes,
-                          "Clearing high memory instance");
-                    cleared += 1;
-
-                    // Emit instance destroyed event
-                    self.emit_instance_health_event(&instance, false).await;
+                    high_memory_instances.push(instance);
                 } else {
                     i += 1;
                 }
             }
+            high_memory_instances
+        };
+
+        for instance in high_memory_instances {
+            info!(instance_id = %instance.id, memory_usage = instance.memory_usage_bytes,
+                  "Clearing high memory instance");
+            cleared += 1;
+
+            // Emit instance destroyed event
+            self.emit_instance_health_event(&instance, false).await;
         }
 
         // Create replacement instances
@@ -1061,15 +1076,21 @@ impl AdvancedInstancePool {
     pub async fn clear_some_instances(&self, count: usize) -> Result<usize> {
         let mut cleared = 0;
 
-        {
+        let instances_to_clear = {
             let mut instances = self.available_instances.lock().unwrap();
+            let mut instances_to_clear = Vec::new();
             for _ in 0..count.min(instances.len()) {
                 if let Some(instance) = instances.pop_front() {
-                    info!(instance_id = %instance.id, "Clearing instance for pool optimization");
-                    self.emit_instance_health_event(&instance, false).await;
-                    cleared += 1;
+                    instances_to_clear.push(instance);
                 }
             }
+            instances_to_clear
+        };
+
+        for instance in instances_to_clear {
+            info!(instance_id = %instance.id, "Clearing instance for pool optimization");
+            self.emit_instance_health_event(&instance, false).await;
+            cleared += 1;
         }
 
         // Create replacement instances

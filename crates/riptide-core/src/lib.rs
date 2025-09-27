@@ -58,7 +58,7 @@ pub mod search {
     }
 }
 pub mod security;
-// Temporarily disabled for testing trait system
+// Temporarily disabled due to compilation issues with HtmlDomCrawler
 // pub mod spider;
 pub mod stealth;
 pub mod strategies;

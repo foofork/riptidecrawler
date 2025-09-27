@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use crate::strategies::{
     traits::*,
-    extraction::{self, ContentExtractor},
+    extraction::self,
     chunking::{self, ChunkingConfig, ContentChunk},
     ExtractedContent, PerformanceMetrics, RegexPattern,
 };
@@ -106,7 +106,7 @@ impl CssJsonExtractionStrategy {
 
 #[async_trait]
 impl ExtractionStrategy for CssJsonExtractionStrategy {
-    async fn extract(&self, html: &str, url: &str) -> Result<ExtractionResult> {
+    async fn extract(&self, _html: &str, url: &str) -> Result<ExtractionResult> {
         let start = std::time::Instant::now();
         // Temporary mock implementation for testing
         let content = ExtractedContent {
@@ -211,7 +211,7 @@ impl RegexExtractionStrategy {
 
 #[async_trait]
 impl ExtractionStrategy for RegexExtractionStrategy {
-    async fn extract(&self, html: &str, url: &str) -> Result<ExtractionResult> {
+    async fn extract(&self, _html: &str, url: &str) -> Result<ExtractionResult> {
         let start = std::time::Instant::now();
         // Temporary mock implementation for testing
         let content = ExtractedContent {
@@ -268,7 +268,7 @@ impl ExtractionStrategy for RegexExtractionStrategy {
         }
     }
 
-    fn confidence_score(&self, html: &str) -> f64 {
+    fn confidence_score(&self, _html: &str) -> f64 {
         // Regex is a fallback strategy - always available but not the best choice
         0.5
     }
@@ -379,7 +379,7 @@ impl ExtractionStrategy for LlmExtractionStrategy {
             .map(|indicator| if html.to_lowercase().contains(indicator) { 0.2 } else { 0.0 })
             .sum::<f64>();
 
-        (0.6 + complexity_score).min(0.98)
+        (0.6_f64 + complexity_score).min(0.98)
     }
 
     fn is_available(&self) -> bool {

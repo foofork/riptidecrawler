@@ -7,6 +7,7 @@ use crate::security::types::*;
 use anyhow::{anyhow, Result};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use sha2::Digest;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::{debug, warn};
@@ -51,7 +52,7 @@ impl std::fmt::Display for PiiType {
 }
 
 /// Confidence levels for PII detection
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd, Eq, Hash)]
 pub enum ConfidenceLevel {
     Low,
     Medium,

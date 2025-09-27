@@ -14,7 +14,7 @@ use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use tokio::sync::RwLock;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info, warn};
 use uuid::Uuid;
 
 /// Audit log entry containing all relevant information
@@ -306,7 +306,7 @@ impl AuditLogger {
             metadata: {
                 let mut metadata = HashMap::new();
                 metadata.insert("tokens_used".to_string(), Value::Number(cost_info.tokens_used.into()));
-                metadata.insert("cost_usd".to_string(), Value::Number(serde_json::Number::from_f64(cost_info.estimated_cost_usd).unwrap_or_default()));
+                metadata.insert("cost_usd".to_string(), Value::Number(serde_json::Number::from_f64(cost_info.estimated_cost_usd).unwrap_or_else(|| serde_json::Number::from(0))));
                 metadata.insert("model_name".to_string(), Value::String(cost_info.model_name.clone()));
                 metadata
             },
@@ -603,13 +603,13 @@ impl AuditLogger {
         &self,
         start_time: DateTime<Utc>,
         end_time: DateTime<Utc>,
-        event_types: Option<Vec<SecurityEventType>>,
-        tenant_id: Option<&TenantId>,
-        severity: Option<SecuritySeverity>,
+        _event_types: Option<Vec<SecurityEventType>>,
+        _tenant_id: Option<&TenantId>,
+        _severity: Option<SecuritySeverity>,
     ) -> Result<Vec<AuditLogEntry>> {
         // This is a simplified implementation
         // In production, you might use a database or log indexing system
-        let mut results = Vec::new();
+        let results = Vec::new();
         
         // For demonstration, return empty results
         // A real implementation would search through log files or a database
@@ -628,7 +628,7 @@ impl AuditLogger {
         &self,
         start_time: DateTime<Utc>,
         end_time: DateTime<Utc>,
-        format: AuditLogFormat,
+        _format: AuditLogFormat,
         output_path: &Path,
     ) -> Result<u64> {
         // Simplified implementation

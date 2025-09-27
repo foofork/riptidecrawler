@@ -4,7 +4,6 @@
 //! strategy system while maintaining backward compatibility with the existing enum-based approach.
 
 use anyhow::Result;
-use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -147,7 +146,7 @@ impl EnhancedStrategyManager {
 
     /// Extract and process content with automatic strategy selection
     pub async fn extract_and_process(&self, html: &str, url: &str) -> Result<EnhancedProcessingResult> {
-        let start = std::time::Instant::now();
+        let _start = std::time::Instant::now();
 
         // Select best extraction strategy
         let strategy_name = if self.config.auto_strategy_selection {

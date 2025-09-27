@@ -19,7 +19,6 @@ use tracing::{debug, info, warn, error};
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 
-use crate::component::ExtractorConfig;
 use crate::instance_pool::{AdvancedInstancePool, PooledInstance};
 use crate::events::{Event, EventSeverity, BaseEvent, EventBus};
 use crate::types::ExtractionMode;
@@ -302,6 +301,7 @@ struct WarmInstance {
 /// URL pattern tracking for intelligent pre-fetching
 #[derive(Debug, Clone)]
 struct UrlPattern {
+    #[allow(dead_code)]
     pattern: String,
     access_count: u64,
     last_accessed: Instant,
@@ -452,7 +452,7 @@ impl CacheWarmingManager {
         if self.config.enable_prefetching && !self.config.prefetch_resources.is_empty() {
             let resource = &self.config.prefetch_resources[0]; // Use first resource for now
 
-            match self.pool.extract(&"<html><body>Warming cache</body></html>",
+            match self.pool.extract("<html><body>Warming cache</body></html>",
                                    &resource.url, resource.mode.clone()).await {
                 Ok(_) => {
                     warm_instance.pre_fetch_url = Some(resource.url.clone());
@@ -589,7 +589,7 @@ impl CacheWarmingManager {
 
     /// Calculate adaptive target size based on load
     async fn calculate_adaptive_target_size(&self) -> usize {
-        let (available, active, total) = self.pool.get_pool_status();
+        let (_available, active, total) = self.pool.get_pool_status();
         let load_ratio = if total == 0 { 0.0 } else { active as f64 / total as f64 };
 
         if load_ratio > self.config.load_threshold {
@@ -691,7 +691,7 @@ impl CacheWarmingManager {
         for resource in resources.iter().take(3) { // Limit to top 3 resources
             self.emit_warming_event(CacheWarmingOperation::PreFetchStarted).await;
 
-            match self.pool.extract(&"<html><body>Pre-fetch</body></html>",
+            match self.pool.extract("<html><body>Pre-fetch</body></html>",
                                    &resource.url, resource.mode.clone()).await {
                 Ok(_) => {
                     debug!(url = %resource.url, "Successfully pre-fetched resource");

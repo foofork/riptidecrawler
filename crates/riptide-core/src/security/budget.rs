@@ -5,7 +5,7 @@
 
 use crate::security::types::*;
 use anyhow::{anyhow, Result};
-use chrono::{DateTime, Datelike, Duration, Utc};
+use chrono::{DateTime, Datelike, Duration, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
@@ -94,6 +94,12 @@ pub struct BudgetCircuitBreaker {
     pub grace_period_end: Option<DateTime<Utc>>,
 }
 
+impl Default for BudgetCircuitBreaker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BudgetCircuitBreaker {
     pub fn new() -> Self {
         Self {
@@ -168,25 +174,25 @@ impl BudgetManager {
     pub fn new(limits: Option<BudgetLimits>) -> Self {
         let limits = limits.unwrap_or_default();
         let now = Utc::now();
-        let month_start = DateTime::from_utc(
-            chrono::NaiveDate::from_ymd(now.year(), now.month(), 1)
+        let month_start = Utc.from_utc_datetime(
+            &chrono::NaiveDate::from_ymd_opt(now.year(), now.month(), 1)
                 .unwrap()
-                .and_hms(0, 0, 0),
-            Utc,
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
         );
         let month_end = if now.month() == 12 {
-            DateTime::from_utc(
-                chrono::NaiveDate::from_ymd(now.year() + 1, 1, 1)
+            Utc.from_utc_datetime(
+                &chrono::NaiveDate::from_ymd_opt(now.year() + 1, 1, 1)
                     .unwrap()
-                    .and_hms(0, 0, 0),
-                Utc,
+                    .and_hms_opt(0, 0, 0)
+                    .unwrap()
             )
         } else {
-            DateTime::from_utc(
-                chrono::NaiveDate::from_ymd(now.year(), now.month() + 1, 1)
+            Utc.from_utc_datetime(
+                &chrono::NaiveDate::from_ymd_opt(now.year(), now.month() + 1, 1)
                     .unwrap()
-                    .and_hms(0, 0, 0),
-                Utc,
+                    .and_hms_opt(0, 0, 0)
+                    .unwrap()
             )
         };
         
@@ -521,25 +527,25 @@ impl BudgetManager {
         
         // Reset for new month
         let now = Utc::now();
-        let month_start = DateTime::from_utc(
-            chrono::NaiveDate::from_ymd(now.year(), now.month(), 1)
+        let month_start = Utc.from_utc_datetime(
+            &chrono::NaiveDate::from_ymd_opt(now.year(), now.month(), 1)
                 .unwrap()
-                .and_hms(0, 0, 0),
-            Utc,
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
         );
         let month_end = if now.month() == 12 {
-            DateTime::from_utc(
-                chrono::NaiveDate::from_ymd(now.year() + 1, 1, 1)
+            Utc.from_utc_datetime(
+                &chrono::NaiveDate::from_ymd_opt(now.year() + 1, 1, 1)
                     .unwrap()
-                    .and_hms(0, 0, 0),
-                Utc,
+                    .and_hms_opt(0, 0, 0)
+                    .unwrap()
             )
         } else {
-            DateTime::from_utc(
-                chrono::NaiveDate::from_ymd(now.year(), now.month() + 1, 1)
+            Utc.from_utc_datetime(
+                &chrono::NaiveDate::from_ymd_opt(now.year(), now.month() + 1, 1)
                     .unwrap()
-                    .and_hms(0, 0, 0),
-                Utc,
+                    .and_hms_opt(0, 0, 0)
+                    .unwrap()
             )
         };
         
@@ -557,18 +563,18 @@ impl BudgetManager {
     fn days_remaining_in_month() -> u32 {
         let now = Utc::now();
         let month_end = if now.month() == 12 {
-            DateTime::from_utc(
-                chrono::NaiveDate::from_ymd(now.year() + 1, 1, 1)
+            Utc.from_utc_datetime(
+                &chrono::NaiveDate::from_ymd_opt(now.year() + 1, 1, 1)
                     .unwrap()
-                    .and_hms(0, 0, 0),
-                Utc,
+                    .and_hms_opt(0, 0, 0)
+                    .unwrap()
             )
         } else {
-            DateTime::from_utc(
-                chrono::NaiveDate::from_ymd(now.year(), now.month() + 1, 1)
+            Utc.from_utc_datetime(
+                &chrono::NaiveDate::from_ymd_opt(now.year(), now.month() + 1, 1)
                     .unwrap()
-                    .and_hms(0, 0, 0),
-                Utc,
+                    .and_hms_opt(0, 0, 0)
+                    .unwrap()
             )
         };
         

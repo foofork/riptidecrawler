@@ -175,9 +175,7 @@ async fn demo_input_validation_security() -> Result<()> {
 
     // Demo security headers
     let mut headers = HeaderMap::new();
-    let security_middleware = riptide_core::security::SecurityMiddleware::new(
-        phase2_manager.get_config().security.clone()
-    );
+    let security_middleware = riptide_core::security::SecurityMiddleware::with_defaults()?;
 
     security_middleware.apply_security_headers(&mut headers)?;
     println!("🔐 Applied {} security headers", headers.len());

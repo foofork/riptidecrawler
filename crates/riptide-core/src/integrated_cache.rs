@@ -66,7 +66,7 @@ impl IntegratedCacheManager {
     pub async fn new_with_config(config: IntegratedCacheConfig) -> Result<Self> {
         let cache_manager =
             CacheManager::new_with_config(&config.redis_url, config.cache.clone()).await?;
-        let security_middleware = SecurityMiddleware::new(config.security.clone());
+        let security_middleware = SecurityMiddleware::with_defaults()?;
         let input_validator = CommonValidator::new(config.validation.clone());
 
         Ok(Self {
@@ -225,7 +225,11 @@ impl IntegratedCacheManager {
             .collect();
 
         self.input_validator.validate_headers(&header_vec)?;
-        self.security_middleware.sanitize_headers(headers)
+
+        // Clone headers for sanitization
+        let mut sanitized_headers = headers.clone();
+        self.security_middleware.sanitize_headers(&mut sanitized_headers)?;
+        Ok(sanitized_headers)
     }
 
     /// Get comprehensive cache statistics

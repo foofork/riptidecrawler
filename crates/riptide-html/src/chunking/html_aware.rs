@@ -66,21 +66,19 @@ fn chunk_html_content(
     preserve_blocks: bool,
     preserve_structure: bool,
 ) -> Result<Vec<Chunk>> {
-    let mut chunks = Vec::new();
-
     // Parse HTML
     let document = Html::parse_document(html);
 
-    if preserve_structure {
+    let chunks = if preserve_structure {
         // Structure-preserving chunking: chunk by semantic elements
-        chunks = chunk_by_html_structure(&document, config)?;
+        chunk_by_html_structure(&document, config)?
     } else if preserve_blocks {
         // Block-preserving chunking: respect block-level elements
-        chunks = chunk_by_html_blocks(&document, config)?;
+        chunk_by_html_blocks(&document, config)?
     } else {
         // Tag-preserving chunking: ensure no mid-tag splits
-        chunks = chunk_html_safely(&document, config)?;
-    }
+        chunk_html_safely(&document, config)?
+    };
 
     Ok(chunks)
 }
@@ -270,7 +268,7 @@ fn extract_element_content(element: &ElementRef, text_only: bool) -> String {
 }
 
 /// Find all block-level elements in the document
-fn find_block_elements(document: &Html) -> Vec<ElementRef> {
+fn find_block_elements(document: &Html) -> Vec<ElementRef<'_>> {
     let block_selector = scraper::Selector::parse(
         "div, p, h1, h2, h3, h4, h5, h6, article, section, aside, header, footer, nav, main, blockquote, ul, ol, li, table, tr, td, th"
     ).unwrap();

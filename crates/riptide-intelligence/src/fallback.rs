@@ -376,10 +376,17 @@ impl LlmProvider for FallbackChain {
         }
 
         // All providers failed
-        error!(
-            "All {} providers failed in fallback chain",
-            providers_tried
-        );
+        if let Some(error) = last_error {
+            error!(
+                "All {} providers failed in fallback chain, last error: {}",
+                providers_tried, error
+            );
+        } else {
+            error!(
+                "All {} providers failed in fallback chain",
+                providers_tried
+            );
+        }
 
         // Record failed request
         if let Some(last_config) = ordered_providers.last() {

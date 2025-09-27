@@ -173,7 +173,7 @@ impl CacheWarmingHealthMonitor {
         let warm_pool_size = self.pool.get_warm_pool_size().await;
         let stats = self.pool.get_cache_warming_stats();
 
-        let status = if !self.pool.is_cache_warming_enabled() {
+        if !self.pool.is_cache_warming_enabled() {
             CacheWarmingHealthStatus::Disabled
         } else if warm_pool_size == 0 {
             CacheWarmingHealthStatus::NoWarmInstances
@@ -188,9 +188,7 @@ impl CacheWarmingHealthMonitor {
             }
         } else {
             CacheWarmingHealthStatus::NoStats
-        };
-
-        status
+        }
     }
 
     /// Start continuous health monitoring

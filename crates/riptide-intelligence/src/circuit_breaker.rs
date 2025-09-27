@@ -180,14 +180,11 @@ impl CircuitBreakerState {
         self.stats.successful_requests += 1;
         self.stats.last_success_time = Some(Instant::now());
 
-        match self.stats.state {
-            CircuitState::HalfOpen => {
-                self.half_open_requests += 1;
-                if self.should_close_from_half_open() {
-                    self.transition_to_closed();
-                }
+        if self.stats.state == CircuitState::HalfOpen {
+            self.half_open_requests += 1;
+            if self.should_close_from_half_open() {
+                self.transition_to_closed();
             }
-            _ => {}
         }
     }
 

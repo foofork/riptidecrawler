@@ -96,9 +96,9 @@ impl ChunkingStrategy for SentenceChunker {
 #[derive(Debug, Clone)]
 struct Sentence {
     text: String,
-    start_pos: usize,
+    _start_pos: usize,
     end_pos: usize,
-    confidence: f64,
+    _confidence: f64,
 }
 
 /// Create a chunk from sentences
@@ -172,9 +172,9 @@ fn detect_sentences(content: &str) -> Vec<Sentence> {
             if confidence > 0.5 { // Only accept high-confidence sentence boundaries
                 let sentence = Sentence {
                     text: current_sentence.trim().to_string(),
-                    start_pos: sentence_start,
+                    _start_pos: sentence_start,
                     end_pos: pos + word.len(),
-                    confidence,
+                    _confidence: confidence,
                 };
                 sentences.push(sentence);
 
@@ -191,9 +191,9 @@ fn detect_sentences(content: &str) -> Vec<Sentence> {
     if !current_sentence.trim().is_empty() {
         let sentence = Sentence {
             text: current_sentence.trim().to_string(),
-            start_pos: sentence_start,
+            _start_pos: sentence_start,
             end_pos: pos,
-            confidence: 0.8,
+            _confidence: 0.8,
         };
         sentences.push(sentence);
     }
@@ -263,7 +263,7 @@ fn calculate_sentence_confidence(sentence: &str, ending_word: &str) -> f64 {
         }
     }
 
-    confidence.max(0.0).min(1.0)
+    confidence.clamp(0.0, 1.0)
 }
 
 /// Enhanced abbreviation detection

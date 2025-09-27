@@ -10,7 +10,7 @@ use crate::security::{
     pii::PiiRedactionMiddleware,
     types::*,
 };
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tracing::{debug, error, info, warn};
@@ -88,7 +88,7 @@ impl SecurityMiddleware {
         let start_time = std::time::Instant::now();
         
         // Step 1: Validate API key and get security context
-        let (api_key_info, mut security_context) = match self.api_key_manager.validate_api_key(api_key).await {
+        let (_api_key_info, mut security_context) = match self.api_key_manager.validate_api_key(api_key).await {
             Ok((key, context)) => {
                 info!(
                     tenant_id = %context.tenant_id,
@@ -386,6 +386,42 @@ impl SecurityMiddleware {
     
     pub fn get_audit_logger(&self) -> Arc<AuditLogger> {
         Arc::clone(&self.audit_logger)
+    }
+
+    /// Validate request size against security limits
+    pub fn validate_request_size(&self, content_length: usize) -> Result<()> {
+        const MAX_REQUEST_SIZE: usize = 10 * 1024 * 1024; // 10MB
+        if content_length > MAX_REQUEST_SIZE {
+            return Err(anyhow::anyhow!("Request size {} exceeds maximum allowed size {}", content_length, MAX_REQUEST_SIZE));
+        }
+        Ok(())
+    }
+
+    /// Apply security headers to response
+    pub fn apply_security_headers(&self, headers: &mut reqwest::header::HeaderMap) -> Result<()> {
+        use reqwest::header::*;
+
+        headers.insert(CONTENT_SECURITY_POLICY, "default-src 'self'".parse().unwrap());
+        headers.insert(X_CONTENT_TYPE_OPTIONS, "nosniff".parse().unwrap());
+        headers.insert(X_FRAME_OPTIONS, "DENY".parse().unwrap());
+        headers.insert("X-XSS-Protection", "1; mode=block".parse().unwrap());
+        headers.insert("Strict-Transport-Security", "max-age=31536000; includeSubDomains".parse().unwrap());
+
+        Ok(())
+    }
+
+    /// Sanitize headers by removing sensitive information
+    pub fn sanitize_headers(&self, headers: &mut reqwest::header::HeaderMap) -> Result<()> {
+        use reqwest::header::*;
+
+        // Remove potentially sensitive headers
+        headers.remove(AUTHORIZATION);
+        headers.remove("X-API-Key");
+        headers.remove("X-Auth-Token");
+        headers.remove(COOKIE);
+        headers.remove(SET_COOKIE);
+
+        Ok(())
     }
 }
 

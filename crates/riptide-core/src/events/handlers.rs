@@ -162,7 +162,7 @@ impl MetricsEventHandler {
         if let Ok(json_str) = event.to_json() {
             if let Ok(pool_event) = serde_json::from_str::<crate::events::types::PoolEvent>(&json_str) {
                 // Record pool operation metrics
-                self.metrics_collector.record_pool_operation(
+                let _ = self.metrics_collector.record_pool_operation(
                     pool_event.operation.as_str(),
                     1.0,
                     event.timestamp().timestamp_millis() as u64,
@@ -170,7 +170,7 @@ impl MetricsEventHandler {
 
                 // If metrics are included, record them
                 if let Some(metrics) = &pool_event.metrics {
-                    self.metrics_collector.record_pool_state(
+                    let _ = self.metrics_collector.record_pool_state(
                         metrics.available_instances,
                         metrics.active_instances,
                         metrics.total_instances,
@@ -188,14 +188,14 @@ impl MetricsEventHandler {
                 let success = matches!(extraction_event.operation, crate::events::types::ExtractionOperation::Completed);
 
                 if let Some(duration_ms) = extraction_event.duration_ms {
-                    self.metrics_collector.record_extraction_time(
+                    let _ = self.metrics_collector.record_extraction_time(
                         Duration::from_millis(duration_ms),
                         success,
                     ).await;
                 }
 
                 // Record extraction outcome
-                self.metrics_collector.record_extraction_outcome(
+                let _ = self.metrics_collector.record_extraction_outcome(
                     extraction_event.operation.as_str(),
                     &extraction_event.url,
                 ).await;
@@ -208,7 +208,7 @@ impl MetricsEventHandler {
         if let Ok(json_str) = event.to_json() {
             if let Ok(metrics_event) = serde_json::from_str::<crate::events::types::MetricsEvent>(&json_str) {
                 // Forward custom metrics to collector
-                self.metrics_collector.record_custom_metric(
+                let _ = self.metrics_collector.record_custom_metric(
                     &metrics_event.metric_name,
                     metrics_event.metric_value,
                     &metrics_event.tags,
@@ -229,7 +229,7 @@ impl MetricsEventHandler {
                     crate::events::types::HealthStatus::Critical => 0.0,
                 };
 
-                self.metrics_collector.record_health_status(
+                let _ = self.metrics_collector.record_health_status(
                     &health_event.component,
                     health_score,
                 ).await;
@@ -238,7 +238,7 @@ impl MetricsEventHandler {
                 if let Some(metrics) = &health_event.metrics {
                     for (metric_name, value) in metrics {
                         let full_metric_name = format!("health.{}.{}", health_event.component, metric_name);
-                        self.metrics_collector.record_custom_metric(
+                        let _ = self.metrics_collector.record_custom_metric(
                             &full_metric_name,
                             *value,
                             &HashMap::new(),

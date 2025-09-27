@@ -5,8 +5,7 @@ edition = "2021"
 
 [dependencies]
 riptide-search = { path = "../riptide-search" }
-# Temporarily commented out for testing trait system
-# riptide-html = { path = "../riptide-html" }
+riptide-html = { path = "../riptide-html" }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 bytes = { workspace = true }
