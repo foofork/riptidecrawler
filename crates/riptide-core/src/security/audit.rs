@@ -38,7 +38,7 @@ pub struct AuditLogEntry {
 }
 
 /// Outcome of an audited action
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum AuditOutcome {
     Success,
     Failure,

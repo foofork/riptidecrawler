@@ -17,9 +17,9 @@ pub mod pii;
 pub use types::*;
 pub use api_keys::{ApiKeyManager, ApiKey};
 pub use audit::{AuditLogger, AuditLogEntry, AuditConfig};
-pub use budget::{BudgetManager, BudgetLimits, BudgetHealthStatus};
+pub use budget::{BudgetManager, BudgetHealthStatus};
 pub use middleware::{SecurityMiddleware, RequestSecurityContext, SecurityHealthStatus};
-pub use pii::{PiiRedactor, PiiRedactionMiddleware, PiiConfig};
+pub use pii::{PiiRedactor, PiiRedactionMiddleware};
 
 /// Security middleware configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -78,12 +78,12 @@ impl Default for RateLimitConfig {
     }
 }
 
-/// Security middleware for HTTP responses and requests
-pub struct SecurityMiddleware {
+/// Legacy security middleware for HTTP responses and requests
+pub struct LegacySecurityMiddleware {
     config: SecurityConfig,
 }
 
-impl SecurityMiddleware {
+impl LegacySecurityMiddleware {
     pub fn new(config: SecurityConfig) -> Self {
         Self { config }
     }

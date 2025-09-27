@@ -178,13 +178,13 @@ runtime:
 **Why**: Schema extraction safety-net that never blocks
 
 **Track A - HTML Crate Creation**
-- [ ] **HTML-001**: Create `riptide-html` crate
-- [ ] **HTML-002**: Define HtmlProcessor trait
-- [ ] **HTML-003**: Move CSS extraction (`css_json.rs`)
-- [ ] **HTML-004**: Move regex extraction (`regex.rs`)
+- [x] **HTML-001**: Create `riptide-html` crate
+- [x] **HTML-002**: Define HtmlProcessor trait
+- [x] **HTML-003**: Move CSS extraction (`css_json.rs`)
+- [x] **HTML-004**: Move regex extraction (`regex.rs`)
 
 **Track B - LLM Abstraction Layer**
-- [ ] **LLM-001**: Define LlmProvider trait (vendor-agnostic)
+- [x] **LLM-001**: Define LlmProvider trait (vendor-agnostic)
 ```rust
 #[async_trait]
 pub trait LlmProvider: Send + Sync {
@@ -194,11 +194,11 @@ pub trait LlmProvider: Send + Sync {
     fn estimate_cost(&self, tokens: usize) -> Cost;
 }
 ```
-- [ ] **LLM-002**: Provider registry system
-- [ ] **LLM-003**: Mock provider for testing
-- [ ] **LLM-004**: **5-second timeout + 1 repair retry**
-- [ ] **LLM-005**: Multi-signal circuit breaker for LLM calls
-- [ ] **LLM-006**: Fallback chain support (deterministic fallback)
+- [x] **LLM-002**: Provider registry system
+- [x] **LLM-003**: Mock provider for testing
+- [x] **LLM-004**: **5-second timeout + 1 repair retry**
+- [x] **LLM-005**: Multi-signal circuit breaker for LLM calls
+- [x] **LLM-006**: Fallback chain support (deterministic fallback)
 
 **Flags**: `llm: false` (default OFF)
 **Done**: Valid JSON when enabled; graceful fallback when not

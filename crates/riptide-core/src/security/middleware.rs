@@ -11,6 +11,7 @@ use crate::security::{
     types::*,
 };
 use anyhow::{anyhow, Result};
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tracing::{debug, error, info, warn};
 
@@ -249,7 +250,7 @@ impl SecurityMiddleware {
             tokens_used: Some(estimated_tokens),
             model_name: Some(model_name.to_string()),
             rate_limit_info: None,
-            pii_redacted,
+            pii_redacted: pii_detected,
             pii_detections: if pii_detected { Some(1) } else { None },
         };
         

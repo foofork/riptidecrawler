@@ -123,7 +123,7 @@ impl fmt::Display for SecurityEventType {
 }
 
 /// Security event severity levels
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SecuritySeverity {
     Low,
     Medium,
@@ -288,11 +288,12 @@ pub enum SecurityError {
     Unknown(String),
 }
 
-impl From<SecurityError> for anyhow::Error {
-    fn from(err: SecurityError) -> Self {
-        anyhow!(err.to_string())
-    }
-}
+// Commented out as anyhow handles this automatically
+// impl From<SecurityError> for anyhow::Error {
+//     fn from(err: SecurityError) -> Self {
+//         anyhow!(err.to_string())
+//     }
+// }
 
 /// Result type alias for security operations
 pub type SecurityResult<T> = Result<T, SecurityError>;
