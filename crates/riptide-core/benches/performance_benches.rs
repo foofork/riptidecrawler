@@ -11,7 +11,6 @@ use riptide_core::telemetry::{DataSanitizer, ResourceTracker, SlaMonitor, Teleme
 /// Performance benchmarks for the monitoring and metrics system
 /// This file contains Criterion benchmarks that can be run with:
 /// cargo bench --features benchmarks
-
 fn bench_metrics_collection(c: &mut Criterion) {
     let rt = Runtime::new().unwrap();
 
@@ -184,7 +183,6 @@ fn bench_concurrent_metrics_collection(c: &mut Criterion) {
 }
 
 fn bench_memory_usage_patterns(c: &mut Criterion) {
-    let rt = Runtime::new().unwrap();
 
     let mut group = c.benchmark_group("memory_patterns");
     group.throughput(Throughput::Elements(1000));

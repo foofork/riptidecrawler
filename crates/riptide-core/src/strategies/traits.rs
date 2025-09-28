@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::strategies::{
-    ExtractedContent, ContentChunk, ChunkingConfig,
+    ExtractedContent,
     performance::PerformanceMetrics,
 };
 
@@ -83,7 +83,7 @@ pub struct StrategyCapabilities {
 }
 
 /// Performance tier classification
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum PerformanceTier {
     /// Ultra-fast, minimal processing
     Fast,
@@ -116,23 +116,7 @@ pub enum ResourceTier {
     High,
 }
 
-/// Chunking strategy trait
-///
-/// Replaces the ChunkingMode enum with a trait-based approach for better extensibility.
-#[async_trait]
-pub trait ChunkingStrategy: Send + Sync {
-    /// Chunk content according to strategy
-    async fn chunk(&self, content: &str, config: &ChunkingConfig) -> Result<Vec<ContentChunk>>;
-
-    /// Get strategy name
-    fn name(&self) -> &str;
-
-    /// Get optimal configuration for this strategy
-    fn optimal_config(&self) -> ChunkingConfig;
-
-    /// Estimate chunk count for given content
-    fn estimate_chunks(&self, content: &str, config: &ChunkingConfig) -> usize;
-}
+// Chunking strategies have been moved to riptide-html crate
 
 /// Spider/crawler strategy trait
 ///
@@ -206,7 +190,6 @@ pub enum Priority {
 /// Strategy registry for managing all strategy implementations
 pub struct StrategyRegistry {
     extraction_strategies: HashMap<String, Arc<dyn ExtractionStrategy>>,
-    chunking_strategies: HashMap<String, Arc<dyn ChunkingStrategy>>,
     spider_strategies: HashMap<String, Arc<dyn SpiderStrategy>>,
 }
 
@@ -215,7 +198,6 @@ impl StrategyRegistry {
     pub fn new() -> Self {
         Self {
             extraction_strategies: HashMap::new(),
-            chunking_strategies: HashMap::new(),
             spider_strategies: HashMap::new(),
         }
     }
@@ -226,11 +208,6 @@ impl StrategyRegistry {
         self.extraction_strategies.insert(name, strategy);
     }
 
-    /// Register a chunking strategy
-    pub fn register_chunking(&mut self, strategy: Arc<dyn ChunkingStrategy>) {
-        let name = strategy.name().to_string();
-        self.chunking_strategies.insert(name, strategy);
-    }
 
     /// Register a spider strategy
     pub fn register_spider(&mut self, strategy: Arc<dyn SpiderStrategy>) {
@@ -243,10 +220,6 @@ impl StrategyRegistry {
         self.extraction_strategies.get(name)
     }
 
-    /// Get chunking strategy by name
-    pub fn get_chunking(&self, name: &str) -> Option<&Arc<dyn ChunkingStrategy>> {
-        self.chunking_strategies.get(name)
-    }
 
     /// Get spider strategy by name
     pub fn get_spider(&self, name: &str) -> Option<&Arc<dyn SpiderStrategy>> {
@@ -261,9 +234,9 @@ impl StrategyRegistry {
             .collect()
     }
 
-    /// List all available chunking strategies
+    /// List all available chunking strategies (moved to riptide-html)
     pub fn list_chunking_strategies(&self) -> Vec<String> {
-        self.chunking_strategies.keys().map(|s| s.to_string()).collect()
+        vec![] // Empty - chunking moved to riptide-html crate
     }
 
     /// List all available spider strategies
@@ -307,10 +280,6 @@ impl StrategyRegistryBuilder {
         self
     }
 
-    pub fn with_chunking(mut self, strategy: Arc<dyn ChunkingStrategy>) -> Self {
-        self.registry.register_chunking(strategy);
-        self
-    }
 
     pub fn with_spider(mut self, strategy: Arc<dyn SpiderStrategy>) -> Self {
         self.registry.register_spider(strategy);

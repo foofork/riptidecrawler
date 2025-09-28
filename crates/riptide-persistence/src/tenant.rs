@@ -527,11 +527,10 @@ impl TenantManager {
 
         // Check access policies
         for policy in &tenant.security.access_policies {
-            if self.matches_resource_pattern(&policy.resource, resource) {
-                if policy.actions.contains(&action.to_string()) || policy.actions.contains(&"*".to_string()) {
+            if self.matches_resource_pattern(&policy.resource, resource)
+                && (policy.actions.contains(&action.to_string()) || policy.actions.contains(&"*".to_string())) {
                     return Ok(true);
                 }
-            }
         }
 
         // Default allow for basic operations if no policies defined
@@ -708,8 +707,7 @@ impl TenantManager {
         if pattern == "*" {
             return true;
         }
-        if pattern.ends_with('*') {
-            let prefix = &pattern[..pattern.len() - 1];
+        if let Some(prefix) = pattern.strip_suffix('*') {
             return resource.starts_with(prefix);
         }
         pattern == resource

@@ -257,8 +257,8 @@ mod tests {
     async fn test_cache_warming_pool_creation() {
         // This would need a real WASM component for full testing
         // For now, just test the structure
-        let engine = Engine::default();
-        let config = ExtractorConfig::default();
+        let _engine = Engine::default();
+        let _config = ExtractorConfig::default();
 
         // Note: This test would need to be expanded with actual pool creation
         // when the full integration is available

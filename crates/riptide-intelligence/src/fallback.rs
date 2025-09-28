@@ -581,7 +581,7 @@ mod tests {
         let provider2 = Arc::new(MockLlmProvider::with_name("provider2"));
 
         // Test round-robin strategy
-        let mut chain = create_fallback_chain_with_strategy(
+        let chain = create_fallback_chain_with_strategy(
             vec![provider1.clone(), provider2.clone()],
             FallbackStrategy::RoundRobin,
         );

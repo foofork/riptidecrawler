@@ -7,9 +7,6 @@ edition = "2021"
 name = "riptide_streaming"
 path = "src/lib.rs"
 
-[[bin]]
-name = "riptide-cli"
-path = "src/cli.rs"
 
 [dependencies]
 riptide-core = { path = "../riptide-core" }

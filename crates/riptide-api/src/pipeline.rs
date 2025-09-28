@@ -397,7 +397,7 @@ impl PipelineOrchestrator {
                     title = ?document.title,
                     "PDF processing completed successfully"
                 );
-                Ok(document)
+                Ok(riptide_core::convert_pdf_extracted_doc(document))
             }
             Err(e) => {
                 error!(

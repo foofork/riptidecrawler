@@ -711,7 +711,7 @@ impl CheckpointManager {
         fs::create_dir_all(&checkpoints_dir).await?;
 
         Ok(Self {
-            config: config,
+            config,
             checkpoints_dir,
         })
     }

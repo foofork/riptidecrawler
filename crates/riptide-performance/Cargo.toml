@@ -1,0 +1,96 @@
+[package]
+name = "riptide-performance"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Core async runtime
+tokio = { workspace = true, features = ["full"] }
+tokio-metrics = "0.3"
+tokio-stream = { workspace = true }
+futures = { workspace = true }
+
+# Error handling and serialization
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Time and UUID
+chrono = { workspace = true }
+uuid = { workspace = true }
+
+# System monitoring
+sysinfo = { workspace = true }
+psutil = { workspace = true }
+
+# Memory profiling and analysis
+jemalloc-ctl = "0.5"
+pprof = { version = "0.13", features = ["flamegraph", "protobuf-codec"] }
+memory-stats = "1.2"
+
+# Performance measurement
+criterion = { version = "0.5", features = ["html_reports"] }
+iai = "0.1"
+flamegraph = "0.6"
+
+# Observability
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+opentelemetry = { workspace = true }
+opentelemetry-otlp = { workspace = true }
+opentelemetry_sdk = { workspace = true }
+opentelemetry-semantic-conventions = { workspace = true }
+tracing-opentelemetry = { workspace = true }
+
+# HTTP and metrics
+reqwest = { workspace = true }
+hyper = { workspace = true }
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+
+# Caching and storage
+redis = { workspace = true }
+moka = { version = "0.12", features = ["future"] }
+
+# Async utilities
+async-trait = { workspace = true }
+pin-project-lite = "0.2"
+
+# Resource management
+governor = "0.6"
+tower-limit = "0.2"
+
+# Internal dependencies
+riptide-core = { path = "../riptide-core" }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+tokio-test = "0.4"
+
+[features]
+default = ["memory-profiling", "bottleneck-analysis", "cache-optimization", "resource-limits"]
+memory-profiling = ["jemalloc-ctl", "pprof", "memory-stats"]
+bottleneck-analysis = ["flamegraph", "criterion"]
+cache-optimization = ["moka", "redis"]
+resource-limits = ["governor", "tower-limit"]
+jemalloc = ["tikv-jemalloc-ctl"]
+
+[lib]
+name = "riptide_performance"
+path = "src/lib.rs"
+
+[[bench]]
+name = "memory_benchmark"
+harness = false
+
+[[bench]]
+name = "bottleneck_benchmark"
+harness = false
+
+[[bench]]
+name = "cache_benchmark"
+harness = false

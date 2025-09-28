@@ -14,6 +14,7 @@ pub mod fixed;
 pub mod sentence;
 pub mod regex_chunker;
 pub mod html_aware;
+pub mod topic;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -132,6 +133,15 @@ pub enum ChunkingMode {
         preserve_blocks: bool,
         preserve_structure: bool,
     },
+    /// Topic-based chunking using TextTiling algorithm
+    Topic {
+        /// Whether to use topic chunking (opt-in)
+        topic_chunking: bool,
+        /// Window size for coherence analysis
+        window_size: usize,
+        /// Smoothing passes for boundary detection
+        smoothing_passes: usize,
+    },
 }
 
 impl Default for ChunkingMode {
@@ -160,6 +170,14 @@ pub fn create_strategy(mode: ChunkingMode, config: ChunkingConfig) -> Box<dyn Ch
         },
         ChunkingMode::HtmlAware { preserve_blocks, preserve_structure } => {
             Box::new(html_aware::HtmlAwareChunker::new(preserve_blocks, preserve_structure, config))
+        },
+        ChunkingMode::Topic { topic_chunking, window_size, smoothing_passes } => {
+            if topic_chunking {
+                Box::new(topic::TopicChunker::new(window_size, smoothing_passes, config))
+            } else {
+                // Fallback to sliding window when topic chunking is disabled
+                Box::new(sliding::SlidingWindowChunker::new(1000, 100, config))
+            }
         },
     }
 }

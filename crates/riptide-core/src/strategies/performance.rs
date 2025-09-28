@@ -26,7 +26,6 @@ pub struct StrategyMetrics {
     pub max_duration: Duration,
     pub success_rate: f64,
     pub average_content_size: usize,
-    pub average_chunk_count: usize,
     pub quality_scores: Vec<f64>,
     pub average_quality: f64,
     pub throughput_per_second: f64,
@@ -106,14 +105,14 @@ impl PerformanceMetrics {
         strategy: &ExtractionStrategy,
         duration: Duration,
         content_size: usize,
-        chunk_count: usize,
+        _chunk_count: usize, // Ignored, chunking handled by other crates
     ) {
         let strategy_name = strategy_name(strategy);
         let metrics = self.strategy_metrics
             .entry(strategy_name.clone())
             .or_insert_with(|| StrategyMetrics::new(strategy_name));
 
-        metrics.record_run(duration, content_size, chunk_count, true, 0.8); // Default quality
+        metrics.record_run(duration, content_size, true, 0.8); // Default quality
 
         self.total_extractions += 1;
         self.total_processing_time += duration;
@@ -190,7 +189,6 @@ impl StrategyMetrics {
             max_duration: Duration::new(0, 0),
             success_rate: 0.0,
             average_content_size: 0,
-            average_chunk_count: 0,
             quality_scores: Vec::new(),
             average_quality: 0.0,
             throughput_per_second: 0.0,
@@ -205,7 +203,6 @@ impl StrategyMetrics {
         &mut self,
         duration: Duration,
         content_size: usize,
-        chunk_count: usize,
         success: bool,
         quality_score: f64,
     ) {
@@ -235,7 +232,6 @@ impl StrategyMetrics {
         }
 
         self.average_content_size = ((self.average_content_size * (self.total_runs - 1)) + content_size) / self.total_runs;
-        self.average_chunk_count = ((self.average_chunk_count * (self.total_runs - 1)) + chunk_count) / self.total_runs;
 
         self.last_updated = std::time::SystemTime::now();
     }
@@ -271,8 +267,6 @@ impl Default for BenchmarkConfig {
             test_content_sizes: vec![1024, 10240, 102400, 1048576], // 1KB to 1MB
             strategies_to_test: vec![
                 ExtractionStrategy::Trek,
-                ExtractionStrategy::CssJson { selectors: std::collections::HashMap::new() },
-                ExtractionStrategy::Regex { patterns: Vec::new() },
             ],
             measure_memory: true,
             detailed_timing: true,
@@ -424,36 +418,6 @@ async fn run_single_extraction(
                 quality: result.extraction_confidence,
             })
         }
-        ExtractionStrategy::CssJson { selectors } => {
-            use crate::strategies::extraction::css_json;
-            let result = css_json::extract(content, "http://example.com", selectors).await?;
-            Ok(ExtractionResult {
-                quality: result.extraction_confidence,
-            })
-        }
-        ExtractionStrategy::Regex { patterns } => {
-            use crate::strategies::extraction::regex;
-            let result = regex::extract(content, "http://example.com", patterns).await?;
-            Ok(ExtractionResult {
-                quality: result.extraction_confidence,
-            })
-        }
-        ExtractionStrategy::Llm { enabled, model, prompt_template } => {
-            if *enabled {
-                use crate::strategies::extraction::llm;
-                let result = llm::extract(content, "http://example.com", model.as_deref(), prompt_template.as_deref()).await?;
-                Ok(ExtractionResult {
-                    quality: result.extraction_confidence,
-                })
-            } else {
-                // Fallback to Trek
-                use crate::strategies::extraction::trek;
-                let result = trek::extract(content, "http://example.com").await?;
-                Ok(ExtractionResult {
-                    quality: result.extraction_confidence,
-                })
-            }
-        }
     }
 }
 
@@ -523,9 +487,6 @@ fn get_memory_usage_mb() -> f64 {
 fn strategy_name(strategy: &ExtractionStrategy) -> String {
     match strategy {
         ExtractionStrategy::Trek => "trek".to_string(),
-        ExtractionStrategy::CssJson { .. } => "css_json".to_string(),
-        ExtractionStrategy::Regex { .. } => "regex".to_string(),
-        ExtractionStrategy::Llm { .. } => "llm".to_string(),
     }
 }
 

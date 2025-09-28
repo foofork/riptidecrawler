@@ -158,6 +158,7 @@ pub enum ProcessingError {
 }
 
 /// Default HTML processor implementation
+#[derive(Debug, Clone)]
 pub struct DefaultHtmlProcessor {
     /// Maximum processing time in milliseconds
     pub max_processing_time: u64,

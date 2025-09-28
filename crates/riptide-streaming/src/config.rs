@@ -96,16 +96,18 @@ pub struct LoggingConfig {
 
 /// Configuration builder for creating configurations from multiple sources
 pub struct ConfigBuilder {
-    config: Config,
     config_file: Option<PathBuf>,
+    overrides: HashMap<String, String>,
+    env_prefix: Option<String>,
 }
 
 impl ConfigBuilder {
     /// Create a new configuration builder
     pub fn new() -> Self {
         Self {
-            config: Config::default(),
             config_file: None,
+            overrides: HashMap::new(),
+            env_prefix: None,
         }
     }
 
@@ -113,9 +115,6 @@ impl ConfigBuilder {
     pub fn add_file<P: Into<PathBuf>>(mut self, path: P) -> Self {
         let path = path.into();
         if path.exists() {
-            self.config = self.config.clone()
-                .merge(File::from(path.clone()))
-                .unwrap_or_else(|_| self.config);
             self.config_file = Some(path);
         }
         self
@@ -123,69 +122,87 @@ impl ConfigBuilder {
 
     /// Add configuration from environment variables
     pub fn add_env(mut self, prefix: &str) -> Self {
-        self.config = self.config.clone()
-            .merge(Environment::with_prefix(prefix).separator("_"))
-            .unwrap_or_else(|_| self.config);
+        self.env_prefix = Some(prefix.to_string());
         self
     }
 
     /// Add configuration from a HashMap
     pub fn add_map(mut self, map: HashMap<String, String>) -> Self {
-        for (key, value) in map {
-            self.config = self.config.clone()
-                .set(&key, value)
-                .unwrap_or_else(|_| self.config);
-        }
+        // Store overrides to be applied in build()
+        self.overrides.extend(map);
         self
     }
 
     /// Build the final configuration
     pub fn build(self) -> Result<RiptideConfig, ConfigError> {
-        let mut config = self.config;
-        
-        // Set defaults if not provided
-        config = config.set_default("api.host", "localhost")?;
-        config = config.set_default("api.port", 8080)?;
-        config = config.set_default("api.timeout_seconds", 30)?;
-        config = config.set_default("api.max_retries", 3)?;
-        config = config.set_default("api.rate_limit.requests_per_minute", 60)?;
-        config = config.set_default("api.rate_limit.burst_size", 10)?;
-        config = config.set_default("api.rate_limit.enabled", true)?;
-        
-        config = config.set_default("streaming.buffer_size", 1000)?;
-        config = config.set_default("streaming.max_concurrent_streams", 10)?;
-        config = config.set_default("streaming.progress_update_interval_ms", 1000)?;
-        config = config.set_default("streaming.ndjson_enabled", true)?;
-        config = config.set_default("streaming.websocket_enabled", true)?;
-        
-        config = config.set_default("streaming.backpressure.max_in_flight", 1000)?;
-        config = config.set_default("streaming.backpressure.max_memory_bytes", 104857600)?; // 100MB
-        config = config.set_default("streaming.backpressure.max_total_items", 10000)?;
-        config = config.set_default("streaming.backpressure.activation_threshold", 0.8)?;
-        config = config.set_default("streaming.backpressure.recovery_threshold", 0.6)?;
-        config = config.set_default("streaming.backpressure.check_interval_ms", 500)?;
-        config = config.set_default("streaming.backpressure.adaptive", true)?;
-        
         let output_dir = get_default_output_directory();
-        config = config.set_default("reports.output_directory", output_dir.to_string_lossy().as_ref())?;
-        config = config.set_default("reports.default_format", "html")?;
-        config = config.set_default("reports.include_charts", true)?;
-        config = config.set_default("reports.include_raw_data", false)?;
-        config = config.set_default("reports.chart_width", 800)?;
-        config = config.set_default("reports.chart_height", 400)?;
-        config = config.set_default("reports.theme", "modern")?;
-        
-        config = config.set_default("cli.default_output_format", "json")?;
-        config = config.set_default("cli.color_enabled", true)?;
-        config = config.set_default("cli.progress_bars", true)?;
-        config = config.set_default("cli.verbose", false)?;
-        config = config.set_default("cli.quiet", false)?;
-        
-        config = config.set_default("logging.level", "info")?;
-        config = config.set_default("logging.format", "pretty")?;
-        config = config.set_default("logging.file_logging", false)?;
-        config = config.set_default("logging.structured_logging", false)?;
-        
+
+        // Create a new builder with all defaults
+        let mut builder = Config::builder()
+            // API defaults
+            .set_default("api.host", "localhost")?
+            .set_default("api.port", 8080)?
+            .set_default("api.timeout_seconds", 30)?
+            .set_default("api.max_retries", 3)?
+            .set_default("api.rate_limit.requests_per_minute", 60)?
+            .set_default("api.rate_limit.burst_size", 10)?
+            .set_default("api.rate_limit.enabled", true)?
+
+            // Streaming defaults
+            .set_default("streaming.buffer_size", 1000)?
+            .set_default("streaming.max_concurrent_streams", 10)?
+            .set_default("streaming.progress_update_interval_ms", 1000)?
+            .set_default("streaming.ndjson_enabled", true)?
+            .set_default("streaming.websocket_enabled", true)?
+
+            // Backpressure defaults
+            .set_default("streaming.backpressure.max_in_flight", 1000)?
+            .set_default("streaming.backpressure.max_memory_bytes", 104857600)?
+            .set_default("streaming.backpressure.max_total_items", 10000)?
+            .set_default("streaming.backpressure.activation_threshold", 0.8)?
+            .set_default("streaming.backpressure.recovery_threshold", 0.6)?
+            .set_default("streaming.backpressure.check_interval_ms", 500)?
+            .set_default("streaming.backpressure.adaptive", true)?
+
+            // Reports defaults
+            .set_default("reports.output_directory", output_dir.to_string_lossy().as_ref())?
+            .set_default("reports.default_format", "html")?
+            .set_default("reports.include_charts", true)?
+            .set_default("reports.include_raw_data", false)?
+            .set_default("reports.chart_width", 800)?
+            .set_default("reports.chart_height", 400)?
+            .set_default("reports.theme", "modern")?
+
+            // CLI defaults
+            .set_default("cli.default_output_format", "json")?
+            .set_default("cli.color_enabled", true)?
+            .set_default("cli.progress_bars", true)?
+            .set_default("cli.verbose", false)?
+            .set_default("cli.quiet", false)?
+
+            // Logging defaults
+            .set_default("logging.level", "info")?
+            .set_default("logging.format", "pretty")?
+            .set_default("logging.file_logging", false)?
+            .set_default("logging.structured_logging", false)?;
+
+        // Add file source if specified
+        if let Some(config_file) = &self.config_file {
+            builder = builder.add_source(File::from(config_file.clone()));
+        }
+
+        // Add environment source if specified
+        if let Some(env_prefix) = &self.env_prefix {
+            builder = builder.add_source(Environment::with_prefix(env_prefix).separator("_"));
+        }
+
+        // Apply stored overrides
+        for (key, value) in self.overrides {
+            builder = builder.set_override(key, value)?;
+        }
+
+        let config = builder.build()?;
+
         config.try_deserialize()
     }
 }
@@ -257,9 +274,10 @@ impl ConfigManager {
 
     /// Save the configuration to file
     pub fn save(&self) -> Result<()> {
+        let default_path = get_config_file_path();
         let config_file = self.config_file.as_ref()
-            .unwrap_or(&get_config_file_path());
-        
+            .unwrap_or(&default_path);
+
         // Ensure the config directory exists
         if let Some(parent) = config_file.parent() {
             std::fs::create_dir_all(parent)?;

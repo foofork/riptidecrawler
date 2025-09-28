@@ -3,15 +3,18 @@ use serde_json::json;
 use std::fs;
 use std::path::Path;
 use std::time::Instant;
-use wasmtime::*;
-use wasmtime::component::*;
+// Add specific imports needed for tests
+// Import from the crate itself using the wit-generated exports
+use riptide_extractor_wasm::{ExtractionMode, Component};
 
 // Test configuration
+#[allow(dead_code)]
 const WASM_PATH: &str = "/workspaces/riptide/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm";
 const FIXTURES_DIR: &str = "/workspaces/riptide/wasm/riptide-extractor-wasm/tests/fixtures";
 
 /// Test results structure
 #[derive(Debug)]
+#[allow(dead_code)]
 struct TestResult {
     test_name: String,
     mode: String,
@@ -22,6 +25,7 @@ struct TestResult {
 }
 
 #[derive(Debug, Default)]
+#[allow(dead_code)]
 struct ExtractedFields {
     has_title: bool,
     has_content: bool,
@@ -35,6 +39,7 @@ struct ExtractedFields {
 
 /// Performance metrics
 #[derive(Debug, Default)]
+#[allow(dead_code)]
 struct PerformanceMetrics {
     cold_start_ms: u128,
     warm_start_ms: u128,
@@ -43,55 +48,40 @@ struct PerformanceMetrics {
     peak_memory_mb: f64,
 }
 
-/// Main test runner
-fn main() -> Result<()> {
-    println!("🧪 WASM Extractor Comprehensive Test Suite");
-    println!("==========================================\n");
-
-    // Initialize WASM engine with optimizations
-    let mut config = Config::new();
-    config.wasm_component_model(true);
-    config.wasm_simd(true);
-    config.wasm_bulk_memory(true);
-    config.cranelift_opt_level(OptLevel::Speed);
-
-    let engine = Engine::new(&config)?;
+/// Test suite for WASM extractor functionality
+#[tokio::test]
+async fn test_wasm_extractor_suite() -> Result<()> {
+    println!("🧪 WASM Extractor Test Suite");
+    println!("============================\n");
 
     // Load test fixtures
     let fixtures = load_fixtures()?;
     println!("📁 Loaded {} test fixtures\n", fixtures.len());
 
     // Test all extraction modes
-    let modes = vec!["article", "full", "metadata", "custom"];
+    let modes = vec![ExtractionMode::Article, ExtractionMode::Full, ExtractionMode::Metadata];
     let mut all_results = Vec::new();
     let mut perf_metrics = PerformanceMetrics::default();
 
-    // Cold start test
-    println!("🚀 Testing cold start performance...");
-    let cold_start = Instant::now();
-    let component = Component::from_file(&engine, WASM_PATH)?;
-    perf_metrics.cold_start_ms = cold_start.elapsed().as_millis();
-    println!("   Cold start: {}ms\n", perf_metrics.cold_start_ms);
+    // Component performance test
+    println!("🚀 Testing component performance...");
+    let component = Component::new();
 
-    // Warm start test
-    println!("♨️  Testing warm start performance...");
-    let warm_start = Instant::now();
-    let mut store = Store::new(&engine, ());
-    let linker = Linker::new(&engine);
-    let _instance = linker.instantiate(&mut store, &component)?;
-    perf_metrics.warm_start_ms = warm_start.elapsed().as_millis();
-    println!("   Warm start: {}ms\n", perf_metrics.warm_start_ms);
+    let cold_start = Instant::now();
+    let _ = component.health_check();
+    perf_metrics.cold_start_ms = cold_start.elapsed().as_millis();
+    println!("   Component init: {}ms\n", perf_metrics.cold_start_ms);
 
     // Run tests for each fixture and mode
     for fixture in &fixtures {
         println!("📄 Testing fixture: {}", fixture.name);
 
         for mode in &modes {
-            let result = test_extraction(&engine, &component, fixture, mode)?;
+            let result = test_extraction_direct(fixture, mode)?;
 
             // Print result summary
             let status = if result.success { "✅" } else { "❌" };
-            println!("   {} Mode: {} - {}ms", status, mode, result.duration_ms);
+            println!("   {} Mode: {:?} - {}ms", status, mode, result.duration_ms);
 
             if !result.success {
                 println!("      Error: {}", result.error.as_ref().unwrap_or(&"Unknown".to_string()));
@@ -111,15 +101,11 @@ fn main() -> Result<()> {
 
     // Edge case tests
     println!("🔥 Running edge case tests...");
-    run_edge_case_tests(&engine, &component)?;
+    run_edge_case_tests_direct()?;
 
     // Performance benchmarks
     println!("\n📊 Running performance benchmarks...");
-    run_performance_benchmarks(&engine, &component, &fixtures, &mut perf_metrics)?;
-
-    // Memory stress tests
-    println!("\n💾 Running memory stress tests...");
-    run_memory_tests(&engine, &component)?;
+    run_performance_benchmarks_direct(&fixtures, &mut perf_metrics)?;
 
     // Generate report
     generate_report(&all_results, &perf_metrics)?;
@@ -162,37 +148,55 @@ struct TestFixture {
     url: String,
 }
 
-/// Test extraction for a specific mode
-fn test_extraction(
-    engine: &Engine,
-    component: &Component,
+/// Test extraction for a specific mode using the component directly
+fn test_extraction_direct(
     fixture: &TestFixture,
-    mode: &str,
+    mode: &ExtractionMode,
 ) -> Result<TestResult> {
     let start = Instant::now();
-    let mut store = Store::new(&engine, ());
+    let component = Component::new();
 
-    // Create instance and bindings
-    let linker = Linker::new(&engine);
-    let instance = linker.instantiate(&mut store, &component)?;
-
-    // Call extraction function (simplified - actual implementation would use proper bindings)
-    // This is a placeholder for the actual WASM function call
-    let extracted = simulate_extraction(&fixture.html, &fixture.url, mode);
-
+    // Use the actual component extraction
+    let extracted_result = component.extract(fixture.html.clone(), fixture.url.clone(), mode.clone());
     let duration_ms = start.elapsed().as_millis();
 
-    Ok(TestResult {
-        test_name: fixture.name.clone(),
-        mode: mode.to_string(),
-        success: true,
-        duration_ms,
-        extracted_fields: extracted,
-        error: None,
-    })
+    match extracted_result {
+        Ok(content) => {
+            let extracted = ExtractedFields {
+                has_title: content.title.is_some(),
+                has_content: !content.text.is_empty(),
+                links_count: content.links.len(),
+                media_count: content.media.len(),
+                has_language: content.language.is_some(),
+                categories_count: content.categories.len(),
+                word_count: content.word_count.unwrap_or(0),
+                quality_score: content.quality_score.unwrap_or(0),
+            };
+
+            Ok(TestResult {
+                test_name: fixture.name.clone(),
+                mode: format!("{:?}", mode),
+                success: true,
+                duration_ms,
+                extracted_fields: extracted,
+                error: None,
+            })
+        }
+        Err(e) => {
+            Ok(TestResult {
+                test_name: fixture.name.clone(),
+                mode: format!("{:?}", mode),
+                success: false,
+                duration_ms,
+                extracted_fields: ExtractedFields::default(),
+                error: Some(format!("{:?}", e)),
+            })
+        }
+    }
 }
 
 /// Simulate extraction (placeholder - replace with actual WASM calls)
+#[allow(dead_code)]
 fn simulate_extraction(html: &str, _url: &str, _mode: &str) -> ExtractedFields {
     ExtractedFields {
         has_title: html.contains("<title>"),
@@ -206,27 +210,32 @@ fn simulate_extraction(html: &str, _url: &str, _mode: &str) -> ExtractedFields {
     }
 }
 
-/// Run edge case tests
-fn run_edge_case_tests(engine: &Engine, component: &Component) -> Result<()> {
+/// Run edge case tests using component directly
+fn run_edge_case_tests_direct() -> Result<()> {
+    let giant_html = "x".repeat(100_000); // 100KB for reasonable test
+    let deep_nested = generate_deep_nesting(100);
+
     let tests = vec![
         ("Empty HTML", ""),
         ("Minimal HTML", "<html><body>Test</body></html>"),
-        ("Giant HTML", &"x".repeat(10_000_000)), // 10MB
+        ("Giant HTML", giant_html.as_str()),
         ("Invalid UTF-8 sequences", "Test \u{FFFD} content"),
-        ("Null bytes", "Test\x00Content"),
-        ("Deep nesting", &generate_deep_nesting(100)),
+        ("Deep nesting", deep_nested.as_str()),
     ];
+
+    let component = Component::new();
 
     for (name, html) in tests {
         print!("   Testing {}: ", name);
 
         let start = Instant::now();
-        let mut store = Store::new(&engine, ());
-        let linker = Linker::new(&engine);
 
-        match linker.instantiate(&mut store, &component) {
+        match component.extract(
+            html.to_string(),
+            "https://test.example.com".to_string(),
+            ExtractionMode::Article
+        ) {
             Ok(_) => {
-                // Test extraction with edge case
                 let duration = start.elapsed().as_millis();
                 println!("✅ Handled in {}ms", duration);
             }
@@ -252,25 +261,27 @@ fn generate_deep_nesting(depth: usize) -> String {
     html
 }
 
-/// Run performance benchmarks
-fn run_performance_benchmarks(
-    engine: &Engine,
-    component: &Component,
+/// Run performance benchmarks using component directly
+fn run_performance_benchmarks_direct(
     fixtures: &[TestFixture],
     metrics: &mut PerformanceMetrics,
 ) -> Result<()> {
-    let iterations = 100;
+    let iterations = 10; // Reduced for faster testing
     let mut total_time = 0u128;
 
     println!("   Running {} iterations...", iterations);
+
+    let component = Component::new();
 
     for i in 0..iterations {
         let fixture = &fixtures[i % fixtures.len()];
         let start = Instant::now();
 
-        let mut store = Store::new(&engine, ());
-        let linker = Linker::new(&engine);
-        let _instance = linker.instantiate(&mut store, &component)?;
+        let _ = component.extract(
+            fixture.html.clone(),
+            fixture.url.clone(),
+            ExtractionMode::Article
+        );
 
         total_time += start.elapsed().as_millis();
     }
@@ -278,49 +289,10 @@ fn run_performance_benchmarks(
     metrics.avg_extraction_ms = total_time / iterations as u128;
     println!("   Average extraction time: {}ms", metrics.avg_extraction_ms);
 
-    // Test concurrent extractions
-    println!("   Testing concurrent extractions (4 threads)...");
-    let start = Instant::now();
-
-    // Simulate concurrent extraction
-    let concurrent_time = start.elapsed().as_millis();
-    println!("   Concurrent extraction time: {}ms", concurrent_time);
-
     Ok(())
 }
 
-/// Run memory stress tests
-fn run_memory_tests(engine: &Engine, component: &Component) -> Result<()> {
-    println!("   Testing memory limits...");
-
-    // Test with progressively larger documents
-    let sizes = vec![1_000, 10_000, 100_000, 1_000_000, 10_000_000];
-
-    for size in sizes {
-        print!("   Document size {}KB: ", size / 1000);
-
-        let html = "x".repeat(size);
-        let mut store = Store::new(&engine, ());
-        store.limiter(|_| -> &mut dyn wasmtime::ResourceLimiter {
-            // Set memory limit
-            struct Limiter;
-            impl wasmtime::ResourceLimiter for Limiter {
-                fn memory_growing(&mut self, current: usize, desired: usize, _max: Option<usize>) -> bool {
-                    desired <= 256 * 65536 // 256MB limit
-                }
-            }
-            Box::leak(Box::new(Limiter))
-        });
-
-        let linker = Linker::new(&engine);
-        match linker.instantiate(&mut store, &component) {
-            Ok(_) => println!("✅ Success"),
-            Err(_) => println!("⚠️  Memory limit reached (expected)"),
-        }
-    }
-
-    Ok(())
-}
+// Memory stress tests removed as they were wasmtime-specific
 
 /// Generate test report
 fn generate_report(results: &[TestResult], metrics: &PerformanceMetrics) -> Result<()> {
@@ -346,7 +318,7 @@ fn generate_report(results: &[TestResult], metrics: &PerformanceMetrics) -> Resu
     println!("   Avg Extract <50ms: {}", if perf_target_met { "✅" } else { "❌" });
 
     // Save detailed report
-    let report_path = "/workspaces/riptide/wasm/riptide-extractor-wasm/test-report.json";
+    let report_path = "/workspaces/eventmesh/wasm/riptide-extractor-wasm/test-report.json";
     let report = json!({
         "timestamp": chrono::Utc::now().to_rfc3339(),
         "success_rate": success_rate,

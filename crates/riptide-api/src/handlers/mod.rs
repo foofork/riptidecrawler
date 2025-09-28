@@ -2,6 +2,7 @@ pub mod pdf;
 pub mod render;
 pub mod sessions;
 pub mod spider;
+pub mod stealth;
 pub mod strategies;
 pub mod workers;
 

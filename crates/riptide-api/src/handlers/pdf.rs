@@ -152,7 +152,7 @@ pub async fn process_pdf(
 
             Ok(Json(PdfProcessResponse {
                 success: true,
-                document: Some(document),
+                document: Some(riptide_core::convert_pdf_extracted_doc(document)),
                 error: None,
                 stats,
             }))

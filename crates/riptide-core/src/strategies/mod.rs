@@ -1,10 +1,12 @@
-//! Extraction strategies and chunking modules for Riptide Core
+//! Extraction strategies and core infrastructure for Riptide Core
 //!
-//! This module provides various extraction strategies and chunking modes
-//! with ML insights for optimal content processing.
+//! This module provides core extraction infrastructure and trait definitions.
+//! Specific extraction implementations are in dedicated crates:
+//! - CSS/Regex extraction: riptide-html
+//! - LLM extraction: riptide-intelligence
+//! - Content chunking: riptide-html
 
 pub mod extraction;
-pub mod chunking;
 pub mod metadata;
 pub mod performance;
 pub mod traits;
@@ -17,14 +19,8 @@ pub mod compatibility;
 #[cfg(test)]
 mod tests;
 
-// Re-export specific items to avoid ambiguity
-pub use extraction::{trek, llm};
-// Re-export from riptide-html crate for backward compatibility
-// Temporarily commented out for testing trait system
-// pub use riptide_html::{css_extraction as css_json, regex_extraction as extraction_regex};
-pub use chunking::{fixed, sentence, topic, sliding};
-pub use chunking::regex as chunking_regex;
-pub use chunking::{ChunkingConfig, ContentChunk, chunk_content};
+// Re-export core extraction functionality
+pub use extraction::trek;
 pub use metadata::*;
 pub use performance::*;
 pub use traits::*;
@@ -38,13 +34,11 @@ use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
 use anyhow::Result;
 
-/// Configuration for extraction and chunking strategies
+/// Configuration for core extraction strategies
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct StrategyConfig {
-    /// Extraction strategy to use
+    /// Extraction strategy to use (core only supports Trek)
     pub extraction: ExtractionStrategy,
-    /// Chunking mode configuration
-    pub chunking: ChunkingConfig,
     /// Performance tracking enabled
     pub enable_metrics: bool,
     /// Schema validation enabled
@@ -55,37 +49,20 @@ impl Default for StrategyConfig {
     fn default() -> Self {
         Self {
             extraction: ExtractionStrategy::Trek,
-            chunking: ChunkingConfig::default(),
             enable_metrics: true,
             validate_schema: true,
         }
     }
 }
 
-/// Available extraction strategies
+/// Available core extraction strategies
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub enum ExtractionStrategy {
-    /// Default WASM-based extraction (fastest)
+    /// Default WASM-based extraction (fastest, core implementation)
     Trek,
-    /// CSS selector to JSON extraction
-    CssJson {
-        selectors: std::collections::HashMap<String, String>,
-    },
-    /// Regex pattern extraction
-    Regex {
-        patterns: Vec<RegexPattern>,
-    },
-    /// LLM-based extraction (hook-based, disabled by default)
-    Llm {
-        enabled: bool,
-        model: Option<String>,
-        prompt_template: Option<String>,
-    },
 }
 
-// RegexPattern now re-exported from riptide-html above
-
-/// Strategy manager for coordinating extraction and chunking
+/// Strategy manager for coordinating core extraction
 pub struct StrategyManager {
     config: StrategyConfig,
     metrics: PerformanceMetrics,
@@ -99,17 +76,14 @@ impl StrategyManager {
         }
     }
 
-    pub async fn extract_and_chunk(&mut self, html: &str, url: &str) -> Result<ProcessedContent> {
+    pub async fn extract_content(&mut self, html: &str, url: &str) -> Result<ProcessedContent> {
         let start = std::time::Instant::now();
 
         // Extract content based on strategy
-        let extracted = self.extract_content(html, url).await?;
+        let extracted = self.perform_extraction(html, url).await?;
 
         // Extract metadata
         let metadata = self.extract_metadata(html, url).await?;
-
-        // Chunk the content
-        let chunks = self.chunk_content(&extracted.content).await?;
 
         let duration = start.elapsed();
         if self.config.enable_metrics {
@@ -117,14 +91,13 @@ impl StrategyManager {
                 &self.config.extraction,
                 duration,
                 extracted.content.len(),
-                chunks.len(),
+                0, // chunks handled by other crates
             );
         }
 
         Ok(ProcessedContent {
             extracted,
             metadata,
-            chunks,
             metrics: if self.config.enable_metrics {
                 Some(self.metrics.clone())
             } else {
@@ -133,40 +106,10 @@ impl StrategyManager {
         })
     }
 
-    async fn extract_content(&self, html: &str, url: &str) -> Result<ExtractedContent> {
+    async fn perform_extraction(&self, html: &str, url: &str) -> Result<ExtractedContent> {
         match &self.config.extraction {
             ExtractionStrategy::Trek => {
                 extraction::trek::extract(html, url).await
-            },
-            ExtractionStrategy::CssJson { selectors: _ } => {
-                // Temporary mock for testing
-                Ok(ExtractedContent {
-                    title: "Mock CSS Title".to_string(),
-                    content: "Mock CSS content".to_string(),
-                    summary: Some("Mock summary".to_string()),
-                    url: url.to_string(),
-                    strategy_used: "css_json".to_string(),
-                    extraction_confidence: 0.9,
-                })
-            },
-            ExtractionStrategy::Regex { patterns: _ } => {
-                // Temporary mock for testing
-                Ok(ExtractedContent {
-                    title: "Mock Regex Title".to_string(),
-                    content: "Mock regex content".to_string(),
-                    summary: Some("Mock summary".to_string()),
-                    url: url.to_string(),
-                    strategy_used: "regex".to_string(),
-                    extraction_confidence: 0.7,
-                })
-            },
-            ExtractionStrategy::Llm { enabled, model, prompt_template } => {
-                if *enabled {
-                    extraction::llm::extract(html, url, model.as_deref(), prompt_template.as_deref()).await
-                } else {
-                    // Fallback to Trek if LLM is disabled
-                    extraction::trek::extract(html, url).await
-                }
             },
         }
     }
@@ -175,29 +118,20 @@ impl StrategyManager {
         metadata::extract_metadata(html, url).await
     }
 
-    async fn chunk_content(&self, content: &str) -> Result<Vec<ContentChunk>> {
-        chunking::chunk_content(content, &self.config.chunking).await
-    }
-
     pub fn get_metrics(&self) -> &PerformanceMetrics {
         &self.metrics
     }
 }
 
-/// Processed content result
+/// Processed content result (core extraction only)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessedContent {
     pub extracted: ExtractedContent,
     pub metadata: DocumentMetadata,
-    pub chunks: Vec<ContentChunk>,
     pub metrics: Option<PerformanceMetrics>,
 }
 
-// Re-export from riptide-html for backward compatibility
-// Temporarily commented out for testing trait system
-// pub use riptide_html::{ExtractedContent, RegexPattern};
-
-// Temporary types for testing (normally from riptide-html)
+/// Core extracted content structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtractedContent {
     pub title: String,
@@ -206,12 +140,4 @@ pub struct ExtractedContent {
     pub url: String,
     pub strategy_used: String,
     pub extraction_confidence: f64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct RegexPattern {
-    pub name: String,
-    pub pattern: String,
-    pub field: String,
-    pub required: bool,
 }

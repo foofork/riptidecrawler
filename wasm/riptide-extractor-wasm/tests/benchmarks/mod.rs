@@ -1,9 +1,8 @@
-use std::sync::Arc;
-use std::sync::Mutex;
+// Removed unused sync imports
 use std::time::{Duration, Instant};
 use std::thread;
 
-use crate::*;
+use riptide_extractor_wasm::{Component, ExtractionMode, ExtractionError};
 
 /// Performance benchmarking suite for WASM extractor
 ///
@@ -79,7 +78,7 @@ pub fn run_performance_benchmarks() -> Result<BenchmarkSuite, String> {
 
 /// Warm-up benchmark to prepare caches and JIT
 fn run_warmup_benchmark() -> Result<(), String> {
-    let component = Component;
+    let component = Component::new();
     let html = get_sample_html("news_site");
 
     // Run a few warm-up iterations
@@ -102,7 +101,7 @@ fn run_cold_vs_warm_benchmarks() -> Result<Vec<BenchmarkResult>, String> {
 
     // Cold start benchmark (fresh component each time)
     let cold_result = run_benchmark("cold_start", 10, 1, || {
-        let component = Component;
+        let component = Component::new();
         let html = get_sample_html("news_site");
         component.extract(
             html,
@@ -113,8 +112,8 @@ fn run_cold_vs_warm_benchmarks() -> Result<Vec<BenchmarkResult>, String> {
     results.push(cold_result);
 
     // Warm performance (reused component)
-    let component = Component;
-    let warm_result = run_benchmark("warm_performance", 100, 1, || {
+    let component = Component::new();
+    let warm_result = run_benchmark("warm_performance", 100, 1, move || {
         let html = get_sample_html("news_site");
         component.extract(
             html,
@@ -138,7 +137,7 @@ fn run_concurrency_benchmarks() -> Result<Vec<BenchmarkResult>, String> {
 
     // Single-threaded baseline
     let single_threaded = run_benchmark("single_threaded", 50, 1, || {
-        let component = Component;
+        let component = Component::new();
         let html = get_sample_html("blog_post");
         component.extract(
             html,
@@ -183,7 +182,7 @@ fn run_content_type_benchmarks() -> Result<Vec<BenchmarkResult>, String> {
             30,
             1,
             || {
-                let component = Component;
+                let component = Component::new();
                 let html = get_sample_html(fixture);
                 component.extract(
                     html,
@@ -234,7 +233,7 @@ fn run_cache_benchmarks() -> Result<Vec<BenchmarkResult>, String> {
     // First run (cache miss)
     let cache_miss = run_benchmark("cache_miss", 10, 1, || {
         // Reset component state to ensure cache miss
-        let component = Component;
+        let component = Component::new();
         let _ = component.reset_state();
 
         let html = get_sample_html("blog_post");
@@ -247,7 +246,7 @@ fn run_cache_benchmarks() -> Result<Vec<BenchmarkResult>, String> {
     results.push(cache_miss);
 
     // Second run (cache hit) - same content
-    let component = Component;
+    let component = Component::new();
     let html = get_sample_html("blog_post");
 
     // Prime the cache
@@ -257,7 +256,7 @@ fn run_cache_benchmarks() -> Result<Vec<BenchmarkResult>, String> {
         ExtractionMode::Article
     );
 
-    let cache_hit = run_benchmark("cache_hit", 100, 1, || {
+    let cache_hit = run_benchmark("cache_hit", 100, 1, move || {
         component.extract(
             html.clone(),
             "https://example.com".to_string(),
@@ -321,7 +320,7 @@ fn run_concurrent_benchmark(
 
     for thread_id in 0..thread_count {
         let handle = thread::spawn(move || -> Result<(), ExtractionError> {
-            let component = Component;
+            let component = Component::new();
             let html = get_sample_html("blog_post");
 
             for _ in 0..iterations_per_thread {
@@ -365,7 +364,7 @@ fn run_memory_benchmark(
     html: String,
     iterations: usize
 ) -> Result<BenchmarkResult, String> {
-    let component = Component;
+    let component = Component::new();
 
     // Force garbage collection before measurement
     // Note: WASM doesn't have direct GC control, but we can try to minimize noise

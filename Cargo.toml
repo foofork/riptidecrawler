@@ -9,6 +9,8 @@ members = [
   "crates/riptide-intelligence",
   "crates/riptide-persistence",
   "crates/riptide-streaming",
+  "crates/riptide-stealth",
+  "crates/riptide-pdf",
   "wasm/riptide-extractor-wasm",
 ]
 resolver = "2"

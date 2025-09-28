@@ -442,12 +442,12 @@ mod tests {
 
     #[test]
     fn test_security_middleware_creation() {
-        let _middleware = SecurityMiddleware::new_default();
+        let _middleware = SecurityMiddleware::with_defaults().expect("Failed to create middleware");
     }
 
     #[test]
     fn test_security_headers() {
-        let middleware = SecurityMiddleware::new_default();
+        let middleware = SecurityMiddleware::with_defaults().expect("Failed to create middleware");
         let mut headers = HeaderMap::new();
 
         assert!(middleware.apply_security_headers(&mut headers).is_ok());
@@ -459,7 +459,7 @@ mod tests {
 
     #[test]
     fn test_request_size_validation() {
-        let middleware = SecurityMiddleware::new_default();
+        let middleware = SecurityMiddleware::with_defaults().expect("Failed to create middleware");
 
         assert!(middleware.validate_request_size(1024).is_ok());
         assert!(middleware.validate_request_size(25 * 1024 * 1024).is_err());
@@ -467,7 +467,7 @@ mod tests {
 
     #[test]
     fn test_suspicious_pattern_detection() {
-        let middleware = SecurityMiddleware::new_default();
+        let middleware = LegacySecurityMiddleware::new_default();
 
         assert!(middleware.contains_suspicious_patterns("<script>alert(1)</script>"));
         assert!(middleware.contains_suspicious_patterns("javascript:void(0)"));

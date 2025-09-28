@@ -588,13 +588,14 @@ impl PdfProcessor {
             // Wait for progress monitoring to complete
             progress_task.abort();
 
-            Ok(result)
+            Ok(riptide_core::convert_pdf_extracted_doc(result))
         } else {
             // Process without progress tracking
-            self.pdf_pipeline
+            let result = self.pdf_pipeline
                 .process_pdf_to_extracted_doc(pdf_data, url)
                 .await
-                .context("Failed to process PDF")
+                .context("Failed to process PDF")?;
+            Ok(riptide_core::convert_pdf_extracted_doc(result))
         }
     }
 

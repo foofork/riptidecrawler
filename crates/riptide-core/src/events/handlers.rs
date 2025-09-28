@@ -621,7 +621,6 @@ impl Default for HealthEventHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::monitoring::MetricsCollector;
 
     #[tokio::test]
     async fn test_logging_handler() {

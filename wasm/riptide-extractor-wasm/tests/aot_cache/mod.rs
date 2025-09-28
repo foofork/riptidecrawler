@@ -1,8 +1,8 @@
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
-use crate::*;
+// Import specific types needed for AOT cache tests
+use riptide_extractor_wasm::{ExtractionMode, Component, ExtractionError};
 
 /// AOT (Ahead of Time) Cache Testing Module
 ///
@@ -21,6 +21,12 @@ pub struct AOTCacheMetrics {
     pub warm_start_time_ms: f64,
     pub cache_size_bytes: u64,
     pub invalidations: u64,
+}
+
+impl Default for AOTCacheMetrics {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl AOTCacheMetrics {
@@ -123,7 +129,7 @@ fn test_cold_start_performance() -> Result<AOTCacheTestResult, String> {
     // Measure cold start compilation time
     let cold_start_begin = Instant::now();
 
-    let component = Component;
+    let component = Component::new();
     let html = get_test_html("blog_post");
 
     // First extraction should trigger AOT compilation
@@ -173,7 +179,7 @@ fn test_warm_start_performance() -> Result<AOTCacheTestResult, String> {
 
     let start_time = Instant::now();
 
-    let component = Component;
+    let component = Component::new();
     let html = get_test_html("blog_post");
 
     // Measure warm start time (should use cached compilation)
@@ -236,7 +242,7 @@ fn test_cache_hit_miss_ratio() -> Result<AOTCacheTestResult, String> {
 
     let start_time = Instant::now();
 
-    let component = Component;
+    let component = Component::new();
     let mut success = true;
     let mut error_message = None;
 
@@ -318,7 +324,7 @@ fn test_concurrent_cache_access() -> Result<AOTCacheTestResult, String> {
         let html = Arc::clone(&html);
 
         let handle = std::thread::spawn(move || -> Result<(), ExtractionError> {
-            let component = Component;
+            let component = Component::new();
 
             for op_id in 0..operations_per_thread {
                 // Each thread does the same operation to maximize cache hits
@@ -379,7 +385,7 @@ fn test_cache_invalidation() -> Result<AOTCacheTestResult, String> {
 
     let start_time = Instant::now();
 
-    let component = Component;
+    let component = Component::new();
     let html = get_test_html("nav_heavy_site");
 
     let mut success = true;
@@ -451,7 +457,7 @@ fn test_cache_memory_usage() -> Result<AOTCacheTestResult, String> {
 
     let start_time = Instant::now();
 
-    let component = Component;
+    let component = Component::new();
     let mut success = true;
     let mut error_message = None;
 
@@ -526,7 +532,7 @@ fn test_cache_persistence() -> Result<AOTCacheTestResult, String> {
     let html = get_test_html("blog_post");
 
     // First, populate the cache
-    let component1 = Component;
+    let component1 = Component::new();
     match component1.extract(
         html.clone(),
         "https://example.com/persistence-test".to_string(),
@@ -547,7 +553,7 @@ fn test_cache_persistence() -> Result<AOTCacheTestResult, String> {
         println!("  Component state reset");
 
         // Create new component instance
-        let component2 = Component;
+        let component2 = Component::new();
 
         let persistence_start = Instant::now();
 
@@ -595,7 +601,7 @@ fn test_extraction_mode_caching() -> Result<AOTCacheTestResult, String> {
 
     let start_time = Instant::now();
 
-    let component = Component;
+    let component = Component::new();
     let html = get_test_html("news_site");
 
     let mut success = true;
@@ -700,7 +706,7 @@ fn get_test_html(fixture: &str) -> String {
 fn get_estimated_memory_usage() -> u64 {
     // Simulate memory usage tracking
     std::thread_local! {
-        static MEMORY_COUNTER: std::cell::RefCell<u64> = std::cell::RefCell::new(1024 * 1024);
+        static MEMORY_COUNTER: std::cell::RefCell<u64> = const { std::cell::RefCell::new(1024 * 1024) };
     }
 
     MEMORY_COUNTER.with(|counter| {

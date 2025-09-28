@@ -6,9 +6,10 @@ use axum::{
     response::Json,
 };
 use riptide_core::{
-    strategies::{StrategyConfig, ExtractionStrategy, ChunkingConfig},
+    strategies::{StrategyConfig, ExtractionStrategy},
     types::CrawlOptions,
 };
+use riptide_html::{ChunkingConfig, ChunkingMode, RegexPattern};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::{debug, info};
@@ -158,10 +159,10 @@ pub async fn strategies_crawl(
 
     // Build response statistics
     let stats = ProcessingStats {
-        chunks_created: result.processed_content.chunks.len(),
+        chunks_created: 1, // Core only produces one extraction result
         total_processing_time_ms: result.processing_time_ms,
         extraction_strategy_used: format!("{:?}", result.strategy_config.extraction),
-        chunking_mode_used: format!("{:?}", result.strategy_config.chunking.mode),
+        chunking_mode_used: "None".to_string(), // Chunking moved to riptide-html
         cache_hit: result.from_cache,
         quality_score: result.quality_score,
     };
@@ -297,132 +298,17 @@ fn build_strategy_config(
     request: &StrategiesCrawlRequest,
     params: &StrategiesQueryParams,
 ) -> ApiResult<StrategyConfig> {
-    // Determine extraction strategy
-    let extraction = match request
-        .extraction_strategy
-        .as_deref()
-        .unwrap_or(&params.strategy)
-    {
-        "trek" => ExtractionStrategy::Trek,
-        "css_json" => ExtractionStrategy::CssJson {
-            selectors: request.css_selectors.clone().unwrap_or_default(),
-        },
-        "regex" => {
-            let patterns = request
-                .regex_patterns
-                .as_ref()
-                .ok_or_else(|| ApiError::invalid_request("Regex patterns required for regex strategy"))?
-                .iter()
-                .map(|p| riptide_core::strategies::RegexPattern {
-                    name: p.name.clone(),
-                    pattern: p.pattern.clone(),
-                    field: p.field.clone(),
-                    required: p.required,
-                })
-                .collect();
-
-            ExtractionStrategy::Regex { patterns }
-        }
-        "llm" => {
-            let llm_config = request
-                .llm_config
-                .as_ref()
-                .ok_or_else(|| ApiError::invalid_request("LLM config required for LLM strategy"))?;
-
-            ExtractionStrategy::Llm {
-                enabled: llm_config.enabled,
-                model: llm_config.model.clone(),
-                prompt_template: llm_config.prompt_template.clone(),
-            }
-        }
-        "auto" => ExtractionStrategy::Trek, // Will be handled by auto-detection
-        strategy => {
-            return Err(ApiError::invalid_request(format!(
-                "Unknown extraction strategy: {}",
-                strategy
-            )));
-        }
-    };
-
-    // Build chunking configuration
-    let chunking = if let Some(chunk_config) = &request.chunking_config {
-        build_chunking_config(chunk_config, &params.chunking)?
-    } else {
-        build_default_chunking_config(&params.chunking)?
-    };
+    // Core only supports Trek extraction strategy
+    let extraction = ExtractionStrategy::Trek;
 
     Ok(StrategyConfig {
         extraction,
-        chunking,
-        enable_metrics: request.enable_metrics,
-        validate_schema: request.validate_schema,
+        enable_metrics: true,
+        validate_schema: true,
     })
 }
 
-/// Build chunking configuration
-fn build_chunking_config(
-    config: &ChunkingConfigRequest,
-    default_mode: &str,
-) -> ApiResult<ChunkingConfig> {
-    let mode_str = &config.mode;
-
-    let mode = match mode_str.as_str() {
-        "sliding" => riptide_core::strategies::chunking::ChunkingMode::Sliding,
-        "fixed" => riptide_core::strategies::chunking::ChunkingMode::Fixed {
-            size: config.fixed_size.unwrap_or(1200),
-            by_tokens: config.fixed_by_tokens.unwrap_or(true),
-        },
-        "sentence" => riptide_core::strategies::chunking::ChunkingMode::Sentence {
-            max_sentences: config.max_sentences.unwrap_or(5),
-        },
-        "topic" => riptide_core::strategies::chunking::ChunkingMode::Topic {
-            similarity_threshold: config.similarity_threshold.unwrap_or(0.7),
-        },
-        "regex" => riptide_core::strategies::chunking::ChunkingMode::Regex {
-            pattern: config.regex_pattern.clone().unwrap_or_else(|| r"\.".to_string()),
-            min_chunk_size: config.min_chunk_size.unwrap_or(100),
-        },
-        _ => return build_default_chunking_config(default_mode),
-    };
-
-    Ok(ChunkingConfig {
-        mode,
-        token_max: config.token_max.unwrap_or(1200),
-        overlap: config.overlap.unwrap_or(120),
-        preserve_sentences: config.preserve_sentences.unwrap_or(true),
-        deterministic: config.deterministic.unwrap_or(true),
-    })
-}
-
-/// Build default chunking configuration
-fn build_default_chunking_config(mode: &str) -> ApiResult<ChunkingConfig> {
-    let chunking_mode = match mode {
-        "sliding" => riptide_core::strategies::chunking::ChunkingMode::Sliding,
-        "fixed" => riptide_core::strategies::chunking::ChunkingMode::Fixed {
-            size: 1200,
-            by_tokens: true,
-        },
-        "sentence" => riptide_core::strategies::chunking::ChunkingMode::Sentence {
-            max_sentences: 5,
-        },
-        "topic" => riptide_core::strategies::chunking::ChunkingMode::Topic {
-            similarity_threshold: 0.7,
-        },
-        "regex" => riptide_core::strategies::chunking::ChunkingMode::Regex {
-            pattern: r"\.".to_string(),
-            min_chunk_size: 100,
-        },
-        _ => riptide_core::strategies::chunking::ChunkingMode::Sliding,
-    };
-
-    Ok(ChunkingConfig {
-        mode: chunking_mode,
-        token_max: 1200,
-        overlap: 120,
-        preserve_sentences: true,
-        deterministic: true,
-    })
-}
+// Chunking configuration functions removed since chunking is now handled by riptide-html
 
 // Default values for serde
 fn default_true() -> bool {

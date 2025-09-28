@@ -1,8 +1,51 @@
 use serde_json;
 use std::fs;
 use std::path::Path;
+use serde::{Serialize, Deserialize};
 
-use crate::*;
+use riptide_extractor_wasm::{Component, ExtractionMode, ExtractedContent};
+
+/// Serializable version of ExtractedContent for golden tests
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SerializableExtractedContent {
+    pub url: String,
+    pub title: Option<String>,
+    pub byline: Option<String>,
+    pub published_iso: Option<String>,
+    pub markdown: String,
+    pub text: String,
+    pub links: Vec<String>,
+    pub media: Vec<String>,
+    pub language: Option<String>,
+    pub reading_time: Option<u32>,
+    pub quality_score: Option<u8>,
+    pub word_count: Option<u32>,
+    pub categories: Vec<String>,
+    pub site_name: Option<String>,
+    pub description: Option<String>,
+}
+
+impl From<&ExtractedContent> for SerializableExtractedContent {
+    fn from(content: &ExtractedContent) -> Self {
+        Self {
+            url: content.url.clone(),
+            title: content.title.clone(),
+            byline: content.byline.clone(),
+            published_iso: content.published_iso.clone(),
+            markdown: content.markdown.clone(),
+            text: content.text.clone(),
+            links: content.links.clone(),
+            media: content.media.clone(),
+            language: content.language.clone(),
+            reading_time: content.reading_time,
+            quality_score: content.quality_score,
+            word_count: content.word_count,
+            categories: content.categories.clone(),
+            site_name: content.site_name.clone(),
+            description: content.description.clone(),
+        }
+    }
+}
 
 /// Golden test framework for WASM extractor validation
 ///
@@ -28,13 +71,14 @@ pub struct GoldenTestCase {
     pub expected_features: Vec<&'static str>,
 }
 
-pub const GOLDEN_TEST_CASES: &[GoldenTestCase] = &[
+pub fn get_golden_test_cases() -> Vec<GoldenTestCase> {
+    vec![
     GoldenTestCase {
         name: "news_site_article",
         html_file: "news_site.html",
         url: "https://news.example.com/tech/ai-breakthrough-2024",
         mode: ExtractionMode::Article,
-        expected_features: &[
+        expected_features: vec![
             "title_extraction",
             "author_detection",
             "published_date",
@@ -49,7 +93,7 @@ pub const GOLDEN_TEST_CASES: &[GoldenTestCase] = &[
         html_file: "news_site.html",
         url: "https://news.example.com/tech/ai-breakthrough-2024",
         mode: ExtractionMode::Full,
-        expected_features: &[
+        expected_features: vec![
             "full_page_content",
             "navigation_links",
             "sidebar_content",
@@ -63,7 +107,7 @@ pub const GOLDEN_TEST_CASES: &[GoldenTestCase] = &[
         html_file: "blog_post.html",
         url: "https://devblog.example.com/scalable-web-apps-guide",
         mode: ExtractionMode::Article,
-        expected_features: &[
+        expected_features: vec![
             "long_form_content",
             "code_blocks",
             "table_of_contents",
@@ -77,7 +121,7 @@ pub const GOLDEN_TEST_CASES: &[GoldenTestCase] = &[
         html_file: "gallery_site.html",
         url: "https://photogallery.example.com/collections/tokyo-street-life",
         mode: ExtractionMode::Full,
-        expected_features: &[
+        expected_features: vec![
             "image_gallery_extraction",
             "media_metadata",
             "photographer_info",
@@ -91,7 +135,7 @@ pub const GOLDEN_TEST_CASES: &[GoldenTestCase] = &[
         html_file: "nav_heavy_site.html",
         url: "https://projectflow.example.com/dashboard",
         mode: ExtractionMode::Metadata,
-        expected_features: &[
+        expected_features: vec![
             "site_metadata",
             "navigation_structure",
             "breadcrumb_extraction",
@@ -99,7 +143,8 @@ pub const GOLDEN_TEST_CASES: &[GoldenTestCase] = &[
             "application_context",
         ],
     },
-];
+    ]
+}
 
 /// Execute a golden test case
 pub fn run_golden_test(test_case: &GoldenTestCase) -> Result<(), String> {
@@ -109,7 +154,7 @@ pub fn run_golden_test(test_case: &GoldenTestCase) -> Result<(), String> {
         .map_err(|e| format!("Failed to read fixture {}: {}", fixture_path, e))?;
 
     // Perform extraction
-    let component = Component;
+    let component = Component::new();
     let result = component.extract(html, test_case.url.to_string(), test_case.mode.clone())
         .map_err(|e| format!("Extraction failed: {:?}", e))?;
 
@@ -137,7 +182,8 @@ fn validate_against_snapshot(
     let expected: serde_json::Value = serde_json::from_str(&snapshot_json)
         .map_err(|e| format!("Failed to parse snapshot JSON: {}", e))?;
 
-    let actual = serde_json::to_value(result)
+    let serializable_result = SerializableExtractedContent::from(result);
+    let actual = serde_json::to_value(&serializable_result)
         .map_err(|e| format!("Failed to serialize result: {}", e))?;
 
     // Core field validation
@@ -179,7 +225,8 @@ fn create_snapshot(
     }
 
     // Serialize result with pretty formatting
-    let json = serde_json::to_string_pretty(result)
+    let serializable_result = SerializableExtractedContent::from(result);
+    let json = serde_json::to_string_pretty(&serializable_result)
         .map_err(|e| format!("Failed to serialize result: {}", e))?;
 
     // Add metadata header
@@ -350,7 +397,7 @@ fn validate_expected_features(
     result: &ExtractedContent,
     test_case: &GoldenTestCase
 ) -> Result<(), String> {
-    for feature in test_case.expected_features {
+    for feature in &test_case.expected_features {
         match *feature {
             "title_extraction" => {
                 if result.title.is_none() || result.title.as_ref().unwrap().is_empty() {
@@ -426,8 +473,9 @@ fn calculate_similarity(text1: &str, text2: &str) -> f64 {
 /// Run all golden tests
 pub fn run_all_golden_tests() -> Result<(), String> {
     let mut failures = Vec::new();
+    let test_cases = get_golden_test_cases();
 
-    for test_case in GOLDEN_TEST_CASES {
+    for test_case in &test_cases {
         match run_golden_test(test_case) {
             Ok(()) => println!("✓ Golden test passed: {}", test_case.name),
             Err(e) => {
@@ -438,7 +486,7 @@ pub fn run_all_golden_tests() -> Result<(), String> {
     }
 
     if failures.is_empty() {
-        println!("All {} golden tests passed!", GOLDEN_TEST_CASES.len());
+        println!("All {} golden tests passed!", test_cases.len());
         Ok(())
     } else {
         Err(format!("Golden tests failed:\n{}", failures.join("\n")))
@@ -451,25 +499,29 @@ mod tests {
 
     #[test]
     fn test_news_site_article_extraction() {
-        let test_case = &GOLDEN_TEST_CASES[0];
+        let test_cases = get_golden_test_cases();
+        let test_case = &test_cases[0];
         run_golden_test(test_case).expect("News site article extraction should pass");
     }
 
     #[test]
     fn test_blog_post_article_extraction() {
-        let test_case = &GOLDEN_TEST_CASES[2];
+        let test_cases = get_golden_test_cases();
+        let test_case = &test_cases[2];
         run_golden_test(test_case).expect("Blog post article extraction should pass");
     }
 
     #[test]
     fn test_gallery_full_extraction() {
-        let test_case = &GOLDEN_TEST_CASES[3];
+        let test_cases = get_golden_test_cases();
+        let test_case = &test_cases[3];
         run_golden_test(test_case).expect("Gallery full extraction should pass");
     }
 
     #[test]
     fn test_nav_heavy_metadata_extraction() {
-        let test_case = &GOLDEN_TEST_CASES[4];
+        let test_cases = get_golden_test_cases();
+        let test_case = &test_cases[4];
         run_golden_test(test_case).expect("Nav-heavy metadata extraction should pass");
     }
 

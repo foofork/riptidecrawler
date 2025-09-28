@@ -43,7 +43,10 @@ uuid = { workspace = true }
 tower = { workspace = true }
 tower-http = { workspace = true, features = ["timeout"] }
 tracing-subscriber = { workspace = true }
-riptide-core = { path = "../riptide-core" }
+riptide-core = { path = "../riptide-core", features = ["api-integration"] }
+riptide-pdf = { path = "../riptide-pdf", features = ["pdf"] }
+riptide-stealth = { path = "../riptide-stealth", features = ["stealth"] }
+riptide-html = { path = "../riptide-html" }
 riptide-workers = { path = "../riptide-workers" }
 riptide-headless = { path = "../riptide-headless" }
 chromiumoxide = { workspace = true }

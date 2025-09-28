@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 /// Main persistence configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct PersistenceConfig {
     /// Redis connection configuration
     pub redis: RedisConfig,
@@ -20,19 +21,6 @@ pub struct PersistenceConfig {
     pub security: SecurityConfig,
 }
 
-impl Default for PersistenceConfig {
-    fn default() -> Self {
-        Self {
-            redis: RedisConfig::default(),
-            cache: CacheConfig::default(),
-            state: StateConfig::default(),
-            tenant: TenantConfig::default(),
-            distributed: None,
-            performance: PerformanceConfig::default(),
-            security: SecurityConfig::default(),
-        }
-    }
-}
 
 /// Redis/DragonflyDB configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]

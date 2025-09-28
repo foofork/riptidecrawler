@@ -556,7 +556,7 @@ mod tests {
     #[test]
     fn test_api_key_expiration() {
         let expired_time = Utc::now() - Duration::minutes(1);
-        let (mut api_key, _) = ApiKey::new(
+        let (api_key, _) = ApiKey::new(
             TenantId::from("test"),
             "Expired Key".to_string(),
             None,

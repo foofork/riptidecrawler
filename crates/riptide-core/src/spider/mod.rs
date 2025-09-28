@@ -15,12 +15,13 @@ pub mod url_utils;
 pub mod session;
 pub mod sitemap;
 pub mod config;
-pub mod spider;
+pub mod core;
 pub mod types;
+pub mod query_aware;
 
 // Re-export main types
 pub use config::SpiderConfig;
-pub use spider::{Spider, SpiderResult, CrawlState, PerformanceMetrics};
+pub use core::{Spider, SpiderResult, CrawlState, PerformanceMetrics};
 pub use types::*;
 pub use frontier::FrontierManager;
 pub use strategy::{CrawlingStrategy, StrategyEngine};
@@ -28,6 +29,7 @@ pub use budget::BudgetManager;
 pub use adaptive_stop::AdaptiveStopEngine;
 pub use session::SessionManager;
 pub use sitemap::SitemapParser;
+pub use query_aware::{QueryAwareConfig, QueryAwareScorer, QueryAwareStats};
 
 #[cfg(test)]
 mod tests;

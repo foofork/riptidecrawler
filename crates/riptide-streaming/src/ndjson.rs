@@ -8,12 +8,9 @@ use anyhow::Result;
 use async_stream::stream;
 use bytes::Bytes;
 use futures::{Stream, StreamExt};
-use pin_project_lite::pin_project;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt,
-    pin::Pin,
-    task::{Context, Poll},
     time::{Duration, Instant},
 };
 use tokio::time::interval;
@@ -186,6 +183,7 @@ impl Encoder<NdjsonItem> for NdjsonCodec {
 }
 
 /// Basic NDJSON stream for real-time extraction results
+#[allow(dead_code)] // Fields are used in future implementations
 pub struct NdjsonStream {
     stream_id: Uuid,
     config: NdjsonConfig,
@@ -196,7 +194,7 @@ pub struct NdjsonStream {
 
 impl NdjsonStream {
     /// Create a new NDJSON stream from an extraction result stream
-    pub fn new<S>(
+    pub fn from_stream<S>(
         stream_id: Uuid,
         extraction_id: String,
         results_stream: S,
@@ -263,7 +261,7 @@ impl NdjsonStream {
                                 items_processed += 1;
 
                                 // Send progress update if enabled
-                                if config.include_progress && items_processed % 10 == 0 {
+                                if config.include_progress && items_processed.is_multiple_of(10) {
                                     let progress = ProgressUpdate {
                                         stream_id,
                                         extraction_id: extraction_id.clone(),
@@ -410,7 +408,7 @@ impl NdjsonStreamBuilder {
     where
         S: Stream<Item = StreamingResult<ExtractionResult>> + Send + 'static,
     {
-        NdjsonStream::new(stream_id, extraction_id, results_stream, self.config)
+        NdjsonStream::from_stream(stream_id, extraction_id, results_stream, self.config)
     }
 }
 
@@ -461,7 +459,7 @@ pub mod utils {
         let framed = FramedRead::new(reader, codec);
 
         framed.map(|result| {
-            result.map_err(StreamingError::from)
+            result
         })
     }
 
@@ -518,7 +516,6 @@ pub mod utils {
                     let mut codec = codec.clone();
                     codec.encode(ndjson_item, &mut buf)
                         .map(|_| buf.freeze())
-                        .map_err(|e| e)
                 }
                 Err(e) => Err(e),
             }
@@ -641,7 +638,7 @@ mod tests {
             ..Default::default()
         };
 
-        let ndjson_stream = NdjsonStream::new(
+        let ndjson_stream = NdjsonStream::from_stream(
             stream_id,
             extraction_id,
             results_stream,

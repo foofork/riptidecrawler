@@ -80,7 +80,7 @@ impl SecurityContext {
 }
 
 /// Security event types for audit logging
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum SecurityEventType {
     ApiKeyCreated,
     ApiKeyRotated,

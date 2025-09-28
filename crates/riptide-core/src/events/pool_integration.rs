@@ -467,7 +467,7 @@ impl EventAwarePoolFactory {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::events::{EventBus, EventBusConfig};
+    use crate::events::EventBus;
     use crate::events::handlers::LoggingEventHandler;
     use std::sync::Arc;
 
@@ -476,7 +476,7 @@ mod tests {
         // This test would require a real AdvancedInstancePool which needs WASM components
         // For now, we'll just test the configuration and factory
         let event_bus = Arc::new(EventBus::new());
-        let factory = EventAwarePoolFactory::new(event_bus);
+        let _factory = EventAwarePoolFactory::new(event_bus);
 
         // Test that the factory is created successfully
         assert!(true); // Placeholder test

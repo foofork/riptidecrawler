@@ -9,7 +9,8 @@ keywords = ["html", "extraction", "css", "regex", "dom"]
 categories = ["text-processing", "web-programming"]
 
 [dependencies]
-# Core dependencies (removed to avoid circular dependency)
+# Core dependencies for traits and types
+riptide-core = { path = "../riptide-core" }
 anyhow.workspace = true
 async-trait.workspace = true
 serde = { workspace = true, features = ["derive"] }
@@ -28,6 +29,9 @@ tiktoken-rs = "0.5"
 
 # Optional features
 futures.workspace = true
+
+# Table extraction dependencies
+chrono = { workspace = true, features = ["serde"] }
 
 [dev-dependencies]
 tokio-test = "0.4"

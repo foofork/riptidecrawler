@@ -5,7 +5,8 @@ edition = "2021"
 
 [dependencies]
 riptide-search = { path = "../riptide-search" }
-riptide-html = { path = "../riptide-html" }
+riptide-stealth = { path = "../riptide-stealth" }
+riptide-pdf = { path = "../riptide-pdf", optional = true }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 bytes = { workspace = true }
@@ -35,7 +36,6 @@ wasmtime = { workspace = true }
 wasmtime-wasi = { workspace = true }
 wit-bindgen = "0.30"
 uuid = { workspace = true }
-pdfium-render = { workspace = true, optional = true }
 rand = "0.8"
 robotstxt = "0.2"
 dashmap = "6.0"
@@ -62,10 +62,12 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 [features]
-default = ["pdf"]
-pdf = ["pdfium-render"]
+default = ["pdf", "stealth"]
+pdf = ["riptide-pdf/pdf"]
+stealth = ["riptide-stealth/stealth"]
+full-stealth = ["riptide-stealth/full-stealth"]
 benchmarks = ["criterion", "geohash"]
-api-integration = []
+api-integration = ["pdf", "stealth"]
 
 [[bench]]
 name = "performance_benches"

@@ -2,20 +2,22 @@
 //!
 //! This example shows how to use the new trait-based strategy system
 //! that provides better extensibility and composition than the old enum-based approach.
+//!
+//! Note: This demo focuses on the core extraction functionality in riptide-core.
+//! For chunking strategies, see examples in the riptide-html crate.
 
 use std::sync::Arc;
 use riptide_core::strategies::{
     // Core traits
-    ExtractionStrategy, ChunkingStrategy, StrategyRegistry,
+    traits::ExtractionStrategy, StrategyRegistry,
     // Implementations
-    TrekExtractionStrategy, SlidingChunkingStrategy, FixedChunkingStrategy,
+    TrekExtractionStrategy,
     // Enhanced manager
     EnhancedStrategyManager, StrategyManagerConfig,
     // Backward compatibility
-    CompatibleStrategyManager, StrategyConfig,
-    ExtractionStrategy as LegacyExtractionStrategy,
-    // Factory and utilities
-    StrategyFactory, MigrationUtils,
+    compatibility::{CompatibleStrategyManager, LegacyStrategyConfig},
+    // Migration utilities
+    compatibility::migrate_extraction_strategy,
 };
 
 #[tokio::main]
@@ -70,10 +72,8 @@ async fn main() -> anyhow::Result<()> {
 
     let mut registry = StrategyRegistry::new();
 
-    // Register strategies
+    // Register core extraction strategies
     registry.register_extraction(Arc::new(TrekExtractionStrategy));
-    registry.register_chunking(Arc::new(SlidingChunkingStrategy));
-    registry.register_chunking(Arc::new(FixedChunkingStrategy::new(500, false)));
 
     // List available strategies
     let extraction_strategies = registry.list_extraction_strategies();
@@ -83,11 +83,7 @@ async fn main() -> anyhow::Result<()> {
                  format!("{:?}", capabilities.performance_tier));
     }
 
-    let chunking_strategies = registry.list_chunking_strategies();
-    println!("Available chunking strategies:");
-    for name in &chunking_strategies {
-        println!("  - {}", name);
-    }
+    println!("Note: Chunking strategies have been moved to riptide-html crate");
 
     // Find best strategy
     if let Some(best_strategy) = registry.find_best_extraction(test_html) {
@@ -105,13 +101,17 @@ async fn main() -> anyhow::Result<()> {
         ..Default::default()
     };
 
-    let manager = EnhancedStrategyManager::new(config).await;
-    let processed = manager.extract_and_process(test_html, test_url).await?;
+    // Create manager with pre-populated registry
+    let mut test_registry = StrategyRegistry::new();
+    test_registry.register_extraction(Arc::new(TrekExtractionStrategy));
+
+    let manager = EnhancedStrategyManager::with_registry(config, test_registry).await;
+    let processed = manager.extract_and_process_with_strategy(test_html, test_url, "trek").await?;
 
     println!("Strategy used: {}", processed.strategy_used);
     println!("Processing time: {:?}", processed.processing_time);
-    println!("Chunks created: {}", processed.chunks.len());
-    if let Some(metrics) = &processed.metrics {
+    println!("Title extracted: {}", processed.extracted.title);
+    if let Some(_metrics) = &processed.metrics {
         println!("Metrics available: true");
     }
     println!();
@@ -120,48 +120,46 @@ async fn main() -> anyhow::Result<()> {
     println!("4. Backward Compatibility");
     println!("-------------------------");
 
-    let legacy_config = StrategyConfig {
-        extraction: LegacyExtractionStrategy::Trek,
+    let legacy_config = LegacyStrategyConfig {
+        extraction: riptide_core::strategies::ExtractionStrategy::Trek,
         enable_metrics: true,
-        ..Default::default()
+        validate_schema: true,
     };
 
-    let mut compat_manager = CompatibleStrategyManager::new(legacy_config).await;
-    let legacy_result = compat_manager.extract_and_chunk(test_html, test_url).await?;
+    let mut compat_manager = CompatibleStrategyManager::new(legacy_config);
+    let legacy_result = compat_manager.extract_content(test_html, test_url).await?;
 
     println!("Legacy result title: {}", legacy_result.extracted.title);
-    println!("Legacy chunks: {}", legacy_result.chunks.len());
+    println!("Legacy content length: {} chars", legacy_result.extracted.content.len());
     println!();
 
     // 5. Migration Example
     println!("5. Migration from Enum to Traits");
     println!("--------------------------------");
 
-    let old_strategy = LegacyExtractionStrategy::Trek;
-    let new_strategy = StrategyFactory::create_extraction(old_strategy);
+    let old_strategy = riptide_core::strategies::ExtractionStrategy::Trek;
+    let new_strategy = migrate_extraction_strategy(&old_strategy);
     println!("Migrated strategy name: {}", new_strategy.name());
-
-    let old_config = StrategyConfig::default();
-    let upgraded_manager = MigrationUtils::upgrade_manager(old_config).await?;
-    let strategies = upgraded_manager.list_strategies().await;
-    println!("Upgraded manager has {} extraction strategies", strategies.extraction.len());
+    println!("Strategy capabilities: {:?}", new_strategy.capabilities().strategy_type);
     println!();
 
     // 6. Custom Strategy Example
-    println!("6. Custom Strategy Registration");
-    println!("------------------------------");
+    println!("6. Current Strategy Registry Status");
+    println!("----------------------------------");
 
-    // This shows how you could register custom strategies
-    let custom_registry = registry;
-    let available_extractions = custom_registry.list_extraction_strategies();
-    let available_chunking = custom_registry.list_chunking_strategies();
+    // Show current state of the registry
+    let available_extractions = registry.list_extraction_strategies();
+    let available_spider = registry.list_spider_strategies();
 
     println!("Total extraction strategies: {}", available_extractions.len());
-    println!("Total chunking strategies: {}", available_chunking.len());
+    println!("Total spider strategies: {}", available_spider.len());
+    println!("Note: Chunking strategies are now in riptide-html crate");
 
     println!("\n✅ Trait-based strategy system demonstration complete!");
     println!("The system provides a clean, extensible architecture while maintaining");
     println!("backward compatibility with existing enum-based code.");
+    println!("\nFor complete functionality including chunking and specialized extraction,");
+    println!("see examples in riptide-html and riptide-intelligence crates.");
 
     Ok(())
 }

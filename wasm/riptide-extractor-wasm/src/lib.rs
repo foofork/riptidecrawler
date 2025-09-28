@@ -17,8 +17,12 @@ wit_bindgen::generate!({
     path: "wit",
 });
 
+// WIT-generated types are automatically public and available
+
 // Export the Component Model interface
 export!(Component);
+
+// Note: WIT-generated types are available after build
 
 /// Global extraction counter for tracking component usage
 static EXTRACTION_COUNT: Lazy<AtomicU64> = Lazy::new(|| AtomicU64::new(0));
@@ -103,13 +107,67 @@ fn get_git_commit() -> &'static str {
     option_env!("VERGEN_GIT_SHA").unwrap_or("unknown")
 }
 
-struct Component;
+#[derive(Clone, Default)]
+pub struct Component;
+
+impl Component {
+    /// Create a new component instance
+    pub fn new() -> Self {
+        Self
+    }
+
+    /// Extract content using the Guest trait implementation
+    pub fn extract(
+        &self,
+        html: String,
+        url: String,
+        mode: ExtractionMode,
+    ) -> Result<ExtractedContent, ExtractionError> {
+        self.extract_internal(html, url, mode)
+    }
+
+    /// Extract content with detailed statistics
+    pub fn extract_with_stats(
+        &self,
+        html: String,
+        url: String,
+        mode: ExtractionMode,
+    ) -> Result<(ExtractedContent, ExtractionStats), ExtractionError> {
+        self.extract_with_stats_internal(html, url, mode)
+    }
+
+    /// Validate HTML content without full extraction
+    pub fn validate_html(&self, html: String) -> Result<bool, ExtractionError> {
+        self.validate_html_internal(html)
+    }
+
+    /// Health check for component monitoring
+    pub fn health_check(&self) -> HealthStatus {
+        self.health_check_internal()
+    }
+
+    /// Get detailed component information
+    pub fn get_info(&self) -> ComponentInfo {
+        self.get_info_internal()
+    }
+
+    /// Reset component state and clear caches
+    pub fn reset_state(&self) -> Result<String, ExtractionError> {
+        self.reset_state_internal()
+    }
+
+    /// Get supported extraction modes
+    pub fn get_modes(&self) -> Vec<String> {
+        self.get_modes_internal()
+    }
+}
 
 // Note: Validation logic moved to common_validation module
 
-impl Guest for Component {
-    /// Primary extraction function with enhanced error handling and trek-rs integration
-    fn extract(
+impl Component {
+    /// Internal extraction function
+    fn extract_internal(
+        &self,
         html: String,
         url: String,
         mode: ExtractionMode,
@@ -129,7 +187,8 @@ impl Guest for Component {
     }
 
     /// Extract content with detailed performance statistics
-    fn extract_with_stats(
+    fn extract_with_stats_internal(
+        &self,
         html: String,
         url: String,
         mode: ExtractionMode,
@@ -137,7 +196,7 @@ impl Guest for Component {
         let start_time = std::time::Instant::now();
         let initial_memory = get_memory_usage();
 
-        let content = Self::extract(html.clone(), url, mode)?;
+        let content = self.extract_internal(html.clone(), url, mode)?;
 
         let processing_time = start_time.elapsed().as_millis() as u64;
         let memory_used = get_memory_usage().saturating_sub(initial_memory);
@@ -159,7 +218,7 @@ impl Guest for Component {
     }
 
     /// Validate HTML content without full extraction
-    fn validate_html(html: String) -> Result<bool, ExtractionError> {
+    fn validate_html_internal(&self, html: String) -> Result<bool, ExtractionError> {
         // Use common validation logic
         match validate_html_structure(&html) {
             Ok(_) => Ok(true),
@@ -168,7 +227,7 @@ impl Guest for Component {
     }
 
     /// Health check for component monitoring
-    fn health_check() -> HealthStatus {
+    fn health_check_internal(&self) -> HealthStatus {
         HealthStatus {
             status: "healthy".to_string(),
             version: COMPONENT_VERSION.to_string(),
@@ -180,7 +239,7 @@ impl Guest for Component {
     }
 
     /// Get detailed component information
-    fn get_info() -> ComponentInfo {
+    fn get_info_internal(&self) -> ComponentInfo {
         ComponentInfo {
             name: COMPONENT_NAME.to_string(),
             version: COMPONENT_VERSION.to_string(),
@@ -204,7 +263,7 @@ impl Guest for Component {
     }
 
     /// Reset component state and clear caches
-    fn reset_state() -> Result<String, ExtractionError> {
+    fn reset_state_internal(&self) -> Result<String, ExtractionError> {
         // Reset extraction counter
         EXTRACTION_COUNT.store(0, Ordering::Relaxed);
 
@@ -226,8 +285,60 @@ impl Guest for Component {
     }
 
     /// Get supported extraction modes
-    fn get_modes() -> Vec<String> {
+    fn get_modes_internal(&self) -> Vec<String> {
         get_supported_modes()
+    }
+}
+
+impl Guest for Component {
+    /// Primary extraction function with enhanced error handling and trek-rs integration
+    fn extract(
+        html: String,
+        url: String,
+        mode: ExtractionMode,
+    ) -> Result<ExtractedContent, ExtractionError> {
+        let component = Component::new();
+        component.extract_internal(html, url, mode)
+    }
+
+    /// Extract content with detailed performance statistics
+    fn extract_with_stats(
+        html: String,
+        url: String,
+        mode: ExtractionMode,
+    ) -> Result<(ExtractedContent, ExtractionStats), ExtractionError> {
+        let component = Component::new();
+        component.extract_with_stats_internal(html, url, mode)
+    }
+
+    /// Validate HTML content without full extraction
+    fn validate_html(html: String) -> Result<bool, ExtractionError> {
+        let component = Component::new();
+        component.validate_html_internal(html)
+    }
+
+    /// Health check for component monitoring
+    fn health_check() -> HealthStatus {
+        let component = Component::new();
+        component.health_check_internal()
+    }
+
+    /// Get detailed component information
+    fn get_info() -> ComponentInfo {
+        let component = Component::new();
+        component.get_info_internal()
+    }
+
+    /// Reset component state and clear caches
+    fn reset_state() -> Result<String, ExtractionError> {
+        let component = Component::new();
+        component.reset_state_internal()
+    }
+
+    /// Get supported extraction modes
+    fn get_modes() -> Vec<String> {
+        let component = Component::new();
+        component.get_modes_internal()
     }
 }
 

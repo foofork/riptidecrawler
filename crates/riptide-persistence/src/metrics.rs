@@ -73,6 +73,12 @@ impl Default for InternalCacheStats {
     }
 }
 
+impl Default for CacheMetrics {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CacheMetrics {
     /// Create new cache metrics instance
     pub fn new() -> Self {

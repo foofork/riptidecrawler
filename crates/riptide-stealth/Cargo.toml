@@ -1,0 +1,28 @@
+[package]
+name = "riptide-stealth"
+version = "0.1.0"
+edition = "2021"
+description = "Stealth module for anti-detection measures in browser automation"
+license = "Apache-2.0"
+authors = ["RipTide Team"]
+keywords = ["web-scraping", "stealth", "automation", "browser", "fingerprinting"]
+categories = ["web-programming", "development-tools"]
+
+[dependencies]
+# Core dependencies
+serde = { workspace = true }
+rand = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[features]
+default = ["stealth"]
+stealth = []
+full-stealth = ["stealth"]
+
+# Re-export commonly used types for convenience
+[lib]
+name = "riptide_stealth"
+path = "src/lib.rs"

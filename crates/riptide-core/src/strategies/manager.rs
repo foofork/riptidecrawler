@@ -9,10 +9,9 @@ use tokio::sync::RwLock;
 
 use crate::strategies::{
     traits::*,
-    implementations::*,
     // Temporarily disabled for testing trait system
     // spider_implementations::*,
-    ExtractedContent, ContentChunk,
+    ExtractedContent,
     metadata::DocumentMetadata,
     performance::PerformanceMetrics,
 };
@@ -23,8 +22,6 @@ pub struct EnhancedStrategyManager {
     registry: Arc<RwLock<StrategyRegistry>>,
     /// Default extraction strategy name
     default_extraction: String,
-    /// Default chunking strategy name
-    default_chunking: String,
     /// Default spider strategy name
     default_spider: String,
     /// Performance metrics collection
@@ -67,8 +64,6 @@ pub struct EnhancedProcessingResult {
     pub extracted: ExtractedContent,
     /// Document metadata
     pub metadata: DocumentMetadata,
-    /// Content chunks
-    pub chunks: Vec<ContentChunk>,
     /// Extraction result details
     pub extraction_result: ExtractionResult,
     /// Performance metrics
@@ -82,12 +77,11 @@ pub struct EnhancedProcessingResult {
 impl EnhancedStrategyManager {
     /// Create a new enhanced strategy manager
     pub async fn new(config: StrategyManagerConfig) -> Self {
-        let registry = Arc::new(RwLock::new(create_default_registry()));
+        let registry = Arc::new(RwLock::new(StrategyRegistry::new()));
 
         Self {
             registry,
             default_extraction: "trek".to_string(),
-            default_chunking: "sliding".to_string(),
             default_spider: "breadth_first".to_string(),
             metrics: Arc::new(RwLock::new(PerformanceMetrics::new())),
             config,
@@ -101,7 +95,6 @@ impl EnhancedStrategyManager {
         Self {
             registry,
             default_extraction: "trek".to_string(),
-            default_chunking: "sliding".to_string(),
             default_spider: "breadth_first".to_string(),
             metrics: Arc::new(RwLock::new(PerformanceMetrics::new())),
             config,
@@ -112,13 +105,6 @@ impl EnhancedStrategyManager {
     pub async fn register_extraction(&self, strategy: Arc<dyn ExtractionStrategy>) -> Result<()> {
         let mut registry = self.registry.write().await;
         registry.register_extraction(strategy);
-        Ok(())
-    }
-
-    /// Register a new chunking strategy
-    pub async fn register_chunking(&self, strategy: Arc<dyn ChunkingStrategy>) -> Result<()> {
-        let mut registry = self.registry.write().await;
-        registry.register_chunking(strategy);
         Ok(())
     }
 
@@ -134,10 +120,6 @@ impl EnhancedStrategyManager {
         self.default_extraction = strategy_name;
     }
 
-    /// Set default chunking strategy
-    pub fn set_default_chunking(&mut self, strategy_name: String) {
-        self.default_chunking = strategy_name;
-    }
 
     /// Set default spider strategy
     pub fn set_default_spider(&mut self, strategy_name: String) {
@@ -179,13 +161,7 @@ impl EnhancedStrategyManager {
         // Extract metadata
         let metadata = crate::strategies::metadata::extract_metadata(html, url).await?;
 
-        // Chunk the content using default chunking strategy
-        let chunking_strategy = registry
-            .get_chunking(&self.default_chunking)
-            .ok_or_else(|| anyhow::anyhow!("Chunking strategy '{}' not found", self.default_chunking))?;
-
-        let chunking_config = chunking_strategy.optimal_config();
-        let chunks = chunking_strategy.chunk(&extraction_result.content.content, &chunking_config).await?;
+        // Note: Chunking has been moved to riptide-html crate
 
         let processing_time = start.elapsed();
 
@@ -196,7 +172,7 @@ impl EnhancedStrategyManager {
                 &crate::strategies::ExtractionStrategy::Trek, // Convert to enum for compatibility
                 processing_time,
                 extraction_result.content.content.len(),
-                chunks.len(),
+                0, // No chunks in core
             );
             Some(metrics.clone())
         } else {
@@ -206,7 +182,6 @@ impl EnhancedStrategyManager {
         Ok(EnhancedProcessingResult {
             extracted: extraction_result.content.clone(),
             metadata,
-            chunks,
             extraction_result,
             metrics,
             strategy_used: strategy_name.to_string(),
@@ -242,21 +217,6 @@ impl EnhancedStrategyManager {
             .ok_or_else(|| anyhow::anyhow!("Spider strategy '{}' not found", strategy_name))?;
 
         strategy.process_requests(requests).await
-    }
-
-    /// Chunk content with specific strategy
-    pub async fn chunk_content_with_strategy(
-        &self,
-        content: &str,
-        strategy_name: &str,
-    ) -> Result<Vec<ContentChunk>> {
-        let registry = self.registry.read().await;
-        let strategy = registry
-            .get_chunking(strategy_name)
-            .ok_or_else(|| anyhow::anyhow!("Chunking strategy '{}' not found", strategy_name))?;
-
-        let config = strategy.optimal_config();
-        strategy.chunk(content, &config).await
     }
 
     /// List all available strategies
@@ -347,7 +307,6 @@ pub struct EnhancedStrategyManagerBuilder {
     config: StrategyManagerConfig,
     registry: Option<StrategyRegistry>,
     default_extraction: Option<String>,
-    default_chunking: Option<String>,
     default_spider: Option<String>,
 }
 
@@ -357,7 +316,6 @@ impl EnhancedStrategyManagerBuilder {
             config: StrategyManagerConfig::default(),
             registry: None,
             default_extraction: None,
-            default_chunking: None,
             default_spider: None,
         }
     }
@@ -377,10 +335,6 @@ impl EnhancedStrategyManagerBuilder {
         self
     }
 
-    pub fn with_default_chunking(mut self, strategy: String) -> Self {
-        self.default_chunking = Some(strategy);
-        self
-    }
 
     pub fn with_default_spider(mut self, strategy: String) -> Self {
         self.default_spider = Some(strategy);
@@ -398,9 +352,6 @@ impl EnhancedStrategyManagerBuilder {
             manager.set_default_extraction(extraction);
         }
 
-        if let Some(chunking) = self.default_chunking {
-            manager.set_default_chunking(chunking);
-        }
 
         if let Some(spider) = self.default_spider {
             manager.set_default_spider(spider);

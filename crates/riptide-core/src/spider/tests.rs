@@ -1,6 +1,6 @@
 use crate::spider::{
     config::SpiderPresets,
-    spider::Spider,
+    core::Spider,
     types::{CrawlRequest, Priority},
 };
 use std::str::FromStr;

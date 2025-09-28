@@ -1,0 +1,49 @@
+[package]
+name = "riptide-pdf"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+authors = ["RipTide Team"]
+description = "PDF processing capabilities for the RipTide web scraping framework"
+repository = "https://github.com/your-org/eventmesh"
+keywords = ["pdf", "processing", "pdfium", "text-extraction", "scraping"]
+categories = ["text-processing", "parsing", "web-programming"]
+
+[dependencies]
+# Core dependencies from workspace
+# Note: riptide-core dependency removed to avoid circular dependency
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+bytes = { workspace = true }
+chrono = { workspace = true }
+futures = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
+tracing = { workspace = true }
+uuid = { workspace = true }
+
+# PDF processing
+pdfium-render = { workspace = true, optional = true }
+
+# Performance and monitoring
+sysinfo = { workspace = true }
+psutil = { workspace = true }
+
+# Utility dependencies
+regex = { workspace = true }
+url = { workspace = true }
+libc = "0.2"
+
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+tokio-test = "0.4"
+tempfile = { workspace = true }
+
+[features]
+default = ["pdf"]
+pdf = ["pdfium-render"]
+benchmarks = []
+

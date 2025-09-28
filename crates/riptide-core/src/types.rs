@@ -167,7 +167,10 @@ pub struct CrawlOptions {
     // Phase 3 dynamic content options
     pub dynamic_config: Option<crate::dynamic::DynamicConfig>,
     pub stealth_config: Option<crate::stealth::StealthConfig>,
-    pub pdf_config: Option<crate::pdf::PdfConfig>,
+    #[cfg(feature = "pdf")]
+    pub pdf_config: Option<riptide_pdf::PdfConfig>,
+    #[cfg(not(feature = "pdf"))]
+    pub pdf_config: Option<()>,
     pub render_mode: RenderMode,
     pub output_format: OutputFormat,
     // Spider deep crawling mode

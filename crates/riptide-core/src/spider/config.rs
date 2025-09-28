@@ -6,6 +6,7 @@ use crate::spider::{
     session::SessionConfig,
     strategy::AdaptiveCriteria as StrategyAdaptiveCriteria,
     types::{SitemapConfig, StrategyConfig},
+    query_aware::QueryAwareConfig,
 };
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -54,6 +55,8 @@ pub struct SpiderConfig {
     pub url_processing: UrlProcessingConfig,
     /// Performance configuration
     pub performance: PerformanceConfig,
+    /// Query-aware crawling configuration
+    pub query_aware: QueryAwareConfig,
 }
 
 impl Default for SpiderConfig {
@@ -79,6 +82,7 @@ impl Default for SpiderConfig {
             robots: RobotsConfig::default(),
             url_processing: UrlProcessingConfig::default(),
             performance: PerformanceConfig::default(),
+            query_aware: QueryAwareConfig::default(),
         }
     }
 }

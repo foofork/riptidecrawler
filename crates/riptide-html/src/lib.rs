@@ -40,6 +40,7 @@ pub mod dom_utils;
 pub mod strategy_implementations;
 // pub mod spider;  // Temporarily disabled due to compilation errors
 pub mod chunking;
+pub mod table_extraction;
 
 // Re-export main interfaces
 pub use processor::{HtmlProcessor, ProcessingResult, ProcessingError, ChunkingMode, TableExtractionMode};
@@ -69,6 +70,13 @@ pub use chunking::{
     ChunkingStrategy, Chunk, ChunkMetadata, ChunkingConfig,
     ChunkingMode as ChunkingStrategyMode,
     create_strategy, utils as chunking_utils
+};
+
+// Re-export table extraction functionality
+pub use table_extraction::{
+    AdvancedTableData, TableHeaders, TableRow, TableCell, TableMetadata, TableStructure,
+    RowType, CellType, CellPosition, ColumnGroup, TableExtractionConfig, TableExtractor,
+    TableArtifact, TableExtractionError, extract_tables_advanced, extract_and_export_tables
 };
 
 // Common types for extraction

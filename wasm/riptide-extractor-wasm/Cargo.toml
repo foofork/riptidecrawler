@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
@@ -24,6 +24,8 @@ tokio = { version = "1", features = ["full"] }
 tokio-test = "0.4"
 tracing = "0.1"
 tracing-test = "0.2"
+wasmtime = { version = "25", features = ["component-model"] }
+chrono = { version = "0.4", features = ["serde"] }
 
 [build-dependencies]
 vergen = { version = "8", features = ["build", "git", "gitcl"] }

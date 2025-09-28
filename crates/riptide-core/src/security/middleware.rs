@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tracing::{debug, error, info, warn};
 
+
 /// Comprehensive security middleware that integrates all security components
 pub struct SecurityMiddleware {
     api_key_manager: Arc<ApiKeyManager>,
@@ -62,6 +63,7 @@ impl SecurityMiddleware {
     }
     
     /// Process incoming request with full security pipeline
+    #[allow(clippy::too_many_arguments)]
     pub async fn process_request(
         &self,
         api_key: &str,
@@ -273,6 +275,7 @@ impl SecurityMiddleware {
     }
     
     /// Process response and record actual usage
+    #[allow(clippy::too_many_arguments)]
     pub async fn process_response(
         &self,
         job_id: &str,
@@ -337,7 +340,7 @@ impl SecurityMiddleware {
             tokens_used: Some(actual_tokens),
             model_name: Some(model_name.to_string()),
             rate_limit_info: None,
-            pii_redacted: response_payload.map_or(false, |r| redacted_response != r),
+            pii_redacted: response_payload.is_some_and(|r| redacted_response != r),
             pii_detections: None,
         };
         

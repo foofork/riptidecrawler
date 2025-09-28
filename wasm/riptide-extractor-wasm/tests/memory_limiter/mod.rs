@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use crate::*;
+use riptide_extractor_wasm::{Component, ExtractionMode, ExtractionError};
 
 /// Memory limiter testing module
 ///
@@ -14,8 +14,8 @@ use crate::*;
 /// - Circuit breaker activation under memory pressure
 /// - Graceful degradation when limits are reached
 /// - Memory leak detection across multiple operations
-
-/// Memory usage tracking for tests
+///
+///   Memory usage tracking for tests
 static MEMORY_TRACKER: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Clone)]
@@ -53,31 +53,24 @@ pub fn run_memory_limiter_tests() -> Result<Vec<MemoryTestResult>, String> {
     println!("================================");
 
     let config = MemoryLimiterConfig::default();
-    let mut results = Vec::new();
-
-    // Test 1: Normal operation within limits
-    results.push(test_normal_memory_usage(&config)?);
-
-    // Test 2: Gradual memory growth approaching limits
-    results.push(test_gradual_memory_growth(&config)?);
-
-    // Test 3: Sudden large allocation beyond limits
-    results.push(test_large_allocation_beyond_limits(&config)?);
-
-    // Test 4: Circuit breaker activation
-    results.push(test_circuit_breaker_activation(&config)?);
-
-    // Test 5: Memory leak detection
-    results.push(test_memory_leak_detection(&config)?);
-
-    // Test 6: Concurrent memory pressure
-    results.push(test_concurrent_memory_pressure(&config)?);
-
-    // Test 7: Recovery after memory pressure
-    results.push(test_memory_pressure_recovery(&config)?);
-
-    // Test 8: Edge case - zero-size allocations
-    results.push(test_zero_size_allocations(&config)?);
+    let results = vec![
+        // Test 1: Normal operation within limits
+        test_normal_memory_usage(&config)?,
+        // Test 2: Gradual memory growth approaching limits
+        test_gradual_memory_growth(&config)?,
+        // Test 3: Sudden large allocation beyond limits
+        test_large_allocation_beyond_limits(&config)?,
+        // Test 4: Circuit breaker activation
+        test_circuit_breaker_activation(&config)?,
+        // Test 5: Memory leak detection
+        test_memory_leak_detection(&config)?,
+        // Test 6: Concurrent memory pressure
+        test_concurrent_memory_pressure(&config)?,
+        // Test 7: Recovery after memory pressure
+        test_memory_pressure_recovery(&config)?,
+        // Test 8: Edge case - zero-size allocations
+        test_zero_size_allocations(&config)?,
+    ];
 
     print_memory_test_summary(&results);
 
@@ -85,7 +78,7 @@ pub fn run_memory_limiter_tests() -> Result<Vec<MemoryTestResult>, String> {
 }
 
 /// Test normal memory usage within configured limits
-fn test_normal_memory_usage(config: &MemoryLimiterConfig) -> Result<MemoryTestResult, String> {
+fn test_normal_memory_usage(_config: &MemoryLimiterConfig) -> Result<MemoryTestResult, String> {
     println!("\n✅ Testing normal memory usage...");
 
     let start_time = Instant::now();
@@ -154,7 +147,7 @@ fn test_gradual_memory_growth(config: &MemoryLimiterConfig) -> Result<MemoryTest
                     circuit_breaker_triggered = should_circuit_breaker_activate(current_memory, config);
                 }
             },
-            Err(ExtractionError::MemoryLimitExceeded(msg)) => {
+            Err(ExtractionError::ResourceLimit(msg)) => {
                 println!("  Memory limit reached at {}KB document: {}", size_kb, msg);
                 circuit_breaker_triggered = true;
                 break; // Expected behavior
@@ -206,12 +199,8 @@ fn test_large_allocation_beyond_limits(config: &MemoryLimiterConfig) -> Result<M
             error_message = Some("Large allocation should have been rejected".to_string());
             success = false;
         },
-        Err(ExtractionError::MemoryLimitExceeded(_)) => {
+        Err(ExtractionError::ResourceLimit(_)) => {
             println!("  ✅ Large allocation correctly rejected");
-            circuit_breaker_triggered = true;
-        },
-        Err(ExtractionError::ContentTooLarge(_)) => {
-            println!("  ✅ Content size limit correctly enforced");
             circuit_breaker_triggered = true;
         },
         Err(e) => {
@@ -258,7 +247,7 @@ fn test_circuit_breaker_activation(config: &MemoryLimiterConfig) -> Result<Memor
             Ok(_) => {
                 // Success is actually unexpected here if we're testing memory pressure
             },
-            Err(ExtractionError::MemoryLimitExceeded(_)) => {
+            Err(ExtractionError::ResourceLimit(_)) => {
                 failure_count += 1;
                 println!("  Memory limit failure {}", failure_count);
 
@@ -267,11 +256,6 @@ fn test_circuit_breaker_activation(config: &MemoryLimiterConfig) -> Result<Memor
                     println!("  🔌 Circuit breaker activated after {} failures", failure_count);
                     break;
                 }
-            },
-            Err(ExtractionError::CircuitBreakerOpen(_)) => {
-                circuit_breaker_triggered = true;
-                println!("  🔌 Circuit breaker is open");
-                break;
             },
             Err(e) => {
                 error_message = Some(format!("Unexpected error at attempt {}: {:?}", attempt, e));
@@ -295,7 +279,7 @@ fn test_circuit_breaker_activation(config: &MemoryLimiterConfig) -> Result<Memor
 }
 
 /// Test memory leak detection across multiple operations
-fn test_memory_leak_detection(config: &MemoryLimiterConfig) -> Result<MemoryTestResult, String> {
+fn test_memory_leak_detection(_config: &MemoryLimiterConfig) -> Result<MemoryTestResult, String> {
     println!("\n🕳️  Testing memory leak detection...");
 
     let start_time = Instant::now();
@@ -368,7 +352,7 @@ fn test_memory_leak_detection(config: &MemoryLimiterConfig) -> Result<MemoryTest
 }
 
 /// Test concurrent memory pressure
-fn test_concurrent_memory_pressure(config: &MemoryLimiterConfig) -> Result<MemoryTestResult, String> {
+fn test_concurrent_memory_pressure(_config: &MemoryLimiterConfig) -> Result<MemoryTestResult, String> {
     println!("\n🔀 Testing concurrent memory pressure...");
 
     let start_time = Instant::now();
@@ -412,7 +396,7 @@ fn test_concurrent_memory_pressure(config: &MemoryLimiterConfig) -> Result<Memor
             Ok(Ok(())) => {
                 println!("  Thread {} completed successfully", thread_id);
             },
-            Ok(Err(ExtractionError::MemoryLimitExceeded(_))) => {
+            Ok(Err(ExtractionError::ResourceLimit(_))) => {
                 thread_failures += 1;
                 circuit_breaker_triggered = true;
                 println!("  Thread {} hit memory limit", thread_id);
@@ -484,7 +468,7 @@ fn test_memory_pressure_recovery(config: &MemoryLimiterConfig) -> Result<MemoryT
             Ok(_) => {
                 println!("  Recovery operation {} succeeded", i);
             },
-            Err(ExtractionError::CircuitBreakerOpen(_)) => {
+            Err(ExtractionError::ResourceLimit(_)) => {
                 circuit_breaker_triggered = true;
                 // Try to reset the circuit breaker
                 let _ = component.reset_state();
@@ -532,7 +516,7 @@ fn test_zero_size_allocations(_config: &MemoryLimiterConfig) -> Result<MemoryTes
             error_message = Some("Empty HTML should be rejected".to_string());
             success = false;
         },
-        Err(ExtractionError::InvalidInput(_)) => {
+        Err(ExtractionError::InvalidHtml(_)) => {
             println!("  ✅ Empty HTML correctly rejected");
         },
         Err(e) => {
@@ -664,7 +648,7 @@ mod tests {
     }
 
     #[test]
-    fn test_normal_memory_usage() {
+    fn test_normal_memory_usage_wrapper() {
         let config = MemoryLimiterConfig::default();
         let result = test_normal_memory_usage(&config).expect("Normal memory test should not fail");
         // We can't assert success here since it depends on actual memory behavior

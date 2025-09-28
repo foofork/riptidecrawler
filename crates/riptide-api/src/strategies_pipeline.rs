@@ -7,10 +7,11 @@ use riptide_core::{
     pdf::{self, utils as pdf_utils},
     types::{CrawlOptions, RenderMode},
     strategies::{
-        StrategyManager, StrategyConfig, ExtractionStrategy, ChunkingConfig,
+        StrategyManager, StrategyConfig, ExtractionStrategy,
         ProcessedContent, PerformanceMetrics,
     },
 };
+use riptide_html::{ChunkingConfig, ChunkingMode};
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
 use tokio::time::timeout;
@@ -100,7 +101,6 @@ impl StrategiesPipelineOrchestrator {
             url = %url,
             cache_key = %cache_key,
             extraction_strategy = ?self.strategy_config.extraction,
-            chunking_mode = ?self.strategy_config.chunking.mode,
             "Starting strategies pipeline execution"
         );
 
@@ -167,20 +167,20 @@ impl StrategiesPipelineOrchestrator {
                 match self.extract_with_headless(url).await {
                     Ok(rendered_html) => {
                         // Use strategies on rendered content
-                        strategy_manager.extract_and_chunk(&rendered_html, url).await
+                        strategy_manager.extract_content(&rendered_html, url).await
                             .map_err(|e| ApiError::pipeline(format!("Strategy processing failed: {}", e)))?
                     }
                     Err(e) => {
                         warn!(url = %url, error = %e, "Headless rendering failed, using direct strategies");
                         // Fallback to processing original HTML with strategies
-                        strategy_manager.extract_and_chunk(&html_content, url).await
+                        strategy_manager.extract_content(&html_content, url).await
                             .map_err(|e| ApiError::pipeline(format!("Strategy processing failed: {}", e)))?
                     }
                 }
             }
             _ => {
                 // Use strategies directly on HTML content
-                strategy_manager.extract_and_chunk(&html_content, url).await
+                strategy_manager.extract_content(&html_content, url).await
                     .map_err(|e| ApiError::pipeline(format!("Strategy processing failed: {}", e)))?
             }
         };
@@ -200,7 +200,7 @@ impl StrategiesPipelineOrchestrator {
         info!(
             url = %url,
             processing_time_ms = %processing_time_ms,
-            chunks_created = processed_content.chunks.len(),
+            chunks_created = 1, // Core produces single extraction result
             extraction_strategy = ?self.strategy_config.extraction,
             "Strategies pipeline execution complete"
         );
@@ -246,7 +246,7 @@ impl StrategiesPipelineOrchestrator {
 
         // Process through strategies
         let mut strategy_manager = StrategyManager::new(self.strategy_config.clone());
-        let processed_content = strategy_manager.extract_and_chunk(&pdf_html, url).await
+        let processed_content = strategy_manager.extract_content(&pdf_html, url).await
             .map_err(|e| ApiError::pipeline(format!("PDF strategy processing failed: {}", e)))?;
 
         // Cache the result
@@ -282,68 +282,11 @@ impl StrategiesPipelineOrchestrator {
         if let Ok(parsed_url) = Url::parse(url) {
             if let Some(host) = parsed_url.host_str() {
                 // Website-specific strategy optimization
-                config.extraction = match host {
-                    host if host.contains("github.com") => {
-                        // GitHub: Use CSS selectors for structured content
-                        ExtractionStrategy::CssJson {
-                            selectors: create_github_selectors(),
-                        }
-                    }
-                    host if host.contains("wikipedia.org") => {
-                        // Wikipedia: Trek works well for clean HTML
-                        ExtractionStrategy::Trek
-                    }
-                    host if host.contains("medium.com") || host.contains("dev.to") => {
-                        // Blog platforms: CSS selectors for article structure
-                        ExtractionStrategy::CssJson {
-                            selectors: create_blog_selectors(),
-                        }
-                    }
-                    host if host.contains("reddit.com") || host.contains("news.ycombinator.com") => {
-                        // News/discussion sites: Regex for structured data
-                        ExtractionStrategy::Regex {
-                            patterns: create_news_patterns(),
-                        }
-                    }
-                    _ => {
-                        // Default to Trek for unknown sites
-                        ExtractionStrategy::Trek
-                    }
-                }
+                config.extraction = ExtractionStrategy::Trek;
             }
         }
 
-        // Adjust chunking based on render mode
-        config.chunking = match options.render_mode {
-            RenderMode::Html => ChunkingConfig {
-                mode: riptide_core::strategies::chunking::ChunkingMode::Sliding,
-                token_max: 1200,
-                overlap: 120,
-                preserve_sentences: true,
-                deterministic: true,
-            },
-            RenderMode::Pdf => ChunkingConfig {
-                mode: riptide_core::strategies::chunking::ChunkingMode::Fixed { size: 2000, by_tokens: true },
-                token_max: 2000,
-                overlap: 200,
-                preserve_sentences: true,
-                deterministic: true,
-            },
-            RenderMode::Markdown => ChunkingConfig {
-                mode: riptide_core::strategies::chunking::ChunkingMode::Topic { similarity_threshold: 0.7 },
-                token_max: 1500,
-                overlap: 150,
-                preserve_sentences: true,
-                deterministic: true,
-            },
-            RenderMode::Static | RenderMode::Dynamic | RenderMode::Adaptive => ChunkingConfig {
-                mode: riptide_core::strategies::chunking::ChunkingMode::Sliding,
-                token_max: 1200,
-                overlap: 120,
-                preserve_sentences: true,
-                deterministic: true,
-            },
-        };
+        // Chunking is now handled separately by riptide-html
 
         config
     }
@@ -510,7 +453,6 @@ impl StrategiesPipelineOrchestrator {
         url.hash(&mut hasher);
         self.options.cache_mode.hash(&mut hasher);
         format!("{:?}", self.strategy_config.extraction).hash(&mut hasher);
-        format!("{:?}", self.strategy_config.chunking.mode).hash(&mut hasher);
 
         format!(
             "riptide:strategies:v1:{}:{:x}",
@@ -540,29 +482,7 @@ fn create_blog_selectors() -> std::collections::HashMap<String, String> {
     selectors
 }
 
-/// Create news site regex patterns
-fn create_news_patterns() -> Vec<riptide_core::strategies::RegexPattern> {
-    vec![
-        riptide_core::strategies::RegexPattern {
-            name: "title".to_string(),
-            pattern: r"<title>([^<]+)</title>".to_string(),
-            field: "title".to_string(),
-            required: true,
-        },
-        riptide_core::strategies::RegexPattern {
-            name: "points".to_string(),
-            pattern: r"(\d+)\s+points?".to_string(),
-            field: "score".to_string(),
-            required: false,
-        },
-        riptide_core::strategies::RegexPattern {
-            name: "comments".to_string(),
-            pattern: r"(\d+)\s+comments?".to_string(),
-            field: "comment_count".to_string(),
-            required: false,
-        },
-    ]
-}
+// News pattern function removed since regex strategies are no longer used
 
 impl Clone for StrategiesPipelineOrchestrator {
     fn clone(&self) -> Self {

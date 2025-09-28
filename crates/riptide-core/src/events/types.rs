@@ -84,7 +84,7 @@ impl Event for PoolEvent {
 }
 
 /// Pool operations that can generate events
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum PoolOperation {
     InstanceCreated,
     InstanceDestroyed,
