@@ -271,7 +271,7 @@ async fn test_html_processor_trait() {
     let css_result = processor.extract_with_css(
         html,
         "https://example.com",
-        &default_selectors()
+        &default_selectors_simple()
     ).await.unwrap();
 
     assert_eq!(css_result.title, "Processor Test");

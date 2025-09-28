@@ -11,7 +11,6 @@ use riptide_core::{
         ProcessedContent, PerformanceMetrics,
     },
 };
-use riptide_html::{ChunkingConfig, ChunkingMode};
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
 use tokio::time::timeout;

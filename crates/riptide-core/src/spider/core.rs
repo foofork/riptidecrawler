@@ -23,6 +23,7 @@ use crate::spider::{
     budget::BudgetManager,
     config::SpiderConfig,
     frontier::FrontierManager,
+    query_aware::{QueryAwareStats, QueryAwareScorer},
     session::SessionManager,
     sitemap::SitemapParser,
     strategy::StrategyEngine,
@@ -88,6 +89,9 @@ pub struct Spider {
     // State tracking
     crawl_state: Arc<RwLock<CrawlState>>,
     performance_metrics: Arc<RwLock<PerformanceMetrics>>,
+
+    // Query-aware functionality
+    query_aware_scorer: Arc<RwLock<Option<QueryAwareScorer>>>,
 }
 
 /// Current crawl state
@@ -171,7 +175,14 @@ impl Spider {
         // Initialize state tracking
         let crawl_state = Arc::new(RwLock::new(CrawlState::default()));
         let performance_metrics = Arc::new(RwLock::new(PerformanceMetrics::default()));
-        
+
+        // Initialize query-aware scorer if enabled
+        let query_aware_scorer = if config.query_aware.query_foraging {
+            Arc::new(RwLock::new(Some(QueryAwareScorer::new(config.query_aware.clone()))))
+        } else {
+            Arc::new(RwLock::new(None))
+        };
+
         info!("Spider initialization completed");
         
         Ok(Self {
@@ -191,6 +202,7 @@ impl Spider {
             host_semaphores,
             crawl_state,
             performance_metrics,
+            query_aware_scorer,
         })
     }
     
@@ -311,13 +323,26 @@ impl Spider {
                             // Check if URL should be crawled
                             if self.should_crawl_url_internal(&child_request).await? {
                                 // Calculate priority based on strategy
-                                let priority = self.strategy_engine.read().await.calculate_priority(&child_request).await;
+                                let mut priority = self.strategy_engine.read().await.calculate_priority(&child_request).await;
+
+                                // Apply query-aware scoring if enabled
+                                if let Some(scorer) = self.query_aware_scorer.write().await.as_mut() {
+                                    let relevance_score = scorer.score_request(&child_request, result.text_content.as_deref());
+                                    // Blend strategy priority with relevance score using helper function
+                                    priority = blend_priority_with_relevance(priority, relevance_score);
+                                }
+
                                 let final_request = child_request.with_priority(priority);
                                 
                                 self.frontier_manager.add_request(final_request).await?;
                             }
                         }
                         
+                        // Update query-aware scorer if enabled
+                        if let Some(scorer) = self.query_aware_scorer.write().await.as_mut() {
+                            scorer.update_with_result(&result);
+                        }
+
                         // Analyze result for adaptive stopping
                         let _metrics = self.adaptive_stop_engine.analyze_result(&result).await?;
                         
@@ -536,17 +561,25 @@ impl Spider {
     
     /// Check if crawling should stop
     async fn should_stop_crawling(&self) -> Result<Option<String>> {
+        // Check query-aware early stopping
+        if let Some(scorer) = self.query_aware_scorer.read().await.as_ref() {
+            let (should_stop, reason) = scorer.should_stop_early();
+            if should_stop {
+                return Ok(Some(reason));
+            }
+        }
+
         // Check adaptive stop conditions
         let stop_decision = self.adaptive_stop_engine.should_stop().await?;
         if stop_decision.should_stop {
             return Ok(Some(stop_decision.reason));
         }
-        
+
         // Check memory pressure if memory manager is available
         if let Some(_memory_manager) = &self.memory_manager {
             // Placeholder for memory pressure check
         }
-        
+
         Ok(None)
     }
     
@@ -658,6 +691,15 @@ impl Spider {
         &self.url_utils
     }
 
+    /// Get query-aware statistics
+    pub async fn get_query_aware_stats(&self) -> Option<QueryAwareStats> {
+        self.query_aware_scorer
+            .read()
+            .await
+            .as_ref()
+            .map(|scorer| scorer.get_stats())
+    }
+
     
     /// Stop the current crawl
     pub async fn stop(&self) {
@@ -696,6 +738,33 @@ impl Spider {
         
         info!("Spider reset completed");
         Ok(())
+    }
+}
+
+/// Blend strategy priority with query-aware relevance score
+fn blend_priority_with_relevance(strategy_priority: Priority, relevance_score: f64) -> Priority {
+    use Priority::*;
+
+    // Convert priority to numeric score
+    let priority_score = match strategy_priority {
+        Critical => 4.0,
+        High => 3.0,
+        Medium => 2.0,
+        Low => 1.0,
+    };
+
+    // Blend scores (70% strategy, 30% relevance)
+    let blended_score = 0.7 * priority_score + 0.3 * relevance_score * 4.0;
+
+    // Convert back to priority
+    if blended_score >= 3.5 {
+        Critical
+    } else if blended_score >= 2.5 {
+        High
+    } else if blended_score >= 1.5 {
+        Medium
+    } else {
+        Low
     }
 }
 

@@ -17,64 +17,13 @@ mod strategy_impls {
     use crate::{RegexPattern, HtmlProcessor};
     use crate::processor::DefaultHtmlProcessor;
 
-    // Re-export traits - these would come from riptide-core when strategy-traits feature is needed
-    // For now, we'll define minimal versions locally since riptide-core doesn't exist yet
-    pub use crate::{ExtractedContent, ExtractionQuality};
-
-    // Temporary local definitions until riptide-core is available
-
-    #[async_trait]
-    pub trait ExtractionStrategy: Send + Sync {
-        async fn extract(&self, content: &str, url: &str) -> anyhow::Result<ExtractionResult>;
-        fn name(&self) -> &str;
-        fn capabilities(&self) -> StrategyCapabilities;
-        fn confidence_score(&self, content: &str) -> f64;
-    }
-
-    #[derive(Debug, Clone)]
-    pub struct ExtractionResult {
-        pub content: ExtractedContent,
-        pub quality: ExtractionQuality,
-        pub performance: Option<PerformanceMetrics>,
-        pub metadata: HashMap<String, String>,
-    }
-
-    #[derive(Debug, Clone)]
-    pub struct PerformanceMetrics {
-        pub processing_time_ms: u64,
-        pub memory_usage_mb: f64,
-    }
-
-    #[derive(Debug, Clone)]
-    pub struct StrategyCapabilities {
-        pub strategy_type: String,
-        pub supported_content_types: Vec<String>,
-        pub performance_tier: PerformanceTier,
-        pub resource_requirements: ResourceRequirements,
-        pub features: Vec<String>,
-    }
-
-    #[derive(Debug, Clone)]
-    pub enum PerformanceTier {
-        Fast,
-        Balanced,
-        Thorough,
-    }
-
-    #[derive(Debug, Clone)]
-    pub struct ResourceRequirements {
-        pub memory_tier: ResourceTier,
-        pub cpu_tier: ResourceTier,
-        pub requires_network: bool,
-        pub external_dependencies: Vec<String>,
-    }
-
-    #[derive(Debug, Clone)]
-    pub enum ResourceTier {
-        Low,
-        Medium,
-        High,
-    }
+    // Re-export traits from riptide-core
+    pub use riptide_core::strategies::{
+        ExtractionStrategy, ExtractionResult, ExtractionQuality,
+        StrategyCapabilities, PerformanceMetrics, ProcessedContent,
+        PerformanceTier, ResourceRequirements, ResourceTier
+    };
+    pub use crate::ExtractedContent;
 
 /// CSS-based extraction strategy implementation for riptide-html
 #[derive(Debug, Clone)]

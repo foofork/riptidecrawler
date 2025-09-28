@@ -10,6 +10,7 @@ fn generate_test_content(target_size: usize, content_type: ContentType) -> Strin
         ContentType::PlainText => generate_plain_text(target_size),
         ContentType::Html => generate_html_content(target_size),
         ContentType::Mixed => generate_mixed_content(target_size),
+        ContentType::TopicDiverse => generate_topic_diverse_content(target_size),
     }
 }
 
@@ -17,6 +18,7 @@ enum ContentType {
     PlainText,
     Html,
     Mixed,
+    TopicDiverse,
 }
 
 fn generate_plain_text(target_size: usize) -> String {
@@ -91,6 +93,74 @@ fn generate_mixed_content(target_size: usize) -> String {
     content
 }
 
+fn generate_topic_diverse_content(target_size: usize) -> String {
+    let topics = vec![
+        vec![
+            "Machine learning algorithms are revolutionizing data processing.",
+            "Artificial intelligence systems learn from vast datasets.",
+            "Deep learning neural networks process complex patterns.",
+            "Computer vision enables machines to interpret visual information.",
+            "Natural language processing helps computers understand text.",
+        ],
+        vec![
+            "Climate change affects global weather patterns significantly.",
+            "Rising temperatures impact ecosystems worldwide.",
+            "Environmental conservation requires immediate action.",
+            "Renewable energy sources reduce carbon emissions.",
+            "Sustainable practices protect natural resources.",
+        ],
+        vec![
+            "Economic policies influence international trade relations.",
+            "Market dynamics affect global financial stability.",
+            "Investment strategies require careful risk assessment.",
+            "Inflation impacts consumer purchasing power.",
+            "Economic growth depends on various market factors.",
+        ],
+        vec![
+            "Quantum computing promises unprecedented computational power.",
+            "Cryptographic security protects digital communications.",
+            "Blockchain technology enables decentralized systems.",
+            "Cybersecurity measures defend against digital threats.",
+            "Information security protocols safeguard sensitive data.",
+        ],
+        vec![
+            "Social media platforms transform modern communication.",
+            "Digital connectivity influences social interactions.",
+            "Online communities foster global collaboration.",
+            "Information sharing accelerates knowledge transfer.",
+            "Virtual relationships supplement traditional connections.",
+        ],
+    ];
+
+    let mut content = String::new();
+    let mut topic_index = 0;
+    let mut sentence_index = 0;
+
+    while content.len() < target_size {
+        let current_topic = &topics[topic_index % topics.len()];
+
+        // Add 3-5 sentences from current topic to create coherent blocks
+        let sentences_in_block = 3 + (sentence_index % 3);
+        for _ in 0..sentences_in_block {
+            if content.len() >= target_size {
+                break;
+            }
+
+            content.push_str(current_topic[sentence_index % current_topic.len()]);
+            content.push(' ');
+            sentence_index += 1;
+        }
+
+        // Add paragraph break and switch topic
+        content.push_str("\n\n");
+        topic_index += 1;
+        sentence_index = 0;
+    }
+
+    content.truncate(target_size);
+    content
+}
+
 /// Test performance of a chunking strategy with specified content
 async fn test_strategy_performance(
     strategy: Box<dyn ChunkingStrategy>,
@@ -143,6 +213,7 @@ async fn test_50kb_performance_requirement() {
         ("Plain Text", generate_test_content(target_size, ContentType::PlainText)),
         ("HTML Content", generate_test_content(target_size, ContentType::Html)),
         ("Mixed Content", generate_test_content(target_size, ContentType::Mixed)),
+        ("Topic Diverse", generate_test_content(target_size, ContentType::TopicDiverse)),
     ];
 
     let config = ChunkingConfig::default();
@@ -164,6 +235,16 @@ async fn test_50kb_performance_requirement() {
         ("HTML-aware (Blocks)", ChunkingMode::HtmlAware {
             preserve_blocks: true,
             preserve_structure: false
+        }),
+        ("Topic Chunking (Enabled)", ChunkingMode::Topic {
+            topic_chunking: true,
+            window_size: 3,
+            smoothing_passes: 2
+        }),
+        ("Topic Chunking (Disabled)", ChunkingMode::Topic {
+            topic_chunking: false,
+            window_size: 3,
+            smoothing_passes: 2
         }),
     ];
 
@@ -404,4 +485,92 @@ async fn test_edge_cases_performance() {
             assert!(!chunks.is_empty(), "Non-empty content '{}' should produce chunks", name);
         }
     }
+}
+
+#[tokio::test]
+async fn test_topic_chunking_specific_performance() {
+    // Specific test for topic chunking requirements
+    let config = ChunkingConfig::default();
+    let target_size = 50_000;
+
+    // Generate content with clear topic boundaries
+    let topic_content = generate_test_content(target_size, ContentType::TopicDiverse);
+
+    println!("Testing Topic Chunking Performance with {} chars", topic_content.len());
+
+    // Test topic chunking enabled
+    let strategy_enabled = create_strategy(
+        ChunkingMode::Topic {
+            topic_chunking: true,
+            window_size: 3,
+            smoothing_passes: 2,
+        },
+        config.clone()
+    );
+
+    let start = Instant::now();
+    let chunks_enabled = strategy_enabled.chunk(&topic_content).await.unwrap();
+    let duration_enabled = start.elapsed();
+
+    println!(
+        "Topic chunking (enabled): {} chunks in {}ms",
+        chunks_enabled.len(),
+        duration_enabled.as_millis()
+    );
+
+    // Should meet <200ms requirement
+    assert!(
+        duration_enabled.as_millis() < 200,
+        "Topic chunking (enabled) took {}ms, expected <200ms",
+        duration_enabled.as_millis()
+    );
+
+    // Test topic chunking disabled (fallback)
+    let strategy_disabled = create_strategy(
+        ChunkingMode::Topic {
+            topic_chunking: false,
+            window_size: 3,
+            smoothing_passes: 2,
+        },
+        config.clone()
+    );
+
+    let start = Instant::now();
+    let chunks_disabled = strategy_disabled.chunk(&topic_content).await.unwrap();
+    let duration_disabled = start.elapsed();
+
+    println!(
+        "Topic chunking (disabled): {} chunks in {}ms",
+        chunks_disabled.len(),
+        duration_disabled.as_millis()
+    );
+
+    // Should also meet performance requirement (fallback to sliding window)
+    assert!(
+        duration_disabled.as_millis() < 200,
+        "Topic chunking (disabled) took {}ms, expected <200ms",
+        duration_disabled.as_millis()
+    );
+
+    // Verify topic-enabled chunking produces meaningful results
+    assert!(!chunks_enabled.is_empty(), "Topic chunking should produce chunks");
+
+    // Check that topic chunks have topic keywords
+    for chunk in &chunks_enabled {
+        if chunk.metadata.chunk_type == "topic" {
+            assert!(
+                !chunk.metadata.topic_keywords.is_empty(),
+                "Topic chunks should have topic keywords"
+            );
+        }
+    }
+
+    // Disabled should fallback to different chunking
+    assert!(!chunks_disabled.is_empty(), "Fallback chunking should produce chunks");
+
+    println!(
+        "Topic chunking performance test completed: enabled={}ms, disabled={}ms",
+        duration_enabled.as_millis(),
+        duration_disabled.as_millis()
+    );
 }

@@ -1,6 +1,6 @@
 //! Simple chunking test to verify basic functionality
 
-use riptide_html::chunking::{ChunkingStrategy, ChunkingConfig, ChunkingMode, create_strategy};
+use riptide_html::chunking::{ChunkingConfig, ChunkingMode, create_strategy};
 
 #[tokio::test]
 async fn test_basic_chunking_functionality() {

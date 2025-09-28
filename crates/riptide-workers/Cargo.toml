@@ -20,11 +20,15 @@ chrono = { workspace = true }
 uuid = { workspace = true }
 futures = { workspace = true }
 thiserror = { workspace = true }
-async-trait = "0.1"
+async-trait = { workspace = true }
 cron = "0.13"
-dashmap = "6"
+dashmap = { workspace = true }
 clap = { workspace = true }
 reqwest = { workspace = true }
 parking_lot = "0.12"
 num_cpus = "1.0"
 rand = { workspace = true }
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = { workspace = true }

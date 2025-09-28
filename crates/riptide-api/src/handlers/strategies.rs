@@ -9,7 +9,6 @@ use riptide_core::{
     strategies::{StrategyConfig, ExtractionStrategy},
     types::CrawlOptions,
 };
-use riptide_html::{ChunkingConfig, ChunkingMode, RegexPattern};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::{debug, info};

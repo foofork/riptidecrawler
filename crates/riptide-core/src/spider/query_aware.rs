@@ -1,8 +1,6 @@
 use crate::spider::types::{CrawlRequest, CrawlResult};
-use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use std::time::Duration;
 use url::Url;
 
 /// Configuration for query-aware spider functionality
@@ -209,12 +207,18 @@ pub struct DomainDiversityAnalyzer {
     total_pages: usize,
 }
 
-impl DomainDiversityAnalyzer {
-    pub fn new() -> Self {
+impl Default for DomainDiversityAnalyzer {
+    fn default() -> Self {
         Self {
             domain_counts: HashMap::new(),
             total_pages: 0,
         }
+    }
+}
+
+impl DomainDiversityAnalyzer {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Record a crawled page from a domain
@@ -349,7 +353,7 @@ impl QueryAwareScorer {
         }
 
         // URL signals score (β component)
-        let url_score = self.url_analyzer.score(&request.url, request.depth);
+        let url_score = self.url_analyzer.score(&request.url, request.depth as usize);
         total_score += self.config.url_signals_weight * url_score;
 
         // Domain diversity score (γ component)
@@ -441,7 +445,7 @@ fn tokenize(text: &str) -> Vec<String> {
                 .filter(|c| c.is_alphanumeric())
                 .collect()
         })
-        .filter(|word| !word.is_empty())
+        .filter(|word: &String| !word.is_empty())
         .collect()
 }
 
@@ -498,7 +502,7 @@ mod tests {
     #[test]
     fn test_depth_scoring() {
         let analyzer = UrlSignalAnalyzer::new(None);
-        let url = Url::from_str("https://example.com/page").unwrap();
+        let _url = Url::from_str("https://example.com/page").unwrap();
 
         let shallow_score = analyzer.calculate_depth_score(1);
         let deep_score = analyzer.calculate_depth_score(5);

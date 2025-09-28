@@ -26,6 +26,7 @@ url.workspace = true
 
 # Chunking dependencies
 tiktoken-rs = "0.5"
+uuid = { version = "1.0", features = ["v4"] }
 
 # Optional features
 futures.workspace = true

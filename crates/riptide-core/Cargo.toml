@@ -38,14 +38,14 @@ wit-bindgen = "0.30"
 uuid = { workspace = true }
 rand = "0.8"
 robotstxt = "0.2"
-dashmap = "6.0"
+dashmap = { workspace = true }
 sha2 = "0.10"
 xml = "0.8"
 libc = "0.2"
 
 # Strategy and chunking dependencies
 schemars = { version = "0.8", features = ["chrono"] }
-scraper = "0.18"
+scraper = { workspace = true }
 tiktoken-rs = "0.5"
 unicode-segmentation = "1.10"
 

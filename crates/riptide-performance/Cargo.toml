@@ -27,14 +27,14 @@ sysinfo = { workspace = true }
 psutil = { workspace = true }
 
 # Memory profiling and analysis
-jemalloc-ctl = "0.5"
-pprof = { version = "0.13", features = ["flamegraph", "protobuf-codec"] }
-memory-stats = "1.2"
+jemalloc-ctl = { version = "0.5", optional = true }
+pprof = { version = "0.13", features = ["flamegraph", "protobuf-codec"], optional = true }
+memory-stats = { version = "1.2", optional = true }
 
 # Performance measurement
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { version = "0.5", features = ["html_reports"], optional = true }
 iai = "0.1"
-flamegraph = "0.6"
+flamegraph = { version = "0.6", optional = true }
 
 # Observability
 tracing = { workspace = true }
@@ -53,19 +53,22 @@ tower = { workspace = true }
 tower-http = { workspace = true }
 
 # Caching and storage
-redis = { workspace = true }
-moka = { version = "0.12", features = ["future"] }
+redis = { workspace = true, optional = true }
+moka = { version = "0.12", features = ["future"], optional = true }
 
 # Async utilities
 async-trait = { workspace = true }
 pin-project-lite = "0.2"
 
 # Resource management
-governor = "0.6"
-tower-limit = "0.2"
+governor = { version = "0.6", optional = true }
+tower-limit = { version = "0.3.1", optional = true }
 
 # Internal dependencies
 riptide-core = { path = "../riptide-core" }
+
+# Random number generation for simulation
+rand = "0.8"
 
 [dev-dependencies]
 tempfile = { workspace = true }
@@ -77,20 +80,21 @@ memory-profiling = ["jemalloc-ctl", "pprof", "memory-stats"]
 bottleneck-analysis = ["flamegraph", "criterion"]
 cache-optimization = ["moka", "redis"]
 resource-limits = ["governor", "tower-limit"]
-jemalloc = ["tikv-jemalloc-ctl"]
+jemalloc = ["jemalloc-ctl"]
 
 [lib]
 name = "riptide_performance"
 path = "src/lib.rs"
 
-[[bench]]
-name = "memory_benchmark"
-harness = false
+# Benchmarks commented out until benchmark files are created
+# [[bench]]
+# name = "memory_benchmark"
+# harness = false
 
-[[bench]]
-name = "bottleneck_benchmark"
-harness = false
+# [[bench]]
+# name = "bottleneck_benchmark"
+# harness = false
 
-[[bench]]
-name = "cache_benchmark"
-harness = false
+# [[bench]]
+# name = "cache_benchmark"
+# harness = false

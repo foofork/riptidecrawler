@@ -11,6 +11,12 @@ pub mod registry;
 pub mod timeout;
 pub mod circuit_breaker;
 pub mod fallback;
+pub mod failover;
+pub mod metrics;
+pub mod runtime_switch;
+pub mod providers;
+pub mod health;
+pub mod plugin;
 
 #[cfg(feature = "mock")]
 pub mod mock_provider;
@@ -24,6 +30,14 @@ pub use registry::{LlmRegistry, ProviderConfig};
 pub use timeout::{TimeoutWrapper, with_timeout, with_custom_timeout};
 pub use circuit_breaker::{CircuitBreaker, CircuitBreakerConfig, CircuitState, with_circuit_breaker, with_custom_circuit_breaker};
 pub use fallback::{FallbackChain, FallbackStrategy, create_fallback_chain, create_fallback_chain_with_strategy};
+pub use failover::{FailoverManager, FailoverConfig, ProviderPriority, ProviderState, FailoverStatistics};
+pub use metrics::{MetricsCollector, LlmOpsDashboard, TimeWindow, RequestMetrics, AggregatedMetrics};
+pub use runtime_switch::{RuntimeSwitchManager, RuntimeSwitchConfig, SwitchState, GradualRolloutConfig};
+pub use providers::{
+    OpenAIProvider, AnthropicProvider, OllamaProvider, LocalAIProvider,
+    AzureOpenAIProvider, BedrockProvider, VertexAIProvider,
+    create_provider_from_config, register_builtin_providers
+};
 
 #[cfg(feature = "mock")]
 pub use mock_provider::MockLlmProvider;

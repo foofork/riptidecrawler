@@ -24,11 +24,34 @@ pub mod monitoring;
 pub mod optimization;
 pub mod limits;
 
-use anyhow::Result;
+use thiserror::Error;
+
+/// Performance-related errors
+#[derive(Error, Debug)]
+pub enum PerformanceError {
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+
+    #[error("Profiling error: {0}")]
+    ProfilingError(String),
+
+    #[error("Monitoring error: {0}")]
+    MonitoringError(String),
+
+    #[error("Configuration error: {0}")]
+    ConfigError(String),
+
+    #[error("Resource limit exceeded: {0}")]
+    ResourceLimitExceeded(String),
+
+    #[error("Anyhow error: {0}")]
+    AnyhowError(#[from] anyhow::Error),
+}
+
+pub type Result<T> = std::result::Result<T, PerformanceError>;
 use serde::{Deserialize, Serialize};
-use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-use tracing::{info, warn, error};
+use tracing::info;
 use uuid::Uuid;
 
 /// Performance targets for the RipTide system
@@ -161,12 +184,13 @@ impl PerformanceManager {
         let mut profiler = self.profiler.write().await;
         let profile_report = profiler.stop_profiling().await?;
 
+        let metrics_clone = monitor_report.metrics.clone();
         let report = PerformanceReport {
             session_id: self.session_id,
             targets: self.targets.clone(),
             metrics: monitor_report.metrics,
             memory_analysis: profile_report,
-            recommendations: self.generate_recommendations(&monitor_report.metrics).await?,
+            recommendations: self.generate_recommendations(&metrics_clone).await?,
             timestamp: chrono::Utc::now(),
         };
 

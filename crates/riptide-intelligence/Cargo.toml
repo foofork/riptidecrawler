@@ -22,9 +22,18 @@ chrono = { workspace = true }
 futures = { workspace = true }
 
 # Specific versions for intelligence features
-dashmap = "5.5"
+dashmap = { workspace = true }
 arc-swap = "1.6"
 parking_lot = "0.12"
+
+# HTTP client for provider implementations
+reqwest = { workspace = true }
+
+# Random for provider selection
+rand = "0.8"
+
+# Additional error handling
+anyhow = { workspace = true }
 
 [dev-dependencies]
 tokio-test = "0.4"

@@ -1,0 +1,488 @@
+//! AWS Bedrock provider implementation
+
+use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use tracing::{debug, error, info};
+
+use crate::{
+    LlmProvider, CompletionRequest, CompletionResponse, LlmCapabilities, Cost, ModelInfo,
+    IntelligenceError, Result, Message, Role, Usage,
+};
+
+/// AWS Bedrock provider implementation
+/// Note: This is a simplified implementation. In practice, you would use the AWS SDK
+/// and proper authentication mechanisms.
+pub struct BedrockProvider {
+    region: String,
+    access_key: Option<String>,
+    secret_key: Option<String>,
+    model_costs: HashMap<String, (f64, f64)>, // (prompt_cost_per_1k, completion_cost_per_1k)
+}
+
+impl BedrockProvider {
+    /// Create a new AWS Bedrock provider
+    pub fn new(region: String, access_key: Option<String>, secret_key: Option<String>) -> Result<Self> {
+        let mut model_costs = HashMap::new();
+        // AWS Bedrock pricing (approximate, varies by region)
+        model_costs.insert("anthropic.claude-3-sonnet-20240229-v1:0".to_string(), (0.003, 0.015));
+        model_costs.insert("anthropic.claude-3-haiku-20240307-v1:0".to_string(), (0.00025, 0.00125));
+        model_costs.insert("anthropic.claude-3-opus-20240229-v1:0".to_string(), (0.015, 0.075));
+        model_costs.insert("amazon.titan-text-express-v1".to_string(), (0.0008, 0.0016));
+        model_costs.insert("amazon.titan-text-lite-v1".to_string(), (0.0003, 0.0004));
+        model_costs.insert("meta.llama2-70b-chat-v1".to_string(), (0.00195, 0.00256));
+        model_costs.insert("meta.llama2-13b-chat-v1".to_string(), (0.00075, 0.001));
+
+        Ok(Self {
+            region,
+            access_key,
+            secret_key,
+            model_costs,
+        })
+    }
+
+    /// Convert internal message format to Bedrock format
+    /// Note: Different models in Bedrock have different input formats
+    fn build_bedrock_payload(&self, request: &CompletionRequest) -> Result<serde_json::Value> {
+        if request.model.starts_with("anthropic.claude") {
+            self.build_claude_payload(request)
+        } else if request.model.starts_with("amazon.titan") {
+            self.build_titan_payload(request)
+        } else if request.model.starts_with("meta.llama") {
+            self.build_llama_payload(request)
+        } else {
+            Err(IntelligenceError::Configuration(
+                format!("Unsupported Bedrock model: {}", request.model)
+            ))
+        }
+    }
+
+    fn build_claude_payload(&self, request: &CompletionRequest) -> Result<serde_json::Value> {
+        let mut prompt = String::new();
+        let mut system_message = None;
+
+        for message in &request.messages {
+            match message.role {
+                Role::System => {
+                    system_message = Some(message.content.clone());
+                }
+                Role::User => {
+                    prompt.push_str(&format!("\n\nHuman: {}", message.content));
+                }
+                Role::Assistant => {
+                    prompt.push_str(&format!("\n\nAssistant: {}", message.content));
+                }
+                Role::Function => {
+                    prompt.push_str(&format!("\n\nHuman: {}", message.content));
+                }
+            }
+        }
+
+        if prompt.is_empty() {
+            return Err(IntelligenceError::InvalidRequest("No messages provided".to_string()));
+        }
+
+        // Ensure prompt ends with Assistant prompt
+        if !prompt.ends_with("\n\nAssistant:") {
+            prompt.push_str("\n\nAssistant:");
+        }
+
+        let mut payload = serde_json::json!({
+            "prompt": prompt,
+            "max_tokens_to_sample": request.max_tokens.unwrap_or(4096),
+        });
+
+        if let Some(temperature) = request.temperature {
+            payload["temperature"] = serde_json::Value::Number(serde_json::Number::from_f64(temperature as f64).unwrap());
+        }
+
+        if let Some(top_p) = request.top_p {
+            payload["top_p"] = serde_json::Value::Number(serde_json::Number::from_f64(top_p as f64).unwrap());
+        }
+
+        if let Some(stop_sequences) = &request.stop {
+            payload["stop_sequences"] = serde_json::Value::Array(
+                stop_sequences.iter().map(|s| serde_json::Value::String(s.clone())).collect()
+            );
+        }
+
+        Ok(payload)
+    }
+
+    fn build_titan_payload(&self, request: &CompletionRequest) -> Result<serde_json::Value> {
+        let prompt = request.messages.iter()
+            .map(|msg| format!("{}: {}",
+                match msg.role {
+                    Role::System => "System",
+                    Role::User => "User",
+                    Role::Assistant => "Assistant",
+                    Role::Function => "User",
+                },
+                msg.content
+            ))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let mut text_generation_config = serde_json::json!({
+            "maxTokenCount": request.max_tokens.unwrap_or(4096),
+        });
+
+        if let Some(temperature) = request.temperature {
+            text_generation_config["temperature"] = serde_json::Value::Number(
+                serde_json::Number::from_f64(temperature as f64).unwrap()
+            );
+        }
+
+        if let Some(top_p) = request.top_p {
+            text_generation_config["topP"] = serde_json::Value::Number(
+                serde_json::Number::from_f64(top_p as f64).unwrap()
+            );
+        }
+
+        if let Some(stop_sequences) = &request.stop {
+            text_generation_config["stopSequences"] = serde_json::Value::Array(
+                stop_sequences.iter().map(|s| serde_json::Value::String(s.clone())).collect()
+            );
+        }
+
+        Ok(serde_json::json!({
+            "inputText": prompt,
+            "textGenerationConfig": text_generation_config
+        }))
+    }
+
+    fn build_llama_payload(&self, request: &CompletionRequest) -> Result<serde_json::Value> {
+        let prompt = request.messages.iter()
+            .map(|msg| format!("{}: {}",
+                match msg.role {
+                    Role::System => "System",
+                    Role::User => "User",
+                    Role::Assistant => "Assistant",
+                    Role::Function => "User",
+                },
+                msg.content
+            ))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let mut payload = serde_json::json!({
+            "prompt": prompt,
+            "max_gen_len": request.max_tokens.unwrap_or(4096),
+        });
+
+        if let Some(temperature) = request.temperature {
+            payload["temperature"] = serde_json::Value::Number(
+                serde_json::Number::from_f64(temperature as f64).unwrap()
+            );
+        }
+
+        if let Some(top_p) = request.top_p {
+            payload["top_p"] = serde_json::Value::Number(
+                serde_json::Number::from_f64(top_p as f64).unwrap()
+            );
+        }
+
+        Ok(payload)
+    }
+
+    /// Parse response based on model type
+    fn parse_bedrock_response(&self, model: &str, response_body: &str) -> Result<(String, Usage)> {
+        if model.starts_with("anthropic.claude") {
+            self.parse_claude_response(response_body)
+        } else if model.starts_with("amazon.titan") {
+            self.parse_titan_response(response_body)
+        } else if model.starts_with("meta.llama") {
+            self.parse_llama_response(response_body)
+        } else {
+            Err(IntelligenceError::Provider(
+                format!("Unsupported model for response parsing: {}", model)
+            ))
+        }
+    }
+
+    fn parse_claude_response(&self, response_body: &str) -> Result<(String, Usage)> {
+        #[derive(Deserialize)]
+        struct ClaudeResponse {
+            completion: String,
+            #[serde(default)]
+            usage: Option<ClaudeUsage>,
+        }
+
+        #[derive(Deserialize)]
+        struct ClaudeUsage {
+            input_tokens: Option<u32>,
+            output_tokens: Option<u32>,
+        }
+
+        let response: ClaudeResponse = serde_json::from_str(response_body)
+            .map_err(|e| IntelligenceError::Provider(format!("Failed to parse Claude response: {}", e)))?;
+
+        let usage = if let Some(usage) = response.usage {
+            Usage {
+                prompt_tokens: usage.input_tokens.unwrap_or(0),
+                completion_tokens: usage.output_tokens.unwrap_or(0),
+                total_tokens: usage.input_tokens.unwrap_or(0) + usage.output_tokens.unwrap_or(0),
+            }
+        } else {
+            Usage {
+                prompt_tokens: 0,
+                completion_tokens: response.completion.len() as u32 / 4, // Rough estimate
+                total_tokens: response.completion.len() as u32 / 4,
+            }
+        };
+
+        Ok((response.completion, usage))
+    }
+
+    fn parse_titan_response(&self, response_body: &str) -> Result<(String, Usage)> {
+        #[derive(Deserialize)]
+        struct TitanResponse {
+            results: Vec<TitanResult>,
+            #[serde(rename = "inputTextTokenCount")]
+            input_text_token_count: Option<u32>,
+        }
+
+        #[derive(Deserialize)]
+        struct TitanResult {
+            #[serde(rename = "outputText")]
+            output_text: String,
+            #[serde(rename = "tokenCount")]
+            token_count: Option<u32>,
+        }
+
+        let response: TitanResponse = serde_json::from_str(response_body)
+            .map_err(|e| IntelligenceError::Provider(format!("Failed to parse Titan response: {}", e)))?;
+
+        let result = response.results.into_iter().next()
+            .ok_or_else(|| IntelligenceError::Provider("No results in Titan response".to_string()))?;
+
+        let usage = Usage {
+            prompt_tokens: response.input_text_token_count.unwrap_or(0),
+            completion_tokens: result.token_count.unwrap_or(result.output_text.len() as u32 / 4),
+            total_tokens: response.input_text_token_count.unwrap_or(0) + result.token_count.unwrap_or(result.output_text.len() as u32 / 4),
+        };
+
+        Ok((result.output_text, usage))
+    }
+
+    fn parse_llama_response(&self, response_body: &str) -> Result<(String, Usage)> {
+        #[derive(Deserialize)]
+        struct LlamaResponse {
+            generation: String,
+            #[serde(rename = "prompt_token_count")]
+            prompt_token_count: Option<u32>,
+            #[serde(rename = "generation_token_count")]
+            generation_token_count: Option<u32>,
+        }
+
+        let response: LlamaResponse = serde_json::from_str(response_body)
+            .map_err(|e| IntelligenceError::Provider(format!("Failed to parse Llama response: {}", e)))?;
+
+        let usage = Usage {
+            prompt_tokens: response.prompt_token_count.unwrap_or(0),
+            completion_tokens: response.generation_token_count.unwrap_or(response.generation.len() as u32 / 4),
+            total_tokens: response.prompt_token_count.unwrap_or(0) + response.generation_token_count.unwrap_or(response.generation.len() as u32 / 4),
+        };
+
+        Ok((response.generation, usage))
+    }
+}
+
+#[async_trait]
+impl LlmProvider for BedrockProvider {
+    async fn complete(&self, request: CompletionRequest) -> Result<CompletionResponse> {
+        debug!("Sending completion request to AWS Bedrock for model: {}", request.model);
+
+        // In a real implementation, you would use the AWS SDK to invoke the model
+        // For now, this is a placeholder that shows the structure
+
+        // Build the payload for the specific model
+        let _payload = self.build_bedrock_payload(&request)?;
+
+        // This is where you would make the actual AWS Bedrock API call
+        // Example structure:
+        /*
+        use aws_sdk_bedrockruntime::Client;
+        let client = Client::new(&aws_config);
+        let response = client
+            .invoke_model()
+            .model_id(&request.model)
+            .content_type("application/json")
+            .body(serde_json::to_vec(&payload)?)
+            .send()
+            .await?;
+        */
+
+        // For now, return a mock response
+        let mock_response = CompletionResponse {
+            id: uuid::Uuid::new_v4(),
+            request_id: request.id,
+            content: "Mock response from Bedrock".to_string(),
+            model: request.model.clone(),
+            usage: Usage {
+                prompt_tokens: 10,
+                completion_tokens: 20,
+                total_tokens: 30,
+            },
+            finish_reason: "stop".to_string(),
+            created_at: chrono::Utc::now(),
+            metadata: HashMap::new(),
+        };
+
+        debug!("Bedrock completion successful (mock)");
+        Ok(mock_response)
+    }
+
+    async fn embed(&self, _text: &str) -> Result<Vec<f32>> {
+        // AWS Bedrock supports embeddings through specific models like Titan Embeddings
+        // This would require a separate model invocation
+        Err(IntelligenceError::Provider("Embeddings not implemented for Bedrock provider".to_string()))
+    }
+
+    fn capabilities(&self) -> LlmCapabilities {
+        let models = vec![
+            ModelInfo {
+                id: "anthropic.claude-3-sonnet-20240229-v1:0".to_string(),
+                name: "Claude 3 Sonnet".to_string(),
+                description: "Anthropic Claude 3 Sonnet on AWS Bedrock".to_string(),
+                max_tokens: 4096,
+                supports_functions: false,
+                supports_streaming: true,
+                cost_per_1k_prompt_tokens: 0.003,
+                cost_per_1k_completion_tokens: 0.015,
+            },
+            ModelInfo {
+                id: "anthropic.claude-3-haiku-20240307-v1:0".to_string(),
+                name: "Claude 3 Haiku".to_string(),
+                description: "Anthropic Claude 3 Haiku on AWS Bedrock".to_string(),
+                max_tokens: 4096,
+                supports_functions: false,
+                supports_streaming: true,
+                cost_per_1k_prompt_tokens: 0.00025,
+                cost_per_1k_completion_tokens: 0.00125,
+            },
+            ModelInfo {
+                id: "amazon.titan-text-express-v1".to_string(),
+                name: "Titan Text Express".to_string(),
+                description: "Amazon Titan Text Express model".to_string(),
+                max_tokens: 8192,
+                supports_functions: false,
+                supports_streaming: false,
+                cost_per_1k_prompt_tokens: 0.0008,
+                cost_per_1k_completion_tokens: 0.0016,
+            },
+            ModelInfo {
+                id: "meta.llama2-70b-chat-v1".to_string(),
+                name: "Llama 2 70B Chat".to_string(),
+                description: "Meta Llama 2 70B Chat model".to_string(),
+                max_tokens: 4096,
+                supports_functions: false,
+                supports_streaming: false,
+                cost_per_1k_prompt_tokens: 0.00195,
+                cost_per_1k_completion_tokens: 0.00256,
+            },
+        ];
+
+        let mut rate_limits = HashMap::new();
+        // Bedrock rate limits vary by model and region
+        rate_limits.insert("anthropic.claude-3-sonnet-20240229-v1:0".to_string(), 100);
+        rate_limits.insert("anthropic.claude-3-haiku-20240307-v1:0".to_string(), 200);
+        rate_limits.insert("amazon.titan-text-express-v1".to_string(), 100);
+        rate_limits.insert("meta.llama2-70b-chat-v1".to_string(), 50);
+
+        LlmCapabilities {
+            provider_name: "AWS Bedrock".to_string(),
+            models,
+            supports_embeddings: false, // Would need separate implementation
+            supports_streaming: true,
+            supports_functions: false,
+            max_context_length: 100000, // Varies by model
+            rate_limits,
+        }
+    }
+
+    fn estimate_cost(&self, tokens: usize) -> Cost {
+        // Default to Claude 3 Sonnet pricing if model not found
+        let (prompt_cost_per_1k, completion_cost_per_1k) = self.model_costs
+            .get("anthropic.claude-3-sonnet-20240229-v1:0")
+            .copied()
+            .unwrap_or((0.003, 0.015));
+
+        // Assume even split between prompt and completion tokens
+        let prompt_tokens = tokens / 2;
+        let completion_tokens = tokens - prompt_tokens;
+
+        let prompt_cost = (prompt_tokens as f64 / 1000.0) * prompt_cost_per_1k;
+        let completion_cost = (completion_tokens as f64 / 1000.0) * completion_cost_per_1k;
+
+        Cost::new(prompt_cost, completion_cost, "USD")
+    }
+
+    async fn health_check(&self) -> Result<()> {
+        debug!("Performing AWS Bedrock health check");
+
+        // In a real implementation, you would check AWS credentials and region accessibility
+        // For now, just check that we have the required configuration
+        if self.region.is_empty() {
+            return Err(IntelligenceError::Configuration("AWS region not configured".to_string()));
+        }
+
+        info!("AWS Bedrock health check successful (mock)");
+        Ok(())
+    }
+
+    fn name(&self) -> &str {
+        "aws_bedrock"
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_provider_creation() {
+        let provider = BedrockProvider::new(
+            "us-east-1".to_string(),
+            Some("access-key".to_string()),
+            Some("secret-key".to_string())
+        ).unwrap();
+        assert_eq!(provider.name(), "aws_bedrock");
+    }
+
+    #[test]
+    fn test_capabilities() {
+        let provider = BedrockProvider::new(
+            "us-east-1".to_string(),
+            None,
+            None
+        ).unwrap();
+        let capabilities = provider.capabilities();
+        assert_eq!(capabilities.provider_name, "AWS Bedrock");
+        assert!(!capabilities.models.is_empty());
+    }
+
+    #[test]
+    fn test_claude_payload_building() {
+        let provider = BedrockProvider::new("us-east-1".to_string(), None, None).unwrap();
+        let request = CompletionRequest::new(
+            "anthropic.claude-3-sonnet-20240229-v1:0".to_string(),
+            vec![
+                Message::system("You are a helpful assistant"),
+                Message::user("Hello"),
+            ]
+        );
+
+        let payload = provider.build_claude_payload(&request).unwrap();
+        assert!(payload["prompt"].as_str().unwrap().contains("Human: Hello"));
+        assert!(payload["prompt"].as_str().unwrap().contains("Assistant:"));
+    }
+
+    #[test]
+    fn test_cost_estimation() {
+        let provider = BedrockProvider::new("us-east-1".to_string(), None, None).unwrap();
+        let cost = provider.estimate_cost(1000);
+        assert!(cost.total_cost > 0.0);
+        assert_eq!(cost.currency, "USD");
+    }
+}

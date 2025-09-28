@@ -11,6 +11,7 @@ members = [
   "crates/riptide-streaming",
   "crates/riptide-stealth",
   "crates/riptide-pdf",
+  "crates/riptide-performance",
   "wasm/riptide-extractor-wasm",
 ]
 resolver = "2"
@@ -62,6 +63,7 @@ spider = "2"
 pdfium-render = { version = "0.8", features = ["sync", "thread_safe"] }
 env_logger = { version = "0.10" }
 tempfile = { version = "3" }
+dashmap = "6.1"
 
 # Performance optimization settings
 [profile.release]
