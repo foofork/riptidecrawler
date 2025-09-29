@@ -498,7 +498,7 @@ mod tests {
         let chunks = chunker.chunk(text).await.unwrap();
 
         assert!(!chunks.is_empty());
-        assert!(chunks.len() >= 1);
+        assert!(!chunks.is_empty());
 
         // Check metadata
         for chunk in &chunks {
@@ -622,7 +622,7 @@ mod tests {
         assert!(!boundaries.is_empty(), "Should detect at least one topic boundary between ML and climate topics");
 
         // Verify the boundary makes sense (should be around index 4 where topic changes)
-        assert!(boundaries.iter().any(|&b| b >= 3 && b <= 5),
+        assert!(boundaries.iter().any(|&b| (3..=5).contains(&b)),
                "Boundary should be detected around the topic transition point (indices 3-5)");
     }
 }

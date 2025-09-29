@@ -775,6 +775,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[allow(invalid_value)] // Using unsafe zeroed for test mocks
     fn test_batch_crawl_processor_name() {
         let processor = BatchCrawlProcessor {
             http_client: reqwest::Client::new(),

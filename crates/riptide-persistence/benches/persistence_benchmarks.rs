@@ -7,9 +7,9 @@ Comprehensive benchmarks for validating performance targets and identifying bott
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
 use riptide_persistence::{
     PersistentCacheManager, StateManager, TenantManager,
-    CacheConfig, StateConfig, TenantConfig, TenantOwner, BillingPlan,
-    CompressionAlgorithm, EvictionPolicy, TenantIsolationLevel,
-    ResourceUsageRecord, TenantMetrics
+    TenantOwner, BillingPlan, ResourceUsageRecord,
+    config::{CacheConfig, StateConfig, TenantConfig, CompressionAlgorithm, EvictionPolicy, TenantIsolationLevel},
+    metrics::TenantMetrics
 };
 use std::collections::HashMap;
 use std::sync::Arc;

@@ -1,6 +1,5 @@
 use riptide_workers::{
-    Job, JobType, JobStatus, JobPriority, JobResult,
-    WorkerPool, WorkerConfig, JobQueue, QueueConfig,
+    Job, JobType, JobStatus, JobPriority, JobResult, WorkerConfig,
     WorkerMetrics
 };
 use chrono::Utc;

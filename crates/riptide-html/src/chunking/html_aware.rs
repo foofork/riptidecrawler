@@ -559,8 +559,10 @@ mod tests {
         let div_selector = scraper::Selector::parse("div").unwrap();
         let element = document.select(&div_selector).next().unwrap();
 
-        let mut config = ChunkingConfig::default();
-        config.max_tokens = 20; // Small limit to force chunking
+        let config = ChunkingConfig {
+            max_tokens: 20, // Small limit to force chunking
+            ..Default::default()
+        };
 
         let chunks = chunk_large_element(&element, &config, 0).unwrap();
         assert!(chunks.len() > 1);

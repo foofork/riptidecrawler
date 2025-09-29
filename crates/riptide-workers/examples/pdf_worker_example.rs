@@ -1,8 +1,6 @@
 use riptide_workers::prelude::*;
-use riptide_workers::{PdfProcessor, PdfExtractionOptions, SchedulerConfig};
-use std::sync::Arc;
+use riptide_workers::{PdfExtractionOptions, SchedulerConfig};
 use tracing::{info, Level};
-use tracing_subscriber;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

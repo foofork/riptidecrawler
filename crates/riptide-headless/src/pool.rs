@@ -11,6 +11,7 @@ use uuid::Uuid;
 
 /// Configuration for browser pool management
 #[derive(Clone, Debug)]
+#[allow(dead_code)] // Some fields are for future use
 pub struct BrowserPoolConfig {
     /// Minimum number of browsers to keep in pool
     pub min_pool_size: usize,
@@ -50,6 +51,7 @@ impl Default for BrowserPoolConfig {
 
 /// Health status of a browser instance
 #[derive(Clone, Debug, PartialEq)]
+#[allow(dead_code)] // Some variants are for future use
 pub enum BrowserHealth {
     Healthy,
     Unhealthy,
@@ -60,6 +62,7 @@ pub enum BrowserHealth {
 
 /// Statistics for browser instance usage
 #[derive(Clone, Debug, Default)]
+#[allow(dead_code)] // Some fields are for future use
 pub struct BrowserStats {
     pub total_uses: u64,
     pub total_time_active: Duration,
@@ -128,6 +131,7 @@ impl PooledBrowser {
     }
 
     /// Update usage statistics
+    #[allow(dead_code)] // Method for future use
     pub fn update_stats(&mut self, memory_usage_mb: u64) {
         self.stats.total_uses += 1;
         self.stats.memory_usage_mb = memory_usage_mb;
@@ -192,6 +196,7 @@ impl Drop for PooledBrowser {
 
 /// Browser pool events for monitoring
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // Some variants and fields are for future use
 pub enum PoolEvent {
     BrowserCreated { id: String },
     BrowserRemoved { id: String, reason: String },
@@ -576,6 +581,7 @@ impl BrowserPool {
     }
 
     /// Get current pool statistics
+    #[allow(dead_code)] // Method for future use
     pub async fn get_stats(&self) -> PoolStats {
         let available = self.available.lock().await.len();
         let in_use = self.in_use.read().await.len();
@@ -624,6 +630,7 @@ impl BrowserPool {
 
 /// Statistics about the browser pool
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // Some fields are for future use
 pub struct PoolStats {
     pub available: usize,
     pub in_use: usize,
@@ -663,11 +670,13 @@ pub struct BrowserCheckout {
 
 impl BrowserCheckout {
     /// Get the browser ID
+    #[allow(dead_code)] // Method for future use
     pub fn browser_id(&self) -> &str {
         &self.browser_id
     }
 
     /// Create a new page in the browser
+    #[allow(dead_code)] // Method for future use
     pub async fn new_page(&self, url: &str) -> Result<Page> {
         if let Some(pool) = self.pool.pool.upgrade() {
             let in_use = pool.in_use.read().await;

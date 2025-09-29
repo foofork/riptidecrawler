@@ -413,11 +413,13 @@ mod tests {
 
     #[test]
     fn test_job_type_stats() {
-        let mut stats = JobTypeStats::default();
-        stats.submitted = 100;
-        stats.completed = 85;
-        stats.failed = 15;
-        stats.total_processing_time_ms = 8500;
+        let stats = JobTypeStats {
+            submitted: 100,
+            completed: 85,
+            failed: 15,
+            total_processing_time_ms: 8500,
+            ..Default::default()
+        };
 
         assert_eq!(stats.avg_processing_time_ms(), 100);
         assert_eq!(stats.success_rate(), 85.0);

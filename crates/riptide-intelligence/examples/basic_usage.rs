@@ -4,7 +4,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use riptide_intelligence::{
     IntelligenceClient, LlmRegistry, ProviderConfig, MockLlmProvider,
-    TimeoutWrapper, CircuitBreaker, CircuitBreakerConfig, FallbackChain,
+    TimeoutWrapper, CircuitBreaker, CircuitBreakerConfig,
     CompletionRequest, Message, create_fallback_chain, LlmProvider,
 };
 

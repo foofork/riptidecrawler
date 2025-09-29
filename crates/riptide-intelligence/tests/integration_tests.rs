@@ -187,7 +187,7 @@ async fn test_embeddings_functionality() {
     let embedding = provider.embed("test text").await.unwrap();
 
     assert_eq!(embedding.len(), 768);
-    assert!(embedding.iter().all(|&x| x >= -1.0 && x <= 1.0));
+    assert!(embedding.iter().all(|&x| (-1.0..=1.0).contains(&x)));
 }
 
 /// Test cost estimation
@@ -304,7 +304,7 @@ async fn test_concurrent_requests() {
         let handle = tokio::spawn(async move {
             let request = CompletionRequest::new(
                 "mock-gpt-3.5",
-                vec![Message::user(&format!("Request {}", i))],
+                vec![Message::user(format!("Request {}", i))],
             );
             provider.complete(request).await
         });

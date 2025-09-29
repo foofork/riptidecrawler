@@ -680,7 +680,7 @@ impl MetricsCollector {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Message, Role};
+    use crate::Message;
 
     #[tokio::test]
     async fn test_metrics_collector_creation() {

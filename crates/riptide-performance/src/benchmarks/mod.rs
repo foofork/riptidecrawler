@@ -513,9 +513,11 @@ mod tests {
     #[tokio::test]
     async fn test_benchmark_suite_execution() {
         let session_id = Uuid::new_v4();
-        let mut config = BenchmarkConfig::default();
-        config.iterations = 5; // Reduce for faster testing
-        config.warmup_iterations = 2;
+        let config = BenchmarkConfig {
+            iterations: 5, // Reduce for faster testing
+            warmup_iterations: 2,
+            ..Default::default()
+        };
 
         let runner = BenchmarkRunner::with_config(session_id, config);
         let suite = runner.run_suite("test_suite").await.unwrap();

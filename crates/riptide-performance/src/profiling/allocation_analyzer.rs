@@ -370,7 +370,7 @@ mod tests {
         let mut analyzer = AllocationAnalyzer::new().unwrap();
 
         // Add allocations of different sizes
-        let sizes = vec![100, 2048, 100000, 2000000, 20000000];
+        let sizes = [100, 2048, 100000, 2000000, 20000000];
 
         for (i, size) in sizes.iter().enumerate() {
             let allocation = AllocationInfo {

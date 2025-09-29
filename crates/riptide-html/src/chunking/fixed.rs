@@ -361,8 +361,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_sentence_boundary_preservation() {
-        let mut config = ChunkingConfig::default();
-        config.preserve_sentences = true;
+        let config = ChunkingConfig {
+            preserve_sentences: true,
+            ..Default::default()
+        };
         let chunker = FixedSizeChunker::new(30, false, config);
 
         let text = "Short sentence. This is a longer sentence that might be split.";

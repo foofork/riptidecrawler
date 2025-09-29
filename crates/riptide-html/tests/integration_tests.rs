@@ -1,6 +1,7 @@
 //! Integration tests for riptide-html crate
 
 use riptide_html::*;
+use riptide_html::css_extraction::default_selectors_simple;
 use std::collections::HashMap;
 
 #[tokio::test]
@@ -298,7 +299,7 @@ async fn test_html_processor_trait() {
         processor::ChunkingMode::Sentence { max_sentences: 2 }
     ).await.unwrap();
 
-    assert!(chunks.len() >= 1);
+    assert!(!chunks.is_empty());
     assert!(chunks[0].content.contains("This is a test sentence"));
 
     // Test confidence score
@@ -347,7 +348,7 @@ async fn test_chunking_modes() {
         content,
         processor::ChunkingMode::Semantic { similarity_threshold: 0.8 }
     ).await.unwrap();
-    assert!(semantic_chunks.len() >= 1);
+    assert!(!semantic_chunks.is_empty());
 }
 
 #[test]

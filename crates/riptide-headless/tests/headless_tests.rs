@@ -10,13 +10,12 @@ use riptide_core::stealth::StealthPreset;
 #[tokio::test]
 async fn test_browser_config_creation() {
     // Test chromiumoxide BrowserConfig creation
-    let config = BrowserConfig::builder()
+    let _config = BrowserConfig::builder()
         .build()
         .expect("Failed to build browser config");
 
     // Since BrowserConfig is opaque, we just verify it was created successfully
     // The actual configuration is tested in the pool creation
-    assert!(true); // Config was created without error
 }
 
 #[tokio::test]
@@ -83,7 +82,7 @@ async fn test_browser_pool_checkout_checkin() {
     assert!(checkout.is_ok());
 
     if let Ok(checkout) = checkout {
-        let browser_id = checkout.browser_id().to_string();
+        let _browser_id = checkout.browser_id().to_string();
 
         // Check stats after checkout
         let stats = pool.stats().await;

@@ -445,6 +445,7 @@ impl LlmProvider for BedrockProvider {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Message;
 
     #[test]
     fn test_provider_creation() {

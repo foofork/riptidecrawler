@@ -261,7 +261,7 @@ pub async fn process_pdf_stream(
 fn create_enhanced_progress_stream(
     mut progress_receiver: ProgressReceiver,
     start_time: std::time::Instant,
-    file_size: u64,
+    _file_size: u64,
     state: AppState,
 ) -> impl Stream<Item = EnhancedProgressUpdate> {
     let mut pages_processed = 0u32;

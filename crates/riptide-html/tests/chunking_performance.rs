@@ -22,8 +22,7 @@ enum ContentType {
 }
 
 fn generate_plain_text(target_size: usize) -> String {
-    let base_sentences = vec![
-        "This is a performance test document with multiple sentences and paragraphs.",
+    let base_sentences = ["This is a performance test document with multiple sentences and paragraphs.",
         "The content needs to be realistic to properly test chunking algorithms.",
         "We include various sentence structures and lengths to simulate real documents.",
         "Performance testing requires careful measurement of execution time.",
@@ -32,8 +31,7 @@ fn generate_plain_text(target_size: usize) -> String {
         "Testing with different content types helps ensure robust performance.",
         "The algorithm must handle edge cases and varying text complexity.",
         "Quality metrics include token count accuracy and boundary preservation.",
-        "Real-world documents often contain mixed content and formatting.",
-    ];
+        "Real-world documents often contain mixed content and formatting."];
 
     let mut content = String::new();
     let mut sentence_index = 0;
@@ -55,15 +53,13 @@ fn generate_html_content(target_size: usize) -> String {
     let mut content = String::from("<html><body>");
     let mut current_size = content.len();
 
-    let html_patterns = vec![
-        "<article><h1>Article Title</h1><p>Article content with meaningful text.</p></article>",
+    let html_patterns = ["<article><h1>Article Title</h1><p>Article content with meaningful text.</p></article>",
         "<section><h2>Section Header</h2><p>Section content with various elements.</p></section>",
         "<div class='content'><p>Content in a div container with class.</p></div>",
         "<main><p>Main content area with important information.</p></main>",
         "<aside><p>Sidebar content with additional details.</p></aside>",
         "<header><h1>Page Header</h1><nav><a href='#'>Link</a></nav></header>",
-        "<footer><p>Footer content with contact information.</p></footer>",
-    ];
+        "<footer><p>Footer content with contact information.</p></footer>"];
 
     let mut pattern_index = 0;
     while current_size < target_size - 20 { // Leave room for closing tags
@@ -94,8 +90,7 @@ fn generate_mixed_content(target_size: usize) -> String {
 }
 
 fn generate_topic_diverse_content(target_size: usize) -> String {
-    let topics = vec![
-        vec![
+    let topics = [vec![
             "Machine learning algorithms are revolutionizing data processing.",
             "Artificial intelligence systems learn from vast datasets.",
             "Deep learning neural networks process complex patterns.",
@@ -129,8 +124,7 @@ fn generate_topic_diverse_content(target_size: usize) -> String {
             "Online communities foster global collaboration.",
             "Information sharing accelerates knowledge transfer.",
             "Virtual relationships supplement traditional connections.",
-        ],
-    ];
+        ]];
 
     let mut content = String::new();
     let mut topic_index = 0;
