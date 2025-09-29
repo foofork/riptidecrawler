@@ -18,6 +18,8 @@ pub mod config;
 pub mod core;
 pub mod types;
 pub mod query_aware;
+pub mod query_aware_tests;
+pub mod query_aware_benchmark;
 
 // Re-export main types
 pub use config::SpiderConfig;

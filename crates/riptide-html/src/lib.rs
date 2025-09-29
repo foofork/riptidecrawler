@@ -38,6 +38,8 @@ pub mod css_extraction;
 pub mod regex_extraction;
 pub mod dom_utils;
 pub mod strategy_implementations;
+pub mod wasm_extraction; // WASM-based extraction moved from riptide-core
+pub mod extraction_strategies; // Content extraction strategies moved from riptide-core
 // pub mod spider;  // Temporarily disabled due to compilation errors
 pub mod chunking;
 pub mod table_extraction;
@@ -47,6 +49,8 @@ pub use processor::{HtmlProcessor, ProcessingResult, ProcessingError, ChunkingMo
 pub use css_extraction::{CssJsonExtractor, extract as css_extract, extract_default as css_extract_default, default_selectors};
 pub use regex_extraction::{RegexExtractor, extract as regex_extract, default_patterns};
 pub use dom_utils::{DomTraverser, ElementInfo, traverse_elements, extract_text_content, find_tables};
+pub use wasm_extraction::{WasmExtractor, CmExtractor, ExtractedDoc, ExtractionMode, ExtractorConfig, WasmResourceTracker};
+pub use extraction_strategies::{ContentExtractor, TrekExtractor, CssExtractorStrategy, fallback_extract, extract_links_basic};
 
 // // Re-export spider functionality
 // pub use spider::{

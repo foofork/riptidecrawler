@@ -304,7 +304,7 @@ impl ReliableExtractor {
 
     /// Evaluate extraction quality for decision making
     fn evaluate_extraction_quality(&self, doc: &ExtractedDoc) -> f32 {
-        let mut score = 0.0;
+        let mut score: f32 = 0.0;
 
         // Title presence (20%)
         if doc.title.as_ref().is_some_and(|t| !t.trim().is_empty()) {
@@ -320,9 +320,13 @@ impl ReliableExtractor {
         }
 
         // Markdown structure (20%)
-        let markdown_indicators = doc.markdown.matches('#').count()
-            + doc.markdown.matches('*').count()
-            + doc.markdown.matches('[').count();
+        let markdown_indicators = if let Some(ref markdown) = doc.markdown {
+            markdown.matches('#').count()
+                + markdown.matches('*').count()
+                + markdown.matches('[').count()
+        } else {
+            0
+        };
         if markdown_indicators > 5 {
             score += 0.2;
         } else if markdown_indicators > 2 {
@@ -382,7 +386,7 @@ pub struct ReliabilityMetrics {
 }
 
 /// WASM extractor trait for dependency injection
-pub trait WasmExtractor {
+pub trait WasmExtractor: Send + Sync {
     fn extract(&self, html: &[u8], url: &str, mode: &str) -> Result<ExtractedDoc>;
 }
 

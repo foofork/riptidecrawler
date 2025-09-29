@@ -31,15 +31,36 @@ pub struct TopicChunker {
     smoothing_passes: usize,
     /// Base chunking configuration
     config: ChunkingConfig,
+    /// Performance timeout in milliseconds
+    performance_timeout: u128,
+    /// Fallback chunker for performance constraints
+    fallback_chunker: Option<Box<dyn ChunkingStrategy>>,
 }
 
 impl TopicChunker {
     /// Create a new topic chunker
     pub fn new(window_size: usize, smoothing_passes: usize, config: ChunkingConfig) -> Self {
+        let fallback_chunker = Some(Box::new(
+            super::sliding::SlidingWindowChunker::new(1000, 100, config.clone())
+        ) as Box<dyn ChunkingStrategy>);
+
         Self {
             window_size: window_size.max(2), // Minimum window size of 2
             smoothing_passes: smoothing_passes.min(5), // Maximum 5 passes for performance
             config,
+            performance_timeout: 180, // 180ms timeout to stay under 200ms target
+            fallback_chunker,
+        }
+    }
+
+    /// Create a new topic chunker without fallback (for testing)
+    pub fn new_without_fallback(window_size: usize, smoothing_passes: usize, config: ChunkingConfig) -> Self {
+        Self {
+            window_size: window_size.max(2),
+            smoothing_passes: smoothing_passes.min(5),
+            config,
+            performance_timeout: 180,
+            fallback_chunker: None,
         }
     }
 
@@ -88,35 +109,91 @@ impl TopicChunker {
         sentences
     }
 
-    /// Extract vocabulary from a text block
+    /// Extract vocabulary from a text block (optimized for performance)
     fn extract_vocabulary(&self, text: &str) -> HashMap<String, usize> {
-        let mut vocab = HashMap::new();
+        // Pre-allocate HashMap with estimated capacity
+        let word_estimate = text.len() / 6; // Rough estimate of words
+        let mut vocab = HashMap::with_capacity(word_estimate.min(1000));
 
-        for word in text.split_whitespace() {
-            let cleaned = word
-                .trim_matches(|c: char| !c.is_alphanumeric())
-                .to_lowercase();
+        // Process words in chunks for better cache performance
+        let words: Vec<&str> = text.split_whitespace().collect();
 
-            if cleaned.len() > 2 && !self.is_stop_word(&cleaned) {
-                *vocab.entry(cleaned).or_insert(0) += 1;
+        for chunk in words.chunks(100) { // Process 100 words at a time
+            for word in chunk {
+                // Fast path for very short words
+                if word.len() <= 2 {
+                    continue;
+                }
+
+                // Optimized cleaning: avoid allocations where possible
+                let start = word.chars().position(|c| c.is_alphanumeric()).unwrap_or(word.len());
+                let end = word.chars().rev().position(|c| c.is_alphanumeric())
+                    .map(|i| word.len() - i).unwrap_or(0);
+
+                if start >= end || end - start <= 2 {
+                    continue;
+                }
+
+                let cleaned = word[start..end].to_lowercase();
+
+                if !self.is_stop_word(&cleaned) {
+                    *vocab.entry(cleaned).or_insert(0) += 1;
+                }
             }
+        }
+
+        // Remove very rare words to reduce noise (appear only once)
+        if vocab.len() > 50 {
+            vocab.retain(|_, &mut count| count > 1);
         }
 
         vocab
     }
 
-    /// Check if a word is a stop word
+    /// Check if a word is a stop word (optimized with HashSet)
     fn is_stop_word(&self, word: &str) -> bool {
-        const STOP_WORDS: &[&str] = &[
-            "the", "be", "to", "of", "and", "a", "in", "that", "have",
-            "i", "it", "for", "not", "on", "with", "he", "as", "you",
-            "do", "at", "this", "but", "his", "by", "from", "they",
-            "we", "say", "her", "she", "or", "an", "will", "my",
-            "one", "all", "would", "there", "their", "what", "so",
-            "up", "out", "if", "about", "who", "get", "which", "go",
-        ];
+        // Use a static HashSet for O(1) lookups
+        use std::sync::OnceLock;
+        use std::collections::HashSet;
 
-        STOP_WORDS.contains(&word)
+        static STOP_WORDS: OnceLock<HashSet<&'static str>> = OnceLock::new();
+        let stop_set = STOP_WORDS.get_or_init(|| {
+            [
+                "the", "be", "to", "of", "and", "a", "in", "that", "have",
+                "i", "it", "for", "not", "on", "with", "he", "as", "you",
+                "do", "at", "this", "but", "his", "by", "from", "they",
+                "we", "say", "her", "she", "or", "an", "will", "my",
+                "one", "all", "would", "there", "their", "what", "so",
+                "up", "out", "if", "about", "who", "get", "which", "go",
+                "was", "is", "are", "been", "were", "had", "has", "can", "could",
+                "should", "would", "may", "might", "must", "shall", "will", "did",
+            ].into_iter().collect()
+        });
+
+        stop_set.contains(word)
+    }
+
+    /// Calculate enhanced coherence score between two vocabulary maps
+    /// Uses both lexical similarity and structural coherence measures
+    fn calculate_coherence_score(&self, vocab1: &HashMap<String, usize>, vocab2: &HashMap<String, usize>) -> f64 {
+        if vocab1.is_empty() || vocab2.is_empty() {
+            return 0.0;
+        }
+
+        // Calculate cosine similarity (lexical coherence)
+        let cosine_sim = self.cosine_similarity(vocab1, vocab2);
+
+        // Calculate Jaccard similarity for vocabulary overlap
+        let jaccard_sim = self.jaccard_similarity(vocab1, vocab2);
+
+        // Calculate term frequency distribution similarity
+        let tf_sim = self.tf_distribution_similarity(vocab1, vocab2);
+
+        // Weighted combination of similarity measures
+        // Cosine similarity: 60% (captures semantic similarity)
+        // Jaccard similarity: 25% (vocabulary overlap)
+        // TF distribution: 15% (term frequency patterns)
+        cosine_sim * 0.6 + jaccard_sim * 0.25 + tf_sim * 0.15
     }
 
     /// Calculate cosine similarity between two vocabulary maps (optimized)
@@ -165,6 +242,54 @@ impl TopicChunker {
         dot_product / (norm1.sqrt() * norm2.sqrt())
     }
 
+    /// Calculate Jaccard similarity for vocabulary overlap
+    fn jaccard_similarity(&self, vocab1: &HashMap<String, usize>, vocab2: &HashMap<String, usize>) -> f64 {
+        let set1: std::collections::HashSet<_> = vocab1.keys().collect();
+        let set2: std::collections::HashSet<_> = vocab2.keys().collect();
+
+        let intersection = set1.intersection(&set2).count() as f64;
+        let union = set1.union(&set2).count() as f64;
+
+        if union == 0.0 {
+            0.0
+        } else {
+            intersection / union
+        }
+    }
+
+    /// Calculate term frequency distribution similarity
+    fn tf_distribution_similarity(&self, vocab1: &HashMap<String, usize>, vocab2: &HashMap<String, usize>) -> f64 {
+        let total1: usize = vocab1.values().sum();
+        let total2: usize = vocab2.values().sum();
+
+        if total1 == 0 || total2 == 0 {
+            return 0.0;
+        }
+
+        let mut kl_divergence = 0.0;
+        let mut common_words = 0;
+
+        for (word, &count1) in vocab1 {
+            if let Some(&count2) = vocab2.get(word) {
+                let p1 = count1 as f64 / total1 as f64;
+                let p2 = count2 as f64 / total2 as f64;
+
+                // Symmetric KL divergence
+                if p1 > 0.0 && p2 > 0.0 {
+                    kl_divergence += p1 * (p1 / p2).ln() + p2 * (p2 / p1).ln();
+                    common_words += 1;
+                }
+            }
+        }
+
+        if common_words == 0 {
+            0.0
+        } else {
+            // Convert KL divergence to similarity (lower divergence = higher similarity)
+            (-kl_divergence / common_words as f64).exp()
+        }
+    }
+
     /// Calculate depth scores using TextTiling algorithm (optimized)
     fn calculate_depth_scores(&self, sentences: &[String]) -> Vec<f64> {
         if sentences.len() < self.window_size * 2 {
@@ -199,11 +324,11 @@ impl TopicChunker {
                 }
             }
 
-            // Calculate similarity (higher = more coherent)
-            let similarity = self.cosine_similarity(&left_vocab, &right_vocab);
+            // Calculate enhanced coherence score
+            let coherence = self.calculate_coherence_score(&left_vocab, &right_vocab);
 
-            // Depth score is inverse of similarity (higher = better boundary)
-            scores.push(1.0 - similarity);
+            // Depth score is inverse of coherence (higher = better boundary)
+            scores.push(1.0 - coherence);
         }
 
         scores
@@ -231,7 +356,7 @@ impl TopicChunker {
         smoothed
     }
 
-    /// Identify topic boundaries using valley detection (improved)
+    /// Identify topic boundaries using enhanced valley detection with hysteresis
     fn identify_boundaries(&self, scores: &[f64], sentences: &[String]) -> Vec<usize> {
         if scores.len() < 2 {
             return Vec::new();
@@ -239,26 +364,117 @@ impl TopicChunker {
 
         let mut boundaries = Vec::new();
 
-        // Calculate adaptive threshold
+        // Calculate statistical measures for adaptive thresholding
         let mean = scores.iter().sum::<f64>() / scores.len() as f64;
         let variance = scores.iter()
             .map(|x| (x - mean).powi(2))
             .sum::<f64>() / scores.len() as f64;
         let std_dev = variance.sqrt();
 
-        // Use more sensitive threshold for boundary detection
-        let threshold = if std_dev > 0.1 {
-            mean + std_dev * 0.3 // Lower multiplier for more boundaries
+        // Enhanced valley detection with hysteresis
+        let high_threshold = if std_dev > 0.1 {
+            mean + std_dev * 0.4 // Higher threshold for initial detection
         } else {
-            mean + 0.05 // Minimum threshold when variance is low
+            mean + 0.08
         };
 
-        // Find local maxima above threshold
+        let low_threshold = if std_dev > 0.1 {
+            mean + std_dev * 0.2 // Lower threshold for continuation
+        } else {
+            mean + 0.03
+        };
+
+        let mut in_valley = false;
+        let mut valley_start = 0;
+        let mut max_score_in_valley = 0.0;
+        let mut max_pos_in_valley = 0;
+
+        // Enhanced valley detection with prominence calculation
         for i in 1..(scores.len() - 1) {
-            if scores[i] > threshold &&
+            let score = scores[i];
+            let is_local_max = score > scores[i - 1] && score > scores[i + 1];
+
+            if !in_valley && score >= high_threshold && is_local_max {
+                // Start of a potential valley region
+                in_valley = true;
+                valley_start = i;
+                max_score_in_valley = score;
+                max_pos_in_valley = i;
+            } else if in_valley {
+                if score > max_score_in_valley && is_local_max {
+                    // Update maximum in current valley
+                    max_score_in_valley = score;
+                    max_pos_in_valley = i;
+                }
+
+                // End valley when score drops below low threshold or at end
+                if score < low_threshold || i == scores.len() - 2 {
+                    // Add boundary at the maximum position in the valley
+                    let prominence = self.calculate_prominence(scores, max_pos_in_valley);
+
+                    // Only add boundary if it has sufficient prominence
+                    if prominence > 0.05 {
+                        let sentence_index = max_pos_in_valley + self.window_size;
+                        if sentence_index < sentences.len() {
+                            boundaries.push(sentence_index);
+                        }
+                    }
+
+                    in_valley = false;
+                }
+            }
+        }
+
+        // Fallback: If no boundaries found, use percentile-based approach
+        if boundaries.is_empty() && scores.len() > 4 {
+            boundaries = self.percentile_boundary_detection(scores, sentences);
+        }
+
+        // Remove boundaries that are too close to each other
+        boundaries = self.filter_close_boundaries(boundaries, sentences);
+
+        // Ensure minimum chunk size by merging too-small segments
+        self.enforce_minimum_chunk_size(boundaries, sentences)
+    }
+
+    /// Calculate prominence of a peak (how much it stands out from its surroundings)
+    fn calculate_prominence(&self, scores: &[f64], peak_idx: usize) -> f64 {
+        if peak_idx == 0 || peak_idx >= scores.len() - 1 {
+            return 0.0;
+        }
+
+        let peak_score = scores[peak_idx];
+        let window = 3; // Look 3 positions in each direction
+
+        let left_min = scores
+            .iter()
+            .skip(peak_idx.saturating_sub(window))
+            .take(window)
+            .copied()
+            .fold(f64::INFINITY, f64::min);
+
+        let right_min = scores
+            .iter()
+            .skip(peak_idx + 1)
+            .take(window)
+            .copied()
+            .fold(f64::INFINITY, f64::min);
+
+        let surrounding_min = left_min.min(right_min);
+        peak_score - surrounding_min
+    }
+
+    /// Percentile-based boundary detection as fallback
+    fn percentile_boundary_detection(&self, scores: &[f64], sentences: &[String]) -> Vec<usize> {
+        let mut sorted_scores = scores.to_vec();
+        sorted_scores.sort_by(|a, b| b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal));
+        let percentile_threshold = sorted_scores[scores.len() / 4]; // Top 25% of scores
+
+        let mut boundaries = Vec::new();
+        for i in 1..(scores.len() - 1) {
+            if scores[i] >= percentile_threshold &&
                scores[i] > scores[i - 1] &&
                scores[i] > scores[i + 1] {
-                // Map back to sentence index
                 let sentence_index = i + self.window_size;
                 if sentence_index < sentences.len() {
                     boundaries.push(sentence_index);
@@ -266,26 +482,27 @@ impl TopicChunker {
             }
         }
 
-        // If no boundaries found with adaptive threshold, use percentile-based approach
-        if boundaries.is_empty() && scores.len() > 4 {
-            let mut sorted_scores = scores.to_vec();
-            sorted_scores.sort_by(|a, b| b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal));
-            let percentile_threshold = sorted_scores[scores.len() / 3]; // Top 33% of scores
+        boundaries
+    }
 
-            for i in 1..(scores.len() - 1) {
-                if scores[i] >= percentile_threshold &&
-                   scores[i] > scores[i - 1] &&
-                   scores[i] > scores[i + 1] {
-                    let sentence_index = i + self.window_size;
-                    if sentence_index < sentences.len() {
-                        boundaries.push(sentence_index);
-                    }
-                }
+    /// Filter out boundaries that are too close to each other
+    fn filter_close_boundaries(&self, boundaries: Vec<usize>, _sentences: &[String]) -> Vec<usize> {
+        if boundaries.len() <= 1 {
+            return boundaries;
+        }
+
+        let mut filtered = Vec::new();
+        let min_distance = self.window_size * 2; // Minimum sentences between boundaries
+
+        let mut last_boundary = 0;
+        for boundary in boundaries {
+            if boundary >= last_boundary + min_distance {
+                filtered.push(boundary);
+                last_boundary = boundary;
             }
         }
 
-        // Ensure minimum chunk size by merging too-small segments
-        self.enforce_minimum_chunk_size(boundaries, sentences)
+        filtered
     }
 
     /// Enforce minimum chunk size by merging small segments
@@ -421,35 +638,38 @@ impl ChunkingStrategy for TopicChunker {
 
         let start_time = std::time::Instant::now();
 
-        // Step 1: Tokenize into sentences
+        // Quick performance check: if text is very large, use fallback immediately
+        if text.len() > 150_000 {
+            if let Some(ref fallback) = self.fallback_chunker {
+                let mut chunks = fallback.chunk(text).await?;
+                // Update chunk type to indicate fallback was used
+                for chunk in &mut chunks {
+                    chunk.metadata.chunk_type = "sliding-fallback".to_string();
+                }
+                return Ok(chunks);
+            }
+        }
+
+        // Step 1: Tokenize into sentences with performance monitoring
         let sentences = self.tokenize_sentences(text);
+
+        if start_time.elapsed().as_millis() > self.performance_timeout / 4 {
+            // Tokenization took too long, use fallback
+            return self.fallback_chunk(text).await;
+        }
 
         // If too few sentences, fall back to single chunk
         if sentences.len() < self.window_size * 2 {
-            let metadata = ChunkMetadata {
-                quality_score: 0.7,
-                sentence_count: sentences.len(),
-                word_count: text.split_whitespace().count(),
-                has_complete_sentences: true,
-                topic_keywords: crate::chunking::utils::extract_topic_keywords(text),
-                chunk_type: "topic-single".to_string(),
-                custom: HashMap::new(),
-            };
-
-            return Ok(vec![Chunk {
-                id: Uuid::new_v4().to_string(),
-                content: text.to_string(),
-                start_pos: 0,
-                end_pos: text.len(),
-                token_count: crate::chunking::utils::count_tokens(text),
-                chunk_index: 0,
-                total_chunks: 1,
-                metadata,
-            }]);
+            return self.create_single_chunk(text, sentences.len());
         }
 
-        // Step 2: Calculate depth scores
+        // Step 2: Calculate depth scores with performance monitoring
         let depth_scores = self.calculate_depth_scores(&sentences);
+
+        if start_time.elapsed().as_millis() > self.performance_timeout / 2 {
+            // Score calculation took too long, use fallback
+            return self.fallback_chunk(text).await;
+        }
 
         // Step 3: Apply smoothing
         let smoothed_scores = self.smooth_scores(&depth_scores);
@@ -457,10 +677,15 @@ impl ChunkingStrategy for TopicChunker {
         // Step 4: Identify boundaries
         let boundaries = self.identify_boundaries(&smoothed_scores, &sentences);
 
+        if start_time.elapsed().as_millis() > (self.performance_timeout * 3) / 4 {
+            // Boundary detection took too long, use fallback
+            return self.fallback_chunk(text).await;
+        }
+
         // Step 5: Create chunks
         let chunks = self.create_chunks_from_boundaries(&sentences, &boundaries);
 
-        // Performance check
+        // Final performance check
         let duration = start_time.elapsed();
         if duration.as_millis() > 200 {
             eprintln!(
@@ -479,6 +704,48 @@ impl ChunkingStrategy for TopicChunker {
 
     fn config(&self) -> ChunkingConfig {
         self.config.clone()
+    }
+}
+
+impl TopicChunker {
+    /// Fallback to sliding window chunking when performance constraints are exceeded
+    async fn fallback_chunk(&self, text: &str) -> Result<Vec<Chunk>> {
+        if let Some(ref fallback) = self.fallback_chunker {
+            let mut chunks = fallback.chunk(text).await?;
+            // Update chunk type to indicate fallback was used
+            for chunk in &mut chunks {
+                chunk.metadata.chunk_type = "sliding-fallback".to_string();
+                chunk.metadata.custom.insert("fallback_reason".to_string(), "performance_timeout".to_string());
+            }
+            Ok(chunks)
+        } else {
+            // No fallback available, return single chunk
+            self.create_single_chunk(text, 1)
+        }
+    }
+
+    /// Create a single chunk for short texts or fallback cases
+    fn create_single_chunk(&self, text: &str, sentence_count: usize) -> Result<Vec<Chunk>> {
+        let metadata = ChunkMetadata {
+            quality_score: 0.7,
+            sentence_count,
+            word_count: text.split_whitespace().count(),
+            has_complete_sentences: true,
+            topic_keywords: crate::chunking::utils::extract_topic_keywords(text),
+            chunk_type: "topic-single".to_string(),
+            custom: HashMap::new(),
+        };
+
+        Ok(vec![Chunk {
+            id: Uuid::new_v4().to_string(),
+            content: text.to_string(),
+            start_pos: 0,
+            end_pos: text.len(),
+            token_count: crate::chunking::utils::count_tokens(text),
+            chunk_index: 0,
+            total_chunks: 1,
+            metadata,
+        }])
     }
 }
 

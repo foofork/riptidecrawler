@@ -44,6 +44,11 @@ pub struct HasTextFilter {
     pub case_insensitive: bool,
     /// Partial text matching (default: true)
     pub partial_match: bool,
+    /// Use regex matching instead of literal string
+    pub regex_mode: bool,
+    /// Compiled regex pattern (internal use)
+    #[serde(skip)]
+    pub regex: Option<Regex>,
 }
 
 /// Merge policy for handling conflicts between extraction methods
@@ -97,7 +102,9 @@ impl Default for TransformerRegistry {
         registry.register("lowercase", Box::new(LowercaseTransformer));
         registry.register("uppercase", Box::new(UppercaseTransformer));
         registry.register("split", Box::new(SplitTransformer));
+        registry.register("join", Box::new(JoinTransformer));
         registry.register("regex_extract", Box::new(RegexExtractTransformer));
+        registry.register("regex_replace", Box::new(RegexReplaceTransformer));
         registry.register("json_parse", Box::new(JsonParseTransformer));
         registry.register("html_decode", Box::new(HtmlDecodeTransformer));
 
@@ -296,28 +303,65 @@ impl CssJsonExtractor {
             selector_str.to_string()
         };
 
-        Selector::parse(&cleaned_selector)
+        // Handle advanced pseudo-selectors that scraper might not support
+        let enhanced_selector = self.enhance_pseudo_selectors(&cleaned_selector);
+
+        Selector::parse(&enhanced_selector)
             .map_err(|e| anyhow::anyhow!("Invalid CSS selector '{}': {:?}", selector_str, e))
     }
 
-    /// Apply :has-text() post-filter (CSS-002)
+    /// Enhance pseudo-selectors for better compatibility
+    fn enhance_pseudo_selectors(&self, selector: &str) -> String {
+        // Handle :nth-of-type() by converting to :nth-child() approximation
+        let re_nth_type = Regex::new(r":nth-of-type\((\w+)\)").unwrap();
+        let enhanced = re_nth_type.replace_all(selector, ":nth-child($1)");
+
+        // Handle :first-of-type and :last-of-type
+        let enhanced = enhanced.replace(":first-of-type", ":first-child");
+        let enhanced = enhanced.replace(":last-of-type", ":last-child");
+
+        enhanced.to_string()
+    }
+
+    /// Apply :has-text() post-filter (CSS-002) with regex support
     fn apply_has_text_filter(&self, text: &str, filter: &HasTextFilter) -> bool {
-        let search_text = if filter.case_insensitive {
-            text.to_lowercase()
-        } else {
-            text.to_string()
-        };
+        if filter.regex_mode {
+            // Use regex matching
+            if let Some(regex) = &filter.regex {
+                regex.is_match(text)
+            } else {
+                // Try to compile regex on-demand
+                let pattern = if filter.case_insensitive {
+                    format!("(?i){}", filter.pattern)
+                } else {
+                    filter.pattern.clone()
+                };
 
-        let pattern = if filter.case_insensitive {
-            filter.pattern.to_lowercase()
+                if let Ok(regex) = Regex::new(&pattern) {
+                    regex.is_match(text)
+                } else {
+                    false // Invalid regex
+                }
+            }
         } else {
-            filter.pattern.clone()
-        };
+            // Use literal string matching
+            let search_text = if filter.case_insensitive {
+                text.to_lowercase()
+            } else {
+                text.to_string()
+            };
 
-        if filter.partial_match {
-            search_text.contains(&pattern)
-        } else {
-            search_text == pattern
+            let pattern = if filter.case_insensitive {
+                filter.pattern.to_lowercase()
+            } else {
+                filter.pattern.clone()
+            };
+
+            if filter.partial_match {
+                search_text.contains(&pattern)
+            } else {
+                search_text == pattern
+            }
         }
     }
 
@@ -584,20 +628,88 @@ impl ContentTransformer for JsonParseTransformer {
     }
 }
 
+/// Transformer 10: Join array elements into string
+struct JoinTransformer;
+
+impl ContentTransformer for JoinTransformer {
+    fn transform(&self, content: &str, _base_url: Option<&str>) -> Result<String> {
+        // Try to parse as JSON array, if successful join elements
+        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(content) {
+            if let serde_json::Value::Array(arr) = parsed {
+                let strings: Vec<String> = arr.into_iter()
+                    .filter_map(|v| match v {
+                        serde_json::Value::String(s) => Some(s),
+                        serde_json::Value::Number(n) => Some(n.to_string()),
+                        serde_json::Value::Bool(b) => Some(b.to_string()),
+                        _ => None,
+                    })
+                    .collect();
+                return Ok(strings.join(", "));
+            }
+        }
+
+        // If not JSON, split by common delimiters and rejoin
+        let parts: Vec<&str> = content.split(&[',', ';', '\n', '\t'][..])
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .collect();
+        Ok(parts.join(", "))
+    }
+}
+
+/// Transformer 11: Replace text using regex patterns
+struct RegexReplaceTransformer;
+
+impl ContentTransformer for RegexReplaceTransformer {
+    fn transform(&self, content: &str, _base_url: Option<&str>) -> Result<String> {
+        // Example: Remove all HTML tags - could be parameterized
+        let re = Regex::new(r"<[^>]*>").unwrap();
+        let cleaned = re.replace_all(content, "");
+
+        // Also clean up extra whitespace
+        let re_ws = Regex::new(r"\s+").unwrap();
+        let normalized = re_ws.replace_all(cleaned.trim(), " ");
+
+        Ok(normalized.to_string())
+    }
+}
+
 /// Transformer 12: Decode HTML entities
 struct HtmlDecodeTransformer;
 
 impl ContentTransformer for HtmlDecodeTransformer {
     fn transform(&self, content: &str, _base_url: Option<&str>) -> Result<String> {
-        // Basic HTML entity decoding
+        // Enhanced HTML entity decoding
         let decoded = content
             .replace("&amp;", "&")
             .replace("&lt;", "<")
             .replace("&gt;", ">")
             .replace("&quot;", "\"")
             .replace("&#39;", "'")
-            .replace("&nbsp;", " ");
-        Ok(decoded)
+            .replace("&apos;", "'")
+            .replace("&nbsp;", " ")
+            .replace("&hellip;", "...")
+            .replace("&mdash;", "—")
+            .replace("&ndash;", "–")
+            .replace("&copy;", "©")
+            .replace("&reg;", "®")
+            .replace("&trade;", "™");
+
+        // Handle numeric character references
+        let re_numeric = Regex::new(r"&#(\d+);").unwrap();
+        let result = re_numeric.replace_all(&decoded, |caps: &regex::Captures| {
+            if let Ok(code) = caps[1].parse::<u32>() {
+                if let Some(ch) = char::from_u32(code) {
+                    ch.to_string()
+                } else {
+                    caps[0].to_string() // Keep original if invalid
+                }
+            } else {
+                caps[0].to_string()
+            }
+        });
+
+        Ok(result.to_string())
     }
 }
 
@@ -860,6 +972,25 @@ impl CssConfigBuilder {
             pattern: pattern.to_string(),
             case_insensitive,
             partial_match: partial,
+            regex_mode: false,
+            regex: None,
+        });
+        self
+    }
+
+    pub fn has_text_regex(mut self, pattern: &str, case_insensitive: bool) -> Self {
+        let regex = if case_insensitive {
+            Regex::new(&format!("(?i){}", pattern)).ok()
+        } else {
+            Regex::new(pattern).ok()
+        };
+
+        self.config.has_text_filter = Some(HasTextFilter {
+            pattern: pattern.to_string(),
+            case_insensitive,
+            partial_match: true,
+            regex_mode: true,
+            regex,
         });
         self
     }

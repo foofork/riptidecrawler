@@ -125,9 +125,9 @@ dependencies = [
 
 [[package]]
 name = "anstyle"
-version = "1.0.11"
+version = "1.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "862ed96ca487e809f1c8e5a8447f6ee2cf102f846893800b20cebdf541fc6bbd"
+checksum = "c900954614442c827787a2ffcd8c0602eb53ff7b95a8fbfcdaf5e406197bf3be"
 
 [[package]]
 name = "anstyle-parse"
@@ -958,7 +958,7 @@ dependencies = [
  "serde",
  "serde-untagged",
  "serde-value",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "toml",
  "unicode-xid",
  "url",
@@ -976,7 +976,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -1182,7 +1182,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fa961b519f0b462e3a3b4a34b64d119eeaca1d59af726fe450bbba07a9fc0a1"
 dependencies = [
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -1873,6 +1873,19 @@ dependencies = [
 
 [[package]]
 name = "cssparser"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b7c66d1cd8ed61bf80b38432613a7a2f09401ab8d0501110655f8b341484a3e3"
+dependencies = [
+ "cssparser-macros",
+ "dtoa-short",
+ "itoa 1.0.15",
+ "phf 0.11.3",
+ "smallvec",
+]
+
+[[package]]
+name = "cssparser"
 version = "0.35.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e901edd733a1472f944a45116df3f846f54d37e67e68640ac8bb69689aca2aa"
@@ -2279,6 +2292,12 @@ name = "ego-tree"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "12a0bb14ac04a9fcf170d0bbbef949b44cc492f4452bd20c095636956f653642"
+
+[[package]]
+name = "ego-tree"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2972feb8dffe7bc8c5463b1dacda1b0dfbed3710e50f977d965429692d74cd8"
 
 [[package]]
 name = "either"
@@ -3059,7 +3078,7 @@ dependencies = [
  "pest_derive",
  "serde",
  "serde_json",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -3164,10 +3183,22 @@ checksum = "c13771afe0e6e846f1e67d038d4cb29998a6779f93c809212e4e9c32efd244d4"
 dependencies = [
  "log",
  "mac",
- "markup5ever",
+ "markup5ever 0.12.1",
  "proc-macro2",
  "quote",
  "syn 2.0.106",
+]
+
+[[package]]
+name = "html5ever"
+version = "0.29.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b7410cae13cbc75623c98ac4cbfd1f0bedddf3227afc24f370cf0f50a44a11c"
+dependencies = [
+ "log",
+ "mac",
+ "markup5ever 0.14.1",
+ "match_token",
 ]
 
 [[package]]
@@ -4136,7 +4167,7 @@ dependencies = [
  "mime",
  "precomputed-hash",
  "selectors 0.30.0",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -4196,6 +4227,31 @@ dependencies = [
  "string_cache",
  "string_cache_codegen",
  "tendril",
+]
+
+[[package]]
+name = "markup5ever"
+version = "0.14.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c7a7213d12e1864c0f002f52c2923d4556935a43dec5e71355c2760e0f6e7a18"
+dependencies = [
+ "log",
+ "phf 0.11.3",
+ "phf_codegen 0.11.3",
+ "string_cache",
+ "string_cache_codegen",
+ "tendril",
+]
+
+[[package]]
+name = "match_token"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "88a9689d8d44bf9964484516275f5cd4c9b59457a6940c1d5d0ecbb94510a36b"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -4468,6 +4524,15 @@ dependencies = [
  "mime",
  "spin",
  "version_check",
+]
+
+[[package]]
+name = "nanoid"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ffa00dec017b5b1a8b7cf5e2c008bfda1aa7e0697ac1508b491fdf2622fb4d8"
+dependencies = [
+ "rand 0.8.5",
 ]
 
 [[package]]
@@ -5032,7 +5097,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "21e0a3a33733faeaf8651dfee72dd0f388f0c8e5ad496a3478fa5a922f49cfa8"
 dependencies = [
  "memchr",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "ucd-trie",
 ]
 
@@ -5826,7 +5891,7 @@ dependencies = [
  "rustc-hash 2.1.1",
  "rustls 0.23.32",
  "socket2 0.6.0",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tokio 1.47.1",
  "tracing",
  "web-time",
@@ -5847,7 +5912,7 @@ dependencies = [
  "rustls 0.23.32",
  "rustls-pki-types",
  "slab",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tinyvec",
  "tracing",
  "web-time",
@@ -5869,9 +5934,9 @@ dependencies = [
 
 [[package]]
 name = "quote"
-version = "1.0.40"
+version = "1.0.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1885c039570dc00dcb4ff087a89e185fd56bae234ddc7f056a945bf36467248d"
+checksum = "ce25767e7b499d1b604768e7cde645d14cc8584231ea6b295e9c9eb22c02e1d1"
 dependencies = [
  "proc-macro2",
 ]
@@ -6142,7 +6207,7 @@ checksum = "a4e608c6638b9c18977b00b475ac1f28d14e84b27d8d42f70e0bf1e3dec127ac"
 dependencies = [
  "getrandom 0.2.16",
  "libredox",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -6382,7 +6447,8 @@ dependencies = [
  "hex",
  "http 1.3.1",
  "libc",
- "lol_html 2.6.0",
+ "nanoid",
+ "once_cell",
  "opentelemetry",
  "opentelemetry-otlp",
  "opentelemetry-semantic-conventions",
@@ -6397,25 +6463,21 @@ dependencies = [
  "riptide-stealth",
  "robotstxt",
  "schemars",
- "scraper",
+ "scraper 0.22.0",
  "serde",
  "serde_json",
  "sha2",
  "sysinfo",
  "tempfile",
  "thiserror 1.0.69",
- "tiktoken-rs",
  "tokio 1.47.1",
  "tokio-test",
  "tracing",
  "tracing-opentelemetry",
  "tracing-subscriber",
- "unicode-segmentation",
  "url",
  "uuid",
  "wasmtime 26.0.1",
- "wasmtime-wasi",
- "wit-bindgen 0.30.0",
  "xml",
 ]
 
@@ -6428,7 +6490,7 @@ dependencies = [
  "getrandom 0.2.16",
  "once_cell",
  "regex",
- "scraper",
+ "scraper 0.20.0",
  "serde",
  "serde_json",
  "tokio 1.47.1",
@@ -6473,8 +6535,7 @@ dependencies = [
  "futures",
  "lol_html 2.6.0",
  "regex",
- "riptide-core",
- "scraper",
+ "scraper 0.20.0",
  "serde",
  "serde_json",
  "tempfile",
@@ -6484,6 +6545,8 @@ dependencies = [
  "tokio-test",
  "url",
  "uuid",
+ "wasmtime 26.0.1",
+ "wasmtime-wasi",
 ]
 
 [[package]]
@@ -6497,6 +6560,7 @@ dependencies = [
  "dashmap 6.1.0",
  "futures",
  "mockall 0.12.1",
+ "notify",
  "parking_lot",
  "pretty_assertions",
  "rand 0.8.5",
@@ -6504,9 +6568,12 @@ dependencies = [
  "riptide-core",
  "serde",
  "serde_json",
+ "serde_yaml",
+ "sha2",
  "thiserror 1.0.69",
  "tokio 1.47.1",
  "tokio-test",
+ "toml",
  "tracing",
  "tracing-subscriber",
  "uuid",
@@ -6991,11 +7058,26 @@ checksum = "b90460b31bfe1fc07be8262e42c665ad97118d4585869de9345a84d501a9eaf0"
 dependencies = [
  "ahash",
  "cssparser 0.31.2",
- "ego-tree",
+ "ego-tree 0.6.3",
  "getopts",
- "html5ever",
+ "html5ever 0.27.0",
  "once_cell",
  "selectors 0.25.0",
+ "tendril",
+]
+
+[[package]]
+name = "scraper"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc3d051b884f40e309de6c149734eab57aa8cc1347992710dc80bcc1c2194c15"
+dependencies = [
+ "cssparser 0.34.0",
+ "ego-tree 0.10.0",
+ "getopts",
+ "html5ever 0.29.1",
+ "precomputed-hash",
+ "selectors 0.26.0",
  "tendril",
 ]
 
@@ -7074,6 +7156,25 @@ dependencies = [
  "phf_codegen 0.10.0",
  "precomputed-hash",
  "servo_arc 0.3.0",
+ "smallvec",
+]
+
+[[package]]
+name = "selectors"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd568a4c9bb598e291a08244a5c1f5a8a6650bee243b5b0f8dbb3d9cc1d87fe8"
+dependencies = [
+ "bitflags 2.9.4",
+ "cssparser 0.34.0",
+ "derive_more 0.99.20",
+ "fxhash",
+ "log",
+ "new_debug_unreachable",
+ "phf 0.11.3",
+ "phf_codegen 0.11.3",
+ "precomputed-hash",
+ "servo_arc 0.4.1",
  "smallvec",
 ]
 
@@ -7767,11 +7868,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.16"
+version = "2.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3467d614147380f2e4e374161426ff399c91084acd2363eaf549172b3d5e60c0"
+checksum = "f63587ca0f12b72a0600bcba1d40081f830876000bb46dd2337a3051618f4fc8"
 dependencies = [
- "thiserror-impl 2.0.16",
+ "thiserror-impl 2.0.17",
 ]
 
 [[package]]
@@ -7787,9 +7888,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.16"
+version = "2.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c5e1be1c48b9172ee610da68fd9cd2770e7a4056cb3fc98710ee6906f0c7960"
+checksum = "3ff15c8ecd7de3849db632e14d18d2571fa09dfc5ed93479bc4485c7a517c913"
 dependencies = [
  "proc-macro2",
  "quote",

@@ -291,10 +291,11 @@ impl WorkerService {
             .context("Failed to create HTTP client")?;
 
         // Initialize WASM extractor
-        let extractor = WasmExtractor::new(&self.config.wasm_path)
-            .await
-            .context("Failed to initialize WASM extractor")?;
-        let extractor = Arc::new(extractor);
+        use riptide_core::extract::CmExtractor;
+        use riptide_core::component::ExtractorConfig;
+        let extractor_config = ExtractorConfig::default();
+        let extractor = CmExtractor::new(extractor_config);
+        let extractor = Arc::new(extractor) as Arc<dyn riptide_core::extract::WasmExtractor>;
 
         // Initialize cache manager
         let cache_manager = CacheManager::new(&self.config.redis_url)

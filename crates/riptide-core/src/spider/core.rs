@@ -692,12 +692,42 @@ impl Spider {
     }
 
     /// Get query-aware statistics
-    pub async fn get_query_aware_stats(&self) -> Option<QueryAwareStats> {
-        self.query_aware_scorer
-            .read()
-            .await
-            .as_ref()
-            .map(|scorer| scorer.get_stats())
+    pub async fn get_query_aware_stats(&self) -> QueryAwareStats {
+        match self.query_aware_scorer.read().await.as_ref() {
+            Some(scorer) => scorer.get_stats(),
+            None => QueryAwareStats {
+                enabled: false,
+                unique_domains: 0,
+                total_pages: 0,
+                avg_recent_relevance: 0.0,
+                corpus_size: 0,
+                recent_scores: Vec::new(),
+            },
+        }
+    }
+
+    /// Score a request using query-aware algorithm
+    pub async fn score_query_aware_request(&self, request: &CrawlRequest, content: Option<&str>) -> Result<f64> {
+        match self.query_aware_scorer.write().await.as_mut() {
+            Some(scorer) => Ok(scorer.score_request(request, content)),
+            None => Ok(1.0), // Neutral score when query-aware is disabled
+        }
+    }
+
+    /// Update query-aware scorer with crawl result
+    pub async fn update_query_aware_with_result(&self, result: &CrawlResult) -> Result<()> {
+        if let Some(scorer) = self.query_aware_scorer.write().await.as_mut() {
+            scorer.update_with_result(result);
+        }
+        Ok(())
+    }
+
+    /// Check if crawling should stop due to low query relevance
+    pub async fn should_stop_query_aware(&self) -> Result<(bool, String)> {
+        match self.query_aware_scorer.read().await.as_ref() {
+            Some(scorer) => Ok(scorer.should_stop_early()),
+            None => Ok((false, String::new())),
+        }
     }
 
     

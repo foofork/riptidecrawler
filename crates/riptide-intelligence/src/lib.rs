@@ -17,6 +17,10 @@ pub mod runtime_switch;
 pub mod providers;
 pub mod health;
 pub mod plugin;
+pub mod config;
+pub mod dashboard;
+pub mod tenant_isolation;
+pub mod hot_reload;
 
 #[cfg(feature = "mock")]
 pub mod mock_provider;
@@ -37,6 +41,20 @@ pub use providers::{
     OpenAIProvider, AnthropicProvider, OllamaProvider, LocalAIProvider,
     AzureOpenAIProvider, BedrockProvider, VertexAIProvider,
     create_provider_from_config, register_builtin_providers
+};
+pub use config::{
+    IntelligenceConfig, ConfigLoader, MetricsConfig, RuntimeConfig,
+    TenantIsolationConfig, TenantLimits, CostTrackingConfig, ProviderDiscovery
+};
+pub use dashboard::{
+    EnhancedLlmOpsDashboard, DashboardGenerator, DetailedCostAnalysis,
+    TenantCostBreakdown, ProviderCostBreakdown, Alert, Recommendation
+};
+pub use tenant_isolation::{
+    TenantIsolationManager, TenantState, TenantStatus, RequestPermit
+};
+pub use hot_reload::{
+    HotReloadManager, HotReloadConfig, ConfigChangeEvent, ValidationStatus, ReloadStatus
 };
 
 #[cfg(feature = "mock")]

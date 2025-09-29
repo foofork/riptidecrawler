@@ -35,6 +35,16 @@ rand = "0.8"
 # Additional error handling
 anyhow = { workspace = true }
 
+# Configuration file formats
+serde_yaml = "0.9"
+toml = "0.8"
+
+# File system watching
+notify = "6.0"
+
+# Additional dependencies for new features
+sha2 = "0.10"
+
 [dev-dependencies]
 tokio-test = "0.4"
 mockall = "0.12"

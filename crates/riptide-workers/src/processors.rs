@@ -12,7 +12,7 @@ pub struct BatchCrawlProcessor {
     /// HTTP client for making requests
     http_client: reqwest::Client,
     /// WASM extractor for content processing
-    extractor: Arc<riptide_core::extract::WasmExtractor>,
+    extractor: Arc<dyn riptide_core::extract::WasmExtractor>,
     /// Cache manager for storing results
     cache: Arc<tokio::sync::Mutex<riptide_core::cache::CacheManager>>,
     /// Maximum batch size to prevent memory issues
@@ -25,7 +25,7 @@ impl BatchCrawlProcessor {
     /// Create a new batch crawl processor
     pub fn new(
         http_client: reqwest::Client,
-        extractor: Arc<riptide_core::extract::WasmExtractor>,
+        extractor: Arc<dyn riptide_core::extract::WasmExtractor>,
         cache: Arc<tokio::sync::Mutex<riptide_core::cache::CacheManager>>,
         max_batch_size: usize,
         max_concurrency: usize,
@@ -268,7 +268,7 @@ pub struct SingleCrawlProcessor {
     /// HTTP client for making requests
     http_client: reqwest::Client,
     /// WASM extractor for content processing
-    extractor: Arc<riptide_core::extract::WasmExtractor>,
+    extractor: Arc<dyn riptide_core::extract::WasmExtractor>,
     /// Cache manager for storing results
     cache: Arc<tokio::sync::Mutex<riptide_core::cache::CacheManager>>,
 }
@@ -276,7 +276,7 @@ pub struct SingleCrawlProcessor {
 impl SingleCrawlProcessor {
     pub fn new(
         http_client: reqwest::Client,
-        extractor: Arc<riptide_core::extract::WasmExtractor>,
+        extractor: Arc<dyn riptide_core::extract::WasmExtractor>,
         cache: Arc<tokio::sync::Mutex<riptide_core::cache::CacheManager>>,
     ) -> Self {
         Self {

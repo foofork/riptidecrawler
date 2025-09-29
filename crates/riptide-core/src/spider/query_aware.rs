@@ -48,16 +48,16 @@ impl Default for QueryAwareConfig {
 #[derive(Debug, Clone)]
 pub struct BM25Scorer {
     /// Document frequency for each term
-    term_doc_freq: HashMap<String, usize>,
+    pub(crate) term_doc_freq: HashMap<String, usize>,
     /// Total number of documents
-    total_docs: usize,
+    pub(crate) total_docs: usize,
     /// Average document length
-    avg_doc_length: f64,
+    pub(crate) avg_doc_length: f64,
     /// BM25 parameters
-    k1: f64,
-    b: f64,
+    pub(crate) k1: f64,
+    pub(crate) b: f64,
     /// Query terms
-    query_terms: Vec<String>,
+    pub(crate) query_terms: Vec<String>,
 }
 
 impl BM25Scorer {
@@ -283,12 +283,12 @@ impl ContentSimilarityAnalyzer {
 /// Main query-aware scoring engine
 #[derive(Debug)]
 pub struct QueryAwareScorer {
-    config: QueryAwareConfig,
-    bm25_scorer: BM25Scorer,
-    url_analyzer: UrlSignalAnalyzer,
-    domain_analyzer: DomainDiversityAnalyzer,
-    content_analyzer: ContentSimilarityAnalyzer,
-    recent_scores: Vec<f64>,
+    pub(crate) config: QueryAwareConfig,
+    pub(crate) bm25_scorer: BM25Scorer,
+    pub(crate) url_analyzer: UrlSignalAnalyzer,
+    pub(crate) domain_analyzer: DomainDiversityAnalyzer,
+    pub(crate) content_analyzer: ContentSimilarityAnalyzer,
+    pub(crate) recent_scores: Vec<f64>,
 }
 
 impl QueryAwareScorer {

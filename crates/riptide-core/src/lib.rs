@@ -29,51 +29,23 @@ pub mod cache;
 pub mod cache_warming;
 pub mod cache_warming_integration;
 pub mod circuit;
-pub mod common;
 pub mod component;
+pub mod common;
 pub mod conditional;
 pub mod dynamic;
 pub mod error;
 pub mod events;
-pub mod extract;
 pub mod fetch;
 pub mod gate;
 pub mod instance_pool;
 pub mod integrated_cache;
 pub mod memory_manager;
 pub mod monitoring;
+
 // PDF functionality moved to riptide-pdf crate
 #[cfg(feature = "pdf")]
 pub use riptide_pdf as pdf;
 
-#[cfg(feature = "pdf")]
-mod pdf_integration {
-    use super::types::ExtractedDoc;
-
-    /// Convert riptide_pdf::ExtractedDoc to riptide_core::ExtractedDoc
-    pub fn convert_pdf_extracted_doc(pdf_doc: riptide_pdf::ExtractedDoc) -> ExtractedDoc {
-        ExtractedDoc {
-            url: pdf_doc.url,
-            title: pdf_doc.title,
-            byline: pdf_doc.byline,
-            published_iso: pdf_doc.published_iso,
-            markdown: pdf_doc.markdown,
-            text: pdf_doc.text,
-            links: pdf_doc.links,
-            media: pdf_doc.media,
-            language: pdf_doc.language,
-            reading_time: pdf_doc.reading_time,
-            quality_score: pdf_doc.quality_score,
-            word_count: pdf_doc.word_count,
-            categories: pdf_doc.categories,
-            site_name: pdf_doc.site_name,
-            description: pdf_doc.description,
-        }
-    }
-}
-
-#[cfg(feature = "pdf")]
-pub use pdf_integration::convert_pdf_extracted_doc;
 pub mod pool_health;
 pub mod reliability;
 pub mod robots;
@@ -103,44 +75,8 @@ pub mod stealth {
     pub use riptide_stealth::*;
 }
 
-// Re-export search functionality from riptide-search crate for backward compatibility
-// TODO: Deprecate in Week 8 - use riptide-search directly
-pub mod search {
-    //! Search provider abstraction - DEPRECATED
-    //!
-    //! This module re-exports types from the `riptide-search` crate for backward compatibility.
-    //!
-    //! **DEPRECATION NOTICE**: This re-export will be removed in a future version.
-    //! Please migrate to using `riptide-search` crate directly:
-    //!
-    //! ```rust
-    //! // Old (deprecated):
-    //! use riptide_core::search::{SearchProvider, SearchBackend};
-    //!
-    //! // New (recommended):
-    //! use riptide_search::{SearchProvider, SearchBackend};
-    //! ```
-
-    pub use riptide_search::{
-        SearchProvider, SearchHit, SearchBackend, SearchConfig, AdvancedSearchConfig,
-        CircuitBreakerConfigOptions, SearchProviderFactory,
-        create_search_provider, create_search_provider_from_env,
-        SerperProvider, NoneProvider, CircuitBreakerWrapper, CircuitBreakerConfig, CircuitState
-    };
-
-    // Re-export the mod structure for backward compatibility
-    pub mod providers {
-        pub use riptide_search::SerperProvider;
-    }
-
-    pub mod circuit_breaker {
-        pub use riptide_search::{CircuitBreakerWrapper, CircuitBreakerConfig, CircuitState};
-    }
-
-    pub mod none_provider {
-        pub use riptide_search::NoneProvider;
-    }
-}
+// Search functionality has been fully moved to riptide-search crate
+// Use `riptide-search` directly instead of these re-exports
 
 #[cfg(feature = "benchmarks")]
 pub mod benchmarks;
@@ -151,3 +87,45 @@ pub use common::{
     error_conversions::{IntoCore, WithErrorContext, CoreErrorConverter, ErrorPatterns},
     config_builder::{ConfigBuilder, DefaultConfigBuilder, ConfigValue, ValidationPatterns},
 };
+
+// Re-export core functionality
+pub use reliability::{
+    ReliabilityConfig, ReliableExtractor, ExtractionMode, ReliabilityMetrics
+};
+
+// Create extract module alias for backward compatibility
+pub mod extract {
+    pub use crate::reliability::WasmExtractor;
+    // Export the concrete implementation that can be instantiated
+    pub use crate::component::CmExtractor;
+}
+
+// Add PDF conversion function for backward compatibility
+#[cfg(feature = "pdf")]
+pub fn convert_pdf_extracted_doc(doc: riptide_pdf::types::ExtractedDoc) -> ExtractedDoc {
+    // Convert from riptide-pdf's ExtractedDoc to riptide-core's ExtractedDoc
+    ExtractedDoc {
+        url: doc.url,
+        title: doc.title,
+        text: doc.text,
+        quality_score: doc.quality_score,
+        links: doc.links,
+        byline: doc.byline,
+        published_iso: doc.published_iso,
+        markdown: Some(doc.markdown),
+        media: doc.media,
+        language: doc.language,
+        reading_time: doc.reading_time,
+        word_count: doc.word_count,
+        categories: doc.categories,
+        site_name: doc.site_name,
+        description: doc.description,
+    }
+}
+
+// Fallback for when PDF feature is not enabled
+#[cfg(not(feature = "pdf"))]
+pub fn convert_pdf_extracted_doc(doc: ExtractedDoc) -> ExtractedDoc {
+    // Simple pass-through when PDF crate is not available
+    doc
+}

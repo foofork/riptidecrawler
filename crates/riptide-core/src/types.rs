@@ -1,93 +1,38 @@
 use serde::{Deserialize, Serialize};
 
-/// Enhanced extraction result with comprehensive metadata
+// Basic extraction types for core functionality
+// Full HTML processing types are in riptide-html crate
+
+/// Basic extracted document for core orchestration
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct ExtractedDoc {
-    /// Source URL for context and link resolution
+pub struct BasicExtractedDoc {
     pub url: String,
-
-    /// Extracted page title
     pub title: Option<String>,
-
-    /// Author/byline information
-    pub byline: Option<String>,
-
-    /// Publication date in ISO 8601 format
-    pub published_iso: Option<String>,
-
-    /// Content formatted as Markdown
-    pub markdown: String,
-
-    /// Plain text content with HTML tags removed
     pub text: String,
-
-    /// List of extracted hyperlinks
-    pub links: Vec<String>,
-
-    /// List of media URLs (images, videos, audio)
-    pub media: Vec<String>,
-
-    /// Detected content language (ISO 639-1 code)
-    pub language: Option<String>,
-
-    /// Estimated reading time in minutes
-    pub reading_time: Option<u32>,
-
-    /// Content quality score (0-100, higher = better)
     pub quality_score: Option<u8>,
-
-    /// Word count of extracted text
+    pub links: Vec<String>,
+    pub byline: Option<String>,
+    pub published_iso: Option<String>,
+    pub markdown: Option<String>,
+    pub media: Vec<String>,
+    pub language: Option<String>,
+    pub reading_time: Option<u32>,
     pub word_count: Option<u32>,
-
-    /// Content categories/tags if detected
     pub categories: Vec<String>,
-
-    /// Site name/publisher if available
     pub site_name: Option<String>,
-
-    /// Meta description from page
     pub description: Option<String>,
 }
 
-/// Content extraction modes with specific behaviors
+/// Alias for ExtractedDoc to maintain compatibility
+pub type ExtractedDoc = BasicExtractedDoc;
+
+/// Content extraction modes
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ExtractionMode {
-    /// Extract article content using readability algorithms
     Article,
-
-    /// Extract full page content including sidebars and navigation
     Full,
-
-    /// Extract only metadata (title, description, structured data)
     Metadata,
-
-    /// Custom extraction using provided CSS selectors
     Custom(Vec<String>),
-}
-
-/// Structured error types for better error handling
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ExtractionError {
-    /// Invalid or malformed HTML input
-    InvalidHtml(String),
-
-    /// Network-related errors during processing
-    NetworkError(String),
-
-    /// HTML parsing failures
-    ParseError(String),
-
-    /// Resource limits exceeded (memory, time, etc.)
-    ResourceLimit(String),
-
-    /// Trek-rs library errors
-    ExtractorError(String),
-
-    /// Component internal processing errors
-    InternalError(String),
-
-    /// Unsupported extraction mode
-    UnsupportedMode(String),
 }
 
 /// Component health status

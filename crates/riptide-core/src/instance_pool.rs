@@ -53,7 +53,7 @@ impl PooledInstance {
             use_count: 0,
             failure_count: 0,
             memory_usage_bytes: 0,
-            resource_tracker: WasmResourceTracker::new(max_memory_pages),
+            resource_tracker: WasmResourceTracker::default(),
         }
     }
 
@@ -61,7 +61,7 @@ impl PooledInstance {
     pub fn is_healthy(&self, config: &ExtractorConfig) -> bool {
         self.use_count < 1000
             && self.failure_count < 5
-            && self.memory_usage_bytes < config.memory_limit
+            && self.memory_usage_bytes < config.memory_limit.unwrap_or(usize::MAX) as u64
             && self.resource_tracker.grow_failures() < 10
     }
 
@@ -257,8 +257,9 @@ impl AdvancedInstancePool {
         let start_time = Instant::now();
 
         // Acquire semaphore permit with timeout
+        let timeout_duration = Duration::from_millis(self.config.extraction_timeout.unwrap_or(30000));
         let permit = match timeout(
-            self.config.extraction_timeout,
+            timeout_duration,
             self.semaphore.acquire()
         ).await {
             Ok(Ok(permit)) => permit,
@@ -407,7 +408,7 @@ impl AdvancedInstancePool {
             self.engine.clone(),
             self.component.clone(),
             self.linker.clone(),
-            self.config.memory_limit_pages,
+            self.config.memory_limit_pages.unwrap_or(256) as usize,
         );
 
         debug!(instance_id = %instance.id, "New WASM instance created");
@@ -470,7 +471,7 @@ impl AdvancedInstancePool {
                     title: content.title,
                     byline: content.byline,
                     published_iso: content.published_iso,
-                    markdown: content.markdown,
+                    markdown: Some(content.markdown),
                     text: content.text,
                     links: content.links,
                     media: content.media,
@@ -651,7 +652,7 @@ impl AdvancedInstancePool {
             url: url.to_string(),
             title,
             text,
-            markdown,
+            markdown: Some(markdown),
             links,
             media,
             ..Default::default()
@@ -673,7 +674,7 @@ impl AdvancedInstancePool {
         let state = self.circuit_state.lock().unwrap();
         match *state {
             CircuitBreakerState::Open { opened_at, .. } => {
-                opened_at.elapsed() < self.config.circuit_breaker_timeout
+                opened_at.elapsed() < Duration::from_millis(self.config.circuit_breaker_timeout)
             }
             _ => false,
         }
@@ -765,7 +766,7 @@ impl AdvancedInstancePool {
                 }
             }
             CircuitBreakerState::Open { opened_at, failure_count } => {
-                if opened_at.elapsed() >= self.config.circuit_breaker_timeout {
+                if opened_at.elapsed() >= Duration::from_millis(self.config.circuit_breaker_timeout) {
                     info!("Circuit breaker transitioning to half-open");
                     CircuitBreakerState::HalfOpen {
                         test_requests: 0,
@@ -848,9 +849,9 @@ impl AdvancedInstancePool {
         let mut metrics = self.metrics.lock().unwrap();
         let wait_ms = wait_time.as_millis() as f64;
         metrics.semaphore_wait_time_ms = if metrics.total_extractions == 1 {
-            wait_ms as u64
+            wait_ms as f64
         } else {
-            ((metrics.semaphore_wait_time_ms as f64 + wait_ms) / 2.0) as u64
+            (metrics.semaphore_wait_time_ms + wait_ms) / 2.0
         };
     }
 
@@ -874,7 +875,8 @@ impl AdvancedInstancePool {
 
     /// Start continuous health monitoring for pool instances
     pub async fn start_instance_health_monitoring(self: Arc<Self>) -> Result<()> {
-        let interval = self.config.health_check_interval;
+        let interval_ms = self.config.health_check_interval;
+        let interval = Duration::from_millis(interval_ms);
         info!(interval_secs = interval.as_secs(), "Starting continuous instance health monitoring");
 
         let mut interval_timer = tokio::time::interval(interval);
@@ -958,7 +960,7 @@ impl AdvancedInstancePool {
 
         // Check memory usage
         let memory_limit_bytes = self.config.memory_limit;
-        if instance.memory_usage_bytes > memory_limit_bytes {
+        if instance.memory_usage_bytes > memory_limit_bytes.unwrap_or(usize::MAX) as u64 {
             debug!(instance_id = %instance.id, memory_usage = instance.memory_usage_bytes, "Instance memory usage too high");
             return false;
         }
@@ -1035,7 +1037,7 @@ impl AdvancedInstancePool {
 
     /// Clear instances with high memory usage
     pub async fn clear_high_memory_instances(&self) -> Result<usize> {
-        let memory_threshold = (self.config.memory_limit as f64 * 0.8) as u64; // 80% of limit
+        let memory_threshold = (self.config.memory_limit.unwrap_or(512 * 1024 * 1024) as f64 * 0.8) as u64; // 80% of limit
         let mut cleared = 0;
 
         let high_memory_instances = {
@@ -1155,7 +1157,7 @@ impl AdvancedInstancePool {
             } else {
                 1.0
             },
-            avg_acquisition_time_ms: performance_metrics.semaphore_wait_time_ms,
+            avg_acquisition_time_ms: performance_metrics.semaphore_wait_time_ms as u64,
             avg_latency_ms: performance_metrics.avg_processing_time_ms as u64,
         }
     }

@@ -326,8 +326,9 @@ impl PoolHealthMonitor {
 
     /// Determine memory pressure level
     fn determine_memory_pressure(&self, metrics: &PerformanceMetrics) -> MemoryPressureLevel {
-        let memory_usage_percent = if self.config.memory_limit_pages > 0 {
-            (metrics.wasm_memory_pages as f64 / self.config.memory_limit_pages as f64) * 100.0
+        let memory_limit = self.config.memory_limit_pages.unwrap_or(256);
+        let memory_usage_percent = if memory_limit > 0 {
+            (metrics.wasm_memory_pages as f64 / memory_limit as f64) * 100.0
         } else {
             0.0
         };

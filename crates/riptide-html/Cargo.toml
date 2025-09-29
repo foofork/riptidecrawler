@@ -9,8 +9,8 @@ keywords = ["html", "extraction", "css", "regex", "dom"]
 categories = ["text-processing", "web-programming"]
 
 [dependencies]
-# Core dependencies for traits and types
-riptide-core = { path = "../riptide-core" }
+# Core dependencies removed to avoid circular dependency
+# riptide-core = { path = "../riptide-core" }
 anyhow.workspace = true
 async-trait.workspace = true
 serde = { workspace = true, features = ["derive"] }
@@ -30,6 +30,10 @@ uuid = { version = "1.0", features = ["v4"] }
 
 # Optional features
 futures.workspace = true
+
+# WASM extraction dependencies (moved from riptide-core)
+wasmtime = { workspace = true }
+wasmtime-wasi = { workspace = true }
 
 # Table extraction dependencies
 chrono = { workspace = true, features = ["serde"] }
