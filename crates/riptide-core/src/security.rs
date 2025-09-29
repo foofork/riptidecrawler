@@ -327,12 +327,11 @@ pub fn validate_http_method(method: &str) -> Result<()> {
 
 /// Sanitize file path to prevent directory traversal
 pub fn sanitize_file_path(path: &str) -> Result<String> {
-    // Remove dangerous characters and patterns
+    // Remove dangerous patterns
     let sanitized = path
         .replace("../", "")
         .replace("..", "")
         .replace("./", "")
-        .replace(".", "")
         .replace("~", "")
         .chars()
         .filter(|c| c.is_alphanumeric() || "._-/".contains(*c))

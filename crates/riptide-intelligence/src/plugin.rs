@@ -188,10 +188,10 @@ pub enum PluginError {
 #[async_trait]
 pub trait PluginLoader: Send + Sync {
     /// Load a plugin from the given path
-    async fn load_plugin(&self, path: &PathBuf) -> Result<Box<dyn Plugin>, PluginError>;
+    async fn load_plugin(&self, path: &PathBuf) -> std::result::Result<Box<dyn Plugin>, PluginError>;
 
     /// Validate plugin compatibility
-    async fn validate_plugin(&self, metadata: &PluginMetadata) -> Result<(), PluginError>;
+    async fn validate_plugin(&self, metadata: &PluginMetadata) -> std::result::Result<(), PluginError>;
 
     /// Get supported plugin formats
     fn supported_formats(&self) -> Vec<String>;
@@ -204,22 +204,22 @@ pub trait Plugin: Send + Sync {
     fn metadata(&self) -> &PluginMetadata;
 
     /// Initialize the plugin with configuration
-    async fn initialize(&mut self, config: &PluginConfig) -> Result<(), PluginError>;
+    async fn initialize(&mut self, config: &PluginConfig) -> std::result::Result<(), PluginError>;
 
     /// Create a provider instance
-    async fn create_provider(&self, config: &PluginConfig) -> Result<Arc<dyn LlmProvider>, PluginError>;
+    async fn create_provider(&self, config: &PluginConfig) -> std::result::Result<Arc<dyn LlmProvider>, PluginError>;
 
     /// Perform health check
-    async fn health_check(&self) -> Result<HealthStatus, PluginError>;
+    async fn health_check(&self) -> std::result::Result<HealthStatus, PluginError>;
 
     /// Get current metrics
     fn metrics(&self) -> PluginMetrics;
 
     /// Shutdown the plugin gracefully
-    async fn shutdown(&mut self) -> Result<(), PluginError>;
+    async fn shutdown(&mut self) -> std::result::Result<(), PluginError>;
 
     /// Hot-reload configuration
-    async fn reload_config(&mut self, config: &PluginConfig) -> Result<(), PluginError>;
+    async fn reload_config(&mut self, config: &PluginConfig) -> std::result::Result<(), PluginError>;
 }
 
 /// Plugin registry for managing loaded plugins
@@ -240,7 +240,7 @@ impl PluginRegistry {
     }
 
     /// Load a plugin from file
-    pub async fn load_plugin(&mut self, path: PathBuf) -> Result<String, PluginError> {
+    pub async fn load_plugin(&mut self, path: PathBuf) -> std::result::Result<String, PluginError> {
         let mut plugin = self.loader.load_plugin(&path).await?;
         let metadata = plugin.metadata().clone();
 
@@ -277,7 +277,7 @@ impl PluginRegistry {
         &mut self,
         plugin_id: &str,
         config: PluginConfig,
-    ) -> Result<Arc<dyn LlmProvider>, PluginError> {
+    ) -> std::result::Result<Arc<dyn LlmProvider>, PluginError> {
         let plugin = self.plugins.get(plugin_id)
             .ok_or_else(|| PluginError::NotFound { id: plugin_id.to_string() })?;
 
@@ -350,7 +350,7 @@ impl PluginRegistry {
     }
 
     /// Unload a plugin
-    pub async fn unload_plugin(&mut self, plugin_id: &str) -> Result<(), PluginError> {
+    pub async fn unload_plugin(&mut self, plugin_id: &str) -> std::result::Result<(), PluginError> {
         if let Some(mut plugin) = self.plugins.remove(plugin_id) {
             plugin.shutdown().await?;
 
@@ -403,7 +403,7 @@ impl FileSystemPluginLoader {
 
 #[async_trait]
 impl PluginLoader for FileSystemPluginLoader {
-    async fn load_plugin(&self, _path: &PathBuf) -> Result<Box<dyn Plugin>, PluginError> {
+    async fn load_plugin(&self, _path: &PathBuf) -> std::result::Result<Box<dyn Plugin>, PluginError> {
         // For now, this is a placeholder implementation
         // In a real implementation, this would:
         // 1. Load the plugin binary/library
@@ -415,7 +415,7 @@ impl PluginLoader for FileSystemPluginLoader {
         })
     }
 
-    async fn validate_plugin(&self, metadata: &PluginMetadata) -> Result<(), PluginError> {
+    async fn validate_plugin(&self, metadata: &PluginMetadata) -> std::result::Result<(), PluginError> {
         // Basic validation
         if metadata.name.is_empty() {
             return Err(PluginError::ValidationFailed {

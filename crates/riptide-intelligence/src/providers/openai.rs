@@ -14,71 +14,71 @@ use crate::{
 /// OpenAI API response structure
 #[derive(Debug, Deserialize)]
 pub struct OpenAIResponse {
-    id: String,
-    choices: Vec<OpenAIChoice>,
-    usage: OpenAIUsage,
-    model: String,
+    pub id: String,
+    pub choices: Vec<OpenAIChoice>,
+    pub usage: OpenAIUsage,
+    pub model: String,
 }
 
 #[derive(Debug, Deserialize)]
-struct OpenAIChoice {
-    message: OpenAIMessage,
-    finish_reason: String,
+pub struct OpenAIChoice {
+    pub message: OpenAIMessage,
+    pub finish_reason: String,
 }
 
 #[derive(Debug, Deserialize)]
-struct OpenAIMessage {
-    content: String,
-    role: String,
+pub struct OpenAIMessage {
+    pub content: String,
+    pub role: String,
 }
 
 #[derive(Debug, Deserialize)]
-struct OpenAIUsage {
-    prompt_tokens: u32,
-    completion_tokens: u32,
-    total_tokens: u32,
+pub struct OpenAIUsage {
+    pub prompt_tokens: u32,
+    pub completion_tokens: u32,
+    pub total_tokens: u32,
 }
 
 /// OpenAI API request structure
 #[derive(Debug, Serialize)]
 pub struct OpenAIRequest {
-    model: String,
-    messages: Vec<OpenAIMessageRequest>,
+    pub model: String,
+    pub messages: Vec<OpenAIMessageRequest>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    max_tokens: Option<u32>,
+    pub max_tokens: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    temperature: Option<f32>,
+    pub temperature: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    top_p: Option<f32>,
+    pub top_p: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    frequency_penalty: Option<f32>,
+    pub frequency_penalty: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    presence_penalty: Option<f32>,
+    pub presence_penalty: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    stop: Option<Vec<String>>,
+    pub stop: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct OpenAIMessageRequest {
-    role: String,
-    content: String,
+    pub role: String,
+    pub content: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct OpenAIEmbeddingResponse {
-    data: Vec<OpenAIEmbeddingData>,
-    usage: OpenAIUsage,
+    pub data: Vec<OpenAIEmbeddingData>,
+    pub usage: OpenAIUsage,
 }
 
 #[derive(Debug, Deserialize)]
-struct OpenAIEmbeddingData {
-    embedding: Vec<f32>,
+pub struct OpenAIEmbeddingData {
+    pub embedding: Vec<f32>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct OpenAIEmbeddingRequest {
-    model: String,
-    input: String,
+    pub model: String,
+    pub input: String,
 }
 
 /// OpenAI provider implementation
@@ -190,6 +190,7 @@ impl LlmProvider for OpenAIProvider {
             total_tokens: response.usage.total_tokens,
         };
 
+        let total_tokens = usage.total_tokens;
         let completion_response = CompletionResponse {
             id: uuid::Uuid::new_v4(),
             request_id: request.id,
@@ -201,7 +202,7 @@ impl LlmProvider for OpenAIProvider {
             metadata: HashMap::new(),
         };
 
-        debug!("OpenAI completion successful, tokens used: {}", usage.total_tokens);
+        debug!("OpenAI completion successful, tokens used: {}", total_tokens);
         Ok(completion_response)
     }
 

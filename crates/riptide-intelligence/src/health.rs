@@ -168,7 +168,7 @@ impl HealthMonitor {
         }
 
         let event = HealthEvent::ProviderAdded {
-            provider_name: name,
+            provider_name: name.clone(),
             timestamp: chrono::Utc::now(),
         };
 

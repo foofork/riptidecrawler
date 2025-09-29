@@ -177,6 +177,7 @@ impl LlmProvider for AnthropicProvider {
             total_tokens: response.usage.input_tokens + response.usage.output_tokens,
         };
 
+        let total_tokens = usage.total_tokens;
         let completion_response = CompletionResponse {
             id: uuid::Uuid::new_v4(),
             request_id: request.id,
@@ -188,7 +189,7 @@ impl LlmProvider for AnthropicProvider {
             metadata: HashMap::new(),
         };
 
-        debug!("Anthropic completion successful, tokens used: {}", usage.total_tokens);
+        debug!("Anthropic completion successful, tokens used: {}", total_tokens);
         Ok(completion_response)
     }
 

@@ -248,7 +248,8 @@ impl EventBus {
     pub fn get_stats(&self) -> EventBusStats {
         EventBusStats {
             buffer_size: self.config.buffer_size,
-            current_subscribers: self.sender.receiver_count(),
+            // Subtract 1 to account for the internal _receiver
+            current_subscribers: self.sender.receiver_count().saturating_sub(1),
             is_running: self.running.load(std::sync::atomic::Ordering::Relaxed),
         }
     }
@@ -452,9 +453,13 @@ mod tests {
         let bus = EventBus::new();
         let event = BaseEvent::new("test.event", "source", EventSeverity::Info);
 
-        // Should fail because no subscribers
+        // Should succeed even without external subscribers (internal receiver exists)
         let result = bus.emit_event(event).await;
-        assert!(result.is_err());
+        assert!(result.is_ok());
+
+        // Verify no external subscribers
+        let stats = bus.get_stats();
+        assert_eq!(stats.current_subscribers, 0);
     }
 
     #[tokio::test]

@@ -356,6 +356,9 @@ impl RuntimeSwitchManager {
                 format!("Provider {} not found", provider_name)
             ))?;
 
+        // Clone request for potential failover
+        let request_clone = request.clone();
+
         // Execute request
         match provider.complete(request).await {
             Ok(response) => {
@@ -376,7 +379,7 @@ impl RuntimeSwitchManager {
                 // Check if we should trigger failover
                 if let Some(ref failover_manager) = self.failover_manager {
                     // Use failover manager for automatic failover
-                    return failover_manager.complete_with_failover(request).await;
+                    return failover_manager.complete_with_failover(request_clone).await;
                 }
 
                 Err(e)
@@ -451,7 +454,8 @@ impl RuntimeSwitchManager {
         ab_test: &ABTestState,
     ) -> String {
         // Simple implementation - in practice this would be more sophisticated
-        let user_key = tenant_id.as_ref().unwrap_or(&"anonymous".to_string());
+        let anonymous = "anonymous".to_string();
+        let user_key = tenant_id.as_ref().unwrap_or(&anonymous);
 
         match ab_test.config.user_allocation {
             UserAllocationStrategy::Random => {
@@ -545,7 +549,7 @@ impl RuntimeSwitchManager {
 
         let event = SwitchEvent::ProviderSwitched {
             from: old_provider,
-            to: provider_name,
+            to: provider_name.clone(),
             rule_id: "manual".to_string(),
             timestamp: chrono::Utc::now(),
         };

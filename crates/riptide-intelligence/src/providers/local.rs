@@ -198,6 +198,7 @@ impl LlmProvider for OllamaProvider {
             total_tokens: response.prompt_eval_count.unwrap_or(0) + response.eval_count.unwrap_or(0),
         };
 
+        let total_tokens = usage.total_tokens;
         let completion_response = CompletionResponse {
             id: uuid::Uuid::new_v4(),
             request_id: request.id,
@@ -209,7 +210,7 @@ impl LlmProvider for OllamaProvider {
             metadata: HashMap::new(),
         };
 
-        debug!("Ollama completion successful, tokens used: {}", usage.total_tokens);
+        debug!("Ollama completion successful, tokens used: {}", total_tokens);
         Ok(completion_response)
     }
 
@@ -396,6 +397,7 @@ impl LlmProvider for LocalAIProvider {
             total_tokens: api_response.usage.total_tokens,
         };
 
+        let total_tokens = usage.total_tokens;
         let completion_response = CompletionResponse {
             id: uuid::Uuid::new_v4(),
             request_id: request.id,
@@ -407,7 +409,7 @@ impl LlmProvider for LocalAIProvider {
             metadata: HashMap::new(),
         };
 
-        debug!("LocalAI completion successful, tokens used: {}", usage.total_tokens);
+        debug!("LocalAI completion successful, tokens used: {}", total_tokens);
         Ok(completion_response)
     }
 

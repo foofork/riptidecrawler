@@ -222,6 +222,11 @@ impl LlmProvider for MockLlmProvider {
     }
 
     async fn health_check(&self) -> Result<()> {
+        // Add delay if configured (same as in complete)
+        if let Some(delay) = self.delay_ms {
+            sleep(Duration::from_millis(delay)).await;
+        }
+
         if self.should_fail {
             Err(IntelligenceError::Provider("Mock provider is configured to fail".to_string()))
         } else {

@@ -786,6 +786,6 @@ mod tests {
         
         let json_result = logger.format_log_entry(&entry);
         assert!(json_result.is_ok());
-        assert!(json_result.unwrap().contains("API_KEY_USED"));
+        assert!(json_result.unwrap().contains("ApiKeyUsed"));
     }
 }

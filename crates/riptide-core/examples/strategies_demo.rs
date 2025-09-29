@@ -1,13 +1,12 @@
 //! Demonstration of extraction strategies and chunking capabilities
+//! Note: Many features have been moved to separate crates (riptide-html, riptide-intelligence)
 
 use anyhow::Result;
 use riptide_core::strategies::*;
-use riptide_core::strategies::chunking::ChunkingMode;
-use std::collections::HashMap;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    println!("🚀 Riptide Core Strategies & Chunking Demo");
+    println!("🚀 Riptide Core Strategies Demo");
     println!("==========================================\n");
 
     // Sample HTML content for demonstration
@@ -78,11 +77,8 @@ async fn main() -> Result<()> {
     </html>
     "#;
 
-    // Demonstrate different extraction strategies
-    demo_extraction_strategies(sample_html).await?;
-
-    // Demonstrate chunking modes
-    demo_chunking_strategies().await?;
+    // Demonstrate core extraction
+    demo_core_extraction(sample_html).await?;
 
     // Demonstrate metadata extraction
     demo_metadata_extraction(sample_html).await?;
@@ -90,100 +86,24 @@ async fn main() -> Result<()> {
     // Demonstrate strategy manager
     demo_strategy_manager(sample_html).await?;
 
-    // Demonstrate performance comparison
-    demo_performance_comparison().await?;
-
     println!("\n✅ Demo completed successfully!");
     Ok(())
 }
 
-async fn demo_extraction_strategies(html: &str) -> Result<()> {
-    println!("📊 EXTRACTION STRATEGIES COMPARISON");
+async fn demo_core_extraction(html: &str) -> Result<()> {
+    println!("📊 CORE EXTRACTION STRATEGY");
     println!("===================================\n");
 
     // Trek Strategy (Default WASM-based)
-    println!("🔧 Trek Strategy (Default):");
+    println!("🔧 Trek Strategy (Default Core Implementation):");
     let trek_result = extraction::trek::extract(html, "https://example.com").await?;
     println!("  Title: {}", trek_result.title);
     println!("  Content Length: {} chars", trek_result.content.len());
     println!("  Confidence: {:.2}%\n", trek_result.extraction_confidence * 100.0);
 
-    // CSS JSON Strategy
-    println!("🎯 CSS JSON Strategy:");
-    let selectors = extraction::css_json::default_selectors();
-    let css_result = extraction::css_json::extract(html, "https://example.com", &selectors).await?;
-    println!("  Title: {}", css_result.title);
-    println!("  Content Length: {} chars", css_result.content.len());
-    println!("  Confidence: {:.2}%", css_result.extraction_confidence * 100.0);
-    if let Some(summary) = css_result.summary {
-        println!("  Summary: {}", summary);
-    }
-    println!();
-
-    // Regex Strategy
-    println!("🔍 Regex Strategy:");
-    let patterns = extraction::regex::default_patterns();
-    let regex_result = extraction::regex::extract(html, "https://example.com", &patterns).await?;
-    println!("  Title: {}", regex_result.title);
-    println!("  Content Length: {} chars", regex_result.content.len());
-    println!("  Confidence: {:.2}%\n", regex_result.extraction_confidence * 100.0);
-
-    Ok(())
-}
-
-async fn demo_chunking_strategies() -> Result<()> {
-    println!("📝 CHUNKING STRATEGIES DEMONSTRATION");
-    println!("===================================\n");
-
-    let sample_content = "Artificial intelligence has revolutionized content processing. Machine learning algorithms can now understand context and meaning. Neural networks enable sophisticated pattern recognition. Deep learning models process vast amounts of data efficiently. Natural language processing bridges human and machine understanding. Automated systems continuously improve through feedback. The future of content extraction looks increasingly promising.";
-
-    // Sliding Window Chunking
-    println!("🌊 Sliding Window Chunking (Default):");
-    let sliding_config = ChunkingConfig {
-        mode: ChunkingMode::Sliding,
-        token_max: 50,
-        overlap: 10,
-        preserve_sentences: true,
-        deterministic: true,
-    };
-    let sliding_chunks = chunking::chunk_content(sample_content, &sliding_config).await?;
-    for (i, chunk) in sliding_chunks.iter().enumerate() {
-        println!("  Chunk {}: {} tokens, Quality: {:.2}",
-                i + 1, chunk.token_count, chunk.metadata.quality_score);
-    }
-    println!("  Total chunks: {}\n", sliding_chunks.len());
-
-    // Sentence-based Chunking
-    println!("📖 Sentence-based Chunking:");
-    let sentence_config = ChunkingConfig {
-        mode: ChunkingMode::Sentence { max_sentences: 2 },
-        token_max: 100,
-        overlap: 0,
-        preserve_sentences: true,
-        deterministic: true,
-    };
-    let sentence_chunks = chunking::chunk_content(sample_content, &sentence_config).await?;
-    for (i, chunk) in sentence_chunks.iter().enumerate() {
-        println!("  Chunk {}: {} sentences, {} words",
-                i + 1, chunk.metadata.sentence_count, chunk.metadata.word_count);
-    }
-    println!("  Total chunks: {}\n", sentence_chunks.len());
-
-    // Topic-based Chunking
-    println!("🏷️  Topic-based Chunking:");
-    let topic_config = ChunkingConfig {
-        mode: ChunkingMode::Topic { similarity_threshold: 0.3 },
-        token_max: 150,
-        overlap: 0,
-        preserve_sentences: true,
-        deterministic: true,
-    };
-    let topic_chunks = chunking::chunk_content(sample_content, &topic_config).await?;
-    for (i, chunk) in topic_chunks.iter().enumerate() {
-        println!("  Chunk {}: Keywords: {:?}",
-                i + 1, chunk.metadata.topic_keywords);
-    }
-    println!("  Total chunks: {}\n", topic_chunks.len());
+    println!("ℹ️  Note: CSS JSON and Regex extraction strategies have been moved to the riptide-html crate.\n");
+    println!("ℹ️  Note: LLM-based extraction strategies have been moved to the riptide-intelligence crate.\n");
+    println!("ℹ️  Note: Content chunking features have been moved to the riptide-html crate.\n");
 
     Ok(())
 }
@@ -243,109 +163,31 @@ async fn demo_strategy_manager(html: &str) -> Result<()> {
     println!("⚙️  STRATEGY MANAGER INTEGRATION");
     println!("==============================\n");
 
-    // Create configuration with Trek + Sliding window (defaults)
+    // Create configuration with Trek (core default)
     let config = StrategyConfig::default();
     let mut manager = StrategyManager::new(config);
 
     let start_time = std::time::Instant::now();
-    let result = manager.extract_and_chunk(html, "https://example.com").await?;
+    let result = manager.extract_content(html, "https://example.com").await?;
     let processing_time = start_time.elapsed();
 
     println!("🚀 Processing Results:");
-    println!("  Strategy: {}", result.extracted.strategy_used);
+    println!("  Strategy: Trek (Core)");
     println!("  Processing Time: {:.2}ms", processing_time.as_millis());
     println!("  Content Length: {} chars", result.extracted.content.len());
-    println!("  Chunks Created: {}", result.chunks.len());
 
-    println!("\n📊 Chunk Analysis:");
-    let mut total_quality = 0.0;
-    for chunk in &result.chunks {
-        total_quality += chunk.metadata.quality_score;
+    if let Some(title) = &result.metadata.title {
+        println!("  Title: {}", title);
     }
-    let avg_quality = total_quality / result.chunks.len() as f64;
-    println!("  Average Quality Score: {:.2}", avg_quality);
-
-    let avg_chunk_size = result.chunks.iter()
-        .map(|c| c.content.len())
-        .sum::<usize>() / result.chunks.len();
-    println!("  Average Chunk Size: {} chars", avg_chunk_size);
-
-    if let Some(metrics) = &result.metrics {
-        let summary = metrics.get_summary();
-        println!("\n📈 Performance Metrics:");
-        println!("  Total Extractions: {}", summary.total_extractions);
-        println!("  Best Strategy: {}", summary.best_performing_strategy);
-        println!("  Best Throughput: {:.2} MB/s", summary.best_throughput);
-    }
-    println!();
-
-    Ok(())
-}
-
-async fn demo_performance_comparison() -> Result<()> {
-    println!("🏁 PERFORMANCE COMPARISON");
-    println!("========================\n");
-
-    let test_content = "Performance test content. ".repeat(100);
-
-    let strategies = vec![
-        ("Trek", ExtractionStrategy::Trek),
-        ("CSS JSON", ExtractionStrategy::CssJson {
-            selectors: extraction::css_json::default_selectors()
-        }),
-        ("Regex", ExtractionStrategy::Regex {
-            patterns: extraction::regex::default_patterns()
-        }),
-    ];
-
-    println!("🚀 Strategy Performance (100 words):");
-    for (name, strategy) in strategies {
-        let config = StrategyConfig {
-            extraction: strategy,
-            chunking: ChunkingConfig::default(),
-            enable_metrics: true,
-            validate_schema: false, // Skip for performance
-        };
-
-        let mut manager = StrategyManager::new(config);
-        let start = std::time::Instant::now();
-
-        let _result = manager.extract_and_chunk(&test_content, "https://example.com").await?;
-        let duration = start.elapsed();
-
-        println!("  {}: {:.2}ms", name, duration.as_millis());
-    }
-
-    println!("\n🧩 Chunking Performance:");
-    let chunking_modes = vec![
-        ("Sliding", ChunkingMode::Sliding),
-        ("Sentence", ChunkingMode::Sentence { max_sentences: 3 }),
-        ("Fixed", ChunkingMode::Fixed { size: 200, by_tokens: false }),
-        ("Topic", ChunkingMode::Topic { similarity_threshold: 0.3 }),
-    ];
-
-    for (name, mode) in chunking_modes {
-        let config = ChunkingConfig {
-            mode,
-            token_max: 100,
-            overlap: 10,
-            preserve_sentences: true,
-            deterministic: true,
-        };
-
-        let start = std::time::Instant::now();
-        let chunks = chunking::chunk_content(&test_content, &config).await?;
-        let duration = start.elapsed();
-
-        println!("  {}: {:.2}ms ({} chunks)", name, duration.as_millis(), chunks.len());
+    if let Some(author) = &result.metadata.author {
+        println!("  Author: {}", author);
     }
 
     println!("\n💡 Recommendations:");
-    println!("  • Use Trek for fastest extraction");
-    println!("  • Use CSS JSON for structured content");
-    println!("  • Use Sliding chunking for balanced performance");
-    println!("  • Enable deterministic mode for consistency");
-    println!("  • Monitor quality scores for optimization");
+    println!("  • Use riptide-html for CSS/Regex extraction");
+    println!("  • Use riptide-intelligence for LLM-based extraction");
+    println!("  • Use riptide-html for content chunking");
+    println!("  • Trek provides fast baseline extraction in core");
     println!();
 
     Ok(())

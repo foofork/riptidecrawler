@@ -259,6 +259,7 @@ impl LlmProvider for VertexAIProvider {
             }
         };
 
+        let total_tokens = usage.total_tokens;
         let completion_response = CompletionResponse {
             id: uuid::Uuid::new_v4(),
             request_id: request.id,
@@ -270,7 +271,7 @@ impl LlmProvider for VertexAIProvider {
             metadata: HashMap::new(),
         };
 
-        debug!("Vertex AI completion successful, tokens used: {}", usage.total_tokens);
+        debug!("Vertex AI completion successful, tokens used: {}", total_tokens);
         Ok(completion_response)
     }
 

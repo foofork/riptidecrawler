@@ -3,14 +3,15 @@
 //! Demonstrates how to integrate and use the comprehensive security layer
 //! including API keys, budget enforcement, PII redaction, and audit logging.
 
-use riptide_core::security::*;
+use riptide_core::security::{self, *};
+use riptide_core::security::audit::AuditLogFormat;
 use std::sync::Arc;
-use tokio;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Initialize tracing
-    tracing_subscriber::init();
+    use tracing_subscriber;
+    tracing_subscriber::fmt::init();
     
     println!("🔐 RipTide Security Integration Example");
     println!("=====================================\n");
@@ -85,7 +86,7 @@ async fn main() -> anyhow::Result<()> {
             "Production API Key".to_string(),
             Some("Main production key for ACME Corp".to_string()),
             vec!["read".to_string(), "write".to_string(), "admin".to_string()],
-            Some(RateLimitConfig {
+            Some(types::RateLimitConfig {
                 requests_per_minute: 100,
                 requests_per_hour: 5000,
                 requests_per_day: 50000,
@@ -102,7 +103,7 @@ async fn main() -> anyhow::Result<()> {
             "Development API Key".to_string(),
             Some("Development and testing key".to_string()),
             vec!["read".to_string(), "write".to_string()],
-            Some(RateLimitConfig {
+            Some(types::RateLimitConfig {
                 requests_per_minute: 20,
                 requests_per_hour: 500,
                 requests_per_day: 2000,

@@ -1,5 +1,5 @@
 use riptide_workers::prelude::*;
-use riptide_workers::{PdfProcessor, PdfExtractionOptions};
+use riptide_workers::{PdfProcessor, PdfExtractionOptions, SchedulerConfig};
 use std::sync::Arc;
 use tracing::{info, Level};
 use tracing_subscriber;
@@ -15,6 +15,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Create worker service configuration
     let config = WorkerServiceConfig {
+        redis_url: "redis://127.0.0.1:6379".to_string(),
         worker_config: WorkerConfig {
             worker_count: 2,
             poll_interval_secs: 2,
@@ -23,15 +24,18 @@ async fn main() -> anyhow::Result<()> {
             ..Default::default()
         },
         queue_config: QueueConfig::default(),
-        scheduler_config: None,
+        scheduler_config: SchedulerConfig::default(),
+        max_batch_size: 10,
+        max_concurrency: 5,
+        wasm_path: "./wasm/riptide-extractor.wasm".to_string(),
+        enable_scheduler: false,
     };
 
     // Create worker service
     let mut service = WorkerService::new(config).await?;
 
-    // Add PDF processor
-    let pdf_processor = Arc::new(PdfProcessor::new());
-    service.add_processor(pdf_processor).await?;
+    // PDF processor would be registered during service initialization
+    // Note: add_processor method has been removed in the current API
 
     info!("PDF worker service configured, starting processing");
 
@@ -49,7 +53,8 @@ async fn main() -> anyhow::Result<()> {
             enable_progress: true,
             custom_settings: std::collections::HashMap::new(),
         }),
-    }).with_priority(JobPriority::High);
+    });
+    // Note: with_priority method has been removed; priority is set via JobType
 
     // Submit the job
     let job_id = service.submit_job(pdf_job).await?;

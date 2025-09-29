@@ -98,7 +98,7 @@ fn bench_time_series_operations(c: &mut Criterion) {
 
         b.iter(|| {
             black_box(
-                buffer.calculate_percentile(black_box(95.0), black_box(Duration::from_minutes(5))),
+                buffer.calculate_percentile(black_box(95.0), black_box(Duration::from_secs(5 * 60))),
             )
         });
     });
@@ -120,7 +120,7 @@ fn bench_performance_report_generation(c: &mut Criterion) {
                         Duration::from_millis(100 + i % 100),
                         i % 10 != 0, // 90% success rate
                         Some(80 + (i % 20) as u8),
-                        Some(500 + i * 10),
+                        Some((500 + i * 10) as u32),
                         i % 3 == 0, // 33% cache hit rate
                     )
                     .await;
@@ -131,7 +131,7 @@ fn bench_performance_report_generation(c: &mut Criterion) {
             rt.block_on(async {
                 black_box(
                     collector
-                        .get_performance_report(black_box(Duration::from_minutes(5)))
+                        .get_performance_report(black_box(Duration::from_secs(5 * 60)))
                         .await,
                 )
             })
