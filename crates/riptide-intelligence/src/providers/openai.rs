@@ -4,11 +4,11 @@ use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tracing::{debug, error, info};
+use tracing::{debug, info};
 
 use crate::{
     LlmProvider, CompletionRequest, CompletionResponse, LlmCapabilities, Cost, ModelInfo,
-    IntelligenceError, Result, Message, Role, Usage,
+    IntelligenceError, Result, Role, Usage,
 };
 
 /// OpenAI API response structure

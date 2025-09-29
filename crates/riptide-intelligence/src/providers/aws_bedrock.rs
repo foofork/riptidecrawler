@@ -1,13 +1,13 @@
 //! AWS Bedrock provider implementation
 
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::collections::HashMap;
-use tracing::{debug, error, info};
+use tracing::{debug, info};
 
 use crate::{
     LlmProvider, CompletionRequest, CompletionResponse, LlmCapabilities, Cost, ModelInfo,
-    IntelligenceError, Result, Message, Role, Usage,
+    IntelligenceError, Result, Role, Usage,
 };
 
 /// AWS Bedrock provider implementation
@@ -15,7 +15,9 @@ use crate::{
 /// and proper authentication mechanisms.
 pub struct BedrockProvider {
     region: String,
+    #[allow(dead_code)]
     access_key: Option<String>,
+    #[allow(dead_code)]
     secret_key: Option<String>,
     model_costs: HashMap<String, (f64, f64)>, // (prompt_cost_per_1k, completion_cost_per_1k)
 }
@@ -59,12 +61,12 @@ impl BedrockProvider {
 
     fn build_claude_payload(&self, request: &CompletionRequest) -> Result<serde_json::Value> {
         let mut prompt = String::new();
-        let mut system_message = None;
+        let mut _system_message = None;
 
         for message in &request.messages {
             match message.role {
                 Role::System => {
-                    system_message = Some(message.content.clone());
+                    _system_message = Some(message.content.clone());
                 }
                 Role::User => {
                     prompt.push_str(&format!("\n\nHuman: {}", message.content));
@@ -186,6 +188,7 @@ impl BedrockProvider {
     }
 
     /// Parse response based on model type
+    #[allow(dead_code)]
     fn parse_bedrock_response(&self, model: &str, response_body: &str) -> Result<(String, Usage)> {
         if model.starts_with("anthropic.claude") {
             self.parse_claude_response(response_body)
@@ -200,6 +203,7 @@ impl BedrockProvider {
         }
     }
 
+    #[allow(dead_code)]
     fn parse_claude_response(&self, response_body: &str) -> Result<(String, Usage)> {
         #[derive(Deserialize)]
         struct ClaudeResponse {
@@ -234,6 +238,7 @@ impl BedrockProvider {
         Ok((response.completion, usage))
     }
 
+    #[allow(dead_code)]
     fn parse_titan_response(&self, response_body: &str) -> Result<(String, Usage)> {
         #[derive(Deserialize)]
         struct TitanResponse {
@@ -265,6 +270,7 @@ impl BedrockProvider {
         Ok((result.output_text, usage))
     }
 
+    #[allow(dead_code)]
     fn parse_llama_response(&self, response_body: &str) -> Result<(String, Usage)> {
         #[derive(Deserialize)]
         struct LlamaResponse {

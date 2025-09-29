@@ -288,7 +288,7 @@ impl MetricsCollector {
         for metric in &filtered_metrics {
             provider_groups
                 .entry(metric.provider_name.clone())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(metric);
         }
 
@@ -301,7 +301,7 @@ impl MetricsCollector {
             for metric in &provider_metrics {
                 model_groups
                     .entry(metric.model_name.clone())
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(metric);
             }
 
@@ -331,7 +331,7 @@ impl MetricsCollector {
             if let Some(tenant_id) = &metric.tenant_id {
                 tenant_groups
                     .entry(tenant_id.clone())
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(metric);
             }
         }
@@ -345,7 +345,7 @@ impl MetricsCollector {
             for metric in &tenant_metrics {
                 provider_groups
                     .entry(metric.provider_name.clone())
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(metric);
             }
 
@@ -360,7 +360,7 @@ impl MetricsCollector {
             for metric in &tenant_metrics {
                 model_groups
                     .entry(metric.model_name.clone())
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(metric);
             }
 
@@ -400,7 +400,7 @@ impl MetricsCollector {
             if let Some(error_type) = &metric.error_type {
                 error_groups
                     .entry(error_type.clone())
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(metric);
             }
         }

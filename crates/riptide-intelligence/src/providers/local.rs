@@ -4,11 +4,11 @@ use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tracing::{debug, error, info};
+use tracing::{debug, info};
 
 use crate::{
     LlmProvider, CompletionRequest, CompletionResponse, LlmCapabilities, Cost, ModelInfo,
-    IntelligenceError, Result, Message, Role, Usage,
+    IntelligenceError, Result, Role, Usage,
 };
 
 /// Ollama API response structure
@@ -24,6 +24,7 @@ struct OllamaResponse {
 
 #[derive(Debug, Deserialize)]
 struct OllamaMessage {
+    #[allow(dead_code)]
     role: String,
     content: String,
 }
@@ -57,11 +58,13 @@ struct OllamaOptions {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct OllamaModelsResponse {
     models: Vec<OllamaModelInfo>,
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct OllamaModelInfo {
     name: String,
     size: u64,
@@ -70,6 +73,7 @@ struct OllamaModelInfo {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct OllamaModelDetails {
     format: String,
     family: String,
@@ -80,6 +84,7 @@ struct OllamaModelDetails {
 pub struct OllamaProvider {
     client: Client,
     base_url: String,
+    #[allow(dead_code)]
     available_models: Vec<String>,
 }
 
@@ -98,6 +103,7 @@ impl OllamaProvider {
         })
     }
 
+    #[allow(dead_code)]
     async fn fetch_available_models(&mut self) -> Result<()> {
         let url = format!("{}/api/tags", self.base_url);
 

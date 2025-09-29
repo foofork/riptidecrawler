@@ -67,9 +67,7 @@ impl Eq for PriorityRequest {}
 
 impl PartialOrd for PriorityRequest {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        // BinaryHeap is a max-heap, so higher Ord values come first
-        // We want higher scores to come first, so use normal comparison
-        self.score.partial_cmp(&other.score)
+        Some(self.cmp(other))
     }
 }
 

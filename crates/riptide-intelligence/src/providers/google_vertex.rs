@@ -4,11 +4,11 @@ use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tracing::{debug, error, info};
+use tracing::{debug, info};
 
 use crate::{
     LlmProvider, CompletionRequest, CompletionResponse, LlmCapabilities, Cost, ModelInfo,
-    IntelligenceError, Result, Message, Role, Usage,
+    IntelligenceError, Result, Role, Usage,
 };
 
 /// Vertex AI API response structure
@@ -29,6 +29,7 @@ struct VertexCandidate {
 #[derive(Debug, Deserialize)]
 struct VertexContent {
     parts: Vec<VertexPart>,
+    #[allow(dead_code)]
     role: Option<String>,
 }
 

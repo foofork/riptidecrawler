@@ -150,11 +150,13 @@ pub struct CacheOptimizer {
     session_id: Uuid,
 
     // Cache layers
+    #[allow(clippy::type_complexity)]
     memory_cache: Arc<RwLock<HashMap<String, (Vec<u8>, CacheEntry)>>>,
     cache_stats: Arc<RwLock<CacheStats>>,
 
     // Optimization state
     access_patterns: Arc<RwLock<HashMap<String, AccessPattern>>>,
+    #[allow(dead_code)]
     eviction_queue: Arc<RwLock<VecDeque<String>>>,
 
     // Background tasks
@@ -235,7 +237,7 @@ impl CacheOptimizer {
         let mut is_optimizing = self.is_optimizing.write().await;
         if !*is_optimizing {
             warn!(session_id = %self.session_id, "Cache optimization not running");
-            return Err(PerformanceError::ConfigError("Optimization not running".to_string()).into());
+            return Err(PerformanceError::ConfigError("Optimization not running".to_string()));
         }
 
         info!(session_id = %self.session_id, "Stopping cache optimization");
@@ -456,7 +458,7 @@ impl CacheOptimizer {
 
         // Periodic optimization task
         if self.config.enable_adaptive_sizing {
-            let _optimizer_ref = Arc::new(RwLock::new(self as *const Self));
+            // Periodic optimization monitoring
             tokio::spawn(async move {
                 debug!(session_id = %session_id, "Starting periodic optimization task");
 
@@ -512,7 +514,7 @@ impl CacheOptimizer {
 
         // Keep only recent access times (last hour)
         let cutoff = now - Duration::from_secs(3600);
-        while pattern.access_times.front().map_or(false, |&time| time < cutoff) {
+        while pattern.access_times.front().is_some_and(|&time| time < cutoff) {
             pattern.access_times.pop_front();
         }
 

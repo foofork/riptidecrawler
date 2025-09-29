@@ -129,7 +129,9 @@ pub struct PerformanceManager {
     targets: PerformanceTargets,
     profiler: RwLock<profiling::MemoryProfiler>,
     monitor: RwLock<monitoring::PerformanceMonitor>,
+    #[allow(dead_code)]
     optimizer: RwLock<optimization::CacheOptimizer>,
+    #[allow(dead_code)]
     limiter: RwLock<limits::ResourceLimiter>,
     session_id: Uuid,
 }

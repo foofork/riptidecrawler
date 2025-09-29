@@ -1,6 +1,7 @@
 //! Tests for the trait-based strategy management system
 
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod tests {
     use crate::strategies::{
         TrekExtractionStrategy, StrategyRegistry, PerformanceTier,

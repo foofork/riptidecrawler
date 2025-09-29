@@ -347,7 +347,7 @@ impl ResourceLimiter {
                     } else {
                         return Err(PerformanceError::ResourceLimitExceeded(
                             format!("Circuit breaker open for service: {}", service)
-                        ).into());
+                        ));
                     }
                 }
                 CircuitState::HalfOpen => {
@@ -438,19 +438,18 @@ impl ResourceLimiter {
         breaker.failure_count += 1;
 
         // Check for state transitions
-        if breaker.state == CircuitState::Closed || breaker.state == CircuitState::HalfOpen {
-            if breaker.failure_count >= self.circuit_breaker_config.failure_threshold {
-                breaker.state = CircuitState::Open;
-                breaker.state_changed_at = Instant::now();
-                breaker.success_count = 0; // Reset success count
+        if (breaker.state == CircuitState::Closed || breaker.state == CircuitState::HalfOpen)
+            && breaker.failure_count >= self.circuit_breaker_config.failure_threshold {
+            breaker.state = CircuitState::Open;
+            breaker.state_changed_at = Instant::now();
+            breaker.success_count = 0; // Reset success count
 
-                warn!(
-                    session_id = %self.session_id,
-                    service = service,
-                    failure_count = breaker.failure_count,
-                    "Circuit breaker opened due to failures"
-                );
-            }
+            warn!(
+                session_id = %self.session_id,
+                service = service,
+                failure_count = breaker.failure_count,
+                "Circuit breaker opened due to failures"
+            );
         }
 
         Ok(())
@@ -541,7 +540,7 @@ impl ResourceLimiter {
         if limiter.request_count >= max_requests {
             return Err(PerformanceError::ResourceLimitExceeded(
                 "Global rate limit exceeded".to_string()
-            ).into());
+            ));
         }
 
         limiter.request_count += 1;
@@ -579,7 +578,7 @@ impl ResourceLimiter {
         if limiter.request_count >= limit {
             return Err(PerformanceError::ResourceLimitExceeded(
                 format!("Rate limit exceeded for client: {}", client_id)
-            ).into());
+            ));
         }
 
         limiter.request_count += 1;

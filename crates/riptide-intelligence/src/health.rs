@@ -12,11 +12,9 @@ use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{RwLock, mpsc};
 use tokio::time::interval;
-use async_trait::async_trait;
-use uuid::Uuid;
-use tracing::{info, warn, error, debug};
+use tracing::{info, warn, debug};
 
-use crate::{LlmProvider, IntelligenceError, Result};
+use crate::{LlmProvider, Result};
 
 /// Health check configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]

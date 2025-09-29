@@ -524,7 +524,7 @@ mod tests {
         let result = redactor.redact_text(text).unwrap();
         assert!(result.redacted_text.contains("[PHONE]"));
         // Both numbers should be detected
-        assert!(result.detections.len() >= 1);
+        assert!(!result.detections.is_empty());
         // Check that at least one phone was detected
         assert!(result.detections.iter().any(|d| d.pii_type == PiiType::Phone));
     }

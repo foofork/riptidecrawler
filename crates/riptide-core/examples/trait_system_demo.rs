@@ -79,8 +79,8 @@ async fn main() -> anyhow::Result<()> {
     let extraction_strategies = registry.list_extraction_strategies();
     println!("Available extraction strategies:");
     for (name, capabilities) in &extraction_strategies {
-        println!("  - {}: {} ({})", name, capabilities.strategy_type,
-                 format!("{:?}", capabilities.performance_tier));
+        println!("  - {}: {} ({:?})", name, capabilities.strategy_type,
+                 capabilities.performance_tier);
     }
 
     println!("Note: Chunking strategies have been moved to riptide-html crate");

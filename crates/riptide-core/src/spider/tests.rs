@@ -299,7 +299,7 @@ pub mod performance {
         let start_time = std::time::Instant::now();
         
         let mut retrieved = 0;
-        while let Some(_) = spider.frontier_manager().next_request().await.expect("Get should work") {
+        while spider.frontier_manager().next_request().await.expect("Get should work").is_some() {
             retrieved += 1;
             if retrieved >= 100 {
                 break; // Test first 100
@@ -408,7 +408,7 @@ pub mod edge_cases {
             .await.expect("Filtering should work even with some invalid URLs");
         
         // Should have at least the valid HTTPS URL
-        assert!(filtered.len() >= 1);
+        assert!(!filtered.is_empty());
     }
     
     /// Test budget overflow handling

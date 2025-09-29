@@ -479,7 +479,7 @@ mod tests {
         let _factory = EventAwarePoolFactory::new(event_bus);
 
         // Test that the factory is created successfully
-        assert!(true); // Placeholder test
+        // TODO: Add actual test logic when WASM components are available
     }
 
     #[tokio::test]

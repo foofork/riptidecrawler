@@ -4,16 +4,17 @@ use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tracing::{debug, error, info};
+use tracing::{debug, info};
 
 use crate::{
     LlmProvider, CompletionRequest, CompletionResponse, LlmCapabilities, Cost, ModelInfo,
-    IntelligenceError, Result, Message, Role, Usage,
+    IntelligenceError, Result, Role, Usage,
 };
 
 /// Anthropic API response structure
 #[derive(Debug, Deserialize)]
 struct AnthropicResponse {
+    #[allow(dead_code)]
     id: String,
     content: Vec<AnthropicContent>,
     usage: AnthropicUsage,

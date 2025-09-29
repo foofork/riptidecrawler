@@ -24,8 +24,6 @@ pub use aws_bedrock::BedrockProvider;
 pub use google_vertex::VertexAIProvider;
 
 use std::sync::Arc;
-use std::collections::HashMap;
-use serde_json::Value;
 
 use crate::{LlmProvider, registry::ProviderConfig, IntelligenceError, Result};
 
@@ -93,6 +91,7 @@ fn get_config_string_optional(config: &ProviderConfig, key: &str) -> Option<Stri
 }
 
 /// Helper to get boolean configuration value
+#[allow(dead_code)]
 fn get_config_bool(config: &ProviderConfig, key: &str, default: bool) -> bool {
     config.config.get(key)
         .and_then(|v| v.as_bool())
@@ -100,6 +99,7 @@ fn get_config_bool(config: &ProviderConfig, key: &str, default: bool) -> bool {
 }
 
 /// Helper to get number configuration value
+#[allow(dead_code)]
 fn get_config_f64(config: &ProviderConfig, key: &str, default: f64) -> f64 {
     config.config.get(key)
         .and_then(|v| v.as_f64())

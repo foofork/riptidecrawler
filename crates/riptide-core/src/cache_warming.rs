@@ -823,9 +823,11 @@ mod tests {
 
     #[test]
     fn test_cache_warming_stats() {
-        let mut stats = CacheWarmingStats::default();
-        stats.cache_hits = 85;
-        stats.cache_misses = 15;
+        let mut stats = CacheWarmingStats {
+            cache_hits: 85,
+            cache_misses: 15,
+            ..Default::default()
+        };
 
         assert_eq!(stats.cache_hit_ratio(), 0.85);
 

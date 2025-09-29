@@ -3,7 +3,7 @@
 //! Demonstrates how to integrate and use the comprehensive security layer
 //! including API keys, budget enforcement, PII redaction, and audit logging.
 
-use riptide_core::security::{self, *};
+use riptide_core::security::*;
 use riptide_core::security::audit::AuditLogFormat;
 use std::sync::Arc;
 
@@ -290,7 +290,7 @@ async fn main() -> anyhow::Result<()> {
     // Step 6: PII redaction testing
     println!("\n📋 Step 6: PII Redaction Testing");
     
-    let test_documents = vec![
+    let test_documents = [
         "Customer John Doe (john.doe@example.com) called about his order. Phone: 555-123-4567",
         "Payment failed for card 4532-1234-5678-9012. Please contact customer service.",
         "SSN verification needed: 123-45-6789. API key: API-KEY-1234567890ABCDEF",

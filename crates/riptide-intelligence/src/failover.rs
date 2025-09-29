@@ -518,7 +518,7 @@ impl FailoverManager {
 
                 let downtime = state.last_used
                     .map(|last| chrono::Utc::now() - last)
-                    .unwrap_or_else(|| chrono::Duration::zero());
+                    .unwrap_or_else(chrono::Duration::zero);
 
                 state.status = ProviderStatus::Available;
                 state.circuit_breaker_open_until = None;

@@ -49,7 +49,7 @@ fn bench_metrics_collection(c: &mut Criterion) {
                 b.iter(|| {
                     rt.block_on(async {
                         for _ in 0..batch_size {
-                            black_box(
+                            let _ = black_box(
                                 collector
                                     .record_extraction(
                                         black_box(Duration::from_millis(100)),
@@ -76,20 +76,21 @@ fn bench_time_series_operations(c: &mut Criterion) {
     // Benchmark time series buffer operations
     group.bench_function("add_data_point", |b| {
         b.iter(|| {
-            let mut buffer = TimeSeriesBuffer::new(1000, Duration::from_secs(1 * 3600));
+            let mut buffer = TimeSeriesBuffer::new(1000, Duration::from_secs(3600));
 
             for i in 0..100 {
-                black_box(buffer.add_point(
+                buffer.add_point(
                     black_box(i as f64),
                     black_box(std::collections::HashMap::new()),
-                ));
+                );
+                black_box(());
             }
         });
     });
 
     // Benchmark percentile calculations
     group.bench_function("calculate_percentile", |b| {
-        let mut buffer = TimeSeriesBuffer::new(1000, Duration::from_secs(1 * 3600));
+        let mut buffer = TimeSeriesBuffer::new(1000, Duration::from_secs(3600));
 
         // Pre-populate buffer with data
         for i in 0..1000 {
@@ -115,7 +116,7 @@ fn bench_performance_report_generation(c: &mut Criterion) {
         // Pre-populate with data
         rt.block_on(async {
             for i in 0..1000 {
-                collector
+                let _ = collector
                     .record_extraction(
                         Duration::from_millis(100 + i % 100),
                         i % 10 != 0, // 90% success rate
@@ -131,7 +132,7 @@ fn bench_performance_report_generation(c: &mut Criterion) {
             rt.block_on(async {
                 black_box(
                     collector
-                        .get_performance_report(black_box(Duration::from_secs(5 * 60)))
+                        .get_current_metrics()
                         .await,
                 )
             })
@@ -158,7 +159,7 @@ fn bench_concurrent_metrics_collection(c: &mut Criterion) {
                                 let collector = &collector;
                                 async move {
                                     for _ in 0..100 {
-                                        collector
+                                        let _ = collector
                                             .record_extraction(
                                                 Duration::from_millis(100),
                                                 true,
@@ -199,10 +200,11 @@ fn bench_memory_usage_patterns(c: &mut Criterion) {
 
                     // Simulate continuous data collection
                     for i in 0..1000 {
-                        black_box(buffer.add_point(
+                        buffer.add_point(
                             black_box(i as f64),
                             black_box(std::collections::HashMap::new()),
-                        ));
+                        );
+                        black_box(());
                     }
                 });
             },
@@ -307,7 +309,7 @@ fn bench_telemetry_system(c: &mut Criterion) {
 fn bench_data_sanitization(c: &mut Criterion) {
     let sanitizer = DataSanitizer::new();
 
-    let test_strings = vec![
+    let test_strings = [
         "Normal log message without sensitive data",
         "API key: sk-1234567890abcdef1234567890abcdef in the request",
         "User email user@example.com contacted support",

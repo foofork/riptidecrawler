@@ -1,7 +1,7 @@
 //! Flamegraph generation for performance analysis
 
 use anyhow::Result;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use tracing::{debug, info, warn};
 use uuid::Uuid;
@@ -154,7 +154,7 @@ impl FlamegraphGenerator {
         // Record with perf
         let perf_data_path = self.output_dir.join("perf.data");
         let perf_record = Command::new("perf")
-            .args(&[
+            .args([
                 "record",
                 "-F", "97", // Sample frequency
                 "-g",       // Call graphs
@@ -187,12 +187,12 @@ impl FlamegraphGenerator {
     }
 
     /// Convert perf data to flamegraph
-    async fn perf_to_flamegraph(&self, perf_data: &PathBuf, output_path: &PathBuf) -> Result<()> {
+    async fn perf_to_flamegraph(&self, perf_data: &Path, output_path: &Path) -> Result<()> {
         // Convert perf.data to folded format
         let folded_path = self.output_dir.join("folded.txt");
 
         let perf_script = Command::new("perf")
-            .args(&[
+            .args([
                 "script",
                 "-i", perf_data.to_str().unwrap(),
             ])
@@ -222,7 +222,7 @@ impl FlamegraphGenerator {
     }
 
     /// Generate flamegraph using Rust flamegraph library
-    async fn rust_flamegraph(&self, folded_path: &PathBuf, output_path: &PathBuf) -> Result<()> {
+    async fn rust_flamegraph(&self, folded_path: &Path, output_path: &Path) -> Result<()> {
         #[cfg(feature = "bottleneck-analysis")]
         {
             // use flamegraph::{from_lines, Options};
@@ -392,18 +392,16 @@ impl FlamegraphGenerator {
         let cutoff = std::time::SystemTime::now() - std::time::Duration::from_secs(max_age_hours * 3600);
 
         if let Ok(entries) = std::fs::read_dir(&self.output_dir) {
-            for entry in entries {
-                if let Ok(entry) = entry {
-                    if let Ok(metadata) = entry.metadata() {
-                        if let Ok(modified) = metadata.modified() {
-                            if modified < cutoff {
-                                if let Err(e) = std::fs::remove_file(entry.path()) {
-                                    warn!(
-                                        path = ?entry.path(),
-                                        error = ?e,
-                                        "Failed to remove old flamegraph file"
-                                    );
-                                }
+            for entry in entries.flatten() {
+                if let Ok(metadata) = entry.metadata() {
+                    if let Ok(modified) = metadata.modified() {
+                        if modified < cutoff {
+                            if let Err(e) = std::fs::remove_file(entry.path()) {
+                                warn!(
+                                    path = ?entry.path(),
+                                    error = ?e,
+                                    "Failed to remove old flamegraph file"
+                                );
                             }
                         }
                     }

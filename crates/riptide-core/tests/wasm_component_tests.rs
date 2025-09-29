@@ -55,5 +55,5 @@ fn test_article_extraction() {
     assert_eq!(result.title, Some("Article Title".to_string()));
     assert!(result.text.contains("First paragraph"));
     assert!(result.text.contains("Second paragraph"));
-    assert!(result.links.len() > 0);
+    assert!(!result.links.is_empty());
 }

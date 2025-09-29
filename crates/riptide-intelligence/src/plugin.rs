@@ -12,9 +12,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
 use thiserror::Error;
-use uuid::Uuid;
-
-use crate::{LlmProvider, IntelligenceError, Result};
+use crate::LlmProvider;
 
 /// Plugin metadata describing a provider plugin
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -188,7 +186,7 @@ pub enum PluginError {
 #[async_trait]
 pub trait PluginLoader: Send + Sync {
     /// Load a plugin from the given path
-    async fn load_plugin(&self, path: &PathBuf) -> std::result::Result<Box<dyn Plugin>, PluginError>;
+    async fn load_plugin(&self, path: &std::path::Path) -> std::result::Result<Box<dyn Plugin>, PluginError>;
 
     /// Validate plugin compatibility
     async fn validate_plugin(&self, metadata: &PluginMetadata) -> std::result::Result<(), PluginError>;
@@ -392,6 +390,7 @@ pub struct PluginRegistryStats {
 
 /// Default filesystem-based plugin loader
 pub struct FileSystemPluginLoader {
+    #[allow(dead_code)]
     plugin_dir: PathBuf,
 }
 
@@ -403,7 +402,7 @@ impl FileSystemPluginLoader {
 
 #[async_trait]
 impl PluginLoader for FileSystemPluginLoader {
-    async fn load_plugin(&self, _path: &PathBuf) -> std::result::Result<Box<dyn Plugin>, PluginError> {
+    async fn load_plugin(&self, _path: &std::path::Path) -> std::result::Result<Box<dyn Plugin>, PluginError> {
         // For now, this is a placeholder implementation
         // In a real implementation, this would:
         // 1. Load the plugin binary/library

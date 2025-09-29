@@ -230,7 +230,7 @@ impl PerformanceMonitor {
         let mut is_monitoring = self.is_monitoring.write().await;
         if !*is_monitoring {
             warn!(session_id = %self.session_id, "Performance monitoring not running");
-            return Err(PerformanceError::MonitoringError("Monitoring not running".to_string()).into());
+            return Err(PerformanceError::MonitoringError("Monitoring not running".to_string()));
         }
 
         info!(session_id = %self.session_id, "Stopping performance monitoring");
@@ -318,7 +318,7 @@ impl PerformanceMonitor {
             }
         }
 
-        Err(PerformanceError::MonitoringError(format!("Alert {} not found", alert_id)).into())
+        Err(PerformanceError::MonitoringError(format!("Alert {} not found", alert_id)))
     }
 
     /// Start background monitoring tasks

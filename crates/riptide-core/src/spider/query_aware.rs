@@ -199,21 +199,12 @@ impl UrlSignalAnalyzer {
 }
 
 /// Domain diversity scoring to encourage broad crawling
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct DomainDiversityAnalyzer {
     /// Domains already crawled with their page counts
     domain_counts: HashMap<String, usize>,
     /// Total pages crawled
     total_pages: usize,
-}
-
-impl Default for DomainDiversityAnalyzer {
-    fn default() -> Self {
-        Self {
-            domain_counts: HashMap::new(),
-            total_pages: 0,
-        }
-    }
 }
 
 impl DomainDiversityAnalyzer {

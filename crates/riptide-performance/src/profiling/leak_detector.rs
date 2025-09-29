@@ -11,6 +11,7 @@ use super::{LeakAnalysis, LeakInfo, AllocationInfo};
 pub struct LeakDetector {
     allocations: HashMap<String, ComponentAllocations>,
     start_time: Instant,
+    #[allow(dead_code)]
     last_analysis: Option<Instant>,
 }
 

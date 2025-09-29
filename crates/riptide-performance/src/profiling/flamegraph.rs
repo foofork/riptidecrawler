@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 use tracing::{debug, error, info};
@@ -90,7 +90,7 @@ impl FlameGraphGenerator {
 
         let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
         let filename = format!("flamegraph_{}_{}.svg", timestamp, count);
-        let output_path = PathBuf::from(&config.output_directory).join(&filename);
+        let output_path = Path::new(&config.output_directory).join(&filename);
 
         #[cfg(feature = "flamegraph")]
         {

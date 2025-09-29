@@ -72,12 +72,11 @@ impl TopicChunker {
             word_count += 1;
 
             // End sentence on punctuation or after ~20 words (pseudo-sentence)
-            if word.ends_with('.') || word.ends_with('!') || word.ends_with('?') || word_count >= 20 {
-                if !current_sentence.trim().is_empty() {
-                    sentences.push(current_sentence.trim().to_string());
-                    current_sentence.clear();
-                    word_count = 0;
-                }
+            if (word.ends_with('.') || word.ends_with('!') || word.ends_with('?') || word_count >= 20)
+                && !current_sentence.trim().is_empty() {
+                sentences.push(current_sentence.trim().to_string());
+                current_sentence.clear();
+                word_count = 0;
             }
         }
 
@@ -187,15 +186,15 @@ impl TopicChunker {
             let mut right_vocab = HashMap::new();
 
             // Left block: combine vocabularies from (i - window_size) to i
-            for j in (i - self.window_size)..i {
-                for (word, &count) in &sentence_vocabs[j] {
+            for vocab in sentence_vocabs.iter().skip(i - self.window_size).take(self.window_size) {
+                for (word, &count) in vocab {
                     *left_vocab.entry(word.clone()).or_insert(0) += count;
                 }
             }
 
             // Right block: combine vocabularies from i to (i + window_size)
-            for j in i..(i + self.window_size) {
-                for (word, &count) in &sentence_vocabs[j] {
+            for vocab in sentence_vocabs.iter().skip(i).take(self.window_size) {
+                for (word, &count) in vocab {
                     *right_vocab.entry(word.clone()).or_insert(0) += count;
                 }
             }
