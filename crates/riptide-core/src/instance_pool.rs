@@ -682,73 +682,75 @@ impl AdvancedInstancePool {
 
     /// Record extraction result for circuit breaker
     async fn record_extraction_result(&self, success: bool, duration: Duration) {
-        let mut state = self.circuit_state.lock().await;
-        let mut metrics = self.metrics.lock().await;
+        // Phase 1: Update metrics in scoped block
+        let (circuit_breaker_trips, failed_extractions, total_extractions) = {
+            let mut metrics = self.metrics.lock().await;
 
-        // Update basic metrics
-        metrics.total_extractions += 1;
-        if success {
-            metrics.successful_extractions += 1;
-        } else {
-            metrics.failed_extractions += 1;
-        }
+            // Update basic metrics
+            metrics.total_extractions += 1;
+            if success {
+                metrics.successful_extractions += 1;
+            } else {
+                metrics.failed_extractions += 1;
+            }
 
-        // Update average processing time
-        let new_time = duration.as_millis() as f64;
-        metrics.avg_processing_time_ms = if metrics.total_extractions == 1 {
-            new_time
-        } else {
-            (metrics.avg_processing_time_ms + new_time) / 2.0
-        };
+            // Update average processing time
+            let new_time = duration.as_millis() as f64;
+            metrics.avg_processing_time_ms = if metrics.total_extractions == 1 {
+                new_time
+            } else {
+                (metrics.avg_processing_time_ms + new_time) / 2.0
+            };
 
-        // Update circuit breaker state
-        let new_state = match &*state {
-            CircuitBreakerState::Closed { failure_count, success_count, .. } => {
-                let new_failure_count = if success { 0 } else { failure_count + 1 };
-                let new_success_count = if success { success_count + 1 } else { *success_count };
-                let total_requests = new_failure_count + new_success_count;
+            (metrics.circuit_breaker_trips, metrics.failed_extractions, metrics.total_extractions)
+        }; // Metrics lock dropped here
 
-                if total_requests >= 10 {
-                    let failure_rate = (new_failure_count as f64 / total_requests as f64) * 100.0;
-                    if failure_rate >= self.config.circuit_breaker_failure_threshold as f64 {
-                        metrics.circuit_breaker_trips += 1;
-                        warn!(
-                            failure_rate = failure_rate,
-                            threshold = self.config.circuit_breaker_failure_threshold,
-                            "Circuit breaker opened due to high failure rate"
-                        );
+        // Phase 2: Update circuit breaker state in scoped block
+        let (should_emit_trip_event, should_emit_reset_event, trip_metrics, successful_extractions) = {
+            let mut state = self.circuit_state.lock().await;
+            let mut should_emit_trip = false;
+            let mut should_emit_reset = false;
+            let mut trip_data = None;
+            let mut success_count = 0;
 
-                        // Emit circuit breaker tripped event
-                        if let Some(event_bus) = &self.event_bus {
-                            let rt = tokio::runtime::Handle::current();
-                            let event_bus = event_bus.clone();
-                            let pool_id = self.pool_id.clone();
-                            let failure_threshold = self.config.circuit_breaker_failure_threshold;
-                            let total_trips = metrics.circuit_breaker_trips;
-                            let failed_extractions = metrics.failed_extractions;
-                            let total_extractions = metrics.total_extractions;
+            // Update circuit breaker state
+            let new_state = match &*state {
+                CircuitBreakerState::Closed { failure_count, success_count: sc, .. } => {
+                    let new_failure_count = if success { 0 } else { failure_count + 1 };
+                    let new_success_count = if success { sc + 1 } else { *sc };
+                    let total_requests = new_failure_count + new_success_count;
 
-                            rt.spawn(async move {
-                                let mut event = PoolEvent::new(
-                                    PoolOperation::CircuitBreakerTripped,
-                                    pool_id,
-                                    "instance_pool",
-                                );
+                    if total_requests >= 10 {
+                        let failure_rate = (new_failure_count as f64 / total_requests as f64) * 100.0;
+                        if failure_rate >= self.config.circuit_breaker_failure_threshold as f64 {
+                            // Need to update metrics again for circuit breaker trips
+                            let new_trips = circuit_breaker_trips + 1;
 
-                                event.add_metadata("failure_threshold", &failure_threshold.to_string());
-                                event.add_metadata("total_trips", &total_trips.to_string());
-                                event.add_metadata("failed_extractions", &failed_extractions.to_string());
-                                event.add_metadata("total_extractions", &total_extractions.to_string());
+                            warn!(
+                                failure_rate = failure_rate,
+                                threshold = self.config.circuit_breaker_failure_threshold,
+                                "Circuit breaker opened due to high failure rate"
+                            );
 
-                                if let Err(e) = event_bus.emit(event).await {
-                                    warn!(error = %e, "Failed to emit circuit breaker tripped event");
-                                }
-                            });
-                        }
+                            // Mark that we should emit event after locks are released
+                            should_emit_trip = true;
+                            trip_data = Some((
+                                self.config.circuit_breaker_failure_threshold,
+                                new_trips,
+                                failed_extractions,
+                                total_extractions,
+                            ));
 
-                        CircuitBreakerState::Open {
-                            opened_at: Instant::now(),
-                            failure_count: new_failure_count,
+                            CircuitBreakerState::Open {
+                                opened_at: Instant::now(),
+                                failure_count: new_failure_count,
+                            }
+                        } else {
+                            CircuitBreakerState::Closed {
+                                failure_count: new_failure_count,
+                                success_count: new_success_count,
+                                last_failure: if success { None } else { Some(Instant::now()) },
+                            }
                         }
                     } else {
                         CircuitBreakerState::Closed {
@@ -757,77 +759,109 @@ impl AdvancedInstancePool {
                             last_failure: if success { None } else { Some(Instant::now()) },
                         }
                     }
-                } else {
-                    CircuitBreakerState::Closed {
-                        failure_count: new_failure_count,
-                        success_count: new_success_count,
-                        last_failure: if success { None } else { Some(Instant::now()) },
+                }
+                CircuitBreakerState::Open { opened_at, failure_count } => {
+                    if opened_at.elapsed() >= Duration::from_millis(self.config.circuit_breaker_timeout) {
+                        info!("Circuit breaker transitioning to half-open");
+                        CircuitBreakerState::HalfOpen {
+                            test_requests: 0,
+                            start_time: Instant::now(),
+                        }
+                    } else {
+                        CircuitBreakerState::Open {
+                            opened_at: *opened_at,
+                            failure_count: *failure_count,
+                        }
                     }
                 }
-            }
-            CircuitBreakerState::Open { opened_at, failure_count } => {
-                if opened_at.elapsed() >= Duration::from_millis(self.config.circuit_breaker_timeout) {
-                    info!("Circuit breaker transitioning to half-open");
-                    CircuitBreakerState::HalfOpen {
-                        test_requests: 0,
-                        start_time: Instant::now(),
-                    }
-                } else {
-                    CircuitBreakerState::Open {
-                        opened_at: *opened_at,
-                        failure_count: *failure_count,
-                    }
-                }
-            }
-            CircuitBreakerState::HalfOpen { test_requests, start_time } => {
-                if success {
-                    info!("Circuit breaker closing after successful test request");
+                CircuitBreakerState::HalfOpen { test_requests, start_time } => {
+                    if success {
+                        info!("Circuit breaker closing after successful test request");
 
-                    // Emit circuit breaker reset event
-                    if let Some(event_bus) = &self.event_bus {
-                        let rt = tokio::runtime::Handle::current();
-                        let event_bus = event_bus.clone();
-                        let pool_id = self.pool_id.clone();
-                        let total_trips = metrics.circuit_breaker_trips;
-                        let successful_extractions = metrics.successful_extractions;
+                        // Mark that we should emit reset event after locks are released
+                        should_emit_reset = true;
+                        success_count = 1; // Track successful extractions for event
 
-                        rt.spawn(async move {
-                            let mut event = PoolEvent::new(
-                                PoolOperation::CircuitBreakerReset,
-                                pool_id,
-                                "instance_pool",
-                            );
-
-                            event.add_metadata("total_trips", &total_trips.to_string());
-                            event.add_metadata("successful_extractions", &successful_extractions.to_string());
-
-                            if let Err(e) = event_bus.emit(event).await {
-                                warn!(error = %e, "Failed to emit circuit breaker reset event");
-                            }
-                        });
-                    }
-
-                    CircuitBreakerState::Closed {
-                        failure_count: 0,
-                        success_count: 1,
-                        last_failure: None,
-                    }
-                } else if *test_requests >= 3 {
-                    warn!("Circuit breaker reopening after failed test requests");
-                    CircuitBreakerState::Open {
-                        opened_at: Instant::now(),
-                        failure_count: 1,
-                    }
-                } else {
-                    CircuitBreakerState::HalfOpen {
-                        test_requests: test_requests + 1,
-                        start_time: *start_time,
+                        CircuitBreakerState::Closed {
+                            failure_count: 0,
+                            success_count: 1,
+                            last_failure: None,
+                        }
+                    } else if *test_requests >= 3 {
+                        warn!("Circuit breaker reopening after failed test requests");
+                        CircuitBreakerState::Open {
+                            opened_at: Instant::now(),
+                            failure_count: 1,
+                        }
+                    } else {
+                        CircuitBreakerState::HalfOpen {
+                            test_requests: test_requests + 1,
+                            start_time: *start_time,
+                        }
                     }
                 }
-            }
-        };
+            };
 
-        *state = new_state;
+            *state = new_state;
+
+            (should_emit_trip, should_emit_reset, trip_data, success_count)
+        }; // Circuit state lock dropped here
+
+        // Update metrics if circuit breaker tripped (needs separate lock acquisition)
+        if should_emit_trip_event {
+            let mut metrics = self.metrics.lock().await;
+            metrics.circuit_breaker_trips += 1;
+        } // Metrics lock dropped here
+
+        // Phase 3: Emit events without holding any locks
+        if should_emit_trip_event {
+            if let Some((failure_threshold, total_trips, failed_extractions, total_extractions)) = trip_metrics {
+                if let Some(event_bus) = &self.event_bus {
+                    let event_bus = event_bus.clone();
+                    let pool_id = self.pool_id.clone();
+
+                    tokio::spawn(async move {
+                        let mut event = PoolEvent::new(
+                            PoolOperation::CircuitBreakerTripped,
+                            pool_id,
+                            "instance_pool",
+                        );
+
+                        event.add_metadata("failure_threshold", &failure_threshold.to_string());
+                        event.add_metadata("total_trips", &total_trips.to_string());
+                        event.add_metadata("failed_extractions", &failed_extractions.to_string());
+                        event.add_metadata("total_extractions", &total_extractions.to_string());
+
+                        if let Err(e) = event_bus.emit(event).await {
+                            warn!(error = %e, "Failed to emit circuit breaker tripped event");
+                        }
+                    });
+                }
+            }
+        }
+
+        if should_emit_reset_event {
+            if let Some(event_bus) = &self.event_bus {
+                let event_bus = event_bus.clone();
+                let pool_id = self.pool_id.clone();
+                let total_trips = circuit_breaker_trips;
+
+                tokio::spawn(async move {
+                    let mut event = PoolEvent::new(
+                        PoolOperation::CircuitBreakerReset,
+                        pool_id,
+                        "instance_pool",
+                    );
+
+                    event.add_metadata("total_trips", &total_trips.to_string());
+                    event.add_metadata("successful_extractions", &successful_extractions.to_string());
+
+                    if let Err(e) = event_bus.emit(event).await {
+                        warn!(error = %e, "Failed to emit circuit breaker reset event");
+                    }
+                });
+            }
+        }
     }
 
     /// Record timeout occurrence

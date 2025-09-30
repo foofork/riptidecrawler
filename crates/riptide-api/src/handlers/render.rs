@@ -10,6 +10,7 @@ use riptide_core::stealth::StealthController;
 use riptide_core::types::{ExtractedDoc, OutputFormat, RenderMode};
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
+use tokio::time::{timeout, Duration};
 use tracing::{debug, error, info, warn};
 use url;
 
@@ -555,12 +556,24 @@ async fn process_dynamic(
     // For now, dynamic rendering will use default browser state
     // Future enhancement: rpc_client.render_dynamic_with_session(...)
 
-    // Call dynamic rendering via RPC
-    match rpc_client
-        .render_dynamic(url, dynamic_config, stealth_config.as_ref())
-        .await
-    {
-        Ok(mut render_result) => {
+    // Get render timeout from configuration
+    let render_timeout = Duration::from_secs(state.api_config.performance.render_timeout_secs);
+
+    debug!(
+        url = %url,
+        timeout_secs = state.api_config.performance.render_timeout_secs,
+        "Applying render timeout protection"
+    );
+
+    // Call dynamic rendering via RPC with timeout protection
+    let render_result = timeout(
+        render_timeout,
+        rpc_client.render_dynamic(url, dynamic_config, stealth_config.as_ref())
+    )
+    .await;
+
+    match render_result {
+        Ok(Ok(mut render_result)) => {
             debug!(
                 url = %url,
                 render_time_ms = render_result.render_time_ms,
@@ -593,7 +606,7 @@ async fn process_dynamic(
 
             Ok((final_url, Some(render_result), None))
         }
-        Err(e) => {
+        Ok(Err(e)) => {
             warn!(
                 url = %url,
                 error = %e,
@@ -602,6 +615,18 @@ async fn process_dynamic(
 
             // Fall back to static rendering on error
             process_static(state, url, stealth_controller, session_id).await
+        }
+        Err(_) => {
+            error!(
+                url = %url,
+                timeout_secs = state.api_config.performance.render_timeout_secs,
+                "Render operation timed out"
+            );
+
+            Err(ApiError::timeout(
+                "render",
+                format!("Operation exceeded {}s timeout", state.api_config.performance.render_timeout_secs)
+            ))
         }
     }
 }
@@ -1180,6 +1205,28 @@ mod tests {
                 // Don't fail the test in CI environments where WASM might not work
             }
         }
+    }
+
+    #[tokio::test]
+    async fn test_render_timeout_handling() {
+        use crate::config::{ApiConfig, PerformanceConfig};
+        use std::time::Duration;
+
+        // Test that timeout configuration is properly read and applied
+        let config = ApiConfig::default();
+
+        // Verify default timeout is 3 seconds (requirement)
+        assert_eq!(config.performance.render_timeout_secs, 3);
+
+        // Verify timeout can be obtained via get_timeout method
+        let timeout = config.get_timeout("render");
+        assert_eq!(timeout, Duration::from_secs(3));
+
+        // Test that timeout error is properly constructed
+        let error = ApiError::timeout("render", "Operation exceeded 3s timeout");
+        assert!(matches!(error, ApiError::TimeoutError { .. }));
+        assert_eq!(error.status_code(), StatusCode::REQUEST_TIMEOUT);
+        assert!(error.is_retryable());
     }
 
     #[test]

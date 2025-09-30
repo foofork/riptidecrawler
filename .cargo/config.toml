@@ -1,7 +1,6 @@
-[target.x86_64-unknown-linux-gnu]
-# Use the default system linker instead of lld
-rustflags = ["-C", "link-arg=-fuse-ld=ld"]
-
 [build]
-# Ensure we use the correct target
+# Use default target for the platform
 target = "x86_64-unknown-linux-gnu"
+
+# Note: Removed forced linker selection to allow cargo and dependencies
+# (like pdfium-render) to choose appropriate linker based on availability

@@ -14,12 +14,11 @@ pub mod config;
 pub mod openapi;
 
 pub use ndjson::*;
-// TODO: Re-enable when modules are properly implemented
-// pub use reports::*;
-// pub use progress::*;
-// pub use backpressure::*;
+// pub use reports::*;      // Keep disabled until ReportGenerator resolved
+pub use progress::*;        // ✅ ENABLED
+    // ✅ ENABLED
 pub use config::*;
-// pub use openapi::*;
+// pub use openapi::*;       // Verify before enabling
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -31,8 +30,7 @@ use uuid::Uuid;
 // use riptide_core::monitoring::ReportGenerator;
 
 // Import from local progress module
-// TODO: Fix this - ProgressTracker is not properly defined in progress module
-// use crate::progress::ProgressTracker;
+use crate::progress::ProgressTracker;
 
 // Import from local reports module
 // TODO: Fix this - ReportFormat is not properly exported
@@ -42,9 +40,8 @@ use uuid::Uuid;
 #[derive(Debug, Clone)]
 pub struct StreamingCoordinator {
     pub streams: HashMap<Uuid, StreamInfo>,
-    // TODO: Re-enable these when import issues are fixed
-    // pub reporter: ReportGenerator,
-    // pub progress_tracker: ProgressTracker,
+    pub progress_tracker: ProgressTracker,  // ✅ ENABLED
+    // pub reporter: ReportGenerator,        // Keep disabled
 }
 
 /// Information about an active stream
@@ -72,9 +69,8 @@ impl StreamingCoordinator {
     pub fn new() -> Self {
         Self {
             streams: HashMap::new(),
-            // TODO: Re-enable these when import issues are fixed
-            // reporter: ReportGenerator::new(),
-            // progress_tracker: ProgressTracker::new(),
+            progress_tracker: ProgressTracker::new(),  // ✅ ENABLED
+            // reporter: ReportGenerator::new(),        // Keep disabled
         }
     }
 
@@ -91,9 +87,8 @@ impl StreamingCoordinator {
         };
         
         self.streams.insert(stream_id, stream_info);
-        // TODO: Re-enable when progress_tracker is fixed
-        // self.progress_tracker.start_tracking(stream_id).await?;
-        
+        self.progress_tracker.start_tracking(stream_id).await?;  // ✅ ENABLED
+
         Ok(stream_id)
     }
 
@@ -109,8 +104,7 @@ impl StreamingCoordinator {
             if let Some(total) = total {
                 stream.total_items = Some(total);
             }
-            // TODO: Re-enable when progress_tracker is fixed
-            // self.progress_tracker.update_progress(stream_id, processed, total).await?;
+            self.progress_tracker.update_progress(stream_id, processed, total).await?;  // ✅ ENABLED
         }
         Ok(())
     }
@@ -119,8 +113,7 @@ impl StreamingCoordinator {
     pub async fn complete_stream(&mut self, stream_id: Uuid) -> Result<()> {
         if let Some(stream) = self.streams.get_mut(&stream_id) {
             stream.status = StreamStatus::Completed;
-            // TODO: Re-enable when progress_tracker is fixed
-            // self.progress_tracker.complete_tracking(stream_id).await?;
+            self.progress_tracker.complete_tracking(stream_id).await?;  // ✅ ENABLED
         }
         Ok(())
     }

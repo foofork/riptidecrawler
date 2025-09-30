@@ -1,1 +1,469 @@
-//! Progress tracking for streaming operations\n//!\n//! This module provides real-time progress tracking with rate limiting,\n//! estimation, and performance metrics.\n\nuse crate::{StreamingError, StreamingResult};\nuse std::collections::HashMap;\nuse std::sync::Arc;\nuse std::time::{Duration, Instant};\nuse tokio::sync::{RwLock, mpsc};\nuse uuid::Uuid;\nuse serde::{Deserialize, Serialize};\n\n/// Progress tracking information for a stream\n#[derive(Debug, Clone, Serialize, Deserialize)]\npub struct ProgressInfo {\n    pub stream_id: Uuid,\n    pub start_time: Instant,\n    pub last_update: Instant,\n    pub processed_items: usize,\n    pub total_items: Option<usize>,\n    pub current_rate: f64,\n    pub average_rate: f64,\n    pub estimated_completion: Option<Duration>,\n    pub stage: ProgressStage,\n    pub bytes_processed: u64,\n    pub errors_count: usize,\n}\n\n/// Current stage of the extraction process\n#[derive(Debug, Clone, Serialize, Deserialize)]\npub enum ProgressStage {\n    Initializing,\n    Discovering,\n    Extracting,\n    Processing,\n    Finalizing,\n    Completed,\n    Failed(String),\n}\n\n/// Progress update event\n#[derive(Debug, Clone, Serialize, Deserialize)]\npub struct ProgressEvent {\n    pub stream_id: Uuid,\n    pub timestamp: chrono::DateTime<chrono::Utc>,\n    pub event_type: ProgressEventType,\n    pub data: serde_json::Value,\n}\n\n/// Types of progress events\n#[derive(Debug, Clone, Serialize, Deserialize)]\npub enum ProgressEventType {\n    Started,\n    ItemProcessed,\n    StageChanged,\n    RateUpdated,\n    ErrorOccurred,\n    Completed,\n    Failed,\n}\n\n/// Configuration for progress tracking\n#[derive(Debug, Clone)]\npub struct ProgressConfig {\n    pub update_interval: Duration,\n    pub rate_calculation_window: Duration,\n    pub enable_estimation: bool,\n    pub max_event_history: usize,\n}\n\nimpl Default for ProgressConfig {\n    fn default() -> Self {\n        Self {\n            update_interval: Duration::from_secs(1),\n            rate_calculation_window: Duration::from_secs(30),\n            enable_estimation: true,\n            max_event_history: 1000,\n        }\n    }\n}\n\n/// Progress tracker for managing multiple streams\n#[derive(Debug)]\npub struct ProgressTracker {\n    progress_info: Arc<RwLock<HashMap<Uuid, ProgressInfo>>>,\n    event_senders: Arc<RwLock<HashMap<Uuid, mpsc::UnboundedSender<ProgressEvent>>>>,\n    config: ProgressConfig,\n    rate_samples: Arc<RwLock<HashMap<Uuid, Vec<(Instant, usize)>>>>,\n}\n\nimpl ProgressTracker {\n    /// Create a new progress tracker\n    pub fn new() -> Self {\n        Self::with_config(ProgressConfig::default())\n    }\n\n    /// Create a new progress tracker with custom configuration\n    pub fn with_config(config: ProgressConfig) -> Self {\n        Self {\n            progress_info: Arc::new(RwLock::new(HashMap::new())),\n            event_senders: Arc::new(RwLock::new(HashMap::new())),\n            config,\n            rate_samples: Arc::new(RwLock::new(HashMap::new())),\n        }\n    }\n\n    /// Start tracking progress for a stream\n    pub async fn start_tracking(&self, stream_id: Uuid) -> StreamingResult<mpsc::UnboundedReceiver<ProgressEvent>> {\n        let now = Instant::now();\n        let info = ProgressInfo {\n            stream_id,\n            start_time: now,\n            last_update: now,\n            processed_items: 0,\n            total_items: None,\n            current_rate: 0.0,\n            average_rate: 0.0,\n            estimated_completion: None,\n            stage: ProgressStage::Initializing,\n            bytes_processed: 0,\n            errors_count: 0,\n        };\n\n        let (tx, rx) = mpsc::unbounded_channel();\n        \n        {\n            let mut progress_map = self.progress_info.write().await;\n            progress_map.insert(stream_id, info);\n        }\n        \n        {\n            let mut senders_map = self.event_senders.write().await;\n            senders_map.insert(stream_id, tx.clone());\n        }\n        \n        {\n            let mut samples_map = self.rate_samples.write().await;\n            samples_map.insert(stream_id, Vec::new());\n        }\n\n        // Send started event\n        let event = ProgressEvent {\n            stream_id,\n            timestamp: chrono::Utc::now(),\n            event_type: ProgressEventType::Started,\n            data: serde_json::json!({}),\n        };\n        \n        if tx.send(event).is_err() {\n            tracing::warn!(\"Failed to send progress start event for stream {}\", stream_id);\n        }\n\n        Ok(rx)\n    }\n\n    /// Update progress for a stream\n    pub async fn update_progress(&self, stream_id: Uuid, processed: usize, total: Option<usize>) -> StreamingResult<()> {\n        let now = Instant::now();\n        let mut updated_info = None;\n        \n        {\n            let mut progress_map = self.progress_info.write().await;\n            if let Some(info) = progress_map.get_mut(&stream_id) {\n                let old_processed = info.processed_items;\n                info.processed_items = processed;\n                info.total_items = total;\n                info.last_update = now;\n                \n                // Calculate current rate\n                let time_diff = now.duration_since(info.start_time).as_secs_f64();\n                if time_diff > 0.0 {\n                    info.current_rate = processed as f64 / time_diff;\n                }\n                \n                // Update rate samples for average calculation\n                {\n                    let mut samples_map = self.rate_samples.write().await;\n                    if let Some(samples) = samples_map.get_mut(&stream_id) {\n                        samples.push((now, processed));\n                        \n                        // Keep only samples within the window\n                        let cutoff = now - self.config.rate_calculation_window;\n                        samples.retain(|(time, _)| *time > cutoff);\n                        \n                        // Calculate average rate\n                        if samples.len() >= 2 {\n                            let first = samples.first().unwrap();\n                            let last = samples.last().unwrap();\n                            let time_span = last.0.duration_since(first.0).as_secs_f64();\n                            if time_span > 0.0 {\n                                info.average_rate = (last.1 - first.1) as f64 / time_span;\n                            }\n                        }\n                    }\n                }\n                \n                // Estimate completion time\n                if self.config.enable_estimation {\n                    if let Some(total) = total {\n                        if info.average_rate > 0.0 && processed < total {\n                            let remaining = total - processed;\n                            let remaining_seconds = remaining as f64 / info.average_rate;\n                            info.estimated_completion = Some(Duration::from_secs_f64(remaining_seconds));\n                        }\n                    }\n                }\n                \n                updated_info = Some(info.clone());\n                \n                // Send progress event if significant change\n                if processed > old_processed {\n                    let event = ProgressEvent {\n                        stream_id,\n                        timestamp: chrono::Utc::now(),\n                        event_type: ProgressEventType::ItemProcessed,\n                        data: serde_json::json!({\n                            \"processed\": processed,\n                            \"total\": total,\n                            \"rate\": info.current_rate\n                        }),\n                    };\n                    \n                    if let Some(sender) = self.event_senders.read().await.get(&stream_id) {\n                        if sender.send(event).is_err() {\n                            tracing::warn!(\"Failed to send progress event for stream {}\", stream_id);\n                        }\n                    }\n                }\n            }\n        }\n        \n        if updated_info.is_some() {\n            Ok(())\n        } else {\n            Err(StreamingError::StreamNotFound(stream_id))\n        }\n    }\n\n    /// Set the stage for a stream\n    pub async fn set_stage(&self, stream_id: Uuid, stage: ProgressStage) -> StreamingResult<()> {\n        {\n            let mut progress_map = self.progress_info.write().await;\n            if let Some(info) = progress_map.get_mut(&stream_id) {\n                info.stage = stage.clone();\n            } else {\n                return Err(StreamingError::StreamNotFound(stream_id));\n            }\n        }\n        \n        // Send stage change event\n        let event = ProgressEvent {\n            stream_id,\n            timestamp: chrono::Utc::now(),\n            event_type: ProgressEventType::StageChanged,\n            data: serde_json::to_value(&stage).unwrap_or_default(),\n        };\n        \n        if let Some(sender) = self.event_senders.read().await.get(&stream_id) {\n            if sender.send(event).is_err() {\n                tracing::warn!(\"Failed to send stage change event for stream {}\", stream_id);\n            }\n        }\n        \n        Ok(())\n    }\n\n    /// Add bytes processed\n    pub async fn add_bytes_processed(&self, stream_id: Uuid, bytes: u64) -> StreamingResult<()> {\n        let mut progress_map = self.progress_info.write().await;\n        if let Some(info) = progress_map.get_mut(&stream_id) {\n            info.bytes_processed += bytes;\n            Ok(())\n        } else {\n            Err(StreamingError::StreamNotFound(stream_id))\n        }\n    }\n\n    /// Increment error count\n    pub async fn increment_errors(&self, stream_id: Uuid) -> StreamingResult<()> {\n        {\n            let mut progress_map = self.progress_info.write().await;\n            if let Some(info) = progress_map.get_mut(&stream_id) {\n                info.errors_count += 1;\n            } else {\n                return Err(StreamingError::StreamNotFound(stream_id));\n            }\n        }\n        \n        // Send error event\n        let event = ProgressEvent {\n            stream_id,\n            timestamp: chrono::Utc::now(),\n            event_type: ProgressEventType::ErrorOccurred,\n            data: serde_json::json!({}),\n        };\n        \n        if let Some(sender) = self.event_senders.read().await.get(&stream_id) {\n            if sender.send(event).is_err() {\n                tracing::warn!(\"Failed to send error event for stream {}\", stream_id);\n            }\n        }\n        \n        Ok(())\n    }\n\n    /// Get current progress information\n    pub async fn get_progress(&self, stream_id: &Uuid) -> Option<ProgressInfo> {\n        let progress_map = self.progress_info.read().await;\n        progress_map.get(stream_id).cloned()\n    }\n\n    /// Get all active streams\n    pub async fn get_all_progress(&self) -> HashMap<Uuid, ProgressInfo> {\n        let progress_map = self.progress_info.read().await;\n        progress_map.clone()\n    }\n\n    /// Complete tracking for a stream\n    pub async fn complete_tracking(&self, stream_id: Uuid) -> StreamingResult<()> {\n        {\n            let mut progress_map = self.progress_info.write().await;\n            if let Some(info) = progress_map.get_mut(&stream_id) {\n                info.stage = ProgressStage::Completed;\n            }\n        }\n        \n        // Send completion event\n        let event = ProgressEvent {\n            stream_id,\n            timestamp: chrono::Utc::now(),\n            event_type: ProgressEventType::Completed,\n            data: serde_json::json!({}),\n        };\n        \n        if let Some(sender) = self.event_senders.read().await.get(&stream_id) {\n            if sender.send(event).is_err() {\n                tracing::warn!(\"Failed to send completion event for stream {}\", stream_id);\n            }\n        }\n        \n        // Clean up\n        tokio::spawn(async move {\n            tokio::time::sleep(Duration::from_secs(60)).await;\n            // Cleanup would happen here in a real implementation\n        });\n        \n        Ok(())\n    }\n\n    /// Fail tracking for a stream\n    pub async fn fail_tracking(&self, stream_id: Uuid, error: String) -> StreamingResult<()> {\n        {\n            let mut progress_map = self.progress_info.write().await;\n            if let Some(info) = progress_map.get_mut(&stream_id) {\n                info.stage = ProgressStage::Failed(error.clone());\n            }\n        }\n        \n        // Send failure event\n        let event = ProgressEvent {\n            stream_id,\n            timestamp: chrono::Utc::now(),\n            event_type: ProgressEventType::Failed,\n            data: serde_json::json!({ \"error\": error }),\n        };\n        \n        if let Some(sender) = self.event_senders.read().await.get(&stream_id) {\n            if sender.send(event).is_err() {\n                tracing::warn!(\"Failed to send failure event for stream {}\", stream_id);\n            }\n        }\n        \n        Ok(())\n    }\n\n    /// Remove tracking for a stream\n    pub async fn remove_tracking(&self, stream_id: Uuid) {\n        {\n            let mut progress_map = self.progress_info.write().await;\n            progress_map.remove(&stream_id);\n        }\n        \n        {\n            let mut senders_map = self.event_senders.write().await;\n            senders_map.remove(&stream_id);\n        }\n        \n        {\n            let mut samples_map = self.rate_samples.write().await;\n            samples_map.remove(&stream_id);\n        }\n    }\n}\n\nimpl Default for ProgressTracker {\n    fn default() -> Self {\n        Self::new()\n    }\n}\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n    use tokio::time::sleep;\n\n    #[tokio::test]\n    async fn test_progress_tracker_creation() {\n        let tracker = ProgressTracker::new();\n        let all_progress = tracker.get_all_progress().await;\n        assert!(all_progress.is_empty());\n    }\n\n    #[tokio::test]\n    async fn test_start_and_update_tracking() {\n        let tracker = ProgressTracker::new();\n        let stream_id = Uuid::new_v4();\n        \n        let _rx = tracker.start_tracking(stream_id).await.unwrap();\n        \n        tracker.update_progress(stream_id, 50, Some(100)).await.unwrap();\n        \n        let progress = tracker.get_progress(&stream_id).await.unwrap();\n        assert_eq!(progress.processed_items, 50);\n        assert_eq!(progress.total_items, Some(100));\n    }\n\n    #[tokio::test]\n    async fn test_stage_changes() {\n        let tracker = ProgressTracker::new();\n        let stream_id = Uuid::new_v4();\n        \n        let _rx = tracker.start_tracking(stream_id).await.unwrap();\n        \n        tracker.set_stage(stream_id, ProgressStage::Extracting).await.unwrap();\n        \n        let progress = tracker.get_progress(&stream_id).await.unwrap();\n        assert!(matches!(progress.stage, ProgressStage::Extracting));\n    }\n\n    #[tokio::test]\n    async fn test_rate_calculation() {\n        let config = ProgressConfig {\n            update_interval: Duration::from_millis(100),\n            rate_calculation_window: Duration::from_secs(1),\n            enable_estimation: true,\n            max_event_history: 100,\n        };\n        \n        let tracker = ProgressTracker::with_config(config);\n        let stream_id = Uuid::new_v4();\n        \n        let _rx = tracker.start_tracking(stream_id).await.unwrap();\n        \n        // Simulate processing over time\n        tracker.update_progress(stream_id, 10, Some(100)).await.unwrap();\n        sleep(Duration::from_millis(100)).await;\n        tracker.update_progress(stream_id, 20, Some(100)).await.unwrap();\n        sleep(Duration::from_millis(100)).await;\n        tracker.update_progress(stream_id, 30, Some(100)).await.unwrap();\n        \n        let progress = tracker.get_progress(&stream_id).await.unwrap();\n        assert!(progress.current_rate > 0.0);\n        assert!(progress.estimated_completion.is_some());\n    }\n\n    #[tokio::test]\n    async fn test_complete_tracking() {\n        let tracker = ProgressTracker::new();\n        let stream_id = Uuid::new_v4();\n        \n        let _rx = tracker.start_tracking(stream_id).await.unwrap();\n        tracker.complete_tracking(stream_id).await.unwrap();\n        \n        let progress = tracker.get_progress(&stream_id).await.unwrap();\n        assert!(matches!(progress.stage, ProgressStage::Completed));\n    }\n}\n"
+//! Progress tracking for streaming operations
+//!
+//! This module provides real-time progress tracking with rate limiting,
+//! estimation, and performance metrics.
+
+use crate::{StreamingError, StreamingResult};
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+use tokio::sync::{RwLock, mpsc};
+use uuid::Uuid;
+use serde::{Deserialize, Serialize};
+
+/// Progress tracking information for a stream
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProgressInfo {
+    pub stream_id: Uuid,
+    #[serde(skip, default = "Instant::now")]
+    pub start_time: Instant,
+    #[serde(skip, default = "Instant::now")]
+    pub last_update: Instant,
+    pub processed_items: usize,
+    pub total_items: Option<usize>,
+    pub current_rate: f64,
+    pub average_rate: f64,
+    #[serde(skip, default)]
+    pub estimated_completion: Option<Duration>,
+    pub stage: ProgressStage,
+    pub bytes_processed: u64,
+    pub errors_count: usize,
+}
+
+/// Current stage of the extraction process
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ProgressStage {
+    Initializing,
+    Discovering,
+    Extracting,
+    Processing,
+    Finalizing,
+    Completed,
+    Failed(String),
+}
+
+/// Progress update event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProgressEvent {
+    pub stream_id: Uuid,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+    pub event_type: ProgressEventType,
+    pub data: serde_json::Value,
+}
+
+/// Types of progress events
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ProgressEventType {
+    Started,
+    ItemProcessed,
+    StageChanged,
+    RateUpdated,
+    ErrorOccurred,
+    Completed,
+    Failed,
+}
+
+/// Configuration for progress tracking
+#[derive(Debug, Clone)]
+pub struct ProgressConfig {
+    pub update_interval: Duration,
+    pub rate_calculation_window: Duration,
+    pub enable_estimation: bool,
+    pub max_event_history: usize,
+}
+
+impl Default for ProgressConfig {
+    fn default() -> Self {
+        Self {
+            update_interval: Duration::from_secs(1),
+            rate_calculation_window: Duration::from_secs(30),
+            enable_estimation: true,
+            max_event_history: 1000,
+        }
+    }
+}
+
+/// Progress tracker for managing multiple streams
+#[derive(Debug, Clone)]
+pub struct ProgressTracker {
+    progress_info: Arc<RwLock<HashMap<Uuid, ProgressInfo>>>,
+    event_senders: Arc<RwLock<HashMap<Uuid, mpsc::UnboundedSender<ProgressEvent>>>>,
+    config: ProgressConfig,
+    rate_samples: Arc<RwLock<HashMap<Uuid, Vec<(Instant, usize)>>>>,
+}
+
+impl ProgressTracker {
+    /// Create a new progress tracker
+    pub fn new() -> Self {
+        Self::with_config(ProgressConfig::default())
+    }
+
+    /// Create a new progress tracker with custom configuration
+    pub fn with_config(config: ProgressConfig) -> Self {
+        Self {
+            progress_info: Arc::new(RwLock::new(HashMap::new())),
+            event_senders: Arc::new(RwLock::new(HashMap::new())),
+            config,
+            rate_samples: Arc::new(RwLock::new(HashMap::new())),
+        }
+    }
+
+    /// Start tracking progress for a stream
+    pub async fn start_tracking(&self, stream_id: Uuid) -> StreamingResult<mpsc::UnboundedReceiver<ProgressEvent>> {
+        let now = Instant::now();
+        let info = ProgressInfo {
+            stream_id,
+            start_time: now,
+            last_update: now,
+            processed_items: 0,
+            total_items: None,
+            current_rate: 0.0,
+            average_rate: 0.0,
+            estimated_completion: None,
+            stage: ProgressStage::Initializing,
+            bytes_processed: 0,
+            errors_count: 0,
+        };
+
+        let (tx, rx) = mpsc::unbounded_channel();
+
+        {
+            let mut progress_map = self.progress_info.write().await;
+            progress_map.insert(stream_id, info);
+        }
+
+        {
+            let mut senders_map = self.event_senders.write().await;
+            senders_map.insert(stream_id, tx.clone());
+        }
+
+        {
+            let mut samples_map = self.rate_samples.write().await;
+            samples_map.insert(stream_id, Vec::new());
+        }
+
+        // Send started event
+        let event = ProgressEvent {
+            stream_id,
+            timestamp: chrono::Utc::now(),
+            event_type: ProgressEventType::Started,
+            data: serde_json::json!({}),
+        };
+
+        let _ = tx.send(event);
+
+        Ok(rx)
+    }
+
+    /// Update progress for a stream
+    pub async fn update_progress(&self, stream_id: Uuid, processed: usize, total: Option<usize>) -> StreamingResult<()> {
+        let now = Instant::now();
+        let mut updated_info = None;
+
+        {
+            let mut progress_map = self.progress_info.write().await;
+            if let Some(info) = progress_map.get_mut(&stream_id) {
+                let old_processed = info.processed_items;
+                info.processed_items = processed;
+                info.total_items = total;
+                info.last_update = now;
+
+                // Calculate current rate
+                let time_diff = now.duration_since(info.start_time).as_secs_f64();
+                if time_diff > 0.0 {
+                    info.current_rate = processed as f64 / time_diff;
+                }
+
+                // Update rate samples for average calculation
+                {
+                    let mut samples_map = self.rate_samples.write().await;
+                    if let Some(samples) = samples_map.get_mut(&stream_id) {
+                        samples.push((now, processed));
+
+                        // Keep only samples within the window
+                        let cutoff = now - self.config.rate_calculation_window;
+                        samples.retain(|(time, _)| *time > cutoff);
+
+                        // Calculate average rate
+                        if samples.len() >= 2 {
+                            let first = samples.first().unwrap();
+                            let last = samples.last().unwrap();
+                            let time_span = last.0.duration_since(first.0).as_secs_f64();
+                            if time_span > 0.0 {
+                                info.average_rate = (last.1 - first.1) as f64 / time_span;
+                            }
+                        }
+                    }
+                }
+
+                // Estimate completion time
+                if self.config.enable_estimation {
+                    if let Some(total) = total {
+                        if info.average_rate > 0.0 && processed < total {
+                            let remaining = total - processed;
+                            let remaining_seconds = remaining as f64 / info.average_rate;
+                            info.estimated_completion = Some(Duration::from_secs_f64(remaining_seconds));
+                        }
+                    }
+                }
+
+                updated_info = Some(info.clone());
+
+                // Send progress event if significant change
+                if processed > old_processed {
+                    let event = ProgressEvent {
+                        stream_id,
+                        timestamp: chrono::Utc::now(),
+                        event_type: ProgressEventType::ItemProcessed,
+                        data: serde_json::json!({
+                            "processed": processed,
+                            "total": total,
+                            "rate": info.current_rate
+                        }),
+                    };
+
+                    if let Some(sender) = self.event_senders.read().await.get(&stream_id) {
+                        let _ = sender.send(event);
+                    }
+                }
+            }
+        }
+
+        if updated_info.is_some() {
+            Ok(())
+        } else {
+            Err(StreamingError::StreamNotFound(stream_id))
+        }
+    }
+
+    /// Set the stage for a stream
+    pub async fn set_stage(&self, stream_id: Uuid, stage: ProgressStage) -> StreamingResult<()> {
+        {
+            let mut progress_map = self.progress_info.write().await;
+            if let Some(info) = progress_map.get_mut(&stream_id) {
+                info.stage = stage.clone();
+            } else {
+                return Err(StreamingError::StreamNotFound(stream_id));
+            }
+        }
+
+        // Send stage change event
+        let event = ProgressEvent {
+            stream_id,
+            timestamp: chrono::Utc::now(),
+            event_type: ProgressEventType::StageChanged,
+            data: serde_json::to_value(&stage).unwrap_or_default(),
+        };
+
+        if let Some(sender) = self.event_senders.read().await.get(&stream_id) {
+            let _ = sender.send(event);
+        }
+
+        Ok(())
+    }
+
+    /// Add bytes processed
+    pub async fn add_bytes_processed(&self, stream_id: Uuid, bytes: u64) -> StreamingResult<()> {
+        let mut progress_map = self.progress_info.write().await;
+        if let Some(info) = progress_map.get_mut(&stream_id) {
+            info.bytes_processed += bytes;
+            Ok(())
+        } else {
+            Err(StreamingError::StreamNotFound(stream_id))
+        }
+    }
+
+    /// Increment error count
+    pub async fn increment_errors(&self, stream_id: Uuid) -> StreamingResult<()> {
+        {
+            let mut progress_map = self.progress_info.write().await;
+            if let Some(info) = progress_map.get_mut(&stream_id) {
+                info.errors_count += 1;
+            } else {
+                return Err(StreamingError::StreamNotFound(stream_id));
+            }
+        }
+
+        // Send error event
+        let event = ProgressEvent {
+            stream_id,
+            timestamp: chrono::Utc::now(),
+            event_type: ProgressEventType::ErrorOccurred,
+            data: serde_json::json!({}),
+        };
+
+        if let Some(sender) = self.event_senders.read().await.get(&stream_id) {
+            let _ = sender.send(event);
+        }
+
+        Ok(())
+    }
+
+    /// Get current progress information
+    pub async fn get_progress(&self, stream_id: &Uuid) -> Option<ProgressInfo> {
+        let progress_map = self.progress_info.read().await;
+        progress_map.get(stream_id).cloned()
+    }
+
+    /// Get all active streams
+    pub async fn get_all_progress(&self) -> HashMap<Uuid, ProgressInfo> {
+        let progress_map = self.progress_info.read().await;
+        progress_map.clone()
+    }
+
+    /// Complete tracking for a stream
+    pub async fn complete_tracking(&self, stream_id: Uuid) -> StreamingResult<()> {
+        {
+            let mut progress_map = self.progress_info.write().await;
+            if let Some(info) = progress_map.get_mut(&stream_id) {
+                info.stage = ProgressStage::Completed;
+            }
+        }
+
+        // Send completion event
+        let event = ProgressEvent {
+            stream_id,
+            timestamp: chrono::Utc::now(),
+            event_type: ProgressEventType::Completed,
+            data: serde_json::json!({}),
+        };
+
+        if let Some(sender) = self.event_senders.read().await.get(&stream_id) {
+            let _ = sender.send(event);
+        }
+
+        // Clean up
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_secs(60)).await;
+            // Cleanup would happen here in a real implementation
+        });
+
+        Ok(())
+    }
+
+    /// Fail tracking for a stream
+    pub async fn fail_tracking(&self, stream_id: Uuid, error: String) -> StreamingResult<()> {
+        {
+            let mut progress_map = self.progress_info.write().await;
+            if let Some(info) = progress_map.get_mut(&stream_id) {
+                info.stage = ProgressStage::Failed(error.clone());
+            }
+        }
+
+        // Send failure event
+        let event = ProgressEvent {
+            stream_id,
+            timestamp: chrono::Utc::now(),
+            event_type: ProgressEventType::Failed,
+            data: serde_json::json!({ "error": error }),
+        };
+
+        if let Some(sender) = self.event_senders.read().await.get(&stream_id) {
+            let _ = sender.send(event);
+        }
+
+        Ok(())
+    }
+
+    /// Remove tracking for a stream
+    pub async fn remove_tracking(&self, stream_id: Uuid) {
+        {
+            let mut progress_map = self.progress_info.write().await;
+            progress_map.remove(&stream_id);
+        }
+
+        {
+            let mut senders_map = self.event_senders.write().await;
+            senders_map.remove(&stream_id);
+        }
+
+        {
+            let mut samples_map = self.rate_samples.write().await;
+            samples_map.remove(&stream_id);
+        }
+    }
+}
+
+impl Default for ProgressTracker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::time::sleep;
+
+    #[tokio::test]
+    async fn test_progress_tracker_creation() {
+        let tracker = ProgressTracker::new();
+        let all_progress = tracker.get_all_progress().await;
+        assert!(all_progress.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_start_and_update_tracking() {
+        let tracker = ProgressTracker::new();
+        let stream_id = Uuid::new_v4();
+
+        let _rx = tracker.start_tracking(stream_id).await.unwrap();
+
+        tracker.update_progress(stream_id, 50, Some(100)).await.unwrap();
+
+        let progress = tracker.get_progress(&stream_id).await.unwrap();
+        assert_eq!(progress.processed_items, 50);
+        assert_eq!(progress.total_items, Some(100));
+    }
+
+    #[tokio::test]
+    async fn test_stage_changes() {
+        let tracker = ProgressTracker::new();
+        let stream_id = Uuid::new_v4();
+
+        let _rx = tracker.start_tracking(stream_id).await.unwrap();
+
+        tracker.set_stage(stream_id, ProgressStage::Extracting).await.unwrap();
+
+        let progress = tracker.get_progress(&stream_id).await.unwrap();
+        assert!(matches!(progress.stage, ProgressStage::Extracting));
+    }
+
+    #[tokio::test]
+    async fn test_rate_calculation() {
+        let config = ProgressConfig {
+            update_interval: Duration::from_millis(100),
+            rate_calculation_window: Duration::from_secs(1),
+            enable_estimation: true,
+            max_event_history: 100,
+        };
+
+        let tracker = ProgressTracker::with_config(config);
+        let stream_id = Uuid::new_v4();
+
+        let _rx = tracker.start_tracking(stream_id).await.unwrap();
+
+        // Simulate processing over time
+        tracker.update_progress(stream_id, 10, Some(100)).await.unwrap();
+        sleep(Duration::from_millis(100)).await;
+        tracker.update_progress(stream_id, 20, Some(100)).await.unwrap();
+        sleep(Duration::from_millis(100)).await;
+        tracker.update_progress(stream_id, 30, Some(100)).await.unwrap();
+
+        let progress = tracker.get_progress(&stream_id).await.unwrap();
+        assert!(progress.current_rate > 0.0);
+        assert!(progress.estimated_completion.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_complete_tracking() {
+        let tracker = ProgressTracker::new();
+        let stream_id = Uuid::new_v4();
+
+        let _rx = tracker.start_tracking(stream_id).await.unwrap();
+        tracker.complete_tracking(stream_id).await.unwrap();
+
+        let progress = tracker.get_progress(&stream_id).await.unwrap();
+        assert!(matches!(progress.stage, ProgressStage::Completed));
+    }
+}
