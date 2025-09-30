@@ -84,7 +84,7 @@ impl EventAwareInstancePool {
         }
 
         // Perform the actual extraction
-        let extraction_result = self.pool.extract(html, url, mode.clone()).await;
+        let extraction_result: Result<ExtractedDoc> = self.pool.extract(html, url, mode.clone()).await;
 
         let duration = start_time.elapsed();
 

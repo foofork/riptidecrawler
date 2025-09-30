@@ -5,147 +5,47 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::{Mutex, Semaphore};
 use tokio::time::{timeout, sleep};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info, warn};
 use uuid::Uuid;
-use wasmtime::{component::*, Engine, Store};
+use wasmtime::{component::*, Engine};
 
 use crate::component::{ExtractorConfig, PerformanceMetrics, WasmResourceTracker};
 use crate::types::{ExtractedDoc, ExtractionMode};
 use crate::events::{Event, EventEmitter, EventBus, PoolEvent, PoolOperation, PoolMetrics};
 use async_trait::async_trait;
 
+use super::models::{PooledInstance, CircuitBreakerState};
+
 wasmtime::component::bindgen!({
     world: "extractor",
     path: "wit",
 });
 
-/// Enhanced pooled instance with comprehensive tracking
-pub struct PooledInstance {
-    pub id: String,
-    pub engine: Arc<Engine>,
-    pub component: Arc<Component>,
-    pub linker: Arc<Linker<WasmResourceTracker>>,
-    pub created_at: Instant,
-    pub last_used: Instant,
-    pub use_count: u64,
-    pub failure_count: u64,
-    pub memory_usage_bytes: u64,
-    pub resource_tracker: WasmResourceTracker,
-}
-
-impl PooledInstance {
-    pub fn new(
-        engine: Arc<Engine>,
-        component: Arc<Component>,
-        linker: Arc<Linker<WasmResourceTracker>>,
-        _max_memory_pages: usize,
-    ) -> Self {
-        let id = Uuid::new_v4().to_string();
-        let now = Instant::now();
-
-        Self {
-            id,
-            engine,
-            component,
-            linker,
-            created_at: now,
-            last_used: now,
-            use_count: 0,
-            failure_count: 0,
-            memory_usage_bytes: 0,
-            resource_tracker: WasmResourceTracker::default(),
-        }
-    }
-
-    /// Check if instance is healthy and reusable
-    pub fn is_healthy(&self, config: &ExtractorConfig) -> bool {
-        self.use_count < 1000
-            && self.failure_count < 5
-            && self.memory_usage_bytes < config.memory_limit.unwrap_or(usize::MAX) as u64
-            && self.resource_tracker.grow_failures() < 10
-    }
-
-    /// Update usage statistics
-    pub fn record_usage(&mut self, success: bool) {
-        self.last_used = Instant::now();
-        self.use_count += 1;
-        if !success {
-            self.failure_count += 1;
-        }
-        self.memory_usage_bytes = (self.resource_tracker.current_memory_pages() * 64 * 1024) as u64;
-    }
-
-    /// Create fresh Store with resource limits
-    pub fn create_fresh_store(&mut self) -> Store<WasmResourceTracker> {
-        let mut store = Store::new(&self.engine, self.resource_tracker.clone());
-
-        // Set resource limits
-        store.limiter(|tracker| tracker);
-
-        // Enable epoch interruption for timeouts
-        store.epoch_deadline_trap();
-
-        store
-    }
-}
-
-impl std::fmt::Debug for PooledInstance {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("PooledInstance")
-            .field("id", &self.id)
-            .field("created_at", &self.created_at)
-            .field("last_used", &self.last_used)
-            .field("use_count", &self.use_count)
-            .field("failure_count", &self.failure_count)
-            .field("memory_usage_bytes", &self.memory_usage_bytes)
-            .field("resource_tracker", &self.resource_tracker)
-            .finish()
-    }
-}
-
-/// Circuit breaker states for WASM error handling
-#[derive(Clone, Debug)]
-pub enum CircuitBreakerState {
-    Closed {
-        failure_count: u64,
-        success_count: u64,
-        last_failure: Option<Instant>,
-    },
-    Open {
-        opened_at: Instant,
-        failure_count: u64,
-    },
-    HalfOpen {
-        test_requests: u64,
-        start_time: Instant,
-    },
-}
-
 /// Advanced instance pool with semaphore-based concurrency control
 pub struct AdvancedInstancePool {
     /// Pool configuration
-    config: ExtractorConfig,
+    pub(super) config: ExtractorConfig,
     /// Shared engine for all instances
-    engine: Arc<Engine>,
+    pub(super) engine: Arc<Engine>,
     /// Shared component for all instances
-    component: Arc<Component>,
+    pub(super) component: Arc<Component>,
     /// Shared linker for all instances
-    linker: Arc<Linker<WasmResourceTracker>>,
+    pub(super) linker: Arc<Linker<WasmResourceTracker>>,
     /// Available instances queue
-    available_instances: Arc<Mutex<VecDeque<PooledInstance>>>,
+    pub(super) available_instances: Arc<Mutex<VecDeque<PooledInstance>>>,
     /// Semaphore for concurrency control
-    semaphore: Arc<Semaphore>,
+    pub(super) semaphore: Arc<Semaphore>,
     /// Performance metrics
-    metrics: Arc<Mutex<PerformanceMetrics>>,
+    pub(super) metrics: Arc<Mutex<PerformanceMetrics>>,
     /// Circuit breaker state
-    circuit_state: Arc<Mutex<CircuitBreakerState>>,
+    pub(super) circuit_state: Arc<Mutex<CircuitBreakerState>>,
     /// Component path for creation
     #[allow(dead_code)]
-    component_path: String,
+    pub(super) component_path: String,
     /// Pool unique identifier
-    pool_id: String,
+    pub(super) pool_id: String,
     /// Optional event bus for event emission
-    event_bus: Option<Arc<EventBus>>,
+    pub(super) event_bus: Option<Arc<EventBus>>,
 }
 
 impl AdvancedInstancePool {
@@ -905,270 +805,6 @@ impl AdvancedInstancePool {
     /// Set event bus for event emission
     pub fn set_event_bus(&mut self, event_bus: Arc<EventBus>) {
         self.event_bus = Some(event_bus);
-    }
-
-    /// Start continuous health monitoring for pool instances
-    pub async fn start_instance_health_monitoring(self: Arc<Self>) -> Result<()> {
-        let interval_ms = self.config.health_check_interval;
-        let interval = Duration::from_millis(interval_ms);
-        info!(interval_secs = interval.as_secs(), "Starting continuous instance health monitoring");
-
-        let mut interval_timer = tokio::time::interval(interval);
-
-        loop {
-            interval_timer.tick().await;
-
-            if let Err(e) = self.perform_instance_health_checks().await {
-                error!(error = %e, "Instance health check failed");
-            }
-        }
-    }
-
-    /// Perform health checks on all instances in the pool
-    async fn perform_instance_health_checks(&self) -> Result<()> {
-        let mut unhealthy_instances = Vec::new();
-        let mut healthy_count = 0;
-
-        // Check available instances
-        let instance_health_data = {
-            let instances = self.available_instances.lock().await;
-            instances.iter().map(|i| {
-                (i.id.clone(), i.created_at, i.failure_count)
-            }).collect::<Vec<_>>()
-        };
-
-        for (id, created_at, failure_count) in instance_health_data {
-            // Simple health check without full instance
-            let is_healthy = created_at.elapsed() <= Duration::from_secs(3600) && failure_count <= 5;
-
-            if !is_healthy {
-                let mut instances = self.available_instances.lock().await;
-                if let Some(pos) = instances.iter().position(|i| i.id == id) {
-                    let unhealthy_instance = instances.remove(pos).unwrap();
-                    drop(instances);
-                    unhealthy_instances.push(unhealthy_instance);
-                }
-            } else {
-                healthy_count += 1;
-            }
-        }
-
-        // Replace unhealthy instances
-        if !unhealthy_instances.is_empty() {
-            warn!(unhealthy_count = unhealthy_instances.len(), "Replacing unhealthy instances");
-
-            for unhealthy in unhealthy_instances {
-                // Emit instance health degraded event
-                self.emit_instance_health_event(&unhealthy, false).await;
-
-                // Create replacement instance
-                if let Ok(new_instance) = self.create_instance().await {
-                    self.return_instance(new_instance).await;
-                    info!("Replaced unhealthy instance with new healthy instance");
-                } else {
-                    error!("Failed to create replacement instance");
-                }
-            }
-        }
-
-        // Emit overall health metrics
-        self.emit_pool_health_metrics(healthy_count).await;
-
-        Ok(())
-    }
-
-    /// Validate health of a specific instance
-    #[allow(dead_code)]
-    async fn validate_instance_health(&self, instance: &PooledInstance) -> bool {
-        // Check age - instances older than 1 hour should be recycled
-        if instance.created_at.elapsed() > Duration::from_secs(3600) {
-            debug!(instance_id = %instance.id, "Instance expired due to age");
-            return false;
-        }
-
-        // Check failure rate
-        if instance.failure_count > 5 {
-            debug!(instance_id = %instance.id, failure_count = instance.failure_count, "Instance has too many failures");
-            return false;
-        }
-
-        // Check memory usage
-        let memory_limit_bytes = self.config.memory_limit;
-        if instance.memory_usage_bytes > memory_limit_bytes.unwrap_or(usize::MAX) as u64 {
-            debug!(instance_id = %instance.id, memory_usage = instance.memory_usage_bytes, "Instance memory usage too high");
-            return false;
-        }
-
-        // Check resource tracker health
-        if instance.resource_tracker.grow_failures() > 10 {
-            debug!(instance_id = %instance.id, grow_failures = instance.resource_tracker.grow_failures(), "Instance has too many memory grow failures");
-            return false;
-        }
-
-        // Check if instance has been idle too long
-        if instance.last_used.elapsed() > Duration::from_secs(1800) { // 30 minutes
-            debug!(instance_id = %instance.id, "Instance idle too long, marking for replacement");
-            return false;
-        }
-
-        true
-    }
-
-    /// Emit instance health event
-    async fn emit_instance_health_event(&self, instance: &PooledInstance, healthy: bool) {
-        if let Some(event_bus) = &self.event_bus {
-            let operation = if healthy {
-                PoolOperation::InstanceHealthy
-            } else {
-                PoolOperation::InstanceUnhealthy
-            };
-
-            let mut event = PoolEvent::new(
-                operation,
-                self.pool_id.clone(),
-                "instance_pool",
-            )
-            .with_instance_id(instance.id.clone());
-
-            // Add health metrics
-            event.add_metadata("use_count", &instance.use_count.to_string());
-            event.add_metadata("failure_count", &instance.failure_count.to_string());
-            event.add_metadata("memory_usage_bytes", &instance.memory_usage_bytes.to_string());
-            event.add_metadata("age_seconds", &instance.created_at.elapsed().as_secs().to_string());
-            event.add_metadata("grow_failures", &instance.resource_tracker.grow_failures().to_string());
-
-            if let Err(e) = event_bus.emit(event).await {
-                warn!(error = %e, instance_id = %instance.id, "Failed to emit instance health event");
-            }
-        }
-    }
-
-    /// Emit pool health metrics
-    async fn emit_pool_health_metrics(&self, healthy_count: usize) {
-        if let Some(event_bus) = &self.event_bus {
-            let (available, active, total) = self.get_pool_status().await;
-            let metrics = self.get_pool_metrics_for_events().await;
-
-            let mut event = PoolEvent::new(
-                PoolOperation::HealthCheck,
-                self.pool_id.clone(),
-                "instance_pool",
-            );
-
-            // Add comprehensive metrics
-            event.add_metadata("healthy_instances", &healthy_count.to_string());
-            event.add_metadata("available_instances", &available.to_string());
-            event.add_metadata("active_instances", &active.to_string());
-            event.add_metadata("total_instances", &total.to_string());
-            event.add_metadata("success_rate", &metrics.success_rate.to_string());
-            event.add_metadata("avg_latency_ms", &metrics.avg_latency_ms.to_string());
-
-            if let Err(e) = event_bus.emit(event).await {
-                warn!(error = %e, "Failed to emit pool health metrics");
-            }
-        }
-    }
-
-    /// Clear instances with high memory usage
-    pub async fn clear_high_memory_instances(&self) -> Result<usize> {
-        let memory_threshold = (self.config.memory_limit.unwrap_or(512 * 1024 * 1024) as f64 * 0.8) as u64; // 80% of limit
-        let mut cleared = 0;
-
-        let high_memory_instances = {
-            let mut instances = self.available_instances.lock().await;
-            let mut high_memory_instances = Vec::new();
-            let mut i = 0;
-            while i < instances.len() {
-                if instances[i].memory_usage_bytes > memory_threshold {
-                    let instance = instances.remove(i).unwrap();
-                    high_memory_instances.push(instance);
-                } else {
-                    i += 1;
-                }
-            }
-            high_memory_instances
-        };
-
-        for instance in high_memory_instances {
-            info!(instance_id = %instance.id, memory_usage = instance.memory_usage_bytes,
-                  "Clearing high memory instance");
-            cleared += 1;
-
-            // Emit instance destroyed event
-            self.emit_instance_health_event(&instance, false).await;
-        }
-
-        // Create replacement instances
-        for _ in 0..cleared {
-            if let Ok(new_instance) = self.create_instance().await {
-                self.return_instance(new_instance).await;
-            }
-        }
-
-        info!(cleared_count = cleared, "Cleared high memory instances and created replacements");
-        Ok(cleared)
-    }
-
-    pub async fn clear_some_instances(&self, count: usize) -> Result<usize> {
-        let mut cleared = 0;
-
-        let instances_to_clear = {
-            let mut instances = self.available_instances.lock().await;
-            let mut instances_to_clear = Vec::new();
-            for _ in 0..count.min(instances.len()) {
-                if let Some(instance) = instances.pop_front() {
-                    instances_to_clear.push(instance);
-                }
-            }
-            instances_to_clear
-        };
-
-        for instance in instances_to_clear {
-            info!(instance_id = %instance.id, "Clearing instance for pool optimization");
-            self.emit_instance_health_event(&instance, false).await;
-            cleared += 1;
-        }
-
-        // Create replacement instances
-        for _ in 0..cleared {
-            if let Ok(new_instance) = self.create_instance().await {
-                self.return_instance(new_instance).await;
-            }
-        }
-
-        info!(cleared_count = cleared, "Cleared instances for optimization");
-        Ok(cleared)
-    }
-
-    pub async fn trigger_memory_cleanup(&self) -> Result<()> {
-        info!("Triggering memory cleanup for all instances");
-
-        // Force garbage collection on all available instances
-        {
-            let instances = self.available_instances.lock().await;
-            for instance in instances.iter() {
-                // Update memory usage from resource tracker
-                let current_pages = instance.resource_tracker.current_memory_pages();
-                let memory_bytes = (current_pages * 64 * 1024) as u64;
-                debug!(instance_id = %instance.id, memory_pages = current_pages, memory_bytes = memory_bytes,
-                       "Updated instance memory usage");
-            }
-        }
-
-        // Emit memory cleanup event
-        if let Some(event_bus) = &self.event_bus {
-            let event = PoolEvent::new(
-                PoolOperation::MemoryCleanup,
-                self.pool_id.clone(),
-                "instance_pool",
-            );
-
-            if let Err(e) = event_bus.emit(event).await {
-                warn!(error = %e, "Failed to emit memory cleanup event");
-            }
-        }
-
-        Ok(())
     }
 
     /// Get pool ID
