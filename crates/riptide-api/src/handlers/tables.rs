@@ -3,7 +3,7 @@
 //! This module implements table extraction endpoints that utilize riptide-html's
 //! advanced table extraction capabilities to extract structured data from HTML content.
 
-use crate::errors::{ApiError, ApiResult};
+use crate::errors::ApiError;
 use crate::state::AppState;
 use axum::{
     extract::{Path, Query, State},
@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 use uuid::Uuid;
 
 /// Request body for table extraction
@@ -234,11 +234,12 @@ pub async fn extract_tables(
     drop(storage_guard);
 
     let processing_time_ms = start_time.elapsed().as_millis() as u64;
+    let total_tables = table_summaries.len();
 
     let response = TableExtractionResponse {
         tables: table_summaries,
         extraction_time_ms: processing_time_ms,
-        total_tables: table_summaries.len(),
+        total_tables,
     };
 
     info!(
@@ -341,12 +342,14 @@ pub async fn export_table(
         start_time.elapsed().as_secs_f64(),
     );
 
+    let extension = if params.format == "csv" { "csv" } else { "md" };
+    let disposition = format!("attachment; filename=\"table_{}.{}\"", table_id, extension);
+
     Ok((
         StatusCode::OK,
         [
-            ("Content-Type", content_type),
-            ("Content-Disposition", &format!("attachment; filename=\"table_{}.{}\"",
-                table_id, if params.format == "csv" { "csv" } else { "md" })),
+            (axum::http::header::CONTENT_TYPE, content_type),
+            (axum::http::header::CONTENT_DISPOSITION, disposition),
         ],
         content,
     ))
