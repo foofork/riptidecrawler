@@ -74,6 +74,9 @@ pub mod config;
 pub mod error;
 pub mod lifecycle;
 pub mod ndjson;
+
+// Re-export NDJSON handlers for convenience
+pub use ndjson::{crawl_stream, deepsearch_stream};
 pub mod pipeline;
 pub mod processor;
 pub mod response_helpers;
