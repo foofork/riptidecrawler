@@ -32,7 +32,7 @@ pub struct AppState {
     pub cache: Arc<tokio::sync::Mutex<CacheManager>>,
 
     /// WASM extractor for content processing
-    pub extractor: Arc<WasmExtractor>,
+    pub extractor: Arc<dyn WasmExtractor>,
 
     /// Configuration settings
     pub config: AppConfig,

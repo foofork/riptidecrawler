@@ -84,7 +84,7 @@ pub async fn process_pdf(
     let decoded_data = BASE64_STANDARD.decode(&pdf_data)
         .map_err(|e| ApiError::validation(format!("Invalid base64 PDF data: {}", e)))?;
 
-    let (pdf_data, filename, _url) = (decoded_data, request.filename, request.url);
+    let (pdf_data, filename, _) = (decoded_data, request.filename, request.url);
 
     debug!(
         file_size = pdf_data.len(),
@@ -204,7 +204,7 @@ pub async fn process_pdf_stream(
     let decoded_data = BASE64_STANDARD.decode(&pdf_data)
         .map_err(|e| ApiError::validation(format!("Invalid base64 PDF data: {}", e)))?;
 
-    let (pdf_data, filename, _url) = (decoded_data, request.filename, request.url);
+    let (pdf_data, filename, _) = (decoded_data, request.filename, request.url);
 
     debug!(
         file_size = pdf_data.len(),

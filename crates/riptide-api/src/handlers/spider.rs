@@ -80,7 +80,7 @@ pub async fn spider_crawl(
 
     // Set strategy if provided
     if let Some(strategy_str) = &body.strategy {
-        let _strategy = match strategy_str.as_str() {
+        let _ = match strategy_str.as_str() {
             "breadth_first" => CrawlingStrategy::BreadthFirst,
             "depth_first" => CrawlingStrategy::DepthFirst,
             "best_first" => CrawlingStrategy::BestFirst {

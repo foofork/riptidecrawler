@@ -147,7 +147,7 @@ pub fn register_builtin_providers(registry: &crate::registry::LlmRegistry) -> Re
 // Provider Health Monitoring
 // ============================================================================
 
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::SystemTime;
 use std::collections::HashMap;
 use parking_lot::RwLock;
 use serde::{Serialize, Deserialize};

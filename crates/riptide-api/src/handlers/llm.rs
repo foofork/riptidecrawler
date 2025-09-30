@@ -15,6 +15,7 @@ use riptide_intelligence::{
     LlmRegistry, ProviderConfig,
     providers::register_builtin_providers,
     runtime_switch::{RuntimeSwitchManager, RuntimeSwitchConfig},
+    metrics::MetricsCollector,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -189,8 +190,23 @@ fn get_llm_registry() -> Arc<tokio::sync::Mutex<LlmRegistry>> {
 
 fn get_runtime_switch_manager() -> Arc<tokio::sync::Mutex<RuntimeSwitchManager>> {
     RUNTIME_SWITCH_MANAGER.get_or_init(|| {
+        // Create a new registry instance for the RuntimeSwitchManager
+        // We can't share the mutex-wrapped registry, so we create a new one
+        let mut registry = LlmRegistry::new();
+        if let Err(e) = register_builtin_providers(&mut registry) {
+            warn!("Failed to register built-in providers in runtime switch manager: {}", e);
+        }
+        let registry_arc = Arc::new(registry);
+
+        let metrics_collector = Arc::new(MetricsCollector::new(7)); // 7 days retention
         let config = RuntimeSwitchConfig::default();
-        let manager = RuntimeSwitchManager::new(config);
+
+        let (manager, _event_rx) = RuntimeSwitchManager::new(
+            registry_arc,
+            None,
+            metrics_collector,
+            config,
+        );
         Arc::new(tokio::sync::Mutex::new(manager))
     }).clone()
 }
@@ -256,10 +272,11 @@ pub async fn list_providers(
 
     drop(registry_guard);
 
+    let total_providers = providers.len();
     let response = ProvidersResponse {
         providers,
         current_provider,
-        total_providers: providers.len(),
+        total_providers,
     };
 
     info!(
@@ -331,10 +348,15 @@ pub async fn switch_provider(
     let switch_result = if request.gradual_rollout {
         // Use runtime switch manager for gradual rollout
         let switch_manager = get_runtime_switch_manager();
-        let mut manager_guard = switch_manager.lock().await;
 
-        match manager_guard.initiate_switch(&request.provider_name, request.rollout_percentage).await {
+        // Drop the current_provider_guard before acquiring manager_guard to avoid holding multiple locks
+        drop(current_provider_guard);
+
+        let manager_guard = switch_manager.lock().await;
+        match manager_guard.switch_to_provider(request.provider_name.clone()).await {
             Ok(_) => {
+                // Re-acquire the current_provider_guard to update the current provider
+                let mut current_provider_guard = current_provider_ref.lock().await;
                 *current_provider_guard = Some(request.provider_name.clone());
                 true
             },
@@ -346,10 +368,9 @@ pub async fn switch_provider(
     } else {
         // Direct switch
         *current_provider_guard = Some(request.provider_name.clone());
+        drop(current_provider_guard);
         true
     };
-
-    drop(current_provider_guard);
 
     let response = if switch_result {
         SwitchProviderResponse {
@@ -440,19 +461,25 @@ pub async fn update_config(
     // Apply configuration updates if validation passed
     if success {
         let registry = get_llm_registry();
-        let mut registry_guard = registry.lock().await;
+        let registry_guard = registry.lock().await;
 
         for (provider_name, config) in request.provider_configs {
-            // Create provider config (simplified)
-            let provider_config = ProviderConfig {
-                provider_type: provider_name.clone(),
-                config: config.clone(),
-                enabled: true,
-                priority: 1,
-            };
+            // Convert HashMap<String, String> to HashMap<String, serde_json::Value>
+            let config_values: HashMap<String, serde_json::Value> = config
+                .into_iter()
+                .map(|(k, v)| (k, serde_json::Value::String(v)))
+                .collect();
 
-            // Register or update provider
-            if let Err(e) = registry_guard.register_provider(&provider_name, provider_config) {
+            // Create provider config using the builder pattern
+            let provider_config = ProviderConfig::new(provider_name.clone(), provider_name.clone())
+                .with_config("config", serde_json::Value::Object(
+                    config_values.into_iter()
+                        .map(|(k, v)| (k, v))
+                        .collect()
+                ));
+
+            // Load provider using the config (this will register it internally)
+            if let Err(e) = registry_guard.load_provider(provider_config) {
                 warn!("Failed to update provider {}: {}", provider_name, e);
                 validation_results.insert(provider_name, format!("Update failed: {}", e));
                 success = false;
@@ -557,7 +584,7 @@ pub async fn get_config(
 
 /// Create provider info from registry data
 async fn create_provider_info(
-    registry: &LlmRegistry,
+    _registry: &LlmRegistry,
     provider_name: &str,
     params: &ProviderQuery,
 ) -> ApiResult<ProviderInfo> {
@@ -656,7 +683,7 @@ async fn validate_provider_config(
     config: &HashMap<String, String>,
 ) -> ApiResult<String> {
     // Basic validation - in production would actually test provider connectivity
-    match provider_name.as_str() {
+    match provider_name {
         name if name.contains("openai") => {
             if !config.contains_key("api_key") {
                 return Err(ApiError::validation("OpenAI requires api_key".to_string()));
