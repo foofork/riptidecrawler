@@ -19,7 +19,6 @@ use uuid::Uuid;
 use crate::{
     CompletionRequest, CompletionResponse, IntelligenceError, Result,
     config::{TenantLimits, TenantIsolationConfig},
-    LlmProvider,
 };
 
 /// Tenant isolation manager
@@ -27,6 +26,7 @@ pub struct TenantIsolationManager {
     config: TenantIsolationConfig,
     tenant_states: Arc<RwLock<HashMap<String, TenantState>>>,
     rate_limiters: Arc<RwLock<HashMap<String, TenantRateLimiter>>>,
+    #[allow(dead_code)]
     tenant_providers: Arc<RwLock<HashMap<String, TenantProviderConfig>>>,
     resource_pools: Arc<RwLock<HashMap<String, Arc<Semaphore>>>>,
 }
@@ -53,8 +53,8 @@ pub enum TenantStatus {
     Active,
     Throttled,
     Suspended,
-    Quota_Exceeded,
-    Budget_Exceeded,
+    QuotaExceeded,
+    BudgetExceeded,
 }
 
 /// Tenant limit violation record
@@ -88,6 +88,7 @@ pub enum ViolationAction {
 
 /// Per-tenant rate limiter
 pub struct TenantRateLimiter {
+    #[allow(dead_code)]
     tenant_id: String,
     limits: TenantLimits,
     request_timestamps: Vec<Instant>,

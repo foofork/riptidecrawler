@@ -7,19 +7,19 @@
 //! - Real-time monitoring of configuration changes
 
 use std::sync::Arc;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{RwLock, mpsc, watch};
 use tokio::time::{interval, Instant};
 use tokio::fs;
 use tracing::{info, warn, error, debug};
-use notify::{Watcher, RecursiveMode, Event, EventKind};
+use notify::Watcher;
 use uuid::Uuid;
 
 use crate::{
     config::{IntelligenceConfig, ConfigLoader},
-    registry::{LlmRegistry, ProviderConfig},
+    registry::LlmRegistry,
     IntelligenceError, Result,
 };
 
@@ -473,7 +473,7 @@ impl HotReloadManager {
                         interval.tick().await;
 
                         if let Ok(metadata) = fs::metadata(&path).await {
-                            if let Ok(modified) = metadata.modified() {
+                            if let Ok(_modified) = metadata.modified() {
                                 let modified_instant = Instant::now(); // Simplified for demo
                                 if modified_instant.duration_since(last_modification) > debounce_duration {
                                     let _ = tx.send(path.clone());
@@ -629,7 +629,7 @@ impl HotReloadManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::registry::LlmRegistry;
+    use crate::registry::{LlmRegistry, ProviderConfig};
     use crate::config::ConfigLoader;
 
     #[tokio::test]

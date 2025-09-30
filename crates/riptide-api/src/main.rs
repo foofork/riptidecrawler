@@ -116,6 +116,10 @@ async fn main() -> anyhow::Result<()> {
         .nest("/pdf", routes::pdf::pdf_routes())
         // Stealth configuration and testing endpoints
         .nest("/stealth", routes::stealth::stealth_routes())
+        // Table extraction endpoints
+        .nest("/api/v1/tables", routes::tables::table_routes())
+        // LLM provider management endpoints
+        .nest("/api/v1/llm", routes::llm::llm_routes())
         // Strategies endpoints for advanced extraction
         .route("/strategies/crawl", post(handlers::strategies::strategies_crawl))
         .route("/strategies/info", get(handlers::strategies::get_strategies_info))

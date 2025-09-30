@@ -123,14 +123,14 @@ impl EventAwareInstancePool {
 
     /// Get current pool status for health monitoring
     pub async fn get_pool_status(&self) -> (usize, usize, usize) {
-        self.pool.get_pool_status()
+        self.pool.get_pool_status().await
     }
 
     /// Emit pool health event
     pub async fn emit_pool_health_event(&self) -> Result<()> {
         if let Some(event_bus) = &self.event_bus {
-            let (available, active, max_size) = self.pool.get_pool_status();
-            let metrics = self.pool.get_metrics();
+            let (available, active, max_size) = self.pool.get_pool_status().await;
+            let metrics = self.pool.get_metrics().await;
 
             // Calculate pool health based on metrics
             let health_status = if metrics.circuit_breaker_trips > 5 {
@@ -433,7 +433,7 @@ impl EventAwarePoolFactory {
 
                 // Get current pool metrics and emit as event
                 let (available, active, total) = pool_clone.get_pool_status().await;
-                let performance_metrics = pool_clone.pool.get_metrics();
+                let performance_metrics = pool_clone.pool.get_metrics().await;
 
                 let pool_metrics = PoolMetrics {
                     available_instances: available,

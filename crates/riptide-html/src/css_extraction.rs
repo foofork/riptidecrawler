@@ -634,18 +634,16 @@ struct JoinTransformer;
 impl ContentTransformer for JoinTransformer {
     fn transform(&self, content: &str, _base_url: Option<&str>) -> Result<String> {
         // Try to parse as JSON array, if successful join elements
-        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(content) {
-            if let serde_json::Value::Array(arr) = parsed {
-                let strings: Vec<String> = arr.into_iter()
-                    .filter_map(|v| match v {
-                        serde_json::Value::String(s) => Some(s),
-                        serde_json::Value::Number(n) => Some(n.to_string()),
-                        serde_json::Value::Bool(b) => Some(b.to_string()),
-                        _ => None,
-                    })
-                    .collect();
-                return Ok(strings.join(", "));
-            }
+        if let Ok(serde_json::Value::Array(arr)) = serde_json::from_str::<serde_json::Value>(content) {
+            let strings: Vec<String> = arr.into_iter()
+                .filter_map(|v| match v {
+                    serde_json::Value::String(s) => Some(s),
+                    serde_json::Value::Number(n) => Some(n.to_string()),
+                    serde_json::Value::Bool(b) => Some(b.to_string()),
+                    _ => None,
+                })
+                .collect();
+            return Ok(strings.join(", "));
         }
 
         // If not JSON, split by common delimiters and rejoin

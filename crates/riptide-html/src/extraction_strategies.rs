@@ -5,7 +5,7 @@
 
 use anyhow::Result;
 use async_trait::async_trait;
-use crate::{ExtractedContent, ExtractionQuality, wasm_extraction::CmExtractor};
+use crate::{ExtractedContent, wasm_extraction::CmExtractor};
 use scraper::{Html, Selector};
 use url::Url;
 
@@ -160,6 +160,12 @@ pub async fn extract(html: &str, url: &str) -> Result<ExtractedContent> {
 /// CSS-based extraction strategy
 pub struct CssExtractorStrategy {
     selector_map: std::collections::HashMap<String, String>,
+}
+
+impl Default for CssExtractorStrategy {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl CssExtractorStrategy {

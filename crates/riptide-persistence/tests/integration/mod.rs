@@ -20,6 +20,7 @@ mod cache_integration_tests;
 mod state_integration_tests;
 mod tenant_integration_tests;
 mod performance_tests;
+mod spillover_tests;
 
 /// Test helper to create Redis URL
 fn get_test_redis_url() -> String {

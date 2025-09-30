@@ -278,6 +278,7 @@ impl Default for ExtractorConfig {
 }
 
 /// WASM Component-based extractor
+#[allow(dead_code)]
 pub struct CmExtractor {
     engine: Engine,
     component: Component,
@@ -330,9 +331,9 @@ impl CmExtractor {
     }
 
     /// Extract content from HTML using the WASM component
-    pub fn extract(&self, html: &str, url: &str, mode: &str) -> Result<ExtractedDoc> {
+    pub fn extract(&self, html: &str, url: &str, _mode: &str) -> Result<ExtractedDoc> {
         let start_time = Instant::now();
-        let mut resource_tracker = WasmResourceTracker::new(self.config.max_memory_pages);
+        let resource_tracker = WasmResourceTracker::new(self.config.max_memory_pages);
 
         let mut store = Store::new(&self.engine, resource_tracker);
         store.set_fuel(1_000_000)?; // Set fuel limit for execution

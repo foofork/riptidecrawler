@@ -47,10 +47,12 @@ const BENCHMARK_SIZES: &[(&str, &str)] = &[
 ];
 
 /// Benchmark configurations
+#[allow(dead_code)]
 struct BenchmarkConfig {
     name: &'static str,
     pool_size: usize,
     concurrent_requests: usize,
+    #[allow(dead_code)]
     enable_instance_reuse: bool,
 }
 
@@ -86,28 +88,23 @@ async fn create_test_extractor(
     config: &BenchmarkConfig,
 ) -> Result<CmExtractor, Box<dyn std::error::Error>> {
     let extractor_config = ExtractorConfig {
+        max_instances: config.pool_size,
+        enable_metrics: true,
+        timeout_ms: 5000,
+        memory_limit_pages: Some(8192), // 512MB / 64KB per page
+        extraction_timeout: Some(30000), // 30 seconds
         max_pool_size: config.pool_size,
         initial_pool_size: config.pool_size / 2,
-        extraction_timeout: Duration::from_secs(30),
-        memory_limit: 512 * 1024 * 1024, // 512MB
-        enable_instance_reuse: config.enable_instance_reuse,
-        enable_metrics: true,
-        memory_limit_pages: 8192, // 512MB / 64KB per page
-        enable_simd: true,
-        enable_aot_cache: true,
-        cold_start_target_ms: 15,
         epoch_timeout_ms: 5000,
-        circuit_breaker_timeout: Duration::from_secs(60),
+        health_check_interval: 30000, // 30 seconds in milliseconds
+        memory_limit: Some(512 * 1024 * 1024), // 512MB
+        circuit_breaker_timeout: 60000, // 60 seconds in milliseconds
         circuit_breaker_failure_threshold: 5,
-        circuit_breaker_success_threshold: 3,
-        health_check_interval: Duration::from_secs(30),
     };
 
-    // For benchmarking, we'll use a mock WASM path
-    // In real tests, this would point to the actual WASM component
-    Ok(CmExtractor::with_config("test.wasm", extractor_config)
-        .await
-        .map_err(|e| format!("Failed to create extractor for benchmarking: {}", e))?)
+    // For benchmarking, we'll use CmExtractor::new() directly
+    // The extractor doesn't actually load WASM files in this simplified implementation
+    Ok(CmExtractor::new(extractor_config))
 }
 
 /// Benchmark single extraction performance
@@ -125,11 +122,11 @@ fn bench_single_extraction(c: &mut Criterion) {
                         .expect("Failed to create extractor for benchmark");
 
                     b.iter(|| {
-                        black_box(extractor.extract(
-                            black_box(html),
-                            black_box("https://example.com"),
-                            black_box("article"),
-                        ))
+                        rt.block_on(async {
+                            black_box(extractor.extract(
+                                black_box(html),
+                            ).await)
+                        })
                     });
                 },
             );
@@ -163,9 +160,7 @@ fn bench_concurrent_extraction(c: &mut Criterion) {
                                     async move {
                                         extractor.extract(
                                             black_box(html),
-                                            black_box("https://example.com"),
-                                            black_box("article"),
-                                        )
+                                        ).await
                                     }
                                 })
                                 .collect();
@@ -188,21 +183,18 @@ fn bench_pool_efficiency(c: &mut Criterion) {
 
     for pool_size in [1, 2, 4, 8, 16] {
         let config = ExtractorConfig {
+            max_instances: pool_size,
+            enable_metrics: true,
+            timeout_ms: 5000,
+            memory_limit_pages: Some(4096), // 256MB / 64KB per page
+            extraction_timeout: Some(30000), // 30 seconds
             max_pool_size: pool_size,
             initial_pool_size: pool_size,
-            extraction_timeout: Duration::from_secs(30),
-            memory_limit: 256 * 1024 * 1024,
-            enable_instance_reuse: true,
-            enable_metrics: true,
-            memory_limit_pages: 4096, // 256MB / 64KB per page
-            enable_simd: true,
-            enable_aot_cache: true,
-            cold_start_target_ms: 15,
             epoch_timeout_ms: 5000,
-            circuit_breaker_timeout: Duration::from_secs(60),
+            health_check_interval: 30000, // 30 seconds in milliseconds
+            memory_limit: Some(256 * 1024 * 1024), // 256MB
+            circuit_breaker_timeout: 60000, // 60 seconds in milliseconds
             circuit_breaker_failure_threshold: 5,
-            circuit_breaker_success_threshold: 3,
-            health_check_interval: Duration::from_secs(30),
         };
 
         group.bench_with_input(
@@ -211,9 +203,7 @@ fn bench_pool_efficiency(c: &mut Criterion) {
             |b, _| {
                 b.iter(|| {
                     rt.block_on(async {
-                        let _extractor = CmExtractor::with_config("test.wasm", config.clone())
-                            .await
-                            .expect("Failed to create extractor for benchmark");
+                        let _extractor = CmExtractor::new(config.clone());
 
                         // Warm-up functionality not yet implemented
                         black_box(Ok::<(), String>(()))
@@ -270,9 +260,7 @@ fn bench_memory_usage(c: &mut Criterion) {
                         for _ in 0..100 {
                             let _ = black_box(extractor.extract(
                                 black_box(html),
-                                black_box("https://example.com"),
-                                black_box("article"),
-                            ));
+                            ).await);
                         }
                     })
                 })
@@ -302,14 +290,13 @@ fn bench_extraction_modes(c: &mut Criterion) {
             c.bench_with_input(
                 BenchmarkId::new("extraction_modes", &bench_id),
                 &(html, &mode),
-                |b, (html, mode)| {
+                |b, (html, _mode)| {
                     b.iter(|| {
                         rt.block_on(async {
-                            black_box(extractor.extract_typed(
+                            // extract_typed method no longer exists, using extract instead
+                            black_box(extractor.extract(
                                 black_box(html),
-                                black_box("https://example.com"),
-                                black_box((*mode).clone()),
-                            ))
+                            ).await)
                         })
                     });
                 },
@@ -347,9 +334,7 @@ fn bench_error_handling(c: &mut Criterion) {
                         // These should fail gracefully and return typed errors
                         let _ = black_box(extractor.extract(
                             black_box(html),
-                            black_box("https://example.com"),
-                            black_box("article"),
-                        ));
+                        ).await);
                     })
                 })
             },
@@ -362,47 +347,39 @@ fn bench_circuit_breaker(c: &mut Criterion) {
     let rt = Runtime::new().expect("Failed to create runtime for benchmark");
 
     let config = ExtractorConfig {
+        max_instances: 4,
+        enable_metrics: true,
+        timeout_ms: 100, // Short timeout to trigger failures
+        memory_limit_pages: Some(1024), // 64MB / 64KB per page
+        extraction_timeout: Some(100), // Short timeout
         max_pool_size: 4,
         initial_pool_size: 2,
-        extraction_timeout: Duration::from_millis(100), // Short timeout to trigger failures
-        memory_limit: 64 * 1024 * 1024,                 // Small limit to trigger resource errors
-        enable_instance_reuse: true,
-        enable_metrics: true,
-        memory_limit_pages: 1024, // 64MB / 64KB per page
-        enable_simd: true,
-        enable_aot_cache: true,
-        cold_start_target_ms: 15,
         epoch_timeout_ms: 5000,
-        circuit_breaker_timeout: Duration::from_secs(60),
+        health_check_interval: 30000, // 30 seconds in milliseconds
+        memory_limit: Some(64 * 1024 * 1024), // Small limit to trigger resource errors
+        circuit_breaker_timeout: 60000, // 60 seconds in milliseconds
         circuit_breaker_failure_threshold: 5,
-        circuit_breaker_success_threshold: 3,
-        health_check_interval: Duration::from_secs(30),
     };
 
     c.bench_function("circuit_breaker_recovery", |b| {
         b.iter(|| {
             rt.block_on(async {
-                let extractor = CmExtractor::with_config("test.wasm", config.clone())
-                    .await
-                    .expect("Failed to create extractor for benchmark");
+                let extractor = CmExtractor::new(config.clone());
 
                 // Trigger failures to open circuit breaker
                 for _ in 0..20 {
                     let _ = extractor.extract(
                         black_box(SAMPLE_HTML_LARGE),
-                        black_box("https://example.com"),
-                        black_box("article"),
-                    );
+                    ).await;
                 }
 
                 // Test recovery
                 tokio::time::sleep(Duration::from_secs(1)).await;
 
-                black_box(extractor.extract(
+                let _ = extractor.extract(
                     black_box(SAMPLE_HTML_SMALL),
-                    black_box("https://example.com"),
-                    black_box("article"),
-                ))
+                ).await;
+                black_box(())
             })
         });
     });
@@ -414,42 +391,36 @@ fn bench_initialization(c: &mut Criterion) {
         (
             "minimal",
             ExtractorConfig {
+                max_instances: 1,
+                enable_metrics: false,
+                timeout_ms: 2000,
+                memory_limit_pages: Some(2048), // 128MB / 64KB per page
+                extraction_timeout: Some(10000), // 10 seconds
                 max_pool_size: 1,
                 initial_pool_size: 0,
-                extraction_timeout: Duration::from_secs(10),
-                memory_limit: 128 * 1024 * 1024,
-                enable_instance_reuse: false,
-                enable_metrics: false,
-                memory_limit_pages: 2048, // 128MB / 64KB per page
-                enable_simd: false,
-                enable_aot_cache: false,
-                cold_start_target_ms: 50,
                 epoch_timeout_ms: 2000,
-                circuit_breaker_timeout: Duration::from_secs(30),
+                health_check_interval: 30000, // 30 seconds in milliseconds
+                memory_limit: Some(128 * 1024 * 1024), // 128MB
+                circuit_breaker_timeout: 30000, // 30 seconds in milliseconds
                 circuit_breaker_failure_threshold: 3,
-                circuit_breaker_success_threshold: 2,
-                health_check_interval: Duration::from_secs(30),
             },
         ),
         ("standard", ExtractorConfig::default()),
         (
             "high_performance",
             ExtractorConfig {
+                max_instances: 16,
+                enable_metrics: true,
+                timeout_ms: 10000,
+                memory_limit_pages: Some(16384), // 1GB / 64KB per page
+                extraction_timeout: Some(30000), // 30 seconds
                 max_pool_size: 16,
                 initial_pool_size: 8,
-                extraction_timeout: Duration::from_secs(30),
-                memory_limit: 1024 * 1024 * 1024,
-                enable_instance_reuse: true,
-                enable_metrics: true,
-                memory_limit_pages: 16384, // 1GB / 64KB per page
-                enable_simd: true,
-                enable_aot_cache: true,
-                cold_start_target_ms: 10,
                 epoch_timeout_ms: 10000,
-                circuit_breaker_timeout: Duration::from_secs(120),
+                health_check_interval: 30000, // 30 seconds in milliseconds
+                memory_limit: Some(1024 * 1024 * 1024), // 1GB
+                circuit_breaker_timeout: 120000, // 120 seconds in milliseconds
                 circuit_breaker_failure_threshold: 10,
-                circuit_breaker_success_threshold: 5,
-                health_check_interval: Duration::from_secs(30),
             },
         ),
     ];
@@ -460,10 +431,7 @@ fn bench_initialization(c: &mut Criterion) {
             &config,
             |b, config| {
                 b.iter(|| {
-                    black_box(
-                        Runtime::new().unwrap().block_on(CmExtractor::with_config("test.wasm", config.clone()))
-                            .expect("Failed to create extractor for benchmark"),
-                    )
+                    black_box(CmExtractor::new(config.clone()))
                 });
             },
         );

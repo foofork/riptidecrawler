@@ -16,8 +16,8 @@ use tracing::{info, warn, debug};
 
 use crate::{
     registry::ProviderConfig,
-    plugin::{PluginConfig, ResourceLimits},
-    failover::{FailoverConfig, ProviderPriority},
+    plugin::PluginConfig,
+    failover::FailoverConfig,
     health::HealthCheckConfig,
 };
 
@@ -460,6 +460,7 @@ impl Default for ConfigLoader {
     }
 }
 
+#[allow(clippy::derivable_impls)]
 impl Default for IntelligenceConfig {
     fn default() -> Self {
         Self {
@@ -477,6 +478,7 @@ impl Default for IntelligenceConfig {
 
 /// Auto-discovery service for providers
 pub struct ProviderDiscovery {
+    #[allow(dead_code)]
     loader: ConfigLoader,
 }
 

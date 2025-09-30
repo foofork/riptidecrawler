@@ -11,11 +11,11 @@ use std::sync::Arc;
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
-use chrono::{DateTime, Utc, Duration};
+use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 use crate::{
-    metrics::{MetricsCollector, TimeWindow, AggregatedMetrics, ProviderMetrics, TenantMetrics, CostBreakdown},
+    metrics::{MetricsCollector, TimeWindow, AggregatedMetrics, ProviderMetrics, TenantMetrics},
     config::{TenantLimits, CostTrackingConfig},
 };
 
@@ -693,7 +693,7 @@ mod tests {
     fn test_recommendation_priority() {
         let priority = RecommendationPriority::High;
         match priority {
-            RecommendationPriority::High => assert!(true),
+            RecommendationPriority::High => {},
             _ => panic!("Expected High priority"),
         }
     }

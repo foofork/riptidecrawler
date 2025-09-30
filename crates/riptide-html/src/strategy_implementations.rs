@@ -18,11 +18,13 @@ mod strategy_impls {
     use crate::processor::DefaultHtmlProcessor;
 
     // Re-export traits from riptide-core
-    pub use riptide_core::strategies::traits::{
-        ExtractionStrategy, ExtractionResult, ExtractionQuality,
-        StrategyCapabilities, PerformanceTier, ResourceRequirements, ResourceTier
-    };
-    pub use riptide_core::strategies::{PerformanceMetrics, ProcessedContent};
+    // NOTE: Cannot import from riptide-core due to circular dependency
+    // These types would need to be in a shared crate or redefined locally
+    // pub use riptide_core::strategies::traits::{
+    //     ExtractionStrategy, ExtractionResult, ExtractionQuality,
+    //     StrategyCapabilities, PerformanceTier, ResourceRequirements, ResourceTier
+    // };
+    // pub use riptide_core::strategies::{PerformanceMetrics, ProcessedContent};
     pub use crate::ExtractedContent;
 
 /// CSS-based extraction strategy implementation for riptide-html

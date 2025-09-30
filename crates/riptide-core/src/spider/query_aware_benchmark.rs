@@ -1,6 +1,6 @@
 use crate::spider::{
     query_aware::*,
-    types::{CrawlRequest, CrawlResult},
+    types::CrawlRequest,
 };
 use std::str::FromStr;
 use std::time::Instant;
@@ -15,10 +15,12 @@ use url::Url;
 /// - Early stopping logic efficiency
 /// - Overall throughput impact (<10% requirement)
 /// - On-topic token lift (≥20% requirement)
-
+#[allow(dead_code)]
 pub struct QueryAwareBenchmark {
+    #[allow(dead_code)]
     config: QueryAwareConfig,
     test_documents: Vec<String>,
+    #[allow(dead_code)]
     test_urls: Vec<String>,
 }
 
@@ -356,7 +358,7 @@ impl QueryAwareBenchmark {
             let request = CrawlRequest::new(url);
             let score = scorer.score_request(&request, Some("test content"));
 
-            if score < 0.0 || score > 2.0 {
+            if !(0.0..=2.0).contains(&score) {
                 return false; // Score out of reasonable range
             }
         }

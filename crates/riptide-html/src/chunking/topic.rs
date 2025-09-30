@@ -385,7 +385,7 @@ impl TopicChunker {
         };
 
         let mut in_valley = false;
-        let mut valley_start = 0;
+        let mut _valley_start = 0;
         let mut max_score_in_valley = 0.0;
         let mut max_pos_in_valley = 0;
 
@@ -397,7 +397,7 @@ impl TopicChunker {
             if !in_valley && score >= high_threshold && is_local_max {
                 // Start of a potential valley region
                 in_valley = true;
-                valley_start = i;
+                _valley_start = i;
                 max_score_in_valley = score;
                 max_pos_in_valley = i;
             } else if in_valley {

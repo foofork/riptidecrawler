@@ -589,7 +589,7 @@ impl CacheWarmingManager {
 
     /// Calculate adaptive target size based on load
     async fn calculate_adaptive_target_size(&self) -> usize {
-        let (_available, active, total) = self.pool.get_pool_status();
+        let (_available, active, total) = self.pool.get_pool_status().await;
         let load_ratio = if total == 0 { 0.0 } else { active as f64 / total as f64 };
 
         if load_ratio > self.config.load_threshold {

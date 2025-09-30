@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use anyhow::Result;
-use wasmtime::{ResourceLimiter, StoreLimitsBuilder};
+use wasmtime::ResourceLimiter;
 use crate::reliability::WasmExtractor;
 use crate::types::ExtractedDoc;
 
@@ -113,7 +113,9 @@ impl ResourceLimiter for WasmResourceTracker {
 /// Main extractor component (placeholder)
 #[derive(Clone)]
 pub struct CmExtractor {
+    #[allow(dead_code)]
     config: Arc<ExtractorConfig>,
+    #[allow(dead_code)]
     metrics: Arc<Mutex<PerformanceMetrics>>,
 }
 

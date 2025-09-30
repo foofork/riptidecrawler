@@ -40,6 +40,10 @@ pub struct StateManager {
     hot_reload_watcher: Option<Arc<HotReloadWatcher>>,
     /// Shutdown signal broadcaster
     shutdown_tx: broadcast::Sender<()>,
+    /// Session spillover manager for disk overflow
+    spillover_manager: Arc<SessionSpilloverManager>,
+    /// Memory usage tracker
+    memory_tracker: Arc<MemoryTracker>,
 }
 
 /// Session state with comprehensive metadata
@@ -171,6 +175,16 @@ impl StateManager {
             CheckpointManager::new(config.clone()).await?
         );
 
+        // Initialize spillover manager
+        let spillover_dir = PathBuf::from("./data/sessions/spillover");
+        let spillover_manager = Arc::new(
+            SessionSpilloverManager::new(spillover_dir).await?
+        );
+
+        // Initialize memory tracker (default 100MB max, 80% warning threshold)
+        let max_memory = 100 * 1024 * 1024; // 100MB
+        let memory_tracker = Arc::new(MemoryTracker::new(max_memory, 0.80));
+
         let (shutdown_tx, _) = broadcast::channel(1);
 
         let mut state_manager = Self {
@@ -181,6 +195,8 @@ impl StateManager {
             checkpoint_manager,
             hot_reload_watcher: None,
             shutdown_tx,
+            spillover_manager,
+            memory_tracker,
         };
 
         // Initialize hot reload if enabled
@@ -199,6 +215,7 @@ impl StateManager {
             session_timeout = config.session_timeout_seconds,
             hot_reload = config.enable_hot_reload,
             checkpoint_interval = config.checkpoint_interval_seconds,
+            spillover_enabled = true,
             "State manager initialized"
         );
 
@@ -240,6 +257,55 @@ impl StateManager {
                 }
             });
         }
+
+        // Disk spillover monitoring task
+        let spillover_sessions = Arc::clone(&self.sessions);
+        let spillover_manager = Arc::clone(&self.spillover_manager);
+        let memory_tracker = Arc::clone(&self.memory_tracker);
+
+        tokio::spawn(async move {
+            let mut interval = interval(Duration::from_secs(30)); // Check every 30 seconds
+            loop {
+                interval.tick().await;
+
+                // Check if memory usage exceeds threshold
+                if memory_tracker.should_spill().await {
+                    let usage_pct = memory_tracker.get_usage_percentage().await;
+                    warn!(
+                        memory_usage_pct = usage_pct,
+                        "Memory threshold exceeded, initiating spillover"
+                    );
+
+                    // Get LRU sessions for eviction
+                    let lru_sessions = spillover_manager.get_lru_sessions(10).await;
+
+                    // Spill sessions to disk
+                    let sessions_read = spillover_sessions.read().await;
+                    for session_id in lru_sessions {
+                        if let Some(session) = sessions_read.get(&session_id) {
+                            if let Err(e) = spillover_manager.spill_session(&session_id, session).await {
+                                error!(
+                                    session_id = %session_id,
+                                    error = %e,
+                                    "Failed to spill session to disk"
+                                );
+                            } else {
+                                // Update memory tracker (decrease usage)
+                                let session_size = MemoryTracker::estimate_session_size(session);
+                                memory_tracker.update_usage(-(session_size as i64)).await;
+                            }
+                        }
+                    }
+
+                    // Remove spilled sessions from memory after successful spillover
+                    drop(sessions_read);
+                    let mut sessions_write = spillover_sessions.write().await;
+                    for session_id in spillover_manager.get_lru_sessions(10).await {
+                        sessions_write.remove(&session_id);
+                    }
+                }
+            }
+        });
     }
 
     /// Create new session
@@ -296,11 +362,42 @@ impl StateManager {
             let sessions = self.sessions.read().await;
             if let Some(session) = sessions.get(session_id) {
                 if session.status == SessionStatus::Active {
+                    // Update LRU access tracker
+                    self.spillover_manager.update_access(session_id).await;
                     // Update last accessed
                     self.update_session_access(session_id).await?;
                     return Ok(Some(session.clone()));
                 }
             }
+        }
+
+        // Try disk spillover storage
+        if let Some(spilled_session) = self.spillover_manager.restore_session(session_id).await? {
+            debug!(session_id = %session_id, "Session restored from disk spillover");
+
+            // Check if expired
+            let age = Utc::now().signed_duration_since(spilled_session.created_at);
+            if age.num_seconds() > spilled_session.ttl_seconds as i64 {
+                self.spillover_manager.remove_spilled_session(session_id).await?;
+                return Ok(None);
+            }
+
+            // Restore to memory
+            let session_size = MemoryTracker::estimate_session_size(&spilled_session);
+            self.memory_tracker.update_usage(session_size as i64).await;
+
+            {
+                let mut sessions = self.sessions.write().await;
+                sessions.insert(session_id.to_string(), spilled_session.clone());
+            }
+
+            // Update LRU access tracker
+            self.spillover_manager.update_access(session_id).await;
+
+            // Remove from disk after successful restore
+            self.spillover_manager.remove_spilled_session(session_id).await?;
+
+            return Ok(Some(spilled_session));
         }
 
         // Try Redis
@@ -322,6 +419,9 @@ impl StateManager {
             // Update last accessed
             session.last_accessed = Utc::now();
             self.update_session(session_id, &session).await?;
+
+            // Update LRU access tracker
+            self.spillover_manager.update_access(session_id).await;
 
             debug!(session_id = %session_id, "Session retrieved from Redis");
             Ok(Some(session))
@@ -397,10 +497,22 @@ impl StateManager {
         let deleted: u64 = conn.del(&session_key).await?;
 
         // Remove from memory
-        {
+        let session_size = {
             let mut sessions = self.sessions.write().await;
+            let session_size = sessions.get(session_id)
+                .map(MemoryTracker::estimate_session_size)
+                .unwrap_or(0);
             sessions.remove(session_id);
+            session_size
+        };
+
+        // Update memory tracker
+        if session_size > 0 {
+            self.memory_tracker.update_usage(-(session_size as i64)).await;
         }
+
+        // Remove from disk spillover if exists
+        let _ = self.spillover_manager.remove_spilled_session(session_id).await;
 
         debug!(
             session_id = %session_id,
@@ -643,6 +755,8 @@ impl Clone for StateManager {
             checkpoint_manager: Arc::clone(&self.checkpoint_manager),
             hot_reload_watcher: self.hot_reload_watcher.clone(),
             shutdown_tx: self.shutdown_tx.clone(),
+            spillover_manager: Arc::clone(&self.spillover_manager),
+            memory_tracker: Arc::clone(&self.memory_tracker),
         }
     }
 }
@@ -831,5 +945,206 @@ impl HotReloadWatcher {
             _watcher: watcher,
             _config_manager: config_manager,
         })
+    }
+}
+
+/// Session spillover manager for disk-based overflow handling
+pub struct SessionSpilloverManager {
+    /// Spillover directory for session persistence
+    spillover_dir: PathBuf,
+    /// LRU access tracker for eviction
+    access_tracker: Arc<RwLock<HashMap<String, DateTime<Utc>>>>,
+    /// Spillover metrics
+    metrics: Arc<RwLock<SpilloverMetrics>>,
+}
+
+/// Spillover metrics tracking
+#[derive(Debug, Clone, Default)]
+pub struct SpilloverMetrics {
+    pub total_spilled: u64,
+    pub total_restored: u64,
+    pub spill_operations: u64,
+    pub restore_operations: u64,
+    pub avg_spill_time_ms: f64,
+    pub avg_restore_time_ms: f64,
+}
+
+impl SessionSpilloverManager {
+    /// Create new spillover manager
+    async fn new(spillover_dir: PathBuf) -> PersistenceResult<Self> {
+        // Create spillover directory if it doesn't exist
+        fs::create_dir_all(&spillover_dir).await?;
+
+        Ok(Self {
+            spillover_dir,
+            access_tracker: Arc::new(RwLock::new(HashMap::new())),
+            metrics: Arc::new(RwLock::new(SpilloverMetrics::default())),
+        })
+    }
+
+    /// Spill session to disk with atomic writes
+    async fn spill_session(&self, session_id: &str, session: &SessionState) -> PersistenceResult<()> {
+        let start = std::time::Instant::now();
+
+        // Serialize session data
+        let session_data = serde_json::to_vec(session)?;
+
+        // Write to temporary file first (atomic write pattern)
+        let temp_file_path = self.spillover_dir.join(format!("{}.tmp", session_id));
+        let final_file_path = self.spillover_dir.join(format!("{}.session", session_id));
+
+        // Write to temp file
+        fs::write(&temp_file_path, &session_data).await?;
+
+        // Atomically rename to final location
+        fs::rename(&temp_file_path, &final_file_path).await?;
+
+        // Update metrics
+        let elapsed = start.elapsed().as_millis() as f64;
+        let mut metrics = self.metrics.write().await;
+        metrics.total_spilled += 1;
+        metrics.spill_operations += 1;
+
+        // Update running average
+        let count = metrics.spill_operations as f64;
+        metrics.avg_spill_time_ms =
+            (metrics.avg_spill_time_ms * (count - 1.0) + elapsed) / count;
+
+        debug!(
+            session_id = %session_id,
+            elapsed_ms = elapsed,
+            size_bytes = session_data.len(),
+            "Session spilled to disk"
+        );
+
+        Ok(())
+    }
+
+    /// Restore session from disk
+    async fn restore_session(&self, session_id: &str) -> PersistenceResult<Option<SessionState>> {
+        let start = std::time::Instant::now();
+        let file_path = self.spillover_dir.join(format!("{}.session", session_id));
+
+        // Check if file exists
+        if !tokio::fs::try_exists(&file_path).await.unwrap_or(false) {
+            return Ok(None);
+        }
+
+        // Read session data
+        let session_data = fs::read(&file_path).await?;
+        let session: SessionState = serde_json::from_slice(&session_data)?;
+
+        // Update metrics
+        let elapsed = start.elapsed().as_millis() as f64;
+        let mut metrics = self.metrics.write().await;
+        metrics.total_restored += 1;
+        metrics.restore_operations += 1;
+
+        // Update running average
+        let count = metrics.restore_operations as f64;
+        metrics.avg_restore_time_ms =
+            (metrics.avg_restore_time_ms * (count - 1.0) + elapsed) / count;
+
+        debug!(
+            session_id = %session_id,
+            elapsed_ms = elapsed,
+            size_bytes = session_data.len(),
+            "Session restored from disk"
+        );
+
+        Ok(Some(session))
+    }
+
+    /// Remove spilled session from disk
+    async fn remove_spilled_session(&self, session_id: &str) -> PersistenceResult<()> {
+        let file_path = self.spillover_dir.join(format!("{}.session", session_id));
+
+        if tokio::fs::try_exists(&file_path).await.unwrap_or(false) {
+            fs::remove_file(&file_path).await?;
+            debug!(session_id = %session_id, "Spilled session removed from disk");
+        }
+
+        Ok(())
+    }
+
+    /// Update access time for LRU tracking
+    async fn update_access(&self, session_id: &str) {
+        let mut tracker = self.access_tracker.write().await;
+        tracker.insert(session_id.to_string(), Utc::now());
+    }
+
+    /// Get least recently used sessions for eviction
+    async fn get_lru_sessions(&self, count: usize) -> Vec<String> {
+        let tracker = self.access_tracker.read().await;
+        let mut sessions: Vec<_> = tracker.iter().collect();
+
+        // Sort by access time (oldest first)
+        sessions.sort_by(|a, b| a.1.cmp(b.1));
+
+        sessions.into_iter()
+            .take(count)
+            .map(|(id, _)| id.clone())
+            .collect()
+    }
+
+    /// Get spillover metrics
+    async fn get_metrics(&self) -> SpilloverMetrics {
+        self.metrics.read().await.clone()
+    }
+}
+
+/// Memory usage tracker for automatic spillover
+pub struct MemoryTracker {
+    /// Current estimated memory usage in bytes
+    current_usage: Arc<RwLock<u64>>,
+    /// Maximum memory threshold in bytes
+    max_memory: u64,
+    /// Warning threshold (percentage of max)
+    warning_threshold: f64,
+}
+
+impl MemoryTracker {
+    /// Create new memory tracker
+    fn new(max_memory: u64, warning_threshold: f64) -> Self {
+        Self {
+            current_usage: Arc::new(RwLock::new(0)),
+            max_memory,
+            warning_threshold,
+        }
+    }
+
+    /// Update memory usage estimate
+    async fn update_usage(&self, delta: i64) {
+        let mut usage = self.current_usage.write().await;
+        if delta < 0 {
+            *usage = usage.saturating_sub(delta.unsigned_abs());
+        } else {
+            *usage += delta as u64;
+        }
+    }
+
+    /// Get current memory usage
+    async fn get_usage(&self) -> u64 {
+        *self.current_usage.read().await
+    }
+
+    /// Check if memory usage exceeds threshold
+    async fn should_spill(&self) -> bool {
+        let usage = self.get_usage().await;
+        usage as f64 >= self.max_memory as f64 * self.warning_threshold
+    }
+
+    /// Get memory usage percentage
+    async fn get_usage_percentage(&self) -> f64 {
+        let usage = self.get_usage().await;
+        (usage as f64 / self.max_memory as f64) * 100.0
+    }
+
+    /// Calculate estimated session memory size
+    fn estimate_session_size(session: &SessionState) -> u64 {
+        // Rough estimate: serialize and measure
+        serde_json::to_vec(session)
+            .map(|v| v.len() as u64)
+            .unwrap_or(1024) // Default 1KB estimate
     }
 }

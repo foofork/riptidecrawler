@@ -187,7 +187,7 @@ impl PoolHealthMonitor {
         debug!("Performing pool health check");
 
         // Get pool status
-        let (available, active, max_size) = self.pool.get_pool_status();
+        let (available, active, max_size) = self.pool.get_pool_status().await;
         let utilization_percent = if max_size > 0 {
             (active as f64 / max_size as f64) * 100.0
         } else {
@@ -195,7 +195,7 @@ impl PoolHealthMonitor {
         };
 
         // Get performance metrics
-        let metrics = self.pool.get_metrics();
+        let metrics = self.pool.get_metrics().await;
 
         // Calculate success rate
         let success_rate_percent = if metrics.total_extractions > 0 {
@@ -239,7 +239,7 @@ impl PoolHealthMonitor {
             active_instances: active,
             max_instances: max_size,
             utilization_percent,
-            avg_semaphore_wait_ms: metrics.semaphore_wait_time_ms as f64,
+            avg_semaphore_wait_ms: metrics.semaphore_wait_time_ms,
             circuit_breaker_status,
             total_extractions: metrics.total_extractions,
             success_rate_percent,

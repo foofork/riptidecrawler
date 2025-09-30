@@ -7,7 +7,7 @@ use crate::processors::{
 };
 use crate::metrics::WorkerMetrics;
 use anyhow::{Context, Result};
-use riptide_core::extract::WasmExtractor;
+// use riptide_core::extract::WasmExtractor;
 use riptide_core::cache::CacheManager;
 use std::sync::Arc;
 use tokio::sync::Mutex;

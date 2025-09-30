@@ -1,0 +1,3 @@
+info: when --target option is used, coverage for proc-macro and build script will not be displayed because cargo does not pass RUSTFLAGS to them
+info: cargo-llvm-cov currently setting cfg(coverage); you can opt-out it by passing --no-cfg-coverage
+    Blocking waiting for file lock on build directory

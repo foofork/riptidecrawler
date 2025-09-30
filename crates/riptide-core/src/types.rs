@@ -122,6 +122,8 @@ pub struct CrawlOptions {
     pub use_spider: Option<bool>,
     pub spider_max_depth: Option<usize>,
     pub spider_strategy: Option<String>,
+    // Content chunking configuration
+    pub chunking_config: Option<ChunkingConfig>,
 }
 
 /// Rendering mode for content processing
@@ -158,6 +160,60 @@ pub enum OutputFormat {
     Markdown,
 }
 
+/// Content chunking configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChunkingConfig {
+    /// Chunking mode: "topic", "sliding", "fixed", "sentence", "html-aware"
+    pub chunking_mode: String,
+    /// Maximum chunk size in tokens
+    pub chunk_size: usize,
+    /// Overlap size in tokens for sliding window
+    pub overlap_size: usize,
+    /// Minimum chunk size in characters
+    pub min_chunk_size: usize,
+    /// Preserve sentence boundaries
+    #[serde(default = "default_true")]
+    pub preserve_sentences: bool,
+    /// Topic chunking specific config
+    pub topic_config: Option<TopicChunkingConfig>,
+}
+
+/// Topic chunking specific configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TopicChunkingConfig {
+    /// Window size for coherence analysis
+    pub window_size: usize,
+    /// Number of smoothing passes
+    pub smoothing_passes: usize,
+    /// Enable topic chunking (opt-in)
+    pub topic_chunking: bool,
+}
+
+fn default_true() -> bool { true }
+
+impl Default for ChunkingConfig {
+    fn default() -> Self {
+        Self {
+            chunking_mode: "sliding".to_string(),
+            chunk_size: 1000,
+            overlap_size: 100,
+            min_chunk_size: 200,
+            preserve_sentences: true,
+            topic_config: None,
+        }
+    }
+}
+
+impl Default for TopicChunkingConfig {
+    fn default() -> Self {
+        Self {
+            window_size: 100,
+            smoothing_passes: 2,
+            topic_chunking: true,
+        }
+    }
+}
+
 impl Default for CrawlOptions {
     fn default() -> Self {
         Self {
@@ -175,6 +231,7 @@ impl Default for CrawlOptions {
             use_spider: None,
             spider_max_depth: None,
             spider_strategy: None,
+            chunking_config: None,
         }
     }
 }

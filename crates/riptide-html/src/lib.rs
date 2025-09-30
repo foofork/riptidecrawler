@@ -37,7 +37,9 @@ pub mod processor;
 pub mod css_extraction;
 pub mod regex_extraction;
 pub mod dom_utils;
-pub mod strategy_implementations;
+// Strategy implementations module disabled due to circular dependency with riptide-core
+// Re-enable once types are moved to a shared crate or dependency cycle is resolved
+// pub mod strategy_implementations;
 pub mod wasm_extraction; // WASM-based extraction moved from riptide-core
 pub mod extraction_strategies; // Content extraction strategies moved from riptide-core
 // pub mod spider;  // Temporarily disabled due to compilation errors
@@ -65,10 +67,10 @@ pub use extraction_strategies::{ContentExtractor, TrekExtractor, CssExtractorStr
 
 // Strategy trait implementations (only available with strategy-traits feature)
 #[cfg(feature = "strategy-traits")]
-pub use strategy_implementations::{
-    HtmlCssExtractionStrategy, HtmlRegexExtractionStrategy, HtmlProcessorStrategy
-};
-
+// Disabled due to circular dependency
+// pub use strategy_implementations::{
+//     HtmlCssExtractionStrategy, HtmlRegexExtractionStrategy, HtmlProcessorStrategy
+// };
 // Re-export chunking functionality
 pub use chunking::{
     ChunkingStrategy, Chunk, ChunkMetadata, ChunkingConfig,

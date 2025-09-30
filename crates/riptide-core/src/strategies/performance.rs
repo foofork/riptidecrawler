@@ -407,7 +407,7 @@ struct ExtractionResult {
 /// Run single extraction for benchmarking
 async fn run_single_extraction(
     strategy: &ExtractionStrategy,
-    content: &str,
+    _content: &str,
 ) -> Result<ExtractionResult> {
     // Simplified extraction for benchmarking
     match strategy {

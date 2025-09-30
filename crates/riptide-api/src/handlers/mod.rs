@@ -1,9 +1,11 @@
+pub mod llm;
 pub mod pdf;
 pub mod render;
 pub mod sessions;
 pub mod spider;
 pub mod stealth;
 pub mod strategies;
+pub mod tables;
 pub mod workers;
 
 use crate::errors::{ApiError, ApiResult};
@@ -13,7 +15,8 @@ use crate::state::AppState;
 use crate::validation::{validate_crawl_request, validate_deepsearch_request};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use riptide_core::spider::{CrawlingStrategy, SpiderConfig, ScoringConfig};
-use riptide_core::types::CrawlOptions;
+use riptide_core::types::{CrawlOptions, ChunkingConfig, ExtractedDoc};
+use riptide_html::chunking::{create_strategy, ChunkingMode, ChunkingConfig as HtmlChunkingConfig};
 use std::time::Instant;
 use tracing::{debug, info, warn};
 use url::Url;
@@ -171,6 +174,14 @@ pub async fn crawl(
                     from_cache_count += 1;
                 }
 
+                // Apply chunking if requested
+                let document = if let Some(ref chunking_config) = options.chunking_config {
+                    apply_content_chunking(result.document, chunking_config).await
+                        .unwrap_or(result.document)
+                } else {
+                    result.document
+                };
+
                 crawl_results.push(CrawlResult {
                     url: url.clone(),
                     status: result.http_status,
@@ -178,7 +189,7 @@ pub async fn crawl(
                     gate_decision: result.gate_decision,
                     quality_score: result.quality_score,
                     processing_time_ms: result.processing_time_ms,
-                    document: Some(result.document),
+                    document: Some(document),
                     error: None,
                     cache_key: result.cache_key,
                 });
@@ -415,7 +426,7 @@ async fn perform_search_with_provider(
     country: Option<&str>,
     locale: Option<&str>,
 ) -> ApiResult<Vec<SearchResult>> {
-    use riptide_core::search::{SearchProviderFactory, SearchBackend};
+    use riptide_search::{SearchProviderFactory, SearchBackend};
 
     // Determine search backend from environment variable with validation
     let backend_str = std::env::var("SEARCH_BACKEND").unwrap_or_else(|_| "serper".to_string());
@@ -828,4 +839,113 @@ fn get_network_metrics() -> (u32, u64, f64) {
     // For now, return placeholder values
     // These should be tracked by the application's metrics system
     (0, 0, 0.0)
+}
+
+/// Apply content chunking to extracted document based on configuration
+async fn apply_content_chunking(
+    mut document: ExtractedDoc,
+    chunking_config: &ChunkingConfig,
+) -> ApiResult<ExtractedDoc> {
+    // Get the text content to chunk
+    let content = if !document.text.is_empty() {
+        &document.text
+    } else if let Some(ref markdown) = document.markdown {
+        markdown
+    } else {
+        // No content to chunk
+        return Ok(document);
+    };
+
+    debug!(
+        chunking_mode = %chunking_config.chunking_mode,
+        chunk_size = chunking_config.chunk_size,
+        content_length = content.len(),
+        "Applying content chunking"
+    );
+
+    // Convert ChunkingConfig to the format expected by riptide-html
+    let html_config = HtmlChunkingConfig {
+        max_tokens: chunking_config.chunk_size,
+        overlap_tokens: chunking_config.overlap_size,
+        preserve_sentences: chunking_config.preserve_sentences,
+        preserve_html_tags: false, // For text content, don't worry about HTML tags
+        min_chunk_size: chunking_config.min_chunk_size,
+        max_chunk_size: chunking_config.chunk_size * 2, // Allow some flexibility
+    };
+
+    // Create the appropriate chunking strategy
+    let chunking_mode = match chunking_config.chunking_mode.as_str() {
+        "topic" => {
+            if let Some(ref topic_config) = chunking_config.topic_config {
+                ChunkingMode::Topic {
+                    topic_chunking: topic_config.topic_chunking,
+                    window_size: topic_config.window_size,
+                    smoothing_passes: topic_config.smoothing_passes,
+                }
+            } else {
+                ChunkingMode::Topic {
+                    topic_chunking: true,
+                    window_size: 100,
+                    smoothing_passes: 2,
+                }
+            }
+        },
+        "sliding" => ChunkingMode::Sliding {
+            window_size: chunking_config.chunk_size,
+            overlap: chunking_config.overlap_size,
+        },
+        "fixed" => ChunkingMode::Fixed {
+            size: chunking_config.chunk_size,
+            by_tokens: true,
+        },
+        "sentence" => ChunkingMode::Sentence {
+            max_sentences: chunking_config.chunk_size / 20, // Rough estimate
+        },
+        "html-aware" => ChunkingMode::HtmlAware {
+            preserve_blocks: true,
+            preserve_structure: true,
+        },
+        _ => {
+            warn!("Unknown chunking mode '{}', falling back to sliding", chunking_config.chunking_mode);
+            ChunkingMode::Sliding {
+                window_size: chunking_config.chunk_size,
+                overlap: chunking_config.overlap_size,
+            }
+        }
+    };
+
+    // Create and execute the chunking strategy
+    let strategy = create_strategy(chunking_mode, html_config);
+
+    match strategy.chunk(content).await {
+        Ok(chunks) => {
+            info!(
+                chunk_count = chunks.len(),
+                chunking_mode = %chunking_config.chunking_mode,
+                "Content chunking completed"
+            );
+
+            // For now, join chunks back together with separators for compatibility
+            // In a future version, we might return chunks separately
+            let chunked_text = chunks
+                .into_iter()
+                .map(|chunk| format!("=== CHUNK {} ===\n{}\n", chunk.chunk_index + 1, chunk.content))
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            // Update the document with chunked content
+            document.text = chunked_text;
+
+            // Update markdown if it was the source
+            if document.markdown.is_some() && document.text.len() < content.len() {
+                document.markdown = Some(document.text.clone());
+            }
+
+            Ok(document)
+        },
+        Err(e) => {
+            warn!("Content chunking failed: {}, returning original content", e);
+            Ok(document)
+        }
+    }
 }

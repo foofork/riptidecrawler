@@ -1,9 +1,9 @@
 use anyhow::{anyhow, Result};
 use std::collections::VecDeque;
 use std::env;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tokio::sync::Semaphore;
+use tokio::sync::{Mutex, Semaphore};
 use tokio::time::{timeout, sleep};
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
@@ -38,7 +38,7 @@ impl PooledInstance {
         engine: Arc<Engine>,
         component: Arc<Component>,
         linker: Arc<Linker<WasmResourceTracker>>,
-        max_memory_pages: usize,
+        _max_memory_pages: usize,
     ) -> Self {
         let id = Uuid::new_v4().to_string();
         let now = Instant::now();
@@ -217,7 +217,7 @@ impl AdvancedInstancePool {
 
         // Now add all instances to the pool in one go
         {
-            let mut instances = self.available_instances.lock().unwrap();
+            let mut instances = self.available_instances.lock().await;
             for instance in created_instances {
                 instances.push_back(instance);
             }
@@ -225,12 +225,12 @@ impl AdvancedInstancePool {
 
         // Update metrics
         let pool_size = {
-            let instances = self.available_instances.lock().unwrap();
+            let instances = self.available_instances.lock().await;
             instances.len()
         };
 
         {
-            let mut metrics = self.metrics.lock().unwrap();
+            let mut metrics = self.metrics.lock().await;
             metrics.pool_size = pool_size;
         }
 
@@ -250,7 +250,7 @@ impl AdvancedInstancePool {
         mode: ExtractionMode,
     ) -> Result<ExtractedDoc> {
         // Check circuit breaker
-        if self.is_circuit_open() {
+        if self.is_circuit_open().await {
             return self.fallback_extract(html, url, mode).await;
         }
 
@@ -265,7 +265,7 @@ impl AdvancedInstancePool {
             Ok(Ok(permit)) => permit,
             Ok(Err(_)) => return Err(anyhow!("Semaphore closed")),
             Err(_) => {
-                self.record_timeout();
+                self.record_timeout().await;
 
                 // Emit timeout event
                 if let Some(event_bus) = &self.event_bus {
@@ -339,10 +339,10 @@ impl AdvancedInstancePool {
         self.return_instance(instance).await;
 
         // Update circuit breaker
-        self.record_extraction_result(success, start_time.elapsed());
+        self.record_extraction_result(success, start_time.elapsed()).await;
 
         // Update semaphore wait time metric
-        self.update_semaphore_wait_time(semaphore_wait_time);
+        self.update_semaphore_wait_time(semaphore_wait_time).await;
 
         // Release permit
         drop(permit);
@@ -361,7 +361,7 @@ impl AdvancedInstancePool {
     async fn get_or_create_instance(&self) -> Result<PooledInstance> {
         // Try to get from pool first
         let (maybe_instance, pool_empty) = {
-            let mut instances = self.available_instances.lock().unwrap();
+            let mut instances = self.available_instances.lock().await;
             let pool_empty = instances.is_empty();
             let maybe_instance = instances.pop_front();
             (maybe_instance, pool_empty)
@@ -501,7 +501,7 @@ impl AdvancedInstancePool {
         if is_healthy {
             // Add healthy instance back to pool
             {
-                let mut instances = self.available_instances.lock().unwrap();
+                let mut instances = self.available_instances.lock().await;
                 instances.push_back(instance);
             } // Lock dropped here
 
@@ -536,12 +536,12 @@ impl AdvancedInstancePool {
 
         // Update pool size metric
         let pool_size = {
-            let instances = self.available_instances.lock().unwrap();
+            let instances = self.available_instances.lock().await;
             instances.len()
         };
 
         {
-            let mut metrics = self.metrics.lock().unwrap();
+            let mut metrics = self.metrics.lock().await;
             metrics.pool_size = pool_size;
         }
     }
@@ -555,7 +555,7 @@ impl AdvancedInstancePool {
     ) -> Result<ExtractedDoc> {
         // Record fallback usage
         {
-            let mut metrics = self.metrics.lock().unwrap();
+            let mut metrics = self.metrics.lock().await;
             metrics.fallback_extractions += 1;
         }
 
@@ -670,8 +670,8 @@ impl AdvancedInstancePool {
     }
 
     /// Check if circuit breaker is open
-    fn is_circuit_open(&self) -> bool {
-        let state = self.circuit_state.lock().unwrap();
+    async fn is_circuit_open(&self) -> bool {
+        let state = self.circuit_state.lock().await;
         match *state {
             CircuitBreakerState::Open { opened_at, .. } => {
                 opened_at.elapsed() < Duration::from_millis(self.config.circuit_breaker_timeout)
@@ -681,9 +681,9 @@ impl AdvancedInstancePool {
     }
 
     /// Record extraction result for circuit breaker
-    fn record_extraction_result(&self, success: bool, duration: Duration) {
-        let mut state = self.circuit_state.lock().unwrap();
-        let mut metrics = self.metrics.lock().unwrap();
+    async fn record_extraction_result(&self, success: bool, duration: Duration) {
+        let mut state = self.circuit_state.lock().await;
+        let mut metrics = self.metrics.lock().await;
 
         // Update basic metrics
         metrics.total_extractions += 1;
@@ -831,38 +831,38 @@ impl AdvancedInstancePool {
     }
 
     /// Record timeout occurrence
-    fn record_timeout(&self) {
-        let mut metrics = self.metrics.lock().unwrap();
+    async fn record_timeout(&self) {
+        let mut metrics = self.metrics.lock().await;
         metrics.failed_extractions += 1;
         metrics.total_extractions += 1;
     }
 
     /// Record epoch timeout
     #[allow(dead_code)]
-    fn record_epoch_timeout(&self) {
-        let mut metrics = self.metrics.lock().unwrap();
+    async fn record_epoch_timeout(&self) {
+        let mut metrics = self.metrics.lock().await;
         metrics.epoch_timeouts += 1;
     }
 
     /// Update semaphore wait time metric
-    fn update_semaphore_wait_time(&self, wait_time: Duration) {
-        let mut metrics = self.metrics.lock().unwrap();
+    async fn update_semaphore_wait_time(&self, wait_time: Duration) {
+        let mut metrics = self.metrics.lock().await;
         let wait_ms = wait_time.as_millis() as f64;
         metrics.semaphore_wait_time_ms = if metrics.total_extractions == 1 {
-            wait_ms as f64
+            wait_ms
         } else {
             (metrics.semaphore_wait_time_ms + wait_ms) / 2.0
         };
     }
 
     /// Get current metrics
-    pub fn get_metrics(&self) -> PerformanceMetrics {
-        self.metrics.lock().unwrap().clone()
+    pub async fn get_metrics(&self) -> PerformanceMetrics {
+        self.metrics.lock().await.clone()
     }
 
     /// Get pool status for health checks
-    pub fn get_pool_status(&self) -> (usize, usize, usize) {
-        let available = self.available_instances.lock().unwrap().len();
+    pub async fn get_pool_status(&self) -> (usize, usize, usize) {
+        let available = self.available_instances.lock().await.len();
         let max_size = self.config.max_pool_size;
         let active = max_size - available;
         (available, active, max_size)
@@ -897,7 +897,7 @@ impl AdvancedInstancePool {
 
         // Check available instances
         let instance_health_data = {
-            let instances = self.available_instances.lock().unwrap();
+            let instances = self.available_instances.lock().await;
             instances.iter().map(|i| {
                 (i.id.clone(), i.created_at, i.failure_count)
             }).collect::<Vec<_>>()
@@ -908,7 +908,7 @@ impl AdvancedInstancePool {
             let is_healthy = created_at.elapsed() <= Duration::from_secs(3600) && failure_count <= 5;
 
             if !is_healthy {
-                let mut instances = self.available_instances.lock().unwrap();
+                let mut instances = self.available_instances.lock().await;
                 if let Some(pos) = instances.iter().position(|i| i.id == id) {
                     let unhealthy_instance = instances.remove(pos).unwrap();
                     drop(instances);
@@ -1012,8 +1012,8 @@ impl AdvancedInstancePool {
     /// Emit pool health metrics
     async fn emit_pool_health_metrics(&self, healthy_count: usize) {
         if let Some(event_bus) = &self.event_bus {
-            let (available, active, total) = self.get_pool_status();
-            let metrics = self.get_pool_metrics_for_events();
+            let (available, active, total) = self.get_pool_status().await;
+            let metrics = self.get_pool_metrics_for_events().await;
 
             let mut event = PoolEvent::new(
                 PoolOperation::HealthCheck,
@@ -1041,7 +1041,7 @@ impl AdvancedInstancePool {
         let mut cleared = 0;
 
         let high_memory_instances = {
-            let mut instances = self.available_instances.lock().unwrap();
+            let mut instances = self.available_instances.lock().await;
             let mut high_memory_instances = Vec::new();
             let mut i = 0;
             while i < instances.len() {
@@ -1079,7 +1079,7 @@ impl AdvancedInstancePool {
         let mut cleared = 0;
 
         let instances_to_clear = {
-            let mut instances = self.available_instances.lock().unwrap();
+            let mut instances = self.available_instances.lock().await;
             let mut instances_to_clear = Vec::new();
             for _ in 0..count.min(instances.len()) {
                 if let Some(instance) = instances.pop_front() {
@@ -1111,7 +1111,7 @@ impl AdvancedInstancePool {
 
         // Force garbage collection on all available instances
         {
-            let instances = self.available_instances.lock().unwrap();
+            let instances = self.available_instances.lock().await;
             for instance in instances.iter() {
                 // Update memory usage from resource tracker
                 let current_pages = instance.resource_tracker.current_memory_pages();
@@ -1143,9 +1143,9 @@ impl AdvancedInstancePool {
     }
 
     /// Create pool metrics for event emission
-    pub fn get_pool_metrics_for_events(&self) -> PoolMetrics {
-        let (available, active, total) = self.get_pool_status();
-        let performance_metrics = self.get_metrics();
+    pub async fn get_pool_metrics_for_events(&self) -> PoolMetrics {
+        let (available, active, total) = self.get_pool_status().await;
+        let performance_metrics = self.get_metrics().await;
 
         PoolMetrics {
             available_instances: available,
@@ -1172,7 +1172,7 @@ impl AdvancedInstancePool {
             );
 
             // Add pool status information
-            let (available, active, total) = self.get_pool_status();
+            let (available, active, total) = self.get_pool_status().await;
             event.add_metadata("available_instances", &available.to_string());
             event.add_metadata("active_instances", &active.to_string());
             event.add_metadata("total_instances", &total.to_string());

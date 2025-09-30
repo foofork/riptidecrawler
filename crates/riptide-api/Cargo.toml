@@ -47,8 +47,10 @@ riptide-core = { path = "../riptide-core", features = ["api-integration"] }
 riptide-pdf = { path = "../riptide-pdf", features = ["pdf"] }
 riptide-stealth = { path = "../riptide-stealth", features = ["stealth"] }
 riptide-html = { path = "../riptide-html" }
+riptide-intelligence = { path = "../riptide-intelligence" }
 riptide-workers = { path = "../riptide-workers" }
 riptide-headless = { path = "../riptide-headless" }
+riptide-search = { path = "../riptide-search" }
 chromiumoxide = { workspace = true }
 wasmtime = { workspace = true }
 axum-prometheus = "0.7"

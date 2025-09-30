@@ -1,16 +1,8 @@
-use crate::spider::{
-    query_aware::*,
-    types::{CrawlRequest, CrawlResult},
-};
-use std::str::FromStr;
-use std::time::{Instant, Duration};
-use url::Url;
-
 /// Comprehensive tests for Query-Aware Spider functionality
 /// Week 7 requirements: BM25 scoring, URL signals, domain diversity, early stopping
 #[cfg(test)]
 mod query_aware_week7_tests {
-    use super::*;
+    use crate::spider::query_aware::*;
 
     /// Test BM25 scoring algorithm accuracy with known relevance rankings
     #[test]
