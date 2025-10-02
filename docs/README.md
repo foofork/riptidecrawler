@@ -1,10 +1,12 @@
 # RipTide - Technical Documentation
 
-## Project Status: Production Ready
+## Project Status: v0.1.0 - 85% Production Ready
 
-RipTide is a high-performance web content extraction system built in Rust with advanced RipTide extraction technology. The system uses WASM-based content processing, resource management, and monitoring capabilities.
+RipTide is a high-performance web content extraction system built in Rust with advanced WASM-based extraction technology. The system uses WASM-based content processing, resource management, and monitoring capabilities.
 
-**Major Milestones Complete**: WASM enhancements, PDF pipeline integration, CI optimization, and code quality improvements are finished.
+**Current Version**: v0.1.0
+**Production Readiness**: 85% (see [Production Readiness Assessment](production-readiness-assessment.md))
+**Major Milestones Complete**: WASM enhancements, PDF pipeline integration, CI optimization, code quality improvements, query-aware spider, multi-provider LLM, topic chunking, and session persistence are finished.
 
 ## 📚 Documentation Navigation
 
@@ -20,7 +22,7 @@ RipTide is a high-performance web content extraction system built in Rust with a
 ### By Role
 - **Users**: [Installation](user/installation.md) → [API Usage](user/api-usage.md) → [Troubleshooting](user/troubleshooting.md)
 - **Developers**: [Development Setup](development/getting-started.md) → [Architecture](architecture/system-overview.md) → [Contributing](development/contributing.md)
-- **Operators**: [Production Deployment](deployment/production.md) → [Configuration](architecture/configuration-guide.md) → [Monitoring](monitoring-implementation-report.md)
+- **Operators**: [Production Deployment](deployment/production.md) → [Configuration](architecture/configuration-guide.md) → [Monitoring](archive/implementation-reports/monitoring-implementation-report.md)
 
 ## 📝 Documentation Maintenance
 
