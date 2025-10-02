@@ -427,6 +427,163 @@ impl MetricType {
     }
 }
 
+/// Crawl operation events for pipeline coordination
+/// Supports the dual-path processing pattern: fast CSS extraction + async AI enhancement
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CrawlEvent {
+    base: BaseEvent,
+    pub operation: CrawlOperation,
+    pub task_id: String,
+    pub url: String,
+    pub extraction_mode: ExtractionMode,
+    pub duration_ms: Option<u64>,
+    pub content_size: Option<usize>,
+    pub quality_score: Option<f32>,
+}
+
+impl CrawlEvent {
+    pub fn new(
+        operation: CrawlOperation,
+        task_id: String,
+        url: String,
+        extraction_mode: ExtractionMode,
+        source: &str,
+    ) -> Self {
+        let severity = match operation {
+            CrawlOperation::Failed | CrawlOperation::Timeout => EventSeverity::Error,
+            CrawlOperation::AiEnhancementFailed => EventSeverity::Warn,
+            _ => EventSeverity::Info,
+        };
+
+        let event_type = format!("crawl.{}", operation.as_str());
+        let base = BaseEvent::new(&event_type, source, severity);
+
+        Self {
+            base,
+            operation,
+            task_id,
+            url,
+            extraction_mode,
+            duration_ms: None,
+            content_size: None,
+            quality_score: None,
+        }
+    }
+
+    pub fn with_duration(mut self, duration: Duration) -> Self {
+        self.duration_ms = Some(duration.as_millis() as u64);
+        self
+    }
+
+    pub fn with_content_size(mut self, size: usize) -> Self {
+        self.content_size = Some(size);
+        self
+    }
+
+    pub fn with_quality_score(mut self, score: f32) -> Self {
+        self.quality_score = Some(score);
+        self
+    }
+
+    pub fn add_metadata(&mut self, key: &str, value: &str) {
+        self.base.add_metadata(key, value);
+    }
+}
+
+impl Event for CrawlEvent {
+    fn event_type(&self) -> &'static str {
+        "crawl.operation"
+    }
+
+    fn event_id(&self) -> &str {
+        &self.base.event_id
+    }
+
+    fn timestamp(&self) -> DateTime<Utc> {
+        self.base.timestamp
+    }
+
+    fn source(&self) -> &str {
+        &self.base.source
+    }
+
+    fn severity(&self) -> EventSeverity {
+        self.base.severity
+    }
+
+    fn metadata(&self) -> &HashMap<String, String> {
+        &self.base.metadata
+    }
+
+    fn to_json(&self) -> Result<String> {
+        serde_json::to_string(self).map_err(Into::into)
+    }
+}
+
+/// Crawl operations that can generate events
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+pub enum CrawlOperation {
+    // Fast path (CSS extraction)
+    FastPathStarted,
+    FastPathCompleted,
+
+    // AI enhancement path (async)
+    AiEnhancementQueued,
+    AiEnhancementStarted,
+    AiEnhancementCompleted,
+    AiEnhancementFailed,
+
+    // Result correlation
+    ResultsMerged,
+
+    // Error states
+    Failed,
+    Timeout,
+}
+
+impl CrawlOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            CrawlOperation::FastPathStarted => "fast_path_started",
+            CrawlOperation::FastPathCompleted => "fast_path_completed",
+            CrawlOperation::AiEnhancementQueued => "ai_enhancement_queued",
+            CrawlOperation::AiEnhancementStarted => "ai_enhancement_started",
+            CrawlOperation::AiEnhancementCompleted => "ai_enhancement_completed",
+            CrawlOperation::AiEnhancementFailed => "ai_enhancement_failed",
+            CrawlOperation::ResultsMerged => "results_merged",
+            CrawlOperation::Failed => "failed",
+            CrawlOperation::Timeout => "timeout",
+        }
+    }
+}
+
+/// Extraction modes for the dual-path system
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+pub enum ExtractionMode {
+    /// Fast CSS-based extraction (primary path)
+    FastCss,
+    /// AI enhancement (secondary async path)
+    AiEnhancement,
+    /// Headless browser fallback
+    Headless,
+}
+
+impl ExtractionMode {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ExtractionMode::FastCss => "fast_css",
+            ExtractionMode::AiEnhancement => "ai_enhancement",
+            ExtractionMode::Headless => "headless",
+        }
+    }
+}
+
+impl fmt::Display for ExtractionMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
 /// Generic system event for custom use cases
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SystemEvent {

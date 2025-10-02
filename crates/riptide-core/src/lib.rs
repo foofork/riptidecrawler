@@ -25,6 +25,7 @@
 //! - **Search providers**: `riptide-search`
 
 // Core infrastructure modules
+pub mod ai_processor;
 pub mod cache;
 pub mod cache_warming;
 pub mod cache_warming_integration;
