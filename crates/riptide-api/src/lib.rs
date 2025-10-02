@@ -5,6 +5,7 @@ pub mod health;
 pub mod metrics;
 pub mod models;
 pub mod pipeline;
+pub mod pipeline_dual;
 pub mod pipeline_enhanced;
 pub mod strategies_pipeline;
 pub mod resource_manager;
