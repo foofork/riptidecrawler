@@ -13,6 +13,27 @@ use tokio::time::timeout;
 use tracing::{debug, error, info, warn};
 use url::Url;
 
+/// Convert from riptide_html ExtractedDoc to riptide_core ExtractedDoc
+fn convert_html_doc(doc: riptide_html::wasm_extraction::ExtractedDoc) -> ExtractedDoc {
+    ExtractedDoc {
+        url: doc.url,
+        title: doc.title,
+        text: doc.text,
+        quality_score: doc.quality_score,
+        links: doc.links,
+        byline: doc.byline,
+        published_iso: doc.published_iso,
+        markdown: Some(doc.markdown),
+        media: doc.media,
+        language: doc.language,
+        reading_time: doc.reading_time,
+        word_count: doc.word_count,
+        categories: doc.categories,
+        site_name: doc.site_name,
+        description: doc.description,
+    }
+}
+
 /// Pipeline execution result containing the extracted document and metadata.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PipelineResult {
@@ -388,7 +409,7 @@ impl PipelineOrchestrator {
         );
 
         let processor = pdf::create_pdf_processor();
-        let config = pdf::PdfConfig::default();
+        let _config = pdf::PdfConfig::default();
         match processor.process_pdf_bytes(pdf_bytes).await {
             Ok(document) => {
                 info!(
@@ -412,7 +433,7 @@ impl PipelineOrchestrator {
                     title: Some("PDF Processing Failed".to_string()),
                     byline: None,
                     published_iso: None,
-                    markdown: format!("**PDF Processing Error**: {}", e),
+                    markdown: Some(format!("**PDF Processing Error**: {}", e)),
                     text: format!("PDF processing failed: {}", e),
                     links: Vec::new(),
                     media: Vec::new(),
@@ -543,6 +564,7 @@ impl PipelineOrchestrator {
                 self.state
                     .extractor
                     .extract(html.as_bytes(), url, "article")
+                    .map(convert_html_doc)
                     .map_err(|e| ApiError::extraction(format!("WASM extraction failed: {}", e)))
             }
             Decision::ProbesFirst => {
@@ -555,7 +577,7 @@ impl PipelineOrchestrator {
                     Ok(doc) => {
                         // Validate extraction quality
                         if doc.text.len() > 100 && doc.title.is_some() {
-                            Ok(doc)
+                            Ok(convert_html_doc(doc))
                         } else {
                             debug!(url = %url, "Fast extraction produced low-quality result, falling back to headless");
                             self.extract_with_headless(url).await
@@ -585,6 +607,7 @@ impl PipelineOrchestrator {
                 self.state
                     .extractor
                     .extract(&[], url, "article") // Empty HTML, will need to fetch first
+                    .map(convert_html_doc)
                     .map_err(|e| ApiError::extraction(format!("Fallback extraction failed: {}", e)))
             }
         }
@@ -624,6 +647,7 @@ impl PipelineOrchestrator {
         self.state
             .extractor
             .extract(rendered_html.as_bytes(), url, "article")
+            .map(convert_html_doc)
             .map_err(|e| ApiError::extraction(format!("Headless extraction failed: {}", e)))
     }
 

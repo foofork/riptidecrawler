@@ -10,8 +10,6 @@ pub mod streaming;
 
 // Re-export main public APIs
 pub use handlers::{crawl_stream, deepsearch_stream};
-pub use progress::OperationProgress;
-pub use streaming::NdjsonStreamingHandler;
 
 #[cfg(test)]
 mod tests {

@@ -29,6 +29,7 @@ pub mod cache;
 pub mod cache_warming;
 pub mod cache_warming_integration;
 pub mod circuit;
+pub mod circuit_breaker;
 pub mod component;
 pub mod common;
 pub mod conditional;

@@ -11,7 +11,6 @@ use tokio::time::{timeout, Duration};
 use tracing::{debug, error, warn};
 
 use super::models::RenderRequest;
-use super::strategies::{analyze_url_for_dynamic_content, create_adaptive_dynamic_config};
 
 /// Process PDF content
 pub async fn process_pdf(

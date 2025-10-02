@@ -220,15 +220,17 @@ pub async fn submit_job(
         job.timeout_secs = Some(timeout);
     }
 
-    // For now, we'll simulate job submission since WorkerService integration needs more work
-    // In a complete implementation, you would have WorkerService as part of AppState
-    let job_id = job.id;
+    // Submit to WorkerService
+    let job_id = state.worker_service.submit_job(job)
+        .await
+        .map_err(|e| {
+            tracing::error!(error = %e, "Failed to submit job");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     tracing::info!(
         job_id = %job_id,
-        job_type = ?job.job_type,
-        priority = ?job.priority,
-        "Job submitted via API"
+        "Job submitted successfully via API"
     );
 
     Ok(Json(SubmitJobResponse {
@@ -241,83 +243,122 @@ pub async fn submit_job(
 
 /// Get job status by ID
 pub async fn get_job_status(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     Path(job_id): Path<Uuid>,
 ) -> Result<Json<JobStatusResponse>, StatusCode> {
     tracing::info!(job_id = %job_id, "Getting job status");
 
-    // For now, return a mock response
-    // In a complete implementation, you would query the WorkerService
+    let job = state.worker_service.get_job(job_id)
+        .await
+        .map_err(|e| {
+            tracing::error!(error = %e, job_id = %job_id, "Failed to get job status");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+        .ok_or_else(|| {
+            tracing::warn!(job_id = %job_id, "Job not found");
+            StatusCode::NOT_FOUND
+        })?;
+
+    // Calculate processing time if job has started
+    let processing_time_ms = if let (Some(started), Some(completed)) = (job.started_at, job.completed_at) {
+        Some((completed - started).num_milliseconds() as u64)
+    } else if let Some(started) = job.started_at {
+        Some((Utc::now() - started).num_milliseconds() as u64)
+    } else {
+        None
+    };
+
     Ok(Json(JobStatusResponse {
-        job_id,
-        status: JobStatus::Pending,
-        created_at: Utc::now(),
-        started_at: None,
-        completed_at: None,
-        worker_id: None,
-        retry_count: 0,
-        last_error: None,
-        processing_time_ms: None,
-        metadata: HashMap::new(),
+        job_id: job.id,
+        status: job.status,
+        created_at: job.created_at,
+        started_at: job.started_at,
+        completed_at: job.completed_at,
+        worker_id: job.worker_id,
+        retry_count: job.retry_count,
+        last_error: job.last_error,
+        processing_time_ms,
+        metadata: job.metadata,
     }))
 }
 
 /// Get job result by ID
 pub async fn get_job_result(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     Path(job_id): Path<Uuid>,
 ) -> Result<Json<JobResultResponse>, StatusCode> {
     tracing::info!(job_id = %job_id, "Getting job result");
 
-    // For now, return a mock response
+    let result = state.worker_service.get_job_result(job_id)
+        .await
+        .map_err(|e| {
+            tracing::error!(error = %e, job_id = %job_id, "Failed to get job result");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+        .ok_or_else(|| {
+            tracing::warn!(job_id = %job_id, "Job result not found");
+            StatusCode::NOT_FOUND
+        })?;
+
     Ok(Json(JobResultResponse {
-        job_id,
-        success: true,
-        data: Some(serde_json::json!({"mock": "result"})),
-        error: None,
-        processing_time_ms: 1000,
-        worker_id: "worker-0".to_string(),
-        completed_at: Utc::now(),
+        job_id: result.job_id,
+        success: result.success,
+        data: result.data,
+        error: result.error,
+        processing_time_ms: result.processing_time_ms,
+        worker_id: result.worker_id,
+        completed_at: result.completed_at,
     }))
 }
 
 /// Get queue statistics
 pub async fn get_queue_stats(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
 ) -> Result<Json<QueueStatsResponse>, StatusCode> {
     tracing::info!("Getting queue statistics");
 
-    // For now, return mock statistics
+    let stats = state.worker_service.get_queue_stats()
+        .await
+        .map_err(|e| {
+            tracing::error!(error = %e, "Failed to get queue stats");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
     Ok(Json(QueueStatsResponse {
-        pending: 5,
-        processing: 2,
-        completed: 100,
-        failed: 3,
-        retry: 1,
-        delayed: 0,
-        total: 111,
+        pending: stats.pending,
+        processing: stats.processing,
+        completed: stats.completed,
+        failed: stats.failed,
+        retry: stats.retry,
+        delayed: stats.delayed,
+        total: stats.pending + stats.processing + stats.completed + stats.failed + stats.retry + stats.delayed,
     }))
 }
 
 /// Get worker pool statistics
 pub async fn get_worker_stats(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
 ) -> Result<Json<WorkerPoolStatsResponse>, StatusCode> {
     tracing::info!("Getting worker pool statistics");
 
-    // For now, return mock statistics
+    let stats = state.worker_service.get_worker_stats()
+        .ok_or_else(|| {
+            tracing::warn!("Worker pool not yet started");
+            StatusCode::SERVICE_UNAVAILABLE
+        })?;
+
     Ok(Json(WorkerPoolStatsResponse {
-        total_workers: 4,
-        healthy_workers: 4,
-        total_jobs_processed: 100,
-        total_jobs_failed: 3,
-        is_running: true,
+        total_workers: stats.total_workers,
+        healthy_workers: stats.healthy_workers,
+        total_jobs_processed: stats.total_jobs_processed,
+        total_jobs_failed: stats.total_jobs_failed,
+        is_running: stats.is_running,
     }))
 }
 
 /// Create a scheduled job
 pub async fn create_scheduled_job(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     Json(request): Json<CreateScheduledJobRequest>,
 ) -> Result<Json<ScheduledJobResponse>, StatusCode> {
     tracing::info!(
@@ -328,27 +369,46 @@ pub async fn create_scheduled_job(
 
     // Convert request to scheduled job
     let job_type = JobType::from(request.job_template);
-    let scheduled_job = match ScheduledJob::new(request.name.clone(), request.cron_expression.clone(), job_type) {
-        Ok(mut job) => {
-            if let Some(priority) = request.priority {
-                job.priority = priority;
-            }
-            if let Some(enabled) = request.enabled {
-                job.enabled = enabled;
-            }
-            if let Some(retry_config) = request.retry_config {
-                job.retry_config = riptide_workers::RetryConfig::from(retry_config);
-            }
-            if let Some(metadata) = request.metadata {
-                job.metadata = metadata;
-            }
-            job
-        }
+    let mut scheduled_job = match ScheduledJob::new(request.name.clone(), request.cron_expression.clone(), job_type) {
+        Ok(job) => job,
         Err(e) => {
             tracing::error!(error = %e, "Failed to create scheduled job");
             return Err(StatusCode::BAD_REQUEST);
         }
     };
+
+    // Apply configurations
+    if let Some(priority) = request.priority {
+        scheduled_job.priority = priority;
+    }
+    if let Some(enabled) = request.enabled {
+        scheduled_job.enabled = enabled;
+    }
+    if let Some(retry_config) = request.retry_config {
+        scheduled_job.retry_config = riptide_workers::RetryConfig::from(retry_config);
+    }
+    if let Some(metadata) = request.metadata {
+        scheduled_job.metadata = metadata;
+    }
+
+    // Add to scheduler
+    let job_id = state.worker_service.add_scheduled_job(scheduled_job)
+        .await
+        .map_err(|e| {
+            tracing::error!(error = %e, "Failed to add scheduled job");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    // Retrieve created job for response
+    let jobs = state.worker_service.list_scheduled_jobs()
+        .map_err(|e| {
+            tracing::error!(error = %e, "Failed to retrieve scheduled job");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let scheduled_job = jobs.into_iter()
+        .find(|j| j.id == job_id)
+        .ok_or_else(|| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(Json(ScheduledJobResponse {
         id: scheduled_job.id,
@@ -365,48 +425,80 @@ pub async fn create_scheduled_job(
 
 /// List scheduled jobs
 pub async fn list_scheduled_jobs(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
 ) -> Result<Json<Vec<ScheduledJobResponse>>, StatusCode> {
     tracing::info!("Listing scheduled jobs");
 
-    // For now, return empty list
-    Ok(Json(vec![]))
+    let jobs = state.worker_service.list_scheduled_jobs()
+        .map_err(|e| {
+            tracing::error!(error = %e, "Failed to list scheduled jobs");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let responses: Vec<ScheduledJobResponse> = jobs.into_iter()
+        .map(|job| ScheduledJobResponse {
+            id: job.id,
+            name: job.name,
+            cron_expression: job.cron_expression,
+            enabled: job.enabled,
+            priority: job.priority,
+            created_at: job.created_at,
+            last_executed_at: job.last_executed_at,
+            next_execution_at: job.next_execution_at,
+            execution_count: job.execution_count,
+        })
+        .collect();
+
+    Ok(Json(responses))
 }
 
 /// Delete a scheduled job
 pub async fn delete_scheduled_job(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     Path(job_id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
     tracing::info!(job_id = %job_id, "Deleting scheduled job");
 
-    // For now, always return success
-    Ok(StatusCode::NO_CONTENT)
+    let deleted = state.worker_service.remove_scheduled_job(job_id)
+        .await
+        .map_err(|e| {
+            tracing::error!(error = %e, job_id = %job_id, "Failed to delete scheduled job");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    if deleted {
+        Ok(StatusCode::NO_CONTENT)
+    } else {
+        tracing::warn!(job_id = %job_id, "Scheduled job not found");
+        Err(StatusCode::NOT_FOUND)
+    }
 }
 
 /// Get comprehensive worker metrics
 pub async fn get_worker_metrics(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     tracing::info!("Getting worker metrics");
 
-    // For now, return mock metrics
-    let metrics = serde_json::json!({
-        "jobs_submitted": 105,
-        "jobs_completed": 100,
-        "jobs_failed": 3,
-        "jobs_retried": 2,
-        "jobs_dead_letter": 1,
-        "avg_processing_time_ms": 1500,
-        "p95_processing_time_ms": 3000,
-        "p99_processing_time_ms": 5000,
-        "uptime_seconds": 7200,
-        "success_rate": 95.2,
-        "total_workers": 4,
-        "healthy_workers": 4,
-        "jobs_per_second": 0.014,
-        "timestamp": Utc::now()
+    let metrics = state.worker_service.get_metrics().await;
+
+    let json = serde_json::json!({
+        "jobs_submitted": metrics.jobs_submitted,
+        "jobs_completed": metrics.jobs_completed,
+        "jobs_failed": metrics.jobs_failed,
+        "jobs_retried": metrics.jobs_retried,
+        "jobs_dead_letter": metrics.jobs_dead_letter,
+        "avg_processing_time_ms": metrics.avg_processing_time_ms,
+        "p95_processing_time_ms": metrics.p95_processing_time_ms,
+        "p99_processing_time_ms": metrics.p99_processing_time_ms,
+        "success_rate": metrics.success_rate,
+        "job_type_stats": metrics.job_type_stats,
+        "queue_sizes": metrics.queue_sizes,
+        "total_workers": metrics.total_workers,
+        "healthy_workers": metrics.healthy_workers,
+        "uptime_seconds": metrics.uptime_seconds,
+        "timestamp": metrics.timestamp
     });
 
-    Ok(Json(metrics))
+    Ok(Json(json))
 }

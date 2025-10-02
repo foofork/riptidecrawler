@@ -36,9 +36,8 @@ pub mod export;
 
 // Re-export main public API
 pub use models::{
-    TableExtractionConfig, TableDetectionStrategy, ExtractionQuality,
-    AdvancedTableData, TableCell, CellSpan, TableMetadata, TableStats,
-    TableSection, TableExtractionError, TableHeaders, TableRow, TableStructure,
+    TableExtractionConfig, AdvancedTableData, TableCell, TableMetadata,
+    TableExtractionError, TableHeaders, TableRow, TableStructure,
     CellType, RowType, CellPosition, ColumnGroup
 };
 pub use extractor::TableExtractor;

@@ -1,19 +1,40 @@
-use crate::errors::{ApiError, ApiResult};
+use crate::errors::ApiResult;
+use riptide_html::wasm_extraction::WasmExtractor;
 use riptide_core::dynamic::DynamicRenderResult;
-use riptide_core::extract::WasmExtractor;
-use riptide_core::types::{ExtractedDoc, ExtractionMode, ExtractionStats, OutputFormat};
+use riptide_core::types::{ExtractedDoc as CoreExtractedDoc, ExtractionMode, ExtractionStats, OutputFormat};
 use std::sync::Arc;
 use std::time::Instant;
 use tracing::{debug, info, warn};
 
+/// Convert from riptide_html ExtractedDoc to riptide_core ExtractedDoc
+fn convert_extracted_doc(doc: riptide_html::wasm_extraction::ExtractedDoc) -> CoreExtractedDoc {
+    CoreExtractedDoc {
+        url: doc.url,
+        title: doc.title,
+        text: doc.text,
+        quality_score: doc.quality_score,
+        links: doc.links,
+        byline: doc.byline,
+        published_iso: doc.published_iso,
+        markdown: Some(doc.markdown),
+        media: doc.media,
+        language: doc.language,
+        reading_time: doc.reading_time,
+        word_count: doc.word_count,
+        categories: doc.categories,
+        site_name: doc.site_name,
+        description: doc.description,
+    }
+}
+
 /// Extract content using WASM extractor with proper error handling and timing
 pub(super) async fn extract_with_wasm_extractor(
-    extractor: &Arc<dyn WasmExtractor>,
+    extractor: &Arc<WasmExtractor>,
     html: &str,
     url: &str,
     mode: ExtractionMode,
 ) -> Result<
-    (ExtractedDoc, ExtractionStats),
+    (CoreExtractedDoc, ExtractionStats),
     Box<dyn std::error::Error + Send + Sync>,
 > {
     let start_time = Instant::now();
@@ -73,16 +94,18 @@ pub(super) async fn extract_with_wasm_extractor(
         images_found: extracted_doc.media.len() as u32,
     };
 
-    Ok((extracted_doc, stats))
+    // Convert to core type
+    let core_doc = convert_extracted_doc(extracted_doc);
+    Ok((core_doc, stats))
 }
 
 /// Extract content from render result
 pub(super) async fn extract_content(
-    extractor: &Arc<dyn WasmExtractor>,
+    extractor: &Arc<WasmExtractor>,
     render_result: &Option<DynamicRenderResult>,
     output_format: &OutputFormat,
     url: &str,
-) -> ApiResult<Option<ExtractedDoc>> {
+) -> ApiResult<Option<CoreExtractedDoc>> {
     if let Some(result) = render_result {
         if !result.success {
             return Ok(None);
@@ -146,7 +169,7 @@ pub(super) async fn extract_content(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use riptide_core::extract::WasmExtractor;
+    use riptide_html::wasm_extraction::WasmExtractor;
     use std::sync::Arc;
 
     #[tokio::test]

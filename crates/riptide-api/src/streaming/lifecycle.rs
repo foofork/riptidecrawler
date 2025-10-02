@@ -309,8 +309,8 @@ impl StreamLifecycleManager {
     /// Internal event handler
     async fn handle_lifecycle_event(
         event: LifecycleEvent,
-        active_connections: &Arc<tokio::sync::RwLock<std::collections::HashMap<String, ConnectionInfo>>>,
-        metrics: &Arc<RipTideMetrics>,
+        _active_connections: &Arc<tokio::sync::RwLock<std::collections::HashMap<String, ConnectionInfo>>>,
+        _metrics: &Arc<RipTideMetrics>,
     ) {
         match event {
             LifecycleEvent::ConnectionEstablished {

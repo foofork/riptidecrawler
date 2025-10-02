@@ -255,7 +255,7 @@ pub async fn get_stealth_capabilities(
 async fn test_stealth_for_url(
     controller: &mut StealthController,
     url: &str,
-    state: &AppState,
+    _state: &AppState,
 ) -> Result<StealthTestResult, ApiError> {
     let start_time = std::time::Instant::now();
 

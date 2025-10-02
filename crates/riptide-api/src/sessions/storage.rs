@@ -48,7 +48,7 @@ impl SessionStorage {
         if !config.base_data_dir.exists() {
             fs::create_dir_all(&config.base_data_dir)
                 .await
-                .map_err(|e| SessionError::DirectoryCreationFailed {
+                .map_err(|_| SessionError::DirectoryCreationFailed {
                     path: config.base_data_dir.to_string_lossy().to_string(),
                 })?;
             info!(
@@ -146,7 +146,7 @@ impl SessionStorage {
         if !session.user_data_dir.exists() {
             fs::create_dir_all(&session.user_data_dir)
                 .await
-                .map_err(|e| SessionError::DirectoryCreationFailed {
+                .map_err(|_| SessionError::DirectoryCreationFailed {
                     path: session.user_data_dir.to_string_lossy().to_string(),
                 })?;
         }
@@ -386,7 +386,7 @@ impl SessionStorage {
         let session_file = session_dir.join("session.json");
 
         // Ensure directory exists
-        fs::create_dir_all(session_dir).await.map_err(|e| {
+        fs::create_dir_all(session_dir).await.map_err(|_| {
             SessionError::DirectoryCreationFailed {
                 path: session_dir.to_string_lossy().to_string(),
             }

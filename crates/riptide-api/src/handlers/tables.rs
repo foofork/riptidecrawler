@@ -345,14 +345,15 @@ pub async fn export_table(
     let extension = if params.format == "csv" { "csv" } else { "md" };
     let disposition = format!("attachment; filename=\"table_{}.{}\"", table_id, extension);
 
+    use axum::response::IntoResponse;
     Ok((
         StatusCode::OK,
         [
-            (axum::http::header::CONTENT_TYPE, content_type),
+            (axum::http::header::CONTENT_TYPE, content_type.to_string()),
             (axum::http::header::CONTENT_DISPOSITION, disposition),
         ],
         content,
-    ))
+    ).into_response())
 }
 
 /// Detect column data types from table data (simplified implementation)

@@ -1,11 +1,10 @@
 //! Core rendering handlers with resource management and timeout controls.
 
-use crate::errors::{ApiError, ApiResult};
+use crate::errors::ApiError;
 use crate::resource_manager::{RenderResourceGuard, ResourceResult};
 use crate::sessions::middleware::SessionContext;
 use crate::state::AppState;
 use axum::{extract::State, response::IntoResponse, Json};
-use riptide_core::dynamic::DynamicRenderResult;
 use riptide_core::stealth::StealthController;
 use std::time::Instant;
 use tracing::{debug, error, info, warn};
@@ -20,7 +19,7 @@ pub async fn render(
     session_ctx: SessionContext,
     Json(body): Json<RenderRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let start_time = Instant::now();
+    let _start_time = Instant::now();
 
     // Apply comprehensive resource controls first
     let resource_guard = match state
@@ -251,7 +250,7 @@ async fn render_with_resources(
 
     // Extract content from the rendered result
     let extraction_start = Instant::now();
-    let content = extract_content(&state, &render_result, &output_format, &final_url).await?;
+    let content = extract_content(&state.extractor, &render_result, &output_format, &final_url).await?;
     let extraction_time_ms = extraction_start.elapsed().as_millis() as u64;
 
     // Build statistics

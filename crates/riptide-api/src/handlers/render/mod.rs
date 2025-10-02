@@ -10,7 +10,6 @@ pub mod handlers;
 
 // Re-export main public API
 pub use handlers::render;
-pub use models::{RenderRequest, RenderResponse, RenderStats, SessionRenderInfo};
 
 #[cfg(test)]
 mod tests {

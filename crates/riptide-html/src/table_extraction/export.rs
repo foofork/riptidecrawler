@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Write;
 
-use super::models::{AdvancedTableData, TableCell, TableExtractionError};
+use super::models::{AdvancedTableData, TableExtractionError};
 
 /// Trait for table export functionality
 pub trait TableExporter {

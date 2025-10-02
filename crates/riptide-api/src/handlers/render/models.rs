@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use riptide_core::types::{ExtractedDoc, OutputFormat, RenderMode};
-use std::collections::HashMap;
 
 /// Request body for enhanced render endpoint
 #[derive(Deserialize, Debug, Clone)]

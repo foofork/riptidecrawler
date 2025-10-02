@@ -56,7 +56,7 @@ impl EnhancedPipelineOrchestrator {
         let fetch_result = self.execute_fetch_phase(url).await;
         result.phase_timings.fetch_ms = fetch_result.duration_ms;
 
-        let (content, http_status) = match fetch_result.result {
+        let (content, _http_status) = match fetch_result.result {
             Ok(data) => data,
             Err(e) => {
                 result.error = Some(format!("Fetch phase failed: {}", e));
@@ -240,7 +240,7 @@ impl EnhancedPipelineOrchestrator {
             title: Some("Extracted Title".to_string()),
             byline: None,
             published_iso: None,
-            markdown: content.chars().take(1000).collect::<String>(),
+            markdown: Some(content.chars().take(1000).collect::<String>()),
             text: content.chars().take(1000).collect::<String>(),
             links: vec![],
             media: vec![],
@@ -269,7 +269,7 @@ impl EnhancedPipelineOrchestrator {
             title: Some("Headless Rendered Title".to_string()),
             byline: None,
             published_iso: None,
-            markdown: "Enhanced content from headless rendering".to_string(),
+            markdown: Some("Enhanced content from headless rendering".to_string()),
             text: "Enhanced content from headless rendering".to_string(),
             links: vec![],
             media: vec![],
