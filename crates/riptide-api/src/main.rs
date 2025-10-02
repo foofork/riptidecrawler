@@ -87,6 +87,11 @@ async fn main() -> anyhow::Result<()> {
     let app_state = AppState::new(config, metrics.clone(), health_checker.clone()).await?;
     tracing::info!("Application state initialization complete");
 
+    // Worker service is initialized and ready to process jobs
+    // Note: The worker pool starts automatically when jobs are submitted
+    // No explicit background task is needed as the service manages its own lifecycle
+    tracing::info!("Worker service initialized and ready for job processing");
+
     // Perform initial health check
     let initial_health = app_state.health_check().await;
     if !initial_health.healthy {
@@ -94,6 +99,7 @@ async fn main() -> anyhow::Result<()> {
             redis_status = %initial_health.redis,
             extractor_status = %initial_health.extractor,
             http_client_status = %initial_health.http_client,
+            worker_service_status = %initial_health.worker_service,
             "Initial health check failed, but continuing startup"
         );
         // Note: We continue startup even if some deps are unhealthy
