@@ -8,12 +8,14 @@ use anyhow::Result;
 use reqwest::Client;
 use riptide_core::{
     cache::CacheManager,
-    extract::WasmExtractor,
+    events::{EventBus, EventBusConfig},
     fetch::http_client,
     pdf::PdfMetricsCollector,
     spider::{Spider, SpiderConfig},
     telemetry::TelemetrySystem, telemetry_span,
 };
+use riptide_html::wasm_extraction::WasmExtractor;
+use riptide_workers::{WorkerService, WorkerServiceConfig};
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::info;
@@ -32,7 +34,7 @@ pub struct AppState {
     pub cache: Arc<tokio::sync::Mutex<CacheManager>>,
 
     /// WASM extractor for content processing
-    pub extractor: Arc<dyn WasmExtractor>,
+    pub extractor: Arc<WasmExtractor>,
 
     /// Configuration settings
     pub config: AppConfig,
@@ -63,6 +65,12 @@ pub struct AppState {
 
     /// PDF metrics collector for monitoring PDF processing
     pub pdf_metrics: Arc<PdfMetricsCollector>,
+
+    /// Worker service for background job processing
+    pub worker_service: Arc<WorkerService>,
+
+    /// Event bus for centralized event coordination
+    pub event_bus: Arc<EventBus>,
 }
 
 /// Application configuration loaded from environment and config files.
@@ -92,6 +100,12 @@ pub struct AppConfig {
 
     /// Spider configuration for deep crawling
     pub spider_config: Option<SpiderConfig>,
+
+    /// Worker service configuration
+    pub worker_config: WorkerServiceConfig,
+
+    /// Event bus configuration
+    pub event_bus_config: EventBusConfig,
 }
 
 impl Default for AppConfig {
@@ -121,6 +135,8 @@ impl Default for AppConfig {
             headless_url: std::env::var("HEADLESS_URL").ok(),
             session_config: SessionConfig::default(),
             spider_config: AppConfig::init_spider_config(),
+            worker_config: AppConfig::init_worker_config(),
+            event_bus_config: EventBusConfig::default(),
         }
     }
 }
@@ -195,6 +211,58 @@ impl AppConfig {
 
         tracing::info!("Spider configuration initialized from environment variables");
         Some(config)
+    }
+
+    /// Initialize worker service configuration based on environment variables
+    fn init_worker_config() -> WorkerServiceConfig {
+        use riptide_workers::{WorkerConfig, QueueConfig, SchedulerConfig};
+
+        WorkerServiceConfig {
+            redis_url: std::env::var("WORKER_REDIS_URL")
+                .or_else(|_| std::env::var("REDIS_URL"))
+                .unwrap_or_else(|_| "redis://localhost:6379".to_string()),
+
+            worker_config: WorkerConfig {
+                worker_count: std::env::var("WORKER_POOL_SIZE")
+                    .ok()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(4), // 4 workers by default
+                poll_interval_secs: 5,
+                job_timeout_secs: 600, // 10 minutes
+                heartbeat_interval_secs: 30,
+                max_concurrent_jobs: 4,
+                enable_health_monitoring: true,
+            },
+
+            queue_config: QueueConfig {
+                namespace: "riptide_jobs".to_string(),
+                cache_size: 1000,
+                delayed_job_poll_interval: 30,
+                job_lease_timeout: 600, // 10 minutes
+                persist_results: true,
+                result_ttl: 3600, // 1 hour
+            },
+
+            scheduler_config: SchedulerConfig::default(),
+
+            max_batch_size: std::env::var("WORKER_MAX_BATCH_SIZE")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(50),
+
+            max_concurrency: std::env::var("WORKER_MAX_CONCURRENCY")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(10),
+
+            wasm_path: std::env::var("WASM_EXTRACTOR_PATH")
+                .unwrap_or_else(|_| "./target/wasm32-wasip2/release/riptide_extractor_wasm.wasm".to_string()),
+
+            enable_scheduler: std::env::var("WORKER_ENABLE_SCHEDULER")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(true),
+        }
     }
 }
 
@@ -294,8 +362,7 @@ impl AppState {
         tracing::info!("Redis connection established: {}", config.redis_url);
 
         // Initialize WASM extractor
-        let extractor = WasmExtractor::new(&config.wasm_path).await?;
-        let extractor = Arc::new(extractor);
+        let extractor = Arc::new(WasmExtractor::new(&config.wasm_path).await?);
         tracing::info!("WASM extractor loaded: {}", config.wasm_path);
 
         // Initialize session manager
@@ -363,7 +430,54 @@ impl AppState {
         let pdf_metrics = Arc::new(PdfMetricsCollector::new());
         tracing::info!("PDF metrics collector initialized for monitoring PDF processing");
 
-        tracing::info!("Application state initialization complete with resource controls");
+        // Initialize worker service for background job processing
+        tracing::info!("Initializing worker service for background jobs");
+        let worker_service = WorkerService::new(config.worker_config.clone())
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to initialize worker service: {}", e))?;
+        let worker_service = Arc::new(worker_service);
+        tracing::info!("Worker service initialized successfully");
+
+        // Initialize event bus with configuration
+        tracing::info!("Initializing event bus for centralized event coordination");
+        let mut event_bus = EventBus::with_config(config.event_bus_config.clone());
+
+        // Register event handlers
+        use riptide_core::events::handlers::{LoggingEventHandler, MetricsEventHandler, TelemetryEventHandler, HealthEventHandler};
+
+        // Logging handler for structured logging
+        let logging_handler = Arc::new(LoggingEventHandler::new());
+        event_bus.register_handler(logging_handler).await
+            .map_err(|e| anyhow::anyhow!("Failed to register logging handler: {}", e))?;
+        tracing::info!("Registered logging event handler");
+
+        // Metrics handler for automatic metrics collection
+        let metrics_collector = riptide_core::monitoring::MetricsCollector::new();
+        let metrics_handler = Arc::new(MetricsEventHandler::new(Arc::new(metrics_collector)));
+        event_bus.register_handler(metrics_handler).await
+            .map_err(|e| anyhow::anyhow!("Failed to register metrics handler: {}", e))?;
+        tracing::info!("Registered metrics event handler");
+
+        // Telemetry handler for OpenTelemetry integration
+        let telemetry_handler = Arc::new(TelemetryEventHandler::new());
+        event_bus.register_handler(telemetry_handler).await
+            .map_err(|e| anyhow::anyhow!("Failed to register telemetry handler: {}", e))?;
+        tracing::info!("Registered telemetry event handler");
+
+        // Health handler for health monitoring
+        let health_handler = Arc::new(HealthEventHandler::new());
+        event_bus.register_handler(health_handler).await
+            .map_err(|e| anyhow::anyhow!("Failed to register health handler: {}", e))?;
+        tracing::info!("Registered health event handler");
+
+        // Start event bus processing
+        event_bus.start().await
+            .map_err(|e| anyhow::anyhow!("Failed to start event bus: {}", e))?;
+        tracing::info!("Event bus started and processing events");
+
+        let event_bus = Arc::new(event_bus);
+
+        tracing::info!("Application state initialization complete with resource controls and event bus");
 
         Ok(Self {
             http_client,
@@ -379,6 +493,8 @@ impl AppState {
             telemetry,
             spider,
             pdf_metrics,
+            worker_service,
+            event_bus,
         })
     }
 
@@ -405,6 +521,7 @@ impl AppState {
             resource_manager: DependencyHealth::Unknown,
             streaming: DependencyHealth::Unknown,
             spider: DependencyHealth::Unknown,
+            worker_service: DependencyHealth::Unknown,
         };
 
         // Check Redis connection
@@ -467,6 +584,22 @@ impl AppState {
             DependencyHealth::Healthy
         };
 
+        // Check worker service health
+        health.worker_service = {
+            let worker_health = self.worker_service.health_check().await;
+            if worker_health.overall_healthy {
+                DependencyHealth::Healthy
+            } else {
+                health.healthy = false;
+                DependencyHealth::Unhealthy(format!(
+                    "Worker service unhealthy: queue={}, pool={}, scheduler={}",
+                    worker_health.queue_healthy,
+                    worker_health.worker_pool_healthy,
+                    worker_health.scheduler_healthy
+                ))
+            }
+        };
+
         health
     }
 
@@ -521,6 +654,7 @@ pub struct HealthStatus {
     pub resource_manager: DependencyHealth,
     pub streaming: DependencyHealth,
     pub spider: DependencyHealth,
+    pub worker_service: DependencyHealth,
 }
 
 /// Health status of an individual dependency.
