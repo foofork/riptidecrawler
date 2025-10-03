@@ -124,24 +124,22 @@ fn get_config_f64(config: &ProviderConfig, key: &str, default: f64) -> f64 {
 /// Register all built-in provider factories
 pub fn register_builtin_providers(registry: &crate::registry::LlmRegistry) -> Result<()> {
     // OpenAI
-    registry.register_factory("openai", |config| create_provider_from_config(config))?;
+    registry.register_factory("openai", create_provider_from_config)?;
 
     // Anthropic
-    registry.register_factory("anthropic", |config| create_provider_from_config(config))?;
+    registry.register_factory("anthropic", create_provider_from_config)?;
 
     // Local providers
-    registry.register_factory("ollama", |config| create_provider_from_config(config))?;
+    registry.register_factory("ollama", create_provider_from_config)?;
 
-    registry.register_factory("localai", |config| create_provider_from_config(config))?;
+    registry.register_factory("localai", create_provider_from_config)?;
 
     // Cloud providers
-    registry.register_factory("azure_openai", |config| create_provider_from_config(config))?;
+    registry.register_factory("azure_openai", create_provider_from_config)?;
 
-    registry.register_factory("aws_bedrock", |config| create_provider_from_config(config))?;
+    registry.register_factory("aws_bedrock", create_provider_from_config)?;
 
-    registry.register_factory("google_vertex", |config| {
-        create_provider_from_config(config)
-    })?;
+    registry.register_factory("google_vertex", create_provider_from_config)?;
 
     Ok(())
 }
