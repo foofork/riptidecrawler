@@ -6,7 +6,7 @@ use std::time::Instant;
 
 use super::config::{PdfCapabilities, PdfConfig};
 use super::errors::{PdfError, PdfResult};
-use super::metrics::PdfMetricsCollector;
+// Removed: unused import PdfMetricsCollector
 use super::types::{PdfImage, PdfMetadata, PdfProcessingResult, PdfStats, ProgressCallback};
 use super::utils;
 
@@ -34,10 +34,7 @@ static ACTIVE_PROCESSORS: AtomicU64 = AtomicU64::new(0);
 #[cfg(feature = "pdf")]
 static PEAK_MEMORY_USAGE: AtomicU64 = AtomicU64::new(0);
 
-// Global metrics collector for production monitoring
-#[cfg(feature = "pdf")]
-#[allow(dead_code)]
-static PDF_METRICS: std::sync::OnceLock<Arc<PdfMetricsCollector>> = std::sync::OnceLock::new();
+// Global metrics collector for production monitoring (removed - unused)
 
 /// PDF processor trait for different implementations
 ///
@@ -176,11 +173,6 @@ impl PdfiumProcessor {
                     if memory_spike > 200 * 1024 * 1024 { // Hard limit: 200MB spike
                         tracing::error!("Memory spike detected: {} MB above initial (HARD LIMIT: 200MB)",
                                       memory_spike / (1024 * 1024));
-                        // Record metrics before failing
-                        if let Some(metrics) = PDF_METRICS.get() {
-                            metrics.record_memory_spike_detected();
-                            metrics.record_processing_failure(true);
-                        }
                         return Err(PdfError::MemoryLimit {
                             used: memory_stats.current_rss,
                             limit: initial_memory_stats.current_rss + (200 * 1024 * 1024),
@@ -521,32 +513,11 @@ impl PdfiumProcessor {
     /// Get enhanced memory statistics including peak usage
     fn get_memory_stats(&self) -> MemoryStats {
         let current = self.get_memory_usage();
-        let peak = PEAK_MEMORY_USAGE.load(Ordering::Relaxed);
-        let active_processors = ACTIVE_PROCESSORS.load(Ordering::Relaxed);
+        // Removed: peak and active_processors - stored but never read
 
         MemoryStats {
             current_rss: current,
-            peak_rss: peak,
-            active_processors,
             memory_pressure: self.detect_memory_pressure(current),
-        }
-    }
-
-    /// Get memory statistics with configurable pressure threshold
-    #[allow(dead_code)]
-    fn get_memory_stats_with_config(&self, config: &PdfConfig) -> MemoryStats {
-        let current = self.get_memory_usage();
-        let peak = PEAK_MEMORY_USAGE.load(Ordering::Relaxed);
-        let active_processors = ACTIVE_PROCESSORS.load(Ordering::Relaxed);
-
-        MemoryStats {
-            current_rss: current,
-            peak_rss: peak,
-            active_processors,
-            memory_pressure: self.detect_memory_pressure_with_threshold(
-                current,
-                config.memory_settings.memory_pressure_threshold,
-            ),
         }
     }
 
@@ -568,11 +539,6 @@ impl PdfiumProcessor {
 
     /// Force garbage collection and memory cleanup hints
     fn perform_memory_cleanup(&self) {
-        // Record cleanup operation
-        if let Some(metrics) = PDF_METRICS.get() {
-            metrics.record_cleanup_performed();
-        }
-
         // On Unix systems, we can suggest to the allocator to release memory
         #[cfg(unix)]
         {
@@ -588,11 +554,6 @@ impl PdfiumProcessor {
     /// Aggressive memory cleanup for critical situations
     fn perform_aggressive_cleanup(&self) {
         tracing::info!("Performing aggressive memory cleanup");
-
-        // Record cleanup operation
-        if let Some(metrics) = PDF_METRICS.get() {
-            metrics.record_cleanup_performed();
-        }
 
         // More aggressive memory management
         #[cfg(unix)]
@@ -922,11 +883,10 @@ impl PdfProcessor for DefaultPdfProcessor {
 
 /// Memory statistics for monitoring
 #[cfg(feature = "pdf")]
-#[allow(dead_code)]
 struct MemoryStats {
     current_rss: u64,
-    peak_rss: u64,
-    active_processors: u64,
+    // Removed: peak_rss - stored but never read
+    // Removed: active_processors - stored but never read
     memory_pressure: bool,
 }
 
@@ -952,12 +912,6 @@ impl Drop for ProcessingResourceGuard {
         ACTIVE_PROCESSORS.fetch_sub(1, Ordering::Relaxed);
         let duration = self.start_time.elapsed();
         tracing::debug!("PDF processing completed in {:?}", duration);
-
-        // Record metrics on completion
-        if let Some(metrics) = PDF_METRICS.get() {
-            // This is called on both success and failure paths
-            metrics.record_cleanup_performed();
-        }
 
         // Perform cleanup on drop (including panics and all failure paths)
         #[cfg(unix)]

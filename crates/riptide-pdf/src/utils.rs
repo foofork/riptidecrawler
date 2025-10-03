@@ -59,7 +59,6 @@ pub fn detect_pdf_content(
 }
 
 /// Check if URL should skip headless rendering for PDF content
-#[allow(dead_code)]
 pub fn should_skip_headless(content_type: &str, url: &str) -> bool {
     content_type.contains("application/pdf") || url.ends_with(".pdf")
 }
@@ -80,7 +79,6 @@ pub fn extract_pdf_version(data: &[u8]) -> Option<String> {
 }
 
 /// Estimate processing complexity based on file size
-#[allow(dead_code)]
 pub fn estimate_complexity(file_size: u64) -> ProcessingComplexity {
     match file_size {
         0..=1_048_575 => ProcessingComplexity::Low, // < 1MB
@@ -113,15 +111,7 @@ pub fn validate_pdf_header(data: &[u8]) -> Result<String, String> {
     }
 }
 
-/// Check if PDF likely contains only images (needs OCR)
-#[allow(dead_code)]
-pub fn likely_needs_ocr(text_content: &str, image_count: usize) -> bool {
-    let text_length = text_content.trim().len();
-    let has_meaningful_text = text_length > 50; // Arbitrary threshold
-
-    // If we have images but very little text, likely needs OCR
-    image_count > 0 && !has_meaningful_text
-}
+// Removed: likely_needs_ocr - unused function
 
 /// Calculate estimated reading time based on word count
 pub fn estimate_reading_time(word_count: u32) -> u32 {
@@ -130,19 +120,10 @@ pub fn estimate_reading_time(word_count: u32) -> u32 {
     (word_count / WORDS_PER_MINUTE).max(1)
 }
 
-/// Sanitize text content by removing excessive whitespace
-#[allow(dead_code)]
-pub fn sanitize_text_content(text: &str) -> String {
-    text.lines()
-        .map(|line| line.trim())
-        .filter(|line| !line.is_empty())
-        .collect::<Vec<_>>()
-        .join("\n")
-}
+// Removed: sanitize_text_content - unused function
 
 /// Processing complexity levels
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[allow(dead_code)]
 pub enum ProcessingComplexity {
     Low,
     Medium,
@@ -150,29 +131,7 @@ pub enum ProcessingComplexity {
     VeryHigh,
 }
 
-impl ProcessingComplexity {
-    /// Get estimated processing time in seconds
-    #[allow(dead_code)]
-    pub fn estimated_time_seconds(&self) -> u64 {
-        match self {
-            ProcessingComplexity::Low => 5,
-            ProcessingComplexity::Medium => 15,
-            ProcessingComplexity::High => 45,
-            ProcessingComplexity::VeryHigh => 120,
-        }
-    }
-
-    /// Get recommended memory limit in bytes
-    #[allow(dead_code)]
-    pub fn memory_limit_bytes(&self) -> u64 {
-        match self {
-            ProcessingComplexity::Low => 50 * 1024 * 1024, // 50MB
-            ProcessingComplexity::Medium => 200 * 1024 * 1024, // 200MB
-            ProcessingComplexity::High => 500 * 1024 * 1024, // 500MB
-            ProcessingComplexity::VeryHigh => 1024 * 1024 * 1024, // 1GB
-        }
-    }
-}
+// Removed unused methods: estimated_time_seconds, memory_limit_bytes
 
 #[cfg(test)]
 mod tests {

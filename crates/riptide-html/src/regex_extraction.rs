@@ -16,8 +16,7 @@ pub struct RegexExtractor {
 
 #[derive(Debug)]
 struct CompiledPattern {
-    #[allow(dead_code)]
-    name: String,
+    // Removed: name field - stored but never used
     regex: Regex,
     field: String,
     required: bool,
@@ -31,7 +30,6 @@ impl RegexExtractor {
         for pattern in patterns {
             let regex = Regex::new(&pattern.pattern)?;
             compiled_patterns.push(CompiledPattern {
-                name: pattern.name.clone(),
                 regex,
                 field: pattern.field.clone(),
                 required: pattern.required,
