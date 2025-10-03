@@ -409,6 +409,30 @@ observability:
 
 ---
 
+## 📝 Items Intentionally Excluded
+
+The following items from the original integration gaps analysis are **NOT included** in this roadmap due to low priority or inapplicability:
+
+### 1. Integrated Cache (IntegratedCacheManager)
+- **Status**: ❌ Excluded
+- **Reason**: Current `CacheManager` is working fine. `IntegratedCacheManager` adds unnecessary complexity.
+- **Recommendation**: Keep current implementation. Document as alternative if needed.
+- **Priority**: LOW - Skip
+
+### 2. Spider Query-Aware Components
+- **Status**: ❌ Excluded
+- **Reason**: Specialized for deep crawling, not applicable to single-URL extraction
+- **Already Available**: Through spider endpoints
+- **Priority**: LOW - Not applicable to main pipeline
+
+### 3. Chunking Endpoint (`/chunk`)
+- **Status**: ❌ Excluded
+- **Reason**: Internal usage in deepsearch is sufficient
+- **Current State**: Works well as internal helper function
+- **Priority**: LOW - Internal usage sufficient
+
+---
+
 *This roadmap prioritizes the most impactful integration gaps identified in the comprehensive codebase analysis. Each task is scoped to minimize risk while maximizing value delivery.*
 
-**Next Steps**: Begin Phase 1 with Event System integration (EVENT-001 through EVENT-012).
+**Source**: Based on comprehensive integration gaps analysis (archived at `docs/archive/INTEGRATION_GAPS_ANALYSIS.md`)
