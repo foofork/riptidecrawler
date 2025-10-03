@@ -6,6 +6,7 @@ use crate::pipeline::PipelineOrchestrator;
 use crate::state::AppState;
 use crate::validation::validate_crawl_request;
 use axum::{extract::State, Json};
+use riptide_core::events::{BaseEvent, EventSeverity};
 use riptide_core::spider::{CrawlingStrategy, ScoringConfig, SpiderConfig};
 use std::time::Instant;
 use tracing::{debug, info, warn};
@@ -34,6 +35,17 @@ pub async fn crawl(
         cache_mode = body.options.as_ref().map(|o| &o.cache_mode),
         "Received crawl request"
     );
+
+    // Emit crawl start event
+    let mut start_event = BaseEvent::new("crawl.started", "api.crawl_handler", EventSeverity::Info);
+    start_event.add_metadata("url_count", &body.urls.len().to_string());
+    if let Some(ref opts) = body.options {
+        start_event.add_metadata("cache_mode", &opts.cache_mode.to_string());
+        start_event.add_metadata("concurrency", &opts.concurrency.to_string());
+    }
+    if let Err(e) = state.event_bus.emit(start_event).await {
+        warn!(error = %e, "Failed to emit crawl start event");
+    }
 
     // Validate the request
     validate_crawl_request(&body)?;
@@ -150,6 +162,18 @@ pub async fn crawl(
         total_time_ms = start_time.elapsed().as_millis(),
         "Crawl request completed"
     );
+
+    // Emit crawl completion event
+    let mut complete_event = BaseEvent::new("crawl.completed", "api.crawl_handler", EventSeverity::Info);
+    complete_event.add_metadata("total_urls", &body.urls.len().to_string());
+    complete_event.add_metadata("successful", &stats.successful_extractions.to_string());
+    complete_event.add_metadata("failed", &stats.failed_extractions.to_string());
+    complete_event.add_metadata("cache_hits", &from_cache_count.to_string());
+    complete_event.add_metadata("duration_ms", &start_time.elapsed().as_millis().to_string());
+    complete_event.add_metadata("cache_hit_rate", &format!("{:.2}", cache_hit_rate));
+    if let Err(e) = state.event_bus.emit(complete_event).await {
+        warn!(error = %e, "Failed to emit crawl completion event");
+    }
 
     // Record metrics for crawl request
     state

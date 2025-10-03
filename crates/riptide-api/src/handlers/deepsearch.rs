@@ -4,6 +4,7 @@ use crate::pipeline::PipelineOrchestrator;
 use crate::state::AppState;
 use crate::validation::validate_deepsearch_request;
 use axum::{extract::State, response::IntoResponse, Json};
+use riptide_core::events::{BaseEvent, EventSeverity};
 use std::time::Instant;
 use tracing::{debug, info, warn};
 
@@ -28,6 +29,15 @@ pub async fn deepsearch(
         limit = body.limit,
         "Received deep search request"
     );
+
+    // Emit deepsearch start event
+    let mut start_event = BaseEvent::new("deepsearch.started", "api.deepsearch_handler", EventSeverity::Info);
+    start_event.add_metadata("query", &body.query);
+    start_event.add_metadata("limit", &body.limit.unwrap_or(10).to_string());
+    start_event.add_metadata("include_content", &body.include_content.unwrap_or(true).to_string());
+    if let Err(e) = state.event_bus.emit(start_event).await {
+        warn!(error = %e, "Failed to emit deepsearch start event");
+    }
 
     // Validate the request
     validate_deepsearch_request(&body)?;
@@ -125,6 +135,16 @@ pub async fn deepsearch(
         processing_time_ms = processing_time_ms,
         "Deep search completed"
     );
+
+    // Emit deepsearch completion event
+    let mut complete_event = BaseEvent::new("deepsearch.completed", "api.deepsearch_handler", EventSeverity::Info);
+    complete_event.add_metadata("query", &query_clone);
+    complete_event.add_metadata("urls_found", &urls.len().to_string());
+    complete_event.add_metadata("urls_crawled", &response.urls_crawled.to_string());
+    complete_event.add_metadata("duration_ms", &processing_time_ms.to_string());
+    if let Err(e) = state.event_bus.emit(complete_event).await {
+        warn!(error = %e, "Failed to emit deepsearch completion event");
+    }
 
     // Record metrics for deepsearch request
     state.metrics.record_http_request(

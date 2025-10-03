@@ -8,6 +8,8 @@ use anyhow::Result;
 use reqwest::Client;
 use riptide_core::{
     cache::CacheManager,
+    circuit_breaker::CircuitBreakerState,
+    component::PerformanceMetrics,
     events::{EventBus, EventBusConfig},
     fetch::http_client,
     pdf::PdfMetricsCollector,
@@ -71,6 +73,12 @@ pub struct AppState {
 
     /// Event bus for centralized event coordination
     pub event_bus: Arc<EventBus>,
+
+    /// Circuit breaker for resilience and fault tolerance
+    pub circuit_breaker: Arc<tokio::sync::Mutex<CircuitBreakerState>>,
+
+    /// Performance metrics for circuit breaker tracking
+    pub performance_metrics: Arc<tokio::sync::Mutex<PerformanceMetrics>>,
 }
 
 /// Application configuration loaded from environment and config files.
@@ -106,6 +114,39 @@ pub struct AppConfig {
 
     /// Event bus configuration
     pub event_bus_config: EventBusConfig,
+
+    /// Circuit breaker configuration
+    pub circuit_breaker_config: CircuitBreakerConfig,
+}
+
+/// Circuit breaker configuration
+#[derive(Clone, Debug)]
+pub struct CircuitBreakerConfig {
+    /// Failure threshold percentage (0-100) to trip the circuit breaker
+    pub failure_threshold: u8,
+    /// Timeout duration in milliseconds before transitioning from Open to HalfOpen
+    pub timeout_ms: u64,
+    /// Minimum requests to consider before evaluating failure rate
+    pub min_requests: u64,
+}
+
+impl Default for CircuitBreakerConfig {
+    fn default() -> Self {
+        Self {
+            failure_threshold: std::env::var("CIRCUIT_BREAKER_FAILURE_THRESHOLD")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(50), // 50% failure rate trips the breaker
+            timeout_ms: std::env::var("CIRCUIT_BREAKER_TIMEOUT_MS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(5000), // 5 seconds
+            min_requests: std::env::var("CIRCUIT_BREAKER_MIN_REQUESTS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(10), // 10 requests minimum
+        }
+    }
 }
 
 impl Default for AppConfig {
@@ -137,6 +178,7 @@ impl Default for AppConfig {
             spider_config: AppConfig::init_spider_config(),
             worker_config: AppConfig::init_worker_config(),
             event_bus_config: EventBusConfig::default(),
+            circuit_breaker_config: CircuitBreakerConfig::default(),
         }
     }
 }
@@ -477,7 +519,19 @@ impl AppState {
 
         let event_bus = Arc::new(event_bus);
 
-        tracing::info!("Application state initialization complete with resource controls and event bus");
+        // Initialize circuit breaker for fault tolerance
+        tracing::info!(
+            failure_threshold = config.circuit_breaker_config.failure_threshold,
+            timeout_ms = config.circuit_breaker_config.timeout_ms,
+            "Initializing circuit breaker for resilience"
+        );
+        let circuit_breaker = Arc::new(tokio::sync::Mutex::new(CircuitBreakerState::default()));
+
+        // Initialize performance metrics for circuit breaker tracking
+        let performance_metrics = Arc::new(tokio::sync::Mutex::new(PerformanceMetrics::default()));
+        tracing::info!("Circuit breaker and performance metrics initialized");
+
+        tracing::info!("Application state initialization complete with resource controls, event bus, and circuit breaker");
 
         Ok(Self {
             http_client,
@@ -495,6 +549,8 @@ impl AppState {
             pdf_metrics,
             worker_service,
             event_bus,
+            circuit_breaker,
+            performance_metrics,
         })
     }
 
@@ -522,6 +578,7 @@ impl AppState {
             streaming: DependencyHealth::Unknown,
             spider: DependencyHealth::Unknown,
             worker_service: DependencyHealth::Unknown,
+            circuit_breaker: DependencyHealth::Unknown,
         };
 
         // Check Redis connection
@@ -600,6 +657,19 @@ impl AppState {
             }
         };
 
+        // Check circuit breaker health
+        health.circuit_breaker = {
+            let cb_state = self.circuit_breaker.lock().await;
+            if cb_state.is_open() {
+                health.healthy = false;
+                DependencyHealth::Unhealthy("Circuit breaker is open - too many failures".to_string())
+            } else if cb_state.is_half_open() {
+                DependencyHealth::Unhealthy("Circuit breaker is testing recovery".to_string())
+            } else {
+                DependencyHealth::Healthy
+            }
+        };
+
         health
     }
 
@@ -655,6 +725,7 @@ pub struct HealthStatus {
     pub streaming: DependencyHealth,
     pub spider: DependencyHealth,
     pub worker_service: DependencyHealth,
+    pub circuit_breaker: DependencyHealth,
 }
 
 /// Health status of an individual dependency.
