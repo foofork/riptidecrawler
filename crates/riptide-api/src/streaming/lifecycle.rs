@@ -316,7 +316,7 @@ impl StreamLifecycleManager {
             LifecycleEvent::ConnectionEstablished {
                 connection_id,
                 protocol,
-                timestamp,
+                timestamp: _,
             } => {
                 info!(
                     connection_id = %connection_id,
@@ -328,7 +328,7 @@ impl StreamLifecycleManager {
                 connection_id,
                 request_id,
                 total_items,
-                timestamp,
+                timestamp: _,
             } => {
                 info!(
                     connection_id = %connection_id,
@@ -343,7 +343,7 @@ impl StreamLifecycleManager {
                 completed,
                 total,
                 throughput,
-                timestamp,
+                timestamp: _,
             } => {
                 debug!(
                     connection_id = %connection_id,
@@ -360,7 +360,7 @@ impl StreamLifecycleManager {
                 request_id,
                 error,
                 recoverable,
-                timestamp,
+                timestamp: _,
             } => {
                 if recoverable {
                     warn!(
@@ -382,7 +382,7 @@ impl StreamLifecycleManager {
                 connection_id,
                 request_id,
                 summary,
-                timestamp,
+                timestamp: _,
             } => {
                 info!(
                     connection_id = %connection_id,
@@ -401,7 +401,7 @@ impl StreamLifecycleManager {
                 connection_id,
                 request_id,
                 reason,
-                timestamp,
+                timestamp: _,
             } => {
                 warn!(
                     connection_id = %connection_id,
@@ -415,7 +415,7 @@ impl StreamLifecycleManager {
                 duration,
                 bytes_sent,
                 messages_sent,
-                timestamp,
+                timestamp: _,
             } => {
                 info!(
                     connection_id = %connection_id,

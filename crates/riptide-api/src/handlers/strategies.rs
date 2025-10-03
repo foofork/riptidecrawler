@@ -294,8 +294,8 @@ pub struct ChunkingModeInfo {
 
 /// Build strategy configuration from request parameters
 fn build_strategy_config(
-    request: &StrategiesCrawlRequest,
-    params: &StrategiesQueryParams,
+    _request: &StrategiesCrawlRequest,
+    _params: &StrategiesQueryParams,
 ) -> ApiResult<StrategyConfig> {
     // Core only supports Trek extraction strategy
     let extraction = ExtractionStrategy::Trek;

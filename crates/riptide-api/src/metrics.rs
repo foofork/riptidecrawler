@@ -454,7 +454,7 @@ impl RipTideMetrics {
     }
 
     /// Record HTTP request
-    pub fn record_http_request(&self, method: &str, path: &str, status: u16, duration: f64) {
+    pub fn record_http_request(&self, _method: &str, _path: &str, status: u16, duration: f64) {
         self.http_requests_total.inc();
         self.http_request_duration.observe(duration);
 
@@ -512,8 +512,8 @@ impl RipTideMetrics {
         // For counters, we need to track the difference and add it
         // This is a simplified approach - in production you'd want to track previous values
         // For now, we'll just set the gauge to the current value
-        let messages_sent_diff = streaming_metrics.total_messages_sent as f64;
-        let messages_dropped_diff = streaming_metrics.total_messages_dropped as f64;
+        let _messages_sent_diff = streaming_metrics.total_messages_sent as f64;
+        let _messages_dropped_diff = streaming_metrics.total_messages_dropped as f64;
 
         // Since counters can't be set directly, we observe individual increments
         // This method should ideally be called with delta values, not absolute values

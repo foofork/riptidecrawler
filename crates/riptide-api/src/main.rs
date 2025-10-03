@@ -76,7 +76,7 @@ async fn main() -> anyhow::Result<()> {
     // Initialize metrics
     tracing::info!("Initializing Prometheus metrics");
     let metrics = Arc::new(RipTideMetrics::new()?);
-    let (prometheus_layer, metric_handle) = create_metrics_layer()?;
+    let (prometheus_layer, _metric_handle) = create_metrics_layer()?;
     tracing::info!("Prometheus metrics initialized");
 
     // Initialize health checker

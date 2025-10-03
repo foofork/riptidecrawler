@@ -380,7 +380,7 @@ fn analyze_detection_indicators(
 fn analyze_headers_effectiveness(
     user_agent: &str,
     request_headers: &std::collections::HashMap<String, String>,
-    response_headers: &reqwest::header::HeaderMap,
+    _response_headers: &reqwest::header::HeaderMap,
 ) -> HeadersAnalysis {
     // Score user agent (check if it looks realistic)
     let user_agent_score = if user_agent.contains("Chrome") && user_agent.contains("WebKit") {

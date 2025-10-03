@@ -544,7 +544,7 @@ impl HealthChecker {
         let mut system = sysinfo::System::new();
         system.refresh_processes(ProcessesToUpdate::All, false);
         let pid = sysinfo::get_current_pid().unwrap_or(sysinfo::Pid::from(0));
-        if let Some(process) = system.process(pid) {
+        if let Some(_process) = system.process(pid) {
             // The tasks() method no longer exists in sysinfo 0.32
             // Return a reasonable default as thread enumeration changed
             return 1;

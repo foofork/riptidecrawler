@@ -274,12 +274,12 @@ impl StrategiesPipelineOrchestrator {
     }
 
     /// Auto-detect optimal strategy based on URL and options
-    fn auto_detect_strategy(url: &str, options: &CrawlOptions) -> StrategyConfig {
+    fn auto_detect_strategy(url: &str, _options: &CrawlOptions) -> StrategyConfig {
         let mut config = StrategyConfig::default();
 
         // Analyze URL for strategy hints
         if let Ok(parsed_url) = Url::parse(url) {
-            if let Some(host) = parsed_url.host_str() {
+            if let Some(_host) = parsed_url.host_str() {
                 // Website-specific strategy optimization
                 config.extraction = ExtractionStrategy::Trek;
             }
