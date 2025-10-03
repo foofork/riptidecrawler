@@ -1,3 +1,4 @@
+mod circuit_breaker_utils;
 mod config;
 mod errors;
 mod handlers;

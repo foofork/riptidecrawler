@@ -2,6 +2,8 @@ use crate::errors::{ApiError, ApiResult};
 use crate::state::AppState;
 use reqwest::Response;
 use riptide_core::{
+    circuit_breaker::CircuitBreakerState,
+    events::{BaseEvent, EventSeverity},
     fetch,
     gate::{decide, score, Decision, GateFeatures},
     pdf::{self, utils as pdf_utils},
@@ -140,10 +142,27 @@ impl PipelineOrchestrator {
 
         info!(url = %url, cache_key = %cache_key, "Starting pipeline execution");
 
+        // Emit pipeline start event
+        let mut start_event = BaseEvent::new("pipeline.execution.started", "pipeline_orchestrator", EventSeverity::Info);
+        start_event.add_metadata("url", url);
+        start_event.add_metadata("cache_key", &cache_key);
+        if let Err(e) = self.state.event_bus.emit(start_event).await {
+            warn!(error = %e, "Failed to emit pipeline start event");
+        }
+
         // Step 1: Check cache first
         let cached_result = self.check_cache(&cache_key).await;
         if let Ok(Some(cached)) = cached_result {
             info!(url = %url, "Cache hit, returning cached result");
+
+            // Emit cache hit event
+            let mut cache_event = BaseEvent::new("pipeline.cache.hit", "pipeline_orchestrator", EventSeverity::Info);
+            cache_event.add_metadata("url", url);
+            cache_event.add_metadata("cache_key", &cache_key);
+            if let Err(e) = self.state.event_bus.emit(cache_event).await {
+                warn!(error = %e, "Failed to emit cache hit event");
+            }
+
             return Ok(PipelineResult {
                 document: cached,
                 from_cache: true,
@@ -165,6 +184,15 @@ impl PipelineOrchestrator {
             || matches!(self.options.render_mode, RenderMode::Pdf)
         {
             info!(url = %url, "Detected PDF content, processing with PDF pipeline");
+
+            // Emit PDF processing event
+            let mut pdf_event = BaseEvent::new("pipeline.pdf.processing", "pipeline_orchestrator", EventSeverity::Info);
+            pdf_event.add_metadata("url", url);
+            pdf_event.add_metadata("content_size", &content_bytes.len().to_string());
+            if let Err(e) = self.state.event_bus.emit(pdf_event).await {
+                warn!(error = %e, "Failed to emit PDF processing event");
+            }
+
             let document = self.process_pdf_content(&content_bytes, url).await?;
 
             // Cache the PDF result
@@ -211,6 +239,15 @@ impl PipelineOrchestrator {
             "Gate analysis complete"
         );
 
+        // Emit gate decision event
+        let mut gate_event = BaseEvent::new("pipeline.gate.decision", "pipeline_orchestrator", EventSeverity::Info);
+        gate_event.add_metadata("url", url);
+        gate_event.add_metadata("decision", &gate_decision_str);
+        gate_event.add_metadata("quality_score", &quality_score.to_string());
+        if let Err(e) = self.state.event_bus.emit(gate_event).await {
+            warn!(error = %e, "Failed to emit gate decision event");
+        }
+
         // Step 5: Extract content based on gate decision
         let document = self.extract_content(&html_content, url, decision).await?;
 
@@ -226,6 +263,17 @@ impl PipelineOrchestrator {
             processing_time_ms = %processing_time_ms,
             "Pipeline execution complete"
         );
+
+        // Emit pipeline completion event
+        let mut completion_event = BaseEvent::new("pipeline.execution.completed", "pipeline_orchestrator", EventSeverity::Info);
+        completion_event.add_metadata("url", url);
+        completion_event.add_metadata("gate_decision", &gate_decision_str);
+        completion_event.add_metadata("quality_score", &quality_score.to_string());
+        completion_event.add_metadata("processing_time_ms", &processing_time_ms.to_string());
+        completion_event.add_metadata("http_status", &http_status.to_string());
+        if let Err(e) = self.state.event_bus.emit(completion_event).await {
+            warn!(error = %e, "Failed to emit pipeline completion event");
+        }
 
         Ok(PipelineResult {
             document,
@@ -558,14 +606,25 @@ impl PipelineOrchestrator {
         url: &str,
         decision: Decision,
     ) -> ApiResult<ExtractedDoc> {
+        use crate::circuit_breaker_utils::extract_with_circuit_breaker;
+
         match decision {
             Decision::Raw => {
-                // Use fast WASM extraction
-                self.state
-                    .extractor
-                    .extract(html.as_bytes(), url, "article")
-                    .map(convert_html_doc)
-                    .map_err(|e| ApiError::extraction(format!("WASM extraction failed: {}", e)))
+                // Use fast WASM extraction with circuit breaker protection
+                let extractor = self.state.extractor.clone();
+                let html_bytes = html.as_bytes().to_vec();
+                let url_str = url.to_string();
+
+                extract_with_circuit_breaker(
+                    &self.state.circuit_breaker,
+                    &self.state.performance_metrics,
+                    async move {
+                        extractor
+                            .extract(&html_bytes, &url_str, "article")
+                            .map(convert_html_doc)
+                    },
+                )
+                .await
             }
             Decision::ProbesFirst => {
                 // Try fast extraction first, fallback to headless if needed
