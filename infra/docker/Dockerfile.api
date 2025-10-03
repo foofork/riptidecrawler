@@ -37,13 +37,14 @@ RUN sed -i '/\[\[bench\]\]/,/required-features/d' crates/riptide-core/Cargo.toml
 
 # Create stub source files for dependency caching
 RUN mkdir -p crates/riptide-core/src crates/riptide-api/src \
-    crates/riptide-html/src crates/riptide-intelligence/src \
+    crates/riptide-headless/src crates/riptide-html/src crates/riptide-intelligence/src \
     crates/riptide-pdf/src crates/riptide-performance/src \
     crates/riptide-persistence/src crates/riptide-search/src \
     crates/riptide-stealth/src crates/riptide-streaming/src \
     crates/riptide-workers/src wasm/riptide-extractor-wasm/src && \
     echo "fn main() {}" > crates/riptide-core/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-api/src/main.rs && \
+    echo "fn main() {}" > crates/riptide-headless/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-html/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-intelligence/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-pdf/src/lib.rs && \
