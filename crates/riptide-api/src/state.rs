@@ -985,7 +985,7 @@ impl MonitoringSystem {
     }
 
     /// Start background alert evaluation task
-    pub fn start_alert_evaluation_task(&self, event_bus: Arc<EventBus>) {
+    pub fn start_alert_evaluation_task(&self, _event_bus: Arc<EventBus>) {  // TODO: Publish alerts to event bus
         let metrics_collector = self.metrics_collector.clone();
         let alert_manager = self.alert_manager.clone();
         tokio::spawn(async move {
@@ -1037,7 +1037,7 @@ impl MonitoringSystem {
 
                             // Create a generic event for the alert
                             use riptide_core::events::BaseEvent;
-                            let base_event = BaseEvent::new(
+                            let _base_event = BaseEvent::new(  // TODO: Publish to event bus
                                 "monitoring.alert.triggered",
                                 "monitoring_system",
                                 match alert.severity {

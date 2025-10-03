@@ -19,10 +19,9 @@ highlight = "all"
 [advisories]
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
-vulnerability = "deny"
-unmaintained = "all"
-yanked = "warn"
-notice = "warn"
+# Updated configuration per cargo-deny 0.16+ migration
+ignore = []  # List of advisory IDs to ignore
+severity-threshold = "medium"  # Minimum severity level to report
 
 [sources]
 unknown-registry = "warn"

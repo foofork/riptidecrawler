@@ -6,7 +6,11 @@
 //! - Telemetry configuration from environment variables
 //! - Span utilities for consistent instrumentation
 
-use opentelemetry::trace::{SpanContext, SpanId, TraceContextExt, TraceId, Tracer};
+use opentelemetry::trace::{SpanContext, SpanId, TraceId};
+
+// Allow unused imports for future telemetry functionality
+#[allow(unused_imports)]
+use opentelemetry::trace::{TraceContextExt, Tracer};
 use opentelemetry::{global, KeyValue};
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::propagation::TraceContextPropagator;
@@ -188,7 +192,6 @@ impl TelemetryConfig {
             tracing::info!("Telemetry disabled, using default tracing subscriber");
             return Ok(());
         }
-        */
 
         // Set up trace context propagator for distributed tracing
         global::set_text_map_propagator(TraceContextPropagator::new());
@@ -251,7 +254,7 @@ impl TelemetryConfig {
                     .tracing()
                     .with_exporter(exporter)
                     .with_trace_config(
-                        sdktrace::config()
+                        sdktrace::Config::default()
                             .with_sampler(Sampler::TraceIdRatioBased(self.sampling_ratio))
                             .with_id_generator(RandomIdGenerator::default())
                             .with_resource(resource),
@@ -300,7 +303,7 @@ impl TelemetryConfig {
             .tracing()
             .with_exporter(exporter)
             .with_trace_config(
-                sdktrace::config()
+                sdktrace::Config::default()
                     .with_sampler(Sampler::TraceIdRatioBased(self.sampling_ratio))
                     .with_id_generator(RandomIdGenerator::default())
                     .with_resource(resource),
@@ -318,7 +321,7 @@ impl TelemetryConfig {
 }
 
 /// Extract trace context from HTTP headers (TELEM-004)
-pub fn extract_trace_context(headers: &axum::http::HeaderMap) -> Option<SpanContext> {
+pub fn extract_trace_context(_headers: &axum::http::HeaderMap) -> Option<SpanContext> {
     use opentelemetry::propagation::Extractor;
 
     struct HeaderExtractor<'a>(&'a axum::http::HeaderMap);

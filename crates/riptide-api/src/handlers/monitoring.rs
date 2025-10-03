@@ -7,9 +7,15 @@ use crate::state::{AppState, PerformanceReport};
 use axum::{
     extract::State,
     http::StatusCode,
-    response::{IntoResponse, Json},
+    response::Json,
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
+
+// Allow unused imports - these may be used in future endpoint implementations
+#[allow(unused_imports)]
+use axum::response::IntoResponse;
+#[allow(unused_imports)]
+use serde::Deserialize;
 
 /// Health score response
 #[derive(Debug, Serialize)]
