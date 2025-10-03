@@ -5,19 +5,18 @@
 RipTide is a high-performance web content extraction system built in Rust with advanced WASM-based extraction technology. The system uses WASM-based content processing, resource management, and monitoring capabilities.
 
 **Current Version**: v0.1.0
-**Production Readiness**: 85% (see [Production Readiness Assessment](production-readiness-assessment.md))
+**Production Readiness**: 85% (see [Roadmap](ROADMAP.md) for details)
 **Major Milestones Complete**: WASM enhancements, PDF pipeline integration, CI optimization, code quality improvements, query-aware spider, multi-provider LLM, topic chunking, and session persistence are finished.
 
 ## 📚 Documentation Navigation
 
-**New to RipTide?** Start with the [Documentation Map](DOCUMENTATION_MAP.md) for navigation.
-
 ### Quick Access
 - [Getting Started](#quick-start) - Set up and run the system
 - [Active Roadmap](ROADMAP.md) - Current development status
-- [API Reference](api/rest-api.md) - REST API documentation
+- [API Reference](api/README.md) - REST API documentation
 - [Architecture](architecture/system-overview.md) - System design and components
 - [Development Setup](development/getting-started.md) - Contributor onboarding
+- [Crawl4AI Comparison](COMPARISON_REPORT.md) - Feature comparison analysis
 
 ### By Role
 - **Users**: [Installation](user/installation.md) → [API Usage](user/api-usage.md) → [Troubleshooting](user/troubleshooting.md)
@@ -28,8 +27,8 @@ RipTide is a high-performance web content extraction system built in Rust with a
 
 Keep documentation current as the project evolves:
 
-- **API Changes**: Update [REST API Reference](api/rest-api.md) when adding/modifying endpoints
-- **New Components**: Update [Component Analysis](architecture/component-analysis.md) and system diagrams
+- **API Changes**: Update [API Documentation](api/README.md) when adding/modifying endpoints
+- **New Components**: Update [System Overview](architecture/system-overview.md) and system diagrams
 - **Configuration**: Update [Configuration Guide](architecture/configuration-guide.md) for new settings
 - **Deployment**: Update [Deployment Guide](architecture/deployment-guide.md) for infrastructure changes
 - **Dependencies**: Update version requirements in Quick Start section below
@@ -43,13 +42,20 @@ Keep documentation current as the project evolves:
 ### Architecture Documentation
 
 - **[System Overview](architecture/system-overview.md)** - Complete system architecture and data flow
-- **[Component Analysis](architecture/component-analysis.md)** - Detailed analysis of each component and their interactions
+- **[System Diagram](architecture/system-diagram.md)** - Visual architecture diagrams
 - **[Configuration Guide](architecture/configuration-guide.md)** - Comprehensive configuration reference and best practices
 - **[Deployment Guide](architecture/deployment-guide.md)** - Production deployment instructions for Docker and Kubernetes
+- **[WASM Guide](architecture/WASM_GUIDE.md)** - WebAssembly integration guide
+- **[PDF Pipeline](architecture/PDF_PIPELINE_GUIDE.md)** - PDF processing architecture
 
 ### API Documentation
 
-- **[REST API Reference](api/rest-api.md)** - Complete API documentation with examples and schemas
+- **[API Overview](api/README.md)** - Complete API documentation index
+- **[Endpoint Catalog](api/ENDPOINT_CATALOG.md)** - All 59 API endpoints
+- **[Examples](api/examples.md)** - API usage examples
+- **[Streaming](api/streaming.md)** - Real-time streaming protocols
+- **[Session Management](api/session-management.md)** - Session handling
+- **[Security](api/security.md)** - Security best practices
 
 ## Quick Start
 
