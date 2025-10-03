@@ -1,8 +1,8 @@
 //! Sliding window chunking with overlap (default mode for HTML content)
 
+use super::{utils, Chunk, ChunkMetadata, ChunkingConfig, ChunkingStrategy};
 use anyhow::Result;
 use async_trait::async_trait;
-use super::{ChunkingStrategy, Chunk, ChunkMetadata, ChunkingConfig, utils};
 
 /// Sliding window chunker with configurable overlap
 pub struct SlidingWindowChunker {
@@ -134,9 +134,9 @@ fn create_chunk(
 ) -> Chunk {
     let word_count = content.split_whitespace().count();
     let sentence_count = sentences.len();
-    let has_complete_sentences = content.trim().ends_with('.') ||
-                                 content.trim().ends_with('!') ||
-                                 content.trim().ends_with('?');
+    let has_complete_sentences = content.trim().ends_with('.')
+        || content.trim().ends_with('!')
+        || content.trim().ends_with('?');
     let topic_keywords = utils::extract_topic_keywords(content);
 
     let metadata = ChunkMetadata {

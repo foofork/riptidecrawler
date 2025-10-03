@@ -3,8 +3,8 @@ use crate::state::AppState;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::time::Instant;
-use tracing::{debug, error, info};
 use sysinfo::ProcessesToUpdate;
+use tracing::{debug, error, info};
 
 /// Enhanced health check with comprehensive component status
 pub struct HealthChecker {
@@ -558,7 +558,11 @@ impl HealthChecker {
         let mut system = sysinfo::System::new();
         system.refresh_cpu_all();
         let load_avg = sysinfo::System::load_average();
-        [load_avg.one as f32, load_avg.five as f32, load_avg.fifteen as f32]
+        [
+            load_avg.one as f32,
+            load_avg.five as f32,
+            load_avg.fifteen as f32,
+        ]
     }
 }
 

@@ -1,9 +1,9 @@
+use serde::{Deserialize, Serialize};
 use serde_json;
 use std::fs;
 use std::path::Path;
-use serde::{Serialize, Deserialize};
 
-use riptide_extractor_wasm::{Component, ExtractionMode, ExtractedContent};
+use riptide_extractor_wasm::{Component, ExtractedContent, ExtractionMode};
 
 /// Serializable version of ExtractedContent for golden tests
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -73,76 +73,76 @@ pub struct GoldenTestCase {
 
 pub fn get_golden_test_cases() -> Vec<GoldenTestCase> {
     vec![
-    GoldenTestCase {
-        name: "news_site_article",
-        html_file: "news_site.html",
-        url: "https://news.example.com/tech/ai-breakthrough-2024",
-        mode: ExtractionMode::Article,
-        expected_features: vec![
-            "title_extraction",
-            "author_detection",
-            "published_date",
-            "article_content",
-            "related_links",
-            "category_classification",
-            "reading_time",
-        ],
-    },
-    GoldenTestCase {
-        name: "news_site_full",
-        html_file: "news_site.html",
-        url: "https://news.example.com/tech/ai-breakthrough-2024",
-        mode: ExtractionMode::Full,
-        expected_features: vec![
-            "full_page_content",
-            "navigation_links",
-            "sidebar_content",
-            "footer_links",
-            "all_media",
-            "complete_link_graph",
-        ],
-    },
-    GoldenTestCase {
-        name: "blog_post_article",
-        html_file: "blog_post.html",
-        url: "https://devblog.example.com/scalable-web-apps-guide",
-        mode: ExtractionMode::Article,
-        expected_features: vec![
-            "long_form_content",
-            "code_blocks",
-            "table_of_contents",
-            "author_bio",
-            "technical_categories",
-            "tutorial_structure",
-        ],
-    },
-    GoldenTestCase {
-        name: "gallery_site_full",
-        html_file: "gallery_site.html",
-        url: "https://photogallery.example.com/collections/tokyo-street-life",
-        mode: ExtractionMode::Full,
-        expected_features: vec![
-            "image_gallery_extraction",
-            "media_metadata",
-            "photographer_info",
-            "collection_structure",
-            "image_captions",
-            "technical_details",
-        ],
-    },
-    GoldenTestCase {
-        name: "nav_heavy_metadata",
-        html_file: "nav_heavy_site.html",
-        url: "https://projectflow.example.com/dashboard",
-        mode: ExtractionMode::Metadata,
-        expected_features: vec![
-            "site_metadata",
-            "navigation_structure",
-            "breadcrumb_extraction",
-            "user_interface_elements",
-            "application_context",
-        ],
-    },
+        GoldenTestCase {
+            name: "news_site_article",
+            html_file: "news_site.html",
+            url: "https://news.example.com/tech/ai-breakthrough-2024",
+            mode: ExtractionMode::Article,
+            expected_features: vec![
+                "title_extraction",
+                "author_detection",
+                "published_date",
+                "article_content",
+                "related_links",
+                "category_classification",
+                "reading_time",
+            ],
+        },
+        GoldenTestCase {
+            name: "news_site_full",
+            html_file: "news_site.html",
+            url: "https://news.example.com/tech/ai-breakthrough-2024",
+            mode: ExtractionMode::Full,
+            expected_features: vec![
+                "full_page_content",
+                "navigation_links",
+                "sidebar_content",
+                "footer_links",
+                "all_media",
+                "complete_link_graph",
+            ],
+        },
+        GoldenTestCase {
+            name: "blog_post_article",
+            html_file: "blog_post.html",
+            url: "https://devblog.example.com/scalable-web-apps-guide",
+            mode: ExtractionMode::Article,
+            expected_features: vec![
+                "long_form_content",
+                "code_blocks",
+                "table_of_contents",
+                "author_bio",
+                "technical_categories",
+                "tutorial_structure",
+            ],
+        },
+        GoldenTestCase {
+            name: "gallery_site_full",
+            html_file: "gallery_site.html",
+            url: "https://photogallery.example.com/collections/tokyo-street-life",
+            mode: ExtractionMode::Full,
+            expected_features: vec![
+                "image_gallery_extraction",
+                "media_metadata",
+                "photographer_info",
+                "collection_structure",
+                "image_captions",
+                "technical_details",
+            ],
+        },
+        GoldenTestCase {
+            name: "nav_heavy_metadata",
+            html_file: "nav_heavy_site.html",
+            url: "https://projectflow.example.com/dashboard",
+            mode: ExtractionMode::Metadata,
+            expected_features: vec![
+                "site_metadata",
+                "navigation_structure",
+                "breadcrumb_extraction",
+                "user_interface_elements",
+                "application_context",
+            ],
+        },
     ]
 }
 
@@ -155,7 +155,8 @@ pub fn run_golden_test(test_case: &GoldenTestCase) -> Result<(), String> {
 
     // Perform extraction
     let component = Component::new();
-    let result = component.extract(html, test_case.url.to_string(), test_case.mode.clone())
+    let result = component
+        .extract(html, test_case.url.to_string(), test_case.mode.clone())
         .map_err(|e| format!("Extraction failed: {:?}", e))?;
 
     // Load or create golden snapshot
@@ -174,10 +175,10 @@ pub fn run_golden_test(test_case: &GoldenTestCase) -> Result<(), String> {
 fn validate_against_snapshot(
     result: &ExtractedContent,
     snapshot_path: &str,
-    test_case: &GoldenTestCase
+    test_case: &GoldenTestCase,
 ) -> Result<(), String> {
-    let snapshot_json = fs::read_to_string(snapshot_path)
-        .map_err(|e| format!("Failed to read snapshot: {}", e))?;
+    let snapshot_json =
+        fs::read_to_string(snapshot_path).map_err(|e| format!("Failed to read snapshot: {}", e))?;
 
     let expected: serde_json::Value = serde_json::from_str(&snapshot_json)
         .map_err(|e| format!("Failed to parse snapshot JSON: {}", e))?;
@@ -216,7 +217,7 @@ fn validate_against_snapshot(
 fn create_snapshot(
     result: &ExtractedContent,
     snapshot_path: &str,
-    test_case: &GoldenTestCase
+    test_case: &GoldenTestCase,
 ) -> Result<(), String> {
     // Create snapshot directory if it doesn't exist
     if let Some(parent) = Path::new(snapshot_path).parent() {
@@ -247,7 +248,7 @@ fn validate_field(
     actual: &serde_json::Value,
     expected: &serde_json::Value,
     field: &str,
-    test_name: &str
+    test_name: &str,
 ) -> Result<(), String> {
     let actual_val = actual.get(field);
     let expected_val = expected.get(field);
@@ -284,7 +285,7 @@ fn validate_optional_field(
     actual: &serde_json::Value,
     expected: &serde_json::Value,
     field: &str,
-    test_name: &str
+    test_name: &str,
 ) -> Result<(), String> {
     let actual_val = actual.get(field);
     let expected_val = expected.get(field);
@@ -307,7 +308,7 @@ fn validate_content_similarity(
     expected: &serde_json::Value,
     field: &str,
     test_name: &str,
-    similarity_threshold: f64
+    similarity_threshold: f64,
 ) -> Result<(), String> {
     let actual_str = actual.get(field).and_then(|v| v.as_str()).unwrap_or("");
     let expected_str = expected.get(field).and_then(|v| v.as_str()).unwrap_or("");
@@ -320,7 +321,10 @@ fn validate_content_similarity(
     if similarity < similarity_threshold {
         return Err(format!(
             "Content similarity too low for field '{}' in {}: {:.2}% (threshold: {:.2}%)",
-            field, test_name, similarity * 100.0, similarity_threshold * 100.0
+            field,
+            test_name,
+            similarity * 100.0,
+            similarity_threshold * 100.0
         ));
     }
 
@@ -332,7 +336,7 @@ fn validate_array_field(
     actual: &serde_json::Value,
     expected: &serde_json::Value,
     field: &str,
-    test_name: &str
+    test_name: &str,
 ) -> Result<(), String> {
     let actual_arr = actual.get(field).and_then(|v| v.as_array());
     let expected_arr = expected.get(field).and_then(|v| v.as_array());
@@ -342,7 +346,10 @@ fn validate_array_field(
             if a.len() != e.len() {
                 return Err(format!(
                     "Array '{}' length mismatch in {}: expected {}, got {}",
-                    field, test_name, e.len(), a.len()
+                    field,
+                    test_name,
+                    e.len(),
+                    a.len()
                 ));
             }
 
@@ -359,7 +366,9 @@ fn validate_array_field(
         (None, Some(e)) if !e.is_empty() => {
             return Err(format!(
                 "Missing array field '{}' in {}: expected {} items",
-                field, test_name, e.len()
+                field,
+                test_name,
+                e.len()
             ));
         }
         _ => {} // Other combinations are acceptable
@@ -374,7 +383,7 @@ fn validate_numeric_field(
     expected: &serde_json::Value,
     field: &str,
     test_name: &str,
-    tolerance: f64
+    tolerance: f64,
 ) -> Result<(), String> {
     let actual_num = actual.get(field).and_then(|v| v.as_f64());
     let expected_num = expected.get(field).and_then(|v| v.as_f64());
@@ -395,48 +404,72 @@ fn validate_numeric_field(
 /// Validate that expected features are present
 fn validate_expected_features(
     result: &ExtractedContent,
-    test_case: &GoldenTestCase
+    test_case: &GoldenTestCase,
 ) -> Result<(), String> {
     for feature in &test_case.expected_features {
         match *feature {
             "title_extraction" => {
                 if result.title.is_none() || result.title.as_ref().unwrap().is_empty() {
-                    return Err(format!("Feature '{}' missing in {}", feature, test_case.name));
+                    return Err(format!(
+                        "Feature '{}' missing in {}",
+                        feature, test_case.name
+                    ));
                 }
             }
             "author_detection" => {
                 if result.byline.is_none() || result.byline.as_ref().unwrap().is_empty() {
-                    return Err(format!("Feature '{}' missing in {}", feature, test_case.name));
+                    return Err(format!(
+                        "Feature '{}' missing in {}",
+                        feature, test_case.name
+                    ));
                 }
             }
             "published_date" => {
                 if result.published_iso.is_none() {
-                    return Err(format!("Feature '{}' missing in {}", feature, test_case.name));
+                    return Err(format!(
+                        "Feature '{}' missing in {}",
+                        feature, test_case.name
+                    ));
                 }
             }
             "article_content" => {
                 if result.text.is_empty() && result.markdown.is_empty() {
-                    return Err(format!("Feature '{}' missing in {}", feature, test_case.name));
+                    return Err(format!(
+                        "Feature '{}' missing in {}",
+                        feature, test_case.name
+                    ));
                 }
             }
             "related_links" => {
                 if result.links.is_empty() {
-                    return Err(format!("Feature '{}' missing in {}", feature, test_case.name));
+                    return Err(format!(
+                        "Feature '{}' missing in {}",
+                        feature, test_case.name
+                    ));
                 }
             }
             "category_classification" => {
                 if result.categories.is_empty() {
-                    return Err(format!("Feature '{}' missing in {}", feature, test_case.name));
+                    return Err(format!(
+                        "Feature '{}' missing in {}",
+                        feature, test_case.name
+                    ));
                 }
             }
             "reading_time" => {
                 if result.reading_time.is_none() {
-                    return Err(format!("Feature '{}' missing in {}", feature, test_case.name));
+                    return Err(format!(
+                        "Feature '{}' missing in {}",
+                        feature, test_case.name
+                    ));
                 }
             }
             "all_media" => {
                 if result.media.is_empty() {
-                    return Err(format!("Feature '{}' missing in {}", feature, test_case.name));
+                    return Err(format!(
+                        "Feature '{}' missing in {}",
+                        feature, test_case.name
+                    ));
                 }
             }
             _ => {} // Other features are optional

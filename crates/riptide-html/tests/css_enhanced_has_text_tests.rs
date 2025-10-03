@@ -25,19 +25,21 @@ async fn test_basic_has_text_filter() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Select only reviews containing "excellent" (case insensitive)
-    selectors.insert("excellent_reviews".to_string(),
+    selectors.insert(
+        "excellent_reviews".to_string(),
         css(".review")
             .has_text("excellent", true, true)
             .transform("trim")
-            .build()
+            .build(),
     );
 
     // Select only reviews containing "good" (case sensitive)
-    selectors.insert("good_reviews".to_string(),
+    selectors.insert(
+        "good_reviews".to_string(),
         css(".review")
             .has_text("good", false, true)
             .transform("trim")
-            .build()
+            .build(),
     );
 
     let extractor = CssJsonExtractor::new(selectors);
@@ -77,27 +79,33 @@ async fn test_regex_has_text_filter() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Select products with price patterns using regex
-    selectors.insert("priced_products".to_string(),
+    selectors.insert(
+        "priced_products".to_string(),
         css(".product")
             .has_text_regex(r"[€$£]\d+\.\d{2}", false)
             .transforms(&["trim", "normalize_ws"])
-            .build()
+            .build(),
     );
 
     // Select contacts with email patterns using regex
-    selectors.insert("email_contacts".to_string(),
+    selectors.insert(
+        "email_contacts".to_string(),
         css(".contact")
-            .has_text_regex(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", false)
+            .has_text_regex(
+                r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
+                false,
+            )
             .transform("trim")
-            .build()
+            .build(),
     );
 
     // Select phone numbers using regex
-    selectors.insert("phone_contacts".to_string(),
+    selectors.insert(
+        "phone_contacts".to_string(),
         css(".contact")
             .has_text_regex(r"\b\d{3}-\d{3}-\d{4}\b", false)
             .transform("trim")
-            .build()
+            .build(),
     );
 
     let extractor = CssJsonExtractor::new(selectors);
@@ -141,35 +149,42 @@ async fn test_complex_regex_patterns() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Select breaking news articles
-    selectors.insert("breaking_news".to_string(),
+    selectors.insert(
+        "breaking_news".to_string(),
         css("article h3")
             .has_text_regex(r"(?i)\bbreaking\b", false)
             .transforms(&["trim", "normalize_ws"])
-            .build()
+            .build(),
     );
 
     // Select articles with specific date patterns
-    selectors.insert("dated_articles".to_string(),
+    selectors.insert(
+        "dated_articles".to_string(),
         css("article p")
             .has_text_regex(r"\d{4}-\d{2}-\d{2}", false)
             .transform("trim")
-            .build()
+            .build(),
     );
 
     // Select articles mentioning time zones
-    selectors.insert("timezone_articles".to_string(),
+    selectors.insert(
+        "timezone_articles".to_string(),
         css("article p")
             .has_text_regex(r"\b(UTC|GMT)\b", false)
             .transform("trim")
-            .build()
+            .build(),
     );
 
     // Select tech-related headlines
-    selectors.insert("tech_headlines".to_string(),
+    selectors.insert(
+        "tech_headlines".to_string(),
         css("article h3")
-            .has_text_regex(r"(?i)\b(tech|technology|AI|breakthrough|innovation)\b", false)
+            .has_text_regex(
+                r"(?i)\b(tech|technology|AI|breakthrough|innovation)\b",
+                false,
+            )
             .transforms(&["trim", "normalize_ws"])
-            .build()
+            .build(),
     );
 
     let extractor = CssJsonExtractor::new(selectors);
@@ -202,19 +217,21 @@ async fn test_case_sensitivity_regex() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Case-sensitive regex (should match exact case)
-    selectors.insert("exact_javascript".to_string(),
+    selectors.insert(
+        "exact_javascript".to_string(),
         css(".item")
             .has_text_regex(r"\bJavaScript\b", false) // Case sensitive
             .transform("trim")
-            .build()
+            .build(),
     );
 
     // Case-insensitive regex (should match all variations)
-    selectors.insert("any_javascript".to_string(),
+    selectors.insert(
+        "any_javascript".to_string(),
         css(".item")
             .has_text_regex(r"\bjavascript\b", true) // Case insensitive
             .transform("trim")
-            .build()
+            .build(),
     );
 
     let extractor = CssJsonExtractor::new(selectors);
@@ -258,39 +275,46 @@ async fn test_has_text_with_complex_selectors() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Complex selector with :has-text() and fallbacks
-    selectors.insert("positive_reviews".to_string(), CssSelectorConfig {
-        selector: ".review-card .review-text".to_string(),
-        transformers: vec!["trim".to_string(), "normalize_ws".to_string()],
-        has_text_filter: Some(HasTextFilter {
-            pattern: r"(?i)\b(excellent|amazing|great|outstanding|perfect)\b".to_string(),
-            case_insensitive: true,
-            partial_match: true,
-            regex_mode: true,
-            regex: None,
-        }),
-        fallbacks: vec![
-            "[data-rating='5'] .review-text".to_string(),
-            ".review-text".to_string(),
-        ],
-        required: false,
-        merge_policy: Some(MergePolicy::Merge),
-    });
+    selectors.insert(
+        "positive_reviews".to_string(),
+        CssSelectorConfig {
+            selector: ".review-card .review-text".to_string(),
+            transformers: vec!["trim".to_string(), "normalize_ws".to_string()],
+            has_text_filter: Some(HasTextFilter {
+                pattern: r"(?i)\b(excellent|amazing|great|outstanding|perfect)\b".to_string(),
+                case_insensitive: true,
+                partial_match: true,
+                regex_mode: true,
+                regex: None,
+            }),
+            fallbacks: vec![
+                "[data-rating='5'] .review-text".to_string(),
+                ".review-text".to_string(),
+            ],
+            required: false,
+            merge_policy: Some(MergePolicy::Merge),
+        },
+    );
 
     // Verified reviews with specific text patterns
-    selectors.insert("verified_positive".to_string(), CssSelectorConfig {
-        selector: ".review-card:has(.review-meta:contains('Verified')) .review-text".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: Some(HasTextFilter {
-            pattern: r"(?i)\b(excellent|great|good|recommend)\b".to_string(),
-            case_insensitive: true,
-            partial_match: true,
-            regex_mode: true,
-            regex: None,
-        }),
-        fallbacks: vec![".review-text".to_string()],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "verified_positive".to_string(),
+        CssSelectorConfig {
+            selector: ".review-card:has(.review-meta:contains('Verified')) .review-text"
+                .to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: Some(HasTextFilter {
+                pattern: r"(?i)\b(excellent|great|good|recommend)\b".to_string(),
+                case_insensitive: true,
+                partial_match: true,
+                regex_mode: true,
+                regex: None,
+            }),
+            fallbacks: vec![".review-text".to_string()],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;
@@ -319,20 +343,23 @@ async fn test_invalid_regex_handling() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Invalid regex pattern
-    selectors.insert("invalid_regex".to_string(), CssSelectorConfig {
-        selector: ".item".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: Some(HasTextFilter {
-            pattern: r"[unclosed bracket".to_string(), // Invalid regex
-            case_insensitive: false,
-            partial_match: true,
-            regex_mode: true,
-            regex: None,
-        }),
-        fallbacks: vec![".item".to_string()], // Should fall back
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "invalid_regex".to_string(),
+        CssSelectorConfig {
+            selector: ".item".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: Some(HasTextFilter {
+                pattern: r"[unclosed bracket".to_string(), // Invalid regex
+                case_insensitive: false,
+                partial_match: true,
+                regex_mode: true,
+                regex: None,
+            }),
+            fallbacks: vec![".item".to_string()], // Should fall back
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;
@@ -363,25 +390,31 @@ async fn test_performance_multiple_regex_filters() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Multiple regex filters that should process quickly
-    selectors.insert("emails".to_string(),
+    selectors.insert(
+        "emails".to_string(),
         css(".item")
-            .has_text_regex(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", false)
+            .has_text_regex(
+                r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
+                false,
+            )
             .transform("regex_extract")
-            .build()
+            .build(),
     );
 
-    selectors.insert("prices".to_string(),
+    selectors.insert(
+        "prices".to_string(),
         css(".item")
             .has_text_regex(r"\$\d+\.\d{2}", false)
             .transform("currency")
-            .build()
+            .build(),
     );
 
-    selectors.insert("phones".to_string(),
+    selectors.insert(
+        "phones".to_string(),
         css(".item")
             .has_text_regex(r"\b\d{3}-\d{3}-\d{4}\b", false)
             .transform("trim")
-            .build()
+            .build(),
     );
 
     let start = std::time::Instant::now();

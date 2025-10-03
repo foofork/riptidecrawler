@@ -1,6 +1,8 @@
 use crate::pool::{BrowserCheckout, BrowserPool, BrowserPoolConfig, PoolEvent};
 use anyhow::{anyhow, Result};
-use chromiumoxide::{cdp::browser_protocol::emulation::SetDeviceMetricsOverrideParams, BrowserConfig, Page};
+use chromiumoxide::{
+    cdp::browser_protocol::emulation::SetDeviceMetricsOverrideParams, BrowserConfig, Page,
+};
 use riptide_core::stealth::{StealthController, StealthPreset};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -299,7 +301,8 @@ impl HeadlessLauncher {
             Object.defineProperty(navigator, 'languages', {
                 get: () => ['en-US', 'en'],
             });
-            "#.to_string();
+            "#
+        .to_string();
 
         page.evaluate(&*override_script)
             .await

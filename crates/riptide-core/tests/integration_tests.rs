@@ -2,13 +2,15 @@
 //!
 //! These tests verify the core functionality works correctly in real-world scenarios
 
-use riptide_core::*;
 use anyhow::Result;
+use riptide_core::*;
 
 #[cfg(test)]
 mod reliability_tests {
     use super::*;
-    use riptide_core::reliability::{ReliableExtractor, ReliabilityConfig, ExtractionMode, WasmExtractor};
+    use riptide_core::reliability::{
+        ExtractionMode, ReliabilityConfig, ReliableExtractor, WasmExtractor,
+    };
     use riptide_core::types::ExtractedDoc;
 
     struct MockWasmExtractor;
@@ -42,12 +44,14 @@ mod reliability_tests {
         let wasm_extractor = MockWasmExtractor;
 
         // Test fast extraction
-        let result = extractor.extract_with_reliability(
-            "https://example.com",
-            ExtractionMode::Fast,
-            &wasm_extractor,
-            None
-        ).await;
+        let result = extractor
+            .extract_with_reliability(
+                "https://example.com",
+                ExtractionMode::Fast,
+                &wasm_extractor,
+                None,
+            )
+            .await;
 
         assert!(result.is_ok());
         let doc = result.unwrap();
@@ -63,12 +67,14 @@ mod reliability_tests {
 
         // Test different extraction modes
         for mode in [ExtractionMode::Fast, ExtractionMode::ProbesFirst] {
-            let result = extractor.extract_with_reliability(
-                "https://example.com",
-                mode.clone(),
-                &wasm_extractor,
-                None
-            ).await;
+            let result = extractor
+                .extract_with_reliability(
+                    "https://example.com",
+                    mode.clone(),
+                    &wasm_extractor,
+                    None,
+                )
+                .await;
 
             assert!(result.is_ok(), "Mode {:?} should succeed", mode);
         }
@@ -92,7 +98,11 @@ mod reliability_tests {
         };
 
         let score = extractor.evaluate_extraction_quality(&high_quality);
-        assert!(score > 0.7, "High quality doc should score > 0.7, got {}", score);
+        assert!(
+            score > 0.7,
+            "High quality doc should score > 0.7, got {}",
+            score
+        );
 
         // Test low quality document
         let low_quality = ExtractedDoc {
@@ -104,7 +114,11 @@ mod reliability_tests {
         };
 
         let score = extractor.evaluate_extraction_quality(&low_quality);
-        assert!(score < 0.4, "Low quality doc should score < 0.4, got {}", score);
+        assert!(
+            score < 0.4,
+            "Low quality doc should score < 0.4, got {}",
+            score
+        );
     }
 }
 
@@ -188,7 +202,7 @@ mod circuit_breaker_tests {
 #[cfg(test)]
 mod cache_tests {
     use super::*;
-    use riptide_core::cache::{CacheManager, CacheConfig, CacheEntry};
+    use riptide_core::cache::{CacheConfig, CacheEntry, CacheManager};
     use std::time::Duration;
 
     #[tokio::test]
@@ -208,7 +222,10 @@ mod cache_tests {
         assert_eq!(value, Some(b"value1".to_vec()));
 
         // Test expiration
-        cache.set("key2", b"value2", Some(Duration::from_millis(50))).await.unwrap();
+        cache
+            .set("key2", b"value2", Some(Duration::from_millis(50)))
+            .await
+            .unwrap();
         tokio::time::sleep(Duration::from_millis(100)).await;
         let value = cache.get("key2").await.unwrap();
         assert_eq!(value, None);
@@ -232,7 +249,10 @@ mod cache_tests {
 
         // Fill cache to capacity
         for i in 0..5 {
-            cache.set(&format!("key{}", i), format!("value{}", i).as_bytes(), None).await.unwrap();
+            cache
+                .set(&format!("key{}", i), format!("value{}", i).as_bytes(), None)
+                .await
+                .unwrap();
         }
 
         // Check that only last 3 items are in cache
@@ -247,8 +267,8 @@ mod cache_tests {
 #[cfg(test)]
 mod instance_pool_tests {
     use super::*;
+    use riptide_core::component::{CmExtractor, ExtractorConfig};
     use riptide_core::instance_pool::{InstancePool, PoolConfig};
-    use riptide_core::component::{ExtractorConfig, CmExtractor};
 
     #[tokio::test]
     async fn test_instance_pool_lifecycle() {
@@ -309,7 +329,7 @@ mod instance_pool_tests {
 #[cfg(test)]
 mod event_bus_tests {
     use super::*;
-    use riptide_core::events::{EventBus, Event, EventType};
+    use riptide_core::events::{Event, EventBus, EventType};
     use tokio::sync::mpsc;
 
     #[tokio::test]

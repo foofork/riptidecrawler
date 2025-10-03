@@ -9,10 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::strategies::{
-    ExtractedContent,
-    performance::PerformanceMetrics,
-};
+use crate::strategies::{performance::PerformanceMetrics, ExtractedContent};
 
 /// Core extraction strategy trait
 ///
@@ -63,7 +60,11 @@ pub struct ExtractionQuality {
 
 impl ExtractionQuality {
     pub fn overall_score(&self) -> f64 {
-        (self.title_quality + self.content_quality + self.structure_score + self.metadata_completeness) / 4.0
+        (self.title_quality
+            + self.content_quality
+            + self.structure_score
+            + self.metadata_completeness)
+            / 4.0
     }
 }
 
@@ -208,7 +209,6 @@ impl StrategyRegistry {
         self.extraction_strategies.insert(name, strategy);
     }
 
-
     /// Register a spider strategy
     pub fn register_spider(&mut self, strategy: Arc<dyn SpiderStrategy>) {
         let name = strategy.name().to_string();
@@ -219,7 +219,6 @@ impl StrategyRegistry {
     pub fn get_extraction(&self, name: &str) -> Option<&Arc<dyn ExtractionStrategy>> {
         self.extraction_strategies.get(name)
     }
-
 
     /// Get spider strategy by name
     pub fn get_spider(&self, name: &str) -> Option<&Arc<dyn SpiderStrategy>> {
@@ -241,7 +240,10 @@ impl StrategyRegistry {
 
     /// List all available spider strategies
     pub fn list_spider_strategies(&self) -> Vec<String> {
-        self.spider_strategies.keys().map(|s| s.to_string()).collect()
+        self.spider_strategies
+            .keys()
+            .map(|s| s.to_string())
+            .collect()
     }
 
     /// Find best extraction strategy for given content
@@ -279,7 +281,6 @@ impl StrategyRegistryBuilder {
         self.registry.register_extraction(strategy);
         self
     }
-
 
     pub fn with_spider(mut self, strategy: Arc<dyn SpiderStrategy>) -> Self {
         self.registry.register_spider(strategy);

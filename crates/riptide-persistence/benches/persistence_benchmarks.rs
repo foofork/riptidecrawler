@@ -4,12 +4,15 @@
 Comprehensive benchmarks for validating performance targets and identifying bottlenecks.
 */
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use riptide_persistence::{
-    PersistentCacheManager, StateManager, TenantManager,
-    TenantOwner, BillingPlan, ResourceUsageRecord,
-    config::{CacheConfig, StateConfig, TenantConfig, CompressionAlgorithm, EvictionPolicy, TenantIsolationLevel},
-    metrics::TenantMetrics
+    config::{
+        CacheConfig, CompressionAlgorithm, EvictionPolicy, StateConfig, TenantConfig,
+        TenantIsolationLevel,
+    },
+    metrics::TenantMetrics,
+    BillingPlan, PersistentCacheManager, ResourceUsageRecord, StateManager, TenantManager,
+    TenantOwner,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -52,7 +55,9 @@ fn bench_cache_single_ops(c: &mut Criterion) {
     let redis_url = get_bench_redis_url();
 
     let cache_manager = rt.block_on(async {
-        PersistentCacheManager::new(&redis_url, config).await.unwrap()
+        PersistentCacheManager::new(&redis_url, config)
+            .await
+            .unwrap()
     });
 
     let mut group = c.benchmark_group("cache_single_ops");
@@ -62,39 +67,48 @@ fn bench_cache_single_ops(c: &mut Criterion) {
     group.bench_function("set_small_1kb", |b| {
         let data = "x".repeat(1024); // 1KB
         b.to_async(&rt).iter(|| async {
-            cache_manager.set(
-                &format!("bench_key_{}", black_box(Uuid::new_v4())),
-                black_box(&data),
-                None,
-                None,
-                None,
-            ).await.unwrap();
+            cache_manager
+                .set(
+                    &format!("bench_key_{}", black_box(Uuid::new_v4())),
+                    black_box(&data),
+                    None,
+                    None,
+                    None,
+                )
+                .await
+                .unwrap();
         });
     });
 
     group.bench_function("set_medium_10kb", |b| {
         let data = "x".repeat(10 * 1024); // 10KB
         b.to_async(&rt).iter(|| async {
-            cache_manager.set(
-                &format!("bench_key_{}", black_box(Uuid::new_v4())),
-                black_box(&data),
-                None,
-                None,
-                None,
-            ).await.unwrap();
+            cache_manager
+                .set(
+                    &format!("bench_key_{}", black_box(Uuid::new_v4())),
+                    black_box(&data),
+                    None,
+                    None,
+                    None,
+                )
+                .await
+                .unwrap();
         });
     });
 
     group.bench_function("set_large_100kb", |b| {
         let data = "x".repeat(100 * 1024); // 100KB
         b.to_async(&rt).iter(|| async {
-            cache_manager.set(
-                &format!("bench_key_{}", black_box(Uuid::new_v4())),
-                black_box(&data),
-                None,
-                None,
-                None,
-            ).await.unwrap();
+            cache_manager
+                .set(
+                    &format!("bench_key_{}", black_box(Uuid::new_v4())),
+                    black_box(&data),
+                    None,
+                    None,
+                    None,
+                )
+                .await
+                .unwrap();
         });
     });
 
@@ -102,7 +116,10 @@ fn bench_cache_single_ops(c: &mut Criterion) {
     rt.block_on(async {
         for i in 0..1000 {
             let data = format!("benchmark_data_{}", i);
-            cache_manager.set(&format!("get_bench_key_{}", i), &data, None, None, None).await.unwrap();
+            cache_manager
+                .set(&format!("get_bench_key_{}", i), &data, None, None, None)
+                .await
+                .unwrap();
         }
     });
 
@@ -131,7 +148,9 @@ fn bench_cache_batch_ops(c: &mut Criterion) {
     let redis_url = get_bench_redis_url();
 
     let cache_manager = rt.block_on(async {
-        PersistentCacheManager::new(&redis_url, config).await.unwrap()
+        PersistentCacheManager::new(&redis_url, config)
+            .await
+            .unwrap()
     });
 
     let mut group = c.benchmark_group("cache_batch_ops");
@@ -151,7 +170,10 @@ fn bench_cache_batch_ops(c: &mut Criterion) {
                             format!("batch_value_{}", i),
                         );
                     }
-                    cache_manager.set_batch(batch_data, None, None).await.unwrap();
+                    cache_manager
+                        .set_batch(batch_data, None, None)
+                        .await
+                        .unwrap();
                 });
             },
         );
@@ -165,7 +187,10 @@ fn bench_cache_batch_ops(c: &mut Criterion) {
                     format!("batch_get_value_{}", i),
                 );
             }
-            cache_manager.set_batch(batch_data, None, None).await.unwrap();
+            cache_manager
+                .set_batch(batch_data, None, None)
+                .await
+                .unwrap();
         });
 
         group.bench_with_input(
@@ -173,10 +198,10 @@ fn bench_cache_batch_ops(c: &mut Criterion) {
             batch_size,
             |b, &size| {
                 b.to_async(&rt).iter(|| async {
-                    let keys: Vec<String> = (0..size)
-                        .map(|i| format!("batch_get_key_{}", i))
-                        .collect();
-                    let _result: HashMap<String, String> = cache_manager.get_batch(&keys, None).await.unwrap();
+                    let keys: Vec<String> =
+                        (0..size).map(|i| format!("batch_get_key_{}", i)).collect();
+                    let _result: HashMap<String, String> =
+                        cache_manager.get_batch(&keys, None).await.unwrap();
                 });
             },
         );
@@ -192,7 +217,9 @@ fn bench_compression(c: &mut Criterion) {
     let redis_url = get_bench_redis_url();
 
     let cache_manager = rt.block_on(async {
-        PersistentCacheManager::new(&redis_url, config).await.unwrap()
+        PersistentCacheManager::new(&redis_url, config)
+            .await
+            .unwrap()
     });
 
     let mut group = c.benchmark_group("compression");
@@ -210,13 +237,16 @@ fn bench_compression(c: &mut Criterion) {
             &compressible_data,
             |b, data| {
                 b.to_async(&rt).iter(|| async {
-                    cache_manager.set(
-                        &format!("compress_key_{}", black_box(Uuid::new_v4())),
-                        black_box(data),
-                        None,
-                        None,
-                        None,
-                    ).await.unwrap();
+                    cache_manager
+                        .set(
+                            &format!("compress_key_{}", black_box(Uuid::new_v4())),
+                            black_box(data),
+                            None,
+                            None,
+                            None,
+                        )
+                        .await
+                        .unwrap();
                 });
             },
         );
@@ -226,13 +256,16 @@ fn bench_compression(c: &mut Criterion) {
             &incompressible_data,
             |b, data| {
                 b.to_async(&rt).iter(|| async {
-                    cache_manager.set(
-                        &format!("incompress_key_{}", black_box(Uuid::new_v4())),
-                        black_box(data),
-                        None,
-                        None,
-                        None,
-                    ).await.unwrap();
+                    cache_manager
+                        .set(
+                            &format!("incompress_key_{}", black_box(Uuid::new_v4())),
+                            black_box(data),
+                            None,
+                            None,
+                            None,
+                        )
+                        .await
+                        .unwrap();
                 });
             },
         );
@@ -257,9 +290,8 @@ fn bench_session_management(c: &mut Criterion) {
         shutdown_timeout_seconds: 30,
     };
 
-    let state_manager = rt.block_on(async {
-        StateManager::new(&redis_url, state_config).await.unwrap()
-    });
+    let state_manager =
+        rt.block_on(async { StateManager::new(&redis_url, state_config).await.unwrap() });
 
     let mut group = c.benchmark_group("session_management");
     group.measurement_time(Duration::from_secs(10));
@@ -274,11 +306,14 @@ fn bench_session_management(c: &mut Criterion) {
                 attributes: HashMap::new(),
             };
 
-            let _session_id = state_manager.create_session(
-                Some(format!("bench_user_{}", black_box(Uuid::new_v4()))),
-                metadata,
-                Some(3600),
-            ).await.unwrap();
+            let _session_id = state_manager
+                .create_session(
+                    Some(format!("bench_user_{}", black_box(Uuid::new_v4()))),
+                    metadata,
+                    Some(3600),
+                )
+                .await
+                .unwrap();
         });
     });
 
@@ -293,11 +328,10 @@ fn bench_session_management(c: &mut Criterion) {
                 attributes: HashMap::new(),
             };
 
-            let session_id = state_manager.create_session(
-                Some(format!("bench_user_{}", i)),
-                metadata,
-                Some(3600),
-            ).await.unwrap();
+            let session_id = state_manager
+                .create_session(Some(format!("bench_user_{}", i)), metadata, Some(3600))
+                .await
+                .unwrap();
             ids.push(session_id);
         }
         ids
@@ -315,11 +349,14 @@ fn bench_session_management(c: &mut Criterion) {
     group.bench_function("update_session_data", |b| {
         b.to_async(&rt).iter(|| async {
             let session_id = &session_ids[black_box(fastrand::usize(0..session_ids.len()))];
-            state_manager.update_session_data(
-                session_id,
-                "bench_key",
-                serde_json::json!({"value": Uuid::new_v4().to_string()}),
-            ).await.unwrap();
+            state_manager
+                .update_session_data(
+                    session_id,
+                    "bench_key",
+                    serde_json::json!({"value": Uuid::new_v4().to_string()}),
+                )
+                .await
+                .unwrap();
         });
     });
 
@@ -346,9 +383,13 @@ fn bench_tenant_management(c: &mut Criterion) {
         enable_encryption: false, // Disable for performance
     };
 
-    let tenant_metrics = Arc::new(RwLock::new(TenantMetrics::new(Arc::new(prometheus::Registry::new()))));
+    let tenant_metrics = Arc::new(RwLock::new(TenantMetrics::new(Arc::new(
+        prometheus::Registry::new(),
+    ))));
     let tenant_manager = rt.block_on(async {
-        TenantManager::new(&redis_url, tenant_config.clone(), tenant_metrics).await.unwrap()
+        TenantManager::new(&redis_url, tenant_config.clone(), tenant_metrics)
+            .await
+            .unwrap()
     });
 
     let mut group = c.benchmark_group("tenant_management");
@@ -375,11 +416,10 @@ fn bench_tenant_management(c: &mut Criterion) {
                 updated_at: chrono::Utc::now(),
             };
 
-            let _tenant_id = tenant_manager.create_tenant(
-                tenant_config,
-                owner,
-                BillingPlan::Basic,
-            ).await.unwrap();
+            let _tenant_id = tenant_manager
+                .create_tenant(tenant_config, owner, BillingPlan::Basic)
+                .await
+                .unwrap();
         });
     });
 
@@ -405,11 +445,10 @@ fn bench_tenant_management(c: &mut Criterion) {
                 updated_at: chrono::Utc::now(),
             };
 
-            let tenant_id = tenant_manager.create_tenant(
-                tenant_config,
-                owner,
-                BillingPlan::Basic,
-            ).await.unwrap();
+            let tenant_id = tenant_manager
+                .create_tenant(tenant_config, owner, BillingPlan::Basic)
+                .await
+                .unwrap();
             ids.push(tenant_id);
         }
         ids
@@ -427,11 +466,10 @@ fn bench_tenant_management(c: &mut Criterion) {
     group.bench_function("validate_access", |b| {
         b.to_async(&rt).iter(|| async {
             let tenant_id = &tenant_ids[black_box(fastrand::usize(0..tenant_ids.len()))];
-            let _access = tenant_manager.validate_access(
-                tenant_id,
-                "resource",
-                "action",
-            ).await.unwrap();
+            let _access = tenant_manager
+                .validate_access(tenant_id, "resource", "action")
+                .await
+                .unwrap();
         });
     });
 
@@ -439,11 +477,10 @@ fn bench_tenant_management(c: &mut Criterion) {
     group.bench_function("check_quota", |b| {
         b.to_async(&rt).iter(|| async {
             let tenant_id = &tenant_ids[black_box(fastrand::usize(0..tenant_ids.len()))];
-            let _quota = tenant_manager.check_quota(
-                tenant_id,
-                "memory_bytes",
-                black_box(1024),
-            ).await.unwrap();
+            let _quota = tenant_manager
+                .check_quota(tenant_id, "memory_bytes", black_box(1024))
+                .await
+                .unwrap();
         });
     });
 
@@ -459,11 +496,10 @@ fn bench_tenant_management(c: &mut Criterion) {
                 timestamp: chrono::Utc::now(),
             };
 
-            tenant_manager.record_usage(
-                tenant_id,
-                "benchmark_operation",
-                usage_record,
-            ).await.unwrap();
+            tenant_manager
+                .record_usage(tenant_id, "benchmark_operation", usage_record)
+                .await
+                .unwrap();
         });
     });
 
@@ -477,19 +513,24 @@ fn bench_concurrent_access(c: &mut Criterion) {
     let redis_url = get_bench_redis_url();
 
     let cache_manager = Arc::new(rt.block_on(async {
-        PersistentCacheManager::new(&redis_url, config).await.unwrap()
+        PersistentCacheManager::new(&redis_url, config)
+            .await
+            .unwrap()
     }));
 
     // Pre-populate data
     rt.block_on(async {
         for i in 0..1000 {
-            cache_manager.set(
-                &format!("concurrent_key_{}", i),
-                &format!("concurrent_value_{}", i),
-                None,
-                None,
-                None,
-            ).await.unwrap();
+            cache_manager
+                .set(
+                    &format!("concurrent_key_{}", i),
+                    &format!("concurrent_value_{}", i),
+                    None,
+                    None,
+                    None,
+                )
+                .await
+                .unwrap();
         }
     });
 
@@ -510,7 +551,8 @@ fn bench_concurrent_access(c: &mut Criterion) {
                         let handle = tokio::spawn(async move {
                             for _ in 0..10 {
                                 let key = format!("concurrent_key_{}", fastrand::usize(0..1000));
-                                let _result: Option<String> = cache_manager_clone.get(&key, None).await.unwrap();
+                                let _result: Option<String> =
+                                    cache_manager_clone.get(&key, None).await.unwrap();
                             }
                         });
                         handles.push(handle);

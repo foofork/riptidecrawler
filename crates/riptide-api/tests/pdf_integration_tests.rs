@@ -19,12 +19,15 @@ use base64::prelude::*;
 use futures_util::StreamExt;
 use riptide_core::pdf::{
     config::PdfConfig,
-    types::{ProgressUpdate, ProcessingStage},
+    types::{ProcessingStage, ProgressUpdate},
 };
 use serde_json::{json, Value};
 use std::{
     collections::HashMap,
-    sync::{Arc, atomic::{AtomicU64, Ordering}},
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
     time::{Duration, Instant},
 };
 use tokio::{
@@ -118,7 +121,10 @@ startxref\n\
 
         // Add a large number of objects to simulate complexity
         for i in 6..1000 {
-            let obj = format!("{} 0 obj\n<< /Type /Object /Data (Complex data {}) >>\nendobj\n", i, i);
+            let obj = format!(
+                "{} 0 obj\n<< /Type /Object /Data (Complex data {}) >>\nendobj\n",
+                i, i
+            );
             pdf.extend(obj.as_bytes());
         }
 
@@ -252,13 +258,13 @@ startxref\n\
 // Integration test setup
 mod test_setup {
     use super::*;
+    use axum::Router;
     use riptide_api::{
+        health::HealthChecker,
+        metrics::RipTideMetrics,
         routes,
         state::{AppConfig, AppState},
-        metrics::RipTideMetrics,
-        health::HealthChecker,
     };
-    use axum::Router;
     use std::sync::Arc;
 
     pub async fn create_test_app() -> Router {
@@ -300,7 +306,9 @@ async fn test_basic_pdf_processing_api_endpoint() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let response_json: Value = serde_json::from_slice(&body).unwrap();
 
     // Verify response structure
@@ -379,9 +387,15 @@ async fn test_pdf_streaming_with_progress() {
 
     assert!(has_started, "Should have received started event");
     assert!(has_completed, "Should have received completed event");
-    assert!(!progress_updates.is_empty(), "Should have received progress updates");
+    assert!(
+        !progress_updates.is_empty(),
+        "Should have received progress updates"
+    );
 
-    println!("✅ PDF streaming with progress test passed - {} updates received", progress_updates.len());
+    println!(
+        "✅ PDF streaming with progress test passed - {} updates received",
+        progress_updates.len()
+    );
 }
 
 // Test 3: PDF Processing Through Worker Service
@@ -422,14 +436,19 @@ async fn test_pdf_processing_through_worker_service() {
     let response = app.oneshot(request).await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let response_json: Value = serde_json::from_slice(&body).unwrap();
 
     let job_id = response_json["job_id"].as_str().unwrap();
     assert!(!job_id.is_empty());
     assert_eq!(response_json["status"], "submitted");
 
-    println!("✅ PDF worker service integration test passed - Job ID: {}", job_id);
+    println!(
+        "✅ PDF worker service integration test passed - Job ID: {}",
+        job_id
+    );
 }
 
 // Test 4: Memory Management with Large PDFs
@@ -511,7 +530,9 @@ async fn test_error_handling_invalid_pdfs() {
         .unwrap();
 
     let response = app.oneshot(request).await.unwrap();
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let response_json: Value = serde_json::from_slice(&body).unwrap();
 
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
@@ -603,7 +624,9 @@ async fn test_concurrent_pdf_processing() {
 
             let response = app.oneshot(request).await.unwrap();
             let status = response.status();
-            let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+            let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+                .await
+                .unwrap();
 
             (i, status, body)
         });
@@ -656,11 +679,26 @@ async fn test_pdf_extraction_options() {
 
     // Test different extraction configurations
     let test_configs = vec![
-        ("text_only", json!({"extract_text": true, "extract_images": false, "extract_metadata": false})),
-        ("images_only", json!({"extract_text": false, "extract_images": true, "extract_metadata": false})),
-        ("metadata_only", json!({"extract_text": false, "extract_images": false, "extract_metadata": true})),
-        ("text_and_metadata", json!({"extract_text": true, "extract_images": false, "extract_metadata": true})),
-        ("all_options", json!({"extract_text": true, "extract_images": true, "extract_metadata": true})),
+        (
+            "text_only",
+            json!({"extract_text": true, "extract_images": false, "extract_metadata": false}),
+        ),
+        (
+            "images_only",
+            json!({"extract_text": false, "extract_images": true, "extract_metadata": false}),
+        ),
+        (
+            "metadata_only",
+            json!({"extract_text": false, "extract_images": false, "extract_metadata": true}),
+        ),
+        (
+            "text_and_metadata",
+            json!({"extract_text": true, "extract_images": false, "extract_metadata": true}),
+        ),
+        (
+            "all_options",
+            json!({"extract_text": true, "extract_images": true, "extract_metadata": true}),
+        ),
     ];
 
     for (config_name, extraction_options) in test_configs {
@@ -690,7 +728,9 @@ async fn test_pdf_extraction_options() {
         let response = app.oneshot(request).await.unwrap();
         assert_eq!(response.status(), StatusCode::OK);
 
-        let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
         let response_json: Value = serde_json::from_slice(&body).unwrap();
 
         assert!(response_json["success"].as_bool().unwrap());
@@ -715,7 +755,10 @@ async fn test_pdf_extraction_options() {
             }
         }
 
-        println!("✅ Extraction options test passed for configuration: {}", config_name);
+        println!(
+            "✅ Extraction options test passed for configuration: {}",
+            config_name
+        );
     }
 }
 
@@ -746,8 +789,9 @@ async fn test_timeout_handling_stuck_pdfs() {
     // Use timeout to ensure the test doesn't hang
     let response_result = timeout(
         Duration::from_secs(10), // Test timeout longer than processing timeout
-        app.oneshot(request)
-    ).await;
+        app.oneshot(request),
+    )
+    .await;
 
     let processing_time = start_time.elapsed();
 
@@ -755,7 +799,9 @@ async fn test_timeout_handling_stuck_pdfs() {
         Ok(Ok(response)) => {
             // Processing completed (might be success or controlled failure)
             let status = response.status();
-            let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+            let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+                .await
+                .unwrap();
 
             if status == StatusCode::OK {
                 let response_json: Value = serde_json::from_slice(&body).unwrap();
@@ -765,7 +811,9 @@ async fn test_timeout_handling_stuck_pdfs() {
                     println!("✅ Timeout handling test passed - Processing timed out as expected");
                 } else {
                     // Processing succeeded quickly
-                    println!("✅ Timeout handling test passed - Complex PDF processed successfully");
+                    println!(
+                        "✅ Timeout handling test passed - Complex PDF processed successfully"
+                    );
                 }
             } else {
                 // HTTP error response (expected for timeout)
@@ -777,7 +825,10 @@ async fn test_timeout_handling_stuck_pdfs() {
         }
         Err(_) => {
             // Test timeout - this means processing is stuck
-            panic!("Timeout handling failed - processing appears to be stuck after {:?}", processing_time);
+            panic!(
+                "Timeout handling failed - processing appears to be stuck after {:?}",
+                processing_time
+            );
         }
     }
 
@@ -788,7 +839,10 @@ async fn test_timeout_handling_stuck_pdfs() {
         processing_time
     );
 
-    println!("✅ Timeout handling test completed in {:?}", processing_time);
+    println!(
+        "✅ Timeout handling test completed in {:?}",
+        processing_time
+    );
 }
 
 // Performance Benchmarks
@@ -827,7 +881,9 @@ async fn test_pdf_processing_performance_benchmarks() {
 
         assert_eq!(response.status(), StatusCode::OK);
 
-        let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
         timer.checkpoint("body_parsed");
 
         let response_json: Value = serde_json::from_slice(&body).unwrap();
@@ -856,7 +912,8 @@ async fn test_pdf_processing_performance_benchmarks() {
 
     // Calculate statistics
     let avg_processing_time = Duration::from_nanos(
-        processing_times.iter().map(|d| d.as_nanos()).sum::<u128>() as u64 / BENCHMARK_ITERATIONS as u64
+        processing_times.iter().map(|d| d.as_nanos()).sum::<u128>() as u64
+            / BENCHMARK_ITERATIONS as u64,
     );
     let max_processing_time = processing_times.iter().max().unwrap();
     let min_processing_time = processing_times.iter().min().unwrap();
@@ -887,19 +944,24 @@ async fn test_pdf_processing_performance_benchmarks() {
     );
 
     println!("\n📊 Performance Benchmark Results:");
-    println!("📈 Processing Time - Avg: {:?}, Min: {:?}, Max: {:?}",
-             avg_processing_time, min_processing_time, max_processing_time);
-    println!("🧠 Memory Usage - Avg: {} MB, Max: {} MB",
-             avg_memory_usage / (1024 * 1024), max_memory_usage / (1024 * 1024));
-    println!("⚡ Throughput - Avg: {:.2} KB/s, Max: {:.2} KB/s",
-             avg_throughput / 1024.0, max_throughput / 1024.0);
+    println!(
+        "📈 Processing Time - Avg: {:?}, Min: {:?}, Max: {:?}",
+        avg_processing_time, min_processing_time, max_processing_time
+    );
+    println!(
+        "🧠 Memory Usage - Avg: {} MB, Max: {} MB",
+        avg_memory_usage / (1024 * 1024),
+        max_memory_usage / (1024 * 1024)
+    );
+    println!(
+        "⚡ Throughput - Avg: {:.2} KB/s, Max: {:.2} KB/s",
+        avg_throughput / 1024.0,
+        max_throughput / 1024.0
+    );
 
     // Performance regression detection
-    let performance_score = calculate_performance_score(
-        avg_processing_time,
-        avg_memory_usage,
-        avg_throughput,
-    );
+    let performance_score =
+        calculate_performance_score(avg_processing_time, avg_memory_usage, avg_throughput);
 
     assert!(
         performance_score > 70.0,
@@ -953,7 +1015,11 @@ async fn test_progress_callback_overhead() {
                     }
 
                     // Check for completion
-                    if update.get("update").and_then(|u| u.get("Completed")).is_some() {
+                    if update
+                        .get("update")
+                        .and_then(|u| u.get("Completed"))
+                        .is_some()
+                    {
                         break;
                     }
                 }
@@ -964,7 +1030,8 @@ async fn test_progress_callback_overhead() {
     let total_time = start_time.elapsed();
 
     if !progress_callback_overheads.is_empty() {
-        let avg_overhead_us = progress_callback_overheads.iter().sum::<u64>() / progress_callback_overheads.len() as u64;
+        let avg_overhead_us = progress_callback_overheads.iter().sum::<u64>()
+            / progress_callback_overheads.len() as u64;
         let max_overhead_us = *progress_callback_overheads.iter().max().unwrap();
 
         // Progress callback overhead should be minimal
@@ -985,7 +1052,9 @@ async fn test_progress_callback_overhead() {
             avg_overhead_us, max_overhead_us, total_time
         );
     } else {
-        println!("⚠️  Progress callback overhead test completed but no overhead data was collected");
+        println!(
+            "⚠️  Progress callback overhead test completed but no overhead data was collected"
+        );
     }
 }
 
@@ -996,7 +1065,9 @@ fn calculate_performance_score(
     avg_throughput: f64,
 ) -> f64 {
     let time_score = (5.0 - avg_processing_time.as_secs_f64().min(5.0)) / 5.0 * 40.0;
-    let memory_score = ((100.0 * 1024.0 * 1024.0) - avg_memory_usage as f64).max(0.0) / (100.0 * 1024.0 * 1024.0) * 30.0;
+    let memory_score = ((100.0 * 1024.0 * 1024.0) - avg_memory_usage as f64).max(0.0)
+        / (100.0 * 1024.0 * 1024.0)
+        * 30.0;
     let throughput_score = (avg_throughput / 1024.0).min(100.0) / 100.0 * 30.0;
 
     time_score + memory_score + throughput_score
@@ -1016,7 +1087,9 @@ async fn test_pdf_health_check_endpoint() {
     let response = app.oneshot(request).await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let health_json: Value = serde_json::from_slice(&body).unwrap();
 
     // Verify health check response structure
@@ -1048,8 +1121,14 @@ async fn test_zero_panics_unwraps_production_safety() {
     let test_scenarios = vec![
         ("empty_data", ""),
         ("malformed_base64", "not-base64!@#"),
-        ("truncated_pdf", &test_utils::encode_pdf_base64(&b"%PDF-1.7\ntruncated"[..])),
-        ("binary_garbage", &test_utils::encode_pdf_base64(&vec![0xFF; 1000])),
+        (
+            "truncated_pdf",
+            &test_utils::encode_pdf_base64(&b"%PDF-1.7\ntruncated"[..]),
+        ),
+        (
+            "binary_garbage",
+            &test_utils::encode_pdf_base64(&vec![0xFF; 1000]),
+        ),
     ];
 
     for (scenario_name, pdf_data) in test_scenarios {
@@ -1076,7 +1155,10 @@ async fn test_zero_panics_unwraps_production_safety() {
             response.status()
         );
 
-        println!("✅ Production safety test passed for scenario: {}", scenario_name);
+        println!(
+            "✅ Production safety test passed for scenario: {}",
+            scenario_name
+        );
     }
 
     println!("✅ All production safety tests passed - No panics detected");

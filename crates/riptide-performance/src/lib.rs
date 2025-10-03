@@ -18,11 +18,11 @@
 //! - Throughput: ≥70 pages/sec with AI
 //! - AI Impact: ≤30% throughput reduction
 
-pub mod profiling;
 pub mod benchmarks;
+pub mod limits;
 pub mod monitoring;
 pub mod optimization;
-pub mod limits;
+pub mod profiling;
 
 use thiserror::Error;
 
@@ -74,11 +74,11 @@ pub struct PerformanceTargets {
 impl Default for PerformanceTargets {
     fn default() -> Self {
         Self {
-            p50_latency_ms: 1500,   // 1.5s
-            p95_latency_ms: 5000,   // 5s
-            max_memory_mb: 600,     // 600MB
-            memory_alert_mb: 650,   // 650MB alert
-            min_throughput_pps: 70.0, // 70 pages/sec
+            p50_latency_ms: 1500,          // 1.5s
+            p95_latency_ms: 5000,          // 5s
+            max_memory_mb: 600,            // 600MB
+            memory_alert_mb: 650,          // 650MB alert
+            min_throughput_pps: 70.0,      // 70 pages/sec
             max_ai_overhead_percent: 30.0, // 30% max AI impact
         }
     }
@@ -275,7 +275,8 @@ impl PerformanceManager {
 
         // Memory recommendations
         if metrics.memory_rss_mb > 500.0 {
-            recommendations.push("Consider implementing more aggressive memory cleanup".to_string());
+            recommendations
+                .push("Consider implementing more aggressive memory cleanup".to_string());
         }
 
         if metrics.memory_growth_rate_mb_s > 1.0 {
@@ -284,17 +285,20 @@ impl PerformanceManager {
 
         // Cache recommendations
         if metrics.cache_hit_rate < 0.8 {
-            recommendations.push("Cache hit rate is low, consider cache warming or size increase".to_string());
+            recommendations
+                .push("Cache hit rate is low, consider cache warming or size increase".to_string());
         }
 
         // Throughput recommendations
         if metrics.throughput_pps < 50.0 {
-            recommendations.push("Low throughput detected, consider scaling or optimization".to_string());
+            recommendations
+                .push("Low throughput detected, consider scaling or optimization".to_string());
         }
 
         // AI processing recommendations
         if metrics.ai_overhead_percent > 25.0 {
-            recommendations.push("High AI overhead, consider batching or caching AI results".to_string());
+            recommendations
+                .push("High AI overhead, consider batching or caching AI results".to_string());
         }
 
         Ok(recommendations)

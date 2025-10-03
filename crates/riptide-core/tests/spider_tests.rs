@@ -1,7 +1,7 @@
 //! Query-aware spider tests with BM25 scoring
 
-use riptide_core::spider::*;
 use anyhow::Result;
+use riptide_core::spider::*;
 use std::collections::HashMap;
 
 #[cfg(test)]
@@ -91,7 +91,10 @@ mod query_aware_crawler_tests {
         }
 
         async fn add_response(&self, url: &str, content: &str) {
-            self.responses.write().await.insert(url.to_string(), content.to_string());
+            self.responses
+                .write()
+                .await
+                .insert(url.to_string(), content.to_string());
         }
 
         async fn fetch(&self, url: &str) -> Result<String> {
@@ -147,7 +150,8 @@ mod query_aware_crawler_tests {
 
         // New domain should score higher
         let new_domain_score = crawler.calculate_domain_diversity("newsite.com", &visited_domains);
-        let existing_domain_score = crawler.calculate_domain_diversity("example.com", &visited_domains);
+        let existing_domain_score =
+            crawler.calculate_domain_diversity("example.com", &visited_domains);
 
         assert!(new_domain_score > existing_domain_score);
     }
@@ -165,16 +169,21 @@ mod query_aware_crawler_tests {
 
         // Add low-relevance content
         for i in 0..10 {
-            fetcher.add_response(
-                &format!("https://example.com/page{}", i),
-                "This is unrelated content about cooking and recipes",
-            ).await;
+            fetcher
+                .add_response(
+                    &format!("https://example.com/page{}", i),
+                    "This is unrelated content about cooking and recipes",
+                )
+                .await;
         }
 
         let query = "quantum computing research";
         let seeds = vec!["https://example.com/page0".to_string()];
 
-        let results = crawler.crawl_with_query(seeds, query, fetcher).await.unwrap();
+        let results = crawler
+            .crawl_with_query(seeds, query, fetcher)
+            .await
+            .unwrap();
 
         // Should stop early due to low relevance
         assert!(results.pages_crawled <= 5);
@@ -240,15 +249,24 @@ mod crawl_orchestration_tests {
         });
 
         // Mock robots.txt that disallows /private/
-        orchestrator.set_robots_rules("example.com", vec![
-            "User-agent: *",
-            "Disallow: /private/",
-            "Allow: /public/",
-            "Crawl-delay: 1",
-        ]).await;
+        orchestrator
+            .set_robots_rules(
+                "example.com",
+                vec![
+                    "User-agent: *",
+                    "Disallow: /private/",
+                    "Allow: /public/",
+                    "Crawl-delay: 1",
+                ],
+            )
+            .await;
 
-        let allowed = orchestrator.can_crawl("https://example.com/public/page").await;
-        let disallowed = orchestrator.can_crawl("https://example.com/private/data").await;
+        let allowed = orchestrator
+            .can_crawl("https://example.com/public/page")
+            .await;
+        let disallowed = orchestrator
+            .can_crawl("https://example.com/private/data")
+            .await;
 
         assert!(allowed);
         assert!(!disallowed);
@@ -271,7 +289,9 @@ mod crawl_orchestration_tests {
         ];
 
         let start = std::time::Instant::now();
-        orchestrator.crawl_batch(urls.into_iter().map(String::from).collect()).await;
+        orchestrator
+            .crawl_batch(urls.into_iter().map(String::from).collect())
+            .await;
         let duration = start.elapsed();
 
         // Should take at least 2 seconds for 4 requests at 2/sec

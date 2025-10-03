@@ -9,24 +9,52 @@
 //! - Health monitoring and automatic recovery
 //! - Enhanced LLM ops dashboards
 
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
-use std::collections::HashMap;
 use tokio::time::sleep;
 
 use riptide_intelligence::{
-    // Core types
-    IntelligenceClient, LlmRegistry, ProviderConfig, MockLlmProvider,
-    TimeoutWrapper, CircuitBreaker, CircuitBreakerConfig, FallbackChain,
-    CompletionRequest, Message, IntelligenceError, LlmProvider,
-    create_fallback_chain, with_timeout, with_circuit_breaker,
+    create_fallback_chain,
+    with_circuit_breaker,
 
+    with_timeout,
+    CircuitBreaker,
+    CircuitBreakerConfig,
+    CompletionRequest,
+    CompletionResponse,
     // Enhanced functionality
-    ConfigLoader, IntelligenceConfig, TenantLimits, TenantIsolationConfig, CostTrackingConfig,
-    FailoverManager, FailoverConfig, ProviderPriority, HealthMonitorBuilder,
-    MetricsCollector, DashboardGenerator, TimeWindow, Cost, Usage, CompletionResponse,
-    TenantIsolationManager, TenantState, TenantStatus,
-    HotReloadManager, HotReloadConfig, ValidationStatus, ReloadStatus,
+    ConfigLoader,
+    Cost,
+    CostTrackingConfig,
+    DashboardGenerator,
+    FailoverConfig,
+    FailoverManager,
+    FallbackChain,
+    HealthMonitorBuilder,
+    HotReloadConfig,
+    HotReloadManager,
+    // Core types
+    IntelligenceClient,
+    IntelligenceConfig,
+    IntelligenceError,
+    LlmProvider,
+    LlmRegistry,
+    Message,
+    MetricsCollector,
+    MockLlmProvider,
+    ProviderConfig,
+    ProviderPriority,
+    ReloadStatus,
+    TenantIsolationConfig,
+    TenantIsolationManager,
+    TenantLimits,
+    TenantState,
+    TenantStatus,
+    TimeWindow,
+    TimeoutWrapper,
+    Usage,
+    ValidationStatus,
 };
 
 /// Test basic provider registration and usage
@@ -35,9 +63,11 @@ async fn test_basic_provider_registration() {
     let registry = LlmRegistry::new();
 
     // Register mock provider factory
-    registry.register_factory("mock", |_config| {
-        Ok(Arc::new(MockLlmProvider::new()) as Arc<dyn LlmProvider>)
-    }).unwrap();
+    registry
+        .register_factory("mock", |_config| {
+            Ok(Arc::new(MockLlmProvider::new()) as Arc<dyn LlmProvider>)
+        })
+        .unwrap();
 
     // Load provider from config
     let config = ProviderConfig::new("test-provider", "mock");
@@ -47,10 +77,7 @@ async fn test_basic_provider_registration() {
     let client = IntelligenceClient::new(registry, "test-provider");
 
     // Test completion
-    let request = CompletionRequest::new(
-        "mock-gpt-3.5",
-        vec![Message::user("Hello, world!")],
-    );
+    let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("Hello, world!")]);
 
     let response = client.complete(request).await.unwrap();
     assert!(response.content.contains("Mock response"));
@@ -62,10 +89,8 @@ async fn test_timeout_functionality() {
     let slow_provider = Arc::new(MockLlmProvider::new().with_delay(6000)); // 6 seconds
     let timeout_provider = with_timeout(slow_provider);
 
-    let request = CompletionRequest::new(
-        "mock-gpt-3.5",
-        vec![Message::user("This should timeout")],
-    );
+    let request =
+        CompletionRequest::new("mock-gpt-3.5", vec![Message::user("This should timeout")]);
 
     let result = timeout_provider.complete(request).await;
     assert!(matches!(result, Err(IntelligenceError::Timeout { .. })));
@@ -78,10 +103,7 @@ async fn test_circuit_breaker_functionality() {
     let config = CircuitBreakerConfig::strict();
     let circuit_provider = with_circuit_breaker(failing_provider);
 
-    let request = CompletionRequest::new(
-        "mock-gpt-3.5",
-        vec![Message::user("This will fail")],
-    );
+    let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("This will fail")]);
 
     // Make enough requests to trigger circuit opening
     for i in 0..10 {
@@ -112,10 +134,7 @@ async fn test_fallback_chain_functionality() {
 
     let chain = create_fallback_chain(vec![failing_provider, working_provider]);
 
-    let request = CompletionRequest::new(
-        "mock-gpt-3.5",
-        vec![Message::user("Test fallback")],
-    );
+    let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("Test fallback")]);
 
     let response = chain.complete(request).await.unwrap();
     assert!(response.content.contains("Mock response"));
@@ -135,7 +154,8 @@ async fn test_complete_safety_stack() {
 
     // Wrap providers with safety features
     let timeout_slow = TimeoutWrapper::with_timeout(slow_provider, Duration::from_millis(1000));
-    let circuit_failing = CircuitBreaker::with_config(failing_provider, CircuitBreakerConfig::strict());
+    let circuit_failing =
+        CircuitBreaker::with_config(failing_provider, CircuitBreakerConfig::strict());
     let timeout_working = TimeoutWrapper::new(working_provider);
 
     // Create fallback chain
@@ -164,30 +184,34 @@ async fn test_registry_multiple_providers() {
     let registry = LlmRegistry::new();
 
     // Register multiple providers
-    registry.register_provider(
-        "provider1",
-        Arc::new(MockLlmProvider::with_name("provider1")),
-    ).unwrap();
+    registry
+        .register_provider(
+            "provider1",
+            Arc::new(MockLlmProvider::with_name("provider1")),
+        )
+        .unwrap();
 
-    registry.register_provider(
-        "provider2",
-        Arc::new(MockLlmProvider::with_name("provider2")),
-    ).unwrap();
+    registry
+        .register_provider(
+            "provider2",
+            Arc::new(MockLlmProvider::with_name("provider2")),
+        )
+        .unwrap();
 
     // Test client with different providers
     let client = IntelligenceClient::new(registry, "provider1");
 
-    let request = CompletionRequest::new(
-        "mock-gpt-3.5",
-        vec![Message::user("Hello")],
-    );
+    let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("Hello")]);
 
     // Test default provider
     let response1 = client.complete(request.clone()).await.unwrap();
     assert!(response1.content.contains("Mock response"));
 
     // Test specific provider
-    let response2 = client.complete_with_provider("provider2", request).await.unwrap();
+    let response2 = client
+        .complete_with_provider("provider2", request)
+        .await
+        .unwrap();
     assert!(response2.content.contains("Mock response"));
 
     // Test capabilities
@@ -241,24 +265,28 @@ async fn test_config_driven_loading() {
     let registry = LlmRegistry::new();
 
     // Register factory
-    registry.register_factory("mock", |config| {
-        let mut provider = MockLlmProvider::with_name(&config.name);
+    registry
+        .register_factory("mock", |config| {
+            let mut provider = MockLlmProvider::with_name(&config.name);
 
-        // Configure based on config values
-        if let Some(delay) = config.config.get("delay") {
-            if let Some(delay_ms) = delay.as_u64() {
-                provider = provider.with_delay(delay_ms);
+            // Configure based on config values
+            if let Some(delay) = config.config.get("delay") {
+                if let Some(delay_ms) = delay.as_u64() {
+                    provider = provider.with_delay(delay_ms);
+                }
             }
-        }
 
-        Ok(Arc::new(provider) as Arc<dyn riptide_intelligence::LlmProvider>)
-    }).unwrap();
+            Ok(Arc::new(provider) as Arc<dyn riptide_intelligence::LlmProvider>)
+        })
+        .unwrap();
 
     // Load providers with different configurations
     let configs = vec![
         ProviderConfig::new("fast-provider", "mock"),
-        ProviderConfig::new("slow-provider", "mock")
-            .with_config("delay", serde_json::Value::Number(serde_json::Number::from(2000u64))),
+        ProviderConfig::new("slow-provider", "mock").with_config(
+            "delay",
+            serde_json::Value::Number(serde_json::Number::from(2000u64)),
+        ),
     ];
 
     registry.load_providers(configs).unwrap();
@@ -266,10 +294,7 @@ async fn test_config_driven_loading() {
     // Test both providers
     let client = IntelligenceClient::new(registry, "fast-provider");
 
-    let request = CompletionRequest::new(
-        "mock-gpt-3.5",
-        vec![Message::user("Hello")],
-    );
+    let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("Hello")]);
 
     // Fast provider should respond quickly
     let start = std::time::Instant::now();
@@ -278,7 +303,10 @@ async fn test_config_driven_loading() {
 
     // Slow provider should take longer
     let start = std::time::Instant::now();
-    let _response = client.complete_with_provider("slow-provider", request).await.unwrap();
+    let _response = client
+        .complete_with_provider("slow-provider", request)
+        .await
+        .unwrap();
     let slow_duration = start.elapsed();
 
     assert!(slow_duration > fast_duration);
@@ -291,10 +319,7 @@ async fn test_error_handling() {
     let registry = LlmRegistry::new();
     let client = IntelligenceClient::new(registry, "nonexistent");
 
-    let request = CompletionRequest::new(
-        "mock-gpt-3.5",
-        vec![Message::user("Hello")],
-    );
+    let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("Hello")]);
 
     // Should get configuration error for nonexistent provider
     let result = client.complete(request).await;
@@ -355,10 +380,7 @@ async fn test_circuit_breaker_repair_limit() {
     };
     let circuit_provider = CircuitBreaker::with_config(failing_provider, config);
 
-    let request = CompletionRequest::new(
-        "mock-gpt-3.5",
-        vec![Message::user("This will fail")],
-    );
+    let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("This will fail")]);
 
     // Trigger circuit opening
     for _ in 0..5 {
@@ -403,10 +425,15 @@ async fn test_environment_configuration_loading() {
     let config = config_loader.load().unwrap();
 
     // Should have auto-discovered providers from environment
-    assert!(!config.providers.is_empty(), "Should load providers from environment");
+    assert!(
+        !config.providers.is_empty(),
+        "Should load providers from environment"
+    );
 
     // Verify OpenAI provider configuration
-    let openai_provider = config.providers.iter()
+    let openai_provider = config
+        .providers
+        .iter()
         .find(|p| p.provider_type == "openai");
     if let Some(provider) = openai_provider {
         assert_eq!(provider.fallback_order, Some(1));
@@ -433,22 +460,24 @@ async fn test_automatic_provider_failover() {
             .with_interval(Duration::from_millis(100))
             .with_timeout(Duration::from_millis(50))
             .with_failure_threshold(2)
-            .build()
+            .build(),
     );
 
     // Create failover manager
-    let (failover_manager, mut event_rx) = FailoverManager::new(
-        FailoverConfig::default(),
-        health_monitor.clone()
-    );
+    let (failover_manager, mut event_rx) =
+        FailoverManager::new(FailoverConfig::default(), health_monitor.clone());
 
     // Create mock providers
     let primary_provider = Arc::new(MockLlmProvider::with_name("primary"));
     let secondary_provider = Arc::new(MockLlmProvider::with_name("secondary"));
 
     // Add providers to health monitor
-    health_monitor.add_provider("primary".to_string(), primary_provider.clone()).await;
-    health_monitor.add_provider("secondary".to_string(), secondary_provider.clone()).await;
+    health_monitor
+        .add_provider("primary".to_string(), primary_provider.clone())
+        .await;
+    health_monitor
+        .add_provider("secondary".to_string(), secondary_provider.clone())
+        .await;
 
     // Start health monitoring
     health_monitor.start().await.unwrap();
@@ -470,12 +499,20 @@ async fn test_automatic_provider_failover() {
         enabled: true,
     };
 
-    failover_manager.add_provider(primary_provider.clone(), primary_priority).await.unwrap();
-    failover_manager.add_provider(secondary_provider.clone(), secondary_priority).await.unwrap();
+    failover_manager
+        .add_provider(primary_provider.clone(), primary_priority)
+        .await
+        .unwrap();
+    failover_manager
+        .add_provider(secondary_provider.clone(), secondary_priority)
+        .await
+        .unwrap();
 
     // Test successful request to primary
     let request = CompletionRequest::new("gpt-4", vec![Message::user("Test message")]);
-    let response = failover_manager.complete_with_failover(request.clone()).await;
+    let response = failover_manager
+        .complete_with_failover(request.clone())
+        .await;
     assert!(response.is_ok(), "Primary provider should handle request");
 
     // Simulate primary provider failure
@@ -510,22 +547,28 @@ async fn test_automatic_provider_failover() {
 async fn test_tenant_isolation_and_cost_tracking() {
     // Set up tenant isolation configuration
     let mut tenant_limits = HashMap::new();
-    tenant_limits.insert("tenant1".to_string(), TenantLimits {
-        max_requests_per_minute: 5,
-        max_tokens_per_minute: 1000,
-        max_cost_per_hour: 1.0,
-        max_concurrent_requests: 2,
-        allowed_models: Some(vec!["gpt-4".to_string()]),
-        priority: 1,
-    });
-    tenant_limits.insert("tenant2".to_string(), TenantLimits {
-        max_requests_per_minute: 10,
-        max_tokens_per_minute: 2000,
-        max_cost_per_hour: 2.0,
-        max_concurrent_requests: 5,
-        allowed_models: None,
-        priority: 2,
-    });
+    tenant_limits.insert(
+        "tenant1".to_string(),
+        TenantLimits {
+            max_requests_per_minute: 5,
+            max_tokens_per_minute: 1000,
+            max_cost_per_hour: 1.0,
+            max_concurrent_requests: 2,
+            allowed_models: Some(vec!["gpt-4".to_string()]),
+            priority: 1,
+        },
+    );
+    tenant_limits.insert(
+        "tenant2".to_string(),
+        TenantLimits {
+            max_requests_per_minute: 10,
+            max_tokens_per_minute: 2000,
+            max_cost_per_hour: 2.0,
+            max_concurrent_requests: 5,
+            allowed_models: None,
+            priority: 2,
+        },
+    );
 
     let tenant_config = TenantIsolationConfig {
         enabled: true,
@@ -548,21 +591,34 @@ async fn test_tenant_isolation_and_cost_tracking() {
         priority: 1,
     };
 
-    isolation_manager.initialize_tenant("tenant1".to_string(), Some(tenant1_limits)).await.unwrap();
+    isolation_manager
+        .initialize_tenant("tenant1".to_string(), Some(tenant1_limits))
+        .await
+        .unwrap();
 
     // Test request allowance
     let request1 = CompletionRequest::new("gpt-4", vec![Message::user("Test from tenant1")]);
-    let permit1 = isolation_manager.check_request_allowed("tenant1", &request1, 0.01).await;
+    let permit1 = isolation_manager
+        .check_request_allowed("tenant1", &request1, 0.01)
+        .await;
     assert!(permit1.is_ok(), "Request should be allowed for tenant1");
 
     // Test model restriction
-    let restricted_request = CompletionRequest::new("claude-3", vec![Message::user("Test restricted")]);
-    let permit_restricted = isolation_manager.check_request_allowed("tenant1", &restricted_request, 0.01).await;
-    assert!(permit_restricted.is_err(), "Restricted model should be rejected for tenant1");
+    let restricted_request =
+        CompletionRequest::new("claude-3", vec![Message::user("Test restricted")]);
+    let permit_restricted = isolation_manager
+        .check_request_allowed("tenant1", &restricted_request, 0.01)
+        .await;
+    assert!(
+        permit_restricted.is_err(),
+        "Restricted model should be rejected for tenant1"
+    );
 
     // Record request completion and verify tracking
     if let Ok(permit) = permit1 {
-        isolation_manager.record_request_completion(permit, None, 0.01).await;
+        isolation_manager
+            .record_request_completion(permit, None, 0.01)
+            .await;
     }
 
     // Check tenant statistics
@@ -607,11 +663,15 @@ async fn test_enhanced_dashboard_with_tenant_cost_tracking() {
         priority: 100,
     };
 
-    dashboard_generator.update_tenant_config("tenant1".to_string(), tenant1_limits).await;
+    dashboard_generator
+        .update_tenant_config("tenant1".to_string(), tenant1_limits)
+        .await;
 
     // Simulate some requests to generate data
     let request = CompletionRequest::new("gpt-4", vec![Message::user("Test message")]);
-    let request_id = metrics_collector.start_request(&request, "openai", Some("tenant1".to_string())).await;
+    let request_id = metrics_collector
+        .start_request(&request, "openai", Some("tenant1".to_string()))
+        .await;
 
     // Simulate completion
     let response = CompletionResponse::new(
@@ -625,10 +685,14 @@ async fn test_enhanced_dashboard_with_tenant_cost_tracking() {
         },
     );
     let cost = Cost::new(0.01, 0.02, "USD");
-    metrics_collector.complete_request_success(request_id, &response, Some(cost)).await;
+    metrics_collector
+        .complete_request_success(request_id, &response, Some(cost))
+        .await;
 
     // Generate enhanced dashboard
-    let dashboard = dashboard_generator.generate_enhanced_dashboard(TimeWindow::LastHour).await;
+    let dashboard = dashboard_generator
+        .generate_enhanced_dashboard(TimeWindow::LastHour)
+        .await;
 
     // Verify dashboard contains expected data
     assert_eq!(dashboard.overall_metrics.request_count, 1);
@@ -643,7 +707,10 @@ async fn test_enhanced_dashboard_with_tenant_cost_tracking() {
         assert_eq!(tenant1_cost.tokens, 30);
     }
 
-    println!("Generated {} recommendations", dashboard.recommendations.len());
+    println!(
+        "Generated {} recommendations",
+        dashboard.recommendations.len()
+    );
     println!("Generated {} alerts", dashboard.alerts.len());
 }
 
@@ -652,18 +719,20 @@ async fn test_enhanced_dashboard_with_tenant_cost_tracking() {
 async fn test_hot_reload_configuration_management() {
     // Create initial configuration
     let initial_config = IntelligenceConfig {
-        providers: vec![
-            ProviderConfig::new("initial_provider", "mock")
-                .with_config("api_key", serde_json::Value::String("initial-key".to_string())),
-        ],
+        providers: vec![ProviderConfig::new("initial_provider", "mock").with_config(
+            "api_key",
+            serde_json::Value::String("initial-key".to_string()),
+        )],
         ..Default::default()
     };
 
     // Create registry with mock factory
     let registry = Arc::new(LlmRegistry::new());
-    registry.register_factory("mock", |_config| {
-        Ok(Arc::new(MockLlmProvider::new()) as Arc<dyn LlmProvider>)
-    }).unwrap();
+    registry
+        .register_factory("mock", |_config| {
+            Ok(Arc::new(MockLlmProvider::new()) as Arc<dyn LlmProvider>)
+        })
+        .unwrap();
 
     // Set up hot-reload manager
     let hot_reload_config = HotReloadConfig {
@@ -682,16 +751,20 @@ async fn test_hot_reload_configuration_management() {
         registry.clone(),
         config_loader,
         initial_config,
-    ).unwrap();
+    )
+    .unwrap();
 
     // Start hot-reload system
     hot_reload_manager.start().await.unwrap();
 
     // Load initial configuration
-    registry.load_providers(vec![
-        ProviderConfig::new("initial_provider", "mock")
-            .with_config("api_key", serde_json::Value::String("initial-key".to_string())),
-    ]).unwrap();
+    registry
+        .load_providers(vec![ProviderConfig::new("initial_provider", "mock")
+            .with_config(
+                "api_key",
+                serde_json::Value::String("initial-key".to_string()),
+            )])
+        .unwrap();
 
     // Verify initial state
     assert!(registry.has_provider("initial_provider"));
@@ -734,7 +807,10 @@ async fn test_comprehensive_error_handling_and_recovery() {
 
     let result = registry.load_providers(invalid_providers);
     // Registry should handle invalid configs gracefully by skipping invalid ones
-    assert!(result.is_ok(), "Registry should handle invalid configs gracefully");
+    assert!(
+        result.is_ok(),
+        "Registry should handle invalid configs gracefully"
+    );
 
     // Test provider health failure and recovery
     let health_monitor = Arc::new(HealthMonitorBuilder::new().build());
@@ -742,7 +818,9 @@ async fn test_comprehensive_error_handling_and_recovery() {
 
     // Initially unhealthy
     recovering_provider.set_healthy(false);
-    health_monitor.add_provider("recovering".to_string(), recovering_provider.clone()).await;
+    health_monitor
+        .add_provider("recovering".to_string(), recovering_provider.clone())
+        .await;
 
     // Check initial unhealthy status
     let health_result = health_monitor.check_provider("recovering").await;
@@ -768,11 +846,15 @@ async fn test_memory_management_and_cleanup() {
     // Generate many requests to test memory management
     for i in 0..50 {
         let request = CompletionRequest::new("gpt-4", vec![Message::user(&format!("Test {}", i))]);
-        let request_id = metrics_collector.start_request(&request, "test_provider", None).await;
+        let request_id = metrics_collector
+            .start_request(&request, "test_provider", None)
+            .await;
 
         // Complete some requests
         if i % 2 == 0 {
-            metrics_collector.complete_request_error(request_id, "test_error", "Test error message").await;
+            metrics_collector
+                .complete_request_error(request_id, "test_error", "Test error message")
+                .await;
         }
     }
 
@@ -780,7 +862,9 @@ async fn test_memory_management_and_cleanup() {
     metrics_collector.cleanup_old_metrics().await;
 
     // Generate dashboard (should work despite cleanup)
-    let dashboard = metrics_collector.generate_dashboard(TimeWindow::LastHour).await;
+    let dashboard = metrics_collector
+        .generate_dashboard(TimeWindow::LastHour)
+        .await;
 
     // Should still have some data (within retention period)
     assert!(dashboard.overall_metrics.request_count >= 0);
@@ -793,9 +877,11 @@ async fn test_enhanced_concurrent_access() {
     let metrics_collector = Arc::new(MetricsCollector::new(30));
 
     // Register factory
-    registry.register_factory("concurrent_test", |_config| {
-        Ok(Arc::new(MockLlmProvider::new()) as Arc<dyn LlmProvider>)
-    }).unwrap();
+    registry
+        .register_factory("concurrent_test", |_config| {
+            Ok(Arc::new(MockLlmProvider::new()) as Arc<dyn LlmProvider>)
+        })
+        .unwrap();
 
     // Create multiple concurrent tasks
     let mut tasks = Vec::new();
@@ -810,18 +896,27 @@ async fn test_enhanced_concurrent_access() {
             registry_clone.load_provider(config).unwrap();
 
             // Start and complete a request in metrics
-            let request = CompletionRequest::new("gpt-4", vec![Message::user(&format!("Test {}", i))]);
-            let request_id = metrics_clone.start_request(&request, &format!("provider_{}", i), None).await;
-            metrics_clone.complete_request_success(
-                request_id,
-                &CompletionResponse::new(
-                    request.id,
-                    "Test response",
-                    "gpt-4",
-                    Usage { prompt_tokens: 10, completion_tokens: 15, total_tokens: 25 }
-                ),
-                Some(Cost::new(0.01, 0.02, "USD"))
-            ).await;
+            let request =
+                CompletionRequest::new("gpt-4", vec![Message::user(&format!("Test {}", i))]);
+            let request_id = metrics_clone
+                .start_request(&request, &format!("provider_{}", i), None)
+                .await;
+            metrics_clone
+                .complete_request_success(
+                    request_id,
+                    &CompletionResponse::new(
+                        request.id,
+                        "Test response",
+                        "gpt-4",
+                        Usage {
+                            prompt_tokens: 10,
+                            completion_tokens: 15,
+                            total_tokens: 25,
+                        },
+                    ),
+                    Some(Cost::new(0.01, 0.02, "USD")),
+                )
+                .await;
 
             // Verify provider exists
             assert!(registry_clone.has_provider(&format!("provider_{}", i)));
@@ -839,6 +934,8 @@ async fn test_enhanced_concurrent_access() {
     assert_eq!(final_stats.total_providers, 10);
 
     // Verify metrics were collected
-    let dashboard = metrics_collector.generate_dashboard(TimeWindow::LastHour).await;
+    let dashboard = metrics_collector
+        .generate_dashboard(TimeWindow::LastHour)
+        .await;
     assert_eq!(dashboard.overall_metrics.request_count, 10);
 }

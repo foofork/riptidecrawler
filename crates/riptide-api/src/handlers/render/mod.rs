@@ -2,11 +2,11 @@
 //!
 //! This module is organized into focused sub-modules for maintainability.
 
+pub mod extraction;
+pub mod handlers;
 pub mod models;
 pub mod processors;
-pub mod extraction;
 pub mod strategies;
-pub mod handlers;
 
 // Re-export main public API
 pub use handlers::render;
@@ -55,7 +55,10 @@ mod tests {
 
         // Test that timeout error is properly constructed
         let error = crate::errors::ApiError::timeout("render", "Operation exceeded 3s timeout");
-        assert!(matches!(error, crate::errors::ApiError::TimeoutError { .. }));
+        assert!(matches!(
+            error,
+            crate::errors::ApiError::TimeoutError { .. }
+        ));
         assert_eq!(error.status_code(), StatusCode::REQUEST_TIMEOUT);
         assert!(error.is_retryable());
     }

@@ -53,7 +53,10 @@ pub async fn orchestrate_crawl_stream_optimized(
     // First flush - critical for TTFB < 500ms
     let metadata_result = send_ndjson_line_fast(&tx, &metadata, backpressure_handler).await;
     if let Err(e) = metadata_result {
-        return Err(StreamingError::channel(format!("Failed to send metadata: {}", e)));
+        return Err(StreamingError::channel(format!(
+            "Failed to send metadata: {}",
+            e
+        )));
     }
 
     // Create pipeline orchestrator
@@ -213,7 +216,8 @@ pub async fn orchestrate_crawl_stream_optimized(
                 current_item: Some(url.clone()),
             };
 
-            let progress_result = send_ndjson_line_fast(&tx, &progress_update, backpressure_handler).await;
+            let progress_result =
+                send_ndjson_line_fast(&tx, &progress_update, backpressure_handler).await;
             if let Err(_) = progress_result {
                 debug!(request_id = %request_id, "Client disconnected during progress update");
                 break;
@@ -308,7 +312,10 @@ pub async fn orchestrate_deepsearch_stream_optimized(
     // First flush - critical for TTFB < 500ms
     let metadata_result = send_ndjson_line_fast(&tx, &metadata, backpressure_handler).await;
     if let Err(e) = metadata_result {
-        return Err(StreamingError::channel(format!("Failed to send metadata: {}", e)));
+        return Err(StreamingError::channel(format!(
+            "Failed to send metadata: {}",
+            e
+        )));
     }
 
     // Perform web search with error handling
@@ -336,7 +343,8 @@ pub async fn orchestrate_deepsearch_stream_optimized(
         search_time_ms: search_time.as_millis() as u64,
     };
 
-    let search_metadata_result = send_ndjson_line_fast(&tx, &search_metadata, backpressure_handler).await;
+    let search_metadata_result =
+        send_ndjson_line_fast(&tx, &search_metadata, backpressure_handler).await;
     if let Err(e) = search_metadata_result {
         warn!(
             request_id = %request_id,
@@ -369,7 +377,8 @@ pub async fn orchestrate_deepsearch_stream_optimized(
                 }
             }
 
-            let send_result = send_ndjson_line_fast(&tx, &stream_result, backpressure_handler).await;
+            let send_result =
+                send_ndjson_line_fast(&tx, &stream_result, backpressure_handler).await;
             if let Err(e) = send_result {
                 debug!(
                     request_id = %request_id,
@@ -425,7 +434,9 @@ pub async fn orchestrate_deepsearch_stream_optimized(
         drop(result_tx);
 
         // Stream results as they arrive (critical for no-batching requirement)
-        while let Some((index, search_result, pipeline_result, processing_time)) = result_rx.recv().await {
+        while let Some((index, search_result, pipeline_result, processing_time)) =
+            result_rx.recv().await
+        {
             let crawl_result = match pipeline_result {
                 Ok(pipeline_data) => Some(CrawlResult {
                     url: pipeline_data.document.url.clone(),
@@ -440,7 +451,8 @@ pub async fn orchestrate_deepsearch_stream_optimized(
                 }),
                 Err(pipeline_error) => {
                     // Structured error handling for crawl failures
-                    let error_message = format!("Crawl failed for {}: {}", search_result.url, pipeline_error);
+                    let error_message =
+                        format!("Crawl failed for {}: {}", search_result.url, pipeline_error);
                     warn!(
                         request_id = %request_id,
                         url = %search_result.url,
@@ -491,7 +503,8 @@ pub async fn orchestrate_deepsearch_stream_optimized(
             }
 
             // Send result immediately (streaming as completed)
-            let send_result = send_ndjson_line_fast(&tx, &stream_result, backpressure_handler).await;
+            let send_result =
+                send_ndjson_line_fast(&tx, &stream_result, backpressure_handler).await;
             if let Err(e) = send_result {
                 debug!(
                     request_id = %request_id,

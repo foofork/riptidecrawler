@@ -219,7 +219,10 @@ impl StreamProcessor {
 
             tokio::spawn(async move {
                 let processing_start = Instant::now();
-                let result = pipeline_clone.execute_single(&url_clone).await.map_err(|e| e.into());
+                let result = pipeline_clone
+                    .execute_single(&url_clone)
+                    .await
+                    .map_err(|e| e.into());
                 let processing_time = processing_start.elapsed();
 
                 let processed_result = ProcessedResult {

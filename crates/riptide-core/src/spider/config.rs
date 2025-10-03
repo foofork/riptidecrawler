@@ -3,10 +3,10 @@ use crate::spider::{
     adaptive_stop::AdaptiveStopConfig,
     budget::BudgetConfig,
     frontier::FrontierConfig,
+    query_aware::QueryAwareConfig,
     session::SessionConfig,
     strategy::AdaptiveCriteria as StrategyAdaptiveCriteria,
     types::{SitemapConfig, StrategyConfig},
-    query_aware::QueryAwareConfig,
 };
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -133,13 +133,23 @@ impl Default for UrlProcessingConfig {
             bloom_filter_fpr: 0.01,
             max_exact_urls: 10_000,
             exclude_patterns: vec![
-                r"\.(css|js|png|jpg|jpeg|gif|svg|ico|pdf|zip|tar|gz|exe|dmg)$".to_string()
+                r"\.(css|js|png|jpg|jpeg|gif|svg|ico|pdf|zip|tar|gz|exe|dmg)$".to_string(),
             ],
             exclude_extensions: vec![
-                "css".to_string(), "js".to_string(), "png".to_string(), "jpg".to_string(),
-                "jpeg".to_string(), "gif".to_string(), "svg".to_string(), "ico".to_string(),
-                "pdf".to_string(), "zip".to_string(), "tar".to_string(), "gz".to_string(),
-                "exe".to_string(), "dmg".to_string()
+                "css".to_string(),
+                "js".to_string(),
+                "png".to_string(),
+                "jpg".to_string(),
+                "jpeg".to_string(),
+                "gif".to_string(),
+                "svg".to_string(),
+                "ico".to_string(),
+                "pdf".to_string(),
+                "zip".to_string(),
+                "tar".to_string(),
+                "gz".to_string(),
+                "exe".to_string(),
+                "dmg".to_string(),
             ],
         }
     }
@@ -178,7 +188,7 @@ impl Default for PerformanceConfig {
             memory_pressure_threshold: 512 * 1024 * 1024, // 512MB
             cpu_usage_threshold: 0.8,
             enable_adaptive_throttling: true,
-            min_request_delay_micros: 100_000, // 100ms
+            min_request_delay_micros: 100_000,   // 100ms
             max_request_delay_micros: 5_000_000, // 5s
         }
     }
@@ -479,7 +489,7 @@ impl StrategyConfig {
                 } else {
                     breadth_first_strategy()
                 }
-            },
+            }
             _ => breadth_first_strategy(), // Default fallback
         }
     }

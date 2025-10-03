@@ -1,14 +1,14 @@
 //! Real-world PDF extraction tests
 
-use riptide_pdf::*;
 use anyhow::Result;
+use riptide_pdf::*;
 use std::fs;
 use std::path::Path;
 
 #[cfg(test)]
 mod pdf_parsing_tests {
     use super::*;
-    use riptide_pdf::processor::{PdfProcessor, PdfConfig};
+    use riptide_pdf::processor::{PdfConfig, PdfProcessor};
 
     fn create_test_pdf_bytes() -> Vec<u8> {
         // Create a minimal valid PDF for testing

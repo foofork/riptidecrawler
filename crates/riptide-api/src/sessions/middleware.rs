@@ -47,9 +47,14 @@ where
 {
     type Response = S::Response;
     type Error = S::Error;
-    type Future = std::pin::Pin<Box<dyn std::future::Future<Output = Result<Self::Response, Self::Error>> + Send>>;
+    type Future = std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<Self::Response, Self::Error>> + Send>,
+    >;
 
-    fn poll_ready(&mut self, cx: &mut std::task::Context<'_>) -> std::task::Poll<Result<(), Self::Error>> {
+    fn poll_ready(
+        &mut self,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Result<(), Self::Error>> {
         self.inner.poll_ready(cx)
     }
 
@@ -59,8 +64,8 @@ where
 
         Box::pin(async move {
             // Extract session ID from cookie or create new one
-            let session_id = extract_session_id_from_request(&req)
-                .unwrap_or_else(Session::generate_session_id);
+            let session_id =
+                extract_session_id_from_request(&req).unwrap_or_else(Session::generate_session_id);
 
             debug!(
                 session_id = %session_id,
@@ -106,7 +111,6 @@ where
         })
     }
 }
-
 
 /// Session context that gets added to request extensions
 #[derive(Clone, Debug)]
@@ -189,7 +193,6 @@ where
         ))
     }
 }
-
 
 /// Error response for session-related errors
 impl IntoResponse for SessionError {

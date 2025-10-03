@@ -1,9 +1,9 @@
 //! Regex pattern-based chunking for custom text splitting
 
-use anyhow::{Result, anyhow};
+use super::{utils, Chunk, ChunkMetadata, ChunkingConfig, ChunkingStrategy};
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use regex::Regex;
-use super::{ChunkingStrategy, Chunk, ChunkMetadata, ChunkingConfig, utils};
 
 /// Regex-based chunker that splits content using custom patterns
 pub struct RegexChunker {
@@ -30,7 +30,11 @@ impl RegexChunker {
     }
 
     /// Create a chunker with a predefined pattern
-    pub fn with_pattern(pattern_name: &str, min_chunk_size: usize, config: ChunkingConfig) -> Result<Self> {
+    pub fn with_pattern(
+        pattern_name: &str,
+        min_chunk_size: usize,
+        config: ChunkingConfig,
+    ) -> Result<Self> {
         let pattern = get_pattern(pattern_name)
             .ok_or_else(|| anyhow!("Unknown pattern: {}", pattern_name))?;
 
@@ -85,13 +89,19 @@ impl ChunkingStrategy for RegexChunker {
             current_chunk.push_str(split_trimmed);
 
             // Check if we should create a chunk
-            let should_chunk = current_chunk.len() >= self.min_chunk_size ||
-                              utils::count_tokens(&current_chunk) >= self.config.max_tokens ||
-                              i == splits.len() - 1; // Last split
+            let should_chunk = current_chunk.len() >= self.min_chunk_size
+                || utils::count_tokens(&current_chunk) >= self.config.max_tokens
+                || i == splits.len() - 1; // Last split
 
             if should_chunk {
                 let token_count = utils::count_tokens(&current_chunk);
-                let chunk = create_regex_chunk(&current_chunk, current_pos, token_count, chunk_index, &self.pattern);
+                let chunk = create_regex_chunk(
+                    &current_chunk,
+                    current_pos,
+                    token_count,
+                    chunk_index,
+                    &self.pattern,
+                );
                 chunks.push(chunk);
 
                 // Reset for next chunk
@@ -104,7 +114,13 @@ impl ChunkingStrategy for RegexChunker {
         // Add final chunk if there's remaining content
         if !current_chunk.is_empty() {
             let token_count = utils::count_tokens(&current_chunk);
-            let chunk = create_regex_chunk(&current_chunk, current_pos, token_count, chunk_index, &self.pattern);
+            let chunk = create_regex_chunk(
+                &current_chunk,
+                current_pos,
+                token_count,
+                chunk_index,
+                &self.pattern,
+            );
             chunks.push(chunk);
         }
 
@@ -142,15 +158,12 @@ fn create_regex_chunk(
     let word_count = content.split_whitespace().count();
 
     // Count sentences (rough estimate)
-    let sentence_count = content
-        .matches(['.', '!', '?'])
-        .count()
-        .max(1); // At least 1 if content exists
+    let sentence_count = content.matches(['.', '!', '?']).count().max(1); // At least 1 if content exists
 
     // Check for complete sentences
-    let has_complete_sentences = content.trim().ends_with('.') ||
-                                 content.trim().ends_with('!') ||
-                                 content.trim().ends_with('?');
+    let has_complete_sentences = content.trim().ends_with('.')
+        || content.trim().ends_with('!')
+        || content.trim().ends_with('?');
 
     let topic_keywords = utils::extract_topic_keywords(content);
 
@@ -205,8 +218,11 @@ fn merge_small_chunks(chunks: Vec<Chunk>, min_size: usize) -> Vec<Chunk> {
                     curr.token_count += chunk.token_count;
                     curr.metadata.word_count += chunk.metadata.word_count;
                     curr.metadata.sentence_count += chunk.metadata.sentence_count;
-                    curr.metadata.topic_keywords.extend(chunk.metadata.topic_keywords);
-                    curr.metadata.quality_score = utils::calculate_quality_score(&curr.content, &curr.metadata);
+                    curr.metadata
+                        .topic_keywords
+                        .extend(chunk.metadata.topic_keywords);
+                    curr.metadata.quality_score =
+                        utils::calculate_quality_score(&curr.content, &curr.metadata);
 
                     current_chunk = Some(curr);
                 } else {
@@ -284,7 +300,8 @@ mod tests {
         let config = ChunkingConfig::default();
         let chunker = RegexChunker::with_pattern("paragraph", 50, config).unwrap();
 
-        let text = "First paragraph content.\n\nSecond paragraph content.\n\nThird paragraph content.";
+        let text =
+            "First paragraph content.\n\nSecond paragraph content.\n\nThird paragraph content.";
         let chunks = chunker.chunk(text).await.unwrap();
 
         assert!(!chunks.is_empty());

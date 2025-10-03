@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use riptide_extractor_wasm::{Component, ExtractionMode, ExtractionError};
+use riptide_extractor_wasm::{Component, ExtractionError, ExtractionMode};
 
 /// Memory limiter testing module
 ///
@@ -20,16 +20,16 @@ static MEMORY_TRACKER: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Clone)]
 pub struct MemoryLimiterConfig {
-    pub max_heap_size: u64,        // Maximum heap size in bytes
-    pub max_allocation_size: u64,  // Maximum single allocation
-    pub growth_threshold: f64,     // Growth threshold percentage
+    pub max_heap_size: u64,               // Maximum heap size in bytes
+    pub max_allocation_size: u64,         // Maximum single allocation
+    pub growth_threshold: f64,            // Growth threshold percentage
     pub circuit_breaker_threshold: usize, // Failures before circuit opens
 }
 
 impl Default for MemoryLimiterConfig {
     fn default() -> Self {
         Self {
-            max_heap_size: 50 * 1024 * 1024,     // 50MB
+            max_heap_size: 50 * 1024 * 1024,       // 50MB
             max_allocation_size: 10 * 1024 * 1024, // 10MB
             growth_threshold: 0.8,                 // 80%
             circuit_breaker_threshold: 3,          // 3 failures
@@ -95,9 +95,9 @@ fn test_normal_memory_usage(_config: &MemoryLimiterConfig) -> Result<MemoryTestR
         match component.extract(
             html.clone(),
             format!("https://example.com/page/{}", i),
-            ExtractionMode::Article
+            ExtractionMode::Article,
         ) {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(e) => {
                 success = false;
                 error_message = Some(format!("Extraction failed at iteration {}: {:?}", i, e));
@@ -138,20 +138,21 @@ fn test_gradual_memory_growth(config: &MemoryLimiterConfig) -> Result<MemoryTest
         match component.extract(
             html,
             format!("https://example.com/size/{}", size_kb),
-            ExtractionMode::Full // Use Full mode to increase memory usage
+            ExtractionMode::Full, // Use Full mode to increase memory usage
         ) {
             Ok(_) => {
                 let current_memory = get_current_memory_usage() - start_memory;
                 if current_memory > (config.max_heap_size as f64 * config.growth_threshold) as u64 {
                     println!("  Memory threshold reached at {}KB document", size_kb);
-                    circuit_breaker_triggered = should_circuit_breaker_activate(current_memory, config);
+                    circuit_breaker_triggered =
+                        should_circuit_breaker_activate(current_memory, config);
                 }
-            },
+            }
             Err(ExtractionError::ResourceLimit(msg)) => {
                 println!("  Memory limit reached at {}KB document: {}", size_kb, msg);
                 circuit_breaker_triggered = true;
                 break; // Expected behavior
-            },
+            }
             Err(e) => {
                 success = false;
                 error_message = Some(format!("Unexpected error at {}KB: {:?}", size_kb, e));
@@ -174,7 +175,9 @@ fn test_gradual_memory_growth(config: &MemoryLimiterConfig) -> Result<MemoryTest
 }
 
 /// Test sudden large allocation beyond limits
-fn test_large_allocation_beyond_limits(config: &MemoryLimiterConfig) -> Result<MemoryTestResult, String> {
+fn test_large_allocation_beyond_limits(
+    config: &MemoryLimiterConfig,
+) -> Result<MemoryTestResult, String> {
     println!("\n💥 Testing large allocation beyond limits...");
 
     let start_time = Instant::now();
@@ -192,17 +195,17 @@ fn test_large_allocation_beyond_limits(config: &MemoryLimiterConfig) -> Result<M
     match component.extract(
         very_large_html,
         "https://example.com/huge-document".to_string(),
-        ExtractionMode::Full
+        ExtractionMode::Full,
     ) {
         Ok(_) => {
             // If this succeeds, the memory limiter might not be working properly
             error_message = Some("Large allocation should have been rejected".to_string());
             success = false;
-        },
+        }
         Err(ExtractionError::ResourceLimit(_)) => {
             println!("  ✅ Large allocation correctly rejected");
             circuit_breaker_triggered = true;
-        },
+        }
         Err(e) => {
             error_message = Some(format!("Unexpected error type: {:?}", e));
             success = false;
@@ -223,7 +226,9 @@ fn test_large_allocation_beyond_limits(config: &MemoryLimiterConfig) -> Result<M
 }
 
 /// Test circuit breaker activation
-fn test_circuit_breaker_activation(config: &MemoryLimiterConfig) -> Result<MemoryTestResult, String> {
+fn test_circuit_breaker_activation(
+    config: &MemoryLimiterConfig,
+) -> Result<MemoryTestResult, String> {
     println!("\n🔌 Testing circuit breaker activation...");
 
     let start_time = Instant::now();
@@ -242,21 +247,24 @@ fn test_circuit_breaker_activation(config: &MemoryLimiterConfig) -> Result<Memor
         match component.extract(
             problematic_html.clone(),
             format!("https://example.com/attempt/{}", attempt),
-            ExtractionMode::Full
+            ExtractionMode::Full,
         ) {
             Ok(_) => {
                 // Success is actually unexpected here if we're testing memory pressure
-            },
+            }
             Err(ExtractionError::ResourceLimit(_)) => {
                 failure_count += 1;
                 println!("  Memory limit failure {}", failure_count);
 
                 if failure_count >= config.circuit_breaker_threshold {
                     circuit_breaker_triggered = true;
-                    println!("  🔌 Circuit breaker activated after {} failures", failure_count);
+                    println!(
+                        "  🔌 Circuit breaker activated after {} failures",
+                        failure_count
+                    );
                     break;
                 }
-            },
+            }
             Err(e) => {
                 error_message = Some(format!("Unexpected error at attempt {}: {:?}", attempt, e));
                 success = false;
@@ -297,7 +305,7 @@ fn test_memory_leak_detection(_config: &MemoryLimiterConfig) -> Result<MemoryTes
         match component.extract(
             html.clone(),
             format!("https://example.com/leak-test/{}", i),
-            ExtractionMode::Article
+            ExtractionMode::Article,
         ) {
             Ok(_) => {
                 let current_memory = get_current_memory_usage();
@@ -317,7 +325,7 @@ fn test_memory_leak_detection(_config: &MemoryLimiterConfig) -> Result<MemoryTes
                         break;
                     }
                 }
-            },
+            }
             Err(e) => {
                 error_message = Some(format!("Operation failed at iteration {}: {:?}", i, e));
                 success = false;
@@ -326,13 +334,18 @@ fn test_memory_leak_detection(_config: &MemoryLimiterConfig) -> Result<MemoryTes
         }
     }
 
-    let peak_memory = memory_samples.iter().max().cloned().unwrap_or(baseline_memory);
+    let peak_memory = memory_samples
+        .iter()
+        .max()
+        .cloned()
+        .unwrap_or(baseline_memory);
     let duration = start_time.elapsed();
 
     // Analyze memory pattern
     if success && memory_samples.len() >= 20 {
         let memory_trend = analyze_memory_trend(&memory_samples);
-        if memory_trend > 0.1 { // Growing more than 10% per operation
+        if memory_trend > 0.1 {
+            // Growing more than 10% per operation
             error_message = Some(format!(
                 "Suspicious memory growth trend detected: {:.2}% per operation",
                 memory_trend * 100.0
@@ -352,7 +365,9 @@ fn test_memory_leak_detection(_config: &MemoryLimiterConfig) -> Result<MemoryTes
 }
 
 /// Test concurrent memory pressure
-fn test_concurrent_memory_pressure(_config: &MemoryLimiterConfig) -> Result<MemoryTestResult, String> {
+fn test_concurrent_memory_pressure(
+    _config: &MemoryLimiterConfig,
+) -> Result<MemoryTestResult, String> {
     println!("\n🔀 Testing concurrent memory pressure...");
 
     let start_time = Instant::now();
@@ -379,7 +394,7 @@ fn test_concurrent_memory_pressure(_config: &MemoryLimiterConfig) -> Result<Memo
                 component.extract(
                     (*html).clone(),
                     format!("https://example.com/concurrent/{}/{}", thread_id, op_id),
-                    ExtractionMode::Article
+                    ExtractionMode::Article,
                 )?;
             }
 
@@ -395,17 +410,17 @@ fn test_concurrent_memory_pressure(_config: &MemoryLimiterConfig) -> Result<Memo
         match handle.join() {
             Ok(Ok(())) => {
                 println!("  Thread {} completed successfully", thread_id);
-            },
+            }
             Ok(Err(ExtractionError::ResourceLimit(_))) => {
                 thread_failures += 1;
                 circuit_breaker_triggered = true;
                 println!("  Thread {} hit memory limit", thread_id);
-            },
+            }
             Ok(Err(e)) => {
                 error_message = Some(format!("Thread {} failed: {:?}", thread_id, e));
                 success = false;
                 break;
-            },
+            }
             Err(_) => {
                 error_message = Some(format!("Thread {} panicked", thread_id));
                 success = false;
@@ -416,7 +431,8 @@ fn test_concurrent_memory_pressure(_config: &MemoryLimiterConfig) -> Result<Memo
 
     // Some failures under memory pressure are expected and acceptable
     if thread_failures == thread_count {
-        error_message = Some("All threads failed - memory limiter may be too restrictive".to_string());
+        error_message =
+            Some("All threads failed - memory limiter may be too restrictive".to_string());
         success = false;
     }
 
@@ -447,7 +463,7 @@ fn test_memory_pressure_recovery(config: &MemoryLimiterConfig) -> Result<MemoryT
     let _pressure_result = component.extract(
         large_html,
         "https://example.com/pressure-test".to_string(),
-        ExtractionMode::Full
+        ExtractionMode::Full,
     );
 
     // Wait a moment for potential cleanup
@@ -463,17 +479,17 @@ fn test_memory_pressure_recovery(config: &MemoryLimiterConfig) -> Result<MemoryT
         match component.extract(
             normal_html.clone(),
             format!("https://example.com/recovery/{}", i),
-            ExtractionMode::Article
+            ExtractionMode::Article,
         ) {
             Ok(_) => {
                 println!("  Recovery operation {} succeeded", i);
-            },
+            }
             Err(ExtractionError::ResourceLimit(_)) => {
                 circuit_breaker_triggered = true;
                 // Try to reset the circuit breaker
                 let _ = component.reset_state();
                 println!("  Circuit breaker reset at operation {}", i);
-            },
+            }
             Err(e) => {
                 error_message = Some(format!("Recovery failed at operation {}: {:?}", i, e));
                 success = false;
@@ -510,15 +526,15 @@ fn test_zero_size_allocations(_config: &MemoryLimiterConfig) -> Result<MemoryTes
     match component.extract(
         "".to_string(),
         "https://example.com/empty".to_string(),
-        ExtractionMode::Article
+        ExtractionMode::Article,
     ) {
         Ok(_) => {
             error_message = Some("Empty HTML should be rejected".to_string());
             success = false;
-        },
+        }
         Err(ExtractionError::InvalidHtml(_)) => {
             println!("  ✅ Empty HTML correctly rejected");
-        },
+        }
         Err(e) => {
             error_message = Some(format!("Unexpected error for empty HTML: {:?}", e));
             success = false;
@@ -530,11 +546,11 @@ fn test_zero_size_allocations(_config: &MemoryLimiterConfig) -> Result<MemoryTes
         match component.extract(
             "<html></html>".to_string(),
             "https://example.com/minimal".to_string(),
-            ExtractionMode::Article
+            ExtractionMode::Article,
         ) {
             Ok(_) => {
                 println!("  ✅ Minimal HTML handled correctly");
-            },
+            }
             Err(e) => {
                 error_message = Some(format!("Minimal HTML failed: {:?}", e));
                 success = false;
@@ -615,15 +631,29 @@ fn print_memory_test_summary(results: &[MemoryTestResult]) {
 
     let passed = results.iter().filter(|r| r.success).count();
     let failed = results.len() - passed;
-    let circuit_breaker_activations = results.iter().filter(|r| r.circuit_breaker_triggered).count();
+    let circuit_breaker_activations = results
+        .iter()
+        .filter(|r| r.circuit_breaker_triggered)
+        .count();
 
     println!("Total tests: {}", results.len());
     println!("Passed: {} ✅", passed);
     println!("Failed: {} ❌", failed);
-    println!("Circuit breaker activations: {} 🔌", circuit_breaker_activations);
+    println!(
+        "Circuit breaker activations: {} 🔌",
+        circuit_breaker_activations
+    );
 
-    let max_memory = results.iter().map(|r| r.peak_memory_bytes).max().unwrap_or(0);
-    let avg_memory = results.iter().map(|r| r.peak_memory_bytes as f64).sum::<f64>() / results.len() as f64;
+    let max_memory = results
+        .iter()
+        .map(|r| r.peak_memory_bytes)
+        .max()
+        .unwrap_or(0);
+    let avg_memory = results
+        .iter()
+        .map(|r| r.peak_memory_bytes as f64)
+        .sum::<f64>()
+        / results.len() as f64;
 
     println!("Peak memory usage: {:.1}KB", max_memory as f64 / 1024.0);
     println!("Average memory usage: {:.1}KB", avg_memory / 1024.0);
@@ -631,7 +661,14 @@ fn print_memory_test_summary(results: &[MemoryTestResult]) {
     if failed > 0 {
         println!("\nFailure details:");
         for result in results.iter().filter(|r| !r.success) {
-            println!("  ❌ {}: {}", result.test_name, result.error_message.as_ref().unwrap_or(&"Unknown error".to_string()));
+            println!(
+                "  ❌ {}: {}",
+                result.test_name,
+                result
+                    .error_message
+                    .as_ref()
+                    .unwrap_or(&"Unknown error".to_string())
+            );
         }
     }
 }
@@ -659,11 +696,17 @@ mod tests {
     fn test_memory_trend_analysis() {
         let stable_samples = vec![1000, 1000, 1000, 1000];
         let trend = analyze_memory_trend(&stable_samples);
-        assert!(trend.abs() < 0.01, "Stable memory should have near-zero trend");
+        assert!(
+            trend.abs() < 0.01,
+            "Stable memory should have near-zero trend"
+        );
 
         let growing_samples = vec![1000, 1100, 1200, 1300];
         let growth_trend = analyze_memory_trend(&growing_samples);
-        assert!(growth_trend > 0.05, "Growing memory should have positive trend");
+        assert!(
+            growth_trend > 0.05,
+            "Growing memory should have positive trend"
+        );
     }
 
     #[test]

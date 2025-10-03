@@ -115,14 +115,14 @@ impl PiiRedactor {
     pub fn new(config: Option<PiiConfig>) -> Result<Self> {
         let config = config.unwrap_or_default();
         let patterns = Self::compile_patterns(&config)?;
-        
+
         Ok(Self { config, patterns })
     }
-    
+
     /// Compile regex patterns for PII detection
     fn compile_patterns(config: &PiiConfig) -> Result<Vec<CompiledPattern>> {
         let mut compiled_patterns = Vec::new();
-        
+
         // Email pattern
         if config.enable_email_detection {
             let pattern = PiiPattern {
@@ -132,24 +132,24 @@ impl PiiRedactor {
                 confidence_level: ConfidenceLevel::High,
                 replacement_template: "[EMAIL]".to_string(),
             };
-            
-            let regex = Regex::new(&pattern.regex)
-                .map_err(|e| anyhow!("Invalid email regex: {}", e))?;
-            
+
+            let regex =
+                Regex::new(&pattern.regex).map_err(|e| anyhow!("Invalid email regex: {}", e))?;
+
             compiled_patterns.push(CompiledPattern { pattern, regex });
         }
-        
+
         // Phone number patterns
         if config.enable_phone_detection {
             // US phone numbers
             let phone_patterns = [
-                r"\b\d{3}-\d{3}-\d{4}\b",                    // 123-456-7890
-                r"\b\(\d{3}\)\s?\d{3}-\d{4}\b",             // (123) 456-7890
-                r"\b\d{3}\.\d{3}\.\d{4}\b",                 // 123.456.7890
-                r"\b\+1\s?\d{3}\s?\d{3}\s?\d{4}\b",        // +1 123 456 7890
-                r"\b\d{10}\b",                              // 1234567890
+                r"\b\d{3}-\d{3}-\d{4}\b",           // 123-456-7890
+                r"\b\(\d{3}\)\s?\d{3}-\d{4}\b",     // (123) 456-7890
+                r"\b\d{3}\.\d{3}\.\d{4}\b",         // 123.456.7890
+                r"\b\+1\s?\d{3}\s?\d{3}\s?\d{4}\b", // +1 123 456 7890
+                r"\b\d{10}\b",                      // 1234567890
             ];
-            
+
             for (i, regex_str) in phone_patterns.iter().enumerate() {
                 let pattern = PiiPattern {
                     name: format!("phone_{}", i),
@@ -158,47 +158,51 @@ impl PiiRedactor {
                     confidence_level: ConfidenceLevel::High,
                     replacement_template: "[PHONE]".to_string(),
                 };
-                
+
                 let regex = Regex::new(regex_str)
                     .map_err(|e| anyhow!("Invalid phone regex {}: {}", i, e))?;
-                
+
                 compiled_patterns.push(CompiledPattern { pattern, regex });
             }
         }
-        
+
         // SSN patterns
         if config.enable_ssn_detection {
             let ssn_patterns = [
-                r"\b\d{3}-\d{2}-\d{4}\b",     // 123-45-6789
-                r"\b\d{3}\s\d{2}\s\d{4}\b",   // 123 45 6789
-                r"\b\d{9}\b",                 // 123456789 (only if 9 digits)
+                r"\b\d{3}-\d{2}-\d{4}\b",   // 123-45-6789
+                r"\b\d{3}\s\d{2}\s\d{4}\b", // 123 45 6789
+                r"\b\d{9}\b",               // 123456789 (only if 9 digits)
             ];
-            
+
             for (i, regex_str) in ssn_patterns.iter().enumerate() {
                 let pattern = PiiPattern {
                     name: format!("ssn_{}", i),
                     pattern_type: PiiType::SSN,
                     regex: regex_str.to_string(),
-                    confidence_level: if i == 2 { ConfidenceLevel::Medium } else { ConfidenceLevel::High },
+                    confidence_level: if i == 2 {
+                        ConfidenceLevel::Medium
+                    } else {
+                        ConfidenceLevel::High
+                    },
                     replacement_template: "[SSN]".to_string(),
                 };
-                
-                let regex = Regex::new(regex_str)
-                    .map_err(|e| anyhow!("Invalid SSN regex {}: {}", i, e))?;
-                
+
+                let regex =
+                    Regex::new(regex_str).map_err(|e| anyhow!("Invalid SSN regex {}: {}", i, e))?;
+
                 compiled_patterns.push(CompiledPattern { pattern, regex });
             }
         }
-        
+
         // Credit card patterns
         if config.enable_credit_card_detection {
             let cc_patterns = [
-                r"\b4\d{3}\s?\d{4}\s?\d{4}\s?\d{4}\b",               // Visa
-                r"\b5[1-5]\d{2}\s?\d{4}\s?\d{4}\s?\d{4}\b",         // MasterCard
-                r"\b3[47]\d{2}\s?\d{6}\s?\d{5}\b",                  // American Express
-                r"\b6(?:011|5\d{2})\s?\d{4}\s?\d{4}\s?\d{4}\b",    // Discover
+                r"\b4\d{3}\s?\d{4}\s?\d{4}\s?\d{4}\b",          // Visa
+                r"\b5[1-5]\d{2}\s?\d{4}\s?\d{4}\s?\d{4}\b",     // MasterCard
+                r"\b3[47]\d{2}\s?\d{6}\s?\d{5}\b",              // American Express
+                r"\b6(?:011|5\d{2})\s?\d{4}\s?\d{4}\s?\d{4}\b", // Discover
             ];
-            
+
             for (i, regex_str) in cc_patterns.iter().enumerate() {
                 let card_type = match i {
                     0 => "visa",
@@ -207,7 +211,7 @@ impl PiiRedactor {
                     3 => "discover",
                     _ => "unknown",
                 };
-                
+
                 let pattern = PiiPattern {
                     name: format!("credit_card_{}", card_type),
                     pattern_type: PiiType::CreditCard,
@@ -215,14 +219,14 @@ impl PiiRedactor {
                     confidence_level: ConfidenceLevel::High,
                     replacement_template: "[CREDIT_CARD]".to_string(),
                 };
-                
+
                 let regex = Regex::new(regex_str)
                     .map_err(|e| anyhow!("Invalid credit card regex {}: {}", card_type, e))?;
-                
+
                 compiled_patterns.push(CompiledPattern { pattern, regex });
             }
         }
-        
+
         // IP Address patterns
         let ip_pattern = PiiPattern {
             name: "ip_address".to_string(),
@@ -231,11 +235,14 @@ impl PiiRedactor {
             confidence_level: ConfidenceLevel::Medium,
             replacement_template: "[IP_ADDRESS]".to_string(),
         };
-        
+
         let regex = Regex::new(&ip_pattern.regex)
             .map_err(|e| anyhow!("Invalid IP address regex: {}", e))?;
-        compiled_patterns.push(CompiledPattern { pattern: ip_pattern, regex });
-        
+        compiled_patterns.push(CompiledPattern {
+            pattern: ip_pattern,
+            regex,
+        });
+
         // URL patterns
         let url_pattern = PiiPattern {
             name: "url".to_string(),
@@ -244,11 +251,14 @@ impl PiiRedactor {
             confidence_level: ConfidenceLevel::Medium,
             replacement_template: "[URL]".to_string(),
         };
-        
-        let regex = Regex::new(&url_pattern.regex)
-            .map_err(|e| anyhow!("Invalid URL regex: {}", e))?;
-        compiled_patterns.push(CompiledPattern { pattern: url_pattern, regex });
-        
+
+        let regex =
+            Regex::new(&url_pattern.regex).map_err(|e| anyhow!("Invalid URL regex: {}", e))?;
+        compiled_patterns.push(CompiledPattern {
+            pattern: url_pattern,
+            regex,
+        });
+
         // Custom patterns
         if config.enable_custom_patterns {
             for (i, custom_regex) in config.custom_patterns.iter().enumerate() {
@@ -259,37 +269,35 @@ impl PiiRedactor {
                     confidence_level: ConfidenceLevel::Medium,
                     replacement_template: format!("[CUSTOM_{}]", i),
                 };
-                
+
                 let regex = Regex::new(custom_regex)
                     .map_err(|e| anyhow!("Invalid custom regex {}: {}", i, e))?;
-                
+
                 compiled_patterns.push(CompiledPattern { pattern, regex });
             }
         }
-        
+
         Ok(compiled_patterns)
     }
-    
+
     /// Detect and redact PII in text
     pub fn redact_text(&self, text: &str) -> Result<RedactionResult> {
         let start_time = std::time::Instant::now();
         let mut detections = Vec::new();
         let mut redacted_text = text.to_string();
         let mut offset_adjustment = 0i32;
-        
+
         // Collect all matches first
         let mut all_matches = Vec::new();
-        
+
         for compiled_pattern in &self.patterns {
             for mat in compiled_pattern.regex.find_iter(text) {
                 let detection = PiiDetection {
                     detection_id: Uuid::new_v4().to_string(),
                     pii_type: compiled_pattern.pattern.pattern_type.clone(),
                     original_value: mat.as_str().to_string(),
-                    redacted_value: self.create_redacted_value(
-                        mat.as_str(),
-                        &compiled_pattern.pattern,
-                    ),
+                    redacted_value: self
+                        .create_redacted_value(mat.as_str(), &compiled_pattern.pattern),
                     position: PiiPosition {
                         start: mat.start(),
                         end: mat.end(),
@@ -299,58 +307,63 @@ impl PiiRedactor {
                     confidence: compiled_pattern.pattern.confidence_level.clone(),
                     pattern_name: compiled_pattern.pattern.name.clone(),
                 };
-                
+
                 all_matches.push((mat.start(), mat.end(), detection));
             }
         }
-        
+
         // Sort matches by position (reverse order for easier replacement)
         all_matches.sort_by(|a, b| b.0.cmp(&a.0));
-        
+
         // Apply redactions
         for (start, end, detection) in all_matches {
             let adjusted_start = (start as i32 + offset_adjustment) as usize;
             let adjusted_end = (end as i32 + offset_adjustment) as usize;
-            
+
             if adjusted_start <= redacted_text.len() && adjusted_end <= redacted_text.len() {
-                redacted_text.replace_range(adjusted_start..adjusted_end, &detection.redacted_value);
-                
+                redacted_text
+                    .replace_range(adjusted_start..adjusted_end, &detection.redacted_value);
+
                 let length_change = detection.redacted_value.len() as i32 - (end - start) as i32;
                 offset_adjustment += length_change;
-                
+
                 detections.push(detection);
             }
         }
-        
+
         // Calculate statistics
         let mut detections_by_type = HashMap::new();
         let mut confidence_distribution = HashMap::new();
-        
+
         for detection in &detections {
-            *detections_by_type.entry(detection.pii_type.clone()).or_insert(0) += 1;
-            *confidence_distribution.entry(detection.confidence.clone()).or_insert(0) += 1;
+            *detections_by_type
+                .entry(detection.pii_type.clone())
+                .or_insert(0) += 1;
+            *confidence_distribution
+                .entry(detection.confidence.clone())
+                .or_insert(0) += 1;
         }
-        
+
         let stats = RedactionStats {
             total_detections: detections.len(),
             detections_by_type,
             confidence_distribution,
             redaction_time_ms: start_time.elapsed().as_millis() as u64,
         };
-        
+
         debug!(
             total_detections = stats.total_detections,
             redaction_time_ms = stats.redaction_time_ms,
             "PII redaction completed"
         );
-        
+
         if !detections.is_empty() {
             warn!(
                 detections_count = detections.len(),
                 "PII detected and redacted in text"
             );
         }
-        
+
         Ok(RedactionResult {
             original_text: text.to_string(),
             redacted_text,
@@ -358,7 +371,7 @@ impl PiiRedactor {
             stats,
         })
     }
-    
+
     /// Create redacted value based on configuration
     fn create_redacted_value(&self, original: &str, pattern: &PiiPattern) -> String {
         match self.config.redaction_method {
@@ -377,21 +390,15 @@ impl PiiRedactor {
             RedactionMethod::Placeholder => pattern.replacement_template.clone(),
         }
     }
-    
+
     /// Preserve format when using asterisk redaction
     fn preserve_format_asterisk(&self, original: &str) -> String {
         original
             .chars()
-            .map(|c| {
-                if c.is_alphanumeric() {
-                    '*'
-                } else {
-                    c
-                }
-            })
+            .map(|c| if c.is_alphanumeric() { '*' } else { c })
             .collect()
     }
-    
+
     /// Redact PII in structured data (JSON, etc.)
     pub fn redact_json(&self, json_str: &str) -> Result<String> {
         // For JSON, we need to be careful not to break the structure
@@ -399,7 +406,7 @@ impl PiiRedactor {
         let result = self.redact_text(json_str)?;
         Ok(result.redacted_text)
     }
-    
+
     /// Check if text contains PII without redacting
     pub fn contains_pii(&self, text: &str) -> bool {
         for compiled_pattern in &self.patterns {
@@ -409,19 +416,19 @@ impl PiiRedactor {
         }
         false
     }
-    
+
     /// Get configuration
     pub fn get_config(&self) -> &PiiConfig {
         &self.config
     }
-    
+
     /// Update configuration and recompile patterns
     pub fn update_config(&mut self, config: PiiConfig) -> Result<()> {
         self.patterns = Self::compile_patterns(&config)?;
         self.config = config;
         Ok(())
     }
-    
+
     /// Get supported PII types
     pub fn get_supported_types(&self) -> Vec<PiiType> {
         self.patterns
@@ -448,28 +455,28 @@ impl PiiRedactionMiddleware {
             enabled: true,
         })
     }
-    
+
     /// Enable or disable redaction
     pub fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
-    
+
     /// Redact PII in request/response data
     pub fn redact_payload(&self, payload: &str) -> Result<String> {
         if !self.enabled {
             return Ok(payload.to_string());
         }
-        
+
         let result = self.redactor.redact_text(payload)?;
         Ok(result.redacted_text)
     }
-    
+
     /// Redact PII in log messages
     pub fn redact_log_message(&self, message: &str) -> String {
         if !self.enabled {
             return message.to_string();
         }
-        
+
         match self.redactor.redact_text(message) {
             Ok(result) => result.redacted_text,
             Err(_) => {
@@ -479,7 +486,7 @@ impl PiiRedactionMiddleware {
             }
         }
     }
-    
+
     /// Get redactor instance
     pub fn get_redactor(&self) -> Arc<PiiRedactor> {
         Arc::clone(&self.redactor)
@@ -495,7 +502,7 @@ impl Default for PiiRedactionMiddleware {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_email_detection() {
         let config = PiiConfig {
@@ -511,7 +518,7 @@ mod tests {
         assert_eq!(result.detections.len(), 1);
         assert_eq!(result.detections[0].pii_type, PiiType::Email);
     }
-    
+
     #[test]
     fn test_phone_detection() {
         let config = PiiConfig {
@@ -526,9 +533,12 @@ mod tests {
         // Both numbers should be detected
         assert!(!result.detections.is_empty());
         // Check that at least one phone was detected
-        assert!(result.detections.iter().any(|d| d.pii_type == PiiType::Phone));
+        assert!(result
+            .detections
+            .iter()
+            .any(|d| d.pii_type == PiiType::Phone));
     }
-    
+
     #[test]
     fn test_ssn_detection() {
         let config = PiiConfig {
@@ -544,7 +554,7 @@ mod tests {
         assert_eq!(result.detections.len(), 1);
         assert_eq!(result.detections[0].pii_type, PiiType::SSN);
     }
-    
+
     #[test]
     fn test_credit_card_detection() {
         let config = PiiConfig {
@@ -560,7 +570,7 @@ mod tests {
         assert_eq!(result.detections.len(), 1);
         assert_eq!(result.detections[0].pii_type, PiiType::CreditCard);
     }
-    
+
     #[test]
     fn test_custom_patterns() {
         let config = PiiConfig {
@@ -578,7 +588,7 @@ mod tests {
         assert!(!result.redacted_text.contains("TEST-1234"));
         assert_eq!(result.detections.len(), 1);
     }
-    
+
     #[test]
     fn test_asterisk_redaction_with_format_preservation() {
         let config = PiiConfig {
@@ -586,38 +596,38 @@ mod tests {
             preserve_format: true,
             ..Default::default()
         };
-        
+
         let redactor = PiiRedactor::new(Some(config)).unwrap();
         let text = "SSN: 123-45-6789";
-        
+
         let result = redactor.redact_text(text).unwrap();
         assert!(result.redacted_text.contains("***-**-****"));
     }
-    
+
     #[test]
     fn test_pii_detection_without_redaction() {
         let redactor = PiiRedactor::new(None).unwrap();
-        
+
         assert!(redactor.contains_pii("email: test@example.com"));
         assert!(redactor.contains_pii("phone: 123-456-7890"));
         assert!(!redactor.contains_pii("no sensitive data here"));
     }
-    
+
     #[test]
     fn test_redaction_middleware() {
         let middleware = PiiRedactionMiddleware::new(None).unwrap();
         let payload = r#"{"email": "user@example.com", "phone": "123-456-7890"}"#;
-        
+
         let redacted = middleware.redact_payload(payload).unwrap();
         assert!(!redacted.contains("user@example.com"));
         assert!(!redacted.contains("123-456-7890"));
     }
-    
+
     #[test]
     fn test_disabled_middleware() {
         let mut middleware = PiiRedactionMiddleware::new(None).unwrap();
         middleware.set_enabled(false);
-        
+
         let payload = "email: test@example.com";
         let result = middleware.redact_payload(payload).unwrap();
         assert_eq!(result, payload); // Should be unchanged

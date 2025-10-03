@@ -47,22 +47,22 @@ pub async fn health(State(state): State<AppState>) -> Result<impl IntoResponse, 
             // Perform actual headless service health check
             perform_headless_health_check(url, &timestamp)
         }),
-        spider_engine: state.spider.as_ref().map(|_| {
-            ServiceHealth {
-                status: health_status.spider.to_string(),
-                message: Some(match health_status.spider {
-                    crate::state::DependencyHealth::Healthy => "Spider engine ready".to_string(),
-                    crate::state::DependencyHealth::Unhealthy(ref msg) => msg.clone(),
-                    crate::state::DependencyHealth::Unknown => "Spider status unknown".to_string(),
-                }),
-                response_time_ms: None,
-                last_check: timestamp.clone(),
-            }
+        spider_engine: state.spider.as_ref().map(|_| ServiceHealth {
+            status: health_status.spider.to_string(),
+            message: Some(match health_status.spider {
+                crate::state::DependencyHealth::Healthy => "Spider engine ready".to_string(),
+                crate::state::DependencyHealth::Unhealthy(ref msg) => msg.clone(),
+                crate::state::DependencyHealth::Unknown => "Spider status unknown".to_string(),
+            }),
+            response_time_ms: None,
+            last_check: timestamp.clone(),
         }),
     };
 
     // Implement actual system metrics collection
-    let metrics = Some(collect_system_metrics(start_time.elapsed().as_millis() as f64));
+    let metrics = Some(collect_system_metrics(
+        start_time.elapsed().as_millis() as f64
+    ));
 
     let overall_status = if health_status.healthy {
         "healthy"
@@ -98,10 +98,10 @@ pub async fn health(State(state): State<AppState>) -> Result<impl IntoResponse, 
 
 /// Perform actual headless service health check
 pub(super) fn perform_headless_health_check(url: &str, timestamp: &str) -> ServiceHealth {
-    use std::time::Instant;
     use std::sync::mpsc;
     use std::thread;
     use std::time::Duration;
+    use std::time::Instant;
 
     let check_start = Instant::now();
     let (tx, rx) = mpsc::channel();
@@ -151,7 +151,10 @@ pub(super) fn perform_headless_health_check(url: &str, timestamp: &str) -> Servi
                     } else {
                         Ok(ServiceHealth {
                             status: "unhealthy".to_string(),
-                            message: Some(format!("Headless service returned status: {}", status_code)),
+                            message: Some(format!(
+                                "Headless service returned status: {}",
+                                status_code
+                            )),
                             response_time_ms: Some(response_time),
                             last_check: timestamp_owned.clone(),
                         })
@@ -196,8 +199,8 @@ pub(super) fn perform_headless_health_check(url: &str, timestamp: &str) -> Servi
 
 /// Collect actual system metrics using sysinfo and psutil
 pub(super) fn collect_system_metrics(avg_response_time_ms: f64) -> SystemMetrics {
-    use sysinfo::{System, Pid};
     use std::process;
+    use sysinfo::{Pid, System};
 
     let mut sys = System::new_all();
     sys.refresh_all();
@@ -246,7 +249,11 @@ pub(super) fn collect_system_metrics(avg_response_time_ms: f64) -> SystemMetrics
         cpu_usage_percent,
         disk_usage_bytes,
         file_descriptor_count,
-        thread_count: if thread_count > 0 { Some(thread_count as u32) } else { None },
+        thread_count: if thread_count > 0 {
+            Some(thread_count as u32)
+        } else {
+            None
+        },
         load_average: load_avg_1min.map(|avg| [avg, avg, avg]),
     }
 }

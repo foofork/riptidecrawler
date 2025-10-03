@@ -8,24 +8,24 @@
 //! - AWS Bedrock
 //! - Google Vertex AI
 
-pub mod openai;
 pub mod anthropic;
-pub mod local;
-pub mod azure;
 pub mod aws_bedrock;
+pub mod azure;
 pub mod google_vertex;
+pub mod local;
+pub mod openai;
 
 // Re-export provider implementations
-pub use openai::OpenAIProvider;
 pub use anthropic::AnthropicProvider;
-pub use local::{OllamaProvider, LocalAIProvider};
-pub use azure::AzureOpenAIProvider;
 pub use aws_bedrock::BedrockProvider;
+pub use azure::AzureOpenAIProvider;
 pub use google_vertex::VertexAIProvider;
+pub use local::{LocalAIProvider, OllamaProvider};
+pub use openai::OpenAIProvider;
 
 use std::sync::Arc;
 
-use crate::{LlmProvider, registry::ProviderConfig, IntelligenceError, Result};
+use crate::{registry::ProviderConfig, IntelligenceError, LlmProvider, Result};
 
 /// Factory function to create providers from configuration
 pub fn create_provider_from_config(config: &ProviderConfig) -> Result<Arc<dyn LlmProvider>> {
@@ -53,13 +53,19 @@ pub fn create_provider_from_config(config: &ProviderConfig) -> Result<Arc<dyn Ll
             let endpoint = get_config_string(config, "endpoint")?;
             let api_version = get_config_string_optional(config, "api_version")
                 .unwrap_or_else(|| "2023-12-01-preview".to_string());
-            Ok(Arc::new(AzureOpenAIProvider::new(api_key, endpoint, api_version)?))
+            Ok(Arc::new(AzureOpenAIProvider::new(
+                api_key,
+                endpoint,
+                api_version,
+            )?))
         }
         "aws_bedrock" => {
             let region = get_config_string(config, "region")?;
             let access_key = get_config_string_optional(config, "access_key");
             let secret_key = get_config_string_optional(config, "secret_key");
-            Ok(Arc::new(BedrockProvider::new(region, access_key, secret_key)?))
+            Ok(Arc::new(BedrockProvider::new(
+                region, access_key, secret_key,
+            )?))
         }
         "google_vertex" => {
             let project_id = get_config_string(config, "project_id")?;
@@ -67,25 +73,30 @@ pub fn create_provider_from_config(config: &ProviderConfig) -> Result<Arc<dyn Ll
                 .unwrap_or_else(|| "us-central1".to_string());
             Ok(Arc::new(VertexAIProvider::new(project_id, location)?))
         }
-        _ => Err(IntelligenceError::Configuration(
-            format!("Unknown provider type: {}", config.provider_type)
-        )),
+        _ => Err(IntelligenceError::Configuration(format!(
+            "Unknown provider type: {}",
+            config.provider_type
+        ))),
     }
 }
 
 /// Helper to get string configuration value
 fn get_config_string(config: &ProviderConfig, key: &str) -> Result<String> {
-    config.config.get(key)
+    config
+        .config
+        .get(key)
         .and_then(|v| v.as_str())
         .map(|s| s.to_string())
-        .ok_or_else(|| IntelligenceError::Configuration(
-            format!("Missing required configuration key: {}", key)
-        ))
+        .ok_or_else(|| {
+            IntelligenceError::Configuration(format!("Missing required configuration key: {}", key))
+        })
 }
 
 /// Helper to get optional string configuration value
 fn get_config_string_optional(config: &ProviderConfig, key: &str) -> Option<String> {
-    config.config.get(key)
+    config
+        .config
+        .get(key)
         .and_then(|v| v.as_str())
         .map(|s| s.to_string())
 }
@@ -93,7 +104,9 @@ fn get_config_string_optional(config: &ProviderConfig, key: &str) -> Option<Stri
 /// Helper to get boolean configuration value
 #[allow(dead_code)]
 fn get_config_bool(config: &ProviderConfig, key: &str, default: bool) -> bool {
-    config.config.get(key)
+    config
+        .config
+        .get(key)
         .and_then(|v| v.as_bool())
         .unwrap_or(default)
 }
@@ -101,7 +114,9 @@ fn get_config_bool(config: &ProviderConfig, key: &str, default: bool) -> bool {
 /// Helper to get number configuration value
 #[allow(dead_code)]
 fn get_config_f64(config: &ProviderConfig, key: &str, default: f64) -> f64 {
-    config.config.get(key)
+    config
+        .config
+        .get(key)
         .and_then(|v| v.as_f64())
         .unwrap_or(default)
 }
@@ -109,32 +124,20 @@ fn get_config_f64(config: &ProviderConfig, key: &str, default: f64) -> f64 {
 /// Register all built-in provider factories
 pub fn register_builtin_providers(registry: &crate::registry::LlmRegistry) -> Result<()> {
     // OpenAI
-    registry.register_factory("openai", |config| {
-        create_provider_from_config(config)
-    })?;
+    registry.register_factory("openai", |config| create_provider_from_config(config))?;
 
     // Anthropic
-    registry.register_factory("anthropic", |config| {
-        create_provider_from_config(config)
-    })?;
+    registry.register_factory("anthropic", |config| create_provider_from_config(config))?;
 
     // Local providers
-    registry.register_factory("ollama", |config| {
-        create_provider_from_config(config)
-    })?;
+    registry.register_factory("ollama", |config| create_provider_from_config(config))?;
 
-    registry.register_factory("localai", |config| {
-        create_provider_from_config(config)
-    })?;
+    registry.register_factory("localai", |config| create_provider_from_config(config))?;
 
     // Cloud providers
-    registry.register_factory("azure_openai", |config| {
-        create_provider_from_config(config)
-    })?;
+    registry.register_factory("azure_openai", |config| create_provider_from_config(config))?;
 
-    registry.register_factory("aws_bedrock", |config| {
-        create_provider_from_config(config)
-    })?;
+    registry.register_factory("aws_bedrock", |config| create_provider_from_config(config))?;
 
     registry.register_factory("google_vertex", |config| {
         create_provider_from_config(config)
@@ -147,12 +150,12 @@ pub fn register_builtin_providers(registry: &crate::registry::LlmRegistry) -> Re
 // Provider Health Monitoring
 // ============================================================================
 
-use std::time::SystemTime;
-use std::collections::HashMap;
-use parking_lot::RwLock;
-use serde::{Serialize, Deserialize};
-use crate::circuit_breaker::{CircuitState, CircuitBreaker, CircuitBreakerStats};
+use crate::circuit_breaker::{CircuitBreaker, CircuitBreakerStats, CircuitState};
 use crate::health::{HealthLevel, ProviderMetrics as HealthProviderMetrics};
+use parking_lot::RwLock;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::time::SystemTime;
 
 /// Health status for a provider
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -333,10 +336,9 @@ impl ProviderManager {
             let providers = self.providers.read();
             let circuit_breakers = self.circuit_breakers.read();
 
-            let provider_arc = providers.get(provider).cloned()
-                .ok_or_else(|| IntelligenceError::Configuration(
-                    format!("Provider '{}' not found", provider)
-                ))?;
+            let provider_arc = providers.get(provider).cloned().ok_or_else(|| {
+                IntelligenceError::Configuration(format!("Provider '{}' not found", provider))
+            })?;
 
             let circuit_breaker_opt = circuit_breakers.get(provider).cloned();
 
@@ -476,8 +478,8 @@ impl Default for ProviderManager {
 #[cfg(test)]
 mod provider_health_tests {
     use super::*;
+    use crate::circuit_breaker::{with_circuit_breaker, CircuitBreakerConfig};
     use crate::mock_provider::MockLlmProvider;
-    use crate::circuit_breaker::{CircuitBreakerConfig, with_circuit_breaker};
 
     #[tokio::test]
     async fn test_provider_manager_creation() {

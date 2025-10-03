@@ -37,11 +37,11 @@ struct OperationStats {
 /// Size distribution analysis
 #[derive(Debug, Clone)]
 struct SizeDistribution {
-    tiny: u64,      // <1KB
-    small: u64,     // 1KB-64KB
-    medium: u64,    // 64KB-1MB
-    large: u64,     // 1MB-16MB
-    huge: u64,      // >16MB
+    tiny: u64,   // <1KB
+    small: u64,  // 1KB-64KB
+    medium: u64, // 64KB-1MB
+    large: u64,  // 1MB-16MB
+    huge: u64,   // >16MB
 }
 
 impl AllocationAnalyzer {
@@ -69,7 +69,9 @@ impl AllocationAnalyzer {
         let size = allocation.size;
 
         // Update allocator stats
-        let allocator_stats = self.allocator_stats.entry(component.clone())
+        let allocator_stats = self
+            .allocator_stats
+            .entry(component.clone())
             .or_insert_with(|| AllocatorStats {
                 total_allocations: 0,
                 total_bytes: 0,
@@ -82,7 +84,8 @@ impl AllocationAnalyzer {
         allocator_stats.total_allocations += 1;
         allocator_stats.total_bytes += size as u64;
         allocator_stats.largest_allocation = allocator_stats.largest_allocation.max(size);
-        allocator_stats.average_size = allocator_stats.total_bytes as f64 / allocator_stats.total_allocations as f64;
+        allocator_stats.average_size =
+            allocator_stats.total_bytes as f64 / allocator_stats.total_allocations as f64;
 
         // Keep recent allocations for pattern analysis
         allocator_stats.recent_allocations.push(allocation.clone());
@@ -91,7 +94,9 @@ impl AllocationAnalyzer {
         }
 
         // Update operation stats
-        let operation_stats = self.operation_stats.entry(operation.clone())
+        let operation_stats = self
+            .operation_stats
+            .entry(operation.clone())
             .or_insert_with(|| OperationStats {
                 count: 0,
                 total_bytes: 0,
@@ -101,8 +106,12 @@ impl AllocationAnalyzer {
 
         operation_stats.count += 1;
         operation_stats.total_bytes += size as u64;
-        operation_stats.average_size = operation_stats.total_bytes as f64 / operation_stats.count as f64;
-        *operation_stats.components.entry(component.clone()).or_insert(0) += 1;
+        operation_stats.average_size =
+            operation_stats.total_bytes as f64 / operation_stats.count as f64;
+        *operation_stats
+            .components
+            .entry(component.clone())
+            .or_insert(0) += 1;
 
         // Update size distribution
         match size {
@@ -125,7 +134,8 @@ impl AllocationAnalyzer {
 
     /// Get top allocators by total bytes allocated
     pub async fn get_top_allocators(&self) -> Result<Vec<(String, u64)>> {
-        let mut allocators: Vec<(String, u64)> = self.allocator_stats
+        let mut allocators: Vec<(String, u64)> = self
+            .allocator_stats
             .iter()
             .map(|(name, stats)| (name.clone(), stats.total_bytes))
             .collect();
@@ -133,17 +143,15 @@ impl AllocationAnalyzer {
         allocators.sort_by(|a, b| b.1.cmp(&a.1));
         allocators.truncate(20); // Top 20
 
-        info!(
-            count = allocators.len(),
-            "Retrieved top allocators"
-        );
+        info!(count = allocators.len(), "Retrieved top allocators");
 
         Ok(allocators)
     }
 
     /// Get top operations by frequency
     pub async fn get_top_operations(&self) -> Result<Vec<(String, u64, f64)>> {
-        let mut operations: Vec<(String, u64, f64)> = self.operation_stats
+        let mut operations: Vec<(String, u64, f64)> = self
+            .operation_stats
             .iter()
             .map(|(name, stats)| (name.clone(), stats.count, stats.average_size))
             .collect();
@@ -151,10 +159,7 @@ impl AllocationAnalyzer {
         operations.sort_by(|a, b| b.1.cmp(&a.1));
         operations.truncate(20); // Top 20
 
-        info!(
-            count = operations.len(),
-            "Retrieved top operations"
-        );
+        info!(count = operations.len(), "Retrieved top operations");
 
         Ok(operations)
     }
@@ -165,7 +170,10 @@ impl AllocationAnalyzer {
 
         distribution.insert("tiny (<1KB)".to_string(), self.size_distribution.tiny);
         distribution.insert("small (1KB-64KB)".to_string(), self.size_distribution.small);
-        distribution.insert("medium (64KB-1MB)".to_string(), self.size_distribution.medium);
+        distribution.insert(
+            "medium (64KB-1MB)".to_string(),
+            self.size_distribution.medium,
+        );
         distribution.insert("large (1MB-16MB)".to_string(), self.size_distribution.large);
         distribution.insert("huge (>16MB)".to_string(), self.size_distribution.huge);
 
@@ -177,20 +185,24 @@ impl AllocationAnalyzer {
         let mut recommendations = Vec::new();
 
         // Analyze size distribution for pooling opportunities
-        let total_allocations = self.size_distribution.tiny +
-            self.size_distribution.small +
-            self.size_distribution.medium +
-            self.size_distribution.large +
-            self.size_distribution.huge;
+        let total_allocations = self.size_distribution.tiny
+            + self.size_distribution.small
+            + self.size_distribution.medium
+            + self.size_distribution.large
+            + self.size_distribution.huge;
 
         if total_allocations > 0 {
-            let small_percentage = (self.size_distribution.tiny + self.size_distribution.small) as f64 / total_allocations as f64 * 100.0;
+            let small_percentage = (self.size_distribution.tiny + self.size_distribution.small)
+                as f64
+                / total_allocations as f64
+                * 100.0;
 
             if small_percentage > 80.0 {
                 recommendations.push("High percentage of small allocations detected. Consider implementing object pools for frequently allocated small objects.".to_string());
             }
 
-            let huge_percentage = self.size_distribution.huge as f64 / total_allocations as f64 * 100.0;
+            let huge_percentage =
+                self.size_distribution.huge as f64 / total_allocations as f64 * 100.0;
 
             if huge_percentage > 5.0 {
                 recommendations.push("Significant number of huge allocations (>16MB) detected. Consider streaming or chunking for large data processing.".to_string());
@@ -201,7 +213,8 @@ impl AllocationAnalyzer {
         let top_allocators = self.get_top_allocators().await?;
 
         for (component, bytes) in &top_allocators[..3.min(top_allocators.len())] {
-            if *bytes > 100 * 1024 * 1024 { // >100MB
+            if *bytes > 100 * 1024 * 1024 {
+                // >100MB
                 recommendations.push(format!("Component '{}' has high memory allocation ({}MB). Consider optimizing memory usage or implementing cleanup routines.", component, bytes / 1024 / 1024));
             }
         }
@@ -246,9 +259,13 @@ impl AllocationAnalyzer {
     }
 
     /// Get allocation timeline for trending
-    pub async fn get_allocation_timeline(&self, component: &str) -> Result<Vec<(chrono::DateTime<chrono::Utc>, usize)>> {
+    pub async fn get_allocation_timeline(
+        &self,
+        component: &str,
+    ) -> Result<Vec<(chrono::DateTime<chrono::Utc>, usize)>> {
         if let Some(stats) = self.allocator_stats.get(component) {
-            let timeline: Vec<(chrono::DateTime<chrono::Utc>, usize)> = stats.recent_allocations
+            let timeline: Vec<(chrono::DateTime<chrono::Utc>, usize)> = stats
+                .recent_allocations
                 .iter()
                 .map(|allocation| (allocation.timestamp, allocation.size))
                 .collect();
@@ -261,7 +278,9 @@ impl AllocationAnalyzer {
 
     /// Generate allocation efficiency score (0.0 = poor, 1.0 = excellent)
     pub async fn calculate_efficiency_score(&self) -> Result<f64> {
-        let total_allocations = self.allocator_stats.values()
+        let total_allocations = self
+            .allocator_stats
+            .values()
             .map(|stats| stats.total_allocations)
             .sum::<u64>();
 
@@ -269,11 +288,11 @@ impl AllocationAnalyzer {
             return Ok(1.0);
         }
 
-        let total_size = self.size_distribution.tiny +
-            self.size_distribution.small +
-            self.size_distribution.medium +
-            self.size_distribution.large +
-            self.size_distribution.huge;
+        let total_size = self.size_distribution.tiny
+            + self.size_distribution.small
+            + self.size_distribution.medium
+            + self.size_distribution.large
+            + self.size_distribution.huge;
 
         // Efficiency factors
         let size_efficiency = if total_size > 0 {
@@ -303,7 +322,9 @@ impl AllocationAnalyzer {
         let cutoff = chrono::Utc::now() - chrono::Duration::hours(max_age_hours as i64);
 
         for stats in self.allocator_stats.values_mut() {
-            stats.recent_allocations.retain(|allocation| allocation.timestamp >= cutoff);
+            stats
+                .recent_allocations
+                .retain(|allocation| allocation.timestamp >= cutoff);
         }
 
         debug!("Cleaned up old allocation analysis data");

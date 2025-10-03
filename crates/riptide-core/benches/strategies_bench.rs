@@ -64,21 +64,17 @@ fn bench_core_extraction(c: &mut Criterion) {
         group.throughput(Throughput::Bytes(content.len() as u64));
 
         // Trek extraction benchmark (core strategy)
-        group.bench_with_input(
-            BenchmarkId::new("trek", size),
-            &content,
-            |b, content| {
-                b.iter(|| {
-                    rt.block_on(async {
-                        black_box(
-                            extraction::trek::extract(black_box(content), "http://example.com")
-                                .await
-                                .unwrap()
-                        )
-                    })
+        group.bench_with_input(BenchmarkId::new("trek", size), &content, |b, content| {
+            b.iter(|| {
+                rt.block_on(async {
+                    black_box(
+                        extraction::trek::extract(black_box(content), "http://example.com")
+                            .await
+                            .unwrap(),
+                    )
                 })
-            },
-        );
+            })
+        });
     }
 
     group.finish();
@@ -103,7 +99,7 @@ fn bench_metadata_extraction(c: &mut Criterion) {
                         black_box(
                             metadata::extract_metadata(black_box(content), "http://example.com")
                                 .await
-                                .unwrap()
+                                .unwrap(),
                         )
                     })
                 })
@@ -116,11 +112,7 @@ fn bench_metadata_extraction(c: &mut Criterion) {
 
 fn bench_strategy_manager(c: &mut Criterion) {
     let rt = Runtime::new().unwrap();
-    let sizes = vec![
-        ("small", 1024),
-        ("medium", 10240),
-        ("large", 102400),
-    ];
+    let sizes = vec![("small", 1024), ("medium", 10240), ("large", 102400)];
 
     let mut group = c.benchmark_group("strategy_manager");
 
@@ -128,23 +120,20 @@ fn bench_strategy_manager(c: &mut Criterion) {
         let content = create_test_content(size);
         group.throughput(Throughput::Bytes(content.len() as u64));
 
-        group.bench_with_input(
-            BenchmarkId::new("process", name),
-            &content,
-            |b, content| {
-                b.iter(|| {
-                    rt.block_on(async {
-                        let config = StrategyConfig::default();
-                        let mut manager = StrategyManager::new(config);
-                        black_box(
-                            manager.extract_content(black_box(content), "http://example.com")
-                                .await
-                                .unwrap()
-                        )
-                    })
+        group.bench_with_input(BenchmarkId::new("process", name), &content, |b, content| {
+            b.iter(|| {
+                rt.block_on(async {
+                    let config = StrategyConfig::default();
+                    let mut manager = StrategyManager::new(config);
+                    black_box(
+                        manager
+                            .extract_content(black_box(content), "http://example.com")
+                            .await
+                            .unwrap(),
+                    )
                 })
-            },
-        );
+            })
+        });
     }
 
     group.finish();
@@ -165,9 +154,7 @@ fn bench_performance_metrics(c: &mut Criterion) {
     }
 
     group.bench_function("get_summary", |b| {
-        b.iter(|| {
-            black_box(metrics.get_summary())
-        })
+        b.iter(|| black_box(metrics.get_summary()))
     });
 
     group.bench_function("record_extraction", |b| {

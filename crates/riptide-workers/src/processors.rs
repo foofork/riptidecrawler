@@ -62,7 +62,8 @@ impl BatchCrawlProcessor {
         // Fetch URL
         debug!(url = %url, "Fetching URL for batch processing");
 
-        let response = self.http_client
+        let response = self
+            .http_client
             .get(url)
             .timeout(std::time::Duration::from_secs(30))
             .send()
@@ -83,12 +84,13 @@ impl BatchCrawlProcessor {
             });
         }
 
-        let content = response.text().await
+        let content = response
+            .text()
+            .await
             .context("Failed to get response text")?;
 
         // Extract content using WASM
-        let extraction_result = self.extractor
-            .extract(content.as_bytes(), url, "default");
+        let extraction_result = self.extractor.extract(content.as_bytes(), url, "default");
 
         let processing_time = start_time.elapsed().as_millis() as u64;
 
@@ -105,23 +107,22 @@ impl BatchCrawlProcessor {
 
                 // Cache the successful result
                 let mut cache = self.cache.lock().await;
-                if let Err(e) = cache.set_simple(&cache_key, &result, 3600).await { // 1 hour TTL
+                if let Err(e) = cache.set_simple(&cache_key, &result, 3600).await {
+                    // 1 hour TTL
                     debug!(error = %e, cache_key = %cache_key, "Failed to cache result");
                 }
                 drop(cache);
 
                 Ok(result)
             }
-            Err(e) => {
-                Ok(CrawlResult {
-                    url: url.to_string(),
-                    status,
-                    from_cache: false,
-                    processing_time_ms: processing_time,
-                    document: None,
-                    error: Some(e.to_string()),
-                })
-            }
+            Err(e) => Ok(CrawlResult {
+                url: url.to_string(),
+                status,
+                from_cache: false,
+                processing_time_ms: processing_time,
+                document: None,
+                error: Some(e.to_string()),
+            }),
         }
     }
 
@@ -187,7 +188,7 @@ impl JobProcessor for BatchCrawlProcessor {
                             http_client,
                             extractor,
                             cache,
-                            max_batch_size: 1, // Not used in single URL processing
+                            max_batch_size: 1,  // Not used in single URL processing
                             max_concurrency: 1, // Not used in single URL processing
                         };
 
@@ -250,7 +251,9 @@ impl JobProcessor for BatchCrawlProcessor {
 
                 Ok(serde_json::to_value(batch_response)?)
             }
-            _ => Err(anyhow::anyhow!("Unsupported job type for BatchCrawlProcessor")),
+            _ => Err(anyhow::anyhow!(
+                "Unsupported job type for BatchCrawlProcessor"
+            )),
         }
     }
 
@@ -315,7 +318,9 @@ impl JobProcessor for SingleCrawlProcessor {
 
                 Ok(serde_json::to_value(result)?)
             }
-            _ => Err(anyhow::anyhow!("Unsupported job type for SingleCrawlProcessor")),
+            _ => Err(anyhow::anyhow!(
+                "Unsupported job type for SingleCrawlProcessor"
+            )),
         }
     }
 
@@ -335,7 +340,10 @@ pub struct MaintenanceProcessor;
 impl JobProcessor for MaintenanceProcessor {
     async fn process_job(&self, job: &Job) -> Result<serde_json::Value> {
         match &job.job_type {
-            JobType::Maintenance { task_type, parameters } => {
+            JobType::Maintenance {
+                task_type,
+                parameters,
+            } => {
                 info!(
                     job_id = %job.id,
                     task_type = %task_type,
@@ -392,7 +400,9 @@ impl JobProcessor for MaintenanceProcessor {
                     }
                 }
             }
-            _ => Err(anyhow::anyhow!("Unsupported job type for MaintenanceProcessor")),
+            _ => Err(anyhow::anyhow!(
+                "Unsupported job type for MaintenanceProcessor"
+            )),
         }
     }
 
@@ -432,7 +442,9 @@ impl JobProcessor for CustomJobProcessor {
 
                 Ok(serde_json::to_value(result)?)
             }
-            _ => Err(anyhow::anyhow!("Unsupported job type for CustomJobProcessor")),
+            _ => Err(anyhow::anyhow!(
+                "Unsupported job type for CustomJobProcessor"
+            )),
         }
     }
 
@@ -506,7 +518,9 @@ impl PdfProcessor {
         };
 
         Self {
-            pdf_pipeline: Arc::new(riptide_core::pdf::PdfPipelineIntegration::with_config(default_config.clone())),
+            pdf_pipeline: Arc::new(riptide_core::pdf::PdfPipelineIntegration::with_config(
+                default_config.clone(),
+            )),
             default_config,
             max_concurrent: 2, // ROADMAP requirement: max 2 concurrent operations
         }
@@ -515,14 +529,19 @@ impl PdfProcessor {
     /// Create PDF processor with custom configuration
     pub fn with_config(config: riptide_core::pdf::PdfConfig) -> Self {
         Self {
-            pdf_pipeline: Arc::new(riptide_core::pdf::PdfPipelineIntegration::with_config(config.clone())),
+            pdf_pipeline: Arc::new(riptide_core::pdf::PdfPipelineIntegration::with_config(
+                config.clone(),
+            )),
             default_config: config,
             max_concurrent: 2,
         }
     }
 
     /// Convert PDF extraction options to PDF config
-    fn create_pdf_config(&self, options: &Option<PdfExtractionOptions>) -> riptide_core::pdf::PdfConfig {
+    fn create_pdf_config(
+        &self,
+        options: &Option<PdfExtractionOptions>,
+    ) -> riptide_core::pdf::PdfConfig {
         match options {
             Some(opts) => {
                 let mut config = self.default_config.clone();
@@ -538,24 +557,24 @@ impl PdfProcessor {
                             if let Some(threshold) = value.as_f64() {
                                 config.memory_settings.memory_pressure_threshold = threshold;
                             }
-                        },
+                        }
                         "aggressive_cleanup" => {
                             if let Some(cleanup) = value.as_bool() {
                                 config.memory_settings.aggressive_cleanup = cleanup;
                             }
-                        },
+                        }
                         "preserve_formatting" => {
                             if let Some(preserve) = value.as_bool() {
                                 config.text_settings.preserve_formatting = preserve;
                             }
-                        },
+                        }
                         _ => {
                             debug!("Unknown PDF config setting: {}", key);
                         }
                     }
                 }
                 config
-            },
+            }
             None => self.default_config.clone(),
         }
     }
@@ -570,7 +589,8 @@ impl PdfProcessor {
     ) -> Result<ExtractedDoc> {
         if enable_progress {
             // Create progress channel for tracking using the correct type
-            let (progress_tx, mut progress_rx) = riptide_core::pdf::types::create_progress_channel();
+            let (progress_tx, mut progress_rx) =
+                riptide_core::pdf::types::create_progress_channel();
 
             // Spawn progress monitoring task
             let progress_task = tokio::spawn(async move {
@@ -580,7 +600,8 @@ impl PdfProcessor {
             });
 
             // Process with progress tracking
-            let result = self.pdf_pipeline
+            let result = self
+                .pdf_pipeline
                 .process_pdf_bytes_with_progress(pdf_data, progress_tx)
                 .await
                 .context("Failed to process PDF with progress tracking")?;
@@ -591,7 +612,8 @@ impl PdfProcessor {
             Ok(riptide_core::convert_pdf_extracted_doc(result))
         } else {
             // Process without progress tracking
-            let result = self.pdf_pipeline
+            let result = self
+                .pdf_pipeline
                 .process_pdf_to_extracted_doc(pdf_data, url)
                 .await
                 .context("Failed to process PDF")?;
@@ -629,10 +651,19 @@ impl PdfProcessor {
         // Add PDF-specific metadata
         if let Some(metadata) = result.get_mut("metadata") {
             if let Some(obj) = metadata.as_object_mut() {
-                obj.insert("content_type".to_string(), serde_json::json!("application/pdf"));
-                obj.insert("quality_score".to_string(), serde_json::json!(extracted_doc.quality_score.unwrap_or(0)));
+                obj.insert(
+                    "content_type".to_string(),
+                    serde_json::json!("application/pdf"),
+                );
+                obj.insert(
+                    "quality_score".to_string(),
+                    serde_json::json!(extracted_doc.quality_score.unwrap_or(0)),
+                );
                 if let Some(reading_time) = extracted_doc.reading_time {
-                    obj.insert("reading_time_minutes".to_string(), serde_json::json!(reading_time));
+                    obj.insert(
+                        "reading_time_minutes".to_string(),
+                        serde_json::json!(reading_time),
+                    );
                 }
             }
         }
@@ -651,7 +682,11 @@ impl Default for PdfProcessor {
 impl JobProcessor for PdfProcessor {
     async fn process_job(&self, job: &Job) -> Result<serde_json::Value> {
         match &job.job_type {
-            JobType::PdfExtraction { pdf_data, url, options } => {
+            JobType::PdfExtraction {
+                pdf_data,
+                url,
+                options,
+            } => {
                 let start_time = std::time::Instant::now();
 
                 info!(
@@ -672,18 +707,13 @@ impl JobProcessor for PdfProcessor {
                 }
 
                 // Check if progress tracking is enabled
-                let enable_progress = options
-                    .as_ref()
-                    .map(|o| o.enable_progress)
-                    .unwrap_or(true);
+                let enable_progress = options.as_ref().map(|o| o.enable_progress).unwrap_or(true);
 
                 // Process PDF with appropriate method
-                match self.process_pdf_with_progress(
-                    pdf_data,
-                    url.as_deref(),
-                    &config,
-                    enable_progress,
-                ).await {
+                match self
+                    .process_pdf_with_progress(pdf_data, url.as_deref(), &config, enable_progress)
+                    .await
+                {
                     Ok(extracted_doc) => {
                         let processing_time_ms = start_time.elapsed().as_millis() as u64;
 
@@ -702,7 +732,7 @@ impl JobProcessor for PdfProcessor {
                             processing_time_ms,
                             job.id,
                         ))
-                    },
+                    }
                     Err(e) => {
                         let processing_time_ms = start_time.elapsed().as_millis() as u64;
 

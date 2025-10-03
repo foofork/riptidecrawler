@@ -4,7 +4,7 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::Duration;
-use sysinfo::{System, ProcessesToUpdate};
+use sysinfo::{ProcessesToUpdate, System};
 use tracing::debug;
 
 use super::MemorySnapshot;
@@ -52,7 +52,8 @@ impl MemoryTracker {
         let mut system = System::new();
         system.refresh_processes(ProcessesToUpdate::All, true);
 
-        let process = system.process(sysinfo::Pid::from_u32(self.pid))
+        let process = system
+            .process(sysinfo::Pid::from_u32(self.pid))
             .ok_or_else(|| anyhow::anyhow!("Process not found"))?;
 
         // Get basic memory statistics
@@ -65,9 +66,7 @@ impl MemoryTracker {
         let snapshot = MemorySnapshot {
             timestamp: chrono::Utc::now(),
             rss_bytes: memory * 1024, // sysinfo returns KB
-            heap_bytes: jemalloc_stats.as_ref()
-                .map(|s| s.allocated)
-                .unwrap_or(0),
+            heap_bytes: jemalloc_stats.as_ref().map(|s| s.allocated).unwrap_or(0),
             virtual_bytes: virtual_memory * 1024,
             resident_bytes: memory * 1024,
             shared_bytes: 0, // Not available through sysinfo
@@ -131,7 +130,7 @@ impl MemoryTracker {
     fn get_jemalloc_stats(&self) -> Option<JemallocStats> {
         #[cfg(feature = "jemalloc")]
         {
-            use jemalloc_ctl::{stats, epoch};
+            use jemalloc_ctl::{epoch, stats};
 
             // Advance the epoch to get fresh statistics
             if epoch::advance().is_err() {

@@ -6,8 +6,8 @@ use std::time::Duration;
 use tokio::time::timeout;
 
 use crate::{
-    LlmProvider, CompletionRequest, CompletionResponse, LlmCapabilities,
-    Cost, IntelligenceError, Result
+    CompletionRequest, CompletionResponse, Cost, IntelligenceError, LlmCapabilities, LlmProvider,
+    Result,
 };
 
 /// Wrapper that adds timeout functionality to any LLM provider
@@ -91,7 +91,9 @@ impl LlmProvider for TimeoutWrapper {
     }
 
     async fn is_available(&self) -> bool {
-        timeout(self.timeout_duration, self.inner.is_available()).await.unwrap_or(false)
+        timeout(self.timeout_duration, self.inner.is_available())
+            .await
+            .unwrap_or(false)
     }
 }
 
@@ -224,7 +226,9 @@ impl LlmProvider for AdvancedTimeoutWrapper {
     }
 
     async fn is_available(&self) -> bool {
-        timeout(self.config.health_check_timeout, self.inner.is_available()).await.unwrap_or(false)
+        timeout(self.config.health_check_timeout, self.inner.is_available())
+            .await
+            .unwrap_or(false)
     }
 }
 
@@ -239,10 +243,7 @@ mod tests {
         let mock_provider = Arc::new(MockLlmProvider::new());
         let timeout_provider = TimeoutWrapper::new(mock_provider);
 
-        let request = CompletionRequest::new(
-            "mock-gpt-3.5",
-            vec![Message::user("Hello")],
-        );
+        let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("Hello")]);
 
         let result = timeout_provider.complete(request).await;
         assert!(result.is_ok());
@@ -253,10 +254,7 @@ mod tests {
         let mock_provider = Arc::new(MockLlmProvider::new().with_delay(6000)); // 6 seconds
         let timeout_provider = TimeoutWrapper::new(mock_provider);
 
-        let request = CompletionRequest::new(
-            "mock-gpt-3.5",
-            vec![Message::user("Hello")],
-        );
+        let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("Hello")]);
 
         let result = timeout_provider.complete(request).await;
         assert!(matches!(result, Err(IntelligenceError::Timeout { .. })));
@@ -270,10 +268,7 @@ mod tests {
             Duration::from_millis(1000), // 1 second timeout
         );
 
-        let request = CompletionRequest::new(
-            "mock-gpt-3.5",
-            vec![Message::user("Hello")],
-        );
+        let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("Hello")]);
 
         let result = timeout_provider.complete(request).await;
         assert!(matches!(result, Err(IntelligenceError::Timeout { .. })));
@@ -285,10 +280,7 @@ mod tests {
         let config = TimeoutConfig::strict();
         let timeout_provider = AdvancedTimeoutWrapper::new(mock_provider, config);
 
-        let request = CompletionRequest::new(
-            "mock-gpt-3.5",
-            vec![Message::user("Hello")],
-        );
+        let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("Hello")]);
 
         let result = timeout_provider.complete(request).await;
         assert!(result.is_ok());
@@ -300,10 +292,8 @@ mod tests {
     #[tokio::test]
     async fn test_health_check_timeout() {
         let mock_provider = Arc::new(MockLlmProvider::new().with_delay(3000));
-        let timeout_provider = TimeoutWrapper::with_timeout(
-            mock_provider,
-            Duration::from_millis(1000),
-        );
+        let timeout_provider =
+            TimeoutWrapper::with_timeout(mock_provider, Duration::from_millis(1000));
 
         let result = timeout_provider.health_check().await;
         assert!(matches!(result, Err(IntelligenceError::Timeout { .. })));
@@ -312,10 +302,8 @@ mod tests {
     #[tokio::test]
     async fn test_is_available_timeout() {
         let mock_provider = Arc::new(MockLlmProvider::new().with_delay(3000));
-        let timeout_provider = TimeoutWrapper::with_timeout(
-            mock_provider,
-            Duration::from_millis(1000),
-        );
+        let timeout_provider =
+            TimeoutWrapper::with_timeout(mock_provider, Duration::from_millis(1000));
 
         let available = timeout_provider.is_available().await;
         assert!(!available); // Should be false due to timeout

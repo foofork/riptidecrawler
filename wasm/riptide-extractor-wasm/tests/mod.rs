@@ -1,16 +1,16 @@
 use serde::{Deserialize, Serialize};
-use std::time::Instant;
 use std::fs;
+use std::time::Instant;
 
+pub mod aot_cache;
+pub mod benchmarks;
 /// WASM Extractor Test Suite Module
 ///
 /// This module coordinates all test suites and provides comprehensive validation
 /// of the WASM extractor with golden tests, benchmarks, and integration testing.
 // Re-export test modules
 pub mod golden;
-pub mod benchmarks;
 pub mod memory_limiter;
-pub mod aot_cache;
 // TODO: Create integration module
 // pub mod integration;
 
@@ -149,7 +149,7 @@ fn run_golden_test_category() -> Result<TestCategoryResult, String> {
                 duration_ms: duration,
                 errors: Vec::new(),
             })
-        },
+        }
         Err(e) => {
             let duration = start_time.elapsed().as_secs_f64() * 1000.0;
             let test_cases = golden::get_golden_test_cases();
@@ -179,31 +179,37 @@ fn run_benchmark_category() -> Result<TestCategoryResult, String> {
     match benchmarks::run_performance_benchmarks() {
         Ok(suite) => {
             let duration = start_time.elapsed().as_secs_f64() * 1000.0;
-            let failed_benchmarks = suite.results.iter().filter(|r| r.duration_ms > 1000.0).count(); // > 1s is considered slow
+            let failed_benchmarks = suite
+                .results
+                .iter()
+                .filter(|r| r.duration_ms > 1000.0)
+                .count(); // > 1s is considered slow
 
             Ok(TestCategoryResult {
                 passed: suite.results.len() - failed_benchmarks,
                 failed: failed_benchmarks,
                 total: suite.results.len(),
-                success_rate: (suite.results.len() - failed_benchmarks) as f64 / suite.results.len() as f64,
+                success_rate: (suite.results.len() - failed_benchmarks) as f64
+                    / suite.results.len() as f64,
                 duration_ms: duration,
                 errors: if failed_benchmarks > 0 {
-                    vec![format!("{} benchmarks were slower than expected", failed_benchmarks)]
+                    vec![format!(
+                        "{} benchmarks were slower than expected",
+                        failed_benchmarks
+                    )]
                 } else {
                     Vec::new()
                 },
             })
-        },
-        Err(e) => {
-            Ok(TestCategoryResult {
-                passed: 0,
-                failed: 1,
-                total: 1,
-                success_rate: 0.0,
-                duration_ms: start_time.elapsed().as_secs_f64() * 1000.0,
-                errors: vec![e],
-            })
         }
+        Err(e) => Ok(TestCategoryResult {
+            passed: 0,
+            failed: 1,
+            total: 1,
+            success_rate: 0.0,
+            duration_ms: start_time.elapsed().as_secs_f64() * 1000.0,
+            errors: vec![e],
+        }),
     }
 }
 
@@ -218,7 +224,8 @@ fn run_memory_test_category() -> Result<TestCategoryResult, String> {
             let passed = results.iter().filter(|r| r.success).count();
             let failed = results.len() - passed;
 
-            let errors: Vec<String> = results.iter()
+            let errors: Vec<String> = results
+                .iter()
                 .filter(|r| !r.success)
                 .filter_map(|r| r.error_message.clone())
                 .collect();
@@ -231,17 +238,15 @@ fn run_memory_test_category() -> Result<TestCategoryResult, String> {
                 duration_ms: duration,
                 errors,
             })
-        },
-        Err(e) => {
-            Ok(TestCategoryResult {
-                passed: 0,
-                failed: 1,
-                total: 1,
-                success_rate: 0.0,
-                duration_ms: start_time.elapsed().as_secs_f64() * 1000.0,
-                errors: vec![e],
-            })
         }
+        Err(e) => Ok(TestCategoryResult {
+            passed: 0,
+            failed: 1,
+            total: 1,
+            success_rate: 0.0,
+            duration_ms: start_time.elapsed().as_secs_f64() * 1000.0,
+            errors: vec![e],
+        }),
     }
 }
 
@@ -256,7 +261,8 @@ fn run_cache_test_category() -> Result<TestCategoryResult, String> {
             let passed = results.iter().filter(|r| r.success).count();
             let failed = results.len() - passed;
 
-            let errors: Vec<String> = results.iter()
+            let errors: Vec<String> = results
+                .iter()
                 .filter(|r| !r.success)
                 .filter_map(|r| r.error_message.clone())
                 .collect();
@@ -269,17 +275,15 @@ fn run_cache_test_category() -> Result<TestCategoryResult, String> {
                 duration_ms: duration,
                 errors,
             })
-        },
-        Err(e) => {
-            Ok(TestCategoryResult {
-                passed: 0,
-                failed: 1,
-                total: 1,
-                success_rate: 0.0,
-                duration_ms: start_time.elapsed().as_secs_f64() * 1000.0,
-                errors: vec![e],
-            })
         }
+        Err(e) => Ok(TestCategoryResult {
+            passed: 0,
+            failed: 1,
+            total: 1,
+            success_rate: 0.0,
+            duration_ms: start_time.elapsed().as_secs_f64() * 1000.0,
+            errors: vec![e],
+        }),
     }
 }
 
@@ -346,7 +350,8 @@ fn generate_coverage_report() -> Result<CoverageReport, String> {
     let estimated_branches_covered = 85;
     let estimated_branches_total = 100;
 
-    let coverage_percentage = (estimated_lines_covered as f64 / estimated_lines_total as f64) * 100.0;
+    let coverage_percentage =
+        (estimated_lines_covered as f64 / estimated_lines_total as f64) * 100.0;
 
     Ok(CoverageReport {
         lines_covered: estimated_lines_covered,
@@ -360,7 +365,9 @@ fn generate_coverage_report() -> Result<CoverageReport, String> {
 }
 
 /// Calculate performance summary from test results
-fn calculate_performance_summary(_categories: &[&TestCategoryResult]) -> Result<PerformanceSummary, String> {
+fn calculate_performance_summary(
+    _categories: &[&TestCategoryResult],
+) -> Result<PerformanceSummary, String> {
     // Simulate performance metrics calculation
     Ok(PerformanceSummary {
         average_extraction_time_ms: 15.5, // Based on benchmark results
@@ -444,8 +451,11 @@ fn create_test_data_manifest() -> Result<(), String> {
     });
 
     let manifest_path = "/workspaces/riptide/hive/test-data/manifest.json";
-    fs::write(manifest_path, serde_json::to_string_pretty(&manifest).unwrap())
-        .map_err(|e| format!("Failed to write test manifest: {}", e))?;
+    fs::write(
+        manifest_path,
+        serde_json::to_string_pretty(&manifest).unwrap(),
+    )
+    .map_err(|e| format!("Failed to write test manifest: {}", e))?;
 
     Ok(())
 }
@@ -462,7 +472,8 @@ fn generate_test_reports(results: &TestSuiteResults) -> Result<(), String> {
 
 /// Generate HTML performance report
 fn generate_html_report(results: &TestSuiteResults) -> Result<(), String> {
-    let html_content = format!(r#"
+    let html_content = format!(
+        r#"
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -666,37 +677,43 @@ fn generate_html_report(results: &TestSuiteResults) -> Result<(), String> {
 </html>
     "#,
         results.timestamp,
-        if results.overall_success { "success" } else { "warning" },
-        if results.overall_success { "✅" } else { "⚠️" },
-        if results.overall_success { "PASSED" } else { "NEEDS ATTENTION" },
-
+        if results.overall_success {
+            "success"
+        } else {
+            "warning"
+        },
+        if results.overall_success {
+            "✅"
+        } else {
+            "⚠️"
+        },
+        if results.overall_success {
+            "PASSED"
+        } else {
+            "NEEDS ATTENTION"
+        },
         // Golden tests
         results.golden_tests.success_rate * 100.0,
         results.golden_tests.success_rate * 100.0,
         results.golden_tests.passed,
         results.golden_tests.total,
-
         // Benchmarks
         results.benchmarks.success_rate * 100.0,
         results.benchmarks.success_rate * 100.0,
         results.performance_summary.average_extraction_time_ms,
-
         // Memory tests
         results.memory_tests.success_rate * 100.0,
         results.memory_tests.success_rate * 100.0,
         results.performance_summary.peak_memory_usage_mb,
-
         // Integration tests
         results.integration_tests.success_rate * 100.0,
         results.integration_tests.success_rate * 100.0,
         results.performance_summary.throughput_ops_per_sec,
-
         // Performance summary
         results.performance_summary.average_extraction_time_ms,
         results.performance_summary.peak_memory_usage_mb,
         results.performance_summary.cache_hit_rate * 100.0,
         results.performance_summary.throughput_ops_per_sec,
-
         // Coverage
         results.coverage_report.coverage_percentage,
         results.coverage_report.coverage_percentage,
@@ -704,28 +721,42 @@ fn generate_html_report(results: &TestSuiteResults) -> Result<(), String> {
         results.coverage_report.lines_total,
         results.coverage_report.functions_covered,
         results.coverage_report.functions_total,
-
         // Timeline table
         results.golden_tests.duration_ms,
-        if results.golden_tests.success_rate > 0.95 { "✅ PASSED" } else { "❌ FAILED" },
+        if results.golden_tests.success_rate > 0.95 {
+            "✅ PASSED"
+        } else {
+            "❌ FAILED"
+        },
         results.golden_tests.success_rate * 100.0,
-
         results.benchmarks.duration_ms,
-        if results.benchmarks.success_rate > 0.90 { "✅ PASSED" } else { "❌ FAILED" },
+        if results.benchmarks.success_rate > 0.90 {
+            "✅ PASSED"
+        } else {
+            "❌ FAILED"
+        },
         results.benchmarks.success_rate * 100.0,
-
         results.memory_tests.duration_ms,
-        if results.memory_tests.success_rate > 0.95 { "✅ PASSED" } else { "❌ FAILED" },
+        if results.memory_tests.success_rate > 0.95 {
+            "✅ PASSED"
+        } else {
+            "❌ FAILED"
+        },
         results.memory_tests.success_rate * 100.0,
-
         results.cache_tests.duration_ms,
-        if results.cache_tests.success_rate > 0.90 { "✅ PASSED" } else { "❌ FAILED" },
+        if results.cache_tests.success_rate > 0.90 {
+            "✅ PASSED"
+        } else {
+            "❌ FAILED"
+        },
         results.cache_tests.success_rate * 100.0,
-
         results.integration_tests.duration_ms,
-        if results.integration_tests.success_rate > 0.80 { "✅ PASSED" } else { "❌ FAILED" },
+        if results.integration_tests.success_rate > 0.80 {
+            "✅ PASSED"
+        } else {
+            "❌ FAILED"
+        },
         results.integration_tests.success_rate * 100.0,
-
         // Performance highlights
         results.performance_summary.average_extraction_time_ms,
         results.performance_summary.peak_memory_usage_mb,
@@ -733,7 +764,6 @@ fn generate_html_report(results: &TestSuiteResults) -> Result<(), String> {
         results.performance_summary.cache_hit_rate * 2.5, // Estimated speedup
         results.performance_summary.throughput_ops_per_sec,
         results.performance_summary.memory_growth_rate,
-
         // Recommendations
         generate_recommendations(results)
     );
@@ -759,7 +789,8 @@ fn generate_json_report(results: &TestSuiteResults) -> Result<(), String> {
 
 /// Generate Markdown report for documentation
 fn generate_markdown_report(results: &TestSuiteResults) -> Result<(), String> {
-    let markdown_content = format!(r#"# WASM Extractor Test Suite Report
+    let markdown_content = format!(
+        r#"# WASM Extractor Test Suite Report
 
 **Generated:** {}
 **Duration:** {:.2}s
@@ -820,38 +851,70 @@ fn generate_markdown_report(results: &TestSuiteResults) -> Result<(), String> {
 "#,
         results.timestamp,
         results.total_duration_ms / 1000.0,
-        if results.overall_success { "✅ PASSED" } else { "⚠️ NEEDS ATTENTION" },
-
+        if results.overall_success {
+            "✅ PASSED"
+        } else {
+            "⚠️ NEEDS ATTENTION"
+        },
         // Summary table
-        results.golden_tests.passed, results.golden_tests.failed, results.golden_tests.success_rate * 100.0, results.golden_tests.duration_ms,
-        results.benchmarks.passed, results.benchmarks.failed, results.benchmarks.success_rate * 100.0, results.benchmarks.duration_ms,
-        results.memory_tests.passed, results.memory_tests.failed, results.memory_tests.success_rate * 100.0, results.memory_tests.duration_ms,
-        results.cache_tests.passed, results.cache_tests.failed, results.cache_tests.success_rate * 100.0, results.cache_tests.duration_ms,
-        results.integration_tests.passed, results.integration_tests.failed, results.integration_tests.success_rate * 100.0, results.integration_tests.duration_ms,
-
+        results.golden_tests.passed,
+        results.golden_tests.failed,
+        results.golden_tests.success_rate * 100.0,
+        results.golden_tests.duration_ms,
+        results.benchmarks.passed,
+        results.benchmarks.failed,
+        results.benchmarks.success_rate * 100.0,
+        results.benchmarks.duration_ms,
+        results.memory_tests.passed,
+        results.memory_tests.failed,
+        results.memory_tests.success_rate * 100.0,
+        results.memory_tests.duration_ms,
+        results.cache_tests.passed,
+        results.cache_tests.failed,
+        results.cache_tests.success_rate * 100.0,
+        results.cache_tests.duration_ms,
+        results.integration_tests.passed,
+        results.integration_tests.failed,
+        results.integration_tests.success_rate * 100.0,
+        results.integration_tests.duration_ms,
         // Performance metrics
         results.performance_summary.average_extraction_time_ms,
         results.performance_summary.peak_memory_usage_mb,
         results.performance_summary.throughput_ops_per_sec,
         results.performance_summary.cache_hit_rate * 100.0,
         results.performance_summary.memory_growth_rate,
-
         // Coverage
         results.coverage_report.coverage_percentage,
-        results.coverage_report.lines_covered, results.coverage_report.lines_total,
-        results.coverage_report.functions_covered, results.coverage_report.functions_total,
-        results.coverage_report.branches_covered, results.coverage_report.branches_total,
-
+        results.coverage_report.lines_covered,
+        results.coverage_report.lines_total,
+        results.coverage_report.functions_covered,
+        results.coverage_report.functions_total,
+        results.coverage_report.branches_covered,
+        results.coverage_report.branches_total,
         // Key findings
         generate_strengths_summary(results),
         generate_improvements_summary(results),
-
         // Detailed results
-        format_test_category_details("Golden tests validate extraction accuracy against known-good snapshots", &results.golden_tests),
-        format_test_category_details("Performance benchmarks measure extraction speed and efficiency", &results.benchmarks),
-        format_test_category_details("Memory tests ensure stable resource usage and leak detection", &results.memory_tests),
-        format_test_category_details("Cache tests validate AOT compilation performance improvements", &results.cache_tests),
-        format_test_category_details("Integration tests verify end-to-end functionality and real-world scenarios", &results.integration_tests),
+        format_test_category_details(
+            "Golden tests validate extraction accuracy against known-good snapshots",
+            &results.golden_tests
+        ),
+        format_test_category_details(
+            "Performance benchmarks measure extraction speed and efficiency",
+            &results.benchmarks
+        ),
+        format_test_category_details(
+            "Memory tests ensure stable resource usage and leak detection",
+            &results.memory_tests
+        ),
+        format_test_category_details(
+            "Cache tests validate AOT compilation performance improvements",
+            &results.cache_tests
+        ),
+        format_test_category_details(
+            "Integration tests verify end-to-end functionality and real-world scenarios",
+            &results.integration_tests
+        ),
     );
 
     let report_path = "/workspaces/riptide/reports/last-run/wasm/README.md";
@@ -897,8 +960,11 @@ fn coordinate_with_hive(results: &TestSuiteResults) -> Result<(), String> {
         "recommendations": generate_hive_recommendations(results)
     });
 
-    fs::write(hive_results_path, serde_json::to_string_pretty(&hive_results).unwrap())
-        .map_err(|e| format!("Failed to write hive coordination data: {}", e))?;
+    fs::write(
+        hive_results_path,
+        serde_json::to_string_pretty(&hive_results).unwrap(),
+    )
+    .map_err(|e| format!("Failed to write hive coordination data: {}", e))?;
 
     println!("✅ Test results coordinated with hive system");
     Ok(())
@@ -930,7 +996,8 @@ fn generate_recommendations(results: &TestSuiteResults) -> String {
     }
 
     if recommendations.is_empty() {
-        recommendations.push("<li><strong>Excellent:</strong> All metrics are within acceptable ranges</li>");
+        recommendations
+            .push("<li><strong>Excellent:</strong> All metrics are within acceptable ranges</li>");
     }
 
     recommendations.join("\n                ")
@@ -1014,7 +1081,8 @@ fn generate_hive_recommendations(results: &TestSuiteResults) -> Vec<String> {
     }
 
     if results.performance_summary.throughput_ops_per_sec < 100.0 {
-        recommendations.push("OPTIMIZE: Consider performance tuning for better throughput".to_string());
+        recommendations
+            .push("OPTIMIZE: Consider performance tuning for better throughput".to_string());
     }
 
     recommendations
@@ -1033,33 +1101,58 @@ fn print_final_summary(results: &TestSuiteResults) {
     }
 
     println!("\n📊 Category Results:");
-    println!("  📸 Golden Tests:      {:.1}% ({}/{})",
-             results.golden_tests.success_rate * 100.0,
-             results.golden_tests.passed,
-             results.golden_tests.total);
-    println!("  ⚡ Benchmarks:        {:.1}% ({}/{})",
-             results.benchmarks.success_rate * 100.0,
-             results.benchmarks.passed,
-             results.benchmarks.total);
-    println!("  🧠 Memory Tests:      {:.1}% ({}/{})",
-             results.memory_tests.success_rate * 100.0,
-             results.memory_tests.passed,
-             results.memory_tests.total);
-    println!("  ⚡ Cache Tests:       {:.1}% ({}/{})",
-             results.cache_tests.success_rate * 100.0,
-             results.cache_tests.passed,
-             results.cache_tests.total);
-    println!("  🔗 Integration Tests: {:.1}% ({}/{})",
-             results.integration_tests.success_rate * 100.0,
-             results.integration_tests.passed,
-             results.integration_tests.total);
+    println!(
+        "  📸 Golden Tests:      {:.1}% ({}/{})",
+        results.golden_tests.success_rate * 100.0,
+        results.golden_tests.passed,
+        results.golden_tests.total
+    );
+    println!(
+        "  ⚡ Benchmarks:        {:.1}% ({}/{})",
+        results.benchmarks.success_rate * 100.0,
+        results.benchmarks.passed,
+        results.benchmarks.total
+    );
+    println!(
+        "  🧠 Memory Tests:      {:.1}% ({}/{})",
+        results.memory_tests.success_rate * 100.0,
+        results.memory_tests.passed,
+        results.memory_tests.total
+    );
+    println!(
+        "  ⚡ Cache Tests:       {:.1}% ({}/{})",
+        results.cache_tests.success_rate * 100.0,
+        results.cache_tests.passed,
+        results.cache_tests.total
+    );
+    println!(
+        "  🔗 Integration Tests: {:.1}% ({}/{})",
+        results.integration_tests.success_rate * 100.0,
+        results.integration_tests.passed,
+        results.integration_tests.total
+    );
 
     println!("\n🚀 Performance Highlights:");
-    println!("  ⏱️  Average Extraction: {:.2}ms", results.performance_summary.average_extraction_time_ms);
-    println!("  💾 Peak Memory Usage: {:.1}MB", results.performance_summary.peak_memory_usage_mb);
-    println!("  🔄 Throughput: {:.1} ops/sec", results.performance_summary.throughput_ops_per_sec);
-    println!("  📊 Cache Hit Rate: {:.1}%", results.performance_summary.cache_hit_rate * 100.0);
-    println!("  📈 Coverage: {:.1}%", results.coverage_report.coverage_percentage);
+    println!(
+        "  ⏱️  Average Extraction: {:.2}ms",
+        results.performance_summary.average_extraction_time_ms
+    );
+    println!(
+        "  💾 Peak Memory Usage: {:.1}MB",
+        results.performance_summary.peak_memory_usage_mb
+    );
+    println!(
+        "  🔄 Throughput: {:.1} ops/sec",
+        results.performance_summary.throughput_ops_per_sec
+    );
+    println!(
+        "  📊 Cache Hit Rate: {:.1}%",
+        results.performance_summary.cache_hit_rate * 100.0
+    );
+    println!(
+        "  📈 Coverage: {:.1}%",
+        results.coverage_report.coverage_percentage
+    );
 
     println!("\n📋 Reports Generated:");
     println!("  🌐 HTML Report: /reports/last-run/wasm/index.html");
@@ -1070,12 +1163,17 @@ fn print_final_summary(results: &TestSuiteResults) {
     println!("  🐝 Hive Results: /hive/test-results/wasm-extractor.json");
     println!("  📊 Test Data: /hive/test-data/manifest.json");
 
-    println!("\n⏱️  Total Duration: {:.2}s", results.total_duration_ms / 1000.0);
+    println!(
+        "\n⏱️  Total Duration: {:.2}s",
+        results.total_duration_ms / 1000.0
+    );
 
     if results.overall_success {
         println!("\n✨ CONGRATULATIONS! All tests passed - WASM extractor is production ready! 🚀");
     } else {
-        println!("\n🔧 Please review failed tests and address issues before production deployment.");
+        println!(
+            "\n🔧 Please review failed tests and address issues before production deployment."
+        );
     }
 }
 
@@ -1153,7 +1251,8 @@ mod test_suite_tests {
         assert!(json.contains("golden_tests"));
 
         // Test deserialization
-        let _deserialized: TestSuiteResults = serde_json::from_str(&json).expect("Should deserialize");
+        let _deserialized: TestSuiteResults =
+            serde_json::from_str(&json).expect("Should deserialize");
     }
 
     #[test]

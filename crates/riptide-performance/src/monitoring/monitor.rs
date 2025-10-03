@@ -9,7 +9,7 @@ use crate::{PerformanceError, PerformanceMetrics, PerformanceTargets, Result};
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tokio::sync::{RwLock, watch};
+use tokio::sync::{watch, RwLock};
 use tracing::{debug, info, warn};
 use uuid::Uuid;
 
@@ -99,14 +99,17 @@ impl PerformanceMonitor {
         let mut is_monitoring = self.is_monitoring.write().await;
         if !*is_monitoring {
             warn!(session_id = %self.session_id, "Performance monitoring not running");
-            return Err(PerformanceError::MonitoringError("Monitoring not running".to_string()));
+            return Err(PerformanceError::MonitoringError(
+                "Monitoring not running".to_string(),
+            ));
         }
 
         info!(session_id = %self.session_id, "Stopping performance monitoring");
 
         *is_monitoring = false;
 
-        let monitoring_duration = self.start_time
+        let monitoring_duration = self
+            .start_time
             .map(|start| start.elapsed())
             .unwrap_or_default();
 
@@ -187,7 +190,10 @@ impl PerformanceMonitor {
             }
         }
 
-        Err(PerformanceError::MonitoringError(format!("Alert {} not found", alert_id)))
+        Err(PerformanceError::MonitoringError(format!(
+            "Alert {} not found",
+            alert_id
+        )))
     }
 
     /// Start background monitoring tasks
@@ -259,7 +265,13 @@ impl PerformanceMonitor {
                 while *alert_task_monitoring.read().await {
                     if let Ok(system_metrics) = Self::collect_system_metrics_impl().await {
                         if let Ok(app_metrics) = Self::collect_application_metrics_impl().await {
-                            let alerts = Self::check_thresholds(&targets, &config, &system_metrics, &app_metrics).await;
+                            let alerts = Self::check_thresholds(
+                                &targets,
+                                &config,
+                                &system_metrics,
+                                &app_metrics,
+                            )
+                            .await;
 
                             for alert in alerts {
                                 let mut active_alerts_guard = active_alerts.write().await;
@@ -346,8 +358,10 @@ impl PerformanceMonitor {
         let mut alerts = Vec::new();
 
         // Memory threshold checks
-        let memory_warning_threshold = targets.memory_alert_mb as f64 * config.alert_multipliers.warning;
-        let memory_critical_threshold = targets.memory_alert_mb as f64 * config.alert_multipliers.critical;
+        let memory_warning_threshold =
+            targets.memory_alert_mb as f64 * config.alert_multipliers.warning;
+        let memory_critical_threshold =
+            targets.memory_alert_mb as f64 * config.alert_multipliers.critical;
 
         if system_metrics.memory_rss_mb > memory_critical_threshold {
             alerts.push(PerformanceAlert {
@@ -380,8 +394,10 @@ impl PerformanceMonitor {
         }
 
         // Latency threshold checks
-        let latency_warning_threshold = targets.p95_latency_ms as f64 * config.alert_multipliers.warning;
-        let latency_critical_threshold = targets.p95_latency_ms as f64 * config.alert_multipliers.critical;
+        let latency_warning_threshold =
+            targets.p95_latency_ms as f64 * config.alert_multipliers.warning;
+        let latency_critical_threshold =
+            targets.p95_latency_ms as f64 * config.alert_multipliers.critical;
 
         if app_metrics.p95_response_time_ms > latency_critical_threshold {
             alerts.push(PerformanceAlert {
@@ -499,16 +515,22 @@ impl PerformanceMonitor {
     }
 
     /// Generate comprehensive monitoring report
-    async fn generate_monitoring_report(&self, monitoring_duration: Duration) -> Result<MonitoringReport> {
+    async fn generate_monitoring_report(
+        &self,
+        monitoring_duration: Duration,
+    ) -> Result<MonitoringReport> {
         let current_metrics = self.get_current_metrics().await?;
-        let alerts: Vec<PerformanceAlert> = self.active_alerts.read().await.values().cloned().collect();
+        let alerts: Vec<PerformanceAlert> =
+            self.active_alerts.read().await.values().cloned().collect();
 
         // Generate system summary
         let system_summary = self.generate_system_summary().await?;
         let application_summary = self.generate_application_summary().await?;
 
         // Generate recommendations
-        let recommendations = self.generate_monitoring_recommendations(&current_metrics, &alerts).await?;
+        let recommendations = self
+            .generate_monitoring_recommendations(&current_metrics, &alerts)
+            .await?;
 
         let system_metrics = self.system_metrics.read().await;
         let total_samples = system_metrics.len();
@@ -550,15 +572,20 @@ impl PerformanceMonitor {
         let avg_memory_mb = memory_values.iter().sum::<f64>() / memory_values.len() as f64;
         let peak_memory_mb = memory_values.iter().fold(0.0_f64, |max, &val| max.max(val));
 
-        let total_disk_io_mb = metrics.iter()
+        let total_disk_io_mb = metrics
+            .iter()
             .map(|m| m.disk_read_mbps + m.disk_write_mbps)
             .sum::<f64>();
 
-        let total_network_io_mb = metrics.iter()
+        let total_network_io_mb = metrics
+            .iter()
             .map(|m| m.network_in_mbps + m.network_out_mbps)
             .sum::<f64>();
 
-        let uptime = self.start_time.map(|start| start.elapsed()).unwrap_or_default();
+        let uptime = self
+            .start_time
+            .map(|start| start.elapsed())
+            .unwrap_or_default();
 
         Ok(SystemSummary {
             avg_cpu_usage,
@@ -603,16 +630,13 @@ impl PerformanceMonitor {
         let p95_latency_ms = p95_values.iter().sum::<f64>() / p95_values.len() as f64;
         let p99_latency_ms = p95_latency_ms * 1.2; // Estimate P99 as 1.2x P95
 
-        let peak_concurrent_requests = metrics.iter()
-            .map(|m| m.active_requests)
-            .max()
-            .unwrap_or(0);
+        let peak_concurrent_requests = metrics.iter().map(|m| m.active_requests).max().unwrap_or(0);
 
-        let cache_efficiency = metrics.iter()
-            .map(|m| m.cache_hit_rate)
-            .sum::<f64>() / metrics.len() as f64;
+        let cache_efficiency =
+            metrics.iter().map(|m| m.cache_hit_rate).sum::<f64>() / metrics.len() as f64;
 
-        let ai_processing_efficiency = 100.0 - (latest.ai_avg_processing_time_ms / latest.avg_response_time_ms * 100.0).min(100.0);
+        let ai_processing_efficiency = 100.0
+            - (latest.ai_avg_processing_time_ms / latest.avg_response_time_ms * 100.0).min(100.0);
 
         Ok(ApplicationSummary {
             total_requests_processed,
@@ -635,8 +659,14 @@ impl PerformanceMonitor {
         let mut recommendations = Vec::new();
 
         // Alert-based recommendations
-        let critical_alerts = alerts.iter().filter(|a| a.severity == AlertSeverity::Critical).count();
-        let warning_alerts = alerts.iter().filter(|a| a.severity == AlertSeverity::Warning).count();
+        let critical_alerts = alerts
+            .iter()
+            .filter(|a| a.severity == AlertSeverity::Critical)
+            .count();
+        let warning_alerts = alerts
+            .iter()
+            .filter(|a| a.severity == AlertSeverity::Warning)
+            .count();
 
         if critical_alerts > 0 {
             recommendations.push(format!(
@@ -659,10 +689,12 @@ impl PerformanceMonitor {
                     recommendations.push("Consider implementing memory pooling or increasing garbage collection frequency".to_string());
                 }
                 "p95_latency" => {
-                    recommendations.push("Investigate slow queries or implement response caching".to_string());
+                    recommendations
+                        .push("Investigate slow queries or implement response caching".to_string());
                 }
                 "cpu_usage" => {
-                    recommendations.push("Consider horizontal scaling or CPU optimization".to_string());
+                    recommendations
+                        .push("Consider horizontal scaling or CPU optimization".to_string());
                 }
                 _ => {}
             }
@@ -695,7 +727,7 @@ impl PerformanceMonitor {
 
         if system_metrics_vec.is_empty() || app_metrics_vec.is_empty() {
             return Err(PerformanceError::MonitoringError(
-                "Insufficient metrics data for bottleneck analysis".to_string()
+                "Insufficient metrics data for bottleneck analysis".to_string(),
             ));
         }
 
@@ -709,7 +741,9 @@ impl PerformanceMonitor {
         let io_bottlenecks = self.analyze_io_bottlenecks(&system_metrics_vec).await?;
 
         // Analyze application-level bottlenecks
-        let app_bottlenecks = self.analyze_application_bottlenecks(&app_metrics_vec).await?;
+        let app_bottlenecks = self
+            .analyze_application_bottlenecks(&app_metrics_vec)
+            .await?;
 
         // Combine all bottlenecks
         let mut all_bottlenecks = Vec::new();
@@ -720,12 +754,17 @@ impl PerformanceMonitor {
 
         // Sort by severity (highest impact first)
         all_bottlenecks.sort_by(|a, b| {
-            b.severity.cmp(&a.severity)
-                .then_with(|| b.percentage_of_total.partial_cmp(&a.percentage_of_total).unwrap())
+            b.severity.cmp(&a.severity).then_with(|| {
+                b.percentage_of_total
+                    .partial_cmp(&a.percentage_of_total)
+                    .unwrap()
+            })
         });
 
         // Generate recommendations
-        let recommendations = self.generate_bottleneck_recommendations(&all_bottlenecks).await?;
+        let recommendations = self
+            .generate_bottleneck_recommendations(&all_bottlenecks)
+            .await?;
 
         let analysis_time = start_time.elapsed();
 
@@ -746,17 +785,18 @@ impl PerformanceMonitor {
     /// Analyze CPU-bound bottlenecks
     pub(crate) async fn analyze_cpu_bottlenecks(
         &self,
-        metrics: &VecDeque<SystemMetrics>
+        metrics: &VecDeque<SystemMetrics>,
     ) -> Result<Vec<Bottleneck>> {
         let mut bottlenecks = Vec::new();
 
         // Calculate average CPU usage
-        let avg_cpu: f64 = metrics.iter().map(|m| m.cpu_usage_percent).sum::<f64>()
-            / metrics.len() as f64;
+        let avg_cpu: f64 =
+            metrics.iter().map(|m| m.cpu_usage_percent).sum::<f64>() / metrics.len() as f64;
 
         // Detect sustained high CPU usage (>80%)
         if avg_cpu > 80.0 {
-            let high_cpu_count = metrics.iter()
+            let high_cpu_count = metrics
+                .iter()
                 .filter(|m| m.cpu_usage_percent > 80.0)
                 .count() as u64;
 
@@ -778,8 +818,8 @@ impl PerformanceMonitor {
         }
 
         // Analyze thread contention (high thread count with high CPU)
-        let avg_threads: f64 = metrics.iter().map(|m| m.thread_count as f64).sum::<f64>()
-            / metrics.len() as f64;
+        let avg_threads: f64 =
+            metrics.iter().map(|m| m.thread_count as f64).sum::<f64>() / metrics.len() as f64;
 
         if avg_threads > 100.0 && avg_cpu > 60.0 {
             bottlenecks.push(Bottleneck {
@@ -797,7 +837,7 @@ impl PerformanceMonitor {
     /// Analyze memory bottlenecks
     pub(crate) async fn analyze_memory_bottlenecks(
         &self,
-        metrics: &VecDeque<SystemMetrics>
+        metrics: &VecDeque<SystemMetrics>,
     ) -> Result<Vec<Bottleneck>> {
         let mut bottlenecks = Vec::new();
 
@@ -832,8 +872,8 @@ impl PerformanceMonitor {
         }
 
         // Detect high memory usage
-        let avg_memory: f64 = metrics.iter().map(|m| m.memory_rss_mb).sum::<f64>()
-            / metrics.len() as f64;
+        let avg_memory: f64 =
+            metrics.iter().map(|m| m.memory_rss_mb).sum::<f64>() / metrics.len() as f64;
 
         if avg_memory > 550.0 {
             bottlenecks.push(Bottleneck {
@@ -851,15 +891,15 @@ impl PerformanceMonitor {
     /// Analyze I/O bottlenecks
     pub(crate) async fn analyze_io_bottlenecks(
         &self,
-        metrics: &VecDeque<SystemMetrics>
+        metrics: &VecDeque<SystemMetrics>,
     ) -> Result<Vec<Bottleneck>> {
         let mut bottlenecks = Vec::new();
 
         // Calculate average I/O rates
-        let avg_disk_read: f64 = metrics.iter().map(|m| m.disk_read_mbps).sum::<f64>()
-            / metrics.len() as f64;
-        let avg_disk_write: f64 = metrics.iter().map(|m| m.disk_write_mbps).sum::<f64>()
-            / metrics.len() as f64;
+        let avg_disk_read: f64 =
+            metrics.iter().map(|m| m.disk_read_mbps).sum::<f64>() / metrics.len() as f64;
+        let avg_disk_write: f64 =
+            metrics.iter().map(|m| m.disk_write_mbps).sum::<f64>() / metrics.len() as f64;
 
         // Detect disk I/O bottlenecks
         if avg_disk_read > 100.0 || avg_disk_write > 100.0 {
@@ -878,9 +918,11 @@ impl PerformanceMonitor {
         }
 
         // Analyze network I/O
-        let avg_network: f64 = metrics.iter()
+        let avg_network: f64 = metrics
+            .iter()
             .map(|m| m.network_in_mbps + m.network_out_mbps)
-            .sum::<f64>() / metrics.len() as f64;
+            .sum::<f64>()
+            / metrics.len() as f64;
 
         if avg_network > 150.0 {
             bottlenecks.push(Bottleneck {
@@ -898,13 +940,13 @@ impl PerformanceMonitor {
     /// Analyze application-level bottlenecks
     pub(crate) async fn analyze_application_bottlenecks(
         &self,
-        metrics: &VecDeque<ApplicationMetrics>
+        metrics: &VecDeque<ApplicationMetrics>,
     ) -> Result<Vec<Bottleneck>> {
         let mut bottlenecks = Vec::new();
 
         // Analyze response time bottlenecks
-        let avg_p95: f64 = metrics.iter().map(|m| m.p95_response_time_ms).sum::<f64>()
-            / metrics.len() as f64;
+        let avg_p95: f64 =
+            metrics.iter().map(|m| m.p95_response_time_ms).sum::<f64>() / metrics.len() as f64;
 
         if avg_p95 > 2000.0 {
             bottlenecks.push(Bottleneck {
@@ -925,10 +967,13 @@ impl PerformanceMonitor {
         }
 
         // Analyze AI processing bottlenecks
-        let avg_ai_time: f64 = metrics.iter().map(|m| m.ai_avg_processing_time_ms).sum::<f64>()
+        let avg_ai_time: f64 = metrics
+            .iter()
+            .map(|m| m.ai_avg_processing_time_ms)
+            .sum::<f64>()
             / metrics.len() as f64;
-        let avg_response: f64 = metrics.iter().map(|m| m.avg_response_time_ms).sum::<f64>()
-            / metrics.len() as f64;
+        let avg_response: f64 =
+            metrics.iter().map(|m| m.avg_response_time_ms).sum::<f64>() / metrics.len() as f64;
 
         let ai_percentage = if avg_response > 0.0 {
             (avg_ai_time / avg_response) * 100.0
@@ -955,8 +1000,8 @@ impl PerformanceMonitor {
         }
 
         // Analyze cache efficiency
-        let avg_cache_hit: f64 = metrics.iter().map(|m| m.cache_hit_rate).sum::<f64>()
-            / metrics.len() as f64;
+        let avg_cache_hit: f64 =
+            metrics.iter().map(|m| m.cache_hit_rate).sum::<f64>() / metrics.len() as f64;
 
         if avg_cache_hit < 0.7 {
             bottlenecks.push(Bottleneck {
@@ -974,7 +1019,7 @@ impl PerformanceMonitor {
     /// Generate actionable recommendations based on bottlenecks
     async fn generate_bottleneck_recommendations(
         &self,
-        bottlenecks: &[Bottleneck]
+        bottlenecks: &[Bottleneck],
     ) -> Result<Vec<String>> {
         let mut recommendations = Vec::new();
 
@@ -991,7 +1036,7 @@ impl PerformanceMonitor {
                             "HIGH: CPU usage elevated - Investigate hot paths and consider async processing for CPU-intensive tasks".to_string()
                         );
                     }
-                },
+                }
                 loc if loc.contains("Memory") => {
                     if loc.contains("Leak") {
                         recommendations.push(
@@ -1003,52 +1048,53 @@ impl PerformanceMonitor {
                             bottleneck.percentage_of_total * 6.0
                         ));
                     }
-                },
+                }
                 loc if loc.contains("Thread Contention") => {
                     recommendations.push(
                         "MEDIUM: Thread contention detected - Review lock usage, consider lock-free data structures, or reduce thread count".to_string()
                     );
-                },
+                }
                 loc if loc.contains("Disk I/O") => {
                     recommendations.push(
                         "HIGH: Disk I/O bottleneck - Implement caching, use SSD storage, batch I/O operations, or optimize read/write patterns".to_string()
                     );
-                },
+                }
                 loc if loc.contains("Network I/O") => {
                     recommendations.push(
                         "MEDIUM: Network I/O bottleneck - Implement request batching, connection pooling, or CDN usage".to_string()
                     );
-                },
+                }
                 loc if loc.contains("P95 Latency") || loc.contains("Request Processing") => {
                     recommendations.push(format!(
                         "HIGH: Request latency at {:.0}ms - Optimize database queries, implement caching, or review slow endpoints",
                         bottleneck.time_spent.as_millis()
                     ));
-                },
+                }
                 loc if loc.contains("AI Processing") => {
                     recommendations.push(format!(
                         "HIGH: AI processing consuming {:.1}% of response time - Implement result caching, batch processing, or async AI calls",
                         bottleneck.percentage_of_total
                     ));
-                },
+                }
                 loc if loc.contains("Cache Inefficiency") => {
                     recommendations.push(format!(
                         "MEDIUM: Cache hit rate at {:.1}% - Increase cache size, optimize cache keys, or implement cache warming",
                         100.0 - bottleneck.percentage_of_total
                     ));
-                },
+                }
                 _ => {
                     recommendations.push(format!(
                         "Investigate bottleneck in {} ({:.1}% impact)",
-                        bottleneck.location,
-                        bottleneck.percentage_of_total
+                        bottleneck.location, bottleneck.percentage_of_total
                     ));
                 }
             }
         }
 
         if bottlenecks.is_empty() {
-            recommendations.push("No significant bottlenecks detected. System performance is optimal.".to_string());
+            recommendations.push(
+                "No significant bottlenecks detected. System performance is optimal.".to_string(),
+            );
         } else {
             recommendations.push(format!(
                 "Total bottlenecks identified: {}. Prioritize addressing Critical and High severity issues first.",

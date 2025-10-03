@@ -55,8 +55,12 @@ pub struct TableExtractionOptions {
     pub headers_only: bool,
 }
 
-fn default_true() -> bool { true }
-fn default_max_nesting() -> usize { 3 }
+fn default_true() -> bool {
+    true
+}
+fn default_max_nesting() -> usize {
+    3
+}
 
 /// Response for table extraction
 #[derive(Serialize, Debug)]
@@ -118,13 +122,14 @@ pub struct ExportQuery {
 
 /// In-memory storage for extracted tables (temporary)
 /// In production, this would be replaced with Redis or database storage
-static TABLE_STORAGE: std::sync::OnceLock<Arc<tokio::sync::Mutex<HashMap<String, AdvancedTableData>>>> =
-    std::sync::OnceLock::new();
+static TABLE_STORAGE: std::sync::OnceLock<
+    Arc<tokio::sync::Mutex<HashMap<String, AdvancedTableData>>>,
+> = std::sync::OnceLock::new();
 
 fn get_table_storage() -> Arc<tokio::sync::Mutex<HashMap<String, AdvancedTableData>>> {
-    TABLE_STORAGE.get_or_init(|| {
-        Arc::new(tokio::sync::Mutex::new(HashMap::new()))
-    }).clone()
+    TABLE_STORAGE
+        .get_or_init(|| Arc::new(tokio::sync::Mutex::new(HashMap::new())))
+        .clone()
 }
 
 /// Extract tables from HTML content
@@ -153,11 +158,15 @@ pub async fn extract_tables(
 
     // Validate input
     if request.html_content.trim().is_empty() {
-        return Err(ApiError::validation("HTML content cannot be empty".to_string()));
+        return Err(ApiError::validation(
+            "HTML content cannot be empty".to_string(),
+        ));
     }
 
     if request.html_content.len() > 10_000_000 {
-        return Err(ApiError::validation("HTML content too large (max 10MB)".to_string()));
+        return Err(ApiError::validation(
+            "HTML content too large (max 10MB)".to_string(),
+        ));
     }
 
     // Configure extraction options
@@ -179,13 +188,11 @@ pub async fn extract_tables(
     );
 
     // Extract tables using riptide-html
-    let tables = extract_tables_advanced(&request.html_content, Some(config)).await
+    let tables = extract_tables_advanced(&request.html_content, Some(config))
+        .await
         .map_err(|e| ApiError::internal(format!("Table extraction failed: {}", e)))?;
 
-    info!(
-        tables_found = tables.len(),
-        "Table extraction completed"
-    );
+    info!(tables_found = tables.len(), "Table extraction completed");
 
     // Store tables temporarily for export and create summaries
     let storage = get_table_storage();
@@ -197,12 +204,17 @@ pub async fn extract_tables(
         let export_id = Uuid::new_v4().to_string();
 
         // Create table summary
-        let headers: Vec<String> = table.headers.main.iter()
+        let headers: Vec<String> = table
+            .headers
+            .main
+            .iter()
             .map(|cell| cell.content.clone())
             .collect();
 
         // Get sample data (first 3 rows)
-        let sample_data: Vec<Vec<String>> = table.rows.iter()
+        let sample_data: Vec<Vec<String>> = table
+            .rows
+            .iter()
             .take(3)
             .map(|row| row.cells.iter().map(|cell| cell.content.clone()).collect())
             .collect();
@@ -287,17 +299,18 @@ pub async fn export_table(
     // Validate format
     if !["csv", "markdown"].contains(&params.format.as_str()) {
         return Err(ApiError::validation(
-            "Format must be 'csv' or 'markdown'".to_string()
+            "Format must be 'csv' or 'markdown'".to_string(),
         ));
     }
 
     // Retrieve table from storage
     let storage = get_table_storage();
     let storage_guard = storage.lock().await;
-    let table = storage_guard.get(&table_id)
-        .ok_or_else(|| ApiError::not_found(
-            format!("Table with ID '{}' not found or expired", table_id)
-        ))?
+    let table = storage_guard
+        .get(&table_id)
+        .ok_or_else(|| {
+            ApiError::not_found(format!("Table with ID '{}' not found or expired", table_id))
+        })?
         .clone();
     drop(storage_guard);
 
@@ -312,15 +325,17 @@ pub async fn export_table(
     // Export based on format
     let (content, content_type) = match params.format.as_str() {
         "csv" => {
-            let csv_content = table.to_csv(params.include_headers)
+            let csv_content = table
+                .to_csv(params.include_headers)
                 .map_err(|e| ApiError::internal(format!("CSV export failed: {}", e)))?;
             (csv_content, "text/csv")
-        },
+        }
         "markdown" => {
-            let md_content = table.to_markdown(params.include_metadata)
+            let md_content = table
+                .to_markdown(params.include_metadata)
                 .map_err(|e| ApiError::internal(format!("Markdown export failed: {}", e)))?;
             (md_content, "text/markdown")
-        },
+        }
         _ => unreachable!("Format validation should prevent this"),
     };
 
@@ -353,7 +368,8 @@ pub async fn export_table(
             (axum::http::header::CONTENT_DISPOSITION, disposition),
         ],
         content,
-    ).into_response())
+    )
+        .into_response())
 }
 
 /// Detect column data types from table data (simplified implementation)
@@ -370,7 +386,8 @@ fn detect_column_types(table: &AdvancedTableData) -> Vec<String> {
         let mut sample_values = Vec::new();
 
         // Collect sample values from this column
-        for row in table.rows.iter().take(10) { // Sample first 10 rows
+        for row in table.rows.iter().take(10) {
+            // Sample first 10 rows
             if let Some(cell) = row.cells.get(col_index) {
                 sample_values.push(&cell.content);
             }
@@ -426,7 +443,8 @@ fn detect_type_from_samples(samples: &[&String]) -> String {
         "boolean"
     } else {
         "string"
-    }.to_string()
+    }
+    .to_string()
 }
 
 /// Simple date detection (basic patterns)
@@ -435,10 +453,10 @@ fn is_date_like(text: &str) -> bool {
     use regex::Regex;
 
     let date_patterns = [
-        r"\d{4}-\d{2}-\d{2}",        // YYYY-MM-DD
-        r"\d{2}/\d{2}/\d{4}",        // MM/DD/YYYY
-        r"\d{2}-\d{2}-\d{4}",        // MM-DD-YYYY
-        r"\d{1,2}/\d{1,2}/\d{2,4}",  // M/D/YY or MM/DD/YYYY
+        r"\d{4}-\d{2}-\d{2}",       // YYYY-MM-DD
+        r"\d{2}/\d{2}/\d{4}",       // MM/DD/YYYY
+        r"\d{2}-\d{2}-\d{4}",       // MM-DD-YYYY
+        r"\d{1,2}/\d{1,2}/\d{2,4}", // M/D/YY or MM/DD/YYYY
     ];
 
     for pattern in &date_patterns {
@@ -477,11 +495,19 @@ mod tests {
         assert_eq!(detect_type_from_samples(&numeric_samples), "number");
 
         // Test string detection
-        let string_samples = vec![&"hello".to_string(), &"world".to_string(), &"test".to_string()];
+        let string_samples = vec![
+            &"hello".to_string(),
+            &"world".to_string(),
+            &"test".to_string(),
+        ];
         assert_eq!(detect_type_from_samples(&string_samples), "string");
 
         // Test boolean detection
-        let boolean_samples = vec![&"true".to_string(), &"false".to_string(), &"yes".to_string()];
+        let boolean_samples = vec![
+            &"true".to_string(),
+            &"false".to_string(),
+            &"yes".to_string(),
+        ];
         assert_eq!(detect_type_from_samples(&boolean_samples), "boolean");
 
         // Test empty samples

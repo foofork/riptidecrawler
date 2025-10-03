@@ -82,47 +82,70 @@ impl Default for CacheMetrics {
 impl CacheMetrics {
     /// Create new cache metrics instance
     pub fn new() -> Self {
-        let hits = Counter::with_opts(
-            Opts::new("riptide_cache_hits_total", "Total cache hits")
-        ).expect("Failed to create hits counter");
+        let hits = Counter::with_opts(Opts::new("riptide_cache_hits_total", "Total cache hits"))
+            .expect("Failed to create hits counter");
 
-        let misses = Counter::with_opts(
-            Opts::new("riptide_cache_misses_total", "Total cache misses")
-        ).expect("Failed to create misses counter");
+        let misses = Counter::with_opts(Opts::new(
+            "riptide_cache_misses_total",
+            "Total cache misses",
+        ))
+        .expect("Failed to create misses counter");
 
-        let sets = Counter::with_opts(
-            Opts::new("riptide_cache_sets_total", "Total cache sets")
-        ).expect("Failed to create sets counter");
+        let sets = Counter::with_opts(Opts::new("riptide_cache_sets_total", "Total cache sets"))
+            .expect("Failed to create sets counter");
 
-        let deletes = Counter::with_opts(
-            Opts::new("riptide_cache_deletes_total", "Total cache deletes")
-        ).expect("Failed to create deletes counter");
+        let deletes = Counter::with_opts(Opts::new(
+            "riptide_cache_deletes_total",
+            "Total cache deletes",
+        ))
+        .expect("Failed to create deletes counter");
 
         let access_time = Histogram::with_opts(
-            HistogramOpts::new("riptide_cache_access_duration_microseconds", "Cache access time")
-                .buckets(vec![100.0, 500.0, 1000.0, 2000.0, 5000.0, 10000.0, 20000.0, 50000.0])
-        ).expect("Failed to create access time histogram");
+            HistogramOpts::new(
+                "riptide_cache_access_duration_microseconds",
+                "Cache access time",
+            )
+            .buckets(vec![
+                100.0, 500.0, 1000.0, 2000.0, 5000.0, 10000.0, 20000.0, 50000.0,
+            ]),
+        )
+        .expect("Failed to create access time histogram");
 
         let entry_size = Histogram::with_opts(
-            HistogramOpts::new("riptide_cache_entry_size_bytes", "Cache entry size")
-                .buckets(vec![1024.0, 10240.0, 102400.0, 1048576.0, 10485760.0, 104857600.0])
-        ).expect("Failed to create entry size histogram");
+            HistogramOpts::new("riptide_cache_entry_size_bytes", "Cache entry size").buckets(vec![
+                1024.0,
+                10240.0,
+                102400.0,
+                1048576.0,
+                10485760.0,
+                104857600.0,
+            ]),
+        )
+        .expect("Failed to create entry size histogram");
 
-        let memory_usage = Gauge::with_opts(
-            Opts::new("riptide_cache_memory_usage_bytes", "Cache memory usage")
-        ).expect("Failed to create memory usage gauge");
+        let memory_usage = Gauge::with_opts(Opts::new(
+            "riptide_cache_memory_usage_bytes",
+            "Cache memory usage",
+        ))
+        .expect("Failed to create memory usage gauge");
 
-        let active_connections = Gauge::with_opts(
-            Opts::new("riptide_cache_active_connections", "Active Redis connections")
-        ).expect("Failed to create connections gauge");
+        let active_connections = Gauge::with_opts(Opts::new(
+            "riptide_cache_active_connections",
+            "Active Redis connections",
+        ))
+        .expect("Failed to create connections gauge");
 
-        let errors = Counter::with_opts(
-            Opts::new("riptide_cache_errors_total", "Total cache errors")
-        ).expect("Failed to create errors counter");
+        let errors = Counter::with_opts(Opts::new(
+            "riptide_cache_errors_total",
+            "Total cache errors",
+        ))
+        .expect("Failed to create errors counter");
 
-        let compression_ratio = Gauge::with_opts(
-            Opts::new("riptide_cache_compression_ratio", "Average compression ratio")
-        ).expect("Failed to create compression ratio gauge");
+        let compression_ratio = Gauge::with_opts(Opts::new(
+            "riptide_cache_compression_ratio",
+            "Average compression ratio",
+        ))
+        .expect("Failed to create compression ratio gauge");
 
         Self {
             hits,
@@ -169,7 +192,10 @@ impl CacheMetrics {
             stats.access_times.drain(0..100);
         }
 
-        debug!(access_time_us = access_time.as_micros(), "Cache hit recorded");
+        debug!(
+            access_time_us = access_time.as_micros(),
+            "Cache hit recorded"
+        );
     }
 
     /// Record cache miss
@@ -385,43 +411,58 @@ impl TenantMetrics {
 
         // Operations counter
         let ops_counter = Counter::with_opts(
-            Opts::new("riptide_tenant_operations_total", "Total operations per tenant")
-                .const_label("tenant_id", &tenant_label)
+            Opts::new(
+                "riptide_tenant_operations_total",
+                "Total operations per tenant",
+            )
+            .const_label("tenant_id", &tenant_label),
         )?;
         self.registry.register(Box::new(ops_counter.clone()))?;
         self.operations.insert(tenant_id.to_string(), ops_counter);
 
         // Memory usage gauge
         let memory_gauge = Gauge::with_opts(
-            Opts::new("riptide_tenant_memory_usage_bytes", "Memory usage per tenant")
-                .const_label("tenant_id", &tenant_label)
+            Opts::new(
+                "riptide_tenant_memory_usage_bytes",
+                "Memory usage per tenant",
+            )
+            .const_label("tenant_id", &tenant_label),
         )?;
         self.registry.register(Box::new(memory_gauge.clone()))?;
-        self.memory_usage.insert(tenant_id.to_string(), memory_gauge);
+        self.memory_usage
+            .insert(tenant_id.to_string(), memory_gauge);
 
         // Data transfer counter
         let transfer_counter = Counter::with_opts(
-            Opts::new("riptide_tenant_data_transfer_bytes", "Data transfer per tenant")
-                .const_label("tenant_id", &tenant_label)
+            Opts::new(
+                "riptide_tenant_data_transfer_bytes",
+                "Data transfer per tenant",
+            )
+            .const_label("tenant_id", &tenant_label),
         )?;
         self.registry.register(Box::new(transfer_counter.clone()))?;
-        self.data_transfer.insert(tenant_id.to_string(), transfer_counter);
+        self.data_transfer
+            .insert(tenant_id.to_string(), transfer_counter);
 
         // Error counter
         let error_counter = Counter::with_opts(
             Opts::new("riptide_tenant_errors_total", "Errors per tenant")
-                .const_label("tenant_id", &tenant_label)
+                .const_label("tenant_id", &tenant_label),
         )?;
         self.registry.register(Box::new(error_counter.clone()))?;
         self.errors.insert(tenant_id.to_string(), error_counter);
 
         // Active sessions gauge
         let sessions_gauge = Gauge::with_opts(
-            Opts::new("riptide_tenant_active_sessions", "Active sessions per tenant")
-                .const_label("tenant_id", &tenant_label)
+            Opts::new(
+                "riptide_tenant_active_sessions",
+                "Active sessions per tenant",
+            )
+            .const_label("tenant_id", &tenant_label),
         )?;
         self.registry.register(Box::new(sessions_gauge.clone()))?;
-        self.active_sessions.insert(tenant_id.to_string(), sessions_gauge);
+        self.active_sessions
+            .insert(tenant_id.to_string(), sessions_gauge);
 
         debug!(tenant_id = tenant_id, "Tenant metrics registered");
         Ok(())
@@ -515,24 +556,25 @@ pub struct SystemMetrics {
 
 impl SystemMetrics {
     pub fn new(registry: &Registry) -> Result<Self, prometheus::Error> {
-        let uptime = Gauge::with_opts(
-            Opts::new("riptide_system_uptime_seconds", "System uptime")
-        )?;
+        let uptime = Gauge::with_opts(Opts::new("riptide_system_uptime_seconds", "System uptime"))?;
         registry.register(Box::new(uptime.clone()))?;
 
-        let config_reloads = Counter::with_opts(
-            Opts::new("riptide_config_reloads_total", "Configuration reloads")
-        )?;
+        let config_reloads = Counter::with_opts(Opts::new(
+            "riptide_config_reloads_total",
+            "Configuration reloads",
+        ))?;
         registry.register(Box::new(config_reloads.clone()))?;
 
-        let checkpoints = Counter::with_opts(
-            Opts::new("riptide_checkpoints_total", "Checkpoint operations")
-        )?;
+        let checkpoints = Counter::with_opts(Opts::new(
+            "riptide_checkpoints_total",
+            "Checkpoint operations",
+        ))?;
         registry.register(Box::new(checkpoints.clone()))?;
 
-        let sync_operations = Counter::with_opts(
-            Opts::new("riptide_sync_operations_total", "Distributed sync operations")
-        )?;
+        let sync_operations = Counter::with_opts(Opts::new(
+            "riptide_sync_operations_total",
+            "Distributed sync operations",
+        ))?;
         registry.register(Box::new(sync_operations.clone()))?;
 
         Ok(Self {

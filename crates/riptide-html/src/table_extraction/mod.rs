@@ -30,18 +30,18 @@
 //! # }
 //! ```
 
-pub mod models;
-pub mod extractor;
 pub mod export;
+pub mod extractor;
+pub mod models;
 
 // Re-export main public API
-pub use models::{
-    TableExtractionConfig, AdvancedTableData, TableCell, TableMetadata,
-    TableExtractionError, TableHeaders, TableRow, TableStructure,
-    CellType, RowType, CellPosition, ColumnGroup
-};
+pub use export::{CsvExporter, MarkdownExporter, NdjsonExporter, TableArtifact, TableExporter};
 pub use extractor::TableExtractor;
-pub use export::{TableExporter, CsvExporter, MarkdownExporter, NdjsonExporter, TableArtifact};
+pub use models::{
+    AdvancedTableData, CellPosition, CellType, ColumnGroup, RowType, TableCell,
+    TableExtractionConfig, TableExtractionError, TableHeaders, TableMetadata, TableRow,
+    TableStructure,
+};
 
 use anyhow::Result;
 
@@ -163,11 +163,15 @@ mod tests {
         assert_eq!(tables.len(), 2);
 
         // Find the outer table (should have nested_tables)
-        let outer_table = tables.iter().find(|t| !t.nested_tables.is_empty())
+        let outer_table = tables
+            .iter()
+            .find(|t| !t.nested_tables.is_empty())
             .expect("Should find outer table with nested tables");
 
         // Find the inner table (should be standalone)
-        let inner_table = tables.iter().find(|t| t.nested_tables.is_empty() && t.id != outer_table.id)
+        let inner_table = tables
+            .iter()
+            .find(|t| t.nested_tables.is_empty() && t.id != outer_table.id)
             .expect("Should find inner table");
 
         // Verify nested table detection worked

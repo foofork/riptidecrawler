@@ -12,26 +12,38 @@ use std::time::Duration;
 use tokio::time::sleep;
 
 use riptide_intelligence::{
-    // Core types
-    LlmRegistry, ProviderConfig, CompletionRequest, Message,
-
+    CompletionRequest,
     // Configuration system
-    ConfigLoader, IntelligenceConfig, TenantLimits, TenantIsolationConfig, CostTrackingConfig,
+    ConfigLoader,
+    CostTrackingConfig,
 
+    DashboardGenerator,
+    FailoverConfig,
+    FailoverManager,
     // Health monitoring and failover
-    HealthMonitorBuilder, FailoverManager, FailoverConfig, ProviderPriority,
+    HealthMonitorBuilder,
+    HotReloadConfig,
+
+    // Hot reload
+    HotReloadManager,
+    IntelligenceConfig,
+    // Core types
+    LlmRegistry,
+    Message,
 
     // Metrics and dashboards
-    MetricsCollector, DashboardGenerator, TimeWindow,
+    MetricsCollector,
+    // Mock provider for this example
+    MockLlmProvider,
+    ProviderConfig,
+    ProviderPriority,
 
+    TenantIsolationConfig,
     // Tenant isolation
     TenantIsolationManager,
 
-    // Hot reload
-    HotReloadManager, HotReloadConfig,
-
-    // Mock provider for this example
-    MockLlmProvider,
+    TenantLimits,
+    TimeWindow,
 };
 
 #[tokio::main]
@@ -45,7 +57,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 1. Configuration-Driven Provider Loading
     println!("\n📋 1. Configuration-Driven Provider Loading");
     let config = setup_configuration().await?;
-    println!("✅ Loaded configuration with {} providers", config.providers.len());
+    println!(
+        "✅ Loaded configuration with {} providers",
+        config.providers.len()
+    );
 
     // 2. Set up provider registry with factories
     println!("\n🏭 2. Setting up Provider Registry");
@@ -54,7 +69,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Load providers from configuration
     registry.load_providers(config.providers.clone())?;
-    println!("✅ Registered {} providers", registry.list_providers().len());
+    println!(
+        "✅ Registered {} providers",
+        registry.list_providers().len()
+    );
 
     // 3. Health Monitoring System
     println!("\n🩺 3. Setting up Health Monitoring");
@@ -63,13 +81,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .with_interval(Duration::from_secs(10))
             .with_timeout(Duration::from_secs(5))
             .with_failure_threshold(3)
-            .build()
+            .build(),
     );
 
     // Add providers to health monitor
     for provider_name in registry.list_providers() {
         if let Some(provider) = registry.get_provider(&provider_name) {
-            health_monitor.add_provider(provider_name.clone(), provider).await;
+            health_monitor
+                .add_provider(provider_name.clone(), provider)
+                .await;
         }
     }
 
@@ -88,7 +108,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ..Default::default()
     };
 
-    let (failover_manager, mut failover_events) = FailoverManager::new(failover_config, health_monitor.clone());
+    let (failover_manager, mut failover_events) =
+        FailoverManager::new(failover_config, health_monitor.clone());
 
     // Add providers with priorities
     setup_failover_priorities(&failover_manager, &registry).await?;
@@ -114,14 +135,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🎭 8. Demonstrating Multi-Provider System");
 
     // Initialize tenant
-    tenant_isolation.initialize_tenant("demo_tenant".to_string(), Some(TenantLimits {
-        max_requests_per_minute: 60,
-        max_tokens_per_minute: 10000,
-        max_cost_per_hour: 5.0,
-        max_concurrent_requests: 10,
-        allowed_models: Some(vec!["gpt-4".to_string(), "claude-3".to_string()]),
-        priority: 100,
-    })).await?;
+    tenant_isolation
+        .initialize_tenant(
+            "demo_tenant".to_string(),
+            Some(TenantLimits {
+                max_requests_per_minute: 60,
+                max_tokens_per_minute: 10000,
+                max_cost_per_hour: 5.0,
+                max_concurrent_requests: 10,
+                allowed_models: Some(vec!["gpt-4".to_string(), "claude-3".to_string()]),
+                priority: 100,
+            }),
+        )
+        .await?;
 
     // Make some requests with tenant isolation
     for i in 1..=5 {
@@ -129,16 +155,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let request = CompletionRequest::new(
             "gpt-4",
-            vec![Message::user(format!("Test request {} from demo tenant", i))],
+            vec![Message::user(format!(
+                "Test request {} from demo tenant",
+                i
+            ))],
         );
 
         // Check if request is allowed for tenant
-        match tenant_isolation.check_request_allowed("demo_tenant", &request, 0.02).await {
+        match tenant_isolation
+            .check_request_allowed("demo_tenant", &request, 0.02)
+            .await
+        {
             Ok(permit) => {
                 println!("    ✅ Request approved for demo_tenant");
 
                 // Record the request in metrics
-                let request_id = metrics_collector.start_request(&request, "primary", Some("demo_tenant".to_string())).await;
+                let request_id = metrics_collector
+                    .start_request(&request, "primary", Some("demo_tenant".to_string()))
+                    .await;
 
                 // Execute request through failover system
                 match failover_manager.complete_with_failover(request).await {
@@ -146,18 +180,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         println!("    ✅ Request completed successfully");
 
                         // Record success
-                        metrics_collector.complete_request_success(
-                            request_id,
-                            &response,
-                            Some(riptide_intelligence::Cost::new(0.01, 0.01, "USD"))
-                        ).await;
+                        metrics_collector
+                            .complete_request_success(
+                                request_id,
+                                &response,
+                                Some(riptide_intelligence::Cost::new(0.01, 0.01, "USD")),
+                            )
+                            .await;
 
                         // Record completion for tenant
-                        tenant_isolation.record_request_completion(permit, Some(&response), 0.02).await;
+                        tenant_isolation
+                            .record_request_completion(permit, Some(&response), 0.02)
+                            .await;
                     }
                     Err(e) => {
                         println!("    ❌ Request failed: {}", e);
-                        metrics_collector.complete_request_error(request_id, "failover_error", &e.to_string()).await;
+                        metrics_collector
+                            .complete_request_error(request_id, "failover_error", &e.to_string())
+                            .await;
                     }
                 }
             }
@@ -171,11 +211,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 9. Generate Enhanced Dashboard
     println!("\n📈 9. Generating Enhanced Dashboard");
-    let dashboard = dashboard_generator.generate_enhanced_dashboard(TimeWindow::LastHour).await;
+    let dashboard = dashboard_generator
+        .generate_enhanced_dashboard(TimeWindow::LastHour)
+        .await;
 
     println!("  Dashboard Summary:");
-    println!("    Total Requests: {}", dashboard.overall_metrics.request_count);
-    println!("    Success Rate: {:.1}%", dashboard.overall_metrics.success_rate);
+    println!(
+        "    Total Requests: {}",
+        dashboard.overall_metrics.request_count
+    );
+    println!(
+        "    Success Rate: {:.1}%",
+        dashboard.overall_metrics.success_rate
+    );
     println!("    Total Cost: ${:.4}", dashboard.cost_analysis.total_cost);
     println!("    Providers: {}", dashboard.provider_metrics.len());
     println!("    Tenants: {}", dashboard.tenant_metrics.len());
@@ -189,7 +237,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("    Requests: {}", tenant_cost.requests);
         println!("    Tokens: {}", tenant_cost.tokens);
         println!("    Cost per Token: ${:.6}", tenant_cost.cost_per_token);
-        println!("    Budget Utilization: {:.1}%", tenant_cost.budget_utilization_percent);
+        println!(
+            "    Budget Utilization: {:.1}%",
+            tenant_cost.budget_utilization_percent
+        );
     }
 
     // 10. Monitor failover events
@@ -246,10 +297,16 @@ async fn setup_configuration() -> Result<IntelligenceConfig, Box<dyn std::error:
                 .with_config("api_key", serde_json::Value::String("demo-key".to_string()))
                 .with_fallback_order(1),
             ProviderConfig::new("secondary", "mock")
-                .with_config("api_key", serde_json::Value::String("demo-key-2".to_string()))
+                .with_config(
+                    "api_key",
+                    serde_json::Value::String("demo-key-2".to_string()),
+                )
                 .with_fallback_order(2),
             ProviderConfig::new("tertiary", "mock")
-                .with_config("api_key", serde_json::Value::String("demo-key-3".to_string()))
+                .with_config(
+                    "api_key",
+                    serde_json::Value::String("demo-key-3".to_string()),
+                )
                 .with_fallback_order(3),
         ];
     }
@@ -258,7 +315,9 @@ async fn setup_configuration() -> Result<IntelligenceConfig, Box<dyn std::error:
 }
 
 /// Set up provider factories
-async fn setup_provider_factories(registry: &LlmRegistry) -> Result<(), Box<dyn std::error::Error>> {
+async fn setup_provider_factories(
+    registry: &LlmRegistry,
+) -> Result<(), Box<dyn std::error::Error>> {
     // Register mock factory for demonstration
     registry.register_factory("mock", |config| {
         let provider = MockLlmProvider::with_name(&config.name);
@@ -276,7 +335,7 @@ async fn setup_provider_factories(registry: &LlmRegistry) -> Result<(), Box<dyn 
 /// Set up failover priorities for providers
 async fn setup_failover_priorities(
     failover_manager: &FailoverManager,
-    registry: &LlmRegistry
+    registry: &LlmRegistry,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let provider_names = registry.list_providers();
 
@@ -302,16 +361,20 @@ async fn setup_tenant_isolation() -> Result<TenantIsolationManager, Box<dyn std:
     let tenant_config = TenantIsolationConfig {
         enabled: true,
         strict_isolation: true,
-        per_tenant_limits: [
-            ("demo_tenant".to_string(), TenantLimits {
+        per_tenant_limits: [(
+            "demo_tenant".to_string(),
+            TenantLimits {
                 max_requests_per_minute: 60,
                 max_tokens_per_minute: 10000,
                 max_cost_per_hour: 5.0,
                 max_concurrent_requests: 10,
                 allowed_models: Some(vec!["gpt-4".to_string(), "claude-3".to_string()]),
                 priority: 100,
-            })
-        ].iter().cloned().collect(),
+            },
+        )]
+        .iter()
+        .cloned()
+        .collect(),
         default_limits: TenantLimits::default(),
         tenant_provider_mapping: std::collections::HashMap::new(),
     };
@@ -324,15 +387,16 @@ async fn setup_tenant_isolation() -> Result<TenantIsolationManager, Box<dyn std:
 
 /// Set up dashboard generator with cost tracking
 async fn setup_dashboard_generator(
-    metrics_collector: &Arc<MetricsCollector>
+    metrics_collector: &Arc<MetricsCollector>,
 ) -> Result<DashboardGenerator, Box<dyn std::error::Error>> {
     let cost_config = CostTrackingConfig {
         enabled: true,
         detailed_tracking: true,
         cost_alerts_enabled: true,
-        per_tenant_budgets: [
-            ("demo_tenant".to_string(), 10.0),
-        ].iter().cloned().collect(),
+        per_tenant_budgets: [("demo_tenant".to_string(), 10.0)]
+            .iter()
+            .cloned()
+            .collect(),
         billing_period_days: 30,
         currency: "USD".to_string(),
         cost_optimization_enabled: true,
@@ -345,7 +409,7 @@ async fn setup_dashboard_generator(
 
 /// Set up hot-reload system
 async fn setup_hot_reload(
-    registry: &Arc<LlmRegistry>
+    registry: &Arc<LlmRegistry>,
 ) -> Result<HotReloadManager, Box<dyn std::error::Error>> {
     let hot_reload_config = HotReloadConfig {
         enabled: true,

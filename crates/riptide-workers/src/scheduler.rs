@@ -46,14 +46,9 @@ pub struct ScheduledJob {
 
 impl ScheduledJob {
     /// Create a new scheduled job
-    pub fn new(
-        name: String,
-        cron_expression: String,
-        job_template: JobType,
-    ) -> Result<Self> {
+    pub fn new(name: String, cron_expression: String, job_template: JobType) -> Result<Self> {
         // Validate cron expression
-        Schedule::from_str(&cron_expression)
-            .context("Invalid cron expression")?;
+        Schedule::from_str(&cron_expression).context("Invalid cron expression")?;
 
         let mut scheduled_job = Self {
             id: Uuid::new_v4(),
@@ -79,8 +74,8 @@ impl ScheduledJob {
 
     /// Update the next execution time based on cron expression
     pub fn update_next_execution(&mut self) -> Result<()> {
-        let schedule = Schedule::from_str(&self.cron_expression)
-            .context("Failed to parse cron expression")?;
+        let schedule =
+            Schedule::from_str(&self.cron_expression).context("Failed to parse cron expression")?;
 
         // Get next execution time from now
         if let Some(next_time) = schedule.upcoming(Utc).next() {
@@ -194,7 +189,8 @@ impl JobScheduler {
         let redis_client = if config.persist_schedules && redis_url.is_some() {
             let client = redis::Client::open(redis_url.unwrap())
                 .context("Failed to create Redis client for scheduler")?;
-            let connection = client.get_multiplexed_async_connection()
+            let connection = client
+                .get_multiplexed_async_connection()
                 .await
                 .context("Failed to connect to Redis for scheduler")?;
             Some(Arc::new(tokio::sync::Mutex::new(connection)))
@@ -262,7 +258,8 @@ impl JobScheduler {
         // Persist if Redis is available
         if let Some(ref redis_client) = self.redis_client {
             let mut conn = redis_client.lock().await;
-            self.persist_scheduled_job(&scheduled_job, &mut conn).await?;
+            self.persist_scheduled_job(&scheduled_job, &mut conn)
+                .await?;
         }
 
         self.scheduled_jobs.insert(job_id, scheduled_job);
@@ -308,7 +305,8 @@ impl JobScheduler {
         // Persist if Redis is available
         if let Some(ref redis_client) = self.redis_client {
             let mut conn = redis_client.lock().await;
-            self.persist_scheduled_job(&scheduled_job, &mut conn).await?;
+            self.persist_scheduled_job(&scheduled_job, &mut conn)
+                .await?;
         }
 
         self.scheduled_jobs.insert(job_id, scheduled_job);
@@ -318,7 +316,9 @@ impl JobScheduler {
 
     /// Get a scheduled job by ID
     pub fn get_scheduled_job(&self, job_id: Uuid) -> Option<ScheduledJob> {
-        self.scheduled_jobs.get(&job_id).map(|entry| entry.value().clone())
+        self.scheduled_jobs
+            .get(&job_id)
+            .map(|entry| entry.value().clone())
     }
 
     /// List all scheduled jobs
@@ -431,7 +431,9 @@ impl JobScheduler {
                             // Persist updated schedule if Redis is available
                             if let Some(ref redis_client) = self.redis_client {
                                 let mut conn = redis_client.lock().await;
-                                if let Err(e) = self.persist_scheduled_job(schedule, &mut conn).await {
+                                if let Err(e) =
+                                    self.persist_scheduled_job(schedule, &mut conn).await
+                                {
                                     warn!(
                                         schedule_id = %schedule_id,
                                         error = %e,
@@ -464,8 +466,8 @@ impl JobScheduler {
         use redis::AsyncCommands;
 
         let key = format!("{}:schedule:{}", self.config.redis_prefix, scheduled_job.id);
-        let data = serde_json::to_string(scheduled_job)
-            .context("Failed to serialize scheduled job")?;
+        let data =
+            serde_json::to_string(scheduled_job).context("Failed to serialize scheduled job")?;
 
         redis_client
             .hset::<_, _, _, ()>(&key, "data", data)

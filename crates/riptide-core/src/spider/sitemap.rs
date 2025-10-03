@@ -1,4 +1,3 @@
-
 use crate::spider::types::{CrawlRequest, Priority, SitemapConfig};
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
@@ -37,7 +36,7 @@ impl SitemapParser {
         Self {
             config,
             client,
-            cache: HashSet::new()
+            cache: HashSet::new(),
         }
     }
 
@@ -45,7 +44,8 @@ impl SitemapParser {
     pub async fn parse_sitemap(&self, sitemap_url: &str) -> Result<Vec<SitemapEntry>> {
         debug!("Parsing sitemap: {}", sitemap_url);
 
-        let response = self.client
+        let response = self
+            .client
             .get(sitemap_url)
             .send()
             .await
@@ -134,7 +134,10 @@ impl SitemapParser {
             // Try common sitemap locations
             let common_locations = vec![
                 format!("{}/sitemap.xml", base_url.origin().ascii_serialization()),
-                format!("{}/sitemap_index.xml", base_url.origin().ascii_serialization()),
+                format!(
+                    "{}/sitemap_index.xml",
+                    base_url.origin().ascii_serialization()
+                ),
                 format!("{}/sitemaps.xml", base_url.origin().ascii_serialization()),
             ];
 
@@ -203,7 +206,11 @@ impl SitemapParser {
 
             match self.parse_sitemap(&sitemap_url).await {
                 Ok(entries) => {
-                    debug!("Parsed {} entries from sitemap: {}", entries.len(), sitemap_url);
+                    debug!(
+                        "Parsed {} entries from sitemap: {}",
+                        entries.len(),
+                        sitemap_url
+                    );
                     all_entries.extend(entries);
                     // Add to cache after successful parsing
                     self.cache.insert(sitemap_url);
@@ -221,13 +228,19 @@ impl SitemapParser {
             seen_urls.insert(url_str)
         });
 
-        info!("Discovered and parsed {} unique URLs from sitemaps", all_entries.len());
+        info!(
+            "Discovered and parsed {} unique URLs from sitemaps",
+            all_entries.len()
+        );
         Ok(all_entries)
     }
 
     /// Convert sitemap entries to crawl requests with appropriate priority and metadata
     pub fn urls_to_crawl_requests(&self, entries: Vec<SitemapEntry>) -> Vec<CrawlRequest> {
-        debug!("Converting {} sitemap entries to crawl requests", entries.len());
+        debug!(
+            "Converting {} sitemap entries to crawl requests",
+            entries.len()
+        );
 
         entries
             .into_iter()
@@ -247,24 +260,17 @@ impl SitemapParser {
 
                 // Add sitemap-specific metadata
                 if let Some(last_mod) = entry.last_modified {
-                    request = request.with_metadata(
-                        "sitemap_lastmod".to_string(),
-                        last_mod.to_rfc3339(),
-                    );
+                    request =
+                        request.with_metadata("sitemap_lastmod".to_string(), last_mod.to_rfc3339());
                 }
 
                 if let Some(change_freq) = entry.change_frequency {
-                    request = request.with_metadata(
-                        "sitemap_changefreq".to_string(),
-                        change_freq,
-                    );
+                    request = request.with_metadata("sitemap_changefreq".to_string(), change_freq);
                 }
 
                 if let Some(priority_val) = entry.priority {
-                    request = request.with_metadata(
-                        "sitemap_priority".to_string(),
-                        priority_val.to_string(),
-                    );
+                    request = request
+                        .with_metadata("sitemap_priority".to_string(), priority_val.to_string());
                 }
 
                 // Add score based on priority for best-first strategy

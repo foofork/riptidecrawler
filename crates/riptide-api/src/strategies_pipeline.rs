@@ -5,11 +5,10 @@ use riptide_core::{
     fetch,
     gate::{decide, score, Decision, GateFeatures},
     pdf::{self, utils as pdf_utils},
-    types::{CrawlOptions, RenderMode},
     strategies::{
-        StrategyManager, StrategyConfig, ExtractionStrategy,
-        ProcessedContent, PerformanceMetrics,
+        ExtractionStrategy, PerformanceMetrics, ProcessedContent, StrategyConfig, StrategyManager,
     },
+    types::{CrawlOptions, RenderMode},
 };
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
@@ -129,7 +128,9 @@ impl StrategiesPipelineOrchestrator {
         if pdf_utils::is_pdf_content(content_type.as_deref(), &content_bytes)
             || matches!(self.options.render_mode, RenderMode::Pdf)
         {
-            return self.process_pdf_pipeline(url, &content_bytes, start_time, cache_key, http_status).await;
+            return self
+                .process_pdf_pipeline(url, &content_bytes, start_time, cache_key, http_status)
+                .await;
         }
 
         // Convert to HTML string
@@ -148,7 +149,8 @@ impl StrategiesPipelineOrchestrator {
             Decision::Raw => "raw",
             Decision::ProbesFirst => "probes_first",
             Decision::Headless => "headless",
-        }.to_string();
+        }
+        .to_string();
 
         info!(
             url = %url,
@@ -166,20 +168,30 @@ impl StrategiesPipelineOrchestrator {
                 match self.extract_with_headless(url).await {
                     Ok(rendered_html) => {
                         // Use strategies on rendered content
-                        strategy_manager.extract_content(&rendered_html, url).await
-                            .map_err(|e| ApiError::pipeline(format!("Strategy processing failed: {}", e)))?
+                        strategy_manager
+                            .extract_content(&rendered_html, url)
+                            .await
+                            .map_err(|e| {
+                                ApiError::pipeline(format!("Strategy processing failed: {}", e))
+                            })?
                     }
                     Err(e) => {
                         warn!(url = %url, error = %e, "Headless rendering failed, using direct strategies");
                         // Fallback to processing original HTML with strategies
-                        strategy_manager.extract_content(&html_content, url).await
-                            .map_err(|e| ApiError::pipeline(format!("Strategy processing failed: {}", e)))?
+                        strategy_manager
+                            .extract_content(&html_content, url)
+                            .await
+                            .map_err(|e| {
+                                ApiError::pipeline(format!("Strategy processing failed: {}", e))
+                            })?
                     }
                 }
             }
             _ => {
                 // Use strategies directly on HTML content
-                strategy_manager.extract_content(&html_content, url).await
+                strategy_manager
+                    .extract_content(&html_content, url)
+                    .await
                     .map_err(|e| ApiError::pipeline(format!("Strategy processing failed: {}", e)))?
             }
         };
@@ -233,7 +245,9 @@ impl StrategiesPipelineOrchestrator {
         );
 
         let processor = pdf::create_pdf_processor();
-        let extracted_doc = processor.process_pdf_bytes(pdf_bytes).await
+        let extracted_doc = processor
+            .process_pdf_bytes(pdf_bytes)
+            .await
             .map_err(|e| ApiError::pipeline(format!("PDF processing failed: {}", e)))?;
 
         // Convert PDF extracted doc to strategies format
@@ -245,7 +259,9 @@ impl StrategiesPipelineOrchestrator {
 
         // Process through strategies
         let mut strategy_manager = StrategyManager::new(self.strategy_config.clone());
-        let processed_content = strategy_manager.extract_content(&pdf_html, url).await
+        let processed_content = strategy_manager
+            .extract_content(&pdf_html, url)
+            .await
             .map_err(|e| ApiError::pipeline(format!("PDF strategy processing failed: {}", e)))?;
 
         // Cache the result
@@ -309,7 +325,12 @@ impl StrategiesPipelineOrchestrator {
 
         let content_bytes = timeout(fetch_timeout, response.bytes())
             .await
-            .map_err(|_| ApiError::timeout("content_read", format!("Timeout reading content from {}", url)))?
+            .map_err(|_| {
+                ApiError::timeout(
+                    "content_read",
+                    format!("Timeout reading content from {}", url),
+                )
+            })?
             .map_err(|e| ApiError::fetch(url, format!("Failed to read response body: {}", e)))?
             .to_vec();
 
@@ -329,7 +350,8 @@ impl StrategiesPipelineOrchestrator {
         let visible_text_chars = html.chars().filter(|c| !c.is_control()).count();
 
         let p_count = html.matches("<p").count() as u32;
-        let article_count = html.matches("<article").count() as u32 + html.matches("<main").count() as u32;
+        let article_count =
+            html.matches("<article").count() as u32 + html.matches("<main").count() as u32;
         let h1h2_count = html.matches("<h1").count() as u32 + html.matches("<h2").count() as u32;
 
         let script_bytes = html
@@ -343,13 +365,22 @@ impl StrategiesPipelineOrchestrator {
             .sum::<usize>();
 
         let has_og = html.contains("property=\"og:") || html.contains("property='og:");
-        let has_jsonld_article = html.contains("\"@type\":\"Article\"") || html.contains("'@type':'Article'");
+        let has_jsonld_article =
+            html.contains("\"@type\":\"Article\"") || html.contains("'@type':'Article'");
 
         let mut spa_markers = 0u8;
-        if html.contains("__NEXT_DATA__") { spa_markers += 1; }
-        if html.contains("data-reactroot") || html.contains("data-react-helmet") { spa_markers += 1; }
-        if html.contains("id=\"root\"") && html.matches("<div").count() > 20 { spa_markers += 1; }
-        if script_bytes > html_bytes / 2 { spa_markers += 1; }
+        if html.contains("__NEXT_DATA__") {
+            spa_markers += 1;
+        }
+        if html.contains("data-reactroot") || html.contains("data-react-helmet") {
+            spa_markers += 1;
+        }
+        if html.contains("id=\"root\"") && html.matches("<div").count() > 20 {
+            spa_markers += 1;
+        }
+        if script_bytes > html_bytes / 2 {
+            spa_markers += 1;
+        }
 
         let domain_prior = match parsed_url.host_str() {
             Some(host) => {
@@ -464,20 +495,44 @@ impl StrategiesPipelineOrchestrator {
 /// Create GitHub-specific CSS selectors
 fn create_github_selectors() -> std::collections::HashMap<String, String> {
     let mut selectors = std::collections::HashMap::new();
-    selectors.insert("title".to_string(), "h1.entry-title, .js-issue-title, .repository-content h1".to_string());
-    selectors.insert("content".to_string(), ".entry-content, .markdown-body, .comment-body".to_string());
-    selectors.insert("author".to_string(), ".author, .commit-author, .discussion-item-header a".to_string());
-    selectors.insert("date".to_string(), "time, .commit-date, relative-time".to_string());
+    selectors.insert(
+        "title".to_string(),
+        "h1.entry-title, .js-issue-title, .repository-content h1".to_string(),
+    );
+    selectors.insert(
+        "content".to_string(),
+        ".entry-content, .markdown-body, .comment-body".to_string(),
+    );
+    selectors.insert(
+        "author".to_string(),
+        ".author, .commit-author, .discussion-item-header a".to_string(),
+    );
+    selectors.insert(
+        "date".to_string(),
+        "time, .commit-date, relative-time".to_string(),
+    );
     selectors
 }
 
 /// Create blog-specific CSS selectors
 fn create_blog_selectors() -> std::collections::HashMap<String, String> {
     let mut selectors = std::collections::HashMap::new();
-    selectors.insert("title".to_string(), "h1, .entry-title, .post-title, [data-testid='storyTitle']".to_string());
-    selectors.insert("content".to_string(), ".entry-content, .post-content, .story-content, article".to_string());
-    selectors.insert("author".to_string(), ".author, .byline, .writer, [data-testid='authorName']".to_string());
-    selectors.insert("date".to_string(), "time, .date, .published, [data-testid='storyPublishDate']".to_string());
+    selectors.insert(
+        "title".to_string(),
+        "h1, .entry-title, .post-title, [data-testid='storyTitle']".to_string(),
+    );
+    selectors.insert(
+        "content".to_string(),
+        ".entry-content, .post-content, .story-content, article".to_string(),
+    );
+    selectors.insert(
+        "author".to_string(),
+        ".author, .byline, .writer, [data-testid='authorName']".to_string(),
+    );
+    selectors.insert(
+        "date".to_string(),
+        "time, .date, .published, [data-testid='storyPublishDate']".to_string(),
+    );
     selectors
 }
 

@@ -43,40 +43,39 @@ async fn main() -> anyhow::Result<()> {
 */
 
 pub mod cache;
-pub mod state;
-pub mod tenant;
 pub mod config;
 pub mod errors;
 pub mod metrics;
+pub mod state;
 pub mod sync;
+pub mod tenant;
 
 pub use cache::{
-    PersistentCacheManager, CacheEntry, CacheMetadata,
-    CacheStats, CacheWarmer, DistributedCache, CompressionInfo
+    CacheEntry, CacheMetadata, CacheStats, CacheWarmer, CompressionInfo, DistributedCache,
+    PersistentCacheManager,
 };
 
 pub use state::{
-    StateManager, SessionState, ConfigurationManager, CheckpointManager,
-    Checkpoint, StateSnapshot, HotReloadWatcher
+    Checkpoint, CheckpointManager, ConfigurationManager, HotReloadWatcher, SessionState,
+    StateManager, StateSnapshot,
 };
 
 pub use tenant::{
-    TenantManager, ResourceUsage, ResourceUsageRecord, TenantSummary,
-    BillingTracker, SecurityBoundary, TenantContext, TenantOwner, BillingPlan
+    BillingPlan, BillingTracker, ResourceUsage, ResourceUsageRecord, SecurityBoundary,
+    TenantContext, TenantManager, TenantOwner, TenantSummary,
 };
 
 pub use config::{
-    PersistenceConfig, RedisConfig, DistributedConfig,
-    PerformanceConfig, SecurityConfig
+    DistributedConfig, PerformanceConfig, PersistenceConfig, RedisConfig, SecurityConfig,
 };
 
 pub use errors::{PersistenceError, PersistenceResult};
-pub use metrics::{PersistenceMetrics, PerformanceMetrics};
-pub use sync::{DistributedSync, ConsensusManager, LeaderElection};
+pub use metrics::{PerformanceMetrics, PersistenceMetrics};
+pub use sync::{ConsensusManager, DistributedSync, LeaderElection};
 
 // Re-export commonly used types
-pub use redis::{RedisError, ConnectionInfo};
 pub use chrono::{DateTime, Utc};
+pub use redis::{ConnectionInfo, RedisError};
 pub use uuid::Uuid;
 
 /// Current version of the persistence layer

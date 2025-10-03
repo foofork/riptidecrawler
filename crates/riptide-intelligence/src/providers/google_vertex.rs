@@ -7,8 +7,8 @@ use std::collections::HashMap;
 use tracing::{debug, info};
 
 use crate::{
-    LlmProvider, CompletionRequest, CompletionResponse, LlmCapabilities, Cost, ModelInfo,
-    IntelligenceError, Result, Role, Usage,
+    CompletionRequest, CompletionResponse, Cost, IntelligenceError, LlmCapabilities, LlmProvider,
+    ModelInfo, Result, Role, Usage,
 };
 
 /// Vertex AI API response structure
@@ -105,7 +105,9 @@ impl VertexAIProvider {
         let client = Client::builder()
             .timeout(std::time::Duration::from_secs(60))
             .build()
-            .map_err(|e| IntelligenceError::Configuration(format!("Failed to create HTTP client: {}", e)))?;
+            .map_err(|e| {
+                IntelligenceError::Configuration(format!("Failed to create HTTP client: {}", e))
+            })?;
 
         let mut model_costs = HashMap::new();
         // Vertex AI pricing (approximate, varies by region)
@@ -140,7 +142,9 @@ impl VertexAIProvider {
     }
 
     fn build_vertex_request(&self, request: &CompletionRequest) -> VertexRequest {
-        let contents = request.messages.iter()
+        let contents = request
+            .messages
+            .iter()
             .map(|msg| VertexContentRequest {
                 role: Self::convert_role_to_vertex(&msg.role),
                 parts: vec![VertexPartRequest {
@@ -149,8 +153,11 @@ impl VertexAIProvider {
             })
             .collect();
 
-        let generation_config = if request.temperature.is_some() || request.top_p.is_some() ||
-                                   request.max_tokens.is_some() || request.stop.is_some() {
+        let generation_config = if request.temperature.is_some()
+            || request.top_p.is_some()
+            || request.max_tokens.is_some()
+            || request.stop.is_some()
+        {
             Some(VertexGenerationConfig {
                 temperature: request.temperature,
                 top_p: request.top_p,
@@ -202,7 +209,8 @@ impl VertexAIProvider {
     where
         T: for<'de> Deserialize<'de>,
     {
-        let mut request_builder = self.client
+        let mut request_builder = self
+            .client
             .post(url)
             .header("Content-Type", "application/json");
 
@@ -217,12 +225,19 @@ impl VertexAIProvider {
             .map_err(|e| IntelligenceError::Network(format!("Request failed: {}", e)))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await
+            let error_text = response
+                .text()
+                .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(IntelligenceError::Provider(format!("Vertex AI API error: {}", error_text)));
+            return Err(IntelligenceError::Provider(format!(
+                "Vertex AI API error: {}",
+                error_text
+            )));
         }
 
-        let result = response.json::<T>().await
+        let result = response
+            .json::<T>()
+            .await
             .map_err(|e| IntelligenceError::Provider(format!("Failed to parse response: {}", e)))?;
 
         Ok(result)
@@ -232,16 +247,23 @@ impl VertexAIProvider {
 #[async_trait]
 impl LlmProvider for VertexAIProvider {
     async fn complete(&self, request: CompletionRequest) -> Result<CompletionResponse> {
-        debug!("Sending completion request to Vertex AI for model: {}", request.model);
+        debug!(
+            "Sending completion request to Vertex AI for model: {}",
+            request.model
+        );
 
         let vertex_request = self.build_vertex_request(&request);
         let url = self.build_endpoint_url(&request.model);
         let response: VertexResponse = self.make_request(&url, &vertex_request).await?;
 
-        let candidate = response.candidates.into_iter().next()
-            .ok_or_else(|| IntelligenceError::Provider("No completion candidates returned".to_string()))?;
+        let candidate = response.candidates.into_iter().next().ok_or_else(|| {
+            IntelligenceError::Provider("No completion candidates returned".to_string())
+        })?;
 
-        let content = candidate.content.parts.into_iter()
+        let content = candidate
+            .content
+            .parts
+            .into_iter()
             .map(|part| part.text)
             .collect::<Vec<_>>()
             .join("");
@@ -267,12 +289,17 @@ impl LlmProvider for VertexAIProvider {
             content,
             model: request.model,
             usage,
-            finish_reason: candidate.finish_reason.unwrap_or_else(|| "stop".to_string()),
+            finish_reason: candidate
+                .finish_reason
+                .unwrap_or_else(|| "stop".to_string()),
             created_at: chrono::Utc::now(),
             metadata: HashMap::new(),
         };
 
-        debug!("Vertex AI completion successful, tokens used: {}", total_tokens);
+        debug!(
+            "Vertex AI completion successful, tokens used: {}",
+            total_tokens
+        );
         Ok(completion_response)
     }
 
@@ -321,10 +348,14 @@ impl LlmProvider for VertexAIProvider {
 
         let response: EmbeddingResponse = self.make_request(&url, &request).await?;
 
-        let prediction = response.predictions.into_iter().next()
-            .ok_or_else(|| IntelligenceError::Provider("No embedding predictions returned".to_string()))?;
+        let prediction = response.predictions.into_iter().next().ok_or_else(|| {
+            IntelligenceError::Provider("No embedding predictions returned".to_string())
+        })?;
 
-        debug!("Vertex AI embedding successful, dimensions: {}", prediction.embeddings.values.len());
+        debug!(
+            "Vertex AI embedding successful, dimensions: {}",
+            prediction.embeddings.values.len()
+        );
         Ok(prediction.embeddings.values)
     }
 
@@ -391,7 +422,8 @@ impl LlmProvider for VertexAIProvider {
 
     fn estimate_cost(&self, tokens: usize) -> Cost {
         // Default to Gemini 1.5 Pro pricing if model not found
-        let (prompt_cost_per_1k, completion_cost_per_1k) = self.model_costs
+        let (prompt_cost_per_1k, completion_cost_per_1k) = self
+            .model_costs
             .get("gemini-1.5-pro")
             .copied()
             .unwrap_or((0.00125, 0.00375));
@@ -411,13 +443,17 @@ impl LlmProvider for VertexAIProvider {
 
         // Check if we have the required configuration
         if self.project_id.is_empty() {
-            return Err(IntelligenceError::Configuration("Google Cloud project ID not configured".to_string()));
+            return Err(IntelligenceError::Configuration(
+                "Google Cloud project ID not configured".to_string(),
+            ));
         }
 
         // In a real implementation, you would make a simple API call to verify connectivity
         // For now, just verify we have authentication
         if self.access_token.is_none() {
-            return Err(IntelligenceError::Configuration("Vertex AI access token not configured".to_string()));
+            return Err(IntelligenceError::Configuration(
+                "Vertex AI access token not configured".to_string(),
+            ));
         }
 
         info!("Vertex AI health check successful");
@@ -435,19 +471,15 @@ mod tests {
 
     #[test]
     fn test_provider_creation() {
-        let provider = VertexAIProvider::new(
-            "test-project".to_string(),
-            "us-central1".to_string()
-        ).unwrap();
+        let provider =
+            VertexAIProvider::new("test-project".to_string(), "us-central1".to_string()).unwrap();
         assert_eq!(provider.name(), "google_vertex");
     }
 
     #[test]
     fn test_capabilities() {
-        let provider = VertexAIProvider::new(
-            "test-project".to_string(),
-            "us-central1".to_string()
-        ).unwrap();
+        let provider =
+            VertexAIProvider::new("test-project".to_string(), "us-central1".to_string()).unwrap();
         let capabilities = provider.capabilities();
         assert_eq!(capabilities.provider_name, "Google Vertex AI");
         assert!(capabilities.supports_embeddings);
@@ -456,10 +488,8 @@ mod tests {
 
     #[test]
     fn test_endpoint_url_building() {
-        let provider = VertexAIProvider::new(
-            "test-project".to_string(),
-            "us-central1".to_string()
-        ).unwrap();
+        let provider =
+            VertexAIProvider::new("test-project".to_string(), "us-central1".to_string()).unwrap();
 
         let url = provider.build_endpoint_url("gemini-1.5-pro");
         assert!(url.contains("test-project"));
@@ -470,10 +500,8 @@ mod tests {
 
     #[test]
     fn test_cost_estimation() {
-        let provider = VertexAIProvider::new(
-            "test-project".to_string(),
-            "us-central1".to_string()
-        ).unwrap();
+        let provider =
+            VertexAIProvider::new("test-project".to_string(), "us-central1".to_string()).unwrap();
         let cost = provider.estimate_cost(1000);
         assert!(cost.total_cost > 0.0);
         assert_eq!(cost.currency, "USD");

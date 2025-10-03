@@ -1,8 +1,8 @@
 //! API endpoint tests
 
-use riptide_api::*;
-use axum::http::StatusCode;
 use axum::body::Body;
+use axum::http::StatusCode;
+use riptide_api::*;
 use tower::ServiceExt;
 
 #[cfg(test)]
@@ -14,10 +14,12 @@ mod api_endpoint_tests {
         let app = create_app();
 
         let response = app
-            .oneshot(Request::builder()
-                .uri("/health")
-                .body(Body::empty())
-                .unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/health")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
 
@@ -30,12 +32,14 @@ mod api_endpoint_tests {
 
         let body = r#"{"urls": ["https://example.com"], "max_pages": 10}"#;
         let response = app
-            .oneshot(Request::builder()
-                .method("POST")
-                .uri("/api/v1/crawl")
-                .header("content-type", "application/json")
-                .body(Body::from(body))
-                .unwrap())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/crawl")
+                    .header("content-type", "application/json")
+                    .body(Body::from(body))
+                    .unwrap(),
+            )
             .await
             .unwrap();
 
@@ -48,16 +52,20 @@ mod api_endpoint_tests {
 
         let body = r#"{"url": "https://example.com", "mode": "standard"}"#;
         let response = app
-            .oneshot(Request::builder()
-                .method("POST")
-                .uri("/api/v1/extract")
-                .header("content-type", "application/json")
-                .body(Body::from(body))
-                .unwrap())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/extract")
+                    .header("content-type", "application/json")
+                    .body(Body::from(body))
+                    .unwrap(),
+            )
             .await
             .unwrap();
 
-        assert!(response.status() == StatusCode::OK || response.status() == StatusCode::BAD_REQUEST);
+        assert!(
+            response.status() == StatusCode::OK || response.status() == StatusCode::BAD_REQUEST
+        );
     }
 
     #[tokio::test]
@@ -65,10 +73,12 @@ mod api_endpoint_tests {
         let app = create_app();
 
         let response = app
-            .oneshot(Request::builder()
-                .uri("/api/v1/search?q=test&limit=10")
-                .body(Body::empty())
-                .unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/search?q=test&limit=10")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
 
@@ -80,10 +90,12 @@ mod api_endpoint_tests {
         let app = create_app();
 
         let response = app
-            .oneshot(Request::builder()
-                .uri("/api/v1/status/job123")
-                .body(Body::empty())
-                .unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/status/job123")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
 
@@ -95,10 +107,12 @@ mod api_endpoint_tests {
         let app = create_app();
 
         let response = app
-            .oneshot(Request::builder()
-                .uri("/api/v1/metrics")
-                .body(Body::empty())
-                .unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/metrics")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
 
@@ -110,10 +124,12 @@ mod api_endpoint_tests {
         let app = create_app();
 
         let response = app
-            .oneshot(Request::builder()
-                .uri("/api/v1/invalid")
-                .body(Body::empty())
-                .unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/invalid")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
 
@@ -125,16 +141,22 @@ mod api_endpoint_tests {
         let app = create_app();
 
         let response = app
-            .oneshot(Request::builder()
-                .method("OPTIONS")
-                .uri("/api/v1/crawl")
-                .header("Origin", "https://example.com")
-                .body(Body::empty())
-                .unwrap())
+            .oneshot(
+                Request::builder()
+                    .method("OPTIONS")
+                    .uri("/api/v1/crawl")
+                    .header("Origin", "https://example.com")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
 
-        assert!(response.headers().contains_key("access-control-allow-origin"));
-        assert!(response.headers().contains_key("access-control-allow-methods"));
+        assert!(response
+            .headers()
+            .contains_key("access-control-allow-origin"));
+        assert!(response
+            .headers()
+            .contains_key("access-control-allow-methods"));
     }
 }

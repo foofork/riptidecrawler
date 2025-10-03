@@ -196,10 +196,23 @@ impl PdfCapabilities {
             table_extraction: cfg!(feature = "pdf"),
             form_extraction: cfg!(feature = "pdf"),
             encrypted_pdfs: cfg!(feature = "pdf"),
-            max_file_size: if cfg!(feature = "pdf") { 100 * 1024 * 1024 } else { 10 * 1024 * 1024 }, // 100MB vs 10MB
+            max_file_size: if cfg!(feature = "pdf") {
+                100 * 1024 * 1024
+            } else {
+                10 * 1024 * 1024
+            }, // 100MB vs 10MB
             supported_versions: if cfg!(feature = "pdf") {
-                vec!["1.0".to_string(), "1.1".to_string(), "1.2".to_string(), "1.3".to_string(),
-                     "1.4".to_string(), "1.5".to_string(), "1.6".to_string(), "1.7".to_string(), "2.0".to_string()]
+                vec![
+                    "1.0".to_string(),
+                    "1.1".to_string(),
+                    "1.2".to_string(),
+                    "1.3".to_string(),
+                    "1.4".to_string(),
+                    "1.5".to_string(),
+                    "1.6".to_string(),
+                    "1.7".to_string(),
+                    "2.0".to_string(),
+                ]
             } else {
                 vec!["1.4".to_string()] // Minimal support
             },

@@ -4,8 +4,8 @@
 //! handlers based on configuration and event types.
 
 use super::*;
-use std::sync::Arc;
 use std::collections::HashMap;
+use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
 use tokio::task::JoinHandle;
 
@@ -85,7 +85,8 @@ impl EventBus {
             return Ok(());
         }
 
-        self.running.store(true, std::sync::atomic::Ordering::Relaxed);
+        self.running
+            .store(true, std::sync::atomic::Ordering::Relaxed);
 
         let mut receiver = self.sender.subscribe();
         let handlers = self.handlers.clone();
@@ -100,7 +101,8 @@ impl EventBus {
                 match receiver.recv().await {
                     Ok(event) => {
                         let handlers_map = handlers.read().await;
-                        let target_handlers = Self::get_target_handlers(&handlers_map, &*event, &routing);
+                        let target_handlers =
+                            Self::get_target_handlers(&handlers_map, &*event, &routing);
 
                         if config.async_handlers {
                             // Process handlers concurrently
@@ -113,8 +115,9 @@ impl EventBus {
                                 let future = tokio::spawn(async move {
                                     let result = tokio::time::timeout(
                                         handler_timeout,
-                                        handler.handle(&*event_clone)
-                                    ).await;
+                                        handler.handle(&*event_clone),
+                                    )
+                                    .await;
 
                                     match result {
                                         Ok(Ok(_)) => {
@@ -141,8 +144,10 @@ impl EventBus {
 
                                 match tokio::time::timeout(
                                     config.handler_timeout,
-                                    handler.handle(&*event)
-                                ).await {
+                                    handler.handle(&*event),
+                                )
+                                .await
+                                {
                                     Ok(Ok(_)) => {
                                         debug!(
                                             handler = %handler_name,
@@ -193,7 +198,8 @@ impl EventBus {
 
     /// Stop the event bus processing
     pub async fn stop(&mut self) {
-        self.running.store(false, std::sync::atomic::Ordering::Relaxed);
+        self.running
+            .store(false, std::sync::atomic::Ordering::Relaxed);
 
         if let Some(handler_task) = self.handler_task.take() {
             let _ = handler_task.await;
@@ -206,7 +212,10 @@ impl EventBus {
         let mut handlers = self.handlers.write().await;
 
         if handlers.contains_key(&handler_name) {
-            return Err(anyhow::anyhow!("Handler '{}' is already registered", handler_name));
+            return Err(anyhow::anyhow!(
+                "Handler '{}' is already registered",
+                handler_name
+            ));
         }
 
         handlers.insert(handler_name.clone(), handler);
@@ -223,7 +232,10 @@ impl EventBus {
             info!(handler_name = %handler_name, "Unregistered event handler");
             Ok(())
         } else {
-            Err(anyhow::anyhow!("Handler '{}' is not registered", handler_name))
+            Err(anyhow::anyhow!(
+                "Handler '{}' is not registered",
+                handler_name
+            ))
         }
     }
 
@@ -239,7 +251,11 @@ impl EventBus {
     }
 
     /// Create a subscription for receiving events
-    pub fn subscribe(&self, event_types: Vec<String>, min_severity: EventSeverity) -> EventSubscription {
+    pub fn subscribe(
+        &self,
+        event_types: Vec<String>,
+        min_severity: EventSeverity,
+    ) -> EventSubscription {
         let receiver = self.sender.subscribe();
         EventSubscription::new(receiver, event_types, min_severity)
     }
@@ -266,12 +282,11 @@ impl EventBus {
         routing: &EventRouting,
     ) -> Vec<(String, Arc<dyn EventHandler>)> {
         match routing {
-            EventRouting::Broadcast => {
-                handlers.iter()
-                    .filter(|(_, handler)| handler.can_handle(event.event_type()))
-                    .map(|(name, handler)| (name.clone(), handler.clone()))
-                    .collect()
-            }
+            EventRouting::Broadcast => handlers
+                .iter()
+                .filter(|(_, handler)| handler.can_handle(event.event_type()))
+                .map(|(name, handler)| (name.clone(), handler.clone()))
+                .collect(),
             EventRouting::PatternBased(patterns) => {
                 let mut target_handlers = Vec::new();
 
@@ -306,7 +321,8 @@ impl EventBus {
             }
             EventRouting::Custom => {
                 // For custom routing, fall back to broadcast for now
-                handlers.iter()
+                handlers
+                    .iter()
                     .filter(|(_, handler)| handler.can_handle(event.event_type()))
                     .map(|(name, handler)| (name.clone(), handler.clone()))
                     .collect()
@@ -359,7 +375,8 @@ impl EventEmitter for EventBus {
 impl Drop for EventBus {
     fn drop(&mut self) {
         // Stop processing if still running
-        self.running.store(false, std::sync::atomic::Ordering::Relaxed);
+        self.running
+            .store(false, std::sync::atomic::Ordering::Relaxed);
     }
 }
 
@@ -440,10 +457,7 @@ mod tests {
     async fn test_event_subscription() {
         let bus = EventBus::new();
 
-        let subscription = bus.subscribe(
-            vec!["test.*".to_string()],
-            EventSeverity::Info
-        );
+        let subscription = bus.subscribe(vec!["test.*".to_string()], EventSeverity::Info);
 
         assert!(subscription.receiver.is_empty());
     }

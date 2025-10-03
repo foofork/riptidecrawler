@@ -37,7 +37,10 @@ impl AdvancedInstancePool {
             }
         }
 
-        info!(cleared_count = cleared, "Cleared instances for optimization");
+        info!(
+            cleared_count = cleared,
+            "Cleared instances for optimization"
+        );
         Ok(cleared)
     }
 

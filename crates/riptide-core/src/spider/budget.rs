@@ -64,8 +64,8 @@ impl Default for GlobalBudgetLimits {
             max_depth: Some(10),
             max_pages: Some(10_000),
             max_duration: Some(Duration::from_secs(3600)), // 1 hour
-            max_bandwidth: Some(1_000_000_000), // 1 GB
-            max_memory: Some(100_000_000), // 100 MB
+            max_bandwidth: Some(1_000_000_000),            // 1 GB
+            max_memory: Some(100_000_000),                 // 100 MB
             max_concurrent: Some(10),
         }
     }
@@ -92,7 +92,7 @@ impl Default for PerHostBudgetLimits {
             max_pages_per_host: Some(1000),
             max_depth_per_host: Some(8),
             max_duration_per_host: Some(Duration::from_secs(600)), // 10 minutes
-            max_bandwidth_per_host: Some(100_000_000), // 100 MB
+            max_bandwidth_per_host: Some(100_000_000),             // 100 MB
             max_concurrent_per_host: Some(2),
         }
     }
@@ -114,7 +114,7 @@ impl Default for PerSessionBudgetLimits {
         Self {
             max_pages_per_session: Some(500),
             max_session_duration: Some(Duration::from_secs(1800)), // 30 minutes
-            max_bandwidth_per_session: Some(50_000_000), // 50 MB
+            max_bandwidth_per_session: Some(50_000_000),           // 50 MB
         }
     }
 }
@@ -446,12 +446,18 @@ impl BudgetManager {
     }
 
     /// Record the completion of a request
-    pub async fn complete_request(&self, url: &Url, content_size: usize, success: bool) -> Result<()> {
+    pub async fn complete_request(
+        &self,
+        url: &Url,
+        content_size: usize,
+        success: bool,
+    ) -> Result<()> {
         self.concurrent_requests.fetch_sub(1, Ordering::Relaxed);
 
         if success {
             self.pages_crawled.fetch_add(1, Ordering::Relaxed);
-            self.bandwidth_used.fetch_add(content_size as u64, Ordering::Relaxed);
+            self.bandwidth_used
+                .fetch_add(content_size as u64, Ordering::Relaxed);
 
             // Update global usage
             {
@@ -467,7 +473,8 @@ impl BudgetManager {
                 if let Some(host_budget) = host_budgets.get_mut(host) {
                     host_budget.usage.pages_crawled += 1;
                     host_budget.usage.bandwidth_used += content_size as u64;
-                    host_budget.usage.concurrent_requests = host_budget.usage.concurrent_requests.saturating_sub(1);
+                    host_budget.usage.concurrent_requests =
+                        host_budget.usage.concurrent_requests.saturating_sub(1);
                     host_budget.last_activity = Instant::now();
                 }
             }
@@ -587,7 +594,8 @@ impl BudgetManager {
         }
 
         if let Some(max_bandwidth) = self.config.global.max_bandwidth {
-            let utilization = global.utilization_percentage(BudgetLimitType::Bandwidth, max_bandwidth);
+            let utilization =
+                global.utilization_percentage(BudgetLimitType::Bandwidth, max_bandwidth);
             if utilization >= self.config.warning_threshold {
                 let warning = BudgetWarning {
                     limit_type: BudgetLimitType::Bandwidth,
@@ -606,7 +614,8 @@ impl BudgetManager {
         }
 
         if let Some(max_duration) = self.config.global.max_duration {
-            let utilization = global.utilization_percentage(BudgetLimitType::Duration, max_duration.as_secs());
+            let utilization =
+                global.utilization_percentage(BudgetLimitType::Duration, max_duration.as_secs());
             if utilization >= self.config.warning_threshold {
                 let warning = BudgetWarning {
                     limit_type: BudgetLimitType::Duration,
@@ -665,7 +674,11 @@ impl BudgetManager {
 
     /// Calculate recommended delay based on adaptive enforcement
     pub async fn calculate_adaptive_delay(&self) -> Duration {
-        if let EnforcementStrategy::Adaptive { slowdown_threshold, rate_reduction_factor } = &self.config.enforcement {
+        if let EnforcementStrategy::Adaptive {
+            slowdown_threshold,
+            rate_reduction_factor,
+        } = &self.config.enforcement
+        {
             let global = self.global_usage.read().await;
 
             // Check if any budget is approaching the slowdown threshold
@@ -677,14 +690,18 @@ impl BudgetManager {
             }
 
             if let Some(max_bandwidth) = self.config.global.max_bandwidth {
-                let utilization = global.utilization_percentage(BudgetLimitType::Bandwidth, max_bandwidth);
+                let utilization =
+                    global.utilization_percentage(BudgetLimitType::Bandwidth, max_bandwidth);
                 max_utilization = max_utilization.max(utilization);
             }
 
             if max_utilization >= *slowdown_threshold {
-                let delay_factor = (max_utilization - slowdown_threshold) / (1.0 - slowdown_threshold);
+                let delay_factor =
+                    (max_utilization - slowdown_threshold) / (1.0 - slowdown_threshold);
                 let max_delay = Duration::from_secs(5); // Maximum 5 second delay
-                return Duration::from_secs_f64(max_delay.as_secs_f64() * delay_factor * rate_reduction_factor);
+                return Duration::from_secs_f64(
+                    max_delay.as_secs_f64() * delay_factor * rate_reduction_factor,
+                );
             }
         }
 
@@ -705,11 +722,20 @@ mod tests {
         let url = Url::from_str("https://example.com/page").expect("Valid URL");
 
         // Should be able to make first request
-        assert!(budget_manager.can_make_request(&url, 0).await.expect("Should work"));
+        assert!(budget_manager
+            .can_make_request(&url, 0)
+            .await
+            .expect("Should work"));
 
         // Start and complete request
-        budget_manager.start_request(&url, 0).await.expect("Should work");
-        budget_manager.complete_request(&url, 1024, true).await.expect("Should work");
+        budget_manager
+            .start_request(&url, 0)
+            .await
+            .expect("Should work");
+        budget_manager
+            .complete_request(&url, 1024, true)
+            .await
+            .expect("Should work");
 
         let usage = budget_manager.get_global_usage().await;
         assert_eq!(usage.pages_crawled, 1);
@@ -727,13 +753,25 @@ mod tests {
 
         // First two requests should work
         for _i in 0..2 {
-            assert!(budget_manager.can_make_request(&url, 0).await.expect("Should work"));
-            budget_manager.start_request(&url, 0).await.expect("Should work");
-            budget_manager.complete_request(&url, 1024, true).await.expect("Should work");
+            assert!(budget_manager
+                .can_make_request(&url, 0)
+                .await
+                .expect("Should work"));
+            budget_manager
+                .start_request(&url, 0)
+                .await
+                .expect("Should work");
+            budget_manager
+                .complete_request(&url, 1024, true)
+                .await
+                .expect("Should work");
         }
 
         // Third request should be blocked
-        assert!(!budget_manager.can_make_request(&url, 0).await.expect("Should work"));
+        assert!(!budget_manager
+            .can_make_request(&url, 0)
+            .await
+            .expect("Should work"));
     }
 
     #[tokio::test]
@@ -747,11 +785,17 @@ mod tests {
 
         // Depths 0, 1, 2 should work
         for depth in 0..3 {
-            assert!(budget_manager.can_make_request(&url, depth).await.expect("Should work"));
+            assert!(budget_manager
+                .can_make_request(&url, depth)
+                .await
+                .expect("Should work"));
         }
 
         // Depth 3 should be blocked
-        assert!(!budget_manager.can_make_request(&url, 3).await.expect("Should work"));
+        assert!(!budget_manager
+            .can_make_request(&url, 3)
+            .await
+            .expect("Should work"));
     }
 
     #[tokio::test]
@@ -766,15 +810,30 @@ mod tests {
         let url3 = Url::from_str("https://other.com/page").expect("Valid URL");
 
         // First request to example.com should work
-        assert!(budget_manager.can_make_request(&url1, 0).await.expect("Should work"));
-        budget_manager.start_request(&url1, 0).await.expect("Should work");
-        budget_manager.complete_request(&url1, 1024, true).await.expect("Should work");
+        assert!(budget_manager
+            .can_make_request(&url1, 0)
+            .await
+            .expect("Should work"));
+        budget_manager
+            .start_request(&url1, 0)
+            .await
+            .expect("Should work");
+        budget_manager
+            .complete_request(&url1, 1024, true)
+            .await
+            .expect("Should work");
 
         // Second request to example.com should be blocked
-        assert!(!budget_manager.can_make_request(&url2, 0).await.expect("Should work"));
+        assert!(!budget_manager
+            .can_make_request(&url2, 0)
+            .await
+            .expect("Should work"));
 
         // Request to other.com should still work
-        assert!(budget_manager.can_make_request(&url3, 0).await.expect("Should work"));
+        assert!(budget_manager
+            .can_make_request(&url3, 0)
+            .await
+            .expect("Should work"));
     }
 
     #[tokio::test]
@@ -786,18 +845,39 @@ mod tests {
         let url = Url::from_str("https://example.com/page").expect("Valid URL");
 
         // Start two concurrent requests
-        assert!(budget_manager.can_make_request(&url, 0).await.expect("Should work"));
-        budget_manager.start_request(&url, 0).await.expect("Should work");
+        assert!(budget_manager
+            .can_make_request(&url, 0)
+            .await
+            .expect("Should work"));
+        budget_manager
+            .start_request(&url, 0)
+            .await
+            .expect("Should work");
 
-        assert!(budget_manager.can_make_request(&url, 0).await.expect("Should work"));
-        budget_manager.start_request(&url, 0).await.expect("Should work");
+        assert!(budget_manager
+            .can_make_request(&url, 0)
+            .await
+            .expect("Should work"));
+        budget_manager
+            .start_request(&url, 0)
+            .await
+            .expect("Should work");
 
         // Third concurrent request should be blocked
-        assert!(!budget_manager.can_make_request(&url, 0).await.expect("Should work"));
+        assert!(!budget_manager
+            .can_make_request(&url, 0)
+            .await
+            .expect("Should work"));
 
         // Complete one request, should free up capacity
-        budget_manager.complete_request(&url, 1024, true).await.expect("Should work");
-        assert!(budget_manager.can_make_request(&url, 0).await.expect("Should work"));
+        budget_manager
+            .complete_request(&url, 1024, true)
+            .await
+            .expect("Should work");
+        assert!(budget_manager
+            .can_make_request(&url, 0)
+            .await
+            .expect("Should work"));
     }
 
     #[test]
@@ -809,7 +889,10 @@ mod tests {
         };
 
         assert!(usage.duration().as_secs() >= 60);
-        assert_eq!(usage.utilization_percentage(BudgetLimitType::Pages, 100), 0.5);
+        assert_eq!(
+            usage.utilization_percentage(BudgetLimitType::Pages, 100),
+            0.5
+        );
         assert_eq!(usage.utilization_percentage(BudgetLimitType::Pages, 0), 0.0);
     }
 
@@ -827,8 +910,14 @@ mod tests {
         // Simulate 90% budget usage
         for _ in 0..90 {
             let url = Url::from_str("https://example.com/page").expect("Valid URL");
-            budget_manager.start_request(&url, 0).await.expect("Should work");
-            budget_manager.complete_request(&url, 1024, true).await.expect("Should work");
+            budget_manager
+                .start_request(&url, 0)
+                .await
+                .expect("Should work");
+            budget_manager
+                .complete_request(&url, 1024, true)
+                .await
+                .expect("Should work");
         }
 
         let delay = budget_manager.calculate_adaptive_delay().await;

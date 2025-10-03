@@ -1,7 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use futures::future;
 use std::time::Duration;
 use tokio::runtime::Runtime;
-use futures::future;
 
 use crate::component::{CmExtractor, ExtractorConfig};
 use crate::types::ExtractionMode;
@@ -91,7 +91,7 @@ async fn create_test_extractor(
         max_instances: config.pool_size,
         enable_metrics: true,
         timeout_ms: 5000,
-        memory_limit_pages: Some(8192), // 512MB / 64KB per page
+        memory_limit_pages: Some(8192),  // 512MB / 64KB per page
         extraction_timeout: Some(30000), // 30 seconds
         max_pool_size: config.pool_size,
         initial_pool_size: config.pool_size / 2,
@@ -118,15 +118,12 @@ fn bench_single_extraction(c: &mut Criterion) {
                 html,
                 |b, html| {
                     let rt = Runtime::new().unwrap();
-                    let extractor = rt.block_on(create_test_extractor(config))
+                    let extractor = rt
+                        .block_on(create_test_extractor(config))
                         .expect("Failed to create extractor for benchmark");
 
                     b.iter(|| {
-                        rt.block_on(async {
-                            black_box(extractor.extract(
-                                black_box(html),
-                            ).await)
-                        })
+                        rt.block_on(async { black_box(extractor.extract(black_box(html)).await) })
                     });
                 },
             );
@@ -149,7 +146,8 @@ fn bench_concurrent_extraction(c: &mut Criterion) {
                 BenchmarkId::new("concurrent_extraction", &bench_id),
                 &(html, config.concurrent_requests),
                 |b, (html, concurrent_requests)| {
-                    let extractor = rt.block_on(create_test_extractor(config))
+                    let extractor = rt
+                        .block_on(create_test_extractor(config))
                         .expect("Failed to create extractor for benchmark");
 
                     b.iter(|| {
@@ -157,11 +155,7 @@ fn bench_concurrent_extraction(c: &mut Criterion) {
                             let tasks: Vec<_> = (0..*concurrent_requests)
                                 .map(|_| {
                                     let extractor = &extractor;
-                                    async move {
-                                        extractor.extract(
-                                            black_box(html),
-                                        ).await
-                                    }
+                                    async move { extractor.extract(black_box(html)).await }
                                 })
                                 .collect();
 
@@ -186,7 +180,7 @@ fn bench_pool_efficiency(c: &mut Criterion) {
             max_instances: pool_size,
             enable_metrics: true,
             timeout_ms: 5000,
-            memory_limit_pages: Some(4096), // 256MB / 64KB per page
+            memory_limit_pages: Some(4096),  // 256MB / 64KB per page
             extraction_timeout: Some(30000), // 30 seconds
             max_pool_size: pool_size,
             initial_pool_size: pool_size,
@@ -251,16 +245,15 @@ fn bench_memory_usage(c: &mut Criterion) {
             BenchmarkId::new("memory_reuse", size_name),
             html,
             |b, html| {
-                let extractor = rt.block_on(create_test_extractor(&BENCHMARK_CONFIGS[2]))
+                let extractor = rt
+                    .block_on(create_test_extractor(&BENCHMARK_CONFIGS[2]))
                     .expect("Failed to create extractor for benchmark"); // pooled_concurrent
 
                 b.iter(|| {
                     rt.block_on(async {
                         // Extract 100 times to test memory reuse
                         for _ in 0..100 {
-                            let _ = black_box(extractor.extract(
-                                black_box(html),
-                            ).await);
+                            let _ = black_box(extractor.extract(black_box(html)).await);
                         }
                     })
                 })
@@ -280,7 +273,8 @@ fn bench_extraction_modes(c: &mut Criterion) {
     ];
 
     let rt = Runtime::new().expect("Failed to create runtime for benchmark");
-    let extractor = rt.block_on(create_test_extractor(&BENCHMARK_CONFIGS[1]))
+    let extractor = rt
+        .block_on(create_test_extractor(&BENCHMARK_CONFIGS[1]))
         .expect("Failed to create extractor for benchmark"); // pooled_small
 
     for (mode_name, mode) in modes {
@@ -294,9 +288,7 @@ fn bench_extraction_modes(c: &mut Criterion) {
                     b.iter(|| {
                         rt.block_on(async {
                             // extract_typed method no longer exists, using extract instead
-                            black_box(extractor.extract(
-                                black_box(html),
-                            ).await)
+                            black_box(extractor.extract(black_box(html)).await)
                         })
                     });
                 },
@@ -321,7 +313,8 @@ fn bench_error_handling(c: &mut Criterion) {
     ];
 
     let rt = Runtime::new().expect("Failed to create runtime for benchmark");
-    let extractor = rt.block_on(create_test_extractor(&BENCHMARK_CONFIGS[1]))
+    let extractor = rt
+        .block_on(create_test_extractor(&BENCHMARK_CONFIGS[1]))
         .expect("Failed to create extractor for benchmark"); // pooled_small
 
     for (error_type, html) in invalid_html_samples {
@@ -332,9 +325,7 @@ fn bench_error_handling(c: &mut Criterion) {
                 b.iter(|| {
                     rt.block_on(async {
                         // These should fail gracefully and return typed errors
-                        let _ = black_box(extractor.extract(
-                            black_box(html),
-                        ).await);
+                        let _ = black_box(extractor.extract(black_box(html)).await);
                     })
                 })
             },
@@ -349,9 +340,9 @@ fn bench_circuit_breaker(c: &mut Criterion) {
     let config = ExtractorConfig {
         max_instances: 4,
         enable_metrics: true,
-        timeout_ms: 100, // Short timeout to trigger failures
+        timeout_ms: 100,                // Short timeout to trigger failures
         memory_limit_pages: Some(1024), // 64MB / 64KB per page
-        extraction_timeout: Some(100), // Short timeout
+        extraction_timeout: Some(100),  // Short timeout
         max_pool_size: 4,
         initial_pool_size: 2,
         epoch_timeout_ms: 5000,
@@ -368,17 +359,13 @@ fn bench_circuit_breaker(c: &mut Criterion) {
 
                 // Trigger failures to open circuit breaker
                 for _ in 0..20 {
-                    let _ = extractor.extract(
-                        black_box(SAMPLE_HTML_LARGE),
-                    ).await;
+                    let _ = extractor.extract(black_box(SAMPLE_HTML_LARGE)).await;
                 }
 
                 // Test recovery
                 tokio::time::sleep(Duration::from_secs(1)).await;
 
-                let _ = extractor.extract(
-                    black_box(SAMPLE_HTML_SMALL),
-                ).await;
+                let _ = extractor.extract(black_box(SAMPLE_HTML_SMALL)).await;
                 black_box(())
             })
         });
@@ -430,9 +417,7 @@ fn bench_initialization(c: &mut Criterion) {
             BenchmarkId::new("initialization", config_name),
             &config,
             |b, config| {
-                b.iter(|| {
-                    black_box(CmExtractor::new(config.clone()))
-                });
+                b.iter(|| black_box(CmExtractor::new(config.clone())));
             },
         );
     }

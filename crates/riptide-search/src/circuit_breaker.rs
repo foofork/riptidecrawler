@@ -103,8 +103,8 @@ impl CircuitMetrics {
     fn should_trip(&self, config: &CircuitBreakerConfig) -> bool {
         let total = self.total_requests.load(Ordering::Relaxed);
 
-        total >= config.minimum_request_threshold &&
-        self.failure_rate_percentage() >= config.failure_threshold_percentage
+        total >= config.minimum_request_threshold
+            && self.failure_rate_percentage() >= config.failure_threshold_percentage
     }
 
     fn can_attempt_reset(&self, config: &CircuitBreakerConfig) -> bool {
@@ -219,10 +219,14 @@ impl CircuitBreakerWrapper {
                         self.metrics.record_half_open_success();
 
                         // If we've had enough successful half-open requests, close the circuit
-                        let half_open_requests = self.metrics.half_open_requests.load(Ordering::Relaxed);
-                        let half_open_failures = self.metrics.half_open_failures.load(Ordering::Relaxed);
+                        let half_open_requests =
+                            self.metrics.half_open_requests.load(Ordering::Relaxed);
+                        let half_open_failures =
+                            self.metrics.half_open_failures.load(Ordering::Relaxed);
 
-                        if half_open_requests >= self.config.half_open_max_requests && half_open_failures == 0 {
+                        if half_open_requests >= self.config.half_open_max_requests
+                            && half_open_failures == 0
+                        {
                             *self.state.write().unwrap() = CircuitState::Closed;
                             self.metrics.reset();
                         }
@@ -354,7 +358,10 @@ mod tests {
         // Next request should fail fast
         let result = circuit.search("https://example.com", 1, "us", "en").await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("circuit breaker is OPEN"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("circuit breaker is OPEN"));
     }
 
     #[tokio::test]

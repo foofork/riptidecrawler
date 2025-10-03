@@ -6,56 +6,65 @@
 use std::sync::Arc;
 use thiserror::Error;
 
-pub mod provider;
-pub mod registry;
-pub mod timeout;
 pub mod circuit_breaker;
-pub mod fallback;
-pub mod failover;
-pub mod metrics;
-pub mod runtime_switch;
-pub mod providers;
-pub mod health;
-pub mod plugin;
 pub mod config;
 pub mod dashboard;
-pub mod tenant_isolation;
+pub mod failover;
+pub mod fallback;
+pub mod health;
 pub mod hot_reload;
+pub mod metrics;
+pub mod plugin;
+pub mod provider;
+pub mod providers;
+pub mod registry;
+pub mod runtime_switch;
+pub mod tenant_isolation;
+pub mod timeout;
 
 #[cfg(feature = "mock")]
 pub mod mock_provider;
 
 // Re-export core types
-pub use provider::{
-    LlmProvider, CompletionRequest, CompletionResponse, LlmCapabilities,
-    Cost, ModelInfo, Usage, Message, Role
-};
-pub use registry::{LlmRegistry, ProviderConfig};
-pub use timeout::{TimeoutWrapper, with_timeout, with_custom_timeout};
-pub use circuit_breaker::{CircuitBreaker, CircuitBreakerConfig, CircuitState, with_circuit_breaker, with_custom_circuit_breaker};
-pub use fallback::{FallbackChain, FallbackStrategy, create_fallback_chain, create_fallback_chain_with_strategy};
-pub use failover::{FailoverManager, FailoverConfig, ProviderPriority, ProviderState, FailoverStatistics};
-pub use metrics::{MetricsCollector, LlmOpsDashboard, TimeWindow, RequestMetrics, AggregatedMetrics};
-pub use runtime_switch::{RuntimeSwitchManager, RuntimeSwitchConfig, SwitchState, GradualRolloutConfig};
-pub use providers::{
-    OpenAIProvider, AnthropicProvider, OllamaProvider, LocalAIProvider,
-    AzureOpenAIProvider, BedrockProvider, VertexAIProvider,
-    create_provider_from_config, register_builtin_providers
+pub use circuit_breaker::{
+    with_circuit_breaker, with_custom_circuit_breaker, CircuitBreaker, CircuitBreakerConfig,
+    CircuitState,
 };
 pub use config::{
-    IntelligenceConfig, ConfigLoader, MetricsConfig, RuntimeConfig,
-    TenantIsolationConfig, TenantLimits, CostTrackingConfig, ProviderDiscovery
+    ConfigLoader, CostTrackingConfig, IntelligenceConfig, MetricsConfig, ProviderDiscovery,
+    RuntimeConfig, TenantIsolationConfig, TenantLimits,
 };
 pub use dashboard::{
-    EnhancedLlmOpsDashboard, DashboardGenerator, DetailedCostAnalysis,
-    TenantCostBreakdown, ProviderCostBreakdown, Alert, Recommendation
+    Alert, DashboardGenerator, DetailedCostAnalysis, EnhancedLlmOpsDashboard,
+    ProviderCostBreakdown, Recommendation, TenantCostBreakdown,
 };
-pub use tenant_isolation::{
-    TenantIsolationManager, TenantState, TenantStatus, RequestPermit
+pub use failover::{
+    FailoverConfig, FailoverManager, FailoverStatistics, ProviderPriority, ProviderState,
+};
+pub use fallback::{
+    create_fallback_chain, create_fallback_chain_with_strategy, FallbackChain, FallbackStrategy,
 };
 pub use hot_reload::{
-    HotReloadManager, HotReloadConfig, ConfigChangeEvent, ValidationStatus, ReloadStatus
+    ConfigChangeEvent, HotReloadConfig, HotReloadManager, ReloadStatus, ValidationStatus,
 };
+pub use metrics::{
+    AggregatedMetrics, LlmOpsDashboard, MetricsCollector, RequestMetrics, TimeWindow,
+};
+pub use provider::{
+    CompletionRequest, CompletionResponse, Cost, LlmCapabilities, LlmProvider, Message, ModelInfo,
+    Role, Usage,
+};
+pub use providers::{
+    create_provider_from_config, register_builtin_providers, AnthropicProvider,
+    AzureOpenAIProvider, BedrockProvider, LocalAIProvider, OllamaProvider, OpenAIProvider,
+    VertexAIProvider,
+};
+pub use registry::{LlmRegistry, ProviderConfig};
+pub use runtime_switch::{
+    GradualRolloutConfig, RuntimeSwitchConfig, RuntimeSwitchManager, SwitchState,
+};
+pub use tenant_isolation::{RequestPermit, TenantIsolationManager, TenantState, TenantStatus};
+pub use timeout::{with_custom_timeout, with_timeout, TimeoutWrapper};
 
 #[cfg(feature = "mock")]
 pub use mock_provider::MockLlmProvider;
@@ -119,9 +128,10 @@ impl IntelligenceClient {
     pub async fn complete(&self, request: CompletionRequest) -> Result<CompletionResponse> {
         match self.default_provider() {
             Some(provider) => provider.complete(request).await,
-            None => Err(IntelligenceError::Configuration(
-                format!("Default provider '{}' not found", self.default_provider)
-            )),
+            None => Err(IntelligenceError::Configuration(format!(
+                "Default provider '{}' not found",
+                self.default_provider
+            ))),
         }
     }
 
@@ -129,13 +139,14 @@ impl IntelligenceClient {
     pub async fn complete_with_provider(
         &self,
         provider_name: &str,
-        request: CompletionRequest
+        request: CompletionRequest,
     ) -> Result<CompletionResponse> {
         match self.provider(provider_name) {
             Some(provider) => provider.complete(request).await,
-            None => Err(IntelligenceError::Configuration(
-                format!("Provider '{}' not found", provider_name)
-            )),
+            None => Err(IntelligenceError::Configuration(format!(
+                "Provider '{}' not found",
+                provider_name
+            ))),
         }
     }
 
@@ -143,9 +154,10 @@ impl IntelligenceClient {
     pub async fn embed(&self, text: &str) -> Result<Vec<f32>> {
         match self.default_provider() {
             Some(provider) => provider.embed(text).await,
-            None => Err(IntelligenceError::Configuration(
-                format!("Default provider '{}' not found", self.default_provider)
-            )),
+            None => Err(IntelligenceError::Configuration(format!(
+                "Default provider '{}' not found",
+                self.default_provider
+            ))),
         }
     }
 
@@ -156,6 +168,7 @@ impl IntelligenceClient {
 
     /// Estimate cost for a request
     pub fn estimate_cost(&self, provider_name: &str, tokens: usize) -> Option<Cost> {
-        self.provider(provider_name).map(|p| p.estimate_cost(tokens))
+        self.provider(provider_name)
+            .map(|p| p.estimate_cost(tokens))
     }
 }

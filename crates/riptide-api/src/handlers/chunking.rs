@@ -1,6 +1,6 @@
 use crate::errors::ApiResult;
-use riptide_core::types::{ExtractedDoc, ChunkingConfig};
-use riptide_html::chunking::{create_strategy, ChunkingMode, ChunkingConfig as HtmlChunkingConfig};
+use riptide_core::types::{ChunkingConfig, ExtractedDoc};
+use riptide_html::chunking::{create_strategy, ChunkingConfig as HtmlChunkingConfig, ChunkingMode};
 use tracing::{debug, info, warn};
 
 /// Apply content chunking to extracted document based on configuration.
@@ -60,7 +60,7 @@ pub(super) async fn apply_content_chunking(
                     smoothing_passes: 2,
                 }
             }
-        },
+        }
         "sliding" => ChunkingMode::Sliding {
             window_size: chunking_config.chunk_size,
             overlap: chunking_config.overlap_size,
@@ -77,7 +77,10 @@ pub(super) async fn apply_content_chunking(
             preserve_structure: true,
         },
         _ => {
-            warn!("Unknown chunking mode '{}', falling back to sliding", chunking_config.chunking_mode);
+            warn!(
+                "Unknown chunking mode '{}', falling back to sliding",
+                chunking_config.chunking_mode
+            );
             ChunkingMode::Sliding {
                 window_size: chunking_config.chunk_size,
                 overlap: chunking_config.overlap_size,
@@ -100,7 +103,13 @@ pub(super) async fn apply_content_chunking(
             // In a future version, we might return chunks separately
             let chunked_text = chunks
                 .into_iter()
-                .map(|chunk| format!("=== CHUNK {} ===\n{}\n", chunk.chunk_index + 1, chunk.content))
+                .map(|chunk| {
+                    format!(
+                        "=== CHUNK {} ===\n{}\n",
+                        chunk.chunk_index + 1,
+                        chunk.content
+                    )
+                })
                 .collect::<Vec<_>>()
                 .join("\n");
 
@@ -113,7 +122,7 @@ pub(super) async fn apply_content_chunking(
             }
 
             Ok(document)
-        },
+        }
         Err(e) => {
             warn!("Content chunking failed: {}, returning original content", e);
             Ok(document)

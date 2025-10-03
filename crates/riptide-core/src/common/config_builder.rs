@@ -249,9 +249,10 @@ impl<T> DefaultConfigBuilder<T> {
 
     /// Get field value or return error
     pub fn get_required_field(&self, field: &str) -> BuilderResult<&ConfigValue> {
-        self.get_field(field).ok_or_else(|| BuilderError::MissingRequired {
-            field: field.to_string(),
-        })
+        self.get_field(field)
+            .ok_or_else(|| BuilderError::MissingRequired {
+                field: field.to_string(),
+            })
     }
 
     /// Load from environment variables with prefix
@@ -349,28 +350,36 @@ fn parse_duration_string(s: &str) -> BuilderResult<Duration> {
     let s = s.trim().to_lowercase();
 
     if s.ends_with("ms") {
-        let num = s[..s.len() - 2].parse::<u64>().map_err(|e| BuilderError::ConversionError {
-            field: "duration".to_string(),
-            reason: format!("Invalid milliseconds value: {}", e),
-        })?;
+        let num = s[..s.len() - 2]
+            .parse::<u64>()
+            .map_err(|e| BuilderError::ConversionError {
+                field: "duration".to_string(),
+                reason: format!("Invalid milliseconds value: {}", e),
+            })?;
         Ok(Duration::from_millis(num))
     } else if s.ends_with('s') {
-        let num = s[..s.len() - 1].parse::<u64>().map_err(|e| BuilderError::ConversionError {
-            field: "duration".to_string(),
-            reason: format!("Invalid seconds value: {}", e),
-        })?;
+        let num = s[..s.len() - 1]
+            .parse::<u64>()
+            .map_err(|e| BuilderError::ConversionError {
+                field: "duration".to_string(),
+                reason: format!("Invalid seconds value: {}", e),
+            })?;
         Ok(Duration::from_secs(num))
     } else if s.ends_with('m') {
-        let num = s[..s.len() - 1].parse::<u64>().map_err(|e| BuilderError::ConversionError {
-            field: "duration".to_string(),
-            reason: format!("Invalid minutes value: {}", e),
-        })?;
+        let num = s[..s.len() - 1]
+            .parse::<u64>()
+            .map_err(|e| BuilderError::ConversionError {
+                field: "duration".to_string(),
+                reason: format!("Invalid minutes value: {}", e),
+            })?;
         Ok(Duration::from_secs(num * 60))
     } else if s.ends_with('h') {
-        let num = s[..s.len() - 1].parse::<u64>().map_err(|e| BuilderError::ConversionError {
-            field: "duration".to_string(),
-            reason: format!("Invalid hours value: {}", e),
-        })?;
+        let num = s[..s.len() - 1]
+            .parse::<u64>()
+            .map_err(|e| BuilderError::ConversionError {
+                field: "duration".to_string(),
+                reason: format!("Invalid hours value: {}", e),
+            })?;
         Ok(Duration::from_secs(num * 3600))
     } else if let Ok(num) = s.parse::<u64>() {
         // Default to seconds if no unit specified
@@ -472,11 +481,26 @@ mod tests {
 
     #[test]
     fn test_duration_parsing() {
-        assert_eq!(parse_duration_string("30s").unwrap(), Duration::from_secs(30));
-        assert_eq!(parse_duration_string("5m").unwrap(), Duration::from_secs(300));
-        assert_eq!(parse_duration_string("1h").unwrap(), Duration::from_secs(3600));
-        assert_eq!(parse_duration_string("500ms").unwrap(), Duration::from_millis(500));
-        assert_eq!(parse_duration_string("60").unwrap(), Duration::from_secs(60));
+        assert_eq!(
+            parse_duration_string("30s").unwrap(),
+            Duration::from_secs(30)
+        );
+        assert_eq!(
+            parse_duration_string("5m").unwrap(),
+            Duration::from_secs(300)
+        );
+        assert_eq!(
+            parse_duration_string("1h").unwrap(),
+            Duration::from_secs(3600)
+        );
+        assert_eq!(
+            parse_duration_string("500ms").unwrap(),
+            Duration::from_millis(500)
+        );
+        assert_eq!(
+            parse_duration_string("60").unwrap(),
+            Duration::from_secs(60)
+        );
     }
 
     #[test]

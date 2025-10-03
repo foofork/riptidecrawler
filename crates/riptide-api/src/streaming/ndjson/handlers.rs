@@ -46,7 +46,7 @@ pub async fn crawl_stream(
     let streaming_handler = NdjsonStreamingHandler::new_optimized(
         app.clone(),
         request_id.clone(),
-        65536 // 65536 bytes buffer limit as specified
+        65536, // 65536 bytes buffer limit as specified
     );
 
     // Handle streaming with zero-error approach
@@ -98,7 +98,7 @@ pub async fn deepsearch_stream(
     let streaming_handler = NdjsonStreamingHandler::new_optimized(
         app.clone(),
         request_id.clone(),
-        65536 // 65536 bytes buffer limit as specified
+        65536, // 65536 bytes buffer limit as specified
     );
 
     // Handle streaming with zero-error approach

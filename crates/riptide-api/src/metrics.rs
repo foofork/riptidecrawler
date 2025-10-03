@@ -202,33 +202,51 @@ impl RipTideMetrics {
 
         // Streaming metrics
         let streaming_active_connections = Gauge::with_opts(
-            Opts::new("riptide_streaming_active_connections", "Active streaming connections")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_streaming_active_connections",
+                "Active streaming connections",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         let streaming_total_connections = Gauge::with_opts(
-            Opts::new("riptide_streaming_total_connections", "Total streaming connections created")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_streaming_total_connections",
+                "Total streaming connections created",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         let streaming_messages_sent = Counter::with_opts(
-            Opts::new("riptide_streaming_messages_sent_total", "Total streaming messages sent")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_streaming_messages_sent_total",
+                "Total streaming messages sent",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         let streaming_messages_dropped = Counter::with_opts(
-            Opts::new("riptide_streaming_messages_dropped_total", "Total streaming messages dropped")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_streaming_messages_dropped_total",
+                "Total streaming messages dropped",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         let streaming_error_rate = Gauge::with_opts(
-            Opts::new("riptide_streaming_error_rate", "Streaming error rate (0.0 to 1.0)")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_streaming_error_rate",
+                "Streaming error rate (0.0 to 1.0)",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         let streaming_memory_usage_bytes = Gauge::with_opts(
-            Opts::new("riptide_streaming_memory_usage_bytes", "Streaming memory usage in bytes")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_streaming_memory_usage_bytes",
+                "Streaming memory usage in bytes",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         let streaming_connection_duration = Histogram::with_opts(
@@ -237,33 +255,50 @@ impl RipTideMetrics {
                 "Streaming connection duration",
             )
             .const_label("service", "riptide-api")
-            .buckets(vec![0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 5.0, 10.0, 30.0, 60.0, 300.0]),
+            .buckets(vec![
+                0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 5.0, 10.0, 30.0, 60.0, 300.0,
+            ]),
         )?;
 
         // Spider crawling metrics
         let spider_crawls_total = Counter::with_opts(
-            Opts::new("riptide_spider_crawls_total", "Total spider crawl operations")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_spider_crawls_total",
+                "Total spider crawl operations",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         let spider_pages_crawled = Counter::with_opts(
-            Opts::new("riptide_spider_pages_crawled_total", "Total pages crawled by spider")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_spider_pages_crawled_total",
+                "Total pages crawled by spider",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         let spider_pages_failed = Counter::with_opts(
-            Opts::new("riptide_spider_pages_failed_total", "Total pages failed by spider")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_spider_pages_failed_total",
+                "Total pages failed by spider",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         let spider_active_crawls = Gauge::with_opts(
-            Opts::new("riptide_spider_active_crawls", "Number of active spider crawls")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_spider_active_crawls",
+                "Number of active spider crawls",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         let spider_frontier_size = Gauge::with_opts(
-            Opts::new("riptide_spider_frontier_size", "Current spider frontier queue size")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_spider_frontier_size",
+                "Current spider frontier queue size",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         let spider_crawl_duration = Histogram::with_opts(
@@ -276,14 +311,20 @@ impl RipTideMetrics {
         )?;
 
         let spider_pages_per_second = Gauge::with_opts(
-            Opts::new("riptide_spider_pages_per_second", "Spider crawl rate in pages per second")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_spider_pages_per_second",
+                "Spider crawl rate in pages per second",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         // PDF processing metrics
         let pdf_total_processed = Counter::with_opts(
-            Opts::new("riptide_pdf_total_processed", "Total PDF documents processed")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_pdf_total_processed",
+                "Total PDF documents processed",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         let pdf_total_failed = Counter::with_opts(
@@ -292,8 +333,11 @@ impl RipTideMetrics {
         )?;
 
         let pdf_memory_limit_failures = Counter::with_opts(
-            Opts::new("riptide_pdf_memory_limit_failures", "PDF processing failures due to memory limits")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_pdf_memory_limit_failures",
+                "PDF processing failures due to memory limits",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         let pdf_processing_time = Histogram::with_opts(
@@ -306,44 +350,68 @@ impl RipTideMetrics {
         )?;
 
         let pdf_peak_memory_mb = Gauge::with_opts(
-            Opts::new("riptide_pdf_peak_memory_mb", "PDF processing peak memory usage in MB")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_pdf_peak_memory_mb",
+                "PDF processing peak memory usage in MB",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         let pdf_pages_per_pdf = Gauge::with_opts(
-            Opts::new("riptide_pdf_pages_per_pdf", "Average pages per PDF processed")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_pdf_pages_per_pdf",
+                "Average pages per PDF processed",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         let pdf_memory_spikes_handled = Counter::with_opts(
-            Opts::new("riptide_pdf_memory_spikes_handled", "Number of PDF memory spikes handled")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_pdf_memory_spikes_handled",
+                "Number of PDF memory spikes handled",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         let pdf_cleanup_operations = Counter::with_opts(
-            Opts::new("riptide_pdf_cleanup_operations", "Number of PDF memory cleanup operations performed")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_pdf_cleanup_operations",
+                "Number of PDF memory cleanup operations performed",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         // WASM memory metrics
         let wasm_memory_pages = Gauge::with_opts(
-            Opts::new("riptide_wasm_memory_pages", "Current WASM memory usage in pages (64KB each)")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_wasm_memory_pages",
+                "Current WASM memory usage in pages (64KB each)",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         let wasm_grow_failed_total = Counter::with_opts(
-            Opts::new("riptide_wasm_grow_failed_total", "Total WASM memory growth failures")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_wasm_grow_failed_total",
+                "Total WASM memory growth failures",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         let wasm_peak_memory_pages = Gauge::with_opts(
-            Opts::new("riptide_wasm_peak_memory_pages", "Peak WASM memory usage in pages")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_wasm_peak_memory_pages",
+                "Peak WASM memory usage in pages",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         let wasm_cold_start_time_ms = Gauge::with_opts(
-            Opts::new("riptide_wasm_cold_start_time_ms", "WASM cold start time in milliseconds")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_wasm_cold_start_time_ms",
+                "WASM cold start time in milliseconds",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         let wasm_aot_cache_hits = Counter::with_opts(
@@ -352,8 +420,11 @@ impl RipTideMetrics {
         )?;
 
         let wasm_aot_cache_misses = Counter::with_opts(
-            Opts::new("riptide_wasm_aot_cache_misses_total", "WASM AOT cache misses")
-                .const_label("service", "riptide-api"),
+            Opts::new(
+                "riptide_wasm_aot_cache_misses_total",
+                "WASM AOT cache misses",
+            )
+            .const_label("service", "riptide-api"),
         )?;
 
         // Register all metrics
@@ -505,9 +576,14 @@ impl RipTideMetrics {
     }
 
     /// Update streaming metrics from GlobalStreamingMetrics
-    pub fn update_streaming_metrics(&self, streaming_metrics: &crate::streaming::GlobalStreamingMetrics) {
-        self.streaming_active_connections.set(streaming_metrics.active_connections as f64);
-        self.streaming_total_connections.set(streaming_metrics.total_connections as f64);
+    pub fn update_streaming_metrics(
+        &self,
+        streaming_metrics: &crate::streaming::GlobalStreamingMetrics,
+    ) {
+        self.streaming_active_connections
+            .set(streaming_metrics.active_connections as f64);
+        self.streaming_total_connections
+            .set(streaming_metrics.total_connections as f64);
 
         // For counters, we need to track the difference and add it
         // This is a simplified approach - in production you'd want to track previous values
@@ -520,7 +596,8 @@ impl RipTideMetrics {
         // For this integration, we'll track via separate gauges that mirror the counter values
 
         self.streaming_error_rate.set(streaming_metrics.error_rate);
-        self.streaming_memory_usage_bytes.set(streaming_metrics.memory_usage_bytes as f64);
+        self.streaming_memory_usage_bytes
+            .set(streaming_metrics.memory_usage_bytes as f64);
 
         // For connection duration, we'd typically observe individual durations
         // This would be called elsewhere when connections end
@@ -548,7 +625,12 @@ impl RipTideMetrics {
     }
 
     /// Record spider crawl completion
-    pub fn record_spider_crawl_completion(&self, pages_crawled: u64, pages_failed: u64, duration: f64) {
+    pub fn record_spider_crawl_completion(
+        &self,
+        pages_crawled: u64,
+        pages_failed: u64,
+        duration: f64,
+    ) {
         self.spider_active_crawls.dec();
         self.spider_pages_crawled.inc_by(pages_crawled as f64);
         self.spider_pages_failed.inc_by(pages_failed as f64);
@@ -573,10 +655,11 @@ impl RipTideMetrics {
         // Update counters (increment by difference from last update)
         // Note: In production, you'd want to track previous values to get deltas
         self.pdf_total_processed.get(); // Get current value first
-        // For simplicity, we'll set gauges and observe individual operations elsewhere
+                                        // For simplicity, we'll set gauges and observe individual operations elsewhere
 
         // Update gauges with current snapshot values
-        self.pdf_peak_memory_mb.set(snapshot.peak_memory_usage as f64 / (1024.0 * 1024.0));
+        self.pdf_peak_memory_mb
+            .set(snapshot.peak_memory_usage as f64 / (1024.0 * 1024.0));
         self.pdf_pages_per_pdf.set(snapshot.avg_pages_per_pdf);
     }
 
@@ -614,7 +697,12 @@ impl RipTideMetrics {
     }
 
     /// Update WASM memory metrics
-    pub fn update_wasm_memory_metrics(&self, current_pages: usize, grow_failed: u64, peak_pages: usize) {
+    pub fn update_wasm_memory_metrics(
+        &self,
+        current_pages: usize,
+        grow_failed: u64,
+        peak_pages: usize,
+    ) {
         self.wasm_memory_pages.set(current_pages as f64);
         self.wasm_peak_memory_pages.set(peak_pages as f64);
 
@@ -644,7 +732,10 @@ impl RipTideMetrics {
     }
 
     /// Update WASM metrics from component extractor
-    pub fn update_wasm_metrics_from_extractor(&self, wasm_metrics: &std::collections::HashMap<String, f64>) {
+    pub fn update_wasm_metrics_from_extractor(
+        &self,
+        wasm_metrics: &std::collections::HashMap<String, f64>,
+    ) {
         if let Some(&pages) = wasm_metrics.get("riptide_wasm_memory_pages") {
             self.wasm_memory_pages.set(pages);
         }

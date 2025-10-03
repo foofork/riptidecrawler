@@ -507,5 +507,4 @@ mod tests {
             quality_score
         );
     }
-
 }

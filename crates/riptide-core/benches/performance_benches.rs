@@ -1,9 +1,9 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use opentelemetry::trace::Tracer;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::runtime::Runtime;
-use opentelemetry::trace::Tracer;
 
 use riptide_core::monitoring::{MetricsCollector, TimeSeriesBuffer};
 use riptide_core::telemetry::{DataSanitizer, ResourceTracker, SlaMonitor, TelemetrySystem};
@@ -99,7 +99,8 @@ fn bench_time_series_operations(c: &mut Criterion) {
 
         b.iter(|| {
             black_box(
-                buffer.calculate_percentile(black_box(95.0), black_box(Duration::from_secs(5 * 60))),
+                buffer
+                    .calculate_percentile(black_box(95.0), black_box(Duration::from_secs(5 * 60))),
             )
         });
     });
@@ -128,15 +129,7 @@ fn bench_performance_report_generation(c: &mut Criterion) {
             }
         });
 
-        b.iter(|| {
-            rt.block_on(async {
-                black_box(
-                    collector
-                        .get_current_metrics()
-                        .await,
-                )
-            })
-        });
+        b.iter(|| rt.block_on(async { black_box(collector.get_current_metrics().await) }));
     });
 }
 
@@ -184,7 +177,6 @@ fn bench_concurrent_metrics_collection(c: &mut Criterion) {
 }
 
 fn bench_memory_usage_patterns(c: &mut Criterion) {
-
     let mut group = c.benchmark_group("memory_patterns");
     group.throughput(Throughput::Elements(1000));
 

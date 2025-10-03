@@ -12,9 +12,9 @@ use tracing::{debug, info};
 
 use crate::{
     cache::{CacheConfig, CacheEntry, CacheManager, CacheMetadata, ConditionalResult},
+    common::validation::{CommonValidator, ValidationConfig},
     conditional::{extract_conditional_info, generate_etag, ConditionalRequest},
     security::{SecurityConfig, SecurityMiddleware},
-    common::validation::{CommonValidator, ValidationConfig},
 };
 
 /// Integrated cache configuration combining all security and performance features
@@ -228,7 +228,8 @@ impl IntegratedCacheManager {
 
         // Clone headers for sanitization
         let mut sanitized_headers = headers.clone();
-        self.security_middleware.sanitize_headers(&mut sanitized_headers)?;
+        self.security_middleware
+            .sanitize_headers(&mut sanitized_headers)?;
         Ok(sanitized_headers)
     }
 
@@ -326,7 +327,9 @@ pub struct IntegratedCacheStats {
 }
 
 /// Convenience function to create integrated cache manager with optimal defaults
-pub async fn create_optimized_integrated_cache_manager(redis_url: &str) -> Result<IntegratedCacheManager> {
+pub async fn create_optimized_integrated_cache_manager(
+    redis_url: &str,
+) -> Result<IntegratedCacheManager> {
     let config = IntegratedCacheConfig {
         redis_url: redis_url.to_string(),
         cache: CacheConfig {

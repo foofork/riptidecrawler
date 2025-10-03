@@ -6,8 +6,8 @@ use std::collections::HashMap;
 use tracing::{debug, info};
 
 use crate::{
-    LlmProvider, CompletionRequest, CompletionResponse, LlmCapabilities, Cost, ModelInfo,
-    IntelligenceError, Result, Role, Usage,
+    CompletionRequest, CompletionResponse, Cost, IntelligenceError, LlmCapabilities, LlmProvider,
+    ModelInfo, Result, Role, Usage,
 };
 
 /// AWS Bedrock provider implementation
@@ -24,12 +24,25 @@ pub struct BedrockProvider {
 
 impl BedrockProvider {
     /// Create a new AWS Bedrock provider
-    pub fn new(region: String, access_key: Option<String>, secret_key: Option<String>) -> Result<Self> {
+    pub fn new(
+        region: String,
+        access_key: Option<String>,
+        secret_key: Option<String>,
+    ) -> Result<Self> {
         let mut model_costs = HashMap::new();
         // AWS Bedrock pricing (approximate, varies by region)
-        model_costs.insert("anthropic.claude-3-sonnet-20240229-v1:0".to_string(), (0.003, 0.015));
-        model_costs.insert("anthropic.claude-3-haiku-20240307-v1:0".to_string(), (0.00025, 0.00125));
-        model_costs.insert("anthropic.claude-3-opus-20240229-v1:0".to_string(), (0.015, 0.075));
+        model_costs.insert(
+            "anthropic.claude-3-sonnet-20240229-v1:0".to_string(),
+            (0.003, 0.015),
+        );
+        model_costs.insert(
+            "anthropic.claude-3-haiku-20240307-v1:0".to_string(),
+            (0.00025, 0.00125),
+        );
+        model_costs.insert(
+            "anthropic.claude-3-opus-20240229-v1:0".to_string(),
+            (0.015, 0.075),
+        );
         model_costs.insert("amazon.titan-text-express-v1".to_string(), (0.0008, 0.0016));
         model_costs.insert("amazon.titan-text-lite-v1".to_string(), (0.0003, 0.0004));
         model_costs.insert("meta.llama2-70b-chat-v1".to_string(), (0.00195, 0.00256));
@@ -53,9 +66,10 @@ impl BedrockProvider {
         } else if request.model.starts_with("meta.llama") {
             self.build_llama_payload(request)
         } else {
-            Err(IntelligenceError::Configuration(
-                format!("Unsupported Bedrock model: {}", request.model)
-            ))
+            Err(IntelligenceError::Configuration(format!(
+                "Unsupported Bedrock model: {}",
+                request.model
+            )))
         }
     }
 
@@ -81,7 +95,9 @@ impl BedrockProvider {
         }
 
         if prompt.is_empty() {
-            return Err(IntelligenceError::InvalidRequest("No messages provided".to_string()));
+            return Err(IntelligenceError::InvalidRequest(
+                "No messages provided".to_string(),
+            ));
         }
 
         // Ensure prompt ends with Assistant prompt
@@ -95,16 +111,22 @@ impl BedrockProvider {
         });
 
         if let Some(temperature) = request.temperature {
-            payload["temperature"] = serde_json::Value::Number(serde_json::Number::from_f64(temperature as f64).unwrap());
+            payload["temperature"] = serde_json::Value::Number(
+                serde_json::Number::from_f64(temperature as f64).unwrap(),
+            );
         }
 
         if let Some(top_p) = request.top_p {
-            payload["top_p"] = serde_json::Value::Number(serde_json::Number::from_f64(top_p as f64).unwrap());
+            payload["top_p"] =
+                serde_json::Value::Number(serde_json::Number::from_f64(top_p as f64).unwrap());
         }
 
         if let Some(stop_sequences) = &request.stop {
             payload["stop_sequences"] = serde_json::Value::Array(
-                stop_sequences.iter().map(|s| serde_json::Value::String(s.clone())).collect()
+                stop_sequences
+                    .iter()
+                    .map(|s| serde_json::Value::String(s.clone()))
+                    .collect(),
             );
         }
 
@@ -112,16 +134,21 @@ impl BedrockProvider {
     }
 
     fn build_titan_payload(&self, request: &CompletionRequest) -> Result<serde_json::Value> {
-        let prompt = request.messages.iter()
-            .map(|msg| format!("{}: {}",
-                match msg.role {
-                    Role::System => "System",
-                    Role::User => "User",
-                    Role::Assistant => "Assistant",
-                    Role::Function => "User",
-                },
-                msg.content
-            ))
+        let prompt = request
+            .messages
+            .iter()
+            .map(|msg| {
+                format!(
+                    "{}: {}",
+                    match msg.role {
+                        Role::System => "System",
+                        Role::User => "User",
+                        Role::Assistant => "Assistant",
+                        Role::Function => "User",
+                    },
+                    msg.content
+                )
+            })
             .collect::<Vec<_>>()
             .join("\n");
 
@@ -131,19 +158,21 @@ impl BedrockProvider {
 
         if let Some(temperature) = request.temperature {
             text_generation_config["temperature"] = serde_json::Value::Number(
-                serde_json::Number::from_f64(temperature as f64).unwrap()
+                serde_json::Number::from_f64(temperature as f64).unwrap(),
             );
         }
 
         if let Some(top_p) = request.top_p {
-            text_generation_config["topP"] = serde_json::Value::Number(
-                serde_json::Number::from_f64(top_p as f64).unwrap()
-            );
+            text_generation_config["topP"] =
+                serde_json::Value::Number(serde_json::Number::from_f64(top_p as f64).unwrap());
         }
 
         if let Some(stop_sequences) = &request.stop {
             text_generation_config["stopSequences"] = serde_json::Value::Array(
-                stop_sequences.iter().map(|s| serde_json::Value::String(s.clone())).collect()
+                stop_sequences
+                    .iter()
+                    .map(|s| serde_json::Value::String(s.clone()))
+                    .collect(),
             );
         }
 
@@ -154,16 +183,21 @@ impl BedrockProvider {
     }
 
     fn build_llama_payload(&self, request: &CompletionRequest) -> Result<serde_json::Value> {
-        let prompt = request.messages.iter()
-            .map(|msg| format!("{}: {}",
-                match msg.role {
-                    Role::System => "System",
-                    Role::User => "User",
-                    Role::Assistant => "Assistant",
-                    Role::Function => "User",
-                },
-                msg.content
-            ))
+        let prompt = request
+            .messages
+            .iter()
+            .map(|msg| {
+                format!(
+                    "{}: {}",
+                    match msg.role {
+                        Role::System => "System",
+                        Role::User => "User",
+                        Role::Assistant => "Assistant",
+                        Role::Function => "User",
+                    },
+                    msg.content
+                )
+            })
             .collect::<Vec<_>>()
             .join("\n");
 
@@ -174,14 +208,13 @@ impl BedrockProvider {
 
         if let Some(temperature) = request.temperature {
             payload["temperature"] = serde_json::Value::Number(
-                serde_json::Number::from_f64(temperature as f64).unwrap()
+                serde_json::Number::from_f64(temperature as f64).unwrap(),
             );
         }
 
         if let Some(top_p) = request.top_p {
-            payload["top_p"] = serde_json::Value::Number(
-                serde_json::Number::from_f64(top_p as f64).unwrap()
-            );
+            payload["top_p"] =
+                serde_json::Value::Number(serde_json::Number::from_f64(top_p as f64).unwrap());
         }
 
         Ok(payload)
@@ -197,9 +230,10 @@ impl BedrockProvider {
         } else if model.starts_with("meta.llama") {
             self.parse_llama_response(response_body)
         } else {
-            Err(IntelligenceError::Provider(
-                format!("Unsupported model for response parsing: {}", model)
-            ))
+            Err(IntelligenceError::Provider(format!(
+                "Unsupported model for response parsing: {}",
+                model
+            )))
         }
     }
 
@@ -218,8 +252,9 @@ impl BedrockProvider {
             output_tokens: Option<u32>,
         }
 
-        let response: ClaudeResponse = serde_json::from_str(response_body)
-            .map_err(|e| IntelligenceError::Provider(format!("Failed to parse Claude response: {}", e)))?;
+        let response: ClaudeResponse = serde_json::from_str(response_body).map_err(|e| {
+            IntelligenceError::Provider(format!("Failed to parse Claude response: {}", e))
+        })?;
 
         let usage = if let Some(usage) = response.usage {
             Usage {
@@ -255,16 +290,23 @@ impl BedrockProvider {
             token_count: Option<u32>,
         }
 
-        let response: TitanResponse = serde_json::from_str(response_body)
-            .map_err(|e| IntelligenceError::Provider(format!("Failed to parse Titan response: {}", e)))?;
+        let response: TitanResponse = serde_json::from_str(response_body).map_err(|e| {
+            IntelligenceError::Provider(format!("Failed to parse Titan response: {}", e))
+        })?;
 
-        let result = response.results.into_iter().next()
-            .ok_or_else(|| IntelligenceError::Provider("No results in Titan response".to_string()))?;
+        let result = response.results.into_iter().next().ok_or_else(|| {
+            IntelligenceError::Provider("No results in Titan response".to_string())
+        })?;
 
         let usage = Usage {
             prompt_tokens: response.input_text_token_count.unwrap_or(0),
-            completion_tokens: result.token_count.unwrap_or(result.output_text.len() as u32 / 4),
-            total_tokens: response.input_text_token_count.unwrap_or(0) + result.token_count.unwrap_or(result.output_text.len() as u32 / 4),
+            completion_tokens: result
+                .token_count
+                .unwrap_or(result.output_text.len() as u32 / 4),
+            total_tokens: response.input_text_token_count.unwrap_or(0)
+                + result
+                    .token_count
+                    .unwrap_or(result.output_text.len() as u32 / 4),
         };
 
         Ok((result.output_text, usage))
@@ -281,13 +323,19 @@ impl BedrockProvider {
             generation_token_count: Option<u32>,
         }
 
-        let response: LlamaResponse = serde_json::from_str(response_body)
-            .map_err(|e| IntelligenceError::Provider(format!("Failed to parse Llama response: {}", e)))?;
+        let response: LlamaResponse = serde_json::from_str(response_body).map_err(|e| {
+            IntelligenceError::Provider(format!("Failed to parse Llama response: {}", e))
+        })?;
 
         let usage = Usage {
             prompt_tokens: response.prompt_token_count.unwrap_or(0),
-            completion_tokens: response.generation_token_count.unwrap_or(response.generation.len() as u32 / 4),
-            total_tokens: response.prompt_token_count.unwrap_or(0) + response.generation_token_count.unwrap_or(response.generation.len() as u32 / 4),
+            completion_tokens: response
+                .generation_token_count
+                .unwrap_or(response.generation.len() as u32 / 4),
+            total_tokens: response.prompt_token_count.unwrap_or(0)
+                + response
+                    .generation_token_count
+                    .unwrap_or(response.generation.len() as u32 / 4),
         };
 
         Ok((response.generation, usage))
@@ -297,7 +345,10 @@ impl BedrockProvider {
 #[async_trait]
 impl LlmProvider for BedrockProvider {
     async fn complete(&self, request: CompletionRequest) -> Result<CompletionResponse> {
-        debug!("Sending completion request to AWS Bedrock for model: {}", request.model);
+        debug!(
+            "Sending completion request to AWS Bedrock for model: {}",
+            request.model
+        );
 
         // In a real implementation, you would use the AWS SDK to invoke the model
         // For now, this is a placeholder that shows the structure
@@ -342,7 +393,9 @@ impl LlmProvider for BedrockProvider {
     async fn embed(&self, _text: &str) -> Result<Vec<f32>> {
         // AWS Bedrock supports embeddings through specific models like Titan Embeddings
         // This would require a separate model invocation
-        Err(IntelligenceError::Provider("Embeddings not implemented for Bedrock provider".to_string()))
+        Err(IntelligenceError::Provider(
+            "Embeddings not implemented for Bedrock provider".to_string(),
+        ))
     }
 
     fn capabilities(&self) -> LlmCapabilities {
@@ -409,7 +462,8 @@ impl LlmProvider for BedrockProvider {
 
     fn estimate_cost(&self, tokens: usize) -> Cost {
         // Default to Claude 3 Sonnet pricing if model not found
-        let (prompt_cost_per_1k, completion_cost_per_1k) = self.model_costs
+        let (prompt_cost_per_1k, completion_cost_per_1k) = self
+            .model_costs
             .get("anthropic.claude-3-sonnet-20240229-v1:0")
             .copied()
             .unwrap_or((0.003, 0.015));
@@ -430,7 +484,9 @@ impl LlmProvider for BedrockProvider {
         // In a real implementation, you would check AWS credentials and region accessibility
         // For now, just check that we have the required configuration
         if self.region.is_empty() {
-            return Err(IntelligenceError::Configuration("AWS region not configured".to_string()));
+            return Err(IntelligenceError::Configuration(
+                "AWS region not configured".to_string(),
+            ));
         }
 
         info!("AWS Bedrock health check successful (mock)");
@@ -452,18 +508,15 @@ mod tests {
         let provider = BedrockProvider::new(
             "us-east-1".to_string(),
             Some("access-key".to_string()),
-            Some("secret-key".to_string())
-        ).unwrap();
+            Some("secret-key".to_string()),
+        )
+        .unwrap();
         assert_eq!(provider.name(), "aws_bedrock");
     }
 
     #[test]
     fn test_capabilities() {
-        let provider = BedrockProvider::new(
-            "us-east-1".to_string(),
-            None,
-            None
-        ).unwrap();
+        let provider = BedrockProvider::new("us-east-1".to_string(), None, None).unwrap();
         let capabilities = provider.capabilities();
         assert_eq!(capabilities.provider_name, "AWS Bedrock");
         assert!(!capabilities.models.is_empty());
@@ -477,7 +530,7 @@ mod tests {
             vec![
                 Message::system("You are a helpful assistant"),
                 Message::user("Hello"),
-            ]
+            ],
         );
 
         let payload = provider.build_claude_payload(&request).unwrap();

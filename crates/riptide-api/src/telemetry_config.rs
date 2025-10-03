@@ -108,8 +108,8 @@ impl TelemetryConfig {
             .parse()
             .unwrap_or(false);
 
-        let service_name = std::env::var("TELEMETRY_SERVICE_NAME")
-            .unwrap_or_else(|_| "riptide-api".to_string());
+        let service_name =
+            std::env::var("TELEMETRY_SERVICE_NAME").unwrap_or_else(|_| "riptide-api".to_string());
 
         let service_version = std::env::var("TELEMETRY_SERVICE_VERSION")
             .or_else(|_| std::env::var("CARGO_PKG_VERSION"))

@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use tracing::{debug, info, Span};
 
 use crate::{errors::ApiError, state::AppState};
-use riptide_core::stealth::{StealthController, StealthPreset, StealthConfig};
+use riptide_core::stealth::{StealthConfig, StealthController, StealthPreset};
 
 /// Stealth configuration request
 #[derive(Debug, Serialize, Deserialize)]
@@ -201,7 +201,9 @@ pub async fn test_stealth(
 
     // Validate request
     if request.urls.is_empty() {
-        return Err(ApiError::validation("At least one URL is required for testing"));
+        return Err(ApiError::validation(
+            "At least one URL is required for testing",
+        ));
     }
 
     if request.urls.len() > 10 {
@@ -338,11 +340,15 @@ async fn test_stealth_for_url(
         }
         Err(e) => {
             debug!("Request failed for {}: {}", url, e);
-            (0, vec![format!("Request failed: {}", e)], HeadersAnalysis {
-                user_agent_score: 0,
-                headers_score: 0,
-                fingerprint_score: 0,
-            })
+            (
+                0,
+                vec![format!("Request failed: {}", e)],
+                HeadersAnalysis {
+                    user_agent_score: 0,
+                    headers_score: 0,
+                    fingerprint_score: 0,
+                },
+            )
         }
     };
 
@@ -378,16 +384,21 @@ fn calculate_effectiveness_score(_controller: &StealthController) -> u8 {
 }
 
 /// Analyze response for detection indicators
-fn analyze_detection_indicators(
-    body: &str,
-    headers: &reqwest::header::HeaderMap,
-) -> Vec<String> {
+fn analyze_detection_indicators(body: &str, headers: &reqwest::header::HeaderMap) -> Vec<String> {
     let mut indicators = Vec::new();
 
     // Check for common bot detection patterns in response body
     let bot_patterns = [
-        "blocked", "bot", "robot", "crawler", "spider", "captcha",
-        "verify", "challenge", "cloudflare", "access denied"
+        "blocked",
+        "bot",
+        "robot",
+        "crawler",
+        "spider",
+        "captcha",
+        "verify",
+        "challenge",
+        "cloudflare",
+        "access denied",
     ];
 
     let body_lower = body.to_lowercase();
@@ -471,12 +482,17 @@ fn calculate_stealth_metrics(results: &[StealthTestResult]) -> StealthMetrics {
     let total_response_time: u64 = results.iter().map(|r| r.response_time_ms).sum();
     let avg_response_time_ms = total_response_time as f64 / results.len() as f64;
 
-    let detected = results.iter().filter(|r| !r.detection_indicators.is_empty()).count();
+    let detected = results
+        .iter()
+        .filter(|r| !r.detection_indicators.is_empty())
+        .count();
     let detection_rate = (detected as f64 / results.len() as f64) * 100.0;
 
-    let avg_fingerprint_score: u8 = results.iter()
+    let avg_fingerprint_score: u8 = results
+        .iter()
         .map(|r| r.headers_analysis.fingerprint_score)
-        .sum::<u8>() / results.len() as u8;
+        .sum::<u8>()
+        / results.len() as u8;
 
     StealthMetrics {
         success_rate,
@@ -506,11 +522,14 @@ fn generate_stealth_recommendations(
     }
 
     if metrics.fingerprint_uniqueness < 70 {
-        recommendations.push("Improve user agent rotation strategy for better fingerprint diversity".to_string());
+        recommendations.push(
+            "Improve user agent rotation strategy for better fingerprint diversity".to_string(),
+        );
     }
 
     // Analyze common failure patterns
-    let common_indicators: std::collections::HashMap<&str, usize> = results.iter()
+    let common_indicators: std::collections::HashMap<&str, usize> = results
+        .iter()
         .flat_map(|r| r.detection_indicators.iter())
         .fold(std::collections::HashMap::new(), |mut acc, indicator| {
             *acc.entry(indicator).or_insert(0) += 1;
@@ -554,7 +573,10 @@ mod tests {
     fn test_headers_analysis() {
         let user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36";
         let mut headers = std::collections::HashMap::new();
-        headers.insert("accept".to_string(), "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8".to_string());
+        headers.insert(
+            "accept".to_string(),
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8".to_string(),
+        );
         headers.insert("accept-language".to_string(), "en-US,en;q=0.5".to_string());
 
         let response_headers = reqwest::header::HeaderMap::new();

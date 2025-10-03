@@ -400,12 +400,10 @@ impl SlaMonitor {
         // For now, use simple approximation
         if metrics.total_requests.is_multiple_of(20) {
             metrics.p95_duration = Duration::from_nanos(
-                (metrics.total_duration.as_nanos() as f64 * 0.95) as u64
-                    / metrics.total_requests,
+                (metrics.total_duration.as_nanos() as f64 * 0.95) as u64 / metrics.total_requests,
             );
             metrics.p99_duration = Duration::from_nanos(
-                (metrics.total_duration.as_nanos() as f64 * 0.99) as u64
-                    / metrics.total_requests,
+                (metrics.total_duration.as_nanos() as f64 * 0.99) as u64 / metrics.total_requests,
             );
         }
     }

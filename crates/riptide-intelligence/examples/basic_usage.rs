@@ -1,12 +1,12 @@
 //! Basic usage example of the RipTide Intelligence layer
 
+use riptide_intelligence::{
+    create_fallback_chain, CircuitBreaker, CircuitBreakerConfig, CompletionRequest,
+    IntelligenceClient, LlmProvider, LlmRegistry, Message, MockLlmProvider, ProviderConfig,
+    TimeoutWrapper,
+};
 use std::sync::Arc;
 use std::time::Duration;
-use riptide_intelligence::{
-    IntelligenceClient, LlmRegistry, ProviderConfig, MockLlmProvider,
-    TimeoutWrapper, CircuitBreaker, CircuitBreakerConfig,
-    CompletionRequest, Message, create_fallback_chain, LlmProvider,
-};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -37,8 +37,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load providers
     let configs = vec![
         ProviderConfig::new("primary", "mock"),
-        ProviderConfig::new("backup", "mock")
-            .with_config("delay", serde_json::Value::Number(serde_json::Number::from(100u64))),
+        ProviderConfig::new("backup", "mock").with_config(
+            "delay",
+            serde_json::Value::Number(serde_json::Number::from(100u64)),
+        ),
     ];
 
     registry.load_providers(configs)?;
@@ -51,7 +53,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let request = CompletionRequest::new(
         "mock-gpt-3.5",
         vec![Message::user("Hello, what can you tell me about Rust?")],
-    ).with_max_tokens(100);
+    )
+    .with_max_tokens(100);
 
     let response = client.complete(request).await?;
     println!("✅ Response: {}", response.content);
@@ -64,10 +67,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let slow_provider = Arc::new(MockLlmProvider::with_name("slow").with_delay(3000));
     let timeout_provider = TimeoutWrapper::with_timeout(slow_provider, Duration::from_millis(1000));
 
-    let request = CompletionRequest::new(
-        "mock-gpt-3.5",
-        vec![Message::user("This should timeout")],
-    );
+    let request =
+        CompletionRequest::new("mock-gpt-3.5", vec![Message::user("This should timeout")]);
 
     match timeout_provider.complete(request).await {
         Ok(_) => println!("❌ Expected timeout but request succeeded"),
@@ -81,10 +82,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = CircuitBreakerConfig::strict();
     let circuit_provider = CircuitBreaker::with_config(failing_provider, config);
 
-    let request = CompletionRequest::new(
-        "mock-gpt-3.5",
-        vec![Message::user("This will fail")],
-    );
+    let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("This will fail")]);
 
     // Trigger circuit opening
     for i in 0..6 {
@@ -136,7 +134,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 7. Embeddings
     println!("7. Testing embeddings...");
-    let embeddings = provider.embed("This is a test sentence for embeddings").await?;
+    let embeddings = provider
+        .embed("This is a test sentence for embeddings")
+        .await?;
     println!("✅ Generated embeddings:");
     println!("   Dimensions: {}", embeddings.len());
     println!("   Sample values: {:?}", &embeddings[0..5]);
@@ -148,7 +148,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("✅ Provider capabilities:");
     println!("   Name: {}", capabilities.provider_name);
     println!("   Models: {}", capabilities.models.len());
-    println!("   Supports embeddings: {}", capabilities.supports_embeddings);
+    println!(
+        "   Supports embeddings: {}",
+        capabilities.supports_embeddings
+    );
     println!("   Max context length: {}", capabilities.max_context_length);
     println!();
 

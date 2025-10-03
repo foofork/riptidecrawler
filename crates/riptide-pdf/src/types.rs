@@ -53,7 +53,6 @@ pub struct ExtractedDoc {
     pub description: Option<String>,
 }
 
-
 /// Result of PDF processing
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PdfProcessingResult {
@@ -358,14 +357,9 @@ pub enum ProgressUpdate {
         timestamp: String,
     },
     /// Processing failed with error
-    Failed {
-        error: String,
-        timestamp: String,
-    },
+    Failed { error: String, timestamp: String },
     /// Keep-alive message
-    KeepAlive {
-        timestamp: String,
-    },
+    KeepAlive { timestamp: String },
 }
 
 impl Default for ProgressUpdate {

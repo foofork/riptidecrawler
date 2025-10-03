@@ -53,10 +53,10 @@ impl JobQueue {
     /// Create a new job queue instance
     pub async fn new(redis_url: &str, config: QueueConfig) -> Result<Self> {
         info!("Connecting to Redis at {}", redis_url);
-        let client = redis::Client::open(redis_url)
-            .context("Failed to create Redis client")?;
+        let client = redis::Client::open(redis_url).context("Failed to create Redis client")?;
 
-        let redis = client.get_multiplexed_async_connection()
+        let redis = client
+            .get_multiplexed_async_connection()
             .await
             .context("Failed to create Redis connection manager")?;
 
@@ -83,8 +83,7 @@ impl JobQueue {
 
         // Store job data in Redis hash
         let job_key = format!("{}:job:{}", self.config.namespace, job_id);
-        let job_json = serde_json::to_string(&job)
-            .context("Failed to serialize job")?;
+        let job_json = serde_json::to_string(&job).context("Failed to serialize job")?;
 
         // Add to priority queue
         let queue_key = if job.scheduled_at.is_some() {
@@ -106,7 +105,7 @@ impl JobQueue {
             pipe.zadd(
                 format!("{}:scheduled", self.config.namespace),
                 job_id.to_string(),
-                scheduled_at.timestamp()
+                scheduled_at.timestamp(),
             );
         }
 
@@ -139,14 +138,14 @@ impl JobQueue {
 
         // Get highest priority job from pending queue
         let pending_key = format!("{}:pending", self.config.namespace);
-        let job_ids: Vec<String> = self.redis
+        let job_ids: Vec<String> = self
+            .redis
             .zrevrange::<_, Vec<String>>(&pending_key, 0, 0)
             .await
             .context("Failed to get job from pending queue")?;
 
         if let Some(job_id_str) = job_ids.first() {
-            let job_id = Uuid::parse_str(job_id_str)
-                .context("Failed to parse job ID")?;
+            let job_id = Uuid::parse_str(job_id_str).context("Failed to parse job ID")?;
 
             // Try to acquire lease on the job
             if let Some(mut job) = self.acquire_job_lease(job_id, worker_id).await? {
@@ -175,7 +174,11 @@ impl JobQueue {
     }
 
     /// Complete a job successfully
-    pub async fn complete_job(&mut self, job_id: Uuid, result: JobResult) -> Result<(), anyhow::Error> {
+    pub async fn complete_job(
+        &mut self,
+        job_id: Uuid,
+        result: JobResult,
+    ) -> Result<(), anyhow::Error> {
         info!(job_id = %job_id, worker_id = %result.worker_id, "Completing job");
 
         if let Some(mut job) = self.get_job(job_id).await? {
@@ -185,8 +188,8 @@ impl JobQueue {
             // Store result if configured
             if self.config.persist_results {
                 let result_key = format!("{}:result:{}", self.config.namespace, job_id);
-                let result_json = serde_json::to_string(&result)
-                    .context("Failed to serialize job result")?;
+                let result_json =
+                    serde_json::to_string(&result).context("Failed to serialize job result")?;
 
                 // Use SET EX command instead of deprecated setex
                 redis::cmd("SET")
@@ -239,7 +242,11 @@ impl JobQueue {
                     // Move to dead letter queue
                     let dead_letter_key = format!("{}:dead_letter", self.config.namespace);
                     self.redis
-                        .zadd::<_, _, _, ()>(&dead_letter_key, job_id.to_string(), Utc::now().timestamp())
+                        .zadd::<_, _, _, ()>(
+                            &dead_letter_key,
+                            job_id.to_string(),
+                            Utc::now().timestamp(),
+                        )
                         .await
                         .context("Failed to add job to dead letter queue")?;
 
@@ -270,14 +277,14 @@ impl JobQueue {
 
         // Load from Redis
         let job_key = format!("{}:job:{}", self.config.namespace, job_id);
-        let job_data: Option<String> = self.redis
+        let job_data: Option<String> = self
+            .redis
             .hget::<_, _, Option<String>>(&job_key, "data")
             .await
             .context("Failed to get job from Redis")?;
 
         if let Some(job_json) = job_data {
-            let job: Job = serde_json::from_str(&job_json)
-                .context("Failed to deserialize job")?;
+            let job: Job = serde_json::from_str(&job_json).context("Failed to deserialize job")?;
 
             // Update cache
             {
@@ -292,16 +299,20 @@ impl JobQueue {
     }
 
     /// Get job result
-    pub async fn get_job_result(&mut self, job_id: Uuid) -> Result<Option<JobResult>, anyhow::Error> {
+    pub async fn get_job_result(
+        &mut self,
+        job_id: Uuid,
+    ) -> Result<Option<JobResult>, anyhow::Error> {
         let result_key = format!("{}:result:{}", self.config.namespace, job_id);
-        let result_data: Option<String> = self.redis
+        let result_data: Option<String> = self
+            .redis
             .get::<_, Option<String>>(&result_key)
             .await
             .context("Failed to get job result from Redis")?;
 
         if let Some(result_json) = result_data {
-            let result: JobResult = serde_json::from_str(&result_json)
-                .context("Failed to deserialize job result")?;
+            let result: JobResult =
+                serde_json::from_str(&result_json).context("Failed to deserialize job result")?;
             Ok(Some(result))
         } else {
             Ok(None)
@@ -324,7 +335,12 @@ impl JobQueue {
             failed: failed_count,
             retry: retry_count,
             delayed: delayed_count,
-            total: pending_count + processing_count + completed_count + failed_count + retry_count + delayed_count,
+            total: pending_count
+                + processing_count
+                + completed_count
+                + failed_count
+                + retry_count
+                + delayed_count,
         })
     }
 
@@ -336,7 +352,8 @@ impl JobQueue {
         let pending_key = format!("{}:pending", self.config.namespace);
 
         // Check scheduled jobs
-        let ready_scheduled: Vec<String> = self.redis
+        let ready_scheduled: Vec<String> = self
+            .redis
             .zrangebyscore::<_, _, _, Vec<String>>(&scheduled_key, 0, now)
             .await
             .context("Failed to get ready scheduled jobs")?;
@@ -348,9 +365,11 @@ impl JobQueue {
                     let priority_score = job.priority as i64;
 
                     let mut pipe = redis::pipe();
-                    pipe.atomic()
-                        .zrem(&scheduled_key, &job_id_str)
-                        .zadd(&pending_key, &job_id_str, priority_score);
+                    pipe.atomic().zrem(&scheduled_key, &job_id_str).zadd(
+                        &pending_key,
+                        &job_id_str,
+                        priority_score,
+                    );
 
                     pipe.query_async::<()>(&mut self.redis).await?;
 
@@ -360,7 +379,8 @@ impl JobQueue {
         }
 
         // Check retry jobs
-        let ready_retries: Vec<String> = self.redis
+        let ready_retries: Vec<String> = self
+            .redis
             .zrangebyscore::<_, _, _, Vec<String>>(&retry_key, 0, now)
             .await
             .context("Failed to get ready retry jobs")?;
@@ -371,9 +391,11 @@ impl JobQueue {
                     let priority_score = job.priority as i64;
 
                     let mut pipe = redis::pipe();
-                    pipe.atomic()
-                        .zrem(&retry_key, &job_id_str)
-                        .zadd(&pending_key, &job_id_str, priority_score);
+                    pipe.atomic().zrem(&retry_key, &job_id_str).zadd(
+                        &pending_key,
+                        &job_id_str,
+                        priority_score,
+                    );
 
                     pipe.query_async::<()>(&mut self.redis).await?;
 
@@ -386,9 +408,14 @@ impl JobQueue {
     }
 
     /// Acquire a lease on a job for exclusive processing
-    async fn acquire_job_lease(&mut self, job_id: Uuid, worker_id: &str) -> Result<Option<Job>, anyhow::Error> {
+    async fn acquire_job_lease(
+        &mut self,
+        job_id: Uuid,
+        worker_id: &str,
+    ) -> Result<Option<Job>, anyhow::Error> {
         let lease_key = format!("{}:lease:{}", self.config.namespace, job_id);
-        let lease_acquired: bool = self.redis
+        let lease_acquired: bool = self
+            .redis
             .set_nx::<_, _, bool>(&lease_key, worker_id)
             .await
             .context("Failed to acquire job lease")?;
@@ -411,8 +438,7 @@ impl JobQueue {
     /// Update job status in Redis
     async fn update_job_status(&mut self, job: &Job) -> Result<(), anyhow::Error> {
         let job_key = format!("{}:job:{}", self.config.namespace, job.id);
-        let job_json = serde_json::to_string(job)
-            .context("Failed to serialize job")?;
+        let job_json = serde_json::to_string(job).context("Failed to serialize job")?;
 
         self.redis
             .hset::<_, _, _, ()>(&job_key, "data", job_json)
@@ -450,7 +476,8 @@ impl JobQueue {
     /// Get queue size for a specific queue
     async fn get_queue_size(&mut self, queue_name: &str) -> Result<usize, anyhow::Error> {
         let queue_key = format!("{}:{}", self.config.namespace, queue_name);
-        let size: usize = self.redis
+        let size: usize = self
+            .redis
             .zcard::<_, usize>(&queue_key)
             .await
             .context("Failed to get queue size")?;

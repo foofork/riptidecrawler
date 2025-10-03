@@ -7,16 +7,16 @@
 //! - Cost optimization recommendations
 //! - SLA monitoring and alerting
 
-use std::sync::Arc;
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
-use tokio::sync::RwLock;
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use crate::{
-    metrics::{MetricsCollector, TimeWindow, AggregatedMetrics, ProviderMetrics, TenantMetrics},
-    config::{TenantLimits, CostTrackingConfig},
+    config::{CostTrackingConfig, TenantLimits},
+    metrics::{AggregatedMetrics, MetricsCollector, ProviderMetrics, TenantMetrics, TimeWindow},
 };
 
 /// Enhanced dashboard with tenant-focused cost tracking
@@ -328,10 +328,7 @@ pub struct DashboardGenerator {
 
 impl DashboardGenerator {
     /// Create a new dashboard generator
-    pub fn new(
-        metrics_collector: Arc<MetricsCollector>,
-        cost_config: CostTrackingConfig,
-    ) -> Self {
+    pub fn new(metrics_collector: Arc<MetricsCollector>, cost_config: CostTrackingConfig) -> Self {
         Self {
             metrics_collector,
             tenant_configs: Arc::new(RwLock::new(HashMap::new())),
@@ -352,16 +349,24 @@ impl DashboardGenerator {
         &self,
         time_window: TimeWindow,
     ) -> EnhancedLlmOpsDashboard {
-        let basic_dashboard = self.metrics_collector.generate_dashboard(time_window.clone()).await;
+        let basic_dashboard = self
+            .metrics_collector
+            .generate_dashboard(time_window.clone())
+            .await;
 
-        let cost_analysis = self.generate_detailed_cost_analysis(time_window.clone()).await;
+        let cost_analysis = self
+            .generate_detailed_cost_analysis(time_window.clone())
+            .await;
         let performance_insights = self.generate_performance_insights(&basic_dashboard).await;
         let sla_metrics = self.generate_sla_metrics(&basic_dashboard).await;
         let tenant_rankings = self.generate_tenant_rankings(&basic_dashboard).await;
-        let optimization_opportunities = self.generate_optimization_opportunities(&cost_analysis).await;
+        let optimization_opportunities = self
+            .generate_optimization_opportunities(&cost_analysis)
+            .await;
 
         // Generate recommendations and alerts
-        self.update_recommendations(&cost_analysis, &performance_insights).await;
+        self.update_recommendations(&cost_analysis, &performance_insights)
+            .await;
         self.update_alerts(&cost_analysis, &sla_metrics).await;
 
         let recommendations = self.recommendations.read().await.clone();
@@ -384,10 +389,22 @@ impl DashboardGenerator {
     }
 
     /// Generate detailed cost analysis
-    async fn generate_detailed_cost_analysis(&self, time_window: TimeWindow) -> DetailedCostAnalysis {
-        let basic_cost = self.metrics_collector.get_cost_breakdown(time_window.clone()).await;
-        let tenant_metrics = self.metrics_collector.get_tenant_metrics(time_window.clone()).await;
-        let provider_metrics = self.metrics_collector.get_provider_metrics(time_window.clone()).await;
+    async fn generate_detailed_cost_analysis(
+        &self,
+        time_window: TimeWindow,
+    ) -> DetailedCostAnalysis {
+        let basic_cost = self
+            .metrics_collector
+            .get_cost_breakdown(time_window.clone())
+            .await;
+        let tenant_metrics = self
+            .metrics_collector
+            .get_tenant_metrics(time_window.clone())
+            .await;
+        let provider_metrics = self
+            .metrics_collector
+            .get_provider_metrics(time_window.clone())
+            .await;
 
         // Build per-tenant cost breakdown
         let mut cost_per_tenant = HashMap::new();
@@ -403,13 +420,21 @@ impl DashboardGenerator {
                 cost_per_request: tenant_metric.metrics.avg_cost_per_request,
                 cost_per_token: if tenant_metric.metrics.total_tokens > 0 {
                     tenant_cost / tenant_metric.metrics.total_tokens as f64
-                } else { 0.0 },
-                top_models: tenant_metric.model_breakdown.iter()
+                } else {
+                    0.0
+                },
+                top_models: tenant_metric
+                    .model_breakdown
+                    .iter()
                     .map(|(model, metrics)| (model.clone(), metrics.total_cost))
                     .collect(),
                 cost_trend: Vec::new(), // Would be populated with time series data
-                budget_remaining: self.calculate_budget_remaining(&tenant_metric.tenant_id, tenant_cost).await,
-                budget_utilization_percent: self.calculate_budget_utilization(&tenant_metric.tenant_id, tenant_cost).await,
+                budget_remaining: self
+                    .calculate_budget_remaining(&tenant_metric.tenant_id, tenant_cost)
+                    .await,
+                budget_utilization_percent: self
+                    .calculate_budget_utilization(&tenant_metric.tenant_id, tenant_cost)
+                    .await,
                 cost_rank: 0, // Will be calculated later
             };
             cost_per_tenant.insert(tenant_metric.tenant_id.clone(), breakdown);
@@ -434,7 +459,8 @@ impl DashboardGenerator {
         // Calculate cost efficiency score
         let cost_efficiency_score = self.calculate_overall_cost_efficiency(&provider_metrics);
 
-        let projected_monthly_cost = basic_cost.total_cost * self.get_projection_multiplier(&time_window);
+        let projected_monthly_cost =
+            basic_cost.total_cost * self.get_projection_multiplier(&time_window);
 
         DetailedCostAnalysis {
             total_cost: basic_cost.total_cost,
@@ -482,7 +508,8 @@ impl DashboardGenerator {
             return 0.0;
         }
 
-        let total_efficiency: f64 = provider_metrics.iter()
+        let total_efficiency: f64 = provider_metrics
+            .iter()
             .map(|p| self.calculate_cost_efficiency(&p.metrics))
             .sum();
 
@@ -506,22 +533,46 @@ impl DashboardGenerator {
     }
 
     /// Generate performance insights
-    async fn generate_performance_insights(&self, dashboard: &crate::metrics::LlmOpsDashboard) -> PerformanceInsights {
+    async fn generate_performance_insights(
+        &self,
+        dashboard: &crate::metrics::LlmOpsDashboard,
+    ) -> PerformanceInsights {
         // Find fastest provider
-        let fastest_provider = dashboard.provider_metrics.iter()
-            .min_by(|a, b| a.metrics.avg_latency_ms.partial_cmp(&b.metrics.avg_latency_ms).unwrap())
+        let fastest_provider = dashboard
+            .provider_metrics
+            .iter()
+            .min_by(|a, b| {
+                a.metrics
+                    .avg_latency_ms
+                    .partial_cmp(&b.metrics.avg_latency_ms)
+                    .unwrap()
+            })
             .map(|p| p.provider_name.clone())
             .unwrap_or_default();
 
         // Find most reliable provider
-        let most_reliable_provider = dashboard.provider_metrics.iter()
-            .max_by(|a, b| a.metrics.success_rate.partial_cmp(&b.metrics.success_rate).unwrap())
+        let most_reliable_provider = dashboard
+            .provider_metrics
+            .iter()
+            .max_by(|a, b| {
+                a.metrics
+                    .success_rate
+                    .partial_cmp(&b.metrics.success_rate)
+                    .unwrap()
+            })
             .map(|p| p.provider_name.clone())
             .unwrap_or_default();
 
         // Find most cost-effective provider
-        let most_cost_effective_provider = dashboard.provider_metrics.iter()
-            .min_by(|a, b| a.metrics.avg_cost_per_request.partial_cmp(&b.metrics.avg_cost_per_request).unwrap())
+        let most_cost_effective_provider = dashboard
+            .provider_metrics
+            .iter()
+            .min_by(|a, b| {
+                a.metrics
+                    .avg_cost_per_request
+                    .partial_cmp(&b.metrics.avg_cost_per_request)
+                    .unwrap()
+            })
             .map(|p| p.provider_name.clone())
             .unwrap_or_default();
 
@@ -545,7 +596,10 @@ impl DashboardGenerator {
     }
 
     /// Generate SLA metrics
-    async fn generate_sla_metrics(&self, dashboard: &crate::metrics::LlmOpsDashboard) -> SlaMetrics {
+    async fn generate_sla_metrics(
+        &self,
+        dashboard: &crate::metrics::LlmOpsDashboard,
+    ) -> SlaMetrics {
         SlaMetrics {
             uptime_sla: 99.9,
             actual_uptime: 99.8,
@@ -559,7 +613,10 @@ impl DashboardGenerator {
     }
 
     /// Generate tenant rankings
-    async fn generate_tenant_rankings(&self, dashboard: &crate::metrics::LlmOpsDashboard) -> TenantRankings {
+    async fn generate_tenant_rankings(
+        &self,
+        dashboard: &crate::metrics::LlmOpsDashboard,
+    ) -> TenantRankings {
         let mut by_cost = Vec::new();
         let mut by_usage = Vec::new();
 
@@ -592,17 +649,26 @@ impl DashboardGenerator {
     }
 
     /// Generate optimization opportunities
-    async fn generate_optimization_opportunities(&self, cost_analysis: &DetailedCostAnalysis) -> Vec<OptimizationOpportunity> {
+    async fn generate_optimization_opportunities(
+        &self,
+        cost_analysis: &DetailedCostAnalysis,
+    ) -> Vec<OptimizationOpportunity> {
         let mut opportunities = Vec::new();
 
         // Check for provider switching opportunities
         if cost_analysis.cost_efficiency_score < 70.0 {
             opportunities.push(OptimizationOpportunity {
                 opportunity_type: OptimizationType::ProviderSwitching,
-                description: "Switch to more cost-effective providers for certain workloads".to_string(),
+                description: "Switch to more cost-effective providers for certain workloads"
+                    .to_string(),
                 potential_savings: cost_analysis.total_cost * 0.15,
                 confidence: 80.0,
-                affected_tenants: cost_analysis.cost_per_tenant.keys().take(3).cloned().collect(),
+                affected_tenants: cost_analysis
+                    .cost_per_tenant
+                    .keys()
+                    .take(3)
+                    .cloned()
+                    .collect(),
                 implementation_steps: vec![
                     "Analyze current provider performance".to_string(),
                     "Test alternative providers with sample workloads".to_string(),
@@ -615,7 +681,11 @@ impl DashboardGenerator {
     }
 
     /// Update recommendations based on analysis
-    async fn update_recommendations(&self, cost_analysis: &DetailedCostAnalysis, _performance: &PerformanceInsights) {
+    async fn update_recommendations(
+        &self,
+        cost_analysis: &DetailedCostAnalysis,
+        _performance: &PerformanceInsights,
+    ) {
         let mut recommendations = self.recommendations.write().await;
         recommendations.clear();
 
@@ -652,8 +722,10 @@ impl DashboardGenerator {
                         AlertSeverity::Warning
                     },
                     title: format!("Budget Alert for Tenant {}", tenant_id),
-                    message: format!("Tenant {} has used {:.1}% of their budget",
-                        tenant_id, breakdown.budget_utilization_percent),
+                    message: format!(
+                        "Tenant {} has used {:.1}% of their budget",
+                        tenant_id, breakdown.budget_utilization_percent
+                    ),
                     tenant_id: Some(tenant_id.clone()),
                     provider: None,
                     timestamp: Utc::now(),
@@ -679,7 +751,9 @@ mod tests {
         let generator = DashboardGenerator::new(metrics_collector, cost_config);
 
         // Test that we can create a dashboard
-        let dashboard = generator.generate_enhanced_dashboard(TimeWindow::LastHour).await;
+        let dashboard = generator
+            .generate_enhanced_dashboard(TimeWindow::LastHour)
+            .await;
         assert_eq!(dashboard.tenant_metrics.len(), 0); // No data yet
     }
 
@@ -693,7 +767,7 @@ mod tests {
     fn test_recommendation_priority() {
         let priority = RecommendationPriority::High;
         match priority {
-            RecommendationPriority::High => {},
+            RecommendationPriority::High => {}
             _ => panic!("Expected High priority"),
         }
     }

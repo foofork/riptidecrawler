@@ -10,11 +10,11 @@
 
 use axum::{
     body::Body,
-    http::{Request, StatusCode, HeaderValue},
+    http::{HeaderValue, Request, StatusCode},
 };
 use serde_json::{json, Value};
-use tower::ServiceExt;
 use std::collections::HashMap;
+use tower::ServiceExt;
 
 // Import from existing API structure - this will fail until create_app exists
 // Note: This is intentionally commented out for now as it doesn't exist yet
@@ -50,15 +50,10 @@ mod test_utils {
                 .body(Body::from(body_json.to_string()))
                 .unwrap()
         } else {
-            request_builder
-                .body(Body::empty())
-                .unwrap()
+            request_builder.body(Body::empty()).unwrap()
         };
 
-        let response = app
-            .oneshot(request)
-            .await
-            .expect("Request should succeed");
+        let response = app.oneshot(request).await.expect("Request should succeed");
 
         let status = response.status();
         let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
@@ -184,36 +179,63 @@ mod table_extraction_tests {
             }
         });
 
-        let (status, response) = make_json_request(
-            app,
-            "POST",
-            "/api/v1/tables/extract",
-            Some(request_body)
-        ).await;
+        let (status, response) =
+            make_json_request(app, "POST", "/api/v1/tables/extract", Some(request_body)).await;
 
         // This test will FAIL until the endpoint is implemented
-        assert_eq!(status, StatusCode::OK, "Table extraction endpoint should exist and return OK");
+        assert_eq!(
+            status,
+            StatusCode::OK,
+            "Table extraction endpoint should exist and return OK"
+        );
 
         // Expected response structure
-        assert!(response["tables"].is_array(), "Response should contain tables array");
+        assert!(
+            response["tables"].is_array(),
+            "Response should contain tables array"
+        );
         let tables = response["tables"].as_array().unwrap();
         assert_eq!(tables.len(), 2, "Should detect 2 tables in sample HTML");
 
         // Validate first table (products table)
         let products_table = &tables[0];
-        assert_eq!(products_table["id"], "products", "First table should have id 'products'");
-        assert_eq!(products_table["rows"], 3, "Products table should have 3 rows (including header)");
-        assert_eq!(products_table["columns"], 4, "Products table should have 4 columns");
+        assert_eq!(
+            products_table["id"], "products",
+            "First table should have id 'products'"
+        );
+        assert_eq!(
+            products_table["rows"], 3,
+            "Products table should have 3 rows (including header)"
+        );
+        assert_eq!(
+            products_table["columns"], 4,
+            "Products table should have 4 columns"
+        );
 
         // Validate table data structure
-        assert!(products_table["headers"].is_array(), "Should include headers");
-        assert!(products_table["data"].is_array(), "Should include data rows");
-        assert!(products_table["metadata"].is_object(), "Should include metadata");
+        assert!(
+            products_table["headers"].is_array(),
+            "Should include headers"
+        );
+        assert!(
+            products_table["data"].is_array(),
+            "Should include data rows"
+        );
+        assert!(
+            products_table["metadata"].is_object(),
+            "Should include metadata"
+        );
 
         // Validate complex table with spans
         let complex_table = &tables[1];
-        assert_eq!(complex_table["id"], "complex", "Second table should have id 'complex'");
-        assert!(complex_table["has_spans"], "Should detect colspan/rowspan usage");
+        assert_eq!(
+            complex_table["id"], "complex",
+            "Second table should have id 'complex'"
+        );
+        assert!(
+            complex_table["has_spans"],
+            "Should detect colspan/rowspan usage"
+        );
     }
 
     /// Test table extraction from URL
@@ -235,18 +257,27 @@ mod table_extraction_tests {
             }
         });
 
-        let (status, response) = make_json_request(
-            app,
-            "POST",
-            "/api/v1/tables/extract",
-            Some(request_body)
-        ).await;
+        let (status, response) =
+            make_json_request(app, "POST", "/api/v1/tables/extract", Some(request_body)).await;
 
         // This test will FAIL until the endpoint is implemented
-        assert_eq!(status, StatusCode::OK, "URL-based table extraction should work");
-        assert!(response["url"].is_string(), "Response should include source URL");
-        assert!(response["tables"].is_array(), "Response should contain extracted tables");
-        assert!(response["extraction_time_ms"].is_number(), "Should include timing metrics");
+        assert_eq!(
+            status,
+            StatusCode::OK,
+            "URL-based table extraction should work"
+        );
+        assert!(
+            response["url"].is_string(),
+            "Response should include source URL"
+        );
+        assert!(
+            response["tables"].is_array(),
+            "Response should contain extracted tables"
+        );
+        assert!(
+            response["extraction_time_ms"].is_number(),
+            "Should include timing metrics"
+        );
     }
 
     /// Test CSV export functionality
@@ -267,8 +298,9 @@ mod table_extraction_tests {
             app,
             "GET",
             &format!("/api/v1/tables/{}/export?format=csv", table_id),
-            None
-        ).await;
+            None,
+        )
+        .await;
 
         // This test will FAIL until the endpoint is implemented
         assert_eq!(status, StatusCode::OK, "CSV export should return OK");
@@ -296,8 +328,9 @@ mod table_extraction_tests {
             app,
             "GET",
             &format!("/api/v1/tables/{}/export?format=markdown", table_id),
-            None
-        ).await;
+            None,
+        )
+        .await;
 
         // This test will FAIL until the endpoint is implemented
         assert_eq!(status, StatusCode::OK, "Markdown export should return OK");
@@ -346,19 +379,22 @@ mod table_extraction_tests {
             }
         });
 
-        let (status, response) = make_json_request(
-            app,
-            "POST",
-            "/api/v1/tables/extract",
-            Some(request_body)
-        ).await;
+        let (status, response) =
+            make_json_request(app, "POST", "/api/v1/tables/extract", Some(request_body)).await;
 
         // This test will FAIL until complex span handling is implemented
-        assert_eq!(status, StatusCode::OK, "Complex table extraction should succeed");
+        assert_eq!(
+            status,
+            StatusCode::OK,
+            "Complex table extraction should succeed"
+        );
 
         let table = &response["tables"][0];
         assert!(table["spans"].is_array(), "Should include span information");
-        assert!(table["normalized_structure"].is_object(), "Should provide normalized view");
+        assert!(
+            table["normalized_structure"].is_object(),
+            "Should provide normalized view"
+        );
     }
 
     /// Test edge cases and error handling for table extraction
@@ -380,11 +416,20 @@ mod table_extraction_tests {
             app.clone(),
             "POST",
             "/api/v1/tables/extract",
-            Some(no_tables_request)
-        ).await;
+            Some(no_tables_request),
+        )
+        .await;
 
-        assert_eq!(status, StatusCode::OK, "Should handle no-table content gracefully");
-        assert_eq!(response["tables"].as_array().unwrap().len(), 0, "Should return empty tables array");
+        assert_eq!(
+            status,
+            StatusCode::OK,
+            "Should handle no-table content gracefully"
+        );
+        assert_eq!(
+            response["tables"].as_array().unwrap().len(),
+            0,
+            "Should return empty tables array"
+        );
 
         // Test with malformed HTML
         let malformed_request = json!({
@@ -395,11 +440,19 @@ mod table_extraction_tests {
             app.clone(),
             "POST",
             "/api/v1/tables/extract",
-            Some(malformed_request)
-        ).await;
+            Some(malformed_request),
+        )
+        .await;
 
-        assert_eq!(status, StatusCode::OK, "Should handle malformed HTML gracefully");
-        assert!(response["warnings"].is_array(), "Should include warnings for malformed content");
+        assert_eq!(
+            status,
+            StatusCode::OK,
+            "Should handle malformed HTML gracefully"
+        );
+        assert!(
+            response["warnings"].is_array(),
+            "Should include warnings for malformed content"
+        );
 
         // Test with invalid request format
         let invalid_request = json!({
@@ -410,10 +463,15 @@ mod table_extraction_tests {
             app.clone(),
             "POST",
             "/api/v1/tables/extract",
-            Some(invalid_request)
-        ).await;
+            Some(invalid_request),
+        )
+        .await;
 
-        assert_eq!(status, StatusCode::BAD_REQUEST, "Should return 400 for invalid requests");
+        assert_eq!(
+            status,
+            StatusCode::BAD_REQUEST,
+            "Should return 400 for invalid requests"
+        );
     }
 }
 
@@ -439,27 +497,44 @@ mod llm_provider_tests {
     async fn test_list_llm_providers() {
         let app = create_test_app();
 
-        let (status, response) = make_json_request(
-            app,
-            "GET",
-            "/api/v1/llm/providers",
-            None
-        ).await;
+        let (status, response) = make_json_request(app, "GET", "/api/v1/llm/providers", None).await;
 
         // This test will FAIL until the endpoint is implemented
-        assert_eq!(status, StatusCode::OK, "LLM providers list endpoint should exist");
+        assert_eq!(
+            status,
+            StatusCode::OK,
+            "LLM providers list endpoint should exist"
+        );
 
-        assert!(response["providers"].is_array(), "Response should contain providers array");
+        assert!(
+            response["providers"].is_array(),
+            "Response should contain providers array"
+        );
         let providers = response["providers"].as_array().unwrap();
-        assert!(!providers.is_empty(), "Should have at least one provider configured");
+        assert!(
+            !providers.is_empty(),
+            "Should have at least one provider configured"
+        );
 
         // Validate provider structure
         for provider in providers {
             assert!(provider["name"].is_string(), "Provider should have name");
-            assert!(provider["type"].is_string(), "Provider should have type (openai, anthropic, etc.)");
-            assert!(provider["status"].is_string(), "Provider should have status (available, unavailable, etc.)");
-            assert!(provider["capabilities"].is_array(), "Provider should list capabilities");
-            assert!(provider["config_required"].is_array(), "Provider should list required config fields");
+            assert!(
+                provider["type"].is_string(),
+                "Provider should have type (openai, anthropic, etc.)"
+            );
+            assert!(
+                provider["status"].is_string(),
+                "Provider should have status (available, unavailable, etc.)"
+            );
+            assert!(
+                provider["capabilities"].is_array(),
+                "Provider should list capabilities"
+            );
+            assert!(
+                provider["config_required"].is_array(),
+                "Provider should list required config fields"
+            );
         }
 
         // Check for common providers
@@ -467,8 +542,14 @@ mod llm_provider_tests {
             .iter()
             .map(|p| p["name"].as_str().unwrap())
             .collect();
-        assert!(provider_names.contains(&"openai"), "Should include OpenAI provider");
-        assert!(provider_names.contains(&"anthropic"), "Should include Anthropic provider");
+        assert!(
+            provider_names.contains(&"openai"),
+            "Should include OpenAI provider"
+        );
+        assert!(
+            provider_names.contains(&"anthropic"),
+            "Should include Anthropic provider"
+        );
     }
 
     /// Test getting current active LLM provider
@@ -481,23 +562,38 @@ mod llm_provider_tests {
     async fn test_get_current_llm_provider() {
         let app = create_test_app();
 
-        let (status, response) = make_json_request(
-            app,
-            "GET",
-            "/api/v1/llm/providers/current",
-            None
-        ).await;
+        let (status, response) =
+            make_json_request(app, "GET", "/api/v1/llm/providers/current", None).await;
 
         // This test will FAIL until the endpoint is implemented
-        assert_eq!(status, StatusCode::OK, "Current provider endpoint should exist");
+        assert_eq!(
+            status,
+            StatusCode::OK,
+            "Current provider endpoint should exist"
+        );
 
-        assert!(response["provider"].is_object(), "Response should contain current provider info");
+        assert!(
+            response["provider"].is_object(),
+            "Response should contain current provider info"
+        );
         let provider = &response["provider"];
 
-        assert!(provider["name"].is_string(), "Current provider should have name");
-        assert!(provider["status"].is_string(), "Current provider should have status");
-        assert!(provider["last_used"].is_string(), "Should include last used timestamp");
-        assert!(provider["usage_stats"].is_object(), "Should include usage statistics");
+        assert!(
+            provider["name"].is_string(),
+            "Current provider should have name"
+        );
+        assert!(
+            provider["status"].is_string(),
+            "Current provider should have status"
+        );
+        assert!(
+            provider["last_used"].is_string(),
+            "Should include last used timestamp"
+        );
+        assert!(
+            provider["usage_stats"].is_object(),
+            "Should include usage statistics"
+        );
     }
 
     /// Test switching LLM providers
@@ -524,15 +620,25 @@ mod llm_provider_tests {
             app,
             "POST",
             "/api/v1/llm/providers/switch",
-            Some(switch_request)
-        ).await;
+            Some(switch_request),
+        )
+        .await;
 
         // This test will FAIL until the endpoint is implemented
         assert_eq!(status, StatusCode::OK, "Provider switch should succeed");
 
-        assert_eq!(response["switched"], true, "Should confirm successful switch");
-        assert_eq!(response["new_provider"]["name"], "anthropic", "Should return new provider info");
-        assert!(response["config_validated"], "Should confirm config validation");
+        assert_eq!(
+            response["switched"], true,
+            "Should confirm successful switch"
+        );
+        assert_eq!(
+            response["new_provider"]["name"], "anthropic",
+            "Should return new provider info"
+        );
+        assert!(
+            response["config_validated"],
+            "Should confirm config validation"
+        );
     }
 
     /// Test invalid provider switch scenarios
@@ -554,11 +660,19 @@ mod llm_provider_tests {
             app.clone(),
             "POST",
             "/api/v1/llm/providers/switch",
-            Some(invalid_provider_request)
-        ).await;
+            Some(invalid_provider_request),
+        )
+        .await;
 
-        assert_eq!(status, StatusCode::BAD_REQUEST, "Should reject non-existent provider");
-        assert!(response["error"].as_str().unwrap().contains("not found"), "Error should mention provider not found");
+        assert_eq!(
+            status,
+            StatusCode::BAD_REQUEST,
+            "Should reject non-existent provider"
+        );
+        assert!(
+            response["error"].as_str().unwrap().contains("not found"),
+            "Error should mention provider not found"
+        );
 
         // Test switch with invalid configuration
         let invalid_config_request = json!({
@@ -572,11 +686,19 @@ mod llm_provider_tests {
             app.clone(),
             "POST",
             "/api/v1/llm/providers/switch",
-            Some(invalid_config_request)
-        ).await;
+            Some(invalid_config_request),
+        )
+        .await;
 
-        assert_eq!(status, StatusCode::BAD_REQUEST, "Should reject invalid configuration");
-        assert!(response["validation_errors"].is_array(), "Should include validation errors");
+        assert_eq!(
+            status,
+            StatusCode::BAD_REQUEST,
+            "Should reject invalid configuration"
+        );
+        assert!(
+            response["validation_errors"].is_array(),
+            "Should include validation errors"
+        );
     }
 
     /// Test LLM provider configuration management
@@ -591,19 +713,24 @@ mod llm_provider_tests {
         let app = create_test_app();
 
         // Test getting current configuration
-        let (status, response) = make_json_request(
-            app.clone(),
-            "GET",
-            "/api/v1/llm/config",
-            None
-        ).await;
+        let (status, response) =
+            make_json_request(app.clone(), "GET", "/api/v1/llm/config", None).await;
 
         // This test will FAIL until the endpoint is implemented
         assert_eq!(status, StatusCode::OK, "Config get endpoint should exist");
 
-        assert!(response["provider"].is_string(), "Config should include current provider");
-        assert!(response["config"].is_object(), "Config should include provider settings");
-        assert!(response["failover_chain"].is_array(), "Config should include failover chain");
+        assert!(
+            response["provider"].is_string(),
+            "Config should include current provider"
+        );
+        assert!(
+            response["config"].is_object(),
+            "Config should include provider settings"
+        );
+        assert!(
+            response["failover_chain"].is_array(),
+            "Config should include failover chain"
+        );
 
         // Test updating configuration
         let update_config = json!({
@@ -621,12 +748,19 @@ mod llm_provider_tests {
             app.clone(),
             "POST",
             "/api/v1/llm/config",
-            Some(update_config)
-        ).await;
+            Some(update_config),
+        )
+        .await;
 
         assert_eq!(status, StatusCode::OK, "Config update should succeed");
-        assert_eq!(response["updated"], true, "Should confirm configuration update");
-        assert!(response["validated"], "Should confirm configuration validation");
+        assert_eq!(
+            response["updated"], true,
+            "Should confirm configuration update"
+        );
+        assert!(
+            response["validated"],
+            "Should confirm configuration validation"
+        );
     }
 
     /// Test LLM failover chain configuration
@@ -650,17 +784,16 @@ mod llm_provider_tests {
             }
         });
 
-        let (status, response) = make_json_request(
-            app,
-            "POST",
-            "/api/v1/llm/config",
-            Some(failover_config)
-        ).await;
+        let (status, response) =
+            make_json_request(app, "POST", "/api/v1/llm/config", Some(failover_config)).await;
 
         // This test will FAIL until failover functionality is implemented
         assert_eq!(status, StatusCode::OK, "Failover config should be accepted");
         assert_eq!(response["failover_enabled"], true, "Should enable failover");
-        assert!(response["failover_chain"].is_array(), "Should set failover chain");
+        assert!(
+            response["failover_chain"].is_array(),
+            "Should set failover chain"
+        );
 
         // TODO: Test actual failover behavior
         // This would require more complex integration testing with provider simulation
@@ -680,19 +813,33 @@ mod llm_provider_tests {
             app,
             "GET",
             "/api/v1/llm/providers?include_health=true",
-            None
-        ).await;
+            None,
+        )
+        .await;
 
         // This test will FAIL until health monitoring is implemented
-        assert_eq!(status, StatusCode::OK, "Provider list with health should work");
+        assert_eq!(
+            status,
+            StatusCode::OK,
+            "Provider list with health should work"
+        );
 
         let providers = response["providers"].as_array().unwrap();
         for provider in providers {
-            assert!(provider["health"].is_object(), "Each provider should include health info");
+            assert!(
+                provider["health"].is_object(),
+                "Each provider should include health info"
+            );
             let health = &provider["health"];
             assert!(health["status"].is_string(), "Health should include status");
-            assert!(health["last_check"].is_string(), "Health should include last check time");
-            assert!(health["response_time_ms"].is_number(), "Health should include response time");
+            assert!(
+                health["last_check"].is_string(),
+                "Health should include last check time"
+            );
+            assert!(
+                health["response_time_ms"].is_number(),
+                "Health should include response time"
+            );
         }
     }
 }
@@ -733,22 +880,27 @@ mod advanced_chunking_tests {
             }
         });
 
-        let (status, response) = make_json_request(
-            app,
-            "POST",
-            "/crawl",
-            Some(crawl_request)
-        ).await;
+        let (status, response) =
+            make_json_request(app, "POST", "/crawl", Some(crawl_request)).await;
 
         // This test will FAIL until chunking integration is implemented
         assert_eq!(status, StatusCode::OK, "Crawl with chunking should succeed");
 
-        assert!(response["results"].is_array(), "Should return crawl results");
+        assert!(
+            response["results"].is_array(),
+            "Should return crawl results"
+        );
         let results = response["results"].as_array().unwrap();
 
         for result in results {
-            assert!(result["chunks"].is_array(), "Each result should contain chunks");
-            assert!(result["chunking_metadata"].is_object(), "Should include chunking metadata");
+            assert!(
+                result["chunks"].is_array(),
+                "Each result should contain chunks"
+            );
+            assert!(
+                result["chunking_metadata"].is_object(),
+                "Should include chunking metadata"
+            );
 
             let chunks = result["chunks"].as_array().unwrap();
             assert!(!chunks.is_empty(), "Should produce at least one chunk");
@@ -757,9 +909,18 @@ mod advanced_chunking_tests {
             for chunk in chunks {
                 assert!(chunk["content"].is_string(), "Chunk should have content");
                 assert!(chunk["chunk_index"].is_number(), "Chunk should have index");
-                assert!(chunk["start_offset"].is_number(), "Chunk should have start offset");
-                assert!(chunk["end_offset"].is_number(), "Chunk should have end offset");
-                assert!(chunk["topic_score"].is_number(), "Topic chunking should include topic score");
+                assert!(
+                    chunk["start_offset"].is_number(),
+                    "Chunk should have start offset"
+                );
+                assert!(
+                    chunk["end_offset"].is_number(),
+                    "Chunk should have end offset"
+                );
+                assert!(
+                    chunk["topic_score"].is_number(),
+                    "Topic chunking should include topic score"
+                );
             }
         }
     }
@@ -785,32 +946,49 @@ mod advanced_chunking_tests {
             }
         });
 
-        let (status, response) = make_json_request(
-            app,
-            "POST",
-            "/api/v1/content/chunk",
-            Some(chunking_request)
-        ).await;
+        let (status, response) =
+            make_json_request(app, "POST", "/api/v1/content/chunk", Some(chunking_request)).await;
 
         // This test will FAIL until topic chunking endpoint is implemented
         assert_eq!(status, StatusCode::OK, "Topic chunking should succeed");
 
         assert!(response["chunks"].is_array(), "Should return chunks array");
         let chunks = response["chunks"].as_array().unwrap();
-        assert!(chunks.len() >= 2, "Should produce multiple topic-based chunks");
+        assert!(
+            chunks.len() >= 2,
+            "Should produce multiple topic-based chunks"
+        );
 
         // Validate topic coherence
         for chunk in chunks {
-            assert!(chunk["topic_score"].as_f64().unwrap() > 0.0, "Should have positive topic score");
-            assert!(chunk["boundary_strength"].is_number(), "Should include boundary strength");
-            assert!(chunk["keywords"].is_array(), "Should extract keywords for each chunk");
+            assert!(
+                chunk["topic_score"].as_f64().unwrap() > 0.0,
+                "Should have positive topic score"
+            );
+            assert!(
+                chunk["boundary_strength"].is_number(),
+                "Should include boundary strength"
+            );
+            assert!(
+                chunk["keywords"].is_array(),
+                "Should extract keywords for each chunk"
+            );
         }
 
         // Check that chunks follow logical topic boundaries
-        assert!(response["algorithm_metadata"].is_object(), "Should include algorithm metadata");
+        assert!(
+            response["algorithm_metadata"].is_object(),
+            "Should include algorithm metadata"
+        );
         let metadata = &response["algorithm_metadata"];
-        assert_eq!(metadata["algorithm"], "texttiling", "Should confirm algorithm used");
-        assert!(metadata["boundary_detection_stats"].is_object(), "Should include detection stats");
+        assert_eq!(
+            metadata["algorithm"], "texttiling",
+            "Should confirm algorithm used"
+        );
+        assert!(
+            metadata["boundary_detection_stats"].is_object(),
+            "Should include detection stats"
+        );
     }
 
     /// Test sliding window chunking strategy
@@ -834,18 +1012,21 @@ mod advanced_chunking_tests {
             }
         });
 
-        let (status, response) = make_json_request(
-            app,
-            "POST",
-            "/api/v1/content/chunk",
-            Some(chunking_request)
-        ).await;
+        let (status, response) =
+            make_json_request(app, "POST", "/api/v1/content/chunk", Some(chunking_request)).await;
 
         // This test will FAIL until sliding window chunking is implemented
-        assert_eq!(status, StatusCode::OK, "Sliding window chunking should succeed");
+        assert_eq!(
+            status,
+            StatusCode::OK,
+            "Sliding window chunking should succeed"
+        );
 
         let chunks = response["chunks"].as_array().unwrap();
-        assert!(chunks.len() >= 2, "Should produce multiple overlapping chunks");
+        assert!(
+            chunks.len() >= 2,
+            "Should produce multiple overlapping chunks"
+        );
 
         // Validate chunk sizes and overlaps
         for (i, chunk) in chunks.iter().enumerate() {
@@ -894,27 +1075,38 @@ mod advanced_chunking_tests {
 
         let start_time = std::time::Instant::now();
 
-        let (status, response) = make_json_request(
-            app,
-            "POST",
-            "/api/v1/content/chunk",
-            Some(chunking_request)
-        ).await;
+        let (status, response) =
+            make_json_request(app, "POST", "/api/v1/content/chunk", Some(chunking_request)).await;
 
         let elapsed = start_time.elapsed();
 
         // This test will FAIL until chunking performance meets requirements
         assert_eq!(status, StatusCode::OK, "Chunking should succeed");
-        assert!(elapsed.as_millis() < 200, "Chunking should complete in under 200ms");
+        assert!(
+            elapsed.as_millis() < 200,
+            "Chunking should complete in under 200ms"
+        );
 
         // Validate performance metrics in response
-        assert!(response["performance"].is_object(), "Should include performance metrics");
+        assert!(
+            response["performance"].is_object(),
+            "Should include performance metrics"
+        );
         let perf = &response["performance"];
-        assert!(perf["processing_time_ms"].is_number(), "Should include processing time");
-        assert!(perf["chunks_per_second"].is_number(), "Should include throughput metric");
+        assert!(
+            perf["processing_time_ms"].is_number(),
+            "Should include processing time"
+        );
+        assert!(
+            perf["chunks_per_second"].is_number(),
+            "Should include throughput metric"
+        );
 
         let processing_time = perf["processing_time_ms"].as_f64().unwrap();
-        assert!(processing_time < 200.0, "Reported processing time should be under 200ms");
+        assert!(
+            processing_time < 200.0,
+            "Reported processing time should be under 200ms"
+        );
     }
 
     /// Test chunking configuration validation and edge cases
@@ -937,11 +1129,22 @@ mod advanced_chunking_tests {
             app.clone(),
             "POST",
             "/api/v1/content/chunk",
-            Some(invalid_mode_request)
-        ).await;
+            Some(invalid_mode_request),
+        )
+        .await;
 
-        assert_eq!(status, StatusCode::BAD_REQUEST, "Should reject invalid chunking mode");
-        assert!(response["error"].as_str().unwrap().contains("chunking_mode"), "Error should mention chunking mode");
+        assert_eq!(
+            status,
+            StatusCode::BAD_REQUEST,
+            "Should reject invalid chunking mode"
+        );
+        assert!(
+            response["error"]
+                .as_str()
+                .unwrap()
+                .contains("chunking_mode"),
+            "Error should mention chunking mode"
+        );
 
         // Test invalid parameters (overlap larger than window)
         let invalid_params_request = json!({
@@ -957,11 +1160,19 @@ mod advanced_chunking_tests {
             app.clone(),
             "POST",
             "/api/v1/content/chunk",
-            Some(invalid_params_request)
-        ).await;
+            Some(invalid_params_request),
+        )
+        .await;
 
-        assert_eq!(status, StatusCode::BAD_REQUEST, "Should reject invalid parameters");
-        assert!(response["validation_errors"].is_array(), "Should include validation errors");
+        assert_eq!(
+            status,
+            StatusCode::BAD_REQUEST,
+            "Should reject invalid parameters"
+        );
+        assert!(
+            response["validation_errors"].is_array(),
+            "Should include validation errors"
+        );
 
         // Test very short content
         let short_content_request = json!({
@@ -973,11 +1184,16 @@ mod advanced_chunking_tests {
             app.clone(),
             "POST",
             "/api/v1/content/chunk",
-            Some(short_content_request)
-        ).await;
+            Some(short_content_request),
+        )
+        .await;
 
         // Should handle gracefully, possibly returning single chunk
-        assert_eq!(status, StatusCode::OK, "Should handle short content gracefully");
+        assert_eq!(
+            status,
+            StatusCode::OK,
+            "Should handle short content gracefully"
+        );
         let chunks = response["chunks"].as_array().unwrap();
         assert_eq!(chunks.len(), 1, "Short content should produce single chunk");
     }
@@ -1007,29 +1223,44 @@ mod advanced_chunking_tests {
             "output_format": "enhanced"
         });
 
-        let (status, response) = make_json_request(
-            app,
-            "POST",
-            "/crawl",
-            Some(integrated_request)
-        ).await;
+        let (status, response) =
+            make_json_request(app, "POST", "/crawl", Some(integrated_request)).await;
 
         // This test will FAIL until pipeline integration is complete
-        assert_eq!(status, StatusCode::OK, "Integrated crawl with chunking should succeed");
+        assert_eq!(
+            status,
+            StatusCode::OK,
+            "Integrated crawl with chunking should succeed"
+        );
 
         let results = response["results"].as_array().unwrap();
         for result in results {
             // Should include both extraction and chunking results
             assert!(result["url"].is_string(), "Should preserve URL metadata");
-            assert!(result["extracted_content"].is_object(), "Should include extraction results");
-            assert!(result["chunks"].is_array(), "Should include chunked content");
-            assert!(result["links"].is_array(), "Should preserve extracted links");
+            assert!(
+                result["extracted_content"].is_object(),
+                "Should include extraction results"
+            );
+            assert!(
+                result["chunks"].is_array(),
+                "Should include chunked content"
+            );
+            assert!(
+                result["links"].is_array(),
+                "Should preserve extracted links"
+            );
 
             // Verify chunks maintain source metadata
             let chunks = result["chunks"].as_array().unwrap();
             for chunk in chunks {
-                assert!(chunk["source_url"].is_string(), "Chunks should include source URL");
-                assert!(chunk["extraction_metadata"].is_object(), "Chunks should preserve extraction metadata");
+                assert!(
+                    chunk["source_url"].is_string(),
+                    "Chunks should include source URL"
+                );
+                assert!(
+                    chunk["extraction_metadata"].is_object(),
+                    "Chunks should preserve extraction metadata"
+                );
             }
         }
     }
@@ -1059,8 +1290,9 @@ mod advanced_chunking_tests {
             app.clone(),
             "POST",
             "/api/v1/content/chunk",
-            Some(html_request)
-        ).await;
+            Some(html_request),
+        )
+        .await;
 
         // This test will FAIL until content type handling is implemented
         assert_eq!(status, StatusCode::OK, "HTML chunking should succeed");
@@ -1068,7 +1300,10 @@ mod advanced_chunking_tests {
         let chunks = response["chunks"].as_array().unwrap();
         for chunk in chunks {
             assert!(chunk["content_type"], "Chunks should preserve content type");
-            assert!(chunk["html_metadata"].is_object(), "HTML chunks should include structural metadata");
+            assert!(
+                chunk["html_metadata"].is_object(),
+                "HTML chunks should include structural metadata"
+            );
         }
 
         // Test Markdown content chunking
@@ -1085,14 +1320,18 @@ mod advanced_chunking_tests {
             app.clone(),
             "POST",
             "/api/v1/content/chunk",
-            Some(markdown_request)
-        ).await;
+            Some(markdown_request),
+        )
+        .await;
 
         assert_eq!(status, StatusCode::OK, "Markdown chunking should succeed");
 
         let chunks = response["chunks"].as_array().unwrap();
         for chunk in chunks {
-            assert!(chunk["markdown_metadata"].is_object(), "Markdown chunks should include structural metadata");
+            assert!(
+                chunk["markdown_metadata"].is_object(),
+                "Markdown chunks should include structural metadata"
+            );
         }
     }
 }
@@ -1135,12 +1374,8 @@ mod integration_workflow_tests {
             }
         });
 
-        let (status, response) = make_json_request(
-            app,
-            "POST",
-            "/crawl",
-            Some(workflow_request)
-        ).await;
+        let (status, response) =
+            make_json_request(app, "POST", "/crawl", Some(workflow_request)).await;
 
         // This test will FAIL until the integrated workflow is implemented
         assert_eq!(status, StatusCode::OK, "Integrated workflow should succeed");
@@ -1148,11 +1383,20 @@ mod integration_workflow_tests {
         let results = response["results"].as_array().unwrap();
         for result in results {
             if result["tables"].as_array().unwrap().len() > 0 {
-                assert!(result["table_analysis"].is_object(), "Should include LLM table analysis");
+                assert!(
+                    result["table_analysis"].is_object(),
+                    "Should include LLM table analysis"
+                );
                 let analysis = &result["table_analysis"];
-                assert!(analysis["summary"].is_string(), "Should include table summary");
+                assert!(
+                    analysis["summary"].is_string(),
+                    "Should include table summary"
+                );
                 assert!(analysis["insights"].is_array(), "Should include insights");
-                assert!(analysis["llm_provider_used"].is_string(), "Should track which LLM was used");
+                assert!(
+                    analysis["llm_provider_used"].is_string(),
+                    "Should track which LLM was used"
+                );
             }
         }
     }
@@ -1186,17 +1430,31 @@ mod integration_workflow_tests {
             app,
             "POST",
             "/api/v1/content/chunk",
-            Some(enhanced_chunking_request)
-        ).await;
+            Some(enhanced_chunking_request),
+        )
+        .await;
 
         // This test will FAIL until LLM-enhanced chunking is implemented
-        assert_eq!(status, StatusCode::OK, "LLM-enhanced chunking should succeed");
+        assert_eq!(
+            status,
+            StatusCode::OK,
+            "LLM-enhanced chunking should succeed"
+        );
 
         let chunks = response["chunks"].as_array().unwrap();
         for chunk in chunks {
-            assert!(chunk["topic_label"].is_string(), "LLM should provide topic labels");
-            assert!(chunk["summary"].is_string(), "LLM should provide chunk summaries");
-            assert!(chunk["coherence_score"].is_number(), "Should include LLM-computed coherence score");
+            assert!(
+                chunk["topic_label"].is_string(),
+                "LLM should provide topic labels"
+            );
+            assert!(
+                chunk["summary"].is_string(),
+                "LLM should provide chunk summaries"
+            );
+            assert!(
+                chunk["coherence_score"].is_number(),
+                "Should include LLM-computed coherence score"
+            );
         }
     }
 
@@ -1229,18 +1487,32 @@ mod integration_workflow_tests {
             app,
             "POST",
             "/api/v1/content/analyze",
-            Some(failover_request)
-        ).await;
+            Some(failover_request),
+        )
+        .await;
 
         // This test will FAIL until failover logic is implemented
-        assert_eq!(status, StatusCode::OK, "Analysis with failover config should succeed");
+        assert_eq!(
+            status,
+            StatusCode::OK,
+            "Analysis with failover config should succeed"
+        );
 
         // The response should include information about which provider was actually used
-        assert!(response["provider_used"].is_string(), "Should indicate which provider was used");
-        assert!(response["failover_triggered"], "Should indicate if failover was triggered");
+        assert!(
+            response["provider_used"].is_string(),
+            "Should indicate which provider was used"
+        );
+        assert!(
+            response["failover_triggered"],
+            "Should indicate if failover was triggered"
+        );
 
         if response["failover_triggered"] == true {
-            assert!(response["failover_events"].is_array(), "Should log failover events");
+            assert!(
+                response["failover_events"].is_array(),
+                "Should log failover events"
+            );
         }
     }
 
@@ -1269,20 +1541,24 @@ mod integration_workflow_tests {
         let start_time = std::time::Instant::now();
 
         for (i, request) in concurrent_requests.iter().enumerate() {
-            let (status, _response) = make_json_request(
-                app.clone(),
-                "POST",
-                "/crawl",
-                Some(request.clone())
-            ).await;
+            let (status, _response) =
+                make_json_request(app.clone(), "POST", "/crawl", Some(request.clone())).await;
 
             // Each individual request should succeed
-            assert_eq!(status, StatusCode::OK, "Concurrent request {} should succeed", i);
+            assert_eq!(
+                status,
+                StatusCode::OK,
+                "Concurrent request {} should succeed",
+                i
+            );
         }
 
         let total_time = start_time.elapsed();
 
         // This assertion will FAIL until proper concurrent handling is implemented
-        assert!(total_time.as_millis() < 1000, "Concurrent requests should complete efficiently");
+        assert!(
+            total_time.as_millis() < 1000,
+            "Concurrent requests should complete efficiently"
+        );
     }
 }

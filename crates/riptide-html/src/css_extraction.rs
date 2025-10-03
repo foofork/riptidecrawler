@@ -10,13 +10,13 @@
 //! - CSS-003: 12 content transformers (trim, normalize_ws, number, currency, etc.)
 //! - CSS-004: CSS-wins merge policy with conflict resolution
 
-use anyhow::{Result, Context, bail};
-use scraper::{Html, Selector};
-use std::collections::HashMap;
-use regex::Regex;
-use serde::{Deserialize, Serialize};
-use url::Url;
 use crate::ExtractedContent;
+use anyhow::{bail, Context, Result};
+use regex::Regex;
+use scraper::{Html, Selector};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use url::Url;
 
 /// Enhanced CSS selector configuration with transformers and post-filters
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -117,7 +117,12 @@ impl TransformerRegistry {
         self.transformers.insert(name.to_string(), transformer);
     }
 
-    pub fn transform(&self, content: &str, transformer_name: &str, base_url: Option<&str>) -> Result<String> {
+    pub fn transform(
+        &self,
+        content: &str,
+        transformer_name: &str,
+        base_url: Option<&str>,
+    ) -> Result<String> {
         if let Some(transformer) = self.transformers.get(transformer_name) {
             transformer.transform(content, base_url)
         } else {
@@ -143,16 +148,22 @@ impl CssJsonExtractor {
 
     /// Create extractor from simple selector strings (backward compatibility)
     pub fn from_simple_selectors(selectors: HashMap<String, String>) -> Self {
-        let enhanced_selectors = selectors.into_iter().map(|(field, selector)| {
-            (field, CssSelectorConfig {
-                selector,
-                transformers: vec![],
-                has_text_filter: None,
-                fallbacks: vec![],
-                required: false,
-                merge_policy: None,
+        let enhanced_selectors = selectors
+            .into_iter()
+            .map(|(field, selector)| {
+                (
+                    field,
+                    CssSelectorConfig {
+                        selector,
+                        transformers: vec![],
+                        has_text_filter: None,
+                        fallbacks: vec![],
+                        required: false,
+                        merge_policy: None,
+                    },
+                )
             })
-        }).collect();
+            .collect();
 
         Self::new(enhanced_selectors)
     }
@@ -171,7 +182,8 @@ impl CssJsonExtractor {
 
         // Extract data using enhanced CSS selectors
         for (field, config) in &self.selectors {
-            let values = self.extract_field(&document, field, config, url)
+            let values = self
+                .extract_field(&document, field, config, url)
                 .with_context(|| format!("Failed to extract field: {}", field))?;
 
             if !values.is_empty() {
@@ -224,13 +236,15 @@ impl CssJsonExtractor {
         document: &Html,
         _field: &str,
         config: &CssSelectorConfig,
-        base_url: &str
+        base_url: &str,
     ) -> Result<Vec<String>> {
         let mut selectors_to_try = vec![config.selector.clone()];
         selectors_to_try.extend(config.fallbacks.clone());
 
         for selector_str in selectors_to_try {
-            if let Some(values) = self.try_extract_with_selector(document, &selector_str, config, base_url)? {
+            if let Some(values) =
+                self.try_extract_with_selector(document, &selector_str, config, base_url)?
+            {
                 return Ok(values);
             }
         }
@@ -256,7 +270,12 @@ impl CssJsonExtractor {
                 let text = if let Some(content) = element.value().attr("content") {
                     content.to_string()
                 } else {
-                    element.text().collect::<Vec<_>>().join(" ").trim().to_string()
+                    element
+                        .text()
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                        .trim()
+                        .to_string()
                 };
 
                 if text.is_empty() {
@@ -280,10 +299,14 @@ impl CssJsonExtractor {
 
         // Apply transformers (CSS-003)
         for transformer_name in &config.transformers {
-            values = values.into_iter()
+            values = values
+                .into_iter()
                 .filter_map(|text| {
-                    self.transformers.transform(&text, transformer_name, Some(base_url))
-                        .map_err(|e| eprintln!("WARN: Transformer '{}' failed: {}", transformer_name, e))
+                    self.transformers
+                        .transform(&text, transformer_name, Some(base_url))
+                        .map_err(|e| {
+                            eprintln!("WARN: Transformer '{}' failed: {}", transformer_name, e)
+                        })
                         .ok()
                 })
                 .collect();
@@ -374,15 +397,16 @@ impl CssJsonExtractor {
         let mut merged = HashMap::new();
         let mut conflicts = Vec::new();
 
-        let all_fields: std::collections::HashSet<_> = css_results.keys()
-            .chain(other_results.keys())
-            .collect();
+        let all_fields: std::collections::HashSet<_> =
+            css_results.keys().chain(other_results.keys()).collect();
 
         for field in all_fields {
             let css_value = css_results.get(field);
             let other_value = other_results.get(field);
 
-            let policy = self.selectors.get(field)
+            let policy = self
+                .selectors
+                .get(field)
                 .and_then(|config| config.merge_policy.as_ref())
                 .unwrap_or(&self.global_merge_policy);
 
@@ -404,7 +428,7 @@ impl CssJsonExtractor {
                             let mut combined = css.clone();
                             combined.extend(other.clone());
                             (combined, "Merged both")
-                        },
+                        }
                         MergePolicy::FirstValid => (css.clone(), "First valid (CSS)"),
                     };
 
@@ -414,7 +438,7 @@ impl CssJsonExtractor {
                     });
 
                     (result, desc)
-                },
+                }
                 (Some(css), None) => (css.clone(), "CSS only"),
                 (None, Some(other)) => (other.clone(), "Other only"),
                 (Some(css), Some(_other)) => (css.clone(), "No conflict"),
@@ -527,8 +551,8 @@ impl ContentTransformer for DateIsoTransformer {
     fn transform(&self, content: &str, _base_url: Option<&str>) -> Result<String> {
         // Simple date patterns - could be enhanced with chrono
         let patterns = [
-            r"(\d{4})-(\d{2})-(\d{2})", // Already ISO
-            r"(\d{1,2})/(\d{1,2})/(\d{4})", // MM/DD/YYYY
+            r"(\d{4})-(\d{2})-(\d{2})",       // Already ISO
+            r"(\d{1,2})/(\d{1,2})/(\d{4})",   // MM/DD/YYYY
             r"(\d{1,2})\.(\d{1,2})\.(\d{4})", // DD.MM.YYYY
         ];
 
@@ -541,14 +565,24 @@ impl ContentTransformer for DateIsoTransformer {
                         let month = captures.get(1).unwrap().as_str();
                         let day = captures.get(2).unwrap().as_str();
                         let year = captures.get(3).unwrap().as_str();
-                        return Ok(format!("{}-{:02}-{:02}", year, month.parse::<u32>().unwrap(), day.parse::<u32>().unwrap()));
-                    },
+                        return Ok(format!(
+                            "{}-{:02}-{:02}",
+                            year,
+                            month.parse::<u32>().unwrap(),
+                            day.parse::<u32>().unwrap()
+                        ));
+                    }
                     r"(\d{1,2})\.(\d{1,2})\.(\d{4})" => {
                         let day = captures.get(1).unwrap().as_str();
                         let month = captures.get(2).unwrap().as_str();
                         let year = captures.get(3).unwrap().as_str();
-                        return Ok(format!("{}-{:02}-{:02}", year, month.parse::<u32>().unwrap(), day.parse::<u32>().unwrap()));
-                    },
+                        return Ok(format!(
+                            "{}-{:02}-{:02}",
+                            year,
+                            month.parse::<u32>().unwrap(),
+                            day.parse::<u32>().unwrap()
+                        ));
+                    }
                     _ => {}
                 }
             }
@@ -564,7 +598,9 @@ impl ContentTransformer for UrlAbsoluteTransformer {
     fn transform(&self, content: &str, base_url: Option<&str>) -> Result<String> {
         if let Some(base) = base_url {
             let base_url = Url::parse(base).context("Invalid base URL")?;
-            let url = base_url.join(content.trim()).context("Failed to join URL")?;
+            let url = base_url
+                .join(content.trim())
+                .context("Failed to join URL")?;
             Ok(url.to_string())
         } else {
             Ok(content.to_string())
@@ -621,10 +657,9 @@ struct JsonParseTransformer;
 
 impl ContentTransformer for JsonParseTransformer {
     fn transform(&self, content: &str, _base_url: Option<&str>) -> Result<String> {
-        let parsed: serde_json::Value = serde_json::from_str(content.trim())
-            .context("Failed to parse JSON")?;
-        serde_json::to_string_pretty(&parsed)
-            .context("Failed to serialize parsed JSON")
+        let parsed: serde_json::Value =
+            serde_json::from_str(content.trim()).context("Failed to parse JSON")?;
+        serde_json::to_string_pretty(&parsed).context("Failed to serialize parsed JSON")
     }
 }
 
@@ -634,8 +669,11 @@ struct JoinTransformer;
 impl ContentTransformer for JoinTransformer {
     fn transform(&self, content: &str, _base_url: Option<&str>) -> Result<String> {
         // Try to parse as JSON array, if successful join elements
-        if let Ok(serde_json::Value::Array(arr)) = serde_json::from_str::<serde_json::Value>(content) {
-            let strings: Vec<String> = arr.into_iter()
+        if let Ok(serde_json::Value::Array(arr)) =
+            serde_json::from_str::<serde_json::Value>(content)
+        {
+            let strings: Vec<String> = arr
+                .into_iter()
                 .filter_map(|v| match v {
                     serde_json::Value::String(s) => Some(s),
                     serde_json::Value::Number(n) => Some(n.to_string()),
@@ -647,7 +685,8 @@ impl ContentTransformer for JoinTransformer {
         }
 
         // If not JSON, split by common delimiters and rejoin
-        let parts: Vec<&str> = content.split(&[',', ';', '\n', '\t'][..])
+        let parts: Vec<&str> = content
+            .split(&[',', ';', '\n', '\t'][..])
             .map(|s| s.trim())
             .filter(|s| !s.is_empty())
             .collect();
@@ -715,59 +754,77 @@ impl ContentTransformer for HtmlDecodeTransformer {
 pub fn default_selectors() -> HashMap<String, CssSelectorConfig> {
     let mut selectors = HashMap::new();
 
-    selectors.insert("title".to_string(), CssSelectorConfig {
-        selector: "title, h1, [property='og:title']".to_string(),
-        transformers: vec!["trim".to_string(), "normalize_ws".to_string()],
-        has_text_filter: None,
-        fallbacks: vec!["h2".to_string(), ".title".to_string()],
-        required: true,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "title".to_string(),
+        CssSelectorConfig {
+            selector: "title, h1, [property='og:title']".to_string(),
+            transformers: vec!["trim".to_string(), "normalize_ws".to_string()],
+            has_text_filter: None,
+            fallbacks: vec!["h2".to_string(), ".title".to_string()],
+            required: true,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
-    selectors.insert("description".to_string(), CssSelectorConfig {
-        selector: "[name='description'], [property='og:description']".to_string(),
-        transformers: vec!["trim".to_string(), "normalize_ws".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![".description".to_string(), ".summary".to_string()],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "description".to_string(),
+        CssSelectorConfig {
+            selector: "[name='description'], [property='og:description']".to_string(),
+            transformers: vec!["trim".to_string(), "normalize_ws".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![".description".to_string(), ".summary".to_string()],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
-    selectors.insert("content".to_string(), CssSelectorConfig {
-        selector: "article, .content, .post-content, .entry-content, main".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec!["body p".to_string(), ".text".to_string()],
-        required: true,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "content".to_string(),
+        CssSelectorConfig {
+            selector: "article, .content, .post-content, .entry-content, main".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec!["body p".to_string(), ".text".to_string()],
+            required: true,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
-    selectors.insert("author".to_string(), CssSelectorConfig {
-        selector: "[name='author'], .author, .byline, [rel='author']".to_string(),
-        transformers: vec!["trim".to_string(), "normalize_ws".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![".writer".to_string(), ".created-by".to_string()],
-        required: false,
-        merge_policy: Some(MergePolicy::FirstValid),
-    });
+    selectors.insert(
+        "author".to_string(),
+        CssSelectorConfig {
+            selector: "[name='author'], .author, .byline, [rel='author']".to_string(),
+            transformers: vec!["trim".to_string(), "normalize_ws".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![".writer".to_string(), ".created-by".to_string()],
+            required: false,
+            merge_policy: Some(MergePolicy::FirstValid),
+        },
+    );
 
-    selectors.insert("date".to_string(), CssSelectorConfig {
-        selector: "time, .date, .published, [property='article:published_time']".to_string(),
-        transformers: vec!["trim".to_string(), "date_iso".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![".timestamp".to_string(), ".publish-date".to_string()],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "date".to_string(),
+        CssSelectorConfig {
+            selector: "time, .date, .published, [property='article:published_time']".to_string(),
+            transformers: vec!["trim".to_string(), "date_iso".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![".timestamp".to_string(), ".publish-date".to_string()],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
-    selectors.insert("tags".to_string(), CssSelectorConfig {
-        selector: ".tag, .category, .label, [property='article:tag']".to_string(),
-        transformers: vec!["trim".to_string(), "lowercase".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![".keywords".to_string(), ".topics".to_string()],
-        required: false,
-        merge_policy: Some(MergePolicy::Merge),
-    });
+    selectors.insert(
+        "tags".to_string(),
+        CssSelectorConfig {
+            selector: ".tag, .category, .label, [property='article:tag']".to_string(),
+            transformers: vec!["trim".to_string(), "lowercase".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![".keywords".to_string(), ".topics".to_string()],
+            required: false,
+            merge_policy: Some(MergePolicy::Merge),
+        },
+    );
 
     selectors
 }
@@ -775,23 +832,48 @@ pub fn default_selectors() -> HashMap<String, CssSelectorConfig> {
 /// Backward compatibility function
 pub fn default_selectors_simple() -> HashMap<String, String> {
     let enhanced = default_selectors();
-    enhanced.into_iter().map(|(field, config)| {
-        (field, config.selector)
-    }).collect()
+    enhanced
+        .into_iter()
+        .map(|(field, config)| (field, config.selector))
+        .collect()
 }
 
 /// Common selectors for different content types
 pub fn news_article_selectors() -> HashMap<String, String> {
     let mut selectors = HashMap::new();
 
-    selectors.insert("title".to_string(), "h1, .headline, .article-title, [property='og:title']".to_string());
-    selectors.insert("subtitle".to_string(), ".subtitle, .sub-headline, .article-subtitle".to_string());
-    selectors.insert("author".to_string(), ".author, .byline, [rel='author'], .writer".to_string());
-    selectors.insert("date".to_string(), "time, .date, .publish-date, [property='article:published_time']".to_string());
-    selectors.insert("content".to_string(), ".article-body, .content, .post-content, article p".to_string());
-    selectors.insert("summary".to_string(), ".summary, .excerpt, .lead, .article-summary".to_string());
-    selectors.insert("category".to_string(), ".category, .section, .topic, [property='article:section']".to_string());
-    selectors.insert("tags".to_string(), ".tag, .keyword, [property='article:tag']".to_string());
+    selectors.insert(
+        "title".to_string(),
+        "h1, .headline, .article-title, [property='og:title']".to_string(),
+    );
+    selectors.insert(
+        "subtitle".to_string(),
+        ".subtitle, .sub-headline, .article-subtitle".to_string(),
+    );
+    selectors.insert(
+        "author".to_string(),
+        ".author, .byline, [rel='author'], .writer".to_string(),
+    );
+    selectors.insert(
+        "date".to_string(),
+        "time, .date, .publish-date, [property='article:published_time']".to_string(),
+    );
+    selectors.insert(
+        "content".to_string(),
+        ".article-body, .content, .post-content, article p".to_string(),
+    );
+    selectors.insert(
+        "summary".to_string(),
+        ".summary, .excerpt, .lead, .article-summary".to_string(),
+    );
+    selectors.insert(
+        "category".to_string(),
+        ".category, .section, .topic, [property='article:section']".to_string(),
+    );
+    selectors.insert(
+        "tags".to_string(),
+        ".tag, .keyword, [property='article:tag']".to_string(),
+    );
 
     selectors
 }
@@ -800,12 +882,30 @@ pub fn news_article_selectors() -> HashMap<String, String> {
 pub fn blog_post_selectors() -> HashMap<String, String> {
     let mut selectors = HashMap::new();
 
-    selectors.insert("title".to_string(), "h1, .post-title, .entry-title, [property='og:title']".to_string());
-    selectors.insert("author".to_string(), ".author, .post-author, .entry-author".to_string());
-    selectors.insert("date".to_string(), ".post-date, .entry-date, time".to_string());
-    selectors.insert("content".to_string(), ".post-content, .entry-content, .blog-content".to_string());
-    selectors.insert("excerpt".to_string(), ".excerpt, .post-excerpt, .summary".to_string());
-    selectors.insert("category".to_string(), ".category, .post-category".to_string());
+    selectors.insert(
+        "title".to_string(),
+        "h1, .post-title, .entry-title, [property='og:title']".to_string(),
+    );
+    selectors.insert(
+        "author".to_string(),
+        ".author, .post-author, .entry-author".to_string(),
+    );
+    selectors.insert(
+        "date".to_string(),
+        ".post-date, .entry-date, time".to_string(),
+    );
+    selectors.insert(
+        "content".to_string(),
+        ".post-content, .entry-content, .blog-content".to_string(),
+    );
+    selectors.insert(
+        "excerpt".to_string(),
+        ".excerpt, .post-excerpt, .summary".to_string(),
+    );
+    selectors.insert(
+        "category".to_string(),
+        ".category, .post-category".to_string(),
+    );
     selectors.insert("tags".to_string(), ".tag, .post-tag, .label".to_string());
 
     selectors
@@ -815,26 +915,58 @@ pub fn blog_post_selectors() -> HashMap<String, String> {
 pub fn product_selectors() -> HashMap<String, String> {
     let mut selectors = HashMap::new();
 
-    selectors.insert("title".to_string(), "h1, .product-title, .product-name".to_string());
-    selectors.insert("price".to_string(), ".price, .product-price, .cost, .amount".to_string());
-    selectors.insert("description".to_string(), ".description, .product-description, .details".to_string());
-    selectors.insert("brand".to_string(), ".brand, .manufacturer, .product-brand".to_string());
-    selectors.insert("model".to_string(), ".model, .product-model, .sku".to_string());
-    selectors.insert("rating".to_string(), ".rating, .stars, .review-score".to_string());
-    selectors.insert("availability".to_string(), ".availability, .stock, .in-stock".to_string());
-    selectors.insert("images".to_string(), ".product-image img, .gallery img".to_string());
+    selectors.insert(
+        "title".to_string(),
+        "h1, .product-title, .product-name".to_string(),
+    );
+    selectors.insert(
+        "price".to_string(),
+        ".price, .product-price, .cost, .amount".to_string(),
+    );
+    selectors.insert(
+        "description".to_string(),
+        ".description, .product-description, .details".to_string(),
+    );
+    selectors.insert(
+        "brand".to_string(),
+        ".brand, .manufacturer, .product-brand".to_string(),
+    );
+    selectors.insert(
+        "model".to_string(),
+        ".model, .product-model, .sku".to_string(),
+    );
+    selectors.insert(
+        "rating".to_string(),
+        ".rating, .stars, .review-score".to_string(),
+    );
+    selectors.insert(
+        "availability".to_string(),
+        ".availability, .stock, .in-stock".to_string(),
+    );
+    selectors.insert(
+        "images".to_string(),
+        ".product-image img, .gallery img".to_string(),
+    );
 
     selectors
 }
 
 /// Direct extraction function with custom selectors
-pub async fn extract(html: &str, url: &str, selectors: &HashMap<String, String>) -> Result<ExtractedContent> {
+pub async fn extract(
+    html: &str,
+    url: &str,
+    selectors: &HashMap<String, String>,
+) -> Result<ExtractedContent> {
     let extractor = CssJsonExtractor::from_simple_selectors(selectors.clone());
     extractor.extract(html, url).await
 }
 
 /// Direct extraction function with simple selectors (for backward compatibility)
-pub async fn extract_simple(html: &str, url: &str, selectors: &HashMap<String, String>) -> Result<ExtractedContent> {
+pub async fn extract_simple(
+    html: &str,
+    url: &str,
+    selectors: &HashMap<String, String>,
+) -> Result<ExtractedContent> {
     extract(html, url, selectors).await
 }
 
@@ -904,7 +1036,9 @@ mod tests {
         selectors.insert("title".to_string(), ".custom-title".to_string());
         selectors.insert("content".to_string(), ".custom-content".to_string());
 
-        let result = extract_simple(html, "https://example.com", &selectors).await.unwrap();
+        let result = extract_simple(html, "https://example.com", &selectors)
+            .await
+            .unwrap();
 
         assert_eq!(result.title, "Custom Title");
         assert_eq!(result.content, "Custom content here");
@@ -961,7 +1095,9 @@ impl CssConfigBuilder {
     }
 
     pub fn transforms(mut self, transformers: &[&str]) -> Self {
-        self.config.transformers.extend(transformers.iter().map(|t| t.to_string()));
+        self.config
+            .transformers
+            .extend(transformers.iter().map(|t| t.to_string()));
         self
     }
 
@@ -999,7 +1135,9 @@ impl CssConfigBuilder {
     }
 
     pub fn fallbacks(mut self, selectors: &[&str]) -> Self {
-        self.config.fallbacks.extend(selectors.iter().map(|s| s.to_string()));
+        self.config
+            .fallbacks
+            .extend(selectors.iter().map(|s| s.to_string()));
         self
     }
 
@@ -1032,30 +1170,33 @@ pub mod examples {
         let mut selectors = HashMap::new();
 
         // Product title with normalization
-        selectors.insert("title".to_string(),
+        selectors.insert(
+            "title".to_string(),
             css(".product-title, h1")
                 .transforms(&["trim", "normalize_ws"])
                 .fallbacks(&[".name", ".product-name"])
                 .required()
                 .merge_policy(MergePolicy::CssWins)
-                .build()
+                .build(),
         );
 
         // Price with currency extraction
-        selectors.insert("price".to_string(),
+        selectors.insert(
+            "price".to_string(),
             css(".price, .product-price")
                 .transform("currency")
                 .fallbacks(&[".cost", ".amount"])
                 .merge_policy(MergePolicy::CssWins)
-                .build()
+                .build(),
         );
 
         // Reviews that mention "excellent"
-        selectors.insert("excellent_reviews".to_string(),
+        selectors.insert(
+            "excellent_reviews".to_string(),
             css(".review-text")
                 .has_text("excellent", true, true)
                 .transforms(&["trim", "normalize_ws"])
-                .build()
+                .build(),
         );
 
         selectors
@@ -1065,26 +1206,29 @@ pub mod examples {
     pub fn news_selectors() -> HashMap<String, CssSelectorConfig> {
         let mut selectors = HashMap::new();
 
-        selectors.insert("headline".to_string(),
+        selectors.insert(
+            "headline".to_string(),
             css("h1, .headline")
                 .transforms(&["trim", "normalize_ws"])
                 .fallbacks(&["h2", ".title"])
                 .required()
-                .build()
+                .build(),
         );
 
-        selectors.insert("publish_date".to_string(),
+        selectors.insert(
+            "publish_date".to_string(),
             css("time, .date")
                 .transforms(&["trim", "date_iso"])
                 .fallbacks(&[".published", ".timestamp"])
-                .build()
+                .build(),
         );
 
-        selectors.insert("breaking_news".to_string(),
+        selectors.insert(
+            "breaking_news".to_string(),
             css(".article-content")
                 .has_text("breaking", true, true)
                 .transforms(&["trim"])
-                .build()
+                .build(),
         );
 
         selectors

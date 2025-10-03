@@ -10,11 +10,11 @@
 //! - `memory`: Memory management and cleanup
 //! - `models`: Core data structures for pooled instances and circuit breaker
 
-pub mod pool;
 pub mod health;
 pub mod memory;
 pub mod models;
+pub mod pool;
 
 // Re-export main public API
-pub use models::{PooledInstance, CircuitBreakerState};
-pub use pool::{AdvancedInstancePool, get_instances_per_worker, create_event_aware_pool};
+pub use models::{CircuitBreakerState, PooledInstance};
+pub use pool::{create_event_aware_pool, get_instances_per_worker, AdvancedInstancePool};

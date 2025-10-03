@@ -18,7 +18,7 @@ use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::{RwLock, Mutex};
+use tokio::sync::{Mutex, RwLock};
 use tokio::time::interval;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
@@ -423,11 +423,15 @@ impl TenantManager {
         // Register metrics for new tenant
         {
             let mut metrics = self.metrics.write().await;
-            metrics.register_tenant(&tenant_id).map_err(|e| PersistenceError::Metrics(e.to_string()))?;
+            metrics
+                .register_tenant(&tenant_id)
+                .map_err(|e| PersistenceError::Metrics(e.to_string()))?;
         }
 
         // Set up tenant isolation
-        self.security_manager.setup_tenant_isolation(&tenant_id).await?;
+        self.security_manager
+            .setup_tenant_isolation(&tenant_id)
+            .await?;
 
         info!(
             tenant_id = %tenant_id,
@@ -517,7 +521,9 @@ impl TenantManager {
         resource: &str,
         action: &str,
     ) -> PersistenceResult<bool> {
-        let tenant = self.get_tenant(tenant_id).await?
+        let tenant = self
+            .get_tenant(tenant_id)
+            .await?
             .ok_or_else(|| PersistenceError::invalid_tenant_access(tenant_id))?;
 
         // Check tenant status
@@ -528,9 +534,11 @@ impl TenantManager {
         // Check access policies
         for policy in &tenant.security.access_policies {
             if self.matches_resource_pattern(&policy.resource, resource)
-                && (policy.actions.contains(&action.to_string()) || policy.actions.contains(&"*".to_string())) {
-                    return Ok(true);
-                }
+                && (policy.actions.contains(&action.to_string())
+                    || policy.actions.contains(&"*".to_string()))
+            {
+                return Ok(true);
+            }
         }
 
         // Default allow for basic operations if no policies defined
@@ -555,7 +563,9 @@ impl TenantManager {
         resource: &str,
         requested_amount: u64,
     ) -> PersistenceResult<bool> {
-        let tenant = self.get_tenant(tenant_id).await?
+        let tenant = self
+            .get_tenant(tenant_id)
+            .await?
             .ok_or_else(|| PersistenceError::invalid_tenant_access(tenant_id))?;
 
         if let Some(&quota_limit) = tenant.config.quotas.get(resource) {
@@ -598,10 +608,14 @@ impl TenantManager {
         resource_usage: ResourceUsageRecord,
     ) -> PersistenceResult<()> {
         // Update current usage
-        self.usage_tracker.record_usage(tenant_id, &resource_usage).await?;
+        self.usage_tracker
+            .record_usage(tenant_id, &resource_usage)
+            .await?;
 
         // Record for billing
-        self.billing_tracker.record_billable_event(tenant_id, operation_type, &resource_usage).await?;
+        self.billing_tracker
+            .record_billable_event(tenant_id, operation_type, &resource_usage)
+            .await?;
 
         // Update metrics
         {
@@ -615,7 +629,9 @@ impl TenantManager {
 
     /// Get tenant usage statistics
     pub async fn get_tenant_usage(&self, tenant_id: &str) -> PersistenceResult<ResourceUsage> {
-        let tenant = self.get_tenant(tenant_id).await?
+        let tenant = self
+            .get_tenant(tenant_id)
+            .await?
             .ok_or_else(|| PersistenceError::invalid_tenant_access(tenant_id))?;
 
         Ok(tenant.usage)
@@ -623,7 +639,9 @@ impl TenantManager {
 
     /// Get billing information
     pub async fn get_billing_info(&self, tenant_id: &str) -> PersistenceResult<BillingInfo> {
-        let tenant = self.get_tenant(tenant_id).await?
+        let tenant = self
+            .get_tenant(tenant_id)
+            .await?
             .ok_or_else(|| PersistenceError::invalid_tenant_access(tenant_id))?;
 
         Ok(tenant.billing)
@@ -686,7 +704,9 @@ impl TenantManager {
         }
 
         // Clean up tenant isolation
-        self.security_manager.cleanup_tenant_isolation(tenant_id).await?;
+        self.security_manager
+            .cleanup_tenant_isolation(tenant_id)
+            .await?;
 
         // Clean up tenant data
         self.cleanup_tenant_data(tenant_id).await?;

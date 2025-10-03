@@ -13,10 +13,10 @@ use riptide_core::{
     cache::{Cache, CacheConfig, CacheStats},
     cache_warming::{CacheWarmingConfig, CacheWarmingStrategy, WarmingSchedule},
     circuit::CircuitBreaker,
-    events::{EventBus, EventBusConfig, EventSeverity, BaseEvent, EventEmitter, EventHandler},
+    events::{BaseEvent, EventBus, EventBusConfig, EventEmitter, EventHandler, EventSeverity},
     instance_pool::{InstancePool, InstancePoolConfig},
     memory_manager::{MemoryManager, MemoryManagerConfig},
-    spider::{Spider, SpiderConfig, FrontierManager},
+    spider::{FrontierManager, Spider, SpiderConfig},
     telemetry::{TelemetryCollector, TelemetryConfig},
     types::{ComponentInfo, HealthStatus},
 };
@@ -58,11 +58,7 @@ async fn test_pipeline_orchestration() -> Result<()> {
     let pipeline_id = "test_pipeline";
 
     // Start orchestration
-    let start_event = BaseEvent::new(
-        "pipeline.started",
-        "core_orchestrator",
-        EventSeverity::Info,
-    );
+    let start_event = BaseEvent::new("pipeline.started", "core_orchestrator", EventSeverity::Info);
     event_bus.emit_event(start_event).await?;
 
     // Simulate cache warming
@@ -88,21 +84,25 @@ async fn test_pipeline_orchestration() -> Result<()> {
 /// Test circuit breaker integration in pipeline
 #[tokio::test]
 async fn test_circuit_breaker_orchestration() -> Result<()> {
-    let circuit_breaker = Arc::new(CircuitBreaker::new("test_service", 2, Duration::from_secs(5)));
+    let circuit_breaker = Arc::new(CircuitBreaker::new(
+        "test_service",
+        2,
+        Duration::from_secs(5),
+    ));
 
     // Simulate successful operations
     for _ in 0..3 {
-        let result = circuit_breaker.call(|| async {
-            Ok::<String, anyhow::Error>("success".to_string())
-        }).await;
+        let result = circuit_breaker
+            .call(|| async { Ok::<String, anyhow::Error>("success".to_string()) })
+            .await;
         assert!(result.is_ok());
     }
 
     // Simulate failures to trip circuit breaker
     for _ in 0..3 {
-        let result = circuit_breaker.call(|| async {
-            Err::<String, anyhow::Error>(anyhow::anyhow!("service failure"))
-        }).await;
+        let result = circuit_breaker
+            .call(|| async { Err::<String, anyhow::Error>(anyhow::anyhow!("service failure")) })
+            .await;
         assert!(result.is_err());
     }
 
@@ -113,9 +113,9 @@ async fn test_circuit_breaker_orchestration() -> Result<()> {
     tokio::time::sleep(Duration::from_secs(6)).await;
 
     // Should allow one test call
-    let result = circuit_breaker.call(|| async {
-        Ok::<String, anyhow::Error>("recovery".to_string())
-    }).await;
+    let result = circuit_breaker
+        .call(|| async { Ok::<String, anyhow::Error>("recovery".to_string()) })
+        .await;
     assert!(result.is_ok());
 
     Ok(())
@@ -241,11 +241,7 @@ async fn test_orchestration_resilience() -> Result<()> {
     let cache = Arc::new(Cache::new(CacheConfig::default())?);
 
     // Test error event handling
-    let error_event = BaseEvent::new(
-        "component.error",
-        "test_component",
-        EventSeverity::Error,
-    );
+    let error_event = BaseEvent::new("component.error", "test_component", EventSeverity::Error);
 
     // Should not crash orchestration
     let result = event_bus.emit_event(error_event).await;
@@ -282,8 +278,16 @@ async fn test_component_health_monitoring() -> Result<()> {
     ];
 
     for (name, health) in components {
-        assert_eq!(health.status, "healthy", "Component {} should be healthy", name);
-        assert!(!health.version.is_empty(), "Component {} should have version", name);
+        assert_eq!(
+            health.status, "healthy",
+            "Component {} should be healthy",
+            name
+        );
+        assert!(
+            !health.version.is_empty(),
+            "Component {} should have version",
+            name
+        );
     }
 
     Ok(())

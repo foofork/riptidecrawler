@@ -3,13 +3,13 @@
 //! This module provides minimal types needed for WASM component integration.
 //! The actual extraction logic has been moved to riptide-html.
 
+use crate::reliability::WasmExtractor;
+use crate::types::ExtractedDoc;
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use anyhow::Result;
 use wasmtime::ResourceLimiter;
-use crate::reliability::WasmExtractor;
-use crate::types::ExtractedDoc;
 
 /// Configuration for the extractor component
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -99,13 +99,23 @@ impl Default for WasmResourceTracker {
 }
 
 impl ResourceLimiter for WasmResourceTracker {
-    fn memory_growing(&mut self, _current: usize, desired: usize, _maximum: Option<usize>) -> anyhow::Result<bool> {
+    fn memory_growing(
+        &mut self,
+        _current: usize,
+        desired: usize,
+        _maximum: Option<usize>,
+    ) -> anyhow::Result<bool> {
         // Simple memory limit check
         const MAX_MEMORY: usize = 512 * 1024 * 1024; // 512MB
         Ok(desired <= MAX_MEMORY)
     }
 
-    fn table_growing(&mut self, _current: usize, _desired: usize, _maximum: Option<usize>) -> anyhow::Result<bool> {
+    fn table_growing(
+        &mut self,
+        _current: usize,
+        _desired: usize,
+        _maximum: Option<usize>,
+    ) -> anyhow::Result<bool> {
         Ok(true) // Allow table growth
     }
 }

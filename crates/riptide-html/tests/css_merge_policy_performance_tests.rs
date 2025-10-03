@@ -13,8 +13,7 @@ async fn test_merge_policy_performance() -> Result<()> {
     let other_results = generate_large_result_set("other", 1000);
 
     let selectors = create_test_selectors();
-    let extractor = CssJsonExtractor::new(selectors)
-        .with_merge_policy(MergePolicy::CssWins);
+    let extractor = CssJsonExtractor::new(selectors).with_merge_policy(MergePolicy::CssWins);
 
     let start = std::time::Instant::now();
     let (merged, conflicts) = extractor.merge_with_other(&css_results, &other_results);
@@ -44,44 +43,56 @@ async fn test_detailed_conflict_audit() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Field with CssWins policy
-    selectors.insert("title".to_string(), CssSelectorConfig {
-        selector: "h1".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: true,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "title".to_string(),
+        CssSelectorConfig {
+            selector: "h1".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: true,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Field with Merge policy
-    selectors.insert("tags".to_string(), CssSelectorConfig {
-        selector: ".tag".to_string(),
-        transformers: vec!["lowercase".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::Merge),
-    });
+    selectors.insert(
+        "tags".to_string(),
+        CssSelectorConfig {
+            selector: ".tag".to_string(),
+            transformers: vec!["lowercase".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::Merge),
+        },
+    );
 
     // Field with FirstValid policy
-    selectors.insert("author".to_string(), CssSelectorConfig {
-        selector: ".author".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::FirstValid),
-    });
+    selectors.insert(
+        "author".to_string(),
+        CssSelectorConfig {
+            selector: ".author".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::FirstValid),
+        },
+    );
 
     // Field with OtherWins policy
-    selectors.insert("date".to_string(), CssSelectorConfig {
-        selector: "time".to_string(),
-        transformers: vec!["date_iso".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::OtherWins),
-    });
+    selectors.insert(
+        "date".to_string(),
+        CssSelectorConfig {
+            selector: "time".to_string(),
+            transformers: vec!["date_iso".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::OtherWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let (merged, conflicts) = extractor.merge_with_other(&css_results, &other_results);
@@ -109,9 +120,9 @@ async fn test_detailed_conflict_audit() -> Result<()> {
 
     // Verify merge results match expected policies
     assert!(merged.contains_key("title")); // Should be present
-    assert!(merged.contains_key("tags"));  // Should be merged
+    assert!(merged.contains_key("tags")); // Should be merged
     assert!(merged.contains_key("author")); // Should use first valid
-    assert!(merged.contains_key("date"));  // Should use other
+    assert!(merged.contains_key("date")); // Should use other
 
     Ok(())
 }
@@ -153,11 +164,20 @@ async fn test_realistic_merge_scenario() -> Result<()> {
 
     // Simulate other extraction method results (e.g., from regex or other strategy)
     let mut other_results = HashMap::new();
-    other_results.insert("title".to_string(), vec!["Regex Extracted Title".to_string()]);
+    other_results.insert(
+        "title".to_string(),
+        vec!["Regex Extracted Title".to_string()],
+    );
     other_results.insert("author".to_string(), vec!["Regex Author".to_string()]);
-    other_results.insert("content".to_string(), vec!["Regex content extraction".to_string()]);
+    other_results.insert(
+        "content".to_string(),
+        vec!["Regex content extraction".to_string()],
+    );
     other_results.insert("summary".to_string(), vec!["Generated summary".to_string()]);
-    other_results.insert("tags".to_string(), vec!["regex".to_string(), "extraction".to_string()]);
+    other_results.insert(
+        "tags".to_string(),
+        vec!["regex".to_string(), "extraction".to_string()],
+    );
 
     // Create CSS results from extraction
     let mut css_results = HashMap::new();
@@ -175,9 +195,18 @@ async fn test_realistic_merge_scenario() -> Result<()> {
 
     // Analyze merge results
     println!("Realistic merge scenario results:");
-    println!("  CSS-extracted title: '{}'", css_results.get("title").unwrap().first().unwrap());
-    println!("  Other-extracted title: '{}'", other_results.get("title").unwrap().first().unwrap());
-    println!("  Merged title: '{}'", merged.get("title").unwrap().first().unwrap());
+    println!(
+        "  CSS-extracted title: '{}'",
+        css_results.get("title").unwrap().first().unwrap()
+    );
+    println!(
+        "  Other-extracted title: '{}'",
+        other_results.get("title").unwrap().first().unwrap()
+    );
+    println!(
+        "  Merged title: '{}'",
+        merged.get("title").unwrap().first().unwrap()
+    );
     println!("  Conflicts: {}", conflicts.len());
 
     // With CSS-wins policy, CSS results should take precedence
@@ -193,13 +222,13 @@ async fn test_realistic_merge_scenario() -> Result<()> {
         match conflict.policy_used {
             MergePolicy::CssWins => {
                 assert_eq!(conflict.resolution, "CSS wins");
-            },
+            }
             MergePolicy::Merge => {
                 assert_eq!(conflict.resolution, "Merged both");
-            },
+            }
             MergePolicy::FirstValid => {
                 assert!(conflict.resolution.contains("First valid"));
-            },
+            }
             MergePolicy::OtherWins => {
                 assert_eq!(conflict.resolution, "Other wins");
             }
@@ -218,19 +247,19 @@ async fn test_field_coverage_calculation() -> Result<()> {
         (
             create_high_coverage_html(),
             "High coverage test",
-            0.8 // Expected minimum coverage
+            0.8, // Expected minimum coverage
         ),
         // Medium coverage scenario
         (
             create_medium_coverage_html(),
             "Medium coverage test",
-            0.6 // Expected minimum coverage
+            0.6, // Expected minimum coverage
         ),
         // Low coverage scenario
         (
             create_low_coverage_html(),
             "Low coverage test",
-            0.3 // Expected minimum coverage
+            0.3, // Expected minimum coverage
         ),
     ];
 
@@ -243,15 +272,23 @@ async fn test_field_coverage_calculation() -> Result<()> {
         let coverage = calculate_field_coverage(&result);
 
         println!("{}: Coverage = {:.1}%", description, coverage * 100.0);
-        println!("  Title: '{}' (length: {})", result.title, result.title.len());
+        println!(
+            "  Title: '{}' (length: {})",
+            result.title,
+            result.title.len()
+        );
         println!("  Content length: {}", result.content.len());
         println!("  Summary: {:?}", result.summary);
         println!("  Confidence: {:.3}", result.extraction_confidence);
         println!();
 
-        assert!(coverage >= expected_min_coverage,
-                "{} coverage {:.1}% should be >= {:.1}%",
-                description, coverage * 100.0, expected_min_coverage * 100.0);
+        assert!(
+            coverage >= expected_min_coverage,
+            "{} coverage {:.1}% should be >= {:.1}%",
+            description,
+            coverage * 100.0,
+            expected_min_coverage * 100.0
+        );
     }
 
     Ok(())
@@ -266,76 +303,90 @@ async fn test_comprehensive_performance() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Complex selector with multiple transformers
-    selectors.insert("processed_title".to_string(), CssSelectorConfig {
-        selector: "article header h1.main-title".to_string(),
-        transformers: vec![
-            "trim".to_string(),
-            "html_decode".to_string(),
-            "normalize_ws".to_string(),
-            "lowercase".to_string()
-        ],
-        has_text_filter: Some(HasTextFilter {
-            pattern: r"(?i)\b(article|post|news)\b".to_string(),
-            case_insensitive: true,
-            partial_match: true,
-            regex_mode: true,
-            regex: None,
-        }),
-        fallbacks: vec!["h1".to_string(), ".title".to_string()],
-        required: true,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "processed_title".to_string(),
+        CssSelectorConfig {
+            selector: "article header h1.main-title".to_string(),
+            transformers: vec![
+                "trim".to_string(),
+                "html_decode".to_string(),
+                "normalize_ws".to_string(),
+                "lowercase".to_string(),
+            ],
+            has_text_filter: Some(HasTextFilter {
+                pattern: r"(?i)\b(article|post|news)\b".to_string(),
+                case_insensitive: true,
+                partial_match: true,
+                regex_mode: true,
+                regex: None,
+            }),
+            fallbacks: vec!["h1".to_string(), ".title".to_string()],
+            required: true,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Complex content extraction with regex filtering
-    selectors.insert("important_content".to_string(), CssSelectorConfig {
-        selector: ".content p, .article-body p".to_string(),
-        transformers: vec!["regex_replace".to_string(), "trim".to_string()],
-        has_text_filter: Some(HasTextFilter {
-            pattern: r"(?i)\b(important|critical|key|main)\b".to_string(),
-            case_insensitive: true,
-            partial_match: true,
-            regex_mode: true,
-            regex: None,
-        }),
-        fallbacks: vec!["p".to_string()],
-        required: false,
-        merge_policy: Some(MergePolicy::Merge),
-    });
+    selectors.insert(
+        "important_content".to_string(),
+        CssSelectorConfig {
+            selector: ".content p, .article-body p".to_string(),
+            transformers: vec!["regex_replace".to_string(), "trim".to_string()],
+            has_text_filter: Some(HasTextFilter {
+                pattern: r"(?i)\b(important|critical|key|main)\b".to_string(),
+                case_insensitive: true,
+                partial_match: true,
+                regex_mode: true,
+                regex: None,
+            }),
+            fallbacks: vec!["p".to_string()],
+            required: false,
+            merge_policy: Some(MergePolicy::Merge),
+        },
+    );
 
     // Price extraction with currency transformation
-    selectors.insert("prices".to_string(), CssSelectorConfig {
-        selector: "[data-price], .price, .cost".to_string(),
-        transformers: vec!["currency".to_string()],
-        has_text_filter: Some(HasTextFilter {
-            pattern: r"[$€£¥]\d+".to_string(),
-            case_insensitive: false,
-            partial_match: true,
-            regex_mode: true,
-            regex: None,
-        }),
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "prices".to_string(),
+        CssSelectorConfig {
+            selector: "[data-price], .price, .cost".to_string(),
+            transformers: vec!["currency".to_string()],
+            has_text_filter: Some(HasTextFilter {
+                pattern: r"[$€£¥]\d+".to_string(),
+                case_insensitive: false,
+                partial_match: true,
+                regex_mode: true,
+                regex: None,
+            }),
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Complex tag processing
-    selectors.insert("processed_tags".to_string(), CssSelectorConfig {
-        selector: ".tag, .category, .keyword".to_string(),
-        transformers: vec![
-            "trim".to_string(),
-            "lowercase".to_string(),
-            "split".to_string(),
-            "join".to_string()
-        ],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::Merge),
-    });
+    selectors.insert(
+        "processed_tags".to_string(),
+        CssSelectorConfig {
+            selector: ".tag, .category, .keyword".to_string(),
+            transformers: vec![
+                "trim".to_string(),
+                "lowercase".to_string(),
+                "split".to_string(),
+                "join".to_string(),
+            ],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::Merge),
+        },
+    );
 
     let start = std::time::Instant::now();
     let extractor = CssJsonExtractor::new(selectors);
-    let result = extractor.extract(&large_html, "https://example.com").await?;
+    let result = extractor
+        .extract(&large_html, "https://example.com")
+        .await?;
     let duration = start.elapsed();
 
     println!("Comprehensive performance test:");
@@ -346,7 +397,11 @@ async fn test_comprehensive_performance() -> Result<()> {
     println!("  - Title: '{}'", result.title);
 
     // Should meet performance targets
-    assert!(duration.as_millis() < 200, "Should process in <200ms, took {:?}", duration);
+    assert!(
+        duration.as_millis() < 200,
+        "Should process in <200ms, took {:?}",
+        duration
+    );
     assert!(!result.title.is_empty());
     assert!(result.content.len() > 100);
     assert!(result.extraction_confidence > 0.5);
@@ -374,14 +429,17 @@ fn generate_large_result_set(prefix: &str, size: usize) -> HashMap<String, Vec<S
 fn create_test_selectors() -> HashMap<String, CssSelectorConfig> {
     let mut selectors = HashMap::new();
 
-    selectors.insert("test_field".to_string(), CssSelectorConfig {
-        selector: ".test".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "test_field".to_string(),
+        CssSelectorConfig {
+            selector: ".test".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     selectors
 }
@@ -390,7 +448,10 @@ fn create_conflicting_css_results() -> HashMap<String, Vec<String>> {
     let mut results = HashMap::new();
     results.insert("title".to_string(), vec!["CSS Title".to_string()]);
     results.insert("author".to_string(), vec!["CSS Author".to_string()]);
-    results.insert("tags".to_string(), vec!["css".to_string(), "web".to_string()]);
+    results.insert(
+        "tags".to_string(),
+        vec!["css".to_string(), "web".to_string()],
+    );
     results.insert("date".to_string(), vec!["2023-12-15".to_string()]);
     results
 }
@@ -399,7 +460,10 @@ fn create_conflicting_other_results() -> HashMap<String, Vec<String>> {
     let mut results = HashMap::new();
     results.insert("title".to_string(), vec!["Other Title".to_string()]);
     results.insert("author".to_string(), vec!["Other Author".to_string()]);
-    results.insert("tags".to_string(), vec!["regex".to_string(), "extraction".to_string()]);
+    results.insert(
+        "tags".to_string(),
+        vec!["regex".to_string(), "extraction".to_string()],
+    );
     results.insert("date".to_string(), vec!["2023-12-16".to_string()]);
     results
 }
@@ -407,32 +471,41 @@ fn create_conflicting_other_results() -> HashMap<String, Vec<String>> {
 fn create_comprehensive_selectors() -> HashMap<String, CssSelectorConfig> {
     let mut selectors = HashMap::new();
 
-    selectors.insert("title".to_string(), CssSelectorConfig {
-        selector: "h1, title".to_string(),
-        transformers: vec!["trim".to_string(), "normalize_ws".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: true,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "title".to_string(),
+        CssSelectorConfig {
+            selector: "h1, title".to_string(),
+            transformers: vec!["trim".to_string(), "normalize_ws".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: true,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
-    selectors.insert("content".to_string(), CssSelectorConfig {
-        selector: "article, .content".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec!["p".to_string()],
-        required: true,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "content".to_string(),
+        CssSelectorConfig {
+            selector: "article, .content".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec!["p".to_string()],
+            required: true,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
-    selectors.insert("tags".to_string(), CssSelectorConfig {
-        selector: ".tag".to_string(),
-        transformers: vec!["lowercase".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::Merge),
-    });
+    selectors.insert(
+        "tags".to_string(),
+        CssSelectorConfig {
+            selector: ".tag".to_string(),
+            transformers: vec!["lowercase".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::Merge),
+        },
+    );
 
     selectors
 }
@@ -479,7 +552,8 @@ fn create_medium_coverage_html() -> String {
                 </div>
             </body>
         </html>
-    "#.to_string()
+    "#
+    .to_string()
 }
 
 fn create_low_coverage_html() -> String {
@@ -491,11 +565,13 @@ fn create_low_coverage_html() -> String {
                 </div>
             </body>
         </html>
-    "#.to_string()
+    "#
+    .to_string()
 }
 
 fn create_complex_performance_html() -> String {
-    let mut html = String::from(r#"
+    let mut html = String::from(
+        r#"
         <html>
             <head>
                 <title>Performance Test Document</title>
@@ -503,7 +579,8 @@ fn create_complex_performance_html() -> String {
             </head>
             <body>
                 <main class="content">
-    "#);
+    "#,
+    );
 
     // Generate complex nested structure
     for i in 0..200 {
@@ -529,11 +606,13 @@ fn create_complex_performance_html() -> String {
         "#, i, i, i % 10, (i % 28) + 1, i, (i * 10) + 199));
     }
 
-    html.push_str(r#"
+    html.push_str(
+        r#"
                 </main>
             </body>
         </html>
-    "#);
+    "#,
+    );
 
     html
 }

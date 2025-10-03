@@ -7,8 +7,8 @@ use std::collections::HashMap;
 use tracing::{debug, info};
 
 use crate::{
-    LlmProvider, CompletionRequest, CompletionResponse, LlmCapabilities, Cost, ModelInfo,
-    IntelligenceError, Result, Role, Usage,
+    CompletionRequest, CompletionResponse, Cost, IntelligenceError, LlmCapabilities, LlmProvider,
+    ModelInfo, Result, Role, Usage,
 };
 
 /// Ollama API response structure
@@ -94,7 +94,9 @@ impl OllamaProvider {
         let client = Client::builder()
             .timeout(std::time::Duration::from_secs(120)) // Longer timeout for local models
             .build()
-            .map_err(|e| IntelligenceError::Configuration(format!("Failed to create HTTP client: {}", e)))?;
+            .map_err(|e| {
+                IntelligenceError::Configuration(format!("Failed to create HTTP client: {}", e))
+            })?;
 
         Ok(Self {
             client,
@@ -107,17 +109,18 @@ impl OllamaProvider {
     async fn fetch_available_models(&mut self) -> Result<()> {
         let url = format!("{}/api/tags", self.base_url);
 
-        let response = self.client
-            .get(&url)
-            .send()
-            .await
-            .map_err(|e| IntelligenceError::Network(format!("Failed to fetch models: {}", e)))?;
+        let response =
+            self.client.get(&url).send().await.map_err(|e| {
+                IntelligenceError::Network(format!("Failed to fetch models: {}", e))
+            })?;
 
         if response.status().is_success() {
-            let models_response: OllamaModelsResponse = response.json().await
-                .map_err(|e| IntelligenceError::Provider(format!("Failed to parse models response: {}", e)))?;
+            let models_response: OllamaModelsResponse = response.json().await.map_err(|e| {
+                IntelligenceError::Provider(format!("Failed to parse models response: {}", e))
+            })?;
 
-            self.available_models = models_response.models
+            self.available_models = models_response
+                .models
                 .into_iter()
                 .map(|model| model.name)
                 .collect();
@@ -136,15 +139,20 @@ impl OllamaProvider {
     }
 
     fn build_ollama_request(&self, request: &CompletionRequest) -> OllamaRequest {
-        let messages = request.messages.iter()
+        let messages = request
+            .messages
+            .iter()
             .map(|msg| OllamaMessageRequest {
                 role: Self::convert_role_to_ollama(&msg.role),
                 content: msg.content.clone(),
             })
             .collect();
 
-        let options = if request.temperature.is_some() || request.top_p.is_some() ||
-                         request.max_tokens.is_some() || request.stop.is_some() {
+        let options = if request.temperature.is_some()
+            || request.top_p.is_some()
+            || request.max_tokens.is_some()
+            || request.stop.is_some()
+        {
             Some(OllamaOptions {
                 temperature: request.temperature,
                 top_p: request.top_p,
@@ -169,7 +177,8 @@ impl OllamaProvider {
     {
         let url = format!("{}/{}", self.base_url, endpoint);
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .header("Content-Type", "application/json")
             .json(payload)
@@ -178,12 +187,19 @@ impl OllamaProvider {
             .map_err(|e| IntelligenceError::Network(format!("Request failed: {}", e)))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await
+            let error_text = response
+                .text()
+                .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(IntelligenceError::Provider(format!("Ollama API error: {}", error_text)));
+            return Err(IntelligenceError::Provider(format!(
+                "Ollama API error: {}",
+                error_text
+            )));
         }
 
-        let result = response.json::<T>().await
+        let result = response
+            .json::<T>()
+            .await
             .map_err(|e| IntelligenceError::Provider(format!("Failed to parse response: {}", e)))?;
 
         Ok(result)
@@ -193,7 +209,10 @@ impl OllamaProvider {
 #[async_trait]
 impl LlmProvider for OllamaProvider {
     async fn complete(&self, request: CompletionRequest) -> Result<CompletionResponse> {
-        debug!("Sending completion request to Ollama for model: {}", request.model);
+        debug!(
+            "Sending completion request to Ollama for model: {}",
+            request.model
+        );
 
         let ollama_request = self.build_ollama_request(&request);
         let response: OllamaResponse = self.make_request("api/chat", &ollama_request).await?;
@@ -201,7 +220,8 @@ impl LlmProvider for OllamaProvider {
         let usage = Usage {
             prompt_tokens: response.prompt_eval_count.unwrap_or(0),
             completion_tokens: response.eval_count.unwrap_or(0),
-            total_tokens: response.prompt_eval_count.unwrap_or(0) + response.eval_count.unwrap_or(0),
+            total_tokens: response.prompt_eval_count.unwrap_or(0)
+                + response.eval_count.unwrap_or(0),
         };
 
         let total_tokens = usage.total_tokens;
@@ -211,12 +231,19 @@ impl LlmProvider for OllamaProvider {
             content: response.message.content,
             model: request.model,
             usage,
-            finish_reason: if response.done { "stop".to_string() } else { "length".to_string() },
+            finish_reason: if response.done {
+                "stop".to_string()
+            } else {
+                "length".to_string()
+            },
             created_at: chrono::Utc::now(),
             metadata: HashMap::new(),
         };
 
-        debug!("Ollama completion successful, tokens used: {}", total_tokens);
+        debug!(
+            "Ollama completion successful, tokens used: {}",
+            total_tokens
+        );
         Ok(completion_response)
     }
 
@@ -241,7 +268,10 @@ impl LlmProvider for OllamaProvider {
 
         let response: EmbedResponse = self.make_request("api/embeddings", &request).await?;
 
-        debug!("Ollama embedding successful, dimensions: {}", response.embedding.len());
+        debug!(
+            "Ollama embedding successful, dimensions: {}",
+            response.embedding.len()
+        );
         Ok(response.embedding)
     }
 
@@ -301,7 +331,8 @@ impl LlmProvider for OllamaProvider {
         debug!("Performing Ollama health check");
 
         let url = format!("{}/api/tags", self.base_url);
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .send()
             .await
@@ -311,7 +342,9 @@ impl LlmProvider for OllamaProvider {
             info!("Ollama health check successful");
             Ok(())
         } else {
-            Err(IntelligenceError::Provider("Ollama server not responding".to_string()))
+            Err(IntelligenceError::Provider(
+                "Ollama server not responding".to_string(),
+            ))
         }
     }
 
@@ -332,12 +365,11 @@ impl LocalAIProvider {
         let client = Client::builder()
             .timeout(std::time::Duration::from_secs(120))
             .build()
-            .map_err(|e| IntelligenceError::Configuration(format!("Failed to create HTTP client: {}", e)))?;
+            .map_err(|e| {
+                IntelligenceError::Configuration(format!("Failed to create HTTP client: {}", e))
+            })?;
 
-        Ok(Self {
-            client,
-            base_url,
-        })
+        Ok(Self { client, base_url })
     }
 
     fn convert_role_to_openai(role: &Role) -> String {
@@ -353,12 +385,17 @@ impl LocalAIProvider {
 #[async_trait]
 impl LlmProvider for LocalAIProvider {
     async fn complete(&self, request: CompletionRequest) -> Result<CompletionResponse> {
-        debug!("Sending completion request to LocalAI for model: {}", request.model);
+        debug!(
+            "Sending completion request to LocalAI for model: {}",
+            request.model
+        );
 
         // LocalAI uses OpenAI-compatible API
-        use crate::providers::openai::{OpenAIRequest, OpenAIMessageRequest, OpenAIResponse};
+        use crate::providers::openai::{OpenAIMessageRequest, OpenAIRequest, OpenAIResponse};
 
-        let messages = request.messages.iter()
+        let messages = request
+            .messages
+            .iter()
             .map(|msg| OpenAIMessageRequest {
                 role: Self::convert_role_to_openai(&msg.role),
                 content: msg.content.clone(),
@@ -377,7 +414,8 @@ impl LlmProvider for LocalAIProvider {
         };
 
         let url = format!("{}/v1/chat/completions", self.base_url);
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .header("Content-Type", "application/json")
             .json(&localai_request)
@@ -386,16 +424,24 @@ impl LlmProvider for LocalAIProvider {
             .map_err(|e| IntelligenceError::Network(format!("Request failed: {}", e)))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await
+            let error_text = response
+                .text()
+                .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(IntelligenceError::Provider(format!("LocalAI API error: {}", error_text)));
+            return Err(IntelligenceError::Provider(format!(
+                "LocalAI API error: {}",
+                error_text
+            )));
         }
 
-        let api_response: OpenAIResponse = response.json().await
+        let api_response: OpenAIResponse = response
+            .json()
+            .await
             .map_err(|e| IntelligenceError::Provider(format!("Failed to parse response: {}", e)))?;
 
-        let choice = api_response.choices.into_iter().next()
-            .ok_or_else(|| IntelligenceError::Provider("No completion choices returned".to_string()))?;
+        let choice = api_response.choices.into_iter().next().ok_or_else(|| {
+            IntelligenceError::Provider("No completion choices returned".to_string())
+        })?;
 
         let usage = Usage {
             prompt_tokens: api_response.usage.prompt_tokens,
@@ -415,7 +461,10 @@ impl LlmProvider for LocalAIProvider {
             metadata: HashMap::new(),
         };
 
-        debug!("LocalAI completion successful, tokens used: {}", total_tokens);
+        debug!(
+            "LocalAI completion successful, tokens used: {}",
+            total_tokens
+        );
         Ok(completion_response)
     }
 
@@ -430,7 +479,8 @@ impl LlmProvider for LocalAIProvider {
         };
 
         let url = format!("{}/v1/embeddings", self.base_url);
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .header("Content-Type", "application/json")
             .json(&request)
@@ -439,35 +489,46 @@ impl LlmProvider for LocalAIProvider {
             .map_err(|e| IntelligenceError::Network(format!("Request failed: {}", e)))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await
+            let error_text = response
+                .text()
+                .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(IntelligenceError::Provider(format!("LocalAI API error: {}", error_text)));
+            return Err(IntelligenceError::Provider(format!(
+                "LocalAI API error: {}",
+                error_text
+            )));
         }
 
-        let api_response: OpenAIEmbeddingResponse = response.json().await
+        let api_response: OpenAIEmbeddingResponse = response
+            .json()
+            .await
             .map_err(|e| IntelligenceError::Provider(format!("Failed to parse response: {}", e)))?;
 
-        let embedding = api_response.data.into_iter().next()
+        let embedding = api_response
+            .data
+            .into_iter()
+            .next()
             .ok_or_else(|| IntelligenceError::Provider("No embedding data returned".to_string()))?
             .embedding;
 
-        debug!("LocalAI embedding successful, dimensions: {}", embedding.len());
+        debug!(
+            "LocalAI embedding successful, dimensions: {}",
+            embedding.len()
+        );
         Ok(embedding)
     }
 
     fn capabilities(&self) -> LlmCapabilities {
-        let models = vec![
-            ModelInfo {
-                id: "gpt-3.5-turbo".to_string(),
-                name: "Local GPT-3.5 Turbo".to_string(),
-                description: "Local implementation of GPT-3.5 Turbo".to_string(),
-                max_tokens: 4096,
-                supports_functions: true,
-                supports_streaming: true,
-                cost_per_1k_prompt_tokens: 0.0, // Free for local usage
-                cost_per_1k_completion_tokens: 0.0,
-            },
-        ];
+        let models = vec![ModelInfo {
+            id: "gpt-3.5-turbo".to_string(),
+            name: "Local GPT-3.5 Turbo".to_string(),
+            description: "Local implementation of GPT-3.5 Turbo".to_string(),
+            max_tokens: 4096,
+            supports_functions: true,
+            supports_streaming: true,
+            cost_per_1k_prompt_tokens: 0.0, // Free for local usage
+            cost_per_1k_completion_tokens: 0.0,
+        }];
 
         let rate_limits = HashMap::new(); // No rate limits for local models
 
@@ -491,7 +552,8 @@ impl LlmProvider for LocalAIProvider {
         debug!("Performing LocalAI health check");
 
         let url = format!("{}/v1/models", self.base_url);
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .send()
             .await
@@ -501,7 +563,9 @@ impl LlmProvider for LocalAIProvider {
             info!("LocalAI health check successful");
             Ok(())
         } else {
-            Err(IntelligenceError::Provider("LocalAI server not responding".to_string()))
+            Err(IntelligenceError::Provider(
+                "LocalAI server not responding".to_string(),
+            ))
         }
     }
 

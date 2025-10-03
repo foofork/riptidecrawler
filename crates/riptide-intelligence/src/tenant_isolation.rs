@@ -7,18 +7,18 @@
 //! - Multi-tenant request routing
 //! - Tenant-specific provider preferences
 
-use std::sync::Arc;
-use std::collections::HashMap;
-use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 use tokio::sync::{RwLock, Semaphore};
 use tokio::time::interval;
-use tracing::{info, warn, debug};
+use tracing::{debug, info, warn};
 use uuid::Uuid;
 
 use crate::{
+    config::{TenantIsolationConfig, TenantLimits},
     CompletionRequest, CompletionResponse, IntelligenceError, Result,
-    config::{TenantLimits, TenantIsolationConfig},
 };
 
 /// Tenant isolation manager
@@ -113,18 +113,21 @@ impl TenantRateLimiter {
     }
 
     /// Check if request is allowed under rate limits
-    pub fn check_request_allowed(&mut self, estimated_tokens: u32, estimated_cost: f64) -> Result<()> {
+    pub fn check_request_allowed(
+        &mut self,
+        estimated_tokens: u32,
+        estimated_cost: f64,
+    ) -> Result<()> {
         let now = Instant::now();
 
         // Clean old request timestamps (sliding window)
-        self.request_timestamps.retain(|&timestamp| {
-            now.duration_since(timestamp) < Duration::from_secs(60)
-        });
+        self.request_timestamps
+            .retain(|&timestamp| now.duration_since(timestamp) < Duration::from_secs(60));
 
         // Check request rate limit
         if self.request_timestamps.len() >= self.limits.max_requests_per_minute as usize {
             return Err(IntelligenceError::RateLimit {
-                retry_after_ms: 60000
+                retry_after_ms: 60000,
             });
         }
 
@@ -137,7 +140,8 @@ impl TenantRateLimiter {
         // Check token rate limit
         if self.token_count + estimated_tokens > self.limits.max_tokens_per_minute {
             return Err(IntelligenceError::RateLimit {
-                retry_after_ms: (self.token_reset_time.duration_since(now).as_millis() as u64).max(1000)
+                retry_after_ms: (self.token_reset_time.duration_since(now).as_millis() as u64)
+                    .max(1000),
             });
         }
 
@@ -150,7 +154,8 @@ impl TenantRateLimiter {
         // Check cost limit
         if self.cost_amount + estimated_cost > self.limits.max_cost_per_hour {
             return Err(IntelligenceError::RateLimit {
-                retry_after_ms: (self.cost_reset_time.duration_since(now).as_millis() as u64).max(60000)
+                retry_after_ms: (self.cost_reset_time.duration_since(now).as_millis() as u64)
+                    .max(60000),
             });
         }
 
@@ -206,10 +211,17 @@ impl TenantIsolationManager {
     }
 
     /// Initialize a tenant with specific limits
-    pub async fn initialize_tenant(&self, tenant_id: String, limits: Option<TenantLimits>) -> Result<()> {
+    pub async fn initialize_tenant(
+        &self,
+        tenant_id: String,
+        limits: Option<TenantLimits>,
+    ) -> Result<()> {
         let tenant_limits = limits.unwrap_or_else(|| self.config.default_limits.clone());
 
-        info!("Initializing tenant: {} with limits: {:?}", tenant_id, tenant_limits);
+        info!(
+            "Initializing tenant: {} with limits: {:?}",
+            tenant_id, tenant_limits
+        );
 
         // Initialize tenant state
         let state = TenantState {
@@ -239,7 +251,9 @@ impl TenantIsolationManager {
         }
 
         // Initialize resource pool (semaphore for concurrent requests)
-        let semaphore = Arc::new(Semaphore::new(tenant_limits.max_concurrent_requests as usize));
+        let semaphore = Arc::new(Semaphore::new(
+            tenant_limits.max_concurrent_requests as usize,
+        ));
         {
             let mut pools = self.resource_pools.write().await;
             pools.insert(tenant_id.clone(), semaphore);
@@ -258,16 +272,15 @@ impl TenantIsolationManager {
         // Get tenant state
         let tenant_state = {
             let states = self.tenant_states.read().await;
-            states.get(tenant_id).cloned()
-                .ok_or_else(|| IntelligenceError::Configuration(
-                    format!("Tenant {} not initialized", tenant_id)
-                ))?
+            states.get(tenant_id).cloned().ok_or_else(|| {
+                IntelligenceError::Configuration(format!("Tenant {} not initialized", tenant_id))
+            })?
         };
 
         // Check if tenant is suspended
         if tenant_state.status == TenantStatus::Suspended {
             return Err(IntelligenceError::Configuration(
-                "Tenant is suspended".to_string()
+                "Tenant is suspended".to_string(),
             ));
         }
 
@@ -285,9 +298,10 @@ impl TenantIsolationManager {
         // Check model restrictions
         if let Some(ref allowed_models) = self.get_tenant_limits(tenant_id).await?.allowed_models {
             if !allowed_models.contains(&request.model) {
-                return Err(IntelligenceError::InvalidRequest(
-                    format!("Model {} not allowed for tenant {}", request.model, tenant_id)
-                ));
+                return Err(IntelligenceError::InvalidRequest(format!(
+                    "Model {} not allowed for tenant {}",
+                    request.model, tenant_id
+                )));
             }
         }
 
@@ -299,14 +313,15 @@ impl TenantIsolationManager {
                     Ok(permit) => permit,
                     Err(_) => {
                         return Err(IntelligenceError::RateLimit {
-                            retry_after_ms: 1000
+                            retry_after_ms: 1000,
                         });
                     }
                 }
             } else {
-                return Err(IntelligenceError::Configuration(
-                    format!("No resource pool for tenant {}", tenant_id)
-                ));
+                return Err(IntelligenceError::Configuration(format!(
+                    "No resource pool for tenant {}",
+                    tenant_id
+                )));
             }
         };
 
@@ -357,8 +372,10 @@ impl TenantIsolationManager {
             }
         }
 
-        debug!("Recorded request completion for tenant {} - tokens: {}, cost: {:.4}",
-               tenant_id, actual_tokens, actual_cost);
+        debug!(
+            "Recorded request completion for tenant {} - tokens: {}, cost: {:.4}",
+            tenant_id, actual_tokens, actual_cost
+        );
     }
 
     /// Get preferred providers for a tenant
@@ -372,7 +389,11 @@ impl TenantIsolationManager {
     }
 
     /// Update tenant limits
-    pub async fn update_tenant_limits(&self, tenant_id: &str, new_limits: TenantLimits) -> Result<()> {
+    pub async fn update_tenant_limits(
+        &self,
+        tenant_id: &str,
+        new_limits: TenantLimits,
+    ) -> Result<()> {
         // Update rate limiter
         {
             let mut limiters = self.rate_limiters.write().await;
@@ -384,7 +405,8 @@ impl TenantIsolationManager {
         // Update resource pool
         {
             let mut pools = self.resource_pools.write().await;
-            let new_semaphore = Arc::new(Semaphore::new(new_limits.max_concurrent_requests as usize));
+            let new_semaphore =
+                Arc::new(Semaphore::new(new_limits.max_concurrent_requests as usize));
             pools.insert(tenant_id.to_string(), new_semaphore);
         }
 
@@ -432,9 +454,7 @@ impl TenantIsolationManager {
     fn estimate_token_usage(&self, request: &CompletionRequest) -> u32 {
         // Simple estimation based on message content length
         // In practice, this would use proper tokenization
-        let total_chars: usize = request.messages.iter()
-            .map(|m| m.content.len())
-            .sum();
+        let total_chars: usize = request.messages.iter().map(|m| m.content.len()).sum();
 
         // Rough estimate: 4 chars per token, plus buffer
         ((total_chars / 4) as u32 + 100).min(request.max_tokens.unwrap_or(2048))
@@ -442,7 +462,10 @@ impl TenantIsolationManager {
 
     /// Get tenant limits
     async fn get_tenant_limits(&self, tenant_id: &str) -> Result<TenantLimits> {
-        Ok(self.config.per_tenant_limits.get(tenant_id)
+        Ok(self
+            .config
+            .per_tenant_limits
+            .get(tenant_id)
             .cloned()
             .unwrap_or_else(|| self.config.default_limits.clone()))
     }
@@ -506,7 +529,7 @@ impl Drop for RequestPermit {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Message, CompletionRequest};
+    use crate::{CompletionRequest, Message};
 
     #[tokio::test]
     async fn test_tenant_isolation_manager() {
@@ -523,14 +546,17 @@ mod tests {
             priority: 100,
         };
 
-        manager.initialize_tenant(tenant_id.to_string(), Some(limits)).await.unwrap();
+        manager
+            .initialize_tenant(tenant_id.to_string(), Some(limits))
+            .await
+            .unwrap();
 
-        let request = CompletionRequest::new(
-            "gpt-4",
-            vec![Message::user("Test message")]
-        );
+        let request = CompletionRequest::new("gpt-4", vec![Message::user("Test message")]);
 
-        let permit = manager.check_request_allowed(tenant_id, &request, 0.01).await.unwrap();
+        let permit = manager
+            .check_request_allowed(tenant_id, &request, 0.01)
+            .await
+            .unwrap();
         assert_eq!(permit.tenant_id, tenant_id);
 
         manager.record_request_completion(permit, None, 0.01).await;

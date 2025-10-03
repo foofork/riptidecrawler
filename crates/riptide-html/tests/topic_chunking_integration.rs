@@ -3,7 +3,7 @@
 //! These tests verify that topic chunking works correctly with various
 //! document formats and content types while maintaining performance requirements.
 
-use riptide_html::chunking::{ChunkingConfig, ChunkingMode, create_strategy};
+use riptide_html::chunking::{create_strategy, ChunkingConfig, ChunkingMode};
 use std::time::Instant;
 
 /// Test topic chunking with academic paper format
@@ -16,7 +16,7 @@ async fn test_academic_paper_chunking() {
             window_size: 4,
             smoothing_passes: 2,
         },
-        config
+        config,
     );
 
     let academic_paper = r#"
@@ -59,10 +59,18 @@ async fn test_academic_paper_chunking() {
     let chunks = strategy.chunk(academic_paper).await.unwrap();
     let duration = start.elapsed();
 
-    println!("Academic paper: {} chunks in {}ms", chunks.len(), duration.as_millis());
+    println!(
+        "Academic paper: {} chunks in {}ms",
+        chunks.len(),
+        duration.as_millis()
+    );
 
     // Should complete quickly
-    assert!(duration.as_millis() < 50, "Academic paper chunking too slow: {}ms", duration.as_millis());
+    assert!(
+        duration.as_millis() < 50,
+        "Academic paper chunking too slow: {}ms",
+        duration.as_millis()
+    );
 
     // Should identify topic boundaries (sections)
     assert!(chunks.len() >= 3, "Should identify multiple topic sections");
@@ -70,7 +78,11 @@ async fn test_academic_paper_chunking() {
     // Verify chunks have meaningful content
     for (i, chunk) in chunks.iter().enumerate() {
         assert!(!chunk.content.trim().is_empty(), "Chunk {} is empty", i);
-        assert!(!chunk.metadata.topic_keywords.is_empty(), "Chunk {} has no topic keywords", i);
+        assert!(
+            !chunk.metadata.topic_keywords.is_empty(),
+            "Chunk {} has no topic keywords",
+            i
+        );
     }
 }
 
@@ -84,7 +96,7 @@ async fn test_news_article_chunking() {
             window_size: 3,
             smoothing_passes: 1,
         },
-        config
+        config,
     );
 
     let news_article = r#"
@@ -115,19 +127,33 @@ async fn test_news_article_chunking() {
     let chunks = strategy.chunk(news_article).await.unwrap();
     let duration = start.elapsed();
 
-    println!("News article: {} chunks in {}ms", chunks.len(), duration.as_millis());
+    println!(
+        "News article: {} chunks in {}ms",
+        chunks.len(),
+        duration.as_millis()
+    );
 
     // Should complete quickly
-    assert!(duration.as_millis() < 50, "News article chunking too slow: {}ms", duration.as_millis());
+    assert!(
+        duration.as_millis() < 50,
+        "News article chunking too slow: {}ms",
+        duration.as_millis()
+    );
 
     // Should identify topic shifts in news content
     assert!(!chunks.is_empty(), "Should produce chunks for news article");
 
     // Check for topic coherence
     for chunk in &chunks {
-        assert!(chunk.metadata.quality_score > 0.0, "Chunks should have quality scores");
+        assert!(
+            chunk.metadata.quality_score > 0.0,
+            "Chunks should have quality scores"
+        );
         if chunk.metadata.chunk_type == "topic" {
-            assert!(!chunk.metadata.topic_keywords.is_empty(), "Topic chunks should have keywords");
+            assert!(
+                !chunk.metadata.topic_keywords.is_empty(),
+                "Topic chunks should have keywords"
+            );
         }
     }
 }
@@ -142,7 +168,7 @@ async fn test_technical_documentation_chunking() {
             window_size: 3,
             smoothing_passes: 2,
         },
-        config
+        config,
     );
 
     let technical_doc = r#"
@@ -183,25 +209,44 @@ async fn test_technical_documentation_chunking() {
     let chunks = strategy.chunk(technical_doc).await.unwrap();
     let duration = start.elapsed();
 
-    println!("Technical doc: {} chunks in {}ms", chunks.len(), duration.as_millis());
+    println!(
+        "Technical doc: {} chunks in {}ms",
+        chunks.len(),
+        duration.as_millis()
+    );
 
     // Should complete quickly
-    assert!(duration.as_millis() < 50, "Technical doc chunking too slow: {}ms", duration.as_millis());
+    assert!(
+        duration.as_millis() < 50,
+        "Technical doc chunking too slow: {}ms",
+        duration.as_millis()
+    );
 
     // Should identify section boundaries
-    assert!(chunks.len() >= 2, "Should identify multiple sections in technical doc");
+    assert!(
+        chunks.len() >= 2,
+        "Should identify multiple sections in technical doc"
+    );
 
     // Verify API-related keywords are captured
-    let all_keywords: Vec<String> = chunks.iter()
+    let all_keywords: Vec<String> = chunks
+        .iter()
         .flat_map(|c| c.metadata.topic_keywords.iter().cloned())
         .collect();
 
     // Should contain technical terms
-    let has_technical_terms = all_keywords.iter().any(|k|
-        k.contains("api") || k.contains("authentication") || k.contains("endpoint") ||
-        k.contains("request") || k.contains("response")
+    let has_technical_terms = all_keywords.iter().any(|k| {
+        k.contains("api")
+            || k.contains("authentication")
+            || k.contains("endpoint")
+            || k.contains("request")
+            || k.contains("response")
+    });
+    assert!(
+        has_technical_terms,
+        "Should extract technical keywords: {:?}",
+        all_keywords
     );
-    assert!(has_technical_terms, "Should extract technical keywords: {:?}", all_keywords);
 }
 
 /// Test topic chunking with mixed content (HTML + text)
@@ -214,7 +259,7 @@ async fn test_mixed_content_chunking() {
             window_size: 3,
             smoothing_passes: 1,
         },
-        config
+        config,
     );
 
     let mixed_content = r#"
@@ -247,21 +292,37 @@ async fn test_mixed_content_chunking() {
     let chunks = strategy.chunk(mixed_content).await.unwrap();
     let duration = start.elapsed();
 
-    println!("Mixed content: {} chunks in {}ms", chunks.len(), duration.as_millis());
+    println!(
+        "Mixed content: {} chunks in {}ms",
+        chunks.len(),
+        duration.as_millis()
+    );
 
     // Should complete quickly
-    assert!(duration.as_millis() < 50, "Mixed content chunking too slow: {}ms", duration.as_millis());
+    assert!(
+        duration.as_millis() < 50,
+        "Mixed content chunking too slow: {}ms",
+        duration.as_millis()
+    );
 
     // Should handle mixed HTML and text
-    assert!(!chunks.is_empty(), "Should produce chunks for mixed content");
+    assert!(
+        !chunks.is_empty(),
+        "Should produce chunks for mixed content"
+    );
 
     // Verify chunks contain both HTML and text elements appropriately
-    let _has_html = chunks.iter().any(|c| c.content.contains('<') && c.content.contains('>'));
+    let _has_html = chunks
+        .iter()
+        .any(|c| c.content.contains('<') && c.content.contains('>'));
     let _has_text = chunks.iter().any(|c| !c.content.contains('<'));
 
     // All chunks should have content (HTML tags might be preserved or stripped)
     for chunk in &chunks {
-        assert!(!chunk.content.trim().is_empty(), "Chunks should not be empty");
+        assert!(
+            !chunk.content.trim().is_empty(),
+            "Chunks should not be empty"
+        );
     }
 }
 
@@ -275,7 +336,7 @@ async fn test_large_document_performance() {
             window_size: 4,
             smoothing_passes: 2,
         },
-        config
+        config,
     );
 
     // Generate a large document with multiple topics
@@ -300,7 +361,8 @@ async fn test_large_document_performance() {
             Best practices have emerged from extensive experimentation and analysis. \
             Future research directions include several promising avenues for exploration. \
             Collaborative efforts between institutions accelerate advancement in the field.",
-            topic_num + 1, topic
+            topic_num + 1,
+            topic
         ));
     }
 
@@ -310,7 +372,11 @@ async fn test_large_document_performance() {
     let chunks = strategy.chunk(&large_doc).await.unwrap();
     let duration = start.elapsed();
 
-    println!("Large document: {} chunks in {}ms", chunks.len(), duration.as_millis());
+    println!(
+        "Large document: {} chunks in {}ms",
+        chunks.len(),
+        duration.as_millis()
+    );
 
     // Should meet performance requirement even for large docs
     assert!(
@@ -320,13 +386,19 @@ async fn test_large_document_performance() {
     );
 
     // Should produce reasonable number of chunks
-    assert!(chunks.len() >= 5, "Should identify multiple topics in large document");
+    assert!(
+        chunks.len() >= 5,
+        "Should identify multiple topics in large document"
+    );
     assert!(chunks.len() <= 25, "Should not over-segment large document");
 
     // Check chunk quality
     for chunk in &chunks {
         assert!(!chunk.content.trim().is_empty(), "No empty chunks");
-        assert!(chunk.metadata.quality_score > 0.0, "All chunks should have quality scores");
+        assert!(
+            chunk.metadata.quality_score > 0.0,
+            "All chunks should have quality scores"
+        );
     }
 }
 
@@ -340,7 +412,7 @@ async fn test_short_text_handling() {
             window_size: 3,
             smoothing_passes: 1,
         },
-        config
+        config,
     );
 
     let short_text = "This is a very short document with minimal content.";
@@ -349,10 +421,18 @@ async fn test_short_text_handling() {
     let chunks = strategy.chunk(short_text).await.unwrap();
     let duration = start.elapsed();
 
-    println!("Short text: {} chunks in {}ms", chunks.len(), duration.as_millis());
+    println!(
+        "Short text: {} chunks in {}ms",
+        chunks.len(),
+        duration.as_millis()
+    );
 
     // Should complete very quickly
-    assert!(duration.as_millis() < 10, "Short text chunking too slow: {}ms", duration.as_millis());
+    assert!(
+        duration.as_millis() < 10,
+        "Short text chunking too slow: {}ms",
+        duration.as_millis()
+    );
 
     // Should produce single chunk for short text
     assert_eq!(chunks.len(), 1, "Short text should produce single chunk");
@@ -370,7 +450,7 @@ async fn test_empty_text_handling() {
             window_size: 3,
             smoothing_passes: 1,
         },
-        config
+        config,
     );
 
     let empty_text = "";
@@ -379,10 +459,18 @@ async fn test_empty_text_handling() {
     let chunks = strategy.chunk(empty_text).await.unwrap();
     let duration = start.elapsed();
 
-    println!("Empty text: {} chunks in {}ms", chunks.len(), duration.as_millis());
+    println!(
+        "Empty text: {} chunks in {}ms",
+        chunks.len(),
+        duration.as_millis()
+    );
 
     // Should complete immediately
-    assert!(duration.as_millis() < 5, "Empty text chunking too slow: {}ms", duration.as_millis());
+    assert!(
+        duration.as_millis() < 5,
+        "Empty text chunking too slow: {}ms",
+        duration.as_millis()
+    );
 
     // Should produce no chunks for empty text
     assert!(chunks.is_empty(), "Empty text should produce no chunks");

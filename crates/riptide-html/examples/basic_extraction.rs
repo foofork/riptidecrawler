@@ -73,8 +73,10 @@ async fn main() -> anyhow::Result<()> {
     let css_result = css_extract_default(sample_html, "https://example.com/article").await?;
     println!("Title: {}", css_result.title);
     println!("Summary: {:?}", css_result.summary);
-    println!("Content (first 100 chars): {}...",
-             css_result.content.chars().take(100).collect::<String>());
+    println!(
+        "Content (first 100 chars): {}...",
+        css_result.content.chars().take(100).collect::<String>()
+    );
     println!("Confidence: {:.2}", css_result.extraction_confidence);
 
     // 2. Custom CSS Selectors Demo
@@ -88,7 +90,12 @@ async fn main() -> anyhow::Result<()> {
     custom_selectors.insert("content".to_string(), ".content p".to_string());
     custom_selectors.insert("tags".to_string(), ".tag".to_string());
 
-    let custom_result = css_extract(sample_html, "https://example.com/article", &custom_selectors).await?;
+    let custom_result = css_extract(
+        sample_html,
+        "https://example.com/article",
+        &custom_selectors,
+    )
+    .await?;
     println!("H1 Title: {}", custom_result.title);
     println!("Content: {}", custom_result.content);
 
@@ -96,20 +103,24 @@ async fn main() -> anyhow::Result<()> {
     println!("\n🔍 Regex Pattern Extraction:");
     println!("----------------------------");
 
-    let regex_result = regex_extraction::extract_contacts(sample_html, "https://example.com").await?;
+    let regex_result =
+        regex_extraction::extract_contacts(sample_html, "https://example.com").await?;
     println!("Extracted contacts: {}", regex_result.content);
 
     // 4. Table Extraction Demo
     println!("\n📊 Table Extraction:");
     println!("-------------------");
 
-    let tables = dom_utils::extract_tables(sample_html, processor::TableExtractionMode::All).await?;
+    let tables =
+        dom_utils::extract_tables(sample_html, processor::TableExtractionMode::All).await?;
     for (i, table) in tables.iter().enumerate() {
-        println!("Table {}: {} ({}x{})",
-                 i + 1,
-                 table.caption.as_deref().unwrap_or("No caption"),
-                 table.rows.len(),
-                 table.headers.len());
+        println!(
+            "Table {}: {} ({}x{})",
+            i + 1,
+            table.caption.as_deref().unwrap_or("No caption"),
+            table.rows.len(),
+            table.headers.len()
+        );
 
         println!("Headers: {:?}", table.headers);
         for (row_idx, row) in table.rows.iter().take(2).enumerate() {
@@ -139,15 +150,20 @@ async fn main() -> anyhow::Result<()> {
     println!("-------------------");
 
     let processor = processor::DefaultHtmlProcessor::default();
-    let chunks = processor.chunk_content(
-        &css_result.content,
-        processor::ChunkingMode::Sentence { max_sentences: 2 }
-    ).await?;
+    let chunks = processor
+        .chunk_content(
+            &css_result.content,
+            processor::ChunkingMode::Sentence { max_sentences: 2 },
+        )
+        .await?;
 
     println!("Content split into {} chunks:", chunks.len());
     for (i, chunk) in chunks.iter().take(3).enumerate() {
         println!("Chunk {}: {} chars", i + 1, chunk.content.len());
-        println!("  \"{}...\"", chunk.content.chars().take(50).collect::<String>());
+        println!(
+            "  \"{}...\"",
+            chunk.content.chars().take(50).collect::<String>()
+        );
     }
 
     // 7. HtmlProcessor Trait Demo

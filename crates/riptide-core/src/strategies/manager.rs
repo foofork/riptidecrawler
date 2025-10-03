@@ -8,12 +8,12 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use crate::strategies::{
+    metadata::DocumentMetadata,
+    performance::PerformanceMetrics,
     traits::*,
     // Temporarily disabled for testing trait system
     // spider_implementations::*,
     ExtractedContent,
-    metadata::DocumentMetadata,
-    performance::PerformanceMetrics,
 };
 
 /// Enhanced strategy manager with trait support
@@ -120,14 +120,17 @@ impl EnhancedStrategyManager {
         self.default_extraction = strategy_name;
     }
 
-
     /// Set default spider strategy
     pub fn set_default_spider(&mut self, strategy_name: String) {
         self.default_spider = strategy_name;
     }
 
     /// Extract and process content with automatic strategy selection
-    pub async fn extract_and_process(&self, html: &str, url: &str) -> Result<EnhancedProcessingResult> {
+    pub async fn extract_and_process(
+        &self,
+        html: &str,
+        url: &str,
+    ) -> Result<EnhancedProcessingResult> {
         let _start = std::time::Instant::now();
 
         // Select best extraction strategy
@@ -137,7 +140,8 @@ impl EnhancedStrategyManager {
             self.default_extraction.clone()
         };
 
-        self.extract_and_process_with_strategy(html, url, &strategy_name).await
+        self.extract_and_process_with_strategy(html, url, &strategy_name)
+            .await
     }
 
     /// Extract and process content with specific strategy
@@ -201,8 +205,12 @@ impl EnhancedStrategyManager {
     }
 
     /// Process crawl requests using spider strategy
-    pub async fn process_crawl_requests(&self, requests: Vec<CrawlRequest>) -> Result<Vec<CrawlRequest>> {
-        self.process_crawl_requests_with_strategy(requests, &self.default_spider).await
+    pub async fn process_crawl_requests(
+        &self,
+        requests: Vec<CrawlRequest>,
+    ) -> Result<Vec<CrawlRequest>> {
+        self.process_crawl_requests_with_strategy(requests, &self.default_spider)
+            .await
     }
 
     /// Process crawl requests with specific spider strategy
@@ -224,15 +232,18 @@ impl EnhancedStrategyManager {
         let registry = self.registry.read().await;
 
         StrategyListing {
-            extraction: registry.list_extraction_strategies()
+            extraction: registry
+                .list_extraction_strategies()
                 .into_iter()
                 .map(|(name, caps)| (name.to_string(), caps.clone()))
                 .collect(),
-            chunking: registry.list_chunking_strategies()
+            chunking: registry
+                .list_chunking_strategies()
                 .into_iter()
                 .map(|name| name.to_string())
                 .collect(),
-            spider: registry.list_spider_strategies()
+            spider: registry
+                .list_spider_strategies()
                 .into_iter()
                 .map(|name| name.to_string())
                 .collect(),
@@ -251,7 +262,10 @@ impl EnhancedStrategyManager {
     }
 
     /// Get strategy capabilities
-    pub async fn get_strategy_capabilities(&self, strategy_name: &str) -> Result<StrategyCapabilities> {
+    pub async fn get_strategy_capabilities(
+        &self,
+        strategy_name: &str,
+    ) -> Result<StrategyCapabilities> {
         let registry = self.registry.read().await;
 
         if let Some(strategy) = registry.get_extraction(strategy_name) {
@@ -335,7 +349,6 @@ impl EnhancedStrategyManagerBuilder {
         self
     }
 
-
     pub fn with_default_spider(mut self, strategy: String) -> Self {
         self.default_spider = Some(strategy);
         self
@@ -351,7 +364,6 @@ impl EnhancedStrategyManagerBuilder {
         if let Some(extraction) = self.default_extraction {
             manager.set_default_extraction(extraction);
         }
-
 
         if let Some(spider) = self.default_spider {
             manager.set_default_spider(spider);

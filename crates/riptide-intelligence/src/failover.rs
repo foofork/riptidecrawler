@@ -7,16 +7,16 @@
 //! - Load balancing during failover
 //! - Recovery detection and automatic failback
 
-use std::sync::Arc;
-use std::collections::HashMap;
-use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
-use tokio::sync::{RwLock, mpsc};
-use tracing::{info, warn, debug};
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+use tokio::sync::{mpsc, RwLock};
+use tracing::{debug, info, warn};
 
 use crate::{
-    LlmProvider, CompletionRequest, CompletionResponse, IntelligenceError, Result,
-    health::HealthMonitor,
+    health::HealthMonitor, CompletionRequest, CompletionResponse, IntelligenceError, LlmProvider,
+    Result,
 };
 
 /// Failover strategy configuration
@@ -210,7 +210,9 @@ impl FailoverManager {
         }
 
         // Add to health monitor
-        self.health_monitor.add_provider(name.clone(), provider).await;
+        self.health_monitor
+            .add_provider(name.clone(), provider)
+            .await;
 
         info!("Added provider {} to failover system", name);
         Ok(())
@@ -246,17 +248,25 @@ impl FailoverManager {
     ) -> Result<CompletionResponse> {
         let decision = self.make_failover_decision().await?;
 
-        debug!("Failover decision: using provider {} with strategy {:?}",
-               decision.selected_provider, decision.strategy_used);
+        debug!(
+            "Failover decision: using provider {} with strategy {:?}",
+            decision.selected_provider, decision.strategy_used
+        );
 
         // Try the selected provider first
-        match self.try_provider(&decision.selected_provider, request.clone()).await {
+        match self
+            .try_provider(&decision.selected_provider, request.clone())
+            .await
+        {
             Ok(response) => {
                 self.record_success(&decision.selected_provider).await;
                 return Ok(response);
             }
             Err(e) => {
-                warn!("Primary provider {} failed: {}", decision.selected_provider, e);
+                warn!(
+                    "Primary provider {} failed: {}",
+                    decision.selected_provider, e
+                );
                 self.record_failure(&decision.selected_provider).await;
             }
         }
@@ -311,27 +321,17 @@ impl FailoverManager {
         }
 
         let selected_provider = match self.config.strategy {
-            FailoverStrategy::Priority => {
-                self.select_by_priority(&available_providers).await
-            }
-            FailoverStrategy::RoundRobin => {
-                self.select_round_robin(&available_providers).await
-            }
+            FailoverStrategy::Priority => self.select_by_priority(&available_providers).await,
+            FailoverStrategy::RoundRobin => self.select_round_robin(&available_providers).await,
             FailoverStrategy::LeastLatency => {
                 self.select_by_least_latency(&available_providers).await
             }
             FailoverStrategy::LeastErrors => {
                 self.select_by_least_errors(&available_providers).await
             }
-            FailoverStrategy::LeastCost => {
-                self.select_by_least_cost(&available_providers).await
-            }
-            FailoverStrategy::Random => {
-                self.select_random(&available_providers).await
-            }
-            FailoverStrategy::Weighted => {
-                self.select_weighted(&available_providers).await
-            }
+            FailoverStrategy::LeastCost => self.select_by_least_cost(&available_providers).await,
+            FailoverStrategy::Random => self.select_random(&available_providers).await,
+            FailoverStrategy::Weighted => self.select_weighted(&available_providers).await,
         };
 
         let mut fallback_providers = available_providers;
@@ -354,11 +354,12 @@ impl FailoverManager {
         states
             .values()
             .filter(|state| {
-                state.status == ProviderStatus::Available ||
-                state.status == ProviderStatus::Degraded
+                state.status == ProviderStatus::Available
+                    || state.status == ProviderStatus::Degraded
             })
             .filter(|state| {
-                priorities.get(&state.name)
+                priorities
+                    .get(&state.name)
                     .map(|p| p.enabled)
                     .unwrap_or(false)
             })
@@ -380,9 +381,7 @@ impl FailoverManager {
 
         providers
             .iter()
-            .min_by_key(|name| {
-                priorities.get(*name).map(|p| p.priority).unwrap_or(999)
-            })
+            .min_by_key(|name| priorities.get(*name).map(|p| p.priority).unwrap_or(999))
             .unwrap_or(&providers[0])
             .clone()
     }
@@ -409,10 +408,12 @@ impl FailoverManager {
         providers
             .iter()
             .min_by(|a, b| {
-                let a_error_rate = states.get(*a)
+                let a_error_rate = states
+                    .get(*a)
                     .map(|s| s.failed_requests as f64 / (s.total_requests.max(1) as f64))
                     .unwrap_or(0.0);
-                let b_error_rate = states.get(*b)
+                let b_error_rate = states
+                    .get(*b)
                     .map(|s| s.failed_requests as f64 / (s.total_requests.max(1) as f64))
                     .unwrap_or(0.0);
                 a_error_rate.partial_cmp(&b_error_rate).unwrap()
@@ -498,9 +499,10 @@ impl FailoverManager {
 
                 result
             }
-            None => Err(IntelligenceError::Configuration(
-                format!("Provider {} not found", provider_name)
-            )),
+            None => Err(IntelligenceError::Configuration(format!(
+                "Provider {} not found",
+                provider_name
+            ))),
         }
     }
 
@@ -513,10 +515,11 @@ impl FailoverManager {
             state.consecutive_failures = 0;
 
             // Check if provider recovered
-            if state.status != ProviderStatus::Available &&
-               state.consecutive_successes >= self.config.health_check_threshold {
-
-                let downtime = state.last_used
+            if state.status != ProviderStatus::Available
+                && state.consecutive_successes >= self.config.health_check_threshold
+            {
+                let downtime = state
+                    .last_used
                     .map(|last| chrono::Utc::now() - last)
                     .unwrap_or_else(chrono::Duration::zero);
 
@@ -530,7 +533,11 @@ impl FailoverManager {
                 };
                 let _ = self.event_tx.send(event);
 
-                info!("Provider {} recovered after {} seconds", provider_name, downtime.num_seconds());
+                info!(
+                    "Provider {} recovered after {} seconds",
+                    provider_name,
+                    downtime.num_seconds()
+                );
             }
         }
     }
@@ -544,12 +551,13 @@ impl FailoverManager {
             state.consecutive_successes = 0;
 
             // Check if circuit breaker should be triggered
-            if self.config.circuit_breaker_enabled &&
-               state.consecutive_failures >= self.config.health_check_threshold {
-
+            if self.config.circuit_breaker_enabled
+                && state.consecutive_failures >= self.config.health_check_threshold
+            {
                 state.status = ProviderStatus::CircuitOpen;
                 state.circuit_breaker_open_until = Some(
-                    chrono::Utc::now() + chrono::Duration::from_std(self.config.failback_delay).unwrap()
+                    chrono::Utc::now()
+                        + chrono::Duration::from_std(self.config.failback_delay).unwrap(),
                 );
 
                 let event = FailoverEvent::CircuitBreakerTripped {
@@ -559,8 +567,10 @@ impl FailoverManager {
                 };
                 let _ = self.event_tx.send(event);
 
-                warn!("Circuit breaker opened for provider {} after {} failures",
-                     provider_name, state.consecutive_failures);
+                warn!(
+                    "Circuit breaker opened for provider {} after {} failures",
+                    provider_name, state.consecutive_failures
+                );
             }
         }
     }
@@ -574,14 +584,19 @@ impl FailoverManager {
     pub async fn get_statistics(&self) -> FailoverStatistics {
         let states = self.provider_states.read().await;
         let total_providers = states.len();
-        let available_providers = states.values()
+        let available_providers = states
+            .values()
             .filter(|s| s.status == ProviderStatus::Available)
             .count();
-        let degraded_providers = states.values()
+        let degraded_providers = states
+            .values()
             .filter(|s| s.status == ProviderStatus::Degraded)
             .count();
-        let unavailable_providers = states.values()
-            .filter(|s| s.status == ProviderStatus::Unavailable || s.status == ProviderStatus::CircuitOpen)
+        let unavailable_providers = states
+            .values()
+            .filter(|s| {
+                s.status == ProviderStatus::Unavailable || s.status == ProviderStatus::CircuitOpen
+            })
             .count();
 
         let total_requests: u64 = states.values().map(|s| s.total_requests).sum();
@@ -618,7 +633,7 @@ pub struct FailoverStatistics {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{mock_provider::MockLlmProvider, health::HealthMonitorBuilder};
+    use crate::{health::HealthMonitorBuilder, mock_provider::MockLlmProvider};
 
     #[tokio::test]
     async fn test_failover_manager_creation() {

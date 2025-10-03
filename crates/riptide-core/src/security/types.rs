@@ -154,7 +154,12 @@ pub struct CostInfo {
 }
 
 impl CostInfo {
-    pub fn new(tokens_used: u64, estimated_cost_usd: f64, model_name: String, operation_type: String) -> Self {
+    pub fn new(
+        tokens_used: u64,
+        estimated_cost_usd: f64,
+        model_name: String,
+        operation_type: String,
+    ) -> Self {
         Self {
             tokens_used,
             estimated_cost_usd,
@@ -196,10 +201,10 @@ impl Default for PiiConfig {
 /// Methods for redacting PII
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RedactionMethod {
-    Asterisk,     // Replace with asterisks: ****
-    Hash,         // Replace with hash: [REDACTED:HASH]
-    Remove,       // Remove completely
-    Placeholder,  // Replace with placeholder: [EMAIL], [PHONE], etc.
+    Asterisk,    // Replace with asterisks: ****
+    Hash,        // Replace with hash: [REDACTED:HASH]
+    Remove,      // Remove completely
+    Placeholder, // Replace with placeholder: [EMAIL], [PHONE], etc.
 }
 
 /// Rate limiting configuration per tenant
@@ -253,37 +258,37 @@ impl Default for BudgetLimits {
 pub enum SecurityError {
     #[error("Invalid API key: {0}")]
     InvalidApiKey(String),
-    
+
     #[error("API key expired: {0}")]
     ApiKeyExpired(String),
-    
+
     #[error("Rate limit exceeded for tenant: {0}")]
     RateLimitExceeded(String),
-    
+
     #[error("Budget limit exceeded: {0}")]
     BudgetLimitExceeded(String),
-    
+
     #[error("Insufficient permissions: {0}")]
     InsufficientPermissions(String),
-    
+
     #[error("PII redaction failed: {0}")]
     PiiRedactionFailed(String),
-    
+
     #[error("Audit log error: {0}")]
     AuditLogError(String),
-    
+
     #[error("Encryption error: {0}")]
     EncryptionError(String),
-    
+
     #[error("Configuration error: {0}")]
     ConfigurationError(String),
-    
+
     #[error("Database error: {0}")]
     DatabaseError(String),
-    
+
     #[error("Network error: {0}")]
     NetworkError(String),
-    
+
     #[error("Unknown security error: {0}")]
     Unknown(String),
 }

@@ -7,8 +7,8 @@ use std::collections::HashMap;
 use tracing::{debug, info};
 
 use crate::{
-    LlmProvider, CompletionRequest, CompletionResponse, LlmCapabilities, Cost, ModelInfo,
-    IntelligenceError, Result, Role, Usage,
+    CompletionRequest, CompletionResponse, Cost, IntelligenceError, LlmCapabilities, LlmProvider,
+    ModelInfo, Result, Role, Usage,
 };
 
 /// Anthropic API response structure
@@ -71,7 +71,9 @@ impl AnthropicProvider {
         let client = Client::builder()
             .timeout(std::time::Duration::from_secs(60))
             .build()
-            .map_err(|e| IntelligenceError::Configuration(format!("Failed to create HTTP client: {}", e)))?;
+            .map_err(|e| {
+                IntelligenceError::Configuration(format!("Failed to create HTTP client: {}", e))
+            })?;
 
         let base_url = "https://api.anthropic.com/v1".to_string();
 
@@ -135,7 +137,8 @@ impl AnthropicProvider {
     {
         let url = format!("{}/{}", self.base_url, endpoint);
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .header("x-api-key", &self.api_key)
             .header("Content-Type", "application/json")
@@ -146,12 +149,19 @@ impl AnthropicProvider {
             .map_err(|e| IntelligenceError::Network(format!("Request failed: {}", e)))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await
+            let error_text = response
+                .text()
+                .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(IntelligenceError::Provider(format!("Anthropic API error: {}", error_text)));
+            return Err(IntelligenceError::Provider(format!(
+                "Anthropic API error: {}",
+                error_text
+            )));
         }
 
-        let result = response.json::<T>().await
+        let result = response
+            .json::<T>()
+            .await
             .map_err(|e| IntelligenceError::Provider(format!("Failed to parse response: {}", e)))?;
 
         Ok(result)
@@ -161,12 +171,17 @@ impl AnthropicProvider {
 #[async_trait]
 impl LlmProvider for AnthropicProvider {
     async fn complete(&self, request: CompletionRequest) -> Result<CompletionResponse> {
-        debug!("Sending completion request to Anthropic for model: {}", request.model);
+        debug!(
+            "Sending completion request to Anthropic for model: {}",
+            request.model
+        );
 
         let anthropic_request = self.build_anthropic_request(&request);
         let response: AnthropicResponse = self.make_request("messages", &anthropic_request).await?;
 
-        let content = response.content.into_iter()
+        let content = response
+            .content
+            .into_iter()
             .filter(|c| c.content_type == "text")
             .map(|c| c.text)
             .collect::<Vec<_>>()
@@ -190,13 +205,18 @@ impl LlmProvider for AnthropicProvider {
             metadata: HashMap::new(),
         };
 
-        debug!("Anthropic completion successful, tokens used: {}", total_tokens);
+        debug!(
+            "Anthropic completion successful, tokens used: {}",
+            total_tokens
+        );
         Ok(completion_response)
     }
 
     async fn embed(&self, _text: &str) -> Result<Vec<f32>> {
         // Anthropic doesn't provide embeddings API directly
-        Err(IntelligenceError::Provider("Embeddings not supported by Anthropic".to_string()))
+        Err(IntelligenceError::Provider(
+            "Embeddings not supported by Anthropic".to_string(),
+        ))
     }
 
     fn capabilities(&self) -> LlmCapabilities {
@@ -204,7 +224,8 @@ impl LlmProvider for AnthropicProvider {
             ModelInfo {
                 id: "claude-3-5-sonnet-20241022".to_string(),
                 name: "Claude 3.5 Sonnet".to_string(),
-                description: "Most intelligent model, best performance on complex tasks".to_string(),
+                description: "Most intelligent model, best performance on complex tasks"
+                    .to_string(),
                 max_tokens: 8192,
                 supports_functions: true,
                 supports_streaming: true,
@@ -214,7 +235,8 @@ impl LlmProvider for AnthropicProvider {
             ModelInfo {
                 id: "claude-3-5-haiku-20241022".to_string(),
                 name: "Claude 3.5 Haiku".to_string(),
-                description: "Fastest model, best for simple tasks and real-time applications".to_string(),
+                description: "Fastest model, best for simple tasks and real-time applications"
+                    .to_string(),
                 max_tokens: 8192,
                 supports_functions: true,
                 supports_streaming: true,
@@ -224,7 +246,8 @@ impl LlmProvider for AnthropicProvider {
             ModelInfo {
                 id: "claude-3-opus-20240229".to_string(),
                 name: "Claude 3 Opus".to_string(),
-                description: "Most powerful model for complex analysis and creative tasks".to_string(),
+                description: "Most powerful model for complex analysis and creative tasks"
+                    .to_string(),
                 max_tokens: 4096,
                 supports_functions: true,
                 supports_streaming: true,
@@ -273,7 +296,8 @@ impl LlmProvider for AnthropicProvider {
 
     fn estimate_cost(&self, tokens: usize) -> Cost {
         // Default to Claude 3.5 Sonnet pricing if model not found
-        let (prompt_cost_per_1k, completion_cost_per_1k) = self.model_costs
+        let (prompt_cost_per_1k, completion_cost_per_1k) = self
+            .model_costs
             .get("claude-3-5-sonnet-20241022")
             .copied()
             .unwrap_or((0.003, 0.015));
@@ -304,7 +328,8 @@ impl LlmProvider for AnthropicProvider {
             system: None,
         };
 
-        self.make_request::<AnthropicResponse>("messages", &test_request).await?;
+        self.make_request::<AnthropicResponse>("messages", &test_request)
+            .await?;
         info!("Anthropic health check successful");
         Ok(())
     }

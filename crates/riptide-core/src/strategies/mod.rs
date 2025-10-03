@@ -8,32 +8,32 @@
 
 // Extraction module moved to riptide-html
 // pub mod extraction;
+pub mod implementations;
 pub mod metadata;
 pub mod performance;
 pub mod traits;
-pub mod implementations;
 // Temporarily disabled for testing trait system
 // pub mod spider_implementations;
-pub mod manager;
 pub mod compatibility;
+pub mod manager;
 
 #[cfg(test)]
 mod tests;
 
 // Re-export core extraction functionality
 // pub use extraction::trek; // Moved to riptide-html
+pub use implementations::*;
 pub use metadata::*;
 pub use performance::*;
 pub use traits::*;
-pub use implementations::*;
 // Temporarily disabled for testing trait system
 // pub use spider_implementations::*;
-pub use manager::*;
 pub use compatibility::*;
+pub use manager::*;
 
-use serde::{Deserialize, Serialize};
-use schemars::JsonSchema;
 use anyhow::Result;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 /// Configuration for core extraction strategies
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -119,7 +119,7 @@ impl StrategyManager {
                     strategy_used: "trek".to_string(),
                     extraction_confidence: 0.8,
                 })
-            },
+            }
         }
     }
 

@@ -32,9 +32,9 @@ impl Default for QueryAwareConfig {
         Self {
             query_foraging: false, // Opt-in
             target_query: None,
-            bm25_weight: 0.4,      // α
-            url_signals_weight: 0.2, // β
-            domain_diversity_weight: 0.2, // γ
+            bm25_weight: 0.4,               // α
+            url_signals_weight: 0.2,        // β
+            domain_diversity_weight: 0.2,   // γ
             content_similarity_weight: 0.2, // δ
             min_relevance_threshold: 0.3,
             relevance_window_size: 10,
@@ -86,7 +86,8 @@ impl BM25Scorer {
 
         // Update average document length
         let doc_length = tokenize(document).len() as f64;
-        self.avg_doc_length = ((self.avg_doc_length * (self.total_docs - 1) as f64) + doc_length) / self.total_docs as f64;
+        self.avg_doc_length = ((self.avg_doc_length * (self.total_docs - 1) as f64) + doc_length)
+            / self.total_docs as f64;
     }
 
     /// Calculate BM25 score for a document
@@ -116,7 +117,8 @@ impl BM25Scorer {
 
                 // BM25 formula
                 let numerator = tf * (self.k1 + 1.0);
-                let denominator = tf + self.k1 * (1.0 - self.b + self.b * (doc_length / self.avg_doc_length));
+                let denominator =
+                    tf + self.k1 * (1.0 - self.b + self.b * (doc_length / self.avg_doc_length));
 
                 score += idf * (numerator / denominator);
             }
@@ -296,11 +298,7 @@ impl QueryAwareScorer {
     pub fn new(config: QueryAwareConfig) -> Self {
         let query = config.target_query.as_deref();
 
-        let bm25_scorer = BM25Scorer::new(
-            query.unwrap_or(""),
-            config.bm25_k1,
-            config.bm25_b,
-        );
+        let bm25_scorer = BM25Scorer::new(query.unwrap_or(""), config.bm25_k1, config.bm25_b);
 
         let url_analyzer = UrlSignalAnalyzer::new(query);
         let domain_analyzer = DomainDiversityAnalyzer::new();
@@ -344,7 +342,9 @@ impl QueryAwareScorer {
         }
 
         // URL signals score (β component)
-        let url_score = self.url_analyzer.score(&request.url, request.depth as usize);
+        let url_score = self
+            .url_analyzer
+            .score(&request.url, request.depth as usize);
         total_score += self.config.url_signals_weight * url_score;
 
         // Domain diversity score (γ component)
@@ -372,7 +372,9 @@ impl QueryAwareScorer {
 
     /// Check if crawling should stop due to low relevance
     pub fn should_stop_early(&self) -> (bool, String) {
-        if !self.config.query_foraging || self.recent_scores.len() < self.config.relevance_window_size {
+        if !self.config.query_foraging
+            || self.recent_scores.len() < self.config.relevance_window_size
+        {
             return (false, String::new());
         }
 
@@ -432,9 +434,7 @@ fn tokenize(text: &str) -> Vec<String> {
         .filter(|word| word.len() > 2) // Filter out very short words
         .map(|word| {
             // Remove punctuation
-            word.chars()
-                .filter(|c| c.is_alphanumeric())
-                .collect()
+            word.chars().filter(|c| c.is_alphanumeric()).collect()
         })
         .filter(|word: &String| !word.is_empty())
         .collect()
@@ -526,7 +526,8 @@ mod tests {
     fn test_content_similarity_analyzer() {
         let analyzer = ContentSimilarityAnalyzer::new(Some("machine learning"));
 
-        let relevant_content = "This article discusses machine learning algorithms and their applications";
+        let relevant_content =
+            "This article discusses machine learning algorithms and their applications";
         let irrelevant_content = "This is about cooking recipes and food preparation";
 
         let score1 = analyzer.score(relevant_content);
@@ -610,8 +611,10 @@ mod tests {
     #[test]
     fn test_weight_validation() {
         let config = QueryAwareConfig::default();
-        let total_weight = config.bm25_weight + config.url_signals_weight +
-                          config.domain_diversity_weight + config.content_similarity_weight;
+        let total_weight = config.bm25_weight
+            + config.url_signals_weight
+            + config.domain_diversity_weight
+            + config.content_similarity_weight;
 
         // Weights should sum to 1.0 for proper normalization
         assert!((total_weight - 1.0).abs() < 0.001);

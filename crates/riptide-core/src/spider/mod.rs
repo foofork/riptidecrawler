@@ -7,31 +7,31 @@
 //! - Budget controls and rate limiting
 //! - Session persistence for authenticated crawling
 
-pub mod frontier;
-pub mod strategy;
-pub mod budget;
 pub mod adaptive_stop;
-pub mod url_utils;
-pub mod session;
-pub mod sitemap;
+pub mod budget;
 pub mod config;
 pub mod core;
-pub mod types;
+pub mod frontier;
 pub mod query_aware;
-pub mod query_aware_tests;
 pub mod query_aware_benchmark;
+pub mod query_aware_tests;
+pub mod session;
+pub mod sitemap;
+pub mod strategy;
+pub mod types;
+pub mod url_utils;
 
 // Re-export main types
-pub use config::SpiderConfig;
-pub use core::{Spider, SpiderResult, CrawlState, PerformanceMetrics};
-pub use types::*;
-pub use frontier::FrontierManager;
-pub use strategy::{CrawlingStrategy, StrategyEngine};
-pub use budget::BudgetManager;
 pub use adaptive_stop::AdaptiveStopEngine;
+pub use budget::BudgetManager;
+pub use config::SpiderConfig;
+pub use core::{CrawlState, PerformanceMetrics, Spider, SpiderResult};
+pub use frontier::FrontierManager;
+pub use query_aware::{QueryAwareConfig, QueryAwareScorer, QueryAwareStats};
 pub use session::SessionManager;
 pub use sitemap::SitemapParser;
-pub use query_aware::{QueryAwareConfig, QueryAwareScorer, QueryAwareStats};
+pub use strategy::{CrawlingStrategy, StrategyEngine};
+pub use types::*;
 
 #[cfg(test)]
 mod tests;

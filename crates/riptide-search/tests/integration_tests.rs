@@ -3,9 +3,8 @@
 //! These tests verify that the search providers work correctly when integrated together.
 
 use riptide_search::{
-    SearchBackend, SearchConfig, SearchProvider, SearchProviderFactory,
-    create_search_provider, create_search_provider_from_env,
-    NoneProvider, SearchHit
+    create_search_provider, create_search_provider_from_env, NoneProvider, SearchBackend,
+    SearchConfig, SearchHit, SearchProvider, SearchProviderFactory,
 };
 use std::env;
 
@@ -47,14 +46,32 @@ mod integration_tests {
     #[test]
     fn test_search_backend_parsing() {
         // Test valid parsing
-        assert_eq!("serper".parse::<SearchBackend>().unwrap(), SearchBackend::Serper);
-        assert_eq!("none".parse::<SearchBackend>().unwrap(), SearchBackend::None);
-        assert_eq!("searxng".parse::<SearchBackend>().unwrap(), SearchBackend::SearXNG);
+        assert_eq!(
+            "serper".parse::<SearchBackend>().unwrap(),
+            SearchBackend::Serper
+        );
+        assert_eq!(
+            "none".parse::<SearchBackend>().unwrap(),
+            SearchBackend::None
+        );
+        assert_eq!(
+            "searxng".parse::<SearchBackend>().unwrap(),
+            SearchBackend::SearXNG
+        );
 
         // Test case insensitive
-        assert_eq!("SERPER".parse::<SearchBackend>().unwrap(), SearchBackend::Serper);
-        assert_eq!("None".parse::<SearchBackend>().unwrap(), SearchBackend::None);
-        assert_eq!("SearXNG".parse::<SearchBackend>().unwrap(), SearchBackend::SearXNG);
+        assert_eq!(
+            "SERPER".parse::<SearchBackend>().unwrap(),
+            SearchBackend::Serper
+        );
+        assert_eq!(
+            "None".parse::<SearchBackend>().unwrap(),
+            SearchBackend::None
+        );
+        assert_eq!(
+            "SearXNG".parse::<SearchBackend>().unwrap(),
+            SearchBackend::SearXNG
+        );
 
         // Test invalid parsing
         assert!("invalid_backend".parse::<SearchBackend>().is_err());
@@ -166,7 +183,9 @@ mod integration_tests {
         let provider = NoneProvider::new(true);
 
         // Test successful URL extraction
-        let result = provider.search("https://example.com https://test.org", 10, "us", "en").await;
+        let result = provider
+            .search("https://example.com https://test.org", 10, "us", "en")
+            .await;
         assert!(result.is_ok());
 
         let hits = result.unwrap();

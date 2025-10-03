@@ -15,7 +15,7 @@ mod query_aware_week7_tests {
             "Deep learning uses neural networks with multiple layers for artificial intelligence",
             "Natural language processing is another area of artificial intelligence research",
             "Computer vision applications use machine learning for image recognition",
-            "This document is about cooking recipes and has no relevant content at all"
+            "This document is about cooking recipes and has no relevant content at all",
         ];
 
         // Update corpus
@@ -34,7 +34,10 @@ mod query_aware_week7_tests {
 
         // Verify ranking correctness
         // Doc 0 has both "machine learning" and "artificial intelligence" - should rank highest
-        assert_eq!(scores[0].0, 0, "Document with both query terms should rank highest");
+        assert_eq!(
+            scores[0].0, 0,
+            "Document with both query terms should rank highest"
+        );
 
         // Doc 1 and 2 have "artificial intelligence" - should rank higher than doc 3
         let doc1_rank = scores.iter().position(|(i, _)| *i == 1).unwrap();
@@ -45,15 +48,22 @@ mod query_aware_week7_tests {
                 "Documents with 'artificial intelligence' should rank higher than those with only 'machine learning'");
 
         // Doc 4 (irrelevant) should rank lowest
-        assert_eq!(scores.last().unwrap().0, 4, "Irrelevant document should rank lowest");
+        assert_eq!(
+            scores.last().unwrap().0,
+            4,
+            "Irrelevant document should rank lowest"
+        );
 
         // Verify score ranges are reasonable
         assert!(scores[0].1 > 0.0, "Top document should have positive score");
-        assert!(scores.last().unwrap().1 == 0.0, "Irrelevant document should have zero score");
+        assert!(
+            scores.last().unwrap().1 == 0.0,
+            "Irrelevant document should have zero score"
+        );
 
         // Test BM25 parameter effects
         let mut k1_scorer = BM25Scorer::new("test", 2.0, 0.75); // Higher k1
-        let mut b_scorer = BM25Scorer::new("test", 1.2, 0.5);   // Different b
+        let mut b_scorer = BM25Scorer::new("test", 1.2, 0.5); // Different b
 
         let test_doc = "test document with test word repeated test test";
         k1_scorer.update_corpus(test_doc);
@@ -62,7 +72,10 @@ mod query_aware_week7_tests {
         let k1_score = k1_scorer.score(test_doc);
         let b_score = b_scorer.score(test_doc);
 
-        assert!(k1_score > 0.0 && b_score > 0.0, "Both parameter variations should produce positive scores");
+        assert!(
+            k1_score > 0.0 && b_score > 0.0,
+            "Both parameter variations should produce positive scores"
+        );
     }
 
     /// Test URL signal integration with depth and path analysis
@@ -75,7 +88,10 @@ mod query_aware_week7_tests {
         let score_depth_1 = analyzer.score(&base_url, 1);
         let score_depth_5 = analyzer.score(&base_url, 5);
 
-        assert!(score_depth_1 > score_depth_5, "Shallow URLs should score higher than deep ones");
+        assert!(
+            score_depth_1 > score_depth_5,
+            "Shallow URLs should score higher than deep ones"
+        );
 
         // Test path relevance
         let relevant_urls = [
@@ -102,15 +118,21 @@ mod query_aware_week7_tests {
         let avg_relevant = relevant_scores.iter().sum::<f64>() / relevant_scores.len() as f64;
         let avg_irrelevant = irrelevant_scores.iter().sum::<f64>() / irrelevant_scores.len() as f64;
 
-        assert!(avg_relevant > avg_irrelevant,
-                "URLs with relevant paths should score higher than irrelevant ones");
+        assert!(
+            avg_relevant > avg_irrelevant,
+            "URLs with relevant paths should score higher than irrelevant ones"
+        );
 
         // Test domain bonus
         let domain_url = Url::from_str("https://machinelearning.example.com/tutorial").unwrap();
         let domain_score = analyzer.score(&domain_url, 2);
-        let regular_score = analyzer.score(&Url::from_str("https://example.com/tutorial").unwrap(), 2);
+        let regular_score =
+            analyzer.score(&Url::from_str("https://example.com/tutorial").unwrap(), 2);
 
-        assert!(domain_score > regular_score, "Relevant domains should get bonus points");
+        assert!(
+            domain_score > regular_score,
+            "Relevant domains should get bonus points"
+        );
     }
 
     /// Test domain diversity scoring algorithm
@@ -120,7 +142,10 @@ mod query_aware_week7_tests {
 
         // First domain should get high score
         let first_score = analyzer.score("example.com");
-        assert!(first_score > 0.8, "New domains should get high diversity scores");
+        assert!(
+            first_score > 0.8,
+            "New domains should get high diversity scores"
+        );
 
         // Record pages from the domain
         for _ in 0..5 {
@@ -129,11 +154,17 @@ mod query_aware_week7_tests {
 
         // Same domain should now get lower score
         let repeat_score = analyzer.score("example.com");
-        assert!(repeat_score < first_score, "Repeated domains should get lower scores");
+        assert!(
+            repeat_score < first_score,
+            "Repeated domains should get lower scores"
+        );
 
         // New domain should still get high score
         let new_domain_score = analyzer.score("newsite.com");
-        assert!(new_domain_score > repeat_score, "New domains should score higher than overused ones");
+        assert!(
+            new_domain_score > repeat_score,
+            "New domains should score higher than overused ones"
+        );
 
         // Test sigmoid function behavior with extreme values
         for _ in 0..50 {
@@ -141,13 +172,19 @@ mod query_aware_week7_tests {
         }
 
         let overused_score = analyzer.score("overused.com");
-        assert!(overused_score < 0.2, "Heavily overused domains should get very low scores");
-        assert!(overused_score > 0.0, "Scores should never go completely to zero");
+        assert!(
+            overused_score < 0.2,
+            "Heavily overused domains should get very low scores"
+        );
+        assert!(
+            overused_score > 0.0,
+            "Scores should never go completely to zero"
+        );
 
         // Verify statistics
         let (unique_domains, total_pages) = analyzer.get_stats();
         assert_eq!(unique_domains, 2); // example.com and overused.com
-        assert_eq!(total_pages, 55);   // 5 + 50
+        assert_eq!(total_pages, 55); // 5 + 50
     }
 
     /// Test early stopping logic with low relevance detection
@@ -178,23 +215,38 @@ mod query_aware_week7_tests {
         }
 
         let (should_stop, reason) = scorer.should_stop_early();
-        assert!(should_stop, "Should stop when average relevance is below threshold");
-        assert!(reason.contains("Low relevance detected"), "Reason should explain low relevance");
-        assert!(reason.contains("0.200"), "Reason should include actual average score");
+        assert!(
+            should_stop,
+            "Should stop when average relevance is below threshold"
+        );
+        assert!(
+            reason.contains("Low relevance detected"),
+            "Reason should explain low relevance"
+        );
+        assert!(
+            reason.contains("0.200"),
+            "Reason should include actual average score"
+        );
 
         // Test with mixed scores
         scorer.recent_scores.clear();
         scorer.recent_scores.extend([0.6, 0.5, 0.3, 0.2, 0.1]); // Average = 0.34, below 0.4
 
         let (should_stop, _) = scorer.should_stop_early();
-        assert!(should_stop, "Should stop when average of mixed scores is below threshold");
+        assert!(
+            should_stop,
+            "Should stop when average of mixed scores is below threshold"
+        );
 
         // Test insufficient data
         scorer.recent_scores.clear();
         scorer.recent_scores.push(0.1); // Only one score
 
         let (should_stop, _) = scorer.should_stop_early();
-        assert!(!should_stop, "Should not stop without sufficient data in window");
+        assert!(
+            !should_stop,
+            "Should not stop without sufficient data in window"
+        );
     }
 
     /// Test comprehensive scoring formula: S = α*BM25 + β*URLSignals + γ*DomainDiversity + δ*ContentSimilarity
@@ -203,9 +255,9 @@ mod query_aware_week7_tests {
         let config = QueryAwareConfig {
             query_foraging: true,
             target_query: Some("machine learning".to_string()),
-            bm25_weight: 0.4,        // α
-            url_signals_weight: 0.2, // β
-            domain_diversity_weight: 0.2, // γ
+            bm25_weight: 0.4,               // α
+            url_signals_weight: 0.2,        // β
+            domain_diversity_weight: 0.2,   // γ
             content_similarity_weight: 0.2, // δ
             ..Default::default()
         };
@@ -215,11 +267,16 @@ mod query_aware_week7_tests {
         // Create relevant request and content
         let url = Url::from_str("https://ml.example.com/machine-learning/tutorial").unwrap();
         let request = CrawlRequest::new(url).with_depth(1);
-        let content = "Machine learning algorithms are used in artificial intelligence to create models";
+        let content =
+            "Machine learning algorithms are used in artificial intelligence to create models";
 
         // Update scorer with some corpus data
-        scorer.bm25_scorer.update_corpus("Machine learning is a field of computer science");
-        scorer.bm25_scorer.update_corpus("Artificial intelligence uses various techniques");
+        scorer
+            .bm25_scorer
+            .update_corpus("Machine learning is a field of computer science");
+        scorer
+            .bm25_scorer
+            .update_corpus("Artificial intelligence uses various techniques");
 
         let score = scorer.score_request(&request, Some(content));
 
@@ -234,7 +291,10 @@ mod query_aware_week7_tests {
 
         let irrelevant_score = scorer.score_request(&irrelevant_request, Some(irrelevant_content));
 
-        assert!(score > irrelevant_score, "Relevant content should score higher than irrelevant");
+        assert!(
+            score > irrelevant_score,
+            "Relevant content should score higher than irrelevant"
+        );
 
         // Test weight configuration effects
         let mut high_bm25_config = config.clone();
@@ -244,13 +304,20 @@ mod query_aware_week7_tests {
         high_bm25_config.content_similarity_weight = 0.05;
 
         let mut bm25_scorer = QueryAwareScorer::new(high_bm25_config);
-        bm25_scorer.bm25_scorer.update_corpus("Machine learning is a field of computer science");
-        bm25_scorer.bm25_scorer.update_corpus("Artificial intelligence uses various techniques");
+        bm25_scorer
+            .bm25_scorer
+            .update_corpus("Machine learning is a field of computer science");
+        bm25_scorer
+            .bm25_scorer
+            .update_corpus("Artificial intelligence uses various techniques");
 
         let bm25_focused_score = bm25_scorer.score_request(&request, Some(content));
 
         // Higher BM25 weight should affect scores differently
-        assert!(bm25_focused_score > 0.0, "BM25-focused scoring should still work");
+        assert!(
+            bm25_focused_score > 0.0,
+            "BM25-focused scoring should still work"
+        );
     }
 
     /// Performance benchmarking to ensure <10% throughput impact
@@ -290,8 +357,11 @@ mod query_aware_week7_tests {
         for i in 0..num_requests {
             let url = Url::from_str(&format!("https://example.com/page{}", i)).unwrap();
             let request = CrawlRequest::new(url);
-            let content = format!("Page {} content about machine learning and artificial intelligence. {}",
-                                  i, "a".repeat(content_size - 100));
+            let content = format!(
+                "Page {} content about machine learning and artificial intelligence. {}",
+                i,
+                "a".repeat(content_size - 100)
+            );
             qa_scorer.score_request(&request, Some(&content));
         }
 
@@ -309,9 +379,11 @@ mod query_aware_week7_tests {
         println!("Performance impact: {:.2}%", performance_impact);
 
         // Requirement: <10% throughput impact
-        assert!(performance_impact < 10.0,
-                "Query-aware features should have <10% performance impact, actual: {:.2}%",
-                performance_impact);
+        assert!(
+            performance_impact < 10.0,
+            "Query-aware features should have <10% performance impact, actual: {:.2}%",
+            performance_impact
+        );
 
         // Additional throughput calculations
         let baseline_rps = num_requests as f64 / baseline_duration.as_secs_f64();
@@ -322,7 +394,10 @@ mod query_aware_week7_tests {
         println!("Query-aware RPS: {:.2}", qa_rps);
         println!("Throughput ratio: {:.3}", throughput_ratio);
 
-        assert!(throughput_ratio > 0.9, "Throughput should not decrease by more than 10%");
+        assert!(
+            throughput_ratio > 0.9,
+            "Throughput should not decrease by more than 10%"
+        );
     }
 
     /// Test for ≥20% lift in on-topic tokens/page at same budget
@@ -334,22 +409,22 @@ mod query_aware_week7_tests {
         let baseline_pages = vec![
             "Machine learning algorithms are powerful tools for data analysis", // Relevant
             "Today's weather forecast shows sunny skies and warm temperatures", // Irrelevant
-            "Cooking pasta requires boiling water and adding salt to taste", // Irrelevant
-            "Deep learning neural networks can process complex data patterns", // Relevant
+            "Cooking pasta requires boiling water and adding salt to taste",    // Irrelevant
+            "Deep learning neural networks can process complex data patterns",  // Relevant
             "Shopping for groceries includes milk, bread, and fresh vegetables", // Irrelevant
-            "Artificial intelligence research continues to advance rapidly", // Relevant
-            "Sports scores from last night's games were exciting to watch", // Irrelevant
+            "Artificial intelligence research continues to advance rapidly",    // Relevant
+            "Sports scores from last night's games were exciting to watch",     // Irrelevant
             "Computer vision algorithms can detect objects in images effectively", // Relevant
         ];
 
         // Query-aware selection (would prioritize relevant pages)
         let query_aware_pages = vec![
             "Machine learning algorithms are powerful tools for data analysis", // Relevant
-            "Deep learning neural networks can process complex data patterns", // Relevant
-            "Artificial intelligence research continues to advance rapidly", // Relevant
+            "Deep learning neural networks can process complex data patterns",  // Relevant
+            "Artificial intelligence research continues to advance rapidly",    // Relevant
             "Computer vision algorithms can detect objects in images effectively", // Relevant
             "Natural language processing enables computers to understand text", // Relevant
-            "Supervised learning requires labeled training data for accuracy", // Relevant
+            "Supervised learning requires labeled training data for accuracy",  // Relevant
             "Unsupervised learning discovers hidden patterns in unlabeled data", // Relevant
             "Reinforcement learning agents learn through trial and error methods", // Relevant
         ];
@@ -400,18 +475,24 @@ mod query_aware_week7_tests {
         println!("Lift percentage: {:.1}%", lift_percentage);
 
         // Requirement: ≥20% lift in on-topic tokens/page
-        assert!(lift_percentage >= 20.0,
-                "Query-aware crawling should achieve ≥20% lift in on-topic tokens, actual: {:.1}%",
-                lift_percentage);
+        assert!(
+            lift_percentage >= 20.0,
+            "Query-aware crawling should achieve ≥20% lift in on-topic tokens, actual: {:.1}%",
+            lift_percentage
+        );
 
         // Additional verification using content similarity scoring
-        let baseline_similarity_avg = baseline_pages.iter()
+        let baseline_similarity_avg = baseline_pages
+            .iter()
             .map(|page| analyzer.score(page))
-            .sum::<f64>() / baseline_pages.len() as f64;
+            .sum::<f64>()
+            / baseline_pages.len() as f64;
 
-        let qa_similarity_avg = query_aware_pages.iter()
+        let qa_similarity_avg = query_aware_pages
+            .iter()
             .map(|page| analyzer.score(page))
-            .sum::<f64>() / query_aware_pages.len() as f64;
+            .sum::<f64>()
+            / query_aware_pages.len() as f64;
 
         let similarity_lift = (qa_similarity_avg / baseline_similarity_avg - 1.0) * 100.0;
 
@@ -419,7 +500,10 @@ mod query_aware_week7_tests {
         println!("Query-aware avg similarity: {:.3}", qa_similarity_avg);
         println!("Similarity lift: {:.1}%", similarity_lift);
 
-        assert!(similarity_lift >= 50.0, "Query-aware selection should significantly improve content relevance");
+        assert!(
+            similarity_lift >= 50.0,
+            "Query-aware selection should significantly improve content relevance"
+        );
     }
 
     /// Test weight configuration system validation
@@ -427,10 +511,15 @@ mod query_aware_week7_tests {
     fn test_weight_configuration_system() {
         // Test default weights sum to 1.0
         let default_config = QueryAwareConfig::default();
-        let weight_sum = default_config.bm25_weight + default_config.url_signals_weight +
-                        default_config.domain_diversity_weight + default_config.content_similarity_weight;
+        let weight_sum = default_config.bm25_weight
+            + default_config.url_signals_weight
+            + default_config.domain_diversity_weight
+            + default_config.content_similarity_weight;
 
-        assert!((weight_sum - 1.0).abs() < 0.001, "Default weights should sum to 1.0");
+        assert!(
+            (weight_sum - 1.0).abs() < 0.001,
+            "Default weights should sum to 1.0"
+        );
 
         // Test custom weight configurations
         let custom_configs = vec![
@@ -498,17 +587,39 @@ mod query_aware_week7_tests {
                 let scores: Vec<f64> = test_docs.iter().map(|doc| scorer.score(doc)).collect();
 
                 // All relevant documents should get positive scores
-                assert!(scores[0] > 0.0, "Document with query terms should score > 0 (k1={}, b={})", k1, b);
-                assert!(scores[1] > 0.0, "Document with repeated terms should score > 0 (k1={}, b={})", k1, b);
-                assert!(scores[2] > 0.0, "Document with partial match should score > 0 (k1={}, b={})", k1, b);
+                assert!(
+                    scores[0] > 0.0,
+                    "Document with query terms should score > 0 (k1={}, b={})",
+                    k1,
+                    b
+                );
+                assert!(
+                    scores[1] > 0.0,
+                    "Document with repeated terms should score > 0 (k1={}, b={})",
+                    k1,
+                    b
+                );
+                assert!(
+                    scores[2] > 0.0,
+                    "Document with partial match should score > 0 (k1={}, b={})",
+                    k1,
+                    b
+                );
 
                 // Document with no relevant terms should score 0
-                assert_eq!(scores[3], 0.0, "Irrelevant document should score 0 (k1={}, b={})", k1, b);
+                assert_eq!(
+                    scores[3], 0.0,
+                    "Irrelevant document should score 0 (k1={}, b={})",
+                    k1, b
+                );
 
                 // Different parameter values should produce different rankings
                 if k1 == 1.2 && b == 0.75 {
                     // Standard BM25 parameters - doc with both terms should rank highest
-                    assert!(scores[0] > scores[2], "Multi-term document should outrank single-term");
+                    assert!(
+                        scores[0] > scores[2],
+                        "Multi-term document should outrank single-term"
+                    );
                 }
             }
         }
@@ -519,11 +630,7 @@ mod query_aware_week7_tests {
         text.to_lowercase()
             .split_whitespace()
             .filter(|word| word.len() > 2)
-            .map(|word| {
-                word.chars()
-                    .filter(|c| c.is_alphanumeric())
-                    .collect()
-            })
+            .map(|word| word.chars().filter(|c| c.is_alphanumeric()).collect())
             .filter(|word: &String| !word.is_empty())
             .collect()
     }
@@ -556,7 +663,9 @@ mod query_aware_integration_tests {
         };
 
         // Create spider with query-aware config
-        let spider = Spider::new(config).await.expect("Spider creation should work");
+        let spider = Spider::new(config)
+            .await
+            .expect("Spider creation should work");
 
         // Verify query-aware features are enabled
         let stats = spider.get_query_aware_stats().await;
@@ -568,7 +677,9 @@ mod query_aware_integration_tests {
 
         // This would normally be done during crawling
         let content = "Machine learning algorithms for artificial intelligence";
-        let score = spider.score_query_aware_request(&request, Some(content)).await
+        let score = spider
+            .score_query_aware_request(&request, Some(content))
+            .await
             .expect("Query-aware scoring should work");
 
         assert!(score > 0.0, "Relevant content should get positive score");
@@ -586,7 +697,9 @@ mod query_aware_integration_tests {
             ..Default::default()
         };
 
-        let spider = Spider::new(config).await.expect("Spider creation should work");
+        let spider = Spider::new(config)
+            .await
+            .expect("Spider creation should work");
 
         // Simulate multiple low-relevance results
         for i in 0..5 {
@@ -594,12 +707,16 @@ mod query_aware_integration_tests {
             let request = CrawlRequest::new(url);
             let result = CrawlResult::success(request);
 
-            spider.update_query_aware_with_result(&result).await
+            spider
+                .update_query_aware_with_result(&result)
+                .await
                 .expect("Update should work");
         }
 
         // Check if early stopping would be triggered
-        let (should_stop, reason) = spider.should_stop_query_aware().await
+        let (should_stop, reason) = spider
+            .should_stop_query_aware()
+            .await
             .expect("Stop check should work");
 
         if should_stop {
@@ -612,7 +729,9 @@ mod query_aware_integration_tests {
     #[tokio::test]
     async fn test_query_aware_performance_realistic() {
         let config = SpiderPresets::high_performance();
-        let spider = Spider::new(config).await.expect("Spider creation should work");
+        let spider = Spider::new(config)
+            .await
+            .expect("Spider creation should work");
 
         let start_time = Instant::now();
 
@@ -622,16 +741,24 @@ mod query_aware_integration_tests {
             let request = CrawlRequest::new(url);
             let content = format!("Page {} about various topics including some keywords", i);
 
-            let _score = spider.score_query_aware_request(&request, Some(&content)).await
+            let _score = spider
+                .score_query_aware_request(&request, Some(&content))
+                .await
                 .expect("Scoring should work");
         }
 
         let duration = start_time.elapsed();
         let throughput = 1000.0 / duration.as_secs_f64();
 
-        println!("Query-aware scoring throughput: {:.2} requests/sec", throughput);
+        println!(
+            "Query-aware scoring throughput: {:.2} requests/sec",
+            throughput
+        );
 
         // Should maintain reasonable throughput
-        assert!(throughput > 100.0, "Should maintain >100 req/sec throughput");
+        assert!(
+            throughput > 100.0,
+            "Should maintain >100 req/sec throughput"
+        );
     }
 }

@@ -1,8 +1,11 @@
 //! LLM provider management routes configuration
 
 use crate::handlers::llm;
-use axum::{routing::{get, post}, Router};
 use crate::state::AppState;
+use axum::{
+    routing::{get, post},
+    Router,
+};
 
 /// Create LLM management routes
 pub fn llm_routes() -> Router<AppState> {

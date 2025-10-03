@@ -4,11 +4,11 @@
 //! multiple sources (files, environment variables, CLI arguments).
 
 use anyhow::Result;
+use config::{Config, ConfigError, Environment, File};
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 use std::collections::HashMap;
-use config::{Config, ConfigError, Environment, File};
+use std::path::PathBuf;
 
 /// Main configuration structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -147,14 +147,12 @@ impl ConfigBuilder {
             .set_default("api.rate_limit.requests_per_minute", 60)?
             .set_default("api.rate_limit.burst_size", 10)?
             .set_default("api.rate_limit.enabled", true)?
-
             // Streaming defaults
             .set_default("streaming.buffer_size", 1000)?
             .set_default("streaming.max_concurrent_streams", 10)?
             .set_default("streaming.progress_update_interval_ms", 1000)?
             .set_default("streaming.ndjson_enabled", true)?
             .set_default("streaming.websocket_enabled", true)?
-
             // Backpressure defaults
             .set_default("streaming.backpressure.max_in_flight", 1000)?
             .set_default("streaming.backpressure.max_memory_bytes", 104857600)?
@@ -163,23 +161,23 @@ impl ConfigBuilder {
             .set_default("streaming.backpressure.recovery_threshold", 0.6)?
             .set_default("streaming.backpressure.check_interval_ms", 500)?
             .set_default("streaming.backpressure.adaptive", true)?
-
             // Reports defaults
-            .set_default("reports.output_directory", output_dir.to_string_lossy().as_ref())?
+            .set_default(
+                "reports.output_directory",
+                output_dir.to_string_lossy().as_ref(),
+            )?
             .set_default("reports.default_format", "html")?
             .set_default("reports.include_charts", true)?
             .set_default("reports.include_raw_data", false)?
             .set_default("reports.chart_width", 800)?
             .set_default("reports.chart_height", 400)?
             .set_default("reports.theme", "modern")?
-
             // CLI defaults
             .set_default("cli.default_output_format", "json")?
             .set_default("cli.color_enabled", true)?
             .set_default("cli.progress_bars", true)?
             .set_default("cli.verbose", false)?
             .set_default("cli.quiet", false)?
-
             // Logging defaults
             .set_default("logging.level", "info")?
             .set_default("logging.format", "pretty")?
@@ -222,10 +220,8 @@ pub struct ConfigManager {
 impl ConfigManager {
     /// Create a new configuration manager with default configuration
     pub fn new() -> Result<Self> {
-        let config = ConfigBuilder::new()
-            .add_env("RIPTIDE")
-            .build()?;
-        
+        let config = ConfigBuilder::new().add_env("RIPTIDE").build()?;
+
         Ok(Self {
             config,
             config_file: None,
@@ -235,12 +231,12 @@ impl ConfigManager {
     /// Load configuration from multiple sources
     pub fn load() -> Result<Self> {
         let config_file = get_config_file_path();
-        
+
         let config = ConfigBuilder::new()
             .add_file(&config_file)
             .add_env("RIPTIDE")
             .build()?;
-        
+
         Ok(Self {
             config,
             config_file: Some(config_file),
@@ -250,12 +246,12 @@ impl ConfigManager {
     /// Load configuration from a specific file
     pub fn load_from_file<P: Into<PathBuf>>(path: P) -> Result<Self> {
         let path = path.into();
-        
+
         let config = ConfigBuilder::new()
             .add_file(&path)
             .add_env("RIPTIDE")
             .build()?;
-        
+
         Ok(Self {
             config,
             config_file: Some(path),
@@ -275,17 +271,16 @@ impl ConfigManager {
     /// Save the configuration to file
     pub fn save(&self) -> Result<()> {
         let default_path = get_config_file_path();
-        let config_file = self.config_file.as_ref()
-            .unwrap_or(&default_path);
+        let config_file = self.config_file.as_ref().unwrap_or(&default_path);
 
         // Ensure the config directory exists
         if let Some(parent) = config_file.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        
+
         let toml_content = toml::to_string_pretty(&self.config)
             .map_err(|e| anyhow::anyhow!("Failed to serialize config: {}", e))?;
-        
+
         std::fs::write(config_file, toml_content)?;
         Ok(())
     }
@@ -293,14 +288,14 @@ impl ConfigManager {
     /// Save the configuration to a specific file
     pub fn save_to_file<P: Into<PathBuf>>(&self, path: P) -> Result<()> {
         let path = path.into();
-        
+
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        
+
         let toml_content = toml::to_string_pretty(&self.config)
             .map_err(|e| anyhow::anyhow!("Failed to serialize config: {}", e))?;
-        
+
         std::fs::write(&path, toml_content)?;
         Ok(())
     }
@@ -317,41 +312,51 @@ impl ConfigManager {
         if self.config.api.port == 0 {
             return Err(anyhow::anyhow!("API port cannot be 0"));
         }
-        
+
         if self.config.api.timeout_seconds == 0 {
             return Err(anyhow::anyhow!("API timeout must be greater than 0"));
         }
-        
+
         // Validate streaming configuration
         if self.config.streaming.buffer_size == 0 {
-            return Err(anyhow::anyhow!("Streaming buffer size must be greater than 0"));
+            return Err(anyhow::anyhow!(
+                "Streaming buffer size must be greater than 0"
+            ));
         }
-        
+
         if self.config.streaming.max_concurrent_streams == 0 {
-            return Err(anyhow::anyhow!("Max concurrent streams must be greater than 0"));
+            return Err(anyhow::anyhow!(
+                "Max concurrent streams must be greater than 0"
+            ));
         }
-        
+
         // Validate backpressure configuration
         let bp = &self.config.streaming.backpressure;
         if bp.activation_threshold < 0.0 || bp.activation_threshold > 1.0 {
-            return Err(anyhow::anyhow!("Activation threshold must be between 0.0 and 1.0"));
+            return Err(anyhow::anyhow!(
+                "Activation threshold must be between 0.0 and 1.0"
+            ));
         }
-        
+
         if bp.recovery_threshold < 0.0 || bp.recovery_threshold > 1.0 {
-            return Err(anyhow::anyhow!("Recovery threshold must be between 0.0 and 1.0"));
+            return Err(anyhow::anyhow!(
+                "Recovery threshold must be between 0.0 and 1.0"
+            ));
         }
-        
+
         if bp.activation_threshold <= bp.recovery_threshold {
-            return Err(anyhow::anyhow!("Activation threshold must be greater than recovery threshold"));
+            return Err(anyhow::anyhow!(
+                "Activation threshold must be greater than recovery threshold"
+            ));
         }
-        
+
         // Validate reports configuration
         if !self.config.reports.output_directory.exists() {
             if let Err(e) = std::fs::create_dir_all(&self.config.reports.output_directory) {
                 return Err(anyhow::anyhow!("Cannot create output directory: {}", e));
             }
         }
-        
+
         Ok(())
     }
 
@@ -415,29 +420,29 @@ pub fn get_default_log_directory() -> PathBuf {
 /// Environment variable helpers
 pub mod env {
     use std::env;
-    
+
     pub fn get_api_host() -> Option<String> {
         env::var("RIPTIDE_API_HOST").ok()
     }
-    
+
     pub fn get_api_port() -> Option<u16> {
-        env::var("RIPTIDE_API_PORT").ok()
+        env::var("RIPTIDE_API_PORT")
+            .ok()
             .and_then(|s| s.parse().ok())
     }
-    
+
     pub fn get_log_level() -> Option<String> {
-        env::var("RIPTIDE_LOG_LEVEL").ok()
+        env::var("RIPTIDE_LOG_LEVEL")
+            .ok()
             .or_else(|| env::var("RUST_LOG").ok())
     }
-    
+
     pub fn get_config_file() -> Option<String> {
         env::var("RIPTIDE_CONFIG_FILE").ok()
     }
-    
+
     pub fn is_development_mode() -> bool {
-        env::var("RIPTIDE_DEV").is_ok() || 
-        env::var("DEVELOPMENT").is_ok() ||
-        cfg!(debug_assertions)
+        env::var("RIPTIDE_DEV").is_ok() || env::var("DEVELOPMENT").is_ok() || cfg!(debug_assertions)
     }
 }
 
@@ -445,67 +450,73 @@ pub mod env {
 mod tests {
     use super::*;
     use tempfile::tempdir;
-    
+
     #[test]
     fn test_config_builder_defaults() {
         let config = ConfigBuilder::new().build().unwrap();
-        
+
         assert_eq!(config.api.host, "localhost");
         assert_eq!(config.api.port, 8080);
         assert!(config.streaming.ndjson_enabled);
         assert!(config.reports.include_charts);
     }
-    
+
     #[test]
     fn test_config_builder_with_map() {
         let mut map = HashMap::new();
         map.insert("api.port".to_string(), "9000".to_string());
         map.insert("api.host".to_string(), "0.0.0.0".to_string());
-        
-        let config = ConfigBuilder::new()
-            .add_map(map)
-            .build()
-            .unwrap();
-        
+
+        let config = ConfigBuilder::new().add_map(map).build().unwrap();
+
         assert_eq!(config.api.host, "0.0.0.0");
         assert_eq!(config.api.port, 9000);
     }
-    
+
     #[test]
     fn test_config_validation() {
         let mut config = ConfigBuilder::new().build().unwrap();
-        let manager = ConfigManager { config: config.clone(), config_file: None };
-        
+        let manager = ConfigManager {
+            config: config.clone(),
+            config_file: None,
+        };
+
         // Valid configuration should pass
         assert!(manager.validate().is_ok());
-        
+
         // Invalid port should fail
         config.api.port = 0;
-        let manager = ConfigManager { config: config.clone(), config_file: None };
+        let manager = ConfigManager {
+            config: config.clone(),
+            config_file: None,
+        };
         assert!(manager.validate().is_err());
-        
+
         // Invalid threshold should fail
         config.api.port = 8080;
         config.streaming.backpressure.activation_threshold = 1.5;
-        let manager = ConfigManager { config, config_file: None };
+        let manager = ConfigManager {
+            config,
+            config_file: None,
+        };
         assert!(manager.validate().is_err());
     }
-    
+
     #[test]
     fn test_config_save_and_load() {
         let temp_dir = tempdir().unwrap();
         let config_file = temp_dir.path().join("test-config.toml");
-        
+
         // Create and save a configuration
         let mut manager = ConfigManager::new().unwrap();
         manager.config_mut().api.port = 9999;
         manager.save_to_file(&config_file).unwrap();
-        
+
         // Load the configuration from file
         let loaded_manager = ConfigManager::load_from_file(&config_file).unwrap();
         assert_eq!(loaded_manager.config().api.port, 9999);
     }
-    
+
     #[test]
     fn test_environment_helpers() {
         // These tests would need to set environment variables
@@ -515,25 +526,25 @@ mod tests {
         let _ = env::get_log_level();
         let _ = env::is_development_mode();
     }
-    
+
     #[test]
     fn test_config_summary() {
         let manager = ConfigManager::new().unwrap();
         let summary = manager.summary();
-        
+
         assert!(summary.contains("RipTide Configuration Summary"));
         assert!(summary.contains("localhost:8080"));
         assert!(summary.contains("info"));
     }
-    
+
     #[test]
     fn test_default_paths() {
         let config_path = get_config_file_path();
         assert!(config_path.to_string_lossy().ends_with("config.toml"));
-        
+
         let output_dir = get_default_output_directory();
         assert!(output_dir.to_string_lossy().ends_with("reports"));
-        
+
         let log_dir = get_default_log_directory();
         assert!(log_dir.to_string_lossy().ends_with("logs"));
     }

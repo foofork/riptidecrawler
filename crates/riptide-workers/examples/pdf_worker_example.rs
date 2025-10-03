@@ -5,9 +5,7 @@ use tracing::{info, Level};
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Initialize logging
-    tracing_subscriber::fmt()
-        .with_max_level(Level::INFO)
-        .init();
+    tracing_subscriber::fmt().with_max_level(Level::INFO).init();
 
     info!("Starting PDF worker example");
 
@@ -17,7 +15,7 @@ async fn main() -> anyhow::Result<()> {
         worker_config: WorkerConfig {
             worker_count: 2,
             poll_interval_secs: 2,
-            job_timeout_secs: 300, // 5 minutes for PDF processing
+            job_timeout_secs: 300,  // 5 minutes for PDF processing
             max_concurrent_jobs: 1, // One PDF job per worker to manage memory
             ..Default::default()
         },

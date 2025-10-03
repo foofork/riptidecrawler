@@ -9,10 +9,10 @@ use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
 
 use crate::cache_warming::{
-    CacheWarmingConfig, CacheWarmingManager, CacheWarmingPoolExt, CacheWarmingStats
+    CacheWarmingConfig, CacheWarmingManager, CacheWarmingPoolExt, CacheWarmingStats,
 };
-use crate::instance_pool::AdvancedInstancePool;
 use crate::events::EventBus;
+use crate::instance_pool::AdvancedInstancePool;
 use crate::types::ExtractionMode;
 
 /// Enhanced instance pool with integrated cache warming
@@ -95,7 +95,9 @@ impl CacheWarmingEnabledPool {
         if let Some(warming_manager) = &self.warming_manager {
             let processing_time = start_time.elapsed().as_millis() as f64;
             let cache_hit = used_warm_instance;
-            warming_manager.record_url_pattern(url, processing_time, cache_hit).await;
+            warming_manager
+                .record_url_pattern(url, processing_time, cache_hit)
+                .await;
         }
 
         result
@@ -142,7 +144,9 @@ impl CacheWarmingPoolFactory {
     ) -> Result<CacheWarmingEnabledPool> {
         let mut cache_warming_pool = CacheWarmingEnabledPool::new(pool);
         let config = CacheWarmingConfig::default();
-        cache_warming_pool.enable_cache_warming(config, event_bus).await?;
+        cache_warming_pool
+            .enable_cache_warming(config, event_bus)
+            .await?;
         Ok(cache_warming_pool)
     }
 
@@ -153,7 +157,9 @@ impl CacheWarmingPoolFactory {
         event_bus: Option<Arc<EventBus>>,
     ) -> Result<CacheWarmingEnabledPool> {
         let mut cache_warming_pool = CacheWarmingEnabledPool::new(pool);
-        cache_warming_pool.enable_cache_warming(config, event_bus).await?;
+        cache_warming_pool
+            .enable_cache_warming(config, event_bus)
+            .await?;
         Ok(cache_warming_pool)
     }
 }

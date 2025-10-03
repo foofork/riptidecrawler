@@ -60,14 +60,17 @@ pub mod utils_corrupted;
 // Re-export main types and functions for convenient access
 pub use config::{ImageFormat, MemorySettings, OcrConfig, PdfCapabilities, PdfConfig};
 pub use errors::{PdfError, PdfResult};
-pub use integration::{PdfPipelineIntegration, create_pdf_integration_for_pipeline, detect_and_process_pdf};
-pub use memory_benchmark::{PdfMemoryBenchmark, MemoryBenchmarkResults};
-pub use metrics::{PdfMetricsCollector, PdfMetricsSnapshot, PdfOperationTimer};
-pub use processor::{create_pdf_processor, PdfProcessor, AnyPdfProcessor};
-pub use types::{
-    ExtractedDoc, PdfImage, PdfMetadata, PdfProcessingResult, PdfStats, ProgressCallback, StructuredContent,
+pub use integration::{
+    create_pdf_integration_for_pipeline, detect_and_process_pdf, PdfPipelineIntegration,
 };
-pub use utils::{detect_pdf_content, detect_pdf_by_extension, detect_pdf_by_magic_bytes};
+pub use memory_benchmark::{MemoryBenchmarkResults, PdfMemoryBenchmark};
+pub use metrics::{PdfMetricsCollector, PdfMetricsSnapshot, PdfOperationTimer};
+pub use processor::{create_pdf_processor, AnyPdfProcessor, PdfProcessor};
+pub use types::{
+    ExtractedDoc, PdfImage, PdfMetadata, PdfProcessingResult, PdfStats, ProgressCallback,
+    StructuredContent,
+};
+pub use utils::{detect_pdf_by_extension, detect_pdf_by_magic_bytes, detect_pdf_content};
 
 // Conditionally export processor implementations
 #[cfg(feature = "pdf")]

@@ -145,7 +145,7 @@ pub async fn process_dynamic(
     // Call dynamic rendering via RPC with timeout protection
     let render_result = timeout(
         render_timeout,
-        rpc_client.render_dynamic(url, dynamic_config, stealth_config.as_ref())
+        rpc_client.render_dynamic(url, dynamic_config, stealth_config.as_ref()),
     )
     .await;
 
@@ -202,7 +202,10 @@ pub async fn process_dynamic(
 
             Err(ApiError::timeout(
                 "render",
-                format!("Operation exceeded {}s timeout", state.api_config.performance.render_timeout_secs)
+                format!(
+                    "Operation exceeded {}s timeout",
+                    state.api_config.performance.render_timeout_secs
+                ),
             ))
         }
     }

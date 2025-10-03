@@ -43,9 +43,12 @@ async fn create_test_state_manager(
     };
 
     // Use embedded Redis for testing if available, otherwise use mock
-    let redis_url = std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+    let redis_url =
+        std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
 
-    StateManager::new(&redis_url, config).await.map_err(Into::into)
+    StateManager::new(&redis_url, config)
+        .await
+        .map_err(Into::into)
 }
 
 #[tokio::test]
@@ -89,10 +92,7 @@ async fn test_session_persistence_round_trip() {
         assert_eq!(session.id, session_id);
         assert_eq!(session.user_id, Some("user123".to_string()));
         assert_eq!(session.status, SessionStatus::Active);
-        assert_eq!(
-            session.data.get("key1"),
-            Some(&serde_json::json!("value1"))
-        );
+        assert_eq!(session.data.get("key1"), Some(&serde_json::json!("value1")));
         assert_eq!(session.data.get("key2"), Some(&serde_json::json!(42)));
         assert_eq!(session.metadata.client_ip, Some("127.0.0.1".to_string()));
 
@@ -183,10 +183,14 @@ async fn test_session_recovery_from_disk() {
 
         // Add data
         state_manager
-            .update_session_data(&session_id, "critical_data", serde_json::json!({
-                "status": "active",
-                "count": 100,
-            }))
+            .update_session_data(
+                &session_id,
+                "critical_data",
+                serde_json::json!({
+                    "status": "active",
+                    "count": 100,
+                }),
+            )
             .await
             .unwrap();
 
@@ -245,14 +249,22 @@ async fn test_session_termination_cleanup() {
             .unwrap();
 
         // Verify session exists
-        assert!(state_manager.get_session(&session_id).await.unwrap().is_some());
+        assert!(state_manager
+            .get_session(&session_id)
+            .await
+            .unwrap()
+            .is_some());
 
         // Terminate session
         let deleted = state_manager.terminate_session(&session_id).await.unwrap();
         assert!(deleted);
 
         // Verify session is gone
-        assert!(state_manager.get_session(&session_id).await.unwrap().is_none());
+        assert!(state_manager
+            .get_session(&session_id)
+            .await
+            .unwrap()
+            .is_none());
 
         // Verify second termination returns false
         let deleted_again = state_manager.terminate_session(&session_id).await.unwrap();
@@ -283,7 +295,11 @@ async fn test_session_expiration() {
             .unwrap();
 
         // Session should exist immediately
-        assert!(state_manager.get_session(&session_id).await.unwrap().is_some());
+        assert!(state_manager
+            .get_session(&session_id)
+            .await
+            .unwrap()
+            .is_some());
 
         // Wait for expiration (TTL + buffer)
         sleep(Duration::from_secs(5)).await;
@@ -357,7 +373,11 @@ async fn test_concurrent_session_operations() {
 
         // Verify all sessions exist
         for session_id in session_ids {
-            assert!(state_manager.get_session(&session_id).await.unwrap().is_some());
+            assert!(state_manager
+                .get_session(&session_id)
+                .await
+                .unwrap()
+                .is_some());
         }
 
         info!("✅ Concurrent session operations successful");
@@ -446,7 +466,11 @@ async fn test_session_metadata_preservation() {
         };
 
         let session_id = state_manager
-            .create_session(Some("metadata_user".to_string()), metadata.clone(), Some(600))
+            .create_session(
+                Some("metadata_user".to_string()),
+                metadata.clone(),
+                Some(600),
+            )
             .await
             .unwrap();
 

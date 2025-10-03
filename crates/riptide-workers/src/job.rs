@@ -240,7 +240,11 @@ impl Job {
     /// Calculate next retry time based on exponential backoff
     pub fn calculate_next_retry(&self) -> DateTime<Utc> {
         let base_delay = self.retry_config.initial_delay_secs as f64;
-        let delay_secs = base_delay * self.retry_config.backoff_multiplier.powi(self.retry_count as i32);
+        let delay_secs = base_delay
+            * self
+                .retry_config
+                .backoff_multiplier
+                .powi(self.retry_count as i32);
         let max_delay = self.retry_config.max_delay_secs as f64;
         let actual_delay = delay_secs.min(max_delay);
 
@@ -318,7 +322,12 @@ pub struct JobResult {
 
 impl JobResult {
     /// Create successful job result
-    pub fn success(job_id: Uuid, worker_id: String, data: Option<serde_json::Value>, processing_time_ms: u64) -> Self {
+    pub fn success(
+        job_id: Uuid,
+        worker_id: String,
+        data: Option<serde_json::Value>,
+        processing_time_ms: u64,
+    ) -> Self {
         Self {
             job_id,
             success: true,
@@ -331,7 +340,12 @@ impl JobResult {
     }
 
     /// Create failed job result
-    pub fn failure(job_id: Uuid, worker_id: String, error: String, processing_time_ms: u64) -> Self {
+    pub fn failure(
+        job_id: Uuid,
+        worker_id: String,
+        error: String,
+        processing_time_ms: u64,
+    ) -> Self {
         Self {
             job_id,
             success: false,
@@ -383,12 +397,10 @@ mod tests {
             url: "https://example.com".to_string(),
             options: None,
         };
-        let mut job = Job::new(job_type).with_retry_config(
-            RetryConfig {
-                max_attempts: 2,
-                ..Default::default()
-            },
-        );
+        let mut job = Job::new(job_type).with_retry_config(RetryConfig {
+            max_attempts: 2,
+            ..Default::default()
+        });
 
         // First failure
         job.fail("Error 1".to_string());

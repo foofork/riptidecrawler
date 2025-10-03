@@ -1,11 +1,11 @@
-use riptide_headless::{
-    pool::{BrowserPool, BrowserPoolConfig},
-    launcher::{HeadlessLauncher, LauncherConfig},
-};
 use chromiumoxide::BrowserConfig;
+use riptide_core::stealth::StealthPreset;
+use riptide_headless::{
+    launcher::{HeadlessLauncher, LauncherConfig},
+    pool::{BrowserPool, BrowserPoolConfig},
+};
 use std::sync::Arc;
 use std::time::Duration;
-use riptide_core::stealth::StealthPreset;
 
 #[tokio::test]
 async fn test_browser_config_creation() {
@@ -336,7 +336,11 @@ async fn test_stealth_presets() {
         };
 
         let launcher = HeadlessLauncher::with_config(config).await;
-        assert!(launcher.is_ok(), "Failed to create launcher with preset: {:?}", preset);
+        assert!(
+            launcher.is_ok(),
+            "Failed to create launcher with preset: {:?}",
+            preset
+        );
 
         if let Ok(launcher) = launcher {
             let _ = launcher.shutdown().await;

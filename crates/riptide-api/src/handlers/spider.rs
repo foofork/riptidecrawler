@@ -2,7 +2,7 @@ use crate::errors::ApiError;
 use crate::models::*;
 use crate::state::AppState;
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use riptide_core::spider::{SpiderConfig, CrawlingStrategy, ScoringConfig};
+use riptide_core::spider::{CrawlingStrategy, ScoringConfig, SpiderConfig};
 use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
 use url::Url;
@@ -39,12 +39,15 @@ pub async fn spider_crawl(
         .seed_urls
         .iter()
         .map(|url_str| {
-            Url::parse(url_str).map_err(|e| ApiError::validation(format!("Invalid URL '{}': {}", url_str, e)))
+            Url::parse(url_str)
+                .map_err(|e| ApiError::validation(format!("Invalid URL '{}': {}", url_str, e)))
         })
         .collect::<Result<Vec<_>, _>>()?;
 
     if seed_urls.is_empty() {
-        return Err(ApiError::validation("At least one seed URL is required".to_string()));
+        return Err(ApiError::validation(
+            "At least one seed URL is required".to_string(),
+        ));
     }
 
     // Create a temporary spider config based on request parameters
@@ -110,9 +113,7 @@ pub async fn spider_crawl(
         Err(e) => {
             // Record failed spider crawl
             state.metrics.record_spider_crawl_completion(0, 1, 0.0);
-            return Err(ApiError::internal(
-                format!("Spider crawl failed: {}", e)
-            ));
+            return Err(ApiError::internal(format!("Spider crawl failed: {}", e)));
         }
     };
 
@@ -125,7 +126,9 @@ pub async fn spider_crawl(
 
     // Update frontier size metrics
     let frontier_stats = spider.get_frontier_stats().await;
-    state.metrics.update_spider_frontier_size(frontier_stats.total_requests);
+    state
+        .metrics
+        .update_spider_frontier_size(frontier_stats.total_requests);
 
     // Get current state and performance metrics
     let crawl_state = spider.get_crawl_state().await;
@@ -225,21 +228,21 @@ pub async fn spider_control(
         "stop" => {
             spider.stop().await;
             info!("Spider stop requested");
-            Ok((StatusCode::OK, Json(serde_json::json!({"status": "stopped"}))))
+            Ok((
+                StatusCode::OK,
+                Json(serde_json::json!({"status": "stopped"})),
+            ))
         }
-        "reset" => {
-            match spider.reset().await {
-                Ok(_) => {
-                    info!("Spider reset completed");
-                    Ok((StatusCode::OK, Json(serde_json::json!({"status": "reset"}))))
-                }
-                Err(e) => {
-                    Err(ApiError::internal(format!("Spider reset failed: {}", e)))
-                }
+        "reset" => match spider.reset().await {
+            Ok(_) => {
+                info!("Spider reset completed");
+                Ok((StatusCode::OK, Json(serde_json::json!({"status": "reset"}))))
             }
-        }
-        _ => {
-            Err(ApiError::validation(format!("Unknown action: {}", body.action)))
-        }
+            Err(e) => Err(ApiError::internal(format!("Spider reset failed: {}", e))),
+        },
+        _ => Err(ApiError::validation(format!(
+            "Unknown action: {}",
+            body.action
+        ))),
     }
 }

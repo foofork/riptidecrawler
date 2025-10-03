@@ -9,17 +9,17 @@
 //! All chunking strategies must process 50KB of text in ≤200ms to meet RipTide's
 //! performance requirements.
 
-pub mod sliding;
 pub mod fixed;
-pub mod sentence;
-pub mod regex_chunker;
 pub mod html_aware;
+pub mod regex_chunker;
+pub mod sentence;
+pub mod sliding;
 pub mod topic;
 
 use anyhow::Result;
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use async_trait::async_trait;
 
 /// Chunking strategy trait for HTML content processing
 #[async_trait]
@@ -110,19 +110,11 @@ impl Default for ChunkingConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ChunkingMode {
     /// Sliding window with configurable overlap
-    Sliding {
-        window_size: usize,
-        overlap: usize,
-    },
+    Sliding { window_size: usize, overlap: usize },
     /// Fixed-size chunks
-    Fixed {
-        size: usize,
-        by_tokens: bool,
-    },
+    Fixed { size: usize, by_tokens: bool },
     /// Sentence-based chunking
-    Sentence {
-        max_sentences: usize,
-    },
+    Sentence { max_sentences: usize },
     /// Regex pattern-based chunking
     Regex {
         pattern: String,
@@ -156,29 +148,52 @@ impl Default for ChunkingMode {
 /// Create a chunking strategy based on the specified mode
 pub fn create_strategy(mode: ChunkingMode, config: ChunkingConfig) -> Box<dyn ChunkingStrategy> {
     match mode {
-        ChunkingMode::Sliding { window_size, overlap } => {
-            Box::new(sliding::SlidingWindowChunker::new(window_size, overlap, config))
-        },
+        ChunkingMode::Sliding {
+            window_size,
+            overlap,
+        } => Box::new(sliding::SlidingWindowChunker::new(
+            window_size,
+            overlap,
+            config,
+        )),
         ChunkingMode::Fixed { size, by_tokens } => {
             Box::new(fixed::FixedSizeChunker::new(size, by_tokens, config))
-        },
+        }
         ChunkingMode::Sentence { max_sentences } => {
             Box::new(sentence::SentenceChunker::new(max_sentences, config))
-        },
-        ChunkingMode::Regex { pattern, min_chunk_size } => {
-            Box::new(regex_chunker::RegexChunker::new(pattern, min_chunk_size, config))
-        },
-        ChunkingMode::HtmlAware { preserve_blocks, preserve_structure } => {
-            Box::new(html_aware::HtmlAwareChunker::new(preserve_blocks, preserve_structure, config))
-        },
-        ChunkingMode::Topic { topic_chunking, window_size, smoothing_passes } => {
+        }
+        ChunkingMode::Regex {
+            pattern,
+            min_chunk_size,
+        } => Box::new(regex_chunker::RegexChunker::new(
+            pattern,
+            min_chunk_size,
+            config,
+        )),
+        ChunkingMode::HtmlAware {
+            preserve_blocks,
+            preserve_structure,
+        } => Box::new(html_aware::HtmlAwareChunker::new(
+            preserve_blocks,
+            preserve_structure,
+            config,
+        )),
+        ChunkingMode::Topic {
+            topic_chunking,
+            window_size,
+            smoothing_passes,
+        } => {
             if topic_chunking {
-                Box::new(topic::TopicChunker::new(window_size, smoothing_passes, config))
+                Box::new(topic::TopicChunker::new(
+                    window_size,
+                    smoothing_passes,
+                    config,
+                ))
             } else {
                 // Fallback to sliding window when topic chunking is disabled
                 Box::new(sliding::SlidingWindowChunker::new(1000, 100, config))
             }
-        },
+        }
     }
 }
 
@@ -231,7 +246,10 @@ pub mod utils {
         let words: Vec<String> = text
             .split_whitespace()
             .filter(|word| word.len() > 3)
-            .map(|word| word.trim_matches(|c: char| !c.is_alphanumeric()).to_lowercase())
+            .map(|word| {
+                word.trim_matches(|c: char| !c.is_alphanumeric())
+                    .to_lowercase()
+            })
             .filter(|word| !word.is_empty() && !is_stop_word(word))
             .collect();
 
@@ -253,12 +271,11 @@ pub mod utils {
     /// Check if a word is a stop word
     fn is_stop_word(word: &str) -> bool {
         const STOP_WORDS: &[&str] = &[
-            "the", "be", "to", "of", "and", "a", "in", "that", "have",
-            "i", "it", "for", "not", "on", "with", "he", "as", "you",
-            "do", "at", "this", "but", "his", "by", "from", "they",
-            "we", "say", "her", "she", "or", "an", "will", "my",
-            "one", "all", "would", "there", "their", "what", "so",
-            "up", "out", "if", "about", "who", "get", "which", "go", "me",
+            "the", "be", "to", "of", "and", "a", "in", "that", "have", "i", "it", "for", "not",
+            "on", "with", "he", "as", "you", "do", "at", "this", "but", "his", "by", "from",
+            "they", "we", "say", "her", "she", "or", "an", "will", "my", "one", "all", "would",
+            "there", "their", "what", "so", "up", "out", "if", "about", "who", "get", "which",
+            "go", "me",
         ];
 
         STOP_WORDS.contains(&word)
@@ -298,15 +315,14 @@ pub mod utils {
     /// Check if a word is likely an abbreviation
     fn is_abbreviation(word: &str) -> bool {
         const COMMON_ABBREVIATIONS: &[&str] = &[
-            "mr.", "mrs.", "ms.", "dr.", "prof.", "sr.", "jr.",
-            "inc.", "ltd.", "corp.", "co.", "etc.", "vs.", "vol.",
-            "no.", "pp.", "fig.", "ch.", "sec.", "dept.", "govt.",
-            "u.s.", "u.k.", "e.g.", "i.e.", "a.m.", "p.m.",
+            "mr.", "mrs.", "ms.", "dr.", "prof.", "sr.", "jr.", "inc.", "ltd.", "corp.", "co.",
+            "etc.", "vs.", "vol.", "no.", "pp.", "fig.", "ch.", "sec.", "dept.", "govt.", "u.s.",
+            "u.k.", "e.g.", "i.e.", "a.m.", "p.m.",
         ];
 
         let lower = word.to_lowercase();
-        COMMON_ABBREVIATIONS.contains(&lower.as_str()) ||
-        (word.len() <= 4 && word.chars().filter(|c| c.is_uppercase()).count() > 1)
+        COMMON_ABBREVIATIONS.contains(&lower.as_str())
+            || (word.len() <= 4 && word.chars().filter(|c| c.is_uppercase()).count() > 1)
     }
 }
 
@@ -328,17 +344,17 @@ mod tests {
 
         // Test fixed size chunking
         let strategy = create_strategy(
-            ChunkingMode::Fixed { size: 50, by_tokens: false },
-            config.clone()
+            ChunkingMode::Fixed {
+                size: 50,
+                by_tokens: false,
+            },
+            config.clone(),
         );
         let chunks = strategy.chunk(text).await.unwrap();
         assert!(!chunks.is_empty());
 
         // Test sentence chunking
-        let strategy = create_strategy(
-            ChunkingMode::Sentence { max_sentences: 2 },
-            config
-        );
+        let strategy = create_strategy(ChunkingMode::Sentence { max_sentences: 2 }, config);
         let chunks = strategy.chunk(text).await.unwrap();
         assert!(!chunks.is_empty());
     }
@@ -346,7 +362,8 @@ mod tests {
     #[tokio::test]
     async fn test_performance_requirement() {
         // Generate 50KB of text
-        let base_text = "This is a performance test document with multiple sentences and paragraphs. ";
+        let base_text =
+            "This is a performance test document with multiple sentences and paragraphs. ";
         let mut large_text = String::new();
         while large_text.len() < 50_000 {
             large_text.push_str(base_text);
@@ -360,7 +377,11 @@ mod tests {
         let duration = start.elapsed();
 
         // Should complete in ≤200ms
-        assert!(duration.as_millis() <= 200, "Chunking took {}ms, expected ≤200ms", duration.as_millis());
+        assert!(
+            duration.as_millis() <= 200,
+            "Chunking took {}ms, expected ≤200ms",
+            duration.as_millis()
+        );
         assert!(!chunks.is_empty());
     }
 }

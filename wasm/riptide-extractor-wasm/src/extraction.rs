@@ -1,8 +1,8 @@
+use regex::Regex;
 use scraper::{Html, Selector};
 use serde_json::Value;
 use url::Url;
 use whatlang::{detect, Lang};
-use regex::Regex;
 
 /// Extract all links from HTML with full attributes
 pub fn extract_links(html: &str, base_url: &str) -> Vec<String> {
@@ -140,7 +140,9 @@ pub fn extract_media(html: &str, base_url: &str) -> Vec<String> {
     }
 
     // Extract Open Graph images
-    if let Ok(selector) = Selector::parse("meta[property='og:image'], meta[property='og:image:url']") {
+    if let Ok(selector) =
+        Selector::parse("meta[property='og:image'], meta[property='og:image:url']")
+    {
         for element in document.select(&selector) {
             if let Some(content) = element.value().attr("content") {
                 if let Ok(absolute_url) = base.join(content) {
@@ -151,7 +153,9 @@ pub fn extract_media(html: &str, base_url: &str) -> Vec<String> {
     }
 
     // Extract favicons and touch icons
-    if let Ok(selector) = Selector::parse("link[rel*='icon'][href], link[rel*='apple-touch-icon'][href]") {
+    if let Ok(selector) =
+        Selector::parse("link[rel*='icon'][href], link[rel*='apple-touch-icon'][href]")
+    {
         for element in document.select(&selector) {
             if let Some(href) = element.value().attr("href") {
                 if let Ok(absolute_url) = base.join(href) {
@@ -271,7 +275,8 @@ fn extract_text_for_detection(document: &Html) -> String {
 
     for selector_str in &selectors {
         if let Ok(selector) = Selector::parse(selector_str) {
-            for element in document.select(&selector).take(10) { // Limit for efficiency
+            for element in document.select(&selector).take(10) {
+                // Limit for efficiency
                 let element_text = element.text().collect::<String>();
                 if !element_text.trim().is_empty() {
                     text.push_str(&element_text);
@@ -430,7 +435,8 @@ pub fn extract_categories(html: &str) -> Vec<String> {
 
     // Extract from class names that suggest categories
     if let Ok(selector) = Selector::parse("[class*='category'], [class*='tag'], [class*='topic']") {
-        for element in document.select(&selector).take(10) { // Limit for performance
+        for element in document.select(&selector).take(10) {
+            // Limit for performance
             let text = element.text().collect::<String>().trim().to_string();
             if !text.is_empty() && text.len() < 50 && !categories.contains(&text) {
                 // Only add if it looks like a category (short text)
@@ -544,14 +550,18 @@ fn extract_breadcrumb_categories(document: &Html, categories: &mut Vec<String>) 
         "nav[aria-label*='breadcrumb'] a",
         ".breadcrumb a",
         ".breadcrumbs a",
-        "[role='navigation'] a"
+        "[role='navigation'] a",
     ];
 
     for selector_str in &breadcrumb_selectors {
         if let Ok(selector) = Selector::parse(selector_str) {
             for element in document.select(&selector) {
                 let text = element.text().collect::<String>().trim().to_string();
-                if !text.is_empty() && text.len() < 100 && !categories.contains(&text) && is_likely_category(&text) {
+                if !text.is_empty()
+                    && text.len() < 100
+                    && !categories.contains(&text)
+                    && is_likely_category(&text)
+                {
                     categories.push(text);
                 }
             }
@@ -569,7 +579,16 @@ fn is_likely_category(text: &str) -> bool {
     }
 
     // Skip common non-category words
-    let skip_words = ["home", "index", "main", "page", "click", "here", "read more", "continue"];
+    let skip_words = [
+        "home",
+        "index",
+        "main",
+        "page",
+        "click",
+        "here",
+        "read more",
+        "continue",
+    ];
     let lower_text = text.to_lowercase();
 
     for skip in &skip_words {

@@ -182,11 +182,11 @@ impl AuditLogger {
     /// Create a new audit logger
     pub fn new(config: Option<AuditConfig>) -> Result<Self> {
         let config = config.unwrap_or_default();
-        
+
         // Create log directory if it doesn't exist
         std::fs::create_dir_all(&config.log_directory)
             .map_err(|e| anyhow!("Failed to create audit log directory: {}", e))?;
-        
+
         let stats = AuditStats {
             total_events: 0,
             events_by_severity: HashMap::new(),
@@ -197,7 +197,7 @@ impl AuditLogger {
             last_rotation: Utc::now(),
             storage_usage_mb: 0.0,
         };
-        
+
         let logger = Self {
             config,
             current_file: Arc::new(Mutex::new(None)),
@@ -205,45 +205,45 @@ impl AuditLogger {
             stats: Arc::new(RwLock::new(stats)),
             alert_counters: Arc::new(RwLock::new(HashMap::new())),
         };
-        
+
         // Initialize the first log file
         logger.rotate_log_file()?;
-        
+
         info!("Audit logger initialized successfully");
         Ok(logger)
     }
-    
+
     /// Log a security event
     pub async fn log_event(&self, entry: AuditLogEntry) -> Result<()> {
         // Check if we should log this severity level
         if !self.config.log_levels.contains(&entry.severity) {
             return Ok(());
         }
-        
+
         // Prepare the log entry for writing
         let formatted_entry = self.format_log_entry(&entry)?;
-        
+
         // Write to file
         self.write_to_file(&formatted_entry).await?;
-        
+
         // Update statistics
         self.update_stats(&entry).await;
-        
+
         // Check for alerts
         if self.config.enable_real_time_alerts {
             self.check_alerts(&entry).await;
         }
-        
+
         debug!(
             event_id = %entry.id,
             event_type = %entry.event_type,
             severity = %entry.severity,
             "Audit event logged"
         );
-        
+
         Ok(())
     }
-    
+
     /// Create an audit entry for API key usage
     pub fn create_api_key_usage_entry(
         &self,
@@ -270,10 +270,14 @@ impl AuditLogger {
             action: "api_key_authentication".to_string(),
             outcome,
             details,
-            metadata: context.metadata.iter().map(|(k, v)| (k.clone(), Value::String(v.clone()))).collect(),
+            metadata: context
+                .metadata
+                .iter()
+                .map(|(k, v)| (k.clone(), Value::String(v.clone())))
+                .collect(),
         }
     }
-    
+
     /// Create an audit entry for budget events
     pub fn create_budget_event_entry(
         &self,
@@ -287,7 +291,7 @@ impl AuditLogger {
             SecurityEventType::BudgetWarning => SecuritySeverity::High,
             _ => SecuritySeverity::Medium,
         };
-        
+
         AuditLogEntry {
             id: Uuid::new_v4().to_string(),
             timestamp: Utc::now(),
@@ -305,14 +309,26 @@ impl AuditLogger {
             details,
             metadata: {
                 let mut metadata = HashMap::new();
-                metadata.insert("tokens_used".to_string(), Value::Number(cost_info.tokens_used.into()));
-                metadata.insert("cost_usd".to_string(), Value::Number(serde_json::Number::from_f64(cost_info.estimated_cost_usd).unwrap_or_else(|| serde_json::Number::from(0))));
-                metadata.insert("model_name".to_string(), Value::String(cost_info.model_name.clone()));
+                metadata.insert(
+                    "tokens_used".to_string(),
+                    Value::Number(cost_info.tokens_used.into()),
+                );
+                metadata.insert(
+                    "cost_usd".to_string(),
+                    Value::Number(
+                        serde_json::Number::from_f64(cost_info.estimated_cost_usd)
+                            .unwrap_or_else(|| serde_json::Number::from(0)),
+                    ),
+                );
+                metadata.insert(
+                    "model_name".to_string(),
+                    Value::String(cost_info.model_name.clone()),
+                );
                 metadata
             },
         }
     }
-    
+
     /// Create an audit entry for PII detection
     pub fn create_pii_detection_entry(
         &self,
@@ -324,7 +340,11 @@ impl AuditLogger {
             id: Uuid::new_v4().to_string(),
             timestamp: Utc::now(),
             event_type: SecurityEventType::PiiDetected,
-            severity: if pii_count > 5 { SecuritySeverity::High } else { SecuritySeverity::Medium },
+            severity: if pii_count > 5 {
+                SecuritySeverity::High
+            } else {
+                SecuritySeverity::Medium
+            },
             tenant_id: Some(tenant_id.clone()),
             user_id: None,
             api_key_id: None,
@@ -337,12 +357,15 @@ impl AuditLogger {
             details,
             metadata: {
                 let mut metadata = HashMap::new();
-                metadata.insert("pii_detections".to_string(), Value::Number(pii_count.into()));
+                metadata.insert(
+                    "pii_detections".to_string(),
+                    Value::Number(pii_count.into()),
+                );
                 metadata
             },
         }
     }
-    
+
     /// Create an audit entry for rate limiting
     pub fn create_rate_limit_entry(
         &self,
@@ -371,44 +394,46 @@ impl AuditLogger {
             metadata: HashMap::new(),
         }
     }
-    
+
     /// Format log entry according to configuration
     fn format_log_entry(&self, entry: &AuditLogEntry) -> Result<String> {
         match self.config.log_format {
-            AuditLogFormat::Json => {
-                serde_json::to_string(entry)
-                    .map_err(|e| anyhow!("Failed to serialize audit entry to JSON: {}", e))
-            }
-            AuditLogFormat::Csv => {
-                Ok(format!(
-                    "{},{},{},{},{},{},{},{},{},{}",
-                    entry.timestamp.format("%Y-%m-%d %H:%M:%S UTC"),
-                    entry.event_type,
-                    entry.severity,
-                    entry.tenant_id.as_ref().map(|t| t.to_string()).unwrap_or_default(),
-                    entry.action,
-                    entry.outcome,
-                    entry.source_ip.as_deref().unwrap_or(""),
-                    entry.request_id.as_deref().unwrap_or(""),
-                    entry.details.description,
-                    entry.details.error_message.as_deref().unwrap_or("")
-                ))
-            }
-            AuditLogFormat::Syslog => {
-                Ok(format!(
-                    "<{}>{} riptide[{}]: {} {} {} tenant={} action={} outcome={} {}",
-                    Self::severity_to_syslog_priority(&entry.severity),
-                    entry.timestamp.format("%b %d %H:%M:%S"),
-                    std::process::id(),
-                    entry.event_type,
-                    entry.id,
-                    entry.severity,
-                    entry.tenant_id.as_ref().map(|t| t.to_string()).unwrap_or("unknown".to_string()),
-                    entry.action,
-                    entry.outcome,
-                    entry.details.description
-                ))
-            }
+            AuditLogFormat::Json => serde_json::to_string(entry)
+                .map_err(|e| anyhow!("Failed to serialize audit entry to JSON: {}", e)),
+            AuditLogFormat::Csv => Ok(format!(
+                "{},{},{},{},{},{},{},{},{},{}",
+                entry.timestamp.format("%Y-%m-%d %H:%M:%S UTC"),
+                entry.event_type,
+                entry.severity,
+                entry
+                    .tenant_id
+                    .as_ref()
+                    .map(|t| t.to_string())
+                    .unwrap_or_default(),
+                entry.action,
+                entry.outcome,
+                entry.source_ip.as_deref().unwrap_or(""),
+                entry.request_id.as_deref().unwrap_or(""),
+                entry.details.description,
+                entry.details.error_message.as_deref().unwrap_or("")
+            )),
+            AuditLogFormat::Syslog => Ok(format!(
+                "<{}>{} riptide[{}]: {} {} {} tenant={} action={} outcome={} {}",
+                Self::severity_to_syslog_priority(&entry.severity),
+                entry.timestamp.format("%b %d %H:%M:%S"),
+                std::process::id(),
+                entry.event_type,
+                entry.id,
+                entry.severity,
+                entry
+                    .tenant_id
+                    .as_ref()
+                    .map(|t| t.to_string())
+                    .unwrap_or("unknown".to_string()),
+                entry.action,
+                entry.outcome,
+                entry.details.description
+            )),
             AuditLogFormat::Custom(_) => {
                 // For custom format, default to JSON
                 serde_json::to_string(entry)
@@ -416,60 +441,67 @@ impl AuditLogger {
             }
         }
     }
-    
+
     /// Convert security severity to syslog priority
     fn severity_to_syslog_priority(severity: &SecuritySeverity) -> u8 {
         match severity {
-            SecuritySeverity::Low => 22,    // Local use facility (16) + Info (6)
-            SecuritySeverity::Medium => 20, // Local use facility (16) + Warning (4)
-            SecuritySeverity::High => 19,   // Local use facility (16) + Error (3)
+            SecuritySeverity::Low => 22,      // Local use facility (16) + Info (6)
+            SecuritySeverity::Medium => 20,   // Local use facility (16) + Warning (4)
+            SecuritySeverity::High => 19,     // Local use facility (16) + Error (3)
             SecuritySeverity::Critical => 18, // Local use facility (16) + Critical (2)
         }
     }
-    
+
     /// Write formatted entry to log file
     async fn write_to_file(&self, formatted_entry: &str) -> Result<()> {
-        let entry_bytes = format!("{}
-", formatted_entry);
+        let entry_bytes = format!(
+            "{}
+",
+            formatted_entry
+        );
         let entry_size = entry_bytes.len() as u64;
-        
+
         // Check if we need to rotate the log file
         if self.should_rotate_file(entry_size).await? {
             self.rotate_log_file()?;
         }
-        
+
         // Write to current file
         {
-            let mut file_lock = self.current_file.lock()
+            let mut file_lock = self
+                .current_file
+                .lock()
                 .map_err(|e| anyhow!("Failed to acquire file lock: {}", e))?;
-            
+
             if let Some(ref mut writer) = *file_lock {
-                writer.write_all(entry_bytes.as_bytes())
+                writer
+                    .write_all(entry_bytes.as_bytes())
                     .map_err(|e| anyhow!("Failed to write to audit log: {}", e))?;
-                writer.flush()
+                writer
+                    .flush()
                     .map_err(|e| anyhow!("Failed to flush audit log: {}", e))?;
             } else {
                 return Err(anyhow!("No active audit log file"));
             }
         }
-        
+
         // Update file size in stats
         {
             let mut stats = self.stats.write().await;
             stats.current_file_size += entry_size;
         }
-        
+
         Ok(())
     }
-    
+
     /// Check if log file should be rotated
     async fn should_rotate_file(&self, additional_bytes: u64) -> Result<bool> {
         let stats = self.stats.read().await;
         let current_size_mb = (stats.current_file_size + additional_bytes) / (1024 * 1024);
-        
+
         Ok(current_size_mb >= self.config.max_file_size_mb)
     }
-    
+
     /// Rotate log file to a new one
     fn rotate_log_file(&self) -> Result<()> {
         let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
@@ -479,70 +511,94 @@ impl AuditLogger {
             AuditLogFormat::Syslog => format!("audit_{}.log", timestamp),
             AuditLogFormat::Custom(_) => format!("audit_{}.log", timestamp),
         };
-        
+
         let file_path = self.config.log_directory.join(filename);
-        
+
         let file = OpenOptions::new()
             .create(true)
             .append(true)
             .open(&file_path)
             .map_err(|e| anyhow!("Failed to create audit log file: {}", e))?;
-        
+
         let writer = BufWriter::new(file);
-        
+
         // Write CSV header if needed
         if matches!(self.config.log_format, AuditLogFormat::Csv) {
             // Note: In a real implementation, you'd write the CSV header here
         }
-        
+
         // Update current file
         {
-            let mut file_lock = self.current_file.lock()
+            let mut file_lock = self
+                .current_file
+                .lock()
                 .map_err(|e| anyhow!("Failed to acquire file lock: {}", e))?;
             *file_lock = Some(writer);
         }
-        
+
         {
-            let mut path_lock = self.current_file_path.lock()
+            let mut path_lock = self
+                .current_file_path
+                .lock()
                 .map_err(|e| anyhow!("Failed to acquire path lock: {}", e))?;
             *path_lock = Some(file_path.clone());
         }
-        
+
         info!(file_path = %file_path.display(), "Audit log file rotated");
         Ok(())
     }
-    
+
     /// Update audit statistics
     async fn update_stats(&self, entry: &AuditLogEntry) {
         let mut stats = self.stats.write().await;
-        
+
         stats.total_events += 1;
-        *stats.events_by_severity.entry(entry.severity.clone()).or_insert(0) += 1;
-        *stats.events_by_type.entry(entry.event_type.to_string()).or_insert(0) += 1;
-        *stats.events_by_outcome.entry(entry.outcome.clone()).or_insert(0) += 1;
-        
+        *stats
+            .events_by_severity
+            .entry(entry.severity.clone())
+            .or_insert(0) += 1;
+        *stats
+            .events_by_type
+            .entry(entry.event_type.to_string())
+            .or_insert(0) += 1;
+        *stats
+            .events_by_outcome
+            .entry(entry.outcome.clone())
+            .or_insert(0) += 1;
+
         if let Some(ref tenant_id) = entry.tenant_id {
             *stats.events_by_tenant.entry(tenant_id.clone()).or_insert(0) += 1;
         }
     }
-    
+
     /// Check for alert conditions
     async fn check_alerts(&self, entry: &AuditLogEntry) {
         let alert_key = format!("{}_{}", entry.event_type, entry.severity);
-        
+
         let mut counters = self.alert_counters.write().await;
         let count = counters.entry(alert_key.clone()).or_insert(0);
         *count += 1;
-        
+
         // Check thresholds (simplified implementation)
         let should_alert = match entry.event_type {
-            SecurityEventType::UnauthorizedAccess => *count >= self.config.alert_thresholds.failed_auth_attempts_per_minute,
-            SecurityEventType::RateLimitExceeded => *count >= self.config.alert_thresholds.rate_limit_violations_per_hour,
-            SecurityEventType::BudgetExceeded => *count >= self.config.alert_thresholds.budget_violations_per_hour,
-            SecurityEventType::PiiDetected => *count >= self.config.alert_thresholds.pii_detections_per_hour,
-            _ => entry.severity == SecuritySeverity::Critical && *count >= self.config.alert_thresholds.critical_events_per_hour,
+            SecurityEventType::UnauthorizedAccess => {
+                *count >= self.config.alert_thresholds.failed_auth_attempts_per_minute
+            }
+            SecurityEventType::RateLimitExceeded => {
+                *count >= self.config.alert_thresholds.rate_limit_violations_per_hour
+            }
+            SecurityEventType::BudgetExceeded => {
+                *count >= self.config.alert_thresholds.budget_violations_per_hour
+            }
+            SecurityEventType::PiiDetected => {
+                *count >= self.config.alert_thresholds.pii_detections_per_hour
+            }
+            _ => {
+                entry.severity == SecuritySeverity::Critical
+                    && *count >= self.config.alert_thresholds.critical_events_per_hour
+            }
         };
-        
+
         if should_alert {
             warn!(
                 event_type = %entry.event_type,
@@ -551,29 +607,29 @@ impl AuditLogger {
                 alert_key = alert_key,
                 "Alert threshold exceeded"
             );
-            
+
             // In a production system, you would send actual alerts here
             // (email, Slack, PagerDuty, etc.)
         }
     }
-    
+
     /// Get current audit statistics
     pub async fn get_stats(&self) -> AuditStats {
         self.stats.read().await.clone()
     }
-    
+
     /// Clean up old log files based on retention policy
     pub async fn cleanup_old_logs(&self) -> Result<u32> {
         let cutoff_date = Utc::now() - chrono::Duration::days(self.config.retention_days as i64);
         let mut removed_count = 0;
-        
+
         let entries = std::fs::read_dir(&self.config.log_directory)
             .map_err(|e| anyhow!("Failed to read log directory: {}", e))?;
-        
+
         for entry in entries {
             let entry = entry.map_err(|e| anyhow!("Failed to read directory entry: {}", e))?;
             let path = entry.path();
-            
+
             if path.is_file() {
                 if let Ok(metadata) = entry.metadata() {
                     if let Ok(created) = metadata.created() {
@@ -590,14 +646,14 @@ impl AuditLogger {
                 }
             }
         }
-        
+
         if removed_count > 0 {
             info!(removed_count, "Cleaned up old audit log files");
         }
-        
+
         Ok(removed_count)
     }
-    
+
     /// Search audit logs for specific criteria
     pub async fn search_logs(
         &self,
@@ -610,19 +666,19 @@ impl AuditLogger {
         // This is a simplified implementation
         // In production, you might use a database or log indexing system
         let results = Vec::new();
-        
+
         // For demonstration, return empty results
         // A real implementation would search through log files or a database
-        
+
         debug!(
             start_time = %start_time,
             end_time = %end_time,
             "Audit log search completed"
         );
-        
+
         Ok(results)
     }
-    
+
     /// Export audit logs for compliance
     pub async fn export_logs(
         &self,
@@ -634,14 +690,14 @@ impl AuditLogger {
         // Simplified implementation
         // In production, this would collect logs from the specified period
         // and export them in the requested format
-        
+
         info!(
             start_time = %start_time,
             end_time = %end_time,
             output_path = %output_path.display(),
             "Audit log export completed"
         );
-        
+
         Ok(0) // Return number of exported entries
     }
 }
@@ -657,7 +713,7 @@ mod tests {
     use super::*;
     use tempfile::TempDir;
     use tokio;
-    
+
     fn create_test_config() -> AuditConfig {
         let temp_dir = TempDir::new().unwrap();
         AuditConfig {
@@ -666,25 +722,22 @@ mod tests {
             ..Default::default()
         }
     }
-    
+
     #[tokio::test]
     async fn test_audit_logger_creation() {
         let config = create_test_config();
         let logger = AuditLogger::new(Some(config));
         assert!(logger.is_ok());
     }
-    
+
     #[tokio::test]
     async fn test_audit_log_entry_creation() {
         let logger = AuditLogger::new(Some(create_test_config())).unwrap();
         let tenant_id = TenantId::from("test-tenant");
-        
-        let context = SecurityContext::new(
-            tenant_id,
-            "test-key".to_string(),
-            "127.0.0.1".to_string(),
-        );
-        
+
+        let context =
+            SecurityContext::new(tenant_id, "test-key".to_string(), "127.0.0.1".to_string());
+
         let details = AuditDetails {
             description: "Test API key usage".to_string(),
             error_message: None,
@@ -699,18 +752,18 @@ mod tests {
             pii_redacted: false,
             pii_detections: None,
         };
-        
+
         let entry = logger.create_api_key_usage_entry(&context, AuditOutcome::Success, details);
-        
+
         assert_eq!(entry.event_type, SecurityEventType::ApiKeyUsed);
         assert_eq!(entry.outcome, AuditOutcome::Success);
         assert!(entry.tenant_id.is_some());
     }
-    
+
     #[tokio::test]
     async fn test_log_event() {
         let logger = AuditLogger::new(Some(create_test_config())).unwrap();
-        
+
         let entry = AuditLogEntry {
             id: Uuid::new_v4().to_string(),
             timestamp: Utc::now(),
@@ -741,21 +794,23 @@ mod tests {
             },
             metadata: HashMap::new(),
         };
-        
+
         let result = logger.log_event(entry).await;
         assert!(result.is_ok());
-        
+
         let stats = logger.get_stats().await;
         assert_eq!(stats.total_events, 1);
     }
-    
+
     #[test]
     fn test_log_formatting() {
         let logger = AuditLogger::new(Some(create_test_config())).unwrap();
-        
+
         let entry = AuditLogEntry {
             id: "test-id".to_string(),
-            timestamp: DateTime::parse_from_rfc3339("2024-01-01T00:00:00Z").unwrap().with_timezone(&Utc),
+            timestamp: DateTime::parse_from_rfc3339("2024-01-01T00:00:00Z")
+                .unwrap()
+                .with_timezone(&Utc),
             event_type: SecurityEventType::ApiKeyUsed,
             severity: SecuritySeverity::Low,
             tenant_id: Some(TenantId::from("test")),
@@ -783,7 +838,7 @@ mod tests {
             },
             metadata: HashMap::new(),
         };
-        
+
         let json_result = logger.format_log_entry(&entry);
         assert!(json_result.is_ok());
         assert!(json_result.unwrap().contains("ApiKeyUsed"));

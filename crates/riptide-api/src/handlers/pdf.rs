@@ -4,16 +4,10 @@
 //! It integrates with the RipTide PDF processing pipeline and provides both synchronous
 //! and streaming endpoints for different use cases.
 
-use axum::{
-    extract::State,
-    response::Response,
-    Json,
-};
-use futures_util::stream::Stream;
+use axum::{extract::State, response::Response, Json};
 use base64::prelude::*;
-use riptide_core::pdf::{
-    types::{ProgressUpdate, ProgressReceiver},
-};
+use futures_util::stream::Stream;
+use riptide_core::pdf::types::{ProgressReceiver, ProgressUpdate};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info};
 
@@ -81,7 +75,8 @@ pub async fn process_pdf(
         .pdf_data
         .ok_or_else(|| ApiError::validation("PDF data is required"))?;
 
-    let decoded_data = BASE64_STANDARD.decode(&pdf_data)
+    let decoded_data = BASE64_STANDARD
+        .decode(&pdf_data)
         .map_err(|e| ApiError::validation(format!("Invalid base64 PDF data: {}", e)))?;
 
     let (pdf_data, filename, url) = (decoded_data, request.filename, request.url);
@@ -201,7 +196,8 @@ pub async fn process_pdf_stream(
         .pdf_data
         .ok_or_else(|| ApiError::validation("PDF data is required"))?;
 
-    let decoded_data = BASE64_STANDARD.decode(&pdf_data)
+    let decoded_data = BASE64_STANDARD
+        .decode(&pdf_data)
         .map_err(|e| ApiError::validation(format!("Invalid base64 PDF data: {}", e)))?;
 
     let (pdf_data, filename, _) = (decoded_data, request.filename, request.url);
@@ -245,7 +241,10 @@ pub async fn process_pdf_stream(
 
     // Build streaming response
     let response = StreamingResponseBuilder::new(StreamingResponseType::Ndjson)
-        .header("x-pdf-filename", filename.unwrap_or_else(|| "document.pdf".to_string()))
+        .header(
+            "x-pdf-filename",
+            filename.unwrap_or_else(|| "document.pdf".to_string()),
+        )
         .header("x-pdf-size", pdf_data.len().to_string())
         .build(enhanced_stream);
 

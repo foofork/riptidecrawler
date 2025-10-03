@@ -1,11 +1,11 @@
 //! Metrics collection for PDF processing performance monitoring
 
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Global metrics collector for PDF processing
 #[derive(Debug, Clone)]
@@ -127,18 +127,26 @@ impl PdfMetricsCollector {
     }
 
     /// Record a successful PDF processing operation
-    pub fn record_processing_success(&self, processing_time: Duration, pages: u32, memory_used: u64) {
+    pub fn record_processing_success(
+        &self,
+        processing_time: Duration,
+        pages: u32,
+        memory_used: u64,
+    ) {
         self.metrics.total_processed.fetch_add(1, Ordering::Relaxed);
-        self.metrics.total_processing_time_ms.fetch_add(
-            processing_time.as_millis() as u64,
-            Ordering::Relaxed
-        );
-        self.metrics.total_pages_processed.fetch_add(pages as u64, Ordering::Relaxed);
+        self.metrics
+            .total_processing_time_ms
+            .fetch_add(processing_time.as_millis() as u64, Ordering::Relaxed);
+        self.metrics
+            .total_pages_processed
+            .fetch_add(pages as u64, Ordering::Relaxed);
 
         // Update peak memory usage
         let current_peak = self.metrics.peak_memory_usage.load(Ordering::Relaxed);
         if memory_used > current_peak {
-            self.metrics.peak_memory_usage.store(memory_used, Ordering::Relaxed);
+            self.metrics
+                .peak_memory_usage
+                .store(memory_used, Ordering::Relaxed);
         }
     }
 
@@ -146,51 +154,73 @@ impl PdfMetricsCollector {
     pub fn record_processing_failure(&self, is_memory_limit: bool) {
         self.metrics.total_failed.fetch_add(1, Ordering::Relaxed);
         if is_memory_limit {
-            self.metrics.total_memory_limit_errors.fetch_add(1, Ordering::Relaxed);
+            self.metrics
+                .total_memory_limit_errors
+                .fetch_add(1, Ordering::Relaxed);
         }
     }
 
     /// Record concurrency metrics
     pub fn record_concurrency_metrics(&self, concurrent_ops: u64, queue_wait_time: Duration) {
         // Update max concurrent operations
-        let current_max = self.metrics.max_concurrent_operations.load(Ordering::Relaxed);
+        let current_max = self
+            .metrics
+            .max_concurrent_operations
+            .load(Ordering::Relaxed);
         if concurrent_ops > current_max {
-            self.metrics.max_concurrent_operations.store(concurrent_ops, Ordering::Relaxed);
+            self.metrics
+                .max_concurrent_operations
+                .store(concurrent_ops, Ordering::Relaxed);
         }
 
-        self.metrics.total_queue_wait_time_ms.fetch_add(
-            queue_wait_time.as_millis() as u64,
-            Ordering::Relaxed
-        );
+        self.metrics
+            .total_queue_wait_time_ms
+            .fetch_add(queue_wait_time.as_millis() as u64, Ordering::Relaxed);
     }
 
     /// Record memory management events
     pub fn record_memory_spike_detected(&self) {
-        self.metrics.memory_spikes_detected.fetch_add(1, Ordering::Relaxed);
+        self.metrics
+            .memory_spikes_detected
+            .fetch_add(1, Ordering::Relaxed);
     }
 
     pub fn record_cleanup_performed(&self) {
-        self.metrics.cleanup_operations_performed.fetch_add(1, Ordering::Relaxed);
+        self.metrics
+            .cleanup_operations_performed
+            .fetch_add(1, Ordering::Relaxed);
     }
 
     /// Record pages per second processing rate
     pub fn record_pages_per_second(&self, pages_per_second: f64) {
         // Store as integer (pages per second * 100 for precision)
         let scaled_rate = (pages_per_second * 100.0) as u64;
-        self.metrics.pages_per_second_total.fetch_add(scaled_rate, Ordering::Relaxed);
-        self.metrics.processing_count.fetch_add(1, Ordering::Relaxed);
+        self.metrics
+            .pages_per_second_total
+            .fetch_add(scaled_rate, Ordering::Relaxed);
+        self.metrics
+            .processing_count
+            .fetch_add(1, Ordering::Relaxed);
     }
 
     /// Record progress callback overhead
     pub fn record_progress_overhead(&self, overhead_us: u64) {
-        self.metrics.progress_overhead_total.fetch_add(overhead_us, Ordering::Relaxed);
-        self.metrics.progress_callback_count.fetch_add(1, Ordering::Relaxed);
+        self.metrics
+            .progress_overhead_total
+            .fetch_add(overhead_us, Ordering::Relaxed);
+        self.metrics
+            .progress_callback_count
+            .fetch_add(1, Ordering::Relaxed);
     }
 
     /// Record average processing time per page
     pub fn record_page_processing_time(&self, time_ms: u64) {
-        self.metrics.page_processing_time_total.fetch_add(time_ms, Ordering::Relaxed);
-        self.metrics.pages_processed_total_for_timing.fetch_add(1, Ordering::Relaxed);
+        self.metrics
+            .page_processing_time_total
+            .fetch_add(time_ms, Ordering::Relaxed);
+        self.metrics
+            .pages_processed_total_for_timing
+            .fetch_add(1, Ordering::Relaxed);
     }
 
     /// Get current metrics snapshot
@@ -206,7 +236,10 @@ impl PdfMetricsCollector {
         };
 
         let avg_processing_time_ms = if total_processed > 0 {
-            self.metrics.total_processing_time_ms.load(Ordering::Relaxed) as f64 / total_processed as f64
+            self.metrics
+                .total_processing_time_ms
+                .load(Ordering::Relaxed) as f64
+                / total_processed as f64
         } else {
             0.0
         };
@@ -219,7 +252,10 @@ impl PdfMetricsCollector {
         };
 
         let avg_queue_wait_time_ms = if total_operations > 0 {
-            self.metrics.total_queue_wait_time_ms.load(Ordering::Relaxed) as f64 / total_operations as f64
+            self.metrics
+                .total_queue_wait_time_ms
+                .load(Ordering::Relaxed) as f64
+                / total_operations as f64
         } else {
             0.0
         };
@@ -234,21 +270,29 @@ impl PdfMetricsCollector {
         // Calculate averages for new metrics
         let processing_count = self.metrics.processing_count.load(Ordering::Relaxed);
         let average_pages_per_second = if processing_count > 0 {
-            (self.metrics.pages_per_second_total.load(Ordering::Relaxed) as f64 / 100.0) / processing_count as f64
+            (self.metrics.pages_per_second_total.load(Ordering::Relaxed) as f64 / 100.0)
+                / processing_count as f64
         } else {
             0.0
         };
 
         let progress_callback_count = self.metrics.progress_callback_count.load(Ordering::Relaxed);
         let average_progress_overhead_us = if progress_callback_count > 0 {
-            self.metrics.progress_overhead_total.load(Ordering::Relaxed) as f64 / progress_callback_count as f64
+            self.metrics.progress_overhead_total.load(Ordering::Relaxed) as f64
+                / progress_callback_count as f64
         } else {
             0.0
         };
 
-        let pages_processed_total_timing = self.metrics.pages_processed_total_for_timing.load(Ordering::Relaxed);
+        let pages_processed_total_timing = self
+            .metrics
+            .pages_processed_total_for_timing
+            .load(Ordering::Relaxed);
         let average_page_processing_time_ms = if pages_processed_total_timing > 0 {
-            self.metrics.page_processing_time_total.load(Ordering::Relaxed) as f64 / pages_processed_total_timing as f64
+            self.metrics
+                .page_processing_time_total
+                .load(Ordering::Relaxed) as f64
+                / pages_processed_total_timing as f64
         } else {
             0.0
         };
@@ -256,15 +300,24 @@ impl PdfMetricsCollector {
         PdfMetricsSnapshot {
             total_processed,
             total_failed,
-            memory_limit_failures: self.metrics.total_memory_limit_errors.load(Ordering::Relaxed),
+            memory_limit_failures: self
+                .metrics
+                .total_memory_limit_errors
+                .load(Ordering::Relaxed),
             avg_processing_time_ms,
             peak_memory_usage: peak_memory,
             avg_pages_per_pdf,
-            max_concurrent_operations: self.metrics.max_concurrent_operations.load(Ordering::Relaxed),
+            max_concurrent_operations: self
+                .metrics
+                .max_concurrent_operations
+                .load(Ordering::Relaxed),
             avg_queue_wait_time_ms,
             success_rate,
             memory_spikes_handled: self.metrics.memory_spikes_detected.load(Ordering::Relaxed),
-            cleanup_operations: self.metrics.cleanup_operations_performed.load(Ordering::Relaxed),
+            cleanup_operations: self
+                .metrics
+                .cleanup_operations_performed
+                .load(Ordering::Relaxed),
             memory_efficiency,
             average_pages_per_second,
             average_progress_overhead_us,
@@ -280,20 +333,44 @@ impl PdfMetricsCollector {
     pub fn reset(&self) {
         self.metrics.total_processed.store(0, Ordering::Relaxed);
         self.metrics.total_failed.store(0, Ordering::Relaxed);
-        self.metrics.total_memory_limit_errors.store(0, Ordering::Relaxed);
-        self.metrics.total_processing_time_ms.store(0, Ordering::Relaxed);
+        self.metrics
+            .total_memory_limit_errors
+            .store(0, Ordering::Relaxed);
+        self.metrics
+            .total_processing_time_ms
+            .store(0, Ordering::Relaxed);
         self.metrics.peak_memory_usage.store(0, Ordering::Relaxed);
-        self.metrics.total_pages_processed.store(0, Ordering::Relaxed);
-        self.metrics.max_concurrent_operations.store(0, Ordering::Relaxed);
-        self.metrics.total_queue_wait_time_ms.store(0, Ordering::Relaxed);
-        self.metrics.memory_spikes_detected.store(0, Ordering::Relaxed);
-        self.metrics.cleanup_operations_performed.store(0, Ordering::Relaxed);
-        self.metrics.pages_per_second_total.store(0, Ordering::Relaxed);
+        self.metrics
+            .total_pages_processed
+            .store(0, Ordering::Relaxed);
+        self.metrics
+            .max_concurrent_operations
+            .store(0, Ordering::Relaxed);
+        self.metrics
+            .total_queue_wait_time_ms
+            .store(0, Ordering::Relaxed);
+        self.metrics
+            .memory_spikes_detected
+            .store(0, Ordering::Relaxed);
+        self.metrics
+            .cleanup_operations_performed
+            .store(0, Ordering::Relaxed);
+        self.metrics
+            .pages_per_second_total
+            .store(0, Ordering::Relaxed);
         self.metrics.processing_count.store(0, Ordering::Relaxed);
-        self.metrics.progress_overhead_total.store(0, Ordering::Relaxed);
-        self.metrics.progress_callback_count.store(0, Ordering::Relaxed);
-        self.metrics.page_processing_time_total.store(0, Ordering::Relaxed);
-        self.metrics.pages_processed_total_for_timing.store(0, Ordering::Relaxed);
+        self.metrics
+            .progress_overhead_total
+            .store(0, Ordering::Relaxed);
+        self.metrics
+            .progress_callback_count
+            .store(0, Ordering::Relaxed);
+        self.metrics
+            .page_processing_time_total
+            .store(0, Ordering::Relaxed);
+        self.metrics
+            .pages_processed_total_for_timing
+            .store(0, Ordering::Relaxed);
     }
 
     /// Export metrics in various formats for monitoring systems
@@ -301,23 +378,62 @@ impl PdfMetricsCollector {
         let snapshot = self.get_snapshot();
         let mut metrics = HashMap::new();
 
-        metrics.insert("pdf_total_processed".to_string(), snapshot.total_processed as f64);
+        metrics.insert(
+            "pdf_total_processed".to_string(),
+            snapshot.total_processed as f64,
+        );
         metrics.insert("pdf_total_failed".to_string(), snapshot.total_failed as f64);
-        metrics.insert("pdf_memory_limit_failures".to_string(), snapshot.memory_limit_failures as f64);
-        metrics.insert("pdf_avg_processing_time_ms".to_string(), snapshot.avg_processing_time_ms);
-        metrics.insert("pdf_peak_memory_mb".to_string(), snapshot.peak_memory_usage as f64 / (1024.0 * 1024.0));
-        metrics.insert("pdf_avg_pages_per_pdf".to_string(), snapshot.avg_pages_per_pdf);
-        metrics.insert("pdf_max_concurrent_ops".to_string(), snapshot.max_concurrent_operations as f64);
-        metrics.insert("pdf_avg_queue_wait_ms".to_string(), snapshot.avg_queue_wait_time_ms);
+        metrics.insert(
+            "pdf_memory_limit_failures".to_string(),
+            snapshot.memory_limit_failures as f64,
+        );
+        metrics.insert(
+            "pdf_avg_processing_time_ms".to_string(),
+            snapshot.avg_processing_time_ms,
+        );
+        metrics.insert(
+            "pdf_peak_memory_mb".to_string(),
+            snapshot.peak_memory_usage as f64 / (1024.0 * 1024.0),
+        );
+        metrics.insert(
+            "pdf_avg_pages_per_pdf".to_string(),
+            snapshot.avg_pages_per_pdf,
+        );
+        metrics.insert(
+            "pdf_max_concurrent_ops".to_string(),
+            snapshot.max_concurrent_operations as f64,
+        );
+        metrics.insert(
+            "pdf_avg_queue_wait_ms".to_string(),
+            snapshot.avg_queue_wait_time_ms,
+        );
         metrics.insert("pdf_success_rate".to_string(), snapshot.success_rate);
-        metrics.insert("pdf_memory_spikes_handled".to_string(), snapshot.memory_spikes_handled as f64);
-        metrics.insert("pdf_cleanup_operations".to_string(), snapshot.cleanup_operations as f64);
-        metrics.insert("pdf_memory_efficiency_pages_per_mb".to_string(), snapshot.memory_efficiency);
+        metrics.insert(
+            "pdf_memory_spikes_handled".to_string(),
+            snapshot.memory_spikes_handled as f64,
+        );
+        metrics.insert(
+            "pdf_cleanup_operations".to_string(),
+            snapshot.cleanup_operations as f64,
+        );
+        metrics.insert(
+            "pdf_memory_efficiency_pages_per_mb".to_string(),
+            snapshot.memory_efficiency,
+        );
 
         // Add new performance metrics
-        metrics.insert("pdf_average_pages_per_second".to_string(), snapshot.average_pages_per_second);
-        metrics.insert("pdf_average_progress_overhead_us".to_string(), snapshot.average_progress_overhead_us);
-        metrics.insert("pdf_average_page_processing_time_ms".to_string(), snapshot.average_page_processing_time_ms);
+        metrics.insert(
+            "pdf_average_pages_per_second".to_string(),
+            snapshot.average_pages_per_second,
+        );
+        metrics.insert(
+            "pdf_average_progress_overhead_us".to_string(),
+            snapshot.average_progress_overhead_us,
+        );
+        metrics.insert(
+            "pdf_average_page_processing_time_ms".to_string(),
+            snapshot.average_page_processing_time_ms,
+        );
 
         metrics
     }
@@ -359,7 +475,8 @@ impl PdfOperationTimer {
     /// Complete the operation successfully
     pub fn complete_success(self, pages: u32, memory_used: u64) {
         let processing_time = self.start_time.elapsed();
-        self.metrics.record_processing_success(processing_time, pages, memory_used);
+        self.metrics
+            .record_processing_success(processing_time, pages, memory_used);
     }
 
     /// Complete the operation with failure

@@ -7,8 +7,8 @@ use std::time::Duration;
 use tokio::time::sleep;
 
 use crate::{
-    LlmProvider, CompletionRequest, CompletionResponse, LlmCapabilities,
-    Cost, ModelInfo, Usage, IntelligenceError, Result
+    CompletionRequest, CompletionResponse, Cost, IntelligenceError, LlmCapabilities, LlmProvider,
+    ModelInfo, Result, Usage,
 };
 
 /// Mock LLM provider for testing purposes
@@ -78,11 +78,16 @@ impl MockLlmProvider {
             "Hello! This is a mock response.".to_string()
         } else {
             let last_message = &request.messages[request.messages.len() - 1];
-            format!("Mock response to: {}", last_message.content.chars().take(50).collect::<String>())
+            format!(
+                "Mock response to: {}",
+                last_message.content.chars().take(50).collect::<String>()
+            )
         };
 
         let usage = Usage {
-            prompt_tokens: request.messages.iter()
+            prompt_tokens: request
+                .messages
+                .iter()
                 .map(|m| m.content.len() as u32 / 4) // Rough token estimation
                 .sum(),
             completion_tokens: content.len() as u32 / 4,
@@ -126,15 +131,18 @@ impl LlmProvider for MockLlmProvider {
 
         // Check if we should fail
         if self.should_fail {
-            return Err(IntelligenceError::Provider("Mock provider configured to fail".to_string()));
+            return Err(IntelligenceError::Provider(
+                "Mock provider configured to fail".to_string(),
+            ));
         }
 
         // Check if we should fail after N requests
         if let Some(fail_after) = self.fail_after {
             if count >= fail_after {
-                return Err(IntelligenceError::Provider(
-                    format!("Mock provider failing after {} requests", fail_after)
-                ));
+                return Err(IntelligenceError::Provider(format!(
+                    "Mock provider failing after {} requests",
+                    fail_after
+                )));
             }
         }
 
@@ -151,15 +159,18 @@ impl LlmProvider for MockLlmProvider {
 
         // Check if we should fail
         if self.should_fail {
-            return Err(IntelligenceError::Provider("Mock provider configured to fail".to_string()));
+            return Err(IntelligenceError::Provider(
+                "Mock provider configured to fail".to_string(),
+            ));
         }
 
         // Check if we should fail after N requests
         if let Some(fail_after) = self.fail_after {
             if count >= fail_after {
-                return Err(IntelligenceError::Provider(
-                    format!("Mock provider failing after {} requests", fail_after)
-                ));
+                return Err(IntelligenceError::Provider(format!(
+                    "Mock provider failing after {} requests",
+                    fail_after
+                )));
             }
         }
 
@@ -228,7 +239,9 @@ impl LlmProvider for MockLlmProvider {
         }
 
         if self.should_fail {
-            Err(IntelligenceError::Provider("Mock provider is configured to fail".to_string()))
+            Err(IntelligenceError::Provider(
+                "Mock provider is configured to fail".to_string(),
+            ))
         } else {
             Ok(())
         }
@@ -252,11 +265,12 @@ pub fn create_failing_provider(failure_mode: FailureMode) -> MockLlmProvider {
         FailureMode::AlwaysFail => MockLlmProvider::new().always_fail(),
         FailureMode::FailAfter(count) => MockLlmProvider::new().fail_after(count),
         FailureMode::Slow(delay_ms) => MockLlmProvider::new().with_delay(delay_ms),
-        FailureMode::SlowThenFail { delay_ms, fail_after } => {
-            MockLlmProvider::new()
-                .with_delay(delay_ms)
-                .fail_after(fail_after)
-        }
+        FailureMode::SlowThenFail {
+            delay_ms,
+            fail_after,
+        } => MockLlmProvider::new()
+            .with_delay(delay_ms)
+            .fail_after(fail_after),
     }
 }
 
@@ -276,10 +290,7 @@ mod tests {
     #[tokio::test]
     async fn test_mock_provider_basic() {
         let provider = MockLlmProvider::new();
-        let request = CompletionRequest::new(
-            "mock-gpt-3.5",
-            vec![Message::user("Hello, world!")],
-        );
+        let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("Hello, world!")]);
 
         let response = provider.complete(request).await.unwrap();
         assert!(response.content.contains("Mock response"));
@@ -289,10 +300,7 @@ mod tests {
     #[tokio::test]
     async fn test_mock_provider_failure() {
         let provider = MockLlmProvider::new().always_fail();
-        let request = CompletionRequest::new(
-            "mock-gpt-3.5",
-            vec![Message::user("Hello, world!")],
-        );
+        let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("Hello, world!")]);
 
         let result = provider.complete(request).await;
         assert!(result.is_err());
@@ -301,10 +309,7 @@ mod tests {
     #[tokio::test]
     async fn test_mock_provider_fail_after() {
         let provider = MockLlmProvider::new().fail_after(2);
-        let request = CompletionRequest::new(
-            "mock-gpt-3.5",
-            vec![Message::user("Hello, world!")],
-        );
+        let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("Hello, world!")]);
 
         // First two requests should succeed
         provider.complete(request.clone()).await.unwrap();

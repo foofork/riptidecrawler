@@ -1,12 +1,12 @@
 #[cfg(test)]
 mod tests {
     use riptide_api::sessions::{
-        Cookie, CookieJar, Session, SessionConfig, SessionManager, SessionStorage, SameSite
+        Cookie, CookieJar, SameSite, Session, SessionConfig, SessionManager, SessionStorage,
     };
     use std::sync::Arc;
     use std::time::{Duration, SystemTime};
-    use uuid::Uuid;
     use tempfile::TempDir;
+    use uuid::Uuid;
 
     #[test]
     fn test_session_creation() {
@@ -87,31 +87,51 @@ mod tests {
         let mut config = SessionConfig::default();
         config.base_data_dir = temp_dir.path().to_path_buf();
 
-        let manager = SessionManager::new(config.clone()).await.expect("Failed to create manager");
+        let manager = SessionManager::new(config.clone())
+            .await
+            .expect("Failed to create manager");
 
         // Create session
-        let session = manager.create_session().await.expect("Failed to create session");
+        let session = manager
+            .create_session()
+            .await
+            .expect("Failed to create session");
         let session_id = session.session_id.clone();
         assert!(session_id.len() > 0);
 
         // Get session
-        let retrieved = manager.get_session(&session_id).await.expect("Failed to get session");
+        let retrieved = manager
+            .get_session(&session_id)
+            .await
+            .expect("Failed to get session");
         assert!(retrieved.is_some());
         let retrieved_session = retrieved.unwrap();
         assert_eq!(retrieved_session.session_id, session_id);
 
         // Set a cookie
         let cookie = Cookie::new("last_access".to_string(), "2024-01-01".to_string());
-        manager.set_cookie(&session_id, "example.com", cookie).await.expect("Failed to set cookie");
+        manager
+            .set_cookie(&session_id, "example.com", cookie)
+            .await
+            .expect("Failed to set cookie");
 
         // Get cookie
-        let retrieved_cookie = manager.get_cookie(&session_id, "example.com", "last_access").await.expect("Failed to get cookie");
+        let retrieved_cookie = manager
+            .get_cookie(&session_id, "example.com", "last_access")
+            .await
+            .expect("Failed to get cookie");
         assert!(retrieved_cookie.is_some());
         assert_eq!(retrieved_cookie.unwrap().value, "2024-01-01");
 
         // Remove session
-        manager.remove_session(&session_id).await.expect("Failed to remove session");
-        let removed_session = manager.get_session(&session_id).await.expect("Failed to check removed session");
+        manager
+            .remove_session(&session_id)
+            .await
+            .expect("Failed to remove session");
+        let removed_session = manager
+            .get_session(&session_id)
+            .await
+            .expect("Failed to check removed session");
         assert!(removed_session.is_none());
     }
 
@@ -121,21 +141,35 @@ mod tests {
         let mut config = SessionConfig::default();
         config.base_data_dir = temp_dir.path().to_path_buf();
 
-        let storage = SessionStorage::new(config.clone()).await.expect("Failed to create storage");
+        let storage = SessionStorage::new(config.clone())
+            .await
+            .expect("Failed to create storage");
         let session = Session::new("test_session".to_string(), &config);
         let session_id = session.session_id.clone();
 
         // Store session
-        storage.store_session(session.clone()).await.expect("Failed to store session");
+        storage
+            .store_session(session.clone())
+            .await
+            .expect("Failed to store session");
 
         // Load session
-        let loaded = storage.get_session(&session_id).await.expect("Failed to load session");
+        let loaded = storage
+            .get_session(&session_id)
+            .await
+            .expect("Failed to load session");
         assert!(loaded.is_some());
         assert_eq!(loaded.unwrap().session_id, session_id);
 
         // Remove session
-        storage.remove_session(&session_id).await.expect("Failed to remove session");
-        let removed = storage.get_session(&session_id).await.expect("Failed to check removed session");
+        storage
+            .remove_session(&session_id)
+            .await
+            .expect("Failed to remove session");
+        let removed = storage
+            .get_session(&session_id)
+            .await
+            .expect("Failed to check removed session");
         assert!(removed.is_none());
     }
 
@@ -146,15 +180,31 @@ mod tests {
         config.base_data_dir = temp_dir.path().to_path_buf();
         config.default_ttl = Duration::from_millis(50); // Short TTL for testing
 
-        let storage = SessionStorage::new(config.clone()).await.expect("Failed to create storage");
+        let storage = SessionStorage::new(config.clone())
+            .await
+            .expect("Failed to create storage");
 
         // Create sessions
-        let session1 = storage.create_session("session1".to_string()).await.expect("Failed to create session1");
-        let session2 = storage.create_session("session2".to_string()).await.expect("Failed to create session2");
+        let session1 = storage
+            .create_session("session1".to_string())
+            .await
+            .expect("Failed to create session1");
+        let session2 = storage
+            .create_session("session2".to_string())
+            .await
+            .expect("Failed to create session2");
 
         // Both should exist initially
-        assert!(storage.get_session(&session1.session_id).await.expect("Failed to get session1").is_some());
-        assert!(storage.get_session(&session2.session_id).await.expect("Failed to get session2").is_some());
+        assert!(storage
+            .get_session(&session1.session_id)
+            .await
+            .expect("Failed to get session1")
+            .is_some());
+        assert!(storage
+            .get_session(&session2.session_id)
+            .await
+            .expect("Failed to get session2")
+            .is_some());
 
         // Wait for sessions to expire
         tokio::time::sleep(Duration::from_millis(100)).await;
@@ -164,8 +214,14 @@ mod tests {
         assert!(cleaned >= 0); // Should clean up some sessions
 
         // Sessions should be expired and removed
-        let session1_after = storage.get_session(&session1.session_id).await.expect("Failed to check session1");
-        let session2_after = storage.get_session(&session2.session_id).await.expect("Failed to check session2");
+        let session1_after = storage
+            .get_session(&session1.session_id)
+            .await
+            .expect("Failed to check session1");
+        let session2_after = storage
+            .get_session(&session2.session_id)
+            .await
+            .expect("Failed to check session2");
 
         // Sessions should be None because they expired
         assert!(session1_after.is_none());
@@ -226,8 +282,15 @@ mod tests {
         let mut config = SessionConfig::default();
         config.base_data_dir = temp_dir.path().to_path_buf();
 
-        let manager = Arc::new(SessionManager::new(config).await.expect("Failed to create manager"));
-        let session = manager.create_session().await.expect("Failed to create session");
+        let manager = Arc::new(
+            SessionManager::new(config)
+                .await
+                .expect("Failed to create manager"),
+        );
+        let session = manager
+            .create_session()
+            .await
+            .expect("Failed to create session");
         let session_id = session.session_id.clone();
 
         let mut handles = vec![];
@@ -238,7 +301,8 @@ mod tests {
             let sid = session_id.clone();
             let handle = tokio::spawn(async move {
                 let cookie = Cookie::new(format!("key_{}", i), format!("value_{}", i));
-                manager_clone.set_cookie(&sid, "example.com", cookie)
+                manager_clone
+                    .set_cookie(&sid, "example.com", cookie)
                     .await
                     .expect("Failed to set cookie");
             });
@@ -252,7 +316,8 @@ mod tests {
 
         // Check all cookies were set
         for i in 0..10 {
-            let cookie = manager.get_cookie(&session_id, "example.com", &format!("key_{}", i))
+            let cookie = manager
+                .get_cookie(&session_id, "example.com", &format!("key_{}", i))
                 .await
                 .expect("Failed to get cookie");
             assert!(cookie.is_some());
@@ -266,8 +331,8 @@ mod tests {
 
         // Create an expired cookie
         let expired_time = SystemTime::now() - Duration::from_secs(3600);
-        let expired_cookie = Cookie::new("expired".to_string(), "value".to_string())
-            .with_expires(expired_time);
+        let expired_cookie =
+            Cookie::new("expired".to_string(), "value".to_string()).with_expires(expired_time);
 
         // Create a non-expired cookie
         let valid_cookie = Cookie::new("valid".to_string(), "value".to_string());

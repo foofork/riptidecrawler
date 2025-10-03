@@ -3,7 +3,7 @@
 //! This example shows how to use topic chunking for intelligent document segmentation
 //! based on topic boundaries rather than fixed sizes.
 
-use riptide_html::chunking::{ChunkingConfig, ChunkingMode, create_strategy};
+use riptide_html::chunking::{create_strategy, ChunkingConfig, ChunkingMode};
 use std::time::Instant;
 
 #[tokio::main]
@@ -68,10 +68,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let topic_strategy = create_strategy(
         ChunkingMode::Topic {
             topic_chunking: true,
-            window_size: 3,          // Analyze 3 sentences at a time
-            smoothing_passes: 2,     // Apply 2 smoothing passes
+            window_size: 3,      // Analyze 3 sentences at a time
+            smoothing_passes: 2, // Apply 2 smoothing passes
         },
-        config.clone()
+        config.clone(),
     );
 
     let start = Instant::now();
@@ -83,19 +83,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!();
 
     for (i, chunk) in topic_chunks.iter().enumerate() {
-        println!("Topic Chunk {}: ({} chars, {} tokens)",
-                 i + 1, chunk.content.len(), chunk.token_count);
+        println!(
+            "Topic Chunk {}: ({} chars, {} tokens)",
+            i + 1,
+            chunk.content.len(),
+            chunk.token_count
+        );
         println!("Quality Score: {:.3}", chunk.metadata.quality_score);
         println!("Topic Keywords: {:?}", chunk.metadata.topic_keywords);
-        println!("Content Preview: {}",
-                 chunk.content.lines()
-                     .take(2)
-                     .collect::<Vec<_>>()
-                     .join(" ")
-                     .trim()
-                     .chars()
-                     .take(100)
-                     .collect::<String>() + "...");
+        println!(
+            "Content Preview: {}",
+            chunk
+                .content
+                .lines()
+                .take(2)
+                .collect::<Vec<_>>()
+                .join(" ")
+                .trim()
+                .chars()
+                .take(100)
+                .collect::<String>()
+                + "..."
+        );
         println!();
     }
 
@@ -105,11 +114,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let fallback_strategy = create_strategy(
         ChunkingMode::Topic {
-            topic_chunking: false,   // Disabled - falls back to sliding window
+            topic_chunking: false, // Disabled - falls back to sliding window
             window_size: 3,
             smoothing_passes: 2,
         },
-        config.clone()
+        config.clone(),
     );
 
     let start = Instant::now();
@@ -121,10 +130,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!();
 
     for (i, chunk) in fallback_chunks.iter().enumerate() {
-        println!("Fallback Chunk {}: ({} chars, {} tokens)",
-                 i + 1, chunk.content.len(), chunk.token_count);
-        println!("Content Preview: {}",
-                 chunk.content.chars().take(80).collect::<String>() + "...");
+        println!(
+            "Fallback Chunk {}: ({} chars, {} tokens)",
+            i + 1,
+            chunk.content.len(),
+            chunk.token_count
+        );
+        println!(
+            "Content Preview: {}",
+            chunk.content.chars().take(80).collect::<String>() + "..."
+        );
         println!();
     }
 
@@ -133,9 +148,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("----------------------------------");
 
     let strategies = vec![
-        ("Sliding Window", ChunkingMode::Sliding { window_size: 1000, overlap: 100 }),
-        ("Fixed Size", ChunkingMode::Fixed { size: 1000, by_tokens: false }),
-        ("Sentence-based", ChunkingMode::Sentence { max_sentences: 5 }),
+        (
+            "Sliding Window",
+            ChunkingMode::Sliding {
+                window_size: 1000,
+                overlap: 100,
+            },
+        ),
+        (
+            "Fixed Size",
+            ChunkingMode::Fixed {
+                size: 1000,
+                by_tokens: false,
+            },
+        ),
+        (
+            "Sentence-based",
+            ChunkingMode::Sentence { max_sentences: 5 },
+        ),
     ];
 
     for (name, mode) in strategies {
@@ -144,7 +174,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let chunks = strategy.chunk(document).await?;
         let duration = start.elapsed();
 
-        println!("{}: {} chunks in {}ms", name, chunks.len(), duration.as_millis());
+        println!(
+            "{}: {} chunks in {}ms",
+            name,
+            chunks.len(),
+            duration.as_millis()
+        );
     }
 
     // Example 4: Performance with larger document
@@ -164,8 +199,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let large_chunks = topic_strategy.chunk(&large_doc).await?;
     let large_duration = start.elapsed();
 
-    println!("Topic chunking: {} chunks in {}ms", large_chunks.len(), large_duration.as_millis());
-    println!("Performance: {:.1} chars/ms", large_doc.len() as f64 / large_duration.as_millis() as f64);
+    println!(
+        "Topic chunking: {} chunks in {}ms",
+        large_chunks.len(),
+        large_duration.as_millis()
+    );
+    println!(
+        "Performance: {:.1} chars/ms",
+        large_doc.len() as f64 / large_duration.as_millis() as f64
+    );
 
     // Verify performance requirement
     if large_duration.as_millis() < 200 {
@@ -180,12 +222,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     for (i, chunk) in topic_chunks.iter().enumerate() {
         let metadata = &chunk.metadata;
-        println!("Chunk {}: Quality={:.3}, Words={}, Sentences={}, Complete={}",
-                 i + 1,
-                 metadata.quality_score,
-                 metadata.word_count,
-                 metadata.sentence_count,
-                 metadata.has_complete_sentences);
+        println!(
+            "Chunk {}: Quality={:.3}, Words={}, Sentences={}, Complete={}",
+            i + 1,
+            metadata.quality_score,
+            metadata.word_count,
+            metadata.sentence_count,
+            metadata.has_complete_sentences
+        );
     }
 
     println!("\nTopic chunking example completed successfully!");

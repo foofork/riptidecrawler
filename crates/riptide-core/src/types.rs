@@ -189,7 +189,9 @@ pub struct TopicChunkingConfig {
     pub topic_chunking: bool,
 }
 
-fn default_true() -> bool { true }
+fn default_true() -> bool {
+    true
+}
 
 impl Default for ChunkingConfig {
     fn default() -> Self {

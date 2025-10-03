@@ -126,7 +126,11 @@ pub async fn record_extraction_result(
         };
 
         // Extract data before dropping lock
-        (m.circuit_breaker_trips, m.failed_extractions, m.total_extractions)
+        (
+            m.circuit_breaker_trips,
+            m.failed_extractions,
+            m.total_extractions,
+        )
     }; // Metrics lock dropped here
 
     // Phase 2: Update circuit breaker state in scoped block
@@ -139,7 +143,11 @@ pub async fn record_extraction_result(
 
         // Update circuit breaker state
         let new_state = match &*state {
-            CircuitBreakerState::Closed { failure_count, success_count: sc, .. } => {
+            CircuitBreakerState::Closed {
+                failure_count,
+                success_count: sc,
+                ..
+            } => {
                 let new_failure_count = if result.success { 0 } else { failure_count + 1 };
                 let new_success_count = if result.success { sc + 1 } else { *sc };
                 let total_requests = new_failure_count + new_success_count;
@@ -173,18 +181,29 @@ pub async fn record_extraction_result(
                         CircuitBreakerState::Closed {
                             failure_count: new_failure_count,
                             success_count: new_success_count,
-                            last_failure: if result.success { None } else { Some(Instant::now()) },
+                            last_failure: if result.success {
+                                None
+                            } else {
+                                Some(Instant::now())
+                            },
                         }
                     }
                 } else {
                     CircuitBreakerState::Closed {
                         failure_count: new_failure_count,
                         success_count: new_success_count,
-                        last_failure: if result.success { None } else { Some(Instant::now()) },
+                        last_failure: if result.success {
+                            None
+                        } else {
+                            Some(Instant::now())
+                        },
                     }
                 }
             }
-            CircuitBreakerState::Open { opened_at, failure_count } => {
+            CircuitBreakerState::Open {
+                opened_at,
+                failure_count,
+            } => {
                 if opened_at.elapsed() >= Duration::from_millis(result.timeout_duration) {
                     tracing::info!("Circuit breaker transitioning to half-open");
                     CircuitBreakerState::HalfOpen {
@@ -198,7 +217,10 @@ pub async fn record_extraction_result(
                     }
                 }
             }
-            CircuitBreakerState::HalfOpen { test_requests, start_time } => {
+            CircuitBreakerState::HalfOpen {
+                test_requests,
+                start_time,
+            } => {
                 if result.success {
                     tracing::info!("Circuit breaker closing after successful test request");
 
@@ -228,7 +250,12 @@ pub async fn record_extraction_result(
 
         *state = new_state;
 
-        (should_emit_trip, should_emit_reset, trip_data, success_count)
+        (
+            should_emit_trip,
+            should_emit_reset,
+            trip_data,
+            success_count,
+        )
     }; // Circuit state lock dropped here
 
     // Update metrics if circuit breaker tripped (needs separate lock acquisition)
@@ -239,7 +266,9 @@ pub async fn record_extraction_result(
 
     // Phase 3: Emit events without holding any locks
     if should_emit_trip_event {
-        if let Some((failure_threshold, total_trips, failed_extractions, total_extractions)) = trip_metrics {
+        if let Some((failure_threshold, total_trips, failed_extractions, total_extractions)) =
+            trip_metrics
+        {
             if let Some(event_bus) = event_bus {
                 let event_bus = event_bus.clone();
                 let pool_id_clone = result.pool_id.clone();
@@ -278,7 +307,10 @@ pub async fn record_extraction_result(
                 );
 
                 event.add_metadata("total_trips", &total_trips.to_string());
-                event.add_metadata("successful_extractions", &successful_extractions.to_string());
+                event.add_metadata(
+                    "successful_extractions",
+                    &successful_extractions.to_string(),
+                );
 
                 if let Err(e) = event_bus.emit(event).await {
                     warn!(error = %e, "Failed to emit circuit breaker reset event");

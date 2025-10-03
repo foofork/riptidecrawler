@@ -6,13 +6,13 @@
 //! - Automatic failover triggers
 //! - Health status reporting
 
-use std::sync::Arc;
-use std::collections::HashMap;
-use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
-use tokio::sync::{RwLock, mpsc};
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+use tokio::sync::{mpsc, RwLock};
 use tokio::time::interval;
-use tracing::{info, warn, debug};
+use tracing::{debug, info, warn};
 
 use crate::{LlmProvider, Result};
 
@@ -225,16 +225,12 @@ impl HealthMonitor {
             while *running.read().await {
                 interval.tick().await;
 
-                let provider_list: Vec<(String, Arc<dyn LlmProvider>)> = {
-                    providers.read().await.clone().into_iter().collect()
-                };
+                let provider_list: Vec<(String, Arc<dyn LlmProvider>)> =
+                    { providers.read().await.clone().into_iter().collect() };
 
                 for (name, provider) in provider_list {
-                    let health_check_result = Self::perform_health_check(
-                        &name,
-                        &provider,
-                        &config,
-                    ).await;
+                    let health_check_result =
+                        Self::perform_health_check(&name, &provider, &config).await;
 
                     // Update health status
                     let old_status = {
@@ -278,7 +274,9 @@ impl HealthMonitor {
                     if !health_check_result.success {
                         let event = HealthEvent::HealthCheckFailed {
                             provider_name: name,
-                            error: health_check_result.error_message.unwrap_or_else(|| "Unknown error".to_string()),
+                            error: health_check_result
+                                .error_message
+                                .unwrap_or_else(|| "Unknown error".to_string()),
                             timestamp: chrono::Utc::now(),
                         };
                         let _ = event_tx.send(event);
@@ -287,7 +285,10 @@ impl HealthMonitor {
             }
         });
 
-        info!("Health monitor started with interval: {:?}", self.config.interval);
+        info!(
+            "Health monitor started with interval: {:?}",
+            self.config.interval
+        );
         Ok(())
     }
 
@@ -418,7 +419,9 @@ impl HealthMonitor {
         }
 
         // Update response times
-        if result.response_time < metrics.min_response_time || metrics.min_response_time == Duration::from_millis(u64::MAX) {
+        if result.response_time < metrics.min_response_time
+            || metrics.min_response_time == Duration::from_millis(u64::MAX)
+        {
             metrics.min_response_time = result.response_time;
         }
         if result.response_time > metrics.max_response_time {
@@ -426,14 +429,19 @@ impl HealthMonitor {
         }
 
         // Update average response time
-        let total_time = metrics.avg_response_time.as_millis() as f64 * (metrics.total_requests - 1) as f64 + result.response_time.as_millis() as f64;
-        metrics.avg_response_time = Duration::from_millis((total_time / metrics.total_requests as f64) as u64);
+        let total_time = metrics.avg_response_time.as_millis() as f64
+            * (metrics.total_requests - 1) as f64
+            + result.response_time.as_millis() as f64;
+        metrics.avg_response_time =
+            Duration::from_millis((total_time / metrics.total_requests as f64) as u64);
 
         // Calculate error rate
-        metrics.error_rate = (metrics.failed_requests as f64 / metrics.total_requests as f64) * 100.0;
+        metrics.error_rate =
+            (metrics.failed_requests as f64 / metrics.total_requests as f64) * 100.0;
 
         // Update uptime percentage
-        metrics.uptime_percentage = (metrics.successful_requests as f64 / metrics.total_requests as f64) * 100.0;
+        metrics.uptime_percentage =
+            (metrics.successful_requests as f64 / metrics.total_requests as f64) * 100.0;
 
         metrics.last_request_time = Some(result.timestamp);
     }

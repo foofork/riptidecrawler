@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
-use reqwest::Client;
 use reqwest::cookie::Jar;
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -235,8 +235,10 @@ impl SessionManager {
         // Check session limit
         if sessions.len() >= self.config.max_concurrent_sessions {
             // Remove oldest session
-            if let Some((oldest_domain, _)) = sessions.iter()
-                .min_by_key(|(_, session)| session.last_activity) {
+            if let Some((oldest_domain, _)) = sessions
+                .iter()
+                .min_by_key(|(_, session)| session.last_activity)
+            {
                 let oldest_domain = oldest_domain.clone();
                 sessions.remove(&oldest_domain);
                 warn!(domain = %oldest_domain, "Removed oldest session due to limit");
@@ -285,8 +287,11 @@ impl SessionManager {
     pub async fn is_authenticated(&self, domain: &str) -> bool {
         let sessions = self.sessions.read().await;
 
-        sessions.get(domain)
-            .map(|session| session.authenticated && !session.is_expired(self.config.session_timeout))
+        sessions
+            .get(domain)
+            .map(|session| {
+                session.authenticated && !session.is_expired(self.config.session_timeout)
+            })
             .unwrap_or(false)
     }
 
@@ -296,11 +301,13 @@ impl SessionManager {
         let checkpoints = self.checkpoints.read().await;
 
         let active_sessions = sessions.len();
-        let authenticated_sessions = sessions.values()
+        let authenticated_sessions = sessions
+            .values()
             .filter(|s| s.authenticated && !s.is_expired(self.config.session_timeout))
             .count();
 
-        let expired_sessions = sessions.values()
+        let expired_sessions = sessions
+            .values()
             .filter(|s| s.is_expired(self.config.session_timeout))
             .count();
 
@@ -350,11 +357,17 @@ mod tests {
         let config = SessionConfig::default();
         let manager = SessionManager::new(config);
 
-        let session_id = manager.get_or_create_session("example.com").await.expect("Should create session");
+        let session_id = manager
+            .get_or_create_session("example.com")
+            .await
+            .expect("Should create session");
         assert!(!session_id.is_empty());
 
         // Second call should return same session
-        let session_id2 = manager.get_or_create_session("example.com").await.expect("Should return existing session");
+        let session_id2 = manager
+            .get_or_create_session("example.com")
+            .await
+            .expect("Should return existing session");
         assert_eq!(session_id, session_id2);
     }
 
@@ -367,12 +380,18 @@ mod tests {
 
         let manager = SessionManager::new(config);
 
-        let session_id1 = manager.get_or_create_session("example.com").await.expect("Should create session");
+        let session_id1 = manager
+            .get_or_create_session("example.com")
+            .await
+            .expect("Should create session");
 
         // Wait for expiration
         tokio::time::sleep(Duration::from_millis(20)).await;
 
-        let session_id2 = manager.get_or_create_session("example.com").await.expect("Should create new session");
+        let session_id2 = manager
+            .get_or_create_session("example.com")
+            .await
+            .expect("Should create new session");
         assert_ne!(session_id1, session_id2);
     }
 
@@ -382,7 +401,10 @@ mod tests {
         let manager = SessionManager::new(config);
 
         let domain = "example.com";
-        let _session_id = manager.get_or_create_session(domain).await.expect("Should create session");
+        let _session_id = manager
+            .get_or_create_session(domain)
+            .await
+            .expect("Should create session");
 
         let login_config = LoginConfig {
             login_url: Url::from_str("https://example.com/login").expect("Valid URL"),
@@ -397,7 +419,10 @@ mod tests {
             validation_url: None,
         };
 
-        manager.configure_login(domain, login_config).await.expect("Should configure login");
+        manager
+            .configure_login(domain, login_config)
+            .await
+            .expect("Should configure login");
 
         // Check that login config is set (indirectly)
         assert!(!manager.is_authenticated(domain).await);
@@ -406,11 +431,9 @@ mod tests {
     #[test]
     fn test_session_state() {
         let config = SessionConfig::default();
-        let mut session = SessionState::new(
-            "test_id".to_string(),
-            "example.com".to_string(),
-            &config
-        ).expect("Should create session state");
+        let mut session =
+            SessionState::new("test_id".to_string(), "example.com".to_string(), &config)
+                .expect("Should create session state");
 
         assert!(!session.is_expired(Duration::from_secs(3600)));
         assert!(session.needs_validation(Duration::from_secs(1)));
@@ -431,11 +454,20 @@ mod tests {
         let manager = SessionManager::new(config);
 
         // Create maximum sessions
-        let _session1 = manager.get_or_create_session("site1.com").await.expect("Should work");
-        let _session2 = manager.get_or_create_session("site2.com").await.expect("Should work");
+        let _session1 = manager
+            .get_or_create_session("site1.com")
+            .await
+            .expect("Should work");
+        let _session2 = manager
+            .get_or_create_session("site2.com")
+            .await
+            .expect("Should work");
 
         // Third session should evict oldest
-        let _session3 = manager.get_or_create_session("site3.com").await.expect("Should work");
+        let _session3 = manager
+            .get_or_create_session("site3.com")
+            .await
+            .expect("Should work");
 
         let stats = manager.get_stats().await;
         assert_eq!(stats.active_sessions, 2);

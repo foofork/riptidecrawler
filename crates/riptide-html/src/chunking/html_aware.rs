@@ -1,10 +1,10 @@
 //! HTML-aware chunking that preserves tag integrity
 
+use super::{utils, Chunk, ChunkMetadata, ChunkingConfig, ChunkingStrategy};
 use anyhow::Result;
 use async_trait::async_trait;
-use scraper::{Html, ElementRef};
+use scraper::{ElementRef, Html};
 use std::collections::HashMap;
-use super::{ChunkingStrategy, Chunk, ChunkMetadata, ChunkingConfig, utils};
 
 /// HTML-aware chunker that preserves HTML tag boundaries and structure
 pub struct HtmlAwareChunker {
@@ -35,7 +35,12 @@ impl ChunkingStrategy for HtmlAwareChunker {
 
         // Check if input looks like HTML
         if text.trim_start().starts_with('<') && text.contains('>') {
-            chunks = chunk_html_content(text, &self.config, self.preserve_blocks, self.preserve_structure)?;
+            chunks = chunk_html_content(
+                text,
+                &self.config,
+                self.preserve_blocks,
+                self.preserve_structure,
+            )?;
         } else {
             // Fallback to text-based chunking for non-HTML content
             chunks = chunk_text_content(text, &self.config)?;
@@ -90,9 +95,25 @@ fn chunk_by_html_structure(document: &Html, config: &ChunkingConfig) -> Result<V
 
     // Define structural elements in order of preference
     let structural_selectors = vec![
-        "article", "section", "main", "aside", "header", "footer", "nav",
-        "div.content", "div.post", "div.article", "div[id*='content']",
-        "div", "p", "h1", "h2", "h3", "h4", "h5", "h6",
+        "article",
+        "section",
+        "main",
+        "aside",
+        "header",
+        "footer",
+        "nav",
+        "div.content",
+        "div.post",
+        "div.article",
+        "div[id*='content']",
+        "div",
+        "p",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
     ];
 
     for selector in structural_selectors {
@@ -115,13 +136,8 @@ fn chunk_by_html_structure(document: &Html, config: &ChunkingConfig) -> Result<V
                     chunk_index += 1;
                 }
             } else {
-                let chunk = create_html_chunk(
-                    &content,
-                    chunk_index,
-                    token_count,
-                    &element,
-                    "structure",
-                );
+                let chunk =
+                    create_html_chunk(&content, chunk_index, token_count, &element, "structure");
                 chunks.push(chunk);
                 chunk_index += 1;
             }
@@ -325,7 +341,8 @@ fn chunk_large_element(
         let sentence_tokens = utils::count_tokens(&sentence);
 
         if current_tokens + sentence_tokens > config.max_tokens && !current_chunk.is_empty() {
-            let chunk = create_simple_chunk(&current_chunk, chunk_index, current_tokens, "large_element");
+            let chunk =
+                create_simple_chunk(&current_chunk, chunk_index, current_tokens, "large_element");
             chunks.push(chunk);
 
             current_chunk.clear();
@@ -341,7 +358,8 @@ fn chunk_large_element(
     }
 
     if !current_chunk.is_empty() {
-        let chunk = create_simple_chunk(&current_chunk, chunk_index, current_tokens, "large_element");
+        let chunk =
+            create_simple_chunk(&current_chunk, chunk_index, current_tokens, "large_element");
         chunks.push(chunk);
     }
 
@@ -358,9 +376,9 @@ fn create_html_chunk(
 ) -> Chunk {
     let word_count = content.split_whitespace().count();
     let sentence_count = utils::split_sentences(content).len();
-    let has_complete_sentences = content.trim().ends_with('.') ||
-                                 content.trim().ends_with('!') ||
-                                 content.trim().ends_with('?');
+    let has_complete_sentences = content.trim().ends_with('.')
+        || content.trim().ends_with('!')
+        || content.trim().ends_with('?');
     let topic_keywords = utils::extract_topic_keywords(content);
 
     // Extract HTML-specific metadata
@@ -388,7 +406,12 @@ fn create_html_chunk(
     let quality_score = calculate_html_quality_score(content, &metadata);
 
     Chunk {
-        id: format!("html_{}_{}_{}", chunk_type, element.value().name(), chunk_index),
+        id: format!(
+            "html_{}_{}_{}",
+            chunk_type,
+            element.value().name(),
+            chunk_index
+        ),
         content: content.to_string(),
         start_pos: 0, // Would need more complex calculation for HTML
         end_pos: content.len(),
@@ -411,9 +434,9 @@ fn create_simple_chunk(
 ) -> Chunk {
     let word_count = content.split_whitespace().count();
     let sentence_count = utils::split_sentences(content).len();
-    let has_complete_sentences = content.trim().ends_with('.') ||
-                                 content.trim().ends_with('!') ||
-                                 content.trim().ends_with('?');
+    let has_complete_sentences = content.trim().ends_with('.')
+        || content.trim().ends_with('!')
+        || content.trim().ends_with('?');
     let topic_keywords = utils::extract_topic_keywords(content);
 
     let metadata = ChunkMetadata {
@@ -451,7 +474,7 @@ fn calculate_html_quality_score(content: &str, metadata: &ChunkMetadata) -> f64 
     if let Some(tag_name) = metadata.custom.get("tag_name") {
         match tag_name.as_str() {
             "article" | "section" | "main" => score += 0.2, // High semantic value
-            "p" | "div" => score += 0.1, // Standard content containers
+            "p" | "div" => score += 0.1,                    // Standard content containers
             "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => score += 0.15, // Headers are important
             _ => {}
         }
@@ -546,7 +569,9 @@ mod tests {
             custom: HashMap::new(),
         };
 
-        metadata.custom.insert("tag_name".to_string(), "article".to_string());
+        metadata
+            .custom
+            .insert("tag_name".to_string(), "article".to_string());
 
         let score = calculate_html_quality_score("Test content with good structure.", &metadata);
         assert!(score > 0.7); // Should have high quality score for article element

@@ -1,4 +1,4 @@
-use crate::spider::types::{CrawlRequest, ScoringConfig, Priority};
+use crate::spider::types::{CrawlRequest, Priority, ScoringConfig};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -15,9 +15,7 @@ pub enum CrawlingStrategy {
     /// Depth-First Search - follows link chains deeply
     DepthFirst,
     /// Best-First Search - uses scoring to prioritize URLs
-    BestFirst {
-        scoring_config: ScoringConfig,
-    },
+    BestFirst { scoring_config: ScoringConfig },
     /// Adaptive strategy that switches based on conditions
     Adaptive {
         primary: Box<CrawlingStrategy>,
@@ -206,7 +204,8 @@ impl StrategyEngine {
 
         let scoring_function = match &strategy {
             CrawlingStrategy::BestFirst { scoring_config } => {
-                Some(Arc::new(DefaultScoring::new(scoring_config.clone())) as Arc<dyn ScoringFunction>)
+                Some(Arc::new(DefaultScoring::new(scoring_config.clone()))
+                    as Arc<dyn ScoringFunction>)
             }
             _ => None,
         };
@@ -219,13 +218,17 @@ impl StrategyEngine {
     }
 
     /// Process requests according to the current strategy
-    pub async fn process_requests(&mut self, mut requests: Vec<CrawlRequest>) -> Result<Vec<CrawlRequest>> {
+    pub async fn process_requests(
+        &mut self,
+        mut requests: Vec<CrawlRequest>,
+    ) -> Result<Vec<CrawlRequest>> {
         loop {
             match &self.current_strategy {
                 CrawlingStrategy::BreadthFirst => {
                     // BFS: sort by depth (shallow first), then by insertion order
                     requests.sort_by(|a, b| {
-                        a.depth.cmp(&b.depth)
+                        a.depth
+                            .cmp(&b.depth)
                             .then_with(|| a.created_at.cmp(&b.created_at))
                     });
                     break;
@@ -233,7 +236,8 @@ impl StrategyEngine {
                 CrawlingStrategy::DepthFirst => {
                     // DFS: sort by depth (deep first), prefer recent insertions
                     requests.sort_by(|a, b| {
-                        b.depth.cmp(&a.depth)
+                        b.depth
+                            .cmp(&a.depth)
                             .then_with(|| b.created_at.cmp(&a.created_at))
                     });
                     break;
@@ -242,17 +246,26 @@ impl StrategyEngine {
                     // Best-First: calculate scores and sort by score
                     if let Some(scoring_fn) = &self.scoring_function {
                         for request in &mut requests {
-                            let score = scoring_fn.score_url(&request.url, request.depth, &request.metadata);
+                            let score = scoring_fn.score_url(
+                                &request.url,
+                                request.depth,
+                                &request.metadata,
+                            );
                             request.score = Some(score);
                         }
                     }
                     requests.sort_by(|a, b| {
-                        b.score.partial_cmp(&a.score)
+                        b.score
+                            .partial_cmp(&a.score)
                             .unwrap_or(std::cmp::Ordering::Equal)
                     });
                     break;
                 }
-                CrawlingStrategy::Adaptive { primary, fallback, switch_criteria } => {
+                CrawlingStrategy::Adaptive {
+                    primary,
+                    fallback,
+                    switch_criteria,
+                } => {
                     // Check if we should switch strategies
                     let should_switch = self.should_switch_strategy(switch_criteria).await?;
 
@@ -292,10 +305,9 @@ impl StrategyEngine {
         }
 
         // Check switch conditions
-        let should_switch =
-            context.frontier_size > criteria.max_frontier_size ||
-            context.average_depth > criteria.max_average_depth ||
-            context.success_rate() < criteria.min_success_rate;
+        let should_switch = context.frontier_size > criteria.max_frontier_size
+            || context.average_depth > criteria.max_average_depth
+            || context.success_rate() < criteria.min_success_rate;
 
         if should_switch {
             debug!(
@@ -317,7 +329,8 @@ impl StrategyEngine {
         // Update scoring function if needed
         self.scoring_function = match &new_strategy {
             CrawlingStrategy::BestFirst { scoring_config } => {
-                Some(Arc::new(DefaultScoring::new(scoring_config.clone())) as Arc<dyn ScoringFunction>)
+                Some(Arc::new(DefaultScoring::new(scoring_config.clone()))
+                    as Arc<dyn ScoringFunction>)
             }
             _ => None,
         };
@@ -475,12 +488,18 @@ mod tests {
         let mut strategy_engine = StrategyEngine::new(breadth_first_strategy());
 
         let requests = vec![
-            CrawlRequest::new(Url::from_str("https://example.com/deep").expect("Valid URL")).with_depth(5),
-            CrawlRequest::new(Url::from_str("https://example.com/shallow").expect("Valid URL")).with_depth(1),
-            CrawlRequest::new(Url::from_str("https://example.com/medium").expect("Valid URL")).with_depth(3),
+            CrawlRequest::new(Url::from_str("https://example.com/deep").expect("Valid URL"))
+                .with_depth(5),
+            CrawlRequest::new(Url::from_str("https://example.com/shallow").expect("Valid URL"))
+                .with_depth(1),
+            CrawlRequest::new(Url::from_str("https://example.com/medium").expect("Valid URL"))
+                .with_depth(3),
         ];
 
-        let processed = strategy_engine.process_requests(requests).await.expect("Processing should succeed");
+        let processed = strategy_engine
+            .process_requests(requests)
+            .await
+            .expect("Processing should succeed");
 
         // Should be ordered by depth (shallow first)
         assert_eq!(processed[0].depth, 1);
@@ -493,12 +512,18 @@ mod tests {
         let mut strategy_engine = StrategyEngine::new(depth_first_strategy());
 
         let requests = vec![
-            CrawlRequest::new(Url::from_str("https://example.com/shallow").expect("Valid URL")).with_depth(1),
-            CrawlRequest::new(Url::from_str("https://example.com/deep").expect("Valid URL")).with_depth(5),
-            CrawlRequest::new(Url::from_str("https://example.com/medium").expect("Valid URL")).with_depth(3),
+            CrawlRequest::new(Url::from_str("https://example.com/shallow").expect("Valid URL"))
+                .with_depth(1),
+            CrawlRequest::new(Url::from_str("https://example.com/deep").expect("Valid URL"))
+                .with_depth(5),
+            CrawlRequest::new(Url::from_str("https://example.com/medium").expect("Valid URL"))
+                .with_depth(3),
         ];
 
-        let processed = strategy_engine.process_requests(requests).await.expect("Processing should succeed");
+        let processed = strategy_engine
+            .process_requests(requests)
+            .await
+            .expect("Processing should succeed");
 
         // Should be ordered by depth (deep first)
         assert_eq!(processed[0].depth, 5);
@@ -516,7 +541,10 @@ mod tests {
             CrawlRequest::new(Url::from_str("https://example.com/medium.php").expect("Valid URL")),
         ];
 
-        let processed = strategy_engine.process_requests(requests).await.expect("Processing should succeed");
+        let processed = strategy_engine
+            .process_requests(requests)
+            .await
+            .expect("Processing should succeed");
 
         // HTML should score higher than PHP, which should score higher than PDF
         assert!(processed[0].url.path().contains("html"));

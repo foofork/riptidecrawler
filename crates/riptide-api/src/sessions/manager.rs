@@ -53,7 +53,10 @@ impl SessionManager {
     /// Create a new session with auto-generated ID
     pub async fn create_session(&self) -> Result<Session> {
         let session_id = Session::generate_session_id();
-        self.storage.create_session(session_id).await.map_err(|e| e.into())
+        self.storage
+            .create_session(session_id)
+            .await
+            .map_err(|e| e.into())
     }
 
     /// Update session metadata

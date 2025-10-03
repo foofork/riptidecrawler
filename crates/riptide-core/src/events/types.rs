@@ -22,7 +22,9 @@ impl PoolEvent {
                 EventSeverity::Error
             }
             PoolOperation::InstanceUnhealthy | PoolOperation::PoolExhausted => EventSeverity::Warn,
-            PoolOperation::InstanceHealthy | PoolOperation::HealthCheck | PoolOperation::MemoryCleanup => EventSeverity::Debug,
+            PoolOperation::InstanceHealthy
+            | PoolOperation::HealthCheck
+            | PoolOperation::MemoryCleanup => EventSeverity::Debug,
             _ => EventSeverity::Info,
         };
 
@@ -593,7 +595,12 @@ pub struct SystemEvent {
 }
 
 impl SystemEvent {
-    pub fn new(category: String, data: serde_json::Value, severity: EventSeverity, source: &str) -> Self {
+    pub fn new(
+        category: String,
+        data: serde_json::Value,
+        severity: EventSeverity,
+        source: &str,
+    ) -> Self {
         let event_type = format!("system.{}", category);
         let base = BaseEvent::new(&event_type, source, severity);
 
@@ -728,7 +735,10 @@ mod tests {
         event.add_tag("endpoint", "/api/v1/extract");
         event.add_tag("method", "POST");
 
-        assert_eq!(event.tags.get("endpoint"), Some(&"/api/v1/extract".to_string()));
+        assert_eq!(
+            event.tags.get("endpoint"),
+            Some(&"/api/v1/extract".to_string())
+        );
         assert_eq!(event.tags.get("method"), Some(&"POST".to_string()));
     }
 

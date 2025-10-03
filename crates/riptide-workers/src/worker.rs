@@ -313,7 +313,8 @@ impl Worker {
         };
 
         // Find appropriate processor
-        let processor = self.processors
+        let processor = self
+            .processors
             .iter()
             .find(|p| p.supported_job_types().contains(&job_type_name.to_string()))
             .context("No processor found for job type")?;
@@ -328,22 +329,43 @@ impl Worker {
         // Execute with timeout
         let result = tokio::time::timeout(
             Duration::from_secs(self.config.job_timeout_secs),
-            processor.process_job(job)
-        ).await;
+            processor.process_job(job),
+        )
+        .await;
 
         match result {
             Ok(Ok(data)) => {
                 let processing_time = job.processing_time_ms().unwrap_or(0);
-                Ok(JobResult::success(job.id, self.id.clone(), Some(data), processing_time))
+                Ok(JobResult::success(
+                    job.id,
+                    self.id.clone(),
+                    Some(data),
+                    processing_time,
+                ))
             }
             Ok(Err(e)) => {
                 let processing_time = job.processing_time_ms().unwrap_or(0);
-                Ok(JobResult::failure(job.id, self.id.clone(), e.to_string(), processing_time))
+                Ok(JobResult::failure(
+                    job.id,
+                    self.id.clone(),
+                    e.to_string(),
+                    processing_time,
+                ))
             }
             Err(_) => {
-                let error = format!("Job timed out after {} seconds", self.config.job_timeout_secs);
-                let processing_time = job.processing_time_ms().unwrap_or(self.config.job_timeout_secs * 1000);
-                Ok(JobResult::failure(job.id, self.id.clone(), error, processing_time))
+                let error = format!(
+                    "Job timed out after {} seconds",
+                    self.config.job_timeout_secs
+                );
+                let processing_time = job
+                    .processing_time_ms()
+                    .unwrap_or(self.config.job_timeout_secs * 1000);
+                Ok(JobResult::failure(
+                    job.id,
+                    self.id.clone(),
+                    error,
+                    processing_time,
+                ))
             }
         }
     }
@@ -424,7 +446,10 @@ impl WorkerPool {
             return Ok(());
         }
 
-        info!("Starting worker pool with {} workers", self.config.worker_count);
+        info!(
+            "Starting worker pool with {} workers",
+            self.config.worker_count
+        );
         self.running.store(true, Ordering::Relaxed);
 
         // Start workers

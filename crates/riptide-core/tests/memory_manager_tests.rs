@@ -13,7 +13,7 @@ mod tests {
 
     fn create_test_config() -> MemoryManagerConfig {
         MemoryManagerConfig {
-            max_total_memory_mb: 1024, // 1GB
+            max_total_memory_mb: 1024,         // 1GB
             instance_memory_threshold_mb: 256, // 256MB per instance
             max_instances: 4,
             min_instances: 1,

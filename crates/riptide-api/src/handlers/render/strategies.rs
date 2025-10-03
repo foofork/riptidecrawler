@@ -1,4 +1,6 @@
-use riptide_core::dynamic::{DynamicConfig, ScrollConfig, ScrollMode, ViewportConfig, WaitCondition};
+use riptide_core::dynamic::{
+    DynamicConfig, ScrollConfig, ScrollMode, ViewportConfig, WaitCondition,
+};
 use std::time::Duration;
 use tracing::debug;
 
@@ -236,7 +238,11 @@ mod tests {
         // Verify GitHub-specific configuration
         assert!(config.wait_for.is_some(), "Should have wait condition");
         assert!(config.scroll.is_some(), "Should have scroll configuration");
-        assert_eq!(config.timeout, Duration::from_secs(3), "Should have 3s timeout");
+        assert_eq!(
+            config.timeout,
+            Duration::from_secs(3),
+            "Should have 3s timeout"
+        );
 
         // Verify viewport
         if let Some(viewport) = config.viewport {
@@ -252,9 +258,15 @@ mod tests {
 
         // Verify Twitter-specific configuration
         if let Some(scroll) = config.scroll {
-            assert_eq!(scroll.steps, 5, "Social media should have more scroll steps");
+            assert_eq!(
+                scroll.steps, 5,
+                "Social media should have more scroll steps"
+            );
             assert_eq!(scroll.step_px, Some(800));
-            assert!(scroll.after_scroll_js.is_some(), "Should have custom scroll JS");
+            assert!(
+                scroll.after_scroll_js.is_some(),
+                "Should have custom scroll JS"
+            );
         }
     }
 
@@ -264,9 +276,19 @@ mod tests {
 
         // Verify article site configuration
         if let Some(scroll) = config.scroll {
-            assert_eq!(scroll.steps, 3, "Article sites should have moderate scrolling");
-            assert_eq!(scroll.mode, ScrollMode::Smooth, "Should use smooth scrolling");
-            assert!(scroll.after_scroll_js.is_none(), "Should not have custom scroll JS");
+            assert_eq!(
+                scroll.steps, 3,
+                "Article sites should have moderate scrolling"
+            );
+            assert_eq!(
+                scroll.mode,
+                ScrollMode::Smooth,
+                "Should use smooth scrolling"
+            );
+            assert!(
+                scroll.after_scroll_js.is_none(),
+                "Should not have custom scroll JS"
+            );
         }
     }
 
@@ -277,7 +299,11 @@ mod tests {
         // Verify generic configuration
         assert!(config.wait_for.is_some(), "Should have wait condition");
         assert!(config.scroll.is_some(), "Should have default scroll");
-        assert_eq!(config.timeout, Duration::from_secs(3), "Should have 3s timeout");
+        assert_eq!(
+            config.timeout,
+            Duration::from_secs(3),
+            "Should have 3s timeout"
+        );
         assert!(config.actions.is_empty(), "Should have no custom actions");
     }
 }

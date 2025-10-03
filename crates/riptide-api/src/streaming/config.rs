@@ -7,8 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 /// Global streaming configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct StreamConfig {
     /// Buffer configuration
     pub buffer: BufferConfig,
@@ -155,7 +154,6 @@ pub struct HealthCheckConfig {
     /// Healthy threshold (consecutive successes)
     pub healthy_threshold: u32,
 }
-
 
 impl Default for BufferConfig {
     fn default() -> Self {

@@ -6,7 +6,7 @@ use std::time::Duration;
 #[cfg(test)]
 mod storage_tests {
     use super::*;
-    use riptide_persistence::storage::{StorageBackend, FileStorage, DatabaseStorage};
+    use riptide_persistence::storage::{DatabaseStorage, FileStorage, StorageBackend};
 
     #[tokio::test]
     async fn test_file_storage() {
@@ -32,12 +32,17 @@ mod storage_tests {
         match storage {
             Ok(db) => {
                 // Insert record
-                db.insert("crawl_results", &CrawlRecord {
-                    id: "123".to_string(),
-                    url: "https://example.com".to_string(),
-                    content: "Test content".to_string(),
-                    timestamp: chrono::Utc::now(),
-                }).await.unwrap();
+                db.insert(
+                    "crawl_results",
+                    &CrawlRecord {
+                        id: "123".to_string(),
+                        url: "https://example.com".to_string(),
+                        content: "Test content".to_string(),
+                        timestamp: chrono::Utc::now(),
+                    },
+                )
+                .await
+                .unwrap();
 
                 // Query record
                 let records = db.query("crawl_results", "id = '123'").await.unwrap();
@@ -55,7 +60,9 @@ mod storage_tests {
             path: "/tmp/riptide_cache".to_string(),
             max_size_mb: 100,
             ttl: Duration::from_secs(3600),
-        }).await.unwrap();
+        })
+        .await
+        .unwrap();
 
         cache.set("key1", "value1").await.unwrap();
         assert_eq!(cache.get("key1").await.unwrap(), "value1");
@@ -65,7 +72,9 @@ mod storage_tests {
             path: "/tmp/riptide_cache".to_string(),
             max_size_mb: 100,
             ttl: Duration::from_secs(3600),
-        }).await.unwrap();
+        })
+        .await
+        .unwrap();
 
         // Should still have data
         assert_eq!(cache2.get("key1").await.unwrap(), "value1");
@@ -101,7 +110,9 @@ mod queue_tests {
         let queue = PersistentQueue::new(QueueConfig {
             path: "/tmp/riptide_queue".to_string(),
             max_size: 1000,
-        }).await.unwrap();
+        })
+        .await
+        .unwrap();
 
         // Push items
         queue.push("item1").await.unwrap();
@@ -138,7 +149,9 @@ mod checkpoint_tests {
 
     #[tokio::test]
     async fn test_checkpoint_save_restore() {
-        let manager = CheckpointManager::new("/tmp/riptide_checkpoints").await.unwrap();
+        let manager = CheckpointManager::new("/tmp/riptide_checkpoints")
+            .await
+            .unwrap();
 
         let state = CrawlState {
             job_id: "job123".to_string(),
@@ -159,7 +172,9 @@ mod checkpoint_tests {
 
     #[tokio::test]
     async fn test_checkpoint_cleanup() {
-        let manager = CheckpointManager::new("/tmp/riptide_checkpoints").await.unwrap();
+        let manager = CheckpointManager::new("/tmp/riptide_checkpoints")
+            .await
+            .unwrap();
 
         // Create old checkpoints
         for i in 0..5 {
@@ -174,7 +189,10 @@ mod checkpoint_tests {
         }
 
         // Clean old checkpoints
-        let removed = manager.cleanup_old_checkpoints(Duration::from_secs(86400 * 7)).await.unwrap();
+        let removed = manager
+            .cleanup_old_checkpoints(Duration::from_secs(86400 * 7))
+            .await
+            .unwrap();
         assert!(removed >= 5);
     }
 }

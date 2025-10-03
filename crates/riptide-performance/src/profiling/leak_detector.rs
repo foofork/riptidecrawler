@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use tracing::{debug, info};
 
-use super::{LeakAnalysis, LeakInfo, AllocationInfo};
+use super::{AllocationInfo, LeakAnalysis, LeakInfo};
 
 /// Memory leak detector that tracks allocation patterns
 pub struct LeakDetector {
@@ -43,7 +43,9 @@ impl LeakDetector {
         let component = allocation.component.clone();
         let size = allocation.size as u64;
 
-        let entry = self.allocations.entry(component.clone())
+        let entry = self
+            .allocations
+            .entry(component.clone())
             .or_insert_with(|| ComponentAllocations {
                 total_allocations: 0,
                 total_size: 0,
@@ -147,8 +149,11 @@ impl LeakDetector {
 
         // Sort by severity
         potential_leaks.sort_by(|a, b| {
-            b.total_size_bytes.cmp(&a.total_size_bytes)
-                .then(b.growth_rate.partial_cmp(&a.growth_rate).unwrap_or(std::cmp::Ordering::Equal))
+            b.total_size_bytes.cmp(&a.total_size_bytes).then(
+                b.growth_rate
+                    .partial_cmp(&a.growth_rate)
+                    .unwrap_or(std::cmp::Ordering::Equal),
+            )
         });
 
         // Sort largest allocations by size
@@ -188,7 +193,8 @@ impl LeakDetector {
 
         // 2. Large total size (>50MB) with recent activity
         if allocations.total_size > 50 * 1024 * 1024 {
-            let recent_activity = chrono::Utc::now().timestamp() - allocations.last_seen.timestamp() < 60;
+            let recent_activity =
+                chrono::Utc::now().timestamp() - allocations.last_seen.timestamp() < 60;
             if recent_activity {
                 return true;
             }
@@ -208,25 +214,37 @@ impl LeakDetector {
     }
 
     /// Detect suspicious allocation patterns
-    fn detect_suspicious_pattern(&self, component: &str, allocations: &ComponentAllocations) -> Option<String> {
+    fn detect_suspicious_pattern(
+        &self,
+        component: &str,
+        allocations: &ComponentAllocations,
+    ) -> Option<String> {
         // Pattern 1: Exponential growth
         if allocations.recent_allocations.len() >= 10 {
-            let recent = &allocations.recent_allocations[allocations.recent_allocations.len() - 10..];
+            let recent =
+                &allocations.recent_allocations[allocations.recent_allocations.len() - 10..];
             let sizes: Vec<usize> = recent.iter().map(|a| a.size).collect();
 
             if self.is_exponential_growth(&sizes) {
-                return Some(format!("{}: Exponential allocation growth detected", component));
+                return Some(format!(
+                    "{}: Exponential allocation growth detected",
+                    component
+                ));
             }
         }
 
         // Pattern 2: Regular large allocations
-        let large_allocations = allocations.recent_allocations
+        let large_allocations = allocations
+            .recent_allocations
             .iter()
             .filter(|a| a.size > 1024 * 1024) // >1MB
             .count();
 
         if large_allocations > 5 {
-            return Some(format!("{}: Frequent large allocations ({})", component, large_allocations));
+            return Some(format!(
+                "{}: Frequent large allocations ({})",
+                component, large_allocations
+            ));
         }
 
         // Pattern 3: Identical stack traces (potential loop leak)
@@ -238,7 +256,10 @@ impl LeakDetector {
 
             for (_stack, count) in stack_counts {
                 if count >= 5 {
-                    return Some(format!("{}: Repeated allocation pattern detected ({} times)", component, count));
+                    return Some(format!(
+                        "{}: Repeated allocation pattern detected ({} times)",
+                        component, count
+                    ));
                 }
             }
         }
@@ -255,7 +276,7 @@ impl LeakDetector {
         // Check if each element is roughly double the previous
         let mut exponential_count = 0;
         for i in 1..sizes.len() {
-            if sizes[i] > sizes[i-1] * 2 {
+            if sizes[i] > sizes[i - 1] * 2 {
                 exponential_count += 1;
             }
         }
@@ -265,13 +286,9 @@ impl LeakDetector {
 
     /// Get memory pressure score (0.0 = low, 1.0 = high)
     pub async fn get_memory_pressure(&self) -> Result<f64> {
-        let total_size: u64 = self.allocations.values()
-            .map(|a| a.total_size)
-            .sum();
+        let total_size: u64 = self.allocations.values().map(|a| a.total_size).sum();
 
-        let total_allocations: u64 = self.allocations.values()
-            .map(|a| a.total_allocations)
-            .sum();
+        let total_allocations: u64 = self.allocations.values().map(|a| a.total_allocations).sum();
 
         // Calculate pressure based on total memory and allocation rate
         let size_pressure = (total_size as f64 / (500.0 * 1024.0 * 1024.0)).min(1.0); // 500MB = high pressure
@@ -285,7 +302,9 @@ impl LeakDetector {
         let cutoff = chrono::Utc::now() - chrono::Duration::from_std(retention_period)?;
 
         for allocations in self.allocations.values_mut() {
-            allocations.recent_allocations.retain(|a| a.timestamp >= cutoff);
+            allocations
+                .recent_allocations
+                .retain(|a| a.timestamp >= cutoff);
         }
 
         // Remove components with no recent allocations

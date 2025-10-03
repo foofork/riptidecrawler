@@ -1,13 +1,13 @@
 //! Fallback chain implementation for deterministic provider switching
 
 use async_trait::async_trait;
-use std::sync::Arc;
 use serde::{Deserialize, Serialize};
-use tracing::{info, warn, error};
+use std::sync::Arc;
+use tracing::{error, info, warn};
 
 use crate::{
-    LlmProvider, CompletionRequest, CompletionResponse, LlmCapabilities,
-    Cost, IntelligenceError, Result
+    CompletionRequest, CompletionResponse, Cost, IntelligenceError, LlmCapabilities, LlmProvider,
+    Result,
 };
 
 /// Strategy for selecting the next provider in a fallback chain
@@ -91,14 +91,18 @@ impl FallbackStats {
             self.failed_requests += 1;
         }
 
-        *self.provider_usage.entry(provider_name.to_string()).or_insert(0) += 1;
+        *self
+            .provider_usage
+            .entry(provider_name.to_string())
+            .or_insert(0) += 1;
 
         if providers_tried > 1 {
             self.fallback_triggers += 1;
         }
 
         // Update average providers tried
-        let total_providers_tried = self.average_providers_tried * (self.total_requests - 1) as f32 + providers_tried as f32;
+        let total_providers_tried = self.average_providers_tried * (self.total_requests - 1) as f32
+            + providers_tried as f32;
         self.average_providers_tried = total_providers_tried / self.total_requests as f32;
     }
 }
@@ -134,7 +138,10 @@ impl FallbackChain {
 
     /// Add a provider to the fallback chain
     pub fn add_provider(&mut self, config: FallbackProviderConfig) -> &mut Self {
-        info!("Adding provider '{}' to fallback chain", config.provider.name());
+        info!(
+            "Adding provider '{}' to fallback chain",
+            config.provider.name()
+        );
         self.providers.push(config);
         self
     }
@@ -172,7 +179,8 @@ impl FallbackChain {
 
     /// Get provider names in order
     pub fn provider_names(&self) -> Vec<String> {
-        self.providers.iter()
+        self.providers
+            .iter()
             .filter(|p| p.enabled)
             .map(|p| p.provider.name().to_string())
             .collect()
@@ -180,9 +188,7 @@ impl FallbackChain {
 
     /// Order providers based on the current strategy
     fn order_providers(&self, request: &CompletionRequest) -> Vec<&FallbackProviderConfig> {
-        let mut enabled_providers: Vec<_> = self.providers.iter()
-            .filter(|p| p.enabled)
-            .collect();
+        let mut enabled_providers: Vec<_> = self.providers.iter().filter(|p| p.enabled).collect();
 
         match self.strategy {
             FallbackStrategy::Sequential => {
@@ -195,7 +201,9 @@ impl FallbackChain {
                 enabled_providers.sort_by(|a, b| {
                     let cost_a = a.provider.estimate_cost(token_estimate).total_cost;
                     let cost_b = b.provider.estimate_cost(token_estimate).total_cost;
-                    cost_a.partial_cmp(&cost_b).unwrap_or(std::cmp::Ordering::Equal)
+                    cost_a
+                        .partial_cmp(&cost_b)
+                        .unwrap_or(std::cmp::Ordering::Equal)
                 });
             }
             FallbackStrategy::FastestFirst => {
@@ -224,9 +232,7 @@ impl FallbackChain {
     /// Estimate token count for cost calculation
     fn estimate_tokens(&self, request: &CompletionRequest) -> usize {
         // Simple token estimation: roughly 4 characters per token
-        let total_chars: usize = request.messages.iter()
-            .map(|m| m.content.len())
-            .sum();
+        let total_chars: usize = request.messages.iter().map(|m| m.content.len()).sum();
         total_chars / 4 + request.max_tokens.unwrap_or(100) as usize
     }
 
@@ -269,9 +275,7 @@ impl FallbackChain {
             }
         }
 
-        Err(last_error.unwrap_or_else(|| {
-            IntelligenceError::Provider("Unknown error".to_string())
-        }))
+        Err(last_error.unwrap_or_else(|| IntelligenceError::Provider("Unknown error".to_string())))
     }
 
     /// Check if all providers are available
@@ -290,7 +294,8 @@ impl FallbackChain {
 
     /// Get the primary (first) provider
     pub fn primary_provider(&self) -> Option<&Arc<dyn LlmProvider>> {
-        self.providers.iter()
+        self.providers
+            .iter()
             .filter(|p| p.enabled)
             .min_by_key(|p| p.priority)
             .map(|p| &p.provider)
@@ -324,14 +329,14 @@ impl LlmProvider for FallbackChain {
     async fn complete(&self, request: CompletionRequest) -> Result<CompletionResponse> {
         if self.providers.is_empty() {
             return Err(IntelligenceError::Configuration(
-                "No providers configured in fallback chain".to_string()
+                "No providers configured in fallback chain".to_string(),
             ));
         }
 
         let ordered_providers = self.order_providers(&request);
         if ordered_providers.is_empty() {
             return Err(IntelligenceError::Configuration(
-                "No enabled providers in fallback chain".to_string()
+                "No enabled providers in fallback chain".to_string(),
             ));
         }
 
@@ -365,11 +370,7 @@ impl LlmProvider for FallbackChain {
                     return Ok(response);
                 }
                 Err(error) => {
-                    error!(
-                        "Provider '{}' failed: {}",
-                        config.provider.name(),
-                        error
-                    );
+                    error!("Provider '{}' failed: {}", config.provider.name(), error);
                     last_error = Some(error);
                 }
             }
@@ -382,19 +383,14 @@ impl LlmProvider for FallbackChain {
                 providers_tried, error
             );
         } else {
-            error!(
-                "All {} providers failed in fallback chain",
-                providers_tried
-            );
+            error!("All {} providers failed in fallback chain", providers_tried);
         }
 
         // Record failed request
         if let Some(last_config) = ordered_providers.last() {
-            self.stats.write().record_request(
-                last_config.provider.name(),
-                providers_tried,
-                false,
-            );
+            self.stats
+                .write()
+                .record_request(last_config.provider.name(), providers_tried, false);
         }
 
         Err(IntelligenceError::AllProvidersFailed)
@@ -403,17 +399,15 @@ impl LlmProvider for FallbackChain {
     async fn embed(&self, text: &str) -> Result<Vec<f32>> {
         if self.providers.is_empty() {
             return Err(IntelligenceError::Configuration(
-                "No providers configured in fallback chain".to_string()
+                "No providers configured in fallback chain".to_string(),
             ));
         }
 
-        let enabled_providers: Vec<_> = self.providers.iter()
-            .filter(|p| p.enabled)
-            .collect();
+        let enabled_providers: Vec<_> = self.providers.iter().filter(|p| p.enabled).collect();
 
         if enabled_providers.is_empty() {
             return Err(IntelligenceError::Configuration(
-                "No enabled providers in fallback chain".to_string()
+                "No enabled providers in fallback chain".to_string(),
             ));
         }
 
@@ -469,7 +463,7 @@ impl LlmProvider for FallbackChain {
         }
 
         Err(IntelligenceError::Provider(
-            "No healthy providers in fallback chain".to_string()
+            "No healthy providers in fallback chain".to_string(),
         ))
     }
 
@@ -492,8 +486,7 @@ impl LlmProvider for FallbackChain {
 pub fn create_fallback_chain(providers: Vec<Arc<dyn LlmProvider>>) -> FallbackChain {
     let mut chain = FallbackChain::new();
     for (index, provider) in providers.into_iter().enumerate() {
-        let config = FallbackProviderConfig::new(provider)
-            .with_priority(index as u32);
+        let config = FallbackProviderConfig::new(provider).with_priority(index as u32);
         chain.add_provider(config);
     }
     chain
@@ -506,8 +499,7 @@ pub fn create_fallback_chain_with_strategy(
 ) -> FallbackChain {
     let mut chain = FallbackChain::with_strategy(strategy);
     for (index, provider) in providers.into_iter().enumerate() {
-        let config = FallbackProviderConfig::new(provider)
-            .with_priority(index as u32);
+        let config = FallbackProviderConfig::new(provider).with_priority(index as u32);
         chain.add_provider(config);
     }
     chain
@@ -516,7 +508,7 @@ pub fn create_fallback_chain_with_strategy(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::mock_provider::{MockLlmProvider, create_failing_provider, FailureMode};
+    use crate::mock_provider::{create_failing_provider, FailureMode, MockLlmProvider};
     use crate::provider::Message;
 
     #[tokio::test]
@@ -526,10 +518,7 @@ mod tests {
 
         let chain = create_fallback_chain(vec![provider1, provider2]);
 
-        let request = CompletionRequest::new(
-            "mock-gpt-3.5",
-            vec![Message::user("Hello")],
-        );
+        let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("Hello")]);
 
         let result = chain.complete(request).await;
         assert!(result.is_ok());
@@ -546,10 +535,7 @@ mod tests {
 
         let chain = create_fallback_chain(vec![provider1, provider2]);
 
-        let request = CompletionRequest::new(
-            "mock-gpt-3.5",
-            vec![Message::user("Hello")],
-        );
+        let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("Hello")]);
 
         let result = chain.complete(request).await;
         assert!(result.is_ok());
@@ -566,10 +552,7 @@ mod tests {
 
         let chain = create_fallback_chain(vec![provider1, provider2]);
 
-        let request = CompletionRequest::new(
-            "mock-gpt-3.5",
-            vec![Message::user("Hello")],
-        );
+        let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("Hello")]);
 
         let result = chain.complete(request).await;
         assert!(matches!(result, Err(IntelligenceError::AllProvidersFailed)));
@@ -586,10 +569,7 @@ mod tests {
             FallbackStrategy::RoundRobin,
         );
 
-        let request = CompletionRequest::new(
-            "mock-gpt-3.5",
-            vec![Message::user("Hello")],
-        );
+        let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("Hello")]);
 
         // Make multiple requests to test round-robin
         for _ in 0..4 {
@@ -621,10 +601,7 @@ mod tests {
     async fn test_empty_fallback_chain() {
         let chain = FallbackChain::new();
 
-        let request = CompletionRequest::new(
-            "mock-gpt-3.5",
-            vec![Message::user("Hello")],
-        );
+        let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("Hello")]);
 
         let result = chain.complete(request).await;
         assert!(matches!(result, Err(IntelligenceError::Configuration(_))));

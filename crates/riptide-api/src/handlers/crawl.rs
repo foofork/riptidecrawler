@@ -117,7 +117,8 @@ pub async fn crawl(
                 // Apply chunking if requested
                 let document = if let Some(ref chunking_config) = options.chunking_config {
                     let doc = result.document;
-                    apply_content_chunking(doc.clone(), chunking_config).await
+                    apply_content_chunking(doc.clone(), chunking_config)
+                        .await
                         .unwrap_or(doc)
                 } else {
                     result.document
@@ -204,7 +205,8 @@ pub async fn crawl(
     );
 
     // Emit crawl completion event
-    let mut complete_event = BaseEvent::new("crawl.completed", "api.crawl_handler", EventSeverity::Info);
+    let mut complete_event =
+        BaseEvent::new("crawl.completed", "api.crawl_handler", EventSeverity::Info);
     complete_event.add_metadata("total_urls", &body.urls.len().to_string());
     complete_event.add_metadata("successful", &stats.successful_extractions.to_string());
     complete_event.add_metadata("failed", &stats.failed_extractions.to_string());
@@ -231,19 +233,23 @@ pub(super) async fn handle_spider_crawl(
 ) -> Result<Json<CrawlResponse>, ApiError> {
     // Check if spider is enabled
     let spider = state.spider.as_ref().ok_or_else(|| ApiError::ConfigError {
-        message: "Spider engine is not enabled. Set SPIDER_ENABLE=true to enable spider crawling.".to_string(),
+        message: "Spider engine is not enabled. Set SPIDER_ENABLE=true to enable spider crawling."
+            .to_string(),
     })?;
 
     // Parse URLs
     let seed_urls: Vec<Url> = urls
         .iter()
         .map(|url_str| {
-            Url::parse(url_str).map_err(|e| ApiError::validation(format!("Invalid URL '{}': {}", url_str, e)))
+            Url::parse(url_str)
+                .map_err(|e| ApiError::validation(format!("Invalid URL '{}': {}", url_str, e)))
         })
         .collect::<Result<Vec<_>, _>>()?;
 
     if seed_urls.is_empty() {
-        return Err(ApiError::validation("At least one URL is required for spider crawl".to_string()));
+        return Err(ApiError::validation(
+            "At least one URL is required for spider crawl".to_string(),
+        ));
     }
 
     // Create spider config based on options
@@ -267,7 +273,10 @@ pub(super) async fn handle_spider_crawl(
                 scoring_config: ScoringConfig::default(),
             },
             _ => {
-                warn!("Unknown spider strategy '{}', using breadth_first", strategy_str);
+                warn!(
+                    "Unknown spider strategy '{}', using breadth_first",
+                    strategy_str
+                );
                 CrawlingStrategy::BreadthFirst
             }
         };

@@ -4,11 +4,11 @@
 //! moved from riptide-core to provide cleaner separation of concerns.
 
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use wasmtime::{component::*, Config, Engine, Store, ResourceLimiter};
-use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
-use serde::{Deserialize, Serialize};
+use wasmtime::{component::*, Config, Engine, ResourceLimiter, Store};
 
 use crate::ExtractedContent;
 
@@ -218,7 +218,8 @@ impl ResourceLimiter for WasmResourceTracker {
             self.grow_failed_count.fetch_add(1, Ordering::Relaxed);
             Ok(false)
         } else {
-            self.current_pages.fetch_add(pages_needed, Ordering::Relaxed);
+            self.current_pages
+                .fetch_add(pages_needed, Ordering::Relaxed);
 
             // Update peak memory
             let mut peak = self.peak_pages.load(Ordering::Relaxed);
@@ -349,7 +350,8 @@ impl CmExtractor {
             stats.successful_extractions += 1;
 
             // Update average extraction time
-            let total_time = stats.avg_extraction_time * (stats.total_extractions - 1) as u32 + extraction_time;
+            let total_time =
+                stats.avg_extraction_time * (stats.total_extractions - 1) as u32 + extraction_time;
             stats.avg_extraction_time = total_time / stats.total_extractions as u32;
         }
 
@@ -359,7 +361,10 @@ impl CmExtractor {
             url: url.to_string(),
             title: Some("Sample Title".to_string()),
             text: html.chars().take(1000).collect(),
-            markdown: format!("# Sample Title\n\n{}", html.chars().take(500).collect::<String>()),
+            markdown: format!(
+                "# Sample Title\n\n{}",
+                html.chars().take(500).collect::<String>()
+            ),
             quality_score: Some(80),
             word_count: Some(html.split_whitespace().count() as u32),
             ..Default::default()

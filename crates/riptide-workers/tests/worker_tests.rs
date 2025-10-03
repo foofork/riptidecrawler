@@ -1,8 +1,7 @@
-use riptide_workers::{
-    Job, JobType, JobStatus, JobPriority, JobResult, WorkerConfig,
-    WorkerMetrics
-};
 use chrono::Utc;
+use riptide_workers::{
+    Job, JobPriority, JobResult, JobStatus, JobType, WorkerConfig, WorkerMetrics,
+};
 use uuid::Uuid;
 
 #[tokio::test]
@@ -22,7 +21,10 @@ async fn test_job_creation() {
 #[tokio::test]
 async fn test_job_with_priority() {
     let job_type = JobType::BatchCrawl {
-        urls: vec!["https://example.com".to_string(), "https://test.com".to_string()],
+        urls: vec![
+            "https://example.com".to_string(),
+            "https://test.com".to_string(),
+        ],
         options: None,
     };
     let job = Job::with_priority(job_type, JobPriority::High);
@@ -79,12 +81,10 @@ async fn test_job_retry_exhaustion() {
         url: "https://example.com".to_string(),
         options: None,
     };
-    let mut job = Job::new(job_type).with_retry_config(
-        riptide_workers::RetryConfig {
-            max_attempts: 2,
-            ..Default::default()
-        },
-    );
+    let mut job = Job::new(job_type).with_retry_config(riptide_workers::RetryConfig {
+        max_attempts: 2,
+        ..Default::default()
+    });
 
     // First failure - should retry
     job.fail("Temporary error".to_string());
@@ -150,12 +150,8 @@ async fn test_job_result_creation() {
     assert_eq!(success_result.processing_time_ms, processing_time);
 
     // Test failure result
-    let failure_result = JobResult::failure(
-        job_id,
-        worker_id,
-        "Test error".to_string(),
-        processing_time,
-    );
+    let failure_result =
+        JobResult::failure(job_id, worker_id, "Test error".to_string(), processing_time);
     assert!(!failure_result.success);
     assert!(failure_result.data.is_none());
     assert!(failure_result.error.is_some());

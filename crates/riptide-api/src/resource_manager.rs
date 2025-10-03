@@ -10,7 +10,7 @@
 
 use crate::config::ApiConfig;
 use anyhow::{anyhow, Result};
-use riptide_headless::pool::{BrowserPool, BrowserPoolConfig, BrowserCheckout};
+use riptide_headless::pool::{BrowserCheckout, BrowserPool, BrowserPoolConfig};
 use std::{
     collections::HashMap,
     sync::{
@@ -295,8 +295,11 @@ impl ResourceManager {
         }
 
         // Acquire PDF semaphore with timeout
-        let permit_result =
-            timeout(self.config.get_timeout("pdf"), self.pdf_semaphore.clone().acquire_owned()).await;
+        let permit_result = timeout(
+            self.config.get_timeout("pdf"),
+            self.pdf_semaphore.clone().acquire_owned(),
+        )
+        .await;
 
         let permit = match permit_result {
             Ok(Ok(permit)) => permit,
@@ -418,7 +421,6 @@ pub struct ResourceStatus {
 
 // HeadlessBrowserPool implementation removed - using BrowserPool from riptide-headless
 
-
 impl PerHostRateLimiter {
     async fn new(config: ApiConfig, metrics: Arc<ResourceMetrics>) -> Result<Self> {
         let limiter = Self {
@@ -524,8 +526,6 @@ impl WasmInstanceManager {
         })
     }
 }
-
-
 
 impl MemoryManager {
     async fn new(config: ApiConfig, metrics: Arc<ResourceMetrics>) -> Result<Self> {
@@ -655,9 +655,13 @@ impl PerformanceMonitor {
         }
 
         // Update metrics
-        self.metrics.render_operations.fetch_add(1, Ordering::Relaxed);
+        self.metrics
+            .render_operations
+            .fetch_add(1, Ordering::Relaxed);
         if success {
-            self.metrics.successful_renders.fetch_add(1, Ordering::Relaxed);
+            self.metrics
+                .successful_renders
+                .fetch_add(1, Ordering::Relaxed);
         } else {
             self.metrics.failed_renders.fetch_add(1, Ordering::Relaxed);
         }

@@ -5,10 +5,7 @@ Implementation of distributed cache synchronization with consensus mechanisms,
 leader election, and conflict resolution for multi-instance coordination.
 */
 
-use crate::{
-    errors::PersistenceResult,
-    config::DistributedConfig,
-};
+use crate::{config::DistributedConfig, errors::PersistenceResult};
 use chrono::{DateTime, Utc};
 use redis::aio::MultiplexedConnection;
 use redis::{AsyncCommands, Client};
@@ -16,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::{RwLock, Mutex};
+use tokio::sync::{Mutex, RwLock};
 use tokio::time::interval;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
@@ -213,7 +210,10 @@ impl DistributedSync {
             );
 
             // Use consensus to resolve conflict
-            let resolution = self.consensus.resolve_conflict(&operation, &conflict_info).await?;
+            let resolution = self
+                .consensus
+                .resolve_conflict(&operation, &conflict_info)
+                .await?;
             if !resolution.should_apply {
                 debug!(
                     operation_id = %operation.id,
@@ -227,7 +227,9 @@ impl DistributedSync {
         let result = match operation.operation_type {
             SyncOperationType::Set => self.apply_set_operation(&operation).await,
             SyncOperationType::Delete => self.apply_delete_operation(&operation).await,
-            SyncOperationType::InvalidatePattern => self.apply_invalidate_operation(&operation).await,
+            SyncOperationType::InvalidatePattern => {
+                self.apply_invalidate_operation(&operation).await
+            }
             SyncOperationType::Clear => self.apply_clear_operation(&operation).await,
             SyncOperationType::Heartbeat => self.apply_heartbeat_operation(&operation).await,
         };
@@ -256,7 +258,10 @@ impl DistributedSync {
     }
 
     /// Check for operation conflicts
-    async fn check_for_conflicts(&self, operation: &SyncOperation) -> PersistenceResult<Option<String>> {
+    async fn check_for_conflicts(
+        &self,
+        operation: &SyncOperation,
+    ) -> PersistenceResult<Option<String>> {
         let state = self.state.read().await;
 
         // Check pending operations for conflicts
@@ -272,7 +277,9 @@ impl DistributedSync {
         // Check operation history for recent conflicts
         for historical in state.operation_history.iter().rev().take(100) {
             if historical.operation.key == operation.key {
-                let time_diff = operation.timestamp.signed_duration_since(historical.operation.timestamp);
+                let time_diff = operation
+                    .timestamp
+                    .signed_duration_since(historical.operation.timestamp);
                 if time_diff.num_seconds().abs() < 60 {
                     // Operations within 1 minute might conflict
                     return Ok(Some(format!(
@@ -356,7 +363,9 @@ impl DistributedSync {
     async fn apply_heartbeat_operation(&self, operation: &SyncOperation) -> PersistenceResult<()> {
         let mut state = self.state.write().await;
         state.known_nodes.insert(operation.origin_node.clone());
-        state.node_heartbeats.insert(operation.origin_node.clone(), operation.timestamp);
+        state
+            .node_heartbeats
+            .insert(operation.origin_node.clone(), operation.timestamp);
 
         debug!(
             node = %operation.origin_node,
@@ -396,7 +405,9 @@ impl DistributedSync {
 
     /// Leader election task
     async fn leader_election_task(&self) {
-        let mut interval = interval(Duration::from_millis(self.config.leader_election_timeout_ms));
+        let mut interval = interval(Duration::from_millis(
+            self.config.leader_election_timeout_ms,
+        ));
 
         loop {
             interval.tick().await;

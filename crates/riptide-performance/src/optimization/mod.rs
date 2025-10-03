@@ -9,7 +9,7 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-use tracing::{info, warn, debug};
+use tracing::{debug, info, warn};
 use uuid::Uuid;
 
 /// Cache optimization configuration
@@ -237,7 +237,9 @@ impl CacheOptimizer {
         let mut is_optimizing = self.is_optimizing.write().await;
         if !*is_optimizing {
             warn!(session_id = %self.session_id, "Cache optimization not running");
-            return Err(PerformanceError::ConfigError("Optimization not running".to_string()));
+            return Err(PerformanceError::ConfigError(
+                "Optimization not running".to_string(),
+            ));
         }
 
         info!(session_id = %self.session_id, "Stopping cache optimization");
@@ -310,7 +312,9 @@ impl CacheOptimizer {
     /// Set cache entry
     pub async fn set(&self, key: &str, data: Vec<u8>, ttl: Option<Duration>) -> Result<()> {
         let ttl = ttl.unwrap_or(self.config.default_ttl);
-        let expires_at = chrono::Utc::now() + chrono::Duration::from_std(ttl).map_err(|e| PerformanceError::ConfigError(e.to_string()))?;
+        let expires_at = chrono::Utc::now()
+            + chrono::Duration::from_std(ttl)
+                .map_err(|e| PerformanceError::ConfigError(e.to_string()))?;
 
         let entry = CacheEntry {
             key: key.to_string(),
@@ -333,9 +337,12 @@ impl CacheOptimizer {
         stats.total_entries = cache.len();
 
         // Update total size
-        stats.total_size_mb = cache.values()
+        stats.total_size_mb = cache
+            .values()
             .map(|(_, entry)| entry.size_bytes as f64)
-            .sum::<f64>() / 1024.0 / 1024.0;
+            .sum::<f64>()
+            / 1024.0
+            / 1024.0;
 
         debug!(
             session_id = %self.session_id,
@@ -355,9 +362,12 @@ impl CacheOptimizer {
         let removed = cache.remove(key).is_some();
         if removed {
             stats.total_entries = cache.len();
-            stats.total_size_mb = cache.values()
+            stats.total_size_mb = cache
+                .values()
                 .map(|(_, entry)| entry.size_bytes as f64)
-                .sum::<f64>() / 1024.0 / 1024.0;
+                .sum::<f64>()
+                / 1024.0
+                / 1024.0;
 
             debug!(
                 session_id = %self.session_id,
@@ -436,9 +446,12 @@ impl CacheOptimizer {
 
                 if removed_count > 0 {
                     stats_guard.total_entries = cache_guard.len();
-                    stats_guard.total_size_mb = cache_guard.values()
+                    stats_guard.total_size_mb = cache_guard
+                        .values()
                         .map(|(_, entry)| entry.size_bytes as f64)
-                        .sum::<f64>() / 1024.0 / 1024.0;
+                        .sum::<f64>()
+                        / 1024.0
+                        / 1024.0;
 
                     debug!(
                         session_id = %session_id,
@@ -502,19 +515,25 @@ impl CacheOptimizer {
         let mut patterns = self.access_patterns.write().await;
         let now = Instant::now();
 
-        let pattern = patterns.entry(key.to_string()).or_insert_with(|| AccessPattern {
-            frequency: 0.0,
-            last_access: now,
-            access_times: VecDeque::new(),
-            predicted_next_access: None,
-        });
+        let pattern = patterns
+            .entry(key.to_string())
+            .or_insert_with(|| AccessPattern {
+                frequency: 0.0,
+                last_access: now,
+                access_times: VecDeque::new(),
+                predicted_next_access: None,
+            });
 
         pattern.access_times.push_back(now);
         pattern.last_access = now;
 
         // Keep only recent access times (last hour)
         let cutoff = now - Duration::from_secs(3600);
-        while pattern.access_times.front().is_some_and(|&time| time < cutoff) {
+        while pattern
+            .access_times
+            .front()
+            .is_some_and(|&time| time < cutoff)
+        {
             pattern.access_times.pop_front();
         }
 
@@ -523,7 +542,8 @@ impl CacheOptimizer {
 
         // Predict next access based on pattern
         if pattern.access_times.len() >= 2 {
-            let intervals: Vec<Duration> = pattern.access_times
+            let intervals: Vec<Duration> = pattern
+                .access_times
                 .iter()
                 .zip(pattern.access_times.iter().skip(1))
                 .map(|(prev, curr)| curr.duration_since(*prev))
@@ -540,9 +560,12 @@ impl CacheOptimizer {
     async fn ensure_cache_space(&self, new_entry_size: usize) -> Result<()> {
         let current_size_mb = {
             let cache = self.memory_cache.read().await;
-            cache.values()
+            cache
+                .values()
                 .map(|(_, entry)| entry.size_bytes as f64)
-                .sum::<f64>() / 1024.0 / 1024.0
+                .sum::<f64>()
+                / 1024.0
+                / 1024.0
         };
 
         let new_entry_size_mb = new_entry_size as f64 / 1024.0 / 1024.0;
@@ -563,7 +586,8 @@ impl CacheOptimizer {
         let mut evicted_size = 0.0;
 
         // Collect entries sorted by eviction priority (LRU + access frequency)
-        let mut entries: Vec<(String, f64)> = cache.iter()
+        let mut entries: Vec<(String, f64)> = cache
+            .iter()
             .map(|(key, (_, entry))| {
                 let age_score = (chrono::Utc::now() - entry.last_accessed).num_seconds() as f64;
                 let access_score = 1.0 / (entry.access_count as f64 + 1.0);
@@ -602,9 +626,12 @@ impl CacheOptimizer {
         }
 
         stats.total_entries = cache.len();
-        stats.total_size_mb = cache.values()
+        stats.total_size_mb = cache
+            .values()
             .map(|(_, entry)| entry.size_bytes as f64)
-            .sum::<f64>() / 1024.0 / 1024.0;
+            .sum::<f64>()
+            / 1024.0
+            / 1024.0;
 
         info!(
             session_id = %self.session_id,
@@ -623,8 +650,12 @@ impl CacheOptimizer {
 
         // Identify frequently accessed items that should have higher priority
         for (key, pattern) in patterns.iter() {
-            if pattern.frequency > 10.0 { // More than 10 accesses per hour
-                optimizations.push(format!("Promote {} to high priority (frequency: {:.1})", key, pattern.frequency));
+            if pattern.frequency > 10.0 {
+                // More than 10 accesses per hour
+                optimizations.push(format!(
+                    "Promote {} to high priority (frequency: {:.1})",
+                    key, pattern.frequency
+                ));
             }
         }
 
@@ -639,8 +670,12 @@ impl CacheOptimizer {
         // Identify large entries that might benefit from compression
         for (key, (_, entry)) in cache.iter() {
             let size_mb = entry.size_bytes as f64 / 1024.0 / 1024.0;
-            if size_mb > 5.0 { // Larger than 5MB
-                optimizations.push(format!("Consider compressing large entry {} ({:.1}MB)", key, size_mb));
+            if size_mb > 5.0 {
+                // Larger than 5MB
+                optimizations.push(format!(
+                    "Consider compressing large entry {} ({:.1}MB)",
+                    key, size_mb
+                ));
             }
         }
 
@@ -670,7 +705,10 @@ impl CacheOptimizer {
         }
 
         if long_lived > cache.len() / 2 {
-            optimizations.push(format!("Many entries ({}) are long-lived - consider shorter TTL to free space", long_lived));
+            optimizations.push(format!(
+                "Many entries ({}) are long-lived - consider shorter TTL to free space",
+                long_lived
+            ));
         }
 
         Ok(optimizations)
@@ -683,14 +721,19 @@ impl CacheOptimizer {
 
         // Adjust cache size based on hit rate
         if stats.hit_rate < self.config.target_hit_rate {
-            optimizations.push("Hit rate below target - consider increasing cache size".to_string());
+            optimizations
+                .push("Hit rate below target - consider increasing cache size".to_string());
         } else if stats.hit_rate > self.config.target_hit_rate + 0.1 {
-            optimizations.push("Hit rate well above target - cache size could be reduced".to_string());
+            optimizations
+                .push("Hit rate well above target - cache size could be reduced".to_string());
         }
 
         // Check eviction rate
         if stats.evictions > stats.total_requests / 10 {
-            optimizations.push("High eviction rate - consider increasing cache size or optimizing entry sizes".to_string());
+            optimizations.push(
+                "High eviction rate - consider increasing cache size or optimizing entry sizes"
+                    .to_string(),
+            );
         }
 
         Ok(optimizations)
@@ -732,19 +775,27 @@ impl CacheOptimizer {
         let mut recommendations = Vec::new();
 
         if stats.hit_rate < 0.7 {
-            recommendations.push("Low cache hit rate - investigate cache key patterns and TTL values".to_string());
+            recommendations.push(
+                "Low cache hit rate - investigate cache key patterns and TTL values".to_string(),
+            );
         }
 
         if stats.avg_access_time_ms > 10.0 {
-            recommendations.push("High cache access time - consider optimizing cache data structures".to_string());
+            recommendations.push(
+                "High cache access time - consider optimizing cache data structures".to_string(),
+            );
         }
 
         if stats.evictions > stats.total_requests / 20 {
-            recommendations.push("Frequent evictions - consider increasing cache size or reducing entry sizes".to_string());
+            recommendations.push(
+                "Frequent evictions - consider increasing cache size or reducing entry sizes"
+                    .to_string(),
+            );
         }
 
         if stats.total_size_mb > self.config.max_size_mb * 0.9 {
-            recommendations.push("Cache near capacity - monitor for performance impact".to_string());
+            recommendations
+                .push("Cache near capacity - monitor for performance impact".to_string());
         }
 
         if recommendations.is_empty() {
@@ -788,7 +839,10 @@ mod tests {
         assert_eq!(stats.total_requests, 0);
 
         // Add entry and access it
-        optimizer.set("key1", b"data1".to_vec(), None).await.unwrap();
+        optimizer
+            .set("key1", b"data1".to_vec(), None)
+            .await
+            .unwrap();
         let _ = optimizer.get("key1").await.unwrap();
 
         let stats = optimizer.get_stats().await.unwrap();
@@ -805,7 +859,10 @@ mod tests {
         let data = b"expiring_data".to_vec();
 
         // Set with very short TTL
-        optimizer.set(key, data, Some(Duration::from_millis(1))).await.unwrap();
+        optimizer
+            .set(key, data, Some(Duration::from_millis(1)))
+            .await
+            .unwrap();
 
         // Wait for expiry
         tokio::time::sleep(Duration::from_millis(10)).await;

@@ -27,7 +27,7 @@ pub mod handlers;
 pub mod pool_integration;
 pub mod types;
 
-pub use bus::{EventBus, EventBusConfig, EventRouting, EventBusStats};
+pub use bus::{EventBus, EventBusConfig, EventBusStats, EventRouting};
 pub use handlers::{
     ComponentHealth, HealthEventHandler, LoggingEventHandler, MetricsEventHandler,
     TelemetryEventHandler,
@@ -62,7 +62,10 @@ pub trait Event: Send + Sync + Debug + Any {
 
     /// Check if event is critical (requires immediate handling)
     fn is_critical(&self) -> bool {
-        matches!(self.severity(), EventSeverity::Critical | EventSeverity::Error)
+        matches!(
+            self.severity(),
+            EventSeverity::Critical | EventSeverity::Error
+        )
     }
 
     /// Check if event should be traced (for OpenTelemetry)
@@ -173,11 +176,7 @@ pub struct BaseEvent {
 }
 
 impl BaseEvent {
-    pub fn new(
-        event_type: &str,
-        source: &str,
-        severity: EventSeverity,
-    ) -> Self {
+    pub fn new(event_type: &str, source: &str, severity: EventSeverity) -> Self {
         Self {
             event_id: Uuid::new_v4().to_string(),
             event_type: event_type.to_string(),

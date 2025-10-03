@@ -120,7 +120,9 @@ impl ApiErrorConverter {
             CoreError::ConfigError { message, .. } => {
                 format!("Configuration error: {}", message)
             }
-            CoreError::ResourceExhaustion { resource, message, .. } => {
+            CoreError::ResourceExhaustion {
+                resource, message, ..
+            } => {
                 format!("Resource exhausted: {} - {}", resource, message)
             }
             CoreError::TimeError { message, .. } => {
@@ -237,7 +239,11 @@ macro_rules! convert_error {
     };
 
     ($result:expr, $error_type:ident, $context:expr) => {
-        $result.map_err(|e| $crate::common::error_conversions::CoreErrorConverter::from_error_with_context(e, $context))
+        $result.map_err(|e| {
+            $crate::common::error_conversions::CoreErrorConverter::from_error_with_context(
+                e, $context,
+            )
+        })
     };
 }
 
@@ -246,7 +252,9 @@ macro_rules! convert_error {
 macro_rules! with_error_context {
     ($result:expr, $context:expr) => {
         $result.map_err(|e| {
-            $crate::common::error_conversions::CoreErrorConverter::from_error_with_context(e, $context)
+            $crate::common::error_conversions::CoreErrorConverter::from_error_with_context(
+                e, $context,
+            )
         })
     };
 }
@@ -266,7 +274,10 @@ impl ErrorPatterns {
     /// Create a timeout error pattern
     pub fn timeout_error(operation: &str, duration_ms: u64) -> CoreError {
         CoreError::TimeError {
-            message: format!("Operation '{}' timed out after {}ms", operation, duration_ms),
+            message: format!(
+                "Operation '{}' timed out after {}ms",
+                operation, duration_ms
+            ),
             source: None,
         }
     }
@@ -314,7 +325,10 @@ mod tests {
 
         let core_result = result.into_core();
         assert!(core_result.is_err());
-        assert!(matches!(core_result.unwrap_err(), CoreError::TimeError { .. }));
+        assert!(matches!(
+            core_result.unwrap_err(),
+            CoreError::TimeError { .. }
+        ));
     }
 
     #[test]
@@ -333,7 +347,8 @@ mod tests {
     fn test_with_error_context() {
         use std::io;
 
-        let result: Result<String, io::Error> = Err(io::Error::new(io::ErrorKind::NotFound, "file not found"));
+        let result: Result<String, io::Error> =
+            Err(io::Error::new(io::ErrorKind::NotFound, "file not found"));
         let context_result = result.with_context_static("loading configuration");
 
         assert!(context_result.is_err());

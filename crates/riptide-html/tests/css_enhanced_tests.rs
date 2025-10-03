@@ -33,34 +33,43 @@ async fn test_enhanced_css_selectors_basic() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Test ID selector
-    selectors.insert("main_content".to_string(), CssSelectorConfig {
-        selector: "#main-content".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: true,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "main_content".to_string(),
+        CssSelectorConfig {
+            selector: "#main-content".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: true,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Test class selector
-    selectors.insert("headline".to_string(), CssSelectorConfig {
-        selector: ".headline".to_string(),
-        transformers: vec!["trim".to_string(), "normalize_ws".to_string()],
-        has_text_filter: None,
-        fallbacks: vec!["h1".to_string()],
-        required: true,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "headline".to_string(),
+        CssSelectorConfig {
+            selector: ".headline".to_string(),
+            transformers: vec!["trim".to_string(), "normalize_ws".to_string()],
+            has_text_filter: None,
+            fallbacks: vec!["h1".to_string()],
+            required: true,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Test attribute selector
-    selectors.insert("article_content".to_string(), CssSelectorConfig {
-        selector: "[data-type='article']".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "article_content".to_string(),
+        CssSelectorConfig {
+            selector: "[data-type='article']".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;
@@ -106,34 +115,43 @@ async fn test_css_combinators() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Test direct child combinator
-    selectors.insert("direct_content".to_string(), CssSelectorConfig {
-        selector: ".content > p".to_string(), // Direct child only
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "direct_content".to_string(),
+        CssSelectorConfig {
+            selector: ".content > p".to_string(), // Direct child only
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Test descendant combinator
-    selectors.insert("all_paragraphs".to_string(), CssSelectorConfig {
-        selector: "article p".to_string(), // All descendants
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "all_paragraphs".to_string(),
+        CssSelectorConfig {
+            selector: "article p".to_string(), // All descendants
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Test complex combinator
-    selectors.insert("meta_author".to_string(), CssSelectorConfig {
-        selector: "header .meta .author".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "meta_author".to_string(),
+        CssSelectorConfig {
+            selector: "header .meta .author".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;
@@ -170,34 +188,43 @@ async fn test_nth_child_selectors() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Test first child
-    selectors.insert("first_item".to_string(), CssSelectorConfig {
-        selector: ".items li:nth-child(1)".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "first_item".to_string(),
+        CssSelectorConfig {
+            selector: ".items li:nth-child(1)".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Test odd children
-    selectors.insert("odd_items".to_string(), CssSelectorConfig {
-        selector: ".items li:nth-child(odd)".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "odd_items".to_string(),
+        CssSelectorConfig {
+            selector: ".items li:nth-child(odd)".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Test even children
-    selectors.insert("even_sections".to_string(), CssSelectorConfig {
-        selector: ".sections section:nth-child(even)".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "even_sections".to_string(),
+        CssSelectorConfig {
+            selector: ".sections section:nth-child(even)".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;
@@ -243,24 +270,30 @@ async fn test_complex_css_combinations() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Complex selector: Multiple classes and attributes
-    selectors.insert("primary_title".to_string(), CssSelectorConfig {
-        selector: "article.primary h1.title.primary-title#main-title".to_string(),
-        transformers: vec!["trim".to_string(), "normalize_ws".to_string()],
-        has_text_filter: None,
-        fallbacks: vec!["h1".to_string()],
-        required: true,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "primary_title".to_string(),
+        CssSelectorConfig {
+            selector: "article.primary h1.title.primary-title#main-title".to_string(),
+            transformers: vec!["trim".to_string(), "normalize_ws".to_string()],
+            has_text_filter: None,
+            fallbacks: vec!["h1".to_string()],
+            required: true,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Complex selector: Attribute and descendant with class
-    selectors.insert("author_info".to_string(), CssSelectorConfig {
-        selector: "[data-section='metadata'] .author[data-field='author']".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![".author".to_string()],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "author_info".to_string(),
+        CssSelectorConfig {
+            selector: "[data-section='metadata'] .author[data-field='author']".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![".author".to_string()],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Complex selector: Multiple levels with attributes
     selectors.insert("quote_content".to_string(), CssSelectorConfig {
@@ -302,18 +335,21 @@ async fn test_fallback_selectors() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Primary selector that won't match, with fallbacks
-    selectors.insert("title".to_string(), CssSelectorConfig {
-        selector: "h1.primary-title".to_string(), // This won't match
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![
-            "h1".to_string(),           // This won't match either
-            "h2.heading".to_string(),   // This will match
-            ".title".to_string(),       // Backup
-        ],
-        required: true,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "title".to_string(),
+        CssSelectorConfig {
+            selector: "h1.primary-title".to_string(), // This won't match
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![
+                "h1".to_string(),         // This won't match either
+                "h2.heading".to_string(), // This will match
+                ".title".to_string(),     // Backup
+            ],
+            required: true,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;
@@ -347,23 +383,29 @@ async fn test_multiple_element_matching() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Selector that matches multiple elements
-    selectors.insert("tags".to_string(), CssSelectorConfig {
-        selector: ".tag".to_string(),
-        transformers: vec!["trim".to_string(), "lowercase".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::Merge),
-    });
+    selectors.insert(
+        "tags".to_string(),
+        CssSelectorConfig {
+            selector: ".tag".to_string(),
+            transformers: vec!["trim".to_string(), "lowercase".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::Merge),
+        },
+    );
 
-    selectors.insert("categories".to_string(), CssSelectorConfig {
-        selector: ".category".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "categories".to_string(),
+        CssSelectorConfig {
+            selector: ".category".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;
@@ -390,14 +432,17 @@ async fn test_invalid_selector_handling() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Invalid CSS selector syntax
-    selectors.insert("invalid".to_string(), CssSelectorConfig {
-        selector: "..invalid..selector".to_string(),
-        transformers: vec![],
-        has_text_filter: None,
-        fallbacks: vec!["h1".to_string()], // Valid fallback
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "invalid".to_string(),
+        CssSelectorConfig {
+            selector: "..invalid..selector".to_string(),
+            transformers: vec![],
+            has_text_filter: None,
+            fallbacks: vec!["h1".to_string()], // Valid fallback
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await;

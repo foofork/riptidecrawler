@@ -1,11 +1,11 @@
 use crate::job::{Job, JobType};
-use crate::queue::{JobQueue, QueueConfig};
-use crate::worker::{WorkerPool, WorkerConfig};
-use crate::scheduler::{JobScheduler, ScheduledJob, SchedulerConfig};
-use crate::processors::{
-    BatchCrawlProcessor, SingleCrawlProcessor, MaintenanceProcessor, CustomJobProcessor,
-};
 use crate::metrics::WorkerMetrics;
+use crate::processors::{
+    BatchCrawlProcessor, CustomJobProcessor, MaintenanceProcessor, SingleCrawlProcessor,
+};
+use crate::queue::{JobQueue, QueueConfig};
+use crate::scheduler::{JobScheduler, ScheduledJob, SchedulerConfig};
+use crate::worker::{WorkerConfig, WorkerPool};
 use anyhow::{Context, Result};
 // use riptide_core::extract::WasmExtractor;
 use riptide_core::cache::CacheManager;
@@ -117,7 +117,8 @@ impl WorkerService {
         }
 
         info!("Starting worker service");
-        self.running.store(true, std::sync::atomic::Ordering::Relaxed);
+        self.running
+            .store(true, std::sync::atomic::Ordering::Relaxed);
 
         // Initialize job processors
         let processors = self.create_job_processors().await?;
@@ -188,7 +189,8 @@ impl WorkerService {
     /// Stop the worker service
     pub async fn stop(&mut self) -> Result<()> {
         info!("Stopping worker service");
-        self.running.store(false, std::sync::atomic::Ordering::Relaxed);
+        self.running
+            .store(false, std::sync::atomic::Ordering::Relaxed);
 
         // Stop scheduler
         if let Some(scheduler) = &self.scheduler {
@@ -245,7 +247,9 @@ impl WorkerService {
 
     /// Get scheduler statistics
     pub fn get_scheduler_stats(&self) -> Option<crate::scheduler::SchedulerStats> {
-        self.scheduler.as_ref().map(|scheduler| scheduler.get_scheduler_stats())
+        self.scheduler
+            .as_ref()
+            .map(|scheduler| scheduler.get_scheduler_stats())
     }
 
     /// Get metrics snapshot
@@ -291,8 +295,8 @@ impl WorkerService {
             .context("Failed to create HTTP client")?;
 
         // Initialize WASM extractor
-        use riptide_core::extract::CmExtractor;
         use riptide_core::component::ExtractorConfig;
+        use riptide_core::extract::CmExtractor;
         let extractor_config = ExtractorConfig::default();
         let extractor = CmExtractor::new(extractor_config);
         let extractor = Arc::new(extractor) as Arc<dyn riptide_core::extract::WasmExtractor>;
@@ -340,12 +344,22 @@ impl WorkerService {
                 if let Ok(mut queue_guard) = queue.try_lock() {
                     match queue_guard.get_stats().await {
                         Ok(stats) => {
-                            metrics.update_queue_size("pending", stats.pending as u64).await;
-                            metrics.update_queue_size("processing", stats.processing as u64).await;
-                            metrics.update_queue_size("completed", stats.completed as u64).await;
-                            metrics.update_queue_size("failed", stats.failed as u64).await;
+                            metrics
+                                .update_queue_size("pending", stats.pending as u64)
+                                .await;
+                            metrics
+                                .update_queue_size("processing", stats.processing as u64)
+                                .await;
+                            metrics
+                                .update_queue_size("completed", stats.completed as u64)
+                                .await;
+                            metrics
+                                .update_queue_size("failed", stats.failed as u64)
+                                .await;
                             metrics.update_queue_size("retry", stats.retry as u64).await;
-                            metrics.update_queue_size("delayed", stats.delayed as u64).await;
+                            metrics
+                                .update_queue_size("delayed", stats.delayed as u64)
+                                .await;
                         }
                         Err(e) => {
                             warn!(error = %e, "Failed to collect queue statistics");
@@ -368,12 +382,14 @@ impl WorkerService {
             }
         };
 
-        let scheduler_healthy = self.scheduler
+        let scheduler_healthy = self
+            .scheduler
             .as_ref()
             .map(|s| s.get_scheduler_stats().is_running)
             .unwrap_or(true); // If no scheduler, consider healthy
 
-        let worker_pool_healthy = self.worker_pool
+        let worker_pool_healthy = self
+            .worker_pool
             .as_ref()
             .map(|p| p.get_pool_stats().healthy_workers > 0)
             .unwrap_or(false);

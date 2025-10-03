@@ -6,19 +6,21 @@
 //! Note: This demo focuses on the core extraction functionality in riptide-core.
 //! For chunking strategies, see examples in the riptide-html crate.
 
-use std::sync::Arc;
 use riptide_core::strategies::{
-    // Core traits
-    traits::ExtractionStrategy, StrategyRegistry,
-    // Implementations
-    TrekExtractionStrategy,
-    // Enhanced manager
-    EnhancedStrategyManager, StrategyManagerConfig,
-    // Backward compatibility
-    compatibility::{CompatibleStrategyManager, LegacyStrategyConfig},
     // Migration utilities
     compatibility::migrate_extraction_strategy,
+    // Backward compatibility
+    compatibility::{CompatibleStrategyManager, LegacyStrategyConfig},
+    // Core traits
+    traits::ExtractionStrategy,
+    // Enhanced manager
+    EnhancedStrategyManager,
+    StrategyManagerConfig,
+    StrategyRegistry,
+    // Implementations
+    TrekExtractionStrategy,
 };
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -59,7 +61,10 @@ async fn main() -> anyhow::Result<()> {
     let trek_strategy = TrekExtractionStrategy;
     println!("Strategy: {}", trek_strategy.name());
     println!("Capabilities: {:?}", trek_strategy.capabilities());
-    println!("Confidence: {:.2}", trek_strategy.confidence_score(test_html));
+    println!(
+        "Confidence: {:.2}",
+        trek_strategy.confidence_score(test_html)
+    );
 
     let result = trek_strategy.extract(test_html, test_url).await?;
     println!("Extracted title: {}", result.content.title);
@@ -79,8 +84,10 @@ async fn main() -> anyhow::Result<()> {
     let extraction_strategies = registry.list_extraction_strategies();
     println!("Available extraction strategies:");
     for (name, capabilities) in &extraction_strategies {
-        println!("  - {}: {} ({:?})", name, capabilities.strategy_type,
-                 capabilities.performance_tier);
+        println!(
+            "  - {}: {} ({:?})",
+            name, capabilities.strategy_type, capabilities.performance_tier
+        );
     }
 
     println!("Note: Chunking strategies have been moved to riptide-html crate");
@@ -106,7 +113,9 @@ async fn main() -> anyhow::Result<()> {
     test_registry.register_extraction(Arc::new(TrekExtractionStrategy));
 
     let manager = EnhancedStrategyManager::with_registry(config, test_registry).await;
-    let processed = manager.extract_and_process_with_strategy(test_html, test_url, "trek").await?;
+    let processed = manager
+        .extract_and_process_with_strategy(test_html, test_url, "trek")
+        .await?;
 
     println!("Strategy used: {}", processed.strategy_used);
     println!("Processing time: {:?}", processed.processing_time);
@@ -130,7 +139,10 @@ async fn main() -> anyhow::Result<()> {
     let legacy_result = compat_manager.extract_content(test_html, test_url).await?;
 
     println!("Legacy result title: {}", legacy_result.extracted.title);
-    println!("Legacy content length: {} chars", legacy_result.extracted.content.len());
+    println!(
+        "Legacy content length: {} chars",
+        legacy_result.extracted.content.len()
+    );
     println!();
 
     // 5. Migration Example
@@ -140,7 +152,10 @@ async fn main() -> anyhow::Result<()> {
     let old_strategy = riptide_core::strategies::ExtractionStrategy::Trek;
     let new_strategy = migrate_extraction_strategy(&old_strategy);
     println!("Migrated strategy name: {}", new_strategy.name());
-    println!("Strategy capabilities: {:?}", new_strategy.capabilities().strategy_type);
+    println!(
+        "Strategy capabilities: {:?}",
+        new_strategy.capabilities().strategy_type
+    );
     println!();
 
     // 6. Custom Strategy Example
@@ -151,7 +166,10 @@ async fn main() -> anyhow::Result<()> {
     let available_extractions = registry.list_extraction_strategies();
     let available_spider = registry.list_spider_strategies();
 
-    println!("Total extraction strategies: {}", available_extractions.len());
+    println!(
+        "Total extraction strategies: {}",
+        available_extractions.len()
+    );
     println!("Total spider strategies: {}", available_spider.len());
     println!("Note: Chunking strategies are now in riptide-html crate");
 

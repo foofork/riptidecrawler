@@ -31,18 +31,21 @@ async fn test_has_text_exact_matching() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Test exact text matching
-    selectors.insert("breaking_news".to_string(), CssSelectorConfig {
-        selector: ".paragraph".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: Some(HasTextFilter {
-            pattern: "breaking news".to_string(),
-            case_insensitive: false,
-            partial_match: false, // Exact match
-        }),
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "breaking_news".to_string(),
+        CssSelectorConfig {
+            selector: ".paragraph".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: Some(HasTextFilter {
+                pattern: "breaking news".to_string(),
+                case_insensitive: false,
+                partial_match: false, // Exact match
+            }),
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;
@@ -74,18 +77,21 @@ async fn test_has_text_partial_matching() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Test partial text matching
-    selectors.insert("breaking_titles".to_string(), CssSelectorConfig {
-        selector: ".title".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: Some(HasTextFilter {
-            pattern: "breaking".to_string(),
-            case_insensitive: false,
-            partial_match: true, // Partial match
-        }),
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "breaking_titles".to_string(),
+        CssSelectorConfig {
+            selector: ".title".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: Some(HasTextFilter {
+                pattern: "breaking".to_string(),
+                case_insensitive: false,
+                partial_match: true, // Partial match
+            }),
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;
@@ -118,18 +124,21 @@ async fn test_has_text_case_insensitive() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Test case-insensitive matching
-    selectors.insert("urgent_posts".to_string(), CssSelectorConfig {
-        selector: ".post".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: Some(HasTextFilter {
-            pattern: "urgent".to_string(),
-            case_insensitive: true, // Case-insensitive
-            partial_match: true,
-        }),
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "urgent_posts".to_string(),
+        CssSelectorConfig {
+            selector: ".post".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: Some(HasTextFilter {
+                pattern: "urgent".to_string(),
+                case_insensitive: true, // Case-insensitive
+                partial_match: true,
+            }),
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;
@@ -162,18 +171,21 @@ async fn test_has_text_case_sensitive() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Test case-sensitive matching (lowercase only)
-    selectors.insert("lowercase_excellent".to_string(), CssSelectorConfig {
-        selector: ".review".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: Some(HasTextFilter {
-            pattern: "excellent".to_string(),
-            case_insensitive: false, // Case-sensitive
-            partial_match: true,
-        }),
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "lowercase_excellent".to_string(),
+        CssSelectorConfig {
+            selector: ".review".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: Some(HasTextFilter {
+                pattern: "excellent".to_string(),
+                case_insensitive: false, // Case-sensitive
+                partial_match: true,
+            }),
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;
@@ -211,32 +223,38 @@ async fn test_has_text_special_characters() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Test dollar sign pattern
-    selectors.insert("dollar_prices".to_string(), CssSelectorConfig {
-        selector: ".price".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: Some(HasTextFilter {
-            pattern: "$".to_string(),
-            case_insensitive: false,
-            partial_match: true,
-        }),
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "dollar_prices".to_string(),
+        CssSelectorConfig {
+            selector: ".price".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: Some(HasTextFilter {
+                pattern: "$".to_string(),
+                case_insensitive: false,
+                partial_match: true,
+            }),
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Test email pattern
-    selectors.insert("email_contacts".to_string(), CssSelectorConfig {
-        selector: ".contact".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: Some(HasTextFilter {
-            pattern: "@".to_string(),
-            case_insensitive: false,
-            partial_match: true,
-        }),
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "email_contacts".to_string(),
+        CssSelectorConfig {
+            selector: ".contact".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: Some(HasTextFilter {
+                pattern: "@".to_string(),
+                case_insensitive: false,
+                partial_match: true,
+            }),
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;
@@ -266,32 +284,38 @@ async fn test_multiple_has_text_filters() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Filter for urgent news containing "market"
-    selectors.insert("urgent_market_news".to_string(), CssSelectorConfig {
-        selector: ".news.urgent".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: Some(HasTextFilter {
-            pattern: "market".to_string(),
-            case_insensitive: true,
-            partial_match: true,
-        }),
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "urgent_market_news".to_string(),
+        CssSelectorConfig {
+            selector: ".news.urgent".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: Some(HasTextFilter {
+                pattern: "market".to_string(),
+                case_insensitive: true,
+                partial_match: true,
+            }),
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Filter for any article containing "Breaking"
-    selectors.insert("breaking_articles".to_string(), CssSelectorConfig {
-        selector: "article".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: Some(HasTextFilter {
-            pattern: "Breaking".to_string(),
-            case_insensitive: false,
-            partial_match: true,
-        }),
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "breaking_articles".to_string(),
+        CssSelectorConfig {
+            selector: "article".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: Some(HasTextFilter {
+                pattern: "Breaking".to_string(),
+                case_insensitive: false,
+                partial_match: true,
+            }),
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;
@@ -322,18 +346,25 @@ async fn test_has_text_with_transformers() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Filter for "smartphone" with case-insensitive matching and normalization
-    selectors.insert("mobile_devices".to_string(), CssSelectorConfig {
-        selector: ".product".to_string(),
-        transformers: vec!["trim".to_string(), "normalize_ws".to_string(), "lowercase".to_string()],
-        has_text_filter: Some(HasTextFilter {
-            pattern: "smartphone".to_string(),
-            case_insensitive: true,
-            partial_match: true,
-        }),
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "mobile_devices".to_string(),
+        CssSelectorConfig {
+            selector: ".product".to_string(),
+            transformers: vec![
+                "trim".to_string(),
+                "normalize_ws".to_string(),
+                "lowercase".to_string(),
+            ],
+            has_text_filter: Some(HasTextFilter {
+                pattern: "smartphone".to_string(),
+                case_insensitive: true,
+                partial_match: true,
+            }),
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;
@@ -365,21 +396,24 @@ async fn test_has_text_with_fallbacks() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Primary selector won't match, fallback should work
-    selectors.insert("urgent_content".to_string(), CssSelectorConfig {
-        selector: ".primary-content h1".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: Some(HasTextFilter {
-            pattern: "URGENT".to_string(),
-            case_insensitive: false,
-            partial_match: true,
-        }),
-        fallbacks: vec![
-            ".secondary-content h2".to_string(), // This should match
-            ".emergency".to_string(),
-        ],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "urgent_content".to_string(),
+        CssSelectorConfig {
+            selector: ".primary-content h1".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: Some(HasTextFilter {
+                pattern: "URGENT".to_string(),
+                case_insensitive: false,
+                partial_match: true,
+            }),
+            fallbacks: vec![
+                ".secondary-content h2".to_string(), // This should match
+                ".emergency".to_string(),
+            ],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;
@@ -409,32 +443,38 @@ async fn test_has_text_edge_cases() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Test empty pattern (should match everything)
-    selectors.insert("any_content".to_string(), CssSelectorConfig {
-        selector: ".text".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: Some(HasTextFilter {
-            pattern: "".to_string(),
-            case_insensitive: false,
-            partial_match: true,
-        }),
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "any_content".to_string(),
+        CssSelectorConfig {
+            selector: ".text".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: Some(HasTextFilter {
+                pattern: "".to_string(),
+                case_insensitive: false,
+                partial_match: true,
+            }),
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Test single character pattern
-    selectors.insert("single_char".to_string(), CssSelectorConfig {
-        selector: ".text".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: Some(HasTextFilter {
-            pattern: "S".to_string(),
-            case_insensitive: false,
-            partial_match: true,
-        }),
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "single_char".to_string(),
+        CssSelectorConfig {
+            selector: ".text".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: Some(HasTextFilter {
+                pattern: "S".to_string(),
+                case_insensitive: false,
+                partial_match: true,
+            }),
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;

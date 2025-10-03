@@ -7,8 +7,8 @@ use super::*;
 use crate::monitoring::MetricsCollector;
 use opentelemetry::trace::{Span, Status, Tracer};
 use opentelemetry::{global, KeyValue};
-use std::sync::{Arc, Mutex};
 use std::collections::VecDeque;
+use std::sync::{Arc, Mutex};
 
 /// Logging event handler that writes events to structured logs
 pub struct LoggingEventHandler {
@@ -160,21 +160,29 @@ impl MetricsEventHandler {
     async fn handle_pool_event(&self, event: &dyn Event) -> Result<()> {
         // Extract pool-specific metrics from event
         if let Ok(json_str) = event.to_json() {
-            if let Ok(pool_event) = serde_json::from_str::<crate::events::types::PoolEvent>(&json_str) {
+            if let Ok(pool_event) =
+                serde_json::from_str::<crate::events::types::PoolEvent>(&json_str)
+            {
                 // Record pool operation metrics
-                let _ = self.metrics_collector.record_pool_operation(
-                    pool_event.operation.as_str(),
-                    1.0,
-                    event.timestamp().timestamp_millis() as u64,
-                ).await;
+                let _ = self
+                    .metrics_collector
+                    .record_pool_operation(
+                        pool_event.operation.as_str(),
+                        1.0,
+                        event.timestamp().timestamp_millis() as u64,
+                    )
+                    .await;
 
                 // If metrics are included, record them
                 if let Some(metrics) = &pool_event.metrics {
-                    let _ = self.metrics_collector.record_pool_state(
-                        metrics.available_instances,
-                        metrics.active_instances,
-                        metrics.total_instances,
-                    ).await;
+                    let _ = self
+                        .metrics_collector
+                        .record_pool_state(
+                            metrics.available_instances,
+                            metrics.active_instances,
+                            metrics.total_instances,
+                        )
+                        .await;
                 }
             }
         }
@@ -183,22 +191,30 @@ impl MetricsEventHandler {
 
     async fn handle_extraction_event(&self, event: &dyn Event) -> Result<()> {
         if let Ok(json_str) = event.to_json() {
-            if let Ok(extraction_event) = serde_json::from_str::<crate::events::types::ExtractionEvent>(&json_str) {
+            if let Ok(extraction_event) =
+                serde_json::from_str::<crate::events::types::ExtractionEvent>(&json_str)
+            {
                 // Record extraction metrics
-                let success = matches!(extraction_event.operation, crate::events::types::ExtractionOperation::Completed);
+                let success = matches!(
+                    extraction_event.operation,
+                    crate::events::types::ExtractionOperation::Completed
+                );
 
                 if let Some(duration_ms) = extraction_event.duration_ms {
-                    let _ = self.metrics_collector.record_extraction_time(
-                        Duration::from_millis(duration_ms),
-                        success,
-                    ).await;
+                    let _ = self
+                        .metrics_collector
+                        .record_extraction_time(Duration::from_millis(duration_ms), success)
+                        .await;
                 }
 
                 // Record extraction outcome
-                let _ = self.metrics_collector.record_extraction_outcome(
-                    extraction_event.operation.as_str(),
-                    &extraction_event.url,
-                ).await;
+                let _ = self
+                    .metrics_collector
+                    .record_extraction_outcome(
+                        extraction_event.operation.as_str(),
+                        &extraction_event.url,
+                    )
+                    .await;
             }
         }
         Ok(())
@@ -206,13 +222,18 @@ impl MetricsEventHandler {
 
     async fn handle_metrics_event(&self, event: &dyn Event) -> Result<()> {
         if let Ok(json_str) = event.to_json() {
-            if let Ok(metrics_event) = serde_json::from_str::<crate::events::types::MetricsEvent>(&json_str) {
+            if let Ok(metrics_event) =
+                serde_json::from_str::<crate::events::types::MetricsEvent>(&json_str)
+            {
                 // Forward custom metrics to collector
-                let _ = self.metrics_collector.record_custom_metric(
-                    &metrics_event.metric_name,
-                    metrics_event.metric_value,
-                    &metrics_event.tags,
-                ).await;
+                let _ = self
+                    .metrics_collector
+                    .record_custom_metric(
+                        &metrics_event.metric_name,
+                        metrics_event.metric_value,
+                        &metrics_event.tags,
+                    )
+                    .await;
             }
         }
         Ok(())
@@ -220,7 +241,9 @@ impl MetricsEventHandler {
 
     async fn handle_health_event(&self, event: &dyn Event) -> Result<()> {
         if let Ok(json_str) = event.to_json() {
-            if let Ok(health_event) = serde_json::from_str::<crate::events::types::HealthEvent>(&json_str) {
+            if let Ok(health_event) =
+                serde_json::from_str::<crate::events::types::HealthEvent>(&json_str)
+            {
                 // Record component health status
                 let health_score = match health_event.status {
                     crate::events::types::HealthStatus::Healthy => 1.0,
@@ -229,20 +252,20 @@ impl MetricsEventHandler {
                     crate::events::types::HealthStatus::Critical => 0.0,
                 };
 
-                let _ = self.metrics_collector.record_health_status(
-                    &health_event.component,
-                    health_score,
-                ).await;
+                let _ = self
+                    .metrics_collector
+                    .record_health_status(&health_event.component, health_score)
+                    .await;
 
                 // Record any additional health metrics
                 if let Some(metrics) = &health_event.metrics {
                     for (metric_name, value) in metrics {
-                        let full_metric_name = format!("health.{}.{}", health_event.component, metric_name);
-                        let _ = self.metrics_collector.record_custom_metric(
-                            &full_metric_name,
-                            *value,
-                            &HashMap::new(),
-                        ).await;
+                        let full_metric_name =
+                            format!("health.{}.{}", health_event.component, metric_name);
+                        let _ = self
+                            .metrics_collector
+                            .record_custom_metric(&full_metric_name, *value, &HashMap::new())
+                            .await;
                     }
                 }
             }
@@ -265,7 +288,7 @@ impl EventHandler for MetricsEventHandler {
         self.config.event_types.iter().any(|pattern| {
             pattern == "*"
                 || pattern == event_type
-                || (pattern.ends_with('*') && event_type.starts_with(&pattern[..pattern.len()-1]))
+                || (pattern.ends_with('*') && event_type.starts_with(&pattern[..pattern.len() - 1]))
         })
     }
 
@@ -322,19 +345,29 @@ impl TelemetryEventHandler {
         span.set_attribute(KeyValue::new("event.id", event.event_id().to_string()));
         span.set_attribute(KeyValue::new("event.type", event.event_type().to_string()));
         span.set_attribute(KeyValue::new("event.source", event.source().to_string()));
-        span.set_attribute(KeyValue::new("event.severity", event.severity().to_string()));
-        span.set_attribute(KeyValue::new("event.timestamp", event.timestamp().to_rfc3339()));
+        span.set_attribute(KeyValue::new(
+            "event.severity",
+            event.severity().to_string(),
+        ));
+        span.set_attribute(KeyValue::new(
+            "event.timestamp",
+            event.timestamp().to_rfc3339(),
+        ));
 
         // Add metadata as attributes
         for (key, value) in event.metadata() {
-            span.set_attribute(KeyValue::new(format!("event.metadata.{}", key), value.clone()));
+            span.set_attribute(KeyValue::new(
+                format!("event.metadata.{}", key),
+                value.clone(),
+            ));
         }
 
         // Set span status based on event severity
         match event.severity() {
             EventSeverity::Error | EventSeverity::Critical => {
                 span.set_status(Status::Error {
-                    description: format!("{} event: {}", event.severity(), event.event_type()).into(),
+                    description: format!("{} event: {}", event.severity(), event.event_type())
+                        .into(),
                 });
             }
             _ => {
@@ -451,7 +484,11 @@ impl HealthEventHandler {
             name: "health_handler".to_string(),
             config: HandlerConfig {
                 enabled: true,
-                event_types: vec!["health.*".to_string(), "pool.*".to_string(), "extraction.*".to_string()],
+                event_types: vec![
+                    "health.*".to_string(),
+                    "pool.*".to_string(),
+                    "extraction.*".to_string(),
+                ],
                 min_severity: EventSeverity::Info,
                 ..Default::default()
             },
@@ -483,7 +520,7 @@ impl HealthEventHandler {
                 crate::events::types::HealthStatus::Critical => critical_count += 1,
                 crate::events::types::HealthStatus::Unhealthy => unhealthy_count += 1,
                 crate::events::types::HealthStatus::Degraded => degraded_count += 1,
-                crate::events::types::HealthStatus::Healthy => {},
+                crate::events::types::HealthStatus::Healthy => {}
             }
         }
 
@@ -550,7 +587,7 @@ impl EventHandler for HealthEventHandler {
         self.config.event_types.iter().any(|pattern| {
             pattern == "*"
                 || pattern == event_type
-                || (pattern.ends_with('*') && event_type.starts_with(&pattern[..pattern.len()-1]))
+                || (pattern.ends_with('*') && event_type.starts_with(&pattern[..pattern.len() - 1]))
         })
     }
 
@@ -582,7 +619,9 @@ impl EventHandler for HealthEventHandler {
         let component = if event.event_type().starts_with("health.") {
             // For explicit health events, try to extract component from JSON
             if let Ok(json_str) = event.to_json() {
-                if let Ok(health_event) = serde_json::from_str::<crate::events::types::HealthEvent>(&json_str) {
+                if let Ok(health_event) =
+                    serde_json::from_str::<crate::events::types::HealthEvent>(&json_str)
+                {
                     health_event.component
                 } else {
                     event.source().to_string()
@@ -636,7 +675,10 @@ mod tests {
         let handler = HealthEventHandler::new();
 
         // Initially should be healthy
-        assert_eq!(handler.get_system_health(), crate::events::types::HealthStatus::Healthy);
+        assert_eq!(
+            handler.get_system_health(),
+            crate::events::types::HealthStatus::Healthy
+        );
 
         // Add a healthy component
         let healthy_event = BaseEvent::new("test.event", "component1", EventSeverity::Info);
@@ -647,7 +689,10 @@ mod tests {
         handler.handle(&error_event).await.unwrap();
 
         // System should still be healthy since only one component has issues
-        assert_eq!(handler.get_system_health(), crate::events::types::HealthStatus::Degraded);
+        assert_eq!(
+            handler.get_system_health(),
+            crate::events::types::HealthStatus::Degraded
+        );
     }
 
     #[tokio::test]

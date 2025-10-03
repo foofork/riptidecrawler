@@ -7,8 +7,8 @@ use std::collections::HashMap;
 use tracing::{debug, info};
 
 use crate::{
-    LlmProvider, CompletionRequest, CompletionResponse, LlmCapabilities, Cost, ModelInfo,
-    IntelligenceError, Result, Role, Usage,
+    CompletionRequest, CompletionResponse, Cost, IntelligenceError, LlmCapabilities, LlmProvider,
+    ModelInfo, Result, Role, Usage,
 };
 
 /// OpenAI API response structure
@@ -95,7 +95,9 @@ impl OpenAIProvider {
         let client = Client::builder()
             .timeout(std::time::Duration::from_secs(60))
             .build()
-            .map_err(|e| IntelligenceError::Configuration(format!("Failed to create HTTP client: {}", e)))?;
+            .map_err(|e| {
+                IntelligenceError::Configuration(format!("Failed to create HTTP client: {}", e))
+            })?;
 
         let base_url = base_url.unwrap_or_else(|| "https://api.openai.com/v1".to_string());
 
@@ -126,7 +128,9 @@ impl OpenAIProvider {
     }
 
     fn build_openai_request(&self, request: &CompletionRequest) -> OpenAIRequest {
-        let messages = request.messages.iter()
+        let messages = request
+            .messages
+            .iter()
             .map(|msg| OpenAIMessageRequest {
                 role: Self::convert_role_to_openai(&msg.role),
                 content: msg.content.clone(),
@@ -151,7 +155,8 @@ impl OpenAIProvider {
     {
         let url = format!("{}/{}", self.base_url, endpoint);
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .header("Authorization", format!("Bearer {}", self.api_key))
             .header("Content-Type", "application/json")
@@ -161,12 +166,19 @@ impl OpenAIProvider {
             .map_err(|e| IntelligenceError::Network(format!("Request failed: {}", e)))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await
+            let error_text = response
+                .text()
+                .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(IntelligenceError::Provider(format!("OpenAI API error: {}", error_text)));
+            return Err(IntelligenceError::Provider(format!(
+                "OpenAI API error: {}",
+                error_text
+            )));
         }
 
-        let result = response.json::<T>().await
+        let result = response
+            .json::<T>()
+            .await
             .map_err(|e| IntelligenceError::Provider(format!("Failed to parse response: {}", e)))?;
 
         Ok(result)
@@ -176,13 +188,19 @@ impl OpenAIProvider {
 #[async_trait]
 impl LlmProvider for OpenAIProvider {
     async fn complete(&self, request: CompletionRequest) -> Result<CompletionResponse> {
-        debug!("Sending completion request to OpenAI for model: {}", request.model);
+        debug!(
+            "Sending completion request to OpenAI for model: {}",
+            request.model
+        );
 
         let openai_request = self.build_openai_request(&request);
-        let response: OpenAIResponse = self.make_request("chat/completions", &openai_request).await?;
+        let response: OpenAIResponse = self
+            .make_request("chat/completions", &openai_request)
+            .await?;
 
-        let choice = response.choices.into_iter().next()
-            .ok_or_else(|| IntelligenceError::Provider("No completion choices returned".to_string()))?;
+        let choice = response.choices.into_iter().next().ok_or_else(|| {
+            IntelligenceError::Provider("No completion choices returned".to_string())
+        })?;
 
         let usage = Usage {
             prompt_tokens: response.usage.prompt_tokens,
@@ -202,7 +220,10 @@ impl LlmProvider for OpenAIProvider {
             metadata: HashMap::new(),
         };
 
-        debug!("OpenAI completion successful, tokens used: {}", total_tokens);
+        debug!(
+            "OpenAI completion successful, tokens used: {}",
+            total_tokens
+        );
         Ok(completion_response)
     }
 
@@ -216,11 +237,17 @@ impl LlmProvider for OpenAIProvider {
 
         let response: OpenAIEmbeddingResponse = self.make_request("embeddings", &request).await?;
 
-        let embedding = response.data.into_iter().next()
+        let embedding = response
+            .data
+            .into_iter()
+            .next()
             .ok_or_else(|| IntelligenceError::Provider("No embedding data returned".to_string()))?
             .embedding;
 
-        debug!("OpenAI embedding successful, dimensions: {}", embedding.len());
+        debug!(
+            "OpenAI embedding successful, dimensions: {}",
+            embedding.len()
+        );
         Ok(embedding)
     }
 
@@ -287,7 +314,8 @@ impl LlmProvider for OpenAIProvider {
 
     fn estimate_cost(&self, tokens: usize) -> Cost {
         // Default to GPT-4o pricing if model not found
-        let (prompt_cost_per_1k, completion_cost_per_1k) = self.model_costs
+        let (prompt_cost_per_1k, completion_cost_per_1k) = self
+            .model_costs
             .get("gpt-4o")
             .copied()
             .unwrap_or((0.005, 0.015));
@@ -319,7 +347,8 @@ impl LlmProvider for OpenAIProvider {
             stop: None,
         };
 
-        self.make_request::<OpenAIResponse>("chat/completions", &test_request).await?;
+        self.make_request::<OpenAIResponse>("chat/completions", &test_request)
+            .await?;
         info!("OpenAI health check successful");
         Ok(())
     }
@@ -337,8 +366,9 @@ mod tests {
     fn test_provider_creation() {
         let provider = OpenAIProvider::new(
             "test-key".to_string(),
-            Some("https://api.openai.com/v1".to_string())
-        ).unwrap();
+            Some("https://api.openai.com/v1".to_string()),
+        )
+        .unwrap();
         assert_eq!(provider.name(), "openai");
     }
 

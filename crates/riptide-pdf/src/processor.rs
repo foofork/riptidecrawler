@@ -1,8 +1,8 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::Instant;
 use async_trait::async_trait;
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
+use std::time::Instant;
 
 use super::config::{PdfCapabilities, PdfConfig};
 use super::errors::{PdfError, PdfResult};
@@ -45,11 +45,7 @@ static PDF_METRICS: std::sync::OnceLock<Arc<PdfMetricsCollector>> = std::sync::O
 #[async_trait]
 pub trait PdfProcessor: Send + Sync {
     /// Process a PDF from bytes
-    async fn process_pdf(
-        &self,
-        data: &[u8],
-        config: &PdfConfig,
-    ) -> PdfResult<PdfProcessingResult>;
+    async fn process_pdf(&self, data: &[u8], config: &PdfConfig) -> PdfResult<PdfProcessingResult>;
 
     /// Process a PDF with progress tracking
     async fn process_pdf_with_progress(
@@ -60,10 +56,7 @@ pub trait PdfProcessor: Send + Sync {
     ) -> PdfResult<PdfProcessingResult>;
 
     /// Detect if OCR is needed for this PDF
-    async fn detect_ocr_need(
-        &self,
-        data: &[u8],
-    ) -> PdfResult<bool>;
+    async fn detect_ocr_need(&self, data: &[u8]) -> PdfResult<bool>;
 
     /// Check if the processor is available
     fn is_available(&self) -> bool;
@@ -129,8 +122,10 @@ impl PdfiumProcessor {
 
         // Check for memory pressure before starting
         if initial_memory_stats.memory_pressure {
-            tracing::warn!("Starting PDF processing under memory pressure: {} MB RSS",
-                          initial_memory_stats.current_rss / (1024 * 1024));
+            tracing::warn!(
+                "Starting PDF processing under memory pressure: {} MB RSS",
+                initial_memory_stats.current_rss / (1024 * 1024)
+            );
         }
 
         // Acquire semaphore permit for concurrency control (FIXED: max 2 concurrent operations)
@@ -353,7 +348,8 @@ impl PdfiumProcessor {
 
                     // Skip images that are too small
                     if width < config.image_settings.min_dimensions.0
-                        || height < config.image_settings.min_dimensions.1 {
+                        || height < config.image_settings.min_dimensions.1
+                    {
                         continue;
                     }
 
@@ -365,7 +361,9 @@ impl PdfiumProcessor {
                     };
 
                     // Determine image format (default to PNG)
-                    let format = self.detect_image_format(&obj).unwrap_or(super::config::ImageFormat::Png);
+                    let format = self
+                        .detect_image_format(&obj)
+                        .unwrap_or(super::config::ImageFormat::Png);
 
                     results.images.push(PdfImage {
                         index: obj_index as u32,
@@ -547,7 +545,7 @@ impl PdfiumProcessor {
             active_processors,
             memory_pressure: self.detect_memory_pressure_with_threshold(
                 current,
-                config.memory_settings.memory_pressure_threshold
+                config.memory_settings.memory_pressure_threshold,
             ),
         }
     }
@@ -694,12 +692,13 @@ impl PdfiumProcessor {
 
             // Extract content
             for page_index in 0..document.pages().len() {
-                let page = document
-                    .pages()
-                    .get(page_index)
-                    .map_err(|e| PdfError::ProcessingError {
-                        message: format!("Failed to get page {}: {}", page_index, e),
-                    })?;
+                let page =
+                    document
+                        .pages()
+                        .get(page_index)
+                        .map_err(|e| PdfError::ProcessingError {
+                            message: format!("Failed to get page {}: {}", page_index, e),
+                        })?;
 
                 let page_text = page
                     .text()
@@ -749,7 +748,11 @@ impl PdfiumProcessor {
                 site_name: metadata.get("producer").cloned(),
                 description: metadata.get("subject").cloned(),
             })
-        }).await.map_err(|e| PdfError::ProcessingError { message: format!("Blocking task failed: {}", e) })?
+        })
+        .await
+        .map_err(|e| PdfError::ProcessingError {
+            message: format!("Blocking task failed: {}", e),
+        })?
     }
 }
 
@@ -784,7 +787,8 @@ impl PdfProcessor for PdfiumProcessor {
         let data = data.to_vec();
 
         tokio::task::spawn_blocking(move || {
-            utils::validate_pdf_header(&data).map_err(|msg| PdfError::InvalidPdf { message: msg })?;
+            utils::validate_pdf_header(&data)
+                .map_err(|msg| PdfError::InvalidPdf { message: msg })?;
 
             let pdfium = processor_clone.initialize_pdfium()?;
             let document = processor_clone.load_document(&pdfium, &data)?;
@@ -817,7 +821,11 @@ impl PdfProcessor for PdfiumProcessor {
             }
 
             Ok(false)
-        }).await.map_err(|e| PdfError::ProcessingError { message: format!("Blocking task failed: {}", e) })?
+        })
+        .await
+        .map_err(|e| PdfError::ProcessingError {
+            message: format!("Blocking task failed: {}", e),
+        })?
     }
 
     fn is_available(&self) -> bool {
@@ -998,7 +1006,11 @@ pub enum AnyPdfProcessor {
 
 impl AnyPdfProcessor {
     /// Process a PDF from bytes
-    pub async fn process_pdf(&self, data: &[u8], config: &PdfConfig) -> PdfResult<PdfProcessingResult> {
+    pub async fn process_pdf(
+        &self,
+        data: &[u8],
+        config: &PdfConfig,
+    ) -> PdfResult<PdfProcessingResult> {
         match self {
             #[cfg(feature = "pdf")]
             AnyPdfProcessor::Pdfium(processor) => processor.process_pdf(data, config).await,
@@ -1016,9 +1028,17 @@ impl AnyPdfProcessor {
     ) -> PdfResult<PdfProcessingResult> {
         match self {
             #[cfg(feature = "pdf")]
-            AnyPdfProcessor::Pdfium(processor) => processor.process_pdf_with_progress(data, config, progress_callback).await,
+            AnyPdfProcessor::Pdfium(processor) => {
+                processor
+                    .process_pdf_with_progress(data, config, progress_callback)
+                    .await
+            }
             #[cfg(not(feature = "pdf"))]
-            AnyPdfProcessor::Default(processor) => processor.process_pdf_with_progress(data, config, progress_callback).await,
+            AnyPdfProcessor::Default(processor) => {
+                processor
+                    .process_pdf_with_progress(data, config, progress_callback)
+                    .await
+            }
         }
     }
 
@@ -1053,7 +1073,10 @@ impl AnyPdfProcessor {
     }
 
     /// Process PDF bytes for ExtractedDoc
-    pub async fn process_pdf_bytes(&self, pdf_bytes: &[u8]) -> PdfResult<super::types::ExtractedDoc> {
+    pub async fn process_pdf_bytes(
+        &self,
+        pdf_bytes: &[u8],
+    ) -> PdfResult<super::types::ExtractedDoc> {
         match self {
             #[cfg(feature = "pdf")]
             AnyPdfProcessor::Pdfium(processor) => processor.process_pdf_bytes(pdf_bytes).await,

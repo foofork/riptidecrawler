@@ -4,8 +4,7 @@
 #[allow(clippy::module_inception)]
 mod tests {
     use crate::strategies::{
-        TrekExtractionStrategy, StrategyRegistry, PerformanceTier,
-        traits::ExtractionStrategy,
+        traits::ExtractionStrategy, PerformanceTier, StrategyRegistry, TrekExtractionStrategy,
     };
     use std::sync::Arc;
 
@@ -78,7 +77,9 @@ mod tests {
         let capabilities = strategy.capabilities();
 
         assert_eq!(capabilities.strategy_type, "wasm_extraction");
-        assert!(capabilities.supported_content_types.contains(&"text/html".to_string()));
+        assert!(capabilities
+            .supported_content_types
+            .contains(&"text/html".to_string()));
         assert_eq!(capabilities.performance_tier, PerformanceTier::Fast);
         assert!(!capabilities.resource_requirements.requires_network);
     }

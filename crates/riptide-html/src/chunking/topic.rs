@@ -17,7 +17,7 @@
 //! The implementation is optimized to add <200ms overhead per document while
 //! providing intelligent topic-based segmentation for long documents.
 
-use crate::chunking::{ChunkingStrategy, ChunkingConfig, Chunk, ChunkMetadata};
+use crate::chunking::{Chunk, ChunkMetadata, ChunkingConfig, ChunkingStrategy};
 use anyhow::Result;
 use async_trait::async_trait;
 use std::collections::HashMap;
@@ -40,12 +40,14 @@ pub struct TopicChunker {
 impl TopicChunker {
     /// Create a new topic chunker
     pub fn new(window_size: usize, smoothing_passes: usize, config: ChunkingConfig) -> Self {
-        let fallback_chunker = Some(Box::new(
-            super::sliding::SlidingWindowChunker::new(1000, 100, config.clone())
-        ) as Box<dyn ChunkingStrategy>);
+        let fallback_chunker = Some(Box::new(super::sliding::SlidingWindowChunker::new(
+            1000,
+            100,
+            config.clone(),
+        )) as Box<dyn ChunkingStrategy>);
 
         Self {
-            window_size: window_size.max(2), // Minimum window size of 2
+            window_size: window_size.max(2),           // Minimum window size of 2
             smoothing_passes: smoothing_passes.min(5), // Maximum 5 passes for performance
             config,
             performance_timeout: 180, // 180ms timeout to stay under 200ms target
@@ -54,7 +56,11 @@ impl TopicChunker {
     }
 
     /// Create a new topic chunker without fallback (for testing)
-    pub fn new_without_fallback(window_size: usize, smoothing_passes: usize, config: ChunkingConfig) -> Self {
+    pub fn new_without_fallback(
+        window_size: usize,
+        smoothing_passes: usize,
+        config: ChunkingConfig,
+    ) -> Self {
         Self {
             window_size: window_size.max(2),
             smoothing_passes: smoothing_passes.min(5),
@@ -93,8 +99,12 @@ impl TopicChunker {
             word_count += 1;
 
             // End sentence on punctuation or after ~20 words (pseudo-sentence)
-            if (word.ends_with('.') || word.ends_with('!') || word.ends_with('?') || word_count >= 20)
-                && !current_sentence.trim().is_empty() {
+            if (word.ends_with('.')
+                || word.ends_with('!')
+                || word.ends_with('?')
+                || word_count >= 20)
+                && !current_sentence.trim().is_empty()
+            {
                 sentences.push(current_sentence.trim().to_string());
                 current_sentence.clear();
                 word_count = 0;
@@ -118,7 +128,8 @@ impl TopicChunker {
         // Process words in chunks for better cache performance
         let words: Vec<&str> = text.split_whitespace().collect();
 
-        for chunk in words.chunks(100) { // Process 100 words at a time
+        for chunk in words.chunks(100) {
+            // Process 100 words at a time
             for word in chunk {
                 // Fast path for very short words
                 if word.len() <= 2 {
@@ -126,9 +137,16 @@ impl TopicChunker {
                 }
 
                 // Optimized cleaning: avoid allocations where possible
-                let start = word.chars().position(|c| c.is_alphanumeric()).unwrap_or(word.len());
-                let end = word.chars().rev().position(|c| c.is_alphanumeric())
-                    .map(|i| word.len() - i).unwrap_or(0);
+                let start = word
+                    .chars()
+                    .position(|c| c.is_alphanumeric())
+                    .unwrap_or(word.len());
+                let end = word
+                    .chars()
+                    .rev()
+                    .position(|c| c.is_alphanumeric())
+                    .map(|i| word.len() - i)
+                    .unwrap_or(0);
 
                 if start >= end || end - start <= 2 {
                     continue;
@@ -153,21 +171,21 @@ impl TopicChunker {
     /// Check if a word is a stop word (optimized with HashSet)
     fn is_stop_word(&self, word: &str) -> bool {
         // Use a static HashSet for O(1) lookups
-        use std::sync::OnceLock;
         use std::collections::HashSet;
+        use std::sync::OnceLock;
 
         static STOP_WORDS: OnceLock<HashSet<&'static str>> = OnceLock::new();
         let stop_set = STOP_WORDS.get_or_init(|| {
             [
-                "the", "be", "to", "of", "and", "a", "in", "that", "have",
-                "i", "it", "for", "not", "on", "with", "he", "as", "you",
-                "do", "at", "this", "but", "his", "by", "from", "they",
-                "we", "say", "her", "she", "or", "an", "will", "my",
-                "one", "all", "would", "there", "their", "what", "so",
-                "up", "out", "if", "about", "who", "get", "which", "go",
-                "was", "is", "are", "been", "were", "had", "has", "can", "could",
-                "should", "would", "may", "might", "must", "shall", "will", "did",
-            ].into_iter().collect()
+                "the", "be", "to", "of", "and", "a", "in", "that", "have", "i", "it", "for", "not",
+                "on", "with", "he", "as", "you", "do", "at", "this", "but", "his", "by", "from",
+                "they", "we", "say", "her", "she", "or", "an", "will", "my", "one", "all", "would",
+                "there", "their", "what", "so", "up", "out", "if", "about", "who", "get", "which",
+                "go", "was", "is", "are", "been", "were", "had", "has", "can", "could", "should",
+                "would", "may", "might", "must", "shall", "will", "did",
+            ]
+            .into_iter()
+            .collect()
         });
 
         stop_set.contains(word)
@@ -175,7 +193,11 @@ impl TopicChunker {
 
     /// Calculate enhanced coherence score between two vocabulary maps
     /// Uses both lexical similarity and structural coherence measures
-    fn calculate_coherence_score(&self, vocab1: &HashMap<String, usize>, vocab2: &HashMap<String, usize>) -> f64 {
+    fn calculate_coherence_score(
+        &self,
+        vocab1: &HashMap<String, usize>,
+        vocab2: &HashMap<String, usize>,
+    ) -> f64 {
         if vocab1.is_empty() || vocab2.is_empty() {
             return 0.0;
         }
@@ -197,7 +219,11 @@ impl TopicChunker {
     }
 
     /// Calculate cosine similarity between two vocabulary maps (optimized)
-    fn cosine_similarity(&self, vocab1: &HashMap<String, usize>, vocab2: &HashMap<String, usize>) -> f64 {
+    fn cosine_similarity(
+        &self,
+        vocab1: &HashMap<String, usize>,
+        vocab2: &HashMap<String, usize>,
+    ) -> f64 {
         if vocab1.is_empty() || vocab2.is_empty() {
             return 0.0;
         }
@@ -243,7 +269,11 @@ impl TopicChunker {
     }
 
     /// Calculate Jaccard similarity for vocabulary overlap
-    fn jaccard_similarity(&self, vocab1: &HashMap<String, usize>, vocab2: &HashMap<String, usize>) -> f64 {
+    fn jaccard_similarity(
+        &self,
+        vocab1: &HashMap<String, usize>,
+        vocab2: &HashMap<String, usize>,
+    ) -> f64 {
         let set1: std::collections::HashSet<_> = vocab1.keys().collect();
         let set2: std::collections::HashSet<_> = vocab2.keys().collect();
 
@@ -258,7 +288,11 @@ impl TopicChunker {
     }
 
     /// Calculate term frequency distribution similarity
-    fn tf_distribution_similarity(&self, vocab1: &HashMap<String, usize>, vocab2: &HashMap<String, usize>) -> f64 {
+    fn tf_distribution_similarity(
+        &self,
+        vocab1: &HashMap<String, usize>,
+        vocab2: &HashMap<String, usize>,
+    ) -> f64 {
         let total1: usize = vocab1.values().sum();
         let total2: usize = vocab2.values().sum();
 
@@ -311,7 +345,11 @@ impl TopicChunker {
             let mut right_vocab = HashMap::new();
 
             // Left block: combine vocabularies from (i - window_size) to i
-            for vocab in sentence_vocabs.iter().skip(i - self.window_size).take(self.window_size) {
+            for vocab in sentence_vocabs
+                .iter()
+                .skip(i - self.window_size)
+                .take(self.window_size)
+            {
                 for (word, &count) in vocab {
                     *left_vocab.entry(word.clone()).or_insert(0) += count;
                 }
@@ -366,9 +404,7 @@ impl TopicChunker {
 
         // Calculate statistical measures for adaptive thresholding
         let mean = scores.iter().sum::<f64>() / scores.len() as f64;
-        let variance = scores.iter()
-            .map(|x| (x - mean).powi(2))
-            .sum::<f64>() / scores.len() as f64;
+        let variance = scores.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / scores.len() as f64;
         let std_dev = variance.sqrt();
 
         // Enhanced valley detection with hysteresis
@@ -472,9 +508,10 @@ impl TopicChunker {
 
         let mut boundaries = Vec::new();
         for i in 1..(scores.len() - 1) {
-            if scores[i] >= percentile_threshold &&
-               scores[i] > scores[i - 1] &&
-               scores[i] > scores[i + 1] {
+            if scores[i] >= percentile_threshold
+                && scores[i] > scores[i - 1]
+                && scores[i] > scores[i + 1]
+            {
                 let sentence_index = i + self.window_size;
                 if sentence_index < sentences.len() {
                     boundaries.push(sentence_index);
@@ -506,7 +543,11 @@ impl TopicChunker {
     }
 
     /// Enforce minimum chunk size by merging small segments
-    fn enforce_minimum_chunk_size(&self, boundaries: Vec<usize>, sentences: &[String]) -> Vec<usize> {
+    fn enforce_minimum_chunk_size(
+        &self,
+        boundaries: Vec<usize>,
+        sentences: &[String],
+    ) -> Vec<usize> {
         if boundaries.is_empty() {
             return boundaries;
         }
@@ -539,7 +580,11 @@ impl TopicChunker {
     }
 
     /// Create chunks from sentences and boundaries
-    fn create_chunks_from_boundaries(&self, sentences: &[String], boundaries: &[usize]) -> Vec<Chunk> {
+    fn create_chunks_from_boundaries(
+        &self,
+        sentences: &[String],
+        boundaries: &[usize],
+    ) -> Vec<Chunk> {
         let mut chunks = Vec::new();
         let mut start_idx = 0;
         let mut char_position = 0;
@@ -615,7 +660,8 @@ impl TopicChunker {
 
         // Topic coherence bonus based on keyword density
         if !topic_keywords.is_empty() {
-            let keyword_density = topic_keywords.len() as f64 / content.split_whitespace().count() as f64;
+            let keyword_density =
+                topic_keywords.len() as f64 / content.split_whitespace().count() as f64;
             score += (keyword_density * 10.0).min(0.3); // Cap at 30% bonus
         }
 
@@ -715,7 +761,10 @@ impl TopicChunker {
             // Update chunk type to indicate fallback was used
             for chunk in &mut chunks {
                 chunk.metadata.chunk_type = "sliding-fallback".to_string();
-                chunk.metadata.custom.insert("fallback_reason".to_string(), "performance_timeout".to_string());
+                chunk.metadata.custom.insert(
+                    "fallback_reason".to_string(),
+                    "performance_timeout".to_string(),
+                );
             }
             Ok(chunks)
         } else {
@@ -886,10 +935,15 @@ mod tests {
         // Should detect topic change between ML and climate topics
         // With 8 sentences and window_size=2, we have 4 potential boundaries (indices 2,3,4,5)
         // The algorithm should find at least one boundary between the topics
-        assert!(!boundaries.is_empty(), "Should detect at least one topic boundary between ML and climate topics");
+        assert!(
+            !boundaries.is_empty(),
+            "Should detect at least one topic boundary between ML and climate topics"
+        );
 
         // Verify the boundary makes sense (should be around index 4 where topic changes)
-        assert!(boundaries.iter().any(|&b| (3..=5).contains(&b)),
-               "Boundary should be detected around the topic transition point (indices 3-5)");
+        assert!(
+            boundaries.iter().any(|&b| (3..=5).contains(&b)),
+            "Boundary should be detected around the topic transition point (indices 3-5)"
+        );
     }
 }

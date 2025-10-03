@@ -173,8 +173,14 @@ impl WorkerMetrics {
                 let p95_idx = (processing_times.len() as f64 * 0.95) as usize;
                 let p99_idx = (processing_times.len() as f64 * 0.99) as usize;
 
-                let p95 = sorted_times.get(p95_idx.saturating_sub(1)).copied().unwrap_or(0);
-                let p99 = sorted_times.get(p99_idx.saturating_sub(1)).copied().unwrap_or(0);
+                let p95 = sorted_times
+                    .get(p95_idx.saturating_sub(1))
+                    .copied()
+                    .unwrap_or(0);
+                let p99 = sorted_times
+                    .get(p99_idx.saturating_sub(1))
+                    .copied()
+                    .unwrap_or(0);
 
                 (avg, p95, p99)
             } else {
@@ -191,7 +197,8 @@ impl WorkerMetrics {
         };
 
         // Count healthy workers
-        let healthy_workers = worker_health.values()
+        let healthy_workers = worker_health
+            .values()
             .filter(|status| status.is_healthy)
             .count();
 

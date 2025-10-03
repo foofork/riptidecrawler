@@ -16,9 +16,10 @@ pub fn validate_extraction_input(html: &str, url: &str) -> Result<(), Extraction
 
     // Validate URL format using common pattern
     if let Err(e) = validate_url_format(url) {
-        return Err(ExtractionError::InvalidHtml(
-            format!("Invalid URL format: {}", e)
-        ));
+        return Err(ExtractionError::InvalidHtml(format!(
+            "Invalid URL format: {}",
+            e
+        )));
     }
 
     // Validate HTML structure
@@ -78,12 +79,10 @@ pub fn validate_content_size(size: usize) -> Result<(), ExtractionError> {
     const MAX_CONTENT_SIZE: usize = 20 * 1024 * 1024; // 20MB, same as common validation
 
     if size > MAX_CONTENT_SIZE {
-        return Err(ExtractionError::InvalidHtml(
-            format!(
-                "Content size {} exceeds maximum {}",
-                size, MAX_CONTENT_SIZE
-            ),
-        ));
+        return Err(ExtractionError::InvalidHtml(format!(
+            "Content size {} exceeds maximum {}",
+            size, MAX_CONTENT_SIZE
+        )));
     }
 
     Ok(())
@@ -92,7 +91,9 @@ pub fn validate_content_size(size: usize) -> Result<(), ExtractionError> {
 /// Validate extraction mode parameters
 pub fn validate_extraction_mode(mode: &crate::ExtractionMode) -> Result<(), ExtractionError> {
     match mode {
-        crate::ExtractionMode::Article | crate::ExtractionMode::Full | crate::ExtractionMode::Metadata => {
+        crate::ExtractionMode::Article
+        | crate::ExtractionMode::Full
+        | crate::ExtractionMode::Metadata => {
             // Standard modes are always valid
             Ok(())
         }
@@ -113,9 +114,10 @@ pub fn validate_extraction_mode(mode: &crate::ExtractionMode) -> Result<(), Extr
 
                 // Basic CSS selector validation - check for obvious invalid patterns
                 if selector.contains("..") || selector.starts_with('>') {
-                    return Err(ExtractionError::InvalidHtml(
-                        format!("Invalid CSS selector format: {}", selector),
-                    ));
+                    return Err(ExtractionError::InvalidHtml(format!(
+                        "Invalid CSS selector format: {}",
+                        selector
+                    )));
                 }
             }
 
@@ -132,23 +134,30 @@ pub mod parameter_validation {
     #[allow(dead_code)]
     pub fn validate_non_empty_string(value: &str, param_name: &str) -> Result<(), ExtractionError> {
         if value.trim().is_empty() {
-            return Err(ExtractionError::InvalidHtml(
-                format!("{} cannot be empty", param_name),
-            ));
+            return Err(ExtractionError::InvalidHtml(format!(
+                "{} cannot be empty",
+                param_name
+            )));
         }
         Ok(())
     }
 
     /// Validate that a number is within a valid range
     #[allow(dead_code)]
-    pub fn validate_number_range<T>(value: T, min: T, max: T, param_name: &str) -> Result<(), ExtractionError>
+    pub fn validate_number_range<T>(
+        value: T,
+        min: T,
+        max: T,
+        param_name: &str,
+    ) -> Result<(), ExtractionError>
     where
         T: PartialOrd + std::fmt::Display,
     {
         if value < min || value > max {
-            return Err(ExtractionError::InvalidHtml(
-                format!("{} must be between {} and {}", param_name, min, max),
-            ));
+            return Err(ExtractionError::InvalidHtml(format!(
+                "{} must be between {} and {}",
+                param_name, min, max
+            )));
         }
         Ok(())
     }
@@ -162,15 +171,17 @@ pub mod parameter_validation {
         collection_name: &str,
     ) -> Result<(), ExtractionError> {
         if collection.len() < min_size {
-            return Err(ExtractionError::InvalidHtml(
-                format!("{} must contain at least {} items", collection_name, min_size),
-            ));
+            return Err(ExtractionError::InvalidHtml(format!(
+                "{} must contain at least {} items",
+                collection_name, min_size
+            )));
         }
 
         if collection.len() > max_size {
-            return Err(ExtractionError::InvalidHtml(
-                format!("{} cannot contain more than {} items", collection_name, max_size),
-            ));
+            return Err(ExtractionError::InvalidHtml(format!(
+                "{} cannot contain more than {} items",
+                collection_name, max_size
+            )));
         }
 
         Ok(())
@@ -183,29 +194,23 @@ pub mod error_patterns {
 
     /// Convert common validation errors to extraction errors
     #[allow(dead_code)]
-    pub fn validation_error_to_extraction_error(
-        field: &str,
-        reason: &str,
-    ) -> ExtractionError {
-        ExtractionError::InvalidHtml(
-            format!("Validation failed for {}: {}", field, reason)
-        )
+    pub fn validation_error_to_extraction_error(field: &str, reason: &str) -> ExtractionError {
+        ExtractionError::InvalidHtml(format!("Validation failed for {}: {}", field, reason))
     }
 
     /// Create a standard invalid input error
     #[allow(dead_code)]
     pub fn invalid_input_error(input_type: &str, details: &str) -> ExtractionError {
-        ExtractionError::InvalidHtml(
-            format!("Invalid {} input: {}", input_type, details)
-        )
+        ExtractionError::InvalidHtml(format!("Invalid {} input: {}", input_type, details))
     }
 
     /// Create a standard resource limit error
     #[allow(dead_code)]
     pub fn resource_limit_error(resource: &str, current: usize, limit: usize) -> ExtractionError {
-        ExtractionError::InternalError(
-            format!("{} limit exceeded: {} > {}", resource, current, limit)
-        )
+        ExtractionError::InternalError(format!(
+            "{} limit exceeded: {} > {}",
+            resource, current, limit
+        ))
     }
 }
 
@@ -245,7 +250,10 @@ mod tests {
     fn test_validate_html_structure() {
         // Valid HTML structures
         assert!(validate_html_structure("<html><body><p>content</p></body></html>").is_ok());
-        assert!(validate_html_structure("<!DOCTYPE html><html><body><div>content</div></body></html>").is_ok());
+        assert!(validate_html_structure(
+            "<!DOCTYPE html><html><body><div>content</div></body></html>"
+        )
+        .is_ok());
 
         // Invalid HTML structures
         assert!(validate_html_structure("").is_err());

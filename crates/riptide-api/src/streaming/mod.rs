@@ -165,8 +165,7 @@ impl std::str::FromStr for StreamingProtocol {
 }
 
 /// Streaming health status
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[derive(Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum StreamingHealth {
     /// All systems operating normally
     #[default]
@@ -195,7 +194,6 @@ impl StreamingHealth {
         }
     }
 }
-
 
 /// Global streaming metrics aggregated across all protocols
 #[derive(Debug, Default, Clone)]

@@ -1,15 +1,14 @@
 //! Metadata extraction with ML insights for byline/date detection
 
 use anyhow::Result;
-use chrono::{DateTime, Utc, NaiveDateTime};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use regex::Regex;
+use schemars::JsonSchema;
 use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
-use schemars::JsonSchema;
 
 /// Document metadata with validation
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Default)]
 pub struct DocumentMetadata {
     pub title: Option<String>,
     pub description: Option<String>,
@@ -39,8 +38,7 @@ pub struct MetadataConfidence {
 }
 
 /// Method used for metadata extraction
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Default)]
 pub struct ExtractionMethod {
     pub open_graph: bool,
     pub json_ld: bool,
@@ -72,7 +70,6 @@ pub async fn extract_metadata(html: &str, url: &str) -> Result<DocumentMetadata>
     Ok(metadata)
 }
 
-
 impl Default for MetadataConfidence {
     fn default() -> Self {
         Self {
@@ -84,7 +81,6 @@ impl Default for MetadataConfidence {
         }
     }
 }
-
 
 /// Extract Open Graph metadata
 fn extract_open_graph(
@@ -305,7 +301,7 @@ fn extract_keywords_from_json_ld(keywords: &serde_json::Value) -> Vec<String> {
             keywords_str
                 .split(&[',', ';'][..])
                 .map(|s| s.trim().to_string())
-                .filter(|s| !s.is_empty())
+                .filter(|s| !s.is_empty()),
         );
     } else if let Some(keywords_array) = keywords.as_array() {
         for keyword in keywords_array {
@@ -598,11 +594,11 @@ fn parse_date_text(text: &str) -> Result<DateTime<Utc>> {
 /// Validate if a string looks like a valid author name
 fn is_valid_author_name(name: &str) -> bool {
     // Simple validation - not too short, not too long, contains letters
-    name.len() >= 2 &&
-    name.len() <= 100 &&
-    name.chars().any(|c| c.is_alphabetic()) &&
-    !name.to_lowercase().contains("admin") &&
-    !name.to_lowercase().contains("user")
+    name.len() >= 2
+        && name.len() <= 100
+        && name.chars().any(|c| c.is_alphabetic())
+        && !name.to_lowercase().contains("admin")
+        && !name.to_lowercase().contains("user")
 }
 
 /// Calculate confidence scores for extracted metadata
@@ -615,9 +611,15 @@ fn calculate_confidence_scores(
     // Title confidence
     confidence.title = if metadata.title.is_some() {
         let mut score = 0.5_f64;
-        if method.open_graph { score += 0.3; }
-        if method.json_ld { score += 0.2; }
-        if method.meta_tags { score += 0.1; }
+        if method.open_graph {
+            score += 0.3;
+        }
+        if method.json_ld {
+            score += 0.2;
+        }
+        if method.meta_tags {
+            score += 0.1;
+        }
         score.min(1.0_f64)
     } else {
         0.0
@@ -626,10 +628,18 @@ fn calculate_confidence_scores(
     // Author confidence
     confidence.author = if metadata.author.is_some() {
         let mut score = 0.4_f64;
-        if method.open_graph { score += 0.3; }
-        if method.json_ld { score += 0.3; }
-        if method.meta_tags { score += 0.2; }
-        if method.heuristics { score += 0.1; }
+        if method.open_graph {
+            score += 0.3;
+        }
+        if method.json_ld {
+            score += 0.3;
+        }
+        if method.meta_tags {
+            score += 0.2;
+        }
+        if method.heuristics {
+            score += 0.1;
+        }
         score.min(1.0_f64)
     } else {
         0.0
@@ -638,9 +648,15 @@ fn calculate_confidence_scores(
     // Date confidence
     confidence.date = if metadata.published_date.is_some() {
         let mut score = 0.6_f64;
-        if method.open_graph { score += 0.25; }
-        if method.json_ld { score += 0.25; }
-        if method.heuristics { score += 0.1; }
+        if method.open_graph {
+            score += 0.25;
+        }
+        if method.json_ld {
+            score += 0.25;
+        }
+        if method.heuristics {
+            score += 0.1;
+        }
         score.min(1.0_f64)
     } else {
         0.0
@@ -649,16 +665,23 @@ fn calculate_confidence_scores(
     // Description confidence
     confidence.description = if metadata.description.is_some() {
         let mut score = 0.5_f64;
-        if method.open_graph { score += 0.3; }
-        if method.json_ld { score += 0.2; }
-        if method.meta_tags { score += 0.2; }
+        if method.open_graph {
+            score += 0.3;
+        }
+        if method.json_ld {
+            score += 0.2;
+        }
+        if method.meta_tags {
+            score += 0.2;
+        }
         score.min(1.0_f64)
     } else {
         0.0
     };
 
     // Overall confidence
-    confidence.overall = (confidence.title + confidence.author + confidence.date + confidence.description) / 4.0;
+    confidence.overall =
+        (confidence.title + confidence.author + confidence.date + confidence.description) / 4.0;
 
     confidence
 }

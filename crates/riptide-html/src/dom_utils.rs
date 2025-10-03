@@ -4,7 +4,7 @@
 //! including table extraction, text content extraction, and element information gathering.
 
 use anyhow::Result;
-use scraper::{Html, Selector, ElementRef};
+use scraper::{ElementRef, Html, Selector};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -63,10 +63,16 @@ impl DomTraverser {
             tag: value.name().to_string(),
             id: value.id().map(|s| s.to_string()),
             classes: value.classes().map(|s| s.to_string()).collect(),
-            attributes: value.attrs()
+            attributes: value
+                .attrs()
                 .map(|(k, v)| (k.to_string(), v.to_string()))
                 .collect(),
-            text: element.text().collect::<Vec<_>>().join(" ").trim().to_string(),
+            text: element
+                .text()
+                .collect::<Vec<_>>()
+                .join(" ")
+                .trim()
+                .to_string(),
             children_count: element.children().count(),
             depth,
         }
@@ -82,9 +88,17 @@ impl DomTraverser {
         let selector = Selector::parse(selector_str)
             .map_err(|e| anyhow::anyhow!("Invalid selector: {}", e))?;
 
-        let texts = self.document
+        let texts = self
+            .document
             .select(&selector)
-            .map(|element| element.text().collect::<Vec<_>>().join(" ").trim().to_string())
+            .map(|element| {
+                element
+                    .text()
+                    .collect::<Vec<_>>()
+                    .join(" ")
+                    .trim()
+                    .to_string()
+            })
             .filter(|text| !text.is_empty())
             .collect();
 
@@ -201,7 +215,13 @@ fn extract_single_table(table_element: ElementRef) -> Result<TableData> {
     // Extract caption
     if let Ok(caption_selector) = Selector::parse("caption") {
         if let Some(caption_element) = table_element.select(&caption_selector).next() {
-            caption = Some(caption_element.text().collect::<String>().trim().to_string());
+            caption = Some(
+                caption_element
+                    .text()
+                    .collect::<String>()
+                    .trim()
+                    .to_string(),
+            );
         }
     }
 
@@ -249,8 +269,8 @@ fn extract_single_table(table_element: ElementRef) -> Result<TableData> {
 /// Extract all images from HTML
 pub fn extract_images(html: &str) -> Result<Vec<ImageInfo>> {
     let document = Html::parse_document(html);
-    let selector = Selector::parse("img")
-        .map_err(|e| anyhow::anyhow!("Invalid img selector: {}", e))?;
+    let selector =
+        Selector::parse("img").map_err(|e| anyhow::anyhow!("Invalid img selector: {}", e))?;
 
     let images = document
         .select(&selector)
@@ -262,7 +282,8 @@ pub fn extract_images(html: &str) -> Result<Vec<ImageInfo>> {
                 title: value.attr("title").map(|s| s.to_string()),
                 width: value.attr("width").and_then(|w| w.parse().ok()),
                 height: value.attr("height").and_then(|h| h.parse().ok()),
-                attributes: value.attrs()
+                attributes: value
+                    .attrs()
                     .map(|(k, v)| (k.to_string(), v.to_string()))
                     .collect(),
             }
@@ -286,8 +307,8 @@ pub struct ImageInfo {
 /// Extract all links from HTML
 pub fn extract_links(html: &str) -> Result<Vec<LinkInfo>> {
     let document = Html::parse_document(html);
-    let selector = Selector::parse("a[href]")
-        .map_err(|e| anyhow::anyhow!("Invalid link selector: {}", e))?;
+    let selector =
+        Selector::parse("a[href]").map_err(|e| anyhow::anyhow!("Invalid link selector: {}", e))?;
 
     let links = document
         .select(&selector)
@@ -299,7 +320,8 @@ pub fn extract_links(html: &str) -> Result<Vec<LinkInfo>> {
                 title: value.attr("title").map(|s| s.to_string()),
                 target: value.attr("target").map(|s| s.to_string()),
                 rel: value.attr("rel").map(|s| s.to_string()),
-                attributes: value.attrs()
+                attributes: value
+                    .attrs()
                     .map(|(k, v)| (k.to_string(), v.to_string()))
                     .collect(),
             }
@@ -366,7 +388,8 @@ pub fn get_document_outline(html: &str) -> Result<Vec<HeadingInfo>> {
                 level,
                 text: heading.text().collect::<String>().trim().to_string(),
                 id: value.attr("id").map(|s| s.to_string()),
-                attributes: value.attrs()
+                attributes: value
+                    .attrs()
                     .map(|(k, v)| (k.to_string(), v.to_string()))
                     .collect(),
             }
@@ -408,7 +431,9 @@ mod tests {
             </html>
         "#;
 
-        let tables = extract_tables(html, TableExtractionMode::All).await.unwrap();
+        let tables = extract_tables(html, TableExtractionMode::All)
+            .await
+            .unwrap();
 
         assert_eq!(tables.len(), 1);
         let table = &tables[0];

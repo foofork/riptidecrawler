@@ -377,22 +377,42 @@ pub struct ContentTypeValidator;
 
 impl ContentTypeValidator {
     pub fn is_html(content_type: &str) -> bool {
-        let base_type = content_type.split(';').next().unwrap_or(content_type).trim().to_lowercase();
+        let base_type = content_type
+            .split(';')
+            .next()
+            .unwrap_or(content_type)
+            .trim()
+            .to_lowercase();
         matches!(base_type.as_str(), "text/html" | "application/xhtml+xml")
     }
 
     pub fn is_json(content_type: &str) -> bool {
-        let base_type = content_type.split(';').next().unwrap_or(content_type).trim().to_lowercase();
+        let base_type = content_type
+            .split(';')
+            .next()
+            .unwrap_or(content_type)
+            .trim()
+            .to_lowercase();
         base_type == "application/json" || base_type.ends_with("+json")
     }
 
     pub fn is_xml(content_type: &str) -> bool {
-        let base_type = content_type.split(';').next().unwrap_or(content_type).trim().to_lowercase();
+        let base_type = content_type
+            .split(';')
+            .next()
+            .unwrap_or(content_type)
+            .trim()
+            .to_lowercase();
         matches!(base_type.as_str(), "text/xml" | "application/xml") || base_type.ends_with("+xml")
     }
 
     pub fn is_pdf(content_type: &str) -> bool {
-        let base_type = content_type.split(';').next().unwrap_or(content_type).trim().to_lowercase();
+        let base_type = content_type
+            .split(';')
+            .next()
+            .unwrap_or(content_type)
+            .trim()
+            .to_lowercase();
         base_type == "application/pdf"
     }
 }

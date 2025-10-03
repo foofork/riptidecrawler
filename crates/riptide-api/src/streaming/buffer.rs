@@ -279,7 +279,8 @@ impl BackpressureHandler {
         // Consider memory pressure and error rate
         let should_drop = queue_size > adaptive_threshold
             || is_backpressure
-            || (buffer_stats.dropped_messages as f64 / buffer_stats.total_messages.max(1) as f64) > 0.15; // 15% drop rate
+            || (buffer_stats.dropped_messages as f64 / buffer_stats.total_messages.max(1) as f64)
+                > 0.15; // 15% drop rate
 
         if should_drop {
             self.metrics.dropped_messages += 1;

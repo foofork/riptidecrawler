@@ -7,23 +7,23 @@
 //! - Memory growth prediction
 //! - Detailed memory reports
 
-pub mod memory_tracker;
-pub mod leak_detector;
 pub mod allocation_analyzer;
 pub mod flamegraph_generator;
+pub mod leak_detector;
+pub mod memory_tracker;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-use tracing::{info, warn, debug};
+use tracing::{debug, info, warn};
 use uuid::Uuid;
 
-use memory_tracker::MemoryTracker;
-use leak_detector::LeakDetector;
 use allocation_analyzer::AllocationAnalyzer;
 use flamegraph_generator::FlamegraphGenerator;
+use leak_detector::LeakDetector;
+use memory_tracker::MemoryTracker;
 
 /// Memory profiling configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -214,7 +214,8 @@ impl MemoryProfiler {
 
         *is_profiling = false;
 
-        let profiling_duration = self.start_time
+        let profiling_duration = self
+            .start_time
             .map(|start| start.elapsed())
             .unwrap_or_default();
 
@@ -227,7 +228,9 @@ impl MemoryProfiler {
         };
 
         // Collect final data and generate report
-        let report = self.generate_report(profiling_duration, flamegraph_path).await?;
+        let report = self
+            .generate_report(profiling_duration, flamegraph_path)
+            .await?;
 
         info!(
             session_id = %self.session_id,
@@ -245,7 +248,10 @@ impl MemoryProfiler {
     }
 
     /// Get memory usage trend
-    pub async fn get_memory_trend(&self, duration: Duration) -> Result<Vec<(chrono::DateTime<chrono::Utc>, f64)>> {
+    pub async fn get_memory_trend(
+        &self,
+        duration: Duration,
+    ) -> Result<Vec<(chrono::DateTime<chrono::Utc>, f64)>> {
         let snapshots = self.snapshots.read().await;
         let cutoff = chrono::Utc::now() - chrono::Duration::from_std(duration)?;
 
@@ -333,9 +339,7 @@ impl MemoryProfiler {
             .map(|s| s.rss_bytes as f64 / 1024.0 / 1024.0)
             .collect();
 
-        let peak_memory_mb = memory_values
-            .iter()
-            .fold(0.0_f64, |max, &val| max.max(val));
+        let peak_memory_mb = memory_values.iter().fold(0.0_f64, |max, &val| max.max(val));
 
         let average_memory_mb = memory_values.iter().sum::<f64>() / memory_values.len() as f64;
 
@@ -356,8 +360,10 @@ impl MemoryProfiler {
         };
 
         // Calculate efficiency score (inverse of growth rate and peak usage)
-        let memory_efficiency_score = if peak_memory_mb > 0.0 && memory_growth_rate_mb_s.abs() < 1.0 {
-            (600.0_f64 / peak_memory_mb).min(1.0) * (1.0 - memory_growth_rate_mb_s.abs() / 10.0).max(0.0)
+        let memory_efficiency_score = if peak_memory_mb > 0.0 && memory_growth_rate_mb_s.abs() < 1.0
+        {
+            (600.0_f64 / peak_memory_mb).min(1.0)
+                * (1.0 - memory_growth_rate_mb_s.abs() / 10.0).max(0.0)
         } else {
             0.0
         };
@@ -377,11 +383,9 @@ impl MemoryProfiler {
             .collect();
 
         // Generate recommendations
-        let recommendations = self.generate_recommendations(
-            peak_memory_mb,
-            memory_growth_rate_mb_s,
-            &leak_analysis,
-        ).await?;
+        let recommendations = self
+            .generate_recommendations(peak_memory_mb, memory_growth_rate_mb_s, &leak_analysis)
+            .await?;
 
         Ok(MemoryReport {
             session_id: self.session_id,
@@ -431,7 +435,8 @@ impl MemoryProfiler {
 
         if growth_rate_mb_s > 5.0 {
             recommendations.push(
-                "Critical memory growth rate. Immediate investigation required for memory leaks.".to_string()
+                "Critical memory growth rate. Immediate investigation required for memory leaks."
+                    .to_string(),
             );
         }
 
@@ -440,7 +445,8 @@ impl MemoryProfiler {
             recommendations.push(format!(
                 "Found {} potential memory leaks. Focus on: {}",
                 leak_analysis.potential_leaks.len(),
-                leak_analysis.potential_leaks
+                leak_analysis
+                    .potential_leaks
                     .iter()
                     .take(3)
                     .map(|leak| leak.component.as_str())
@@ -451,7 +457,8 @@ impl MemoryProfiler {
 
         if leak_analysis.growth_rate_mb_per_hour > 50.0 {
             recommendations.push(
-                "Memory leak growth rate is high. Implement automatic memory cleanup routines.".to_string()
+                "Memory leak growth rate is high. Implement automatic memory cleanup routines."
+                    .to_string(),
             );
         }
 
@@ -462,10 +469,15 @@ impl MemoryProfiler {
 
         // General recommendations
         if recommendations.is_empty() {
-            recommendations.push("Memory usage is within normal parameters. Continue monitoring.".to_string());
+            recommendations
+                .push("Memory usage is within normal parameters. Continue monitoring.".to_string());
         } else {
-            recommendations.push("Consider implementing jemalloc for better memory management.".to_string());
-            recommendations.push("Enable memory profiling in production with sampling to reduce overhead.".to_string());
+            recommendations
+                .push("Consider implementing jemalloc for better memory management.".to_string());
+            recommendations.push(
+                "Enable memory profiling in production with sampling to reduce overhead."
+                    .to_string(),
+            );
         }
 
         Ok(recommendations)

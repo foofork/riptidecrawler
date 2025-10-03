@@ -158,8 +158,8 @@ impl Decoder for NdjsonCodec {
     fn decode(&mut self, src: &mut bytes::BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         match self.lines_codec.decode(src)? {
             Some(line) => {
-                let item: NdjsonItem = serde_json::from_str(&line)
-                    .map_err(StreamingError::SerializationError)?;
+                let item: NdjsonItem =
+                    serde_json::from_str(&line).map_err(StreamingError::SerializationError)?;
                 Ok(Some(item))
             }
             None => Ok(None),
@@ -175,7 +175,8 @@ impl Encoder<NdjsonItem> for NdjsonCodec {
             serde_json::to_string_pretty(&item)
         } else {
             serde_json::to_string(&item)
-        }.map_err(StreamingError::SerializationError)?;
+        }
+        .map_err(StreamingError::SerializationError)?;
 
         self.lines_codec.encode(json_str, dst)?;
         Ok(())
@@ -458,9 +459,7 @@ pub mod utils {
         let codec = NdjsonCodec::with_config(config.clone());
         let framed = FramedRead::new(reader, codec);
 
-        framed.map(|result| {
-            result
-        })
+        framed.map(|result| result)
     }
 
     /// Validate NDJSON item
@@ -468,17 +467,21 @@ pub mod utils {
         match item {
             NdjsonItem::Result(result) => {
                 if result.id.is_empty() {
-                    return Err(StreamingError::ConfigError("Result ID cannot be empty".to_string()));
+                    return Err(StreamingError::ConfigError(
+                        "Result ID cannot be empty".to_string(),
+                    ));
                 }
                 if result.url.is_empty() {
-                    return Err(StreamingError::ConfigError("Result URL cannot be empty".to_string()));
+                    return Err(StreamingError::ConfigError(
+                        "Result URL cannot be empty".to_string(),
+                    ));
                 }
             }
             NdjsonItem::Progress(progress) => {
                 if let Some(total) = progress.total {
                     if progress.processed > total {
                         return Err(StreamingError::ConfigError(
-                            "Processed items cannot exceed total".to_string()
+                            "Processed items cannot exceed total".to_string(),
                         ));
                     }
                 }
@@ -509,16 +512,13 @@ pub mod utils {
         S: Stream<Item = StreamingResult<NdjsonItem>>,
     {
         let codec = NdjsonCodec::with_config(config);
-        stream.map(move |item| {
-            match item {
-                Ok(ndjson_item) => {
-                    let mut buf = bytes::BytesMut::new();
-                    let mut codec = codec.clone();
-                    codec.encode(ndjson_item, &mut buf)
-                        .map(|_| buf.freeze())
-                }
-                Err(e) => Err(e),
+        stream.map(move |item| match item {
+            Ok(ndjson_item) => {
+                let mut buf = bytes::BytesMut::new();
+                let mut codec = codec.clone();
+                codec.encode(ndjson_item, &mut buf).map(|_| buf.freeze())
             }
+            Err(e) => Err(e),
         })
     }
 
@@ -532,8 +532,9 @@ pub mod utils {
     {
         into_bytes_stream(stream, config).map(|result| {
             result.and_then(|bytes| {
-                String::from_utf8(bytes.to_vec())
-                    .map_err(|e| StreamingError::ConfigError(format!("UTF-8 conversion error: {}", e)))
+                String::from_utf8(bytes.to_vec()).map_err(|e| {
+                    StreamingError::ConfigError(format!("UTF-8 conversion error: {}", e))
+                })
             })
         })
     }
@@ -547,8 +548,12 @@ impl fmt::Display for NdjsonItem {
                 write!(f, "Result(id={}, url={})", result.id, result.url)
             }
             NdjsonItem::Progress(progress) => {
-                write!(f, "Progress({}/{})", progress.processed,
-                       progress.total.map_or("?".to_string(), |t| t.to_string()))
+                write!(
+                    f,
+                    "Progress({}/{})",
+                    progress.processed,
+                    progress.total.map_or("?".to_string(), |t| t.to_string())
+                )
             }
             NdjsonItem::Event(event) => {
                 write!(f, "Event({:?})", event.event_type)
@@ -581,8 +586,8 @@ impl fmt::Display for StreamEventType {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tokio_stream::iter;
     use std::collections::HashMap;
+    use tokio_stream::iter;
 
     fn create_test_extraction_result(id: &str) -> ExtractionResult {
         ExtractionResult {
@@ -638,12 +643,8 @@ mod tests {
             ..Default::default()
         };
 
-        let ndjson_stream = NdjsonStream::from_stream(
-            stream_id,
-            extraction_id,
-            results_stream,
-            config,
-        );
+        let ndjson_stream =
+            NdjsonStream::from_stream(stream_id, extraction_id, results_stream, config);
 
         let items: Vec<_> = ndjson_stream.collect().await;
 

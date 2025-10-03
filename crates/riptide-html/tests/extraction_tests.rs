@@ -1,7 +1,7 @@
 //! Real-world HTML extraction tests
 
-use riptide_html::*;
 use anyhow::Result;
+use riptide_html::*;
 
 #[cfg(test)]
 mod css_selector_tests {
@@ -49,7 +49,9 @@ mod css_selector_tests {
         "#;
 
         let extractor = CssExtractor::default();
-        let prices = extractor.select_with_filter(html, ".price", ":has-text($)").unwrap();
+        let prices = extractor
+            .select_with_filter(html, ".price", ":has-text($)")
+            .unwrap();
 
         assert_eq!(prices.len(), 1);
         assert_eq!(prices[0], "$99.99");
@@ -68,35 +70,31 @@ mod css_selector_tests {
         let extractor = CssExtractor::default();
 
         // Test trim transformer
-        let price = extractor.extract_and_transform(
-            html,
-            ".price",
-            vec![Transformer::Trim]
-        ).unwrap();
+        let price = extractor
+            .extract_and_transform(html, ".price", vec![Transformer::Trim])
+            .unwrap();
         assert_eq!(price, Some("$1,234.56".to_string()));
 
         // Test number extraction
-        let number = extractor.extract_and_transform(
-            html,
-            ".price",
-            vec![Transformer::ExtractNumber]
-        ).unwrap();
+        let number = extractor
+            .extract_and_transform(html, ".price", vec![Transformer::ExtractNumber])
+            .unwrap();
         assert_eq!(number, Some("1234.56".to_string()));
 
         // Test date ISO transform
-        let date = extractor.extract_and_transform(
-            html,
-            ".date",
-            vec![Transformer::DateISO]
-        ).unwrap();
+        let date = extractor
+            .extract_and_transform(html, ".date", vec![Transformer::DateISO])
+            .unwrap();
         assert_eq!(date, Some("2024-03-15T00:00:00Z".to_string()));
 
         // Test absolute URL
-        let url = extractor.extract_and_transform(
-            html,
-            ".link",
-            vec![Transformer::AbsoluteUrl("https://example.com".to_string())]
-        ).unwrap();
+        let url = extractor
+            .extract_and_transform(
+                html,
+                ".link",
+                vec![Transformer::AbsoluteUrl("https://example.com".to_string())],
+            )
+            .unwrap();
         assert_eq!(url, Some("https://example.com/page".to_string()));
     }
 
@@ -130,7 +128,9 @@ mod css_selector_tests {
         assert_eq!(featured.len(), 1);
 
         // Test nth-child
-        let second = extractor.select(html, ".container .item:nth-child(2) h3").unwrap();
+        let second = extractor
+            .select(html, ".container .item:nth-child(2) h3")
+            .unwrap();
         assert_eq!(second, Some("Item 2".to_string()));
     }
 }
@@ -138,7 +138,7 @@ mod css_selector_tests {
 #[cfg(test)]
 mod table_extraction_tests {
     use super::*;
-    use riptide_html::tables::{TableExtractor, TableConfig, TableFormat};
+    use riptide_html::tables::{TableConfig, TableExtractor, TableFormat};
 
     #[test]
     fn test_simple_table_extraction() {
@@ -289,7 +289,9 @@ Line 2</td></tr>
 #[cfg(test)]
 mod chunking_tests {
     use super::*;
-    use riptide_html::chunking::{ChunkingStrategy, ChunkConfig, TextTilingChunker, FixedSizeChunker};
+    use riptide_html::chunking::{
+        ChunkConfig, ChunkingStrategy, FixedSizeChunker, TextTilingChunker,
+    };
 
     #[test]
     fn test_fixed_size_chunking() {
@@ -310,7 +312,7 @@ mod chunking_tests {
 
         // Test overlap
         for i in 1..chunks.len() {
-            let prev_end = &chunks[i-1].text[chunks[i-1].text.len()-20..];
+            let prev_end = &chunks[i - 1].text[chunks[i - 1].text.len() - 20..];
             let curr_start = &chunks[i].text[..20.min(chunks[i].text.len())];
             assert_eq!(prev_end, curr_start);
         }
@@ -365,7 +367,9 @@ mod chunking_tests {
 
         // Should not split sentences
         for chunk in chunks {
-            assert!(chunk.text.ends_with('.') || chunk.text.ends_with('!') || chunk.text.ends_with('?'));
+            assert!(
+                chunk.text.ends_with('.') || chunk.text.ends_with('!') || chunk.text.ends_with('?')
+            );
         }
     }
 }
@@ -409,7 +413,10 @@ mod real_world_extraction_tests {
 
         let result = extractor.extract(html).unwrap();
 
-        assert_eq!(result.title.unwrap(), "Breaking: Major Scientific Discovery");
+        assert_eq!(
+            result.title.unwrap(),
+            "Breaking: Major Scientific Discovery"
+        );
         assert_eq!(result.author.unwrap(), "Dr. Jane Smith");
         assert!(result.content.contains("groundbreaking discovery"));
         assert_eq!(result.tags.len(), 3);
@@ -448,11 +455,10 @@ mod real_world_extraction_tests {
         assert_eq!(title, "Premium Laptop");
 
         // Extract and transform price
-        let price = extractor.extract_and_transform(
-            html,
-            ".sale-price",
-            vec![Transformer::ExtractNumber]
-        ).unwrap().unwrap();
+        let price = extractor
+            .extract_and_transform(html, ".sale-price", vec![Transformer::ExtractNumber])
+            .unwrap()
+            .unwrap();
         assert_eq!(price, "1199.99");
 
         // Extract specifications
@@ -461,7 +467,10 @@ mod real_world_extraction_tests {
         assert!(specs.contains(&"16GB RAM".to_string()));
 
         // Extract stock data
-        let stock = extractor.select_attr(html, ".availability", "data-stock").unwrap().unwrap();
+        let stock = extractor
+            .select_attr(html, ".availability", "data-stock")
+            .unwrap()
+            .unwrap();
         assert_eq!(stock, "15");
     }
 }

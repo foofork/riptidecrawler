@@ -73,11 +73,12 @@ impl EnhancedPipelineOrchestrator {
             let (results, stats) = self.pipeline.execute_batch(urls).await;
             let enhanced_results = results
                 .into_iter()
-                .map(|opt_result| {
-                    opt_result.map(|result| self.convert_to_enhanced_result(result))
-                })
+                .map(|opt_result| opt_result.map(|result| self.convert_to_enhanced_result(result)))
                 .collect();
-            return (enhanced_results, self.convert_to_enhanced_stats(stats, overall_start));
+            return (
+                enhanced_results,
+                self.convert_to_enhanced_stats(stats, overall_start),
+            );
         }
 
         // Use enhanced pipeline for each URL
@@ -122,7 +123,11 @@ impl EnhancedPipelineOrchestrator {
     }
 
     /// Convert standard PipelineStats to EnhancedBatchStats
-    fn convert_to_enhanced_stats(&self, stats: PipelineStats, start: Instant) -> EnhancedBatchStats {
+    fn convert_to_enhanced_stats(
+        &self,
+        stats: PipelineStats,
+        start: Instant,
+    ) -> EnhancedBatchStats {
         EnhancedBatchStats {
             total_urls: stats.total_processed,
             successful: stats.successful_extractions,
@@ -187,9 +192,21 @@ impl EnhancedPipelineOrchestrator {
         };
 
         let avg_phase_timings = PhaseTiming {
-            fetch_ms: if successful > 0 { total_fetch / successful as u64 } else { 0 },
-            gate_ms: if successful > 0 { total_gate / successful as u64 } else { 0 },
-            wasm_ms: if successful > 0 { total_wasm / successful as u64 } else { 0 },
+            fetch_ms: if successful > 0 {
+                total_fetch / successful as u64
+            } else {
+                0
+            },
+            gate_ms: if successful > 0 {
+                total_gate / successful as u64
+            } else {
+                0
+            },
+            wasm_ms: if successful > 0 {
+                total_wasm / successful as u64
+            } else {
+                0
+            },
             render_ms: if render_count > 0 {
                 Some(total_render / render_count as u64)
             } else {
@@ -254,7 +271,9 @@ impl EnhancedPipelineOrchestrator {
         self.metrics.record_gate_decision(&gate_result.decision);
 
         // Phase 3: WASM Extraction
-        let wasm_result = self.execute_wasm_phase(url, &content, &gate_result.decision).await;
+        let wasm_result = self
+            .execute_wasm_phase(url, &content, &gate_result.decision)
+            .await;
         result.phase_timings.wasm_ms = wasm_result.duration_ms;
 
         let document = match wasm_result.result {
@@ -346,7 +365,12 @@ impl EnhancedPipelineOrchestrator {
     }
 
     /// Execute WASM extraction phase with timing
-    async fn execute_wasm_phase(&self, url: &str, content: &str, gate_decision: &str) -> PhaseResult<ExtractedDoc> {
+    async fn execute_wasm_phase(
+        &self,
+        url: &str,
+        content: &str,
+        gate_decision: &str,
+    ) -> PhaseResult<ExtractedDoc> {
         let timer = PhaseTimer::start(PhaseType::Wasm, url.to_string());
         let start = Instant::now();
 
@@ -412,7 +436,12 @@ impl EnhancedPipelineOrchestrator {
     }
 
     /// Extract content using WASM
-    async fn extract_with_wasm(&self, url: &str, content: &str, _gate_decision: &str) -> Result<ExtractedDoc> {
+    async fn extract_with_wasm(
+        &self,
+        url: &str,
+        content: &str,
+        _gate_decision: &str,
+    ) -> Result<ExtractedDoc> {
         // Simplified implementation - integrate with actual WASM extraction
         let doc = ExtractedDoc {
             url: url.to_string(),

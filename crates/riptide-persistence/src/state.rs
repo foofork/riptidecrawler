@@ -19,7 +19,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::fs;
-use tokio::sync::{broadcast, RwLock, Mutex};
+use tokio::sync::{broadcast, Mutex, RwLock};
 use tokio::time::interval;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
@@ -167,19 +167,13 @@ impl StateManager {
         let client = Client::open(redis_url)?;
         let conn = client.get_multiplexed_tokio_connection().await?;
 
-        let config_manager = Arc::new(
-            ConfigurationManager::new(config.clone()).await?
-        );
+        let config_manager = Arc::new(ConfigurationManager::new(config.clone()).await?);
 
-        let checkpoint_manager = Arc::new(
-            CheckpointManager::new(config.clone()).await?
-        );
+        let checkpoint_manager = Arc::new(CheckpointManager::new(config.clone()).await?);
 
         // Initialize spillover manager
         let spillover_dir = PathBuf::from("./data/sessions/spillover");
-        let spillover_manager = Arc::new(
-            SessionSpilloverManager::new(spillover_dir).await?
-        );
+        let spillover_manager = Arc::new(SessionSpilloverManager::new(spillover_dir).await?);
 
         // Initialize memory tracker (default 100MB max, 80% warning threshold)
         let max_memory = 100 * 1024 * 1024; // 100MB
@@ -204,7 +198,8 @@ impl StateManager {
             let watcher = HotReloadWatcher::new(
                 config.config_watch_paths.clone(),
                 state_manager.config_manager.clone(),
-            ).await?;
+            )
+            .await?;
             state_manager.hot_reload_watcher = Some(Arc::new(watcher));
         }
 
@@ -233,7 +228,8 @@ impl StateManager {
             let mut interval = interval(Duration::from_secs(60)); // Check every minute
             loop {
                 interval.tick().await;
-                Self::cleanup_expired_sessions(&cleanup_sessions, config.session_timeout_seconds).await;
+                Self::cleanup_expired_sessions(&cleanup_sessions, config.session_timeout_seconds)
+                    .await;
             }
         });
 
@@ -248,7 +244,10 @@ impl StateManager {
                 loop {
                     interval.tick().await;
                     if let Some(state_manager) = state_manager_weak.upgrade() {
-                        if let Err(e) = state_manager.create_checkpoint(CheckpointType::Scheduled, None).await {
+                        if let Err(e) = state_manager
+                            .create_checkpoint(CheckpointType::Scheduled, None)
+                            .await
+                        {
                             error!(error = %e, "Failed to create scheduled checkpoint");
                         }
                     } else {
@@ -283,7 +282,9 @@ impl StateManager {
                     let sessions_read = spillover_sessions.read().await;
                     for session_id in lru_sessions {
                         if let Some(session) = sessions_read.get(&session_id) {
-                            if let Err(e) = spillover_manager.spill_session(&session_id, session).await {
+                            if let Err(e) =
+                                spillover_manager.spill_session(&session_id, session).await
+                            {
                                 error!(
                                     session_id = %session_id,
                                     error = %e,
@@ -335,7 +336,8 @@ impl StateManager {
         let session_data = serde_json::to_vec(&session)?;
 
         let mut conn = self.conn.lock().await;
-        conn.set_ex::<_, _, ()>(&session_key, &session_data, session.ttl_seconds).await?;
+        conn.set_ex::<_, _, ()>(&session_key, &session_data, session.ttl_seconds)
+            .await?;
 
         let ttl_seconds = session.ttl_seconds;
 
@@ -378,7 +380,9 @@ impl StateManager {
             // Check if expired
             let age = Utc::now().signed_duration_since(spilled_session.created_at);
             if age.num_seconds() > spilled_session.ttl_seconds as i64 {
-                self.spillover_manager.remove_spilled_session(session_id).await?;
+                self.spillover_manager
+                    .remove_spilled_session(session_id)
+                    .await?;
                 return Ok(None);
             }
 
@@ -395,7 +399,9 @@ impl StateManager {
             self.spillover_manager.update_access(session_id).await;
 
             // Remove from disk after successful restore
-            self.spillover_manager.remove_spilled_session(session_id).await?;
+            self.spillover_manager
+                .remove_spilled_session(session_id)
+                .await?;
 
             return Ok(Some(spilled_session));
         }
@@ -455,12 +461,17 @@ impl StateManager {
     }
 
     /// Update entire session
-    async fn update_session(&self, session_id: &str, session: &SessionState) -> PersistenceResult<()> {
+    async fn update_session(
+        &self,
+        session_id: &str,
+        session: &SessionState,
+    ) -> PersistenceResult<()> {
         let session_key = format!("riptide:session:{}", session_id);
         let session_data = serde_json::to_vec(session)?;
 
         let mut conn = self.conn.lock().await;
-        conn.set_ex::<_, _, ()>(&session_key, &session_data, session.ttl_seconds).await?;
+        conn.set_ex::<_, _, ()>(&session_key, &session_data, session.ttl_seconds)
+            .await?;
 
         // Update memory
         {
@@ -482,7 +493,8 @@ impl StateManager {
             if let Ok(mut session) = serde_json::from_slice::<SessionState>(&data) {
                 session.last_accessed = Utc::now();
                 let updated_data = serde_json::to_vec(&session)?;
-                conn.set_ex::<_, _, ()>(&session_key, &updated_data, session.ttl_seconds).await?;
+                conn.set_ex::<_, _, ()>(&session_key, &updated_data, session.ttl_seconds)
+                    .await?;
             }
         }
         Ok(())
@@ -499,7 +511,8 @@ impl StateManager {
         // Remove from memory
         let session_size = {
             let mut sessions = self.sessions.write().await;
-            let session_size = sessions.get(session_id)
+            let session_size = sessions
+                .get(session_id)
                 .map(MemoryTracker::estimate_session_size)
                 .unwrap_or(0);
             sessions.remove(session_id);
@@ -508,11 +521,16 @@ impl StateManager {
 
         // Update memory tracker
         if session_size > 0 {
-            self.memory_tracker.update_usage(-(session_size as i64)).await;
+            self.memory_tracker
+                .update_usage(-(session_size as i64))
+                .await;
         }
 
         // Remove from disk spillover if exists
-        let _ = self.spillover_manager.remove_spilled_session(session_id).await;
+        let _ = self
+            .spillover_manager
+            .remove_spilled_session(session_id)
+            .await;
 
         debug!(
             session_id = %session_id,
@@ -619,7 +637,8 @@ impl StateManager {
 
     /// Restore from checkpoint
     pub async fn restore_from_checkpoint(&self, checkpoint_id: &str) -> PersistenceResult<()> {
-        let checkpoint_data = self.checkpoint_manager
+        let checkpoint_data = self
+            .checkpoint_manager
             .load_checkpoint(checkpoint_id)
             .await?;
 
@@ -632,11 +651,14 @@ impl StateManager {
         // Verify checksum
         let calculated_checksum = crc32fast::hash(&checkpoint_data);
         if calculated_checksum != checkpoint.metadata.checksum {
-            return Err(PersistenceError::data_integrity("Checkpoint checksum mismatch"));
+            return Err(PersistenceError::data_integrity(
+                "Checkpoint checksum mismatch",
+            ));
         }
 
         // Restore state
-        self.restore_state_snapshot(&checkpoint.state_snapshot).await?;
+        self.restore_state_snapshot(&checkpoint.state_snapshot)
+            .await?;
 
         info!(
             checkpoint_id = %checkpoint_id,
@@ -712,8 +734,9 @@ impl StateManager {
 
     /// Decompress checkpoint data
     async fn decompress_checkpoint(&self, data: &[u8]) -> PersistenceResult<Checkpoint> {
-        let decompressed = lz4_flex::decompress_size_prepended(data)
-            .map_err(|e| PersistenceError::compression(format!("LZ4 decompression failed: {}", e)))?;
+        let decompressed = lz4_flex::decompress_size_prepended(data).map_err(|e| {
+            PersistenceError::compression(format!("LZ4 decompression failed: {}", e))
+        })?;
 
         let checkpoint: Checkpoint = serde_json::from_slice(&decompressed)?;
         Ok(checkpoint)
@@ -725,8 +748,11 @@ impl StateManager {
 
         // Create shutdown checkpoint
         if self.config.enable_graceful_shutdown {
-            self.create_checkpoint(CheckpointType::Shutdown, Some("Graceful shutdown".to_string()))
-                .await?;
+            self.create_checkpoint(
+                CheckpointType::Shutdown,
+                Some("Graceful shutdown".to_string()),
+            )
+            .await?;
         }
 
         // Notify all background tasks to shutdown
@@ -906,17 +932,19 @@ impl HotReloadWatcher {
     ) -> PersistenceResult<Self> {
         let config_manager_clone = Arc::clone(&config_manager);
 
-        let mut watcher = notify::recommended_watcher(move |result: Result<Event, notify::Error>| {
-            match result {
+        let mut watcher = notify::recommended_watcher(
+            move |result: Result<Event, notify::Error>| match result {
                 Ok(event) => {
                     if matches!(event.kind, EventKind::Modify(_)) {
                         for path in &event.paths {
                             if path.extension().and_then(|s| s.to_str()) == Some("yml")
-                                || path.extension().and_then(|s| s.to_str()) == Some("yaml") {
+                                || path.extension().and_then(|s| s.to_str()) == Some("yaml")
+                            {
                                 let config_manager = Arc::clone(&config_manager_clone);
                                 let path = path.clone();
                                 tokio::spawn(async move {
-                                    if let Err(e) = config_manager.reload_configuration(&path).await {
+                                    if let Err(e) = config_manager.reload_configuration(&path).await
+                                    {
                                         error!(file = %path.display(), error = %e, "Failed to reload configuration");
                                     }
                                 });
@@ -927,8 +955,8 @@ impl HotReloadWatcher {
                 Err(e) => {
                     error!(error = %e, "File watch error");
                 }
-            }
-        })?;
+            },
+        )?;
 
         // Watch all configured paths
         for path_str in &watch_paths {
@@ -983,7 +1011,11 @@ impl SessionSpilloverManager {
     }
 
     /// Spill session to disk with atomic writes
-    async fn spill_session(&self, session_id: &str, session: &SessionState) -> PersistenceResult<()> {
+    async fn spill_session(
+        &self,
+        session_id: &str,
+        session: &SessionState,
+    ) -> PersistenceResult<()> {
         let start = std::time::Instant::now();
 
         // Serialize session data
@@ -1007,8 +1039,7 @@ impl SessionSpilloverManager {
 
         // Update running average
         let count = metrics.spill_operations as f64;
-        metrics.avg_spill_time_ms =
-            (metrics.avg_spill_time_ms * (count - 1.0) + elapsed) / count;
+        metrics.avg_spill_time_ms = (metrics.avg_spill_time_ms * (count - 1.0) + elapsed) / count;
 
         debug!(
             session_id = %session_id,
@@ -1081,7 +1112,8 @@ impl SessionSpilloverManager {
         // Sort by access time (oldest first)
         sessions.sort_by(|a, b| a.1.cmp(b.1));
 
-        sessions.into_iter()
+        sessions
+            .into_iter()
             .take(count)
             .map(|(id, _)| id.clone())
             .collect()

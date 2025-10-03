@@ -64,7 +64,10 @@ mod tests {
         // Should fail with insufficient data
         let result = monitor.analyze_bottlenecks().await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Insufficient metrics"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Insufficient metrics"));
     }
 
     #[tokio::test]
@@ -107,7 +110,7 @@ mod tests {
                     failed_requests: 20,
                     avg_response_time_ms: 1200.0,
                     p95_response_time_ms: 2100.0, // High latency
-                    cache_hit_rate: 0.65, // Low cache hit rate
+                    cache_hit_rate: 0.65,         // Low cache hit rate
                     cache_size_mb: 50.0,
                     ai_processing_queue_size: 5,
                     ai_avg_processing_time_ms: 400.0,
@@ -124,17 +127,23 @@ mod tests {
         assert!(!analysis.recommendations.is_empty());
 
         // Verify CPU bottleneck was detected
-        let has_cpu_bottleneck = analysis.bottlenecks.iter()
+        let has_cpu_bottleneck = analysis
+            .bottlenecks
+            .iter()
             .any(|b| b.location.contains("CPU"));
         assert!(has_cpu_bottleneck, "Should detect CPU bottleneck");
 
         // Verify high latency was detected
-        let has_latency_bottleneck = analysis.bottlenecks.iter()
+        let has_latency_bottleneck = analysis
+            .bottlenecks
+            .iter()
             .any(|b| b.location.contains("Latency") || b.location.contains("Request Processing"));
         assert!(has_latency_bottleneck, "Should detect latency bottleneck");
 
         // Verify cache inefficiency was detected
-        let has_cache_bottleneck = analysis.bottlenecks.iter()
+        let has_cache_bottleneck = analysis
+            .bottlenecks
+            .iter()
             .any(|b| b.location.contains("Cache"));
         assert!(has_cache_bottleneck, "Should detect cache inefficiency");
     }
@@ -216,7 +225,7 @@ mod tests {
                 memory_rss_mb: 300.0,
                 memory_heap_mb: 200.0,
                 memory_virtual_mb: 500.0,
-                disk_read_mbps: 120.0, // High disk read
+                disk_read_mbps: 120.0,  // High disk read
                 disk_write_mbps: 80.0,  // High disk write
                 network_in_mbps: 200.0, // High network
                 network_out_mbps: 150.0,
@@ -252,14 +261,17 @@ mod tests {
                 failed_requests: 20,
                 avg_response_time_ms: 1500.0,
                 p95_response_time_ms: 2500.0, // Very high latency
-                cache_hit_rate: 0.60, // Low cache hit rate
+                cache_hit_rate: 0.60,         // Low cache hit rate
                 cache_size_mb: 50.0,
                 ai_processing_queue_size: 5,
                 ai_avg_processing_time_ms: 600.0, // High AI time
             });
         }
 
-        let bottlenecks = monitor.analyze_application_bottlenecks(&metrics).await.unwrap();
+        let bottlenecks = monitor
+            .analyze_application_bottlenecks(&metrics)
+            .await
+            .unwrap();
         assert!(!bottlenecks.is_empty());
 
         // Should detect latency, AI, and cache bottlenecks
@@ -309,7 +321,10 @@ mod tests {
             },
         ];
 
-        let recommendations = monitor.generate_bottleneck_recommendations(&bottlenecks).await.unwrap();
+        let recommendations = monitor
+            .generate_bottleneck_recommendations(&bottlenecks)
+            .await
+            .unwrap();
 
         assert!(!recommendations.is_empty());
 
@@ -332,7 +347,10 @@ mod tests {
         let monitor = PerformanceMonitor::new(targets).unwrap();
 
         let bottlenecks = Vec::new();
-        let recommendations = monitor.generate_bottleneck_recommendations(&bottlenecks).await.unwrap();
+        let recommendations = monitor
+            .generate_bottleneck_recommendations(&bottlenecks)
+            .await
+            .unwrap();
 
         assert_eq!(recommendations.len(), 1);
         assert!(recommendations[0].contains("No significant bottlenecks"));

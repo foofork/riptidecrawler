@@ -1,12 +1,12 @@
 //! Provider registry for dynamic loading and configuration
 
-use std::sync::Arc;
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 use dashmap::DashMap;
-use tracing::{info, warn, error};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::Arc;
+use tracing::{error, info, warn};
 
-use crate::{LlmProvider, IntelligenceError, Result};
+use crate::{IntelligenceError, LlmProvider, Result};
 
 /// Configuration for a single provider
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -48,7 +48,8 @@ impl ProviderConfig {
 }
 
 /// Factory function type for creating providers
-pub type ProviderFactory = Box<dyn Fn(&ProviderConfig) -> Result<Arc<dyn LlmProvider>> + Send + Sync>;
+pub type ProviderFactory =
+    Box<dyn Fn(&ProviderConfig) -> Result<Arc<dyn LlmProvider>> + Send + Sync>;
 
 /// Registry for managing LLM providers
 pub struct LlmRegistry {
@@ -75,12 +76,17 @@ impl LlmRegistry {
         let provider_type = provider_type.into();
         info!("Registering provider factory for type: {}", provider_type);
 
-        self.factories.insert(provider_type.clone(), Box::new(factory));
+        self.factories
+            .insert(provider_type.clone(), Box::new(factory));
         Ok(())
     }
 
     /// Register a pre-created provider instance
-    pub fn register_provider(&self, name: impl Into<String>, provider: Arc<dyn LlmProvider>) -> Result<()> {
+    pub fn register_provider(
+        &self,
+        name: impl Into<String>,
+        provider: Arc<dyn LlmProvider>,
+    ) -> Result<()> {
         let name = name.into();
         info!("Registering provider instance: {}", name);
 
@@ -95,13 +101,18 @@ impl LlmRegistry {
             return Ok(());
         }
 
-        info!("Loading provider: {} (type: {})", config.name, config.provider_type);
+        info!(
+            "Loading provider: {} (type: {})",
+            config.name, config.provider_type
+        );
 
         // Check if we have a factory for this provider type
-        let factory = self.factories.get(&config.provider_type)
-            .ok_or_else(|| IntelligenceError::Configuration(
-                format!("No factory registered for provider type: {}", config.provider_type)
-            ))?;
+        let factory = self.factories.get(&config.provider_type).ok_or_else(|| {
+            IntelligenceError::Configuration(format!(
+                "No factory registered for provider type: {}",
+                config.provider_type
+            ))
+        })?;
 
         // Create the provider using the factory
         let provider = factory(&config)?;
@@ -140,18 +151,26 @@ impl LlmRegistry {
 
     /// Get all provider names
     pub fn list_providers(&self) -> Vec<String> {
-        self.providers.iter().map(|entry| entry.key().clone()).collect()
+        self.providers
+            .iter()
+            .map(|entry| entry.key().clone())
+            .collect()
     }
 
     /// Get providers ordered by fallback priority
     pub fn get_fallback_providers(&self) -> Vec<(String, Arc<dyn LlmProvider>)> {
-        let mut providers_with_order: Vec<_> = self.configs
+        let mut providers_with_order: Vec<_> = self
+            .configs
             .iter()
             .filter_map(|entry| {
                 let config = entry.value();
                 if config.enabled {
                     self.providers.get(&config.name).map(|provider| {
-                        (config.fallback_order.unwrap_or(999), config.name.clone(), provider.value().clone())
+                        (
+                            config.fallback_order.unwrap_or(999),
+                            config.name.clone(),
+                            provider.value().clone(),
+                        )
                     })
                 } else {
                     None
@@ -199,12 +218,14 @@ impl LlmRegistry {
     /// Get registry statistics
     pub fn stats(&self) -> RegistryStats {
         let total_providers = self.providers.len();
-        let enabled_providers = self.configs
+        let enabled_providers = self
+            .configs
             .iter()
             .filter(|entry| entry.value().enabled)
             .count();
 
-        let provider_types = self.configs
+        let provider_types = self
+            .configs
             .iter()
             .map(|entry| entry.value().provider_type.clone())
             .collect::<std::collections::HashSet<_>>()
@@ -273,9 +294,11 @@ mod tests {
     fn test_factory_registration() {
         let registry = LlmRegistry::new();
 
-        registry.register_factory("mock", |_config| {
-            Ok(Arc::new(MockLlmProvider::new()) as Arc<dyn LlmProvider>)
-        }).unwrap();
+        registry
+            .register_factory("mock", |_config| {
+                Ok(Arc::new(MockLlmProvider::new()) as Arc<dyn LlmProvider>)
+            })
+            .unwrap();
 
         let config = ProviderConfig::new("test", "mock");
         registry.load_provider(config).unwrap();

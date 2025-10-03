@@ -4,16 +4,16 @@
 Demonstrates integration with existing RipTide codebase and usage patterns.
 */
 
-use riptide_persistence::{
-    PersistentCacheManager, StateManager, TenantManager,
-    PersistenceConfig, TenantOwner, BillingPlan, ResourceUsageRecord,
-};
 use riptide_persistence::config::{
-    CacheConfig, StateConfig, TenantConfig,
-    TenantIsolationLevel, CompressionAlgorithm, EvictionPolicy,
+    CacheConfig, CompressionAlgorithm, EvictionPolicy, StateConfig, TenantConfig,
+    TenantIsolationLevel,
 };
-use riptide_persistence::state::CheckpointType;
 use riptide_persistence::metrics::TenantMetrics;
+use riptide_persistence::state::CheckpointType;
+use riptide_persistence::{
+    BillingPlan, PersistenceConfig, PersistentCacheManager, ResourceUsageRecord, StateManager,
+    TenantManager, TenantOwner,
+};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -74,7 +74,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 async fn create_example_config() -> Result<PersistenceConfig, Box<dyn std::error::Error>> {
     let config = PersistenceConfig {
         redis: riptide_persistence::config::RedisConfig {
-            url: std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://localhost:6379/0".to_string()),
+            url: std::env::var("REDIS_URL")
+                .unwrap_or_else(|_| "redis://localhost:6379/0".to_string()),
             pool_size: 10,
             connection_timeout_ms: 5000,
             command_timeout_ms: 5000,
@@ -85,7 +86,7 @@ async fn create_example_config() -> Result<PersistenceConfig, Box<dyn std::error
             max_pipeline_size: 100,
         },
         cache: CacheConfig {
-            default_ttl_seconds: 24 * 60 * 60, // 24 hours
+            default_ttl_seconds: 24 * 60 * 60,      // 24 hours
             max_entry_size_bytes: 20 * 1024 * 1024, // 20MB
             key_prefix: "riptide_example".to_string(),
             version: "v1".to_string(),
@@ -135,7 +136,9 @@ async fn create_example_config() -> Result<PersistenceConfig, Box<dyn std::error
         security: riptide_persistence::config::SecurityConfig::default(),
     };
 
-    config.validate().map_err(|e| format!("Configuration validation failed: {}", e))?;
+    config
+        .validate()
+        .map_err(|e| format!("Configuration validation failed: {}", e))?;
 
     Ok(config)
 }
@@ -145,14 +148,18 @@ async fn initialize_components(
     config: &PersistenceConfig,
 ) -> Result<(PersistentCacheManager, StateManager, TenantManager), Box<dyn std::error::Error>> {
     println!("  🔄 Initializing cache manager...");
-    let cache_manager = PersistentCacheManager::new(&config.redis.url, config.cache.clone()).await?;
+    let cache_manager =
+        PersistentCacheManager::new(&config.redis.url, config.cache.clone()).await?;
 
     println!("  🔄 Initializing state manager...");
     let state_manager = StateManager::new(&config.redis.url, config.state.clone()).await?;
 
     println!("  🔄 Initializing tenant manager...");
-    let tenant_metrics = Arc::new(RwLock::new(TenantMetrics::new(Arc::new(prometheus::Registry::new()))));
-    let tenant_manager = TenantManager::new(&config.redis.url, config.tenant.clone(), tenant_metrics).await?;
+    let tenant_metrics = Arc::new(RwLock::new(TenantMetrics::new(Arc::new(
+        prometheus::Registry::new(),
+    ))));
+    let tenant_manager =
+        TenantManager::new(&config.redis.url, config.tenant.clone(), tenant_metrics).await?;
 
     Ok((cache_manager, state_manager, tenant_manager))
 }
@@ -184,23 +191,35 @@ async fn demonstrate_tenant_workflow(
         encryption_enabled: true,
         settings: {
             let mut settings = HashMap::new();
-            settings.insert("feature_advanced_caching".to_string(), serde_json::json!(true));
-            settings.insert("max_concurrent_sessions".to_string(), serde_json::json!(100));
+            settings.insert(
+                "feature_advanced_caching".to_string(),
+                serde_json::json!(true),
+            );
+            settings.insert(
+                "max_concurrent_sessions".to_string(),
+                serde_json::json!(100),
+            );
             settings
         },
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
     };
 
-    let tenant_id = tenant_manager.create_tenant(tenant_config, owner, BillingPlan::Professional).await?;
+    let tenant_id = tenant_manager
+        .create_tenant(tenant_config, owner, BillingPlan::Professional)
+        .await?;
     println!("    ✓ Tenant created with ID: {}", tenant_id);
 
     // Validate tenant access
-    let has_access = tenant_manager.validate_access(&tenant_id, "cache:read", "read").await?;
+    let has_access = tenant_manager
+        .validate_access(&tenant_id, "cache:read", "read")
+        .await?;
     println!("    ✓ Tenant access validation: {}", has_access);
 
     // Check quotas
-    let quota_ok = tenant_manager.check_quota(&tenant_id, "memory_bytes", 1024 * 1024).await?; // 1MB
+    let quota_ok = tenant_manager
+        .check_quota(&tenant_id, "memory_bytes", 1024 * 1024)
+        .await?; // 1MB
     println!("    ✓ Quota check (1MB): {}", quota_ok);
 
     Ok(tenant_id)
@@ -229,32 +248,39 @@ async fn demonstrate_cache_workflow(
         }
     });
 
-    cache_manager.set(
-        "article_extraction_123",
-        &extraction_result,
-        Some(tenant_id), // Tenant namespace
-        Some(std::time::Duration::from_secs(3600)), // 1 hour TTL
-        Some(riptide_persistence::cache::CacheMetadata {
-            version: "1.0.0".to_string(),
-            content_type: Some("application/json".to_string()),
-            source: Some("riptide_extractor".to_string()),
-            tags: vec!["article".to_string(), "extraction".to_string()],
-            attributes: {
-                let mut attrs = HashMap::new();
-                attrs.insert("tenant_id".to_string(), tenant_id.to_string());
-                attrs.insert("extraction_type".to_string(), "html".to_string());
-                attrs
-            },
-        }),
-    ).await?;
+    cache_manager
+        .set(
+            "article_extraction_123",
+            &extraction_result,
+            Some(tenant_id),                            // Tenant namespace
+            Some(std::time::Duration::from_secs(3600)), // 1 hour TTL
+            Some(riptide_persistence::cache::CacheMetadata {
+                version: "1.0.0".to_string(),
+                content_type: Some("application/json".to_string()),
+                source: Some("riptide_extractor".to_string()),
+                tags: vec!["article".to_string(), "extraction".to_string()],
+                attributes: {
+                    let mut attrs = HashMap::new();
+                    attrs.insert("tenant_id".to_string(), tenant_id.to_string());
+                    attrs.insert("extraction_type".to_string(), "html".to_string());
+                    attrs
+                },
+            }),
+        )
+        .await?;
 
     println!("    ✓ Cached extraction result with tenant isolation");
 
     // Retrieve data
-    let retrieved: Option<serde_json::Value> = cache_manager.get("article_extraction_123", Some(tenant_id)).await?;
+    let retrieved: Option<serde_json::Value> = cache_manager
+        .get("article_extraction_123", Some(tenant_id))
+        .await?;
     match retrieved {
         Some(data) => {
-            println!("    ✓ Retrieved cached data: {} bytes", serde_json::to_string(&data)?.len());
+            println!(
+                "    ✓ Retrieved cached data: {} bytes",
+                serde_json::to_string(&data)?.len()
+            );
         }
         None => println!("    ⚠ No cached data found"),
     }
@@ -268,17 +294,27 @@ async fn demonstrate_cache_workflow(
                 "url": format!("https://example.com/article/{}", i),
                 "title": format!("Article {}", i),
                 "content": format!("Content for article {}", i)
-            })
+            }),
         );
     }
 
-    cache_manager.set_batch(batch_data, Some(tenant_id), Some(std::time::Duration::from_secs(1800))).await?;
+    cache_manager
+        .set_batch(
+            batch_data,
+            Some(tenant_id),
+            Some(std::time::Duration::from_secs(1800)),
+        )
+        .await?;
     println!("    ✓ Batch cached 5 extractions");
 
     // Get cache statistics
     let stats = cache_manager.get_stats().await?;
-    println!("    ✓ Cache stats - Keys: {}, Memory: {} bytes, Hit rate: {:.2}%",
-             stats.total_keys, stats.memory_usage_bytes, stats.hit_rate * 100.0);
+    println!(
+        "    ✓ Cache stats - Keys: {}, Memory: {} bytes, Hit rate: {:.2}%",
+        stats.total_keys,
+        stats.memory_usage_bytes,
+        stats.hit_rate * 100.0
+    );
 
     Ok(())
 }
@@ -302,25 +338,29 @@ async fn demonstrate_session_workflow(
         },
     };
 
-    let session_id = state_manager.create_session(
-        Some(format!("user_{}_{}", tenant_id, Uuid::new_v4())),
-        session_metadata,
-        Some(1800), // 30 minutes
-    ).await?;
+    let session_id = state_manager
+        .create_session(
+            Some(format!("user_{}_{}", tenant_id, Uuid::new_v4())),
+            session_metadata,
+            Some(1800), // 30 minutes
+        )
+        .await?;
 
     println!("    ✓ Session created: {}", session_id);
 
     // Store extraction state in session
-    state_manager.update_session_data(
-        &session_id,
-        "current_extraction",
-        serde_json::json!({
-            "url": "https://example.com/processing",
-            "status": "in_progress",
-            "started_at": chrono::Utc::now().to_rfc3339(),
-            "progress": 0.45
-        })
-    ).await?;
+    state_manager
+        .update_session_data(
+            &session_id,
+            "current_extraction",
+            serde_json::json!({
+                "url": "https://example.com/processing",
+                "status": "in_progress",
+                "started_at": chrono::Utc::now().to_rfc3339(),
+                "progress": 0.45
+            }),
+        )
+        .await?;
 
     state_manager.update_session_data(
         &session_id,
@@ -336,8 +376,11 @@ async fn demonstrate_session_workflow(
     // Retrieve session
     let session = state_manager.get_session(&session_id).await?;
     if let Some(session) = session {
-        println!("    ✓ Session retrieved - User: {:?}, Data keys: {}",
-                 session.user_id, session.data.len());
+        println!(
+            "    ✓ Session retrieved - User: {:?}, Data keys: {}",
+            session.user_id,
+            session.data.len()
+        );
     }
 
     Ok(session_id)
@@ -350,10 +393,12 @@ async fn demonstrate_checkpoint_workflow(
     println!("  💾 Demonstrating checkpoint/restore...");
 
     // Create checkpoint
-    let checkpoint_id = state_manager.create_checkpoint(
-        CheckpointType::Manual,
-        Some("Example integration checkpoint".to_string()),
-    ).await?;
+    let checkpoint_id = state_manager
+        .create_checkpoint(
+            CheckpointType::Manual,
+            Some("Example integration checkpoint".to_string()),
+        )
+        .await?;
 
     println!("    ✓ Checkpoint created: {}", checkpoint_id);
 
@@ -388,20 +433,26 @@ async fn demonstrate_resource_monitoring(
             timestamp: chrono::Utc::now(),
         };
 
-        tenant_manager.record_usage(tenant_id, operation, usage_record).await?;
+        tenant_manager
+            .record_usage(tenant_id, operation, usage_record)
+            .await?;
     }
 
     println!("    ✓ Recorded usage for 4 different operations");
 
     // Get usage statistics
     let usage_stats = tenant_manager.get_tenant_usage(tenant_id).await?;
-    println!("    ✓ Current usage - Operations/min: {}, Data transfer: {} bytes",
-             usage_stats.operations_per_minute, usage_stats.data_transfer_bytes);
+    println!(
+        "    ✓ Current usage - Operations/min: {}, Data transfer: {} bytes",
+        usage_stats.operations_per_minute, usage_stats.data_transfer_bytes
+    );
 
     // Get billing information
     let billing_info = tenant_manager.get_billing_info(tenant_id).await?;
-    println!("    ✓ Billing plan: {:?}, Operations: {}",
-             billing_info.plan, billing_info.current_usage.operations);
+    println!(
+        "    ✓ Billing plan: {:?}, Operations: {}",
+        billing_info.plan, billing_info.current_usage.operations
+    );
 
     Ok(())
 }
@@ -420,7 +471,9 @@ async fn demonstrate_performance(
 
     // Measure cache set performance
     let set_start = std::time::Instant::now();
-    cache_manager.set("performance_test", &test_data, None, None, None).await?;
+    cache_manager
+        .set("performance_test", &test_data, None, None, None)
+        .await?;
     let set_duration = set_start.elapsed();
 
     // Measure cache get performance
@@ -428,8 +481,14 @@ async fn demonstrate_performance(
     let _retrieved: Option<serde_json::Value> = cache_manager.get("performance_test", None).await?;
     let get_duration = get_start.elapsed();
 
-    println!("    ✓ Set operation: {:?} (target: <5ms production)", set_duration);
-    println!("    ✓ Get operation: {:?} (target: <5ms production)", get_duration);
+    println!(
+        "    ✓ Set operation: {:?} (target: <5ms production)",
+        set_duration
+    );
+    println!(
+        "    ✓ Get operation: {:?} (target: <5ms production)",
+        get_duration
+    );
 
     // Performance validation
     if get_duration.as_millis() <= 50 {
@@ -464,14 +523,17 @@ async fn demonstrate_riptide_integration(
 
     // Generate cache key using extraction parameters
     let cache_key = cache_manager.generate_key(
-        &format!("{}_{}",
-                 extraction_request["url"].as_str().unwrap(),
-                 serde_json::to_string(&extraction_request["options"])?),
-        Some(tenant_id)
+        &format!(
+            "{}_{}",
+            extraction_request["url"].as_str().unwrap(),
+            serde_json::to_string(&extraction_request["options"])?
+        ),
+        Some(tenant_id),
     );
 
     // Check if extraction is already cached
-    let cached_result: Option<serde_json::Value> = cache_manager.get(&cache_key, Some(tenant_id)).await?;
+    let cached_result: Option<serde_json::Value> =
+        cache_manager.get(&cache_key, Some(tenant_id)).await?;
 
     match cached_result {
         Some(_cached) => {
@@ -501,24 +563,30 @@ async fn demonstrate_riptide_integration(
             });
 
             // Cache the extraction result
-            cache_manager.set(
-                &cache_key,
-                &extraction_result,
-                Some(tenant_id),
-                Some(std::time::Duration::from_secs(3600)), // 1 hour
-                Some(riptide_persistence::cache::CacheMetadata {
-                    version: "1.0.0".to_string(),
-                    content_type: Some("application/json".to_string()),
-                    source: Some("riptide_html_extractor".to_string()),
-                    tags: vec!["html".to_string(), "extraction".to_string(), "news".to_string()],
-                    attributes: {
-                        let mut attrs = HashMap::new();
-                        attrs.insert("tenant_id".to_string(), tenant_id.to_string());
-                        attrs.insert("extraction_time_ms".to_string(), "245".to_string());
-                        attrs
-                    },
-                })
-            ).await?;
+            cache_manager
+                .set(
+                    &cache_key,
+                    &extraction_result,
+                    Some(tenant_id),
+                    Some(std::time::Duration::from_secs(3600)), // 1 hour
+                    Some(riptide_persistence::cache::CacheMetadata {
+                        version: "1.0.0".to_string(),
+                        content_type: Some("application/json".to_string()),
+                        source: Some("riptide_html_extractor".to_string()),
+                        tags: vec![
+                            "html".to_string(),
+                            "extraction".to_string(),
+                            "news".to_string(),
+                        ],
+                        attributes: {
+                            let mut attrs = HashMap::new();
+                            attrs.insert("tenant_id".to_string(), tenant_id.to_string());
+                            attrs.insert("extraction_time_ms".to_string(), "245".to_string());
+                            attrs
+                        },
+                    }),
+                )
+                .await?;
 
             println!("    ✓ Extraction completed and cached");
             println!("      Cache key: {}", cache_key);
@@ -528,10 +596,7 @@ async fn demonstrate_riptide_integration(
     // Simulate integration with search functionality
     println!("    🔍 Simulating search integration...");
 
-    let search_cache_key = cache_manager.generate_key(
-        "search_recent_news_tech",
-        Some(tenant_id)
-    );
+    let search_cache_key = cache_manager.generate_key("search_recent_news_tech", Some(tenant_id));
 
     // This would integrate with riptide-search
     let search_results = serde_json::json!({
@@ -549,13 +614,15 @@ async fn demonstrate_riptide_integration(
         "cached_at": chrono::Utc::now().to_rfc3339()
     });
 
-    cache_manager.set(
-        &search_cache_key,
-        &search_results,
-        Some(tenant_id),
-        Some(std::time::Duration::from_secs(300)), // 5 minutes for search results
-        None
-    ).await?;
+    cache_manager
+        .set(
+            &search_cache_key,
+            &search_results,
+            Some(tenant_id),
+            Some(std::time::Duration::from_secs(300)), // 5 minutes for search results
+            None,
+        )
+        .await?;
 
     println!("    ✓ Search results cached");
 

@@ -1,15 +1,15 @@
 //! Circuit breaker implementation with multi-signal support and 1 repair retry maximum
 
 use async_trait::async_trait;
-use std::sync::Arc;
-use std::time::{Duration, Instant};
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
-use tracing::{info, warn, error};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+use tracing::{error, info, warn};
 
 use crate::{
-    LlmProvider, CompletionRequest, CompletionResponse, LlmCapabilities,
-    Cost, IntelligenceError, Result
+    CompletionRequest, CompletionResponse, Cost, IntelligenceError, LlmCapabilities, LlmProvider,
+    Result,
 };
 
 /// Circuit breaker state
@@ -273,9 +273,7 @@ impl CircuitBreakerState {
         match self.stats.state {
             CircuitState::Closed => true,
             CircuitState::Open => false,
-            CircuitState::HalfOpen => {
-                self.half_open_requests < self.config.half_open_max_requests
-            }
+            CircuitState::HalfOpen => self.half_open_requests < self.config.half_open_max_requests,
         }
     }
 }
@@ -400,7 +398,8 @@ impl CircuitBreaker {
 #[async_trait]
 impl LlmProvider for CircuitBreaker {
     async fn complete(&self, request: CompletionRequest) -> Result<CompletionResponse> {
-        self.execute_with_circuit(self.inner.complete(request)).await
+        self.execute_with_circuit(self.inner.complete(request))
+            .await
     }
 
     async fn embed(&self, text: &str) -> Result<Vec<f32>> {
@@ -462,10 +461,7 @@ mod tests {
 
         assert_eq!(circuit_breaker.state(), CircuitState::Closed);
 
-        let request = CompletionRequest::new(
-            "mock-gpt-3.5",
-            vec![Message::user("Hello")],
-        );
+        let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("Hello")]);
 
         let result = circuit_breaker.complete(request).await;
         assert!(result.is_ok());
@@ -478,10 +474,7 @@ mod tests {
         let config = CircuitBreakerConfig::strict();
         let circuit_breaker = CircuitBreaker::with_config(mock_provider, config);
 
-        let request = CompletionRequest::new(
-            "mock-gpt-3.5",
-            vec![Message::user("Hello")],
-        );
+        let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("Hello")]);
 
         // Make enough requests to trigger circuit opening
         for _ in 0..10 {
@@ -500,10 +493,7 @@ mod tests {
         // Force circuit open
         circuit_breaker.force_open();
 
-        let request = CompletionRequest::new(
-            "mock-gpt-3.5",
-            vec![Message::user("Hello")],
-        );
+        let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("Hello")]);
 
         let result = circuit_breaker.complete(request).await;
         assert!(matches!(result, Err(IntelligenceError::CircuitOpen { .. })));
@@ -516,10 +506,7 @@ mod tests {
         let circuit_breaker = CircuitBreaker::with_config(mock_provider, config);
 
         // Trigger circuit opening
-        let request = CompletionRequest::new(
-            "mock-gpt-3.5",
-            vec![Message::user("Hello")],
-        );
+        let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("Hello")]);
 
         for _ in 0..10 {
             let _ = circuit_breaker.complete(request.clone()).await;
@@ -564,10 +551,7 @@ mod tests {
         let mock_provider = Arc::new(MockLlmProvider::new());
         let circuit_breaker = CircuitBreaker::new(mock_provider);
 
-        let request = CompletionRequest::new(
-            "mock-gpt-3.5",
-            vec![Message::user("Hello")],
-        );
+        let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("Hello")]);
 
         // Make a successful request
         circuit_breaker.complete(request).await.unwrap();

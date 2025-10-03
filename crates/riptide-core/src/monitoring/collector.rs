@@ -268,7 +268,8 @@ impl MetricsCollector {
             let error_count = self
                 .error_rates
                 .lock()
-                .ok().map(|rates| rates.get_recent_data(Duration::from_secs(5 * 60)).len())
+                .ok()
+                .map(|rates| rates.get_recent_data(Duration::from_secs(5 * 60)).len())
                 .unwrap_or(0);
 
             let total_count = times
@@ -289,8 +290,8 @@ impl MetricsCollector {
 
     fn get_memory_usage(&self) -> u64 {
         // Implement actual memory usage collection using sysinfo
-        use sysinfo::{System, Pid, ProcessesToUpdate};
         use std::process;
+        use sysinfo::{Pid, ProcessesToUpdate, System};
 
         let mut sys = System::new_all();
         sys.refresh_memory();
@@ -309,8 +310,8 @@ impl MetricsCollector {
 
     fn get_cpu_usage(&self) -> f32 {
         // Implement actual CPU usage collection using sysinfo
-        use sysinfo::{System, Pid, ProcessesToUpdate};
         use std::process;
+        use sysinfo::{Pid, ProcessesToUpdate, System};
 
         let mut sys = System::new_all();
         sys.refresh_cpu_all();
@@ -365,24 +366,18 @@ impl MetricsCollector {
         active: usize,
         total: usize,
     ) -> Result<()> {
-        self.update_pool_stats(total, active, available.saturating_sub(active)).await
+        self.update_pool_stats(total, active, available.saturating_sub(active))
+            .await
     }
 
     /// Record extraction time metrics (for event handlers)
-    pub async fn record_extraction_time(
-        &self,
-        duration: Duration,
-        success: bool,
-    ) -> Result<()> {
-        self.record_extraction(duration, success, None, None, false).await
+    pub async fn record_extraction_time(&self, duration: Duration, success: bool) -> Result<()> {
+        self.record_extraction(duration, success, None, None, false)
+            .await
     }
 
     /// Record extraction outcome (for event handlers)
-    pub async fn record_extraction_outcome(
-        &self,
-        operation: &str,
-        url: &str,
-    ) -> Result<()> {
+    pub async fn record_extraction_outcome(&self, operation: &str, url: &str) -> Result<()> {
         tracing::debug!(operation = %operation, url = %url, "Extraction outcome recorded");
         Ok(())
     }
@@ -399,11 +394,7 @@ impl MetricsCollector {
     }
 
     /// Record health status (for event handlers)
-    pub async fn record_health_status(
-        &self,
-        component: &str,
-        health_score: f64,
-    ) -> Result<()> {
+    pub async fn record_health_status(&self, component: &str, health_score: f64) -> Result<()> {
         tracing::debug!(component = %component, health_score = %health_score, "Health status recorded");
         Ok(())
     }

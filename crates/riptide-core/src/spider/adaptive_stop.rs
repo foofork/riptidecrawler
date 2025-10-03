@@ -366,7 +366,8 @@ impl AdaptiveStopEngine {
         if self.config.enable_quality_scoring {
             let quality_scores = self.quality_scores.read().await;
             if quality_scores.len() >= 5 {
-                let avg_quality: f64 = quality_scores.iter().sum::<f64>() / quality_scores.len() as f64;
+                let avg_quality: f64 =
+                    quality_scores.iter().sum::<f64>() / quality_scores.len() as f64;
                 if avg_quality < self.config.quality_threshold {
                     return Ok(StopDecision {
                         should_stop: true,
@@ -402,7 +403,8 @@ impl AdaptiveStopEngine {
         // Text content quality
         if let Some(text) = &result.text_content {
             let word_count = text.split_whitespace().count();
-            let sentence_count = text.matches('.').count() + text.matches('!').count() + text.matches('?').count();
+            let sentence_count =
+                text.matches('.').count() + text.matches('!').count() + text.matches('?').count();
 
             // Basic readability heuristics
             if word_count > 100 {
@@ -422,10 +424,10 @@ impl AdaptiveStopEngine {
         }
 
         // Link quality
-        let internal_links = result.extracted_urls.iter()
-            .filter(|url| {
-                result.request.url.host_str() == url.host_str()
-            })
+        let internal_links = result
+            .extracted_urls
+            .iter()
+            .filter(|url| result.request.url.host_str() == url.host_str())
             .count();
 
         if internal_links > 0 {
@@ -456,9 +458,11 @@ impl AdaptiveStopEngine {
         let samples = self.site_analysis_samples.read().await;
         if samples.len() >= 5 {
             let recent_samples = &samples[samples.len().saturating_sub(5)..];
-            let avg_unique_chars: f64 = recent_samples.iter()
+            let avg_unique_chars: f64 = recent_samples
+                .iter()
                 .map(|s| s.unique_text_chars as f64)
-                .sum::<f64>() / recent_samples.len() as f64;
+                .sum::<f64>()
+                / recent_samples.len() as f64;
 
             // If recent content is consistently low, lower threshold
             if avg_unique_chars < adjusted_threshold * 0.5 {
@@ -487,17 +491,17 @@ impl AdaptiveStopEngine {
             return SiteType::Unknown;
         }
 
-        let avg_unique_chars: f64 = samples.iter()
+        let avg_unique_chars: f64 = samples
+            .iter()
             .map(|s| s.unique_text_chars as f64)
-            .sum::<f64>() / samples.len() as f64;
+            .sum::<f64>()
+            / samples.len() as f64;
 
-        let avg_links: f64 = samples.iter()
-            .map(|s| s.link_count as f64)
-            .sum::<f64>() / samples.len() as f64;
+        let avg_links: f64 =
+            samples.iter().map(|s| s.link_count as f64).sum::<f64>() / samples.len() as f64;
 
-        let avg_quality: f64 = samples.iter()
-            .map(|s| s.quality_score)
-            .sum::<f64>() / samples.len() as f64;
+        let avg_quality: f64 =
+            samples.iter().map(|s| s.quality_score).sum::<f64>() / samples.len() as f64;
 
         // Simple heuristic-based classification
         if avg_unique_chars > 5000.0 && avg_quality > 0.7 {
@@ -598,14 +602,18 @@ mod tests {
         let request = CrawlRequest::new(url);
 
         let mut result = CrawlResult::success(request);
-        result.text_content = Some("This is a test content with many unique characters and words.".to_string());
+        result.text_content =
+            Some("This is a test content with many unique characters and words.".to_string());
         result.content_size = 1024;
         result.extracted_urls = vec![
             Url::from_str("https://example.com/page1").expect("Valid URL"),
             Url::from_str("https://example.com/page2").expect("Valid URL"),
         ];
 
-        let metrics = engine.analyze_result(&result).await.expect("Analysis should work");
+        let metrics = engine
+            .analyze_result(&result)
+            .await
+            .expect("Analysis should work");
 
         assert!(metrics.unique_text_chars > 0);
         assert_eq!(metrics.content_size, 1024);
@@ -633,14 +641,21 @@ mod tests {
             result.text_content = Some("short".to_string()); // Very low content
             result.content_size = 100;
 
-            engine.analyze_result(&result).await.expect("Analysis should work");
+            engine
+                .analyze_result(&result)
+                .await
+                .expect("Analysis should work");
         }
 
         let decision = engine.should_stop().await.expect("Decision should work");
-        assert!(decision.should_stop, "Expected stopping decision but got: {}", decision.reason);
         assert!(
-            decision.reason.to_lowercase().contains("low content") ||
-            decision.reason.to_lowercase().contains("quality"),
+            decision.should_stop,
+            "Expected stopping decision but got: {}",
+            decision.reason
+        );
+        assert!(
+            decision.reason.to_lowercase().contains("low content")
+                || decision.reason.to_lowercase().contains("quality"),
             "Expected low content quality reason but got: {}",
             decision.reason
         );
@@ -653,7 +668,8 @@ mod tests {
 
         // Simulate news site content (high content, many links)
         for i in 0..15 {
-            let url = Url::from_str(&format!("https://news.example.com/article{}", i)).expect("Valid URL");
+            let url = Url::from_str(&format!("https://news.example.com/article{}", i))
+                .expect("Valid URL");
             let request = CrawlRequest::new(url);
 
             let mut result = CrawlResult::success(request);
@@ -670,22 +686,33 @@ mod tests {
             );
             result.text_content = Some(article_content);
             result.content_size = 10000;
-            result.extracted_urls = (0..25).map(|j| {
-                Url::from_str(&format!("https://news.example.com/related{}", j)).expect("Valid URL")
-            }).collect();
+            result.extracted_urls = (0..25)
+                .map(|j| {
+                    Url::from_str(&format!("https://news.example.com/related{}", j))
+                        .expect("Valid URL")
+                })
+                .collect();
 
-            engine.analyze_result(&result).await.expect("Analysis should work");
+            engine
+                .analyze_result(&result)
+                .await
+                .expect("Analysis should work");
         }
 
         let stats = engine.get_stats().await;
         // Debug output
         eprintln!("Detected site type: {:?}", stats.detected_site_type);
-        eprintln!("Avg unique chars: {}, Avg quality: {}",
-                 stats.current_gain_average, stats.pages_analyzed);
+        eprintln!(
+            "Avg unique chars: {}, Avg quality: {}",
+            stats.current_gain_average, stats.pages_analyzed
+        );
 
         // Should detect as news site (high content + many links)
         assert!(
-            matches!(stats.detected_site_type, SiteType::News | SiteType::Blog | SiteType::Unknown),
+            matches!(
+                stats.detected_site_type,
+                SiteType::News | SiteType::Blog | SiteType::Unknown
+            ),
             "Expected News, Blog, or Unknown but got: {:?}",
             stats.detected_site_type
         );
@@ -711,14 +738,20 @@ mod tests {
             Url::from_str("https://example.com/related3").expect("Valid URL"),
         ];
 
-        let high_metrics = engine.analyze_result(&high_quality_result).await.expect("Should work");
+        let high_metrics = engine
+            .analyze_result(&high_quality_result)
+            .await
+            .expect("Should work");
 
         // Low quality content
         let mut low_quality_result = CrawlResult::success(request);
         low_quality_result.text_content = Some("short".to_string());
         low_quality_result.content_size = 50;
 
-        let low_metrics = engine.analyze_result(&low_quality_result).await.expect("Should work");
+        let low_metrics = engine
+            .analyze_result(&low_quality_result)
+            .await
+            .expect("Should work");
 
         assert!(high_metrics.quality_score > low_metrics.quality_score);
     }
@@ -764,8 +797,17 @@ mod tests {
     fn test_site_type_multipliers() {
         let hints = SiteTypeHints::default();
 
-        assert_eq!(SiteType::News.threshold_multiplier(&hints), hints.news_site_multiplier);
-        assert_eq!(SiteType::ECommerce.threshold_multiplier(&hints), hints.ecommerce_multiplier);
-        assert_eq!(SiteType::Unknown.threshold_multiplier(&hints), hints.default_multiplier);
+        assert_eq!(
+            SiteType::News.threshold_multiplier(&hints),
+            hints.news_site_multiplier
+        );
+        assert_eq!(
+            SiteType::ECommerce.threshold_multiplier(&hints),
+            hints.ecommerce_multiplier
+        );
+        assert_eq!(
+            SiteType::Unknown.threshold_multiplier(&hints),
+            hints.default_multiplier
+        );
     }
 }

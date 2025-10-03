@@ -7,13 +7,14 @@ use std::collections::HashMap;
 use tracing::{debug, info};
 
 use crate::{
-    LlmProvider, CompletionRequest, CompletionResponse, LlmCapabilities, Cost, ModelInfo,
-    IntelligenceError, Result, Role, Usage,
+    CompletionRequest, CompletionResponse, Cost, IntelligenceError, LlmCapabilities, LlmProvider,
+    ModelInfo, Result, Role, Usage,
 };
 
 // Reuse OpenAI structures since Azure OpenAI uses the same API format
 use crate::providers::openai::{
-    OpenAIResponse, OpenAIRequest, OpenAIMessageRequest, OpenAIEmbeddingRequest, OpenAIEmbeddingResponse
+    OpenAIEmbeddingRequest, OpenAIEmbeddingResponse, OpenAIMessageRequest, OpenAIRequest,
+    OpenAIResponse,
 };
 
 /// Azure OpenAI provider implementation
@@ -31,7 +32,9 @@ impl AzureOpenAIProvider {
         let client = Client::builder()
             .timeout(std::time::Duration::from_secs(60))
             .build()
-            .map_err(|e| IntelligenceError::Configuration(format!("Failed to create HTTP client: {}", e)))?;
+            .map_err(|e| {
+                IntelligenceError::Configuration(format!("Failed to create HTTP client: {}", e))
+            })?;
 
         let mut model_costs = HashMap::new();
         // Azure OpenAI pricing (similar to OpenAI but may vary by region)
@@ -61,7 +64,9 @@ impl AzureOpenAIProvider {
     }
 
     fn build_openai_request(&self, request: &CompletionRequest) -> OpenAIRequest {
-        let messages = request.messages.iter()
+        let messages = request
+            .messages
+            .iter()
             .map(|msg| OpenAIMessageRequest {
                 role: Self::convert_role_to_openai(&msg.role),
                 content: msg.content.clone(),
@@ -102,7 +107,8 @@ impl AzureOpenAIProvider {
     where
         T: for<'de> Deserialize<'de>,
     {
-        let response = self.client
+        let response = self
+            .client
             .post(url)
             .header("api-key", &self.api_key)
             .header("Content-Type", "application/json")
@@ -112,12 +118,19 @@ impl AzureOpenAIProvider {
             .map_err(|e| IntelligenceError::Network(format!("Request failed: {}", e)))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await
+            let error_text = response
+                .text()
+                .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(IntelligenceError::Provider(format!("Azure OpenAI API error: {}", error_text)));
+            return Err(IntelligenceError::Provider(format!(
+                "Azure OpenAI API error: {}",
+                error_text
+            )));
         }
 
-        let result = response.json::<T>().await
+        let result = response
+            .json::<T>()
+            .await
             .map_err(|e| IntelligenceError::Provider(format!("Failed to parse response: {}", e)))?;
 
         Ok(result)
@@ -127,14 +140,18 @@ impl AzureOpenAIProvider {
 #[async_trait]
 impl LlmProvider for AzureOpenAIProvider {
     async fn complete(&self, request: CompletionRequest) -> Result<CompletionResponse> {
-        debug!("Sending completion request to Azure OpenAI for model: {}", request.model);
+        debug!(
+            "Sending completion request to Azure OpenAI for model: {}",
+            request.model
+        );
 
         let openai_request = self.build_openai_request(&request);
         let url = self.build_completion_url(&request.model);
         let response: OpenAIResponse = self.make_request(&url, &openai_request).await?;
 
-        let choice = response.choices.into_iter().next()
-            .ok_or_else(|| IntelligenceError::Provider("No completion choices returned".to_string()))?;
+        let choice = response.choices.into_iter().next().ok_or_else(|| {
+            IntelligenceError::Provider("No completion choices returned".to_string())
+        })?;
 
         let usage = Usage {
             prompt_tokens: response.usage.prompt_tokens,
@@ -154,7 +171,10 @@ impl LlmProvider for AzureOpenAIProvider {
             metadata: HashMap::new(),
         };
 
-        debug!("Azure OpenAI completion successful, tokens used: {}", total_tokens);
+        debug!(
+            "Azure OpenAI completion successful, tokens used: {}",
+            total_tokens
+        );
         Ok(completion_response)
     }
 
@@ -169,11 +189,17 @@ impl LlmProvider for AzureOpenAIProvider {
         let url = self.build_embedding_url("text-embedding-ada-002");
         let response: OpenAIEmbeddingResponse = self.make_request(&url, &request).await?;
 
-        let embedding = response.data.into_iter().next()
+        let embedding = response
+            .data
+            .into_iter()
+            .next()
             .ok_or_else(|| IntelligenceError::Provider("No embedding data returned".to_string()))?
             .embedding;
 
-        debug!("Azure OpenAI embedding successful, dimensions: {}", embedding.len());
+        debug!(
+            "Azure OpenAI embedding successful, dimensions: {}",
+            embedding.len()
+        );
         Ok(embedding)
     }
 
@@ -229,7 +255,8 @@ impl LlmProvider for AzureOpenAIProvider {
 
     fn estimate_cost(&self, tokens: usize) -> Cost {
         // Default to GPT-4o pricing if model not found
-        let (prompt_cost_per_1k, completion_cost_per_1k) = self.model_costs
+        let (prompt_cost_per_1k, completion_cost_per_1k) = self
+            .model_costs
             .get("gpt-4o")
             .copied()
             .unwrap_or((0.005, 0.015));
@@ -254,7 +281,8 @@ impl LlmProvider for AzureOpenAIProvider {
         };
 
         let url = self.build_embedding_url("text-embedding-ada-002");
-        self.make_request::<OpenAIEmbeddingResponse>(&url, &request).await?;
+        self.make_request::<OpenAIEmbeddingResponse>(&url, &request)
+            .await?;
 
         info!("Azure OpenAI health check successful");
         Ok(())
@@ -274,8 +302,9 @@ mod tests {
         let provider = AzureOpenAIProvider::new(
             "test-key".to_string(),
             "https://test.openai.azure.com".to_string(),
-            "2023-12-01-preview".to_string()
-        ).unwrap();
+            "2023-12-01-preview".to_string(),
+        )
+        .unwrap();
         assert_eq!(provider.name(), "azure_openai");
     }
 
@@ -284,8 +313,9 @@ mod tests {
         let provider = AzureOpenAIProvider::new(
             "test-key".to_string(),
             "https://test.openai.azure.com".to_string(),
-            "2023-12-01-preview".to_string()
-        ).unwrap();
+            "2023-12-01-preview".to_string(),
+        )
+        .unwrap();
         let capabilities = provider.capabilities();
         assert_eq!(capabilities.provider_name, "Azure OpenAI");
         assert!(capabilities.supports_embeddings);
@@ -297,8 +327,9 @@ mod tests {
         let provider = AzureOpenAIProvider::new(
             "test-key".to_string(),
             "https://test.openai.azure.com/".to_string(),
-            "2023-12-01-preview".to_string()
-        ).unwrap();
+            "2023-12-01-preview".to_string(),
+        )
+        .unwrap();
 
         let completion_url = provider.build_completion_url("gpt-4");
         assert!(completion_url.contains("gpt-4"));
@@ -315,8 +346,9 @@ mod tests {
         let provider = AzureOpenAIProvider::new(
             "test-key".to_string(),
             "https://test.openai.azure.com".to_string(),
-            "2023-12-01-preview".to_string()
-        ).unwrap();
+            "2023-12-01-preview".to_string(),
+        )
+        .unwrap();
         let cost = provider.estimate_cost(1000);
         assert!(cost.total_cost > 0.0);
         assert_eq!(cost.currency, "USD");

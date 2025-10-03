@@ -1,10 +1,10 @@
 //! Performance metrics and benchmarking for extraction strategies
 
+use crate::strategies::ExtractionStrategy;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
-use crate::strategies::ExtractionStrategy;
 
 /// Performance metrics for strategy evaluation
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -108,7 +108,8 @@ impl PerformanceMetrics {
         _chunk_count: usize, // Ignored, chunking handled by other crates
     ) {
         let strategy_name = strategy_name(strategy);
-        let metrics = self.strategy_metrics
+        let metrics = self
+            .strategy_metrics
             .entry(strategy_name.clone())
             .or_insert_with(|| StrategyMetrics::new(strategy_name));
 
@@ -121,7 +122,8 @@ impl PerformanceMetrics {
     /// Record extraction failure
     pub fn record_failure(&mut self, strategy: &ExtractionStrategy, duration: Duration) {
         let strategy_name = strategy_name(strategy);
-        let metrics = self.strategy_metrics
+        let metrics = self
+            .strategy_metrics
             .entry(strategy_name.clone())
             .or_insert_with(|| StrategyMetrics::new(strategy_name));
 
@@ -157,8 +159,10 @@ impl PerformanceMetrics {
     /// Export metrics for analysis
     pub fn export_csv(&self) -> Result<String> {
         let mut csv = String::new();
-        csv.push_str("Strategy,Runs,AvgDuration,Throughput,SuccessRate,AvgQuality,MemoryPeak
-");
+        csv.push_str(
+            "Strategy,Runs,AvgDuration,Throughput,SuccessRate,AvgQuality,MemoryPeak
+",
+        );
 
         for metrics in self.strategy_metrics.values() {
             csv.push_str(&format!(
@@ -222,7 +226,8 @@ impl StrategyMetrics {
         self.success_rate = (self.total_runs - self.error_count) as f64 / self.total_runs as f64;
 
         if !self.quality_scores.is_empty() {
-            self.average_quality = self.quality_scores.iter().sum::<f64>() / self.quality_scores.len() as f64;
+            self.average_quality =
+                self.quality_scores.iter().sum::<f64>() / self.quality_scores.len() as f64;
         }
 
         // Calculate throughput (MB/s)
@@ -231,7 +236,8 @@ impl StrategyMetrics {
             self.throughput_per_second = avg_size_mb / self.average_duration.as_secs_f64();
         }
 
-        self.average_content_size = ((self.average_content_size * (self.total_runs - 1)) + content_size) / self.total_runs;
+        self.average_content_size =
+            ((self.average_content_size * (self.total_runs - 1)) + content_size) / self.total_runs;
 
         self.last_updated = std::time::SystemTime::now();
     }
@@ -265,9 +271,7 @@ impl Default for BenchmarkConfig {
             iterations: 100,
             warmup_iterations: 10,
             test_content_sizes: vec![1024, 10240, 102400, 1048576], // 1KB to 1MB
-            strategies_to_test: vec![
-                ExtractionStrategy::Trek,
-            ],
+            strategies_to_test: vec![ExtractionStrategy::Trek],
             measure_memory: true,
             detailed_timing: true,
         }
@@ -350,22 +354,21 @@ async fn benchmark_strategy(
     let max_time = durations[config.iterations - 1];
 
     let mean_ms = average_time.as_millis() as f64;
-    let variance = durations.iter()
+    let variance = durations
+        .iter()
         .map(|d| {
             let diff = d.as_millis() as f64 - mean_ms;
             diff * diff
         })
-        .sum::<f64>() / config.iterations as f64;
+        .sum::<f64>()
+        / config.iterations as f64;
     let std_dev = Duration::from_millis(variance.sqrt() as u64);
 
     // Calculate confidence interval (95%)
     let t_value = 1.96; // Approximate for large sample sizes
     let std_err = std_dev.as_millis() as f64 / (config.iterations as f64).sqrt();
     let margin = Duration::from_millis((t_value * std_err) as u64);
-    let confidence_interval = (
-        average_time.saturating_sub(margin),
-        average_time + margin,
-    );
+    let confidence_interval = (average_time.saturating_sub(margin), average_time + margin);
 
     let success_rate = success_count as f64 / config.iterations as f64;
     let average_quality = if quality_scores.is_empty() {
@@ -414,9 +417,7 @@ async fn run_single_extraction(
         ExtractionStrategy::Trek => {
             // Trek extraction moved to riptide-html
             // Returning mock result for testing
-            Ok(ExtractionResult {
-                quality: 80.0,
-            })
+            Ok(ExtractionResult { quality: 80.0 })
         }
     }
 }
@@ -504,7 +505,8 @@ pub fn compare_strategies(results: &[BenchmarkResult]) -> StrategyComparison {
     }
 
     // Find the fastest strategy
-    let fastest = results.iter()
+    let fastest = results
+        .iter()
         .min_by(|a, b| a.average_time.cmp(&b.average_time))
         .unwrap();
 
@@ -522,26 +524,38 @@ pub fn compare_strategies(results: &[BenchmarkResult]) -> StrategyComparison {
     }
 
     // Generate recommendations
-    recommendations.push(format!("Fastest strategy: {} ({:.2}ms average)",
-                                fastest.strategy_name, fastest.average_time.as_millis()));
+    recommendations.push(format!(
+        "Fastest strategy: {} ({:.2}ms average)",
+        fastest.strategy_name,
+        fastest.average_time.as_millis()
+    ));
 
-    let highest_quality = results.iter()
+    let highest_quality = results
+        .iter()
         .max_by(|a, b| a.quality_score.partial_cmp(&b.quality_score).unwrap())
         .unwrap();
 
     if highest_quality.strategy_name != fastest.strategy_name {
-        recommendations.push(format!("Highest quality: {} ({:.2} quality score)",
-                                   highest_quality.strategy_name, highest_quality.quality_score));
+        recommendations.push(format!(
+            "Highest quality: {} ({:.2} quality score)",
+            highest_quality.strategy_name, highest_quality.quality_score
+        ));
     }
 
     // Efficiency recommendation
-    let most_efficient = results.iter()
-        .max_by(|a, b| (a.quality_score / a.average_time.as_secs_f64())
-                     .partial_cmp(&(b.quality_score / b.average_time.as_secs_f64()))
-                     .unwrap())
+    let most_efficient = results
+        .iter()
+        .max_by(|a, b| {
+            (a.quality_score / a.average_time.as_secs_f64())
+                .partial_cmp(&(b.quality_score / b.average_time.as_secs_f64()))
+                .unwrap()
+        })
         .unwrap();
 
-    recommendations.push(format!("Most efficient (quality/time): {}", most_efficient.strategy_name));
+    recommendations.push(format!(
+        "Most efficient (quality/time): {}",
+        most_efficient.strategy_name
+    ));
 
     StrategyComparison {
         baseline_strategy: baseline_strategy.clone(),

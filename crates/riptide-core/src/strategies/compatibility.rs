@@ -9,12 +9,8 @@ use anyhow::Result;
 use std::sync::Arc;
 
 use crate::strategies::{
-    traits::*,
-    implementations::*,
-    manager::*,
-    ExtractedContent,
-    metadata::DocumentMetadata,
-    performance::PerformanceMetrics,
+    implementations::*, manager::*, metadata::DocumentMetadata, performance::PerformanceMetrics,
+    traits::*, ExtractedContent,
 };
 
 /// Compatibility wrapper for the original StrategyManager
@@ -54,14 +50,24 @@ impl CompatibleStrategyManager {
         let registry = create_default_strategies();
 
         Self {
-            enhanced_manager: futures::executor::block_on(EnhancedStrategyManager::with_registry(enhanced_config, registry)),
+            enhanced_manager: futures::executor::block_on(EnhancedStrategyManager::with_registry(
+                enhanced_config,
+                registry,
+            )),
         }
     }
 
     /// Extract content using legacy interface
-    pub async fn extract_content(&mut self, html: &str, url: &str) -> Result<LegacyProcessedContent> {
+    pub async fn extract_content(
+        &mut self,
+        html: &str,
+        url: &str,
+    ) -> Result<LegacyProcessedContent> {
         // Use the enhanced manager for extraction
-        let result = self.enhanced_manager.extract_and_process_with_strategy(html, url, "trek").await?;
+        let result = self
+            .enhanced_manager
+            .extract_and_process_with_strategy(html, url, "trek")
+            .await?;
 
         Ok(LegacyProcessedContent {
             extracted: result.extracted,
@@ -99,7 +105,9 @@ pub fn create_default_strategies() -> StrategyRegistry {
 }
 
 /// Migration helper for converting old enum-based configs to trait-based
-pub fn migrate_extraction_strategy(strategy: &crate::strategies::ExtractionStrategy) -> Arc<dyn ExtractionStrategy> {
+pub fn migrate_extraction_strategy(
+    strategy: &crate::strategies::ExtractionStrategy,
+) -> Arc<dyn ExtractionStrategy> {
     match strategy {
         crate::strategies::ExtractionStrategy::Trek => Arc::new(TrekExtractionStrategy),
     }

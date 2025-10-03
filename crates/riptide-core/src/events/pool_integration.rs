@@ -11,7 +11,7 @@ use crate::types::{ExtractedDoc, ExtractionMode};
 use anyhow::Result;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tracing::{info, warn, error};
+use tracing::{error, info, warn};
 
 /// Extension trait for AdvancedInstancePool to add event emission capabilities
 #[async_trait]
@@ -84,33 +84,30 @@ impl EventAwareInstancePool {
         }
 
         // Perform the actual extraction
-        let extraction_result: Result<ExtractedDoc> = self.pool.extract(html, url, mode.clone()).await;
+        let extraction_result: Result<ExtractedDoc> =
+            self.pool.extract(html, url, mode.clone()).await;
 
         let duration = start_time.elapsed();
 
         // Emit completion or failure event
         if let Some(event_bus) = &self.event_bus {
             let event = match &extraction_result {
-                Ok(doc) => {
-                    ExtractionEvent::new(
-                        ExtractionOperation::Completed,
-                        url.to_string(),
-                        format!("{:?}", &mode),
-                        &format!("pool-{}", self.pool_id),
-                    )
-                    .with_duration(duration)
-                    .with_content_length(doc.text.len())
-                }
-                Err(error) => {
-                    ExtractionEvent::new(
-                        ExtractionOperation::Failed,
-                        url.to_string(),
-                        format!("{:?}", &mode),
-                        &format!("pool-{}", self.pool_id),
-                    )
-                    .with_duration(duration)
-                    .with_error(error.to_string())
-                }
+                Ok(doc) => ExtractionEvent::new(
+                    ExtractionOperation::Completed,
+                    url.to_string(),
+                    format!("{:?}", &mode),
+                    &format!("pool-{}", self.pool_id),
+                )
+                .with_duration(duration)
+                .with_content_length(doc.text.len()),
+                Err(error) => ExtractionEvent::new(
+                    ExtractionOperation::Failed,
+                    url.to_string(),
+                    format!("{:?}", &mode),
+                    &format!("pool-{}", self.pool_id),
+                )
+                .with_duration(duration)
+                .with_error(error.to_string()),
             };
 
             if let Err(e) = event_bus.emit(event).await {
@@ -147,13 +144,17 @@ impl EventAwareInstancePool {
             health_metrics.insert("available_instances".to_string(), available as f64);
             health_metrics.insert("active_instances".to_string(), active as f64);
             health_metrics.insert("max_instances".to_string(), max_size as f64);
-            health_metrics.insert("pool_utilization".to_string(), active as f64 / max_size as f64);
-            health_metrics.insert("success_rate".to_string(),
+            health_metrics.insert(
+                "pool_utilization".to_string(),
+                active as f64 / max_size as f64,
+            );
+            health_metrics.insert(
+                "success_rate".to_string(),
                 if metrics.total_extractions > 0 {
                     metrics.successful_extractions as f64 / metrics.total_extractions as f64
                 } else {
                     1.0
-                }
+                },
             );
 
             let event = HealthEvent::new(
@@ -161,8 +162,12 @@ impl EventAwareInstancePool {
                 health_status,
                 &format!("pool-{}", self.pool_id),
             )
-            .with_details(format!("Pool utilization: {:.1}%, Available: {}, Active: {}",
-                (active as f64 / max_size as f64) * 100.0, available, active))
+            .with_details(format!(
+                "Pool utilization: {:.1}%, Available: {}, Active: {}",
+                (active as f64 / max_size as f64) * 100.0,
+                available,
+                active
+            ))
             .with_metrics(health_metrics);
 
             event_bus.emit(event).await?;
@@ -227,10 +232,7 @@ pub struct PoolEventEmissionHelper {
 
 impl PoolEventEmissionHelper {
     pub fn new(event_bus: Arc<EventBus>, pool_id: String) -> Self {
-        Self {
-            event_bus,
-            pool_id,
-        }
+        Self { event_bus, pool_id }
     }
 
     /// Emit instance creation event
@@ -239,7 +241,8 @@ impl PoolEventEmissionHelper {
             PoolOperation::InstanceCreated,
             self.pool_id.clone(),
             &format!("pool-{}", self.pool_id),
-        ).with_instance_id(instance_id.to_string());
+        )
+        .with_instance_id(instance_id.to_string());
 
         self.event_bus.emit(event).await
     }
@@ -250,7 +253,8 @@ impl PoolEventEmissionHelper {
             PoolOperation::InstanceDestroyed,
             self.pool_id.clone(),
             &format!("pool-{}", self.pool_id),
-        ).with_instance_id(instance_id.to_string());
+        )
+        .with_instance_id(instance_id.to_string());
 
         self.event_bus.emit(event).await
     }
@@ -261,7 +265,8 @@ impl PoolEventEmissionHelper {
             PoolOperation::InstanceAcquired,
             self.pool_id.clone(),
             &format!("pool-{}", self.pool_id),
-        ).with_instance_id(instance_id.to_string());
+        )
+        .with_instance_id(instance_id.to_string());
 
         self.event_bus.emit(event).await
     }
@@ -272,7 +277,8 @@ impl PoolEventEmissionHelper {
             PoolOperation::InstanceReleased,
             self.pool_id.clone(),
             &format!("pool-{}", self.pool_id),
-        ).with_instance_id(instance_id.to_string());
+        )
+        .with_instance_id(instance_id.to_string());
 
         self.event_bus.emit(event).await
     }
@@ -283,7 +289,8 @@ impl PoolEventEmissionHelper {
             PoolOperation::InstanceUnhealthy,
             self.pool_id.clone(),
             &format!("pool-{}", self.pool_id),
-        ).with_instance_id(instance_id.to_string());
+        )
+        .with_instance_id(instance_id.to_string());
 
         event.add_metadata("reason", reason);
 
@@ -346,7 +353,8 @@ impl PoolEventEmissionHelper {
             PoolOperation::InstanceAcquired, // Use as general pool activity
             self.pool_id.clone(),
             &format!("pool-{}", self.pool_id),
-        ).with_metrics(metrics);
+        )
+        .with_metrics(metrics);
 
         self.event_bus.emit(event).await
     }
@@ -400,12 +408,14 @@ impl EventAwarePoolFactory {
         &self,
         pool: Arc<AdvancedInstancePool>,
     ) -> Result<EventAwareInstancePool> {
-        let event_aware_pool = EventAwareInstancePool::new(pool)
-            .with_event_bus(self.event_bus.clone());
+        let event_aware_pool =
+            EventAwareInstancePool::new(pool).with_event_bus(self.event_bus.clone());
 
         // Start monitoring if configured
         if self.config.emit_health_events {
-            event_aware_pool.start_health_monitoring(self.config.health_check_interval).await?;
+            event_aware_pool
+                .start_health_monitoring(self.config.health_check_interval)
+                .await?;
         }
 
         // Start metrics emission if configured
@@ -441,7 +451,8 @@ impl EventAwarePoolFactory {
                     total_instances: total,
                     pending_acquisitions: 0, // TODO: Get from pool if available
                     success_rate: if performance_metrics.total_extractions > 0 {
-                        performance_metrics.successful_extractions as f64 / performance_metrics.total_extractions as f64
+                        performance_metrics.successful_extractions as f64
+                            / performance_metrics.total_extractions as f64
                     } else {
                         1.0
                     },
@@ -467,8 +478,8 @@ impl EventAwarePoolFactory {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::events::EventBus;
     use crate::events::handlers::LoggingEventHandler;
+    use crate::events::EventBus;
     use std::sync::Arc;
 
     #[tokio::test]
@@ -491,10 +502,22 @@ mod tests {
         let helper = PoolEventEmissionHelper::new(event_bus, "test-pool".to_string());
 
         // Test emitting various pool events
-        assert!(helper.emit_instance_created("test-instance-1").await.is_ok());
-        assert!(helper.emit_instance_acquired("test-instance-1").await.is_ok());
-        assert!(helper.emit_instance_released("test-instance-1").await.is_ok());
-        assert!(helper.emit_instance_destroyed("test-instance-1").await.is_ok());
+        assert!(helper
+            .emit_instance_created("test-instance-1")
+            .await
+            .is_ok());
+        assert!(helper
+            .emit_instance_acquired("test-instance-1")
+            .await
+            .is_ok());
+        assert!(helper
+            .emit_instance_released("test-instance-1")
+            .await
+            .is_ok());
+        assert!(helper
+            .emit_instance_destroyed("test-instance-1")
+            .await
+            .is_ok());
 
         // Give some time for event processing
         tokio::time::sleep(Duration::from_millis(100)).await;

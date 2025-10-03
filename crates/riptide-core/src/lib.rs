@@ -31,8 +31,8 @@ pub mod cache_warming;
 pub mod cache_warming_integration;
 pub mod circuit;
 pub mod circuit_breaker;
-pub mod component;
 pub mod common;
+pub mod component;
 pub mod conditional;
 pub mod dynamic;
 pub mod error;
@@ -83,17 +83,18 @@ pub mod stealth {
 #[cfg(feature = "benchmarks")]
 pub mod benchmarks;
 
-pub use types::*;
 pub use common::{
-    validation::{CommonValidator, ValidationConfig, ContentTypeValidator, UrlValidator, SizeValidator, ParameterValidator},
-    error_conversions::{IntoCore, WithErrorContext, CoreErrorConverter, ErrorPatterns},
-    config_builder::{ConfigBuilder, DefaultConfigBuilder, ConfigValue, ValidationPatterns},
+    config_builder::{ConfigBuilder, ConfigValue, DefaultConfigBuilder, ValidationPatterns},
+    error_conversions::{CoreErrorConverter, ErrorPatterns, IntoCore, WithErrorContext},
+    validation::{
+        CommonValidator, ContentTypeValidator, ParameterValidator, SizeValidator, UrlValidator,
+        ValidationConfig,
+    },
 };
+pub use types::*;
 
 // Re-export core functionality
-pub use reliability::{
-    ReliabilityConfig, ReliableExtractor, ExtractionMode, ReliabilityMetrics
-};
+pub use reliability::{ExtractionMode, ReliabilityConfig, ReliabilityMetrics, ReliableExtractor};
 
 // Create extract module alias for backward compatibility
 pub mod extract {

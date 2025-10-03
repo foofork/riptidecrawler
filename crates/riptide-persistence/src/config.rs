@@ -2,8 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Main persistence configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PersistenceConfig {
     /// Redis connection configuration
     pub redis: RedisConfig,
@@ -20,7 +19,6 @@ pub struct PersistenceConfig {
     /// Security configuration
     pub security: SecurityConfig,
 }
-
 
 /// Redis/DragonflyDB configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -91,7 +89,7 @@ pub struct CacheConfig {
 impl Default for CacheConfig {
     fn default() -> Self {
         Self {
-            default_ttl_seconds: 24 * 60 * 60, // 24 hours
+            default_ttl_seconds: 24 * 60 * 60,      // 24 hours
             max_entry_size_bytes: 20 * 1024 * 1024, // 20MB
             key_prefix: "riptide".to_string(),
             version: "v1".to_string(),
@@ -264,7 +262,7 @@ impl Default for PoolConfig {
         Self {
             min_size: 2,
             max_size: 10,
-            idle_timeout_seconds: 600, // 10 minutes
+            idle_timeout_seconds: 600,  // 10 minutes
             max_lifetime_seconds: 3600, // 1 hour
         }
     }
@@ -394,7 +392,10 @@ impl PersistenceConfig {
         }
 
         if self.performance.target_cache_access_ms > 100 {
-            return Err("Target cache access time should be less than 100ms for optimal performance".to_string());
+            return Err(
+                "Target cache access time should be less than 100ms for optimal performance"
+                    .to_string(),
+            );
         }
 
         // Validate cache settings
@@ -404,7 +405,9 @@ impl PersistenceConfig {
 
         // Validate tenant settings
         if self.tenant.enabled && self.tenant.max_tenants == 0 {
-            return Err("Maximum tenants must be greater than 0 when multi-tenancy is enabled".to_string());
+            return Err(
+                "Maximum tenants must be greater than 0 when multi-tenancy is enabled".to_string(),
+            );
         }
 
         Ok(())

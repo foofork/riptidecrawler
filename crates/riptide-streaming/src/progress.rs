@@ -4,12 +4,12 @@
 //! estimation, and performance metrics.
 
 use crate::{StreamingError, StreamingResult};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tokio::sync::{RwLock, mpsc};
+use tokio::sync::{mpsc, RwLock};
 use uuid::Uuid;
-use serde::{Deserialize, Serialize};
 
 /// Progress tracking information for a stream
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -109,7 +109,10 @@ impl ProgressTracker {
     }
 
     /// Start tracking progress for a stream
-    pub async fn start_tracking(&self, stream_id: Uuid) -> StreamingResult<mpsc::UnboundedReceiver<ProgressEvent>> {
+    pub async fn start_tracking(
+        &self,
+        stream_id: Uuid,
+    ) -> StreamingResult<mpsc::UnboundedReceiver<ProgressEvent>> {
         let now = Instant::now();
         let info = ProgressInfo {
             stream_id,
@@ -156,7 +159,12 @@ impl ProgressTracker {
     }
 
     /// Update progress for a stream
-    pub async fn update_progress(&self, stream_id: Uuid, processed: usize, total: Option<usize>) -> StreamingResult<()> {
+    pub async fn update_progress(
+        &self,
+        stream_id: Uuid,
+        processed: usize,
+        total: Option<usize>,
+    ) -> StreamingResult<()> {
         let now = Instant::now();
         let mut updated_info = None;
 
@@ -202,7 +210,8 @@ impl ProgressTracker {
                         if info.average_rate > 0.0 && processed < total {
                             let remaining = total - processed;
                             let remaining_seconds = remaining as f64 / info.average_rate;
-                            info.estimated_completion = Some(Duration::from_secs_f64(remaining_seconds));
+                            info.estimated_completion =
+                                Some(Duration::from_secs_f64(remaining_seconds));
                         }
                     }
                 }
@@ -409,7 +418,10 @@ mod tests {
 
         let _rx = tracker.start_tracking(stream_id).await.unwrap();
 
-        tracker.update_progress(stream_id, 50, Some(100)).await.unwrap();
+        tracker
+            .update_progress(stream_id, 50, Some(100))
+            .await
+            .unwrap();
 
         let progress = tracker.get_progress(&stream_id).await.unwrap();
         assert_eq!(progress.processed_items, 50);
@@ -423,7 +435,10 @@ mod tests {
 
         let _rx = tracker.start_tracking(stream_id).await.unwrap();
 
-        tracker.set_stage(stream_id, ProgressStage::Extracting).await.unwrap();
+        tracker
+            .set_stage(stream_id, ProgressStage::Extracting)
+            .await
+            .unwrap();
 
         let progress = tracker.get_progress(&stream_id).await.unwrap();
         assert!(matches!(progress.stage, ProgressStage::Extracting));
@@ -444,11 +459,20 @@ mod tests {
         let _rx = tracker.start_tracking(stream_id).await.unwrap();
 
         // Simulate processing over time
-        tracker.update_progress(stream_id, 10, Some(100)).await.unwrap();
+        tracker
+            .update_progress(stream_id, 10, Some(100))
+            .await
+            .unwrap();
         sleep(Duration::from_millis(100)).await;
-        tracker.update_progress(stream_id, 20, Some(100)).await.unwrap();
+        tracker
+            .update_progress(stream_id, 20, Some(100))
+            .await
+            .unwrap();
         sleep(Duration::from_millis(100)).await;
-        tracker.update_progress(stream_id, 30, Some(100)).await.unwrap();
+        tracker
+            .update_progress(stream_id, 30, Some(100))
+            .await
+            .unwrap();
 
         let progress = tracker.get_progress(&stream_id).await.unwrap();
         assert!(progress.current_rate > 0.0);

@@ -4,17 +4,17 @@ use std::env;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::{Mutex, Semaphore};
-use tokio::time::{timeout, sleep};
+use tokio::time::{sleep, timeout};
 use tracing::{debug, info, warn};
 use uuid::Uuid;
 use wasmtime::{component::*, Engine};
 
 use crate::component::{ExtractorConfig, PerformanceMetrics, WasmResourceTracker};
+use crate::events::{Event, EventBus, EventEmitter, PoolEvent, PoolMetrics, PoolOperation};
 use crate::types::{ExtractedDoc, ExtractionMode};
-use crate::events::{Event, EventEmitter, EventBus, PoolEvent, PoolOperation, PoolMetrics};
 use async_trait::async_trait;
 
-use super::models::{PooledInstance, CircuitBreakerState};
+use super::models::{CircuitBreakerState, PooledInstance};
 
 wasmtime::component::bindgen!({
     world: "extractor",
@@ -70,7 +70,9 @@ impl AdvancedInstancePool {
             engine: Arc::new(engine),
             component: Arc::new(component),
             linker: Arc::new(linker),
-            available_instances: Arc::new(Mutex::new(VecDeque::with_capacity(config.max_pool_size))),
+            available_instances: Arc::new(Mutex::new(VecDeque::with_capacity(
+                config.max_pool_size,
+            ))),
             semaphore: Arc::new(Semaphore::new(config.max_pool_size)),
             metrics: Arc::new(Mutex::new(PerformanceMetrics::default())),
             circuit_state: Arc::new(Mutex::new(CircuitBreakerState::Closed {
@@ -105,7 +107,10 @@ impl AdvancedInstancePool {
 
     /// Pre-warm the pool with initial instances
     async fn warm_up(&self) -> Result<()> {
-        debug!(warm_count = self.config.initial_pool_size, "Warming up instance pool");
+        debug!(
+            warm_count = self.config.initial_pool_size,
+            "Warming up instance pool"
+        );
 
         // Create instances without holding the lock
         let mut created_instances = Vec::new();
@@ -134,10 +139,7 @@ impl AdvancedInstancePool {
             metrics.pool_size = pool_size;
         }
 
-        info!(
-            pool_size = pool_size,
-            "Pool warm-up completed"
-        );
+        info!(pool_size = pool_size, "Pool warm-up completed");
 
         Ok(())
     }
@@ -157,11 +159,9 @@ impl AdvancedInstancePool {
         let start_time = Instant::now();
 
         // Acquire semaphore permit with timeout
-        let timeout_duration = Duration::from_millis(self.config.extraction_timeout.unwrap_or(30000));
-        let permit = match timeout(
-            timeout_duration,
-            self.semaphore.acquire()
-        ).await {
+        let timeout_duration =
+            Duration::from_millis(self.config.extraction_timeout.unwrap_or(30000));
+        let permit = match timeout(timeout_duration, self.semaphore.acquire()).await {
             Ok(Ok(permit)) => permit,
             Ok(Err(_)) => return Err(anyhow!("Semaphore closed")),
             Err(_) => {
@@ -174,7 +174,8 @@ impl AdvancedInstancePool {
                         url.to_string(),
                         format!("{:?}", mode),
                         &format!("pool-{}", self.pool_id),
-                    ).with_duration(start_time.elapsed());
+                    )
+                    .with_duration(start_time.elapsed());
 
                     if let Err(e) = event_bus.emit(event).await {
                         warn!(error = %e, "Failed to emit timeout event");
@@ -205,7 +206,9 @@ impl AdvancedInstancePool {
         }
 
         // Perform extraction with epoch timeout
-        let extraction_result = self.extract_with_instance(&mut instance, html, url, mode.clone()).await;
+        let extraction_result = self
+            .extract_with_instance(&mut instance, html, url, mode.clone())
+            .await;
 
         // Update metrics and return instance
         let success = extraction_result.is_ok();
@@ -225,7 +228,8 @@ impl AdvancedInstancePool {
                 url.to_string(),
                 format!("{:?}", mode),
                 &format!("pool-{}", self.pool_id),
-            ).with_duration(duration);
+            )
+            .with_duration(duration);
 
             if let Err(ref error) = extraction_result {
                 event = event.with_error(error.to_string());
@@ -239,7 +243,8 @@ impl AdvancedInstancePool {
         self.return_instance(instance).await;
 
         // Update circuit breaker
-        self.record_extraction_result(success, start_time.elapsed()).await;
+        self.record_extraction_result(success, start_time.elapsed())
+            .await;
 
         // Update semaphore wait time metric
         self.update_semaphore_wait_time(semaphore_wait_time).await;
@@ -361,7 +366,9 @@ impl AdvancedInstancePool {
         let wit_mode = self.convert_extraction_mode(mode);
 
         // Execute extraction (sync call, use epoch deadline for timeout)
-        let result = bindings.interface0.call_extract(&mut store, html, url, &wit_mode);
+        let result = bindings
+            .interface0
+            .call_extract(&mut store, html, url, &wit_mode);
 
         match result {
             Ok(Ok(content)) => {
@@ -387,9 +394,7 @@ impl AdvancedInstancePool {
             Ok(Err(extraction_error)) => {
                 Err(anyhow!("WASM extraction error: {:?}", extraction_error))
             }
-            Err(e) => {
-                Err(anyhow!("Component call failed: {}", e))
-            }
+            Err(e) => Err(anyhow!("Component call failed: {}", e)),
         }
     }
 
@@ -490,7 +495,12 @@ impl AdvancedInstancePool {
                             break;
                         }
                     } else {
-                        let text = element.text().collect::<Vec<_>>().join(" ").trim().to_string();
+                        let text = element
+                            .text()
+                            .collect::<Vec<_>>()
+                            .join(" ")
+                            .trim()
+                            .to_string();
                         if !text.is_empty() {
                             title = Some(text);
                             break;
@@ -514,11 +524,12 @@ impl AdvancedInstancePool {
         }
 
         // Clean up text
-        text = text.split_whitespace()
+        text = text
+            .split_whitespace()
             .collect::<Vec<_>>()
             .join(" ")
             .chars()
-            .take(5000)  // Limit to 5000 chars
+            .take(5000) // Limit to 5000 chars
             .collect();
 
         // Extract links
@@ -545,7 +556,10 @@ impl AdvancedInstancePool {
         let markdown = if let Some(ref t) = title {
             format!("# {}\n\n{}", t, text.chars().take(2000).collect::<String>())
         } else {
-            format!("# Content\n\n{}", text.chars().take(2000).collect::<String>())
+            format!(
+                "# Content\n\n{}",
+                text.chars().take(2000).collect::<String>()
+            )
         };
 
         Ok(ExtractedDoc {
@@ -560,12 +574,21 @@ impl AdvancedInstancePool {
     }
 
     /// Convert ExtractionMode to WIT format
-    fn convert_extraction_mode(&self, mode: ExtractionMode) -> exports::riptide::extractor::extract::ExtractionMode {
+    fn convert_extraction_mode(
+        &self,
+        mode: ExtractionMode,
+    ) -> exports::riptide::extractor::extract::ExtractionMode {
         match mode {
-            ExtractionMode::Article => exports::riptide::extractor::extract::ExtractionMode::Article,
+            ExtractionMode::Article => {
+                exports::riptide::extractor::extract::ExtractionMode::Article
+            }
             ExtractionMode::Full => exports::riptide::extractor::extract::ExtractionMode::Full,
-            ExtractionMode::Metadata => exports::riptide::extractor::extract::ExtractionMode::Metadata,
-            ExtractionMode::Custom(selectors) => exports::riptide::extractor::extract::ExtractionMode::Custom(selectors),
+            ExtractionMode::Metadata => {
+                exports::riptide::extractor::extract::ExtractionMode::Metadata
+            }
+            ExtractionMode::Custom(selectors) => {
+                exports::riptide::extractor::extract::ExtractionMode::Custom(selectors)
+            }
         }
     }
 
@@ -602,7 +625,11 @@ impl AdvancedInstancePool {
                 (metrics.avg_processing_time_ms + new_time) / 2.0
             };
 
-            (metrics.circuit_breaker_trips, metrics.failed_extractions, metrics.total_extractions)
+            (
+                metrics.circuit_breaker_trips,
+                metrics.failed_extractions,
+                metrics.total_extractions,
+            )
         }; // Metrics lock dropped here
 
         // Phase 2: Update circuit breaker state in scoped block
@@ -615,13 +642,18 @@ impl AdvancedInstancePool {
 
             // Update circuit breaker state
             let new_state = match &*state {
-                CircuitBreakerState::Closed { failure_count, success_count: sc, .. } => {
+                CircuitBreakerState::Closed {
+                    failure_count,
+                    success_count: sc,
+                    ..
+                } => {
                     let new_failure_count = if success { 0 } else { failure_count + 1 };
                     let new_success_count = if success { sc + 1 } else { *sc };
                     let total_requests = new_failure_count + new_success_count;
 
                     if total_requests >= 10 {
-                        let failure_rate = (new_failure_count as f64 / total_requests as f64) * 100.0;
+                        let failure_rate =
+                            (new_failure_count as f64 / total_requests as f64) * 100.0;
                         if failure_rate >= self.config.circuit_breaker_failure_threshold as f64 {
                             // Need to update metrics again for circuit breaker trips
                             let new_trips = circuit_breaker_trips + 1;
@@ -660,8 +692,13 @@ impl AdvancedInstancePool {
                         }
                     }
                 }
-                CircuitBreakerState::Open { opened_at, failure_count } => {
-                    if opened_at.elapsed() >= Duration::from_millis(self.config.circuit_breaker_timeout) {
+                CircuitBreakerState::Open {
+                    opened_at,
+                    failure_count,
+                } => {
+                    if opened_at.elapsed()
+                        >= Duration::from_millis(self.config.circuit_breaker_timeout)
+                    {
                         info!("Circuit breaker transitioning to half-open");
                         CircuitBreakerState::HalfOpen {
                             test_requests: 0,
@@ -674,7 +711,10 @@ impl AdvancedInstancePool {
                         }
                     }
                 }
-                CircuitBreakerState::HalfOpen { test_requests, start_time } => {
+                CircuitBreakerState::HalfOpen {
+                    test_requests,
+                    start_time,
+                } => {
                     if success {
                         info!("Circuit breaker closing after successful test request");
 
@@ -704,7 +744,12 @@ impl AdvancedInstancePool {
 
             *state = new_state;
 
-            (should_emit_trip, should_emit_reset, trip_data, success_count)
+            (
+                should_emit_trip,
+                should_emit_reset,
+                trip_data,
+                success_count,
+            )
         }; // Circuit state lock dropped here
 
         // Update metrics if circuit breaker tripped (needs separate lock acquisition)
@@ -715,7 +760,9 @@ impl AdvancedInstancePool {
 
         // Phase 3: Emit events without holding any locks
         if should_emit_trip_event {
-            if let Some((failure_threshold, total_trips, failed_extractions, total_extractions)) = trip_metrics {
+            if let Some((failure_threshold, total_trips, failed_extractions, total_extractions)) =
+                trip_metrics
+            {
                 if let Some(event_bus) = &self.event_bus {
                     let event_bus = event_bus.clone();
                     let pool_id = self.pool_id.clone();
@@ -754,7 +801,10 @@ impl AdvancedInstancePool {
                     );
 
                     event.add_metadata("total_trips", &total_trips.to_string());
-                    event.add_metadata("successful_extractions", &successful_extractions.to_string());
+                    event.add_metadata(
+                        "successful_extractions",
+                        &successful_extractions.to_string(),
+                    );
 
                     if let Err(e) = event_bus.emit(event).await {
                         warn!(error = %e, "Failed to emit circuit breaker reset event");
@@ -823,7 +873,8 @@ impl AdvancedInstancePool {
             total_instances: total,
             pending_acquisitions: 0, // TODO: Track this if needed
             success_rate: if performance_metrics.total_extractions > 0 {
-                performance_metrics.successful_extractions as f64 / performance_metrics.total_extractions as f64
+                performance_metrics.successful_extractions as f64
+                    / performance_metrics.total_extractions as f64
             } else {
                 1.0
             },
@@ -870,7 +921,10 @@ impl EventEmitter for AdvancedInstancePool {
             event_bus.emit(event).await
         } else {
             // Log a warning but don't fail if no event bus is configured
-            debug!("No event bus configured for pool {}, skipping event emission", self.pool_id);
+            debug!(
+                "No event bus configured for pool {}, skipping event emission",
+                self.pool_id
+            );
             Ok(())
         }
     }
@@ -881,7 +935,10 @@ impl EventEmitter for AdvancedInstancePool {
                 event_bus.emit(event).await?;
             }
         } else {
-            debug!("No event bus configured for pool {}, skipping batch event emission", self.pool_id);
+            debug!(
+                "No event bus configured for pool {}, skipping batch event emission",
+                self.pool_id
+            );
         }
         Ok(())
     }

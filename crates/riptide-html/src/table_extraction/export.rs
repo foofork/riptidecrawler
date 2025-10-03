@@ -39,7 +39,11 @@ impl CsvExporter {
             }
 
             // RFC 4180 compliance: escape quotes and wrap in quotes if necessary
-            if cell.contains(',') || cell.contains('"') || cell.contains('\n') || cell.contains('\r') {
+            if cell.contains(',')
+                || cell.contains('"')
+                || cell.contains('\n')
+                || cell.contains('\r')
+            {
                 row.push('"');
                 // Escape quotes by doubling them
                 for ch in cell.chars() {
@@ -66,18 +70,21 @@ impl TableExporter for CsvExporter {
 
         // Add headers if present and requested
         if self.include_headers && !table.headers.main.is_empty() {
-            let header_row = self.format_csv_row(&table.headers.main.iter()
-                .map(|cell| &cell.content)
-                .collect::<Vec<_>>())?;
+            let header_row = self.format_csv_row(
+                &table
+                    .headers
+                    .main
+                    .iter()
+                    .map(|cell| &cell.content)
+                    .collect::<Vec<_>>(),
+            )?;
             csv_output.push_str(&header_row);
             csv_output.push('\n');
         }
 
         // Add body rows
         for row in &table.rows {
-            let cell_contents: Vec<&String> = row.cells.iter()
-                .map(|cell| &cell.content)
-                .collect();
+            let cell_contents: Vec<&String> = row.cells.iter().map(|cell| &cell.content).collect();
             let csv_row = self.format_csv_row(&cell_contents)?;
             csv_output.push_str(&csv_row);
             csv_output.push('\n');
@@ -85,9 +92,7 @@ impl TableExporter for CsvExporter {
 
         // Add footer rows if present
         for row in &table.footer {
-            let cell_contents: Vec<&String> = row.cells.iter()
-                .map(|cell| &cell.content)
-                .collect();
+            let cell_contents: Vec<&String> = row.cells.iter().map(|cell| &cell.content).collect();
             let csv_row = self.format_csv_row(&cell_contents)?;
             csv_output.push_str(&csv_row);
             csv_output.push('\n');
@@ -134,64 +139,64 @@ impl TableExporter for MarkdownExporter {
                 writeln!(md_output, "<!-- Parent Table: {} -->", parent_id)
                     .map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
             }
-            writeln!(md_output, "<!-- Columns: {}, Rows: {} -->",
-                table.structure.total_columns, table.structure.total_rows)
-                .map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
+            writeln!(
+                md_output,
+                "<!-- Columns: {}, Rows: {} -->",
+                table.structure.total_columns, table.structure.total_rows
+            )
+            .map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
             if table.structure.has_complex_structure {
-                writeln!(md_output, "<!-- Note: Table has complex structure (spans) -->")
-                    .map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
-            }
-            writeln!(md_output)
+                writeln!(
+                    md_output,
+                    "<!-- Note: Table has complex structure (spans) -->"
+                )
                 .map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
+            }
+            writeln!(md_output).map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
         }
 
         // Handle headers
         if !table.headers.main.is_empty() {
             // Header row
-            write!(md_output, "|")
-                .map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
+            write!(md_output, "|").map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
             for cell in &table.headers.main {
                 write!(md_output, " {} |", self.escape_markdown(&cell.content))
                     .map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
             }
-            writeln!(md_output)
-                .map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
+            writeln!(md_output).map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
 
             // Separator row
-            write!(md_output, "|")
-                .map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
+            write!(md_output, "|").map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
             for _ in &table.headers.main {
                 write!(md_output, " --- |")
                     .map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
             }
-            writeln!(md_output)
-                .map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
+            writeln!(md_output).map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
         }
 
         // Body rows
         for row in &table.rows {
-            write!(md_output, "|")
-                .map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
+            write!(md_output, "|").map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
             for cell in &row.cells {
                 let content = if cell.colspan > 1 || cell.rowspan > 1 {
-                    format!("{} (span: {}x{})",
+                    format!(
+                        "{} (span: {}x{})",
                         self.escape_markdown(&cell.content),
                         cell.colspan,
-                        cell.rowspan)
+                        cell.rowspan
+                    )
                 } else {
                     self.escape_markdown(&cell.content)
                 };
                 write!(md_output, " {} |", content)
                     .map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
             }
-            writeln!(md_output)
-                .map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
+            writeln!(md_output).map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
         }
 
         // Footer rows if present
         if !table.footer.is_empty() {
-            writeln!(md_output)
-                .map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
+            writeln!(md_output).map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
             writeln!(md_output, "**Footer:**")
                 .map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
             for row in &table.footer {
@@ -208,10 +213,13 @@ impl TableExporter for MarkdownExporter {
 
         // Add nested tables reference if any
         if !table.nested_tables.is_empty() {
-            writeln!(md_output)
-                .map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
-            writeln!(md_output, "**Nested Tables:** {}", table.nested_tables.join(", "))
-                .map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
+            writeln!(md_output).map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
+            writeln!(
+                md_output,
+                "**Nested Tables:** {}",
+                table.nested_tables.join(", ")
+            )
+            .map_err(|e| TableExtractionError::ExportError(e.to_string()))?;
         }
 
         Ok(md_output)
@@ -245,7 +253,10 @@ impl NdjsonExporter {
     }
 
     /// Create NDJSON artifacts for a table
-    pub fn create_artifacts(&self, table: &AdvancedTableData) -> Result<Vec<String>, TableExtractionError> {
+    pub fn create_artifacts(
+        &self,
+        table: &AdvancedTableData,
+    ) -> Result<Vec<String>, TableExtractionError> {
         let mut artifacts = Vec::new();
 
         // CSV artifact
@@ -261,14 +272,24 @@ impl NdjsonExporter {
             },
             metadata: [
                 ("format".to_string(), "RFC4180".to_string()),
-                ("headers".to_string(), (!table.headers.main.is_empty()).to_string()),
+                (
+                    "headers".to_string(),
+                    (!table.headers.main.is_empty()).to_string(),
+                ),
                 ("rows".to_string(), table.structure.total_rows.to_string()),
-                ("columns".to_string(), table.structure.total_columns.to_string()),
-            ].into_iter().collect(),
+                (
+                    "columns".to_string(),
+                    table.structure.total_columns.to_string(),
+                ),
+            ]
+            .into_iter()
+            .collect(),
             created_at: chrono::Utc::now().to_rfc3339(),
         };
-        artifacts.push(serde_json::to_string(&csv_artifact)
-            .map_err(|e| TableExtractionError::ExportError(e.to_string()))?);
+        artifacts.push(
+            serde_json::to_string(&csv_artifact)
+                .map_err(|e| TableExtractionError::ExportError(e.to_string()))?,
+        );
 
         // Markdown artifact
         let md_exporter = MarkdownExporter::new(true);
@@ -284,12 +305,19 @@ impl NdjsonExporter {
             metadata: [
                 ("format".to_string(), "markdown".to_string()),
                 ("has_metadata".to_string(), "true".to_string()),
-                ("complex_structure".to_string(), table.structure.has_complex_structure.to_string()),
-            ].into_iter().collect(),
+                (
+                    "complex_structure".to_string(),
+                    table.structure.has_complex_structure.to_string(),
+                ),
+            ]
+            .into_iter()
+            .collect(),
             created_at: chrono::Utc::now().to_rfc3339(),
         };
-        artifacts.push(serde_json::to_string(&md_artifact)
-            .map_err(|e| TableExtractionError::ExportError(e.to_string()))?);
+        artifacts.push(
+            serde_json::to_string(&md_artifact)
+                .map_err(|e| TableExtractionError::ExportError(e.to_string()))?,
+        );
 
         // JSON metadata artifact
         let json_artifact = TableArtifact {
@@ -304,11 +332,15 @@ impl NdjsonExporter {
             metadata: [
                 ("format".to_string(), "json".to_string()),
                 ("complete_structure".to_string(), "true".to_string()),
-            ].into_iter().collect(),
+            ]
+            .into_iter()
+            .collect(),
             created_at: chrono::Utc::now().to_rfc3339(),
         };
-        artifacts.push(serde_json::to_string(&json_artifact)
-            .map_err(|e| TableExtractionError::ExportError(e.to_string()))?);
+        artifacts.push(
+            serde_json::to_string(&json_artifact)
+                .map_err(|e| TableExtractionError::ExportError(e.to_string()))?,
+        );
 
         Ok(artifacts)
     }
@@ -329,7 +361,10 @@ impl AdvancedTableData {
     }
 
     /// Create NDJSON artifacts for the table
-    pub fn to_ndjson_artifacts(&self, base_path: Option<&str>) -> Result<Vec<String>, TableExtractionError> {
+    pub fn to_ndjson_artifacts(
+        &self,
+        base_path: Option<&str>,
+    ) -> Result<Vec<String>, TableExtractionError> {
         let exporter = NdjsonExporter::new(base_path.map(|s| s.to_string()));
         exporter.create_artifacts(self)
     }
@@ -339,7 +374,7 @@ impl AdvancedTableData {
 mod tests {
     use super::*;
     use crate::table_extraction::models::{
-        TableHeaders, TableRow, TableMetadata, TableStructure, CellType, RowType, TableCell
+        CellType, RowType, TableCell, TableHeaders, TableMetadata, TableRow, TableStructure,
     };
     use std::collections::HashMap;
 

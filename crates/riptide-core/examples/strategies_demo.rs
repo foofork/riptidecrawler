@@ -99,7 +99,10 @@ async fn demo_core_extraction(html: &str) -> Result<()> {
     let trek_result = extraction::trek::extract(html, "https://example.com").await?;
     println!("  Title: {}", trek_result.title);
     println!("  Content Length: {} chars", trek_result.content.len());
-    println!("  Confidence: {:.2}%\n", trek_result.extraction_confidence * 100.0);
+    println!(
+        "  Confidence: {:.2}%\n",
+        trek_result.extraction_confidence * 100.0
+    );
 
     println!("ℹ️  Note: CSS JSON and Regex extraction strategies have been moved to the riptide-html crate.\n");
     println!("ℹ️  Note: LLM-based extraction strategies have been moved to the riptide-intelligence crate.\n");
@@ -133,10 +136,19 @@ async fn demo_metadata_extraction(html: &str) -> Result<()> {
 
     println!("\n📊 Extraction Confidence:");
     println!("  Title: {:.1}%", metadata.confidence_scores.title * 100.0);
-    println!("  Author: {:.1}%", metadata.confidence_scores.author * 100.0);
+    println!(
+        "  Author: {:.1}%",
+        metadata.confidence_scores.author * 100.0
+    );
     println!("  Date: {:.1}%", metadata.confidence_scores.date * 100.0);
-    println!("  Description: {:.1}%", metadata.confidence_scores.description * 100.0);
-    println!("  Overall: {:.1}%", metadata.confidence_scores.overall * 100.0);
+    println!(
+        "  Description: {:.1}%",
+        metadata.confidence_scores.description * 100.0
+    );
+    println!(
+        "  Overall: {:.1}%",
+        metadata.confidence_scores.overall * 100.0
+    );
 
     println!("\n🔍 Extraction Methods Used:");
     if metadata.extraction_method.open_graph {

@@ -1,8 +1,11 @@
 //! Table extraction routes configuration
 
 use crate::handlers::tables;
-use axum::{routing::{get, post}, Router};
 use crate::state::AppState;
+use axum::{
+    routing::{get, post},
+    Router,
+};
 
 /// Create table routes
 pub fn table_routes() -> Router<AppState> {

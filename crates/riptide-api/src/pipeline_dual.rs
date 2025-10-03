@@ -209,7 +209,10 @@ impl DualPathOrchestrator {
         // Extract with CSS (fast)
         let document = self.extract_with_css(url, &content).await?;
 
-        let quality_score = document.quality_score.map(|q| q as f32 / 100.0).unwrap_or(0.0);
+        let quality_score = document
+            .quality_score
+            .map(|q| q as f32 / 100.0)
+            .unwrap_or(0.0);
         let processing_time_ms = start.elapsed().as_millis() as u64;
 
         let result = FastPathResult {

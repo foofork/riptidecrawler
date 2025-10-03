@@ -5,9 +5,9 @@ use std::time::{Duration, Instant};
 use tokio::time::{interval, timeout};
 use tracing::{debug, error, info, warn};
 
-use crate::component::{PerformanceMetrics, ExtractorConfig};
+use crate::component::{ExtractorConfig, PerformanceMetrics};
+use crate::events::{EventBus, HealthEvent, HealthStatus, MetricType, MetricsEvent};
 use crate::instance_pool::AdvancedInstancePool;
-use crate::events::{EventBus, HealthEvent, HealthStatus, MetricsEvent, MetricType};
 use std::collections::HashMap;
 
 /// Pool health status
@@ -354,7 +354,8 @@ impl PoolHealthMonitor {
         if success_rate_percent < 50.0
             || *memory_pressure == MemoryPressureLevel::Critical
             || utilization_percent > 95.0
-            || metrics.epoch_timeouts > 10 {
+            || metrics.epoch_timeouts > 10
+        {
             return HealthLevel::Critical;
         }
 
@@ -363,7 +364,8 @@ impl PoolHealthMonitor {
             || *memory_pressure == MemoryPressureLevel::High
             || utilization_percent > 85.0
             || fallback_rate_percent > 30.0
-            || metrics.circuit_breaker_trips > 5 {
+            || metrics.circuit_breaker_trips > 5
+        {
             return HealthLevel::Unhealthy;
         }
 
@@ -372,7 +374,8 @@ impl PoolHealthMonitor {
             || *memory_pressure == MemoryPressureLevel::Medium
             || utilization_percent > 75.0
             || fallback_rate_percent > 10.0
-            || metrics.avg_processing_time_ms > 5000.0 {
+            || metrics.avg_processing_time_ms > 5000.0
+        {
             return HealthLevel::Degraded;
         }
 
@@ -465,7 +468,8 @@ impl PoolHealthMonitor {
 
             // Create detailed health check completed event with healthy/unhealthy counts
             let healthy_instances = status.available_instances;
-            let unhealthy_instances = status.max_instances - status.available_instances - status.active_instances;
+            let unhealthy_instances =
+                status.max_instances - status.available_instances - status.active_instances;
 
             let mut event = HealthEvent::new(
                 format!("pool_health_{}", self.monitor_id),
@@ -480,18 +484,39 @@ impl PoolHealthMonitor {
             // Add detailed metadata for health check results
             let mut health_metrics = std::collections::HashMap::new();
             health_metrics.insert("healthy_instances".to_string(), healthy_instances as f64);
-            health_metrics.insert("unhealthy_instances".to_string(), unhealthy_instances as f64);
-            health_metrics.insert("utilization_percent".to_string(), status.utilization_percent);
-            health_metrics.insert("success_rate_percent".to_string(), status.success_rate_percent);
-            health_metrics.insert("fallback_rate_percent".to_string(), status.fallback_rate_percent);
-            health_metrics.insert("avg_semaphore_wait_ms".to_string(), status.avg_semaphore_wait_ms);
-            health_metrics.insert("total_extractions".to_string(), status.total_extractions as f64);
-            health_metrics.insert("memory_pressure_level".to_string(), match status.memory_stats.memory_pressure {
-                MemoryPressureLevel::Low => 1.0,
-                MemoryPressureLevel::Medium => 2.0,
-                MemoryPressureLevel::High => 3.0,
-                MemoryPressureLevel::Critical => 4.0,
-            });
+            health_metrics.insert(
+                "unhealthy_instances".to_string(),
+                unhealthy_instances as f64,
+            );
+            health_metrics.insert(
+                "utilization_percent".to_string(),
+                status.utilization_percent,
+            );
+            health_metrics.insert(
+                "success_rate_percent".to_string(),
+                status.success_rate_percent,
+            );
+            health_metrics.insert(
+                "fallback_rate_percent".to_string(),
+                status.fallback_rate_percent,
+            );
+            health_metrics.insert(
+                "avg_semaphore_wait_ms".to_string(),
+                status.avg_semaphore_wait_ms,
+            );
+            health_metrics.insert(
+                "total_extractions".to_string(),
+                status.total_extractions as f64,
+            );
+            health_metrics.insert(
+                "memory_pressure_level".to_string(),
+                match status.memory_stats.memory_pressure {
+                    MemoryPressureLevel::Low => 1.0,
+                    MemoryPressureLevel::Medium => 2.0,
+                    MemoryPressureLevel::High => 3.0,
+                    MemoryPressureLevel::Critical => 4.0,
+                },
+            );
 
             event = event.with_metrics(health_metrics);
 
@@ -544,10 +569,22 @@ impl PoolHealthMonitor {
             };
 
             let mut metrics = HashMap::new();
-            metrics.insert("utilization_percent".to_string(), status.utilization_percent);
-            metrics.insert("success_rate_percent".to_string(), status.success_rate_percent);
-            metrics.insert("available_instances".to_string(), status.available_instances as f64);
-            metrics.insert("active_instances".to_string(), status.active_instances as f64);
+            metrics.insert(
+                "utilization_percent".to_string(),
+                status.utilization_percent,
+            );
+            metrics.insert(
+                "success_rate_percent".to_string(),
+                status.success_rate_percent,
+            );
+            metrics.insert(
+                "available_instances".to_string(),
+                status.available_instances as f64,
+            );
+            metrics.insert(
+                "active_instances".to_string(),
+                status.active_instances as f64,
+            );
             metrics.insert("max_instances".to_string(), status.max_instances as f64);
 
             let event = HealthEvent::new(
@@ -614,15 +651,11 @@ impl PoolHealthMonitor {
                 self.emergency_remediation(status).await;
             }
             HealthLevel::Unhealthy => {
-                warn!(
-                    "UNHEALTHY status detected - performing remediation actions"
-                );
+                warn!("UNHEALTHY status detected - performing remediation actions");
                 self.unhealthy_remediation(status).await;
             }
             HealthLevel::Degraded => {
-                info!(
-                    "DEGRADED status detected - performing optimization actions"
-                );
+                info!("DEGRADED status detected - performing optimization actions");
                 self.degraded_remediation(status).await;
             }
             HealthLevel::Healthy => {

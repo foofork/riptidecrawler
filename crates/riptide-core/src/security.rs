@@ -6,20 +6,20 @@ use std::str::FromStr;
 use tracing::{debug, warn};
 
 // Re-export all security modules
-pub mod types;
 pub mod api_keys;
 pub mod audit;
 pub mod budget;
 pub mod middleware;
 pub mod pii;
+pub mod types;
 
 // Re-export commonly used types and structs
+pub use api_keys::{ApiKey, ApiKeyManager};
+pub use audit::{AuditConfig, AuditLogEntry, AuditLogger};
+pub use budget::{BudgetHealthStatus, BudgetManager};
+pub use middleware::{RequestSecurityContext, SecurityHealthStatus, SecurityMiddleware};
+pub use pii::{PiiRedactionMiddleware, PiiRedactor};
 pub use types::*;
-pub use api_keys::{ApiKeyManager, ApiKey};
-pub use audit::{AuditLogger, AuditLogEntry, AuditConfig};
-pub use budget::{BudgetManager, BudgetHealthStatus};
-pub use middleware::{SecurityMiddleware, RequestSecurityContext, SecurityHealthStatus};
-pub use pii::{PiiRedactor, PiiRedactionMiddleware};
 
 /// Security middleware configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]

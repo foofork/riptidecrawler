@@ -5,7 +5,10 @@
 //! - Visualizing trace tree structures
 //! - Querying trace metadata
 
-use axum::{extract::{Query, State}, Json};
+use axum::{
+    extract::{Query, State},
+    Json,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::{debug, info};
@@ -163,23 +166,21 @@ pub async fn list_traces(
     // Note: In a real implementation, this would query a trace backend like Jaeger/Zipkin
     // For demonstration purposes, we'll return mock data
 
-    let traces = vec![
-        TraceMetadata {
-            trace_id: "0af7651916cd43dd8448eb211c80319c".to_string(),
-            root_span_id: "b7ad6b7169203331".to_string(),
-            start_time: "2025-10-03T10:00:00Z".to_string(),
-            duration_ms: 1234,
-            service_name: "riptide-api".to_string(),
-            span_count: 15,
-            status: "OK".to_string(),
-            attributes: {
-                let mut attrs = HashMap::new();
-                attrs.insert("http.method".to_string(), "POST".to_string());
-                attrs.insert("http.route".to_string(), "/crawl".to_string());
-                attrs
-            },
+    let traces = vec![TraceMetadata {
+        trace_id: "0af7651916cd43dd8448eb211c80319c".to_string(),
+        root_span_id: "b7ad6b7169203331".to_string(),
+        start_time: "2025-10-03T10:00:00Z".to_string(),
+        duration_ms: 1234,
+        service_name: "riptide-api".to_string(),
+        span_count: 15,
+        status: "OK".to_string(),
+        attributes: {
+            let mut attrs = HashMap::new();
+            attrs.insert("http.method".to_string(), "POST".to_string());
+            attrs.insert("http.route".to_string(), "/crawl".to_string());
+            attrs
         },
-    ];
+    }];
 
     debug!(trace_count = traces.len(), "Returning traces");
     Ok(Json(traces))
@@ -209,8 +210,9 @@ pub async fn get_trace_tree(
     info!(trace_id = %trace_id_str, "Fetching trace tree");
 
     // Validate trace ID format
-    let _trace_id = parse_trace_id(&trace_id_str)
-        .ok_or_else(|| ApiError::invalid_request("Invalid trace ID format (expected 32-char hex)"))?;
+    let _trace_id = parse_trace_id(&trace_id_str).ok_or_else(|| {
+        ApiError::invalid_request("Invalid trace ID format (expected 32-char hex)")
+    })?;
 
     // Note: In production, this would fetch from a trace backend
     // For demonstration, we'll return a mock trace tree

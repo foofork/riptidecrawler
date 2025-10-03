@@ -6,13 +6,13 @@
 //! - Hot-swapping of providers without restart
 //! - Plugin lifecycle management
 
-use std::sync::Arc;
+use crate::LlmProvider;
+use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use serde::{Deserialize, Serialize};
-use async_trait::async_trait;
+use std::sync::Arc;
 use thiserror::Error;
-use crate::LlmProvider;
 
 /// Plugin metadata describing a provider plugin
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -186,10 +186,16 @@ pub enum PluginError {
 #[async_trait]
 pub trait PluginLoader: Send + Sync {
     /// Load a plugin from the given path
-    async fn load_plugin(&self, path: &std::path::Path) -> std::result::Result<Box<dyn Plugin>, PluginError>;
+    async fn load_plugin(
+        &self,
+        path: &std::path::Path,
+    ) -> std::result::Result<Box<dyn Plugin>, PluginError>;
 
     /// Validate plugin compatibility
-    async fn validate_plugin(&self, metadata: &PluginMetadata) -> std::result::Result<(), PluginError>;
+    async fn validate_plugin(
+        &self,
+        metadata: &PluginMetadata,
+    ) -> std::result::Result<(), PluginError>;
 
     /// Get supported plugin formats
     fn supported_formats(&self) -> Vec<String>;
@@ -205,7 +211,10 @@ pub trait Plugin: Send + Sync {
     async fn initialize(&mut self, config: &PluginConfig) -> std::result::Result<(), PluginError>;
 
     /// Create a provider instance
-    async fn create_provider(&self, config: &PluginConfig) -> std::result::Result<Arc<dyn LlmProvider>, PluginError>;
+    async fn create_provider(
+        &self,
+        config: &PluginConfig,
+    ) -> std::result::Result<Arc<dyn LlmProvider>, PluginError>;
 
     /// Perform health check
     async fn health_check(&self) -> std::result::Result<HealthStatus, PluginError>;
@@ -217,7 +226,10 @@ pub trait Plugin: Send + Sync {
     async fn shutdown(&mut self) -> std::result::Result<(), PluginError>;
 
     /// Hot-reload configuration
-    async fn reload_config(&mut self, config: &PluginConfig) -> std::result::Result<(), PluginError>;
+    async fn reload_config(
+        &mut self,
+        config: &PluginConfig,
+    ) -> std::result::Result<(), PluginError>;
 }
 
 /// Plugin registry for managing loaded plugins
@@ -276,8 +288,12 @@ impl PluginRegistry {
         plugin_id: &str,
         config: PluginConfig,
     ) -> std::result::Result<Arc<dyn LlmProvider>, PluginError> {
-        let plugin = self.plugins.get(plugin_id)
-            .ok_or_else(|| PluginError::NotFound { id: plugin_id.to_string() })?;
+        let plugin = self
+            .plugins
+            .get(plugin_id)
+            .ok_or_else(|| PluginError::NotFound {
+                id: plugin_id.to_string(),
+            })?;
 
         let provider = plugin.create_provider(&config).await?;
 
@@ -353,7 +369,8 @@ impl PluginRegistry {
             plugin.shutdown().await?;
 
             // Remove associated instances
-            self.instances.retain(|_, status| status.plugin_id != plugin_id);
+            self.instances
+                .retain(|_, status| status.plugin_id != plugin_id);
         }
 
         Ok(())
@@ -363,7 +380,9 @@ impl PluginRegistry {
     pub fn stats(&self) -> PluginRegistryStats {
         let total_plugins = self.plugins.len();
         let total_instances = self.instances.len();
-        let healthy_instances = self.instances.values()
+        let healthy_instances = self
+            .instances
+            .values()
             .filter(|status| status.health_status.is_healthy)
             .count();
 
@@ -371,7 +390,9 @@ impl PluginRegistry {
             total_plugins,
             total_instances,
             healthy_instances,
-            plugin_types: self.plugins.values()
+            plugin_types: self
+                .plugins
+                .values()
                 .map(|p| p.metadata().provider_type.clone())
                 .collect::<std::collections::HashSet<_>>()
                 .len(),
@@ -402,7 +423,10 @@ impl FileSystemPluginLoader {
 
 #[async_trait]
 impl PluginLoader for FileSystemPluginLoader {
-    async fn load_plugin(&self, _path: &std::path::Path) -> std::result::Result<Box<dyn Plugin>, PluginError> {
+    async fn load_plugin(
+        &self,
+        _path: &std::path::Path,
+    ) -> std::result::Result<Box<dyn Plugin>, PluginError> {
         // For now, this is a placeholder implementation
         // In a real implementation, this would:
         // 1. Load the plugin binary/library
@@ -414,7 +438,10 @@ impl PluginLoader for FileSystemPluginLoader {
         })
     }
 
-    async fn validate_plugin(&self, metadata: &PluginMetadata) -> std::result::Result<(), PluginError> {
+    async fn validate_plugin(
+        &self,
+        metadata: &PluginMetadata,
+    ) -> std::result::Result<(), PluginError> {
         // Basic validation
         if metadata.name.is_empty() {
             return Err(PluginError::ValidationFailed {

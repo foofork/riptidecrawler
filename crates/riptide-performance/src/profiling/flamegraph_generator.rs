@@ -83,7 +83,9 @@ impl FlamegraphGenerator {
 
     /// Generate CPU flamegraph
     pub async fn generate_cpu_flamegraph(&self) -> Result<String> {
-        let output_path = self.output_dir.join(format!("cpu_flamegraph_{}.svg", self.session_id));
+        let output_path = self
+            .output_dir
+            .join(format!("cpu_flamegraph_{}.svg", self.session_id));
 
         #[cfg(feature = "memory-profiling")]
         {
@@ -94,7 +96,8 @@ impl FlamegraphGenerator {
         #[cfg(not(feature = "memory-profiling"))]
         {
             // Generate a simple placeholder flamegraph
-            self.generate_placeholder_flamegraph(&output_path, "CPU Profile").await?;
+            self.generate_placeholder_flamegraph(&output_path, "CPU Profile")
+                .await?;
         }
 
         Ok(output_path.to_string_lossy().to_string())
@@ -102,7 +105,9 @@ impl FlamegraphGenerator {
 
     /// Generate memory flamegraph
     pub async fn generate_memory_flamegraph(&self) -> Result<String> {
-        let output_path = self.output_dir.join(format!("memory_flamegraph_{}.svg", self.session_id));
+        let output_path = self
+            .output_dir
+            .join(format!("memory_flamegraph_{}.svg", self.session_id));
 
         #[cfg(feature = "memory-profiling")]
         {
@@ -113,7 +118,8 @@ impl FlamegraphGenerator {
         #[cfg(not(feature = "memory-profiling"))]
         {
             // Generate a simple placeholder flamegraph
-            self.generate_placeholder_flamegraph(&output_path, "Memory Profile").await?;
+            self.generate_placeholder_flamegraph(&output_path, "Memory Profile")
+                .await?;
         }
 
         Ok(output_path.to_string_lossy().to_string())
@@ -121,16 +127,20 @@ impl FlamegraphGenerator {
 
     /// Generate allocation flamegraph
     pub async fn generate_allocation_flamegraph(&self) -> Result<String> {
-        let output_path = self.output_dir.join(format!("allocation_flamegraph_{}.svg", self.session_id));
+        let output_path = self
+            .output_dir
+            .join(format!("allocation_flamegraph_{}.svg", self.session_id));
 
         #[cfg(feature = "memory-profiling")]
         {
-            self.generate_pprof_flamegraph("alloc", &output_path).await?;
+            self.generate_pprof_flamegraph("alloc", &output_path)
+                .await?;
         }
 
         #[cfg(not(feature = "memory-profiling"))]
         {
-            self.generate_placeholder_flamegraph(&output_path, "Allocation Profile").await?;
+            self.generate_placeholder_flamegraph(&output_path, "Allocation Profile")
+                .await?;
         }
 
         Ok(output_path.to_string_lossy().to_string())
@@ -138,7 +148,9 @@ impl FlamegraphGenerator {
 
     /// Generate flamegraph using system tools (perf + flamegraph)
     pub async fn generate_system_flamegraph(&self, duration_seconds: u64) -> Result<String> {
-        let output_path = self.output_dir.join(format!("system_flamegraph_{}.svg", self.session_id));
+        let output_path = self
+            .output_dir
+            .join(format!("system_flamegraph_{}.svg", self.session_id));
 
         info!(
             duration = duration_seconds,
@@ -148,7 +160,12 @@ impl FlamegraphGenerator {
         // Check if perf is available
         if !self.is_perf_available() {
             warn!("perf tool not available, generating placeholder");
-            return self.generate_placeholder_flamegraph(&output_path, "System Profile (perf not available)").await;
+            return self
+                .generate_placeholder_flamegraph(
+                    &output_path,
+                    "System Profile (perf not available)",
+                )
+                .await;
         }
 
         // Record with perf
@@ -156,21 +173,28 @@ impl FlamegraphGenerator {
         let perf_record = Command::new("perf")
             .args([
                 "record",
-                "-F", "97", // Sample frequency
-                "-g",       // Call graphs
-                "-o", perf_data_path.to_str().unwrap(),
-                "--", "sleep", &duration_seconds.to_string()
+                "-F",
+                "97", // Sample frequency
+                "-g", // Call graphs
+                "-o",
+                perf_data_path.to_str().unwrap(),
+                "--",
+                "sleep",
+                &duration_seconds.to_string(),
             ])
             .output();
 
         match perf_record {
             Ok(output) if output.status.success() => {
                 // Convert perf data to flamegraph
-                self.perf_to_flamegraph(&perf_data_path, &output_path).await?;
+                self.perf_to_flamegraph(&perf_data_path, &output_path)
+                    .await?;
             }
             _ => {
                 warn!("Failed to run perf record, generating placeholder");
-                return self.generate_placeholder_flamegraph(&output_path, "System Profile (perf failed)").await;
+                return self
+                    .generate_placeholder_flamegraph(&output_path, "System Profile (perf failed)")
+                    .await;
             }
         }
 
@@ -192,10 +216,7 @@ impl FlamegraphGenerator {
         let folded_path = self.output_dir.join("folded.txt");
 
         let perf_script = Command::new("perf")
-            .args([
-                "script",
-                "-i", perf_data.to_str().unwrap(),
-            ])
+            .args(["script", "-i", perf_data.to_str().unwrap()])
             .output()?;
 
         if !perf_script.status.success() {
@@ -207,7 +228,8 @@ impl FlamegraphGenerator {
 
         // Generate flamegraph
         // Simulate flamegraph.pl check without which dependency
-        if false { // Disabled for now
+        if false {
+            // Disabled for now
             let _output = Command::new("flamegraph.pl")
                 .stdin(std::fs::File::open(&folded_path)?)
                 .stdout(std::fs::File::create(output_path)?)
@@ -231,7 +253,10 @@ impl FlamegraphGenerator {
             let _lines: Vec<&str> = folded_content.lines().collect();
 
             // Simplified fallback without flamegraph dependencies
-            let flamegraph_svg = format!("<svg>Flamegraph placeholder for {}</svg>", folded_path.display());
+            let flamegraph_svg = format!(
+                "<svg>Flamegraph placeholder for {}</svg>",
+                folded_path.display()
+            );
 
             std::fs::write(output_path, flamegraph_svg)?;
         }
@@ -239,7 +264,8 @@ impl FlamegraphGenerator {
         #[cfg(not(feature = "bottleneck-analysis"))]
         {
             // Generate placeholder
-            self.generate_placeholder_flamegraph(output_path, "Flamegraph (library not available)").await?;
+            self.generate_placeholder_flamegraph(output_path, "Flamegraph (library not available)")
+                .await?;
         }
 
         Ok(())
@@ -267,13 +293,20 @@ impl FlamegraphGenerator {
         }
 
         // 4. Generate placeholder as fallback
-        let output_path = self.output_dir.join(format!("flamegraph_{}.svg", self.session_id));
-        self.generate_placeholder_flamegraph(&output_path, "Performance Profile").await
+        let output_path = self
+            .output_dir
+            .join(format!("flamegraph_{}.svg", self.session_id));
+        self.generate_placeholder_flamegraph(&output_path, "Performance Profile")
+            .await
     }
 
     /// Generate pprof-based flamegraph
     #[cfg(feature = "memory-profiling")]
-    async fn generate_pprof_flamegraph(&self, profile_type: &str, output_path: &PathBuf) -> Result<()> {
+    async fn generate_pprof_flamegraph(
+        &self,
+        profile_type: &str,
+        output_path: &PathBuf,
+    ) -> Result<()> {
         // use pprof::protos::Message;
 
         // This is a simplified implementation
@@ -297,7 +330,11 @@ impl FlamegraphGenerator {
     }
 
     /// Generate placeholder flamegraph when profiling tools aren't available
-    async fn generate_placeholder_flamegraph(&self, output_path: &PathBuf, title: &str) -> Result<String> {
+    async fn generate_placeholder_flamegraph(
+        &self,
+        output_path: &PathBuf,
+        title: &str,
+    ) -> Result<String> {
         let svg_content = format!(
             r##"<?xml version="1.0" encoding="UTF-8"?>
 <svg viewBox="0 0 1200 600" xmlns="http://www.w3.org/2000/svg">
@@ -389,7 +426,8 @@ impl FlamegraphGenerator {
 
     /// Clean up old flamegraph files
     pub async fn cleanup_old_files(&self, max_age_hours: u64) -> Result<()> {
-        let cutoff = std::time::SystemTime::now() - std::time::Duration::from_secs(max_age_hours * 3600);
+        let cutoff =
+            std::time::SystemTime::now() - std::time::Duration::from_secs(max_age_hours * 3600);
 
         if let Ok(entries) = std::fs::read_dir(&self.output_dir) {
             for entry in entries.flatten() {
@@ -432,7 +470,9 @@ mod tests {
         let generator = FlamegraphGenerator::new(session_id).unwrap();
 
         let output_path = generator.output_dir.join("test.svg");
-        let result = generator.generate_placeholder_flamegraph(&output_path, "Test").await;
+        let result = generator
+            .generate_placeholder_flamegraph(&output_path, "Test")
+            .await;
 
         assert!(result.is_ok());
         assert!(output_path.exists());

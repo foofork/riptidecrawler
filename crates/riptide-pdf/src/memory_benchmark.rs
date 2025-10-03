@@ -3,11 +3,11 @@
 //! This module provides comprehensive benchmarking to validate that memory usage
 //! stays within acceptable limits (<200MB RSS spikes) under various load conditions.
 
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use std::collections::HashMap;
 
-use crate::{create_pdf_processor, PdfConfig, PdfMetricsCollector, PdfError};
+use crate::{create_pdf_processor, PdfConfig, PdfError, PdfMetricsCollector};
 
 /// Benchmark results for memory usage validation
 #[derive(Debug, Clone)]
@@ -93,14 +93,32 @@ impl PdfMemoryBenchmark {
         let pdfs_processed = if result.is_ok() { 1 } else { 0 };
 
         let mut metrics = HashMap::new();
-        metrics.insert("initial_memory_mb".to_string(), initial_memory as f64 / (1024.0 * 1024.0));
-        metrics.insert("final_memory_mb".to_string(), final_memory as f64 / (1024.0 * 1024.0));
-        metrics.insert("memory_spike_mb".to_string(), memory_spike as f64 / (1024.0 * 1024.0));
+        metrics.insert(
+            "initial_memory_mb".to_string(),
+            initial_memory as f64 / (1024.0 * 1024.0),
+        );
+        metrics.insert(
+            "final_memory_mb".to_string(),
+            final_memory as f64 / (1024.0 * 1024.0),
+        );
+        metrics.insert(
+            "memory_spike_mb".to_string(),
+            memory_spike as f64 / (1024.0 * 1024.0),
+        );
 
         if let Ok(processing_result) = result {
-            metrics.insert("pages_processed".to_string(), processing_result.stats.pages_processed as f64);
-            metrics.insert("images_extracted".to_string(), processing_result.stats.images_extracted as f64);
-            metrics.insert("processing_time_ms".to_string(), processing_result.stats.processing_time_ms as f64);
+            metrics.insert(
+                "pages_processed".to_string(),
+                processing_result.stats.pages_processed as f64,
+            );
+            metrics.insert(
+                "images_extracted".to_string(),
+                processing_result.stats.images_extracted as f64,
+            );
+            metrics.insert(
+                "processing_time_ms".to_string(),
+                processing_result.stats.processing_time_ms as f64,
+            );
         }
 
         MemoryBenchmarkResults {
@@ -114,16 +132,25 @@ impl PdfMemoryBenchmark {
             pdfs_processed,
             concurrent_operations: 1,
             success_rate,
-            avg_memory_per_pdf: if pdfs_processed > 0 { memory_spike as f64 / pdfs_processed as f64 } else { 0.0 },
+            avg_memory_per_pdf: if pdfs_processed > 0 {
+                memory_spike as f64 / pdfs_processed as f64
+            } else {
+                0.0
+            },
             metrics,
         }
     }
 
     /// Benchmark concurrent PDF processing with memory limits
-    pub async fn benchmark_concurrent_processing(&self,
-                                                pdf_size_pages: usize,
-                                                concurrent_count: usize) -> MemoryBenchmarkResults {
-        let test_name = format!("concurrent_{}_pdfs_{}pages", concurrent_count, pdf_size_pages);
+    pub async fn benchmark_concurrent_processing(
+        &self,
+        pdf_size_pages: usize,
+        concurrent_count: usize,
+    ) -> MemoryBenchmarkResults {
+        let test_name = format!(
+            "concurrent_{}_pdfs_{}pages",
+            concurrent_count, pdf_size_pages
+        );
         let pdf_data = Arc::new(self.create_test_pdf(pdf_size_pages));
 
         let mut config = PdfConfig::default();
@@ -146,7 +173,9 @@ impl PdfMemoryBenchmark {
 
             let handle = tokio::spawn(async move {
                 let task_start = Instant::now();
-                let result = processor_clone.process_pdf(&data_clone, &config_clone).await;
+                let result = processor_clone
+                    .process_pdf(&data_clone, &config_clone)
+                    .await;
                 let task_duration = task_start.elapsed();
                 (i, result, task_duration)
             });
@@ -196,14 +225,28 @@ impl PdfMemoryBenchmark {
         };
 
         let mut metrics = HashMap::new();
-        metrics.insert("initial_memory_mb".to_string(), initial_memory as f64 / (1024.0 * 1024.0));
-        metrics.insert("final_memory_mb".to_string(), final_memory as f64 / (1024.0 * 1024.0));
-        metrics.insert("memory_spike_mb".to_string(), memory_spike as f64 / (1024.0 * 1024.0));
+        metrics.insert(
+            "initial_memory_mb".to_string(),
+            initial_memory as f64 / (1024.0 * 1024.0),
+        );
+        metrics.insert(
+            "final_memory_mb".to_string(),
+            final_memory as f64 / (1024.0 * 1024.0),
+        );
+        metrics.insert(
+            "memory_spike_mb".to_string(),
+            memory_spike as f64 / (1024.0 * 1024.0),
+        );
         metrics.insert("successful_tasks".to_string(), successful_tasks as f64);
-        metrics.insert("memory_limit_failures".to_string(), memory_limit_failures as f64);
+        metrics.insert(
+            "memory_limit_failures".to_string(),
+            memory_limit_failures as f64,
+        );
         metrics.insert("total_pages".to_string(), total_pages as f64);
-        metrics.insert("concurrency_effectiveness".to_string(),
-                      (successful_tasks as f64 / processing_time.as_secs_f64()).min(2.0)); // Max 2 concurrent
+        metrics.insert(
+            "concurrency_effectiveness".to_string(),
+            (successful_tasks as f64 / processing_time.as_secs_f64()).min(2.0),
+        ); // Max 2 concurrent
 
         MemoryBenchmarkResults {
             test_name,
@@ -222,10 +265,15 @@ impl PdfMemoryBenchmark {
     }
 
     /// Benchmark memory stability over time with repeated processing
-    pub async fn benchmark_memory_stability(&self,
-                                           iterations: usize,
-                                           pdf_size_pages: usize) -> MemoryBenchmarkResults {
-        let test_name = format!("stability_{}_iterations_{}pages", iterations, pdf_size_pages);
+    pub async fn benchmark_memory_stability(
+        &self,
+        iterations: usize,
+        pdf_size_pages: usize,
+    ) -> MemoryBenchmarkResults {
+        let test_name = format!(
+            "stability_{}_iterations_{}pages",
+            iterations, pdf_size_pages
+        );
         let pdf_data = self.create_test_pdf(pdf_size_pages);
 
         let mut config = PdfConfig::default();
@@ -276,15 +324,34 @@ impl PdfMemoryBenchmark {
         };
 
         let mut metrics = HashMap::new();
-        metrics.insert("initial_memory_mb".to_string(), initial_memory as f64 / (1024.0 * 1024.0));
-        metrics.insert("final_memory_mb".to_string(), final_memory as f64 / (1024.0 * 1024.0));
-        metrics.insert("peak_memory_mb".to_string(), peak_memory as f64 / (1024.0 * 1024.0));
-        metrics.insert("memory_spike_mb".to_string(), memory_spike as f64 / (1024.0 * 1024.0));
-        metrics.insert("successful_iterations".to_string(), successful_iterations as f64);
-        metrics.insert("memory_growth_mb".to_string(),
-                      (final_memory.saturating_sub(initial_memory)) as f64 / (1024.0 * 1024.0));
-        metrics.insert("avg_time_per_iteration_ms".to_string(),
-                      processing_time.as_millis() as f64 / iterations as f64);
+        metrics.insert(
+            "initial_memory_mb".to_string(),
+            initial_memory as f64 / (1024.0 * 1024.0),
+        );
+        metrics.insert(
+            "final_memory_mb".to_string(),
+            final_memory as f64 / (1024.0 * 1024.0),
+        );
+        metrics.insert(
+            "peak_memory_mb".to_string(),
+            peak_memory as f64 / (1024.0 * 1024.0),
+        );
+        metrics.insert(
+            "memory_spike_mb".to_string(),
+            memory_spike as f64 / (1024.0 * 1024.0),
+        );
+        metrics.insert(
+            "successful_iterations".to_string(),
+            successful_iterations as f64,
+        );
+        metrics.insert(
+            "memory_growth_mb".to_string(),
+            (final_memory.saturating_sub(initial_memory)) as f64 / (1024.0 * 1024.0),
+        );
+        metrics.insert(
+            "avg_time_per_iteration_ms".to_string(),
+            processing_time.as_millis() as f64 / iterations as f64,
+        );
 
         MemoryBenchmarkResults {
             test_name,
@@ -312,31 +379,45 @@ impl PdfMemoryBenchmark {
         for pages in &[10, 50, 100, 500] {
             println!("📄 Testing single PDF with {} pages", pages);
             let result = self.benchmark_single_pdf(*pages).await;
-            println!("   Memory spike: {:.1} MB, Within limits: {}",
-                    result.memory_spike as f64 / (1024.0 * 1024.0),
-                    result.within_limits);
+            println!(
+                "   Memory spike: {:.1} MB, Within limits: {}",
+                result.memory_spike as f64 / (1024.0 * 1024.0),
+                result.within_limits
+            );
             results.push(result);
         }
 
         // Concurrent processing tests
         for (concurrent_count, pages) in &[(2, 50), (4, 50), (6, 50), (2, 200), (4, 200)] {
-            println!("🔄 Testing {} concurrent PDFs with {} pages", concurrent_count, pages);
-            let result = self.benchmark_concurrent_processing(*pages, *concurrent_count).await;
-            println!("   Memory spike: {:.1} MB, Success rate: {:.1}%, Within limits: {}",
-                    result.memory_spike as f64 / (1024.0 * 1024.0),
-                    result.success_rate * 100.0,
-                    result.within_limits);
+            println!(
+                "🔄 Testing {} concurrent PDFs with {} pages",
+                concurrent_count, pages
+            );
+            let result = self
+                .benchmark_concurrent_processing(*pages, *concurrent_count)
+                .await;
+            println!(
+                "   Memory spike: {:.1} MB, Success rate: {:.1}%, Within limits: {}",
+                result.memory_spike as f64 / (1024.0 * 1024.0),
+                result.success_rate * 100.0,
+                result.within_limits
+            );
             results.push(result);
         }
 
         // Memory stability tests
         for (iterations, pages) in &[(50, 20), (100, 10)] {
-            println!("⏱️  Testing memory stability over {} iterations with {} pages", iterations, pages);
+            println!(
+                "⏱️  Testing memory stability over {} iterations with {} pages",
+                iterations, pages
+            );
             let result = self.benchmark_memory_stability(*iterations, *pages).await;
-            println!("   Peak memory: {:.1} MB, Final growth: {:.1} MB, Within limits: {}",
-                    result.peak_memory as f64 / (1024.0 * 1024.0),
-                    result.metrics.get("memory_growth_mb").unwrap_or(&0.0),
-                    result.within_limits);
+            println!(
+                "   Peak memory: {:.1} MB, Final growth: {:.1} MB, Within limits: {}",
+                result.peak_memory as f64 / (1024.0 * 1024.0),
+                result.metrics.get("memory_growth_mb").unwrap_or(&0.0),
+                result.within_limits
+            );
             results.push(result);
         }
 
@@ -351,29 +432,49 @@ impl PdfMemoryBenchmark {
 
         let total_tests = results.len();
         let passing_tests = results.iter().filter(|r| r.within_limits).count();
-        let overall_success_rate = results.iter().map(|r| r.success_rate).sum::<f64>() / total_tests as f64;
+        let overall_success_rate =
+            results.iter().map(|r| r.success_rate).sum::<f64>() / total_tests as f64;
 
         report.push_str("## Overall Results\n");
         report.push_str(&format!("- **Total Tests**: {}\n", total_tests));
-        report.push_str(&format!("- **Tests Within Memory Limits**: {} ({:.1}%)\n",
-                                passing_tests,
-                                (passing_tests as f64 / total_tests as f64) * 100.0));
-        report.push_str(&format!("- **Average Success Rate**: {:.1}%\n", overall_success_rate * 100.0));
+        report.push_str(&format!(
+            "- **Tests Within Memory Limits**: {} ({:.1}%)\n",
+            passing_tests,
+            (passing_tests as f64 / total_tests as f64) * 100.0
+        ));
+        report.push_str(&format!(
+            "- **Average Success Rate**: {:.1}%\n",
+            overall_success_rate * 100.0
+        ));
 
         let max_memory_spike = results.iter().map(|r| r.memory_spike).max().unwrap_or(0);
-        report.push_str(&format!("- **Maximum Memory Spike**: {:.1} MB\n", max_memory_spike as f64 / (1024.0 * 1024.0)));
+        report.push_str(&format!(
+            "- **Maximum Memory Spike**: {:.1} MB\n",
+            max_memory_spike as f64 / (1024.0 * 1024.0)
+        ));
 
         report.push_str("\n## Detailed Results\n\n");
 
         for result in results {
             report.push_str(&format!("### {}\n", result.test_name));
-            report.push_str(&format!("- Memory Spike: {:.1} MB (Within limits: {})\n",
-                                    result.memory_spike as f64 / (1024.0 * 1024.0),
-                                    if result.within_limits { "✅" } else { "❌" }));
-            report.push_str(&format!("- Success Rate: {:.1}%\n", result.success_rate * 100.0));
-            report.push_str(&format!("- Processing Time: {:.2}s\n", result.processing_time.as_secs_f64()));
+            report.push_str(&format!(
+                "- Memory Spike: {:.1} MB (Within limits: {})\n",
+                result.memory_spike as f64 / (1024.0 * 1024.0),
+                if result.within_limits { "✅" } else { "❌" }
+            ));
+            report.push_str(&format!(
+                "- Success Rate: {:.1}%\n",
+                result.success_rate * 100.0
+            ));
+            report.push_str(&format!(
+                "- Processing Time: {:.2}s\n",
+                result.processing_time.as_secs_f64()
+            ));
             report.push_str(&format!("- PDFs Processed: {}\n", result.pdfs_processed));
-            report.push_str(&format!("- Avg Memory/PDF: {:.1} MB\n", result.avg_memory_per_pdf / (1024.0 * 1024.0)));
+            report.push_str(&format!(
+                "- Avg Memory/PDF: {:.1} MB\n",
+                result.avg_memory_per_pdf / (1024.0 * 1024.0)
+            ));
             report.push('\n');
         }
 
@@ -395,7 +496,9 @@ impl PdfMemoryBenchmark {
         pdf.extend_from_slice(b"%PDF-1.7\n");
         pdf.extend_from_slice(b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
         pdf.extend_from_slice(b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
-        pdf.extend_from_slice(b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>\nendobj\n");
+        pdf.extend_from_slice(
+            b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>\nendobj\n",
+        );
 
         // Add content to simulate larger PDFs
         for _ in 0..pages {

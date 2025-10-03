@@ -1,8 +1,8 @@
 //! Sentence-based chunking using NLTK-style sentence detection
 
+use super::{utils, Chunk, ChunkMetadata, ChunkingConfig, ChunkingStrategy};
 use anyhow::Result;
 use async_trait::async_trait;
-use super::{ChunkingStrategy, Chunk, ChunkMetadata, ChunkingConfig, utils};
 
 /// Sentence-based chunker that groups content by sentence boundaries
 pub struct SentenceChunker {
@@ -42,7 +42,9 @@ impl ChunkingStrategy for SentenceChunker {
             let would_exceed_sentences = current_chunk_sentences.len() >= self.max_sentences;
             let would_exceed_tokens = current_tokens + sentence_tokens > self.config.max_tokens;
 
-            if (would_exceed_sentences || would_exceed_tokens) && !current_chunk_sentences.is_empty() {
+            if (would_exceed_sentences || would_exceed_tokens)
+                && !current_chunk_sentences.is_empty()
+            {
                 // Create chunk from current sentences
                 let chunk = create_sentence_chunk(
                     &current_chunk_sentences,
@@ -169,7 +171,8 @@ fn detect_sentences(content: &str) -> Vec<Sentence> {
         if is_sentence_end(word, &words, i) {
             let confidence = calculate_sentence_confidence(&current_sentence, word);
 
-            if confidence > 0.5 { // Only accept high-confidence sentence boundaries
+            if confidence > 0.5 {
+                // Only accept high-confidence sentence boundaries
                 let sentence = Sentence {
                     text: current_sentence.trim().to_string(),
                     _start_pos: sentence_start,
@@ -269,14 +272,11 @@ fn calculate_sentence_confidence(sentence: &str, ending_word: &str) -> f64 {
 /// Enhanced abbreviation detection
 fn is_likely_abbreviation(word: &str) -> bool {
     const COMMON_ABBREVIATIONS: &[&str] = &[
-        "mr.", "mrs.", "ms.", "dr.", "prof.", "sr.", "jr.",
-        "inc.", "ltd.", "corp.", "co.", "etc.", "vs.", "vol.",
-        "no.", "pp.", "fig.", "ch.", "sec.", "dept.", "govt.",
-        "u.s.", "u.k.", "e.g.", "i.e.", "a.m.", "p.m.",
-        "jan.", "feb.", "mar.", "apr.", "may.", "jun.",
-        "jul.", "aug.", "sep.", "oct.", "nov.", "dec.",
-        "mon.", "tue.", "wed.", "thu.", "fri.", "sat.", "sun.",
-        "st.", "nd.", "rd.", "th.", // ordinals
+        "mr.", "mrs.", "ms.", "dr.", "prof.", "sr.", "jr.", "inc.", "ltd.", "corp.", "co.", "etc.",
+        "vs.", "vol.", "no.", "pp.", "fig.", "ch.", "sec.", "dept.", "govt.", "u.s.", "u.k.",
+        "e.g.", "i.e.", "a.m.", "p.m.", "jan.", "feb.", "mar.", "apr.", "may.", "jun.", "jul.",
+        "aug.", "sep.", "oct.", "nov.", "dec.", "mon.", "tue.", "wed.", "thu.", "fri.", "sat.",
+        "sun.", "st.", "nd.", "rd.", "th.", // ordinals
         "ave.", "blvd.", "st.", "rd.", "ln.", // addresses
     ];
 
@@ -343,7 +343,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_sentence_confidence() {
-        let high_confidence = calculate_sentence_confidence("This is a complete sentence", "sentence.");
+        let high_confidence =
+            calculate_sentence_confidence("This is a complete sentence", "sentence.");
         let low_confidence = calculate_sentence_confidence("Dr", "Dr.");
 
         assert!(high_confidence > 0.7);

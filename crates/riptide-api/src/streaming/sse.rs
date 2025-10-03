@@ -24,10 +24,7 @@ use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
 /// SSE (Server-Sent Events) endpoint for real-time crawl progress
-pub async fn crawl_sse(
-    State(app): State<AppState>,
-    Json(body): Json<CrawlBody>,
-) -> Response {
+pub async fn crawl_sse(State(app): State<AppState>, Json(body): Json<CrawlBody>) -> Response {
     let start_time = Instant::now();
     let request_id = Uuid::new_v4().to_string();
 
@@ -92,7 +89,7 @@ impl SseStreamingHandler {
             let mut backpressure_handler =
                 BackpressureHandler::new(request_id.clone(), buffer_clone);
 
-let request_id_clone = request_id.clone();
+            let request_id_clone = request_id.clone();
             if let Err(e) = orchestrate_crawl_sse(
                 app_clone,
                 body_clone,

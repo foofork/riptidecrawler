@@ -4,9 +4,7 @@ use axum::{
     response::Json,
 };
 use chrono::{DateTime, Utc};
-use riptide_workers::{
-    Job, JobType, JobPriority, JobStatus, ScheduledJob,
-};
+use riptide_workers::{Job, JobPriority, JobStatus, JobType, ScheduledJob};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -61,9 +59,13 @@ impl From<JobTypeRequest> for JobType {
         match request {
             JobTypeRequest::BatchCrawl { urls, options } => JobType::BatchCrawl { urls, options },
             JobTypeRequest::SingleCrawl { url, options } => JobType::SingleCrawl { url, options },
-            JobTypeRequest::Maintenance { task_type, parameters } => {
-                JobType::Maintenance { task_type, parameters }
-            }
+            JobTypeRequest::Maintenance {
+                task_type,
+                parameters,
+            } => JobType::Maintenance {
+                task_type,
+                parameters,
+            },
             JobTypeRequest::Custom { job_name, payload } => JobType::Custom { job_name, payload },
         }
     }
@@ -221,12 +223,10 @@ pub async fn submit_job(
     }
 
     // Submit to WorkerService
-    let job_id = state.worker_service.submit_job(job)
-        .await
-        .map_err(|e| {
-            tracing::error!(error = %e, "Failed to submit job");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+    let job_id = state.worker_service.submit_job(job).await.map_err(|e| {
+        tracing::error!(error = %e, "Failed to submit job");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     tracing::info!(
         job_id = %job_id,
@@ -248,7 +248,9 @@ pub async fn get_job_status(
 ) -> Result<Json<JobStatusResponse>, StatusCode> {
     tracing::info!(job_id = %job_id, "Getting job status");
 
-    let job = state.worker_service.get_job(job_id)
+    let job = state
+        .worker_service
+        .get_job(job_id)
         .await
         .map_err(|e| {
             tracing::error!(error = %e, job_id = %job_id, "Failed to get job status");
@@ -260,13 +262,14 @@ pub async fn get_job_status(
         })?;
 
     // Calculate processing time if job has started
-    let processing_time_ms = if let (Some(started), Some(completed)) = (job.started_at, job.completed_at) {
-        Some((completed - started).num_milliseconds() as u64)
-    } else if let Some(started) = job.started_at {
-        Some((Utc::now() - started).num_milliseconds() as u64)
-    } else {
-        None
-    };
+    let processing_time_ms =
+        if let (Some(started), Some(completed)) = (job.started_at, job.completed_at) {
+            Some((completed - started).num_milliseconds() as u64)
+        } else if let Some(started) = job.started_at {
+            Some((Utc::now() - started).num_milliseconds() as u64)
+        } else {
+            None
+        };
 
     Ok(Json(JobStatusResponse {
         job_id: job.id,
@@ -289,7 +292,9 @@ pub async fn get_job_result(
 ) -> Result<Json<JobResultResponse>, StatusCode> {
     tracing::info!(job_id = %job_id, "Getting job result");
 
-    let result = state.worker_service.get_job_result(job_id)
+    let result = state
+        .worker_service
+        .get_job_result(job_id)
         .await
         .map_err(|e| {
             tracing::error!(error = %e, job_id = %job_id, "Failed to get job result");
@@ -317,12 +322,10 @@ pub async fn get_queue_stats(
 ) -> Result<Json<QueueStatsResponse>, StatusCode> {
     tracing::info!("Getting queue statistics");
 
-    let stats = state.worker_service.get_queue_stats()
-        .await
-        .map_err(|e| {
-            tracing::error!(error = %e, "Failed to get queue stats");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+    let stats = state.worker_service.get_queue_stats().await.map_err(|e| {
+        tracing::error!(error = %e, "Failed to get queue stats");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     Ok(Json(QueueStatsResponse {
         pending: stats.pending,
@@ -331,7 +334,12 @@ pub async fn get_queue_stats(
         failed: stats.failed,
         retry: stats.retry,
         delayed: stats.delayed,
-        total: stats.pending + stats.processing + stats.completed + stats.failed + stats.retry + stats.delayed,
+        total: stats.pending
+            + stats.processing
+            + stats.completed
+            + stats.failed
+            + stats.retry
+            + stats.delayed,
     }))
 }
 
@@ -341,11 +349,10 @@ pub async fn get_worker_stats(
 ) -> Result<Json<WorkerPoolStatsResponse>, StatusCode> {
     tracing::info!("Getting worker pool statistics");
 
-    let stats = state.worker_service.get_worker_stats()
-        .ok_or_else(|| {
-            tracing::warn!("Worker pool not yet started");
-            StatusCode::SERVICE_UNAVAILABLE
-        })?;
+    let stats = state.worker_service.get_worker_stats().ok_or_else(|| {
+        tracing::warn!("Worker pool not yet started");
+        StatusCode::SERVICE_UNAVAILABLE
+    })?;
 
     Ok(Json(WorkerPoolStatsResponse {
         total_workers: stats.total_workers,
@@ -369,7 +376,11 @@ pub async fn create_scheduled_job(
 
     // Convert request to scheduled job
     let job_type = JobType::from(request.job_template);
-    let mut scheduled_job = match ScheduledJob::new(request.name.clone(), request.cron_expression.clone(), job_type) {
+    let mut scheduled_job = match ScheduledJob::new(
+        request.name.clone(),
+        request.cron_expression.clone(),
+        job_type,
+    ) {
         Ok(job) => job,
         Err(e) => {
             tracing::error!(error = %e, "Failed to create scheduled job");
@@ -392,7 +403,9 @@ pub async fn create_scheduled_job(
     }
 
     // Add to scheduler
-    let job_id = state.worker_service.add_scheduled_job(scheduled_job)
+    let job_id = state
+        .worker_service
+        .add_scheduled_job(scheduled_job)
         .await
         .map_err(|e| {
             tracing::error!(error = %e, "Failed to add scheduled job");
@@ -400,13 +413,13 @@ pub async fn create_scheduled_job(
         })?;
 
     // Retrieve created job for response
-    let jobs = state.worker_service.list_scheduled_jobs()
-        .map_err(|e| {
-            tracing::error!(error = %e, "Failed to retrieve scheduled job");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+    let jobs = state.worker_service.list_scheduled_jobs().map_err(|e| {
+        tracing::error!(error = %e, "Failed to retrieve scheduled job");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
-    let scheduled_job = jobs.into_iter()
+    let scheduled_job = jobs
+        .into_iter()
         .find(|j| j.id == job_id)
         .ok_or_else(|| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -429,13 +442,13 @@ pub async fn list_scheduled_jobs(
 ) -> Result<Json<Vec<ScheduledJobResponse>>, StatusCode> {
     tracing::info!("Listing scheduled jobs");
 
-    let jobs = state.worker_service.list_scheduled_jobs()
-        .map_err(|e| {
-            tracing::error!(error = %e, "Failed to list scheduled jobs");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+    let jobs = state.worker_service.list_scheduled_jobs().map_err(|e| {
+        tracing::error!(error = %e, "Failed to list scheduled jobs");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
-    let responses: Vec<ScheduledJobResponse> = jobs.into_iter()
+    let responses: Vec<ScheduledJobResponse> = jobs
+        .into_iter()
         .map(|job| ScheduledJobResponse {
             id: job.id,
             name: job.name,
@@ -459,7 +472,9 @@ pub async fn delete_scheduled_job(
 ) -> Result<StatusCode, StatusCode> {
     tracing::info!(job_id = %job_id, "Deleting scheduled job");
 
-    let deleted = state.worker_service.remove_scheduled_job(job_id)
+    let deleted = state
+        .worker_service
+        .remove_scheduled_job(job_id)
         .await
         .map_err(|e| {
             tracing::error!(error = %e, job_id = %job_id, "Failed to delete scheduled job");

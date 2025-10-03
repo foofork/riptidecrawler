@@ -1,6 +1,6 @@
 //! Simple chunking test to verify basic functionality
 
-use riptide_html::chunking::{ChunkingConfig, ChunkingMode, create_strategy};
+use riptide_html::chunking::{create_strategy, ChunkingConfig, ChunkingMode};
 
 #[tokio::test]
 async fn test_basic_chunking_functionality() {
@@ -16,18 +16,18 @@ async fn test_basic_chunking_functionality() {
 
     // Test fixed size chunking
     let strategy = create_strategy(
-        ChunkingMode::Fixed { size: 50, by_tokens: false },
-        config.clone()
+        ChunkingMode::Fixed {
+            size: 50,
+            by_tokens: false,
+        },
+        config.clone(),
     );
     let chunks = strategy.chunk(text).await.unwrap();
     assert!(!chunks.is_empty());
     println!("✓ Fixed size chunking works");
 
     // Test sentence chunking
-    let strategy = create_strategy(
-        ChunkingMode::Sentence { max_sentences: 2 },
-        config.clone()
-    );
+    let strategy = create_strategy(ChunkingMode::Sentence { max_sentences: 2 }, config.clone());
     let chunks = strategy.chunk(text).await.unwrap();
     assert!(!chunks.is_empty());
     println!("✓ Sentence chunking works");
@@ -36,9 +36,9 @@ async fn test_basic_chunking_functionality() {
     let strategy = create_strategy(
         ChunkingMode::Regex {
             pattern: r"\.".to_string(),
-            min_chunk_size: 10
+            min_chunk_size: 10,
         },
-        config.clone()
+        config.clone(),
     );
     let chunks = strategy.chunk(text).await.unwrap();
     assert!(!chunks.is_empty());
@@ -48,9 +48,9 @@ async fn test_basic_chunking_functionality() {
     let strategy = create_strategy(
         ChunkingMode::HtmlAware {
             preserve_blocks: true,
-            preserve_structure: false
+            preserve_structure: false,
         },
-        config.clone()
+        config.clone(),
     );
     let chunks = strategy.chunk(text).await.unwrap();
     assert!(!chunks.is_empty());

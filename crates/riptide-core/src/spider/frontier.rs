@@ -1,4 +1,4 @@
-use crate::spider::types::{CrawlRequest, HostState, FrontierMetrics, Priority};
+use crate::spider::types::{CrawlRequest, FrontierMetrics, HostState, Priority};
 use anyhow::Result;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
@@ -372,14 +372,21 @@ impl FrontierManager {
     }
 
     /// Record the result of a crawl operation
-    pub async fn record_result(&self, request: &CrawlRequest, success: bool, error: Option<String>) {
+    pub async fn record_result(
+        &self,
+        request: &CrawlRequest,
+        success: bool,
+        error: Option<String>,
+    ) {
         if let Some(host) = request.host() {
             if let Some(host_queue_ref) = self.host_queues.get(host) {
                 let mut host_queue = host_queue_ref.lock().await;
                 if success {
                     host_queue.state.record_success();
                 } else {
-                    host_queue.state.record_error(error.unwrap_or_else(|| "Unknown error".to_string()));
+                    host_queue
+                        .state
+                        .record_error(error.unwrap_or_else(|| "Unknown error".to_string()));
                 }
             }
         }
@@ -423,20 +430,20 @@ impl FrontierManager {
             Priority::High,
             self.high_priority.lock().await.len() + self.best_first_queue.lock().await.len(),
         );
-        metrics.requests_by_priority.insert(
-            Priority::Medium,
-            self.medium_priority.lock().await.len(),
-        );
-        metrics.requests_by_priority.insert(
-            Priority::Low,
-            self.low_priority.lock().await.len(),
-        );
+        metrics
+            .requests_by_priority
+            .insert(Priority::Medium, self.medium_priority.lock().await.len());
+        metrics
+            .requests_by_priority
+            .insert(Priority::Low, self.low_priority.lock().await.len());
 
         // Update host distribution
         metrics.requests_by_host.clear();
         for entry in self.host_queues.iter() {
             let host_queue = entry.value().lock().await;
-            metrics.requests_by_host.insert(entry.key().clone(), host_queue.len());
+            metrics
+                .requests_by_host
+                .insert(entry.key().clone(), host_queue.len());
         }
 
         // Calculate memory usage (rough estimate)
@@ -470,7 +477,8 @@ impl FrontierManager {
             .filter_map(|entry| {
                 let host_queue = entry.value().try_lock();
                 if let Ok(queue) = host_queue {
-                    if queue.last_access.elapsed() > self.config.max_request_age && queue.is_empty() {
+                    if queue.last_access.elapsed() > self.config.max_request_age && queue.is_empty()
+                    {
                         Some(entry.key().clone())
                     } else {
                         None
@@ -532,11 +540,17 @@ mod tests {
         let request = CrawlRequest::new(url.clone());
 
         // Add request
-        frontier.add_request(request).await.expect("Failed to add request");
+        frontier
+            .add_request(request)
+            .await
+            .expect("Failed to add request");
         assert_eq!(frontier.size(), 1);
 
         // Get request
-        let next = frontier.next_request().await.expect("Failed to get request");
+        let next = frontier
+            .next_request()
+            .await
+            .expect("Failed to get request");
         assert!(next.is_some());
         assert_eq!(next.unwrap().url, url);
         assert_eq!(frontier.size(), 0);
@@ -568,15 +582,27 @@ mod tests {
             .expect("Failed to add medium priority");
 
         // Should get high priority first
-        let first = frontier.next_request().await.expect("Failed to get first").expect("Should have request");
+        let first = frontier
+            .next_request()
+            .await
+            .expect("Failed to get first")
+            .expect("Should have request");
         assert_eq!(first.url, high_url);
 
         // Then medium
-        let second = frontier.next_request().await.expect("Failed to get second").expect("Should have request");
+        let second = frontier
+            .next_request()
+            .await
+            .expect("Failed to get second")
+            .expect("Should have request");
         assert_eq!(second.url, medium_url);
 
         // Finally low
-        let third = frontier.next_request().await.expect("Failed to get third").expect("Should have request");
+        let third = frontier
+            .next_request()
+            .await
+            .expect("Failed to get third")
+            .expect("Should have request");
         assert_eq!(third.url, low_url);
     }
 
@@ -600,10 +626,18 @@ mod tests {
             .expect("Failed to add second");
 
         // Should get higher score first
-        let first = frontier.next_request().await.expect("Failed to get first").expect("Should have request");
+        let first = frontier
+            .next_request()
+            .await
+            .expect("Failed to get first")
+            .expect("Should have request");
         assert_eq!(first.url, url2);
 
-        let second = frontier.next_request().await.expect("Failed to get second").expect("Should have request");
+        let second = frontier
+            .next_request()
+            .await
+            .expect("Failed to get second")
+            .expect("Should have request");
         assert_eq!(second.url, url1);
     }
 

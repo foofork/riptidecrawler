@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use thiserror::Error;
 
-use crate::{ExtractedContent, ContentChunk, RegexPattern};
+use crate::{ContentChunk, ExtractedContent, RegexPattern};
 
 /// Main trait for HTML processing operations
 #[async_trait]
@@ -171,7 +171,7 @@ pub struct DefaultHtmlProcessor {
 impl Default for DefaultHtmlProcessor {
     fn default() -> Self {
         Self {
-            max_processing_time: 30_000, // 30 seconds
+            max_processing_time: 30_000,         // 30 seconds
             max_memory_usage: 100 * 1024 * 1024, // 100MB
             enable_stats: true,
         }
@@ -256,7 +256,10 @@ impl HtmlProcessor for DefaultHtmlProcessor {
 }
 
 /// Content chunking implementation
-async fn chunk_content_impl(content: &str, mode: ChunkingMode) -> anyhow::Result<Vec<ContentChunk>> {
+async fn chunk_content_impl(
+    content: &str,
+    mode: ChunkingMode,
+) -> anyhow::Result<Vec<ContentChunk>> {
     let mut chunks = Vec::new();
 
     match mode {
@@ -280,11 +283,7 @@ async fn chunk_content_impl(content: &str, mode: ChunkingMode) -> anyhow::Result
                     break;
                 }
 
-                start = if overlap < size {
-                    end - overlap
-                } else {
-                    end
-                };
+                start = if overlap < size { end - overlap } else { end };
                 index += 1;
             }
         }
@@ -378,7 +377,10 @@ async fn chunk_content_impl(content: &str, mode: ChunkingMode) -> anyhow::Result
                 });
             }
         }
-        ChunkingMode::Token { max_tokens, overlap } => {
+        ChunkingMode::Token {
+            max_tokens,
+            overlap,
+        } => {
             let tokens: Vec<&str> = content.split_whitespace().collect();
             let mut start = 0;
             let mut index = 0;
@@ -388,7 +390,9 @@ async fn chunk_content_impl(content: &str, mode: ChunkingMode) -> anyhow::Result
                 let chunk_tokens = &tokens[start..end];
                 let chunk_content = chunk_tokens.join(" ");
 
-                let start_pos = if start == 0 { 0 } else {
+                let start_pos = if start == 0 {
+                    0
+                } else {
                     content.find(chunk_tokens[0]).unwrap_or(0)
                 };
                 let end_pos = if end >= tokens.len() {
@@ -417,7 +421,9 @@ async fn chunk_content_impl(content: &str, mode: ChunkingMode) -> anyhow::Result
                 index += 1;
             }
         }
-        ChunkingMode::Semantic { similarity_threshold: _ } => {
+        ChunkingMode::Semantic {
+            similarity_threshold: _,
+        } => {
             // Simple implementation - split by double newlines (paragraphs)
             // In a real implementation, this would use semantic similarity
             let paragraphs: Vec<&str> = content.split("\n\n").collect();

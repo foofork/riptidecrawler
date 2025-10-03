@@ -54,10 +54,17 @@ pub async fn deepsearch(
     );
 
     // Emit deepsearch start event
-    let mut start_event = BaseEvent::new("deepsearch.started", "api.deepsearch_handler", EventSeverity::Info);
+    let mut start_event = BaseEvent::new(
+        "deepsearch.started",
+        "api.deepsearch_handler",
+        EventSeverity::Info,
+    );
     start_event.add_metadata("query", &body.query);
     start_event.add_metadata("limit", &body.limit.unwrap_or(10).to_string());
-    start_event.add_metadata("include_content", &body.include_content.unwrap_or(true).to_string());
+    start_event.add_metadata(
+        "include_content",
+        &body.include_content.unwrap_or(true).to_string(),
+    );
     if let Err(e) = state.event_bus.emit(start_event).await {
         warn!(error = %e, "Failed to emit deepsearch start event");
     }
@@ -82,7 +89,8 @@ pub async fn deepsearch(
         limit,
         body.country.as_deref(),
         body.locale.as_deref(),
-    ).await?;
+    )
+    .await?;
 
     info!(
         query = %body.query,
@@ -167,7 +175,11 @@ pub async fn deepsearch(
     );
 
     // Emit deepsearch completion event
-    let mut complete_event = BaseEvent::new("deepsearch.completed", "api.deepsearch_handler", EventSeverity::Info);
+    let mut complete_event = BaseEvent::new(
+        "deepsearch.completed",
+        "api.deepsearch_handler",
+        EventSeverity::Info,
+    );
     complete_event.add_metadata("query", &query_clone);
     complete_event.add_metadata("urls_found", &urls.len().to_string());
     complete_event.add_metadata("urls_crawled", &response.urls_crawled.to_string());
@@ -195,7 +207,7 @@ pub(super) async fn perform_search_with_provider(
     country: Option<&str>,
     locale: Option<&str>,
 ) -> ApiResult<Vec<SearchResult>> {
-    use riptide_search::{SearchProviderFactory, SearchBackend};
+    use riptide_search::{SearchBackend, SearchProviderFactory};
 
     // Determine search backend from environment variable with validation
     let backend_str = std::env::var("SEARCH_BACKEND").unwrap_or_else(|_| "serper".to_string());
@@ -210,9 +222,14 @@ pub(super) async fn perform_search_with_provider(
     );
 
     // Create search provider using the advanced factory with environment configuration
-    let provider = SearchProviderFactory::create_with_backend(backend).await.map_err(|e| {
-        ApiError::dependency("search_provider", format!("SearchProviderFactory failed to create provider: {}", e))
-    })?;
+    let provider = SearchProviderFactory::create_with_backend(backend)
+        .await
+        .map_err(|e| {
+            ApiError::dependency(
+                "search_provider",
+                format!("SearchProviderFactory failed to create provider: {}", e),
+            )
+        })?;
 
     // Perform health check to ensure provider is ready
     if let Err(health_error) = provider.health_check().await {

@@ -51,24 +51,22 @@ pub mod user_agent;
 
 // Re-export main types for easy access
 pub use config::{
-    DomainTiming, HeaderRandomization, LocaleRandomization, LocaleStrategy, ProxyAuth,
-    ProxyConfig, ProxyEndpoint, ProxyRotation, ProxyType, RateLimit, RequestRandomization,
-    StealthConfig, StealthPreset, TimingConfig, TimingJitter, ViewportRandomization,
-    load_user_agents_from_file,
+    load_user_agents_from_file, DomainTiming, HeaderRandomization, LocaleRandomization,
+    LocaleStrategy, ProxyAuth, ProxyConfig, ProxyEndpoint, ProxyRotation, ProxyType, RateLimit,
+    RequestRandomization, StealthConfig, StealthPreset, TimingConfig, TimingJitter,
+    ViewportRandomization,
 };
 
 pub use evasion::StealthController;
 
 pub use fingerprint::{
-    AudioConfig, CanvasConfig, CdpStealthConfig, FingerprintingConfig, FontConfig,
-    HardwareConfig, PluginConfig, WebGlConfig, WebRtcConfig,
+    AudioConfig, CanvasConfig, CdpStealthConfig, FingerprintingConfig, FontConfig, HardwareConfig,
+    PluginConfig, WebGlConfig, WebRtcConfig,
 };
 
 pub use javascript::JavaScriptInjector;
 
-pub use user_agent::{
-    BrowserType, RotationStrategy, UserAgentConfig, UserAgentManager,
-};
+pub use user_agent::{BrowserType, RotationStrategy, UserAgentConfig, UserAgentManager};
 
 // Tests module
 #[cfg(test)]

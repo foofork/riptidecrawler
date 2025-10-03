@@ -261,10 +261,8 @@ pub struct FetchEngine {
 impl FetchEngine {
     /// Create a new fetch engine with default configuration
     pub fn new() -> Result<Self> {
-        let client = ReliableHttpClient::new(
-            RetryConfig::default(),
-            CircuitBreakerConfig::default(),
-        )?;
+        let client =
+            ReliableHttpClient::new(RetryConfig::default(), CircuitBreakerConfig::default())?;
 
         Ok(Self { client })
     }

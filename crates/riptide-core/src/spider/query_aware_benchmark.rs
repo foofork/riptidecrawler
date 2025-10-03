@@ -1,7 +1,4 @@
-use crate::spider::{
-    query_aware::*,
-    types::CrawlRequest,
-};
+use crate::spider::{query_aware::*, types::CrawlRequest};
 use std::str::FromStr;
 use std::time::Instant;
 use url::Url;
@@ -30,9 +27,9 @@ impl QueryAwareBenchmark {
         let config = QueryAwareConfig {
             query_foraging: true,
             target_query: Some(query.to_string()),
-            bm25_weight: 0.4,        // α
-            url_signals_weight: 0.2,  // β
-            domain_diversity_weight: 0.2, // γ
+            bm25_weight: 0.4,               // α
+            url_signals_weight: 0.2,        // β
+            domain_diversity_weight: 0.2,   // γ
             content_similarity_weight: 0.2, // δ
             min_relevance_threshold: 0.3,
             relevance_window_size: 10,
@@ -66,32 +63,50 @@ impl QueryAwareBenchmark {
         // 2. URL Signal Performance Test
         println!("\n🔗 Testing URL Signal Analysis Performance...");
         results.url_signals_throughput = self.benchmark_url_signals();
-        println!("   ✓ URL signals throughput: {:.0} URLs/sec", results.url_signals_throughput);
+        println!(
+            "   ✓ URL signals throughput: {:.0} URLs/sec",
+            results.url_signals_throughput
+        );
 
         // 3. Domain Diversity Test
         println!("\n🌐 Testing Domain Diversity Calculations...");
         results.domain_diversity_accuracy = self.benchmark_domain_diversity();
-        println!("   ✓ Domain diversity accuracy: {:.3}", results.domain_diversity_accuracy);
+        println!(
+            "   ✓ Domain diversity accuracy: {:.3}",
+            results.domain_diversity_accuracy
+        );
 
         // 4. Early Stopping Logic Test
         println!("\n⏹️  Testing Early Stopping Logic...");
         results.early_stopping_effectiveness = self.benchmark_early_stopping();
-        println!("   ✓ Early stopping effectiveness: {:.3}", results.early_stopping_effectiveness);
+        println!(
+            "   ✓ Early stopping effectiveness: {:.3}",
+            results.early_stopping_effectiveness
+        );
 
         // 5. Overall Performance Impact Test
         println!("\n⚡ Testing Overall Performance Impact...");
         results.performance_impact_percent = self.benchmark_performance_impact();
-        println!("   ✓ Performance impact: {:.2}%", results.performance_impact_percent);
+        println!(
+            "   ✓ Performance impact: {:.2}%",
+            results.performance_impact_percent
+        );
 
         // 6. On-Topic Token Lift Test
         println!("\n🎯 Testing On-Topic Token Lift...");
         results.on_topic_lift_percent = self.benchmark_on_topic_lift();
-        println!("   ✓ On-topic token lift: {:.1}%", results.on_topic_lift_percent);
+        println!(
+            "   ✓ On-topic token lift: {:.1}%",
+            results.on_topic_lift_percent
+        );
 
         // 7. Weight Configuration System Test
         println!("\n⚖️  Testing Weight Configuration System...");
         results.weight_config_validation = self.benchmark_weight_configurations();
-        println!("   ✓ Weight configuration validation passed: {}", results.weight_config_validation);
+        println!(
+            "   ✓ Weight configuration validation passed: {}",
+            results.weight_config_validation
+        );
 
         println!("\n{}", "=".repeat(60));
         self.print_results_summary(&results);
@@ -126,7 +141,10 @@ impl QueryAwareBenchmark {
         ];
 
         let relevant_scores: Vec<f64> = relevant_docs.iter().map(|doc| scorer.score(doc)).collect();
-        let irrelevant_scores: Vec<f64> = irrelevant_docs.iter().map(|doc| scorer.score(doc)).collect();
+        let irrelevant_scores: Vec<f64> = irrelevant_docs
+            .iter()
+            .map(|doc| scorer.score(doc))
+            .collect();
 
         let avg_relevant = relevant_scores.iter().sum::<f64>() / relevant_scores.len() as f64;
         let avg_irrelevant = irrelevant_scores.iter().sum::<f64>() / irrelevant_scores.len() as f64;
@@ -262,7 +280,10 @@ impl QueryAwareBenchmark {
         for i in 0..num_requests {
             let url = Url::from_str(&format!("https://example.com/page{}", i)).unwrap();
             let request = CrawlRequest::new(url);
-            let content = format!("Page {} content about machine learning and artificial intelligence", i);
+            let content = format!(
+                "Page {} content about machine learning and artificial intelligence",
+                i
+            );
             qa_scorer.score_request(&request, Some(&content));
         }
 
@@ -345,8 +366,10 @@ impl QueryAwareBenchmark {
 
         for config in &test_configs {
             // Check that weights sum to 1.0 (or close)
-            let weight_sum = config.bm25_weight + config.url_signals_weight +
-                           config.domain_diversity_weight + config.content_similarity_weight;
+            let weight_sum = config.bm25_weight
+                + config.url_signals_weight
+                + config.domain_diversity_weight
+                + config.content_similarity_weight;
 
             if (weight_sum - 1.0).abs() > 0.001 {
                 return false;
@@ -395,33 +418,102 @@ impl QueryAwareBenchmark {
         println!("{}", "=".repeat(60));
 
         println!("🎯 WEEK 7 REQUIREMENTS VALIDATION:");
-        println!("   BM25 Scoring Algorithm: {}", if results.bm25_accuracy > 0.7 { "✅ PASS" } else { "❌ FAIL" });
-        println!("   URL Signal Integration: {}", if results.url_signals_throughput > 1000.0 { "✅ PASS" } else { "❌ FAIL" });
-        println!("   Domain Diversity: {}", if results.domain_diversity_accuracy > 0.8 { "✅ PASS" } else { "❌ FAIL" });
-        println!("   Early Stopping Logic: {}", if results.early_stopping_effectiveness > 0.8 { "✅ PASS" } else { "❌ FAIL" });
-        println!("   <10% Performance Impact: {}", if results.performance_impact_percent < 10.0 { "✅ PASS" } else { "❌ FAIL" });
-        println!("   ≥20% On-Topic Lift: {}", if results.on_topic_lift_percent >= 20.0 { "✅ PASS" } else { "❌ FAIL" });
-        println!("   Weight Configuration: {}", if results.weight_config_validation { "✅ PASS" } else { "❌ FAIL" });
+        println!(
+            "   BM25 Scoring Algorithm: {}",
+            if results.bm25_accuracy > 0.7 {
+                "✅ PASS"
+            } else {
+                "❌ FAIL"
+            }
+        );
+        println!(
+            "   URL Signal Integration: {}",
+            if results.url_signals_throughput > 1000.0 {
+                "✅ PASS"
+            } else {
+                "❌ FAIL"
+            }
+        );
+        println!(
+            "   Domain Diversity: {}",
+            if results.domain_diversity_accuracy > 0.8 {
+                "✅ PASS"
+            } else {
+                "❌ FAIL"
+            }
+        );
+        println!(
+            "   Early Stopping Logic: {}",
+            if results.early_stopping_effectiveness > 0.8 {
+                "✅ PASS"
+            } else {
+                "❌ FAIL"
+            }
+        );
+        println!(
+            "   <10% Performance Impact: {}",
+            if results.performance_impact_percent < 10.0 {
+                "✅ PASS"
+            } else {
+                "❌ FAIL"
+            }
+        );
+        println!(
+            "   ≥20% On-Topic Lift: {}",
+            if results.on_topic_lift_percent >= 20.0 {
+                "✅ PASS"
+            } else {
+                "❌ FAIL"
+            }
+        );
+        println!(
+            "   Weight Configuration: {}",
+            if results.weight_config_validation {
+                "✅ PASS"
+            } else {
+                "❌ FAIL"
+            }
+        );
 
         println!("\n📊 DETAILED METRICS:");
         println!("   BM25 Accuracy Score: {:.3}", results.bm25_accuracy);
-        println!("   URL Signals Throughput: {:.0} URLs/sec", results.url_signals_throughput);
-        println!("   Domain Diversity Accuracy: {:.3}", results.domain_diversity_accuracy);
-        println!("   Early Stopping Effectiveness: {:.3}", results.early_stopping_effectiveness);
-        println!("   Performance Impact: {:.2}%", results.performance_impact_percent);
-        println!("   On-Topic Token Lift: {:.1}%", results.on_topic_lift_percent);
+        println!(
+            "   URL Signals Throughput: {:.0} URLs/sec",
+            results.url_signals_throughput
+        );
+        println!(
+            "   Domain Diversity Accuracy: {:.3}",
+            results.domain_diversity_accuracy
+        );
+        println!(
+            "   Early Stopping Effectiveness: {:.3}",
+            results.early_stopping_effectiveness
+        );
+        println!(
+            "   Performance Impact: {:.2}%",
+            results.performance_impact_percent
+        );
+        println!(
+            "   On-Topic Token Lift: {:.1}%",
+            results.on_topic_lift_percent
+        );
 
-        let all_requirements_met = results.bm25_accuracy > 0.7 &&
-                                  results.url_signals_throughput > 1000.0 &&
-                                  results.domain_diversity_accuracy > 0.8 &&
-                                  results.early_stopping_effectiveness > 0.8 &&
-                                  results.performance_impact_percent < 10.0 &&
-                                  results.on_topic_lift_percent >= 20.0 &&
-                                  results.weight_config_validation;
+        let all_requirements_met = results.bm25_accuracy > 0.7
+            && results.url_signals_throughput > 1000.0
+            && results.domain_diversity_accuracy > 0.8
+            && results.early_stopping_effectiveness > 0.8
+            && results.performance_impact_percent < 10.0
+            && results.on_topic_lift_percent >= 20.0
+            && results.weight_config_validation;
 
-        println!("\n🏆 OVERALL RESULT: {}",
-                if all_requirements_met { "✅ ALL WEEK 7 REQUIREMENTS MET" }
-                else { "❌ SOME REQUIREMENTS NOT MET" });
+        println!(
+            "\n🏆 OVERALL RESULT: {}",
+            if all_requirements_met {
+                "✅ ALL WEEK 7 REQUIREMENTS MET"
+            } else {
+                "❌ SOME REQUIREMENTS NOT MET"
+            }
+        );
     }
 
     /// Generate realistic test documents for benchmarking
@@ -480,11 +572,7 @@ fn tokenize(text: &str) -> Vec<String> {
     text.to_lowercase()
         .split_whitespace()
         .filter(|word| word.len() > 2)
-        .map(|word| {
-            word.chars()
-                .filter(|c| c.is_alphanumeric())
-                .collect()
-        })
+        .map(|word| word.chars().filter(|c| c.is_alphanumeric()).collect())
         .filter(|word: &String| !word.is_empty())
         .collect()
 }

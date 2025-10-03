@@ -154,7 +154,11 @@ impl TableExtractor {
             Selector::parse("caption").map_err(|e| anyhow!("Invalid caption selector: {}", e))?;
 
         if let Some(caption_element) = table_element.select(&caption_selector).next() {
-            let caption_text = caption_element.text().collect::<String>().trim().to_string();
+            let caption_text = caption_element
+                .text()
+                .collect::<String>()
+                .trim()
+                .to_string();
             if !caption_text.is_empty() {
                 return Ok(Some(caption_text));
             }
@@ -165,8 +169,8 @@ impl TableExtractor {
 
     /// Extract column groups
     fn extract_column_groups(&self, table_element: ElementRef) -> Result<Vec<ColumnGroup>> {
-        let colgroup_selector = Selector::parse("colgroup")
-            .map_err(|e| anyhow!("Invalid colgroup selector: {}", e))?;
+        let colgroup_selector =
+            Selector::parse("colgroup").map_err(|e| anyhow!("Invalid colgroup selector: {}", e))?;
 
         let mut column_groups = Vec::new();
 
@@ -174,14 +178,24 @@ impl TableExtractor {
             let value = colgroup_element.value();
             let span = value.attr("span").and_then(|s| s.parse().ok()).unwrap_or(1);
 
-            let attributes: std::collections::HashMap<String, String> =
-                value.attrs().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+            let attributes: std::collections::HashMap<String, String> = value
+                .attrs()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect();
 
             let label_text = colgroup_element.text().collect::<String>();
             let label = label_text.trim();
-            let label = if label.is_empty() { None } else { Some(label.to_string()) };
+            let label = if label.is_empty() {
+                None
+            } else {
+                Some(label.to_string())
+            };
 
-            column_groups.push(ColumnGroup { span, attributes, label });
+            column_groups.push(ColumnGroup {
+                span,
+                attributes,
+                label,
+            });
         }
 
         Ok(column_groups)
@@ -311,12 +325,21 @@ impl TableExtractor {
 
             // Extract cell content
             let content = cell_element.text().collect::<String>().trim().to_string();
-            let html_content =
-                if self.config.preserve_html { cell_element.html() } else { content.clone() };
+            let html_content = if self.config.preserve_html {
+                cell_element.html()
+            } else {
+                content.clone()
+            };
 
             // Extract span attributes
-            let colspan = value.attr("colspan").and_then(|s| s.parse().ok()).unwrap_or(1);
-            let rowspan = value.attr("rowspan").and_then(|s| s.parse().ok()).unwrap_or(1);
+            let colspan = value
+                .attr("colspan")
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(1);
+            let rowspan = value
+                .attr("rowspan")
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(1);
 
             // Determine cell type
             let cell_type = match value.name() {
@@ -482,7 +505,11 @@ impl TableExtractor {
         &self,
         element: ElementRef,
     ) -> std::collections::HashMap<String, String> {
-        element.value().attrs().map(|(k, v)| (k.to_string(), v.to_string())).collect()
+        element
+            .value()
+            .attrs()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect()
     }
 
     /// Check if a row is within a specific section

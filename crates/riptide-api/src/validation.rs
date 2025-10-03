@@ -134,7 +134,7 @@ fn validate_url(url_str: &str, index: usize) -> ApiResult<()> {
             // Convert common validation error to API error
             Err(ApiError::invalid_url(
                 url_str,
-                format!("URL {} validation failed: {}", index + 1, e)
+                format!("URL {} validation failed: {}", index + 1, e),
             ))
         }
     }
@@ -184,9 +184,10 @@ fn validate_query_content(query: &str) -> ApiResult<()> {
     // Use common query validation
     match validator.validate_query_content(query) {
         Ok(_) => Ok(()),
-        Err(e) => Err(ApiError::validation(
-            format!("Query validation failed: {}", e)
-        ))
+        Err(e) => Err(ApiError::validation(format!(
+            "Query validation failed: {}",
+            e
+        ))),
     }
 }
 

@@ -7,8 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 /// Global API configuration with resource management
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ApiConfig {
     /// Resource management configuration
     pub resources: ResourceConfig,
@@ -179,7 +178,6 @@ pub struct SearchProviderConfig {
     /// Circuit breaker recovery timeout in seconds
     pub circuit_breaker_recovery_timeout_secs: u64,
 }
-
 
 impl Default for ResourceConfig {
     fn default() -> Self {

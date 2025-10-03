@@ -5,8 +5,9 @@ use std::time::{Duration, Instant, SystemTime};
 use url::Url;
 
 /// Priority levels for crawl requests
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
+)]
 pub enum Priority {
     Low = 1,
     #[default]
@@ -14,7 +15,6 @@ pub enum Priority {
     High = 3,
     Critical = 4,
 }
-
 
 /// A request to crawl a specific URL with metadata
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -265,7 +265,10 @@ impl HostState {
     /// Start a request (increment in-flight counter)
     pub fn start_request(&mut self) -> Result<()> {
         if !self.can_accept_request() {
-            return Err(anyhow::anyhow!("Host {} cannot accept more requests", self.host));
+            return Err(anyhow::anyhow!(
+                "Host {} cannot accept more requests",
+                self.host
+            ));
         }
         self.in_flight += 1;
         Ok(())

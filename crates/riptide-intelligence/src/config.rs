@@ -7,18 +7,16 @@
 //! - Configuration validation
 //! - Provider auto-discovery
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
 use std::path::PathBuf;
-use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tracing::{info, warn, debug};
+use tracing::{debug, info, warn};
 
 use crate::{
+    failover::FailoverConfig, health::HealthCheckConfig, plugin::PluginConfig,
     registry::ProviderConfig,
-    plugin::PluginConfig,
-    failover::FailoverConfig,
-    health::HealthCheckConfig,
 };
 
 /// Complete LLM intelligence system configuration
@@ -64,9 +62,9 @@ impl Default for MetricsConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RuntimeConfig {
     pub hot_reload_enabled: bool,
-    pub config_watch_interval: u64, // seconds
+    pub config_watch_interval: u64,     // seconds
     pub graceful_shutdown_timeout: u64, // seconds
-    pub provider_switch_timeout: u64, // milliseconds
+    pub provider_switch_timeout: u64,   // milliseconds
     pub max_concurrent_requests: u32,
     pub request_queue_size: u32,
 }
@@ -237,7 +235,10 @@ impl ConfigLoader {
         // Validate configuration
         self.validate_config(&config)?;
 
-        info!("Configuration loaded successfully with {} providers", config.providers.len());
+        info!(
+            "Configuration loaded successfully with {} providers",
+            config.providers.len()
+        );
         Ok(config)
     }
 
@@ -252,13 +253,9 @@ impl ConfigLoader {
                 let config = match path.extension().and_then(|ext| ext.to_str()) {
                     Some("yaml") | Some("yml") => {
                         serde_yaml::from_str::<IntelligenceConfig>(&content)?
-                    },
-                    Some("json") => {
-                        serde_json::from_str::<IntelligenceConfig>(&content)?
-                    },
-                    Some("toml") => {
-                        toml::from_str::<IntelligenceConfig>(&content)?
-                    },
+                    }
+                    Some("json") => serde_json::from_str::<IntelligenceConfig>(&content)?,
+                    Some("toml") => toml::from_str::<IntelligenceConfig>(&content)?,
                     _ => {
                         // Try JSON as default
                         serde_json::from_str::<IntelligenceConfig>(&content)?
@@ -274,14 +271,23 @@ impl ConfigLoader {
     }
 
     /// Override configuration with environment variables
-    fn override_from_environment(&self, config: &mut IntelligenceConfig) -> Result<(), ConfigError> {
-        info!("Loading environment overrides with prefix: {}", self.env_prefix);
+    fn override_from_environment(
+        &self,
+        config: &mut IntelligenceConfig,
+    ) -> Result<(), ConfigError> {
+        info!(
+            "Loading environment overrides with prefix: {}",
+            self.env_prefix
+        );
 
         // Load provider configurations from environment
         let providers = self.load_providers_from_env()?;
         if !providers.is_empty() {
             config.providers = providers;
-            info!("Loaded {} providers from environment", config.providers.len());
+            info!(
+                "Loaded {} providers from environment",
+                config.providers.len()
+            );
         }
 
         // Override metrics configuration
@@ -339,10 +345,21 @@ impl ConfigLoader {
         // RIPTIDE_PROVIDER_OPENAI_MODEL=gpt-4
         // RIPTIDE_PROVIDER_OPENAI_PRIORITY=1
 
-        let provider_types = ["openai", "anthropic", "azure", "bedrock", "vertex", "ollama"];
+        let provider_types = [
+            "openai",
+            "anthropic",
+            "azure",
+            "bedrock",
+            "vertex",
+            "ollama",
+        ];
 
         for provider_type in &provider_types {
-            let enabled_var = format!("{}PROVIDER_{}_ENABLED", self.env_prefix, provider_type.to_uppercase());
+            let enabled_var = format!(
+                "{}PROVIDER_{}_ENABLED",
+                self.env_prefix,
+                provider_type.to_uppercase()
+            );
 
             if let Ok(enabled) = env::var(&enabled_var) {
                 if enabled.parse::<bool>().unwrap_or(false) {
@@ -356,11 +373,18 @@ impl ConfigLoader {
     }
 
     /// Build provider configuration from environment variables
-    fn build_provider_config_from_env(&self, provider_type: &str) -> Result<ProviderConfig, ConfigError> {
-        let prefix = format!("{}PROVIDER_{}", self.env_prefix, provider_type.to_uppercase());
+    fn build_provider_config_from_env(
+        &self,
+        provider_type: &str,
+    ) -> Result<ProviderConfig, ConfigError> {
+        let prefix = format!(
+            "{}PROVIDER_{}",
+            self.env_prefix,
+            provider_type.to_uppercase()
+        );
 
-        let name = env::var(format!("{}_NAME", prefix))
-            .unwrap_or_else(|_| provider_type.to_string());
+        let name =
+            env::var(format!("{}_NAME", prefix)).unwrap_or_else(|_| provider_type.to_string());
 
         let mut config = ProviderConfig::new(name, provider_type);
 
@@ -380,15 +404,25 @@ impl ConfigLoader {
             if let Ok(value) = env::var(format!("{}_{}", prefix, env_key)) {
                 // Try to parse as different types
                 if let Ok(num) = value.parse::<i64>() {
-                    config.config.insert(config_key.to_string(), serde_json::Value::Number(num.into()));
+                    config.config.insert(
+                        config_key.to_string(),
+                        serde_json::Value::Number(num.into()),
+                    );
                 } else if let Ok(float) = value.parse::<f64>() {
-                    config.config.insert(config_key.to_string(), serde_json::Value::Number(
-                        serde_json::Number::from_f64(float).unwrap_or_else(|| 0.into())
-                    ));
+                    config.config.insert(
+                        config_key.to_string(),
+                        serde_json::Value::Number(
+                            serde_json::Number::from_f64(float).unwrap_or_else(|| 0.into()),
+                        ),
+                    );
                 } else if let Ok(bool_val) = value.parse::<bool>() {
-                    config.config.insert(config_key.to_string(), serde_json::Value::Bool(bool_val));
+                    config
+                        .config
+                        .insert(config_key.to_string(), serde_json::Value::Bool(bool_val));
                 } else {
-                    config.config.insert(config_key.to_string(), serde_json::Value::String(value));
+                    config
+                        .config
+                        .insert(config_key.to_string(), serde_json::Value::String(value));
                 }
             }
         }
@@ -447,7 +481,9 @@ impl ConfigLoader {
     pub fn load_tenant_config(&self, tenant_id: &str) -> Result<TenantLimits, ConfigError> {
         let config = self.load()?;
 
-        Ok(config.tenant_isolation.per_tenant_limits
+        Ok(config
+            .tenant_isolation
+            .per_tenant_limits
             .get(tenant_id)
             .cloned()
             .unwrap_or(config.tenant_isolation.default_limits))
@@ -494,19 +530,24 @@ impl ProviderDiscovery {
         let mut discovered = Vec::new();
 
         // Check for OpenAI
-        if env::var("OPENAI_API_KEY").is_ok() || env::var("RIPTIDE_PROVIDER_OPENAI_API_KEY").is_ok() {
+        if env::var("OPENAI_API_KEY").is_ok() || env::var("RIPTIDE_PROVIDER_OPENAI_API_KEY").is_ok()
+        {
             info!("Discovered OpenAI provider");
             discovered.push(self.create_openai_config()?);
         }
 
         // Check for Anthropic
-        if env::var("ANTHROPIC_API_KEY").is_ok() || env::var("RIPTIDE_PROVIDER_ANTHROPIC_API_KEY").is_ok() {
+        if env::var("ANTHROPIC_API_KEY").is_ok()
+            || env::var("RIPTIDE_PROVIDER_ANTHROPIC_API_KEY").is_ok()
+        {
             info!("Discovered Anthropic provider");
             discovered.push(self.create_anthropic_config()?);
         }
 
         // Check for Azure
-        if env::var("AZURE_OPENAI_KEY").is_ok() || env::var("RIPTIDE_PROVIDER_AZURE_API_KEY").is_ok() {
+        if env::var("AZURE_OPENAI_KEY").is_ok()
+            || env::var("RIPTIDE_PROVIDER_AZURE_API_KEY").is_ok()
+        {
             info!("Discovered Azure OpenAI provider");
             discovered.push(self.create_azure_config()?);
         }
@@ -531,7 +572,10 @@ impl ProviderDiscovery {
 
         let mut config = ProviderConfig::new("openai", "openai")
             .with_config("api_key", serde_json::Value::String(api_key))
-            .with_config("default_model", serde_json::Value::String("gpt-4".to_string()))
+            .with_config(
+                "default_model",
+                serde_json::Value::String("gpt-4".to_string()),
+            )
             .with_fallback_order(1);
 
         if let Ok(base_url) = env::var("OPENAI_BASE_URL") {
@@ -551,7 +595,10 @@ impl ProviderDiscovery {
 
         let config = ProviderConfig::new("anthropic", "anthropic")
             .with_config("api_key", serde_json::Value::String(api_key))
-            .with_config("default_model", serde_json::Value::String("claude-3-sonnet-20240229".to_string()))
+            .with_config(
+                "default_model",
+                serde_json::Value::String("claude-3-sonnet-20240229".to_string()),
+            )
             .with_fallback_order(2);
 
         Ok(config)
@@ -575,19 +622,25 @@ impl ProviderDiscovery {
         let config = ProviderConfig::new("azure", "azure")
             .with_config("api_key", serde_json::Value::String(api_key))
             .with_config("base_url", serde_json::Value::String(endpoint))
-            .with_config("default_model", serde_json::Value::String("gpt-4".to_string()))
+            .with_config(
+                "default_model",
+                serde_json::Value::String("gpt-4".to_string()),
+            )
             .with_fallback_order(3);
 
         Ok(config)
     }
 
     fn create_ollama_config(&self) -> Result<ProviderConfig, ConfigError> {
-        let base_url = env::var("OLLAMA_BASE_URL")
-            .unwrap_or_else(|_| "http://localhost:11434".to_string());
+        let base_url =
+            env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://localhost:11434".to_string());
 
         let config = ProviderConfig::new("ollama", "ollama")
             .with_config("base_url", serde_json::Value::String(base_url))
-            .with_config("default_model", serde_json::Value::String("llama2".to_string()))
+            .with_config(
+                "default_model",
+                serde_json::Value::String("llama2".to_string()),
+            )
             .with_fallback_order(10); // Lower priority for local
 
         Ok(config)
@@ -596,8 +649,8 @@ impl ProviderDiscovery {
     fn check_ollama_availability(&self) -> bool {
         // This would make an HTTP request to check if Ollama is running
         // For now, just check if the environment variable is set or default port might be available
-        env::var("OLLAMA_BASE_URL").is_ok() ||
-        std::net::TcpStream::connect("127.0.0.1:11434").is_ok()
+        env::var("OLLAMA_BASE_URL").is_ok()
+            || std::net::TcpStream::connect("127.0.0.1:11434").is_ok()
     }
 }
 

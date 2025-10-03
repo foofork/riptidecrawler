@@ -331,7 +331,9 @@ pub trait DynamicHandler {
     ) -> impl std::future::Future<Output = Result<DynamicRenderResult, DynamicError>> + Send + 'a;
 
     /// Check if the handler is available and working
-    fn health_check<'a>(&'a self) -> impl std::future::Future<Output = Result<(), DynamicError>> + Send + 'a;
+    fn health_check<'a>(
+        &'a self,
+    ) -> impl std::future::Future<Output = Result<(), DynamicError>> + Send + 'a;
 
     /// Get handler capabilities
     fn capabilities(&self) -> DynamicCapabilities;

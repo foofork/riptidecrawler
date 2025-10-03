@@ -6,17 +6,17 @@
 //! - Progress tracking and backpressure handling
 //! - CLI tools for riptide
 
-pub mod ndjson;
-pub mod reports;
-pub mod progress;
 pub mod backpressure;
 pub mod config;
+pub mod ndjson;
 pub mod openapi;
+pub mod progress;
+pub mod reports;
 
 pub use ndjson::*;
 // pub use reports::*;      // Keep disabled until ReportGenerator resolved
-pub use progress::*;        // ✅ ENABLED
-    // ✅ ENABLED
+pub use progress::*; // ✅ ENABLED
+                     // ✅ ENABLED
 pub use config::*;
 // pub use openapi::*;       // Verify before enabling
 
@@ -40,8 +40,8 @@ use crate::progress::ProgressTracker;
 #[derive(Debug, Clone)]
 pub struct StreamingCoordinator {
     pub streams: HashMap<Uuid, StreamInfo>,
-    pub progress_tracker: ProgressTracker,  // ✅ ENABLED
-    // pub reporter: ReportGenerator,        // Keep disabled
+    pub progress_tracker: ProgressTracker, // ✅ ENABLED
+                                           // pub reporter: ReportGenerator,        // Keep disabled
 }
 
 /// Information about an active stream
@@ -69,8 +69,8 @@ impl StreamingCoordinator {
     pub fn new() -> Self {
         Self {
             streams: HashMap::new(),
-            progress_tracker: ProgressTracker::new(),  // ✅ ENABLED
-            // reporter: ReportGenerator::new(),        // Keep disabled
+            progress_tracker: ProgressTracker::new(), // ✅ ENABLED
+                                                      // reporter: ReportGenerator::new(),        // Keep disabled
         }
     }
 
@@ -85,9 +85,9 @@ impl StreamingCoordinator {
             processed_items: 0,
             status: StreamStatus::Active,
         };
-        
+
         self.streams.insert(stream_id, stream_info);
-        self.progress_tracker.start_tracking(stream_id).await?;  // ✅ ENABLED
+        self.progress_tracker.start_tracking(stream_id).await?; // ✅ ENABLED
 
         Ok(stream_id)
     }
@@ -98,13 +98,20 @@ impl StreamingCoordinator {
     }
 
     /// Update stream progress
-    pub async fn update_progress(&mut self, stream_id: Uuid, processed: usize, total: Option<usize>) -> Result<()> {
+    pub async fn update_progress(
+        &mut self,
+        stream_id: Uuid,
+        processed: usize,
+        total: Option<usize>,
+    ) -> Result<()> {
         if let Some(stream) = self.streams.get_mut(&stream_id) {
             stream.processed_items = processed;
             if let Some(total) = total {
                 stream.total_items = Some(total);
             }
-            self.progress_tracker.update_progress(stream_id, processed, total).await?;  // ✅ ENABLED
+            self.progress_tracker
+                .update_progress(stream_id, processed, total)
+                .await?; // ✅ ENABLED
         }
         Ok(())
     }
@@ -113,7 +120,7 @@ impl StreamingCoordinator {
     pub async fn complete_stream(&mut self, stream_id: Uuid) -> Result<()> {
         if let Some(stream) = self.streams.get_mut(&stream_id) {
             stream.status = StreamStatus::Completed;
-            self.progress_tracker.complete_tracking(stream_id).await?;  // ✅ ENABLED
+            self.progress_tracker.complete_tracking(stream_id).await?; // ✅ ENABLED
         }
         Ok(())
     }
@@ -166,19 +173,19 @@ pub struct ProgressUpdate {
 pub enum StreamingError {
     #[error("Stream not found: {0}")]
     StreamNotFound(Uuid),
-    
+
     #[error("Stream already completed: {0}")]
     StreamCompleted(Uuid),
-    
+
     #[error("Backpressure limit exceeded")]
     BackpressureExceeded,
-    
+
     #[error("Report generation failed: {0}")]
     ReportGenerationFailed(String),
-    
+
     #[error("Configuration error: {0}")]
     ConfigError(String),
-    
+
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
 
@@ -192,9 +199,7 @@ impl From<tokio_util::codec::LinesCodecError> for StreamingError {
             tokio_util::codec::LinesCodecError::MaxLineLengthExceeded => {
                 StreamingError::ConfigError("Line length exceeded maximum".to_string())
             }
-            tokio_util::codec::LinesCodecError::Io(io_err) => {
-                StreamingError::IoError(io_err)
-            }
+            tokio_util::codec::LinesCodecError::Io(io_err) => StreamingError::IoError(io_err),
         }
     }
 }
@@ -215,10 +220,13 @@ mod tests {
     async fn test_start_and_get_stream() {
         let mut coordinator = StreamingCoordinator::new();
         let extraction_id = "test-extraction".to_string();
-        
-        let stream_id = coordinator.start_stream(extraction_id.clone()).await.unwrap();
+
+        let stream_id = coordinator
+            .start_stream(extraction_id.clone())
+            .await
+            .unwrap();
         let stream_info = coordinator.get_stream(&stream_id).unwrap();
-        
+
         assert_eq!(stream_info.extraction_id, extraction_id);
         assert_eq!(stream_info.processed_items, 0);
         assert!(matches!(stream_info.status, StreamStatus::Active));
@@ -228,9 +236,12 @@ mod tests {
     async fn test_update_progress() {
         let mut coordinator = StreamingCoordinator::new();
         let stream_id = coordinator.start_stream("test".to_string()).await.unwrap();
-        
-        coordinator.update_progress(stream_id, 50, Some(100)).await.unwrap();
-        
+
+        coordinator
+            .update_progress(stream_id, 50, Some(100))
+            .await
+            .unwrap();
+
         let stream_info = coordinator.get_stream(&stream_id).unwrap();
         assert_eq!(stream_info.processed_items, 50);
         assert_eq!(stream_info.total_items, Some(100));
@@ -240,9 +251,9 @@ mod tests {
     async fn test_complete_stream() {
         let mut coordinator = StreamingCoordinator::new();
         let stream_id = coordinator.start_stream("test".to_string()).await.unwrap();
-        
+
         coordinator.complete_stream(stream_id).await.unwrap();
-        
+
         let stream_info = coordinator.get_stream(&stream_id).unwrap();
         assert!(matches!(stream_info.status, StreamStatus::Completed));
     }

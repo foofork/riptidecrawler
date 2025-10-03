@@ -334,9 +334,7 @@ impl BackgroundAiProcessor {
                     task.increment_retry();
                     warn!(
                         "Task {} failed (attempt {}), will retry: {}",
-                        task.task_id,
-                        task.retry_count,
-                        e
+                        task.task_id, task.retry_count, e
                     );
                     // Re-queue for retry (could use exponential backoff)
                     // For now, we'll just send error result
@@ -470,7 +468,10 @@ mod tests {
         let config = AiProcessorConfig::default();
         let processor = BackgroundAiProcessor::new(config);
 
-        let task = AiTask::new("https://example.com".to_string(), "test content".to_string());
+        let task = AiTask::new(
+            "https://example.com".to_string(),
+            "test content".to_string(),
+        );
         let result = processor.queue_task(task).await;
 
         assert!(result.is_ok());

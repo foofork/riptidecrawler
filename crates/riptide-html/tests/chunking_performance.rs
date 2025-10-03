@@ -1,7 +1,7 @@
 //! Performance tests for chunking strategies
 //! Requirement: All chunking strategies must process 50KB of text in ≤200ms
 
-use riptide_html::chunking::{ChunkingStrategy, ChunkingConfig, ChunkingMode, create_strategy};
+use riptide_html::chunking::{create_strategy, ChunkingConfig, ChunkingMode, ChunkingStrategy};
 use std::time::Instant;
 
 /// Generate test content of specified size
@@ -22,7 +22,8 @@ enum ContentType {
 }
 
 fn generate_plain_text(target_size: usize) -> String {
-    let base_sentences = ["This is a performance test document with multiple sentences and paragraphs.",
+    let base_sentences = [
+        "This is a performance test document with multiple sentences and paragraphs.",
         "The content needs to be realistic to properly test chunking algorithms.",
         "We include various sentence structures and lengths to simulate real documents.",
         "Performance testing requires careful measurement of execution time.",
@@ -31,7 +32,8 @@ fn generate_plain_text(target_size: usize) -> String {
         "Testing with different content types helps ensure robust performance.",
         "The algorithm must handle edge cases and varying text complexity.",
         "Quality metrics include token count accuracy and boundary preservation.",
-        "Real-world documents often contain mixed content and formatting."];
+        "Real-world documents often contain mixed content and formatting.",
+    ];
 
     let mut content = String::new();
     let mut sentence_index = 0;
@@ -53,16 +55,19 @@ fn generate_html_content(target_size: usize) -> String {
     let mut content = String::from("<html><body>");
     let mut current_size = content.len();
 
-    let html_patterns = ["<article><h1>Article Title</h1><p>Article content with meaningful text.</p></article>",
+    let html_patterns = [
+        "<article><h1>Article Title</h1><p>Article content with meaningful text.</p></article>",
         "<section><h2>Section Header</h2><p>Section content with various elements.</p></section>",
         "<div class='content'><p>Content in a div container with class.</p></div>",
         "<main><p>Main content area with important information.</p></main>",
         "<aside><p>Sidebar content with additional details.</p></aside>",
         "<header><h1>Page Header</h1><nav><a href='#'>Link</a></nav></header>",
-        "<footer><p>Footer content with contact information.</p></footer>"];
+        "<footer><p>Footer content with contact information.</p></footer>",
+    ];
 
     let mut pattern_index = 0;
-    while current_size < target_size - 20 { // Leave room for closing tags
+    while current_size < target_size - 20 {
+        // Leave room for closing tags
         let pattern = html_patterns[pattern_index % html_patterns.len()];
         content.push_str(pattern);
         current_size += pattern.len();
@@ -90,7 +95,8 @@ fn generate_mixed_content(target_size: usize) -> String {
 }
 
 fn generate_topic_diverse_content(target_size: usize) -> String {
-    let topics = [vec![
+    let topics = [
+        vec![
             "Machine learning algorithms are revolutionizing data processing.",
             "Artificial intelligence systems learn from vast datasets.",
             "Deep learning neural networks process complex patterns.",
@@ -124,7 +130,8 @@ fn generate_topic_diverse_content(target_size: usize) -> String {
             "Online communities foster global collaboration.",
             "Information sharing accelerates knowledge transfer.",
             "Virtual relationships supplement traditional connections.",
-        ]];
+        ],
+    ];
 
     let mut content = String::new();
     let mut topic_index = 0;
@@ -162,7 +169,9 @@ async fn test_strategy_performance(
     max_duration_ms: u128,
 ) -> Result<(), String> {
     let start = Instant::now();
-    let chunks = strategy.chunk(content).await
+    let chunks = strategy
+        .chunk(content)
+        .await
         .map_err(|e| format!("Chunking failed: {}", e))?;
     let duration = start.elapsed();
 
@@ -184,7 +193,11 @@ async fn test_strategy_performance(
     }
 
     // Basic quality checks
-    assert!(!chunks.is_empty(), "Strategy '{}' produced no chunks", strategy.name());
+    assert!(
+        !chunks.is_empty(),
+        "Strategy '{}' produced no chunks",
+        strategy.name()
+    );
 
     // Check that all content is covered
     let total_content_length: usize = chunks.iter().map(|c| c.content.len()).sum();
@@ -204,46 +217,98 @@ async fn test_50kb_performance_requirement() {
 
     // Test with different content types
     let test_cases = vec![
-        ("Plain Text", generate_test_content(target_size, ContentType::PlainText)),
-        ("HTML Content", generate_test_content(target_size, ContentType::Html)),
-        ("Mixed Content", generate_test_content(target_size, ContentType::Mixed)),
-        ("Topic Diverse", generate_test_content(target_size, ContentType::TopicDiverse)),
+        (
+            "Plain Text",
+            generate_test_content(target_size, ContentType::PlainText),
+        ),
+        (
+            "HTML Content",
+            generate_test_content(target_size, ContentType::Html),
+        ),
+        (
+            "Mixed Content",
+            generate_test_content(target_size, ContentType::Mixed),
+        ),
+        (
+            "Topic Diverse",
+            generate_test_content(target_size, ContentType::TopicDiverse),
+        ),
     ];
 
     let config = ChunkingConfig::default();
 
     // Test all chunking strategies
     let strategies = vec![
-        ("Sliding Window", ChunkingMode::Sliding { window_size: 1000, overlap: 100 }),
-        ("Fixed Size (Tokens)", ChunkingMode::Fixed { size: 800, by_tokens: true }),
-        ("Fixed Size (Chars)", ChunkingMode::Fixed { size: 1000, by_tokens: false }),
-        ("Sentence-based", ChunkingMode::Sentence { max_sentences: 5 }),
-        ("Regex (Paragraphs)", ChunkingMode::Regex {
-            pattern: r"\n\s*\n".to_string(),
-            min_chunk_size: 200
-        }),
-        ("HTML-aware (Structure)", ChunkingMode::HtmlAware {
-            preserve_blocks: true,
-            preserve_structure: true
-        }),
-        ("HTML-aware (Blocks)", ChunkingMode::HtmlAware {
-            preserve_blocks: true,
-            preserve_structure: false
-        }),
-        ("Topic Chunking (Enabled)", ChunkingMode::Topic {
-            topic_chunking: true,
-            window_size: 3,
-            smoothing_passes: 2
-        }),
-        ("Topic Chunking (Disabled)", ChunkingMode::Topic {
-            topic_chunking: false,
-            window_size: 3,
-            smoothing_passes: 2
-        }),
+        (
+            "Sliding Window",
+            ChunkingMode::Sliding {
+                window_size: 1000,
+                overlap: 100,
+            },
+        ),
+        (
+            "Fixed Size (Tokens)",
+            ChunkingMode::Fixed {
+                size: 800,
+                by_tokens: true,
+            },
+        ),
+        (
+            "Fixed Size (Chars)",
+            ChunkingMode::Fixed {
+                size: 1000,
+                by_tokens: false,
+            },
+        ),
+        (
+            "Sentence-based",
+            ChunkingMode::Sentence { max_sentences: 5 },
+        ),
+        (
+            "Regex (Paragraphs)",
+            ChunkingMode::Regex {
+                pattern: r"\n\s*\n".to_string(),
+                min_chunk_size: 200,
+            },
+        ),
+        (
+            "HTML-aware (Structure)",
+            ChunkingMode::HtmlAware {
+                preserve_blocks: true,
+                preserve_structure: true,
+            },
+        ),
+        (
+            "HTML-aware (Blocks)",
+            ChunkingMode::HtmlAware {
+                preserve_blocks: true,
+                preserve_structure: false,
+            },
+        ),
+        (
+            "Topic Chunking (Enabled)",
+            ChunkingMode::Topic {
+                topic_chunking: true,
+                window_size: 3,
+                smoothing_passes: 2,
+            },
+        ),
+        (
+            "Topic Chunking (Disabled)",
+            ChunkingMode::Topic {
+                topic_chunking: false,
+                window_size: 3,
+                smoothing_passes: 2,
+            },
+        ),
     ];
 
     for (content_name, content) in test_cases {
-        println!("\n=== Testing with {} ({} chars) ===", content_name, content.len());
+        println!(
+            "\n=== Testing with {} ({} chars) ===",
+            content_name,
+            content.len()
+        );
 
         for (strategy_name, mode) in &strategies {
             let strategy = create_strategy(mode.clone(), config.clone());
@@ -337,12 +402,14 @@ async fn test_html_specific_performance() {
     let config = ChunkingConfig::default();
 
     // Large HTML document with complex structure
-    let mut html_content = String::from(r#"
+    let mut html_content = String::from(
+        r#"
         <!DOCTYPE html>
         <html>
         <head><title>Complex Document</title></head>
         <body>
-    "#);
+    "#,
+    );
 
     // Generate nested HTML structure
     for i in 0..100 {
@@ -379,14 +446,20 @@ async fn test_html_specific_performance() {
 
     // Test HTML-aware strategies
     let html_strategies = vec![
-        ("HTML Structure", ChunkingMode::HtmlAware {
-            preserve_blocks: true,
-            preserve_structure: true
-        }),
-        ("HTML Blocks", ChunkingMode::HtmlAware {
-            preserve_blocks: true,
-            preserve_structure: false
-        }),
+        (
+            "HTML Structure",
+            ChunkingMode::HtmlAware {
+                preserve_blocks: true,
+                preserve_structure: true,
+            },
+        ),
+        (
+            "HTML Blocks",
+            ChunkingMode::HtmlAware {
+                preserve_blocks: true,
+                preserve_structure: false,
+            },
+        ),
     ];
 
     for (name, mode) in html_strategies {
@@ -444,7 +517,10 @@ async fn test_edge_cases_performance() {
         ("Single sentence", "This is a single sentence.".to_string()),
         ("No punctuation", "word ".repeat(1000)),
         ("Many short sentences", "Hi. ".repeat(1000)),
-        ("Very long single sentence", format!("{} and this continues forever.", "word ".repeat(2000))),
+        (
+            "Very long single sentence",
+            format!("{} and this continues forever.", "word ".repeat(2000)),
+        ),
     ];
 
     for (name, content) in edge_cases {
@@ -456,7 +532,10 @@ async fn test_edge_cases_performance() {
             let duration = start.elapsed();
 
             assert!(chunks.is_empty(), "Empty content should produce no chunks");
-            assert!(duration.as_millis() < 10, "Empty content processing too slow");
+            assert!(
+                duration.as_millis() < 10,
+                "Empty content processing too slow"
+            );
             continue;
         }
 
@@ -476,7 +555,11 @@ async fn test_edge_cases_performance() {
         );
 
         if !content.trim().is_empty() {
-            assert!(!chunks.is_empty(), "Non-empty content '{}' should produce chunks", name);
+            assert!(
+                !chunks.is_empty(),
+                "Non-empty content '{}' should produce chunks",
+                name
+            );
         }
     }
 }
@@ -490,7 +573,10 @@ async fn test_topic_chunking_specific_performance() {
     // Generate content with clear topic boundaries
     let topic_content = generate_test_content(target_size, ContentType::TopicDiverse);
 
-    println!("Testing Topic Chunking Performance with {} chars", topic_content.len());
+    println!(
+        "Testing Topic Chunking Performance with {} chars",
+        topic_content.len()
+    );
 
     // Test topic chunking enabled
     let strategy_enabled = create_strategy(
@@ -499,7 +585,7 @@ async fn test_topic_chunking_specific_performance() {
             window_size: 3,
             smoothing_passes: 2,
         },
-        config.clone()
+        config.clone(),
     );
 
     let start = Instant::now();
@@ -526,7 +612,7 @@ async fn test_topic_chunking_specific_performance() {
             window_size: 3,
             smoothing_passes: 2,
         },
-        config.clone()
+        config.clone(),
     );
 
     let start = Instant::now();
@@ -547,7 +633,10 @@ async fn test_topic_chunking_specific_performance() {
     );
 
     // Verify topic-enabled chunking produces meaningful results
-    assert!(!chunks_enabled.is_empty(), "Topic chunking should produce chunks");
+    assert!(
+        !chunks_enabled.is_empty(),
+        "Topic chunking should produce chunks"
+    );
 
     // Check that topic chunks have topic keywords
     for chunk in &chunks_enabled {
@@ -560,7 +649,10 @@ async fn test_topic_chunking_specific_performance() {
     }
 
     // Disabled should fallback to different chunking
-    assert!(!chunks_disabled.is_empty(), "Fallback chunking should produce chunks");
+    assert!(
+        !chunks_disabled.is_empty(),
+        "Fallback chunking should produce chunks"
+    );
 
     println!(
         "Topic chunking performance test completed: enabled={}ms, disabled={}ms",

@@ -12,10 +12,10 @@ use axum::{
     Json,
 };
 use riptide_intelligence::{
-    LlmRegistry, ProviderConfig,
-    providers::register_builtin_providers,
-    runtime_switch::{RuntimeSwitchManager, RuntimeSwitchConfig},
     metrics::MetricsCollector,
+    providers::register_builtin_providers,
+    runtime_switch::{RuntimeSwitchConfig, RuntimeSwitchManager},
+    LlmRegistry, ProviderConfig,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -94,7 +94,9 @@ pub struct SwitchProviderRequest {
     pub rollout_percentage: u32,
 }
 
-fn default_rollout_percentage() -> u32 { 100 }
+fn default_rollout_percentage() -> u32 {
+    100
+}
 
 /// Response for provider switch operation
 #[derive(Serialize, Debug)]
@@ -123,7 +125,9 @@ pub struct ConfigUpdateRequest {
     pub validate: bool,
 }
 
-fn default_true() -> bool { true }
+fn default_true() -> bool {
+    true
+}
 
 /// Response for configuration update
 #[derive(Serialize, Debug)]
@@ -176,45 +180,48 @@ static CURRENT_PROVIDER: std::sync::OnceLock<Arc<tokio::sync::Mutex<Option<Strin
     std::sync::OnceLock::new();
 
 fn get_llm_registry() -> Arc<tokio::sync::Mutex<LlmRegistry>> {
-    LLM_REGISTRY.get_or_init(|| {
-        let mut registry = LlmRegistry::new();
+    LLM_REGISTRY
+        .get_or_init(|| {
+            let mut registry = LlmRegistry::new();
 
-        // Register built-in providers with default configurations
-        if let Err(e) = register_builtin_providers(&mut registry) {
-            warn!("Failed to register built-in providers: {}", e);
-        }
+            // Register built-in providers with default configurations
+            if let Err(e) = register_builtin_providers(&mut registry) {
+                warn!("Failed to register built-in providers: {}", e);
+            }
 
-        Arc::new(tokio::sync::Mutex::new(registry))
-    }).clone()
+            Arc::new(tokio::sync::Mutex::new(registry))
+        })
+        .clone()
 }
 
 fn get_runtime_switch_manager() -> Arc<tokio::sync::Mutex<RuntimeSwitchManager>> {
-    RUNTIME_SWITCH_MANAGER.get_or_init(|| {
-        // Create a new registry instance for the RuntimeSwitchManager
-        // We can't share the mutex-wrapped registry, so we create a new one
-        let mut registry = LlmRegistry::new();
-        if let Err(e) = register_builtin_providers(&mut registry) {
-            warn!("Failed to register built-in providers in runtime switch manager: {}", e);
-        }
-        let registry_arc = Arc::new(registry);
+    RUNTIME_SWITCH_MANAGER
+        .get_or_init(|| {
+            // Create a new registry instance for the RuntimeSwitchManager
+            // We can't share the mutex-wrapped registry, so we create a new one
+            let mut registry = LlmRegistry::new();
+            if let Err(e) = register_builtin_providers(&mut registry) {
+                warn!(
+                    "Failed to register built-in providers in runtime switch manager: {}",
+                    e
+                );
+            }
+            let registry_arc = Arc::new(registry);
 
-        let metrics_collector = Arc::new(MetricsCollector::new(7)); // 7 days retention
-        let config = RuntimeSwitchConfig::default();
+            let metrics_collector = Arc::new(MetricsCollector::new(7)); // 7 days retention
+            let config = RuntimeSwitchConfig::default();
 
-        let (manager, _event_rx) = RuntimeSwitchManager::new(
-            registry_arc,
-            None,
-            metrics_collector,
-            config,
-        );
-        Arc::new(tokio::sync::Mutex::new(manager))
-    }).clone()
+            let (manager, _event_rx) =
+                RuntimeSwitchManager::new(registry_arc, None, metrics_collector, config);
+            Arc::new(tokio::sync::Mutex::new(manager))
+        })
+        .clone()
 }
 
 fn get_current_provider() -> Arc<tokio::sync::Mutex<Option<String>>> {
-    CURRENT_PROVIDER.get_or_init(|| {
-        Arc::new(tokio::sync::Mutex::new(Some("openai".to_string())))
-    }).clone()
+    CURRENT_PROVIDER
+        .get_or_init(|| Arc::new(tokio::sync::Mutex::new(Some("openai".to_string()))))
+        .clone()
 }
 
 /// List available LLM providers
@@ -256,11 +263,7 @@ pub async fn list_providers(
             }
         }
 
-        let provider_info = create_provider_info(
-            &registry_guard,
-            &provider_name,
-            &params,
-        ).await?;
+        let provider_info = create_provider_info(&registry_guard, &provider_name, &params).await?;
 
         // Skip if filtering by availability
         if params.available_only && !provider_info.available {
@@ -324,16 +327,20 @@ pub async fn switch_provider(
     let registry = get_llm_registry();
     let registry_guard = registry.lock().await;
 
-    if !registry_guard.list_providers().contains(&request.provider_name) {
-        return Err(ApiError::validation(
-            format!("Provider '{}' not found", request.provider_name)
-        ));
+    if !registry_guard
+        .list_providers()
+        .contains(&request.provider_name)
+    {
+        return Err(ApiError::validation(format!(
+            "Provider '{}' not found",
+            request.provider_name
+        )));
     }
 
     // Validate rollout percentage
     if request.rollout_percentage > 100 {
         return Err(ApiError::validation(
-            "Rollout percentage must be between 0 and 100".to_string()
+            "Rollout percentage must be between 0 and 100".to_string(),
         ));
     }
 
@@ -353,13 +360,16 @@ pub async fn switch_provider(
         drop(current_provider_guard);
 
         let manager_guard = switch_manager.lock().await;
-        match manager_guard.switch_to_provider(request.provider_name.clone()).await {
+        match manager_guard
+            .switch_to_provider(request.provider_name.clone())
+            .await
+        {
             Ok(_) => {
                 // Re-acquire the current_provider_guard to update the current provider
                 let mut current_provider_guard = current_provider_ref.lock().await;
                 *current_provider_guard = Some(request.provider_name.clone());
                 true
-            },
+            }
             Err(e) => {
                 warn!("Gradual rollout switch failed: {}", e);
                 false
@@ -379,7 +389,10 @@ pub async fn switch_provider(
             new_provider: request.provider_name.clone(),
             switched_at: chrono::Utc::now().to_rfc3339(),
             message: if request.gradual_rollout {
-                format!("Gradual rollout initiated to {} ({}%)", request.provider_name, request.rollout_percentage)
+                format!(
+                    "Gradual rollout initiated to {} ({}%)",
+                    request.provider_name, request.rollout_percentage
+                )
             } else {
                 format!("Switched to provider '{}'", request.provider_name)
             },
@@ -449,9 +462,10 @@ pub async fn update_config(
             match validate_provider_config(provider_name, config).await {
                 Ok(msg) => {
                     validation_results.insert(provider_name.clone(), msg);
-                },
+                }
                 Err(e) => {
-                    validation_results.insert(provider_name.clone(), format!("Validation failed: {}", e));
+                    validation_results
+                        .insert(provider_name.clone(), format!("Validation failed: {}", e));
                     success = false;
                 }
             }
@@ -472,11 +486,12 @@ pub async fn update_config(
 
             // Create provider config using the builder pattern
             let provider_config = ProviderConfig::new(provider_name.clone(), provider_name.clone())
-                .with_config("config", serde_json::Value::Object(
-                    config_values.into_iter()
-                        .map(|(k, v)| (k, v))
-                        .collect()
-                ));
+                .with_config(
+                    "config",
+                    serde_json::Value::Object(
+                        config_values.into_iter().map(|(k, v)| (k, v)).collect(),
+                    ),
+                );
 
             // Load provider using the config (this will register it internally)
             if let Err(e) = registry_guard.load_provider(provider_config) {
@@ -485,7 +500,10 @@ pub async fn update_config(
                 success = false;
             } else {
                 if !validation_results.contains_key(&provider_name) {
-                    validation_results.insert(provider_name, "Configuration updated successfully".to_string());
+                    validation_results.insert(
+                        provider_name,
+                        "Configuration updated successfully".to_string(),
+                    );
                 }
             }
         }
@@ -543,9 +561,7 @@ pub async fn update_config(
 ///
 /// This endpoint returns the current LLM configuration including
 /// active provider and configuration summary.
-pub async fn get_config(
-    State(state): State<AppState>,
-) -> Result<impl IntoResponse, ApiError> {
+pub async fn get_config(State(state): State<AppState>) -> Result<impl IntoResponse, ApiError> {
     let start_time = Instant::now();
 
     info!("Received get config request");
@@ -605,7 +621,10 @@ async fn create_provider_info(
         "anthropic" => vec!["text-generation", "chat"],
         "ollama" => vec!["text-generation", "embedding", "chat"],
         _ => vec!["text-generation"],
-    }.into_iter().map(|s| s.to_string()).collect();
+    }
+    .into_iter()
+    .map(|s| s.to_string())
+    .collect();
 
     // Create config requirements
     let config_required = match provider_type {
@@ -613,7 +632,10 @@ async fn create_provider_info(
         "anthropic" => vec!["api_key", "model"],
         "ollama" => vec!["base_url", "model"],
         _ => vec!["api_key"],
-    }.into_iter().map(|s| s.to_string()).collect();
+    }
+    .into_iter()
+    .map(|s| s.to_string())
+    .collect();
 
     // Create cost info if requested
     let cost_info = if params.include_cost {
@@ -651,14 +673,12 @@ async fn create_provider_info(
                     supports_functions: true,
                 },
             ],
-            "anthropic" => vec![
-                ModelInfo {
-                    name: "claude-3-opus".to_string(),
-                    context_window: Some(200000),
-                    max_output_tokens: Some(4096),
-                    supports_functions: false,
-                },
-            ],
+            "anthropic" => vec![ModelInfo {
+                name: "claude-3-opus".to_string(),
+                context_window: Some(200000),
+                max_output_tokens: Some(4096),
+                supports_functions: false,
+            }],
             _ => vec![],
         }
     } else {
@@ -689,23 +709,29 @@ async fn validate_provider_config(
                 return Err(ApiError::validation("OpenAI requires api_key".to_string()));
             }
             if !config.contains_key("model") {
-                return Err(ApiError::validation("OpenAI requires model specification".to_string()));
+                return Err(ApiError::validation(
+                    "OpenAI requires model specification".to_string(),
+                ));
             }
-        },
+        }
         name if name.contains("anthropic") => {
             if !config.contains_key("api_key") {
-                return Err(ApiError::validation("Anthropic requires api_key".to_string()));
+                return Err(ApiError::validation(
+                    "Anthropic requires api_key".to_string(),
+                ));
             }
-        },
+        }
         name if name.contains("ollama") => {
             if !config.contains_key("base_url") {
                 return Err(ApiError::validation("Ollama requires base_url".to_string()));
             }
-        },
+        }
         _ => {
             // Unknown provider - basic validation
             if config.is_empty() {
-                return Err(ApiError::validation("Provider configuration cannot be empty".to_string()));
+                return Err(ApiError::validation(
+                    "Provider configuration cannot be empty".to_string(),
+                ));
             }
         }
     }

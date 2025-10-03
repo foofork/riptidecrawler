@@ -1,7 +1,7 @@
 //! Real-world stealth and anti-detection tests
 
-use riptide_stealth::*;
 use anyhow::Result;
+use riptide_stealth::*;
 use std::collections::HashMap;
 use std::time::Duration;
 
@@ -30,8 +30,12 @@ mod fingerprint_tests {
 
         // Check realistic screen resolutions
         let valid_resolutions = vec![
-            (1920, 1080), (1366, 768), (1440, 900),
-            (2560, 1440), (3840, 2160), (1280, 720)
+            (1920, 1080),
+            (1366, 768),
+            (1440, 900),
+            (2560, 1440),
+            (3840, 2160),
+            (1280, 720),
         ];
         assert!(valid_resolutions.contains(&(fp.screen_width, fp.screen_height)));
 
@@ -70,7 +74,7 @@ mod fingerprint_tests {
 #[cfg(test)]
 mod user_agent_tests {
     use super::*;
-    use riptide_stealth::user_agent::{UserAgentRotator, UserAgentConfig};
+    use riptide_stealth::user_agent::{UserAgentConfig, UserAgentRotator};
 
     #[test]
     fn test_user_agent_rotation() {
@@ -94,7 +98,8 @@ mod user_agent_tests {
         assert!(user_agents.len() > 10);
 
         // Should include mobile agents (roughly 30%)
-        let mobile_count = user_agents.keys()
+        let mobile_count = user_agents
+            .keys()
             .filter(|ua| ua.contains("Mobile") || ua.contains("Android") || ua.contains("iPhone"))
             .count();
         assert!(mobile_count > 20 && mobile_count < 40);
@@ -151,9 +156,15 @@ mod user_agent_tests {
 
         // Check header consistency
         if ua.contains("Windows") {
-            assert_eq!(headers.get("Sec-CH-UA-Platform"), Some(&"\"Windows\"".to_string()));
+            assert_eq!(
+                headers.get("Sec-CH-UA-Platform"),
+                Some(&"\"Windows\"".to_string())
+            );
         } else if ua.contains("Mac") {
-            assert_eq!(headers.get("Sec-CH-UA-Platform"), Some(&"\"macOS\"".to_string()));
+            assert_eq!(
+                headers.get("Sec-CH-UA-Platform"),
+                Some(&"\"macOS\"".to_string())
+            );
         }
 
         // Check Accept headers match browser
@@ -179,7 +190,7 @@ mod behavior_simulation_tests {
         let movements = simulator.generate_mouse_path(
             (100, 100), // start
             (500, 400), // end
-            Duration::from_millis(1000)
+            Duration::from_millis(1000),
         );
 
         // Should have multiple points for curve
@@ -187,12 +198,13 @@ mod behavior_simulation_tests {
 
         // Should not be perfectly linear
         let mut deviations = 0;
-        for i in 1..movements.len()-1 {
+        for i in 1..movements.len() - 1 {
             let expected_x = 100 + (400 * i / movements.len());
             let expected_y = 100 + (300 * i / movements.len());
 
-            if (movements[i].0 as i32 - expected_x as i32).abs() > 10 ||
-               (movements[i].1 as i32 - expected_y as i32).abs() > 10 {
+            if (movements[i].0 as i32 - expected_x as i32).abs() > 10
+                || (movements[i].1 as i32 - expected_y as i32).abs() > 10
+            {
                 deviations += 1;
             }
         }
@@ -210,7 +222,11 @@ mod behavior_simulation_tests {
         let pattern = simulator.generate_scroll_pattern(3000); // 3000px page
 
         // Should have varied scroll speeds
-        let speeds: Vec<_> = pattern.scrolls.iter().map(|s| s.pixels_per_second).collect();
+        let speeds: Vec<_> = pattern
+            .scrolls
+            .iter()
+            .map(|s| s.pixels_per_second)
+            .collect();
         let min_speed = speeds.iter().min().unwrap();
         let max_speed = speeds.iter().max().unwrap();
         assert!(max_speed > min_speed * 2);
@@ -299,11 +315,11 @@ mod detection_evasion_tests {
 
         // Test against common bot detection checks
         let checks = vec![
-            ("navigator.webdriver", false), // Should be undefined/false
-            ("navigator.plugins.length > 0", true), // Should have plugins
+            ("navigator.webdriver", false),           // Should be undefined/false
+            ("navigator.plugins.length > 0", true),   // Should have plugins
             ("navigator.languages.length > 0", true), // Should have languages
-            ("window.chrome", true), // Should exist for Chrome
-            ("document.hidden", false), // Should not be hidden
+            ("window.chrome", true),                  // Should exist for Chrome
+            ("document.hidden", false),               // Should not be hidden
         ];
 
         for (check, expected) in checks {
@@ -340,7 +356,7 @@ mod detection_evasion_tests {
 #[cfg(test)]
 mod rate_limiting_tests {
     use super::*;
-    use riptide_stealth::rate_limit::{RateLimiter, RateLimitConfig};
+    use riptide_stealth::rate_limit::{RateLimitConfig, RateLimiter};
     use std::time::Instant;
 
     #[tokio::test]
@@ -375,8 +391,12 @@ mod rate_limiting_tests {
         let mut limiter = AdaptiveRateLimiter::new();
 
         // Simulate server responses
-        limiter.record_response("example.com", 200, Duration::from_millis(100)).await;
-        limiter.record_response("example.com", 200, Duration::from_millis(120)).await;
+        limiter
+            .record_response("example.com", 200, Duration::from_millis(100))
+            .await;
+        limiter
+            .record_response("example.com", 200, Duration::from_millis(120))
+            .await;
 
         // Fast, successful responses - can increase rate
         let rate = limiter.get_current_rate("example.com").await;
@@ -384,7 +404,9 @@ mod rate_limiting_tests {
 
         // Simulate errors
         for _ in 0..5 {
-            limiter.record_response("example.com", 429, Duration::from_millis(50)).await;
+            limiter
+                .record_response("example.com", 429, Duration::from_millis(50))
+                .await;
         }
 
         // Should reduce rate after 429s

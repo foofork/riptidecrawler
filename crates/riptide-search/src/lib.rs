@@ -56,14 +56,14 @@
 //! };
 //! ```
 
-pub mod providers;
 pub mod circuit_breaker;
 pub mod none_provider;
+pub mod providers;
 
 // Re-export main types for convenience
-pub use providers::SerperProvider;
+pub use circuit_breaker::{CircuitBreakerConfig, CircuitBreakerWrapper, CircuitState};
 pub use none_provider::NoneProvider;
-pub use circuit_breaker::{CircuitBreakerWrapper, CircuitBreakerConfig, CircuitState};
+pub use providers::SerperProvider;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -355,7 +355,9 @@ impl AdvancedSearchConfig {
             return Err(anyhow::anyhow!("Timeout must be greater than 0"));
         }
         if self.timeout_seconds > 3600 {
-            return Err(anyhow::anyhow!("Timeout cannot exceed 1 hour (3600 seconds)"));
+            return Err(anyhow::anyhow!(
+                "Timeout cannot exceed 1 hour (3600 seconds)"
+            ));
         }
 
         // Validate circuit breaker settings
@@ -392,24 +394,22 @@ impl AdvancedSearchConfig {
 /// - Unsupported backend type
 /// - Provider initialization failures
 pub async fn create_search_provider(config: SearchConfig) -> Result<Box<dyn SearchProvider>> {
-    use providers::SerperProvider;
-    use none_provider::NoneProvider;
     use circuit_breaker::CircuitBreakerWrapper;
+    use none_provider::NoneProvider;
+    use providers::SerperProvider;
 
     let provider: Box<dyn SearchProvider> = match config.backend {
         SearchBackend::Serper => {
-            let api_key = config.api_key.ok_or_else(|| {
-                anyhow::anyhow!("API key is required for Serper backend")
-            })?;
+            let api_key = config
+                .api_key
+                .ok_or_else(|| anyhow::anyhow!("API key is required for Serper backend"))?;
             Box::new(SerperProvider::new(api_key, config.timeout_seconds))
         }
-        SearchBackend::None => {
-            Box::new(NoneProvider::new(config.enable_url_parsing))
-        }
+        SearchBackend::None => Box::new(NoneProvider::new(config.enable_url_parsing)),
         SearchBackend::SearXNG => {
-            let _base_url = config.base_url.ok_or_else(|| {
-                anyhow::anyhow!("Base URL is required for SearXNG backend")
-            })?;
+            let _base_url = config
+                .base_url
+                .ok_or_else(|| anyhow::anyhow!("Base URL is required for SearXNG backend"))?;
             // Note: SearXNG provider is not yet implemented
             return Err(anyhow::anyhow!(
                 "SearXNG backend is not yet implemented. Use 'serper' or 'none' instead."
@@ -443,27 +443,25 @@ impl SearchProviderFactory {
     ///
     /// A configured SearchProvider with circuit breaker protection.
     pub async fn create_provider(config: AdvancedSearchConfig) -> Result<Box<dyn SearchProvider>> {
-        use providers::SerperProvider;
-        use none_provider::NoneProvider;
         use circuit_breaker::CircuitBreakerWrapper;
+        use none_provider::NoneProvider;
+        use providers::SerperProvider;
 
         // Validate configuration first
         config.validate()?;
 
         let provider: Box<dyn SearchProvider> = match config.backend {
             SearchBackend::Serper => {
-                let api_key = config.api_key.ok_or_else(|| {
-                    anyhow::anyhow!("API key is required for Serper backend")
-                })?;
+                let api_key = config
+                    .api_key
+                    .ok_or_else(|| anyhow::anyhow!("API key is required for Serper backend"))?;
                 Box::new(SerperProvider::new(api_key, config.timeout_seconds))
             }
-            SearchBackend::None => {
-                Box::new(NoneProvider::new(config.enable_url_parsing))
-            }
+            SearchBackend::None => Box::new(NoneProvider::new(config.enable_url_parsing)),
             SearchBackend::SearXNG => {
-                let _base_url = config.base_url.ok_or_else(|| {
-                    anyhow::anyhow!("Base URL is required for SearXNG backend")
-                })?;
+                let _base_url = config
+                    .base_url
+                    .ok_or_else(|| anyhow::anyhow!("Base URL is required for SearXNG backend"))?;
                 // Note: SearXNG provider is not yet implemented
                 return Err(anyhow::anyhow!(
                     "SearXNG backend is not yet implemented. Use 'serper' or 'none' instead."
@@ -475,7 +473,9 @@ impl SearchProviderFactory {
         let cb_config = circuit_breaker::CircuitBreakerConfig {
             failure_threshold_percentage: config.circuit_breaker.failure_threshold,
             minimum_request_threshold: config.circuit_breaker.min_requests,
-            recovery_timeout: std::time::Duration::from_secs(config.circuit_breaker.recovery_timeout_secs),
+            recovery_timeout: std::time::Duration::from_secs(
+                config.circuit_breaker.recovery_timeout_secs,
+            ),
             half_open_max_requests: 3, // Fixed value for now
         };
 
@@ -520,7 +520,9 @@ impl SearchProviderFactory {
 /// # Returns
 ///
 /// A configured SearchProvider ready for use.
-pub async fn create_search_provider_from_env(backend: SearchBackend) -> Result<Box<dyn SearchProvider>> {
+pub async fn create_search_provider_from_env(
+    backend: SearchBackend,
+) -> Result<Box<dyn SearchProvider>> {
     let config = SearchConfig {
         backend: backend.clone(),
         api_key: match backend {

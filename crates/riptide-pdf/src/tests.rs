@@ -16,7 +16,9 @@ fn create_test_pdf() -> Vec<u8> {
     pdf.extend_from_slice(b"%PDF-1.7\n");
     pdf.extend_from_slice(b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
     pdf.extend_from_slice(b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
-    pdf.extend_from_slice(b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>\nendobj\n");
+    pdf.extend_from_slice(
+        b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>\nendobj\n",
+    );
     pdf.extend_from_slice(b"xref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n");
     pdf.extend_from_slice(b"trailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n181\n%%EOF\n");
     pdf
@@ -90,8 +92,16 @@ async fn test_pdf_processing_basic() {
 #[tokio::test]
 async fn test_pdf_detection_comprehensive() {
     // Test content-type detection
-    assert!(utils::detect_pdf_content(Some("application/pdf"), None, None));
-    assert!(utils::detect_pdf_content(Some("APPLICATION/PDF"), None, None));
+    assert!(utils::detect_pdf_content(
+        Some("application/pdf"),
+        None,
+        None
+    ));
+    assert!(utils::detect_pdf_content(
+        Some("APPLICATION/PDF"),
+        None,
+        None
+    ));
     assert!(!utils::detect_pdf_content(Some("text/html"), None, None));
 
     // Test magic bytes detection
@@ -128,7 +138,9 @@ async fn test_concurrent_pdf_processing() {
 
         let handle = tokio::spawn(async move {
             let start = std::time::Instant::now();
-            let result = processor_clone.process_pdf(&data_clone, &config_clone).await;
+            let result = processor_clone
+                .process_pdf(&data_clone, &config_clone)
+                .await;
             let duration = start.elapsed();
 
             println!("Task {} completed in {:?}", i, duration);
@@ -186,7 +198,10 @@ async fn test_memory_monitoring() {
             Ok(processing_result) => {
                 // Verify that memory statistics are recorded
                 assert!(processing_result.stats.memory_used > 0);
-                println!("Processing used {} bytes", processing_result.stats.memory_used);
+                println!(
+                    "Processing used {} bytes",
+                    processing_result.stats.memory_used
+                );
             }
             Err(PdfError::MemoryLimit { used, limit }) => {
                 // This is expected for very large files
@@ -320,7 +335,11 @@ async fn test_processing_timeout() {
     };
 
     // Test with timeout
-    let result = timeout(Duration::from_secs(5), processor.process_pdf(&pdf_data, &config)).await;
+    let result = timeout(
+        Duration::from_secs(5),
+        processor.process_pdf(&pdf_data, &config),
+    )
+    .await;
 
     match result {
         Ok(processing_result) => {
@@ -406,7 +425,10 @@ async fn test_image_extraction_settings() {
         match result {
             Ok(processing_result) => {
                 println!("Extracted {} images", processing_result.images.len());
-                println!("Images found in stats: {}", processing_result.stats.images_extracted);
+                println!(
+                    "Images found in stats: {}",
+                    processing_result.stats.images_extracted
+                );
 
                 // Verify image extraction settings are respected
                 for image in &processing_result.images {
@@ -440,10 +462,10 @@ async fn property_test_no_panic() {
 
     // Test various PDF-like inputs
     let test_cases = vec![
-        vec![], // Empty data
-        b"%PDF".to_vec(), // Too short
-        b"%PDF-1.7".to_vec(), // Minimal header
-        create_test_pdf(), // Valid minimal PDF
+        vec![],                 // Empty data
+        b"%PDF".to_vec(),       // Too short
+        b"%PDF-1.7".to_vec(),   // Minimal header
+        create_test_pdf(),      // Valid minimal PDF
         create_corrupted_pdf(), // Corrupted PDF
     ];
 
@@ -484,8 +506,10 @@ async fn test_memory_stability_under_load() {
     #[cfg(feature = "pdf")]
     {
         let initial_memory = processor.get_memory_usage();
-        println!("Starting memory stability test with initial memory: {} MB",
-                 initial_memory / (1024 * 1024));
+        println!(
+            "Starting memory stability test with initial memory: {} MB",
+            initial_memory / (1024 * 1024)
+        );
 
         // Spawn 10 concurrent tasks (should be throttled to max 2 concurrent)
         for i in 0..10 {
@@ -497,14 +521,20 @@ async fn test_memory_stability_under_load() {
                 let start_time = std::time::Instant::now();
                 let start_memory = processor_clone.get_memory_usage();
 
-                let result = processor_clone.process_pdf(&data_clone, &config_clone).await;
+                let result = processor_clone
+                    .process_pdf(&data_clone, &config_clone)
+                    .await;
 
                 let end_memory = processor_clone.get_memory_usage();
                 let duration = start_time.elapsed();
                 let memory_delta = end_memory.saturating_sub(start_memory);
 
-                println!("Task {} completed in {:?}, memory delta: {} MB",
-                        i, duration, memory_delta / (1024 * 1024));
+                println!(
+                    "Task {} completed in {:?}, memory delta: {} MB",
+                    i,
+                    duration,
+                    memory_delta / (1024 * 1024)
+                );
 
                 (i, result, memory_delta, duration)
             });
@@ -519,7 +549,10 @@ async fn test_memory_stability_under_load() {
         let results = futures::future::join_all(handles).await;
         let final_memory = processor.get_memory_usage();
 
-        println!("All tasks completed. Final memory: {} MB", final_memory / (1024 * 1024));
+        println!(
+            "All tasks completed. Final memory: {} MB",
+            final_memory / (1024 * 1024)
+        );
 
         let mut successful_tasks = 0;
         let mut _total_memory_used = 0u64;
@@ -536,8 +569,12 @@ async fn test_memory_stability_under_load() {
                             _total_memory_used += processing_result.stats.memory_used;
 
                             // Ensure reasonable processing time (not stuck waiting)
-                            assert!(duration < std::time::Duration::from_secs(60),
-                                   "Task {} took too long: {:?}", task_id, duration);
+                            assert!(
+                                duration < std::time::Duration::from_secs(60),
+                                "Task {} took too long: {:?}",
+                                task_id,
+                                duration
+                            );
                         }
                         Err(PdfError::MemoryLimit { .. }) => {
                             println!("Task {} hit memory limit (expected under stress)", task_id);
@@ -558,13 +595,19 @@ async fn test_memory_stability_under_load() {
 
         // Memory should return to reasonable levels after processing
         let final_memory_delta = final_memory.saturating_sub(initial_memory);
-        assert!(final_memory_delta < 500 * 1024 * 1024,
-               "Final memory delta {} MB is too high",
-               final_memory_delta / (1024 * 1024));
+        assert!(
+            final_memory_delta < 500 * 1024 * 1024,
+            "Final memory delta {} MB is too high",
+            final_memory_delta / (1024 * 1024)
+        );
 
-        println!("Memory stability test completed: {} successful tasks, \
+        println!(
+            "Memory stability test completed: {} successful tasks, \
                  max duration: {:?}, final memory delta: {} MB",
-                successful_tasks, max_task_duration, final_memory_delta / (1024 * 1024));
+            successful_tasks,
+            max_task_duration,
+            final_memory_delta / (1024 * 1024)
+        );
     }
 }
 
@@ -602,15 +645,25 @@ async fn test_concurrent_memory_limits() {
 
                 match &result {
                     Ok(processing_result) => {
-                        println!("Task {} succeeded: {} pages, {} MB memory",
-                                i,
-                                processing_result.stats.pages_processed,
-                                processing_result.stats.memory_used / (1024 * 1024));
-                        assert!(processing_result.stats.memory_used <= config_clone.memory_settings.max_memory_spike_bytes + 20 * 1024 * 1024);
+                        println!(
+                            "Task {} succeeded: {} pages, {} MB memory",
+                            i,
+                            processing_result.stats.pages_processed,
+                            processing_result.stats.memory_used / (1024 * 1024)
+                        );
+                        assert!(
+                            processing_result.stats.memory_used
+                                <= config_clone.memory_settings.max_memory_spike_bytes
+                                    + 20 * 1024 * 1024
+                        );
                     }
                     Err(PdfError::MemoryLimit { used, limit }) => {
-                        println!("Task {} hit memory limit: {} MB > {} MB",
-                                i, used / (1024 * 1024), limit / (1024 * 1024));
+                        println!(
+                            "Task {} hit memory limit: {} MB > {} MB",
+                            i,
+                            used / (1024 * 1024),
+                            limit / (1024 * 1024)
+                        );
                     }
                     Err(e) => {
                         println!("Task {} failed: {}", i, e);
@@ -627,13 +680,16 @@ async fn test_concurrent_memory_limits() {
         let results = futures::future::join_all(handles).await;
 
         // Verify that some tasks were queued (indicating concurrency control worked)
-        let durations: Vec<_> = results.iter().filter_map(|r| {
-            if let Ok((_, _, duration)) = r {
-                Some(*duration)
-            } else {
-                None
-            }
-        }).collect();
+        let durations: Vec<_> = results
+            .iter()
+            .filter_map(|r| {
+                if let Ok((_, _, duration)) = r {
+                    Some(*duration)
+                } else {
+                    None
+                }
+            })
+            .collect();
 
         if durations.len() > 2 {
             // Sort durations to see the pattern
@@ -643,10 +699,14 @@ async fn test_concurrent_memory_limits() {
             println!("Task durations: {:?}", sorted_durations);
 
             // The longest tasks should indicate queueing happened
-            let avg_duration = sorted_durations.iter().sum::<std::time::Duration>() / sorted_durations.len() as u32;
+            let avg_duration = sorted_durations.iter().sum::<std::time::Duration>()
+                / sorted_durations.len() as u32;
             let max_duration = sorted_durations.last().unwrap();
 
-            println!("Average duration: {:?}, Max duration: {:?}", avg_duration, max_duration);
+            println!(
+                "Average duration: {:?}, Max duration: {:?}",
+                avg_duration, max_duration
+            );
         }
     }
 }

@@ -119,7 +119,11 @@ pub async fn get_pipeline_phases(
         PhaseMetrics {
             name: "fetch".to_string(),
             avg_duration_ms: fetch_avg * 1000.0,
-            percentage_of_total: if total_avg > 0.0 { (fetch_avg / total_avg) * 100.0 } else { 0.0 },
+            percentage_of_total: if total_avg > 0.0 {
+                (fetch_avg / total_avg) * 100.0
+            } else {
+                0.0
+            },
             execution_count: get_counter_value(metrics, "http_requests"),
             success_rate: 95.0, // Sample data
             p50_ms: fetch_avg * 800.0,
@@ -128,7 +132,11 @@ pub async fn get_pipeline_phases(
         PhaseMetrics {
             name: "gate".to_string(),
             avg_duration_ms: gate_avg * 1000.0,
-            percentage_of_total: if total_avg > 0.0 { (gate_avg / total_avg) * 100.0 } else { 0.0 },
+            percentage_of_total: if total_avg > 0.0 {
+                (gate_avg / total_avg) * 100.0
+            } else {
+                0.0
+            },
             execution_count: get_counter_value(metrics, "http_requests"),
             success_rate: 99.0, // Sample data
             p50_ms: gate_avg * 800.0,
@@ -137,7 +145,11 @@ pub async fn get_pipeline_phases(
         PhaseMetrics {
             name: "wasm".to_string(),
             avg_duration_ms: wasm_avg * 1000.0,
-            percentage_of_total: if total_avg > 0.0 { (wasm_avg / total_avg) * 100.0 } else { 0.0 },
+            percentage_of_total: if total_avg > 0.0 {
+                (wasm_avg / total_avg) * 100.0
+            } else {
+                0.0
+            },
             execution_count: get_counter_value(metrics, "http_requests"),
             success_rate: 97.0, // Sample data
             p50_ms: wasm_avg * 800.0,
@@ -146,7 +158,11 @@ pub async fn get_pipeline_phases(
         PhaseMetrics {
             name: "render".to_string(),
             avg_duration_ms: render_avg * 1000.0,
-            percentage_of_total: if render_avg > 0.0 && total_avg > 0.0 { (render_avg / total_avg) * 100.0 } else { 0.0 },
+            percentage_of_total: if render_avg > 0.0 && total_avg > 0.0 {
+                (render_avg / total_avg) * 100.0
+            } else {
+                0.0
+            },
             execution_count: get_counter_value(metrics, "gate_decisions_headless"),
             success_rate: 90.0, // Sample data
             p50_ms: render_avg * 800.0,
@@ -168,8 +184,14 @@ pub async fn get_pipeline_phases(
                 ),
                 recommendation: match phase.name.as_str() {
                     "fetch" => "Consider enabling caching or using a CDN".to_string(),
-                    "wasm" => "Consider optimizing WASM extraction or using faster extraction strategies".to_string(),
-                    "render" => "Reduce headless rendering timeout or optimize dynamic content detection".to_string(),
+                    "wasm" => {
+                        "Consider optimizing WASM extraction or using faster extraction strategies"
+                            .to_string()
+                    }
+                    "render" => {
+                        "Reduce headless rendering timeout or optimize dynamic content detection"
+                            .to_string()
+                    }
                     _ => "Optimize this phase to reduce latency".to_string(),
                 },
             });
@@ -195,10 +217,22 @@ pub async fn get_pipeline_phases(
 
     let mut by_gate_decision = HashMap::new();
     if total_requests > 0 {
-        by_gate_decision.insert("raw".to_string(), (raw_decisions as f64 / total_requests as f64) * 100.0);
-        by_gate_decision.insert("probes_first".to_string(), (probes_decisions as f64 / total_requests as f64) * 100.0);
-        by_gate_decision.insert("headless".to_string(), (headless_decisions as f64 / total_requests as f64) * 100.0);
-        by_gate_decision.insert("cached".to_string(), (cached_decisions as f64 / total_requests as f64) * 100.0);
+        by_gate_decision.insert(
+            "raw".to_string(),
+            (raw_decisions as f64 / total_requests as f64) * 100.0,
+        );
+        by_gate_decision.insert(
+            "probes_first".to_string(),
+            (probes_decisions as f64 / total_requests as f64) * 100.0,
+        );
+        by_gate_decision.insert(
+            "headless".to_string(),
+            (headless_decisions as f64 / total_requests as f64) * 100.0,
+        );
+        by_gate_decision.insert(
+            "cached".to_string(),
+            (cached_decisions as f64 / total_requests as f64) * 100.0,
+        );
     }
 
     let cache_hit_rate = state.metrics.cache_hit_rate.get();
@@ -232,10 +266,10 @@ fn get_histogram_avg(_metrics: &crate::metrics::RipTideMetrics, phase: &str) -> 
     // In production, this would query the actual histogram
     // For now, return sample values
     match phase {
-        "fetch_phase" => 0.15,      // 150ms average
-        "gate_phase" => 0.01,       // 10ms average
-        "wasm_phase" => 0.20,       // 200ms average
-        "render_phase" => 2.0,      // 2s average (when used)
+        "fetch_phase" => 0.15, // 150ms average
+        "gate_phase" => 0.01,  // 10ms average
+        "wasm_phase" => 0.20,  // 200ms average
+        "render_phase" => 2.0, // 2s average (when used)
         _ => 0.0,
     }
 }

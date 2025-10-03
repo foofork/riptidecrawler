@@ -13,8 +13,7 @@ use crate::fingerprint::FingerprintingConfig;
 use crate::user_agent::{RotationStrategy, UserAgentConfig};
 
 /// Stealth preset levels for easy configuration
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub enum StealthPreset {
     /// No stealth measures applied
     None,
@@ -26,7 +25,6 @@ pub enum StealthPreset {
     /// Maximum stealth: all countermeasures enabled
     High,
 }
-
 
 /// Stealth configuration for anti-detection measures
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -196,8 +194,7 @@ impl StealthConfig {
 }
 
 /// Request randomization settings
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct RequestRandomization {
     /// Header randomization
     pub headers: HeaderRandomization,
@@ -211,7 +208,6 @@ pub struct RequestRandomization {
     /// Language/locale randomization
     pub locale: LocaleRandomization,
 }
-
 
 /// Header randomization configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -420,8 +416,7 @@ pub struct ProxyAuth {
 }
 
 /// Timing configuration for request pacing
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct TimingConfig {
     /// Per-domain timing settings
     pub per_domain: HashMap<String, DomainTiming>,
@@ -432,7 +427,6 @@ pub struct TimingConfig {
     /// Global rate limiting
     pub global_rate_limit: Option<RateLimit>,
 }
-
 
 /// Per-domain timing configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]

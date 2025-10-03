@@ -4,10 +4,10 @@
 //! It supports configurable patterns with different fields and requirements, making it suitable
 //! for extracting structured data like emails, phone numbers, dates, and custom patterns.
 
+use crate::{ExtractedContent, RegexPattern};
 use anyhow::Result;
 use regex::Regex;
 use std::collections::HashMap;
-use crate::{ExtractedContent, RegexPattern};
 
 /// Regex-based content extractor
 pub struct RegexExtractor {
@@ -50,7 +50,8 @@ impl RegexExtractor {
 
         // Apply all regex patterns
         for pattern in &self.patterns {
-            let matches: Vec<String> = pattern.regex
+            let matches: Vec<String> = pattern
+                .regex
                 .find_iter(&text)
                 .map(|m| m.as_str().to_string())
                 .collect();
@@ -294,7 +295,9 @@ pub fn contact_patterns() -> Vec<RegexPattern> {
         },
         RegexPattern {
             name: "address".to_string(),
-            pattern: r"\d+\s+[A-Za-z\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr)".to_string(),
+            pattern:
+                r"\d+\s+[A-Za-z\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr)"
+                    .to_string(),
             field: "addresses".to_string(),
             required: false,
         },
@@ -419,7 +422,9 @@ mod tests {
             required: false,
         }];
 
-        let result = extract(html, "https://example.com", &patterns).await.unwrap();
+        let result = extract(html, "https://example.com", &patterns)
+            .await
+            .unwrap();
 
         assert!(result.content.contains("john.doe@example.com"));
         assert!(result.content.contains("support@company.org"));
@@ -442,7 +447,9 @@ mod tests {
             required: false,
         }];
 
-        let result = extract(html, "https://example.com", &patterns).await.unwrap();
+        let result = extract(html, "https://example.com", &patterns)
+            .await
+            .unwrap();
 
         assert!(result.content.contains("(555) 123-4567"));
         assert!(result.content.contains("555-987-6543"));

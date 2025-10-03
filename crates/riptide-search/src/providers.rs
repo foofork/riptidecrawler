@@ -42,7 +42,11 @@ impl SerperProvider {
             .build()
             .expect("Failed to create HTTP client");
 
-        Self { api_key, client, timeout_seconds }
+        Self {
+            api_key,
+            client,
+            timeout_seconds,
+        }
     }
 }
 
@@ -123,7 +127,8 @@ impl SerperProvider {
 
         if let Some(organic_results) = response.get("organic").and_then(|v| v.as_array()) {
             for (index, result) in organic_results.iter().enumerate() {
-                let url = result.get("link")
+                let url = result
+                    .get("link")
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| anyhow::anyhow!("Missing URL in search result"))?
                     .to_string();

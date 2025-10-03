@@ -200,7 +200,8 @@ impl UrlUtils {
         if self.config.lowercase_hostname {
             if let Some(host) = normalized.host_str() {
                 let lowercase_host = host.to_lowercase();
-                normalized.set_host(Some(&lowercase_host))
+                normalized
+                    .set_host(Some(&lowercase_host))
                     .context("Failed to set lowercase hostname")?;
             }
         }
@@ -210,7 +211,8 @@ impl UrlUtils {
             if let Some(host) = normalized.host_str().map(|s| s.to_string()) {
                 if host.starts_with("www.") && host.len() > 4 {
                     let without_www = &host[4..];
-                    normalized.set_host(Some(without_www))
+                    normalized
+                        .set_host(Some(without_www))
                         .context("Failed to remove www prefix")?;
                 }
             }
@@ -220,8 +222,8 @@ impl UrlUtils {
         if self.config.remove_default_ports {
             if let Some(port) = normalized.port() {
                 let scheme = normalized.scheme();
-                let is_default = (scheme == "http" && port == 80) ||
-                                (scheme == "https" && port == 443);
+                let is_default =
+                    (scheme == "http" && port == 80) || (scheme == "https" && port == 443);
                 if is_default {
                     let _ = normalized.set_port(None);
                 }
@@ -255,7 +257,7 @@ impl UrlUtils {
         if self.config.remove_trailing_slash {
             let path = normalized.path().to_string();
             if path.len() > 1 && path.ends_with('/') {
-                normalized.set_path(&path[..path.len()-1]);
+                normalized.set_path(&path[..path.len() - 1]);
             }
         }
 
@@ -277,7 +279,11 @@ impl UrlUtils {
 
         // Check file extension exclusions
         if let Some(extension) = url.path().split('.').next_back() {
-            if self.config.exclude_extensions.contains(&extension.to_lowercase()) {
+            if self
+                .config
+                .exclude_extensions
+                .contains(&extension.to_lowercase())
+            {
                 self.excluded_count.fetch_add(1, Ordering::Relaxed);
                 debug!(url = %url, extension = %extension, "URL excluded by extension");
                 return true;
@@ -382,12 +388,15 @@ impl UrlUtils {
 
     /// Get statistics about URL processing
     pub async fn get_stats(&self) -> UrlUtilsStats {
-        let bloom_stats = (*self.bloom_filter.lock().await).as_ref().map(|bloom| BloomFilterStats {
-            estimated_fpr: bloom.estimated_fpr(),
-            insertions: bloom.insertions.load(Ordering::Relaxed),
-            capacity: bloom.capacity,
-            hash_functions: bloom.hash_functions,
-        });
+        let bloom_stats =
+            (*self.bloom_filter.lock().await)
+                .as_ref()
+                .map(|bloom| BloomFilterStats {
+                    estimated_fpr: bloom.estimated_fpr(),
+                    insertions: bloom.insertions.load(Ordering::Relaxed),
+                    capacity: bloom.capacity,
+                    hash_functions: bloom.hash_functions,
+                });
 
         UrlUtilsStats {
             total_processed: self.total_processed.load(Ordering::Relaxed),
@@ -461,8 +470,11 @@ mod tests {
         let config = UrlUtilsConfig::default();
         let url_utils = UrlUtils::new(config);
 
-        let url = Url::from_str("https://WWW.Example.COM:443/path/?b=2&a=1#fragment").expect("Valid URL");
-        let normalized = url_utils.normalize_url(&url).expect("Normalization should work");
+        let url =
+            Url::from_str("https://WWW.Example.COM:443/path/?b=2&a=1#fragment").expect("Valid URL");
+        let normalized = url_utils
+            .normalize_url(&url)
+            .expect("Normalization should work");
 
         assert_eq!(normalized.host_str().unwrap(), "example.com");
         assert_eq!(normalized.port(), None); // Default port removed
@@ -494,13 +506,22 @@ mod tests {
         let url3 = Url::from_str("https://example.com/other").expect("Valid URL");
 
         // First occurrence should not be duplicate
-        assert!(!url_utils.is_duplicate_and_mark(&url1).await.expect("Should work"));
+        assert!(!url_utils
+            .is_duplicate_and_mark(&url1)
+            .await
+            .expect("Should work"));
 
         // Second occurrence should be duplicate
-        assert!(url_utils.is_duplicate_and_mark(&url2).await.expect("Should work"));
+        assert!(url_utils
+            .is_duplicate_and_mark(&url2)
+            .await
+            .expect("Should work"));
 
         // Different URL should not be duplicate
-        assert!(!url_utils.is_duplicate_and_mark(&url3).await.expect("Should work"));
+        assert!(!url_utils
+            .is_duplicate_and_mark(&url3)
+            .await
+            .expect("Should work"));
     }
 
     #[tokio::test]
@@ -515,7 +536,10 @@ mod tests {
             Url::from_str("https://example.com/page1.html").expect("Valid URL"), // Duplicate
         ];
 
-        let filtered = url_utils.filter_urls(urls).await.expect("Filtering should work");
+        let filtered = url_utils
+            .filter_urls(urls)
+            .await
+            .expect("Filtering should work");
 
         // Should have 2 unique, non-excluded URLs
         assert_eq!(filtered.len(), 2);

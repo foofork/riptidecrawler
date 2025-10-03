@@ -3,11 +3,11 @@
 //! This module contains the main streaming handler struct and its implementation methods.
 
 use super::helpers::{orchestrate_crawl_stream_optimized, orchestrate_deepsearch_stream_optimized};
+use crate::models::{CrawlBody, DeepSearchBody};
+use crate::state::AppState;
 use crate::streaming::buffer::{BackpressureHandler, BufferManager};
 use crate::streaming::config::StreamConfig;
 use crate::streaming::error::{StreamingError, StreamingResult};
-use crate::models::{CrawlBody, DeepSearchBody};
-use crate::state::AppState;
 use axum::body::Body;
 use axum::http::StatusCode;
 use axum::response::Response;

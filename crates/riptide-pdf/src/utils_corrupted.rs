@@ -137,8 +137,10 @@ pub fn sanitize_text_content(text: &str) -> String {
         .map(|line| line.trim())
         .filter(|line| !line.is_empty())
         .collect::<Vec<_>>()
-        .join("
-")
+        .join(
+            "
+",
+        )
 }
 
 /// Processing complexity levels
@@ -204,7 +206,10 @@ mod tests {
         assert!(detect_pdf_by_extension(&format!("document.{}", "pdf")));
         assert!(detect_pdf_by_extension(&format!("Document.{}", "PDF")));
         assert!(detect_pdf_by_extension(&format!("/path/to/file.{}", "pdf")));
-        assert!(detect_pdf_by_extension(&format!("https://example.com/doc.{}", "pdf")));
+        assert!(detect_pdf_by_extension(&format!(
+            "https://example.com/doc.{}",
+            "pdf"
+        )));
         assert!(!detect_pdf_by_extension("document.txt"));
         assert!(!detect_pdf_by_extension("document"));
     }

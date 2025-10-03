@@ -142,7 +142,11 @@ impl PipelineOrchestrator {
         info!(url = %url, cache_key = %cache_key, "Starting pipeline execution");
 
         // Emit pipeline start event
-        let mut start_event = BaseEvent::new("pipeline.execution.started", "pipeline_orchestrator", EventSeverity::Info);
+        let mut start_event = BaseEvent::new(
+            "pipeline.execution.started",
+            "pipeline_orchestrator",
+            EventSeverity::Info,
+        );
         start_event.add_metadata("url", url);
         start_event.add_metadata("cache_key", &cache_key);
         if let Err(e) = self.state.event_bus.emit(start_event).await {
@@ -155,7 +159,11 @@ impl PipelineOrchestrator {
             info!(url = %url, "Cache hit, returning cached result");
 
             // Emit cache hit event
-            let mut cache_event = BaseEvent::new("pipeline.cache.hit", "pipeline_orchestrator", EventSeverity::Info);
+            let mut cache_event = BaseEvent::new(
+                "pipeline.cache.hit",
+                "pipeline_orchestrator",
+                EventSeverity::Info,
+            );
             cache_event.add_metadata("url", url);
             cache_event.add_metadata("cache_key", &cache_key);
             if let Err(e) = self.state.event_bus.emit(cache_event).await {
@@ -185,7 +193,11 @@ impl PipelineOrchestrator {
             info!(url = %url, "Detected PDF content, processing with PDF pipeline");
 
             // Emit PDF processing event
-            let mut pdf_event = BaseEvent::new("pipeline.pdf.processing", "pipeline_orchestrator", EventSeverity::Info);
+            let mut pdf_event = BaseEvent::new(
+                "pipeline.pdf.processing",
+                "pipeline_orchestrator",
+                EventSeverity::Info,
+            );
             pdf_event.add_metadata("url", url);
             pdf_event.add_metadata("content_size", &content_bytes.len().to_string());
             if let Err(e) = self.state.event_bus.emit(pdf_event).await {
@@ -239,7 +251,11 @@ impl PipelineOrchestrator {
         );
 
         // Emit gate decision event
-        let mut gate_event = BaseEvent::new("pipeline.gate.decision", "pipeline_orchestrator", EventSeverity::Info);
+        let mut gate_event = BaseEvent::new(
+            "pipeline.gate.decision",
+            "pipeline_orchestrator",
+            EventSeverity::Info,
+        );
         gate_event.add_metadata("url", url);
         gate_event.add_metadata("decision", &gate_decision_str);
         gate_event.add_metadata("quality_score", &quality_score.to_string());
@@ -264,7 +280,11 @@ impl PipelineOrchestrator {
         );
 
         // Emit pipeline completion event
-        let mut completion_event = BaseEvent::new("pipeline.execution.completed", "pipeline_orchestrator", EventSeverity::Info);
+        let mut completion_event = BaseEvent::new(
+            "pipeline.execution.completed",
+            "pipeline_orchestrator",
+            EventSeverity::Info,
+        );
         completion_event.add_metadata("url", url);
         completion_event.add_metadata("gate_decision", &gate_decision_str);
         completion_event.add_metadata("quality_score", &quality_score.to_string());
@@ -465,39 +485,39 @@ impl PipelineOrchestrator {
             .map_err(|e| ApiError::extraction(format!("PDF processing error: {}", e)))
             .and_then(|document| {
                 info!(
-                    url = %url_str,
-                text_length = document.text.len(),
-                title = ?document.title,
-                "PDF processing completed successfully"
-            );
-            Ok(riptide_core::convert_pdf_extracted_doc(document))
-        })
-        .or_else(|e| {
-            error!(
-                url = %url,
-                error = %e,
-                "PDF processing failed"
-            );
-
-            // Return a fallback document with error information
-            Ok(ExtractedDoc {
-                url: url.to_string(),
-                title: Some("PDF Processing Failed".to_string()),
-                byline: None,
-                published_iso: None,
-                markdown: Some(format!("**PDF Processing Error**: {}", e)),
-                text: format!("PDF processing failed: {}", e),
-                links: Vec::new(),
-                media: Vec::new(),
-                language: None,
-                reading_time: Some(1),
-                quality_score: Some(20), // Low quality due to error
-                word_count: Some(5),
-                categories: vec!["pdf".to_string(), "error".to_string()],
-                site_name: None,
-                description: Some("Failed to process PDF document".to_string()),
+                        url = %url_str,
+                    text_length = document.text.len(),
+                    title = ?document.title,
+                    "PDF processing completed successfully"
+                );
+                Ok(riptide_core::convert_pdf_extracted_doc(document))
             })
-        })
+            .or_else(|e| {
+                error!(
+                    url = %url,
+                    error = %e,
+                    "PDF processing failed"
+                );
+
+                // Return a fallback document with error information
+                Ok(ExtractedDoc {
+                    url: url.to_string(),
+                    title: Some("PDF Processing Failed".to_string()),
+                    byline: None,
+                    published_iso: None,
+                    markdown: Some(format!("**PDF Processing Error**: {}", e)),
+                    text: format!("PDF processing failed: {}", e),
+                    links: Vec::new(),
+                    media: Vec::new(),
+                    language: None,
+                    reading_time: Some(1),
+                    quality_score: Some(20), // Low quality due to error
+                    word_count: Some(5),
+                    categories: vec!["pdf".to_string(), "error".to_string()],
+                    site_name: None,
+                    description: Some("Failed to process PDF document".to_string()),
+                })
+            })
     }
 
     /// Fetch HTML content from a URL with timeout and error handling.
@@ -681,11 +701,7 @@ impl PipelineOrchestrator {
     }
 
     /// Fallback to direct WASM extraction when ReliableExtractor fails
-    async fn fallback_to_wasm_extraction(
-        &self,
-        html: &str,
-        url: &str,
-    ) -> ApiResult<ExtractedDoc> {
+    async fn fallback_to_wasm_extraction(&self, html: &str, url: &str) -> ApiResult<ExtractedDoc> {
         info!(url = %url, "Attempting direct WASM fallback extraction");
 
         let extractor = self.state.extractor.clone();
@@ -739,16 +755,20 @@ impl PipelineOrchestrator {
             .json(&render_request)
             .send()
             .await
-            .map_err(|e| ApiError::dependency("headless", format!("Headless request failed: {}", e)))?;
+            .map_err(|e| {
+                ApiError::dependency("headless", format!("Headless request failed: {}", e))
+            })?;
 
         if !response.status().is_success() {
-            return Err(ApiError::dependency("headless", format!("Render request failed: {}", response.status())));
+            return Err(ApiError::dependency(
+                "headless",
+                format!("Render request failed: {}", response.status()),
+            ));
         }
 
-        let rendered_html = response
-            .text()
-            .await
-            .map_err(|e| ApiError::dependency("headless", format!("Failed to read rendered HTML: {}", e)))?;
+        let rendered_html = response.text().await.map_err(|e| {
+            ApiError::dependency("headless", format!("Failed to read rendered HTML: {}", e))
+        })?;
 
         // Extract from rendered HTML
         extractor

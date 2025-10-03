@@ -76,7 +76,9 @@ async fn test_table_001_basic_structure() -> Result<()> {
     // Test column groups
     assert_eq!(table.headers.column_groups.len(), 3);
     assert_eq!(table.headers.column_groups[0].span, 2);
-    assert!(table.headers.column_groups[0].attributes.contains_key("class"));
+    assert!(table.headers.column_groups[0]
+        .attributes
+        .contains_key("class"));
 
     // Test headers
     assert_eq!(table.headers.main.len(), 4);
@@ -201,10 +203,14 @@ async fn test_table_001_nested_tables() -> Result<()> {
     let tables = extract_tables_advanced(html, Some(config)).await?;
 
     // Should find all 3 tables: outer, products, services
-    assert!(tables.len() >= 3, "Should find at least 3 tables (outer + 2 nested)");
+    assert!(
+        tables.len() >= 3,
+        "Should find at least 3 tables (outer + 2 nested)"
+    );
 
     // Find the outer table
-    let outer_table = tables.iter()
+    let outer_table = tables
+        .iter()
         .find(|t| !t.nested_tables.is_empty())
         .expect("Should find outer table with nested tables");
 
@@ -213,7 +219,8 @@ async fn test_table_001_nested_tables() -> Result<()> {
     assert!(outer_table.parent_id.is_none());
 
     // Find nested tables
-    let products_table = tables.iter()
+    let products_table = tables
+        .iter()
         .find(|t| t.caption == Some("Product List".to_string()))
         .expect("Should find products table");
 
@@ -326,7 +333,10 @@ async fn test_table_004_ndjson_artifacts() -> Result<()> {
     assert_eq!(csv_artifact.artifact_type, "csv");
     assert_eq!(csv_artifact.table_id, table.id);
     assert!(csv_artifact.content.contains("Name,Age,City"));
-    assert_eq!(csv_artifact.metadata.get("format"), Some(&"RFC4180".to_string()));
+    assert_eq!(
+        csv_artifact.metadata.get("format"),
+        Some(&"RFC4180".to_string())
+    );
 
     // Test Markdown artifact
     let md_artifact: TableArtifact = serde_json::from_str(&artifacts[1])?;
@@ -347,7 +357,10 @@ async fn test_table_004_ndjson_with_paths() -> Result<()> {
     let artifacts = table.to_ndjson_artifacts(Some("/tmp/tables"))?;
 
     let csv_artifact: TableArtifact = serde_json::from_str(&artifacts[0])?;
-    assert_eq!(csv_artifact.content, format!("/tmp/tables/{}.csv", table.id));
+    assert_eq!(
+        csv_artifact.content,
+        format!("/tmp/tables/{}.csv", table.id)
+    );
 
     let md_artifact: TableArtifact = serde_json::from_str(&artifacts[1])?;
     assert_eq!(md_artifact.content, format!("/tmp/tables/{}.md", table.id));
@@ -441,7 +454,10 @@ async fn test_warehouse_ready_csv() -> Result<()> {
 
     // Test no line breaks within cells
     for line in &lines {
-        assert!(!line.contains('\n'), "CSV lines should not contain unescaped newlines");
+        assert!(
+            !line.contains('\n'),
+            "CSV lines should not contain unescaped newlines"
+        );
     }
 
     Ok(())
@@ -457,7 +473,10 @@ async fn test_performance_large_table() -> Result<()> {
     let duration = start.elapsed();
 
     // Should complete within reasonable time (adjust as needed)
-    assert!(duration.as_millis() < 5000, "Large table extraction should complete within 5 seconds");
+    assert!(
+        duration.as_millis() < 5000,
+        "Large table extraction should complete within 5 seconds"
+    );
 
     assert_eq!(tables.len(), 1);
     let table = &tables[0];
@@ -547,9 +566,7 @@ fn create_test_table_with_spans() -> AdvancedTableData {
         create_test_cell_with_span("Contact", CellType::Header, 0, 1, 2, 1),
     ];
 
-    table.rows = vec![
-        create_table_row(vec!["John", "email@test.com"], 0),
-    ];
+    table.rows = vec![create_table_row(vec!["John", "email@test.com"], 0)];
 
     table.structure.has_complex_structure = true;
     table.structure.max_colspan = 2;

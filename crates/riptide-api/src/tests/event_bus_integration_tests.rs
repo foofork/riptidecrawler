@@ -5,10 +5,10 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::state::{AppState, AppConfig};
     use crate::health::HealthChecker;
     use crate::metrics::RipTideMetrics;
-    use riptide_core::events::{EventBus, EventEmitter, BaseEvent, EventSeverity};
+    use crate::state::{AppConfig, AppState};
+    use riptide_core::events::{BaseEvent, EventBus, EventEmitter, EventSeverity};
     use std::sync::Arc;
     use tokio::time::{sleep, Duration};
 
@@ -36,7 +36,10 @@ mod tests {
         match AppState::new(config, metrics, health_checker).await {
             Ok(state) => {
                 // Verify event bus is initialized
-                assert!(!state.event_bus.get_stats().is_running || state.event_bus.get_stats().is_running);
+                assert!(
+                    !state.event_bus.get_stats().is_running
+                        || state.event_bus.get_stats().is_running
+                );
 
                 // Verify handlers are registered
                 let handler_names = state.event_bus.get_handler_names().await;
@@ -46,7 +49,10 @@ mod tests {
                 assert!(handler_names.contains(&"health_handler".to_string()));
             }
             Err(e) => {
-                eprintln!("AppState initialization failed (expected if Redis not available): {}", e);
+                eprintln!(
+                    "AppState initialization failed (expected if Redis not available): {}",
+                    e
+                );
             }
         }
     }
@@ -112,7 +118,9 @@ mod tests {
     /// Test multiple handler types
     #[tokio::test]
     async fn test_multiple_handlers() {
-        use riptide_core::events::handlers::{LoggingEventHandler, TelemetryEventHandler, HealthEventHandler};
+        use riptide_core::events::handlers::{
+            HealthEventHandler, LoggingEventHandler, TelemetryEventHandler,
+        };
         use riptide_core::monitoring::MetricsCollector;
 
         let event_bus = EventBus::new();
@@ -122,9 +130,18 @@ mod tests {
         let telemetry = Arc::new(TelemetryEventHandler::new());
         let health = Arc::new(HealthEventHandler::new());
 
-        event_bus.register_handler(logging).await.expect("Failed to register logging handler");
-        event_bus.register_handler(telemetry).await.expect("Failed to register telemetry handler");
-        event_bus.register_handler(health).await.expect("Failed to register health handler");
+        event_bus
+            .register_handler(logging)
+            .await
+            .expect("Failed to register logging handler");
+        event_bus
+            .register_handler(telemetry)
+            .await
+            .expect("Failed to register telemetry handler");
+        event_bus
+            .register_handler(health)
+            .await
+            .expect("Failed to register health handler");
 
         let handlers = event_bus.get_handler_names().await;
         assert_eq!(handlers.len(), 3);

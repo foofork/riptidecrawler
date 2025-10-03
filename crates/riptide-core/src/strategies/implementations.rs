@@ -7,11 +7,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use std::collections::HashMap;
 
-use crate::strategies::{
-    traits::*,
-    PerformanceMetrics,
-    ExtractedContent,
-};
+use crate::strategies::{traits::*, ExtractedContent, PerformanceMetrics};
 
 // ============================================================================
 // EXTRACTION STRATEGY IMPLEMENTATIONS
@@ -45,7 +41,10 @@ impl ExtractionStrategy for TrekExtractionStrategy {
         };
 
         let mut metadata = HashMap::new();
-        metadata.insert("extraction_time_ms".to_string(), duration.as_millis().to_string());
+        metadata.insert(
+            "extraction_time_ms".to_string(),
+            duration.as_millis().to_string(),
+        );
         metadata.insert("strategy_version".to_string(), "1.0".to_string());
 
         Ok(ExtractionResult {
@@ -74,7 +73,11 @@ impl ExtractionStrategy for TrekExtractionStrategy {
                 requires_network: false,
                 external_dependencies: vec!["wasmtime".to_string()],
             },
-            features: vec!["wasm".to_string(), "fast".to_string(), "lightweight".to_string()],
+            features: vec![
+                "wasm".to_string(),
+                "fast".to_string(),
+                "lightweight".to_string(),
+            ],
         }
     }
 
@@ -112,7 +115,8 @@ fn calculate_content_quality(content: &str) -> f64 {
     }
 
     // Sentence structure
-    let sentences = content.matches('.').count() + content.matches('!').count() + content.matches('?').count();
+    let sentences =
+        content.matches('.').count() + content.matches('!').count() + content.matches('?').count();
     if sentences > 5 {
         score += 0.1;
     }
@@ -124,4 +128,3 @@ fn calculate_content_quality(content: &str) -> f64 {
 
     score.min(1.0)
 }
-

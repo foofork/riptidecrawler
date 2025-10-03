@@ -9,9 +9,9 @@ use riptide_core::stealth::StealthController;
 use std::time::Instant;
 use tracing::{debug, error, info, warn};
 
+use super::extraction::extract_content;
 use super::models::{RenderRequest, RenderResponse, RenderStats, SessionRenderInfo};
 use super::processors::{process_adaptive, process_dynamic, process_pdf, process_static};
-use super::extraction::extract_content;
 
 /// Enhanced render endpoint with dynamic content handling and resource controls
 pub async fn render(
@@ -30,7 +30,10 @@ pub async fn render(
         Ok(ResourceResult::Success(guard)) => guard,
         Ok(ResourceResult::Timeout) => {
             warn!(url = %body.url, "Render request timed out during resource acquisition");
-            return Err(ApiError::timeout("Resource acquisition", "Resource acquisition timed out"));
+            return Err(ApiError::timeout(
+                "Resource acquisition",
+                "Resource acquisition timed out",
+            ));
         }
         Ok(ResourceResult::ResourceExhausted) => {
             warn!(url = %body.url, "Render request rejected - resources exhausted");
@@ -98,9 +101,10 @@ async fn render_with_resources(
     let start_time = Instant::now();
 
     // Determine session to use (from request or middleware)
-    let session_id = body.session_id.clone().or_else(|| {
-        Some(session_ctx.session_id().to_string())
-    });
+    let session_id = body
+        .session_id
+        .clone()
+        .or_else(|| Some(session_ctx.session_id().to_string()));
 
     info!(
         url = %body.url,
@@ -145,7 +149,8 @@ async fn render_with_resources(
                 // Extract domain from URL for cookie context
                 let domain = url::Url::parse(&url)
                     .map(|parsed_url| {
-                        parsed_url.host_str()
+                        parsed_url
+                            .host_str()
                             .map(|host| host.to_string())
                             .unwrap_or_else(|| {
                                 warn!(url = %url, "URL has no host, using 'localhost'");
@@ -250,7 +255,8 @@ async fn render_with_resources(
 
     // Extract content from the rendered result
     let extraction_start = Instant::now();
-    let content = extract_content(&state.extractor, &render_result, &output_format, &final_url).await?;
+    let content =
+        extract_content(&state.extractor, &render_result, &output_format, &final_url).await?;
     let extraction_time_ms = extraction_start.elapsed().as_millis() as u64;
 
     // Build statistics
@@ -302,7 +308,7 @@ async fn render_with_resources(
             start_time.elapsed(),
             response.success,
             response.stats.actions_executed,
-            response.stats.network_requests
+            response.stats.network_requests,
         )
         .await
     {

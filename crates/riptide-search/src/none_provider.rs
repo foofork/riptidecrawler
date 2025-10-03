@@ -42,7 +42,10 @@ impl NoneProvider {
 
         self.url_regex
             .find_iter(query)
-            .map(|m| m.as_str().trim_end_matches(&[',', '.', ';', ')', ']', '}'] as &[_]))
+            .map(|m| {
+                m.as_str()
+                    .trim_end_matches(&[',', '.', ';', ')', ']', '}'] as &[_])
+            })
             .filter(|url| {
                 // Validate URL is well-formed
                 url::Url::parse(url).is_ok()
@@ -123,7 +126,8 @@ mod tests {
     #[test]
     fn test_url_extraction_mixed_text() {
         let provider = NoneProvider::new(true);
-        let urls = provider.extract_urls("Check out https://example.com and also https://test.org for more info");
+        let urls = provider
+            .extract_urls("Check out https://example.com and also https://test.org for more info");
         assert_eq!(urls.len(), 2);
     }
 

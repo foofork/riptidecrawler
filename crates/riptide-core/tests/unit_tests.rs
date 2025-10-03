@@ -118,7 +118,7 @@ mod reliability_tests {
 #[cfg(test)]
 mod cache_tests {
     use super::*;
-    use riptide_core::cache::{ExtractorCache, CacheConfig};
+    use riptide_core::cache::{CacheConfig, ExtractorCache};
     use std::sync::Arc;
 
     #[tokio::test]
@@ -201,7 +201,7 @@ mod cache_tests {
 #[cfg(test)]
 mod component_tests {
     use super::*;
-    use riptide_core::component::{ExtractorConfig, WasmResourceTracker, PerformanceMetrics};
+    use riptide_core::component::{ExtractorConfig, PerformanceMetrics, WasmResourceTracker};
 
     #[test]
     fn test_extractor_config() {
@@ -265,13 +265,18 @@ mod event_bus_tests {
             async move {
                 received.write().await.push(event);
             }
-        }).await;
+        })
+        .await;
 
-        bus.publish("extraction_complete", ExtractionEvent {
-            url: "https://example.com".to_string(),
-            success: true,
-            duration_ms: 100,
-        }).await;
+        bus.publish(
+            "extraction_complete",
+            ExtractionEvent {
+                url: "https://example.com".to_string(),
+                success: true,
+                duration_ms: 100,
+            },
+        )
+        .await;
 
         tokio::time::sleep(Duration::from_millis(50)).await;
 
@@ -293,7 +298,8 @@ mod event_bus_tests {
             async move {
                 *counter.write().await += 1;
             }
-        }).await;
+        })
+        .await;
 
         let counter2_clone = counter2.clone();
         bus.subscribe("test_event", move |_| {
@@ -301,7 +307,8 @@ mod event_bus_tests {
             async move {
                 *counter.write().await += 1;
             }
-        }).await;
+        })
+        .await;
 
         bus.publish("test_event", ()).await;
         tokio::time::sleep(Duration::from_millis(50)).await;
@@ -316,12 +323,14 @@ mod event_bus_tests {
         let counter = Arc::new(RwLock::new(0));
 
         let counter_clone = counter.clone();
-        let id = bus.subscribe("test", move |_| {
-            let counter = counter_clone.clone();
-            async move {
-                *counter.write().await += 1;
-            }
-        }).await;
+        let id = bus
+            .subscribe("test", move |_| {
+                let counter = counter_clone.clone();
+                async move {
+                    *counter.write().await += 1;
+                }
+            })
+            .await;
 
         bus.publish("test", ()).await;
         tokio::time::sleep(Duration::from_millis(50)).await;

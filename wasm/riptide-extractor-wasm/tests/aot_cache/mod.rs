@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 // Import specific types needed for AOT cache tests
-use riptide_extractor_wasm::{ExtractionMode, Component, ExtractionError};
+use riptide_extractor_wasm::{Component, ExtractionError, ExtractionMode};
 
 /// AOT (Ahead of Time) Cache Testing Module
 ///
@@ -136,7 +136,7 @@ fn test_cold_start_performance() -> Result<AOTCacheTestResult, String> {
     let first_result = component.extract(
         html.clone(),
         "https://example.com/cold-start".to_string(),
-        ExtractionMode::Article
+        ExtractionMode::Article,
     );
 
     let cold_start_duration = cold_start_begin.elapsed();
@@ -146,8 +146,11 @@ fn test_cold_start_performance() -> Result<AOTCacheTestResult, String> {
 
     match first_result {
         Ok(_) => {
-            println!("  Cold start completed in {:.2}ms", cold_start_duration.as_secs_f64() * 1000.0);
-        },
+            println!(
+                "  Cold start completed in {:.2}ms",
+                cold_start_duration.as_secs_f64() * 1000.0
+            );
+        }
         Err(e) => {
             success = false;
             error_message = Some(format!("Cold start extraction failed: {:?}", e));
@@ -188,7 +191,7 @@ fn test_warm_start_performance() -> Result<AOTCacheTestResult, String> {
     let warm_result = component.extract(
         html,
         "https://example.com/warm-start".to_string(),
-        ExtractionMode::Article
+        ExtractionMode::Article,
     );
 
     let warm_start_duration = warm_start_begin.elapsed();
@@ -198,8 +201,11 @@ fn test_warm_start_performance() -> Result<AOTCacheTestResult, String> {
 
     match warm_result {
         Ok(_) => {
-            println!("  Warm start completed in {:.2}ms", warm_start_duration.as_secs_f64() * 1000.0);
-        },
+            println!(
+                "  Warm start completed in {:.2}ms",
+                warm_start_duration.as_secs_f64() * 1000.0
+            );
+        }
         Err(e) => {
             success = false;
             error_message = Some(format!("Warm start extraction failed: {:?}", e));
@@ -222,7 +228,10 @@ fn test_warm_start_performance() -> Result<AOTCacheTestResult, String> {
         println!("  Cache speedup: {:.2}x faster", speedup);
 
         if speedup < 1.5 {
-            error_message = Some(format!("Cache speedup is too low: {:.2}x (expected > 1.5x)", speedup));
+            error_message = Some(format!(
+                "Cache speedup is too low: {:.2}x (expected > 1.5x)",
+                speedup
+            ));
             success = false;
         }
     }
@@ -248,12 +257,36 @@ fn test_cache_hit_miss_ratio() -> Result<AOTCacheTestResult, String> {
 
     // Perform multiple extractions with same and different content
     let test_cases = [
-        ("news_site", "https://news.example.com", ExtractionMode::Article),
-        ("news_site", "https://news.example.com", ExtractionMode::Article), // Cache hit
-        ("blog_post", "https://blog.example.com", ExtractionMode::Article), // Cache miss (different content)
-        ("blog_post", "https://blog.example.com", ExtractionMode::Article), // Cache hit
-        ("news_site", "https://news.example.com", ExtractionMode::Full),    // Cache miss (different mode)
-        ("news_site", "https://news.example.com", ExtractionMode::Full),    // Cache hit
+        (
+            "news_site",
+            "https://news.example.com",
+            ExtractionMode::Article,
+        ),
+        (
+            "news_site",
+            "https://news.example.com",
+            ExtractionMode::Article,
+        ), // Cache hit
+        (
+            "blog_post",
+            "https://blog.example.com",
+            ExtractionMode::Article,
+        ), // Cache miss (different content)
+        (
+            "blog_post",
+            "https://blog.example.com",
+            ExtractionMode::Article,
+        ), // Cache hit
+        (
+            "news_site",
+            "https://news.example.com",
+            ExtractionMode::Full,
+        ), // Cache miss (different mode)
+        (
+            "news_site",
+            "https://news.example.com",
+            ExtractionMode::Full,
+        ), // Cache hit
     ];
 
     for (i, (fixture, url, mode)) in test_cases.iter().enumerate() {
@@ -262,7 +295,7 @@ fn test_cache_hit_miss_ratio() -> Result<AOTCacheTestResult, String> {
         match component.extract(html, url.to_string(), mode.clone()) {
             Ok(_) => {
                 println!("  Test case {} completed", i + 1);
-            },
+            }
             Err(e) => {
                 success = false;
                 error_message = Some(format!("Test case {} failed: {:?}", i + 1, e));
@@ -290,7 +323,8 @@ fn test_cache_hit_miss_ratio() -> Result<AOTCacheTestResult, String> {
         if (actual_hit_rate - expected_hit_rate).abs() > 0.1 {
             error_message = Some(format!(
                 "Cache hit rate mismatch: expected {:.1}%, got {:.1}%",
-                expected_hit_rate * 100.0, actual_hit_rate * 100.0
+                expected_hit_rate * 100.0,
+                actual_hit_rate * 100.0
             ));
             success = false;
         }
@@ -331,7 +365,7 @@ fn test_concurrent_cache_access() -> Result<AOTCacheTestResult, String> {
                 component.extract(
                     (*html).clone(),
                     format!("https://example.com/concurrent/{}/{}", thread_id, op_id),
-                    ExtractionMode::Article
+                    ExtractionMode::Article,
                 )?;
             }
 
@@ -346,12 +380,12 @@ fn test_concurrent_cache_access() -> Result<AOTCacheTestResult, String> {
         match handle.join() {
             Ok(Ok(())) => {
                 println!("  Thread {} completed successfully", thread_id);
-            },
+            }
             Ok(Err(e)) => {
                 error_message = Some(format!("Thread {} failed: {:?}", thread_id, e));
                 success = false;
                 break;
-            },
+            }
             Err(_) => {
                 error_message = Some(format!("Thread {} panicked", thread_id));
                 success = false;
@@ -395,13 +429,13 @@ fn test_cache_invalidation() -> Result<AOTCacheTestResult, String> {
     match component.extract(
         html.clone(),
         "https://example.com/invalidation-test".to_string(),
-        ExtractionMode::Article
+        ExtractionMode::Article,
     ) {
         Ok(_) => {
             println!("  Cache populated");
             let mut metrics = CACHE_METRICS.lock().unwrap();
             metrics.cache_hits += 1;
-        },
+        }
         Err(e) => {
             error_message = Some(format!("Failed to populate cache: {:?}", e));
             success = false;
@@ -423,15 +457,18 @@ fn test_cache_invalidation() -> Result<AOTCacheTestResult, String> {
         match component.extract(
             html,
             "https://example.com/post-invalidation".to_string(),
-            ExtractionMode::Article
+            ExtractionMode::Article,
         ) {
             Ok(_) => {
                 let recompile_duration = invalidation_start.elapsed();
-                println!("  Post-invalidation recompilation: {:.2}ms", recompile_duration.as_secs_f64() * 1000.0);
+                println!(
+                    "  Post-invalidation recompilation: {:.2}ms",
+                    recompile_duration.as_secs_f64() * 1000.0
+                );
 
                 // This should register as a cache miss
                 metrics.cache_misses += 1;
-            },
+            }
             Err(e) => {
                 error_message = Some(format!("Post-invalidation extraction failed: {:?}", e));
                 success = false;
@@ -472,11 +509,11 @@ fn test_cache_memory_usage() -> Result<AOTCacheTestResult, String> {
         match component.extract(
             html,
             format!("https://example.com/{}", fixture),
-            ExtractionMode::Article
+            ExtractionMode::Article,
         ) {
             Ok(_) => {
                 println!("  Cached module for {}", fixture);
-            },
+            }
             Err(e) => {
                 error_message = Some(format!("Failed to cache {}: {:?}", fixture, e));
                 success = false;
@@ -488,7 +525,10 @@ fn test_cache_memory_usage() -> Result<AOTCacheTestResult, String> {
     let final_memory = get_estimated_memory_usage();
     let cache_memory = final_memory - initial_memory;
 
-    println!("  Cache memory usage: {:.1}KB", cache_memory as f64 / 1024.0);
+    println!(
+        "  Cache memory usage: {:.1}KB",
+        cache_memory as f64 / 1024.0
+    );
 
     // Update metrics with cache size
     {
@@ -536,11 +576,11 @@ fn test_cache_persistence() -> Result<AOTCacheTestResult, String> {
     match component1.extract(
         html.clone(),
         "https://example.com/persistence-test".to_string(),
-        ExtractionMode::Article
+        ExtractionMode::Article,
     ) {
         Ok(_) => {
             println!("  Cache populated with first component");
-        },
+        }
         Err(e) => {
             error_message = Some(format!("Failed to populate cache: {:?}", e));
             success = false;
@@ -560,11 +600,14 @@ fn test_cache_persistence() -> Result<AOTCacheTestResult, String> {
         match component2.extract(
             html,
             "https://example.com/persistence-check".to_string(),
-            ExtractionMode::Article
+            ExtractionMode::Article,
         ) {
             Ok(_) => {
                 let persistence_duration = persistence_start.elapsed();
-                println!("  Cache access after reset: {:.2}ms", persistence_duration.as_secs_f64() * 1000.0);
+                println!(
+                    "  Cache access after reset: {:.2}ms",
+                    persistence_duration.as_secs_f64() * 1000.0
+                );
 
                 // If cache persisted, this should be fast (similar to warm start)
                 let mut metrics = CACHE_METRICS.lock().unwrap();
@@ -575,7 +618,7 @@ fn test_cache_persistence() -> Result<AOTCacheTestResult, String> {
                     metrics.cache_misses += 1;
                     println!("  ⚠️  Cache may not have persisted (slow access)");
                 }
-            },
+            }
             Err(e) => {
                 error_message = Some(format!("Post-reset extraction failed: {:?}", e));
                 success = false;
@@ -619,14 +662,14 @@ fn test_extraction_mode_caching() -> Result<AOTCacheTestResult, String> {
         match component.extract(
             html.clone(),
             format!("https://example.com/mode-test/{}", i),
-            mode.clone()
+            mode.clone(),
         ) {
             Ok(_) => {
                 println!("  Mode {:?} - first call completed", mode);
 
                 let mut metrics = CACHE_METRICS.lock().unwrap();
                 metrics.cache_misses += 1;
-            },
+            }
             Err(e) => {
                 error_message = Some(format!("Mode {:?} first call failed: {:?}", mode, e));
                 success = false;
@@ -639,14 +682,14 @@ fn test_extraction_mode_caching() -> Result<AOTCacheTestResult, String> {
             match component.extract(
                 html.clone(),
                 format!("https://example.com/mode-test/{}-repeat", i),
-                mode.clone()
+                mode.clone(),
             ) {
                 Ok(_) => {
                     println!("  Mode {:?} - second call completed (cache hit)", mode);
 
                     let mut metrics = CACHE_METRICS.lock().unwrap();
                     metrics.cache_hits += 1;
-                },
+                }
                 Err(e) => {
                     error_message = Some(format!("Mode {:?} second call failed: {:?}", mode, e));
                     success = false;
@@ -738,8 +781,14 @@ fn print_aot_cache_summary(results: &[AOTCacheTestResult]) {
     }
 
     // Find performance metrics
-    if let Some(cold_result) = results.iter().find(|r| r.test_name == "cold_start_performance") {
-        if let Some(warm_result) = results.iter().find(|r| r.test_name == "warm_start_performance") {
+    if let Some(cold_result) = results
+        .iter()
+        .find(|r| r.test_name == "cold_start_performance")
+    {
+        if let Some(warm_result) = results
+            .iter()
+            .find(|r| r.test_name == "warm_start_performance")
+        {
             if cold_result.success && warm_result.success {
                 let speedup = cold_result.metrics.speedup_ratio();
                 println!("Cache speedup: {:.2}x", speedup);
@@ -762,9 +811,13 @@ fn print_aot_cache_summary(results: &[AOTCacheTestResult]) {
     if failed > 0 {
         println!("\nFailure details:");
         for result in results.iter().filter(|r| !r.success) {
-            println!("  ❌ {}: {}",
+            println!(
+                "  ❌ {}: {}",
                 result.test_name,
-                result.error_message.as_ref().unwrap_or(&"Unknown error".to_string())
+                result
+                    .error_message
+                    .as_ref()
+                    .unwrap_or(&"Unknown error".to_string())
             );
         }
     }
@@ -803,9 +856,9 @@ mod tests {
     #[test]
     fn test_cache_metrics_updates() {
         reset_cache_metrics();
-        update_cache_metrics(true);  // Hit
+        update_cache_metrics(true); // Hit
         update_cache_metrics(false); // Miss
-        update_cache_metrics(true);  // Hit
+        update_cache_metrics(true); // Hit
 
         let metrics = get_cache_metrics();
         assert_eq!(metrics.cache_hits, 2);

@@ -1,8 +1,8 @@
 //! Fixed-size chunking by characters or tokens
 
+use super::{utils, Chunk, ChunkMetadata, ChunkingConfig, ChunkingStrategy};
 use anyhow::Result;
 use async_trait::async_trait;
-use super::{ChunkingStrategy, Chunk, ChunkMetadata, ChunkingConfig, utils};
 
 /// Fixed-size chunker that splits content into fixed-length pieces
 pub struct FixedSizeChunker {
@@ -188,9 +188,9 @@ fn create_fixed_chunk(
 
     // Check if chunk has complete sentences
     let has_complete_sentences = if preserve_sentences {
-        content.trim().ends_with('.') ||
-        content.trim().ends_with('!') ||
-        content.trim().ends_with('?')
+        content.trim().ends_with('.')
+            || content.trim().ends_with('!')
+            || content.trim().ends_with('?')
     } else {
         false
     };
@@ -321,11 +321,9 @@ fn get_word_before(content: &str, pos: usize) -> String {
 /// Check if a word is likely an abbreviation
 fn is_likely_abbreviation(word: &str) -> bool {
     const COMMON_ABBREVIATIONS: &[&str] = &[
-        "mr", "mrs", "ms", "dr", "prof", "sr", "jr",
-        "inc", "ltd", "corp", "co", "etc", "vs", "vol",
-        "no", "pp", "fig", "ch", "sec", "dept", "govt",
-        "jan", "feb", "mar", "apr", "may", "jun",
-        "jul", "aug", "sep", "oct", "nov", "dec",
+        "mr", "mrs", "ms", "dr", "prof", "sr", "jr", "inc", "ltd", "corp", "co", "etc", "vs",
+        "vol", "no", "pp", "fig", "ch", "sec", "dept", "govt", "jan", "feb", "mar", "apr", "may",
+        "jun", "jul", "aug", "sep", "oct", "nov", "dec",
     ];
 
     COMMON_ABBREVIATIONS.contains(&word) || word.len() <= 3
@@ -374,9 +372,11 @@ mod tests {
         // Should preserve sentence boundaries when possible
         for chunk in chunks {
             if chunk.metadata.has_complete_sentences {
-                assert!(chunk.content.trim().ends_with('.') ||
-                       chunk.content.trim().ends_with('!') ||
-                       chunk.content.trim().ends_with('?'));
+                assert!(
+                    chunk.content.trim().ends_with('.')
+                        || chunk.content.trim().ends_with('!')
+                        || chunk.content.trim().ends_with('?')
+                );
             }
         }
     }

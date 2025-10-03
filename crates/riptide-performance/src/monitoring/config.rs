@@ -23,8 +23,8 @@ pub struct MonitoringConfig {
 /// Alert threshold multipliers for different severity levels
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AlertMultipliers {
-    pub warning: f64,   // e.g., 0.8 = alert at 80% of limit
-    pub critical: f64,  // e.g., 0.95 = alert at 95% of limit
+    pub warning: f64,  // e.g., 0.8 = alert at 80% of limit
+    pub critical: f64, // e.g., 0.95 = alert at 95% of limit
 }
 
 impl Default for MonitoringConfig {

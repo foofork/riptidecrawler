@@ -30,35 +30,47 @@ async fn test_css_wins_merge_policy() -> Result<()> {
     "#;
 
     let mut css_selectors = HashMap::new();
-    css_selectors.insert("title".to_string(), CssSelectorConfig {
-        selector: "title".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: true,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    css_selectors.insert(
+        "title".to_string(),
+        CssSelectorConfig {
+            selector: "title".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: true,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
-    css_selectors.insert("description".to_string(), CssSelectorConfig {
-        selector: "[name='description']".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    css_selectors.insert(
+        "description".to_string(),
+        CssSelectorConfig {
+            selector: "[name='description']".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(css_selectors);
 
     // Simulate CSS extraction results
     let mut css_results = HashMap::new();
     css_results.insert("title".to_string(), vec!["CSS Title".to_string()]);
-    css_results.insert("description".to_string(), vec!["CSS Description".to_string()]);
+    css_results.insert(
+        "description".to_string(),
+        vec!["CSS Description".to_string()],
+    );
 
     // Simulate other extraction method results
     let mut other_results = HashMap::new();
     other_results.insert("title".to_string(), vec!["HTML Title".to_string()]);
-    other_results.insert("description".to_string(), vec!["HTML Description".to_string()]);
+    other_results.insert(
+        "description".to_string(),
+        vec!["HTML Description".to_string()],
+    );
 
     // Test merge with CSS wins policy
     let (merged, conflicts) = extractor.merge_with_other(&css_results, &other_results);
@@ -70,7 +82,9 @@ async fn test_css_wins_merge_policy() -> Result<()> {
     // Should generate conflict audit
     assert!(!conflicts.is_empty());
     assert!(conflicts.iter().any(|c| c.field == "title"));
-    assert!(conflicts.iter().any(|c| matches!(c.policy_used, MergePolicy::CssWins)));
+    assert!(conflicts
+        .iter()
+        .any(|c| matches!(c.policy_used, MergePolicy::CssWins)));
 
     Ok(())
 }
@@ -79,22 +93,31 @@ async fn test_css_wins_merge_policy() -> Result<()> {
 #[tokio::test]
 async fn test_other_wins_merge_policy() -> Result<()> {
     let mut css_selectors = HashMap::new();
-    css_selectors.insert("content".to_string(), CssSelectorConfig {
-        selector: "article".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::OtherWins), // Other method wins
-    });
+    css_selectors.insert(
+        "content".to_string(),
+        CssSelectorConfig {
+            selector: "article".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::OtherWins), // Other method wins
+        },
+    );
 
     let extractor = CssJsonExtractor::new(css_selectors);
 
     let mut css_results = HashMap::new();
-    css_results.insert("content".to_string(), vec!["CSS extracted content".to_string()]);
+    css_results.insert(
+        "content".to_string(),
+        vec!["CSS extracted content".to_string()],
+    );
 
     let mut other_results = HashMap::new();
-    other_results.insert("content".to_string(), vec!["LLM extracted content".to_string()]);
+    other_results.insert(
+        "content".to_string(),
+        vec!["LLM extracted content".to_string()],
+    );
 
     let (merged, conflicts) = extractor.merge_with_other(&css_results, &other_results);
 
@@ -103,9 +126,18 @@ async fn test_other_wins_merge_policy() -> Result<()> {
 
     // Should generate conflict audit
     let content_conflict = conflicts.iter().find(|c| c.field == "content").unwrap();
-    assert!(matches!(content_conflict.policy_used, MergePolicy::OtherWins));
-    assert_eq!(content_conflict.css_value, Some("CSS extracted content".to_string()));
-    assert_eq!(content_conflict.other_value, Some("LLM extracted content".to_string()));
+    assert!(matches!(
+        content_conflict.policy_used,
+        MergePolicy::OtherWins
+    ));
+    assert_eq!(
+        content_conflict.css_value,
+        Some("CSS extracted content".to_string())
+    );
+    assert_eq!(
+        content_conflict.other_value,
+        Some("LLM extracted content".to_string())
+    );
 
     Ok(())
 }
@@ -114,22 +146,31 @@ async fn test_other_wins_merge_policy() -> Result<()> {
 #[tokio::test]
 async fn test_merge_combine_policy() -> Result<()> {
     let mut css_selectors = HashMap::new();
-    css_selectors.insert("tags".to_string(), CssSelectorConfig {
-        selector: ".tag".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::Merge), // Combine both results
-    });
+    css_selectors.insert(
+        "tags".to_string(),
+        CssSelectorConfig {
+            selector: ".tag".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::Merge), // Combine both results
+        },
+    );
 
     let extractor = CssJsonExtractor::new(css_selectors);
 
     let mut css_results = HashMap::new();
-    css_results.insert("tags".to_string(), vec!["css-tag".to_string(), "html-tag".to_string()]);
+    css_results.insert(
+        "tags".to_string(),
+        vec!["css-tag".to_string(), "html-tag".to_string()],
+    );
 
     let mut other_results = HashMap::new();
-    other_results.insert("tags".to_string(), vec!["llm-tag".to_string(), "ai-tag".to_string()]);
+    other_results.insert(
+        "tags".to_string(),
+        vec!["llm-tag".to_string(), "ai-tag".to_string()],
+    );
 
     let (merged, conflicts) = extractor.merge_with_other(&css_results, &other_results);
 
@@ -153,14 +194,17 @@ async fn test_merge_combine_policy() -> Result<()> {
 #[tokio::test]
 async fn test_first_valid_policy() -> Result<()> {
     let mut css_selectors = HashMap::new();
-    css_selectors.insert("author".to_string(), CssSelectorConfig {
-        selector: ".author".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::FirstValid), // First non-empty wins
-    });
+    css_selectors.insert(
+        "author".to_string(),
+        CssSelectorConfig {
+            selector: ".author".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::FirstValid), // First non-empty wins
+        },
+    );
 
     let extractor = CssJsonExtractor::new(css_selectors);
 
@@ -176,7 +220,10 @@ async fn test_first_valid_policy() -> Result<()> {
     assert_eq!(merged.get("author").unwrap()[0], "CSS Author");
 
     let author_conflict = conflicts.iter().find(|c| c.field == "author").unwrap();
-    assert!(matches!(author_conflict.policy_used, MergePolicy::FirstValid));
+    assert!(matches!(
+        author_conflict.policy_used,
+        MergePolicy::FirstValid
+    ));
     assert!(author_conflict.resolution.contains("First valid"));
 
     Ok(())
@@ -188,27 +235,32 @@ async fn test_global_vs_field_specific_policies() -> Result<()> {
     let mut css_selectors = HashMap::new();
 
     // Field with specific policy
-    css_selectors.insert("title".to_string(), CssSelectorConfig {
-        selector: "title".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: true,
-        merge_policy: Some(MergePolicy::OtherWins), // Field-specific policy
-    });
+    css_selectors.insert(
+        "title".to_string(),
+        CssSelectorConfig {
+            selector: "title".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: true,
+            merge_policy: Some(MergePolicy::OtherWins), // Field-specific policy
+        },
+    );
 
     // Field without specific policy (will use global)
-    css_selectors.insert("content".to_string(), CssSelectorConfig {
-        selector: "article".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: None, // No field-specific policy
-    });
+    css_selectors.insert(
+        "content".to_string(),
+        CssSelectorConfig {
+            selector: "article".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: None, // No field-specific policy
+        },
+    );
 
-    let extractor = CssJsonExtractor::new(css_selectors)
-        .with_merge_policy(MergePolicy::CssWins); // Global policy
+    let extractor = CssJsonExtractor::new(css_selectors).with_merge_policy(MergePolicy::CssWins); // Global policy
 
     let mut css_results = HashMap::new();
     css_results.insert("title".to_string(), vec!["CSS Title".to_string()]);
@@ -240,14 +292,17 @@ async fn test_global_vs_field_specific_policies() -> Result<()> {
 #[tokio::test]
 async fn test_no_conflicts_identical_values() -> Result<()> {
     let mut css_selectors = HashMap::new();
-    css_selectors.insert("title".to_string(), CssSelectorConfig {
-        selector: "title".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: true,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    css_selectors.insert(
+        "title".to_string(),
+        CssSelectorConfig {
+            selector: "title".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: true,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(css_selectors);
 
@@ -263,7 +318,9 @@ async fn test_no_conflicts_identical_values() -> Result<()> {
     assert_eq!(merged.get("title").unwrap()[0], "Same Title");
 
     // No conflicts should be generated for identical values
-    assert!(conflicts.iter().all(|c| c.field != "title" || c.resolution.contains("No conflict")));
+    assert!(conflicts
+        .iter()
+        .all(|c| c.field != "title" || c.resolution.contains("No conflict")));
 
     Ok(())
 }
@@ -272,23 +329,29 @@ async fn test_no_conflicts_identical_values() -> Result<()> {
 #[tokio::test]
 async fn test_missing_values_handling() -> Result<()> {
     let mut css_selectors = HashMap::new();
-    css_selectors.insert("css_only".to_string(), CssSelectorConfig {
-        selector: ".css-only".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    css_selectors.insert(
+        "css_only".to_string(),
+        CssSelectorConfig {
+            selector: ".css-only".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
-    css_selectors.insert("other_only".to_string(), CssSelectorConfig {
-        selector: ".other-only".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    css_selectors.insert(
+        "other_only".to_string(),
+        CssSelectorConfig {
+            selector: ".other-only".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(css_selectors);
 
@@ -317,32 +380,41 @@ async fn test_missing_values_handling() -> Result<()> {
 async fn test_detailed_conflict_audit() -> Result<()> {
     let mut css_selectors = HashMap::new();
 
-    css_selectors.insert("field1".to_string(), CssSelectorConfig {
-        selector: ".field1".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    css_selectors.insert(
+        "field1".to_string(),
+        CssSelectorConfig {
+            selector: ".field1".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
-    css_selectors.insert("field2".to_string(), CssSelectorConfig {
-        selector: ".field2".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::OtherWins),
-    });
+    css_selectors.insert(
+        "field2".to_string(),
+        CssSelectorConfig {
+            selector: ".field2".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::OtherWins),
+        },
+    );
 
-    css_selectors.insert("field3".to_string(), CssSelectorConfig {
-        selector: ".field3".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::Merge),
-    });
+    css_selectors.insert(
+        "field3".to_string(),
+        CssSelectorConfig {
+            selector: ".field3".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::Merge),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(css_selectors);
 
@@ -373,19 +445,19 @@ async fn test_detailed_conflict_audit() -> Result<()> {
                 assert_eq!(conflict.css_value, Some("CSS1".to_string()));
                 assert_eq!(conflict.other_value, Some("Other1".to_string()));
                 assert!(conflict.resolution.contains("CSS wins"));
-            },
+            }
             "field2" => {
                 assert!(matches!(conflict.policy_used, MergePolicy::OtherWins));
                 assert_eq!(conflict.css_value, Some("CSS2".to_string()));
                 assert_eq!(conflict.other_value, Some("Other2".to_string()));
                 assert!(conflict.resolution.contains("Other wins"));
-            },
+            }
             "field3" => {
                 assert!(matches!(conflict.policy_used, MergePolicy::Merge));
                 assert_eq!(conflict.css_value, Some("CSS3".to_string()));
                 assert_eq!(conflict.other_value, Some("Other3".to_string()));
                 assert!(conflict.resolution.contains("Merged"));
-            },
+            }
             _ => panic!("Unexpected field in conflict audit: {}", conflict.field),
         }
     }
@@ -397,14 +469,17 @@ async fn test_detailed_conflict_audit() -> Result<()> {
 #[tokio::test]
 async fn test_conflict_audit_with_transformers() -> Result<()> {
     let mut css_selectors = HashMap::new();
-    css_selectors.insert("price".to_string(), CssSelectorConfig {
-        selector: ".price".to_string(),
-        transformers: vec!["trim".to_string(), "currency".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    css_selectors.insert(
+        "price".to_string(),
+        CssSelectorConfig {
+            selector: ".price".to_string(),
+            transformers: vec!["trim".to_string(), "currency".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(css_selectors);
 
@@ -444,14 +519,17 @@ async fn test_merge_performance_many_conflicts() -> Result<()> {
             _ => MergePolicy::FirstValid,
         };
 
-        css_selectors.insert(field_name, CssSelectorConfig {
-            selector: format!(".field-{}", i),
-            transformers: vec!["trim".to_string()],
-            has_text_filter: None,
-            fallbacks: vec![],
-            required: false,
-            merge_policy: Some(policy),
-        });
+        css_selectors.insert(
+            field_name,
+            CssSelectorConfig {
+                selector: format!(".field-{}", i),
+                transformers: vec!["trim".to_string()],
+                has_text_filter: None,
+                fallbacks: vec![],
+                required: false,
+                merge_policy: Some(policy),
+            },
+        );
     }
 
     let extractor = CssJsonExtractor::new(css_selectors);

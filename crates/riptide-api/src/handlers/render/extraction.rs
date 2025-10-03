@@ -1,7 +1,9 @@
 use crate::errors::ApiResult;
-use riptide_html::wasm_extraction::WasmExtractor;
 use riptide_core::dynamic::DynamicRenderResult;
-use riptide_core::types::{ExtractedDoc as CoreExtractedDoc, ExtractionMode, ExtractionStats, OutputFormat};
+use riptide_core::types::{
+    ExtractedDoc as CoreExtractedDoc, ExtractionMode, ExtractionStats, OutputFormat,
+};
+use riptide_html::wasm_extraction::WasmExtractor;
 use std::sync::Arc;
 use std::time::Instant;
 use tracing::{debug, info, warn};
@@ -33,10 +35,7 @@ pub(super) async fn extract_with_wasm_extractor(
     html: &str,
     url: &str,
     mode: ExtractionMode,
-) -> Result<
-    (CoreExtractedDoc, ExtractionStats),
-    Box<dyn std::error::Error + Send + Sync>,
-> {
+) -> Result<(CoreExtractedDoc, ExtractionStats), Box<dyn std::error::Error + Send + Sync>> {
     let start_time = Instant::now();
 
     // Validate inputs before processing
@@ -78,8 +77,7 @@ pub(super) async fn extract_with_wasm_extractor(
             "WASM extraction failed for URL '{}' with mode '{}': {}",
             url, mode_str, e
         );
-        Box::new(std::io::Error::other(context))
-            as Box<dyn std::error::Error + Send + Sync>
+        Box::new(std::io::Error::other(context)) as Box<dyn std::error::Error + Send + Sync>
     })?;
 
     // Calculate processing time
@@ -120,14 +118,7 @@ pub(super) async fn extract_content(
             OutputFormat::Chunked => ExtractionMode::Article,
         };
 
-        match extract_with_wasm_extractor(
-            extractor,
-            &result.html,
-            url,
-            extraction_mode,
-        )
-        .await
-        {
+        match extract_with_wasm_extractor(extractor, &result.html, url, extraction_mode).await {
             Ok((doc, stats)) => {
                 // Log WASM execution statistics
                 info!(

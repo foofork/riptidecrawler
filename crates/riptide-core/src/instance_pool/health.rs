@@ -16,7 +16,10 @@ impl AdvancedInstancePool {
     pub async fn start_instance_health_monitoring(self: std::sync::Arc<Self>) -> Result<()> {
         let interval_ms = self.config.health_check_interval;
         let interval_duration = Duration::from_millis(interval_ms);
-        info!(interval_secs = interval_duration.as_secs(), "Starting continuous instance health monitoring");
+        info!(
+            interval_secs = interval_duration.as_secs(),
+            "Starting continuous instance health monitoring"
+        );
 
         let mut interval_timer = tokio::time::interval(interval_duration);
 
@@ -37,14 +40,16 @@ impl AdvancedInstancePool {
         // Check available instances
         let instance_health_data = {
             let instances = self.available_instances.lock().await;
-            instances.iter().map(|i| {
-                (i.id.clone(), i.created_at, i.failure_count)
-            }).collect::<Vec<_>>()
+            instances
+                .iter()
+                .map(|i| (i.id.clone(), i.created_at, i.failure_count))
+                .collect::<Vec<_>>()
         };
 
         for (id, created_at, failure_count) in instance_health_data {
             // Simple health check without full instance
-            let is_healthy = created_at.elapsed() <= Duration::from_secs(3600) && failure_count <= 5;
+            let is_healthy =
+                created_at.elapsed() <= Duration::from_secs(3600) && failure_count <= 5;
 
             if !is_healthy {
                 let mut instances = self.available_instances.lock().await;
@@ -60,7 +65,10 @@ impl AdvancedInstancePool {
 
         // Replace unhealthy instances
         if !unhealthy_instances.is_empty() {
-            warn!(unhealthy_count = unhealthy_instances.len(), "Replacing unhealthy instances");
+            warn!(
+                unhealthy_count = unhealthy_instances.len(),
+                "Replacing unhealthy instances"
+            );
 
             for unhealthy in unhealthy_instances {
                 // Emit instance health degraded event
@@ -111,7 +119,8 @@ impl AdvancedInstancePool {
         }
 
         // Check if instance has been idle too long
-        if instance.last_used.elapsed() > Duration::from_secs(1800) { // 30 minutes
+        if instance.last_used.elapsed() > Duration::from_secs(1800) {
+            // 30 minutes
             debug!(instance_id = %instance.id, "Instance idle too long, marking for replacement");
             return false;
         }
@@ -120,7 +129,11 @@ impl AdvancedInstancePool {
     }
 
     /// Emit instance health event
-    pub(super) async fn emit_instance_health_event(&self, instance: &PooledInstance, healthy: bool) {
+    pub(super) async fn emit_instance_health_event(
+        &self,
+        instance: &PooledInstance,
+        healthy: bool,
+    ) {
         if let Some(event_bus) = &self.event_bus {
             let operation = if healthy {
                 PoolOperation::InstanceHealthy
@@ -128,19 +141,25 @@ impl AdvancedInstancePool {
                 PoolOperation::InstanceUnhealthy
             };
 
-            let mut event = crate::events::PoolEvent::new(
-                operation,
-                self.pool_id.clone(),
-                "instance_pool",
-            )
-            .with_instance_id(instance.id.clone());
+            let mut event =
+                crate::events::PoolEvent::new(operation, self.pool_id.clone(), "instance_pool")
+                    .with_instance_id(instance.id.clone());
 
             // Add health metrics
             event.add_metadata("use_count", &instance.use_count.to_string());
             event.add_metadata("failure_count", &instance.failure_count.to_string());
-            event.add_metadata("memory_usage_bytes", &instance.memory_usage_bytes.to_string());
-            event.add_metadata("age_seconds", &instance.created_at.elapsed().as_secs().to_string());
-            event.add_metadata("grow_failures", &instance.resource_tracker.grow_failures().to_string());
+            event.add_metadata(
+                "memory_usage_bytes",
+                &instance.memory_usage_bytes.to_string(),
+            );
+            event.add_metadata(
+                "age_seconds",
+                &instance.created_at.elapsed().as_secs().to_string(),
+            );
+            event.add_metadata(
+                "grow_failures",
+                &instance.resource_tracker.grow_failures().to_string(),
+            );
 
             if let Err(e) = event_bus.emit(event).await {
                 warn!(error = %e, instance_id = %instance.id, "Failed to emit instance health event");
@@ -176,7 +195,8 @@ impl AdvancedInstancePool {
 
     /// Clear instances with high memory usage
     pub async fn clear_high_memory_instances(&self) -> Result<usize> {
-        let memory_threshold = (self.config.memory_limit.unwrap_or(512 * 1024 * 1024) as f64 * 0.8) as u64; // 80% of limit
+        let memory_threshold =
+            (self.config.memory_limit.unwrap_or(512 * 1024 * 1024) as f64 * 0.8) as u64; // 80% of limit
         let mut cleared = 0;
 
         let high_memory_instances = {
@@ -210,7 +230,10 @@ impl AdvancedInstancePool {
             }
         }
 
-        info!(cleared_count = cleared, "Cleared high memory instances and created replacements");
+        info!(
+            cleared_count = cleared,
+            "Cleared high memory instances and created replacements"
+        );
         Ok(cleared)
     }
 }

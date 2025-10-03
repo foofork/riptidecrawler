@@ -1,12 +1,12 @@
 use crate::errors::{ApiError, ApiResult};
-use crate::strategies_pipeline::{StrategiesPipelineOrchestrator, StrategiesPipelineResult};
 use crate::state::AppState;
+use crate::strategies_pipeline::{StrategiesPipelineOrchestrator, StrategiesPipelineResult};
 use axum::{
     extract::{Query, State},
     response::Json,
 };
 use riptide_core::{
-    strategies::{StrategyConfig, ExtractionStrategy},
+    strategies::{ExtractionStrategy, StrategyConfig},
     types::CrawlOptions,
 };
 use serde::{Deserialize, Serialize};
@@ -193,24 +193,20 @@ pub async fn get_strategies_info() -> ApiResult<Json<StrategiesInfo>> {
             StrategyInfo {
                 name: "css_json".to_string(),
                 description: "CSS selector to JSON extraction".to_string(),
-                parameters: vec![
-                    StrategyParameter {
-                        name: "selectors".to_string(),
-                        required: false,
-                        description: "CSS selectors mapping (field -> selector)".to_string(),
-                    },
-                ],
+                parameters: vec![StrategyParameter {
+                    name: "selectors".to_string(),
+                    required: false,
+                    description: "CSS selectors mapping (field -> selector)".to_string(),
+                }],
             },
             StrategyInfo {
                 name: "regex".to_string(),
                 description: "Regex pattern extraction".to_string(),
-                parameters: vec![
-                    StrategyParameter {
-                        name: "patterns".to_string(),
-                        required: true,
-                        description: "List of regex patterns to apply".to_string(),
-                    },
-                ],
+                parameters: vec![StrategyParameter {
+                    name: "patterns".to_string(),
+                    required: true,
+                    description: "List of regex patterns to apply".to_string(),
+                }],
             },
             StrategyInfo {
                 name: "llm".to_string(),

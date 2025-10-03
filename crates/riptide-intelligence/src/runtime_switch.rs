@@ -7,19 +7,17 @@
 //! - A/B testing capabilities
 //! - Rollback mechanisms
 
-use std::sync::Arc;
-use std::collections::HashMap;
-use std::time::Duration;
-use serde::{Deserialize, Serialize};
-use tokio::sync::{RwLock, mpsc, watch};
-use tracing::{info, debug};
 use rand;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::{mpsc, watch, RwLock};
+use tracing::{debug, info};
 
 use crate::{
-    CompletionRequest, CompletionResponse, IntelligenceError, Result,
-    registry::LlmRegistry,
-    failover::FailoverManager,
-    metrics::MetricsCollector,
+    failover::FailoverManager, metrics::MetricsCollector, registry::LlmRegistry, CompletionRequest,
+    CompletionResponse, IntelligenceError, Result,
 };
 
 /// Runtime switching configuration
@@ -64,14 +62,37 @@ pub struct SwitchRule {
 /// Conditions that trigger a provider switch
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SwitchCondition {
-    ErrorRateAbove { threshold: f64, window: Duration },
-    LatencyAbove { threshold: Duration, window: Duration },
-    CostAbove { threshold: f64, window: Duration },
-    ProviderUnavailable { provider: String },
-    TimeSchedule { start: chrono::NaiveTime, end: chrono::NaiveTime },
-    TenantSpecific { tenant_id: String, provider: String },
-    ModelSpecific { model: String, provider: String },
-    RequestPattern { pattern: String, provider: String },
+    ErrorRateAbove {
+        threshold: f64,
+        window: Duration,
+    },
+    LatencyAbove {
+        threshold: Duration,
+        window: Duration,
+    },
+    CostAbove {
+        threshold: f64,
+        window: Duration,
+    },
+    ProviderUnavailable {
+        provider: String,
+    },
+    TimeSchedule {
+        start: chrono::NaiveTime,
+        end: chrono::NaiveTime,
+    },
+    TenantSpecific {
+        tenant_id: String,
+        provider: String,
+    },
+    ModelSpecific {
+        model: String,
+        provider: String,
+    },
+    RequestPattern {
+        pattern: String,
+        provider: String,
+    },
     ManualTrigger,
 }
 
@@ -124,12 +145,26 @@ pub enum UserAllocationStrategy {
 /// Triggers for automatic rollback
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RollbackTrigger {
-    ErrorRateSpike { threshold: f64, window: Duration },
-    LatencySpike { threshold: Duration, window: Duration },
-    CostSpike { threshold: f64, window: Duration },
-    SuccessRateBelow { threshold: f64, window: Duration },
+    ErrorRateSpike {
+        threshold: f64,
+        window: Duration,
+    },
+    LatencySpike {
+        threshold: Duration,
+        window: Duration,
+    },
+    CostSpike {
+        threshold: f64,
+        window: Duration,
+    },
+    SuccessRateBelow {
+        threshold: f64,
+        window: Duration,
+    },
     ManualTrigger,
-    TimeLimit { duration: Duration },
+    TimeLimit {
+        duration: Duration,
+    },
 }
 
 /// Current switching state
@@ -305,10 +340,8 @@ impl RuntimeSwitchManager {
                     }
 
                     // Evaluate conditions
-                    let should_trigger = Self::evaluate_rule_conditions(
-                        &rule.conditions,
-                        &metrics_collector,
-                    ).await;
+                    let should_trigger =
+                        Self::evaluate_rule_conditions(&rule.conditions, &metrics_collector).await;
 
                     if should_trigger {
                         let event = SwitchEvent::RuleTriggered {
@@ -341,20 +374,25 @@ impl RuntimeSwitchManager {
         request: CompletionRequest,
         tenant_id: Option<String>,
     ) -> Result<CompletionResponse> {
-        let provider_name = self.select_provider_for_request(&request, &tenant_id).await?;
+        let provider_name = self
+            .select_provider_for_request(&request, &tenant_id)
+            .await?;
 
-        debug!("Selected provider {} for request {}", provider_name, request.id);
+        debug!(
+            "Selected provider {} for request {}",
+            provider_name, request.id
+        );
 
         // Start metrics collection
-        let request_id = self.metrics_collector
+        let request_id = self
+            .metrics_collector
             .start_request(&request, &provider_name, tenant_id)
             .await;
 
         // Get provider from registry
-        let provider = self.registry.get_provider(&provider_name)
-            .ok_or_else(|| IntelligenceError::Configuration(
-                format!("Provider {} not found", provider_name)
-            ))?;
+        let provider = self.registry.get_provider(&provider_name).ok_or_else(|| {
+            IntelligenceError::Configuration(format!("Provider {} not found", provider_name))
+        })?;
 
         // Clone request for potential failover
         let request_clone = request.clone();
@@ -418,7 +456,11 @@ impl RuntimeSwitchManager {
                 }
 
                 for condition in &rule.conditions {
-                    if let SwitchCondition::TenantSpecific { tenant_id: rule_tenant, provider } = condition {
+                    if let SwitchCondition::TenantSpecific {
+                        tenant_id: rule_tenant,
+                        provider,
+                    } = condition
+                    {
                         if tenant_id == rule_tenant {
                             return Ok(provider.clone());
                         }
@@ -561,9 +603,9 @@ impl RuntimeSwitchManager {
 
     /// Update configuration at runtime
     pub async fn update_config(&self, new_config: RuntimeSwitchConfig) -> Result<()> {
-        self.config_sender.send(new_config).map_err(|_| {
-            IntelligenceError::Configuration("Failed to update config".to_string())
-        })?;
+        self.config_sender
+            .send(new_config)
+            .map_err(|_| IntelligenceError::Configuration("Failed to update config".to_string()))?;
 
         info!("Runtime switch configuration updated");
         Ok(())
@@ -582,11 +624,17 @@ impl RuntimeSwitchManager {
         for condition in conditions {
             match condition {
                 SwitchCondition::ManualTrigger => return true,
-                SwitchCondition::ErrorRateAbove { threshold: _, window: _ } => {
+                SwitchCondition::ErrorRateAbove {
+                    threshold: _,
+                    window: _,
+                } => {
                     // Implementation would check actual error rates
                     continue;
                 }
-                SwitchCondition::LatencyAbove { threshold: _, window: _ } => {
+                SwitchCondition::LatencyAbove {
+                    threshold: _,
+                    window: _,
+                } => {
                     // Implementation would check actual latency
                     continue;
                 }
@@ -601,18 +649,24 @@ impl RuntimeSwitchManager {
         let now = chrono::Utc::now();
         let elapsed_since_step = now - rollout_state.last_step_time;
 
-        if elapsed_since_step >= chrono::Duration::from_std(rollout_state.config.step_duration).unwrap() {
+        if elapsed_since_step
+            >= chrono::Duration::from_std(rollout_state.config.step_duration).unwrap()
+        {
             // Move to next step
             if rollout_state.current_traffic_to_new < 1.0 {
                 rollout_state.current_traffic_to_new += rollout_state.config.traffic_increment;
-                rollout_state.current_traffic_to_new = rollout_state.current_traffic_to_new.min(1.0);
+                rollout_state.current_traffic_to_new =
+                    rollout_state.current_traffic_to_new.min(1.0);
                 rollout_state.step_number += 1;
                 rollout_state.last_step_time = now;
 
                 // Check if we should continue based on success rate
                 if rollout_state.success_rate < rollout_state.config.success_threshold {
                     rollout_state.should_continue = false;
-                    info!("Rollout stopped due to low success rate: {}", rollout_state.success_rate);
+                    info!(
+                        "Rollout stopped due to low success rate: {}",
+                        rollout_state.success_rate
+                    );
                 }
             } else {
                 // Rollout completed

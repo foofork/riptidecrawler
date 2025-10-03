@@ -10,17 +10,17 @@
 //! - Integration with existing instance pool health monitoring
 
 use anyhow::{anyhow, Result};
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use tokio::time::{interval, sleep};
-use tracing::{debug, info, warn, error};
-use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
+use tracing::{debug, error, info, warn};
 
+use crate::events::{BaseEvent, Event, EventBus, EventSeverity};
 use crate::instance_pool::{AdvancedInstancePool, PooledInstance};
-use crate::events::{Event, EventSeverity, BaseEvent, EventBus};
 use crate::types::ExtractionMode;
 
 /// Configuration for cache warming strategies
@@ -88,13 +88,11 @@ impl Default for CacheWarmingConfig {
                 "https://news.ycombinator.com/*".to_string(),
                 "https://github.com/*".to_string(),
             ],
-            prefetch_resources: vec![
-                PreFetchResource {
-                    url: "https://httpbin.org/html".to_string(),
-                    mode: ExtractionMode::Article,
-                    priority: PreFetchPriority::High,
-                },
-            ],
+            prefetch_resources: vec![PreFetchResource {
+                url: "https://httpbin.org/html".to_string(),
+                mode: ExtractionMode::Article,
+                priority: PreFetchPriority::High,
+            }],
             max_warm_age_secs: 1800, // 30 minutes
             adaptive_warming: true,
             load_threshold: 0.8,
@@ -168,11 +166,7 @@ pub struct CacheWarmingEvent {
 }
 
 impl CacheWarmingEvent {
-    pub fn new(
-        operation: CacheWarmingOperation,
-        pool_id: String,
-        source: &str,
-    ) -> Self {
+    pub fn new(operation: CacheWarmingOperation, pool_id: String, source: &str) -> Self {
         let severity = match operation {
             CacheWarmingOperation::WarmingFailed => EventSeverity::Error,
             CacheWarmingOperation::CacheHitRateLow => EventSeverity::Warn,
@@ -379,9 +373,13 @@ impl CacheWarmingManager {
     async fn perform_initial_warming(&self) -> Result<()> {
         let start_time = Instant::now();
 
-        self.emit_warming_event(CacheWarmingOperation::WarmingStarted).await;
+        self.emit_warming_event(CacheWarmingOperation::WarmingStarted)
+            .await;
 
-        info!(target_size = self.config.warm_pool_size, "Starting initial cache warming");
+        info!(
+            target_size = self.config.warm_pool_size,
+            "Starting initial cache warming"
+        );
 
         let mut warmed_count = 0;
         for i in 0..self.config.warm_pool_size {
@@ -452,8 +450,15 @@ impl CacheWarmingManager {
         if self.config.enable_prefetching && !self.config.prefetch_resources.is_empty() {
             let resource = &self.config.prefetch_resources[0]; // Use first resource for now
 
-            match self.pool.extract("<html><body>Warming cache</body></html>",
-                                   &resource.url, resource.mode.clone()).await {
+            match self
+                .pool
+                .extract(
+                    "<html><body>Warming cache</body></html>",
+                    &resource.url,
+                    resource.mode.clone(),
+                )
+                .await
+            {
                 Ok(_) => {
                     warm_instance.pre_fetch_url = Some(resource.url.clone());
                     debug!(url = %resource.url, "Pre-fetched resource for warm instance");
@@ -565,8 +570,12 @@ impl CacheWarmingManager {
 
         if current_size < target_size {
             let needed = target_size - current_size;
-            debug!(current = current_size, target = target_size, needed = needed,
-                   "Creating additional warm instances");
+            debug!(
+                current = current_size,
+                target = target_size,
+                needed = needed,
+                "Creating additional warm instances"
+            );
 
             for _ in 0..needed {
                 match self.create_warm_instance().await {
@@ -590,7 +599,11 @@ impl CacheWarmingManager {
     /// Calculate adaptive target size based on load
     async fn calculate_adaptive_target_size(&self) -> usize {
         let (_available, active, total) = self.pool.get_pool_status().await;
-        let load_ratio = if total == 0 { 0.0 } else { active as f64 / total as f64 };
+        let load_ratio = if total == 0 {
+            0.0
+        } else {
+            active as f64 / total as f64
+        };
 
         if load_ratio > self.config.load_threshold {
             // High load, increase warm pool size
@@ -608,7 +621,9 @@ impl CacheWarmingManager {
 
             increased_size.min(self.config.max_warm_instances)
         } else {
-            self.config.warm_pool_size.max(self.config.min_warm_instances)
+            self.config
+                .warm_pool_size
+                .max(self.config.min_warm_instances)
         }
     }
 
@@ -641,7 +656,11 @@ impl CacheWarmingManager {
     async fn check_cache_hit_ratio(&self) -> Result<()> {
         let (ratio, hits, misses) = {
             let stats = self.stats.lock().unwrap();
-            (stats.cache_hit_ratio(), stats.cache_hits, stats.cache_misses)
+            (
+                stats.cache_hit_ratio(),
+                stats.cache_hits,
+                stats.cache_misses,
+            )
         };
 
         if hits + misses > 10 && ratio < self.config.cache_hit_target {
@@ -688,18 +707,29 @@ impl CacheWarmingManager {
         let mut resources = self.config.prefetch_resources.clone();
         resources.sort_by(|a, b| b.priority.cmp(&a.priority));
 
-        for resource in resources.iter().take(3) { // Limit to top 3 resources
-            self.emit_warming_event(CacheWarmingOperation::PreFetchStarted).await;
+        for resource in resources.iter().take(3) {
+            // Limit to top 3 resources
+            self.emit_warming_event(CacheWarmingOperation::PreFetchStarted)
+                .await;
 
-            match self.pool.extract("<html><body>Pre-fetch</body></html>",
-                                   &resource.url, resource.mode.clone()).await {
+            match self
+                .pool
+                .extract(
+                    "<html><body>Pre-fetch</body></html>",
+                    &resource.url,
+                    resource.mode.clone(),
+                )
+                .await
+            {
                 Ok(_) => {
                     debug!(url = %resource.url, "Successfully pre-fetched resource");
-                    self.emit_warming_event(CacheWarmingOperation::PreFetchCompleted).await;
+                    self.emit_warming_event(CacheWarmingOperation::PreFetchCompleted)
+                        .await;
                 }
                 Err(e) => {
                     warn!(error = %e, url = %resource.url, "Failed to pre-fetch resource");
-                    self.emit_warming_event(CacheWarmingOperation::PreFetchFailed).await;
+                    self.emit_warming_event(CacheWarmingOperation::PreFetchFailed)
+                        .await;
                 }
             }
 
@@ -715,30 +745,38 @@ impl CacheWarmingManager {
         let pattern = self.extract_url_pattern(url);
 
         let mut patterns = self.usage_patterns.lock().unwrap();
-        let entry = patterns.entry(pattern.clone()).or_insert_with(|| UrlPattern {
-            pattern: pattern.clone(),
-            access_count: 0,
-            last_accessed: Instant::now(),
-            avg_processing_time_ms: 0.0,
-            cache_hit_ratio: 0.0,
-        });
+        let entry = patterns
+            .entry(pattern.clone())
+            .or_insert_with(|| UrlPattern {
+                pattern: pattern.clone(),
+                access_count: 0,
+                last_accessed: Instant::now(),
+                avg_processing_time_ms: 0.0,
+                cache_hit_ratio: 0.0,
+            });
 
         entry.access_count += 1;
         entry.last_accessed = Instant::now();
 
         // Update running average
-        let total_time = entry.avg_processing_time_ms * (entry.access_count - 1) as f64 + processing_time_ms;
+        let total_time =
+            entry.avg_processing_time_ms * (entry.access_count - 1) as f64 + processing_time_ms;
         entry.avg_processing_time_ms = total_time / entry.access_count as f64;
 
         // Update cache hit ratio
-        let hits = (entry.cache_hit_ratio * (entry.access_count - 1) as f64) + if cache_hit { 1.0 } else { 0.0 };
+        let hits = (entry.cache_hit_ratio * (entry.access_count - 1) as f64)
+            + if cache_hit { 1.0 } else { 0.0 };
         entry.cache_hit_ratio = hits / entry.access_count as f64;
     }
 
     /// Extract URL pattern for grouping
     fn extract_url_pattern(&self, url: &str) -> String {
         if let Ok(parsed) = url::Url::parse(url) {
-            format!("{}://{}/", parsed.scheme(), parsed.host_str().unwrap_or("unknown"))
+            format!(
+                "{}://{}/",
+                parsed.scheme(),
+                parsed.host_str().unwrap_or("unknown")
+            )
         } else {
             "unknown".to_string()
         }
@@ -757,11 +795,8 @@ impl CacheWarmingManager {
 
     /// Emit cache warming event
     async fn emit_warming_event(&self, operation: CacheWarmingOperation) {
-        let event = CacheWarmingEvent::new(
-            operation,
-            self.pool.pool_id().to_string(),
-            "cache_warming",
-        );
+        let event =
+            CacheWarmingEvent::new(operation, self.pool.pool_id().to_string(), "cache_warming");
         self.emit_event(event).await;
     }
 

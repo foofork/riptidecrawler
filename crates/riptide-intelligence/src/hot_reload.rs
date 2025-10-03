@@ -6,19 +6,19 @@
 //! - Configuration validation and rollback
 //! - Real-time monitoring of configuration changes
 
-use std::sync::Arc;
-use std::path::PathBuf;
-use std::time::Duration;
-use serde::{Deserialize, Serialize};
-use tokio::sync::{RwLock, mpsc, watch};
-use tokio::time::{interval, Instant};
-use tokio::fs;
-use tracing::{info, warn, error, debug};
 use notify::Watcher;
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::fs;
+use tokio::sync::{mpsc, watch, RwLock};
+use tokio::time::{interval, Instant};
+use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
 use crate::{
-    config::{IntelligenceConfig, ConfigLoader},
+    config::{ConfigLoader, IntelligenceConfig},
     registry::LlmRegistry,
     IntelligenceError, Result,
 };
@@ -216,10 +216,9 @@ impl HotReloadManager {
         // Take the receiver for the background task
         let reload_rx = {
             let mut rx_guard = self.reload_rx.write().await;
-            rx_guard.take()
-                .ok_or_else(|| IntelligenceError::Configuration(
-                    "Hot-reload already started".to_string()
-                ))?
+            rx_guard.take().ok_or_else(|| {
+                IntelligenceError::Configuration("Hot-reload already started".to_string())
+            })?
         };
 
         // Start the reload processing task
@@ -258,7 +257,8 @@ impl HotReloadManager {
                     &current_config,
                     &config_history,
                     &hot_reload_config,
-                ).await;
+                )
+                .await;
 
                 // Store the change event
                 {
@@ -318,7 +318,10 @@ impl HotReloadManager {
         let (previous_config_hash, config_changed) = {
             let current = current_config.read().await;
             let previous_hash = Self::calculate_config_hash(&current);
-            (Some(previous_hash.clone()), previous_hash != new_config_hash)
+            (
+                Some(previous_hash.clone()),
+                previous_hash != new_config_hash,
+            )
         };
 
         if !config_changed && !request.force {
@@ -398,7 +401,10 @@ impl HotReloadManager {
                 }
 
                 let elapsed = start_time.elapsed().as_millis() as u64;
-                info!("Configuration reload completed successfully in {}ms", elapsed);
+                info!(
+                    "Configuration reload completed successfully in {}ms",
+                    elapsed
+                );
 
                 ConfigChangeEvent {
                     id: event_id,
@@ -419,7 +425,13 @@ impl HotReloadManager {
                 if hot_reload_config.rollback_on_failure {
                     warn!("Rolling back to previous configuration");
                     if let Some(last_snapshot) = config_history.read().await.last() {
-                        if let Err(rollback_err) = Self::apply_configuration(&last_snapshot.config, registry, hot_reload_config).await {
+                        if let Err(rollback_err) = Self::apply_configuration(
+                            &last_snapshot.config,
+                            registry,
+                            hot_reload_config,
+                        )
+                        .await
+                        {
                             error!("Rollback failed: {}", rollback_err);
                         } else {
                             info!("Successfully rolled back to previous configuration");
@@ -475,7 +487,9 @@ impl HotReloadManager {
                         if let Ok(metadata) = fs::metadata(&path).await {
                             if let Ok(_modified) = metadata.modified() {
                                 let modified_instant = Instant::now(); // Simplified for demo
-                                if modified_instant.duration_since(last_modification) > debounce_duration {
+                                if modified_instant.duration_since(last_modification)
+                                    > debounce_duration
+                                {
                                     let _ = tx.send(path.clone());
                                     last_modification = modified_instant;
                                 }
@@ -528,10 +542,9 @@ impl HotReloadManager {
             validate_only: false,
         };
 
-        self.reload_tx.send(request)
-            .map_err(|_| IntelligenceError::Configuration(
-                "Failed to send reload request".to_string()
-            ))?;
+        self.reload_tx.send(request).map_err(|_| {
+            IntelligenceError::Configuration("Failed to send reload request".to_string())
+        })?;
 
         Ok(())
     }
@@ -569,7 +582,7 @@ impl HotReloadManager {
         // Basic validation
         if config.providers.is_empty() {
             return Err(IntelligenceError::Configuration(
-                "No providers configured".to_string()
+                "No providers configured".to_string(),
             ));
         }
 
@@ -577,12 +590,12 @@ impl HotReloadManager {
         for provider in &config.providers {
             if provider.name.is_empty() {
                 return Err(IntelligenceError::Configuration(
-                    "Provider name cannot be empty".to_string()
+                    "Provider name cannot be empty".to_string(),
                 ));
             }
             if provider.provider_type.is_empty() {
                 return Err(IntelligenceError::Configuration(
-                    "Provider type cannot be empty".to_string()
+                    "Provider type cannot be empty".to_string(),
                 ));
             }
         }
@@ -596,7 +609,10 @@ impl HotReloadManager {
         registry: &Arc<LlmRegistry>,
         _hot_reload_config: &HotReloadConfig,
     ) -> Result<()> {
-        info!("Applying new configuration with {} providers", config.providers.len());
+        info!(
+            "Applying new configuration with {} providers",
+            config.providers.len()
+        );
 
         // Get current providers
         let current_providers = registry.list_providers();
@@ -608,10 +624,12 @@ impl HotReloadManager {
         let new_providers = registry.list_providers();
 
         // Log changes
-        let added: Vec<_> = new_providers.iter()
+        let added: Vec<_> = new_providers
+            .iter()
             .filter(|p| !current_providers.contains(p))
             .collect();
-        let removed: Vec<_> = current_providers.iter()
+        let removed: Vec<_> = current_providers
+            .iter()
             .filter(|p| !new_providers.contains(p))
             .collect();
 
@@ -629,8 +647,8 @@ impl HotReloadManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::registry::{LlmRegistry, ProviderConfig};
     use crate::config::ConfigLoader;
+    use crate::registry::{LlmRegistry, ProviderConfig};
 
     #[tokio::test]
     async fn test_hot_reload_manager_creation() {
@@ -639,12 +657,8 @@ mod tests {
         let config_loader = ConfigLoader::new();
         let initial_config = IntelligenceConfig::default();
 
-        let (mut manager, _rx) = HotReloadManager::new(
-            config,
-            registry,
-            config_loader,
-            initial_config,
-        ).unwrap();
+        let (mut manager, _rx) =
+            HotReloadManager::new(config, registry, config_loader, initial_config).unwrap();
 
         // Should be able to create manager
         assert!(manager.config.enabled);
@@ -654,7 +668,9 @@ mod tests {
     fn test_config_hash() {
         let config1 = IntelligenceConfig::default();
         let mut config2 = IntelligenceConfig::default();
-        config2.providers.push(ProviderConfig::new("test", "openai"));
+        config2
+            .providers
+            .push(ProviderConfig::new("test", "openai"));
 
         let hash1 = HotReloadManager::calculate_config_hash(&config1);
         let hash2 = HotReloadManager::calculate_config_hash(&config2);
@@ -668,7 +684,9 @@ mod tests {
         assert!(HotReloadManager::validate_configuration(&config).is_err()); // No providers
 
         let mut config_with_providers = IntelligenceConfig::default();
-        config_with_providers.providers.push(ProviderConfig::new("test", "openai"));
+        config_with_providers
+            .providers
+            .push(ProviderConfig::new("test", "openai"));
         assert!(HotReloadManager::validate_configuration(&config_with_providers).is_ok());
     }
 }

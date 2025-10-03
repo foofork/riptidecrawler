@@ -6,13 +6,13 @@ mod metrics;
 mod models;
 mod pipeline;
 mod pipeline_enhanced;
-mod strategies_pipeline;
 mod reliability_integration;
 mod resource_manager;
 mod routes;
 mod rpc_client;
 mod sessions;
 mod state;
+mod strategies_pipeline;
 mod streaming;
 mod telemetry_config;
 mod tests;
@@ -129,8 +129,14 @@ async fn main() -> anyhow::Result<()> {
         // LLM provider management endpoints
         .nest("/api/v1/llm", routes::llm::llm_routes())
         // Strategies endpoints for advanced extraction
-        .route("/strategies/crawl", post(handlers::strategies::strategies_crawl))
-        .route("/strategies/info", get(handlers::strategies::get_strategies_info))
+        .route(
+            "/strategies/crawl",
+            post(handlers::strategies::strategies_crawl),
+        )
+        .route(
+            "/strategies/info",
+            get(handlers::strategies::get_strategies_info),
+        )
         // Spider endpoints for deep crawling
         .route("/spider/crawl", post(handlers::spider::spider_crawl))
         .route("/spider/status", post(handlers::spider::spider_status))
@@ -184,22 +190,61 @@ async fn main() -> anyhow::Result<()> {
         )
         // Worker management endpoints
         .route("/workers/jobs", post(handlers::workers::submit_job))
-        .route("/workers/jobs/:job_id", get(handlers::workers::get_job_status))
-        .route("/workers/jobs/:job_id/result", get(handlers::workers::get_job_result))
-        .route("/workers/stats/queue", get(handlers::workers::get_queue_stats))
-        .route("/workers/stats/workers", get(handlers::workers::get_worker_stats))
-        .route("/workers/metrics", get(handlers::workers::get_worker_metrics))
-        .route("/workers/schedule", post(handlers::workers::create_scheduled_job))
-        .route("/workers/schedule", get(handlers::workers::list_scheduled_jobs))
-        .route("/workers/schedule/:job_id", axum::routing::delete(handlers::workers::delete_scheduled_job))
+        .route(
+            "/workers/jobs/:job_id",
+            get(handlers::workers::get_job_status),
+        )
+        .route(
+            "/workers/jobs/:job_id/result",
+            get(handlers::workers::get_job_result),
+        )
+        .route(
+            "/workers/stats/queue",
+            get(handlers::workers::get_queue_stats),
+        )
+        .route(
+            "/workers/stats/workers",
+            get(handlers::workers::get_worker_stats),
+        )
+        .route(
+            "/workers/metrics",
+            get(handlers::workers::get_worker_metrics),
+        )
+        .route(
+            "/workers/schedule",
+            post(handlers::workers::create_scheduled_job),
+        )
+        .route(
+            "/workers/schedule",
+            get(handlers::workers::list_scheduled_jobs),
+        )
+        .route(
+            "/workers/schedule/:job_id",
+            axum::routing::delete(handlers::workers::delete_scheduled_job),
+        )
         // Monitoring system endpoints
-        .route("/monitoring/health-score", get(handlers::monitoring::get_health_score))
-        .route("/monitoring/performance-report", get(handlers::monitoring::get_performance_report))
-        .route("/monitoring/metrics/current", get(handlers::monitoring::get_current_metrics))
-        .route("/monitoring/alerts/rules", get(handlers::monitoring::get_alert_rules))
+        .route(
+            "/monitoring/health-score",
+            get(handlers::monitoring::get_health_score),
+        )
+        .route(
+            "/monitoring/performance-report",
+            get(handlers::monitoring::get_performance_report),
+        )
+        .route(
+            "/monitoring/metrics/current",
+            get(handlers::monitoring::get_current_metrics),
+        )
+        .route(
+            "/monitoring/alerts/rules",
+            get(handlers::monitoring::get_alert_rules),
+        )
         // Enhanced pipeline phase visualization endpoints
         .route("/pipeline/phases", get(handlers::get_pipeline_phases))
-        .route("/monitoring/alerts/active", get(handlers::monitoring::get_active_alerts))
+        .route(
+            "/monitoring/alerts/active",
+            get(handlers::monitoring::get_active_alerts),
+        )
         // Telemetry and trace visualization endpoints (TELEM-005)
         // Telemetry routes temporarily disabled due to API compatibility issues
         // .route("/telemetry/status", get(handlers::telemetry::get_telemetry_status))

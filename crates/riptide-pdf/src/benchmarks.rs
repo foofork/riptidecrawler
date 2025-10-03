@@ -3,17 +3,17 @@
 //! This module provides benchmarks to validate memory stability and performance.
 
 #[cfg(all(feature = "benchmarks", test))]
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 
-use super::*;
+use super::config::PdfConfig;
 #[cfg(all(feature = "benchmarks", test))]
 use super::processor::{create_pdf_processor, PdfiumProcessor};
-use super::config::PdfConfig;
+use super::*;
+#[allow(unused_imports)]
+use futures::future;
 use std::sync::Arc;
 #[cfg(all(feature = "benchmarks", test))]
 use std::time::Duration;
-#[allow(unused_imports)]
-use futures::future;
 
 /// Generate test PDFs of various sizes for benchmarking
 fn generate_test_pdf(pages: usize) -> Vec<u8> {
@@ -23,7 +23,9 @@ fn generate_test_pdf(pages: usize) -> Vec<u8> {
     // Basic PDF structure
     pdf.extend_from_slice(b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
     pdf.extend_from_slice(b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
-    pdf.extend_from_slice(b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>\nendobj\n");
+    pdf.extend_from_slice(
+        b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>\nendobj\n",
+    );
 
     // Add content to simulate larger PDFs
     for i in 0..pages {
@@ -61,7 +63,9 @@ pub fn benchmark_pdf_processing(c: &mut Criterion) {
             |b, data| {
                 b.iter(|| {
                     rt.block_on(async {
-                        let result = processor.process_pdf(black_box(data), black_box(&config)).await;
+                        let result = processor
+                            .process_pdf(black_box(data), black_box(&config))
+                            .await;
                         black_box(result)
                     })
                 });
@@ -98,7 +102,9 @@ pub fn benchmark_concurrent_processing(c: &mut Criterion) {
                             let data_clone = Arc::clone(&pdf_data);
 
                             let handle = tokio::spawn(async move {
-                                processor_clone.process_pdf(&data_clone, &config_clone).await
+                                processor_clone
+                                    .process_pdf(&data_clone, &config_clone)
+                                    .await
                             });
 
                             handles.push(handle);
@@ -130,7 +136,9 @@ pub fn benchmark_memory_usage(c: &mut Criterion) {
             b.iter(|| {
                 rt.block_on(async {
                     // Use standard benchmarking without private method access
-                    let result = processor.process_pdf(black_box(&pdf_data), black_box(&config)).await;
+                    let result = processor
+                        .process_pdf(black_box(&pdf_data), black_box(&config))
+                        .await;
                     black_box(result)
                 })
             });
@@ -147,21 +155,15 @@ pub fn benchmark_pdf_detection(c: &mut Criterion) {
     let mut group = c.benchmark_group("pdf_detection");
 
     group.bench_function("detect_pdf_by_magic_bytes", |b| {
-        b.iter(|| {
-            black_box(utils::detect_pdf_by_magic_bytes(black_box(&pdf_data)))
-        });
+        b.iter(|| black_box(utils::detect_pdf_by_magic_bytes(black_box(&pdf_data))));
     });
 
     group.bench_function("detect_non_pdf_by_magic_bytes", |b| {
-        b.iter(|| {
-            black_box(utils::detect_pdf_by_magic_bytes(black_box(non_pdf_data)))
-        });
+        b.iter(|| black_box(utils::detect_pdf_by_magic_bytes(black_box(non_pdf_data))));
     });
 
     group.bench_function("detect_pdf_by_extension", |b| {
-        b.iter(|| {
-            black_box(utils::detect_pdf_by_extension(black_box("document.pdf")))
-        });
+        b.iter(|| black_box(utils::detect_pdf_by_extension(black_box("document.pdf"))));
     });
 
     group.bench_function("comprehensive_pdf_detection", |b| {
@@ -230,7 +232,9 @@ pub async fn simple_performance_test() -> Result<(), Box<dyn std::error::Error>>
 
         let handle = tokio::spawn(async move {
             let task_start = Instant::now();
-            let result = processor_clone.process_pdf(&data_clone, &config_clone).await;
+            let result = processor_clone
+                .process_pdf(&data_clone, &config_clone)
+                .await;
             let task_duration = task_start.elapsed();
             println!("Concurrent task {} completed in {:?}", i, task_duration);
             result

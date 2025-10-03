@@ -1,16 +1,16 @@
 //! Real-world tests for LLM provider management and failover
 
-use riptide_intelligence::*;
 use anyhow::Result;
+use riptide_intelligence::*;
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use std::time::Duration;
+use tokio::sync::RwLock;
 
 #[cfg(test)]
 mod provider_registry_tests {
     use super::*;
-    use riptide_intelligence::registry::{LlmRegistry, ProviderConfig};
     use riptide_intelligence::providers::{LlmProvider, LlmRequest, LlmResponse};
+    use riptide_intelligence::registry::{LlmRegistry, ProviderConfig};
 
     #[derive(Clone)]
     struct MockProvider {
@@ -128,7 +128,10 @@ mod provider_registry_tests {
             failure_rate: 0.0,
         });
 
-        registry.register("monitored", provider.clone()).await.unwrap();
+        registry
+            .register("monitored", provider.clone())
+            .await
+            .unwrap();
 
         // Initially healthy
         let health = registry.health_check().await;
@@ -171,7 +174,10 @@ mod provider_registry_tests {
                 max_tokens: 10,
                 ..Default::default()
             };
-            let response = registry.complete_with_load_balancing(request).await.unwrap();
+            let response = registry
+                .complete_with_load_balancing(request)
+                .await
+                .unwrap();
             responses.push(response.model);
         }
 
@@ -200,7 +206,9 @@ mod cost_tracking_tests {
 
         // Track usage
         tracker.record_usage("tenant1", "gpt-4", 1500, 500).await;
-        tracker.record_usage("tenant1", "claude-3", 2000, 1000).await;
+        tracker
+            .record_usage("tenant1", "claude-3", 2000, 1000)
+            .await;
         tracker.record_usage("tenant2", "gpt-4", 500, 200).await;
 
         // Calculate costs
@@ -224,13 +232,17 @@ mod cost_tracking_tests {
         tracker.set_budget("tenant1", 10.0).await; // $10 budget
 
         // Use up most of budget
-        tracker.record_usage("tenant1", "gpt-4", 150_000, 50_000).await;
+        tracker
+            .record_usage("tenant1", "gpt-4", 150_000, 50_000)
+            .await;
         // Cost: (150 * 0.03) + (50 * 0.06) = 4.5 + 3.0 = 7.5
 
         assert!(tracker.has_budget("tenant1").await);
 
         // Use remaining budget
-        tracker.record_usage("tenant1", "gpt-4", 60_000, 20_000).await;
+        tracker
+            .record_usage("tenant1", "gpt-4", 60_000, 20_000)
+            .await;
         // Additional: (60 * 0.03) + (20 * 0.06) = 1.8 + 1.2 = 3.0
         // Total: 10.5 > 10.0
 
@@ -242,9 +254,15 @@ mod cost_tracking_tests {
         let metrics = UsageMetrics::new();
 
         // Record various metrics
-        metrics.record_request("tenant1", "gpt-4", 100, 50, 145).await;
-        metrics.record_request("tenant1", "gpt-4", 150, 75, 160).await;
-        metrics.record_request("tenant2", "claude-3", 200, 100, 220).await;
+        metrics
+            .record_request("tenant1", "gpt-4", 100, 50, 145)
+            .await;
+        metrics
+            .record_request("tenant1", "gpt-4", 150, 75, 160)
+            .await;
+        metrics
+            .record_request("tenant2", "claude-3", 200, 100, 220)
+            .await;
 
         // Get tenant metrics
         let tenant1_stats = metrics.get_tenant_metrics("tenant1").await;
@@ -263,8 +281,8 @@ mod cost_tracking_tests {
 #[cfg(test)]
 mod hot_reload_tests {
     use super::*;
-    use riptide_intelligence::hot_reload::{HotReloadManager, ConfigChangeEvent};
     use riptide_intelligence::config::{IntelligenceConfig, ProviderConfig};
+    use riptide_intelligence::hot_reload::{ConfigChangeEvent, HotReloadManager};
 
     #[tokio::test]
     async fn test_config_hot_reload() {
@@ -337,7 +355,9 @@ mod hot_reload_tests {
         let mut old_provider_count = 0;
 
         for _ in 0..100 {
-            let provider = manager.select_provider_with_rollout("old_provider", "new_provider").await;
+            let provider = manager
+                .select_provider_with_rollout("old_provider", "new_provider")
+                .await;
             if provider == "new_provider" {
                 new_provider_count += 1;
             } else {

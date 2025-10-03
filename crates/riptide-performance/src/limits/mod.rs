@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::{RwLock, Semaphore};
-use tracing::{info, warn, debug};
+use tracing::{debug, info, warn};
 use uuid::Uuid;
 
 /// Resource limits configuration
@@ -144,9 +144,9 @@ pub enum ViolationSeverity {
 /// Circuit breaker state
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum CircuitState {
-    Closed,    // Normal operation
-    Open,      // Rejecting requests
-    HalfOpen,  // Testing recovery
+    Closed,   // Normal operation
+    Open,     // Rejecting requests
+    HalfOpen, // Testing recovery
 }
 
 /// Rate limiter state for a client
@@ -208,7 +208,11 @@ impl ResourceLimiter {
             max_disk_io_mbps: 500.0,
         };
 
-        Self::with_config(limits, RateLimitConfig::default(), CircuitBreakerConfig::default())
+        Self::with_config(
+            limits,
+            RateLimitConfig::default(),
+            CircuitBreakerConfig::default(),
+        )
     }
 
     /// Create a new resource limiter with custom configuration
@@ -301,8 +305,16 @@ impl ResourceLimiter {
         self.check_circuit_breaker("global").await?;
 
         // Acquire semaphore permit
-        let permit = self.request_semaphore.clone().acquire_owned().await
-            .map_err(|_| PerformanceError::ResourceLimitExceeded("Max concurrent requests reached".to_string()))?;
+        let permit = self
+            .request_semaphore
+            .clone()
+            .acquire_owned()
+            .await
+            .map_err(|_| {
+                PerformanceError::ResourceLimitExceeded(
+                    "Max concurrent requests reached".to_string(),
+                )
+            })?;
 
         Ok(RequestPermit {
             _permit: permit,
@@ -323,7 +335,8 @@ impl ResourceLimiter {
         // Check per-client rate limit if specified
         if let Some(client) = client_id {
             if let Some(per_client_limit) = self.rate_limit_config.per_client_limit {
-                self.check_client_rate_limit(client, per_client_limit).await?;
+                self.check_client_rate_limit(client, per_client_limit)
+                    .await?;
             }
         }
 
@@ -341,13 +354,17 @@ impl ResourceLimiter {
             match breaker.state {
                 CircuitState::Open => {
                     // Check if we should transition to half-open
-                    if breaker.state_changed_at.elapsed() >= self.circuit_breaker_config.open_duration {
+                    if breaker.state_changed_at.elapsed()
+                        >= self.circuit_breaker_config.open_duration
+                    {
                         drop(breakers);
-                        self.transition_circuit_breaker(service, CircuitState::HalfOpen).await?;
+                        self.transition_circuit_breaker(service, CircuitState::HalfOpen)
+                            .await?;
                     } else {
-                        return Err(PerformanceError::ResourceLimitExceeded(
-                            format!("Circuit breaker open for service: {}", service)
-                        ));
+                        return Err(PerformanceError::ResourceLimitExceeded(format!(
+                            "Circuit breaker open for service: {}",
+                            service
+                        )));
                     }
                 }
                 CircuitState::HalfOpen => {
@@ -374,16 +391,16 @@ impl ResourceLimiter {
         }
 
         let mut breakers = self.circuit_breakers.write().await;
-        let breaker = breakers.entry(service.to_string()).or_insert_with(|| {
-            CircuitBreakerState {
+        let breaker = breakers
+            .entry(service.to_string())
+            .or_insert_with(|| CircuitBreakerState {
                 state: CircuitState::Closed,
                 failure_count: 0,
                 success_count: 0,
                 last_failure: None,
                 last_success: Some(Instant::now()),
                 state_changed_at: Instant::now(),
-            }
-        });
+            });
 
         breaker.last_success = Some(Instant::now());
         breaker.success_count += 1;
@@ -423,23 +440,24 @@ impl ResourceLimiter {
         }
 
         let mut breakers = self.circuit_breakers.write().await;
-        let breaker = breakers.entry(service.to_string()).or_insert_with(|| {
-            CircuitBreakerState {
+        let breaker = breakers
+            .entry(service.to_string())
+            .or_insert_with(|| CircuitBreakerState {
                 state: CircuitState::Closed,
                 failure_count: 0,
                 success_count: 0,
                 last_failure: Some(Instant::now()),
                 last_success: None,
                 state_changed_at: Instant::now(),
-            }
-        });
+            });
 
         breaker.last_failure = Some(Instant::now());
         breaker.failure_count += 1;
 
         // Check for state transitions
         if (breaker.state == CircuitState::Closed || breaker.state == CircuitState::HalfOpen)
-            && breaker.failure_count >= self.circuit_breaker_config.failure_threshold {
+            && breaker.failure_count >= self.circuit_breaker_config.failure_threshold
+        {
             breaker.state = CircuitState::Open;
             breaker.state_changed_at = Instant::now();
             breaker.success_count = 0; // Reset success count
@@ -535,11 +553,12 @@ impl ResourceLimiter {
         }
 
         // Check if we're within limits
-        let max_requests = self.rate_limit_config.max_requests_per_window + self.rate_limit_config.burst_allowance;
+        let max_requests =
+            self.rate_limit_config.max_requests_per_window + self.rate_limit_config.burst_allowance;
 
         if limiter.request_count >= max_requests {
             return Err(PerformanceError::ResourceLimitExceeded(
-                "Global rate limit exceeded".to_string()
+                "Global rate limit exceeded".to_string(),
             ));
         }
 
@@ -558,14 +577,14 @@ impl ResourceLimiter {
         let mut limiters = self.rate_limiters.write().await;
         let now = Instant::now();
 
-        let limiter = limiters.entry(client_id.to_string()).or_insert_with(|| {
-            RateLimiterState {
+        let limiter = limiters
+            .entry(client_id.to_string())
+            .or_insert_with(|| RateLimiterState {
                 request_count: 0,
                 window_start: now,
                 last_request: now,
                 burst_used: 0,
-            }
-        });
+            });
 
         // Reset window if needed
         if now.duration_since(limiter.window_start) >= self.rate_limit_config.window_duration {
@@ -576,9 +595,10 @@ impl ResourceLimiter {
 
         // Check if client is within limits
         if limiter.request_count >= limit {
-            return Err(PerformanceError::ResourceLimitExceeded(
-                format!("Rate limit exceeded for client: {}", client_id)
-            ));
+            return Err(PerformanceError::ResourceLimitExceeded(format!(
+                "Rate limit exceeded for client: {}",
+                client_id
+            )));
         }
 
         limiter.request_count += 1;
@@ -588,7 +608,11 @@ impl ResourceLimiter {
     }
 
     /// Transition circuit breaker state
-    async fn transition_circuit_breaker(&self, service: &str, new_state: CircuitState) -> Result<()> {
+    async fn transition_circuit_breaker(
+        &self,
+        service: &str,
+        new_state: CircuitState,
+    ) -> Result<()> {
         let mut breakers = self.circuit_breakers.write().await;
         if let Some(breaker) = breakers.get_mut(service) {
             breaker.state = new_state.clone();

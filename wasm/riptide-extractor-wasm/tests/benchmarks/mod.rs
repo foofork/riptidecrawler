@@ -1,8 +1,8 @@
 // Removed unused sync imports
-use std::time::{Duration, Instant};
 use std::thread;
+use std::time::{Duration, Instant};
 
-use riptide_extractor_wasm::{Component, ExtractionMode, ExtractionError};
+use riptide_extractor_wasm::{Component, ExtractionError, ExtractionMode};
 
 /// Performance benchmarking suite for WASM extractor
 ///
@@ -51,8 +51,10 @@ pub fn run_performance_benchmarks() -> Result<BenchmarkSuite, String> {
 
     // System information
     let system_info = gather_system_info();
-    println!("System: {} cores, {:.1}GB RAM, SIMD: {}",
-        system_info.core_count, system_info.memory_gb, system_info.simd_support);
+    println!(
+        "System: {} cores, {:.1}GB RAM, SIMD: {}",
+        system_info.core_count, system_info.memory_gb, system_info.simd_support
+    );
 
     // Warm-up runs
     println!("\n🔥 Warming up...");
@@ -67,7 +69,10 @@ pub fn run_performance_benchmarks() -> Result<BenchmarkSuite, String> {
 
     let total_duration = start_time.elapsed();
 
-    println!("\n✅ Benchmarks completed in {:.2}s", total_duration.as_secs_f64());
+    println!(
+        "\n✅ Benchmarks completed in {:.2}s",
+        total_duration.as_secs_f64()
+    );
 
     Ok(BenchmarkSuite {
         results,
@@ -86,7 +91,7 @@ fn run_warmup_benchmark() -> Result<(), String> {
         let _ = component.extract(
             html.clone(),
             "https://example.com".to_string(),
-            ExtractionMode::Article
+            ExtractionMode::Article,
         );
     }
 
@@ -103,11 +108,13 @@ fn run_cold_vs_warm_benchmarks() -> Result<Vec<BenchmarkResult>, String> {
     let cold_result = run_benchmark("cold_start", 10, 1, || {
         let component = Component::new();
         let html = get_sample_html("news_site");
-        component.extract(
-            html,
-            "https://example.com".to_string(),
-            ExtractionMode::Article
-        ).map(|_| ())
+        component
+            .extract(
+                html,
+                "https://example.com".to_string(),
+                ExtractionMode::Article,
+            )
+            .map(|_| ())
     })?;
     results.push(cold_result);
 
@@ -115,17 +122,22 @@ fn run_cold_vs_warm_benchmarks() -> Result<Vec<BenchmarkResult>, String> {
     let component = Component::new();
     let warm_result = run_benchmark("warm_performance", 100, 1, move || {
         let html = get_sample_html("news_site");
-        component.extract(
-            html,
-            "https://example.com".to_string(),
-            ExtractionMode::Article
-        ).map(|_| ())
+        component
+            .extract(
+                html,
+                "https://example.com".to_string(),
+                ExtractionMode::Article,
+            )
+            .map(|_| ())
     })?;
     results.push(warm_result);
 
     println!("Cold start: {:.2}ms avg", results[0].duration_ms);
     println!("Warm performance: {:.2}ms avg", results[1].duration_ms);
-    println!("Speedup: {:.2}x", results[0].duration_ms / results[1].duration_ms);
+    println!(
+        "Speedup: {:.2}x",
+        results[0].duration_ms / results[1].duration_ms
+    );
 
     Ok(results)
 }
@@ -139,11 +151,13 @@ fn run_concurrency_benchmarks() -> Result<Vec<BenchmarkResult>, String> {
     let single_threaded = run_benchmark("single_threaded", 50, 1, || {
         let component = Component::new();
         let html = get_sample_html("blog_post");
-        component.extract(
-            html,
-            "https://example.com".to_string(),
-            ExtractionMode::Article
-        ).map(|_| ())
+        component
+            .extract(
+                html,
+                "https://example.com".to_string(),
+                ExtractionMode::Article,
+            )
+            .map(|_| ())
     })?;
     results.push(single_threaded);
 
@@ -159,7 +173,10 @@ fn run_concurrency_benchmarks() -> Result<Vec<BenchmarkResult>, String> {
 
     println!("Single-threaded: {:.2}ms avg", results[0].duration_ms);
     println!("4x concurrent: {:.2}ms avg", results[1].duration_ms);
-    println!("Concurrent speedup: {:.2}x", results[0].duration_ms / results[1].duration_ms);
+    println!(
+        "Concurrent speedup: {:.2}x",
+        results[0].duration_ms / results[1].duration_ms
+    );
 
     Ok(results)
 }
@@ -177,20 +194,17 @@ fn run_content_type_benchmarks() -> Result<Vec<BenchmarkResult>, String> {
     ];
 
     for (fixture, description) in content_types {
-        let result = run_benchmark(
-            &format!("content_{}", fixture),
-            30,
-            1,
-            || {
-                let component = Component::new();
-                let html = get_sample_html(fixture);
-                component.extract(
+        let result = run_benchmark(&format!("content_{}", fixture), 30, 1, || {
+            let component = Component::new();
+            let html = get_sample_html(fixture);
+            component
+                .extract(
                     html,
                     "https://example.com".to_string(),
-                    ExtractionMode::Article
-                ).map(|_| ())
-            }
-        )?;
+                    ExtractionMode::Article,
+                )
+                .map(|_| ())
+        })?;
 
         println!("{}: {:.2}ms avg", description, result.duration_ms);
         results.push(result);
@@ -218,9 +232,18 @@ fn run_memory_benchmarks() -> Result<Vec<BenchmarkResult>, String> {
     let very_large_result = run_memory_benchmark("memory_very_large", very_large_doc, 5)?;
     results.push(very_large_result);
 
-    println!("Small document memory: {:.1}KB", results[0].memory_used_bytes as f64 / 1024.0);
-    println!("Large document memory: {:.1}KB", results[1].memory_used_bytes as f64 / 1024.0);
-    println!("Very large document memory: {:.1}KB", results[2].memory_used_bytes as f64 / 1024.0);
+    println!(
+        "Small document memory: {:.1}KB",
+        results[0].memory_used_bytes as f64 / 1024.0
+    );
+    println!(
+        "Large document memory: {:.1}KB",
+        results[1].memory_used_bytes as f64 / 1024.0
+    );
+    println!(
+        "Very large document memory: {:.1}KB",
+        results[2].memory_used_bytes as f64 / 1024.0
+    );
 
     Ok(results)
 }
@@ -237,11 +260,13 @@ fn run_cache_benchmarks() -> Result<Vec<BenchmarkResult>, String> {
         let _ = component.reset_state();
 
         let html = get_sample_html("blog_post");
-        component.extract(
-            html,
-            "https://example.com".to_string(),
-            ExtractionMode::Article
-        ).map(|_| ())
+        component
+            .extract(
+                html,
+                "https://example.com".to_string(),
+                ExtractionMode::Article,
+            )
+            .map(|_| ())
     })?;
     results.push(cache_miss);
 
@@ -253,21 +278,26 @@ fn run_cache_benchmarks() -> Result<Vec<BenchmarkResult>, String> {
     let _ = component.extract(
         html.clone(),
         "https://example.com".to_string(),
-        ExtractionMode::Article
+        ExtractionMode::Article,
     );
 
     let cache_hit = run_benchmark("cache_hit", 100, 1, move || {
-        component.extract(
-            html.clone(),
-            "https://example.com".to_string(),
-            ExtractionMode::Article
-        ).map(|_| ())
+        component
+            .extract(
+                html.clone(),
+                "https://example.com".to_string(),
+                ExtractionMode::Article,
+            )
+            .map(|_| ())
     })?;
     results.push(cache_hit);
 
     println!("Cache miss: {:.2}ms avg", results[0].duration_ms);
     println!("Cache hit: {:.2}ms avg", results[1].duration_ms);
-    println!("Cache speedup: {:.2}x", results[0].duration_ms / results[1].duration_ms);
+    println!(
+        "Cache speedup: {:.2}x",
+        results[0].duration_ms / results[1].duration_ms
+    );
 
     Ok(results)
 }
@@ -277,7 +307,7 @@ fn run_benchmark<F>(
     name: &str,
     iterations: usize,
     concurrency: usize,
-    mut operation: F
+    mut operation: F,
 ) -> Result<BenchmarkResult, String>
 where
     F: FnMut() -> Result<(), ExtractionError> + Send + 'static,
@@ -302,7 +332,7 @@ where
         concurrency_level: concurrency,
         iterations,
         cpu_usage_percent: 0.0, // Would need system monitoring for accurate measurement
-        cache_hit_rate: 0.0, // Would be set by cache-specific benchmarks
+        cache_hit_rate: 0.0,    // Would be set by cache-specific benchmarks
     })
 }
 
@@ -310,7 +340,7 @@ where
 fn run_concurrent_benchmark(
     name: &str,
     total_iterations: usize,
-    thread_count: usize
+    thread_count: usize,
 ) -> Result<BenchmarkResult, String> {
     let start_memory = get_memory_usage();
     let start_time = Instant::now();
@@ -327,7 +357,7 @@ fn run_concurrent_benchmark(
                 component.extract(
                     html.clone(),
                     format!("https://example.com/thread/{}", thread_id),
-                    ExtractionMode::Article
+                    ExtractionMode::Article,
                 )?;
             }
             Ok(())
@@ -337,7 +367,8 @@ fn run_concurrent_benchmark(
 
     // Wait for all threads to complete
     for handle in handles {
-        handle.join()
+        handle
+            .join()
             .map_err(|_| "Thread panicked".to_string())?
             .map_err(|e| format!("Concurrent benchmark failed: {:?}", e))?;
     }
@@ -362,7 +393,7 @@ fn run_concurrent_benchmark(
 fn run_memory_benchmark(
     name: &str,
     html: String,
-    iterations: usize
+    iterations: usize,
 ) -> Result<BenchmarkResult, String> {
     let component = Component::new();
 
@@ -372,7 +403,7 @@ fn run_memory_benchmark(
         let _ = component.extract(
             "<html><body>warmup</body></html>".to_string(),
             "https://warmup.com".to_string(),
-            ExtractionMode::Article
+            ExtractionMode::Article,
         );
     }
 
@@ -382,11 +413,13 @@ fn run_memory_benchmark(
     let mut peak_memory = start_memory;
 
     for _ in 0..iterations {
-        component.extract(
-            html.clone(),
-            "https://example.com".to_string(),
-            ExtractionMode::Article
-        ).map_err(|e| format!("Memory benchmark failed: {:?}", e))?;
+        component
+            .extract(
+                html.clone(),
+                "https://example.com".to_string(),
+                ExtractionMode::Article,
+            )
+            .map_err(|e| format!("Memory benchmark failed: {:?}", e))?;
 
         let current_memory = get_memory_usage();
         peak_memory = peak_memory.max(current_memory);
@@ -412,21 +445,37 @@ pub fn generate_performance_report(suite: &BenchmarkSuite) -> Result<String, Str
     let mut report = String::new();
 
     report.push_str("# WASM Extractor Performance Report\n\n");
-    report.push_str(&format!("**Generated**: {}\n", chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")));
-    report.push_str(&format!("**Duration**: {:.2}s\n", suite.total_duration.as_secs_f64()));
+    report.push_str(&format!(
+        "**Generated**: {}\n",
+        chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")
+    ));
+    report.push_str(&format!(
+        "**Duration**: {:.2}s\n",
+        suite.total_duration.as_secs_f64()
+    ));
     report.push_str(&format!("**Total Tests**: {}\n\n", suite.results.len()));
 
     // System information
     report.push_str("## System Information\n\n");
     report.push_str(&format!("- **CPU**: {}\n", suite.system_info.cpu_model));
     report.push_str(&format!("- **Cores**: {}\n", suite.system_info.core_count));
-    report.push_str(&format!("- **Memory**: {:.1}GB\n", suite.system_info.memory_gb));
-    report.push_str(&format!("- **SIMD Support**: {}\n", suite.system_info.simd_support));
-    report.push_str(&format!("- **WASM Runtime**: {}\n\n", suite.system_info.wasm_runtime));
+    report.push_str(&format!(
+        "- **Memory**: {:.1}GB\n",
+        suite.system_info.memory_gb
+    ));
+    report.push_str(&format!(
+        "- **SIMD Support**: {}\n",
+        suite.system_info.simd_support
+    ));
+    report.push_str(&format!(
+        "- **WASM Runtime**: {}\n\n",
+        suite.system_info.wasm_runtime
+    ));
 
     // Performance summary
     report.push_str("## Performance Summary\n\n");
-    report.push_str("| Test | Avg Time (ms) | Throughput (ops/sec) | Memory (KB) | Concurrency |\n");
+    report
+        .push_str("| Test | Avg Time (ms) | Throughput (ops/sec) | Memory (KB) | Concurrency |\n");
     report.push_str("|------|---------------|---------------------|-------------|-------------|\n");
 
     for result in &suite.results {
@@ -445,47 +494,75 @@ pub fn generate_performance_report(suite: &BenchmarkSuite) -> Result<String, Str
     // Calculate key metrics
     if let (Some(cold), Some(warm)) = (
         suite.results.iter().find(|r| r.name == "cold_start"),
-        suite.results.iter().find(|r| r.name == "warm_performance")
+        suite.results.iter().find(|r| r.name == "warm_performance"),
     ) {
         let speedup = cold.duration_ms / warm.duration_ms;
-        report.push_str(&format!("- **Warm vs Cold Speedup**: {:.2}x faster after warmup\n", speedup));
+        report.push_str(&format!(
+            "- **Warm vs Cold Speedup**: {:.2}x faster after warmup\n",
+            speedup
+        ));
     }
 
     if let (Some(single), Some(concurrent)) = (
         suite.results.iter().find(|r| r.name == "single_threaded"),
-        suite.results.iter().find(|r| r.name.contains("concurrent"))
+        suite.results.iter().find(|r| r.name.contains("concurrent")),
     ) {
-        let concurrent_speedup = single.throughput_ops_per_sec / concurrent.throughput_ops_per_sec * concurrent.concurrency_level as f64;
-        report.push_str(&format!("- **Concurrent Efficiency**: {:.1}% of theoretical maximum\n", concurrent_speedup * 100.0 / concurrent.concurrency_level as f64));
+        let concurrent_speedup = single.throughput_ops_per_sec / concurrent.throughput_ops_per_sec
+            * concurrent.concurrency_level as f64;
+        report.push_str(&format!(
+            "- **Concurrent Efficiency**: {:.1}% of theoretical maximum\n",
+            concurrent_speedup * 100.0 / concurrent.concurrency_level as f64
+        ));
     }
 
     if let (Some(cache_miss), Some(cache_hit)) = (
         suite.results.iter().find(|r| r.name == "cache_miss"),
-        suite.results.iter().find(|r| r.name == "cache_hit")
+        suite.results.iter().find(|r| r.name == "cache_hit"),
     ) {
         let cache_speedup = cache_miss.duration_ms / cache_hit.duration_ms;
-        report.push_str(&format!("- **Cache Effectiveness**: {:.2}x speedup on cache hits\n", cache_speedup));
+        report.push_str(&format!(
+            "- **Cache Effectiveness**: {:.2}x speedup on cache hits\n",
+            cache_speedup
+        ));
     }
 
     // Memory analysis
-    let max_memory = suite.results.iter().map(|r| r.memory_used_bytes).max().unwrap_or(0);
-    let avg_memory = suite.results.iter().map(|r| r.memory_used_bytes as f64).sum::<f64>() / suite.results.len() as f64;
+    let max_memory = suite
+        .results
+        .iter()
+        .map(|r| r.memory_used_bytes)
+        .max()
+        .unwrap_or(0);
+    let avg_memory = suite
+        .results
+        .iter()
+        .map(|r| r.memory_used_bytes as f64)
+        .sum::<f64>()
+        / suite.results.len() as f64;
 
-    report.push_str(&format!("- **Peak Memory Usage**: {:.1}KB\n", max_memory as f64 / 1024.0));
-    report.push_str(&format!("- **Average Memory Usage**: {:.1}KB\n", avg_memory / 1024.0));
+    report.push_str(&format!(
+        "- **Peak Memory Usage**: {:.1}KB\n",
+        max_memory as f64 / 1024.0
+    ));
+    report.push_str(&format!(
+        "- **Average Memory Usage**: {:.1}KB\n",
+        avg_memory / 1024.0
+    ));
 
     report.push_str("\n## Recommendations\n\n");
 
     // Generate recommendations based on results
     if let Some(warm_result) = suite.results.iter().find(|r| r.name == "warm_performance") {
         if warm_result.duration_ms > 50.0 {
-            report.push_str("- ⚠️  **Performance Warning**: Warm extraction time is high (>50ms)\n");
+            report
+                .push_str("- ⚠️  **Performance Warning**: Warm extraction time is high (>50ms)\n");
         } else if warm_result.duration_ms < 10.0 {
             report.push_str("- ✅ **Excellent Performance**: Fast warm extraction time (<10ms)\n");
         }
     }
 
-    if max_memory > 1024 * 1024 { // > 1MB
+    if max_memory > 1024 * 1024 {
+        // > 1MB
         report.push_str("- ⚠️  **Memory Warning**: High memory usage detected (>1MB)\n");
     }
 
@@ -495,8 +572,12 @@ pub fn generate_performance_report(suite: &BenchmarkSuite) -> Result<String, Str
 // Helper functions
 
 fn get_sample_html(fixture_name: &str) -> String {
-    std::fs::read_to_string(format!("tests/fixtures/{}.html", fixture_name))
-        .unwrap_or_else(|_| format!("<html><body>Sample content for {}</body></html>", fixture_name))
+    std::fs::read_to_string(format!("tests/fixtures/{}.html", fixture_name)).unwrap_or_else(|_| {
+        format!(
+            "<html><body>Sample content for {}</body></html>",
+            fixture_name
+        )
+    })
 }
 
 fn generate_large_html_document(size_bytes: usize) -> String {
@@ -519,14 +600,16 @@ fn get_memory_usage() -> u64 {
 
 fn get_cpu_core_count() -> usize {
     // Placeholder - would use platform-specific APIs
-    std::thread::available_parallelism().map(|p| p.get()).unwrap_or(4)
+    std::thread::available_parallelism()
+        .map(|p| p.get())
+        .unwrap_or(4)
 }
 
 fn gather_system_info() -> SystemInfo {
     SystemInfo {
         cpu_model: "WebAssembly Virtual CPU".to_string(),
         core_count: get_cpu_core_count(),
-        memory_gb: 4.0, // Placeholder
+        memory_gb: 4.0,     // Placeholder
         simd_support: true, // Assume SIMD support
         wasm_runtime: "Wasmtime".to_string(),
     }

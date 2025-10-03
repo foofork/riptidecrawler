@@ -14,11 +14,11 @@ use riptide_core::{
     events::{EventBus, EventBusConfig, EventSeverity},
     fetch::{http_client, FetchEngine},
     monitoring::{
-        AlertCondition, AlertManager, AlertRule, AlertSeverity, HealthCalculator,
-        MetricsCollector, MonitoringConfig,
+        AlertCondition, AlertManager, AlertRule, AlertSeverity, HealthCalculator, MetricsCollector,
+        MonitoringConfig,
     },
     pdf::PdfMetricsCollector,
-    reliability::{ReliableExtractor, ReliabilityConfig},
+    reliability::{ReliabilityConfig, ReliableExtractor},
     spider::{Spider, SpiderConfig},
     telemetry::TelemetrySystem,
 };
@@ -285,13 +285,17 @@ impl AppConfig {
         }
 
         // Create default spider config
-        let base_url = std::env::var("SPIDER_BASE_URL")
-            .unwrap_or_else(|_| "https://example.com".to_string());
+        let base_url =
+            std::env::var("SPIDER_BASE_URL").unwrap_or_else(|_| "https://example.com".to_string());
 
         let base_url = match url::Url::parse(&base_url) {
             Ok(url) => url,
             Err(e) => {
-                tracing::warn!("Invalid SPIDER_BASE_URL '{}': {}, using default", base_url, e);
+                tracing::warn!(
+                    "Invalid SPIDER_BASE_URL '{}': {}, using default",
+                    base_url,
+                    e
+                );
                 url::Url::parse("https://example.com").unwrap()
             }
         };
@@ -345,7 +349,7 @@ impl AppConfig {
 
     /// Initialize worker service configuration based on environment variables
     fn init_worker_config() -> WorkerServiceConfig {
-        use riptide_workers::{WorkerConfig, QueueConfig, SchedulerConfig};
+        use riptide_workers::{QueueConfig, SchedulerConfig, WorkerConfig};
 
         WorkerServiceConfig {
             redis_url: std::env::var("WORKER_REDIS_URL")
@@ -385,8 +389,9 @@ impl AppConfig {
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(10),
 
-            wasm_path: std::env::var("WASM_EXTRACTOR_PATH")
-                .unwrap_or_else(|_| "./target/wasm32-wasip2/release/riptide_extractor_wasm.wasm".to_string()),
+            wasm_path: std::env::var("WASM_EXTRACTOR_PATH").unwrap_or_else(|_| {
+                "./target/wasm32-wasip2/release/riptide_extractor_wasm.wasm".to_string()
+            }),
 
             enable_scheduler: std::env::var("WORKER_ENABLE_SCHEDULER")
                 .ok()
@@ -525,7 +530,9 @@ impl AppState {
         }
 
         let streaming = Arc::new(streaming_module);
-        tracing::info!("Streaming module initialized with backpressure handling and lifecycle management");
+        tracing::info!(
+            "Streaming module initialized with backpressure handling and lifecycle management"
+        );
 
         // Initialize Spider if enabled
         let spider = if let Some(ref spider_config) = config.spider_config {
@@ -539,14 +546,19 @@ impl AppState {
                         .with_memory_manager(Arc::new({
                             let mut wasmtime_config = wasmtime::Config::new();
                             wasmtime_config.wasm_component_model(true);
-                            let engine = wasmtime::Engine::new(&wasmtime_config).map_err(|e| anyhow::anyhow!("Failed to create wasmtime engine: {}", e))?;
+                            let engine = wasmtime::Engine::new(&wasmtime_config).map_err(|e| {
+                                anyhow::anyhow!("Failed to create wasmtime engine: {}", e)
+                            })?;
                             riptide_core::memory_manager::MemoryManager::new(
                                 riptide_core::memory_manager::MemoryManagerConfig::default(),
-                                engine
-                            ).await?
+                                engine,
+                            )
+                            .await?
                         }));
 
-                    tracing::info!("Spider engine initialized successfully with fetch and memory integrations");
+                    tracing::info!(
+                        "Spider engine initialized successfully with fetch and memory integrations"
+                    );
                     Some(Arc::new(spider_with_integrations))
                 }
                 Err(e) => {
@@ -586,35 +598,47 @@ impl AppState {
         let mut event_bus = EventBus::with_config(config.event_bus_config.clone());
 
         // Register event handlers
-        use riptide_core::events::handlers::{LoggingEventHandler, MetricsEventHandler, TelemetryEventHandler, HealthEventHandler};
+        use riptide_core::events::handlers::{
+            HealthEventHandler, LoggingEventHandler, MetricsEventHandler, TelemetryEventHandler,
+        };
 
         // Logging handler for structured logging
         let logging_handler = Arc::new(LoggingEventHandler::new());
-        event_bus.register_handler(logging_handler).await
+        event_bus
+            .register_handler(logging_handler)
+            .await
             .map_err(|e| anyhow::anyhow!("Failed to register logging handler: {}", e))?;
         tracing::info!("Registered logging event handler");
 
         // Metrics handler for automatic metrics collection
         let metrics_collector = riptide_core::monitoring::MetricsCollector::new();
         let metrics_handler = Arc::new(MetricsEventHandler::new(Arc::new(metrics_collector)));
-        event_bus.register_handler(metrics_handler).await
+        event_bus
+            .register_handler(metrics_handler)
+            .await
             .map_err(|e| anyhow::anyhow!("Failed to register metrics handler: {}", e))?;
         tracing::info!("Registered metrics event handler");
 
         // Telemetry handler for OpenTelemetry integration
         let telemetry_handler = Arc::new(TelemetryEventHandler::new());
-        event_bus.register_handler(telemetry_handler).await
+        event_bus
+            .register_handler(telemetry_handler)
+            .await
             .map_err(|e| anyhow::anyhow!("Failed to register telemetry handler: {}", e))?;
         tracing::info!("Registered telemetry event handler");
 
         // Health handler for health monitoring
         let health_handler = Arc::new(HealthEventHandler::new());
-        event_bus.register_handler(health_handler).await
+        event_bus
+            .register_handler(health_handler)
+            .await
             .map_err(|e| anyhow::anyhow!("Failed to register health handler: {}", e))?;
         tracing::info!("Registered health event handler");
 
         // Start event bus processing
-        event_bus.start().await
+        event_bus
+            .start()
+            .await
             .map_err(|e| anyhow::anyhow!("Failed to start event bus: {}", e))?;
         tracing::info!("Event bus started and processing events");
 
@@ -642,13 +666,18 @@ impl AppState {
         // Start background alert evaluation task
         monitoring_system.start_alert_evaluation_task(event_bus.clone());
 
-        tracing::info!("Monitoring system initialized with alert rules and background evaluation task");
+        tracing::info!(
+            "Monitoring system initialized with alert rules and background evaluation task"
+        );
 
         // Initialize FetchEngine with configuration
-        tracing::info!("Initializing FetchEngine for HTTP operations with per-host circuit breakers");
-        let fetch_engine = Arc::new(FetchEngine::new().map_err(|e| {
-            anyhow::anyhow!("Failed to initialize FetchEngine: {}", e)
-        })?);
+        tracing::info!(
+            "Initializing FetchEngine for HTTP operations with per-host circuit breakers"
+        );
+        let fetch_engine = Arc::new(
+            FetchEngine::new()
+                .map_err(|e| anyhow::anyhow!("Failed to initialize FetchEngine: {}", e))?,
+        );
         tracing::info!("FetchEngine initialized successfully");
 
         // Note: CacheWarmer initialization to be added in future
@@ -791,7 +820,9 @@ impl AppState {
             let cb_state = self.circuit_breaker.lock().await;
             if cb_state.is_open() {
                 health.healthy = false;
-                DependencyHealth::Unhealthy("Circuit breaker is open - too many failures".to_string())
+                DependencyHealth::Unhealthy(
+                    "Circuit breaker is open - too many failures".to_string(),
+                )
             } else if cb_state.is_half_open() {
                 DependencyHealth::Unhealthy("Circuit breaker is testing recovery".to_string())
             } else {

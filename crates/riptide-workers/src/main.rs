@@ -19,7 +19,10 @@ struct Args {
     #[arg(long, default_value = "10")]
     max_concurrency: usize,
 
-    #[arg(long, default_value = "./target/wasm32-wasip2/release/riptide_extractor_wasm.wasm")]
+    #[arg(
+        long,
+        default_value = "./target/wasm32-wasip2/release/riptide_extractor_wasm.wasm"
+    )]
     wasm_path: String,
 
     #[arg(long, default_value = "true")]
@@ -63,7 +66,9 @@ async fn main() -> Result<()> {
 
     // Set up graceful shutdown
     let shutdown_signal = async {
-        tokio::signal::ctrl_c().await.expect("Failed to listen for Ctrl+C");
+        tokio::signal::ctrl_c()
+            .await
+            .expect("Failed to listen for Ctrl+C");
         tracing::info!("Received shutdown signal, initiating graceful shutdown");
     };
 

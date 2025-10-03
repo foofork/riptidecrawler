@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 #[cfg(test)]
 mod metrics_tests {
     use super::*;
-    use riptide_performance::metrics::{PerformanceMetrics, MetricsCollector};
+    use riptide_performance::metrics::{MetricsCollector, PerformanceMetrics};
 
     #[tokio::test]
     async fn test_metrics_collection() {
@@ -60,7 +60,7 @@ mod metrics_tests {
 #[cfg(test)]
 mod profiling_tests {
     use super::*;
-    use riptide_performance::profiler::{Profiler, ProfileScope};
+    use riptide_performance::profiler::{ProfileScope, Profiler};
 
     #[test]
     fn test_profile_scope() {
@@ -115,7 +115,7 @@ mod profiling_tests {
 #[cfg(test)]
 mod optimization_tests {
     use super::*;
-    use riptide_performance::optimizer::{PerformanceOptimizer, OptimizationConfig};
+    use riptide_performance::optimizer::{OptimizationConfig, PerformanceOptimizer};
 
     #[tokio::test]
     async fn test_auto_tuning() {
@@ -130,7 +130,9 @@ mod optimization_tests {
         // Simulate varying load
         for i in 0..100 {
             let latency = if i < 50 { 50 } else { 150 };
-            optimizer.record_latency(Duration::from_millis(latency)).await;
+            optimizer
+                .record_latency(Duration::from_millis(latency))
+                .await;
         }
 
         // Should adjust concurrency based on latency

@@ -3,9 +3,9 @@
 //! This module provides different content extraction strategies including
 //! Trek-based extraction and fallback methods.
 
+use crate::{wasm_extraction::CmExtractor, ExtractedContent};
 use anyhow::Result;
 use async_trait::async_trait;
-use crate::{ExtractedContent, wasm_extraction::CmExtractor};
 use scraper::{Html, Selector};
 use url::Url;
 
@@ -91,7 +91,12 @@ pub async fn fallback_extract(html: &str, url: &str) -> Result<ExtractedContent>
                         break;
                     }
                 } else {
-                    title = element.text().collect::<Vec<_>>().join(" ").trim().to_string();
+                    title = element
+                        .text()
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                        .trim()
+                        .to_string();
                     if !title.is_empty() {
                         break;
                     }
@@ -173,9 +178,18 @@ impl CssExtractorStrategy {
         let mut selector_map = std::collections::HashMap::new();
 
         // Default selectors
-        selector_map.insert("title".to_string(), "title, h1, .title, .headline".to_string());
-        selector_map.insert("content".to_string(), "article, .content, .post-content, .entry-content, main".to_string());
-        selector_map.insert("summary".to_string(), "meta[name='description'], .summary, .excerpt".to_string());
+        selector_map.insert(
+            "title".to_string(),
+            "title, h1, .title, .headline".to_string(),
+        );
+        selector_map.insert(
+            "content".to_string(),
+            "article, .content, .post-content, .entry-content, main".to_string(),
+        );
+        selector_map.insert(
+            "summary".to_string(),
+            "meta[name='description'], .summary, .excerpt".to_string(),
+        );
 
         Self { selector_map }
     }
@@ -206,7 +220,12 @@ impl ContentExtractor for CssExtractorStrategy {
                                 break;
                             }
                         } else {
-                            let extracted_title = element.text().collect::<Vec<_>>().join(" ").trim().to_string();
+                            let extracted_title = element
+                                .text()
+                                .collect::<Vec<_>>()
+                                .join(" ")
+                                .trim()
+                                .to_string();
                             if !extracted_title.is_empty() {
                                 title = extracted_title;
                                 break;
@@ -242,7 +261,12 @@ impl ContentExtractor for CssExtractorStrategy {
                                 break;
                             }
                         } else {
-                            let extracted_summary = element.text().collect::<Vec<_>>().join(" ").trim().to_string();
+                            let extracted_summary = element
+                                .text()
+                                .collect::<Vec<_>>()
+                                .join(" ")
+                                .trim()
+                                .to_string();
                             if !extracted_summary.is_empty() {
                                 summary = Some(extracted_summary);
                                 break;
@@ -355,11 +379,17 @@ mod tests {
         "#;
 
         let extractor = CssExtractorStrategy::new();
-        let result = extractor.extract(html, "https://example.com").await.unwrap();
+        let result = extractor
+            .extract(html, "https://example.com")
+            .await
+            .unwrap();
 
         assert_eq!(result.title, "CSS Test Title");
         assert!(result.content.contains("Main content goes here"));
-        assert_eq!(result.summary, Some("This is a test description".to_string()));
+        assert_eq!(
+            result.summary,
+            Some("This is a test description".to_string())
+        );
         assert_eq!(result.strategy_used, "css_extraction");
         assert!(result.extraction_confidence > 0.7);
     }
@@ -370,7 +400,10 @@ mod tests {
 
         // Create extractor without WASM path (should use fallback)
         let extractor = TrekExtractor::new(None).await.unwrap();
-        let result = extractor.extract(html, "https://example.com").await.unwrap();
+        let result = extractor
+            .extract(html, "https://example.com")
+            .await
+            .unwrap();
 
         assert_eq!(result.title, "Test");
         assert!(result.content.contains("Content"));

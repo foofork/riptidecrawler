@@ -1,7 +1,7 @@
 //! Monitoring report types
 
-use crate::PerformanceMetrics;
 use super::alerts::PerformanceAlert;
+use crate::PerformanceMetrics;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use uuid::Uuid;

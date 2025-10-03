@@ -33,26 +33,37 @@
 //! # }
 //! ```
 
-pub mod processor;
 pub mod css_extraction;
-pub mod regex_extraction;
 pub mod dom_utils;
+pub mod processor;
+pub mod regex_extraction;
 // Strategy implementations module disabled due to circular dependency with riptide-core
 // Re-enable once types are moved to a shared crate or dependency cycle is resolved
 // pub mod strategy_implementations;
-pub mod wasm_extraction; // WASM-based extraction moved from riptide-core
-pub mod extraction_strategies; // Content extraction strategies moved from riptide-core
-// pub mod spider;  // Temporarily disabled due to compilation errors
+pub mod extraction_strategies;
+pub mod wasm_extraction; // WASM-based extraction moved from riptide-core // Content extraction strategies moved from riptide-core
+                                                                          // pub mod spider;  // Temporarily disabled due to compilation errors
 pub mod chunking;
 pub mod table_extraction;
 
 // Re-export main interfaces
-pub use processor::{HtmlProcessor, ProcessingResult, ProcessingError, ChunkingMode, TableExtractionMode};
-pub use css_extraction::{CssJsonExtractor, extract as css_extract, extract_default as css_extract_default, default_selectors};
-pub use regex_extraction::{RegexExtractor, extract as regex_extract, default_patterns};
-pub use dom_utils::{DomTraverser, ElementInfo, traverse_elements, extract_text_content, find_tables};
-pub use wasm_extraction::{WasmExtractor, CmExtractor, ExtractedDoc, ExtractionMode, ExtractorConfig, WasmResourceTracker};
-pub use extraction_strategies::{ContentExtractor, TrekExtractor, CssExtractorStrategy, fallback_extract, extract_links_basic};
+pub use css_extraction::{
+    default_selectors, extract as css_extract, extract_default as css_extract_default,
+    CssJsonExtractor,
+};
+pub use dom_utils::{
+    extract_text_content, find_tables, traverse_elements, DomTraverser, ElementInfo,
+};
+pub use extraction_strategies::{
+    extract_links_basic, fallback_extract, ContentExtractor, CssExtractorStrategy, TrekExtractor,
+};
+pub use processor::{
+    ChunkingMode, HtmlProcessor, ProcessingError, ProcessingResult, TableExtractionMode,
+};
+pub use regex_extraction::{default_patterns, extract as regex_extract, RegexExtractor};
+pub use wasm_extraction::{
+    CmExtractor, ExtractedDoc, ExtractionMode, ExtractorConfig, WasmExtractor, WasmResourceTracker,
+};
 
 // // Re-export spider functionality
 // pub use spider::{
@@ -73,16 +84,15 @@ pub use extraction_strategies::{ContentExtractor, TrekExtractor, CssExtractorStr
 // };
 // Re-export chunking functionality
 pub use chunking::{
-    ChunkingStrategy, Chunk, ChunkMetadata, ChunkingConfig,
-    ChunkingMode as ChunkingStrategyMode,
-    create_strategy, utils as chunking_utils
+    create_strategy, utils as chunking_utils, Chunk, ChunkMetadata, ChunkingConfig,
+    ChunkingMode as ChunkingStrategyMode, ChunkingStrategy,
 };
 
 // Re-export table extraction functionality
 pub use table_extraction::{
-    AdvancedTableData, TableHeaders, TableRow, TableCell, TableMetadata, TableStructure,
-    RowType, CellType, CellPosition, ColumnGroup, TableExtractionConfig, TableExtractor,
-    TableArtifact, TableExtractionError, extract_tables_advanced, extract_and_export_tables
+    extract_and_export_tables, extract_tables_advanced, AdvancedTableData, CellPosition, CellType,
+    ColumnGroup, RowType, TableArtifact, TableCell, TableExtractionConfig, TableExtractionError,
+    TableExtractor, TableHeaders, TableMetadata, TableRow, TableStructure,
 };
 
 // Common types for extraction
@@ -126,7 +136,11 @@ pub struct ExtractionQuality {
 
 impl ExtractionQuality {
     pub fn overall_score(&self) -> f64 {
-        (self.title_quality + self.content_quality + self.structure_score + self.metadata_completeness) / 4.0
+        (self.title_quality
+            + self.content_quality
+            + self.structure_score
+            + self.metadata_completeness)
+            / 4.0
     }
 }
 

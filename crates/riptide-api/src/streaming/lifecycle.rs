@@ -106,9 +106,8 @@ impl StreamLifecycleManager {
     /// Create a new lifecycle manager
     pub fn new(metrics: Arc<RipTideMetrics>) -> Self {
         let (event_tx, mut event_rx) = mpsc::unbounded_channel();
-        let active_connections = Arc::new(tokio::sync::RwLock::new(
-            std::collections::HashMap::new(),
-        ));
+        let active_connections =
+            Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new()));
 
         let active_connections_clone = active_connections.clone();
         let metrics_clone = metrics.clone();
@@ -116,12 +115,8 @@ impl StreamLifecycleManager {
         // Start event processing task
         tokio::spawn(async move {
             while let Some(event) = event_rx.recv().await {
-                Self::handle_lifecycle_event(
-                    event,
-                    &active_connections_clone,
-                    &metrics_clone,
-                )
-                .await;
+                Self::handle_lifecycle_event(event, &active_connections_clone, &metrics_clone)
+                    .await;
             }
         });
 
@@ -173,7 +168,12 @@ impl StreamLifecycleManager {
         total_items: usize,
     ) {
         // Update connection with current request
-        if let Some(conn) = self.active_connections.write().await.get_mut(&connection_id) {
+        if let Some(conn) = self
+            .active_connections
+            .write()
+            .await
+            .get_mut(&connection_id)
+        {
             conn.current_request_id = Some(request_id.clone());
         }
 
@@ -303,13 +303,19 @@ impl StreamLifecycleManager {
 
     /// Get connection info
     pub async fn get_connection_info(&self, connection_id: &str) -> Option<ConnectionInfo> {
-        self.active_connections.read().await.get(connection_id).cloned()
+        self.active_connections
+            .read()
+            .await
+            .get(connection_id)
+            .cloned()
     }
 
     /// Internal event handler
     async fn handle_lifecycle_event(
         event: LifecycleEvent,
-        _active_connections: &Arc<tokio::sync::RwLock<std::collections::HashMap<String, ConnectionInfo>>>,
+        _active_connections: &Arc<
+            tokio::sync::RwLock<std::collections::HashMap<String, ConnectionInfo>>,
+        >,
         _metrics: &Arc<RipTideMetrics>,
     ) {
         match event {

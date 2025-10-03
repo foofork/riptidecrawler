@@ -114,28 +114,49 @@ impl BenchmarkRunner {
         let mut results = HashMap::new();
 
         // Run individual benchmarks
-        results.insert("scraping_latency".to_string(), self.benchmark_scraping_latency().await?);
-        results.insert("memory_efficiency".to_string(), self.benchmark_memory_efficiency().await?);
-        results.insert("html_parsing".to_string(), self.benchmark_html_parsing().await?);
-        results.insert("ai_processing".to_string(), self.benchmark_ai_processing().await?);
-        results.insert("cache_performance".to_string(), self.benchmark_cache_performance().await?);
-        results.insert("concurrent_processing".to_string(), self.benchmark_concurrent_processing().await?);
+        results.insert(
+            "scraping_latency".to_string(),
+            self.benchmark_scraping_latency().await?,
+        );
+        results.insert(
+            "memory_efficiency".to_string(),
+            self.benchmark_memory_efficiency().await?,
+        );
+        results.insert(
+            "html_parsing".to_string(),
+            self.benchmark_html_parsing().await?,
+        );
+        results.insert(
+            "ai_processing".to_string(),
+            self.benchmark_ai_processing().await?,
+        );
+        results.insert(
+            "cache_performance".to_string(),
+            self.benchmark_cache_performance().await?,
+        );
+        results.insert(
+            "concurrent_processing".to_string(),
+            self.benchmark_concurrent_processing().await?,
+        );
 
         let total_duration = start_time.elapsed();
 
         // Calculate baseline comparison if available
         let baseline_comparison = self.baseline_results.as_ref().map(|baseline| {
-            results.iter().map(|(name, result)| {
-                let delta = if let Some(baseline_result) = baseline.get(name) {
-                    // Calculate percentage change in performance (negative = regression)
-                    let baseline_avg = baseline_result.average_duration.as_nanos() as f64;
-                    let current_avg = result.average_duration.as_nanos() as f64;
-                    ((baseline_avg - current_avg) / baseline_avg) * 100.0
-                } else {
-                    0.0
-                };
-                (name.clone(), delta)
-            }).collect()
+            results
+                .iter()
+                .map(|(name, result)| {
+                    let delta = if let Some(baseline_result) = baseline.get(name) {
+                        // Calculate percentage change in performance (negative = regression)
+                        let baseline_avg = baseline_result.average_duration.as_nanos() as f64;
+                        let current_avg = result.average_duration.as_nanos() as f64;
+                        ((baseline_avg - current_avg) / baseline_avg) * 100.0
+                    } else {
+                        0.0
+                    };
+                    (name.clone(), delta)
+                })
+                .collect()
         });
 
         // Calculate overall performance score
@@ -195,7 +216,12 @@ impl BenchmarkRunner {
             memory_samples.push((memory_before, memory_after));
         }
 
-        self.calculate_benchmark_result("scraping_latency", durations, memory_samples, start_time.elapsed())
+        self.calculate_benchmark_result(
+            "scraping_latency",
+            durations,
+            memory_samples,
+            start_time.elapsed(),
+        )
     }
 
     /// Benchmark memory efficiency
@@ -220,7 +246,12 @@ impl BenchmarkRunner {
             memory_samples.push((memory_before, memory_after));
         }
 
-        self.calculate_benchmark_result("memory_efficiency", durations, memory_samples, start_time.elapsed())
+        self.calculate_benchmark_result(
+            "memory_efficiency",
+            durations,
+            memory_samples,
+            start_time.elapsed(),
+        )
     }
 
     /// Benchmark HTML parsing performance
@@ -245,7 +276,12 @@ impl BenchmarkRunner {
             memory_samples.push((memory_before, memory_after));
         }
 
-        self.calculate_benchmark_result("html_parsing", durations, memory_samples, start_time.elapsed())
+        self.calculate_benchmark_result(
+            "html_parsing",
+            durations,
+            memory_samples,
+            start_time.elapsed(),
+        )
     }
 
     /// Benchmark AI processing performance
@@ -270,7 +306,12 @@ impl BenchmarkRunner {
             memory_samples.push((memory_before, memory_after));
         }
 
-        self.calculate_benchmark_result("ai_processing", durations, memory_samples, start_time.elapsed())
+        self.calculate_benchmark_result(
+            "ai_processing",
+            durations,
+            memory_samples,
+            start_time.elapsed(),
+        )
     }
 
     /// Benchmark cache performance
@@ -295,7 +336,12 @@ impl BenchmarkRunner {
             memory_samples.push((memory_before, memory_after));
         }
 
-        self.calculate_benchmark_result("cache_performance", durations, memory_samples, start_time.elapsed())
+        self.calculate_benchmark_result(
+            "cache_performance",
+            durations,
+            memory_samples,
+            start_time.elapsed(),
+        )
     }
 
     /// Benchmark concurrent processing
@@ -320,7 +366,12 @@ impl BenchmarkRunner {
             memory_samples.push((memory_before, memory_after));
         }
 
-        self.calculate_benchmark_result("concurrent_processing", durations, memory_samples, start_time.elapsed())
+        self.calculate_benchmark_result(
+            "concurrent_processing",
+            durations,
+            memory_samples,
+            start_time.elapsed(),
+        )
     }
 
     /// Calculate benchmark result from timing data
@@ -350,10 +401,8 @@ impl BenchmarkRunner {
             .map(|(_, after)| *after)
             .fold(0.0, f64::max);
 
-        let memory_average_mb = memory_samples
-            .iter()
-            .map(|(_, after)| *after)
-            .sum::<f64>() / memory_samples.len() as f64;
+        let memory_average_mb = memory_samples.iter().map(|(_, after)| *after).sum::<f64>()
+            / memory_samples.len() as f64;
 
         // Simulate CPU usage (would be measured in real implementation)
         let cpu_usage_percent = 45.0; // Placeholder
@@ -419,7 +468,8 @@ impl BenchmarkRunner {
             if result.average_duration > Duration::from_millis(1500) {
                 recommendations.push(format!(
                     "High latency in {}: {:.2}ms average. Consider optimization.",
-                    name, result.average_duration.as_millis()
+                    name,
+                    result.average_duration.as_millis()
                 ));
             }
 
@@ -444,7 +494,8 @@ impl BenchmarkRunner {
                 if *delta < -10.0 {
                     recommendations.push(format!(
                         "Performance regression in {}: {:.1}% slower than baseline.",
-                        name, delta.abs()
+                        name,
+                        delta.abs()
                     ));
                 } else if *delta > 10.0 {
                     recommendations.push(format!(

@@ -11,7 +11,10 @@ async fn test_complete_streaming_workflow() {
 
     // Start a stream
     let extraction_id = "test-extraction-001".to_string();
-    let stream_id = coordinator.start_stream(extraction_id.clone()).await.unwrap();
+    let stream_id = coordinator
+        .start_stream(extraction_id.clone())
+        .await
+        .unwrap();
 
     // Verify stream is active
     let stream_info = coordinator.get_stream(&stream_id).unwrap();
@@ -20,7 +23,10 @@ async fn test_complete_streaming_workflow() {
 
     // Update progress multiple times
     for i in 1..=10 {
-        coordinator.update_progress(stream_id, i * 10, Some(100)).await.unwrap();
+        coordinator
+            .update_progress(stream_id, i * 10, Some(100))
+            .await
+            .unwrap();
     }
 
     // Verify final progress
@@ -45,7 +51,10 @@ async fn test_progress_tracker_integration() {
     let _rx = tracker.start_tracking(stream_id).await.unwrap();
 
     // Update progress
-    tracker.update_progress(stream_id, 50, Some(100)).await.unwrap();
+    tracker
+        .update_progress(stream_id, 50, Some(100))
+        .await
+        .unwrap();
 
     // Get progress info
     let progress = tracker.get_progress(&stream_id).await.unwrap();
@@ -111,9 +120,7 @@ async fn test_concurrent_streams() {
         let extraction_id = format!("extraction-{}", i);
         let stream_id = coordinator.start_stream(extraction_id).await.unwrap();
 
-        handles.push(tokio::spawn(async move {
-            stream_id
-        }));
+        handles.push(tokio::spawn(async move { stream_id }));
     }
 
     // Collect stream IDs
@@ -152,7 +159,10 @@ async fn test_error_handling() {
     let _permit = controller.acquire(stream_id, 1024).await.unwrap();
 
     let result = controller.acquire(stream_id, 1024).await;
-    assert!(matches!(result.unwrap_err(), StreamingError::BackpressureExceeded));
+    assert!(matches!(
+        result.unwrap_err(),
+        StreamingError::BackpressureExceeded
+    ));
 }
 
 #[tokio::test]
@@ -163,15 +173,24 @@ async fn test_progress_stages() {
     let _rx = tracker.start_tracking(stream_id).await.unwrap();
 
     // Test different stages
-    tracker.set_stage(stream_id, ProgressStage::Discovering).await.unwrap();
+    tracker
+        .set_stage(stream_id, ProgressStage::Discovering)
+        .await
+        .unwrap();
     let progress = tracker.get_progress(&stream_id).await.unwrap();
     assert!(matches!(progress.stage, ProgressStage::Discovering));
 
-    tracker.set_stage(stream_id, ProgressStage::Extracting).await.unwrap();
+    tracker
+        .set_stage(stream_id, ProgressStage::Extracting)
+        .await
+        .unwrap();
     let progress = tracker.get_progress(&stream_id).await.unwrap();
     assert!(matches!(progress.stage, ProgressStage::Extracting));
 
-    tracker.set_stage(stream_id, ProgressStage::Processing).await.unwrap();
+    tracker
+        .set_stage(stream_id, ProgressStage::Processing)
+        .await
+        .unwrap();
     let progress = tracker.get_progress(&stream_id).await.unwrap();
     assert!(matches!(progress.stage, ProgressStage::Processing));
 

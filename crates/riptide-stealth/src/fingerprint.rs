@@ -6,8 +6,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Browser fingerprinting countermeasures
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct FingerprintingConfig {
     /// Chrome DevTools Protocol stealth flags
     pub cdp_stealth: CdpStealthConfig,
@@ -33,7 +32,6 @@ pub struct FingerprintingConfig {
     /// Font fingerprinting countermeasures
     pub fonts: FontConfig,
 }
-
 
 /// Chrome DevTools Protocol stealth configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]

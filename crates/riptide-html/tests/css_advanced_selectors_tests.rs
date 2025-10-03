@@ -51,83 +51,107 @@ async fn test_advanced_attribute_selectors() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Test attribute existence: [attr]
-    selectors.insert("has_category".to_string(), CssSelectorConfig {
-        selector: "[data-category]".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "has_category".to_string(),
+        CssSelectorConfig {
+            selector: "[data-category]".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Test exact attribute value: [attr="value"]
-    selectors.insert("electronics_exact".to_string(), CssSelectorConfig {
-        selector: "[data-category='electronics']".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "electronics_exact".to_string(),
+        CssSelectorConfig {
+            selector: "[data-category='electronics']".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Test attribute prefix: [attr^="value"]
-    selectors.insert("electronics_prefix".to_string(), CssSelectorConfig {
-        selector: "[data-category^='electronics']".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "electronics_prefix".to_string(),
+        CssSelectorConfig {
+            selector: "[data-category^='electronics']".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Test attribute suffix: [attr$="value"]
-    selectors.insert("electronics_suffix".to_string(), CssSelectorConfig {
-        selector: "[data-category$='electronics']".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "electronics_suffix".to_string(),
+        CssSelectorConfig {
+            selector: "[data-category$='electronics']".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Test attribute substring: [attr*="value"]
-    selectors.insert("electronics_contains".to_string(), CssSelectorConfig {
-        selector: "[data-category*='electronics']".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "electronics_contains".to_string(),
+        CssSelectorConfig {
+            selector: "[data-category*='electronics']".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Test class list matching: [class~="value"]
-    selectors.insert("featured_products".to_string(), CssSelectorConfig {
-        selector: "[class~='featured']".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "featured_products".to_string(),
+        CssSelectorConfig {
+            selector: "[class~='featured']".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Test complex attribute selector with URL patterns
-    selectors.insert("external_links".to_string(), CssSelectorConfig {
-        selector: "a[href^='https://']".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "external_links".to_string(),
+        CssSelectorConfig {
+            selector: "a[href^='https://']".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
-    selectors.insert("email_links".to_string(), CssSelectorConfig {
-        selector: "a[href^='mailto:']".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "email_links".to_string(),
+        CssSelectorConfig {
+            selector: "a[href^='mailto:']".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;
@@ -197,64 +221,82 @@ async fn test_complex_combinators() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Direct child combinator: >
-    selectors.insert("direct_sections".to_string(), CssSelectorConfig {
-        selector: ".post-content > .content-section".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "direct_sections".to_string(),
+        CssSelectorConfig {
+            selector: ".post-content > .content-section".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Adjacent sibling combinator: +
-    selectors.insert("title_after_intro".to_string(), CssSelectorConfig {
-        selector: ".intro + .content-section .section-title".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "title_after_intro".to_string(),
+        CssSelectorConfig {
+            selector: ".intro + .content-section .section-title".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // General sibling combinator: ~
-    selectors.insert("sections_after_intro".to_string(), CssSelectorConfig {
-        selector: ".intro ~ .content-section".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "sections_after_intro".to_string(),
+        CssSelectorConfig {
+            selector: ".intro ~ .content-section".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Complex descendant with multiple levels
-    selectors.insert("nested_paragraphs".to_string(), CssSelectorConfig {
-        selector: "article .content-section .subsection .content-paragraph".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "nested_paragraphs".to_string(),
+        CssSelectorConfig {
+            selector: "article .content-section .subsection .content-paragraph".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Multiple class selector
-    selectors.insert("article_headers".to_string(), CssSelectorConfig {
-        selector: "article.blog-post header.post-header".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "article_headers".to_string(),
+        CssSelectorConfig {
+            selector: "article.blog-post header.post-header".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Pseudo-element simulation (first child)
-    selectors.insert("first_section_title".to_string(), CssSelectorConfig {
-        selector: ".content-section:first-child .section-title".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![".section-title".to_string()],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "first_section_title".to_string(),
+        CssSelectorConfig {
+            selector: ".content-section:first-child .section-title".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![".section-title".to_string()],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;
@@ -306,81 +348,105 @@ async fn test_advanced_pseudo_selectors() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // :nth-child variations
-    selectors.insert("odd_items".to_string(), CssSelectorConfig {
-        selector: ".item:nth-child(odd)".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::Merge),
-    });
+    selectors.insert(
+        "odd_items".to_string(),
+        CssSelectorConfig {
+            selector: ".item:nth-child(odd)".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::Merge),
+        },
+    );
 
-    selectors.insert("even_items".to_string(), CssSelectorConfig {
-        selector: ".item:nth-child(even)".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::Merge),
-    });
+    selectors.insert(
+        "even_items".to_string(),
+        CssSelectorConfig {
+            selector: ".item:nth-child(even)".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::Merge),
+        },
+    );
 
     // Specific nth-child positions
-    selectors.insert("third_item".to_string(), CssSelectorConfig {
-        selector: ".item:nth-child(3)".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "third_item".to_string(),
+        CssSelectorConfig {
+            selector: ".item:nth-child(3)".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Mathematical nth-child expressions
-    selectors.insert("every_third_item".to_string(), CssSelectorConfig {
-        selector: ".item:nth-child(3n)".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::Merge),
-    });
+    selectors.insert(
+        "every_third_item".to_string(),
+        CssSelectorConfig {
+            selector: ".item:nth-child(3n)".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::Merge),
+        },
+    );
 
-    selectors.insert("every_third_plus_one".to_string(), CssSelectorConfig {
-        selector: ".item:nth-child(3n+1)".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::Merge),
-    });
+    selectors.insert(
+        "every_third_plus_one".to_string(),
+        CssSelectorConfig {
+            selector: ".item:nth-child(3n+1)".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::Merge),
+        },
+    );
 
     // First and last child
-    selectors.insert("first_items".to_string(), CssSelectorConfig {
-        selector: ".item:first-child, .list-item:first-child".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::Merge),
-    });
+    selectors.insert(
+        "first_items".to_string(),
+        CssSelectorConfig {
+            selector: ".item:first-child, .list-item:first-child".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::Merge),
+        },
+    );
 
-    selectors.insert("last_items".to_string(), CssSelectorConfig {
-        selector: ".item:last-child, .list-item:last-child".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::Merge),
-    });
+    selectors.insert(
+        "last_items".to_string(),
+        CssSelectorConfig {
+            selector: ".item:last-child, .list-item:last-child".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::Merge),
+        },
+    );
 
     // :nth-of-type simulation (should be enhanced to work with scraper)
-    selectors.insert("second_paragraph".to_string(), CssSelectorConfig {
-        selector: "p:nth-of-type(2)".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec!["p:nth-child(2)".to_string()],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "second_paragraph".to_string(),
+        CssSelectorConfig {
+            selector: "p:nth-of-type(2)".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec!["p:nth-child(2)".to_string()],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;
@@ -401,58 +467,72 @@ async fn test_selector_performance() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Multiple complex selectors
-    selectors.insert("titles".to_string(), CssSelectorConfig {
-        selector: "article.post header.post-header h1.post-title".to_string(),
-        transformers: vec!["trim".to_string(), "normalize_ws".to_string()],
-        has_text_filter: None,
-        fallbacks: vec!["h1".to_string(), ".title".to_string()],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "titles".to_string(),
+        CssSelectorConfig {
+            selector: "article.post header.post-header h1.post-title".to_string(),
+            transformers: vec!["trim".to_string(), "normalize_ws".to_string()],
+            has_text_filter: None,
+            fallbacks: vec!["h1".to_string(), ".title".to_string()],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
-    selectors.insert("content_paragraphs".to_string(), CssSelectorConfig {
-        selector: "article.post .post-content p:nth-child(odd)".to_string(),
-        transformers: vec!["trim".to_string()],
-        has_text_filter: None,
-        fallbacks: vec!["p".to_string()],
-        required: false,
-        merge_policy: Some(MergePolicy::Merge),
-    });
+    selectors.insert(
+        "content_paragraphs".to_string(),
+        CssSelectorConfig {
+            selector: "article.post .post-content p:nth-child(odd)".to_string(),
+            transformers: vec!["trim".to_string()],
+            has_text_filter: None,
+            fallbacks: vec!["p".to_string()],
+            required: false,
+            merge_policy: Some(MergePolicy::Merge),
+        },
+    );
 
-    selectors.insert("tagged_content".to_string(), CssSelectorConfig {
-        selector: ".post-content [data-type='important']".to_string(),
-        transformers: vec!["trim".to_string(), "html_decode".to_string()],
-        has_text_filter: Some(HasTextFilter {
-            pattern: r"(?i)\b(important|critical|urgent)\b".to_string(),
-            case_insensitive: true,
-            partial_match: true,
-            regex_mode: true,
-            regex: None,
-        }),
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "tagged_content".to_string(),
+        CssSelectorConfig {
+            selector: ".post-content [data-type='important']".to_string(),
+            transformers: vec!["trim".to_string(), "html_decode".to_string()],
+            has_text_filter: Some(HasTextFilter {
+                pattern: r"(?i)\b(important|critical|urgent)\b".to_string(),
+                case_insensitive: true,
+                partial_match: true,
+                regex_mode: true,
+                regex: None,
+            }),
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
-    selectors.insert("price_elements".to_string(), CssSelectorConfig {
-        selector: ".price, [data-price], .cost".to_string(),
-        transformers: vec!["currency".to_string()],
-        has_text_filter: Some(HasTextFilter {
-            pattern: r"\$\d+\.\d{2}".to_string(),
-            case_insensitive: false,
-            partial_match: true,
-            regex_mode: true,
-            regex: None,
-        }),
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "price_elements".to_string(),
+        CssSelectorConfig {
+            selector: ".price, [data-price], .cost".to_string(),
+            transformers: vec!["currency".to_string()],
+            has_text_filter: Some(HasTextFilter {
+                pattern: r"\$\d+\.\d{2}".to_string(),
+                case_insensitive: false,
+                partial_match: true,
+                regex_mode: true,
+                regex: None,
+            }),
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Time the extraction
     let start = std::time::Instant::now();
     let extractor = CssJsonExtractor::new(selectors);
-    let result = extractor.extract(&large_html, "https://example.com").await?;
+    let result = extractor
+        .extract(&large_html, "https://example.com")
+        .await?;
     let duration = start.elapsed();
 
     println!("Performance test - Processing time: {:?}", duration);
@@ -548,7 +628,11 @@ async fn test_field_extraction_coverage() -> Result<()> {
     println!("Confidence: {:.3}", result.extraction_confidence);
 
     // Should achieve ≥80% field coverage on clean pages
-    assert!(field_coverage >= 0.8, "Field coverage should be ≥80%, got {:.1}%", field_coverage * 100.0);
+    assert!(
+        field_coverage >= 0.8,
+        "Field coverage should be ≥80%, got {:.1}%",
+        field_coverage * 100.0
+    );
     assert!(!result.title.is_empty());
     assert!(result.content.len() > 100);
     assert!(result.summary.is_some());
@@ -559,7 +643,8 @@ async fn test_field_extraction_coverage() -> Result<()> {
 
 // Helper function to generate large HTML document for performance testing
 fn generate_large_html_document(num_articles: usize) -> String {
-    let mut html = String::from(r#"
+    let mut html = String::from(
+        r#"
         <html>
             <head>
                 <title>Large Test Document</title>
@@ -567,10 +652,12 @@ fn generate_large_html_document(num_articles: usize) -> String {
             </head>
             <body>
                 <main class="content">
-    "#);
+    "#,
+    );
 
     for i in 0..num_articles {
-        html.push_str(&format!(r#"
+        html.push_str(&format!(
+            r#"
             <article class="post" data-id="{}">
                 <header class="post-header">
                     <h1 class="post-title">Article Title {}</h1>
@@ -586,14 +673,23 @@ fn generate_large_html_document(num_articles: usize) -> String {
                     <div class="price">Price: ${}.99</div>
                 </div>
             </article>
-        "#, i, i, i % 10, (i % 28) + 1, i, (i * 10) + 99));
+        "#,
+            i,
+            i,
+            i % 10,
+            (i % 28) + 1,
+            i,
+            (i * 10) + 99
+        ));
     }
 
-    html.push_str(r#"
+    html.push_str(
+        r#"
                 </main>
             </body>
         </html>
-    "#);
+    "#,
+    );
 
     html
 }

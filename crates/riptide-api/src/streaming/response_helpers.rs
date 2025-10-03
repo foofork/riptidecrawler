@@ -68,7 +68,10 @@ impl StreamingResponseType {
 
     /// Check if this response type supports keep-alive
     pub fn supports_keep_alive(&self) -> bool {
-        matches!(self, StreamingResponseType::Ndjson | StreamingResponseType::Sse)
+        matches!(
+            self,
+            StreamingResponseType::Ndjson | StreamingResponseType::Sse
+        )
     }
 
     /// Get recommended buffer size
@@ -154,31 +157,28 @@ impl StreamingResponseBuilder {
         S: Stream<Item = T> + Send + 'static,
         T: Serialize + Send,
     {
-        let stream = stream.map(|item| {
-            match serde_json::to_string(&item) {
-                Ok(json) => Ok::<String, Infallible>(format!("{}\n", json)),
-                Err(e) => {
-                    tracing::error!("Failed to serialize item to NDJSON: {}", e);
-                    Ok(format!("{{\"error\":\"serialization_failed\",\"message\":\"{}\"}}\n", e))
-                }
+        let stream = stream.map(|item| match serde_json::to_string(&item) {
+            Ok(json) => Ok::<String, Infallible>(format!("{}\n", json)),
+            Err(e) => {
+                tracing::error!("Failed to serialize item to NDJSON: {}", e);
+                Ok(format!(
+                    "{{\"error\":\"serialization_failed\",\"message\":\"{}\"}}\n",
+                    e
+                ))
             }
         });
 
         let body = axum::body::Body::from_stream(stream);
 
-        let mut response = Response::builder()
-            .status(self.status)
-            .body(body)
-            .unwrap();
+        let mut response = Response::builder().status(self.status).body(body).unwrap();
 
         *response.headers_mut() = self.headers;
 
         if self.compression {
             // Note: In practice, you'd apply compression middleware
-            response.headers_mut().insert(
-                "vary",
-                HeaderValue::from_static("accept-encoding"),
-            );
+            response
+                .headers_mut()
+                .insert("vary", HeaderValue::from_static("accept-encoding"));
         }
 
         response
@@ -202,10 +202,7 @@ impl StreamingResponseBuilder {
 
         let body = axum::body::Body::from_stream(stream);
 
-        let mut response = Response::builder()
-            .status(self.status)
-            .body(body)
-            .unwrap();
+        let mut response = Response::builder().status(self.status).body(body).unwrap();
 
         *response.headers_mut() = self.headers;
         response
@@ -219,22 +216,20 @@ impl StreamingResponseBuilder {
     {
         // For JSON responses, we collect all items into a single JSON array
         let stream = stream.collect::<Vec<_>>();
-        let body = axum::body::Body::from_stream(
-            futures_util::stream::once(async move {
-                match serde_json::to_string(&stream.await) {
-                    Ok(json) => Ok::<String, Infallible>(json),
-                    Err(e) => {
-                        tracing::error!("Failed to serialize items to JSON: {}", e);
-                        Ok(format!("{{\"error\":\"serialization_failed\",\"message\":\"{}\"}}", e))
-                    }
+        let body = axum::body::Body::from_stream(futures_util::stream::once(async move {
+            match serde_json::to_string(&stream.await) {
+                Ok(json) => Ok::<String, Infallible>(json),
+                Err(e) => {
+                    tracing::error!("Failed to serialize items to JSON: {}", e);
+                    Ok(format!(
+                        "{{\"error\":\"serialization_failed\",\"message\":\"{}\"}}",
+                        e
+                    ))
                 }
-            })
-        );
+            }
+        }));
 
-        let mut response = Response::builder()
-            .status(self.status)
-            .body(body)
-            .unwrap();
+        let mut response = Response::builder().status(self.status).body(body).unwrap();
 
         *response.headers_mut() = self.headers;
         response
@@ -249,7 +244,10 @@ impl StreamingErrorResponse {
     pub fn ndjson(error: impl Serialize) -> Response {
         let error_json = match serde_json::to_string(&error) {
             Ok(json) => format!("{}\n", json),
-            Err(e) => format!("{{\"error\":\"serialization_failed\",\"message\":\"{}\"}}\n", e),
+            Err(e) => format!(
+                "{{\"error\":\"serialization_failed\",\"message\":\"{}\"}}\n",
+                e
+            ),
         };
 
         let headers = StreamingResponseType::Ndjson.headers();
@@ -266,7 +264,10 @@ impl StreamingErrorResponse {
     pub fn sse(error: impl Serialize) -> Response {
         let error_sse = match serde_json::to_string(&error) {
             Ok(json) => format!("event: error\ndata: {}\n\n", json),
-            Err(e) => format!("event: error\ndata: {{\"error\":\"serialization_failed\",\"message\":\"{}\"}}\n\n", e),
+            Err(e) => format!(
+                "event: error\ndata: {{\"error\":\"serialization_failed\",\"message\":\"{}\"}}\n\n",
+                e
+            ),
         };
 
         let headers = StreamingResponseType::Sse.headers();
@@ -293,7 +294,10 @@ impl StreamingErrorResponse {
                 response
             }
             Err(e) => {
-                let fallback = format!("{{\"error\":\"serialization_failed\",\"message\":\"{}\"}}", e);
+                let fallback = format!(
+                    "{{\"error\":\"serialization_failed\",\"message\":\"{}\"}}",
+                    e
+                );
                 Response::builder()
                     .status(StatusCode::INTERNAL_SERVER_ERROR)
                     .header("content-type", "application/json")
@@ -319,8 +323,10 @@ pub struct KeepAliveHelper;
 impl KeepAliveHelper {
     /// Create NDJSON keep-alive message
     pub fn ndjson_message() -> String {
-        format!("{{\"type\":\"keep-alive\",\"timestamp\":\"{}\"}}\n",
-                chrono::Utc::now().to_rfc3339())
+        format!(
+            "{{\"type\":\"keep-alive\",\"timestamp\":\"{}\"}}\n",
+            chrono::Utc::now().to_rfc3339()
+        )
     }
 
     /// Create SSE keep-alive message
@@ -415,15 +421,11 @@ where
     T: Serialize + Send + 'static,
 {
     let stream = ReceiverStream::new(receiver);
-    StreamingResponseBuilder::new(response_type)
-        .build(stream)
+    StreamingResponseBuilder::new(response_type).build(stream)
 }
 
 /// Utility for creating streaming responses with error handling
-pub fn safe_stream_response<S, T>(
-    stream: S,
-    response_type: StreamingResponseType,
-) -> Response
+pub fn safe_stream_response<S, T>(stream: S, response_type: StreamingResponseType) -> Response
 where
     S: Stream<Item = Result<T, Box<dyn std::error::Error + Send + Sync>>> + Send + 'static,
     T: Serialize + Send + 'static + Default,
@@ -436,8 +438,7 @@ where
         }
     });
 
-    StreamingResponseBuilder::new(response_type)
-        .build(safe_stream)
+    StreamingResponseBuilder::new(response_type).build(safe_stream)
 }
 
 #[cfg(test)]

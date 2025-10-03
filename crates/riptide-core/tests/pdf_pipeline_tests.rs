@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
     use riptide_core::pdf::{
-        PdfPipelineIntegration, PdfConfig, PdfError, utils,
+        metrics::PdfMetricsCollector,
         types::{PdfMetadata, PdfProcessingResult, PdfStats},
-        metrics::PdfMetricsCollector
+        utils, PdfConfig, PdfError, PdfPipelineIntegration,
     };
     use std::collections::HashMap;
     use std::sync::Arc;
@@ -48,10 +48,18 @@ mod tests {
     #[test]
     fn test_pdf_detection_by_content_type() {
         // Test comprehensive PDF detection instead
-        assert!(utils::detect_pdf_content(Some("application/pdf"), None, None));
+        assert!(utils::detect_pdf_content(
+            Some("application/pdf"),
+            None,
+            None
+        ));
         // Note: application/x-pdf is not supported by the current implementation
         // assert!(utils::detect_pdf_content(Some("application/x-pdf"), None, None));
-        assert!(utils::detect_pdf_content(Some("application/pdf; charset=utf-8"), None, None));
+        assert!(utils::detect_pdf_content(
+            Some("application/pdf; charset=utf-8"),
+            None,
+            None
+        ));
         assert!(!utils::detect_pdf_content(Some("text/html"), None, None));
         assert!(!utils::detect_pdf_content(None, None, None));
     }
@@ -74,7 +82,11 @@ mod tests {
         assert!(utils::detect_pdf_content(None, Some("file.pdf"), None));
 
         // Should detect with just content type
-        assert!(utils::detect_pdf_content(Some("application/pdf"), None, None));
+        assert!(utils::detect_pdf_content(
+            Some("application/pdf"),
+            None,
+            None
+        ));
 
         // Should not detect without any indicators
         assert!(!utils::detect_pdf_content(None, None, None));
@@ -123,7 +135,9 @@ mod tests {
         ));
 
         // Pipeline should handle processing (will fail without pdfium)
-        let _result = pipeline.process_pdf_to_extracted_doc(&pdf_data, Some("test.pdf")).await;
+        let _result = pipeline
+            .process_pdf_to_extracted_doc(&pdf_data, Some("test.pdf"))
+            .await;
 
         // Without the pdf feature, this should return an error
         #[cfg(not(feature = "pdf"))]
@@ -140,7 +154,9 @@ mod tests {
 
         let large_pdf = vec![0u8; 200]; // 200 bytes
 
-        let result = pipeline.process_pdf_to_extracted_doc(&large_pdf, None).await;
+        let result = pipeline
+            .process_pdf_to_extracted_doc(&large_pdf, None)
+            .await;
         assert!(matches!(result, Err(PdfError::FileTooLarge { .. })));
     }
 
@@ -180,7 +196,11 @@ mod tests {
         for (i, task_result) in results.iter().enumerate() {
             let (task_id, got_result, _elapsed) = task_result.as_ref().unwrap();
             assert_eq!(*task_id, i);
-            assert!(*got_result, "Task {} should have completed with a result", i);
+            assert!(
+                *got_result,
+                "Task {} should have completed with a result",
+                i
+            );
         }
     }
 
@@ -267,7 +287,9 @@ mod tests {
 
         // Process an invalid PDF to trigger failure metric
         let invalid_pdf = create_invalid_pdf();
-        let _ = pipeline.process_pdf_to_extracted_doc(&invalid_pdf, None).await;
+        let _ = pipeline
+            .process_pdf_to_extracted_doc(&invalid_pdf, None)
+            .await;
 
         // Check metrics were updated
         let _updated_metrics = pipeline.get_metrics_snapshot();
@@ -282,11 +304,7 @@ mod tests {
         let collector = PdfMetricsCollector::new();
 
         // Record some metrics
-        collector.record_processing_success(
-            std::time::Duration::from_millis(500),
-            10,
-            1024 * 1024
-        );
+        collector.record_processing_success(std::time::Duration::from_millis(500), 10, 1024 * 1024);
 
         collector.record_processing_failure(false);
 

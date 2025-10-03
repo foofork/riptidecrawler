@@ -159,8 +159,19 @@ impl PersistentCacheManager {
         let hash = format!("{:x}", hasher.finalize());
 
         match namespace {
-            Some(ns) => format!("{}:{}:{}:{}", self.config.key_prefix, ns, self.config.version, &hash[..16]),
-            None => format!("{}:{}:{}", self.config.key_prefix, self.config.version, &hash[..16]),
+            Some(ns) => format!(
+                "{}:{}:{}:{}",
+                self.config.key_prefix,
+                ns,
+                self.config.version,
+                &hash[..16]
+            ),
+            None => format!(
+                "{}:{}:{}",
+                self.config.key_prefix,
+                self.config.version,
+                &hash[..16]
+            ),
         }
     }
 
@@ -319,7 +330,8 @@ impl PersistentCacheManager {
 
         // Store in Redis with TTL
         let mut conn = self.get_connection().await?;
-        conn.set_ex::<_, _, ()>(&cache_key, &entry_bytes, ttl_seconds).await?;
+        conn.set_ex::<_, _, ()>(&cache_key, &entry_bytes, ttl_seconds)
+            .await?;
 
         let elapsed = start_time.elapsed();
 
@@ -402,7 +414,9 @@ impl PersistentCacheManager {
             }
         }
 
-        self.metrics.record_batch_get(keys.len(), result_map.len()).await;
+        self.metrics
+            .record_batch_get(keys.len(), result_map.len())
+            .await;
         Ok(result_map)
     }
 
@@ -536,14 +550,11 @@ impl PersistentCacheManager {
     fn compress_data(&self, data: &[u8]) -> PersistenceResult<Vec<u8>> {
         match self.config.compression_algorithm {
             #[cfg(feature = "compression")]
-            CompressionAlgorithm::Lz4 => {
-                Ok(lz4_flex::compress_prepend_size(data))
-            }
+            CompressionAlgorithm::Lz4 => Ok(lz4_flex::compress_prepend_size(data)),
             #[cfg(feature = "compression")]
-            CompressionAlgorithm::Zstd => {
-                zstd::encode_all(data, 3)
-                    .map_err(|e| PersistenceError::compression(format!("Zstd compression failed: {}", e)))
-            }
+            CompressionAlgorithm::Zstd => zstd::encode_all(data, 3).map_err(|e| {
+                PersistenceError::compression(format!("Zstd compression failed: {}", e))
+            }),
             CompressionAlgorithm::None => Ok(data.to_vec()),
         }
     }
@@ -609,7 +620,11 @@ impl CacheWarmer {
             );
         }
 
-        info!(total_keys = keys.len(), warmed = warmed, "Cache warming completed");
+        info!(
+            total_keys = keys.len(),
+            warmed = warmed,
+            "Cache warming completed"
+        );
         Ok(warmed)
     }
 }

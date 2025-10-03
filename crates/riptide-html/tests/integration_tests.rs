@@ -1,7 +1,7 @@
 //! Integration tests for riptide-html crate
 
-use riptide_html::*;
 use riptide_html::css_extraction::default_selectors_simple;
+use riptide_html::*;
 use std::collections::HashMap;
 
 #[tokio::test]
@@ -33,12 +33,17 @@ async fn test_css_extraction_integration() {
     "#;
 
     // Test default selectors
-    let result = css_extract_default(html, "https://example.com/article").await.unwrap();
+    let result = css_extract_default(html, "https://example.com/article")
+        .await
+        .unwrap();
 
     assert_eq!(result.title, "Test Article");
     assert!(result.content.contains("first paragraph"));
     assert!(result.content.contains("second paragraph"));
-    assert_eq!(result.summary, Some("This is a test article about HTML extraction".to_string()));
+    assert_eq!(
+        result.summary,
+        Some("This is a test article about HTML extraction".to_string())
+    );
     assert_eq!(result.strategy_used, "css_json");
     assert!(result.extraction_confidence > 0.0);
 
@@ -50,7 +55,9 @@ async fn test_css_extraction_integration() {
     custom_selectors.insert("content".to_string(), ".content p".to_string());
     custom_selectors.insert("tags".to_string(), ".tag".to_string());
 
-    let custom_result = css_extract(html, "https://example.com/article", &custom_selectors).await.unwrap();
+    let custom_result = css_extract(html, "https://example.com/article", &custom_selectors)
+        .await
+        .unwrap();
 
     assert_eq!(custom_result.title, "Main Article Title");
     assert!(custom_result.content.contains("first paragraph"));
@@ -78,7 +85,9 @@ async fn test_regex_extraction_integration() {
     "#;
 
     // Test default patterns
-    let result = regex_extract(html, "https://example.com", &default_patterns()).await.unwrap();
+    let result = regex_extract(html, "https://example.com", &default_patterns())
+        .await
+        .unwrap();
 
     assert_eq!(result.title, "Contact Information");
     assert!(result.content.contains("john.doe@example.com"));
@@ -87,11 +96,15 @@ async fn test_regex_extraction_integration() {
     assert!(result.content.contains("$29.99"));
 
     // Test contact patterns specifically
-    let contact_result = regex_extraction::extract_contacts(html, "https://example.com").await.unwrap();
+    let contact_result = regex_extraction::extract_contacts(html, "https://example.com")
+        .await
+        .unwrap();
     assert!(contact_result.content.contains("john.doe@example.com"));
 
     // Test financial patterns specifically
-    let financial_result = regex_extraction::extract_financial(html, "https://example.com").await.unwrap();
+    let financial_result = regex_extraction::extract_financial(html, "https://example.com")
+        .await
+        .unwrap();
     assert!(financial_result.content.contains("$29.99"));
 }
 
@@ -142,33 +155,54 @@ async fn test_table_extraction_integration() {
     "#;
 
     // Test extracting all tables
-    let tables = dom_utils::extract_tables(html, processor::TableExtractionMode::All).await.unwrap();
+    let tables = dom_utils::extract_tables(html, processor::TableExtractionMode::All)
+        .await
+        .unwrap();
     assert_eq!(tables.len(), 2);
 
     let main_table = &tables[0];
-    assert_eq!(main_table.headers, vec!["Name", "Department", "Salary", "Start Date"]);
+    assert_eq!(
+        main_table.headers,
+        vec!["Name", "Department", "Salary", "Start Date"]
+    );
     assert_eq!(main_table.rows.len(), 3);
-    assert_eq!(main_table.rows[0], vec!["John Smith", "Engineering", "$75,000", "2020-01-15"]);
+    assert_eq!(
+        main_table.rows[0],
+        vec!["John Smith", "Engineering", "$75,000", "2020-01-15"]
+    );
     assert_eq!(main_table.caption, Some("Employee Information".to_string()));
     assert!(main_table.metadata.contains_key("id"));
-    assert_eq!(main_table.metadata.get("id"), Some(&"employees".to_string()));
+    assert_eq!(
+        main_table.metadata.get("id"),
+        Some(&"employees".to_string())
+    );
 
     // Test extracting only tables with headers
-    let header_tables = dom_utils::extract_tables(html, processor::TableExtractionMode::WithHeaders).await.unwrap();
+    let header_tables =
+        dom_utils::extract_tables(html, processor::TableExtractionMode::WithHeaders)
+            .await
+            .unwrap();
     assert_eq!(header_tables.len(), 1);
 
     // Test minimum size filtering
     let min_size_tables = dom_utils::extract_tables(
         html,
-        processor::TableExtractionMode::MinSize { min_rows: 3, min_cols: 3 }
-    ).await.unwrap();
+        processor::TableExtractionMode::MinSize {
+            min_rows: 3,
+            min_cols: 3,
+        },
+    )
+    .await
+    .unwrap();
     assert_eq!(min_size_tables.len(), 1);
 
     // Test CSS selector filtering
     let id_tables = dom_utils::extract_tables(
         html,
-        processor::TableExtractionMode::BySelector("#employees".to_string())
-    ).await.unwrap();
+        processor::TableExtractionMode::BySelector("#employees".to_string()),
+    )
+    .await
+    .unwrap();
     assert_eq!(id_tables.len(), 1);
 }
 
@@ -269,35 +303,40 @@ async fn test_html_processor_trait() {
     let processor = processor::DefaultHtmlProcessor::default();
 
     // Test CSS extraction
-    let css_result = processor.extract_with_css(
-        html,
-        "https://example.com",
-        &default_selectors_simple()
-    ).await.unwrap();
+    let css_result = processor
+        .extract_with_css(html, "https://example.com", &default_selectors_simple())
+        .await
+        .unwrap();
 
     assert_eq!(css_result.title, "Processor Test");
     assert!(css_result.content.contains("First paragraph"));
 
     // Test regex extraction
-    let regex_result = processor.extract_with_regex(
-        html,
-        "https://example.com",
-        &default_patterns()
-    ).await.unwrap();
+    let regex_result = processor
+        .extract_with_regex(html, "https://example.com", &default_patterns())
+        .await
+        .unwrap();
 
     assert_eq!(regex_result.title, "Processor Test");
 
     // Test table extraction
-    let tables = processor.extract_tables(html, processor::TableExtractionMode::All).await.unwrap();
+    let tables = processor
+        .extract_tables(html, processor::TableExtractionMode::All)
+        .await
+        .unwrap();
     assert_eq!(tables.len(), 1);
     assert_eq!(tables[0].headers, vec!["Header 1", "Header 2"]);
 
     // Test content chunking
-    let content = "This is a test sentence. This is another sentence. And this is a third sentence.";
-    let chunks = processor.chunk_content(
-        content,
-        processor::ChunkingMode::Sentence { max_sentences: 2 }
-    ).await.unwrap();
+    let content =
+        "This is a test sentence. This is another sentence. And this is a third sentence.";
+    let chunks = processor
+        .chunk_content(
+            content,
+            processor::ChunkingMode::Sentence { max_sentences: 2 },
+        )
+        .await
+        .unwrap();
 
     assert!(!chunks.is_empty());
     assert!(chunks[0].content.contains("This is a test sentence"));
@@ -316,38 +355,61 @@ async fn test_chunking_modes() {
     let processor = processor::DefaultHtmlProcessor::default();
 
     // Test fixed size chunking
-    let fixed_chunks = processor.chunk_content(
-        content,
-        processor::ChunkingMode::FixedSize { size: 50, overlap: 10 }
-    ).await.unwrap();
+    let fixed_chunks = processor
+        .chunk_content(
+            content,
+            processor::ChunkingMode::FixedSize {
+                size: 50,
+                overlap: 10,
+            },
+        )
+        .await
+        .unwrap();
     assert!(fixed_chunks.len() > 1);
 
     // Test sentence chunking
-    let sentence_chunks = processor.chunk_content(
-        content,
-        processor::ChunkingMode::Sentence { max_sentences: 2 }
-    ).await.unwrap();
+    let sentence_chunks = processor
+        .chunk_content(
+            content,
+            processor::ChunkingMode::Sentence { max_sentences: 2 },
+        )
+        .await
+        .unwrap();
     assert!(sentence_chunks.len() >= 2);
 
     // Test paragraph chunking
-    let paragraph_chunks = processor.chunk_content(
-        content,
-        processor::ChunkingMode::Paragraph { max_paragraphs: 1 }
-    ).await.unwrap();
+    let paragraph_chunks = processor
+        .chunk_content(
+            content,
+            processor::ChunkingMode::Paragraph { max_paragraphs: 1 },
+        )
+        .await
+        .unwrap();
     assert_eq!(paragraph_chunks.len(), 3);
 
     // Test token chunking
-    let token_chunks = processor.chunk_content(
-        content,
-        processor::ChunkingMode::Token { max_tokens: 10, overlap: 2 }
-    ).await.unwrap();
+    let token_chunks = processor
+        .chunk_content(
+            content,
+            processor::ChunkingMode::Token {
+                max_tokens: 10,
+                overlap: 2,
+            },
+        )
+        .await
+        .unwrap();
     assert!(token_chunks.len() > 1);
 
     // Test semantic chunking (basic implementation)
-    let semantic_chunks = processor.chunk_content(
-        content,
-        processor::ChunkingMode::Semantic { similarity_threshold: 0.8 }
-    ).await.unwrap();
+    let semantic_chunks = processor
+        .chunk_content(
+            content,
+            processor::ChunkingMode::Semantic {
+                similarity_threshold: 0.8,
+            },
+        )
+        .await
+        .unwrap();
     assert!(!semantic_chunks.is_empty());
 }
 

@@ -2,9 +2,9 @@
 //!
 //! This module demonstrates how to integrate PDF processing with the main extraction pipeline.
 
-use super::*;
 use super::metrics::PdfMetricsCollector;
 use super::types::ExtractedDoc;
+use super::*;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
@@ -55,7 +55,11 @@ impl PdfPipelineIntegration {
     ) -> PdfResult<ExtractedDoc> {
         let start_time = Instant::now();
 
-        info!("Starting PDF processing: {} bytes, url: {:?}", pdf_bytes.len(), url);
+        info!(
+            "Starting PDF processing: {} bytes, url: {:?}",
+            pdf_bytes.len(),
+            url
+        );
 
         // Validate size against ROADMAP limits
         if pdf_bytes.len() as u64 > self.config.max_size_bytes {
@@ -74,13 +78,16 @@ impl PdfPipelineIntegration {
                 let memory_used = result.stats.memory_used;
 
                 // Record successful operation with metrics
-                self.metrics.record_processing_success(processing_time, pages, memory_used);
+                self.metrics
+                    .record_processing_success(processing_time, pages, memory_used);
 
-                info!("PDF processing successful: {} pages, {:?} processing time, {} bytes memory",
-                     pages, processing_time, memory_used);
+                info!(
+                    "PDF processing successful: {} pages, {:?} processing time, {} bytes memory",
+                    pages, processing_time, memory_used
+                );
 
                 Ok(self.convert_pdf_result_to_extracted_doc(result, url))
-            },
+            }
             Err(e) => {
                 let processing_time = start_time.elapsed();
                 let is_memory_limit = matches!(e, PdfError::MemoryLimit { .. });
@@ -101,7 +108,8 @@ impl PdfPipelineIntegration {
         _url: Option<&str>,
     ) -> PdfResult<ExtractedDoc> {
         Err(PdfError::ProcessingError {
-            message: "PDF processing feature is not enabled. Enable with --features pdf".to_string(),
+            message: "PDF processing feature is not enabled. Enable with --features pdf"
+                .to_string(),
         })
     }
 
@@ -133,8 +141,14 @@ impl PdfPipelineIntegration {
 
         // Add extraction statistics
         metadata.insert("pages".to_string(), metadata_obj.page_count.to_string());
-        metadata.insert("images_extracted".to_string(), result.stats.images_extracted.to_string());
-        metadata.insert("processing_time_ms".to_string(), result.stats.processing_time_ms.to_string());
+        metadata.insert(
+            "images_extracted".to_string(),
+            result.stats.images_extracted.to_string(),
+        );
+        metadata.insert(
+            "processing_time_ms".to_string(),
+            result.stats.processing_time_ms.to_string(),
+        );
 
         // Create media list for images
         let mut media = Vec::new();
@@ -192,7 +206,9 @@ impl PdfPipelineIntegration {
     }
 
     /// Create async progress channel for streaming updates
-    pub fn create_progress_channel(&self) -> (super::types::ProgressSender, super::types::ProgressReceiver) {
+    pub fn create_progress_channel(
+        &self,
+    ) -> (super::types::ProgressSender, super::types::ProgressReceiver) {
         super::types::create_progress_channel()
     }
 
@@ -239,10 +255,15 @@ impl PdfPipelineIntegration {
         config.enable_progress_tracking = true;
 
         // Use the processor's process_pdf_with_progress method
-        match self.processor.process_pdf_with_progress(pdf_bytes, &config, progress_callback).await {
+        match self
+            .processor
+            .process_pdf_with_progress(pdf_bytes, &config, progress_callback)
+            .await
+        {
             Ok(pdf_result) => {
                 // Convert PdfProcessingResult to ExtractedDoc
-                let extracted_doc = self.convert_pdf_result_to_extracted_doc(pdf_result.clone(), None);
+                let extracted_doc =
+                    self.convert_pdf_result_to_extracted_doc(pdf_result.clone(), None);
 
                 let _ = progress_sender.send(ProgressUpdate::Completed {
                     result: Box::new(pdf_result),
@@ -278,11 +299,11 @@ pub fn create_pdf_integration_for_pipeline() -> PdfPipelineIntegration {
         timeout_seconds: 30,
         memory_settings: super::config::MemorySettings {
             max_memory_spike_bytes: 200 * 1024 * 1024, // ROADMAP: No >200MB RSS spikes
-            max_concurrent_operations: 2, // ROADMAP: Max 2 concurrent PDF operations
-            memory_check_interval: 3, // Check every 3 pages
-            cleanup_interval: 10, // Cleanup every 10 pages
-            memory_pressure_threshold: 0.8, // 80% memory pressure threshold
-            aggressive_cleanup: true, // Enable aggressive cleanup
+            max_concurrent_operations: 2,              // ROADMAP: Max 2 concurrent PDF operations
+            memory_check_interval: 3,                  // Check every 3 pages
+            cleanup_interval: 10,                      // Cleanup every 10 pages
+            memory_pressure_threshold: 0.8,            // 80% memory pressure threshold
+            aggressive_cleanup: true,                  // Enable aggressive cleanup
         },
         ..Default::default()
     };

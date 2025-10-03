@@ -5,11 +5,12 @@ use std::path::Path;
 use std::time::Instant;
 // Add specific imports needed for tests
 // Import from the crate itself using the wit-generated exports
-use riptide_extractor_wasm::{ExtractionMode, Component};
+use riptide_extractor_wasm::{Component, ExtractionMode};
 
 // Test configuration
 #[allow(dead_code)]
-const WASM_PATH: &str = "/workspaces/riptide/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm";
+const WASM_PATH: &str =
+    "/workspaces/riptide/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm";
 const FIXTURES_DIR: &str = "/workspaces/riptide/wasm/riptide-extractor-wasm/tests/fixtures";
 
 /// Test results structure
@@ -59,7 +60,11 @@ async fn test_wasm_extractor_suite() -> Result<()> {
     println!("📁 Loaded {} test fixtures\n", fixtures.len());
 
     // Test all extraction modes
-    let modes = vec![ExtractionMode::Article, ExtractionMode::Full, ExtractionMode::Metadata];
+    let modes = vec![
+        ExtractionMode::Article,
+        ExtractionMode::Full,
+        ExtractionMode::Metadata,
+    ];
     let mut all_results = Vec::new();
     let mut perf_metrics = PerformanceMetrics::default();
 
@@ -84,12 +89,20 @@ async fn test_wasm_extractor_suite() -> Result<()> {
             println!("   {} Mode: {:?} - {}ms", status, mode, result.duration_ms);
 
             if !result.success {
-                println!("      Error: {}", result.error.as_ref().unwrap_or(&"Unknown".to_string()));
+                println!(
+                    "      Error: {}",
+                    result.error.as_ref().unwrap_or(&"Unknown".to_string())
+                );
             } else {
-                println!("      Links: {}, Media: {}, Lang: {}, Categories: {}",
+                println!(
+                    "      Links: {}, Media: {}, Lang: {}, Categories: {}",
                     result.extracted_fields.links_count,
                     result.extracted_fields.media_count,
-                    if result.extracted_fields.has_language { "Yes" } else { "No" },
+                    if result.extracted_fields.has_language {
+                        "Yes"
+                    } else {
+                        "No"
+                    },
                     result.extracted_fields.categories_count
                 );
             }
@@ -149,15 +162,13 @@ struct TestFixture {
 }
 
 /// Test extraction for a specific mode using the component directly
-fn test_extraction_direct(
-    fixture: &TestFixture,
-    mode: &ExtractionMode,
-) -> Result<TestResult> {
+fn test_extraction_direct(fixture: &TestFixture, mode: &ExtractionMode) -> Result<TestResult> {
     let start = Instant::now();
     let component = Component::new();
 
     // Use the actual component extraction
-    let extracted_result = component.extract(fixture.html.clone(), fixture.url.clone(), mode.clone());
+    let extracted_result =
+        component.extract(fixture.html.clone(), fixture.url.clone(), mode.clone());
     let duration_ms = start.elapsed().as_millis();
 
     match extracted_result {
@@ -182,16 +193,14 @@ fn test_extraction_direct(
                 error: None,
             })
         }
-        Err(e) => {
-            Ok(TestResult {
-                test_name: fixture.name.clone(),
-                mode: format!("{:?}", mode),
-                success: false,
-                duration_ms,
-                extracted_fields: ExtractedFields::default(),
-                error: Some(format!("{:?}", e)),
-            })
-        }
+        Err(e) => Ok(TestResult {
+            test_name: fixture.name.clone(),
+            mode: format!("{:?}", mode),
+            success: false,
+            duration_ms,
+            extracted_fields: ExtractedFields::default(),
+            error: Some(format!("{:?}", e)),
+        }),
     }
 }
 
@@ -233,7 +242,7 @@ fn run_edge_case_tests_direct() -> Result<()> {
         match component.extract(
             html.to_string(),
             "https://test.example.com".to_string(),
-            ExtractionMode::Article
+            ExtractionMode::Article,
         ) {
             Ok(_) => {
                 let duration = start.elapsed().as_millis();
@@ -280,14 +289,17 @@ fn run_performance_benchmarks_direct(
         let _ = component.extract(
             fixture.html.clone(),
             fixture.url.clone(),
-            ExtractionMode::Article
+            ExtractionMode::Article,
         );
 
         total_time += start.elapsed().as_millis();
     }
 
     metrics.avg_extraction_ms = total_time / iterations as u128;
-    println!("   Average extraction time: {}ms", metrics.avg_extraction_ms);
+    println!(
+        "   Average extraction time: {}ms",
+        metrics.avg_extraction_ms
+    );
 
     Ok(())
 }
@@ -303,7 +315,10 @@ fn generate_report(results: &[TestResult], metrics: &PerformanceMetrics) -> Resu
     let passed = results.iter().filter(|r| r.success).count();
     let success_rate = (passed as f64 / total as f64) * 100.0;
 
-    println!("✅ Success Rate: {:.1}% ({}/{})", success_rate, passed, total);
+    println!(
+        "✅ Success Rate: {:.1}% ({}/{})",
+        success_rate, passed, total
+    );
     println!("\n⚡ Performance Metrics:");
     println!("   Cold Start: {}ms", metrics.cold_start_ms);
     println!("   Warm Start: {}ms", metrics.warm_start_ms);
@@ -314,8 +329,14 @@ fn generate_report(results: &[TestResult], metrics: &PerformanceMetrics) -> Resu
     let cold_target_met = metrics.cold_start_ms < 15;
     let perf_target_met = metrics.avg_extraction_ms < 50;
 
-    println!("   Cold Start <15ms: {}", if cold_target_met { "✅" } else { "❌" });
-    println!("   Avg Extract <50ms: {}", if perf_target_met { "✅" } else { "❌" });
+    println!(
+        "   Cold Start <15ms: {}",
+        if cold_target_met { "✅" } else { "❌" }
+    );
+    println!(
+        "   Avg Extract <50ms: {}",
+        if perf_target_met { "✅" } else { "❌" }
+    );
 
     // Save detailed report
     let report_path = "/workspaces/eventmesh/wasm/riptide-extractor-wasm/test-report.json";

@@ -7,14 +7,14 @@
 //! - Request volume and throughput
 //! - Provider performance comparison
 
-use std::sync::Arc;
-use std::collections::HashMap;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
 
-use crate::{CompletionRequest, CompletionResponse, Usage, Cost};
+use crate::{CompletionRequest, CompletionResponse, Cost, Usage};
 
 /// Time window for aggregating metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,7 +26,10 @@ pub enum TimeWindow {
     Last24Hours,
     Last7Days,
     Last30Days,
-    Custom { start: DateTime<Utc>, end: DateTime<Utc> },
+    Custom {
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
+    },
 }
 
 /// Metric data point with timestamp
@@ -84,10 +87,8 @@ impl RequestMetrics {
 
     pub fn complete_success(&mut self, response: &CompletionResponse, cost: Option<Cost>) {
         self.end_time = Some(Utc::now());
-        self.duration_ms = Some(
-            (self.end_time.unwrap() - self.start_time)
-                .num_milliseconds() as u64
-        );
+        self.duration_ms =
+            Some((self.end_time.unwrap() - self.start_time).num_milliseconds() as u64);
         self.success = true;
         self.usage = Some(response.usage.clone());
         self.cost = cost;
@@ -98,10 +99,8 @@ impl RequestMetrics {
 
     pub fn complete_error(&mut self, error_type: &str, error_message: &str) {
         self.end_time = Some(Utc::now());
-        self.duration_ms = Some(
-            (self.end_time.unwrap() - self.start_time)
-                .num_milliseconds() as u64
-        );
+        self.duration_ms =
+            Some((self.end_time.unwrap() - self.start_time).num_milliseconds() as u64);
         self.success = false;
         self.error_type = Some(error_type.to_string());
         self.error_message = Some(error_message.to_string());
@@ -253,7 +252,10 @@ impl MetricsCollector {
         cost: Option<Cost>,
     ) {
         let mut metrics_store = self.request_metrics.write().await;
-        if let Some(metrics) = metrics_store.iter_mut().find(|m| m.request_id == request_id) {
+        if let Some(metrics) = metrics_store
+            .iter_mut()
+            .find(|m| m.request_id == request_id)
+        {
             metrics.complete_success(response, cost);
         }
     }
@@ -266,7 +268,10 @@ impl MetricsCollector {
         error_message: &str,
     ) {
         let mut metrics_store = self.request_metrics.write().await;
-        if let Some(metrics) = metrics_store.iter_mut().find(|m| m.request_id == request_id) {
+        if let Some(metrics) = metrics_store
+            .iter_mut()
+            .find(|m| m.request_id == request_id)
+        {
             metrics.complete_error(error_type, error_message);
         }
     }
@@ -294,7 +299,8 @@ impl MetricsCollector {
 
         let mut result = Vec::new();
         for (provider_name, provider_metrics) in provider_groups {
-            let aggregated = self.calculate_aggregated_metrics(&provider_metrics, time_window.clone());
+            let aggregated =
+                self.calculate_aggregated_metrics(&provider_metrics, time_window.clone());
 
             // Group by model
             let mut model_groups: HashMap<String, Vec<&RequestMetrics>> = HashMap::new();
@@ -307,7 +313,8 @@ impl MetricsCollector {
 
             let mut model_breakdown = HashMap::new();
             for (model_name, model_metrics) in model_groups {
-                let model_aggregated = self.calculate_aggregated_metrics(&model_metrics, time_window.clone());
+                let model_aggregated =
+                    self.calculate_aggregated_metrics(&model_metrics, time_window.clone());
                 model_breakdown.insert(model_name, model_aggregated);
             }
 
@@ -338,7 +345,8 @@ impl MetricsCollector {
 
         let mut result = Vec::new();
         for (tenant_id, tenant_metrics) in tenant_groups {
-            let aggregated = self.calculate_aggregated_metrics(&tenant_metrics, time_window.clone());
+            let aggregated =
+                self.calculate_aggregated_metrics(&tenant_metrics, time_window.clone());
 
             // Group by provider
             let mut provider_groups: HashMap<String, Vec<&RequestMetrics>> = HashMap::new();
@@ -351,7 +359,8 @@ impl MetricsCollector {
 
             let mut provider_breakdown = HashMap::new();
             for (provider_name, provider_metrics) in provider_groups {
-                let provider_aggregated = self.calculate_aggregated_metrics(&provider_metrics, time_window.clone());
+                let provider_aggregated =
+                    self.calculate_aggregated_metrics(&provider_metrics, time_window.clone());
                 provider_breakdown.insert(provider_name, provider_aggregated);
             }
 
@@ -366,7 +375,8 @@ impl MetricsCollector {
 
             let mut model_breakdown = HashMap::new();
             for (model_name, model_metrics) in model_groups {
-                let model_aggregated = self.calculate_aggregated_metrics(&model_metrics, time_window.clone());
+                let model_aggregated =
+                    self.calculate_aggregated_metrics(&model_metrics, time_window.clone());
                 model_breakdown.insert(model_name, model_aggregated);
             }
 
@@ -386,7 +396,8 @@ impl MetricsCollector {
         let metrics_store = self.request_metrics.read().await;
         let filtered_metrics = self.filter_metrics_by_window(&metrics_store, &time_window);
 
-        let failed_metrics: Vec<_> = filtered_metrics.iter()
+        let failed_metrics: Vec<_> = filtered_metrics
+            .iter()
             .filter(|m| !m.success && m.error_type.is_some())
             .collect();
 
@@ -410,12 +421,15 @@ impl MetricsCollector {
             let count = error_metrics.len() as u64;
             let percentage = (count as f64 / total_errors as f64) * 100.0;
 
-            let avg_latency_ms = error_metrics.iter()
+            let avg_latency_ms = error_metrics
+                .iter()
                 .filter_map(|m| m.duration_ms)
                 .map(|d| d as f64)
-                .sum::<f64>() / error_metrics.len().max(1) as f64;
+                .sum::<f64>()
+                / error_metrics.len().max(1) as f64;
 
-            let providers_affected: Vec<String> = error_metrics.iter()
+            let providers_affected: Vec<String> = error_metrics
+                .iter()
                 .map(|m| m.provider_name.clone())
                 .collect::<std::collections::HashSet<_>>()
                 .into_iter()
@@ -455,7 +469,9 @@ impl MetricsCollector {
                 prompt_cost += cost.prompt_cost;
                 completion_cost += cost.completion_cost;
 
-                *by_provider.entry(metric.provider_name.clone()).or_insert(0.0) += cost.total_cost;
+                *by_provider
+                    .entry(metric.provider_name.clone())
+                    .or_insert(0.0) += cost.total_cost;
                 *by_model.entry(metric.model_name.clone()).or_insert(0.0) += cost.total_cost;
 
                 if let Some(tenant_id) = &metric.tenant_id {
@@ -488,8 +504,12 @@ impl MetricsCollector {
 
         // Generate time series data
         let latency_percentiles = self.generate_latency_time_series(time_window.clone()).await;
-        let throughput_over_time = self.generate_throughput_time_series(time_window.clone()).await;
-        let error_rate_over_time = self.generate_error_rate_time_series(time_window.clone()).await;
+        let throughput_over_time = self
+            .generate_throughput_time_series(time_window.clone())
+            .await;
+        let error_rate_over_time = self
+            .generate_error_rate_time_series(time_window.clone())
+            .await;
         let cost_over_time = self.generate_cost_time_series(time_window.clone()).await;
 
         LlmOpsDashboard {
@@ -523,7 +543,8 @@ impl MetricsCollector {
     ) -> Vec<&'a RequestMetrics> {
         let (start_time, end_time) = self.get_time_range(time_window);
 
-        metrics.iter()
+        metrics
+            .iter()
             .filter(|m| m.start_time >= start_time && m.start_time <= end_time)
             .collect()
     }
@@ -568,30 +589,35 @@ impl MetricsCollector {
         let error_rate = 100.0 - success_rate;
 
         // Calculate latency percentiles
-        let mut latencies: Vec<u64> = metrics.iter()
-            .filter_map(|m| m.duration_ms)
-            .collect();
+        let mut latencies: Vec<u64> = metrics.iter().filter_map(|m| m.duration_ms).collect();
         latencies.sort_unstable();
 
-        let (avg_latency_ms, p50_latency_ms, p95_latency_ms, p99_latency_ms, max_latency_ms, min_latency_ms) =
-            if latencies.is_empty() {
-                (0.0, 0.0, 0.0, 0.0, 0, 0)
-            } else {
-                let avg = latencies.iter().sum::<u64>() as f64 / latencies.len() as f64;
-                let p50 = latencies[latencies.len() * 50 / 100] as f64;
-                let p95 = latencies[latencies.len() * 95 / 100] as f64;
-                let p99 = latencies[latencies.len() * 99 / 100] as f64;
-                let max = *latencies.last().unwrap();
-                let min = *latencies.first().unwrap();
-                (avg, p50, p95, p99, max, min)
-            };
+        let (
+            avg_latency_ms,
+            p50_latency_ms,
+            p95_latency_ms,
+            p99_latency_ms,
+            max_latency_ms,
+            min_latency_ms,
+        ) = if latencies.is_empty() {
+            (0.0, 0.0, 0.0, 0.0, 0, 0)
+        } else {
+            let avg = latencies.iter().sum::<u64>() as f64 / latencies.len() as f64;
+            let p50 = latencies[latencies.len() * 50 / 100] as f64;
+            let p95 = latencies[latencies.len() * 95 / 100] as f64;
+            let p99 = latencies[latencies.len() * 99 / 100] as f64;
+            let max = *latencies.last().unwrap();
+            let min = *latencies.first().unwrap();
+            (avg, p50, p95, p99, max, min)
+        };
 
         // Calculate token and cost metrics
         let total_tokens = metrics.iter().map(|m| m.total_tokens as u64).sum();
         let prompt_tokens = metrics.iter().map(|m| m.prompt_tokens as u64).sum();
         let completion_tokens = metrics.iter().map(|m| m.completion_tokens as u64).sum();
 
-        let total_cost = metrics.iter()
+        let total_cost = metrics
+            .iter()
             .filter_map(|m| m.cost.as_ref().map(|c| c.total_cost))
             .sum::<f64>();
 
@@ -693,12 +719,11 @@ mod tests {
     async fn test_request_metrics_lifecycle() {
         let collector = MetricsCollector::new(30);
 
-        let request = CompletionRequest::new(
-            "gpt-4".to_string(),
-            vec![Message::user("test")],
-        );
+        let request = CompletionRequest::new("gpt-4".to_string(), vec![Message::user("test")]);
 
-        let request_id = collector.start_request(&request, "openai", Some("tenant1".to_string())).await;
+        let request_id = collector
+            .start_request(&request, "openai", Some("tenant1".to_string()))
+            .await;
 
         let response = CompletionResponse::new(
             request.id,
@@ -712,7 +737,9 @@ mod tests {
         );
 
         let cost = Cost::new(0.01, 0.02, "USD");
-        collector.complete_request_success(request_id, &response, Some(cost)).await;
+        collector
+            .complete_request_success(request_id, &response, Some(cost))
+            .await;
 
         let metrics = collector.get_aggregated_metrics(TimeWindow::LastHour).await;
         assert_eq!(metrics.request_count, 1);
