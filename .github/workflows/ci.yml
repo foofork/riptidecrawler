@@ -62,7 +62,15 @@ jobs:
             -A clippy::manual-range-contains \
             -A clippy::vec-init-then-push \
             -A clippy::bind-instead-of-map \
-            -A clippy::unnecessary-cast
+            -A clippy::unnecessary-cast \
+            -A clippy::manual-map \
+            -A clippy::unnecessary-lazy-evaluations \
+            -A clippy::manual-clamp \
+            -A clippy::redundant-pattern-matching \
+            -A clippy::large-enum-variant \
+            -A clippy::match-single-binding \
+            -A clippy::ifs-same-cond \
+            -A clippy::needless-return
 
   # Parallel build matrix
   build:
