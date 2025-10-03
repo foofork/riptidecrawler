@@ -56,8 +56,8 @@ url = "2"
 uuid = { version = "1", features = ["v4", "serde"] }
 lol_html = "2"  # Updated from 1
 scraper = "0.20"
-wasmtime = { version = "26", features = ["cache", "component-model"] }  # Keep 26 for compatibility
-wasmtime-wasi = "26"
+wasmtime = { version = "27", features = ["cache", "component-model"] }  # Updated for security (RUSTSEC-2025-0046)
+wasmtime-wasi = "27"
 chromiumoxide = "0.7"  # Keep for stability
 spider = "2"
 pdfium-render = { version = "0.8", features = ["sync", "thread_safe"] }

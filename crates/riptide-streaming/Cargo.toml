@@ -56,7 +56,7 @@ crossterm = "0.28"
 rand = { workspace = true }
 serde_yaml = "0.9"
 toml = "0.8"
-utoipa = { version = "4.2", features = ["axum_extras", "chrono", "uuid"] }
+utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }  # Updated to avoid proc-macro-error (RUSTSEC-2024-0370)
 
 [dev-dependencies]
 tempfile = { workspace = true }
