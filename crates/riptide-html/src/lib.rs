@@ -42,7 +42,7 @@ pub mod regex_extraction;
 // pub mod strategy_implementations;
 pub mod extraction_strategies;
 pub mod wasm_extraction; // WASM-based extraction moved from riptide-core // Content extraction strategies moved from riptide-core
-                                                                          // pub mod spider;  // Temporarily disabled due to compilation errors
+                         // pub mod spider;  // Temporarily disabled due to compilation errors
 pub mod chunking;
 pub mod table_extraction;
 

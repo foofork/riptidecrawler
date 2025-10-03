@@ -66,6 +66,7 @@ async fn test_join_transformer() -> Result<()> {
 }
 
 /// Test transformer: regex_replace - Remove HTML tags and clean text
+#[rustfmt::skip]
 #[tokio::test]
 async fn test_regex_replace_transformer() -> Result<()> {
     let html = r#"
