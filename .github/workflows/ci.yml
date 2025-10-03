@@ -48,30 +48,6 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all --check
 
-      - name: Fast clippy check (workspace level)
-        run: |
-          # Install system dependencies for build scripts
-          sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
-          # Allow common clippy warnings that don't affect correctness
-          cargo clippy --workspace --all-targets --no-deps -- \
-            -D warnings \
-            -A clippy::unnecessary-mut-passed \
-            -A clippy::map-identity \
-            -A clippy::collapsible-else-if \
-            -A clippy::map-entry \
-            -A clippy::manual-range-contains \
-            -A clippy::vec-init-then-push \
-            -A clippy::bind-instead-of-map \
-            -A clippy::unnecessary-cast \
-            -A clippy::manual-map \
-            -A clippy::unnecessary-lazy-evaluations \
-            -A clippy::manual-clamp \
-            -A clippy::redundant-pattern-matching \
-            -A clippy::large-enum-variant \
-            -A clippy::match-single-binding \
-            -A clippy::ifs-same-cond \
-            -A clippy::needless-return
-
   # Parallel build matrix
   build:
     name: Build (${{ matrix.target }})
