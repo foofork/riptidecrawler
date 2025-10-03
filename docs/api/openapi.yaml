@@ -103,262 +103,424 @@ paths:
       tags:
       - Health
       summary: System health check
+      responses:
+        '200':
+          description: Success
   /metrics:
     get:
       tags:
       - Health
       summary: Prometheus metrics
+      responses:
+        '200':
+          description: Success
   /crawl:
     post:
       tags:
       - Crawling
       summary: Batch crawl URLs
+      responses:
+        '200':
+          description: Success
   /crawl/stream:
     post:
       tags:
       - Streaming
       summary: Stream crawl results (NDJSON)
+      responses:
+        '200':
+          description: Success
   /crawl/sse:
     post:
       tags:
       - Streaming
       summary: Stream crawl results (SSE)
+      responses:
+        '200':
+          description: Success
   /crawl/ws:
     get:
       tags:
       - Streaming
       summary: WebSocket crawl stream
+      responses:
+        '200':
+          description: Success
   /deepsearch:
     post:
       tags:
       - Search
       summary: Deep search with extraction
+      responses:
+        '200':
+          description: Success
   /deepsearch/stream:
     post:
       tags:
       - Streaming
       summary: Stream search results
+      responses:
+        '200':
+          description: Success
   /render:
     post:
       tags:
       - Crawling
       summary: Headless browser rendering
+      responses:
+        '200':
+          description: Success
   /spider/crawl:
     post:
       tags:
       - Spider
       summary: Deep crawl with Spider
+      responses:
+        '200':
+          description: Success
   /spider/status:
     post:
       tags:
       - Spider
       summary: Get spider status
+      responses:
+        '200':
+          description: Success
   /spider/control:
     post:
       tags:
       - Spider
       summary: Control spider (stop/reset)
+      responses:
+        '200':
+          description: Success
   /strategies/crawl:
     post:
       tags:
       - Strategies
       summary: Advanced extraction strategies
+      responses:
+        '200':
+          description: Success
   /strategies/info:
     get:
       tags:
       - Strategies
       summary: Get strategies info
+      responses:
+        '200':
+          description: Success
   /pdf/process:
     post:
       tags:
       - PDF
       summary: Process PDF file
+      responses:
+        '200':
+          description: Success
   /pdf/process-stream:
     post:
       tags:
       - PDF
       summary: Stream PDF processing
+      responses:
+        '200':
+          description: Success
   /pdf/health:
     get:
       tags:
       - PDF
       summary: PDF processor health
+      responses:
+        '200':
+          description: Success
   /stealth/configure:
     post:
       tags:
       - Stealth
       summary: Configure stealth settings
+      responses:
+        '200':
+          description: Success
   /stealth/test:
     post:
       tags:
       - Stealth
       summary: Test stealth effectiveness
+      responses:
+        '200':
+          description: Success
   /stealth/capabilities:
     get:
       tags:
       - Stealth
       summary: Get stealth capabilities
+      responses:
+        '200':
+          description: Success
   /stealth/health:
     get:
       tags:
       - Stealth
       summary: Stealth service health
+      responses:
+        '200':
+          description: Success
   /api/v1/tables/extract:
     post:
       tags:
       - Tables
       summary: Extract tables from HTML
+      responses:
+        '200':
+          description: Success
   /api/v1/tables/{id}/export:
     get:
       tags:
       - Tables
       summary: Export table (CSV/Markdown)
+      responses:
+        '200':
+          description: Success
   /api/v1/llm/providers:
     get:
       tags:
       - LLM
       summary: List LLM providers
+      responses:
+        '200':
+          description: Success
   /api/v1/llm/providers/switch:
     post:
       tags:
       - LLM
       summary: Switch LLM provider
+      responses:
+        '200':
+          description: Success
   /api/v1/llm/config:
     get:
       tags:
       - LLM
       summary: Get LLM config
+      responses:
+        '200':
+          description: Success
     post:
       tags:
       - LLM
       summary: Update LLM config
+      responses:
+        '200':
+          description: Success
   /sessions:
     post:
       tags:
       - Sessions
       summary: Create session
+      responses:
+        '200':
+          description: Success
     get:
       tags:
       - Sessions
       summary: List sessions
+      responses:
+        '200':
+          description: Success
   /sessions/stats:
     get:
       tags:
       - Sessions
       summary: Session statistics
+      responses:
+        '200':
+          description: Success
   /sessions/cleanup:
     post:
       tags:
       - Sessions
       summary: Cleanup expired sessions
+      responses:
+        '200':
+          description: Success
   /sessions/{session_id}:
     get:
       tags:
       - Sessions
       summary: Get session info
+      responses:
+        '200':
+          description: Success
     delete:
       tags:
       - Sessions
       summary: Delete session
+      responses:
+        '200':
+          description: Success
   /sessions/{session_id}/extend:
     post:
       tags:
       - Sessions
       summary: Extend session TTL
+      responses:
+        '200':
+          description: Success
   /sessions/{session_id}/cookies:
     post:
       tags:
       - Sessions
       summary: Set cookie
+      responses:
+        '200':
+          description: Success
     delete:
       tags:
       - Sessions
       summary: Clear all cookies
+      responses:
+        '200':
+          description: Success
   /sessions/{session_id}/cookies/{domain}:
     get:
       tags:
       - Sessions
       summary: Get domain cookies
+      responses:
+        '200':
+          description: Success
   /sessions/{session_id}/cookies/{domain}/{name}:
     get:
       tags:
       - Sessions
       summary: Get specific cookie
+      responses:
+        '200':
+          description: Success
     delete:
       tags:
       - Sessions
       summary: Delete cookie
+      responses:
+        '200':
+          description: Success
   /workers/jobs:
     post:
       tags:
       - Workers
       summary: Submit async job
+      responses:
+        '200':
+          description: Success
   /workers/jobs/{job_id}:
     get:
       tags:
       - Workers
       summary: Get job status
+      responses:
+        '200':
+          description: Success
   /workers/jobs/{job_id}/result:
     get:
       tags:
       - Workers
       summary: Get job result
+      responses:
+        '200':
+          description: Success
   /workers/stats/queue:
     get:
       tags:
       - Workers
       summary: Queue statistics
+      responses:
+        '200':
+          description: Success
   /workers/stats/workers:
     get:
       tags:
       - Workers
       summary: Worker pool stats
+      responses:
+        '200':
+          description: Success
   /workers/metrics:
     get:
       tags:
       - Workers
       summary: Worker metrics
+      responses:
+        '200':
+          description: Success
   /workers/schedule:
     post:
       tags:
       - Workers
       summary: Create scheduled job
+      responses:
+        '200':
+          description: Success
     get:
       tags:
       - Workers
       summary: List scheduled jobs
+      responses:
+        '200':
+          description: Success
   /workers/schedule/{job_id}:
     delete:
       tags:
       - Workers
       summary: Delete scheduled job
+      responses:
+        '200':
+          description: Success
   /monitoring/health-score:
     get:
       tags:
       - Monitoring
       summary: System health score (0-100)
+      responses:
+        '200':
+          description: Success
   /monitoring/performance-report:
     get:
       tags:
       - Monitoring
       summary: Performance report
+      responses:
+        '200':
+          description: Success
   /monitoring/metrics/current:
     get:
       tags:
       - Monitoring
       summary: Current metrics snapshot
+      responses:
+        '200':
+          description: Success
   /monitoring/alerts/rules:
     get:
       tags:
       - Monitoring
       summary: Alert rule definitions
+      responses:
+        '200':
+          description: Success
   /monitoring/alerts/active:
     get:
       tags:
       - Monitoring
       summary: Active alerts
+      responses:
+        '200':
+          description: Success
   /pipeline/phases:
     get:
       tags:
       - Monitoring
       summary: Pipeline phase metrics
+      responses:
+        '200':
+          description: Success
