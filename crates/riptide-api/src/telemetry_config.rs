@@ -21,7 +21,10 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::time::Duration;
 use tracing::warn;
+// Trait imports needed for tracing_subscriber builder pattern
+#[allow(unused_imports)]
 use tracing_subscriber::layer::SubscriberExt;
+#[allow(unused_imports)]
 use tracing_subscriber::util::SubscriberInitExt;
 
 /// Telemetry configuration loaded from environment variables
@@ -183,42 +186,37 @@ impl TelemetryConfig {
 
     /// Initialize the OpenTelemetry tracing subscriber
     pub fn init_tracing(&self) -> anyhow::Result<()> {
-        // Temporarily disabled due to API compatibility issues
-        tracing::info!("OpenTelemetry integration temporarily disabled - using default tracing");
-        Ok(())
+        if !self.enabled || self.exporter_type == ExporterType::None {
+            tracing::info!("Telemetry disabled, using default tracing subscriber");
+            return Ok(());
+        }
 
-        // Disabled code below - will be re-enabled when OpenTelemetry API is updated
-        // if !self.enabled || self.exporter_type == ExporterType::None {
-        //     tracing::info!("Telemetry disabled, using default tracing subscriber");
-        //     return Ok(());
-        // }
-        //
-        // // Set up trace context propagator for distributed tracing
-        // global::set_text_map_propagator(TraceContextPropagator::new());
-        //
-        // // Create tracer provider with configured exporter
-        // let tracer = self.create_tracer()?;
-        //
-        // // Create OpenTelemetry tracing layer
-        // let telemetry_layer = tracing_opentelemetry::layer().with_tracer(tracer);
-        //
-        // // Initialize tracing subscriber with OpenTelemetry
-        // tracing_subscriber::registry()
-        //     .with(tracing_subscriber::EnvFilter::from_default_env())
-        //     .with(tracing_subscriber::fmt::layer())
-        //     .with(telemetry_layer)
-        //     .try_init()?;
-        //
-        // tracing::info!(
-        //     service = %self.service_name,
-        //     version = %self.service_version,
-        //     exporter = ?self.exporter_type,
-        //     endpoint = ?self.otlp_endpoint,
-        //     sampling = self.sampling_ratio,
-        //     "OpenTelemetry tracing initialized"
-        // );
-        //
-        // Ok(())
+        // Set up trace context propagator for distributed tracing
+        global::set_text_map_propagator(TraceContextPropagator::new());
+
+        // Create tracer provider with configured exporter
+        let tracer = self.create_tracer()?;
+
+        // Create OpenTelemetry tracing layer
+        let telemetry_layer = tracing_opentelemetry::layer().with_tracer(tracer);
+
+        // Initialize tracing subscriber with OpenTelemetry
+        tracing_subscriber::registry()
+            .with(tracing_subscriber::EnvFilter::from_default_env())
+            .with(tracing_subscriber::fmt::layer())
+            .with(telemetry_layer)
+            .try_init()?;
+
+        tracing::info!(
+            service = %self.service_name,
+            version = %self.service_version,
+            exporter = ?self.exporter_type,
+            endpoint = ?self.otlp_endpoint,
+            sampling = self.sampling_ratio,
+            "OpenTelemetry tracing initialized"
+        );
+
+        Ok(())
     }
 
     /// Create a tracer with configured exporter
@@ -250,7 +248,7 @@ impl TelemetryConfig {
                     .with_endpoint(endpoint)
                     .with_timeout(Duration::from_secs(self.export_timeout_secs));
 
-                let _tracer = opentelemetry_otlp::new_pipeline()
+                let tracer = opentelemetry_otlp::new_pipeline()
                     .tracing()
                     .with_exporter(exporter)
                     .with_trace_config(
@@ -262,7 +260,7 @@ impl TelemetryConfig {
                     .with_batch_config(batch_config)
                     .install_batch(opentelemetry_sdk::runtime::Tokio)?;
 
-                anyhow::bail!("Telemetry disabled")
+                Ok(tracer)
             }
             ExporterType::Jaeger => {
                 // Jaeger-specific configuration would go here
@@ -299,7 +297,7 @@ impl TelemetryConfig {
             .with_endpoint(endpoint)
             .with_timeout(Duration::from_secs(self.export_timeout_secs));
 
-        let _tracer = opentelemetry_otlp::new_pipeline()
+        let tracer = opentelemetry_otlp::new_pipeline()
             .tracing()
             .with_exporter(exporter)
             .with_trace_config(
@@ -311,7 +309,7 @@ impl TelemetryConfig {
             .with_batch_config(batch_config)
             .install_batch(opentelemetry_sdk::runtime::Tokio)?;
 
-        anyhow::bail!("Telemetry disabled")
+        Ok(tracer)
     }
 
     /// Shutdown telemetry (flush remaining spans)
@@ -336,52 +334,44 @@ pub fn extract_trace_context(_headers: &axum::http::HeaderMap) -> Option<SpanCon
         }
     }
 
-    // Temporarily disabled due to API compatibility issues
-    None
+    let extractor = HeaderExtractor(headers);
+    let propagator = TraceContextPropagator::new();
+    let context = propagator.extract(&extractor);
 
-    // Disabled code below - will be re-enabled when OpenTelemetry API is updated
-    // let extractor = HeaderExtractor(headers);
-    // let propagator = TraceContextPropagator::new();
-    // let context = propagator.extract(&extractor);
-    //
-    // let span_context = context.span().span_context().clone();
-    // if span_context.is_valid() {
-    //     Some(span_context)
-    // } else {
-    //     None
-    // }
+    let span_context = context.span().span_context().clone();
+    if span_context.is_valid() {
+        Some(span_context)
+    } else {
+        None
+    }
 }
 
 /// Inject trace context into HTTP headers (TELEM-004)
 #[allow(dead_code)]
 pub fn inject_trace_context(
-    _headers: &mut reqwest::header::HeaderMap,
-    _span_context: &SpanContext,
+    headers: &mut reqwest::header::HeaderMap,
+    span_context: &SpanContext,
 ) {
-    // Temporarily disabled due to API compatibility issues
-    return;
+    use opentelemetry::propagation::Injector;
 
-    // Disabled until OpenTelemetry API is updated
-    // use opentelemetry::propagation::Injector;
-    //
-    // struct HeaderInjector<'a>(&'a mut reqwest::header::HeaderMap);
-    //
-    // impl<'a> Injector for HeaderInjector<'a> {
-    //     fn set(&mut self, key: &str, value: String) {
-    //         if let Ok(header_name) = reqwest::header::HeaderName::from_bytes(key.as_bytes()) {
-    //             if let Ok(header_value) = reqwest::header::HeaderValue::from_str(&value) {
-    //                 self.0.insert(header_name, header_value);
-    //             }
-    //         }
-    //     }
-    // }
-    //
-    // let mut injector = HeaderInjector(headers);
-    // let propagator = TraceContextPropagator::new();
-    //
-    // // Create a context with the span
-    // let context = opentelemetry::Context::current().with_remote_span_context(span_context.clone());
-    // propagator.inject_context(&context, &mut injector);
+    struct HeaderInjector<'a>(&'a mut reqwest::header::HeaderMap);
+
+    impl<'a> Injector for HeaderInjector<'a> {
+        fn set(&mut self, key: &str, value: String) {
+            if let Ok(header_name) = reqwest::header::HeaderName::from_bytes(key.as_bytes()) {
+                if let Ok(header_value) = reqwest::header::HeaderValue::from_str(&value) {
+                    self.0.insert(header_name, header_value);
+                }
+            }
+        }
+    }
+
+    let mut injector = HeaderInjector(headers);
+    let propagator = TraceContextPropagator::new();
+
+    // Create a context with the span
+    let context = opentelemetry::Context::current().with_remote_span_context(span_context.clone());
+    propagator.inject_context(&context, &mut injector);
 }
 
 /// Parse trace ID from string

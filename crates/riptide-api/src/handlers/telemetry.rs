@@ -153,7 +153,7 @@ pub struct TraceSummary {
 /// Useful for discovering traces to investigate.
 #[tracing::instrument(
     name = "list_traces",
-    skip(state),
+    skip(_state),
     fields(
         http.method = "GET",
         http.route = "/telemetry/traces",
@@ -196,7 +196,7 @@ pub async fn list_traces(
 /// Shows parent-child relationships and critical path analysis.
 #[tracing::instrument(
     name = "get_trace_tree",
-    skip(state),
+    skip(_state),
     fields(
         http.method = "GET",
         http.route = "/telemetry/traces/:trace_id",
@@ -347,7 +347,7 @@ pub async fn get_trace_tree(
 /// Get telemetry status and configuration
 #[tracing::instrument(
     name = "get_telemetry_status",
-    skip(state),
+    skip(_state),
     fields(
         http.method = "GET",
         http.route = "/telemetry/status"
