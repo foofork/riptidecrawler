@@ -1,0 +1,84 @@
+# Dredd API Contract Testing Configuration
+# Tests that API implementation matches OpenAPI specification
+
+dry-run: null
+hookfiles: null
+language: nodejs
+sandbox: false
+server: null
+server-wait: 3
+init: false
+custom: {}
+names: false
+only: []
+reporter: []
+output: []
+header: []
+sorted: false
+user: null
+inline-errors: false
+details: false
+method: []
+loglevel: warning
+path: []
+hooks-worker-timeout: 5000
+hooks-worker-connect-timeout: 1500
+hooks-worker-connect-retry: 500
+hooks-worker-after-connect-wait: 100
+hooks-worker-term-timeout: 5000
+hooks-worker-term-retry: 500
+hooks-worker-handler-host: 127.0.0.1
+hooks-worker-handler-port: 61321
+config: ./dredd-tests.yml
+blueprint: docs/api/openapi.yaml
+endpoint: 'http://localhost:8080'
+
+# Hooks for custom behavior
+hooks: |
+  const hooks = require('hooks');
+
+  // Skip authentication tests (if API key not configured)
+  hooks.before('/sessions > POST > 201', function (transaction, done) {
+    // Skip if no auth configured
+    if (!process.env.API_KEY) {
+      transaction.skip = true;
+    }
+    done();
+  });
+
+  // Add custom headers
+  hooks.beforeEach(function (transaction, done) {
+    transaction.request.headers['User-Agent'] = 'Dredd API Tester';
+    done();
+  });
+
+  // Log responses for debugging
+  hooks.afterEach(function (transaction, done) {
+    if (transaction.fail) {
+      console.log('Failed:', transaction.name);
+      console.log('Expected:', transaction.expected.statusCode);
+      console.log('Actual:', transaction.real.statusCode);
+    }
+    done();
+  });
+
+# Test-specific configurations
+only:
+  # Test only these endpoints (comment out to test all)
+  # - '/healthz > GET > 200'
+  # - '/metrics > GET > 200'
+  # - '/crawl > POST > 200'
+
+# Skip flaky or external-dependent tests
+skip:
+  - '/deepsearch > POST > 200'  # Requires SERPER_API_KEY
+  - '/spider/crawl > POST > 200'  # Long-running operation
+
+# Reporter configuration
+reporter:
+  - html
+  - markdown
+
+output:
+  - dredd-report.html
+  - dredd-report.md
