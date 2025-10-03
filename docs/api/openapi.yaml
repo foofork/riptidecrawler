@@ -1,1867 +1,364 @@
 openapi: 3.0.0
 info:
-  title: RipTide Web Crawler API
+  title: RipTide API - Comprehensive Specification
   version: 1.0.0
-  description: |
-    Comprehensive web crawling and content extraction API with WASM-powered extraction,
-    dynamic rendering, streaming capabilities, and advanced content processing.
+  description: '# RipTide Crawler API
 
-    ## Features
 
-    - **WASM Extractor Integration**: High-performance content extraction using WebAssembly
-    - **Dynamic Rendering**: Support for JavaScript-heavy pages with stealth capabilities
-    - **Streaming APIs**: Real-time processing with NDJSON, SSE, and WebSocket protocols
-    - **Batch Processing**: Concurrent processing of multiple URLs
-    - **Deep Search**: Web search integration with content extraction
-    - **PDF Processing**: Native PDF content extraction
-    - **Advanced Caching**: Redis-backed caching with TTL and invalidation
-    - **Performance Monitoring**: Comprehensive metrics and health checks
+    A high-performance web scraping and content extraction API with 59 endpoints across 12 categories.
 
-    ## Base URL
 
-    The API is typically deployed at `https://api.example.com` or configured base URL.
+    ## Phase 1: Core Crawling & Event System (11 endpoints)
 
-    ## Authentication
+    - `/crawl` - Batch URL crawling with adaptive gate system
 
-    Some endpoints (like deep search) require API keys via headers:
-    - `SERPER_API_KEY` for web search functionality
+    - `/crawl/stream`, `/crawl/sse`, `/crawl/ws` - Real-time streaming
 
-    ## Rate Limiting
+    - `/deepsearch`, `/deepsearch/stream` - Web search integration
 
-    The API implements rate limiting with configurable thresholds:
-    - Default: 100 requests per minute per IP
-    - Burst allowance: 20 requests
-    - Headers: `X-RateLimit-*` included in responses
+    - `/render` - Headless browser rendering
 
-    ## Error Handling
+    - `/healthz`, `/metrics` - System health and Prometheus metrics
 
-    All errors follow a consistent format with appropriate HTTP status codes,
-    error types, and retry information.
 
+    ## Phase 2: Advanced Extraction (14 endpoints)
+
+    - `/strategies/*` - Multi-strategy extraction (CSS, TREK, LLM, Regex)
+
+    - `/pdf/*` - PDF processing with progress streaming
+
+    - `/api/v1/tables/*` - Table extraction and export (CSV/Markdown)
+
+
+    ## Phase 3: Enterprise Features (34 endpoints)
+
+    - `/spider/*` - Deep crawling with frontier management (3)
+
+    - `/stealth/*` - Stealth configuration and testing (4)
+
+    - `/api/v1/llm/*` - LLM provider management (4)
+
+    - `/sessions/*` - Session and cookie management (12)
+
+    - `/workers/*` - Async job queue and scheduling (9)
+
+    - `/monitoring/*` - Health monitoring and alerts (6)
+
+
+    ## Architecture Highlights
+
+    - **Dual-Path Pipeline**: Fast CSS + async AI enhancement
+
+    - **Event-Driven**: Core event bus for monitoring
+
+    - **Circuit Breaker**: Automatic failover for dependencies
+
+    - **Adaptive Gate**: Smart routing (raw/probes/headless/cached)
+
+
+    **Total: 59 endpoints documented**
+
+    '
   contact:
     name: RipTide API Support
-    url: https://github.com/your-org/riptide-api
+    url: https://github.com/riptide/api
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-
 servers:
-  - url: https://api.riptide.dev
-    description: Production server
-  - url: https://staging-api.riptide.dev
-    description: Staging server
-  - url: http://localhost:8080
-    description: Local development server
-
+- url: http://localhost:8080
+  description: Local development
+- url: https://api.riptide.example.com
+  description: Production
+tags:
+- name: Crawling
+  description: Core crawling endpoints (5)
+- name: Search
+  description: Deep search endpoints (2)
+- name: Spider
+  description: Deep crawling (3)
+- name: Streaming
+  description: Real-time streaming (4)
+- name: Strategies
+  description: Advanced extraction (2)
+- name: PDF
+  description: PDF processing (3)
+- name: Stealth
+  description: Stealth browsing (4)
+- name: Tables
+  description: Table extraction (2)
+- name: LLM
+  description: LLM providers (4)
+- name: Sessions
+  description: Session management (12)
+- name: Workers
+  description: Job queue (9)
+- name: Monitoring
+  description: Metrics & alerts (6)
+- name: Health
+  description: Health checks (2)
 paths:
   /healthz:
     get:
-      summary: Health Check
-      description: |
-        Comprehensive health check endpoint that validates all system dependencies
-        including Redis cache, WASM extractor, HTTP client, and optional headless service.
-
-        Returns detailed health status suitable for load balancer health checks
-        and monitoring systems.
-      operationId: healthCheck
       tags:
-        - System
-      responses:
-        '200':
-          description: System is healthy
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HealthResponse'
-              example:
-                status: "healthy"
-                version: "1.0.0"
-                timestamp: "2024-01-15T10:30:00Z"
-                uptime: 86400
-                dependencies:
-                  redis:
-                    status: "healthy"
-                    message: null
-                    response_time_ms: 2
-                    last_check: "2024-01-15T10:30:00Z"
-                  extractor:
-                    status: "healthy"
-                    message: null
-                    response_time_ms: 1
-                    last_check: "2024-01-15T10:30:00Z"
-                  http_client:
-                    status: "healthy"
-                    message: null
-                    response_time_ms: 5
-                    last_check: "2024-01-15T10:30:00Z"
-                  headless_service:
-                    status: "unknown"
-                    message: "Health check not implemented"
-                    response_time_ms: null
-                    last_check: "2024-01-15T10:30:00Z"
-                metrics:
-                  memory_usage_bytes: 104857600
-                  active_connections: 15
-                  total_requests: 1250
-                  requests_per_second: 2.5
-                  avg_response_time_ms: 150.0
-        '503':
-          description: System is unhealthy
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HealthResponse'
-
+      - Health
+      summary: System health check
   /metrics:
     get:
-      summary: Prometheus Metrics
-      description: |
-        Returns metrics in Prometheus exposition format for monitoring and alerting.
-
-        Includes metrics for:
-        - HTTP request rates and latencies
-        - Cache hit rates and performance
-        - WASM extraction statistics
-        - System resource usage
-        - Error rates by endpoint
-      operationId: getMetrics
       tags:
-        - System
-      responses:
-        '200':
-          description: Prometheus metrics
-          content:
-            text/plain:
-              schema:
-                type: string
-              example: |
-                # HELP riptide_http_requests_total Total number of HTTP requests
-                # TYPE riptide_http_requests_total counter
-                riptide_http_requests_total{method="POST",endpoint="/crawl",status="200"} 1250
-
-                # HELP riptide_http_request_duration_seconds HTTP request duration
-                # TYPE riptide_http_request_duration_seconds histogram
-                riptide_http_request_duration_seconds_bucket{method="POST",endpoint="/crawl",le="0.1"} 850
-                riptide_http_request_duration_seconds_bucket{method="POST",endpoint="/crawl",le="0.5"} 1200
-                riptide_http_request_duration_seconds_bucket{method="POST",endpoint="/crawl",le="1.0"} 1240
-                riptide_http_request_duration_seconds_bucket{method="POST",endpoint="/crawl",le="+Inf"} 1250
-                riptide_http_request_duration_seconds_sum{method="POST",endpoint="/crawl"} 187.5
-                riptide_http_request_duration_seconds_count{method="POST",endpoint="/crawl"} 1250
-
+      - Health
+      summary: Prometheus metrics
   /crawl:
     post:
-      summary: Batch Crawl URLs
-      description: |
-        Process multiple URLs through the complete fetch → gate → extract pipeline.
-
-        This endpoint:
-        1. Validates input URLs and crawling options
-        2. Creates a pipeline orchestrator with configured settings
-        3. Executes crawling concurrently while respecting rate limits
-        4. Returns comprehensive results with performance statistics
-
-        Supports various crawl options including caching strategies, concurrency limits,
-        gate decision modes, and extraction preferences.
-      operationId: crawlUrls
       tags:
-        - Crawling
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CrawlRequest'
-            example:
-              urls:
-                - "https://example.com/article-1"
-                - "https://example.com/article-2"
-                - "https://news.site.com/breaking-news"
-              options:
-                concurrency: 3
-                cache_mode: "read_write"
-                gate_mode: "adaptive"
-                timeout_seconds: 30
-                user_agent: "RipTide-Crawler/1.0"
-                follow_redirects: true
-                extract_mode: "article"
-                quality_threshold: 0.7
-      responses:
-        '200':
-          description: Crawl completed successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CrawlResponse'
-              example:
-                total_urls: 3
-                successful: 2
-                failed: 1
-                from_cache: 1
-                results:
-                  - url: "https://example.com/article-1"
-                    status: 200
-                    from_cache: false
-                    gate_decision: "raw"
-                    quality_score: 0.85
-                    processing_time_ms: 1250
-                    document:
-                      url: "https://example.com/article-1"
-                      title: "Understanding Web Crawling"
-                      byline: "John Doe"
-                      published_iso: "2024-01-15T09:00:00Z"
-                      markdown: "# Understanding Web Crawling\\n\\nWeb crawling is..."
-                      text: "Understanding Web Crawling. Web crawling is..."
-                      links: []
-                      media: []
-                      language: "en"
-                      reading_time: 5
-                      quality_score: 85
-                      word_count: 1200
-                      categories: ["technology", "web"]
-                      site_name: "Example Tech Blog"
-                      description: "A comprehensive guide to web crawling techniques"
-                    error: null
-                    cache_key: "crawl:v1:example.com:article-1:7d2a8c9b"
-                statistics:
-                  total_processing_time_ms: 3500
-                  avg_processing_time_ms: 1166.67
-                  gate_decisions:
-                    raw: 1
-                    probes_first: 1
-                    headless: 0
-                    cached: 1
-                  cache_hit_rate: 0.33
-        '400':
-          description: Invalid request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '429':
-          description: Rate limit exceeded
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
+      - Crawling
+      summary: Batch crawl URLs
   /crawl/stream:
     post:
-      summary: Stream Crawl Results (NDJSON)
-      description: |
-        Stream crawl results in real-time using NDJSON (Newline Delimited JSON) format.
-
-        This endpoint provides:
-        - Real-time progress updates
-        - Individual result streaming as they complete
-        - Backpressure handling for large batches
-        - Connection health monitoring
-        - Graceful error recovery
-
-        The response is a stream of NDJSON objects, each representing a crawl event
-        or result. Clients should process each line as a separate JSON object.
-      operationId: streamCrawlResults
       tags:
-        - Streaming
-      parameters:
-        - in: header
-          name: X-Session-ID
-          schema:
-            type: string
-          description: Optional session identifier for request tracking
-        - in: header
-          name: X-Buffer-Size
-          schema:
-            type: integer
-            minimum: 64
-            maximum: 1024
-          description: "Stream buffer size (default: 256)"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CrawlRequest'
-      responses:
-        '200':
-          description: NDJSON stream of crawl results
-          content:
-            application/x-ndjson:
-              schema:
-                type: string
-                description: |
-                  Stream of NDJSON objects. Each line is a separate JSON object
-                  representing a crawl event or result.
-              example: |
-                {"event":"start","total_urls":2,"session_id":"session-123","timestamp":"2024-01-15T10:30:00Z"}
-                {"event":"progress","completed":1,"total":2,"url":"https://example.com/page1","timestamp":"2024-01-15T10:30:05Z"}
-                {"event":"result","url":"https://example.com/page1","status":200,"document":{...},"processing_time_ms":1200}
-                {"event":"progress","completed":2,"total":2,"url":"https://example.com/page2","timestamp":"2024-01-15T10:30:08Z"}
-                {"event":"result","url":"https://example.com/page2","status":200,"document":{...},"processing_time_ms":1500}
-                {"event":"summary","total_urls":2,"successful":2,"failed":0,"total_time_ms":3800,"timestamp":"2024-01-15T10:30:08Z"}
-
+      - Streaming
+      summary: Stream crawl results (NDJSON)
   /crawl/sse:
     post:
-      summary: Stream Crawl Results (Server-Sent Events)
-      description: |
-        Stream crawl results using Server-Sent Events (SSE) protocol.
-
-        Provides the same real-time capabilities as NDJSON streaming but using
-        the SSE format for easier browser integration and automatic reconnection.
-      operationId: streamCrawlSSE
       tags:
-        - Streaming
-      parameters:
-        - in: header
-          name: X-Session-ID
-          schema:
-            type: string
-          description: Optional session identifier for request tracking
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CrawlRequest'
-      responses:
-        '200':
-          description: Server-Sent Events stream
-          content:
-            text/event-stream:
-              schema:
-                type: string
-              example: |
-                event: start
-                data: {"total_urls":2,"session_id":"session-123","timestamp":"2024-01-15T10:30:00Z"}
-
-                event: progress
-                data: {"completed":1,"total":2,"url":"https://example.com/page1","timestamp":"2024-01-15T10:30:05Z"}
-
-                event: result
-                data: {"url":"https://example.com/page1","status":200,"document":{...},"processing_time_ms":1200}
-
+      - Streaming
+      summary: Stream crawl results (SSE)
   /crawl/ws:
     get:
-      summary: WebSocket Crawl Stream
-      description: |
-        Bidirectional WebSocket connection for real-time crawl operations.
-
-        Supports:
-        - Real-time result streaming
-        - Mid-stream parameter adjustments
-        - Connection health monitoring
-        - Automatic reconnection
-        - Custom control messages
-      operationId: crawlWebSocket
       tags:
-        - Streaming
-      parameters:
-        - in: query
-          name: session_id
-          schema:
-            type: string
-          description: Session identifier for the WebSocket connection
-      responses:
-        '101':
-          description: WebSocket connection established
-        '400':
-          description: Invalid WebSocket upgrade request
-
+      - Streaming
+      summary: WebSocket crawl stream
   /deepsearch:
     post:
-      summary: Deep Search with Content Extraction
-      description: |
-        Perform web search and extract content from discovered URLs.
-
-        This endpoint:
-        1. Validates search query and parameters
-        2. Performs web search using Serper.dev API
-        3. Extracts URLs from search results
-        4. Crawls discovered URLs using the standard pipeline
-        5. Returns combined search and content results
-
-        Requires `SERPER_API_KEY` environment variable.
-      operationId: deepSearch
       tags:
-        - Search
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DeepSearchRequest'
-            example:
-              query: "machine learning best practices 2024"
-              limit: 10
-              include_content: true
-              crawl_options:
-                concurrency: 3
-                cache_mode: "read_write"
-                extract_mode: "article"
-      responses:
-        '200':
-          description: Search and crawl completed successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DeepSearchResponse'
-              example:
-                query: "machine learning best practices 2024"
-                urls_found: 10
-                urls_crawled: 10
-                results:
-                  - url: "https://example.com/ml-guide"
-                    rank: 1
-                    search_title: "Machine Learning Best Practices Guide"
-                    search_snippet: "Comprehensive guide to ML best practices..."
-                    content:
-                      url: "https://example.com/ml-guide"
-                      title: "Machine Learning Best Practices Guide"
-                      markdown: "# Machine Learning Best Practices..."
-                      text: "Machine Learning Best Practices..."
-                    crawl_result:
-                      url: "https://example.com/ml-guide"
-                      status: 200
-                      gate_decision: "raw"
-                      quality_score: 0.92
-                      processing_time_ms: 1800
-                status: "completed"
-                processing_time_ms: 15000
-
+      - Search
+      summary: Deep search with extraction
   /deepsearch/stream:
     post:
-      summary: Stream Deep Search Results
-      description: |
-        Stream deep search results in real-time using NDJSON format.
-
-        Provides progress updates for both search and crawling phases,
-        with individual results streamed as they become available.
-      operationId: streamDeepSearch
       tags:
-        - Streaming
-        - Search
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DeepSearchRequest'
-      responses:
-        '200':
-          description: NDJSON stream of search and crawl results
-          content:
-            application/x-ndjson:
-              schema:
-                type: string
-
-  /strategies/crawl:
-    post:
-      summary: Process URL with Configurable Strategies
-      description: |
-        Process a URL using configurable extraction strategies and chunking modes.
-
-        This endpoint provides fine-grained control over content extraction through:
-        - **Multiple Extraction Strategies**: Trek (WASM), CSS/JSON selectors, Regex patterns, LLM-based
-        - **Auto-Detection**: Automatic strategy selection based on content analysis
-        - **Performance Metrics**: Detailed processing statistics and quality scores
-        - **Flexible Configuration**: Customizable selectors, patterns, and processing options
-
-        The strategies pipeline integrates with the gate system for intelligent content routing
-        and supports caching for optimal performance.
-      operationId: strategiesCrawl
-      tags:
-        - Strategies
-      parameters:
-        - in: query
-          name: strategy
-          schema:
-            type: string
-            enum: ["auto", "trek", "css_json", "regex", "llm"]
-            default: "auto"
-          description: |
-            Extraction strategy to use:
-            - `auto`: Automatic strategy selection based on content analysis
-            - `trek`: Default WASM-based extraction (fastest)
-            - `css_json`: CSS selector to JSON extraction
-            - `regex`: Regex pattern extraction
-            - `llm`: LLM-based extraction (requires hook integration)
-        - in: query
-          name: chunking
-          schema:
-            type: string
-            enum: ["sliding", "fixed", "sentence", "topic", "regex"]
-            default: "sliding"
-          description: |
-            Chunking mode (deprecated - handled by riptide-html):
-            - `sliding`: Sliding windows with overlap
-            - `fixed`: Fixed character/token count
-            - `sentence`: Split by sentence boundaries
-            - `topic`: Split by semantic topics
-            - `regex`: Split by regex pattern
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/StrategiesCrawlRequest'
-            examples:
-              trek_extraction:
-                summary: Trek Strategy - Fast Article Extraction
-                value:
-                  url: "https://blog.example.com/article"
-                  enable_metrics: true
-                  validate_schema: true
-                  cache_mode: "read_write"
-              css_json_extraction:
-                summary: CSS/JSON Strategy - Structured Data
-                value:
-                  url: "https://example.com/product/123"
-                  extraction_strategy: "css_json"
-                  css_selectors:
-                    title: "h1.product-title"
-                    price: ".price-display"
-                    description: ".product-description"
-                    availability: ".stock-status"
-                  enable_metrics: true
-              regex_extraction:
-                summary: Regex Strategy - Pattern Matching
-                value:
-                  url: "https://example.com/contact"
-                  extraction_strategy: "regex"
-                  regex_patterns:
-                    - name: "emails"
-                      pattern: "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
-                      field: "contact_emails"
-                      required: false
-                    - name: "phones"
-                      pattern: "\\+?[1-9]\\d{1,14}"
-                      field: "phone_numbers"
-                      required: false
-              auto_detection:
-                summary: Auto Strategy - Intelligent Selection
-                value:
-                  url: "https://github.com/user/repo/issues/42"
-                  extraction_strategy: "auto"
-                  enable_metrics: true
-                  validate_schema: true
-      responses:
-        '200':
-          description: Content processed successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/StrategiesCrawlResponse'
-              example:
-                success: true
-                result:
-                  processed_content:
-                    content: "Extracted article content..."
-                    metadata:
-                      title: "Understanding Web Scraping"
-                      author: "Jane Developer"
-                      published: "2024-01-15T10:00:00Z"
-                    chunks: []
-                    extracted_data: {}
-                  from_cache: false
-                  gate_decision: "raw"
-                  quality_score: 0.85
-                  processing_time_ms: 1250
-                  cache_key: "riptide:strategies:v1:read_write:a7f3c2d1"
-                  http_status: 200
-                  strategy_config:
-                    extraction: "Trek"
-                    enable_metrics: true
-                    validate_schema: true
-                  performance_metrics:
-                    extraction_time_ms: 850
-                    validation_time_ms: 120
-                    total_time_ms: 1250
-                    content_size_bytes: 45678
-                stats:
-                  chunks_created: 1
-                  total_processing_time_ms: 1250
-                  extraction_strategy_used: "Trek"
-                  chunking_mode_used: "None"
-                  cache_hit: false
-                  quality_score: 0.85
-        '400':
-          description: Invalid request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  type: "invalid_request"
-                  message: "URL cannot be empty"
-                  retryable: false
-                  status: 400
-        '500':
-          description: Processing error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  type: "pipeline_error"
-                  message: "Strategy processing failed: extraction error"
-                  retryable: true
-                  status: 500
-        '504':
-          description: Request timeout
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  type: "timeout"
-                  message: "Timeout fetching https://example.com"
-                  retryable: true
-                  status: 504
-
-  /strategies/info:
-    get:
-      summary: Get Available Strategies Information
-      description: |
-        Returns information about available extraction strategies and chunking modes.
-
-        This endpoint provides:
-        - List of extraction strategies with descriptions
-        - Required and optional parameters for each strategy
-        - Available chunking modes (deprecated)
-        - Strategy capabilities and characteristics
-
-        Use this endpoint to discover available strategies and their configuration options
-        before making requests to `/strategies/crawl`.
-      operationId: getStrategiesInfo
-      tags:
-        - Strategies
-      responses:
-        '200':
-          description: Strategies information retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/StrategiesInfo'
-              example:
-                extraction_strategies:
-                  - name: "trek"
-                    description: "Default WASM-based extraction (fastest)"
-                    parameters: []
-                  - name: "css_json"
-                    description: "CSS selector to JSON extraction"
-                    parameters:
-                      - name: "selectors"
-                        required: false
-                        description: "CSS selectors mapping (field -> selector)"
-                  - name: "regex"
-                    description: "Regex pattern extraction"
-                    parameters:
-                      - name: "patterns"
-                        required: true
-                        description: "List of regex patterns to apply"
-                  - name: "llm"
-                    description: "LLM-based extraction (hook-based, disabled by default)"
-                    parameters:
-                      - name: "enabled"
-                        required: true
-                        description: "Enable LLM extraction"
-                      - name: "model"
-                        required: false
-                        description: "LLM model to use"
-                chunking_modes:
-                  - name: "sliding"
-                    description: "Sliding windows with overlap (default)"
-                    parameters: ["token_max", "overlap", "preserve_sentences"]
-                  - name: "fixed"
-                    description: "Fixed character/token count"
-                    parameters: ["size", "by_tokens"]
-                  - name: "sentence"
-                    description: "Split by sentence boundaries (NLP)"
-                    parameters: ["max_sentences"]
-                  - name: "topic"
-                    description: "Split by semantic topics"
-                    parameters: ["similarity_threshold"]
-                  - name: "regex"
-                    description: "Split by regex pattern"
-                    parameters: ["pattern", "min_chunk_size"]
-
+      - Streaming
+      summary: Stream search results
   /render:
     post:
-      summary: Enhanced Rendering with Dynamic Content
-      description: |
-        Enhanced rendering endpoint with support for dynamic content, PDF processing,
-        and stealth capabilities.
-
-        Supports multiple rendering modes:
-        - **Static**: Fast HTTP-only rendering
-        - **Dynamic**: JavaScript execution with headless browser
-        - **PDF**: Native PDF content extraction
-        - **Adaptive**: Automatic mode selection based on content analysis
-
-        Features:
-        - Stealth anti-detection measures
-        - Custom wait conditions and actions
-        - Artifact capture (screenshots, MHTML)
-        - Performance monitoring
-      operationId: renderContent
       tags:
-        - Rendering
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RenderRequest'
-            example:
-              url: "https://example.com/dynamic-app"
-              mode: "dynamic"
-              dynamic_config:
-                wait_conditions:
-                  - type: "element_visible"
-                    selector: ".content-loaded"
-                    timeout: 10000
-                actions:
-                  - type: "click"
-                    selector: "button.load-more"
-                  - type: "wait"
-                    duration: 2000
-                viewport:
-                  width: 1920
-                  height: 1080
-                user_agent: "Mozilla/5.0 (compatible; RipTide/1.0)"
-                javascript_enabled: true
-                timeout: 30000
-              stealth_config:
-                user_agent_rotation: true
-                header_randomization: true
-                timing_jitter: true
-                javascript_execution_delay: true
-              output_format: "markdown"
-              capture_artifacts: true
-              timeout: 45
-      responses:
-        '200':
-          description: Content rendered successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RenderResponse'
-
-components:
-  schemas:
-    CrawlRequest:
-      type: object
-      required:
-        - urls
-      properties:
-        urls:
-          type: array
-          items:
-            type: string
-            format: uri
-          minItems: 1
-          maxItems: 100
-          description: List of URLs to crawl
-          example:
-            - "https://example.com/article-1"
-            - "https://example.com/article-2"
-        options:
-          $ref: '#/components/schemas/CrawlOptions'
-
-    CrawlOptions:
-      type: object
-      properties:
-        concurrency:
-          type: integer
-          minimum: 1
-          maximum: 10
-          default: 3
-          description: Number of concurrent requests
-        cache_mode:
-          type: string
-          enum: ["read_only", "write_only", "read_write", "disabled"]
-          default: "read_write"
-          description: Cache behavior mode
-        gate_mode:
-          type: string
-          enum: ["raw", "probes_first", "headless", "adaptive"]
-          default: "adaptive"
-          description: Content routing strategy
-        timeout_seconds:
-          type: integer
-          minimum: 5
-          maximum: 300
-          default: 30
-          description: Request timeout in seconds
-        user_agent:
-          type: string
-          description: Custom User-Agent header
-        follow_redirects:
-          type: boolean
-          default: true
-          description: Whether to follow HTTP redirects
-        extract_mode:
-          type: string
-          enum: ["article", "full", "metadata"]
-          default: "article"
-          description: Content extraction mode
-        quality_threshold:
-          type: number
-          minimum: 0.0
-          maximum: 1.0
-          default: 0.5
-          description: Minimum quality score for content
-
-    CrawlResponse:
-      type: object
-      required:
-        - total_urls
-        - successful
-        - failed
-        - from_cache
-        - results
-        - statistics
-      properties:
-        total_urls:
-          type: integer
-          description: Total number of URLs processed
-        successful:
-          type: integer
-          description: Number of successful extractions
-        failed:
-          type: integer
-          description: Number of failed extractions
-        from_cache:
-          type: integer
-          description: Number of results served from cache
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/CrawlResult'
-        statistics:
-          $ref: '#/components/schemas/CrawlStatistics'
-
-    CrawlResult:
-      type: object
-      required:
-        - url
-        - status
-        - from_cache
-        - gate_decision
-        - quality_score
-        - processing_time_ms
-        - cache_key
-      properties:
-        url:
-          type: string
-          format: uri
-          description: Original URL that was crawled
-        status:
-          type: integer
-          description: HTTP status code
-        from_cache:
-          type: boolean
-          description: Whether result was served from cache
-        gate_decision:
-          type: string
-          description: Routing decision made by the gate
-        quality_score:
-          type: number
-          minimum: 0.0
-          maximum: 1.0
-          description: Content quality score
-        processing_time_ms:
-          type: integer
-          description: Processing time in milliseconds
-        document:
-          $ref: '#/components/schemas/ExtractedDocument'
-        error:
-          $ref: '#/components/schemas/ErrorInfo'
-        cache_key:
-          type: string
-          description: Cache key used for this URL
-
-    ExtractedDocument:
-      type: object
-      required:
-        - url
-        - markdown
-        - text
-      properties:
-        url:
-          type: string
-          format: uri
-          description: Final URL after redirects
-        title:
-          type: string
-          nullable: true
-          description: Document title
-        byline:
-          type: string
-          nullable: true
-          description: Author information
-        published_iso:
-          type: string
-          format: date-time
-          nullable: true
-          description: Publication date in ISO 8601 format
-        markdown:
-          type: string
-          description: Content in Markdown format
-        text:
-          type: string
-          description: Plain text content
-        links:
-          type: array
-          items:
-            type: string
-            format: uri
-          description: Extracted links
-        media:
-          type: array
-          items:
-            type: string
-            format: uri
-          description: Media URLs (images, videos)
-        language:
-          type: string
-          nullable: true
-          description: Detected language code
-        reading_time:
-          type: integer
-          nullable: true
-          description: Estimated reading time in minutes
-        quality_score:
-          type: integer
-          nullable: true
-          minimum: 0
-          maximum: 100
-          description: Content quality score (0-100)
-        word_count:
-          type: integer
-          nullable: true
-          description: Word count
-        categories:
-          type: array
-          items:
-            type: string
-          description: Content categories
-        site_name:
-          type: string
-          nullable: true
-          description: Website name
-        description:
-          type: string
-          nullable: true
-          description: Content description/summary
-
-    CrawlStatistics:
-      type: object
-      required:
-        - total_processing_time_ms
-        - avg_processing_time_ms
-        - gate_decisions
-        - cache_hit_rate
-      properties:
-        total_processing_time_ms:
-          type: integer
-          description: Total processing time for entire batch
-        avg_processing_time_ms:
-          type: number
-          description: Average processing time per URL
-        gate_decisions:
-          $ref: '#/components/schemas/GateDecisionBreakdown'
-        cache_hit_rate:
-          type: number
-          minimum: 0.0
-          maximum: 1.0
-          description: Cache hit rate (0.0 to 1.0)
-
-    GateDecisionBreakdown:
-      type: object
-      required:
-        - raw
-        - probes_first
-        - headless
-        - cached
-      properties:
-        raw:
-          type: integer
-          description: URLs processed with raw/fast extraction
-        probes_first:
-          type: integer
-          description: URLs processed with probing strategy
-        headless:
-          type: integer
-          description: URLs requiring headless rendering
-        cached:
-          type: integer
-          description: URLs served from cache
-
-    DeepSearchRequest:
-      type: object
-      required:
-        - query
-      properties:
-        query:
-          type: string
-          minLength: 1
-          maxLength: 500
-          description: Search query string
-          example: "machine learning best practices"
-        limit:
-          type: integer
-          minimum: 1
-          maximum: 50
-          default: 10
-          description: Maximum number of results
-        country:
-          type: string
-          pattern: "^[A-Z]{2}$"
-          description: Country code for search localization
-          example: "US"
-        locale:
-          type: string
-          pattern: "^[a-z]{2}$"
-          description: Language locale for results
-          example: "en"
-        include_content:
-          type: boolean
-          default: true
-          description: Whether to crawl and extract content
-        crawl_options:
-          $ref: '#/components/schemas/CrawlOptions'
-
-    DeepSearchResponse:
-      type: object
-      required:
-        - query
-        - urls_found
-        - urls_crawled
-        - results
-        - status
-        - processing_time_ms
-      properties:
-        query:
-          type: string
-          description: Original search query
-        urls_found:
-          type: integer
-          description: Number of URLs found in search
-        urls_crawled:
-          type: integer
-          description: Number of URLs successfully crawled
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/SearchResult'
-        status:
-          type: string
-          description: Overall operation status
-        processing_time_ms:
-          type: integer
-          description: Total processing time
-
-    SearchResult:
-      type: object
-      required:
-        - url
-        - rank
-      properties:
-        url:
-          type: string
-          format: uri
-          description: URL from search results
-        rank:
-          type: integer
-          description: Search engine ranking position
-        search_title:
-          type: string
-          nullable: true
-          description: Title from search results
-        search_snippet:
-          type: string
-          nullable: true
-          description: Snippet from search results
-        content:
-          $ref: '#/components/schemas/ExtractedDocument'
-        crawl_result:
-          $ref: '#/components/schemas/CrawlResult'
-
-    RenderRequest:
-      type: object
-      required:
-        - url
-      properties:
-        url:
-          type: string
-          format: uri
-          description: URL to render
-        mode:
-          type: string
-          enum: ["static", "dynamic", "pdf", "adaptive"]
-          default: "adaptive"
-          description: Rendering mode
-        dynamic_config:
-          $ref: '#/components/schemas/DynamicConfig'
-        stealth_config:
-          $ref: '#/components/schemas/StealthConfig'
-        pdf_config:
-          $ref: '#/components/schemas/PdfConfig'
-        output_format:
-          type: string
-          enum: ["markdown", "html", "text"]
-          default: "markdown"
-          description: Output format preference
-        capture_artifacts:
-          type: boolean
-          default: false
-          description: Whether to capture screenshots and MHTML
-        timeout:
-          type: integer
-          minimum: 5
-          maximum: 300
-          default: 30
-          description: Rendering timeout in seconds
-
-    DynamicConfig:
-      type: object
-      properties:
-        wait_conditions:
-          type: array
-          items:
-            $ref: '#/components/schemas/WaitCondition'
-        actions:
-          type: array
-          items:
-            $ref: '#/components/schemas/Action'
-        viewport:
-          $ref: '#/components/schemas/Viewport'
-        user_agent:
-          type: string
-          description: Custom user agent
-        javascript_enabled:
-          type: boolean
-          default: true
-          description: Whether to enable JavaScript execution
-        timeout:
-          type: integer
-          minimum: 5000
-          maximum: 300000
-          default: 30000
-          description: Dynamic rendering timeout in milliseconds
-
-    WaitCondition:
-      type: object
-      required:
-        - type
-      properties:
-        type:
-          type: string
-          enum: ["element_visible", "element_hidden", "dom_content_loaded", "network_idle", "timeout"]
-        selector:
-          type: string
-          description: CSS selector (for element conditions)
-        timeout:
-          type: integer
-          description: Timeout in milliseconds
-
-    Action:
-      type: object
-      required:
-        - type
-      properties:
-        type:
-          type: string
-          enum: ["click", "scroll", "wait", "input", "navigate"]
-        selector:
-          type: string
-          description: CSS selector (for element actions)
-        value:
-          type: string
-          description: Value to input (for input actions)
-        duration:
-          type: integer
-          description: Duration in milliseconds (for wait actions)
-
-    Viewport:
-      type: object
-      properties:
-        width:
-          type: integer
-          minimum: 320
-          maximum: 3840
-          default: 1920
-        height:
-          type: integer
-          minimum: 240
-          maximum: 2160
-          default: 1080
-
-    StealthConfig:
-      type: object
-      properties:
-        user_agent_rotation:
-          type: boolean
-          default: true
-          description: Enable user agent rotation
-        header_randomization:
-          type: boolean
-          default: true
-          description: Enable header randomization
-        timing_jitter:
-          type: boolean
-          default: true
-          description: Enable timing jitter
-        javascript_execution_delay:
-          type: boolean
-          default: false
-          description: Add delays to JavaScript execution
-
-    PdfConfig:
-      type: object
-      properties:
-        extract_text:
-          type: boolean
-          default: true
-          description: Extract text content
-        extract_metadata:
-          type: boolean
-          default: true
-          description: Extract PDF metadata
-        extract_images:
-          type: boolean
-          default: false
-          description: Extract embedded images
-
-    RenderResponse:
-      type: object
-      required:
-        - url
-        - final_url
-        - mode
-        - success
-        - stats
-        - stealth_applied
-      properties:
-        url:
-          type: string
-          format: uri
-          description: Original URL
-        final_url:
-          type: string
-          format: uri
-          description: Final URL after redirects
-        mode:
-          type: string
-          description: Rendering mode used
-        success:
-          type: boolean
-          description: Whether rendering was successful
-        content:
-          $ref: '#/components/schemas/ExtractedDocument'
-        pdf_result:
-          $ref: '#/components/schemas/PdfProcessingResult'
-        artifacts:
-          $ref: '#/components/schemas/RenderArtifacts'
-        stats:
-          $ref: '#/components/schemas/RenderStats'
-        error:
-          $ref: '#/components/schemas/ErrorInfo'
-        stealth_applied:
-          type: array
-          items:
-            type: string
-          description: List of stealth measures applied
-
-    PdfProcessingResult:
-      type: object
-      properties:
-        success:
-          type: boolean
-          description: Whether PDF processing succeeded
-        text_content:
-          type: string
-          description: Extracted text content
-        metadata:
-          type: object
-          description: PDF metadata
-        page_count:
-          type: integer
-          description: Number of pages
-        stats:
-          $ref: '#/components/schemas/PdfStats'
-
-    PdfStats:
-      type: object
-      properties:
-        processing_time_ms:
-          type: integer
-          description: PDF processing time in milliseconds
-        file_size_bytes:
-          type: integer
-          description: PDF file size in bytes
-
-    RenderArtifacts:
-      type: object
-      properties:
-        screenshot_url:
-          type: string
-          format: uri
-          description: Screenshot URL (if captured)
-        mhtml_url:
-          type: string
-          format: uri
-          description: MHTML archive URL (if captured)
-        network_activity:
-          type: array
-          items:
-            $ref: '#/components/schemas/NetworkRequest'
-
-    NetworkRequest:
-      type: object
-      properties:
-        url:
-          type: string
-          format: uri
-        method:
-          type: string
-        status:
-          type: integer
-        response_time_ms:
-          type: integer
-
-    RenderStats:
-      type: object
-      required:
-        - total_time_ms
-        - extraction_time_ms
-        - actions_executed
-        - wait_conditions_met
-        - network_requests
-        - page_size_bytes
-      properties:
-        total_time_ms:
-          type: integer
-          description: Total processing time
-        dynamic_time_ms:
-          type: integer
-          nullable: true
-          description: Time spent on dynamic rendering
-        pdf_time_ms:
-          type: integer
-          nullable: true
-          description: Time spent on PDF processing
-        extraction_time_ms:
-          type: integer
-          description: Time spent on content extraction
-        actions_executed:
-          type: integer
-          description: Number of actions executed
-        wait_conditions_met:
-          type: integer
-          description: Number of wait conditions satisfied
-        network_requests:
-          type: integer
-          description: Network requests made during rendering
-        page_size_bytes:
-          type: integer
-          description: Final page size in bytes
-
-    HealthResponse:
-      type: object
-      required:
-        - status
-        - version
-        - timestamp
-        - uptime
-        - dependencies
-      properties:
-        status:
-          type: string
-          enum: ["healthy", "unhealthy"]
-          description: Overall health status
-        version:
-          type: string
-          description: Application version
-        timestamp:
-          type: string
-          format: date-time
-          description: Health check timestamp
-        uptime:
-          type: integer
-          description: Uptime in seconds
-        dependencies:
-          $ref: '#/components/schemas/DependencyStatus'
-        metrics:
-          $ref: '#/components/schemas/SystemMetrics'
-
-    DependencyStatus:
-      type: object
-      required:
-        - redis
-        - extractor
-        - http_client
-      properties:
-        redis:
-          $ref: '#/components/schemas/ServiceHealth'
-        extractor:
-          $ref: '#/components/schemas/ServiceHealth'
-        http_client:
-          $ref: '#/components/schemas/ServiceHealth'
-        headless_service:
-          $ref: '#/components/schemas/ServiceHealth'
-
-    ServiceHealth:
-      type: object
-      required:
-        - status
-        - last_check
-      properties:
-        status:
-          type: string
-          enum: ["healthy", "unhealthy", "unknown"]
-          description: Service health status
-        message:
-          type: string
-          nullable: true
-          description: Detailed status message
-        response_time_ms:
-          type: integer
-          nullable: true
-          description: Response time in milliseconds
-        last_check:
-          type: string
-          format: date-time
-          description: Last health check timestamp
-
-    SystemMetrics:
-      type: object
-      properties:
-        memory_usage_bytes:
-          type: integer
-          description: Current memory usage in bytes
-        active_connections:
-          type: integer
-          description: Number of active connections
-        total_requests:
-          type: integer
-          description: Total requests processed since startup
-        requests_per_second:
-          type: number
-          description: Current requests per second
-        avg_response_time_ms:
-          type: number
-          description: Average response time in milliseconds
-
-    ErrorResponse:
-      type: object
-      required:
-        - error
-      properties:
-        error:
-          $ref: '#/components/schemas/ErrorInfo'
-
-    ErrorInfo:
-      type: object
-      required:
-        - type
-        - message
-        - retryable
-        - status
-      properties:
-        type:
-          type: string
-          description: Error type identifier
-          example: "validation_error"
-        message:
-          type: string
-          description: Human-readable error message
-          example: "URL cannot be empty"
-        retryable:
-          type: boolean
-          description: Whether this error is retryable
-          example: false
-        status:
-          type: integer
-          description: HTTP status code
-          example: 400
-
-    StrategiesCrawlRequest:
-      type: object
-      required:
-        - url
-      properties:
-        url:
-          type: string
-          format: uri
-          description: URL to crawl and process
-          example: "https://example.com/article"
-        extraction_strategy:
-          type: string
-          enum: ["trek", "css_json", "regex", "llm"]
-          description: Override automatic strategy selection
-        enable_metrics:
-          type: boolean
-          default: true
-          description: Collect detailed performance metrics
-        validate_schema:
-          type: boolean
-          default: true
-          description: Validate extracted content against schema
-        cache_mode:
-          type: string
-          enum: ["default", "bypass", "refresh"]
-          default: "default"
-          description: Cache behavior mode
-        css_selectors:
-          type: object
-          additionalProperties:
-            type: string
-          description: CSS selectors mapping for CSS_JSON strategy
-          example:
-            title: "h1.entry-title"
-            content: ".entry-content"
-            author: ".author"
-        regex_patterns:
-          type: array
-          items:
-            $ref: '#/components/schemas/RegexPattern'
-          description: Regex patterns for REGEX strategy
-        llm_config:
-          $ref: '#/components/schemas/LlmConfig'
-        chunking_config:
-          $ref: '#/components/schemas/ChunkingConfig'
-
-    RegexPattern:
-      type: object
-      required:
-        - name
-        - pattern
-        - field
-        - required
-      properties:
-        name:
-          type: string
-          description: Pattern identifier
-          example: "email"
-        pattern:
-          type: string
-          description: Regular expression pattern
-          example: "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
-        field:
-          type: string
-          description: Target field name for extracted data
-          example: "emails"
-        required:
-          type: boolean
-          description: Whether this pattern must match
-          example: false
-
-    LlmConfig:
-      type: object
-      required:
-        - enabled
-      properties:
-        enabled:
-          type: boolean
-          description: Enable LLM-based extraction
-        model:
-          type: string
-          description: LLM model identifier
-          example: "claude-3-sonnet-20240229"
-        prompt_template:
-          type: string
-          description: Custom extraction prompt template
-          example: "Extract the main content from this webpage"
-
-    ChunkingConfig:
-      type: object
-      description: |
-        Chunking configuration (deprecated - handled by riptide-html).
-        This configuration is preserved for backward compatibility but has no effect.
-      properties:
-        mode:
-          type: string
-          enum: ["sliding", "fixed", "sentence", "topic", "regex"]
-          description: Chunking mode
-        token_max:
-          type: integer
-          description: Maximum tokens per chunk
-        overlap:
-          type: integer
-          description: Token overlap between chunks
-        preserve_sentences:
-          type: boolean
-          description: Preserve sentence boundaries
-
-    StrategiesCrawlResponse:
-      type: object
-      required:
-        - success
-        - result
-        - stats
-      properties:
-        success:
-          type: boolean
-          description: Indicates successful processing
-        result:
-          $ref: '#/components/schemas/StrategiesPipelineResult'
-        stats:
-          $ref: '#/components/schemas/ProcessingStats'
-
-    StrategiesPipelineResult:
-      type: object
-      required:
-        - processed_content
-        - from_cache
-        - gate_decision
-        - quality_score
-        - processing_time_ms
-        - cache_key
-        - http_status
-        - strategy_config
-      properties:
-        processed_content:
-          $ref: '#/components/schemas/ProcessedContent'
-        from_cache:
-          type: boolean
-          description: Whether result was served from cache
-        gate_decision:
-          type: string
-          enum: ["raw", "probes_first", "headless", "cached", "pdf"]
-          description: Content routing decision made by gate
-        quality_score:
-          type: number
-          minimum: 0.0
-          maximum: 1.0
-          description: Content quality score
-        processing_time_ms:
-          type: integer
-          description: Total processing time in milliseconds
-        cache_key:
-          type: string
-          description: Cache key used for this request
-        http_status:
-          type: integer
-          description: HTTP status code from original fetch
-        strategy_config:
-          $ref: '#/components/schemas/StrategyConfig'
-        performance_metrics:
-          $ref: '#/components/schemas/PerformanceMetrics'
-
-    ProcessedContent:
-      type: object
-      required:
-        - content
-      properties:
-        content:
-          type: string
-          description: Extracted and processed text content
-        metadata:
-          type: object
-          additionalProperties: true
-          description: Extracted metadata (title, author, date, etc.)
-        chunks:
-          type: array
-          items:
-            type: object
-          description: Content chunks (deprecated - empty array)
-        extracted_data:
-          type: object
-          additionalProperties: true
-          description: Strategy-specific extracted data
-
-    StrategyConfig:
-      type: object
-      required:
-        - extraction
-        - enable_metrics
-        - validate_schema
-      properties:
-        extraction:
-          type: string
-          description: Extraction strategy used
-          example: "Trek"
-        enable_metrics:
-          type: boolean
-          description: Whether metrics collection is enabled
-        validate_schema:
-          type: boolean
-          description: Whether schema validation is enabled
-
-    PerformanceMetrics:
-      type: object
-      properties:
-        extraction_time_ms:
-          type: integer
-          description: Time spent on content extraction
-        validation_time_ms:
-          type: integer
-          description: Time spent on schema validation
-        cache_lookup_ms:
-          type: integer
-          description: Time spent on cache lookup
-        total_time_ms:
-          type: integer
-          description: Total processing time
-        content_size_bytes:
-          type: integer
-          description: Size of extracted content in bytes
-        quality_checks_passed:
-          type: integer
-          description: Number of quality checks passed
-        quality_checks_failed:
-          type: integer
-          description: Number of quality checks failed
-
-    ProcessingStats:
-      type: object
-      required:
-        - chunks_created
-        - total_processing_time_ms
-        - extraction_strategy_used
-        - chunking_mode_used
-        - cache_hit
-        - quality_score
-      properties:
-        chunks_created:
-          type: integer
-          description: Number of content chunks created
-        total_processing_time_ms:
-          type: integer
-          description: Total processing time in milliseconds
-        extraction_strategy_used:
-          type: string
-          description: Extraction strategy that was used
-        chunking_mode_used:
-          type: string
-          description: Chunking mode that was used (deprecated)
-        cache_hit:
-          type: boolean
-          description: Whether result was served from cache
-        quality_score:
-          type: number
-          minimum: 0.0
-          maximum: 1.0
-          description: Content quality score
-
-    StrategiesInfo:
-      type: object
-      required:
-        - extraction_strategies
-        - chunking_modes
-      properties:
-        extraction_strategies:
-          type: array
-          items:
-            $ref: '#/components/schemas/StrategyInfo'
-          description: Available extraction strategies
-        chunking_modes:
-          type: array
-          items:
-            $ref: '#/components/schemas/ChunkingModeInfo'
-          description: Available chunking modes (deprecated)
-
-    StrategyInfo:
-      type: object
-      required:
-        - name
-        - description
-        - parameters
-      properties:
-        name:
-          type: string
-          description: Strategy identifier
-          example: "trek"
-        description:
-          type: string
-          description: Human-readable description
-          example: "Default WASM-based extraction (fastest)"
-        parameters:
-          type: array
-          items:
-            $ref: '#/components/schemas/StrategyParameter'
-          description: Required and optional parameters
-
-    StrategyParameter:
-      type: object
-      required:
-        - name
-        - required
-        - description
-      properties:
-        name:
-          type: string
-          description: Parameter name
-          example: "selectors"
-        required:
-          type: boolean
-          description: Whether parameter is required
-        description:
-          type: string
-          description: Parameter description
-          example: "CSS selectors mapping (field -> selector)"
-
-    ChunkingModeInfo:
-      type: object
-      required:
-        - name
-        - description
-        - parameters
-      properties:
-        name:
-          type: string
-          description: Chunking mode identifier
-          example: "sliding"
-        description:
-          type: string
-          description: Human-readable description
-          example: "Sliding windows with overlap (default)"
-        parameters:
-          type: array
-          items:
-            type: string
-          description: Available parameters for this mode
-          example: ["token_max", "overlap", "preserve_sentences"]
-
-  securitySchemes:
-    ApiKeyAuth:
-      type: apiKey
-      in: header
-      name: X-API-Key
-      description: API key for authentication
-
-  headers:
-    X-RateLimit-Limit:
-      description: Request limit per time window
-      schema:
-        type: integer
-    X-RateLimit-Remaining:
-      description: Remaining requests in current window
-      schema:
-        type: integer
-    X-RateLimit-Reset:
-      description: Time when rate limit resets (Unix timestamp)
-      schema:
-        type: integer
-    X-Session-ID:
-      description: Session identifier for request tracking
-      schema:
-        type: string
-
-tags:
-  - name: System
-    description: System monitoring and health endpoints
-  - name: Crawling
-    description: Web crawling and content extraction
-  - name: Streaming
-    description: Real-time streaming protocols
-  - name: Search
-    description: Web search with content extraction
-  - name: Rendering
-    description: Enhanced rendering with dynamic content support
-  - name: Strategies
-    description: Advanced extraction strategies and content processing
+      - Crawling
+      summary: Headless browser rendering
+  /spider/crawl:
+    post:
+      tags:
+      - Spider
+      summary: Deep crawl with Spider
+  /spider/status:
+    post:
+      tags:
+      - Spider
+      summary: Get spider status
+  /spider/control:
+    post:
+      tags:
+      - Spider
+      summary: Control spider (stop/reset)
+  /strategies/crawl:
+    post:
+      tags:
+      - Strategies
+      summary: Advanced extraction strategies
+  /strategies/info:
+    get:
+      tags:
+      - Strategies
+      summary: Get strategies info
+  /pdf/process:
+    post:
+      tags:
+      - PDF
+      summary: Process PDF file
+  /pdf/process-stream:
+    post:
+      tags:
+      - PDF
+      summary: Stream PDF processing
+  /pdf/health:
+    get:
+      tags:
+      - PDF
+      summary: PDF processor health
+  /stealth/configure:
+    post:
+      tags:
+      - Stealth
+      summary: Configure stealth settings
+  /stealth/test:
+    post:
+      tags:
+      - Stealth
+      summary: Test stealth effectiveness
+  /stealth/capabilities:
+    get:
+      tags:
+      - Stealth
+      summary: Get stealth capabilities
+  /stealth/health:
+    get:
+      tags:
+      - Stealth
+      summary: Stealth service health
+  /api/v1/tables/extract:
+    post:
+      tags:
+      - Tables
+      summary: Extract tables from HTML
+  /api/v1/tables/{id}/export:
+    get:
+      tags:
+      - Tables
+      summary: Export table (CSV/Markdown)
+  /api/v1/llm/providers:
+    get:
+      tags:
+      - LLM
+      summary: List LLM providers
+  /api/v1/llm/providers/switch:
+    post:
+      tags:
+      - LLM
+      summary: Switch LLM provider
+  /api/v1/llm/config:
+    get:
+      tags:
+      - LLM
+      summary: Get LLM config
+    post:
+      tags:
+      - LLM
+      summary: Update LLM config
+  /sessions:
+    post:
+      tags:
+      - Sessions
+      summary: Create session
+    get:
+      tags:
+      - Sessions
+      summary: List sessions
+  /sessions/stats:
+    get:
+      tags:
+      - Sessions
+      summary: Session statistics
+  /sessions/cleanup:
+    post:
+      tags:
+      - Sessions
+      summary: Cleanup expired sessions
+  /sessions/{session_id}:
+    get:
+      tags:
+      - Sessions
+      summary: Get session info
+    delete:
+      tags:
+      - Sessions
+      summary: Delete session
+  /sessions/{session_id}/extend:
+    post:
+      tags:
+      - Sessions
+      summary: Extend session TTL
+  /sessions/{session_id}/cookies:
+    post:
+      tags:
+      - Sessions
+      summary: Set cookie
+    delete:
+      tags:
+      - Sessions
+      summary: Clear all cookies
+  /sessions/{session_id}/cookies/{domain}:
+    get:
+      tags:
+      - Sessions
+      summary: Get domain cookies
+  /sessions/{session_id}/cookies/{domain}/{name}:
+    get:
+      tags:
+      - Sessions
+      summary: Get specific cookie
+    delete:
+      tags:
+      - Sessions
+      summary: Delete cookie
+  /workers/jobs:
+    post:
+      tags:
+      - Workers
+      summary: Submit async job
+  /workers/jobs/{job_id}:
+    get:
+      tags:
+      - Workers
+      summary: Get job status
+  /workers/jobs/{job_id}/result:
+    get:
+      tags:
+      - Workers
+      summary: Get job result
+  /workers/stats/queue:
+    get:
+      tags:
+      - Workers
+      summary: Queue statistics
+  /workers/stats/workers:
+    get:
+      tags:
+      - Workers
+      summary: Worker pool stats
+  /workers/metrics:
+    get:
+      tags:
+      - Workers
+      summary: Worker metrics
+  /workers/schedule:
+    post:
+      tags:
+      - Workers
+      summary: Create scheduled job
+    get:
+      tags:
+      - Workers
+      summary: List scheduled jobs
+  /workers/schedule/{job_id}:
+    delete:
+      tags:
+      - Workers
+      summary: Delete scheduled job
+  /monitoring/health-score:
+    get:
+      tags:
+      - Monitoring
+      summary: System health score (0-100)
+  /monitoring/performance-report:
+    get:
+      tags:
+      - Monitoring
+      summary: Performance report
+  /monitoring/metrics/current:
+    get:
+      tags:
+      - Monitoring
+      summary: Current metrics snapshot
+  /monitoring/alerts/rules:
+    get:
+      tags:
+      - Monitoring
+      summary: Alert rule definitions
+  /monitoring/alerts/active:
+    get:
+      tags:
+      - Monitoring
+      summary: Active alerts
+  /pipeline/phases:
+    get:
+      tags:
+      - Monitoring
+      summary: Pipeline phase metrics
