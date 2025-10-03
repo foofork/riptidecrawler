@@ -26,34 +26,43 @@ async fn test_join_transformer() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Test joining JSON array
-    selectors.insert("fruit_list".to_string(), CssSelectorConfig {
-        selector: ".json-array".to_string(),
-        transformers: vec!["join".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "fruit_list".to_string(),
+        CssSelectorConfig {
+            selector: ".json-array".to_string(),
+            transformers: vec!["join".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Test joining CSV data
-    selectors.insert("csv_items".to_string(), CssSelectorConfig {
-        selector: ".csv-data".to_string(),
-        transformers: vec!["join".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "csv_items".to_string(),
+        CssSelectorConfig {
+            selector: ".csv-data".to_string(),
+            transformers: vec!["join".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Test joining semicolon-separated data
-    selectors.insert("semicolon_items".to_string(), CssSelectorConfig {
-        selector: ".semicolon-list".to_string(),
-        transformers: vec!["join".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "semicolon_items".to_string(),
+        CssSelectorConfig {
+            selector: ".semicolon-list".to_string(),
+            transformers: vec!["join".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;
@@ -91,34 +100,43 @@ async fn test_regex_replace_transformer() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Test removing HTML tags from content
-    selectors.insert("clean_content".to_string(), CssSelectorConfig {
-        selector: ".html-content".to_string(),
-        transformers: vec!["regex_replace".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "clean_content".to_string(),
+        CssSelectorConfig {
+            selector: ".html-content".to_string(),
+            transformers: vec!["regex_replace".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Test cleaning messy whitespace
-    selectors.insert("clean_text".to_string(), CssSelectorConfig {
-        selector: ".messy-text".to_string(),
-        transformers: vec!["regex_replace".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "clean_text".to_string(),
+        CssSelectorConfig {
+            selector: ".messy-text".to_string(),
+            transformers: vec!["regex_replace".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Test cleaning tagged content
-    selectors.insert("tagged_clean".to_string(), CssSelectorConfig {
-        selector: ".tagged-content".to_string(),
-        transformers: vec!["regex_replace".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "tagged_clean".to_string(),
+        CssSelectorConfig {
+            selector: ".tagged-content".to_string(),
+            transformers: vec!["regex_replace".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;
@@ -146,14 +164,17 @@ async fn test_split_join_chain() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // First split the CSV, then join it back (normalizes formatting)
-    selectors.insert("normalized_tags".to_string(), CssSelectorConfig {
-        selector: ".tag-list".to_string(),
-        transformers: vec!["split".to_string(), "join".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "normalized_tags".to_string(),
+        CssSelectorConfig {
+            selector: ".tag-list".to_string(),
+            transformers: vec!["split".to_string(), "join".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;
@@ -183,41 +204,53 @@ async fn test_enhanced_html_decode() -> Result<()> {
 
     let mut selectors = HashMap::new();
 
-    selectors.insert("decoded1".to_string(), CssSelectorConfig {
-        selector: ".entities1".to_string(),
-        transformers: vec!["html_decode".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "decoded1".to_string(),
+        CssSelectorConfig {
+            selector: ".entities1".to_string(),
+            transformers: vec!["html_decode".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
-    selectors.insert("decoded2".to_string(), CssSelectorConfig {
-        selector: ".entities2".to_string(),
-        transformers: vec!["html_decode".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "decoded2".to_string(),
+        CssSelectorConfig {
+            selector: ".entities2".to_string(),
+            transformers: vec!["html_decode".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
-    selectors.insert("numeric_entities".to_string(), CssSelectorConfig {
-        selector: ".numeric".to_string(),
-        transformers: vec!["html_decode".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "numeric_entities".to_string(),
+        CssSelectorConfig {
+            selector: ".numeric".to_string(),
+            transformers: vec!["html_decode".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
-    selectors.insert("mixed_entities".to_string(), CssSelectorConfig {
-        selector: ".mixed".to_string(),
-        transformers: vec!["html_decode".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "mixed_entities".to_string(),
+        CssSelectorConfig {
+            selector: ".mixed".to_string(),
+            transformers: vec!["html_decode".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
     let result = extractor.extract(html, "https://example.com").await?;
@@ -259,82 +292,105 @@ async fn test_comprehensive_transformer_workflow() -> Result<()> {
     let mut selectors = HashMap::new();
 
     // Complex multi-transformer workflow
-    selectors.insert("clean_title".to_string(), CssSelectorConfig {
-        selector: ".title".to_string(),
-        transformers: vec![
-            "trim".to_string(),
-            "html_decode".to_string(),
-            "normalize_ws".to_string(),
-            "lowercase".to_string()
-        ],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: true,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "clean_title".to_string(),
+        CssSelectorConfig {
+            selector: ".title".to_string(),
+            transformers: vec![
+                "trim".to_string(),
+                "html_decode".to_string(),
+                "normalize_ws".to_string(),
+                "lowercase".to_string(),
+            ],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: true,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Extract and format price
-    selectors.insert("formatted_price".to_string(), CssSelectorConfig {
-        selector: ".price".to_string(),
-        transformers: vec!["currency".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "formatted_price".to_string(),
+        CssSelectorConfig {
+            selector: ".price".to_string(),
+            transformers: vec!["currency".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Clean description removing HTML tags
-    selectors.insert("clean_description".to_string(), CssSelectorConfig {
-        selector: ".description".to_string(),
-        transformers: vec!["regex_replace".to_string(), "normalize_ws".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "clean_description".to_string(),
+        CssSelectorConfig {
+            selector: ".description".to_string(),
+            transformers: vec!["regex_replace".to_string(), "normalize_ws".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Process tags: split -> lowercase -> join
-    selectors.insert("processed_tags".to_string(), CssSelectorConfig {
-        selector: ".tags".to_string(),
-        transformers: vec!["split".to_string(), "join".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::Merge),
-    });
+    selectors.insert(
+        "processed_tags".to_string(),
+        CssSelectorConfig {
+            selector: ".tags".to_string(),
+            transformers: vec!["split".to_string(), "join".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::Merge),
+        },
+    );
 
     // Extract numeric rating
-    selectors.insert("numeric_rating".to_string(), CssSelectorConfig {
-        selector: ".rating".to_string(),
-        transformers: vec!["number".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "numeric_rating".to_string(),
+        CssSelectorConfig {
+            selector: ".rating".to_string(),
+            transformers: vec!["number".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Parse and format JSON specs
-    selectors.insert("formatted_specs".to_string(), CssSelectorConfig {
-        selector: ".specs".to_string(),
-        transformers: vec!["json_parse".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::CssWins),
-    });
+    selectors.insert(
+        "formatted_specs".to_string(),
+        CssSelectorConfig {
+            selector: ".specs".to_string(),
+            transformers: vec!["json_parse".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::CssWins),
+        },
+    );
 
     // Convert relative URLs to absolute
-    selectors.insert("absolute_urls".to_string(), CssSelectorConfig {
-        selector: ".urls a".to_string(),
-        transformers: vec!["url_abs".to_string()],
-        has_text_filter: None,
-        fallbacks: vec![],
-        required: false,
-        merge_policy: Some(MergePolicy::Merge),
-    });
+    selectors.insert(
+        "absolute_urls".to_string(),
+        CssSelectorConfig {
+            selector: ".urls a".to_string(),
+            transformers: vec!["url_abs".to_string()],
+            has_text_filter: None,
+            fallbacks: vec![],
+            required: false,
+            merge_policy: Some(MergePolicy::Merge),
+        },
+    );
 
     let extractor = CssJsonExtractor::new(selectors);
-    let result = extractor.extract(html, "https://example.com/products").await?;
+    let result = extractor
+        .extract(html, "https://example.com/products")
+        .await?;
 
     // Should successfully process with multiple complex transformers
     assert!(!result.title.is_empty());
