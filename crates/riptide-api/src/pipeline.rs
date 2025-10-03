@@ -448,6 +448,8 @@ impl PipelineOrchestrator {
 
     /// Process PDF content using the PDF pipeline.
     async fn process_pdf_content(&self, pdf_bytes: &[u8], url: &str) -> ApiResult<ExtractedDoc> {
+        use crate::circuit_breaker_utils::process_pdf_with_circuit_breaker;
+
         let _pdf_config = self.options.pdf_config.clone().unwrap_or_default();
 
         info!(
@@ -457,44 +459,52 @@ impl PipelineOrchestrator {
         );
 
         let processor = pdf::create_pdf_processor();
-        let _config = pdf::PdfConfig::default();
-        match processor.process_pdf_bytes(pdf_bytes).await {
-            Ok(document) => {
-                info!(
-                    url = %url,
-                    text_length = document.text.len(),
-                    title = ?document.title,
-                    "PDF processing completed successfully"
-                );
-                Ok(riptide_core::convert_pdf_extracted_doc(document))
-            }
-            Err(e) => {
-                error!(
-                    url = %url,
-                    error = %e,
-                    "PDF processing failed"
-                );
+        let pdf_bytes_vec = pdf_bytes.to_vec();
+        let url_str = url.to_string();
 
-                // Return a fallback document with error information
-                Ok(ExtractedDoc {
-                    url: url.to_string(),
-                    title: Some("PDF Processing Failed".to_string()),
-                    byline: None,
-                    published_iso: None,
-                    markdown: Some(format!("**PDF Processing Error**: {}", e)),
-                    text: format!("PDF processing failed: {}", e),
-                    links: Vec::new(),
-                    media: Vec::new(),
-                    language: None,
-                    reading_time: Some(1),
-                    quality_score: Some(20), // Low quality due to error
-                    word_count: Some(5),
-                    categories: vec!["pdf".to_string(), "error".to_string()],
-                    site_name: None,
-                    description: Some("Failed to process PDF document".to_string()),
-                })
-            }
-        }
+        process_pdf_with_circuit_breaker(
+            &self.state.circuit_breaker,
+            &self.state.performance_metrics,
+            async move {
+                processor.process_pdf_bytes(&pdf_bytes_vec).await.map_err(|e| format!("PDF processing error: {}", e))
+            },
+        )
+        .await
+        .and_then(|document| {
+            info!(
+                url = %url_str,
+                text_length = document.text.len(),
+                title = ?document.title,
+                "PDF processing completed successfully"
+            );
+            Ok(riptide_core::convert_pdf_extracted_doc(document))
+        })
+        .or_else(|e| {
+            error!(
+                url = %url,
+                error = %e,
+                "PDF processing failed"
+            );
+
+            // Return a fallback document with error information
+            Ok(ExtractedDoc {
+                url: url.to_string(),
+                title: Some("PDF Processing Failed".to_string()),
+                byline: None,
+                published_iso: None,
+                markdown: Some(format!("**PDF Processing Error**: {}", e)),
+                text: format!("PDF processing failed: {}", e),
+                links: Vec::new(),
+                media: Vec::new(),
+                language: None,
+                reading_time: Some(1),
+                quality_score: Some(20), // Low quality due to error
+                word_count: Some(5),
+                categories: vec!["pdf".to_string(), "error".to_string()],
+                site_name: None,
+                description: Some("Failed to process PDF document".to_string()),
+            })
+        })
     }
 
     /// Fetch HTML content from a URL with timeout and error handling.
@@ -627,16 +637,27 @@ impl PipelineOrchestrator {
                 .await
             }
             Decision::ProbesFirst => {
-                // Try fast extraction first, fallback to headless if needed
-                match self
-                    .state
-                    .extractor
-                    .extract(html.as_bytes(), url, "article")
-                {
+                // Try fast extraction first with circuit breaker protection
+                let extractor = self.state.extractor.clone();
+                let html_bytes = html.as_bytes().to_vec();
+                let url_str = url.to_string();
+
+                let fast_result = extract_with_circuit_breaker(
+                    &self.state.circuit_breaker,
+                    &self.state.performance_metrics,
+                    async move {
+                        extractor
+                            .extract(&html_bytes, &url_str, "article")
+                            .map(convert_html_doc)
+                    },
+                )
+                .await;
+
+                match fast_result {
                     Ok(doc) => {
                         // Validate extraction quality
                         if doc.text.len() > 100 && doc.title.is_some() {
-                            Ok(convert_html_doc(doc))
+                            Ok(doc)
                         } else {
                             debug!(url = %url, "Fast extraction produced low-quality result, falling back to headless");
                             self.extract_with_headless(url).await
@@ -649,7 +670,7 @@ impl PipelineOrchestrator {
                 }
             }
             Decision::Headless => {
-                // Use headless browser extraction
+                // Use headless browser extraction with circuit breaker protection
                 self.extract_with_headless(url).await
             }
         }
@@ -674,40 +695,50 @@ impl PipelineOrchestrator {
 
     /// Render page with headless browser and extract content.
     async fn render_and_extract(&self, url: &str, headless_url: &str) -> ApiResult<ExtractedDoc> {
-        // Construct headless service request
-        let render_request = serde_json::json!({
-            "url": url,
-            "wait_for": self.options.dynamic_wait_for,
-            "scroll_steps": self.options.scroll_steps
-        });
+        use crate::circuit_breaker_utils::headless_extract_with_circuit_breaker;
 
-        let response = self
-            .state
-            .http_client
-            .post(format!("{}/render", headless_url))
-            .json(&render_request)
-            .send()
-            .await
-            .map_err(|e| ApiError::dependency("headless_service", e.to_string()))?;
+        let http_client = self.state.http_client.clone();
+        let extractor = self.state.extractor.clone();
+        let headless_url_str = headless_url.to_string();
+        let url_str = url.to_string();
+        let wait_for = self.options.dynamic_wait_for.clone();
+        let scroll_steps = self.options.scroll_steps;
 
-        if !response.status().is_success() {
-            return Err(ApiError::dependency(
-                "headless_service",
-                format!("Render request failed: {}", response.status()),
-            ));
-        }
+        headless_extract_with_circuit_breaker(
+            &self.state.circuit_breaker,
+            &self.state.performance_metrics,
+            async move {
+                // Construct headless service request
+                let render_request = serde_json::json!({
+                    "url": url_str,
+                    "wait_for": wait_for,
+                    "scroll_steps": scroll_steps
+                });
 
-        let rendered_html = response
-            .text()
-            .await
-            .map_err(|e| ApiError::dependency("headless_service", e.to_string()))?;
+                let response = http_client
+                    .post(format!("{}/render", headless_url_str))
+                    .json(&render_request)
+                    .send()
+                    .await
+                    .map_err(|e| format!("Headless request failed: {}", e))?;
 
-        // Extract from rendered HTML
-        self.state
-            .extractor
-            .extract(rendered_html.as_bytes(), url, "article")
-            .map(convert_html_doc)
-            .map_err(|e| ApiError::extraction(format!("Headless extraction failed: {}", e)))
+                if !response.status().is_success() {
+                    return Err(format!("Render request failed: {}", response.status()));
+                }
+
+                let rendered_html = response
+                    .text()
+                    .await
+                    .map_err(|e| format!("Failed to read rendered HTML: {}", e))?;
+
+                // Extract from rendered HTML
+                extractor
+                    .extract(rendered_html.as_bytes(), &url_str, "article")
+                    .map(convert_html_doc)
+                    .map_err(|e| format!("Headless extraction failed: {}", e))
+            },
+        )
+        .await
     }
 
     /// Check cache for existing content.
