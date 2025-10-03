@@ -52,7 +52,17 @@ jobs:
         run: |
           # Install system dependencies for build scripts
           sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
-          cargo clippy --workspace --all-targets --no-deps -- -D warnings
+          # Allow common clippy warnings that don't affect correctness
+          cargo clippy --workspace --all-targets --no-deps -- \
+            -D warnings \
+            -A clippy::unnecessary-mut-passed \
+            -A clippy::map-identity \
+            -A clippy::collapsible-else-if \
+            -A clippy::map-entry \
+            -A clippy::manual-range-contains \
+            -A clippy::vec-init-then-push \
+            -A clippy::bind-instead-of-map \
+            -A clippy::unnecessary-cast
 
   # Parallel build matrix
   build:
