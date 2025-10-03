@@ -29,7 +29,28 @@ This document provides a comprehensive overview of all RipTide API endpoints, or
 
 Returns detailed health information including dependency status, system metrics, and uptime.
 
-**Response**:
+**Status Codes**:
+- `200 OK` - All systems operational
+- `503 Service Unavailable` - One or more critical dependencies unhealthy
+
+**Response Fields**:
+- `status` - Overall health status (`healthy`, `degraded`, `unhealthy`)
+- `version` - API version string
+- `timestamp` - Current server time (ISO 8601)
+- `uptime` - Server uptime in seconds
+- `dependencies` - Health status of each component
+  - `redis` - Cache layer status
+  - `extractor` - WASM extraction engine status
+  - `http_client` - HTTP client pool status
+  - `headless_service` - Browser automation service status (optional)
+  - `spider_engine` - Deep crawling engine status
+- `metrics` - Real-time performance metrics
+  - `memory_usage_bytes` - Current memory consumption
+  - `active_connections` - Number of active HTTP connections
+  - `total_requests` - Total requests processed since startup
+  - `requests_per_second` - Current request rate
+
+**Example Response**:
 ```json
 {
   "status": "healthy",
@@ -37,11 +58,11 @@ Returns detailed health information including dependency status, system metrics,
   "timestamp": "2025-01-15T10:30:00Z",
   "uptime": 3600,
   "dependencies": {
-    "redis": {"status": "healthy"},
-    "extractor": {"status": "healthy"},
-    "http_client": {"status": "healthy"},
-    "headless_service": {"status": "healthy"},
-    "spider_engine": {"status": "healthy"}
+    "redis": {"status": "healthy", "latency_ms": 2.5},
+    "extractor": {"status": "healthy", "modules_loaded": 3},
+    "http_client": {"status": "healthy", "pool_size": 100},
+    "headless_service": {"status": "healthy", "instances": 5},
+    "spider_engine": {"status": "healthy", "active_crawls": 12}
   },
   "metrics": {
     "memory_usage_bytes": 104857600,
@@ -50,6 +71,25 @@ Returns detailed health information including dependency status, system metrics,
     "requests_per_second": 50.5
   }
 }
+```
+
+**Usage**:
+```bash
+# Basic health check
+curl http://localhost:8080/healthz
+
+# With jq for pretty output
+curl -s http://localhost:8080/healthz | jq '.'
+
+# Check only status
+curl -s http://localhost:8080/healthz | jq -r '.status'
+
+# Monitoring script
+while true; do
+  STATUS=$(curl -s http://localhost:8080/healthz | jq -r '.status')
+  echo "$(date): RipTide is $STATUS"
+  sleep 30
+done
 ```
 
 ### 2. GET `/metrics` - Prometheus Metrics

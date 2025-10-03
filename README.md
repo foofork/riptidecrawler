@@ -1,4 +1,4 @@
-# 🌊 RipTide - High-Performance Web Crawler & Content Extraction API
+# 🌊 RipTide - High-Performance Web Crawler & Content Extraction
 
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -68,13 +68,42 @@ RipTide is a blazingly fast, production-ready API for web content extraction. Bu
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### ⚡ Try RipTide in 30 Seconds
 
-- **Rust** 1.75+ ([Install Rust](https://rustup.rs/))
-- **Redis** 7+ (for caching)
-- **Docker** (optional, for containerized deployment)
+**Option 1: Pre-built Docker Image (Fastest)**
 
-### Installation
+```bash
+# Pull and run RipTide instantly (no build required!)
+docker run -d \
+  -p 8080:8080 \
+  -p 8081:8080 \
+  --name riptide \
+  -e REDIS_URL=redis://host.docker.internal:6379 \
+  riptide/api:latest
+
+# Or use our quick-start script (recommended)
+curl -fsSL https://raw.githubusercontent.com/your-org/riptide-api/main/scripts/quick-start.sh | bash
+
+# Access:
+# - API: http://localhost:8080
+# - Swagger UI: http://localhost:8081
+# - Health: http://localhost:8080/healthz
+```
+
+**Option 2: Docker Compose (Full Stack)**
+
+```bash
+# Automated setup with Redis + Swagger UI
+./scripts/quick-start.sh
+
+# Or manually:
+docker-compose up -d
+
+# Access API at: http://localhost:8080
+# Swagger UI at: http://localhost:8081
+```
+
+**Option 3: From Source (Development)**
 
 ```bash
 # Clone the repository
@@ -90,19 +119,13 @@ cargo run --release --package riptide-api
 # API available at: http://localhost:8080
 ```
 
-### Docker Quick Start
+### 🧪 Test Your Installation
 
 ```bash
-# Build and run with Docker Compose
-docker-compose up -d
+# Run automated tests
+./scripts/test-riptide.sh
 
-# Access API at: http://localhost:8080
-# Swagger UI at: http://localhost:8081
-```
-
-### Your First API Call
-
-```bash
+# Or test manually:
 # Health check
 curl http://localhost:8080/healthz
 
@@ -117,6 +140,10 @@ curl -X POST http://localhost:8080/crawl \
     }
   }'
 ```
+
+### 📖 Self-Hosting Guide
+
+For detailed instructions on production deployment, security, scaling, and advanced configurations, see our [Self-Hosting Guide](SELF_HOSTING.md).
 
 ---
 
@@ -144,6 +171,8 @@ docker-compose -f docker-compose.swagger.yml up -d swagger-ui
 
 ## 🏗️ Architecture
 
+**[📐 View Full System Diagram](docs/architecture/system-diagram.md)** - Complete visual architecture with data flows
+
 ### Dual-Path Pipeline
 
 ```
@@ -166,11 +195,11 @@ docker-compose -f docker-compose.swagger.yml up -d swagger-ui
 - **Adaptive Gate** - Intelligent routing based on content analysis
 - **Event Bus** - Central event system for monitoring & coordination
 - **Circuit Breaker** - Automatic failover for external dependencies
-- **WASM Extractor** - High-performance WebAssembly content extraction
-- **Redis Cache** - Distributed caching with TTL
+- **WASM Extractor** - High-performance WebAssembly content extraction (~45ms avg)
+- **Redis Cache** - Distributed caching with TTL (40-60% hit rate)
 - **Worker Pool** - Async job processing with scheduling
 
-📐 **[Architecture Overview](docs/architecture/system-overview.md)** | 🔧 **[Configuration Guide](docs/architecture/configuration-guide.md)**
+📐 **[Full Diagram](docs/architecture/system-diagram.md)** | 🏛️ **[System Overview](docs/architecture/system-overview.md)** | 🔧 **[Configuration Guide](docs/architecture/configuration-guide.md)**
 
 ---
 
@@ -419,9 +448,6 @@ cargo fmt
 
 ## 🔒 Security
 
-### Reporting Vulnerabilities
-
-Please report security vulnerabilities to: security@riptide.dev
 
 ### Security Features
 
@@ -450,27 +476,3 @@ Built with:
 - [WebAssembly](https://webassembly.org/) - High-performance extraction
 - [Redis](https://redis.io/) - Caching layer
 
----
-
-## 📞 Support & Community
-
-- 💬 **Discord:** [Join our community](https://discord.gg/riptide)
-- 📧 **Email:** support@riptide.dev
-- 🐛 **Issues:** [GitHub Issues](https://github.com/your-org/riptide-api/issues)
-- 📚 **Documentation:** [docs.riptide.dev](https://docs.riptide.dev)
-
----
-
-## 🌟 Star History
-
-If you find RipTide useful, please consider giving it a star! ⭐
-
----
-
-<div align="center">
-
-**Made with ❤️ by the RipTide Team**
-
-[Website](https://riptide.dev) • [Documentation](docs/README.md) • [API Reference](docs/api/openapi.yaml) • [Contributing](docs/development/contributing.md)
-
-</div>

@@ -40,16 +40,37 @@ The RipTide API is a web crawling and content extraction service powered by WebA
 
 ## Quick Start
 
-### Basic Installation
+### ⚡ Try RipTide in 30 Seconds
 
 ```bash
-# Start the API server
-docker run -p 8080:8080 riptide/api:latest
+# Option 1: Pre-built Docker image (fastest)
+docker run -d -p 8080:8080 -p 8081:8080 --name riptide riptide/api:latest
 
-# Or use the development setup
+# Option 2: Quick start script with full stack
+curl -fsSL https://raw.githubusercontent.com/your-org/riptide-api/main/scripts/quick-start.sh | bash
+
+# Option 3: Development setup
 git clone https://github.com/your-org/RipTide.git
 cd RipTide
 cargo run --bin riptide-api
+```
+
+### Health Check & Verification
+
+```bash
+# Check if RipTide is ready
+curl http://localhost:8080/healthz
+
+# Expected response:
+# {
+#   "status": "healthy",
+#   "version": "1.0.0",
+#   "dependencies": {...},
+#   "metrics": {...}
+# }
+
+# View Swagger UI documentation
+# Open http://localhost:8081 in your browser
 ```
 
 ### Simple Example
@@ -71,6 +92,21 @@ const response = await fetch('http://localhost:8080/crawl', {
 
 const result = await response.json();
 console.log(result.results[0].document.title);
+```
+
+### Testing Your Setup
+
+```bash
+# Run automated test suite
+./scripts/test-riptide.sh
+
+# Tests include:
+# ✅ Health Check
+# ✅ Prometheus Metrics
+# ✅ Basic Crawl
+# ✅ Session Management
+# ✅ Worker Status
+# ✅ Monitoring Endpoints
 ```
 
 ## Documentation Structure
@@ -120,11 +156,62 @@ console.log(result.results[0].document.title);
 
 | Endpoint | Method | Description | Features |
 |----------|--------|-------------|----------|
-| `/healthz` | GET | System health check | Dependency validation, metrics |
+| `/healthz` | GET | System health check | [Dependency validation, metrics, status codes](#health-check-details) |
 | `/metrics` | GET | Prometheus metrics | Performance monitoring |
 | `/crawl` | POST | Batch URL crawling | Concurrent processing, caching |
 | `/deepsearch` | POST | Web search + extraction | Serper.dev integration |
 | `/render` | POST | Enhanced rendering | Dynamic content, stealth mode |
+
+#### Health Check Details
+
+The `/healthz` endpoint provides comprehensive system status:
+
+**Status Codes**:
+- `200 OK` - All systems operational
+- `503 Service Unavailable` - One or more dependencies unhealthy
+
+**Response Structure**:
+```json
+{
+  "status": "healthy|degraded|unhealthy",
+  "version": "1.0.0",
+  "timestamp": "2025-01-15T10:30:00Z",
+  "uptime": 3600,
+  "dependencies": {
+    "redis": {"status": "healthy", "latency_ms": 2.5},
+    "extractor": {"status": "healthy", "modules_loaded": 3},
+    "http_client": {"status": "healthy", "pool_size": 100},
+    "headless_service": {"status": "healthy", "instances": 5},
+    "spider_engine": {"status": "healthy", "active_crawls": 12}
+  },
+  "metrics": {
+    "memory_usage_bytes": 104857600,
+    "active_connections": 10,
+    "total_requests": 1000,
+    "requests_per_second": 50.5
+  }
+}
+```
+
+**Usage Examples**:
+```bash
+# Basic health check
+curl http://localhost:8080/healthz
+
+# Monitor continuously
+watch -n 5 'curl -s http://localhost:8080/healthz | jq ".status"'
+
+# Check dependency status
+curl -s http://localhost:8080/healthz | jq '.dependencies'
+
+# Integration in monitoring
+STATUS=$(curl -sf http://localhost:8080/healthz | jq -r '.status')
+if [ "$STATUS" != "healthy" ]; then
+  echo "Alert: RipTide is $STATUS" | mail -s "RipTide Health Alert" admin@example.com
+fi
+```
+
+See [ENDPOINT_CATALOG.md](./ENDPOINT_CATALOG.md) for complete documentation on all 59 endpoints.
 
 ### Streaming Endpoints
 

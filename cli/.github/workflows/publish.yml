@@ -1,0 +1,84 @@
+name: Publish CLI to npm
+
+on:
+  push:
+    tags:
+      - 'cli-v*'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          cd cli
+          npm ci
+
+      - name: Run linter
+        run: |
+          cd cli
+          npm run lint
+
+      - name: Run tests
+        run: |
+          cd cli
+          npm test
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: |
+          cd cli
+          npm ci
+
+      - name: Build
+        run: |
+          cd cli
+          # Add build step if needed
+
+      - name: Publish to npm
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          cd cli
+          npm publish --access public
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: RipTide CLI ${{ github.ref }}
+          body: |
+            ## Installation
+
+            ```bash
+            npm install -g @riptide/cli
+            ```
+
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/cli/CHANGELOG.md) for details.
+          draft: false
+          prerelease: false

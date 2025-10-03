@@ -1,0 +1,51 @@
+version: '3.8'
+
+# This Docker Compose file provides a simple way to self-host the RipTide API.
+# It includes the main API service, a Redis database for caching, and a Swagger UI for API documentation.
+#
+# For a more advanced setup with an API Gateway, see the docker-compose.gateway.yml file.
+
+services:
+  # RipTide API (backend service)
+  riptide-api:
+    build: .
+    container_name: riptide-api
+    ports:
+      - "8080:8080"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - WASM_PATH=/app/wasm/riptide.wasm
+      # Load environment variables from the .env file
+    env_file:
+      - .env
+    networks:
+      - riptide-network
+    restart: unless-stopped
+
+  # Redis for RipTide
+  redis:
+    image: redis:7-alpine
+    container_name: riptide-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - riptide-network
+    restart: unless-stopped
+
+  # Swagger UI for API Documentation
+  swagger-ui:
+    image: swaggerapi/swagger-ui:latest
+    container_name: riptide-swagger-ui
+    ports:
+      - "8081:8080"
+    environment:
+      SWAGGER_JSON: /openapi.yaml
+    volumes:
+      - ./docs/api/openapi.yaml:/openapi.yaml:ro
+    networks:
+      - riptide-network
+    restart: unless-stopped
+
+networks:
+  riptide-network:
+    driver: bridge

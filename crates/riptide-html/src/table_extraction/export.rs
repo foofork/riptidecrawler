@@ -339,7 +339,7 @@ impl AdvancedTableData {
 mod tests {
     use super::*;
     use crate::table_extraction::models::{
-        TableHeaders, TableRow, TableMetadata, TableStructure, CellType, RowType
+        TableHeaders, TableRow, TableMetadata, TableStructure, CellType, RowType, TableCell
     };
     use std::collections::HashMap;
 
