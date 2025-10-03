@@ -16,9 +16,9 @@ env:
   RUST_LOG: warn
   # Maximum parallelization
   CARGO_BUILD_JOBS: 8
-  # Sccache for distributed compilation cache
-  SCCACHE_GHA_ENABLED: "true"
-  RUSTC_WRAPPER: "sccache"
+  # Sccache disabled due to GitHub infrastructure reliability issues
+  # SCCACHE_GHA_ENABLED: "true"
+  # RUSTC_WRAPPER: "sccache"
 
 jobs:
   # Lightning-fast preliminary checks
@@ -54,8 +54,9 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Setup sccache
-        uses: mozilla-actions/sccache-action@v0.0.3
+      # Sccache disabled due to GitHub infrastructure outages
+      # - name: Setup sccache
+      #   uses: mozilla-actions/sccache-action@v0.0.3
 
       - name: Restore build cache
         uses: Swatinem/rust-cache@v2
@@ -100,8 +101,9 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Setup sccache
-        uses: mozilla-actions/sccache-action@v0.0.3
+      # Sccache disabled due to GitHub infrastructure outages
+      # - name: Setup sccache
+      #   uses: mozilla-actions/sccache-action@v0.0.3
 
       - name: Restore dependency cache
         uses: Swatinem/rust-cache@v2
@@ -179,8 +181,9 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Setup sccache
-        uses: mozilla-actions/sccache-action@v0.0.3
+      # Sccache disabled due to GitHub infrastructure outages
+      # - name: Setup sccache
+      #   uses: mozilla-actions/sccache-action@v0.0.3
 
       - name: Restore cache
         uses: Swatinem/rust-cache@v2

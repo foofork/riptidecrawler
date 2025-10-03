@@ -11,7 +11,7 @@ env:
   RUST_BACKTRACE: 1
   RUSTFLAGS: "-Dwarnings -C target-cpu=native"
   CARGO_TERM_COLOR: always
-  CARGO_INCREMENTAL: 1
+  CARGO_INCREMENTAL: 0
   CARGO_NET_RETRY: 10
   RUST_LOG: warn
   # Optimize for CI speed
