@@ -348,10 +348,7 @@ pub fn extract_trace_context(_headers: &axum::http::HeaderMap) -> Option<SpanCon
 
 /// Inject trace context into HTTP headers (TELEM-004)
 #[allow(dead_code)]
-pub fn inject_trace_context(
-    headers: &mut reqwest::header::HeaderMap,
-    span_context: &SpanContext,
-) {
+pub fn inject_trace_context(headers: &mut reqwest::header::HeaderMap, span_context: &SpanContext) {
     use opentelemetry::propagation::Injector;
 
     struct HeaderInjector<'a>(&'a mut reqwest::header::HeaderMap);
