@@ -16,7 +16,8 @@ RipTide is a high-performance web content extraction system built in Rust with a
 - [API Reference](api/README.md) - REST API documentation
 - [Architecture](architecture/system-overview.md) - System design and components
 - [Development Setup](development/getting-started.md) - Contributor onboarding
-- [Crawl4AI Comparison](COMPARISON_REPORT.md) - Feature comparison analysis
+- [Crawl4AI Comparison](CRAWL4AI_COMPARISON_REPORT.md) - Feature comparison analysis
+- [API Tooling Guide](API_TOOLING_QUICKSTART.md) - CLI, SDK, and playground tools
 
 ### By Role
 - **Users**: [Installation](user/installation.md) → [API Usage](user/api-usage.md) → [Troubleshooting](user/troubleshooting.md)
@@ -56,6 +57,13 @@ Keep documentation current as the project evolves:
 - **[Streaming](api/streaming.md)** - Real-time streaming protocols
 - **[Session Management](api/session-management.md)** - Session handling
 - **[Security](api/security.md)** - Security best practices
+
+### User Tools & SDKs
+
+- **[CLI Tool](../cli/README.md)** - Command-line interface for RipTide (npm)
+- **[Python SDK](../python-sdk/README.md)** - Official Python client library (PyPI)
+- **[Web Playground](../playground/README.md)** - Interactive API playground (React)
+- **[API Tooling Quickstart](API_TOOLING_QUICKSTART.md)** - Complete guide to all tools
 
 ## Quick Start
 
