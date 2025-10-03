@@ -162,7 +162,7 @@ pub struct TraceSummary {
     )
 )]
 pub async fn list_traces(
-    State(_state): State<AppState>,  // TODO: Wire up to actual trace backend
+    State(_state): State<AppState>, // TODO: Wire up to actual trace backend
     Query(query): Query<TraceQueryParams>,
 ) -> Result<Json<Vec<TraceMetadata>>, ApiError> {
     info!("Listing traces with query: {:?}", query);
@@ -204,7 +204,7 @@ pub async fn list_traces(
     )
 )]
 pub async fn get_trace_tree(
-    State(_state): State<AppState>,  // TODO: Wire up to actual trace backend
+    State(_state): State<AppState>, // TODO: Wire up to actual trace backend
     Query(query): Query<TraceQueryParams>,
 ) -> Result<Json<TraceTreeResponse>, ApiError> {
     let trace_id_str = query
@@ -354,7 +354,7 @@ pub async fn get_trace_tree(
     )
 )]
 pub async fn get_telemetry_status(
-    State(_state): State<AppState>,  // TODO: Use state for runtime telemetry info
+    State(_state): State<AppState>, // TODO: Use state for runtime telemetry info
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let config = crate::telemetry_config::TelemetryConfig::from_env();
 

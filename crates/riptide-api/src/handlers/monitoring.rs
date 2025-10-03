@@ -4,11 +4,7 @@
 //! including health scores, performance reports, and alert management.
 
 use crate::state::{AppState, PerformanceReport};
-use axum::{
-    extract::State,
-    http::StatusCode,
-    response::Json,
-};
+use axum::{extract::State, http::StatusCode, response::Json};
 use serde::Serialize;
 
 // Allow unused imports - these may be used in future endpoint implementations
