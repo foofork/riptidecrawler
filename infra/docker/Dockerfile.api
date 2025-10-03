@@ -29,7 +29,10 @@ COPY crates/riptide-workers/Cargo.toml crates/riptide-workers/
 COPY wasm/riptide-extractor-wasm/Cargo.toml wasm/riptide-extractor-wasm/
 
 # Remove benchmark configurations that require benches/ directory
-RUN sed -i '/\[\[bench\]\]/,/required-features/d' crates/riptide-persistence/Cargo.toml || true
+# (benches are not copied in the dependency caching layer)
+RUN sed -i '/\[\[bench\]\]/,/required-features/d' crates/riptide-core/Cargo.toml || true && \
+    sed -i '/\[\[bench\]\]/,/required-features/d' crates/riptide-performance/Cargo.toml || true && \
+    sed -i '/\[\[bench\]\]/,/required-features/d' crates/riptide-persistence/Cargo.toml || true
 
 # Create stub source files for dependency caching
 RUN mkdir -p crates/riptide-core/src crates/riptide-api/src \
