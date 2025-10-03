@@ -8,10 +8,11 @@ use anyhow::Result;
 use reqwest::Client;
 use riptide_core::{
     cache::CacheManager,
+    cache_warming::CacheWarmingConfig,
     circuit_breaker::CircuitBreakerState,
     component::PerformanceMetrics,
-    events::{BaseEvent, EventBus, EventBusConfig, EventSeverity},
-    fetch::http_client,
+    events::{EventBus, EventBusConfig, EventSeverity},
+    fetch::{http_client, FetchEngine},
     monitoring::{
         AlertCondition, AlertManager, AlertRule, AlertSeverity, HealthCalculator,
         MetricsCollector, MonitoringConfig,
@@ -19,7 +20,7 @@ use riptide_core::{
     pdf::PdfMetricsCollector,
     reliability::{ReliableExtractor, ReliabilityConfig},
     spider::{Spider, SpiderConfig},
-    telemetry::{TelemetrySystem, telemetry_span},
+    telemetry::TelemetrySystem,
 };
 use riptide_html::wasm_extraction::WasmExtractor;
 use riptide_workers::{WorkerService, WorkerServiceConfig};
@@ -90,6 +91,12 @@ pub struct AppState {
 
     /// Monitoring system for performance tracking and alerting
     pub monitoring_system: Arc<MonitoringSystem>,
+
+    /// FetchEngine for HTTP operations with per-host circuit breakers and rate limiting
+    pub fetch_engine: Arc<FetchEngine>,
+
+    /// Future: CacheWarmer for intelligent cache pre-warming (placeholder for now)
+    pub cache_warmer_enabled: bool,
 }
 
 /// Application configuration loaded from environment and config files.
@@ -134,6 +141,66 @@ pub struct AppConfig {
 
     /// Monitoring system configuration
     pub monitoring_config: MonitoringConfig,
+
+    /// Enhanced pipeline configuration
+    pub enhanced_pipeline_config: EnhancedPipelineConfig,
+
+    /// Cache warming configuration
+    pub cache_warming_config: CacheWarmingConfig,
+}
+
+/// Enhanced pipeline configuration for phase timing and metrics
+#[derive(Clone, Debug)]
+pub struct EnhancedPipelineConfig {
+    /// Enable enhanced pipeline with detailed phase timing
+    pub enable_enhanced_pipeline: bool,
+    /// Enable phase timing metrics collection
+    pub enable_phase_metrics: bool,
+    /// Enable detailed debug logging for each phase
+    pub enable_debug_logging: bool,
+    /// Timeout for fetch phase in seconds
+    pub fetch_timeout_secs: u64,
+    /// Timeout for gate phase in seconds
+    pub gate_timeout_secs: u64,
+    /// Timeout for WASM phase in seconds
+    pub wasm_timeout_secs: u64,
+    /// Timeout for render phase in seconds
+    pub render_timeout_secs: u64,
+}
+
+impl Default for EnhancedPipelineConfig {
+    fn default() -> Self {
+        Self {
+            enable_enhanced_pipeline: std::env::var("ENHANCED_PIPELINE_ENABLE")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(true), // Enabled by default
+            enable_phase_metrics: std::env::var("ENHANCED_PIPELINE_METRICS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(true),
+            enable_debug_logging: std::env::var("ENHANCED_PIPELINE_DEBUG")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(false), // Disabled by default to avoid log spam
+            fetch_timeout_secs: std::env::var("ENHANCED_PIPELINE_FETCH_TIMEOUT")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(15),
+            gate_timeout_secs: std::env::var("ENHANCED_PIPELINE_GATE_TIMEOUT")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(5),
+            wasm_timeout_secs: std::env::var("ENHANCED_PIPELINE_WASM_TIMEOUT")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(30),
+            render_timeout_secs: std::env::var("ENHANCED_PIPELINE_RENDER_TIMEOUT")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(60),
+        }
+    }
 }
 
 /// Circuit breaker configuration
@@ -198,6 +265,8 @@ impl Default for AppConfig {
             circuit_breaker_config: CircuitBreakerConfig::default(),
             reliability_config: ReliabilityConfig::from_env(),
             monitoring_config: MonitoringConfig::default(),
+            enhanced_pipeline_config: EnhancedPipelineConfig::default(),
+            cache_warming_config: CacheWarmingConfig::default(),
         }
     }
 }
@@ -575,7 +644,20 @@ impl AppState {
 
         tracing::info!("Monitoring system initialized with alert rules and background evaluation task");
 
-        tracing::info!("Application state initialization complete with resource controls, event bus, circuit breaker, and monitoring");
+        // Initialize FetchEngine with configuration
+        tracing::info!("Initializing FetchEngine for HTTP operations with per-host circuit breakers");
+        let fetch_engine = Arc::new(FetchEngine::new().map_err(|e| {
+            anyhow::anyhow!("Failed to initialize FetchEngine: {}", e)
+        })?);
+        tracing::info!("FetchEngine initialized successfully");
+
+        // Note: CacheWarmer initialization to be added in future
+        let cache_warmer_enabled = config.cache_warming_config.enabled;
+        if cache_warmer_enabled {
+            tracing::info!("CacheWarmer feature flag enabled (full implementation pending)");
+        }
+
+        tracing::info!("Application state initialization complete with resource controls, event bus, circuit breaker, monitoring, fetch engine, and cache warming");
 
         Ok(Self {
             http_client,
@@ -597,6 +679,8 @@ impl AppState {
             circuit_breaker,
             performance_metrics,
             monitoring_system,
+            fetch_engine,
+            cache_warmer_enabled,
         })
     }
 
@@ -613,7 +697,6 @@ impl AppState {
     ///
     /// A `HealthStatus` indicating the overall health and any issues.
     pub async fn health_check(&self) -> HealthStatus {
-        let _span = telemetry_span!("health_check");
         info!("Starting health check");
         let mut health = HealthStatus {
             healthy: true,
@@ -874,8 +957,6 @@ impl MonitoringSystem {
     pub fn start_alert_evaluation_task(&self, event_bus: Arc<EventBus>) {
         let metrics_collector = self.metrics_collector.clone();
         let alert_manager = self.alert_manager.clone();
-        let event_bus_clone = event_bus.clone();
-
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(30));
 

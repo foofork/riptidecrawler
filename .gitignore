@@ -97,6 +97,7 @@ Thumbs.db
 
 # Memory and coordination
 memory/claude-flow-data.json
+memory/claude-flow@alpha-data.json
 memory/sessions/*
 !memory/sessions/README.md
 memory/agents/*
@@ -182,7 +183,8 @@ new-test.log
 scripts/*.log
 
 # Monitoring data
-.claude-flow/metrics/
+.claude-flow/
+.claude-flow/**
 
 # Local configuration overrides
 *.local.json
@@ -212,6 +214,10 @@ $RECYCLE.BIN/
 
 # Claude Flow generated files
 .claude/settings.local.json
+.claude/agents/flow-nexus/
+.claude/agents/hive-mind/
+.claude/agents/goal/
+.claude/commands/flow-nexus/
 .mcp.json
 claude-flow.config.json
 .swarm/

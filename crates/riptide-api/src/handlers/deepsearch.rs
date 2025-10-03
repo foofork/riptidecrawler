@@ -2,11 +2,13 @@ use crate::errors::{ApiError, ApiResult};
 use crate::models::{CrawlResult, DeepSearchBody, DeepSearchResponse, SearchResult};
 use crate::pipeline::PipelineOrchestrator;
 use crate::state::AppState;
+use crate::telemetry_config::extract_trace_context;
 use crate::validation::validate_deepsearch_request;
-use axum::{extract::State, response::IntoResponse, Json};
+use axum::{extract::State, http::HeaderMap, response::IntoResponse, Json};
+use opentelemetry::trace::SpanKind;
 use riptide_core::events::{BaseEvent, EventSeverity};
 use std::time::Instant;
-use tracing::{debug, info, warn};
+use tracing::{debug, info, warn, Span};
 
 /// Deep search endpoint using configurable search providers for web search and content extraction.
 ///
@@ -18,11 +20,32 @@ use tracing::{debug, info, warn};
 /// 5. Returns combined search and content results
 ///
 /// Supports multiple search backends configured via environment variables.
+#[tracing::instrument(
+    name = "deepsearch_handler",
+    skip(state, body, headers),
+    fields(
+        http.method = "POST",
+        http.route = "/deepsearch",
+        query = %body.query,
+        limit = body.limit.unwrap_or(10),
+        include_content = body.include_content.unwrap_or(true),
+        otel.kind = ?SpanKind::Server,
+        otel.status_code
+    )
+)]
 pub async fn deepsearch(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(body): Json<DeepSearchBody>,
 ) -> Result<impl IntoResponse, ApiError> {
     let start_time = Instant::now();
+
+    // Extract trace context (TELEM-004)
+    if let Some(_parent_context) = extract_trace_context(&headers) {
+        debug!("Trace context extracted from request headers");
+    }
+
+    let current_span = Span::current();
 
     info!(
         query = %body.query,
@@ -128,6 +151,13 @@ pub async fn deepsearch(
         status: "completed".to_string(),
         processing_time_ms,
     };
+
+    // Record span attributes (TELEM-003)
+    current_span.record("otel.status_code", "OK");
+    current_span.record("http.status_code", 200);
+    current_span.record("urls_found", urls.len());
+    current_span.record("urls_crawled", response.urls_crawled);
+    current_span.record("processing_time_ms", processing_time_ms);
 
     info!(
         query = %query_clone,

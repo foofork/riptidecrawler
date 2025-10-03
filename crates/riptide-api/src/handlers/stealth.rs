@@ -4,8 +4,9 @@
 //! testing stealth capabilities, and integration verification.
 
 use axum::{extract::State, Json};
+use opentelemetry::trace::SpanKind;
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info};
+use tracing::{debug, info, Span};
 
 use crate::{errors::ApiError, state::AppState};
 use riptide_core::stealth::{StealthController, StealthPreset, StealthConfig};
@@ -111,11 +112,23 @@ pub struct StealthMetrics {
 ///
 /// This endpoint allows configuration of stealth settings and returns
 /// the current stealth configuration with sample generated values.
+#[tracing::instrument(
+    name = "configure_stealth",
+    skip(_state, request),
+    fields(
+        http.method = "POST",
+        http.route = "/stealth/configure",
+        preset = ?request.preset,
+        otel.kind = ?SpanKind::Server,
+        otel.status_code
+    )
+)]
 pub async fn configure_stealth(
     State(_state): State<AppState>,
     Json(request): Json<StealthConfigRequest>,
 ) -> Result<Json<StealthConfigResponse>, ApiError> {
     debug!("Configuring stealth settings: {:?}", request);
+    let current_span = Span::current();
 
     // Create stealth controller based on request
     let mut controller = if let Some(config) = request.config {
@@ -146,6 +159,11 @@ pub async fn configure_stealth(
         effectiveness_score,
     };
 
+    // Record telemetry attributes (TELEM-003)
+    current_span.record("otel.status_code", "OK");
+    current_span.record("effectiveness_score", effectiveness_score);
+    current_span.record("delay_ms", response.delay_ms);
+
     info!(
         preset = ?controller.get_preset(),
         effectiveness_score = effectiveness_score,
@@ -159,11 +177,25 @@ pub async fn configure_stealth(
 ///
 /// This endpoint tests the effectiveness of stealth configurations
 /// against real websites and provides detailed analysis.
+#[tracing::instrument(
+    name = "test_stealth",
+    skip(state, request),
+    fields(
+        http.method = "POST",
+        http.route = "/stealth/test",
+        url_count = request.urls.len(),
+        preset = ?request.preset,
+        iterations = request.iterations.unwrap_or(1),
+        otel.kind = ?SpanKind::Server,
+        otel.status_code
+    )
+)]
 pub async fn test_stealth(
     State(state): State<AppState>,
     Json(request): Json<StealthTestRequest>,
 ) -> Result<Json<StealthTestResponse>, ApiError> {
     let start_time = std::time::Instant::now();
+    let current_span = Span::current();
 
     debug!("Starting stealth test: {:?}", request);
 
@@ -207,6 +239,12 @@ pub async fn test_stealth(
         metrics,
         recommendations,
     };
+
+    // Record telemetry (TELEM-003)
+    current_span.record("otel.status_code", "OK");
+    current_span.record("success_rate", response.metrics.success_rate);
+    current_span.record("detection_rate", response.metrics.detection_rate);
+    current_span.record("total_time_ms", start_time.elapsed().as_millis() as u64);
 
     info!(
         urls_tested = request.urls.len(),

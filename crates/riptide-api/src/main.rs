@@ -1,4 +1,3 @@
-mod circuit_breaker_utils;
 mod config;
 mod errors;
 mod handlers;
@@ -15,6 +14,7 @@ mod rpc_client;
 mod sessions;
 mod state;
 mod streaming;
+mod telemetry_config;
 mod tests;
 mod validation;
 
@@ -197,7 +197,14 @@ async fn main() -> anyhow::Result<()> {
         .route("/monitoring/performance-report", get(handlers::monitoring::get_performance_report))
         .route("/monitoring/metrics/current", get(handlers::monitoring::get_current_metrics))
         .route("/monitoring/alerts/rules", get(handlers::monitoring::get_alert_rules))
+        // Enhanced pipeline phase visualization endpoints
+        .route("/pipeline/phases", get(handlers::get_pipeline_phases))
         .route("/monitoring/alerts/active", get(handlers::monitoring::get_active_alerts))
+        // Telemetry and trace visualization endpoints (TELEM-005)
+        // Telemetry routes temporarily disabled due to API compatibility issues
+        // .route("/telemetry/status", get(handlers::telemetry::get_telemetry_status))
+        // .route("/telemetry/traces", get(handlers::telemetry::list_traces))
+        // .route("/telemetry/traces/:trace_id", get(handlers::telemetry::get_trace_tree))
         .fallback(handlers::not_found)
         .with_state(app_state.clone())
         .layer(SessionLayer::new(app_state.session_manager.clone()))

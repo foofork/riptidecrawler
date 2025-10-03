@@ -4,12 +4,14 @@ use crate::models::{
 };
 use crate::pipeline::PipelineOrchestrator;
 use crate::state::AppState;
+use crate::telemetry_config::extract_trace_context;
 use crate::validation::validate_crawl_request;
-use axum::{extract::State, Json};
+use axum::{extract::State, http::HeaderMap, Json};
+use opentelemetry::trace::SpanKind;
 use riptide_core::events::{BaseEvent, EventSeverity};
 use riptide_core::spider::{CrawlingStrategy, ScoringConfig, SpiderConfig};
 use std::time::Instant;
-use tracing::{debug, info, warn};
+use tracing::{debug, info, warn, Span};
 use url::Url;
 
 use super::chunking::apply_content_chunking;
@@ -24,11 +26,39 @@ use super::chunking::apply_content_chunking;
 ///
 /// Supports various crawl options including caching strategies, concurrency limits,
 /// and extraction modes.
+#[tracing::instrument(
+    name = "crawl_handler",
+    skip(state, body, headers),
+    fields(
+        http.method = "POST",
+        http.route = "/crawl",
+        url_count = body.urls.len(),
+        cache_mode = ?body.options.as_ref().map(|o| &o.cache_mode),
+        use_spider = ?body.options.as_ref().and_then(|o| o.use_spider),
+        otel.kind = ?SpanKind::Server,
+        otel.status_code
+    )
+)]
 pub async fn crawl(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(body): Json<CrawlBody>,
 ) -> Result<Json<CrawlResponse>, ApiError> {
     let start_time = Instant::now();
+
+    // Extract trace context from headers for distributed tracing (TELEM-004)
+    if let Some(_parent_context) = extract_trace_context(&headers) {
+        debug!("Trace context extracted from request headers");
+    }
+
+    // Record custom span attributes (TELEM-003)
+    let current_span = Span::current();
+    current_span.record("url_count", body.urls.len());
+    if let Some(ref opts) = body.options {
+        current_span.record("cache_mode", opts.cache_mode.as_str());
+        current_span.record("concurrency", opts.concurrency);
+        current_span.record("use_spider", opts.use_spider.unwrap_or(false));
+    }
 
     info!(
         url_count = body.urls.len(),
@@ -154,12 +184,22 @@ pub async fn crawl(
         statistics,
     };
 
+    // Record success metrics in span (TELEM-003)
+    let elapsed_ms = start_time.elapsed().as_millis() as u64;
+    current_span.record("otel.status_code", "OK");
+    current_span.record("http.status_code", 200);
+    current_span.record("successful_count", stats.successful_extractions);
+    current_span.record("failed_count", stats.failed_extractions);
+    current_span.record("cache_hits", from_cache_count);
+    current_span.record("cache_hit_rate", cache_hit_rate);
+    current_span.record("total_time_ms", elapsed_ms);
+
     info!(
         total_urls = body.urls.len(),
         successful = stats.successful_extractions,
         failed = stats.failed_extractions,
         cache_hits = from_cache_count,
-        total_time_ms = start_time.elapsed().as_millis(),
+        total_time_ms = elapsed_ms,
         "Crawl request completed"
     );
 

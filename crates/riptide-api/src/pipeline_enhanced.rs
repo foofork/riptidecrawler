@@ -1,5 +1,7 @@
+use crate::errors::ApiResult;
 use crate::metrics::{PhaseTimer, PhaseType, RipTideMetrics};
-use crate::state::AppState;
+use crate::pipeline::{PipelineOrchestrator, PipelineResult, PipelineStats};
+use crate::state::{AppState, EnhancedPipelineConfig};
 use anyhow::Result;
 use riptide_core::types::{CrawlOptions, ExtractedDoc};
 use std::sync::Arc;
@@ -7,6 +9,12 @@ use std::time::Instant;
 use tracing::{debug, info, warn};
 
 /// Enhanced pipeline orchestrator with comprehensive phase timing and metrics
+///
+/// This orchestrator wraps the standard PipelineOrchestrator and adds:
+/// - Detailed phase timing for fetch, gate, wasm, and render
+/// - Enhanced metrics collection
+/// - Debug logging for each phase
+/// - Phase visualization data
 pub struct EnhancedPipelineOrchestrator {
     /// Application state
     state: AppState,
@@ -16,17 +24,188 @@ pub struct EnhancedPipelineOrchestrator {
 
     /// Metrics collector
     metrics: Arc<RipTideMetrics>,
+
+    /// Enhanced pipeline configuration
+    config: EnhancedPipelineConfig,
+
+    /// Underlying pipeline orchestrator
+    pipeline: PipelineOrchestrator,
 }
 
 impl EnhancedPipelineOrchestrator {
     /// Create new enhanced pipeline orchestrator
     pub fn new(state: AppState, options: CrawlOptions) -> Self {
         let metrics = state.metrics.clone();
+        let config = state.config.enhanced_pipeline_config.clone();
+        let pipeline = PipelineOrchestrator::new(state.clone(), options.clone());
 
         Self {
             state,
             options,
             metrics,
+            config,
+            pipeline,
+        }
+    }
+
+    /// Execute single URL with enhanced metrics (delegates to standard pipeline)
+    pub async fn execute_single_enhanced(&self, url: &str) -> ApiResult<EnhancedPipelineResult> {
+        if !self.config.enable_enhanced_pipeline {
+            // If enhanced pipeline is disabled, use standard pipeline and convert result
+            let result = self.pipeline.execute_single(url).await?;
+            return Ok(self.convert_to_enhanced_result(result));
+        }
+
+        self.execute_enhanced(url).await.map_err(|e| {
+            crate::errors::ApiError::internal(format!("Enhanced pipeline failed: {}", e))
+        })
+    }
+
+    /// Execute batch with enhanced metrics (delegates to standard pipeline)
+    pub async fn execute_batch_enhanced(
+        &self,
+        urls: &[String],
+    ) -> (Vec<Option<EnhancedPipelineResult>>, EnhancedBatchStats) {
+        let overall_start = Instant::now();
+
+        if !self.config.enable_enhanced_pipeline {
+            // If enhanced pipeline is disabled, use standard pipeline
+            let (results, stats) = self.pipeline.execute_batch(urls).await;
+            let enhanced_results = results
+                .into_iter()
+                .map(|opt_result| {
+                    opt_result.map(|result| self.convert_to_enhanced_result(result))
+                })
+                .collect();
+            return (enhanced_results, self.convert_to_enhanced_stats(stats, overall_start));
+        }
+
+        // Use enhanced pipeline for each URL
+        let semaphore = Arc::new(tokio::sync::Semaphore::new(self.options.concurrency));
+        let tasks: Vec<_> = urls
+            .iter()
+            .map(|url| {
+                let semaphore = semaphore.clone();
+                let orchestrator = self.clone();
+                let url = url.clone();
+
+                tokio::spawn(async move {
+                    let _permit = semaphore.acquire().await.ok()?;
+                    orchestrator.execute_enhanced(&url).await.ok()
+                })
+            })
+            .collect();
+
+        let results = futures::future::join_all(tasks).await;
+        let enhanced_results: Vec<_> = results
+            .into_iter()
+            .map(|r| r.ok().and_then(|inner| inner))
+            .collect();
+
+        let stats = self.compute_enhanced_batch_stats(&enhanced_results, overall_start);
+        (enhanced_results, stats)
+    }
+
+    /// Convert standard PipelineResult to EnhancedPipelineResult
+    fn convert_to_enhanced_result(&self, result: PipelineResult) -> EnhancedPipelineResult {
+        EnhancedPipelineResult {
+            url: result.document.url.clone(),
+            success: true,
+            total_duration_ms: result.processing_time_ms,
+            phase_timings: PhaseTiming::default(), // No detailed timings from standard pipeline
+            document: Some(result.document),
+            error: None,
+            cache_hit: result.from_cache,
+            gate_decision: result.gate_decision,
+            quality_score: result.quality_score,
+        }
+    }
+
+    /// Convert standard PipelineStats to EnhancedBatchStats
+    fn convert_to_enhanced_stats(&self, stats: PipelineStats, start: Instant) -> EnhancedBatchStats {
+        EnhancedBatchStats {
+            total_urls: stats.total_processed,
+            successful: stats.successful_extractions,
+            failed: stats.failed_extractions,
+            cache_hits: stats.cache_hits,
+            total_duration_ms: start.elapsed().as_millis() as u64,
+            avg_processing_time_ms: stats.avg_processing_time_ms,
+            avg_phase_timings: PhaseTiming::default(),
+            gate_decisions: stats.gate_decisions,
+        }
+    }
+
+    /// Compute enhanced batch statistics
+    fn compute_enhanced_batch_stats(
+        &self,
+        results: &[Option<EnhancedPipelineResult>],
+        start: Instant,
+    ) -> EnhancedBatchStats {
+        let total_urls = results.len();
+        let successful = results.iter().filter(|r| r.is_some()).count();
+        let failed = total_urls - successful;
+
+        let mut total_fetch = 0u64;
+        let mut total_gate = 0u64;
+        let mut total_wasm = 0u64;
+        let mut total_render = 0u64;
+        let mut render_count = 0usize;
+        let mut cache_hits = 0;
+
+        let mut gate_decisions = crate::pipeline::GateDecisionStats::default();
+
+        for result in results.iter().flatten() {
+            total_fetch += result.phase_timings.fetch_ms;
+            total_gate += result.phase_timings.gate_ms;
+            total_wasm += result.phase_timings.wasm_ms;
+            if let Some(render_ms) = result.phase_timings.render_ms {
+                total_render += render_ms;
+                render_count += 1;
+            }
+
+            if result.cache_hit {
+                cache_hits += 1;
+            }
+
+            match result.gate_decision.as_str() {
+                "raw" => gate_decisions.raw += 1,
+                "probes_first" => gate_decisions.probes_first += 1,
+                "headless" => gate_decisions.headless += 1,
+                _ => {}
+            }
+        }
+
+        let avg_processing_time_ms = if successful > 0 {
+            results
+                .iter()
+                .flatten()
+                .map(|r| r.total_duration_ms)
+                .sum::<u64>() as f64
+                / successful as f64
+        } else {
+            0.0
+        };
+
+        let avg_phase_timings = PhaseTiming {
+            fetch_ms: if successful > 0 { total_fetch / successful as u64 } else { 0 },
+            gate_ms: if successful > 0 { total_gate / successful as u64 } else { 0 },
+            wasm_ms: if successful > 0 { total_wasm / successful as u64 } else { 0 },
+            render_ms: if render_count > 0 {
+                Some(total_render / render_count as u64)
+            } else {
+                None
+            },
+        };
+
+        EnhancedBatchStats {
+            total_urls,
+            successful,
+            failed,
+            cache_hits,
+            total_duration_ms: start.elapsed().as_millis() as u64,
+            avg_processing_time_ms,
+            avg_phase_timings,
+            gate_decisions,
         }
     }
 
@@ -301,12 +480,25 @@ pub struct EnhancedPipelineResult {
 }
 
 /// Detailed phase timing information
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct PhaseTiming {
     pub fetch_ms: u64,
     pub gate_ms: u64,
     pub wasm_ms: u64,
     pub render_ms: Option<u64>,
+}
+
+/// Enhanced batch processing statistics
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct EnhancedBatchStats {
+    pub total_urls: usize,
+    pub successful: usize,
+    pub failed: usize,
+    pub cache_hits: usize,
+    pub total_duration_ms: u64,
+    pub avg_processing_time_ms: f64,
+    pub avg_phase_timings: PhaseTiming,
+    pub gate_decisions: crate::pipeline::GateDecisionStats,
 }
 
 /// Generic phase result with timing
@@ -322,4 +514,17 @@ struct GateResult {
     decision: String,
     quality_score: f32,
     duration_ms: u64,
+}
+
+// Implement Clone for EnhancedPipelineOrchestrator
+impl Clone for EnhancedPipelineOrchestrator {
+    fn clone(&self) -> Self {
+        Self {
+            state: self.state.clone(),
+            options: self.options.clone(),
+            metrics: self.metrics.clone(),
+            config: self.config.clone(),
+            pipeline: self.pipeline.clone(),
+        }
+    }
 }
