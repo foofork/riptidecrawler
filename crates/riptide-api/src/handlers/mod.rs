@@ -4,6 +4,7 @@ pub mod crawl;
 pub mod deepsearch;
 pub mod health;
 pub mod llm;
+pub mod monitoring;
 pub mod pdf;
 pub mod render;
 pub mod sessions;

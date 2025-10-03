@@ -610,70 +610,111 @@ impl PipelineOrchestrator {
     }
 
     /// Extract content using the appropriate method based on gate decision.
+    ///
+    /// This method now uses ReliableExtractor for enhanced retry logic and
+    /// graceful degradation, wrapping extraction calls with the reliability module.
     async fn extract_content(
         &self,
         html: &str,
         url: &str,
         decision: Decision,
     ) -> ApiResult<ExtractedDoc> {
-        use crate::circuit_breaker_utils::extract_with_circuit_breaker;
+        use crate::reliability_integration::WasmExtractorAdapter;
+        use riptide_core::reliability::ExtractionMode;
 
-        match decision {
-            Decision::Raw => {
-                // Use fast WASM extraction with circuit breaker protection
-                let extractor = self.state.extractor.clone();
-                let html_bytes = html.as_bytes().to_vec();
-                let url_str = url.to_string();
+        // Create adapter for WasmExtractor to work with ReliableExtractor
+        let extractor_adapter = WasmExtractorAdapter::new(self.state.extractor.clone());
 
-                extract_with_circuit_breaker(
-                    &self.state.circuit_breaker,
-                    &self.state.performance_metrics,
-                    async move {
-                        extractor
-                            .extract(&html_bytes, &url_str, "article")
-                            .map(convert_html_doc)
-                    },
-                )
-                .await
-            }
-            Decision::ProbesFirst => {
-                // Try fast extraction first with circuit breaker protection
-                let extractor = self.state.extractor.clone();
-                let html_bytes = html.as_bytes().to_vec();
-                let url_str = url.to_string();
+        // Map gate Decision to ExtractionMode
+        let extraction_mode = match decision {
+            Decision::Raw => ExtractionMode::Fast,
+            Decision::ProbesFirst => ExtractionMode::ProbesFirst,
+            Decision::Headless => ExtractionMode::Headless,
+        };
 
-                let fast_result = extract_with_circuit_breaker(
-                    &self.state.circuit_breaker,
-                    &self.state.performance_metrics,
-                    async move {
-                        extractor
-                            .extract(&html_bytes, &url_str, "article")
-                            .map(convert_html_doc)
-                    },
-                )
-                .await;
+        // Use ReliableExtractor with retry and circuit breaker patterns
+        let result = self
+            .state
+            .reliable_extractor
+            .extract_with_reliability(
+                url,
+                extraction_mode,
+                &extractor_adapter,
+                self.state.config.headless_url.as_deref(),
+            )
+            .await;
 
-                match fast_result {
-                    Ok(doc) => {
-                        // Validate extraction quality
-                        if doc.text.len() > 100 && doc.title.is_some() {
-                            Ok(doc)
-                        } else {
-                            debug!(url = %url, "Fast extraction produced low-quality result, falling back to headless");
-                            self.extract_with_headless(url).await
-                        }
-                    }
-                    Err(_) => {
-                        debug!(url = %url, "Fast extraction failed, falling back to headless");
-                        self.extract_with_headless(url).await
-                    }
+        match result {
+            Ok(doc) => {
+                // Emit reliability success event
+                let mut event = riptide_core::events::BaseEvent::new(
+                    "pipeline.extraction.reliable_success",
+                    "pipeline_orchestrator",
+                    riptide_core::events::EventSeverity::Info,
+                );
+                event.add_metadata("url", url);
+                event.add_metadata("decision", &format!("{:?}", decision));
+                event.add_metadata("content_length", &doc.text.len().to_string());
+                if let Err(e) = self.state.event_bus.emit(event).await {
+                    warn!(error = %e, "Failed to emit reliability success event");
                 }
+
+                Ok(doc)
             }
-            Decision::Headless => {
-                // Use headless browser extraction with circuit breaker protection
-                self.extract_with_headless(url).await
+            Err(e) => {
+                // Log the failure and attempt fallback to direct WASM extraction
+                warn!(
+                    url = %url,
+                    error = %e,
+                    "ReliableExtractor failed, attempting direct WASM fallback"
+                );
+
+                // Emit reliability failure event
+                let mut event = riptide_core::events::BaseEvent::new(
+                    "pipeline.extraction.reliable_failure",
+                    "pipeline_orchestrator",
+                    riptide_core::events::EventSeverity::Warning,
+                );
+                event.add_metadata("url", url);
+                event.add_metadata("error", &e.to_string());
+                if let Err(e) = self.state.event_bus.emit(event).await {
+                    warn!(error = %e, "Failed to emit reliability failure event");
+                }
+
+                // Fallback: Try direct WASM extraction as last resort
+                self.fallback_to_wasm_extraction(html, url).await
             }
         }
+    }
+
+    /// Fallback to direct WASM extraction when ReliableExtractor fails
+    async fn fallback_to_wasm_extraction(
+        &self,
+        html: &str,
+        url: &str,
+    ) -> ApiResult<ExtractedDoc> {
+        use crate::circuit_breaker_utils::extract_with_circuit_breaker;
+
+        info!(url = %url, "Attempting direct WASM fallback extraction");
+
+        let extractor = self.state.extractor.clone();
+        let html_bytes = html.as_bytes().to_vec();
+        let url_str = url.to_string();
+
+        extract_with_circuit_breaker(
+            &self.state.circuit_breaker,
+            &self.state.performance_metrics,
+            async move {
+                extractor
+                    .extract(&html_bytes, &url_str, "article")
+                    .map(convert_html_doc)
+            },
+        )
+        .await
+        .map_err(|e| {
+            error!(url = %url_str, error = %e, "All extraction methods failed");
+            ApiError::extraction(format!("All extraction attempts failed: {}", e))
+        })
     }
 
     /// Extract content using headless browser rendering.

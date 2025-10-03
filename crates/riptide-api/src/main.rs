@@ -8,6 +8,7 @@ mod models;
 mod pipeline;
 mod pipeline_enhanced;
 mod strategies_pipeline;
+mod reliability_integration;
 mod resource_manager;
 mod routes;
 mod rpc_client;
@@ -191,6 +192,12 @@ async fn main() -> anyhow::Result<()> {
         .route("/workers/schedule", post(handlers::workers::create_scheduled_job))
         .route("/workers/schedule", get(handlers::workers::list_scheduled_jobs))
         .route("/workers/schedule/:job_id", axum::routing::delete(handlers::workers::delete_scheduled_job))
+        // Monitoring system endpoints
+        .route("/monitoring/health-score", get(handlers::monitoring::get_health_score))
+        .route("/monitoring/performance-report", get(handlers::monitoring::get_performance_report))
+        .route("/monitoring/metrics/current", get(handlers::monitoring::get_current_metrics))
+        .route("/monitoring/alerts/rules", get(handlers::monitoring::get_alert_rules))
+        .route("/monitoring/alerts/active", get(handlers::monitoring::get_active_alerts))
         .fallback(handlers::not_found)
         .with_state(app_state.clone())
         .layer(SessionLayer::new(app_state.session_manager.clone()))

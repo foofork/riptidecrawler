@@ -10,11 +10,16 @@ use riptide_core::{
     cache::CacheManager,
     circuit_breaker::CircuitBreakerState,
     component::PerformanceMetrics,
-    events::{EventBus, EventBusConfig},
+    events::{BaseEvent, EventBus, EventBusConfig, EventSeverity},
     fetch::http_client,
+    monitoring::{
+        AlertCondition, AlertManager, AlertRule, AlertSeverity, HealthCalculator,
+        MetricsCollector, MonitoringConfig,
+    },
     pdf::PdfMetricsCollector,
+    reliability::{ReliableExtractor, ReliabilityConfig},
     spider::{Spider, SpiderConfig},
-    telemetry::TelemetrySystem, telemetry_span,
+    telemetry::{TelemetrySystem, telemetry_span},
 };
 use riptide_html::wasm_extraction::WasmExtractor;
 use riptide_workers::{WorkerService, WorkerServiceConfig};
@@ -37,6 +42,9 @@ pub struct AppState {
 
     /// WASM extractor for content processing
     pub extractor: Arc<WasmExtractor>,
+
+    /// Reliable extractor wrapper with retry and circuit breaker logic
+    pub reliable_extractor: Arc<ReliableExtractor>,
 
     /// Configuration settings
     pub config: AppConfig,
@@ -79,6 +87,9 @@ pub struct AppState {
 
     /// Performance metrics for circuit breaker tracking
     pub performance_metrics: Arc<tokio::sync::Mutex<PerformanceMetrics>>,
+
+    /// Monitoring system for performance tracking and alerting
+    pub monitoring_system: Arc<MonitoringSystem>,
 }
 
 /// Application configuration loaded from environment and config files.
@@ -117,6 +128,12 @@ pub struct AppConfig {
 
     /// Circuit breaker configuration
     pub circuit_breaker_config: CircuitBreakerConfig,
+
+    /// Reliability configuration for retry and fallback behavior
+    pub reliability_config: ReliabilityConfig,
+
+    /// Monitoring system configuration
+    pub monitoring_config: MonitoringConfig,
 }
 
 /// Circuit breaker configuration
@@ -179,6 +196,8 @@ impl Default for AppConfig {
             worker_config: AppConfig::init_worker_config(),
             event_bus_config: EventBusConfig::default(),
             circuit_breaker_config: CircuitBreakerConfig::default(),
+            reliability_config: ReliabilityConfig::from_env(),
+            monitoring_config: MonitoringConfig::default(),
         }
     }
 }
@@ -407,6 +426,19 @@ impl AppState {
         let extractor = Arc::new(WasmExtractor::new(&config.wasm_path).await?);
         tracing::info!("WASM extractor loaded: {}", config.wasm_path);
 
+        // Initialize ReliableExtractor with the WASM extractor adapter
+        let reliable_extractor = Arc::new(
+            ReliableExtractor::new(config.reliability_config.clone())
+                .map_err(|e| anyhow::anyhow!("Failed to initialize ReliableExtractor: {}", e))?,
+        );
+        tracing::info!(
+            max_retries = config.reliability_config.http_retry.max_attempts,
+            timeout_secs = config.reliability_config.headless_timeout.as_secs(),
+            graceful_degradation = config.reliability_config.enable_graceful_degradation,
+            quality_threshold = config.reliability_config.fast_extraction_quality_threshold,
+            "ReliableExtractor initialized with retry and circuit breaker patterns"
+        );
+
         // Initialize session manager
         let session_manager = SessionManager::new(config.session_config.clone()).await?;
         let session_manager = Arc::new(session_manager);
@@ -531,12 +563,25 @@ impl AppState {
         let performance_metrics = Arc::new(tokio::sync::Mutex::new(PerformanceMetrics::default()));
         tracing::info!("Circuit breaker and performance metrics initialized");
 
-        tracing::info!("Application state initialization complete with resource controls, event bus, and circuit breaker");
+        // Initialize monitoring system with default configuration
+        tracing::info!("Initializing monitoring system for performance tracking and alerting");
+        let monitoring_system = Arc::new(MonitoringSystem::new());
+
+        // Register default alert rules
+        monitoring_system.register_default_alert_rules().await;
+
+        // Start background alert evaluation task
+        monitoring_system.start_alert_evaluation_task(event_bus.clone());
+
+        tracing::info!("Monitoring system initialized with alert rules and background evaluation task");
+
+        tracing::info!("Application state initialization complete with resource controls, event bus, circuit breaker, and monitoring");
 
         Ok(Self {
             http_client,
             cache,
             extractor,
+            reliable_extractor,
             config,
             api_config,
             resource_manager,
@@ -551,6 +596,7 @@ impl AppState {
             event_bus,
             circuit_breaker,
             performance_metrics,
+            monitoring_system,
         })
     }
 
@@ -744,4 +790,206 @@ impl std::fmt::Display for DependencyHealth {
             DependencyHealth::Unknown => write!(f, "unknown"),
         }
     }
+}
+
+/// Integrated monitoring system for performance tracking, health scoring, and alerting
+pub struct MonitoringSystem {
+    /// Metrics collector for real-time performance tracking
+    pub metrics_collector: Arc<MetricsCollector>,
+
+    /// Alert manager for threshold-based alerting
+    pub alert_manager: Arc<tokio::sync::Mutex<AlertManager>>,
+
+    /// Health calculator for system health scoring
+    pub health_calculator: Arc<HealthCalculator>,
+
+    /// Configuration for monitoring behavior
+    pub config: MonitoringConfig,
+}
+
+impl MonitoringSystem {
+    /// Create a new monitoring system with default configuration
+    pub fn new() -> Self {
+        let config = MonitoringConfig::default();
+        Self::with_config(config)
+    }
+
+    /// Create a new monitoring system with custom configuration
+    pub fn with_config(config: MonitoringConfig) -> Self {
+        let metrics_collector = Arc::new(MetricsCollector::with_config(config.clone()));
+        let health_calculator = Arc::new(HealthCalculator::new(config.health_thresholds.clone()));
+
+        // Create alert manager with default rules
+        let alert_manager = AlertManager::new();
+
+        Self {
+            metrics_collector,
+            alert_manager: Arc::new(tokio::sync::Mutex::new(alert_manager)),
+            health_calculator,
+            config,
+        }
+    }
+
+    /// Register default alert rules for monitoring
+    pub async fn register_default_alert_rules(&self) {
+        let mut alert_manager = self.alert_manager.lock().await;
+
+        // Clear existing rules and add our custom set
+        // The AlertManager already has default rules, but we'll add more specific ones
+
+        // Error rate threshold: >5%
+        alert_manager.add_rule(AlertRule {
+            name: "error_rate_threshold_5pct".to_string(),
+            metric_name: "error_rate".to_string(),
+            threshold: 5.0,
+            condition: AlertCondition::GreaterThan,
+            severity: AlertSeverity::Warning,
+            enabled: true,
+        });
+
+        // Latency threshold: p95 >5s
+        alert_manager.add_rule(AlertRule {
+            name: "p95_latency_threshold_5s".to_string(),
+            metric_name: "p95_extraction_time_ms".to_string(),
+            threshold: 5000.0,
+            condition: AlertCondition::GreaterThan,
+            severity: AlertSeverity::Warning,
+            enabled: true,
+        });
+
+        // Memory threshold: >80% (assuming 4GB total, 80% = 3.2GB)
+        alert_manager.add_rule(AlertRule {
+            name: "memory_usage_threshold_80pct".to_string(),
+            metric_name: "memory_usage_bytes".to_string(),
+            threshold: 3.2 * 1024.0 * 1024.0 * 1024.0, // 3.2GB
+            condition: AlertCondition::GreaterThan,
+            severity: AlertSeverity::Warning,
+            enabled: true,
+        });
+
+        tracing::info!("Registered default alert rules for monitoring system");
+    }
+
+    /// Start background alert evaluation task
+    pub fn start_alert_evaluation_task(&self, event_bus: Arc<EventBus>) {
+        let metrics_collector = self.metrics_collector.clone();
+        let alert_manager = self.alert_manager.clone();
+        let event_bus_clone = event_bus.clone();
+
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(30));
+
+            loop {
+                interval.tick().await;
+
+                // Get current metrics
+                match metrics_collector.get_current_metrics().await {
+                    Ok(metrics) => {
+                        // Check for triggered alerts
+                        let mut manager = alert_manager.lock().await;
+                        let alerts = manager.check_alerts(&metrics).await;
+
+                        // Log and emit events for each triggered alert
+                        for alert in alerts {
+                            // Log alert based on severity
+                            match alert.severity {
+                                AlertSeverity::Critical => tracing::error!(
+                                    rule_name = %alert.rule_name,
+                                    current_value = %alert.current_value,
+                                    threshold = %alert.threshold,
+                                    "CRITICAL ALERT: {}",
+                                    alert.message
+                                ),
+                                AlertSeverity::Error => tracing::error!(
+                                    rule_name = %alert.rule_name,
+                                    current_value = %alert.current_value,
+                                    threshold = %alert.threshold,
+                                    "ERROR ALERT: {}",
+                                    alert.message
+                                ),
+                                AlertSeverity::Warning => tracing::warn!(
+                                    rule_name = %alert.rule_name,
+                                    current_value = %alert.current_value,
+                                    threshold = %alert.threshold,
+                                    "WARNING ALERT: {}",
+                                    alert.message
+                                ),
+                                AlertSeverity::Info => tracing::info!(
+                                    rule_name = %alert.rule_name,
+                                    current_value = %alert.current_value,
+                                    threshold = %alert.threshold,
+                                    "INFO ALERT: {}",
+                                    alert.message
+                                ),
+                            }
+
+                            // Create a generic event for the alert
+                            use riptide_core::events::BaseEvent;
+                            let base_event = BaseEvent::new(
+                                "monitoring.alert.triggered",
+                                "monitoring_system",
+                                match alert.severity {
+                                    AlertSeverity::Critical => EventSeverity::Critical,
+                                    AlertSeverity::Error => EventSeverity::Error,
+                                    AlertSeverity::Warning => EventSeverity::Warn,
+                                    AlertSeverity::Info => EventSeverity::Info,
+                                },
+                            );
+
+                            // Note: Event publishing is simplified for now
+                            // Future: Implement full event publishing with proper types
+                        }
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to get metrics for alert evaluation: {}", e);
+                    }
+                }
+            }
+        });
+
+        tracing::info!("Started background alert evaluation task with 30-second interval");
+    }
+
+    /// Calculate current health score
+    pub async fn calculate_health_score(&self) -> Result<f32> {
+        let metrics = self.metrics_collector.get_current_metrics().await?;
+        Ok(self.health_calculator.calculate_health(&metrics))
+    }
+
+    /// Generate performance report
+    pub async fn generate_performance_report(&self) -> Result<PerformanceReport> {
+        let metrics = self.metrics_collector.get_current_metrics().await?;
+        let health_score = self.health_calculator.calculate_health(&metrics);
+        let health_summary = self.health_calculator.generate_health_summary(&metrics);
+        let recommendations = self.health_calculator.generate_recommendations(&metrics);
+
+        Ok(PerformanceReport {
+            metrics,
+            health_score,
+            health_summary,
+            recommendations,
+        })
+    }
+}
+
+impl Default for MonitoringSystem {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Performance report containing metrics and health analysis
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct PerformanceReport {
+    /// Current performance metrics
+    pub metrics: riptide_core::monitoring::PerformanceMetrics,
+
+    /// Overall health score (0-100)
+    pub health_score: f32,
+
+    /// Human-readable health summary
+    pub health_summary: String,
+
+    /// List of recommendations for improvement
+    pub recommendations: Vec<String>,
 }

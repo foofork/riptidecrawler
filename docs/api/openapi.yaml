@@ -274,7 +274,7 @@ paths:
             type: integer
             minimum: 64
             maximum: 1024
-          description: Stream buffer size (default: 256)
+          description: "Stream buffer size (default: 256)"
       requestBody:
         required: true
         content:
@@ -452,6 +452,240 @@ paths:
             application/x-ndjson:
               schema:
                 type: string
+
+  /strategies/crawl:
+    post:
+      summary: Process URL with Configurable Strategies
+      description: |
+        Process a URL using configurable extraction strategies and chunking modes.
+
+        This endpoint provides fine-grained control over content extraction through:
+        - **Multiple Extraction Strategies**: Trek (WASM), CSS/JSON selectors, Regex patterns, LLM-based
+        - **Auto-Detection**: Automatic strategy selection based on content analysis
+        - **Performance Metrics**: Detailed processing statistics and quality scores
+        - **Flexible Configuration**: Customizable selectors, patterns, and processing options
+
+        The strategies pipeline integrates with the gate system for intelligent content routing
+        and supports caching for optimal performance.
+      operationId: strategiesCrawl
+      tags:
+        - Strategies
+      parameters:
+        - in: query
+          name: strategy
+          schema:
+            type: string
+            enum: ["auto", "trek", "css_json", "regex", "llm"]
+            default: "auto"
+          description: |
+            Extraction strategy to use:
+            - `auto`: Automatic strategy selection based on content analysis
+            - `trek`: Default WASM-based extraction (fastest)
+            - `css_json`: CSS selector to JSON extraction
+            - `regex`: Regex pattern extraction
+            - `llm`: LLM-based extraction (requires hook integration)
+        - in: query
+          name: chunking
+          schema:
+            type: string
+            enum: ["sliding", "fixed", "sentence", "topic", "regex"]
+            default: "sliding"
+          description: |
+            Chunking mode (deprecated - handled by riptide-html):
+            - `sliding`: Sliding windows with overlap
+            - `fixed`: Fixed character/token count
+            - `sentence`: Split by sentence boundaries
+            - `topic`: Split by semantic topics
+            - `regex`: Split by regex pattern
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StrategiesCrawlRequest'
+            examples:
+              trek_extraction:
+                summary: Trek Strategy - Fast Article Extraction
+                value:
+                  url: "https://blog.example.com/article"
+                  enable_metrics: true
+                  validate_schema: true
+                  cache_mode: "read_write"
+              css_json_extraction:
+                summary: CSS/JSON Strategy - Structured Data
+                value:
+                  url: "https://example.com/product/123"
+                  extraction_strategy: "css_json"
+                  css_selectors:
+                    title: "h1.product-title"
+                    price: ".price-display"
+                    description: ".product-description"
+                    availability: ".stock-status"
+                  enable_metrics: true
+              regex_extraction:
+                summary: Regex Strategy - Pattern Matching
+                value:
+                  url: "https://example.com/contact"
+                  extraction_strategy: "regex"
+                  regex_patterns:
+                    - name: "emails"
+                      pattern: "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
+                      field: "contact_emails"
+                      required: false
+                    - name: "phones"
+                      pattern: "\\+?[1-9]\\d{1,14}"
+                      field: "phone_numbers"
+                      required: false
+              auto_detection:
+                summary: Auto Strategy - Intelligent Selection
+                value:
+                  url: "https://github.com/user/repo/issues/42"
+                  extraction_strategy: "auto"
+                  enable_metrics: true
+                  validate_schema: true
+      responses:
+        '200':
+          description: Content processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StrategiesCrawlResponse'
+              example:
+                success: true
+                result:
+                  processed_content:
+                    content: "Extracted article content..."
+                    metadata:
+                      title: "Understanding Web Scraping"
+                      author: "Jane Developer"
+                      published: "2024-01-15T10:00:00Z"
+                    chunks: []
+                    extracted_data: {}
+                  from_cache: false
+                  gate_decision: "raw"
+                  quality_score: 0.85
+                  processing_time_ms: 1250
+                  cache_key: "riptide:strategies:v1:read_write:a7f3c2d1"
+                  http_status: 200
+                  strategy_config:
+                    extraction: "Trek"
+                    enable_metrics: true
+                    validate_schema: true
+                  performance_metrics:
+                    extraction_time_ms: 850
+                    validation_time_ms: 120
+                    total_time_ms: 1250
+                    content_size_bytes: 45678
+                stats:
+                  chunks_created: 1
+                  total_processing_time_ms: 1250
+                  extraction_strategy_used: "Trek"
+                  chunking_mode_used: "None"
+                  cache_hit: false
+                  quality_score: 0.85
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  type: "invalid_request"
+                  message: "URL cannot be empty"
+                  retryable: false
+                  status: 400
+        '500':
+          description: Processing error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  type: "pipeline_error"
+                  message: "Strategy processing failed: extraction error"
+                  retryable: true
+                  status: 500
+        '504':
+          description: Request timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  type: "timeout"
+                  message: "Timeout fetching https://example.com"
+                  retryable: true
+                  status: 504
+
+  /strategies/info:
+    get:
+      summary: Get Available Strategies Information
+      description: |
+        Returns information about available extraction strategies and chunking modes.
+
+        This endpoint provides:
+        - List of extraction strategies with descriptions
+        - Required and optional parameters for each strategy
+        - Available chunking modes (deprecated)
+        - Strategy capabilities and characteristics
+
+        Use this endpoint to discover available strategies and their configuration options
+        before making requests to `/strategies/crawl`.
+      operationId: getStrategiesInfo
+      tags:
+        - Strategies
+      responses:
+        '200':
+          description: Strategies information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StrategiesInfo'
+              example:
+                extraction_strategies:
+                  - name: "trek"
+                    description: "Default WASM-based extraction (fastest)"
+                    parameters: []
+                  - name: "css_json"
+                    description: "CSS selector to JSON extraction"
+                    parameters:
+                      - name: "selectors"
+                        required: false
+                        description: "CSS selectors mapping (field -> selector)"
+                  - name: "regex"
+                    description: "Regex pattern extraction"
+                    parameters:
+                      - name: "patterns"
+                        required: true
+                        description: "List of regex patterns to apply"
+                  - name: "llm"
+                    description: "LLM-based extraction (hook-based, disabled by default)"
+                    parameters:
+                      - name: "enabled"
+                        required: true
+                        description: "Enable LLM extraction"
+                      - name: "model"
+                        required: false
+                        description: "LLM model to use"
+                chunking_modes:
+                  - name: "sliding"
+                    description: "Sliding windows with overlap (default)"
+                    parameters: ["token_max", "overlap", "preserve_sentences"]
+                  - name: "fixed"
+                    description: "Fixed character/token count"
+                    parameters: ["size", "by_tokens"]
+                  - name: "sentence"
+                    description: "Split by sentence boundaries (NLP)"
+                    parameters: ["max_sentences"]
+                  - name: "topic"
+                    description: "Split by semantic topics"
+                    parameters: ["similarity_threshold"]
+                  - name: "regex"
+                    description: "Split by regex pattern"
+                    parameters: ["pattern", "min_chunk_size"]
 
   /render:
     post:
@@ -1255,6 +1489,344 @@ components:
           description: HTTP status code
           example: 400
 
+    StrategiesCrawlRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+          description: URL to crawl and process
+          example: "https://example.com/article"
+        extraction_strategy:
+          type: string
+          enum: ["trek", "css_json", "regex", "llm"]
+          description: Override automatic strategy selection
+        enable_metrics:
+          type: boolean
+          default: true
+          description: Collect detailed performance metrics
+        validate_schema:
+          type: boolean
+          default: true
+          description: Validate extracted content against schema
+        cache_mode:
+          type: string
+          enum: ["default", "bypass", "refresh"]
+          default: "default"
+          description: Cache behavior mode
+        css_selectors:
+          type: object
+          additionalProperties:
+            type: string
+          description: CSS selectors mapping for CSS_JSON strategy
+          example:
+            title: "h1.entry-title"
+            content: ".entry-content"
+            author: ".author"
+        regex_patterns:
+          type: array
+          items:
+            $ref: '#/components/schemas/RegexPattern'
+          description: Regex patterns for REGEX strategy
+        llm_config:
+          $ref: '#/components/schemas/LlmConfig'
+        chunking_config:
+          $ref: '#/components/schemas/ChunkingConfig'
+
+    RegexPattern:
+      type: object
+      required:
+        - name
+        - pattern
+        - field
+        - required
+      properties:
+        name:
+          type: string
+          description: Pattern identifier
+          example: "email"
+        pattern:
+          type: string
+          description: Regular expression pattern
+          example: "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
+        field:
+          type: string
+          description: Target field name for extracted data
+          example: "emails"
+        required:
+          type: boolean
+          description: Whether this pattern must match
+          example: false
+
+    LlmConfig:
+      type: object
+      required:
+        - enabled
+      properties:
+        enabled:
+          type: boolean
+          description: Enable LLM-based extraction
+        model:
+          type: string
+          description: LLM model identifier
+          example: "claude-3-sonnet-20240229"
+        prompt_template:
+          type: string
+          description: Custom extraction prompt template
+          example: "Extract the main content from this webpage"
+
+    ChunkingConfig:
+      type: object
+      description: |
+        Chunking configuration (deprecated - handled by riptide-html).
+        This configuration is preserved for backward compatibility but has no effect.
+      properties:
+        mode:
+          type: string
+          enum: ["sliding", "fixed", "sentence", "topic", "regex"]
+          description: Chunking mode
+        token_max:
+          type: integer
+          description: Maximum tokens per chunk
+        overlap:
+          type: integer
+          description: Token overlap between chunks
+        preserve_sentences:
+          type: boolean
+          description: Preserve sentence boundaries
+
+    StrategiesCrawlResponse:
+      type: object
+      required:
+        - success
+        - result
+        - stats
+      properties:
+        success:
+          type: boolean
+          description: Indicates successful processing
+        result:
+          $ref: '#/components/schemas/StrategiesPipelineResult'
+        stats:
+          $ref: '#/components/schemas/ProcessingStats'
+
+    StrategiesPipelineResult:
+      type: object
+      required:
+        - processed_content
+        - from_cache
+        - gate_decision
+        - quality_score
+        - processing_time_ms
+        - cache_key
+        - http_status
+        - strategy_config
+      properties:
+        processed_content:
+          $ref: '#/components/schemas/ProcessedContent'
+        from_cache:
+          type: boolean
+          description: Whether result was served from cache
+        gate_decision:
+          type: string
+          enum: ["raw", "probes_first", "headless", "cached", "pdf"]
+          description: Content routing decision made by gate
+        quality_score:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          description: Content quality score
+        processing_time_ms:
+          type: integer
+          description: Total processing time in milliseconds
+        cache_key:
+          type: string
+          description: Cache key used for this request
+        http_status:
+          type: integer
+          description: HTTP status code from original fetch
+        strategy_config:
+          $ref: '#/components/schemas/StrategyConfig'
+        performance_metrics:
+          $ref: '#/components/schemas/PerformanceMetrics'
+
+    ProcessedContent:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          description: Extracted and processed text content
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Extracted metadata (title, author, date, etc.)
+        chunks:
+          type: array
+          items:
+            type: object
+          description: Content chunks (deprecated - empty array)
+        extracted_data:
+          type: object
+          additionalProperties: true
+          description: Strategy-specific extracted data
+
+    StrategyConfig:
+      type: object
+      required:
+        - extraction
+        - enable_metrics
+        - validate_schema
+      properties:
+        extraction:
+          type: string
+          description: Extraction strategy used
+          example: "Trek"
+        enable_metrics:
+          type: boolean
+          description: Whether metrics collection is enabled
+        validate_schema:
+          type: boolean
+          description: Whether schema validation is enabled
+
+    PerformanceMetrics:
+      type: object
+      properties:
+        extraction_time_ms:
+          type: integer
+          description: Time spent on content extraction
+        validation_time_ms:
+          type: integer
+          description: Time spent on schema validation
+        cache_lookup_ms:
+          type: integer
+          description: Time spent on cache lookup
+        total_time_ms:
+          type: integer
+          description: Total processing time
+        content_size_bytes:
+          type: integer
+          description: Size of extracted content in bytes
+        quality_checks_passed:
+          type: integer
+          description: Number of quality checks passed
+        quality_checks_failed:
+          type: integer
+          description: Number of quality checks failed
+
+    ProcessingStats:
+      type: object
+      required:
+        - chunks_created
+        - total_processing_time_ms
+        - extraction_strategy_used
+        - chunking_mode_used
+        - cache_hit
+        - quality_score
+      properties:
+        chunks_created:
+          type: integer
+          description: Number of content chunks created
+        total_processing_time_ms:
+          type: integer
+          description: Total processing time in milliseconds
+        extraction_strategy_used:
+          type: string
+          description: Extraction strategy that was used
+        chunking_mode_used:
+          type: string
+          description: Chunking mode that was used (deprecated)
+        cache_hit:
+          type: boolean
+          description: Whether result was served from cache
+        quality_score:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          description: Content quality score
+
+    StrategiesInfo:
+      type: object
+      required:
+        - extraction_strategies
+        - chunking_modes
+      properties:
+        extraction_strategies:
+          type: array
+          items:
+            $ref: '#/components/schemas/StrategyInfo'
+          description: Available extraction strategies
+        chunking_modes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChunkingModeInfo'
+          description: Available chunking modes (deprecated)
+
+    StrategyInfo:
+      type: object
+      required:
+        - name
+        - description
+        - parameters
+      properties:
+        name:
+          type: string
+          description: Strategy identifier
+          example: "trek"
+        description:
+          type: string
+          description: Human-readable description
+          example: "Default WASM-based extraction (fastest)"
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/StrategyParameter'
+          description: Required and optional parameters
+
+    StrategyParameter:
+      type: object
+      required:
+        - name
+        - required
+        - description
+      properties:
+        name:
+          type: string
+          description: Parameter name
+          example: "selectors"
+        required:
+          type: boolean
+          description: Whether parameter is required
+        description:
+          type: string
+          description: Parameter description
+          example: "CSS selectors mapping (field -> selector)"
+
+    ChunkingModeInfo:
+      type: object
+      required:
+        - name
+        - description
+        - parameters
+      properties:
+        name:
+          type: string
+          description: Chunking mode identifier
+          example: "sliding"
+        description:
+          type: string
+          description: Human-readable description
+          example: "Sliding windows with overlap (default)"
+        parameters:
+          type: array
+          items:
+            type: string
+          description: Available parameters for this mode
+          example: ["token_max", "overlap", "preserve_sentences"]
+
   securitySchemes:
     ApiKeyAuth:
       type: apiKey
@@ -1291,3 +1863,5 @@ tags:
     description: Web search with content extraction
   - name: Rendering
     description: Enhanced rendering with dynamic content support
+  - name: Strategies
+    description: Advanced extraction strategies and content processing

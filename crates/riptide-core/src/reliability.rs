@@ -48,6 +48,49 @@ impl Default for ReliabilityConfig {
     }
 }
 
+impl ReliabilityConfig {
+    /// Create ReliabilityConfig from environment variables
+    pub fn from_env() -> Self {
+        let max_retries = std::env::var("RELIABILITY_MAX_RETRIES")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(3);
+
+        let timeout_secs = std::env::var("RELIABILITY_TIMEOUT_SECS")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(10);
+
+        let enable_graceful_degradation = std::env::var("RELIABILITY_GRACEFUL_DEGRADATION")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(true);
+
+        let quality_threshold = std::env::var("RELIABILITY_QUALITY_THRESHOLD")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0.6);
+
+        Self {
+            http_retry: RetryConfig {
+                max_attempts: max_retries,
+                initial_delay: Duration::from_millis(200),
+                max_delay: Duration::from_secs(2),
+                backoff_multiplier: 1.5,
+                jitter: true,
+            },
+            headless_circuit_breaker: CircuitBreakerConfig {
+                failure_threshold: 3,
+                open_cooldown_ms: 60_000,
+                half_open_max_in_flight: 2,
+            },
+            enable_graceful_degradation,
+            headless_timeout: Duration::from_secs(timeout_secs),
+            fast_extraction_quality_threshold: quality_threshold,
+        }
+    }
+}
+
 /// Enhanced extraction orchestrator with reliability patterns
 #[derive(Debug)]
 pub struct ReliableExtractor {
