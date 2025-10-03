@@ -194,7 +194,7 @@ impl TelemetryConfig {
         // Set up trace context propagator for distributed tracing
         global::set_text_map_propagator(TraceContextPropagator::new());
 
-        // Create tracer provider with configured exporter
+        // Create tracer from provider (OpenTelemetry 0.26 API)
         let tracer = self.create_tracer()?;
 
         // Create OpenTelemetry tracing layer
@@ -220,8 +220,11 @@ impl TelemetryConfig {
     }
 
     /// Create a tracer with configured exporter
+    /// OpenTelemetry 0.26: install_batch() returns TracerProvider, call .tracer() to get Tracer
     #[allow(dead_code)]
     fn create_tracer(&self) -> anyhow::Result<opentelemetry_sdk::trace::Tracer> {
+        use opentelemetry::trace::TracerProvider as _;
+
         let mut resource_kvs = vec![
             KeyValue::new("service.name", self.service_name.clone()),
             KeyValue::new("service.version", self.service_version.clone()),
@@ -248,7 +251,8 @@ impl TelemetryConfig {
                     .with_endpoint(endpoint)
                     .with_timeout(Duration::from_secs(self.export_timeout_secs));
 
-                let tracer = opentelemetry_otlp::new_pipeline()
+                // install_batch() returns TracerProvider in 0.26
+                let provider = opentelemetry_otlp::new_pipeline()
                     .tracing()
                     .with_exporter(exporter)
                     .with_trace_config(
@@ -260,7 +264,8 @@ impl TelemetryConfig {
                     .with_batch_config(batch_config)
                     .install_batch(opentelemetry_sdk::runtime::Tokio)?;
 
-                Ok(tracer)
+                // Get tracer from provider
+                Ok(provider.tracer(self.service_name.clone()))
             }
             ExporterType::Jaeger => {
                 // Jaeger-specific configuration would go here
@@ -287,6 +292,8 @@ impl TelemetryConfig {
         resource: Resource,
         batch_config: sdktrace::BatchConfig,
     ) -> anyhow::Result<opentelemetry_sdk::trace::Tracer> {
+        use opentelemetry::trace::TracerProvider as _;
+
         let endpoint = self
             .otlp_endpoint
             .clone()
@@ -297,7 +304,8 @@ impl TelemetryConfig {
             .with_endpoint(endpoint)
             .with_timeout(Duration::from_secs(self.export_timeout_secs));
 
-        let tracer = opentelemetry_otlp::new_pipeline()
+        // install_batch() returns TracerProvider in 0.26
+        let provider = opentelemetry_otlp::new_pipeline()
             .tracing()
             .with_exporter(exporter)
             .with_trace_config(
@@ -309,7 +317,8 @@ impl TelemetryConfig {
             .with_batch_config(batch_config)
             .install_batch(opentelemetry_sdk::runtime::Tokio)?;
 
-        Ok(tracer)
+        // Get tracer from provider
+        Ok(provider.tracer(self.service_name.clone()))
     }
 
     /// Shutdown telemetry (flush remaining spans)
@@ -319,8 +328,10 @@ impl TelemetryConfig {
 }
 
 /// Extract trace context from HTTP headers (TELEM-004)
-pub fn extract_trace_context(_headers: &axum::http::HeaderMap) -> Option<SpanContext> {
+/// OpenTelemetry 0.26: Use global::get_text_map_propagator() for extract
+pub fn extract_trace_context(headers: &axum::http::HeaderMap) -> Option<SpanContext> {
     use opentelemetry::propagation::Extractor;
+    use opentelemetry::trace::TraceContextExt;
 
     struct HeaderExtractor<'a>(&'a axum::http::HeaderMap);
 
@@ -335,8 +346,9 @@ pub fn extract_trace_context(_headers: &axum::http::HeaderMap) -> Option<SpanCon
     }
 
     let extractor = HeaderExtractor(headers);
-    let propagator = TraceContextPropagator::new();
-    let context = propagator.extract(&extractor);
+
+    // Use global propagator (OpenTelemetry 0.26 API)
+    let context = global::get_text_map_propagator(|propagator| propagator.extract(&extractor));
 
     let span_context = context.span().span_context().clone();
     if span_context.is_valid() {
@@ -347,6 +359,7 @@ pub fn extract_trace_context(_headers: &axum::http::HeaderMap) -> Option<SpanCon
 }
 
 /// Inject trace context into HTTP headers (TELEM-004)
+/// OpenTelemetry 0.26: Use global::get_text_map_propagator() for inject
 #[allow(dead_code)]
 pub fn inject_trace_context(headers: &mut reqwest::header::HeaderMap, span_context: &SpanContext) {
     use opentelemetry::propagation::Injector;
@@ -364,11 +377,14 @@ pub fn inject_trace_context(headers: &mut reqwest::header::HeaderMap, span_conte
     }
 
     let mut injector = HeaderInjector(headers);
-    let propagator = TraceContextPropagator::new();
 
     // Create a context with the span
     let context = opentelemetry::Context::current().with_remote_span_context(span_context.clone());
-    propagator.inject_context(&context, &mut injector);
+
+    // Use global propagator (OpenTelemetry 0.26 API)
+    global::get_text_map_propagator(|propagator| {
+        propagator.inject_context(&context, &mut injector);
+    });
 }
 
 /// Parse trace ID from string
