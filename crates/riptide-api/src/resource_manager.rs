@@ -196,15 +196,13 @@ impl ResourceManager {
         let pdf_semaphore = Arc::new(Semaphore::new(config.pdf.max_concurrent));
 
         // Initialize WASM instance manager
-        let wasm_manager =
-            Arc::new(WasmInstanceManager::new(metrics.clone()).await?);
+        let wasm_manager = Arc::new(WasmInstanceManager::new(metrics.clone()).await?);
 
         // Initialize memory manager
         let memory_manager = Arc::new(MemoryManager::new(config.clone(), metrics.clone()).await?);
 
         // Initialize performance monitor
-        let performance_monitor =
-            Arc::new(PerformanceMonitor::new(metrics.clone()).await?);
+        let performance_monitor = Arc::new(PerformanceMonitor::new(metrics.clone()).await?);
 
         info!(
             headless_pool_cap = config.headless.max_pool_size,

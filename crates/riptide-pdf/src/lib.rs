@@ -53,10 +53,6 @@ pub mod tests;
 #[cfg(feature = "benchmarks")]
 pub mod benchmarks;
 
-// Conditionally export corrupted utils if it exists
-#[cfg(test)]
-pub mod utils_corrupted;
-
 // Re-export main types and functions for convenient access
 pub use config::{ImageFormat, MemorySettings, OcrConfig, PdfCapabilities, PdfConfig};
 pub use errors::{PdfError, PdfResult};
