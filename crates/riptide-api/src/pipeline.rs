@@ -520,33 +520,6 @@ impl PipelineOrchestrator {
             })
     }
 
-    /// Fetch HTML content from a URL with timeout and error handling.
-    async fn fetch_content(&self, url: &str) -> ApiResult<(Response, String)> {
-        let fetch_timeout = Duration::from_secs(15);
-
-        let response = timeout(fetch_timeout, fetch::get(&self.state.http_client, url))
-            .await
-            .map_err(|_| ApiError::timeout("content_fetch", format!("Timeout fetching {}", url)))?
-            .map_err(|e| ApiError::fetch(url, e.to_string()))?;
-
-        let content = timeout(fetch_timeout, response.text())
-            .await
-            .map_err(|_| {
-                ApiError::timeout(
-                    "content_read",
-                    format!("Timeout reading content from {}", url),
-                )
-            })?
-            .map_err(|e| ApiError::fetch(url, format!("Failed to read response body: {}", e)))?;
-
-        // Recreate response for status code (since we consumed it for text)
-        let response = fetch::get(&self.state.http_client, url)
-            .await
-            .map_err(|e| ApiError::fetch(url, e.to_string()))?;
-
-        Ok((response, content))
-    }
-
     /// Analyze HTML content to extract gate features for decision making.
     async fn analyze_content(&self, html: &str, url: &str) -> ApiResult<GateFeatures> {
         // Parse URL for domain analysis
@@ -715,66 +688,6 @@ impl PipelineOrchestrator {
                 error!(url = %url_str, error = %e, "All extraction methods failed");
                 ApiError::extraction(format!("All extraction attempts failed: {}", e))
             })
-    }
-
-    /// Extract content using headless browser rendering.
-    async fn extract_with_headless(&self, url: &str) -> ApiResult<ExtractedDoc> {
-        // If headless service is not configured, fall back to fast extraction
-        match &self.state.config.headless_url {
-            Some(headless_url) => self.render_and_extract(url, headless_url).await,
-            None => {
-                warn!(url = %url, "Headless extraction requested but no headless service configured, using fast extraction");
-                // Try fast extraction as fallback
-                self.state
-                    .extractor
-                    .extract(&[], url, "article") // Empty HTML, will need to fetch first
-                    .map(convert_html_doc)
-                    .map_err(|e| ApiError::extraction(format!("Fallback extraction failed: {}", e)))
-            }
-        }
-    }
-
-    /// Render page with headless browser and extract content.
-    async fn render_and_extract(&self, url: &str, headless_url: &str) -> ApiResult<ExtractedDoc> {
-        let http_client = self.state.http_client.clone();
-        let extractor = self.state.extractor.clone();
-        let headless_url_str = headless_url.to_string();
-        let url_str = url.to_string();
-        let wait_for = self.options.dynamic_wait_for.clone();
-        let scroll_steps = self.options.scroll_steps;
-
-        // Construct headless service request
-        let render_request = serde_json::json!({
-            "url": url_str,
-            "wait_for": wait_for,
-            "scroll_steps": scroll_steps
-        });
-
-        let response = http_client
-            .post(format!("{}/render", headless_url_str))
-            .json(&render_request)
-            .send()
-            .await
-            .map_err(|e| {
-                ApiError::dependency("headless", format!("Headless request failed: {}", e))
-            })?;
-
-        if !response.status().is_success() {
-            return Err(ApiError::dependency(
-                "headless",
-                format!("Render request failed: {}", response.status()),
-            ));
-        }
-
-        let rendered_html = response.text().await.map_err(|e| {
-            ApiError::dependency("headless", format!("Failed to read rendered HTML: {}", e))
-        })?;
-
-        // Extract from rendered HTML
-        extractor
-            .extract(rendered_html.as_bytes(), &url_str, "article")
-            .map(convert_html_doc)
-            .map_err(|e| ApiError::extraction(format!("Headless extraction failed: {}", e)))
     }
 
     /// Check cache for existing content.

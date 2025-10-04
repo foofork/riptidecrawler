@@ -54,6 +54,8 @@ pub struct ResourceManager {
 pub struct PerHostRateLimiter {
     config: ApiConfig,
     host_buckets: RwLock<HashMap<String, HostBucket>>,
+    // TODO: Implement background cleanup task - https://github.com/eventmesh/issues/xxx
+    #[allow(dead_code)]
     cleanup_task: Mutex<Option<tokio::task::JoinHandle<()>>>,
     metrics: Arc<ResourceMetrics>,
 }
@@ -69,7 +71,6 @@ struct HostBucket {
 
 /// WASM instance manager with single instance per worker
 pub struct WasmInstanceManager {
-    config: ApiConfig,
     worker_instances: RwLock<HashMap<String, WasmWorkerInstance>>,
     metrics: Arc<ResourceMetrics>,
 }
@@ -78,9 +79,14 @@ pub struct WasmInstanceManager {
 #[derive(Debug)]
 struct WasmWorkerInstance {
     pub worker_id: String,
+    // TODO: Implement health tracking metrics - https://github.com/eventmesh/issues/xxx
+    #[allow(dead_code)]
     pub created_at: Instant,
+    #[allow(dead_code)]
     pub operations_count: u64,
+    #[allow(dead_code)]
     pub last_operation: Instant,
+    #[allow(dead_code)]
     pub is_healthy: bool,
     pub memory_usage: usize,
 }
@@ -97,11 +103,9 @@ pub struct MemoryManager {
 
 /// Performance monitor for resource efficiency
 pub struct PerformanceMonitor {
-    config: ApiConfig,
     render_times: Mutex<Vec<Duration>>,
     timeout_count: AtomicU64,
     degradation_score: std::sync::atomic::AtomicU64, // Stored as u64 for atomic ops
-    last_analysis: AtomicU64,
     metrics: Arc<ResourceMetrics>,
 }
 
@@ -193,14 +197,14 @@ impl ResourceManager {
 
         // Initialize WASM instance manager
         let wasm_manager =
-            Arc::new(WasmInstanceManager::new(config.clone(), metrics.clone()).await?);
+            Arc::new(WasmInstanceManager::new(metrics.clone()).await?);
 
         // Initialize memory manager
         let memory_manager = Arc::new(MemoryManager::new(config.clone(), metrics.clone()).await?);
 
         // Initialize performance monitor
         let performance_monitor =
-            Arc::new(PerformanceMonitor::new(config.clone(), metrics.clone()).await?);
+            Arc::new(PerformanceMonitor::new(metrics.clone()).await?);
 
         info!(
             headless_pool_cap = config.headless.max_pool_size,
@@ -282,7 +286,6 @@ impl ResourceManager {
             browser_checkout,
             wasm_guard,
             memory_tracked: 256,
-            acquired_at: start_time,
             manager: self.clone(),
         }))
     }
@@ -318,7 +321,6 @@ impl ResourceManager {
         Ok(ResourceResult::Success(PdfResourceGuard {
             _permit: permit,
             memory_tracked: 128,
-            acquired_at: Instant::now(),
             manager: self.clone(),
         }))
     }
@@ -381,9 +383,9 @@ impl ResourceManager {
 /// Resource guard for render operations
 pub struct RenderResourceGuard {
     pub browser_checkout: BrowserCheckout,
+    #[allow(dead_code)] // Used for cleanup in Drop impl
     wasm_guard: WasmGuard,
     memory_tracked: usize,
-    acquired_at: Instant,
     manager: ResourceManager,
 }
 
@@ -391,7 +393,6 @@ pub struct RenderResourceGuard {
 pub struct PdfResourceGuard {
     _permit: tokio::sync::OwnedSemaphorePermit,
     memory_tracked: usize,
-    acquired_at: Instant,
     manager: ResourceManager,
 }
 
@@ -399,7 +400,7 @@ pub struct PdfResourceGuard {
 
 /// WASM guard with instance tracking
 pub struct WasmGuard {
-    worker_id: String,
+    #[allow(dead_code)] // Used for cleanup in Drop impl
     manager: Arc<WasmInstanceManager>,
 }
 
@@ -489,9 +490,8 @@ impl PerHostRateLimiter {
 }
 
 impl WasmInstanceManager {
-    async fn new(config: ApiConfig, metrics: Arc<ResourceMetrics>) -> Result<Self> {
+    async fn new(metrics: Arc<ResourceMetrics>) -> Result<Self> {
         Ok(Self {
-            config,
             worker_instances: RwLock::new(HashMap::new()),
             metrics,
         })
@@ -521,7 +521,6 @@ impl WasmInstanceManager {
         }
 
         Ok(WasmGuard {
-            worker_id: worker_id.to_string(),
             manager: self.clone(),
         })
     }
@@ -613,13 +612,11 @@ impl MemoryManager {
 }
 
 impl PerformanceMonitor {
-    async fn new(config: ApiConfig, metrics: Arc<ResourceMetrics>) -> Result<Self> {
+    async fn new(metrics: Arc<ResourceMetrics>) -> Result<Self> {
         Ok(Self {
-            config,
             render_times: Mutex::new(Vec::new()),
             timeout_count: AtomicU64::new(0),
             degradation_score: std::sync::atomic::AtomicU64::new(0),
-            last_analysis: AtomicU64::new(0),
             metrics,
         })
     }

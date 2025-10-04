@@ -11,7 +11,6 @@
 //! - No performance penalty for baseline extraction
 
 use crate::errors::{ApiError, ApiResult};
-use crate::metrics::RipTideMetrics;
 use crate::state::AppState;
 use anyhow::Result;
 use riptide_core::{
@@ -87,10 +86,7 @@ impl Default for DualPathConfig {
 
 /// Dual-path pipeline orchestrator
 pub struct DualPathOrchestrator {
-    state: AppState,
-    options: CrawlOptions,
     config: DualPathConfig,
-    metrics: Arc<RipTideMetrics>,
     ai_processor: Arc<RwLock<BackgroundAiProcessor>>,
     event_bus: Arc<EventBus>,
     pending_results: Arc<RwLock<HashMap<String, FastPathResult>>>,
@@ -99,22 +95,17 @@ pub struct DualPathOrchestrator {
 impl DualPathOrchestrator {
     /// Create new dual-path orchestrator
     pub fn new(
-        state: AppState,
-        options: CrawlOptions,
+        _state: AppState,
+        _options: CrawlOptions,
         config: DualPathConfig,
         event_bus: Arc<EventBus>,
     ) -> Self {
-        let metrics = state.metrics.clone();
-
         // Create AI processor with event bus integration
         let ai_processor = BackgroundAiProcessor::new(config.ai_processor_config.clone())
             .with_event_bus(event_bus.clone());
 
         Self {
-            state,
-            options,
             config,
-            metrics,
             ai_processor: Arc::new(RwLock::new(ai_processor)),
             event_bus,
             pending_results: Arc::new(RwLock::new(HashMap::new())),

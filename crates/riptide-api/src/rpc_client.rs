@@ -102,7 +102,7 @@ impl RpcClient {
         let result = DynamicRenderResult {
             success: true,
             html: headless_response.html,
-            artifacts: convert_artifacts(headless_response.artifacts),
+            artifacts: None, // Artifacts no longer returned by headless service
             error: None,
             render_time_ms,
             actions_executed: extract_action_names(&config.actions),
@@ -179,11 +179,6 @@ enum HeadlessPageAction {
         expr: String,
         timeout_ms: Option<u64>,
     },
-    Scroll {
-        steps: u32,
-        step_px: u32,
-        delay_ms: u64,
-    },
     Js {
         code: String,
     },
@@ -200,13 +195,13 @@ enum HeadlessPageAction {
 /// Response format from headless browser service
 #[derive(Debug, Deserialize)]
 struct HeadlessRenderResponse {
+    #[allow(dead_code)] // May be used for URL tracking in future
     final_url: String,
     html: String,
-    session_id: Option<String>,
-    artifacts: HeadlessArtifactsOut,
 }
 
 /// Output artifacts from headless browser
+#[allow(dead_code)] // Artifacts handling disabled but structure kept for future use
 #[derive(Debug, Deserialize)]
 struct HeadlessArtifactsOut {
     screenshot_b64: Option<String>,
@@ -263,6 +258,7 @@ fn convert_actions(actions: &[PageAction]) -> Vec<HeadlessPageAction> {
 }
 
 /// Convert headless artifacts to riptide-core format
+#[allow(dead_code)] // Artifacts conversion disabled, may be re-enabled later
 fn convert_artifacts(artifacts: HeadlessArtifactsOut) -> Option<RenderArtifacts> {
     if artifacts.screenshot_b64.is_none() && artifacts.mhtml_b64.is_none() {
         return None;

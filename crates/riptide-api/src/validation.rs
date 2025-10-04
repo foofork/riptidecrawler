@@ -11,9 +11,6 @@ const MAX_QUERY_LENGTH: usize = 500;
 /// Maximum search result limit
 const MAX_SEARCH_LIMIT: u32 = 50;
 
-/// Supported URL schemes for crawling
-const ALLOWED_SCHEMES: &[&str] = &["http", "https"];
-
 /// Input validation for API requests to ensure data integrity and security.
 ///
 /// This module provides comprehensive validation for all API endpoints,
@@ -138,12 +135,6 @@ fn validate_url(url_str: &str, index: usize) -> ApiResult<()> {
             ))
         }
     }
-}
-
-// Use common validator for private/localhost checking
-fn is_private_or_localhost(host: &str) -> bool {
-    let validator = CommonValidator::new_default();
-    validator.is_private_or_local_address(host)
 }
 
 /// Validate URL patterns to detect potentially malicious URLs.

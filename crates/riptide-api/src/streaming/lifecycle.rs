@@ -85,8 +85,6 @@ pub struct StreamCompletionSummary {
 pub struct StreamLifecycleManager {
     /// Event channel sender
     event_tx: mpsc::UnboundedSender<LifecycleEvent>,
-    /// Metrics collector
-    metrics: Arc<RipTideMetrics>,
     /// Active connections tracking
     active_connections: Arc<tokio::sync::RwLock<std::collections::HashMap<String, ConnectionInfo>>>,
 }
@@ -122,7 +120,6 @@ impl StreamLifecycleManager {
 
         Self {
             event_tx,
-            metrics,
             active_connections,
         }
     }

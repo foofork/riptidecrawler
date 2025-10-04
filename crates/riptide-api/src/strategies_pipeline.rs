@@ -492,51 +492,7 @@ impl StrategiesPipelineOrchestrator {
     }
 }
 
-/// Create GitHub-specific CSS selectors
-fn create_github_selectors() -> std::collections::HashMap<String, String> {
-    let mut selectors = std::collections::HashMap::new();
-    selectors.insert(
-        "title".to_string(),
-        "h1.entry-title, .js-issue-title, .repository-content h1".to_string(),
-    );
-    selectors.insert(
-        "content".to_string(),
-        ".entry-content, .markdown-body, .comment-body".to_string(),
-    );
-    selectors.insert(
-        "author".to_string(),
-        ".author, .commit-author, .discussion-item-header a".to_string(),
-    );
-    selectors.insert(
-        "date".to_string(),
-        "time, .commit-date, relative-time".to_string(),
-    );
-    selectors
-}
-
-/// Create blog-specific CSS selectors
-fn create_blog_selectors() -> std::collections::HashMap<String, String> {
-    let mut selectors = std::collections::HashMap::new();
-    selectors.insert(
-        "title".to_string(),
-        "h1, .entry-title, .post-title, [data-testid='storyTitle']".to_string(),
-    );
-    selectors.insert(
-        "content".to_string(),
-        ".entry-content, .post-content, .story-content, article".to_string(),
-    );
-    selectors.insert(
-        "author".to_string(),
-        ".author, .byline, .writer, [data-testid='authorName']".to_string(),
-    );
-    selectors.insert(
-        "date".to_string(),
-        "time, .date, .published, [data-testid='storyPublishDate']".to_string(),
-    );
-    selectors
-}
-
-// News pattern function removed since regex strategies are no longer used
+// GitHub and blog selector functions removed since regex strategies are no longer used
 
 impl Clone for StrategiesPipelineOrchestrator {
     fn clone(&self) -> Self {

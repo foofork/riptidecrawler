@@ -306,6 +306,7 @@ impl HealthChecker {
     }
 
     /// Verify HTTP client configuration is valid
+    #[allow(dead_code)] // TODO: Implement HTTP client config verification
     fn verify_http_client_config(_state: &AppState) -> bool {
         // Verify timeout settings, connection pool, etc.
         // This is a placeholder - add actual configuration checks as needed
