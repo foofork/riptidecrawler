@@ -160,7 +160,9 @@ pub enum ResourceResult<T> {
     Success(T),
     Timeout,
     ResourceExhausted,
-    RateLimited { retry_after: Duration },
+    RateLimited {
+        retry_after: Duration,
+    },
     MemoryPressure,
     /// TODO: Use Error variant for error handling
     #[allow(dead_code)]
