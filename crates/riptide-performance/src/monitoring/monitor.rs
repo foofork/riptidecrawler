@@ -17,7 +17,7 @@ use uuid::Uuid;
 pub struct PerformanceMonitor {
     config: MonitoringConfig,
     targets: PerformanceTargets,
-    session_id: Uuid,
+    pub(crate) session_id: Uuid,
     start_time: Option<Instant>,
 
     // Metric storage
@@ -295,7 +295,7 @@ impl PerformanceMonitor {
     }
 
     /// Collect current system metrics
-    async fn collect_system_metrics(&self) -> Result<SystemMetrics> {
+    pub(crate) async fn collect_system_metrics(&self) -> Result<SystemMetrics> {
         Self::collect_system_metrics_impl().await
     }
 
@@ -320,7 +320,7 @@ impl PerformanceMonitor {
     }
 
     /// Collect current application metrics
-    async fn collect_application_metrics(&self) -> Result<ApplicationMetrics> {
+    pub(crate) async fn collect_application_metrics(&self) -> Result<ApplicationMetrics> {
         Self::collect_application_metrics_impl().await
     }
 
@@ -1017,7 +1017,7 @@ impl PerformanceMonitor {
     }
 
     /// Generate actionable recommendations based on bottlenecks
-    async fn generate_bottleneck_recommendations(
+    pub(crate) async fn generate_bottleneck_recommendations(
         &self,
         bottlenecks: &[Bottleneck],
     ) -> Result<Vec<String>> {

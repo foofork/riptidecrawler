@@ -29,9 +29,6 @@ use uuid::Uuid;
 // TODO: Fix this - ReportGenerator from riptide_core has different signature
 // use riptide_core::monitoring::ReportGenerator;
 
-// Import from local progress module
-use crate::progress::ProgressTracker;
-
 // Import from local reports module
 // TODO: Fix this - ReportFormat is not properly exported
 // use crate::reports::ReportFormat;

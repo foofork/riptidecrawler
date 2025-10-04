@@ -21,7 +21,10 @@ db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
 # Updated configuration per cargo-deny 0.16+ migration
 ignore = []  # List of advisory IDs to ignore
-severity-threshold = "medium"  # Minimum severity level to report
+# severity-threshold replaced with severity in cargo-deny 0.16+
+# See: https://github.com/EmbarkStudios/cargo-deny/pull/611
+# Use advisory severity levels to filter: low, medium, high, critical
+# Remove this deprecated key and use advisory-level filtering instead
 
 [sources]
 unknown-registry = "warn"

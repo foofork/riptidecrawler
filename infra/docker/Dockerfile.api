@@ -76,8 +76,10 @@ RUN cd wasm/riptide-extractor-wasm && \
     cargo build --release --target wasm32-wasip2
 
 # Install wasm-opt for optimization
-RUN apt-get update && apt-get install -y binaryen && \
-    wasm-opt -Oz wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm \
+RUN apt-get update && apt-get install -y binaryen && rm -rf /var/lib/apt/lists/*
+
+# Optimize WASM or fallback to unoptimized version
+RUN wasm-opt -Oz wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm \
     -o wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.optimized.wasm || \
     cp wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm \
        wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.optimized.wasm

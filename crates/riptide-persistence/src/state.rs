@@ -1120,6 +1120,7 @@ impl SessionSpilloverManager {
     }
 
     /// Get spillover metrics
+    #[allow(dead_code)]
     async fn get_metrics(&self) -> SpilloverMetrics {
         self.metrics.read().await.clone()
     }
