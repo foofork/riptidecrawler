@@ -85,6 +85,7 @@ pub struct SwitchProviderRequest {
     /// Name of the provider to switch to
     pub provider_name: String,
     /// Optional configuration updates
+    #[allow(dead_code)] // TODO: Implement provider config updates
     pub config_updates: Option<HashMap<String, String>>,
     /// Whether to perform gradual rollout
     #[serde(default)]

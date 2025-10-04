@@ -23,5 +23,6 @@ pub use deepsearch::deepsearch;
 pub use health::{health, init_startup_time, START_TIME};
 pub use pipeline_phases::get_pipeline_phases;
 pub use render::render;
-pub use telemetry::{get_telemetry_status, get_trace_tree, list_traces};
+// Telemetry endpoints disabled - imports removed to eliminate unused warnings
+// pub use telemetry::{get_telemetry_status, get_trace_tree, list_traces};
 pub use utils::{metrics, not_found};

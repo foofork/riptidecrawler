@@ -26,6 +26,7 @@ pub struct RenderRequest {
     pub capture_artifacts: Option<bool>,
 
     /// Timeout for rendering operation (seconds)
+    #[allow(dead_code)] // TODO: Implement per-request timeout override
     pub timeout: Option<u64>,
 
     /// Session ID to use for persistent browser state (optional)

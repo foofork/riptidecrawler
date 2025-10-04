@@ -27,6 +27,7 @@ pub enum ApiError {
 
     /// Authentication/authorization errors (401/403)
     #[error("Authentication failed: {message}")]
+    #[allow(dead_code)] // TODO: Implement authentication middleware
     AuthenticationError { message: String },
 
     /// Content fetch errors (502 Bad Gateway or 404 Not Found)
@@ -43,6 +44,7 @@ pub enum ApiError {
 
     /// Gate/routing errors (500 Internal Server Error)
     #[error("Content routing failed: {message}")]
+    #[allow(dead_code)] // Used by gate module for routing failures
     RoutingError { message: String },
 
     /// Pipeline orchestration errors (500 Internal Server Error)
@@ -71,6 +73,7 @@ pub enum ApiError {
 
     /// Request payload too large (413 Payload Too Large)
     #[error("Request payload too large: {message}")]
+    #[allow(dead_code)] // TODO: Implement payload size validation middleware
     PayloadTooLarge { message: String },
 }
 

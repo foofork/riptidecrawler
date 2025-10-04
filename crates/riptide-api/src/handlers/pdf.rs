@@ -393,6 +393,7 @@ pub struct EnhancedProgressUpdate {
 
 /// Request type enum for handling both JSON and multipart requests
 #[derive(Debug)]
+#[allow(dead_code)] // TODO: Implement multipart PDF upload support
 pub enum PdfProcessingRequest {
     Json(PdfProcessRequest),
     Multipart(Vec<u8>, Option<String>, Option<String>), // data, filename, url
