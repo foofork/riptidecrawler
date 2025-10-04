@@ -29,23 +29,29 @@ pub struct StrategiesCrawlRequest {
 
     /// Enable performance metrics collection
     #[serde(default = "default_true")]
+    #[allow(dead_code)] // TODO: Implement metrics collection toggle
     pub enable_metrics: bool,
 
     /// Enable schema validation
     #[serde(default = "default_true")]
+    #[allow(dead_code)] // TODO: Implement schema validation toggle
     pub validate_schema: bool,
 
     /// Cache mode
     #[serde(default = "default_cache_mode")]
+    #[allow(dead_code)] // TODO: Implement cache mode selection
     pub cache_mode: String,
 
     /// Custom CSS selectors for CSS_JSON strategy
+    #[allow(dead_code)] // TODO: Implement CSS_JSON strategy with custom selectors
     pub css_selectors: Option<HashMap<String, String>>,
 
     /// Custom regex patterns for REGEX strategy
+    #[allow(dead_code)] // TODO: Implement REGEX strategy with custom patterns
     pub regex_patterns: Option<Vec<RegexPatternRequest>>,
 
     /// LLM configuration for LLM strategy
+    #[allow(dead_code)] // TODO: Implement LLM strategy configuration
     pub llm_config: Option<LlmConfigRequest>,
 }
 
@@ -70,6 +76,7 @@ pub struct ChunkingConfigRequest {
 
 /// Regex pattern from request
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)] // TODO: Implement REGEX extraction strategy
 pub struct RegexPatternRequest {
     pub name: String,
     pub pattern: String,
@@ -79,6 +86,7 @@ pub struct RegexPatternRequest {
 
 /// LLM configuration from request
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)] // TODO: Implement LLM extraction strategy
 pub struct LlmConfigRequest {
     pub enabled: bool,
     pub model: Option<String>,

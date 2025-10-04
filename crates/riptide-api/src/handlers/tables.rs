@@ -35,12 +35,14 @@ pub struct TableExtractionRequest {
 pub struct TableExtractionOptions {
     /// Include headers in extraction
     #[serde(default = "default_true")]
+    #[allow(dead_code)] // TODO: Implement header inclusion toggle
     pub include_headers: bool,
     /// Preserve HTML formatting in cells
     #[serde(default)]
     pub preserve_formatting: bool,
     /// Detect data types in columns
     #[serde(default)]
+    #[allow(dead_code)] // TODO: Implement data type detection
     pub detect_data_types: bool,
     /// Include nested tables
     #[serde(default = "default_true")]
