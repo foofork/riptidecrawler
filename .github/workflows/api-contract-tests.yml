@@ -118,7 +118,7 @@ jobs:
       - name: Run Schemathesis fuzzing tests
         run: |
           schemathesis run docs/api/openapi.yaml \
-            --base-url http://localhost:8080 \
+            --url http://localhost:8080 \
             --checks all \
             --hypothesis-max-examples=100 \
             --hypothesis-deadline=5000 \
@@ -154,13 +154,15 @@ jobs:
       - name: Lint OpenAPI with Spectral
         run: |
           spectral lint docs/api/openapi.yaml \
+            --ruleset spectral:oas \
             --format stylish \
             --fail-severity warn
 
       - name: Check OpenAPI best practices
         run: |
           spectral lint docs/api/openapi.yaml \
-            --ruleset https://raw.githubusercontent.com/stoplightio/spectral/master/docs/reference/openapi-rules.md
+            --ruleset spectral:oas \
+            --format stylish
 
   # Test 4: API Response Time Testing
   performance-tests:
@@ -238,12 +240,13 @@ jobs:
           ./target/release/riptide-api &
           echo "API_PID=$!" >> $GITHUB_ENV
           sleep 5
+          # Wait for API to be ready
+          timeout 30 bash -c 'until curl -f http://localhost:8080/healthz 2>/dev/null; do sleep 1; done' || echo "API may not be ready"
 
       - name: Run OWASP ZAP baseline scan
         uses: zaproxy/action-baseline@v0.9.0
         with:
           target: 'http://localhost:8080'
-          rules_file_name: '.zap/rules.tsv'
           cmd_options: '-a'
 
       - name: Stop API
