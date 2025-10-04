@@ -3,16 +3,14 @@ use axum::{http::StatusCode, Json};
 use chromiumoxide::{Browser, BrowserConfig, Page};
 use futures::StreamExt;
 use riptide_core::stealth::{StealthController, StealthPreset};
-use std::collections::HashMap;
-use std::sync::Arc;
+// Removed: std::collections::HashMap (only used by removed SessionStore)
+// Removed: std::sync::Arc (only used by removed SessionStore)
 use std::time::{Duration, Instant};
-use tokio::sync::RwLock;
+// Removed: tokio::sync::RwLock (only used by removed SessionStore)
 use tokio::time::{sleep, timeout};
 use tracing::{debug, error, info, warn};
 
-/// Session storage for persistent browser instances
-#[allow(dead_code)]
-type SessionStore = Arc<RwLock<HashMap<String, Browser>>>;
+// Removed: SessionStore type alias - never used
 
 /// Enhanced render function with timeout management and resilience patterns
 pub async fn render(

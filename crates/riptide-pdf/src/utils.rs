@@ -246,42 +246,15 @@ mod tests {
         assert!(validate_pdf_header(short_file).is_err());
     }
 
-    #[test]
-    fn test_likely_needs_ocr() {
-        assert!(likely_needs_ocr("", 5)); // No text, has images
-        assert!(!likely_needs_ocr(
-            "This is a long text content with meaningful information",
-            0
-        )); // Has text, no images
-        assert!(!likely_needs_ocr(
-            "This is a long text content with meaningful information",
-            2
-        )); // Has text and images
-        assert!(likely_needs_ocr("OCR", 3)); // Very short text, has images
-    }
+    // Removed tests for deleted functions:
+    // - test_likely_needs_ocr (function removed as dead code)
+    // - test_sanitize_text_content (function removed as dead code)
+    // - test_processing_complexity_methods (methods removed as dead code)
 
     #[test]
     fn test_estimate_reading_time() {
         assert_eq!(estimate_reading_time(100), 1); // Minimum 1 minute
         assert_eq!(estimate_reading_time(400), 2); // 400 words = 2 minutes
         assert_eq!(estimate_reading_time(1000), 5); // 1000 words = 5 minutes
-    }
-
-    #[test]
-    fn test_sanitize_text_content() {
-        let messy_text = "  Line 1  \n\n  \n  Line 2  \n   \n  Line 3  ";
-        let expected = "Line 1\nLine 2\nLine 3";
-        assert_eq!(sanitize_text_content(messy_text), expected);
-    }
-
-    #[test]
-    fn test_processing_complexity_methods() {
-        let low = ProcessingComplexity::Low;
-        assert_eq!(low.estimated_time_seconds(), 5);
-        assert_eq!(low.memory_limit_bytes(), 50 * 1024 * 1024);
-
-        let high = ProcessingComplexity::VeryHigh;
-        assert_eq!(high.estimated_time_seconds(), 120);
-        assert_eq!(high.memory_limit_bytes(), 1024 * 1024 * 1024);
     }
 }
