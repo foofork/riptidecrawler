@@ -1,3 +1,6 @@
+// TODO: Session management system prepared but not yet integrated into routes
+#![allow(dead_code)]
+
 use super::manager::SessionManager;
 use super::types::{Session, SessionError};
 use axum::{

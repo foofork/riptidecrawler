@@ -188,6 +188,8 @@ pub struct ScheduledJobResponse {
 }
 
 /// Query parameters for job listing
+/// TODO: Implement job listing endpoint
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct JobListQuery {
     pub status: Option<String>,

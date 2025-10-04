@@ -1,3 +1,6 @@
+// TODO: Streaming infrastructure - will be activated when routes are added
+#![allow(dead_code)]
+
 //! WebSocket streaming implementation for real-time bidirectional communication.
 //!
 //! This module provides WebSocket endpoints for real-time streaming with

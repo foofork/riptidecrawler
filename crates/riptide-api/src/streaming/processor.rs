@@ -1,3 +1,6 @@
+// TODO: Streaming infrastructure prepared but routes not yet activated
+#![allow(dead_code)]
+
 //! Stream processing logic and utilities.
 //!
 //! This module contains common processing logic shared across different

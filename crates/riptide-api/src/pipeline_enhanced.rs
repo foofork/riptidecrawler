@@ -1,3 +1,6 @@
+// TODO: Enhanced pipeline orchestrator prepared for production use
+#![allow(dead_code)]
+
 use crate::errors::ApiResult;
 use crate::metrics::{PhaseTimer, PhaseType, RipTideMetrics};
 use crate::pipeline::{PipelineOrchestrator, PipelineResult, PipelineStats};

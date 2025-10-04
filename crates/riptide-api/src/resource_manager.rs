@@ -114,8 +114,14 @@ pub struct PerformanceMonitor {
 /// Resource metrics collection
 #[derive(Default)]
 pub struct ResourceMetrics {
+    /// TODO: Track headless pool size metric
+    #[allow(dead_code)]
     pub headless_pool_size: AtomicUsize,
+    /// TODO: Track active headless browsers
+    #[allow(dead_code)]
     pub headless_active: AtomicUsize,
+    /// TODO: Track active PDF operations
+    #[allow(dead_code)]
     pub pdf_active: AtomicUsize,
     pub wasm_instances: AtomicUsize,
     pub memory_usage_mb: AtomicUsize,
@@ -129,6 +135,8 @@ pub struct ResourceMetrics {
 }
 
 /// Result of resource acquisition
+/// TODO: Use for generic resource tracking
+#[allow(dead_code)]
 pub struct ResourceGuard {
     pub resource_type: String,
     pub acquired_at: Instant,
@@ -154,6 +162,8 @@ pub enum ResourceResult<T> {
     ResourceExhausted,
     RateLimited { retry_after: Duration },
     MemoryPressure,
+    /// TODO: Use Error variant for error handling
+    #[allow(dead_code)]
     Error(String),
 }
 
@@ -291,6 +301,8 @@ impl ResourceManager {
     }
 
     /// Acquire resources for PDF operation
+    /// TODO: Integrate with PDF processing endpoints
+    #[allow(dead_code)]
     pub async fn acquire_pdf_resources(&self) -> Result<ResourceResult<PdfResourceGuard>> {
         // Check memory pressure
         if self.memory_manager.is_under_pressure() {
@@ -382,6 +394,8 @@ impl ResourceManager {
 
 /// Resource guard for render operations
 pub struct RenderResourceGuard {
+    /// TODO: Browser checkout tracking not yet fully integrated
+    #[allow(dead_code)]
     pub browser_checkout: BrowserCheckout,
     #[allow(dead_code)] // Used for cleanup in Drop impl
     wasm_guard: WasmGuard,
@@ -390,6 +404,8 @@ pub struct RenderResourceGuard {
 }
 
 /// Resource guard for PDF operations
+/// TODO: Integrate with PDF processing
+#[allow(dead_code)]
 pub struct PdfResourceGuard {
     _permit: tokio::sync::OwnedSemaphorePermit,
     memory_tracked: usize,
@@ -407,13 +423,27 @@ pub struct WasmGuard {
 /// Current resource status
 #[derive(Debug)]
 pub struct ResourceStatus {
+    /// TODO: Use in status reporting
+    #[allow(dead_code)]
     pub headless_pool_available: usize,
+    /// TODO: Use in status reporting
+    #[allow(dead_code)]
     pub headless_pool_total: usize,
+    /// TODO: Use in status reporting
+    #[allow(dead_code)]
     pub pdf_available: usize,
+    /// TODO: Use in status reporting
+    #[allow(dead_code)]
     pub pdf_total: usize,
+    /// TODO: Use in status reporting
+    #[allow(dead_code)]
     pub memory_usage_mb: usize,
     pub memory_pressure: bool,
+    /// TODO: Use in status reporting
+    #[allow(dead_code)]
     pub rate_limit_hits: u64,
+    /// TODO: Use in status reporting
+    #[allow(dead_code)]
     pub timeout_count: u64,
     pub degradation_score: f64,
 }

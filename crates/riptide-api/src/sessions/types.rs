@@ -1,3 +1,6 @@
+// TODO: Session management system prepared but not yet integrated into routes
+#![allow(dead_code)]
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;

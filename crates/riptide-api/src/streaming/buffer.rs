@@ -1,3 +1,6 @@
+// TODO: Streaming infrastructure - will be activated when routes are added
+#![allow(dead_code)]
+
 //! Buffer management and backpressure handling for streaming operations.
 //!
 //! This module provides dynamic buffer sizing, backpressure detection, and

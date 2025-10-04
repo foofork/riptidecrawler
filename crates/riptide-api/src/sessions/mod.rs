@@ -1,3 +1,6 @@
+// TODO: Session management system prepared but not yet integrated into routes
+#![allow(dead_code)]
+
 pub mod manager;
 pub mod middleware;
 pub mod storage;

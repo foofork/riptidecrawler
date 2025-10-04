@@ -1,3 +1,6 @@
+// TODO: Streaming infrastructure - will be activated when routes are added
+#![allow(dead_code)]
+
 //! Server-Sent Events (SSE) streaming implementation.
 //!
 //! This module provides SSE endpoints for real-time streaming with automatic

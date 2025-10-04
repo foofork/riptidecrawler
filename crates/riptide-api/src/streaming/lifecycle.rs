@@ -1,3 +1,6 @@
+// TODO: Streaming infrastructure - will be activated when routes are added
+#![allow(dead_code)]
+
 //! Stream lifecycle management and event handling.
 //!
 //! This module provides sophisticated lifecycle management for streaming operations,

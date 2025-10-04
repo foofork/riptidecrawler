@@ -1,3 +1,6 @@
+// TODO: Streaming infrastructure - will be activated when routes are added
+#![allow(dead_code)]
+
 //! Error types for streaming operations.
 //!
 //! This module provides comprehensive error handling for all streaming operations

@@ -60,6 +60,8 @@ pub struct AppState {
     pub metrics: Arc<RipTideMetrics>,
 
     /// Health checker for enhanced diagnostics
+    /// TODO: Integrate with health check endpoints
+    #[allow(dead_code)]
     pub health_checker: Arc<HealthChecker>,
 
     /// Session manager for persistent browser sessions
@@ -69,12 +71,16 @@ pub struct AppState {
     pub streaming: Arc<StreamingModule>,
 
     /// Telemetry system for observability
+    /// TODO: Full telemetry integration planned
+    #[allow(dead_code)]
     pub telemetry: Option<Arc<TelemetrySystem>>,
 
     /// Spider engine for deep crawling
     pub spider: Option<Arc<Spider>>,
 
     /// PDF metrics collector for monitoring PDF processing
+    /// TODO: Integrate with metrics endpoints
+    #[allow(dead_code)]
     pub pdf_metrics: Arc<PdfMetricsCollector>,
 
     /// Worker service for background job processing
@@ -87,15 +93,21 @@ pub struct AppState {
     pub circuit_breaker: Arc<tokio::sync::Mutex<CircuitBreakerState>>,
 
     /// Performance metrics for circuit breaker tracking
+    /// TODO: Integrate with performance monitoring
+    #[allow(dead_code)]
     pub performance_metrics: Arc<tokio::sync::Mutex<PerformanceMetrics>>,
 
     /// Monitoring system for performance tracking and alerting
     pub monitoring_system: Arc<MonitoringSystem>,
 
     /// FetchEngine for HTTP operations with per-host circuit breakers and rate limiting
+    /// TODO: Replace direct HTTP client usage with FetchEngine
+    #[allow(dead_code)]
     pub fetch_engine: Arc<FetchEngine>,
 
     /// Future: CacheWarmer for intelligent cache pre-warming (placeholder for now)
+    /// TODO: Implement cache warming feature
+    #[allow(dead_code)]
     pub cache_warmer_enabled: bool,
 }
 
@@ -140,9 +152,13 @@ pub struct AppConfig {
     pub reliability_config: ReliabilityConfig,
 
     /// Monitoring system configuration
+    /// TODO: Full monitoring configuration integration
+    #[allow(dead_code)]
     pub monitoring_config: MonitoringConfig,
 
     /// Enhanced pipeline configuration
+    /// TODO: Integrate enhanced pipeline features
+    #[allow(dead_code)]
     pub enhanced_pipeline_config: EnhancedPipelineConfig,
 
     /// Cache warming configuration
@@ -153,18 +169,32 @@ pub struct AppConfig {
 #[derive(Clone, Debug)]
 pub struct EnhancedPipelineConfig {
     /// Enable enhanced pipeline with detailed phase timing
+    /// TODO: Implement enhanced pipeline feature
+    #[allow(dead_code)]
     pub enable_enhanced_pipeline: bool,
     /// Enable phase timing metrics collection
+    /// TODO: Implement phase metrics collection
+    #[allow(dead_code)]
     pub enable_phase_metrics: bool,
     /// Enable detailed debug logging for each phase
+    /// TODO: Implement debug logging feature
+    #[allow(dead_code)]
     pub enable_debug_logging: bool,
     /// Timeout for fetch phase in seconds
+    /// TODO: Use in fetch phase timeout logic
+    #[allow(dead_code)]
     pub fetch_timeout_secs: u64,
     /// Timeout for gate phase in seconds
+    /// TODO: Use in gate phase timeout logic
+    #[allow(dead_code)]
     pub gate_timeout_secs: u64,
     /// Timeout for WASM phase in seconds
+    /// TODO: Use in WASM phase timeout logic
+    #[allow(dead_code)]
     pub wasm_timeout_secs: u64,
     /// Timeout for render phase in seconds
+    /// TODO: Use in render phase timeout logic
+    #[allow(dead_code)]
     pub render_timeout_secs: u64,
 }
 
@@ -211,6 +241,8 @@ pub struct CircuitBreakerConfig {
     /// Timeout duration in milliseconds before transitioning from Open to HalfOpen
     pub timeout_ms: u64,
     /// Minimum requests to consider before evaluating failure rate
+    /// TODO: Implement min_requests threshold logic
+    #[allow(dead_code)]
     pub min_requests: u64,
 }
 
@@ -444,6 +476,8 @@ impl AppState {
     }
 
     /// Initialize with custom API configuration
+    /// TODO: Use in tests or alternative initialization paths
+    #[allow(dead_code)]
     pub async fn new_with_api_config(
         config: AppConfig,
         api_config: ApiConfig,
@@ -918,6 +952,8 @@ pub struct MonitoringSystem {
     pub health_calculator: Arc<HealthCalculator>,
 
     /// Configuration for monitoring behavior
+    /// TODO: Use config in monitoring operations
+    #[allow(dead_code)]
     pub config: MonitoringConfig,
 }
 

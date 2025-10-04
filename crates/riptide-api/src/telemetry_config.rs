@@ -1,4 +1,7 @@
 //! Telemetry Configuration and Utilities (TELEM-006, TELEM-007)
+
+// TODO: Telemetry configuration and initialization prepared
+#![allow(dead_code)]
 //!
 //! This module provides comprehensive OpenTelemetry configuration including:
 //! - OTLP exporter setup (Jaeger, Zipkin, generic OTLP)

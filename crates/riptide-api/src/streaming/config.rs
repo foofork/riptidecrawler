@@ -1,3 +1,6 @@
+// TODO: Streaming infrastructure - will be activated when routes are added
+#![allow(dead_code)]
+
 //! Configuration for streaming operations.
 //!
 //! This module provides centralized configuration for all streaming

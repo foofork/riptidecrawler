@@ -1,3 +1,6 @@
+// TODO: Streaming pipeline infrastructure prepared but routes not yet activated
+#![allow(dead_code)]
+
 //! Pipeline orchestration for streaming operations.
 //!
 //! This module provides high-level orchestration logic for coordinating

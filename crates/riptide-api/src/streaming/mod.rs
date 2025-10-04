@@ -1,3 +1,7 @@
+// TODO: Complete streaming infrastructure prepared but endpoints not yet activated.
+// This entire module will be enabled when streaming routes are added to the API.
+#![allow(dead_code)]
+
 //! Streaming module for real-time data delivery.
 //!
 //! This module provides a comprehensive streaming infrastructure supporting multiple

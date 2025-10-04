@@ -1,4 +1,7 @@
 //! Core NDJSON streaming logic and handler implementation.
+
+// TODO: Streaming infrastructure - will be activated when routes are added
+#![allow(dead_code)]
 //!
 //! This module contains the main streaming handler struct and its implementation methods.
 
