@@ -66,6 +66,7 @@ pub struct CookieResponse {
 #[derive(Deserialize, Debug)]
 pub struct ListSessionsQuery {
     /// Include expired sessions
+    #[allow(dead_code)] // TODO: Implement expired session filtering
     pub include_expired: Option<bool>,
     /// Limit the number of results
     pub limit: Option<usize>,

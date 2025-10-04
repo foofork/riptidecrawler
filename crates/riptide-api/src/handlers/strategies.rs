@@ -20,9 +20,11 @@ pub struct StrategiesCrawlRequest {
     pub url: String,
 
     /// Optional extraction strategy override
+    #[allow(dead_code)] // TODO: Implement strategy override selection
     pub extraction_strategy: Option<String>,
 
     /// Optional chunking configuration
+    #[allow(dead_code)] // TODO: Implement chunking config application
     pub chunking_config: Option<ChunkingConfigRequest>,
 
     /// Enable performance metrics collection
@@ -49,6 +51,7 @@ pub struct StrategiesCrawlRequest {
 
 /// Chunking configuration from request
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)] // TODO: Implement chunking configuration in riptide-intelligence
 pub struct ChunkingConfigRequest {
     pub mode: String, // "sliding", "fixed", "sentence", "topic", "regex"
     pub token_max: Option<usize>,
