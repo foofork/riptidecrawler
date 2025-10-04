@@ -78,8 +78,9 @@ pub struct WasmInstanceManager {
 /// WASM instance for a specific worker
 #[derive(Debug)]
 struct WasmWorkerInstance {
-    pub worker_id: String,
     // TODO: Implement health tracking metrics - https://github.com/eventmesh/issues/xxx
+    #[allow(dead_code)]
+    pub worker_id: String,
     #[allow(dead_code)]
     pub created_at: Instant,
     #[allow(dead_code)]
@@ -88,6 +89,7 @@ struct WasmWorkerInstance {
     pub last_operation: Instant,
     #[allow(dead_code)]
     pub is_healthy: bool,
+    #[allow(dead_code)]
     pub memory_usage: usize,
 }
 
