@@ -1,7 +1,3 @@
-// TODO: Complete streaming infrastructure prepared but endpoints not yet activated.
-// This entire module will be enabled when streaming routes are added to the API.
-#![allow(dead_code)]
-
 //! Streaming module for real-time data delivery.
 //!
 //! This module provides a comprehensive streaming infrastructure supporting multiple
@@ -239,10 +235,8 @@ impl GlobalStreamingMetrics {
             StreamingHealth::Critical
         } else if self.error_rate > 0.05 || message_drop_ratio > 0.1 || connection_ratio < 0.5 {
             StreamingHealth::Degraded
-        } else if self.active_connections == 0 && self.total_connections == 0 {
-            StreamingHealth::Healthy // No traffic is okay
         } else {
-            StreamingHealth::Healthy
+            StreamingHealth::Healthy // No traffic is okay, or general healthy state
         };
     }
 

@@ -121,6 +121,7 @@ mod tests {
         use riptide_core::events::handlers::{
             HealthEventHandler, LoggingEventHandler, TelemetryEventHandler,
         };
+        #[allow(unused_imports)]
         use riptide_core::monitoring::MetricsCollector;
 
         let event_bus = EventBus::new();

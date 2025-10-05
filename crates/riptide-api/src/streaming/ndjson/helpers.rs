@@ -218,7 +218,7 @@ pub async fn orchestrate_crawl_stream_optimized(
 
             let progress_result =
                 send_ndjson_line_fast(&tx, &progress_update, backpressure_handler).await;
-            if let Err(_) = progress_result {
+            if progress_result.is_err() {
                 debug!(request_id = %request_id, "Client disconnected during progress update");
                 break;
             }
@@ -579,7 +579,7 @@ async fn send_ndjson_line_fast<T: Serialize>(
 
     // Send with error handling (no unwrap)
     let send_result = tx.send(Bytes::from(line_bytes)).await;
-    if let Err(_) = send_result {
+    if send_result.is_err() {
         return Err(StreamingError::channel("Failed to send to stream"));
     }
 

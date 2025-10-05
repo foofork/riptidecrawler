@@ -50,8 +50,8 @@ impl NdjsonStreamingHandler {
 
         // Configure for TTFB < 500ms optimization
         config.ndjson.flush_interval = Duration::from_millis(50); // Faster flushing
-        config.buffer.max_size = buffer_limit.min(2048).max(256); // Respect limit but stay reasonable
-        config.buffer.default_size = (buffer_limit / 4).min(512).max(128); // Quarter of limit
+        config.buffer.max_size = buffer_limit.clamp(256, 2048); // Respect limit but stay reasonable
+        config.buffer.default_size = (buffer_limit / 4).clamp(128, 512); // Quarter of limit
         config.general.default_timeout = Duration::from_secs(30); // Reasonable timeout
 
         Self {

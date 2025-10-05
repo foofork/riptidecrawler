@@ -241,7 +241,6 @@ pub struct StreamingErrorResponse;
 
 impl StreamingErrorResponse {
     /// Create an NDJSON error response
-    #[allow(dead_code)] // TODO: Use for NDJSON streaming error handling
     pub fn ndjson(error: impl Serialize) -> Response {
         let error_json = match serde_json::to_string(&error) {
             Ok(json) => format!("{}\n", json),
@@ -262,7 +261,6 @@ impl StreamingErrorResponse {
     }
 
     /// Create an SSE error response
-    #[allow(dead_code)] // TODO: Use for SSE streaming error handling
     pub fn sse(error: impl Serialize) -> Response {
         let error_sse = match serde_json::to_string(&error) {
             Ok(json) => format!("event: error\ndata: {}\n\n", json),
@@ -283,7 +281,6 @@ impl StreamingErrorResponse {
     }
 
     /// Create a JSON error response
-    #[allow(dead_code)] // TODO: Use for JSON streaming error handling
     pub fn json(error: impl Serialize) -> Response {
         match serde_json::to_string(&error) {
             Ok(json) => {
@@ -311,7 +308,6 @@ impl StreamingErrorResponse {
     }
 
     /// Create error response based on response type
-    #[allow(dead_code)] // TODO: Use for dynamic streaming error handling
     pub fn for_type(response_type: StreamingResponseType, error: impl Serialize) -> Response {
         match response_type {
             StreamingResponseType::Ndjson => Self::ndjson(error),
@@ -322,12 +318,10 @@ impl StreamingErrorResponse {
 }
 
 /// Helper for creating keep-alive messages
-#[allow(dead_code)] // TODO: Implement keep-alive messages for streaming endpoints
 pub struct KeepAliveHelper;
 
 impl KeepAliveHelper {
     /// Create NDJSON keep-alive message
-    #[allow(dead_code)] // TODO: Use for NDJSON streaming keep-alive
     pub fn ndjson_message() -> String {
         format!(
             "{{\"type\":\"keep-alive\",\"timestamp\":\"{}\"}}\n",
@@ -336,13 +330,11 @@ impl KeepAliveHelper {
     }
 
     /// Create SSE keep-alive message
-    #[allow(dead_code)] // TODO: Use for SSE streaming keep-alive
     pub fn sse_message() -> String {
         format!(": keep-alive {}\n\n", chrono::Utc::now().to_rfc3339())
     }
 
     /// Create keep-alive message for specific type
-    #[allow(dead_code)] // TODO: Use for dynamic streaming keep-alive
     pub fn for_type(response_type: StreamingResponseType) -> String {
         match response_type {
             StreamingResponseType::Ndjson => Self::ndjson_message(),
@@ -438,13 +430,7 @@ where
     S: Stream<Item = Result<T, Box<dyn std::error::Error + Send + Sync>>> + Send + 'static,
     T: Serialize + Send + 'static + Default,
 {
-    let safe_stream = stream.map(|result| match result {
-        Ok(item) => item,
-        Err(_e) => {
-            // Return default value on error (T must implement Default)
-            T::default()
-        }
-    });
+    let safe_stream = stream.map(|result: Result<T, _>| result.unwrap_or_default());
 
     StreamingResponseBuilder::new(response_type).build(safe_stream)
 }
@@ -452,6 +438,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[allow(unused_imports)]
     use serde_json::Value;
 
     #[test]

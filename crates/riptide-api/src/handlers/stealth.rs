@@ -352,7 +352,7 @@ async fn test_stealth_for_url(
         }
     };
 
-    let success = status_code >= 200 && status_code < 400 && detection_indicators.is_empty();
+    let success = (200..400).contains(&status_code) && detection_indicators.is_empty();
 
     Ok(StealthTestResult {
         url: url.to_string(),
@@ -366,13 +366,13 @@ async fn test_stealth_for_url(
 
 /// Determine active stealth measures
 fn determine_active_measures(_controller: &StealthController) -> Vec<String> {
-    let mut measures = Vec::new();
-
     // Since we can't access the config directly, assume common measures
-    measures.push("user_agent_rotation".to_string());
-    measures.push("request_randomization".to_string());
-    measures.push("timing_jitter".to_string());
-    measures.push("fingerprinting_countermeasures".to_string());
+    let measures = vec![
+        "user_agent_rotation".to_string(),
+        "request_randomization".to_string(),
+        "timing_jitter".to_string(),
+        "fingerprinting_countermeasures".to_string(),
+    ];
 
     measures
 }

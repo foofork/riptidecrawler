@@ -75,6 +75,16 @@ pub struct RipTideMetrics {
     pub wasm_cold_start_time_ms: Gauge,
     pub wasm_aot_cache_hits: Counter,
     pub wasm_aot_cache_misses: Counter,
+
+    /// Worker management metrics (Phase 4B Feature 5)
+    pub worker_pool_size: Gauge,
+    pub worker_pool_healthy: Gauge,
+    pub worker_jobs_submitted: Counter,
+    pub worker_jobs_completed: Counter,
+    pub worker_jobs_failed: Counter,
+    pub worker_jobs_retried: Counter,
+    pub worker_processing_time: Histogram,
+    pub worker_queue_depth: Gauge,
 }
 
 impl RipTideMetrics {
@@ -427,6 +437,72 @@ impl RipTideMetrics {
             .const_label("service", "riptide-api"),
         )?;
 
+        // Worker management metrics (Phase 4B Feature 5)
+        let worker_pool_size = Gauge::with_opts(
+            Opts::new(
+                "riptide_worker_pool_size",
+                "Total number of workers in pool",
+            )
+            .const_label("service", "riptide-api"),
+        )?;
+
+        let worker_pool_healthy = Gauge::with_opts(
+            Opts::new(
+                "riptide_worker_pool_healthy",
+                "Number of healthy workers in pool",
+            )
+            .const_label("service", "riptide-api"),
+        )?;
+
+        let worker_jobs_submitted = Counter::with_opts(
+            Opts::new(
+                "riptide_worker_jobs_submitted_total",
+                "Total number of jobs submitted to workers",
+            )
+            .const_label("service", "riptide-api"),
+        )?;
+
+        let worker_jobs_completed = Counter::with_opts(
+            Opts::new(
+                "riptide_worker_jobs_completed_total",
+                "Total number of jobs completed by workers",
+            )
+            .const_label("service", "riptide-api"),
+        )?;
+
+        let worker_jobs_failed = Counter::with_opts(
+            Opts::new(
+                "riptide_worker_jobs_failed_total",
+                "Total number of failed worker jobs",
+            )
+            .const_label("service", "riptide-api"),
+        )?;
+
+        let worker_jobs_retried = Counter::with_opts(
+            Opts::new(
+                "riptide_worker_jobs_retried_total",
+                "Total number of retried worker jobs",
+            )
+            .const_label("service", "riptide-api"),
+        )?;
+
+        let worker_processing_time = Histogram::with_opts(
+            HistogramOpts::new(
+                "riptide_worker_processing_time_seconds",
+                "Worker job processing time in seconds",
+            )
+            .const_label("service", "riptide-api")
+            .buckets(vec![0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0]),
+        )?;
+
+        let worker_queue_depth = Gauge::with_opts(
+            Opts::new(
+                "riptide_worker_queue_depth",
+                "Total number of jobs in worker queues",
+            )
+            .const_label("service", "riptide-api"),
+        )?;
+
         // Register all metrics
         registry.register(Box::new(http_requests_total.clone()))?;
         registry.register(Box::new(http_request_duration.clone()))?;
@@ -472,8 +548,16 @@ impl RipTideMetrics {
         registry.register(Box::new(wasm_cold_start_time_ms.clone()))?;
         registry.register(Box::new(wasm_aot_cache_hits.clone()))?;
         registry.register(Box::new(wasm_aot_cache_misses.clone()))?;
+        registry.register(Box::new(worker_pool_size.clone()))?;
+        registry.register(Box::new(worker_pool_healthy.clone()))?;
+        registry.register(Box::new(worker_jobs_submitted.clone()))?;
+        registry.register(Box::new(worker_jobs_completed.clone()))?;
+        registry.register(Box::new(worker_jobs_failed.clone()))?;
+        registry.register(Box::new(worker_jobs_retried.clone()))?;
+        registry.register(Box::new(worker_processing_time.clone()))?;
+        registry.register(Box::new(worker_queue_depth.clone()))?;
 
-        info!("Prometheus metrics registry initialized with spider, PDF, and WASM metrics");
+        info!("Prometheus metrics registry initialized with spider, PDF, WASM, and worker metrics");
 
         Ok(Self {
             registry,
@@ -521,6 +605,14 @@ impl RipTideMetrics {
             wasm_cold_start_time_ms,
             wasm_aot_cache_hits,
             wasm_aot_cache_misses,
+            worker_pool_size,
+            worker_pool_healthy,
+            worker_jobs_submitted,
+            worker_jobs_completed,
+            worker_jobs_failed,
+            worker_jobs_retried,
+            worker_processing_time,
+            worker_queue_depth,
         })
     }
 
@@ -760,6 +852,92 @@ impl RipTideMetrics {
                 self.wasm_aot_cache_misses.inc();
             }
         }
+    }
+
+    /// Update worker metrics from WorkerService stats (Phase 4B Feature 5)
+    pub fn update_worker_stats(&self, stats: &riptide_workers::WorkerPoolStats) {
+        self.worker_pool_size.set(stats.total_workers as f64);
+        self.worker_pool_healthy.set(stats.healthy_workers as f64);
+
+        // Update job counters (track deltas to avoid double counting)
+        let current_completed = self.worker_jobs_completed.get();
+        let new_completed = stats.total_jobs_processed as f64;
+        if new_completed > current_completed {
+            let delta = (new_completed - current_completed) as u64;
+            for _ in 0..delta {
+                self.worker_jobs_completed.inc();
+            }
+        }
+
+        let current_failed = self.worker_jobs_failed.get();
+        let new_failed = stats.total_jobs_failed as f64;
+        if new_failed > current_failed {
+            let delta = (new_failed - current_failed) as u64;
+            for _ in 0..delta {
+                self.worker_jobs_failed.inc();
+            }
+        }
+    }
+
+    /// Update worker metrics from comprehensive snapshot (Phase 4B Feature 5)
+    pub fn update_worker_metrics(&self, metrics: &riptide_workers::WorkerMetricsSnapshot) {
+        // Update pool stats
+        self.worker_pool_size.set(metrics.total_workers as f64);
+        self.worker_pool_healthy.set(metrics.healthy_workers as f64);
+
+        // Update job counters with delta tracking
+        let current_submitted = self.worker_jobs_submitted.get();
+        if metrics.jobs_submitted as f64 > current_submitted {
+            let delta = metrics.jobs_submitted as f64 - current_submitted;
+            for _ in 0..delta as u64 {
+                self.worker_jobs_submitted.inc();
+            }
+        }
+
+        let current_completed = self.worker_jobs_completed.get();
+        if metrics.jobs_completed as f64 > current_completed {
+            let delta = metrics.jobs_completed as f64 - current_completed;
+            for _ in 0..delta as u64 {
+                self.worker_jobs_completed.inc();
+            }
+        }
+
+        let current_failed = self.worker_jobs_failed.get();
+        if metrics.jobs_failed as f64 > current_failed {
+            let delta = metrics.jobs_failed as f64 - current_failed;
+            for _ in 0..delta as u64 {
+                self.worker_jobs_failed.inc();
+            }
+        }
+
+        let current_retried = self.worker_jobs_retried.get();
+        if metrics.jobs_retried as f64 > current_retried {
+            let delta = metrics.jobs_retried as f64 - current_retried;
+            for _ in 0..delta as u64 {
+                self.worker_jobs_retried.inc();
+            }
+        }
+
+        // Update queue depth
+        let total_queue_depth = metrics.total_queue_depth();
+        self.worker_queue_depth.set(total_queue_depth as f64);
+    }
+
+    /// Record worker job completion with processing time (Phase 4B Feature 5)
+    pub fn record_worker_job_completion(&self, processing_time_ms: u64) {
+        self.worker_jobs_completed.inc();
+        self.worker_processing_time
+            .observe(processing_time_ms as f64 / 1000.0);
+    }
+
+    /// Record worker job failure (Phase 4B Feature 5)
+    pub fn record_worker_job_failure(&self) {
+        self.worker_jobs_failed.inc();
+    }
+
+    /// Record worker job submission (Phase 4B Feature 5)
+    pub fn record_worker_job_submission(&self) {
+        self.worker_jobs_submitted.inc();
     }
 }
 

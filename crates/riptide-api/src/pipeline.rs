@@ -548,14 +548,14 @@ impl PipelineOrchestrator {
             .process_pdf_bytes(&pdf_bytes_vec)
             .await
             .map_err(|e| ApiError::extraction(format!("PDF processing error: {}", e)))
-            .and_then(|document| {
+            .map(|document| {
                 info!(
                         url = %url_str,
                     text_length = document.text.len(),
                     title = ?document.title,
                     "PDF processing completed successfully"
                 );
-                Ok(riptide_core::convert_pdf_extracted_doc(document))
+                riptide_core::convert_pdf_extracted_doc(document)
             })
             .or_else(|e| {
                 error!(

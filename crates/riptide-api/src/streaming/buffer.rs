@@ -338,7 +338,7 @@ impl BackpressureHandler {
         }
 
         // Keep threshold within reasonable bounds
-        self.drop_threshold = self.drop_threshold.max(100).min(5000);
+        self.drop_threshold = self.drop_threshold.clamp(100, 5000);
     }
 
     /// Record a successful send operation
@@ -444,6 +444,7 @@ impl Default for BufferManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[allow(unused_imports)]
     use tokio::time::{sleep, Duration};
 
     #[tokio::test]

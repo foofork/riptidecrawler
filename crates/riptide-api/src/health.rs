@@ -260,7 +260,9 @@ impl HealthChecker {
         if !Self::verify_http_client_config(state) {
             return ServiceHealth {
                 status: "unhealthy".to_string(),
-                message: Some("HTTP client configuration invalid (timeout out of range)".to_string()),
+                message: Some(
+                    "HTTP client configuration invalid (timeout out of range)".to_string(),
+                ),
                 response_time_ms: None,
                 last_check: chrono::Utc::now().to_rfc3339(),
             };

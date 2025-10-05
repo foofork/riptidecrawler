@@ -1,6 +1,3 @@
-// TODO: Streaming infrastructure - will be activated when routes are added
-#![allow(dead_code)]
-
 //! WebSocket streaming implementation for real-time bidirectional communication.
 //!
 //! This module provides WebSocket endpoints for real-time streaming with
@@ -81,7 +78,7 @@ impl WebSocketHandler {
         }
     }
 
-    /// Handle a complete WebSocket session
+    /// Handle a complete WebSocket session with ping/pong keepalive
     pub async fn handle_session(
         &mut self,
         mut sender: SplitSink<WebSocket, Message>,
@@ -93,11 +90,38 @@ impl WebSocketHandler {
         // Send welcome message
         self.send_welcome_message(&mut sender).await?;
 
+        // Spawn ping task for keepalive (30-second interval)
+        let session_id_clone = self.context.session_id.clone();
+        let ping_interval = self.config.websocket.ping_interval;
+        let sender_clone = Arc::new(tokio::sync::Mutex::new(sender));
+        let sender_for_ping = sender_clone.clone();
+
+        let ping_task = tokio::spawn(async move {
+            let mut interval = tokio::time::interval(ping_interval);
+            loop {
+                interval.tick().await;
+
+                // Send ping with timestamp as payload
+                let ping_data = format!("{}", chrono::Utc::now().timestamp_millis());
+                let mut sender = sender_for_ping.lock().await;
+
+                if let Err(e) = sender.send(Message::Ping(ping_data.into_bytes())).await {
+                    debug!(session_id = %session_id_clone, error = %e, "Failed to send ping, connection likely closed");
+                    break;
+                }
+
+                debug!(session_id = %session_id_clone, "Sent WebSocket ping");
+            }
+        });
+
         // Handle incoming messages
-        while let Some(msg) = receiver.next().await {
+        loop {
+            let msg = receiver.next().await;
+
             match msg {
-                Ok(Message::Text(text)) => {
-                    if let Err(e) = self.handle_text_message(text, &mut sender).await {
+                Some(Ok(Message::Text(text))) => {
+                    let mut sender_guard = sender_clone.lock().await;
+                    if let Err(e) = self.handle_text_message(text, &mut sender_guard).await {
                         error!(
                             session_id = %self.context.session_id,
                             error = %e,
@@ -105,12 +129,23 @@ impl WebSocketHandler {
                         );
                     }
                 }
-                Ok(Message::Close(_)) => {
+                Some(Ok(Message::Binary(data))) => {
+                    debug!(
+                        session_id = %self.context.session_id,
+                        size = data.len(),
+                        "Received binary WebSocket frame"
+                    );
+                    // Binary frame support for efficient data transfer
+                    // Can be used for compressed payloads or custom protocols
+                }
+                Some(Ok(Message::Close(_))) => {
                     info!(session_id = %self.context.session_id, "WebSocket connection closed by client");
                     break;
                 }
-                Ok(Message::Ping(data)) => {
-                    if let Err(e) = sender.send(Message::Pong(data)).await {
+                Some(Ok(Message::Ping(data))) => {
+                    // Respond to ping with pong (echo the data)
+                    let mut sender_guard = sender_clone.lock().await;
+                    if let Err(e) = sender_guard.send(Message::Pong(data)).await {
                         warn!(
                             session_id = %self.context.session_id,
                             error = %e,
@@ -119,11 +154,14 @@ impl WebSocketHandler {
                         break;
                     }
                     self.update_connection_ping().await;
+                    debug!(session_id = %self.context.session_id, "Received ping, sent pong");
                 }
-                Ok(Message::Pong(_)) => {
+                Some(Ok(Message::Pong(_data))) => {
+                    // Pong received in response to our ping
                     self.update_connection_ping().await;
+                    debug!(session_id = %self.context.session_id, "Received pong response");
                 }
-                Err(e) => {
+                Some(Err(e)) => {
                     warn!(
                         session_id = %self.context.session_id,
                         error = %e,
@@ -131,11 +169,15 @@ impl WebSocketHandler {
                     );
                     break;
                 }
-                _ => {
-                    // Ignore binary messages for now
+                None => {
+                    debug!(session_id = %self.context.session_id, "WebSocket stream ended");
+                    break;
                 }
             }
         }
+
+        // Cancel ping task
+        ping_task.abort();
 
         // Clean up connection
         self.cleanup_connection().await;

@@ -16,6 +16,7 @@ mod tests {
     use super::*;
     use crate::models::CrawlOptions;
     use crate::state::AppState;
+    #[allow(unused_imports)]
     use axum::http::StatusCode;
     use std::time::Instant;
 

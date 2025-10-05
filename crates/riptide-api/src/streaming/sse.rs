@@ -1,6 +1,3 @@
-// TODO: Streaming infrastructure - will be activated when routes are added
-#![allow(dead_code)]
-
 //! Server-Sent Events (SSE) streaming implementation.
 //!
 //! This module provides SSE endpoints for real-time streaming with automatic
@@ -108,12 +105,13 @@ impl SseStreamingHandler {
             }
         });
 
-        // Return SSE response with keep-alive
+        // Return SSE response with keep-alive heartbeat (30s interval)
+        // The heartbeat sends ":heartbeat\n" comments to keep connection alive
         Ok(Sse::new(ReceiverStream::new(rx))
             .keep_alive(
                 KeepAlive::new()
-                    .interval(self.config.sse.keep_alive_interval)
-                    .text("keep-alive"),
+                    .interval(Duration::from_secs(30)) // 30-second heartbeat interval
+                    .text(":heartbeat"), // SSE comment format for heartbeat
             )
             .into_response())
     }
@@ -326,6 +324,11 @@ async fn orchestrate_crawl_sse(
 }
 
 /// Send an SSE event with proper formatting and backpressure handling
+///
+/// SSE events support reconnection via Last-Event-ID header:
+/// - Events with IDs can be resumed after disconnection
+/// - Client sends Last-Event-ID header on reconnect
+/// - Server resumes from ID + 1
 async fn send_sse_event<T: Serialize>(
     tx: &mpsc::Sender<Result<Event, Infallible>>,
     event_type: &str,
@@ -346,15 +349,23 @@ async fn send_sse_event<T: Serialize>(
 
     let data_str = serde_json::to_string(data).map_err(StreamingError::from)?;
 
+    // Build SSE event with proper formatting:
+    // - event: <type>
+    // - data: <json>
+    // - id: <number> (for reconnection support)
+    // - retry: <ms> (client reconnect interval)
     let mut event = Event::default().event(event_type).data(data_str);
 
+    // Add event ID for Last-Event-ID reconnection support
+    // Client can resume from last received ID after disconnection
     if let Some(id) = id {
         event = event.id(id.to_string());
     }
 
     // Add retry information for certain event types
+    // Tells client how long to wait before reconnecting
     if matches!(event_type, "metadata" | "complete") {
-        event = event.retry(Duration::from_secs(5));
+        event = event.retry(Duration::from_secs(5)); // 5-second retry interval
     }
 
     tx.send(Ok(event))

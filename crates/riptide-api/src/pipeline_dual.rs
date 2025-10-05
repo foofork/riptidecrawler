@@ -223,7 +223,7 @@ impl DualPathOrchestrator {
             "dual_path_orchestrator",
         )
         .with_duration(start.elapsed())
-        .with_quality_score(quality_score as f32);
+        .with_quality_score(quality_score);
         let _ = self.event_bus.emit_event(event).await;
 
         // Store for correlation

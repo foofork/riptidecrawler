@@ -92,11 +92,11 @@ impl StreamingPipeline {
             let crawl_result = processor.convert_to_crawl_result(processed_result);
 
             // Create stream result event
-            let result_event = StreamEvent::Result(StreamResultData {
+            let result_event = StreamEvent::Result(Box::new(StreamResultData {
                 index,
                 result: crawl_result,
                 progress: processor.create_progress(),
-            });
+            }));
 
             // Send result with backpressure handling
             if let Err(e) = self
@@ -259,11 +259,12 @@ impl StreamingPipeline {
             let search_results_len = search_results.len();
             total_urls_found = search_results.len();
             for (index, result) in search_results.clone().into_iter().enumerate() {
-                let search_result_event = StreamEvent::SearchResult(DeepSearchResultData {
-                    index,
-                    search_result: result,
-                    crawl_result: None,
-                });
+                let search_result_event =
+                    StreamEvent::SearchResult(Box::new(DeepSearchResultData {
+                        index,
+                        search_result: result,
+                        crawl_result: None,
+                    }));
 
                 if let Err(e) = self
                     .send_event(&search_result_event, &sender_fn, &mut backpressure_handler)
@@ -304,11 +305,12 @@ impl StreamingPipeline {
                     Err(_) => None,
                 };
 
-                let search_result_event = StreamEvent::SearchResult(DeepSearchResultData {
-                    index,
-                    search_result,
-                    crawl_result,
-                });
+                let search_result_event =
+                    StreamEvent::SearchResult(Box::new(DeepSearchResultData {
+                        index,
+                        search_result,
+                        crawl_result,
+                    }));
 
                 if let Err(e) = self
                     .send_event(&search_result_event, &sender_fn, &mut backpressure_handler)
@@ -488,11 +490,11 @@ impl StreamingPipeline {
 #[derive(Debug, Clone)]
 pub enum StreamEvent {
     Metadata(StreamMetadata),
-    Result(StreamResultData),
+    Result(Box<StreamResultData>),
     Progress(super::processor::OperationProgress),
     Summary(super::processor::StreamSummary),
     SearchMetadata(DeepSearchMetadata),
-    SearchResult(DeepSearchResultData),
+    SearchResult(Box<DeepSearchResultData>),
     DeepSearchSummary(DeepSearchSummary),
     Error(StreamErrorData),
 }

@@ -11,6 +11,9 @@ use uuid::Uuid;
 
 use crate::state::AppState;
 
+// Note: All handlers are actively used via routes in main.rs
+// No #[allow(dead_code)] needed as they are properly wired
+
 /// Request body for submitting a job
 #[derive(Deserialize, Debug, Clone)]
 pub struct SubmitJobRequest {
@@ -253,6 +256,9 @@ pub async fn submit_job(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    // Record job submission in Prometheus (Phase 4B Feature 5)
+    state.metrics.record_worker_job_submission();
+
     tracing::info!(
         job_id = %job_id,
         "Job submitted successfully via API"
@@ -290,10 +296,9 @@ pub async fn get_job_status(
     let processing_time_ms =
         if let (Some(started), Some(completed)) = (job.started_at, job.completed_at) {
             Some((completed - started).num_milliseconds() as u64)
-        } else if let Some(started) = job.started_at {
-            Some((Utc::now() - started).num_milliseconds() as u64)
         } else {
-            None
+            job.started_at
+                .map(|started| (Utc::now() - started).num_milliseconds() as u64)
         };
 
     Ok(Json(JobStatusResponse {
@@ -379,6 +384,9 @@ pub async fn get_worker_stats(
         StatusCode::SERVICE_UNAVAILABLE
     })?;
 
+    // Update Prometheus metrics with current worker stats (Phase 4B Feature 5)
+    state.metrics.update_worker_stats(&stats);
+
     Ok(Json(WorkerPoolStatsResponse {
         total_workers: stats.total_workers,
         healthy_workers: stats.healthy_workers,
@@ -446,7 +454,7 @@ pub async fn create_scheduled_job(
     let scheduled_job = jobs
         .into_iter()
         .find(|j| j.id == job_id)
-        .ok_or_else(|| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(Json(ScheduledJobResponse {
         id: scheduled_job.id,
@@ -521,6 +529,9 @@ pub async fn get_worker_metrics(
     tracing::info!("Getting worker metrics");
 
     let metrics = state.worker_service.get_metrics().await;
+
+    // Update Prometheus metrics with comprehensive worker data (Phase 4B Feature 5)
+    state.metrics.update_worker_metrics(&metrics);
 
     let json = serde_json::json!({
         "jobs_submitted": metrics.jobs_submitted,

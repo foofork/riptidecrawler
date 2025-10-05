@@ -15,6 +15,18 @@ use url::Url;
 /// - Adaptive stopping based on content analysis
 /// - Budget controls and rate limiting
 /// - Session persistence for authenticated crawling
+#[tracing::instrument(
+    name = "spider_crawl",
+    skip(state, body),
+    fields(
+        http.method = "POST",
+        http.route = "/spider/crawl",
+        seed_count = body.seed_urls.len(),
+        max_depth = body.max_depth,
+        max_pages = body.max_pages,
+        otel.status_code
+    )
+)]
 pub async fn spider_crawl(
     State(state): State<AppState>,
     Json(body): Json<SpiderCrawlBody>,

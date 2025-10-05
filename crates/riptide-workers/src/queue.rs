@@ -563,11 +563,13 @@ impl JobQueue {
                             }
                             crate::job::JobType::Maintenance { task_type, .. } => {
                                 type_filter.eq_ignore_ascii_case("maintenance")
-                                    || type_filter.eq_ignore_ascii_case(&format!("maintenance:{}", task_type))
+                                    || type_filter
+                                        .eq_ignore_ascii_case(&format!("maintenance:{}", task_type))
                             }
                             crate::job::JobType::Custom { job_name, .. } => {
                                 type_filter.eq_ignore_ascii_case("custom")
-                                    || type_filter.eq_ignore_ascii_case(&format!("custom:{}", job_name))
+                                    || type_filter
+                                        .eq_ignore_ascii_case(&format!("custom:{}", job_name))
                             }
                         };
                         if !matches {

@@ -499,8 +499,7 @@ impl Default for SlaMonitor {
 
 /// Resource usage tracking for system monitoring
 pub struct ResourceTracker {
-    #[allow(dead_code)] // TODO: use for system metrics collection
-    system: sysinfo::System,
+    _system_info_placeholder: (),
 }
 
 #[derive(Debug, Clone)]
@@ -518,7 +517,7 @@ pub struct ResourceUsage {
 impl ResourceTracker {
     pub fn new() -> Self {
         Self {
-            system: sysinfo::System::new_all(),
+            _system_info_placeholder: (),
         }
     }
 

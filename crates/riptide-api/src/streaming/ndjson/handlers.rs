@@ -6,10 +6,9 @@ use super::streaming::NdjsonStreamingHandler;
 use crate::errors::ApiError;
 use crate::models::{CrawlBody, DeepSearchBody};
 use crate::state::AppState;
+use crate::streaming::response_helpers::StreamingErrorResponse;
 use crate::validation::{validate_crawl_request, validate_deepsearch_request};
-use axum::body::Body;
 use axum::extract::{Json, State};
-use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use std::time::Instant;
 use tracing::{error, info};
@@ -119,7 +118,7 @@ pub async fn deepsearch_stream(
     }
 }
 
-/// Create an error response for failed request validation
+/// Create an error response for failed request validation using streaming helpers
 fn create_error_response(error: ApiError) -> Response {
     let error_json = serde_json::json!({
         "error": {
@@ -129,18 +128,6 @@ fn create_error_response(error: ApiError) -> Response {
         }
     });
 
-    Response::builder()
-        .status(StatusCode::BAD_REQUEST)
-        .header("Content-Type", "application/json")
-        .body(Body::from(error_json.to_string()))
-        .unwrap_or_else(|_| {
-            // If we can't even build this simple error response, return a minimal one
-            Response::builder()
-                .status(StatusCode::INTERNAL_SERVER_ERROR)
-                .body(Body::empty())
-                .unwrap_or_else(|e| {
-                    error!(error = %e, "Failed to build minimal error response, returning empty response");
-                    Response::new(Body::empty())
-                })
-        })
+    // Use StreamingErrorResponse helper for consistent NDJSON error formatting
+    StreamingErrorResponse::ndjson(error_json)
 }

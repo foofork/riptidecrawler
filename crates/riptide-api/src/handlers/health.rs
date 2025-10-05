@@ -22,6 +22,15 @@ pub fn init_startup_time() {
 /// - Version information
 ///
 /// This endpoint is suitable for load balancer health checks and monitoring systems.
+#[tracing::instrument(
+    name = "health_check",
+    skip(state),
+    fields(
+        http.method = "GET",
+        http.route = "/health",
+        otel.status_code
+    )
+)]
 pub async fn health(State(state): State<AppState>) -> Result<impl IntoResponse, ApiError> {
     let start_time = Instant::now();
     debug!("Starting health check");
@@ -292,6 +301,15 @@ pub(super) fn get_network_metrics() -> (u32, u64, f64) {
 /// - Bucket configuration for performance monitoring
 ///
 /// This endpoint provides the most comprehensive health diagnostics available.
+#[tracing::instrument(
+    name = "health_check_detailed",
+    skip(state),
+    fields(
+        http.method = "GET",
+        http.route = "/health/detailed",
+        otel.status_code
+    )
+)]
 pub async fn health_detailed(State(state): State<AppState>) -> Result<impl IntoResponse, ApiError> {
     debug!("Starting comprehensive detailed health check");
 

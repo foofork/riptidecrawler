@@ -8,9 +8,7 @@
 
 use opentelemetry::trace::{SpanContext, SpanId, TraceId};
 
-// Allow unused imports for future telemetry functionality
-#[allow(unused_imports)]
-use opentelemetry::trace::{TraceContextExt, Tracer};
+use opentelemetry::trace::TraceContextExt;
 use opentelemetry::{global, KeyValue};
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::propagation::TraceContextPropagator;
@@ -21,10 +19,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::time::Duration;
 use tracing::warn;
-// Trait imports needed for tracing_subscriber builder pattern
-#[allow(unused_imports)]
 use tracing_subscriber::layer::SubscriberExt;
-#[allow(unused_imports)]
 use tracing_subscriber::util::SubscriberInitExt;
 
 /// Telemetry configuration loaded from environment variables

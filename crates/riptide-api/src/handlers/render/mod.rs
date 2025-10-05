@@ -13,7 +13,9 @@ pub use handlers::render;
 
 #[cfg(test)]
 mod tests {
+    #[allow(unused_imports)]
     use super::*;
+    #[allow(unused_imports)]
     use crate::state::AppState;
     use axum::http::StatusCode;
     use riptide_core::types::{ExtractionMode, OutputFormat};

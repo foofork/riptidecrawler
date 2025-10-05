@@ -183,10 +183,10 @@ static CURRENT_PROVIDER: std::sync::OnceLock<Arc<tokio::sync::Mutex<Option<Strin
 fn get_llm_registry() -> Arc<tokio::sync::Mutex<LlmRegistry>> {
     LLM_REGISTRY
         .get_or_init(|| {
-            let mut registry = LlmRegistry::new();
+            let registry = LlmRegistry::new();
 
             // Register built-in providers with default configurations
-            if let Err(e) = register_builtin_providers(&mut registry) {
+            if let Err(e) = register_builtin_providers(&registry) {
                 warn!("Failed to register built-in providers: {}", e);
             }
 
@@ -200,8 +200,8 @@ fn get_runtime_switch_manager() -> Arc<tokio::sync::Mutex<RuntimeSwitchManager>>
         .get_or_init(|| {
             // Create a new registry instance for the RuntimeSwitchManager
             // We can't share the mutex-wrapped registry, so we create a new one
-            let mut registry = LlmRegistry::new();
-            if let Err(e) = register_builtin_providers(&mut registry) {
+            let registry = LlmRegistry::new();
+            if let Err(e) = register_builtin_providers(&registry) {
                 warn!(
                     "Failed to register built-in providers in runtime switch manager: {}",
                     e
@@ -489,9 +489,7 @@ pub async fn update_config(
             let provider_config = ProviderConfig::new(provider_name.clone(), provider_name.clone())
                 .with_config(
                     "config",
-                    serde_json::Value::Object(
-                        config_values.into_iter().map(|(k, v)| (k, v)).collect(),
-                    ),
+                    serde_json::Value::Object(config_values.into_iter().collect()),
                 );
 
             // Load provider using the config (this will register it internally)
@@ -499,13 +497,10 @@ pub async fn update_config(
                 warn!("Failed to update provider {}: {}", provider_name, e);
                 validation_results.insert(provider_name, format!("Update failed: {}", e));
                 success = false;
-            } else {
-                if !validation_results.contains_key(&provider_name) {
-                    validation_results.insert(
-                        provider_name,
-                        "Configuration updated successfully".to_string(),
-                    );
-                }
+            } else if !validation_results.contains_key(&provider_name) {
+                validation_results
+                    .entry(provider_name)
+                    .or_insert_with(|| "Configuration updated successfully".to_string());
             }
         }
 

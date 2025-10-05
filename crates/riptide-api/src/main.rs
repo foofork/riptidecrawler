@@ -48,8 +48,14 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // Initialize telemetry system with OpenTelemetry
-    let _telemetry_system = TelemetrySystem::init()?;
+    // Initialize telemetry system conditionally based on OTEL_ENDPOINT
+    let _telemetry_system = if std::env::var("OTEL_ENDPOINT").is_ok() {
+        tracing::info!("OTEL_ENDPOINT detected, initializing OpenTelemetry");
+        Some(Arc::new(TelemetrySystem::init()?))
+    } else {
+        tracing::info!("OTEL_ENDPOINT not set, telemetry disabled");
+        None
+    };
 
     let args = Args::parse();
 
