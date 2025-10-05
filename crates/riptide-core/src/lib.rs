@@ -57,6 +57,9 @@ pub mod strategies;
 pub mod telemetry;
 pub mod types;
 
+#[cfg(test)]
+mod fetch_engine_tests;
+
 // Re-export stealth functionality from riptide-stealth crate for backward compatibility
 pub mod stealth {
     //! Stealth module for anti-detection measures - MOVED

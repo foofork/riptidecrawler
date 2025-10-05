@@ -676,8 +676,11 @@ impl PipelineOrchestrator {
         use crate::reliability_integration::WasmExtractorAdapter;
         use riptide_core::reliability::ExtractionMode;
 
-        // Create adapter for WasmExtractor to work with ReliableExtractor
-        let extractor_adapter = WasmExtractorAdapter::new(self.state.extractor.clone());
+        // Create adapter for WasmExtractor to work with ReliableExtractor (with metrics)
+        let extractor_adapter = WasmExtractorAdapter::with_metrics(
+            self.state.extractor.clone(),
+            self.state.metrics.clone(),
+        );
 
         // Map gate Decision to ExtractionMode
         let extraction_mode = match decision {

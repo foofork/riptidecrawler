@@ -320,6 +320,337 @@ impl FetchEngine {
     }
 }
 
+/// Rate limiting configuration for per-host rate limiting
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct RateLimitConfig {
+    pub requests_per_second: u32,
+    pub burst_capacity: u32,
+}
+
+impl Default for RateLimitConfig {
+    fn default() -> Self {
+        Self {
+            requests_per_second: 10,
+            burst_capacity: 20,
+        }
+    }
+}
+
+/// Per-host rate limiter using token bucket algorithm
+#[derive(Debug)]
+pub struct RateLimiter {
+    config: RateLimitConfig,
+    tokens: Arc<tokio::sync::Mutex<f64>>,
+    last_refill: Arc<tokio::sync::Mutex<std::time::Instant>>,
+}
+
+impl RateLimiter {
+    pub fn new(config: RateLimitConfig) -> Self {
+        Self {
+            config: config.clone(),
+            tokens: Arc::new(tokio::sync::Mutex::new(config.burst_capacity as f64)),
+            last_refill: Arc::new(tokio::sync::Mutex::new(std::time::Instant::now())),
+        }
+    }
+
+    pub async fn check_limit(&self) -> Result<()> {
+        let mut tokens = self.tokens.lock().await;
+        let mut last_refill = self.last_refill.lock().await;
+
+        let now = std::time::Instant::now();
+        let elapsed = now.duration_since(*last_refill).as_secs_f64();
+
+        // Refill tokens based on elapsed time
+        *tokens = (*tokens + elapsed * self.config.requests_per_second as f64)
+            .min(self.config.burst_capacity as f64);
+        *last_refill = now;
+
+        if *tokens >= 1.0 {
+            *tokens -= 1.0;
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("Rate limit exceeded"))
+        }
+    }
+}
+
+/// Per-host metrics for tracking request performance
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct HostMetrics {
+    pub request_count: u64,
+    pub success_count: u64,
+    pub failure_count: u64,
+    pub total_duration_ms: u64,
+}
+
+/// Aggregated metrics response for all hosts
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FetchMetricsResponse {
+    pub hosts: std::collections::HashMap<String, HostMetricsResponse>,
+    pub total_requests: u64,
+    pub total_success: u64,
+    pub total_failures: u64,
+}
+
+/// Per-host metrics response with calculated averages
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostMetricsResponse {
+    pub request_count: u64,
+    pub success_count: u64,
+    pub failure_count: u64,
+    pub avg_duration_ms: f64,
+    pub circuit_state: String,
+}
+
+/// Enhanced FetchEngine with per-host circuit breakers, rate limiting, and metrics
+#[derive(Debug)]
+pub struct PerHostFetchEngine {
+    /// Per-host HTTP clients with individual circuit breakers
+    clients: Arc<std::sync::RwLock<std::collections::HashMap<String, Arc<ReliableHttpClient>>>>,
+
+    /// Per-host rate limiters
+    rate_limiters: Arc<std::sync::RwLock<std::collections::HashMap<String, Arc<RateLimiter>>>>,
+
+    /// Per-host metrics tracking
+    metrics: Arc<std::sync::RwLock<std::collections::HashMap<String, HostMetrics>>>,
+
+    /// Default retry configuration for new clients
+    retry_config: RetryConfig,
+
+    /// Default circuit breaker configuration for new clients
+    circuit_config: CircuitBreakerConfig,
+
+    /// Default rate limit configuration for new rate limiters
+    rate_limit_config: RateLimitConfig,
+}
+
+impl PerHostFetchEngine {
+    /// Create a new per-host fetch engine with configuration
+    pub fn new(
+        retry_config: RetryConfig,
+        circuit_config: CircuitBreakerConfig,
+        rate_limit_config: RateLimitConfig,
+    ) -> Result<Self> {
+        Ok(Self {
+            clients: Arc::new(std::sync::RwLock::new(std::collections::HashMap::new())),
+            rate_limiters: Arc::new(std::sync::RwLock::new(std::collections::HashMap::new())),
+            metrics: Arc::new(std::sync::RwLock::new(std::collections::HashMap::new())),
+            retry_config,
+            circuit_config,
+            rate_limit_config,
+        })
+    }
+
+    /// Fetch content from a URL with per-host circuit breakers and rate limiting
+    #[instrument(skip(self), fields(url = %url))]
+    pub async fn fetch(&self, url: &str) -> Result<Response> {
+        let host = Self::extract_host(url)?;
+
+        // 1. Check per-host rate limit
+        self.check_rate_limit(&host).await?;
+
+        // 2. Log request start
+        self.log_request_start(url);
+
+        // 3. Get or create per-host client
+        let client = self.get_or_create_client(&host).await?;
+
+        // 4. Make request with circuit breaker
+        let start = std::time::Instant::now();
+        let result = client.get_with_retry(url).await;
+
+        // 5. Track metrics
+        let duration = start.elapsed();
+        self.record_metrics(&host, duration, result.is_ok());
+
+        // 6. Log response
+        self.log_response(url, &result, duration);
+
+        result
+    }
+
+    /// Get or create a per-host HTTP client
+    async fn get_or_create_client(&self, host: &str) -> Result<Arc<ReliableHttpClient>> {
+        // Check if client already exists (read lock)
+        {
+            let clients = self.clients.read().unwrap();
+            if let Some(client) = clients.get(host) {
+                return Ok(client.clone());
+            }
+        }
+
+        // Create new client (write lock)
+        let mut clients = self.clients.write().unwrap();
+
+        // Double-check in case another thread created it
+        if let Some(client) = clients.get(host) {
+            return Ok(client.clone());
+        }
+
+        // Create new client with per-host circuit breaker
+        let client = Arc::new(ReliableHttpClient::new(
+            self.retry_config.clone(),
+            self.circuit_config.clone(),
+        )?);
+
+        clients.insert(host.to_string(), client.clone());
+        info!(host = %host, "Created new per-host HTTP client");
+
+        Ok(client)
+    }
+
+    /// Get or create a per-host rate limiter
+    fn get_or_create_rate_limiter(&self, host: &str) -> Arc<RateLimiter> {
+        // Check if rate limiter already exists (read lock)
+        {
+            let limiters = self.rate_limiters.read().unwrap();
+            if let Some(limiter) = limiters.get(host) {
+                return limiter.clone();
+            }
+        }
+
+        // Create new rate limiter (write lock)
+        let mut limiters = self.rate_limiters.write().unwrap();
+
+        // Double-check in case another thread created it
+        if let Some(limiter) = limiters.get(host) {
+            return limiter.clone();
+        }
+
+        let limiter = Arc::new(RateLimiter::new(self.rate_limit_config.clone()));
+        limiters.insert(host.to_string(), limiter.clone());
+        debug!(host = %host, "Created new per-host rate limiter");
+
+        limiter
+    }
+
+    /// Check per-host rate limit
+    async fn check_rate_limit(&self, host: &str) -> Result<()> {
+        let limiter = self.get_or_create_rate_limiter(host);
+        limiter.check_limit().await
+    }
+
+    /// Extract hostname from URL
+    fn extract_host(url: &str) -> Result<String> {
+        let parsed = url::Url::parse(url)
+            .map_err(|e| anyhow::anyhow!("Invalid URL: {}", e))?;
+
+        let host = parsed
+            .host_str()
+            .ok_or_else(|| anyhow::anyhow!("No host in URL"))?
+            .to_string();
+
+        Ok(host)
+    }
+
+    /// Extract hostname from URL (exposed for testing)
+    #[cfg(test)]
+    pub fn extract_host_for_test(url: &str) -> Result<String> {
+        Self::extract_host(url)
+    }
+
+    /// Log request start
+    fn log_request_start(&self, url: &str) {
+        info!(url = %url, "FetchEngine: Starting request");
+    }
+
+    /// Log response with details
+    fn log_response(&self, url: &str, result: &Result<Response>, duration: Duration) {
+        match result {
+            Ok(resp) => {
+                info!(
+                    url = %url,
+                    status = resp.status().as_u16(),
+                    duration_ms = duration.as_millis(),
+                    "FetchEngine: Request completed"
+                );
+            }
+            Err(e) => {
+                error!(
+                    url = %url,
+                    error = %e,
+                    duration_ms = duration.as_millis(),
+                    "FetchEngine: Request failed"
+                );
+            }
+        }
+    }
+
+    /// Record metrics for a host
+    fn record_metrics(&self, host: &str, duration: Duration, success: bool) {
+        let mut metrics_map = self.metrics.write().unwrap();
+        let host_metrics = metrics_map
+            .entry(host.to_string())
+            .or_default();
+
+        host_metrics.request_count += 1;
+        host_metrics.total_duration_ms += duration.as_millis() as u64;
+
+        if success {
+            host_metrics.success_count += 1;
+        } else {
+            host_metrics.failure_count += 1;
+        }
+    }
+
+    /// Get metrics for a specific host
+    pub fn get_host_metrics(&self, host: &str) -> Option<HostMetrics> {
+        let metrics = self.metrics.read().unwrap();
+        metrics.get(host).cloned()
+    }
+
+    /// Get metrics for all hosts
+    pub async fn get_all_metrics(&self) -> FetchMetricsResponse {
+        // Clone data needed from locked sections to avoid holding locks across await
+        let (metrics_snapshot, clients_snapshot) = {
+            let metrics = self.metrics.read().unwrap();
+            let clients = self.clients.read().unwrap();
+            (metrics.clone(), clients.clone())
+        }; // Locks dropped here
+
+        let mut hosts = std::collections::HashMap::new();
+        let mut total_requests = 0;
+        let mut total_success = 0;
+        let mut total_failures = 0;
+
+        for (host, host_metrics) in metrics_snapshot.iter() {
+            total_requests += host_metrics.request_count;
+            total_success += host_metrics.success_count;
+            total_failures += host_metrics.failure_count;
+
+            let avg_duration_ms = if host_metrics.request_count > 0 {
+                host_metrics.total_duration_ms as f64 / host_metrics.request_count as f64
+            } else {
+                0.0
+            };
+
+            let circuit_state = if let Some(client) = clients_snapshot.get(host) {
+                format!("{:?}", client.get_circuit_breaker_state().await)
+            } else {
+                "Unknown".to_string()
+            };
+
+            hosts.insert(
+                host.clone(),
+                HostMetricsResponse {
+                    request_count: host_metrics.request_count,
+                    success_count: host_metrics.success_count,
+                    failure_count: host_metrics.failure_count,
+                    avg_duration_ms,
+                    circuit_state,
+                },
+            );
+        }
+
+        FetchMetricsResponse {
+            hosts,
+            total_requests,
+            total_success,
+            total_failures,
+        }
+    }
+}
+
 /// Check if an error is retryable
 #[allow(dead_code)]
 fn is_retryable_error(error: &reqwest::Error) -> bool {

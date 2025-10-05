@@ -77,16 +77,12 @@ pub struct WasmInstanceManager {
 /// WASM instance for a specific worker
 #[derive(Debug)]
 struct WasmWorkerInstance {
-    // TODO: Implement health tracking metrics - https://github.com/eventmesh/issues/xxx
-    #[allow(dead_code)] // Used in health monitoring - Phase 4B
+    // Fields used in health monitoring (get_instance_health method)
     pub worker_id: String,
-    #[allow(dead_code)] // Used in health monitoring - Phase 4B
     pub created_at: Instant,
     pub operations_count: u64,
     pub last_operation: Instant,
-    #[allow(dead_code)] // Used in health monitoring - Phase 4B
     pub is_healthy: bool,
-    #[allow(dead_code)] // Used in health monitoring - Phase 4B
     pub memory_usage: usize,
 }
 
@@ -399,9 +395,7 @@ impl ResourceManager {
 
 /// Resource guard for render operations
 pub struct RenderResourceGuard {
-    /// TODO: Browser checkout tracking not yet fully integrated
     pub browser_checkout: BrowserCheckout,
-    #[allow(dead_code)] // Used in Drop impl - Phase 4B
     wasm_guard: WasmGuard,
     memory_tracked: usize,
     manager: ResourceManager,
@@ -419,7 +413,6 @@ pub struct PdfResourceGuard {
 
 /// WASM guard with instance tracking
 pub struct WasmGuard {
-    #[allow(dead_code)] // Used in Drop impl - Phase 4B
     manager: Arc<WasmInstanceManager>,
 }
 
@@ -578,7 +571,6 @@ impl WasmInstanceManager {
     }
 
     /// Get health status of WASM instances
-    #[allow(dead_code)] // Used in health monitoring - Phase 4B
     async fn get_instance_health(&self) -> Vec<(String, bool, u64, Duration)> {
         let instances = self.worker_instances.read().await;
         instances
@@ -596,7 +588,6 @@ impl WasmInstanceManager {
     }
 
     /// Check if any WASM instance needs cleanup (idle for >1 hour)
-    #[allow(dead_code)] // Used in cleanup tasks - Phase 4B
     async fn needs_cleanup(&self) -> bool {
         let instances = self.worker_instances.read().await;
         let now = Instant::now();

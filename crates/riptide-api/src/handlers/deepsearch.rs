@@ -1,4 +1,5 @@
 use crate::errors::{ApiError, ApiResult};
+use crate::metrics::ErrorType;
 use crate::models::{CrawlResult, DeepSearchBody, DeepSearchResponse, SearchResult};
 use crate::pipeline::PipelineOrchestrator;
 use crate::state::AppState;
@@ -201,7 +202,7 @@ pub async fn deepsearch(
 
 /// Perform web search using configured SearchProvider with advanced factory.
 pub(super) async fn perform_search_with_provider(
-    _state: &AppState,
+    state: &AppState,
     query: &str,
     limit: u32,
     country: Option<&str>,
@@ -211,8 +212,11 @@ pub(super) async fn perform_search_with_provider(
 
     // Determine search backend from environment variable with validation
     let backend_str = std::env::var("SEARCH_BACKEND").unwrap_or_else(|_| "serper".to_string());
-    let backend: SearchBackend = backend_str.parse().map_err(|e| ApiError::ConfigError {
-        message: format!("Invalid search backend '{}': {}", backend_str, e),
+    let backend: SearchBackend = backend_str.parse().map_err(|e| {
+        state.metrics.record_error(ErrorType::Http);
+        ApiError::ConfigError {
+            message: format!("Invalid search backend '{}': {}", backend_str, e),
+        }
     })?;
 
     debug!(
@@ -225,6 +229,7 @@ pub(super) async fn perform_search_with_provider(
     let provider = SearchProviderFactory::create_with_backend(backend)
         .await
         .map_err(|e| {
+            state.metrics.record_error(ErrorType::Http);
             ApiError::dependency(
                 "search_provider",
                 format!("SearchProviderFactory failed to create provider: {}", e),
@@ -261,6 +266,7 @@ pub(super) async fn perform_search_with_provider(
             let error_msg = e.to_string();
 
             // Provide specific error handling for circuit breaker states
+            state.metrics.record_error(ErrorType::Http);
             if error_msg.contains("circuit breaker is OPEN") {
                 warn!(
                     backend = %provider.backend_type(),

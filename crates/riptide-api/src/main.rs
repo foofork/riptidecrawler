@@ -120,6 +120,8 @@ async fn main() -> anyhow::Result<()> {
     let app = Router::new()
         .route("/healthz", get(handlers::health))
         .route("/api/health/detailed", get(handlers::health_detailed))
+        .route("/health/:component", get(handlers::health::component_health_check))
+        .route("/health/metrics", get(handlers::health::health_metrics_check))
         .route("/metrics", get(handlers::metrics))
         .route("/render", post(handlers::render))
         .route("/crawl", post(handlers::crawl))
@@ -198,6 +200,15 @@ async fn main() -> anyhow::Result<()> {
         // Worker management endpoints
         .route("/workers/jobs", post(handlers::workers::submit_job))
         .route("/workers/jobs", get(handlers::workers::list_jobs))
+        // Resource monitoring endpoints
+        .route("/resources/status", get(handlers::resources::get_resource_status))
+        .route("/resources/browser-pool", get(handlers::resources::get_browser_pool_status))
+        .route("/resources/rate-limiter", get(handlers::resources::get_rate_limiter_status))
+        .route("/resources/memory", get(handlers::resources::get_memory_status))
+        .route("/resources/performance", get(handlers::resources::get_performance_status))
+        .route("/resources/pdf/semaphore", get(handlers::resources::get_pdf_semaphore_status))
+        // Fetch engine metrics endpoint
+        .route("/fetch/metrics", get(handlers::fetch::get_fetch_metrics))
         .route(
             "/workers/jobs/:job_id",
             get(handlers::workers::get_job_status),

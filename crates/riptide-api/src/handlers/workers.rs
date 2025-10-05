@@ -253,6 +253,7 @@ pub async fn submit_job(
     // Submit to WorkerService
     let job_id = state.worker_service.submit_job(job).await.map_err(|e| {
         tracing::error!(error = %e, "Failed to submit job");
+        state.metrics.record_error(crate::metrics::ErrorType::Redis);
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
@@ -285,6 +286,7 @@ pub async fn get_job_status(
         .await
         .map_err(|e| {
             tracing::error!(error = %e, job_id = %job_id, "Failed to get job status");
+            state.metrics.record_error(crate::metrics::ErrorType::Redis);
             StatusCode::INTERNAL_SERVER_ERROR
         })?
         .ok_or_else(|| {
@@ -328,6 +330,7 @@ pub async fn get_job_result(
         .await
         .map_err(|e| {
             tracing::error!(error = %e, job_id = %job_id, "Failed to get job result");
+            state.metrics.record_error(crate::metrics::ErrorType::Redis);
             StatusCode::INTERNAL_SERVER_ERROR
         })?
         .ok_or_else(|| {
@@ -354,6 +357,7 @@ pub async fn get_queue_stats(
 
     let stats = state.worker_service.get_queue_stats().await.map_err(|e| {
         tracing::error!(error = %e, "Failed to get queue stats");
+        state.metrics.record_error(crate::metrics::ErrorType::Redis);
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
@@ -442,12 +446,14 @@ pub async fn create_scheduled_job(
         .await
         .map_err(|e| {
             tracing::error!(error = %e, "Failed to add scheduled job");
+            state.metrics.record_error(crate::metrics::ErrorType::Redis);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
     // Retrieve created job for response
     let jobs = state.worker_service.list_scheduled_jobs().map_err(|e| {
         tracing::error!(error = %e, "Failed to retrieve scheduled job");
+        state.metrics.record_error(crate::metrics::ErrorType::Redis);
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
@@ -477,6 +483,7 @@ pub async fn list_scheduled_jobs(
 
     let jobs = state.worker_service.list_scheduled_jobs().map_err(|e| {
         tracing::error!(error = %e, "Failed to list scheduled jobs");
+        state.metrics.record_error(crate::metrics::ErrorType::Redis);
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
@@ -511,6 +518,7 @@ pub async fn delete_scheduled_job(
         .await
         .map_err(|e| {
             tracing::error!(error = %e, job_id = %job_id, "Failed to delete scheduled job");
+            state.metrics.record_error(crate::metrics::ErrorType::Redis);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
@@ -585,6 +593,7 @@ pub async fn list_jobs(
         .await
         .map_err(|e| {
             tracing::error!(error = %e, "Failed to list jobs");
+            state.metrics.record_error(crate::metrics::ErrorType::Redis);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("Failed to list jobs: {}", e),

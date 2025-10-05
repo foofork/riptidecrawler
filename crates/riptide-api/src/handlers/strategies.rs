@@ -1,4 +1,5 @@
 use crate::errors::{ApiError, ApiResult};
+use crate::metrics::ErrorType;
 use crate::state::AppState;
 use crate::strategies_pipeline::{StrategiesPipelineOrchestrator, StrategiesPipelineResult};
 use axum::{
@@ -19,45 +20,36 @@ pub struct StrategiesCrawlRequest {
     /// URL to crawl
     pub url: String,
 
-    /// Optional extraction strategy override
-    #[allow(dead_code)] // TODO: Implement strategy override selection
+    /// Optional extraction strategy override (future feature - CSS_JSON, REGEX, LLM strategies)
     pub extraction_strategy: Option<String>,
 
-    /// Optional chunking configuration
-    #[allow(dead_code)] // TODO: Implement chunking config application
+    /// Optional chunking configuration (future feature - moved to riptide-html)
     pub chunking_config: Option<ChunkingConfigRequest>,
 
-    /// Enable performance metrics collection
+    /// Enable performance metrics collection (future feature)
     #[serde(default = "default_true")]
-    #[allow(dead_code)] // TODO: Implement metrics collection toggle
     pub enable_metrics: bool,
 
-    /// Enable schema validation
+    /// Enable schema validation (future feature)
     #[serde(default = "default_true")]
-    #[allow(dead_code)] // TODO: Implement schema validation toggle
     pub validate_schema: bool,
 
-    /// Cache mode
+    /// Cache mode (currently used in crawl_options)
     #[serde(default = "default_cache_mode")]
-    #[allow(dead_code)] // TODO: Implement cache mode selection
     pub cache_mode: String,
 
-    /// Custom CSS selectors for CSS_JSON strategy
-    #[allow(dead_code)] // TODO: Implement CSS_JSON strategy with custom selectors
+    /// Custom CSS selectors for CSS_JSON strategy (future feature)
     pub css_selectors: Option<HashMap<String, String>>,
 
-    /// Custom regex patterns for REGEX strategy
-    #[allow(dead_code)] // TODO: Implement REGEX strategy with custom patterns
+    /// Custom regex patterns for REGEX strategy (future feature)
     pub regex_patterns: Option<Vec<RegexPatternRequest>>,
 
-    /// LLM configuration for LLM strategy
-    #[allow(dead_code)] // TODO: Implement LLM strategy configuration
+    /// LLM configuration for LLM strategy (future feature)
     pub llm_config: Option<LlmConfigRequest>,
 }
 
-/// Chunking configuration from request
+/// Chunking configuration from request (future feature - chunking moved to riptide-html)
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)] // TODO: Implement chunking configuration in riptide-intelligence
 pub struct ChunkingConfigRequest {
     pub mode: String, // "sliding", "fixed", "sentence", "topic", "regex"
     pub token_max: Option<usize>,
@@ -74,9 +66,8 @@ pub struct ChunkingConfigRequest {
     pub min_chunk_size: Option<usize>,
 }
 
-/// Regex pattern from request
+/// Regex pattern from request (future feature - REGEX extraction strategy)
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)] // TODO: Implement REGEX extraction strategy
 pub struct RegexPatternRequest {
     pub name: String,
     pub pattern: String,
@@ -84,9 +75,8 @@ pub struct RegexPatternRequest {
     pub required: bool,
 }
 
-/// LLM configuration from request
+/// LLM configuration from request (future feature - LLM extraction strategy)
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)] // TODO: Implement LLM extraction strategy
 pub struct LlmConfigRequest {
     pub enabled: bool,
     pub model: Option<String>,
@@ -145,6 +135,7 @@ pub async fn strategies_crawl(
     // Validate URL
     let url = request.url.trim();
     if url.is_empty() {
+        state.metrics.record_error(ErrorType::Http);
         return Err(ApiError::invalid_request("URL cannot be empty"));
     }
 

@@ -78,7 +78,10 @@ pub async fn create_session(State(state): State<AppState>) -> Result<impl IntoRe
         .session_manager
         .create_session()
         .await
-        .map_err(|e| ApiError::dependency("session_manager", e.to_string()))?;
+        .map_err(|e| {
+            state.metrics.record_error(crate::metrics::ErrorType::Redis);
+            ApiError::dependency("session_manager", e.to_string())
+        })?;
 
     let response = CreateSessionResponse {
         session_id: session.session_id.clone(),
@@ -114,14 +117,20 @@ pub async fn get_session_info(
         .session_manager
         .get_session(&session_id)
         .await
-        .map_err(|e| ApiError::dependency("session_manager", e.to_string()))?
+        .map_err(|e| {
+            state.metrics.record_error(crate::metrics::ErrorType::Redis);
+            ApiError::dependency("session_manager", e.to_string())
+        })?
         .ok_or_else(|| ApiError::not_found("Session not found"))?;
 
     let cookies = state
         .session_manager
         .get_all_cookies(&session_id)
         .await
-        .map_err(|e| ApiError::dependency("session_manager", e.to_string()))?;
+        .map_err(|e| {
+            state.metrics.record_error(crate::metrics::ErrorType::Redis);
+            ApiError::dependency("session_manager", e.to_string())
+        })?;
 
     let response = SessionInfoResponse {
         session_id: session.session_id.clone(),
@@ -166,7 +175,10 @@ pub async fn delete_session(
         .session_manager
         .remove_session(&session_id)
         .await
-        .map_err(|e| ApiError::dependency("session_manager", e.to_string()))?;
+        .map_err(|e| {
+            state.metrics.record_error(crate::metrics::ErrorType::Redis);
+            ApiError::dependency("session_manager", e.to_string())
+        })?;
 
     info!(
         session_id = %session_id,
@@ -205,7 +217,10 @@ pub async fn set_cookie(
         .session_manager
         .set_cookie(&session_id, &body.domain, cookie)
         .await
-        .map_err(|e| ApiError::dependency("session_manager", e.to_string()))?;
+        .map_err(|e| {
+            state.metrics.record_error(crate::metrics::ErrorType::Redis);
+            ApiError::dependency("session_manager", e.to_string())
+        })?;
 
     debug!(
         session_id = %session_id,
@@ -226,7 +241,10 @@ pub async fn get_cookie(
         .session_manager
         .get_cookie(&session_id, &domain, &name)
         .await
-        .map_err(|e| ApiError::dependency("session_manager", e.to_string()))?
+        .map_err(|e| {
+            state.metrics.record_error(crate::metrics::ErrorType::Redis);
+            ApiError::dependency("session_manager", e.to_string())
+        })?
         .ok_or_else(|| ApiError::not_found("Cookie not found"))?;
 
     let response = CookieResponse {
@@ -256,7 +274,10 @@ pub async fn get_cookies_for_domain(
         .session_manager
         .get_cookies_for_domain(&session_id, &domain)
         .await
-        .map_err(|e| ApiError::dependency("session_manager", e.to_string()))?;
+        .map_err(|e| {
+            state.metrics.record_error(crate::metrics::ErrorType::Redis);
+            ApiError::dependency("session_manager", e.to_string())
+        })?;
 
     let response: Vec<CookieResponse> = cookies
         .into_iter()
@@ -295,7 +316,10 @@ pub async fn delete_cookie(
         .session_manager
         .remove_cookie(&session_id, &domain, &name)
         .await
-        .map_err(|e| ApiError::dependency("session_manager", e.to_string()))?;
+        .map_err(|e| {
+            state.metrics.record_error(crate::metrics::ErrorType::Redis);
+            ApiError::dependency("session_manager", e.to_string())
+        })?;
 
     if removed.is_some() {
         debug!(
@@ -319,7 +343,10 @@ pub async fn clear_cookies(
         .session_manager
         .clear_cookies(&session_id)
         .await
-        .map_err(|e| ApiError::dependency("session_manager", e.to_string()))?;
+        .map_err(|e| {
+            state.metrics.record_error(crate::metrics::ErrorType::Redis);
+            ApiError::dependency("session_manager", e.to_string())
+        })?;
 
     info!(
         session_id = %session_id,
@@ -356,7 +383,10 @@ pub async fn get_session_stats(
         .session_manager
         .get_stats()
         .await
-        .map_err(|e| ApiError::dependency("session_manager", e.to_string()))?;
+        .map_err(|e| {
+            state.metrics.record_error(crate::metrics::ErrorType::Redis);
+            ApiError::dependency("session_manager", e.to_string())
+        })?;
 
     debug!(
         total_sessions = stats.total_sessions,
@@ -375,7 +405,10 @@ pub async fn cleanup_expired_sessions(
         .session_manager
         .cleanup_expired()
         .await
-        .map_err(|e| ApiError::dependency("session_manager", e.to_string()))?;
+        .map_err(|e| {
+            state.metrics.record_error(crate::metrics::ErrorType::Redis);
+            ApiError::dependency("session_manager", e.to_string())
+        })?;
 
     info!(
         removed_count = removed_count,
@@ -408,7 +441,10 @@ pub async fn extend_session(
         .session_manager
         .extend_session(&session_id, additional_time)
         .await
-        .map_err(|e| ApiError::dependency("session_manager", e.to_string()))?;
+        .map_err(|e| {
+            state.metrics.record_error(crate::metrics::ErrorType::Redis);
+            ApiError::dependency("session_manager", e.to_string())
+        })?;
 
     info!(
         session_id = %session_id,

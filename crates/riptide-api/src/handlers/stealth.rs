@@ -312,7 +312,10 @@ async fn test_stealth_for_url(
         .user_agent(&user_agent)
         .timeout(std::time::Duration::from_secs(10))
         .build()
-        .map_err(|e| ApiError::internal(format!("Failed to create HTTP client: {}", e)))?;
+        .map_err(|e| {
+            _state.metrics.record_error(crate::metrics::ErrorType::Http);
+            ApiError::internal(format!("Failed to create HTTP client: {}", e))
+        })?;
 
     // Add stealth headers to request
     let mut request_builder = client.get(url);

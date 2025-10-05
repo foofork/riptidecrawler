@@ -313,10 +313,10 @@ impl StreamLifecycleManager {
     /// Internal event handler
     async fn handle_lifecycle_event(
         event: LifecycleEvent,
-        _active_connections: &Arc<
+        active_connections: &Arc<
             tokio::sync::RwLock<std::collections::HashMap<String, ConnectionInfo>>,
         >,
-        _metrics: &Arc<RipTideMetrics>,
+        metrics: &Arc<RipTideMetrics>,
     ) {
         match event {
             LifecycleEvent::ConnectionEstablished {
@@ -324,6 +324,11 @@ impl StreamLifecycleManager {
                 protocol,
                 timestamp: _,
             } => {
+                // Update active connections gauge
+                let active_count = active_connections.read().await.len();
+                metrics.streaming_active_connections.set(active_count as f64);
+                metrics.streaming_total_connections.inc();
+
                 info!(
                     connection_id = %connection_id,
                     protocol = %protocol,
@@ -351,6 +356,9 @@ impl StreamLifecycleManager {
                 throughput,
                 timestamp: _,
             } => {
+                // Record message sent for each progress update
+                metrics.record_streaming_message_sent();
+
                 debug!(
                     connection_id = %connection_id,
                     request_id = %request_id,
@@ -368,6 +376,11 @@ impl StreamLifecycleManager {
                 recoverable,
                 timestamp: _,
             } => {
+                // Update error rate - calculate from active connections
+                let active_count = active_connections.read().await.len().max(1);
+                let error_rate = 1.0 / active_count as f64;
+                metrics.streaming_error_rate.set(error_rate);
+
                 if recoverable {
                     warn!(
                         connection_id = %connection_id,
@@ -390,6 +403,16 @@ impl StreamLifecycleManager {
                 summary,
                 timestamp: _,
             } => {
+                // Record final message count
+                for _ in 0..summary.successful {
+                    metrics.record_streaming_message_sent();
+                }
+
+                // Record any dropped messages (failed items)
+                for _ in 0..summary.failed {
+                    metrics.record_streaming_message_dropped();
+                }
+
                 info!(
                     connection_id = %connection_id,
                     request_id = %request_id,
@@ -423,6 +446,17 @@ impl StreamLifecycleManager {
                 messages_sent,
                 timestamp: _,
             } => {
+                // Update active connections count
+                let active_count = active_connections.read().await.len();
+                metrics.streaming_active_connections.set(active_count as f64);
+
+                // Record connection duration
+                metrics.record_streaming_connection_duration(duration.as_secs_f64());
+
+                // Update memory usage estimate based on bytes sent
+                let current_memory = bytes_sent * active_count.max(1);
+                metrics.streaming_memory_usage_bytes.set(current_memory as f64);
+
                 info!(
                     connection_id = %connection_id,
                     duration_ms = duration.as_millis(),

@@ -13,6 +13,7 @@ use tracing::{debug, error, info};
 
 use crate::{
     errors::ApiError,
+    metrics::ErrorType,
     state::AppState,
     streaming::response_helpers::{StreamingResponseBuilder, StreamingResponseType},
 };
@@ -77,7 +78,10 @@ pub async fn process_pdf(
 
     let decoded_data = BASE64_STANDARD
         .decode(&pdf_data)
-        .map_err(|e| ApiError::validation(format!("Invalid base64 PDF data: {}", e)))?;
+        .map_err(|e| {
+            state.metrics.record_error(ErrorType::Http);
+            ApiError::validation(format!("Invalid base64 PDF data: {}", e))
+        })?;
 
     let (pdf_data, filename, url) = (decoded_data, request.filename, request.url);
 
@@ -90,6 +94,7 @@ pub async fn process_pdf(
     // Validate file size
     if pdf_data.len() > 50 * 1024 * 1024 {
         // 50MB limit
+        state.metrics.record_error(ErrorType::Http);
         return Err(ApiError::validation("PDF file too large (max 50MB)"));
     }
 
@@ -98,6 +103,7 @@ pub async fn process_pdf(
 
     // Check if file is actually a PDF
     if !pdf_integration.should_process_as_pdf(None, None, Some(&pdf_data)) {
+        state.metrics.record_error(ErrorType::Http);
         return Err(ApiError::validation("File does not appear to be a PDF"));
     }
 
@@ -156,7 +162,8 @@ pub async fn process_pdf(
             let error_msg = format!("PDF processing failed: {:?}", e);
             error!(error = %error_msg, "PDF processing failed");
 
-            // Record failed processing
+            // Record error and failed processing
+            state.metrics.record_error(ErrorType::Http);
             state.metrics.record_http_request(
                 "POST",
                 "/pdf/process",
@@ -198,7 +205,10 @@ pub async fn process_pdf_stream(
 
     let decoded_data = BASE64_STANDARD
         .decode(&pdf_data)
-        .map_err(|e| ApiError::validation(format!("Invalid base64 PDF data: {}", e)))?;
+        .map_err(|e| {
+            state.metrics.record_error(ErrorType::Http);
+            ApiError::validation(format!("Invalid base64 PDF data: {}", e))
+        })?;
 
     let (pdf_data, filename, _) = (decoded_data, request.filename, request.url);
 
@@ -210,6 +220,7 @@ pub async fn process_pdf_stream(
 
     // Validate file size
     if pdf_data.len() > 50 * 1024 * 1024 {
+        state.metrics.record_error(ErrorType::Http);
         return Err(ApiError::validation("PDF file too large (max 50MB)"));
     }
 
@@ -219,6 +230,7 @@ pub async fn process_pdf_stream(
 
     // Check if file is actually a PDF
     if !pdf_integration.should_process_as_pdf(None, None, Some(&pdf_data)) {
+        state.metrics.record_error(ErrorType::Http);
         return Err(ApiError::validation("File does not appear to be a PDF"));
     }
 

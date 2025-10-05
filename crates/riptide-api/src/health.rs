@@ -8,19 +8,13 @@ use tracing::{debug, error, info};
 
 /// Enhanced health check with comprehensive component status
 pub struct HealthChecker {
-    /// Git SHA for deployment tracking
-    /// TODO: Expose git_sha in health response metadata
-    #[allow(dead_code)]
+    /// Git SHA for deployment tracking (used in check_health method)
     git_sha: String,
 
-    /// Build timestamp
-    /// TODO: Expose build_timestamp in health response metadata
-    #[allow(dead_code)]
+    /// Build timestamp (used in check_health method)
     build_timestamp: String,
 
-    /// Component versions
-    /// TODO: Expose component_versions in health response metadata
-    #[allow(dead_code)]
+    /// Component versions (used in check_health method)
     component_versions: HashMap<String, String>,
 }
 
@@ -64,8 +58,6 @@ impl HealthChecker {
     }
 
     /// Perform comprehensive health check
-    /// TODO: Integrate with health check endpoint
-    #[allow(dead_code)]
     pub async fn check_health(&self, state: &AppState) -> HealthResponse {
         let start_time = Instant::now();
         debug!("Starting comprehensive health check");
@@ -155,8 +147,6 @@ impl HealthChecker {
     }
 
     /// Check all dependencies with enhanced diagnostics
-    /// TODO: Integrate with health check endpoint
-    #[allow(dead_code)]
     async fn check_dependencies(&self, state: &AppState) -> DependencyStatus {
         let _timestamp = chrono::Utc::now().to_rfc3339();
 
@@ -186,8 +176,6 @@ impl HealthChecker {
     }
 
     /// Enhanced Redis health check with performance metrics
-    /// TODO: Integrate with health check endpoint
-    #[allow(dead_code)]
     async fn check_redis_health(&self, state: &AppState) -> ServiceHealth {
         let start_time = Instant::now();
 
@@ -214,8 +202,6 @@ impl HealthChecker {
     }
 
     /// Test Redis operations including connectivity and performance
-    /// TODO: Integrate with health check endpoint
-    #[allow(dead_code)]
     async fn test_redis_operations(&self, state: &AppState) -> anyhow::Result<()> {
         let mut cache = state.cache.lock().await;
 
@@ -253,8 +239,6 @@ impl HealthChecker {
     }
 
     /// Enhanced HTTP client health check
-    /// TODO: Integrate with health check endpoint
-    #[allow(dead_code)]
     async fn check_http_client_health(&self, state: &AppState) -> ServiceHealth {
         // First verify client configuration is valid
         if !Self::verify_http_client_config(state) {
@@ -345,8 +329,6 @@ impl HealthChecker {
     }
 
     /// Check headless service health
-    /// TODO: Integrate with health check endpoint
-    #[allow(dead_code)]
     async fn check_headless_health(&self, state: &AppState) -> ServiceHealth {
         if let Some(headless_url) = &state.config.headless_url {
             let start_time = Instant::now();
@@ -390,8 +372,6 @@ impl HealthChecker {
     }
 
     /// Collect comprehensive system metrics with real implementations
-    /// TODO: Integrate with health check endpoint
-    #[allow(dead_code)]
     async fn collect_system_metrics(&self, state: &AppState) -> SystemMetrics {
         // Get real system-level metrics
         let system_metrics = Self::get_comprehensive_system_metrics().await;
@@ -461,8 +441,6 @@ impl HealthChecker {
     }
 
     /// Get comprehensive system metrics with real implementations
-    /// TODO: Integrate with health check endpoint
-    #[allow(dead_code)]
     async fn get_comprehensive_system_metrics() -> ComprehensiveSystemMetrics {
         let mut system = sysinfo::System::new_all();
         system.refresh_all();
@@ -496,8 +474,6 @@ impl HealthChecker {
     }
 
     /// Get current memory usage using /proc/self/status on Linux
-    /// TODO: Integrate with health check endpoint
-    #[allow(dead_code)]
     fn get_memory_usage() -> u64 {
         #[cfg(target_os = "linux")]
         {
@@ -527,8 +503,6 @@ impl HealthChecker {
     }
 
     /// Get disk usage for current working directory
-    /// TODO: Integrate with health check endpoint
-    #[allow(dead_code)]
     async fn get_disk_usage() -> u64 {
         #[cfg(target_os = "linux")]
         {
@@ -553,8 +527,6 @@ impl HealthChecker {
     }
 
     /// Get file descriptor count for current process
-    /// TODO: Integrate with health check endpoint
-    #[allow(dead_code)]
     fn get_file_descriptor_count() -> u32 {
         #[cfg(target_os = "linux")]
         {
@@ -568,8 +540,6 @@ impl HealthChecker {
     }
 
     /// Get thread count for current process
-    /// TODO: Integrate with health check endpoint
-    #[allow(dead_code)]
     fn get_thread_count() -> u32 {
         #[cfg(target_os = "linux")]
         {
@@ -600,8 +570,6 @@ impl HealthChecker {
     }
 
     /// Get system load average
-    /// TODO: Integrate with health check endpoint
-    #[allow(dead_code)]
     fn get_load_average() -> [f32; 3] {
         let mut system = sysinfo::System::new();
         system.refresh_cpu_all();
@@ -621,8 +589,6 @@ impl Default for HealthChecker {
 }
 
 /// Comprehensive system metrics structure
-/// TODO: Use for comprehensive health monitoring
-#[allow(dead_code)]
 #[derive(Debug)]
 struct ComprehensiveSystemMetrics {
     memory_usage_bytes: u64,

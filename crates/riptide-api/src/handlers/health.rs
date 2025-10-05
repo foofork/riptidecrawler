@@ -331,3 +331,76 @@ pub async fn health_detailed(State(state): State<AppState>) -> Result<impl IntoR
 
     Ok((status_code, Json(health_response)))
 }
+
+/// Component-specific health check endpoint
+///
+/// Returns health status for a specific component: redis, extractor, http_client, or headless
+pub async fn component_health_check(
+    State(state): State<AppState>,
+    axum::extract::Path(component): axum::extract::Path<String>,
+) -> Result<impl IntoResponse, ApiError> {
+    debug!(component = %component, "Checking specific component health");
+
+    let health_response = state.health_checker.check_health(&state).await;
+    let timestamp = chrono::Utc::now().to_rfc3339();
+
+    let component_health = match component.as_str() {
+        "redis" => health_response.dependencies.redis,
+        "extractor" => health_response.dependencies.extractor,
+        "http_client" => health_response.dependencies.http_client,
+        "headless" => health_response.dependencies.headless_service
+            .unwrap_or_else(|| ServiceHealth {
+                status: "not_configured".to_string(),
+                message: Some("Headless service not configured".to_string()),
+                response_time_ms: None,
+                last_check: timestamp,
+            }),
+        "spider" => health_response.dependencies.spider_engine
+            .unwrap_or_else(|| ServiceHealth {
+                status: "not_configured".to_string(),
+                message: Some("Spider engine not configured".to_string()),
+                response_time_ms: None,
+                last_check: timestamp,
+            }),
+        _ => {
+            return Err(ApiError::not_found(format!("Component '{}' not found. Available components: redis, extractor, http_client, headless, spider", component)));
+        }
+    };
+
+    info!(
+        component = %component,
+        status = %component_health.status,
+        "Component health check completed"
+    );
+
+    let status_code = if component_health.status == "healthy" {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    };
+
+    Ok((status_code, Json(component_health)))
+}
+
+/// System metrics endpoint
+///
+/// Returns comprehensive system metrics including CPU, memory, disk, and network stats
+pub async fn health_metrics_check(
+    State(state): State<AppState>,
+) -> Result<impl IntoResponse, ApiError> {
+    debug!("Collecting system metrics");
+
+    let health_response = state.health_checker.check_health(&state).await;
+
+    let metrics = health_response.metrics.unwrap_or_else(|| {
+        collect_system_metrics(0.0)
+    });
+
+    info!(
+        memory_mb = metrics.memory_usage_bytes / (1024 * 1024),
+        cpu_percent = ?metrics.cpu_usage_percent,
+        "System metrics collected"
+    );
+
+    Ok(Json(metrics))
+}

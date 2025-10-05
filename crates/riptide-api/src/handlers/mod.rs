@@ -2,12 +2,14 @@
 pub mod chunking;
 pub mod crawl;
 pub mod deepsearch;
+pub mod fetch;
 pub mod health;
 pub mod llm;
 pub mod monitoring;
 pub mod pdf;
 pub mod pipeline_phases;
 pub mod render;
+pub mod resources;
 pub mod sessions;
 pub mod spider;
 pub mod stealth;

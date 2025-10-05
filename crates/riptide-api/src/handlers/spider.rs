@@ -1,4 +1,5 @@
 use crate::errors::ApiError;
+use crate::metrics::ErrorType;
 use crate::models::*;
 use crate::state::AppState;
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
@@ -52,11 +53,15 @@ pub async fn spider_crawl(
         .iter()
         .map(|url_str| {
             Url::parse(url_str)
-                .map_err(|e| ApiError::validation(format!("Invalid URL '{}': {}", url_str, e)))
+                .map_err(|e| {
+                    state.metrics.record_error(ErrorType::Http);
+                    ApiError::validation(format!("Invalid URL '{}': {}", url_str, e))
+                })
         })
         .collect::<Result<Vec<_>, _>>()?;
 
     if seed_urls.is_empty() {
+        state.metrics.record_error(ErrorType::Http);
         return Err(ApiError::validation(
             "At least one seed URL is required".to_string(),
         ));
@@ -124,6 +129,7 @@ pub async fn spider_crawl(
         Ok(result) => result,
         Err(e) => {
             // Record failed spider crawl
+            state.metrics.record_error(ErrorType::Http);
             state.metrics.record_spider_crawl_completion(0, 1, 0.0);
             return Err(ApiError::internal(format!("Spider crawl failed: {}", e)));
         }
@@ -250,11 +256,17 @@ pub async fn spider_control(
                 info!("Spider reset completed");
                 Ok((StatusCode::OK, Json(serde_json::json!({"status": "reset"}))))
             }
-            Err(e) => Err(ApiError::internal(format!("Spider reset failed: {}", e))),
+            Err(e) => {
+                state.metrics.record_error(ErrorType::Http);
+                Err(ApiError::internal(format!("Spider reset failed: {}", e)))
+            }
         },
-        _ => Err(ApiError::validation(format!(
-            "Unknown action: {}",
-            body.action
-        ))),
+        _ => {
+            state.metrics.record_error(ErrorType::Http);
+            Err(ApiError::validation(format!(
+                "Unknown action: {}",
+                body.action
+            )))
+        }
     }
 }

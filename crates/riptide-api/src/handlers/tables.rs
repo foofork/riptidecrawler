@@ -192,7 +192,10 @@ pub async fn extract_tables(
     // Extract tables using riptide-html
     let tables = extract_tables_advanced(&request.html_content, Some(config))
         .await
-        .map_err(|e| ApiError::internal(format!("Table extraction failed: {}", e)))?;
+        .map_err(|e| {
+            state.metrics.record_error(crate::metrics::ErrorType::Wasm);
+            ApiError::internal(format!("Table extraction failed: {}", e))
+        })?;
 
     info!(tables_found = tables.len(), "Table extraction completed");
 
@@ -329,13 +332,19 @@ pub async fn export_table(
         "csv" => {
             let csv_content = table
                 .to_csv(params.include_headers)
-                .map_err(|e| ApiError::internal(format!("CSV export failed: {}", e)))?;
+                .map_err(|e| {
+                    state.metrics.record_error(crate::metrics::ErrorType::Wasm);
+                    ApiError::internal(format!("CSV export failed: {}", e))
+                })?;
             (csv_content, "text/csv")
         }
         "markdown" => {
             let md_content = table
                 .to_markdown(params.include_metadata)
-                .map_err(|e| ApiError::internal(format!("Markdown export failed: {}", e)))?;
+                .map_err(|e| {
+                    state.metrics.record_error(crate::metrics::ErrorType::Wasm);
+                    ApiError::internal(format!("Markdown export failed: {}", e))
+                })?;
             (md_content, "text/markdown")
         }
         _ => unreachable!("Format validation should prevent this"),
