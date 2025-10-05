@@ -183,8 +183,13 @@ impl PipelineOrchestrator {
 
         // Step 2: Fetch content
         debug!(url = %url, "Cache miss, fetching content");
+        let fetch_start = Instant::now();
         let (response, content_bytes, content_type) = self.fetch_content_with_type(url).await?;
         let http_status = response.status().as_u16();
+        let fetch_duration = fetch_start.elapsed().as_secs_f64();
+        self.state
+            .metrics
+            .record_phase_timing(crate::metrics::PhaseType::Fetch, fetch_duration);
 
         // Step 3: Check if this is PDF content
         if pdf_utils::is_pdf_content(content_type.as_deref(), &content_bytes)
@@ -204,7 +209,16 @@ impl PipelineOrchestrator {
                 warn!(error = %e, "Failed to emit PDF processing event");
             }
 
+            let pdf_start = Instant::now();
             let document = self.process_pdf_content(&content_bytes, url).await?;
+            let pdf_duration = pdf_start.elapsed().as_secs_f64();
+
+            // Record PDF processing metrics
+            self.state.metrics.record_pdf_processing_success(
+                pdf_duration,
+                document.word_count.unwrap_or(0) / 250, // Estimate pages from word count
+                (content_bytes.len() as f64) / (1024.0 * 1024.0), // Memory in MB
+            );
 
             // Cache the PDF result
             if let Err(e) = self.store_in_cache(&cache_key, &document).await {
@@ -228,6 +242,7 @@ impl PipelineOrchestrator {
         let html_content = String::from_utf8_lossy(&content_bytes).to_string();
 
         // Step 4: Gate analysis for HTML content
+        let gate_start = Instant::now();
         let gate_features = self.analyze_content(&html_content, url).await?;
         let quality_score = score(&gate_features);
         let decision = decide(
@@ -242,6 +257,12 @@ impl PipelineOrchestrator {
             Decision::Headless => "headless",
         }
         .to_string();
+
+        let gate_duration = gate_start.elapsed().as_secs_f64();
+        self.state
+            .metrics
+            .record_phase_timing(crate::metrics::PhaseType::Gate, gate_duration);
+        self.state.metrics.record_gate_decision(&gate_decision_str);
 
         info!(
             url = %url,
@@ -264,7 +285,14 @@ impl PipelineOrchestrator {
         }
 
         // Step 5: Extract content based on gate decision
+        let extract_start = Instant::now();
         let document = self.extract_content(&html_content, url, decision).await?;
+        let extract_duration = extract_start.elapsed().as_secs_f64();
+
+        // Record WASM extraction phase timing
+        self.state
+            .metrics
+            .record_phase_timing(crate::metrics::PhaseType::Wasm, extract_duration);
 
         // Step 6: Cache the result
         if let Err(e) = self.store_in_cache(&cache_key, &document).await {
@@ -475,6 +503,43 @@ impl PipelineOrchestrator {
             "Processing PDF content"
         );
 
+        // Acquire PDF resources with RAII guard for automatic cleanup
+        let pdf_guard_result = self
+            .state
+            .resource_manager
+            .acquire_pdf_resources()
+            .await
+            .map_err(|e| ApiError::extraction(format!("Failed to acquire PDF resources: {}", e)))?;
+
+        let _pdf_guard = match pdf_guard_result {
+            crate::resource_manager::ResourceResult::Success(guard) => guard,
+            crate::resource_manager::ResourceResult::Timeout => {
+                return Err(ApiError::timeout(
+                    "pdf_resource",
+                    "PDF resource acquisition timeout".to_string(),
+                ));
+            }
+            crate::resource_manager::ResourceResult::ResourceExhausted => {
+                return Err(ApiError::extraction(
+                    "PDF resources exhausted, try again later".to_string(),
+                ));
+            }
+            crate::resource_manager::ResourceResult::MemoryPressure => {
+                return Err(ApiError::extraction(
+                    "System under memory pressure, PDF processing unavailable".to_string(),
+                ));
+            }
+            crate::resource_manager::ResourceResult::RateLimited { retry_after } => {
+                return Err(ApiError::extraction(format!(
+                    "Rate limited, retry after {:?}",
+                    retry_after
+                )));
+            }
+            crate::resource_manager::ResourceResult::Error(msg) => {
+                return Err(ApiError::extraction(format!("PDF resource error: {}", msg)));
+            }
+        };
+
         let processor = pdf::create_pdf_processor();
         let pdf_bytes_vec = pdf_bytes.to_vec();
         let url_str = url.to_string();
@@ -498,6 +563,9 @@ impl PipelineOrchestrator {
                     error = %e,
                     "PDF processing failed"
                 );
+
+                // Track PDF processing failure
+                self.state.metrics.record_pdf_processing_failure(false);
 
                 // Return a fallback document with error information
                 Ok(ExtractedDoc {
@@ -667,6 +735,11 @@ impl PipelineOrchestrator {
                     warn!(error = %e, "Failed to emit reliability failure event");
                 }
 
+                // Track extraction errors
+                self.state
+                    .metrics
+                    .record_error(crate::metrics::ErrorType::Wasm);
+
                 // Fallback: Try direct WASM extraction as last resort
                 self.fallback_to_wasm_extraction(html, url).await
             }
@@ -686,6 +759,9 @@ impl PipelineOrchestrator {
             .map(convert_html_doc)
             .map_err(|e| {
                 error!(url = %url_str, error = %e, "All extraction methods failed");
+                self.state
+                    .metrics
+                    .record_error(crate::metrics::ErrorType::Wasm);
                 ApiError::extraction(format!("All extraction attempts failed: {}", e))
             })
     }
@@ -700,7 +776,12 @@ impl PipelineOrchestrator {
         cache
             .get::<ExtractedDoc>(cache_key)
             .await
-            .map_err(|e| ApiError::cache(format!("Cache read failed: {}", e)))
+            .map_err(|e| {
+                self.state
+                    .metrics
+                    .record_error(crate::metrics::ErrorType::Redis);
+                ApiError::cache(format!("Cache read failed: {}", e))
+            })
             .map(|entry| entry.map(|e| e.data))
     }
 
@@ -714,7 +795,12 @@ impl PipelineOrchestrator {
         cache
             .set_simple(cache_key, document, self.state.config.cache_ttl)
             .await
-            .map_err(|e| ApiError::cache(format!("Cache write failed: {}", e)))
+            .map_err(|e| {
+                self.state
+                    .metrics
+                    .record_error(crate::metrics::ErrorType::Redis);
+                ApiError::cache(format!("Cache write failed: {}", e))
+            })
     }
 
     /// Generate a cache key for a URL.

@@ -113,6 +113,7 @@ async fn main() -> anyhow::Result<()> {
     // Build the application router with middleware stack
     let app = Router::new()
         .route("/healthz", get(handlers::health))
+        .route("/api/health/detailed", get(handlers::health_detailed))
         .route("/metrics", get(handlers::metrics))
         .route("/render", post(handlers::render))
         .route("/crawl", post(handlers::crawl))
@@ -190,6 +191,7 @@ async fn main() -> anyhow::Result<()> {
         )
         // Worker management endpoints
         .route("/workers/jobs", post(handlers::workers::submit_job))
+        .route("/workers/jobs", get(handlers::workers::list_jobs))
         .route(
             "/workers/jobs/:job_id",
             get(handlers::workers::get_job_status),
@@ -245,11 +247,24 @@ async fn main() -> anyhow::Result<()> {
             "/monitoring/alerts/active",
             get(handlers::monitoring::get_active_alerts),
         )
+        // Resource management status endpoint
+        .route(
+            "/api/resources/status",
+            get(handlers::monitoring::get_resource_status),
+        )
         // Telemetry and trace visualization endpoints (TELEM-005)
-        // Telemetry routes temporarily disabled due to API compatibility issues
-        // .route("/telemetry/status", get(handlers::telemetry::get_telemetry_status))
-        // .route("/telemetry/traces", get(handlers::telemetry::list_traces))
-        // .route("/telemetry/traces/:trace_id", get(handlers::telemetry::get_trace_tree))
+        .route(
+            "/api/telemetry/status",
+            get(handlers::telemetry::get_telemetry_status),
+        )
+        .route(
+            "/api/telemetry/traces",
+            get(handlers::telemetry::list_traces),
+        )
+        .route(
+            "/api/telemetry/traces/:trace_id",
+            get(handlers::telemetry::get_trace_tree),
+        )
         .fallback(handlers::not_found)
         .with_state(app_state.clone())
         .layer(SessionLayer::new(app_state.session_manager.clone()))

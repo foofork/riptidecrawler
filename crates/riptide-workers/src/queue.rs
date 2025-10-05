@@ -483,6 +483,139 @@ impl JobQueue {
             .context("Failed to get queue size")?;
         Ok(size)
     }
+
+    /// List jobs with filtering and pagination
+    pub async fn list_jobs(
+        &mut self,
+        status: Option<&str>,
+        job_type_filter: Option<&str>,
+        search: Option<&str>,
+        limit: usize,
+        offset: usize,
+    ) -> Result<Vec<Job>, anyhow::Error> {
+        debug!(
+            status = ?status,
+            job_type_filter = ?job_type_filter,
+            search = ?search,
+            limit = limit,
+            offset = offset,
+            "Listing jobs from queue"
+        );
+
+        // Determine which queues to query based on status filter
+        let queues = match status {
+            Some("pending") => vec!["pending"],
+            Some("processing") => vec!["processing"],
+            Some("completed") => vec!["completed"],
+            Some("failed") | Some("dead_letter") => vec!["dead_letter"],
+            Some("retry") | Some("retrying") => vec!["retry"],
+            Some("delayed") | Some("scheduled") => vec!["scheduled"],
+            _ => vec![
+                "pending",
+                "processing",
+                "completed",
+                "dead_letter",
+                "retry",
+                "scheduled",
+            ],
+        };
+
+        let mut all_job_ids = Vec::new();
+
+        // Collect job IDs from relevant queues
+        for queue_name in queues {
+            let queue_key = format!("{}:{}", self.config.namespace, queue_name);
+
+            // Get all job IDs from this queue (reverse order for most recent first)
+            let job_ids: Vec<String> = self
+                .redis
+                .zrevrange::<_, Vec<String>>(&queue_key, 0, -1)
+                .await
+                .context(format!("Failed to get job IDs from {} queue", queue_name))?;
+
+            all_job_ids.extend(job_ids);
+        }
+
+        // Fetch job details and apply filters
+        let mut jobs = Vec::new();
+        let mut skipped = 0;
+        let mut collected = 0;
+
+        for job_id_str in all_job_ids {
+            // Stop if we've collected enough jobs
+            if collected >= limit {
+                break;
+            }
+
+            if let Ok(job_id) = Uuid::parse_str(&job_id_str) {
+                if let Ok(Some(job)) = self.get_job(job_id).await {
+                    // Apply job type filter
+                    if let Some(type_filter) = job_type_filter {
+                        let matches = match &job.job_type {
+                            crate::job::JobType::BatchCrawl { .. } => {
+                                type_filter.eq_ignore_ascii_case("batch_crawl")
+                            }
+                            crate::job::JobType::SingleCrawl { .. } => {
+                                type_filter.eq_ignore_ascii_case("single_crawl")
+                            }
+                            crate::job::JobType::PdfExtraction { .. } => {
+                                type_filter.eq_ignore_ascii_case("pdf_extraction")
+                            }
+                            crate::job::JobType::Maintenance { task_type, .. } => {
+                                type_filter.eq_ignore_ascii_case("maintenance")
+                                    || type_filter.eq_ignore_ascii_case(&format!("maintenance:{}", task_type))
+                            }
+                            crate::job::JobType::Custom { job_name, .. } => {
+                                type_filter.eq_ignore_ascii_case("custom")
+                                    || type_filter.eq_ignore_ascii_case(&format!("custom:{}", job_name))
+                            }
+                        };
+                        if !matches {
+                            continue;
+                        }
+                    }
+
+                    // Apply search filter (search in worker_id or metadata)
+                    if let Some(search_term) = search {
+                        let search_lower = search_term.to_lowercase();
+                        let matches = job
+                            .worker_id
+                            .as_ref()
+                            .map(|w| w.to_lowercase().contains(&search_lower))
+                            .unwrap_or(false)
+                            || job.metadata.keys().any(|k| {
+                                k.to_lowercase().contains(&search_lower)
+                                    || job.metadata[k]
+                                        .as_str()
+                                        .map(|v| v.to_lowercase().contains(&search_lower))
+                                        .unwrap_or(false)
+                            });
+                        if !matches {
+                            continue;
+                        }
+                    }
+
+                    // Apply offset
+                    if skipped < offset {
+                        skipped += 1;
+                        continue;
+                    }
+
+                    jobs.push(job);
+                    collected += 1;
+                }
+            }
+        }
+
+        info!(
+            total_found = jobs.len(),
+            limit = limit,
+            offset = offset,
+            "Jobs listed successfully"
+        );
+
+        Ok(jobs)
+    }
 }
 
 /// Queue statistics

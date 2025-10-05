@@ -282,3 +282,34 @@ pub(super) fn get_network_metrics() -> (u32, u64, f64) {
     // These should be tracked by the application's metrics system
     (0, 0, 0.0)
 }
+
+/// Enhanced health check endpoint with comprehensive diagnostics
+///
+/// Returns detailed health information including:
+/// - All dependency health checks with response times
+/// - Comprehensive system metrics (CPU, memory, disk, threads, load average)
+/// - Build information (git SHA, build timestamp, component versions)
+/// - Bucket configuration for performance monitoring
+///
+/// This endpoint provides the most comprehensive health diagnostics available.
+pub async fn health_detailed(State(state): State<AppState>) -> Result<impl IntoResponse, ApiError> {
+    debug!("Starting comprehensive detailed health check");
+
+    // Use HealthChecker to perform comprehensive health check
+    let health_response = state.health_checker.check_health(&state).await;
+
+    info!(
+        status = %health_response.status,
+        uptime_seconds = health_response.uptime,
+        "Comprehensive detailed health check completed"
+    );
+
+    // Return appropriate HTTP status based on health
+    let status_code = if health_response.status == "healthy" {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    };
+
+    Ok((status_code, Json(health_response)))
+}

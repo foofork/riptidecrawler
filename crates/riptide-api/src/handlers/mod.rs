@@ -20,9 +20,7 @@ pub mod workers;
 // Re-export main handlers for backward compatibility
 pub use crawl::crawl;
 pub use deepsearch::deepsearch;
-pub use health::{health, init_startup_time, START_TIME};
+pub use health::{health, health_detailed, init_startup_time, START_TIME};
 pub use pipeline_phases::get_pipeline_phases;
 pub use render::render;
-// Telemetry endpoints disabled - imports removed to eliminate unused warnings
-// pub use telemetry::{get_telemetry_status, get_trace_tree, list_traces};
 pub use utils::{metrics, not_found};

@@ -1,7 +1,4 @@
 //! Telemetry Configuration and Utilities (TELEM-006, TELEM-007)
-
-// TODO: Telemetry configuration and initialization prepared
-#![allow(dead_code)]
 //!
 //! This module provides comprehensive OpenTelemetry configuration including:
 //! - OTLP exporter setup (Jaeger, Zipkin, generic OTLP)
@@ -224,7 +221,6 @@ impl TelemetryConfig {
 
     /// Create a tracer with configured exporter
     /// OpenTelemetry 0.26: install_batch() returns TracerProvider, call .tracer() to get Tracer
-    #[allow(dead_code)]
     fn create_tracer(&self) -> anyhow::Result<opentelemetry_sdk::trace::Tracer> {
         use opentelemetry::trace::TracerProvider as _;
 
@@ -289,7 +285,6 @@ impl TelemetryConfig {
     }
 
     /// Helper to create OTLP tracer
-    #[allow(dead_code)]
     fn create_otlp_tracer(
         &self,
         resource: Resource,
@@ -363,7 +358,6 @@ pub fn extract_trace_context(headers: &axum::http::HeaderMap) -> Option<SpanCont
 
 /// Inject trace context into HTTP headers (TELEM-004)
 /// OpenTelemetry 0.26: Use global::get_text_map_propagator() for inject
-#[allow(dead_code)]
 pub fn inject_trace_context(headers: &mut reqwest::header::HeaderMap, span_context: &SpanContext) {
     use opentelemetry::propagation::Injector;
 

@@ -256,6 +256,16 @@ impl HealthChecker {
     /// TODO: Integrate with health check endpoint
     #[allow(dead_code)]
     async fn check_http_client_health(&self, state: &AppState) -> ServiceHealth {
+        // First verify client configuration is valid
+        if !Self::verify_http_client_config(state) {
+            return ServiceHealth {
+                status: "unhealthy".to_string(),
+                message: Some("HTTP client configuration invalid (timeout out of range)".to_string()),
+                response_time_ms: None,
+                last_check: chrono::Utc::now().to_rfc3339(),
+            };
+        }
+
         let start_time = Instant::now();
 
         // Test multiple endpoints for reliability
@@ -310,8 +320,6 @@ impl HealthChecker {
     }
 
     /// Check WASM extractor health
-    /// TODO: Integrate with health check endpoint
-    #[allow(dead_code)]
     async fn check_extractor_health(&self, _state: &AppState) -> ServiceHealth {
         // Since WASM extractor is initialized at startup, we assume it's healthy
         // In a real implementation, you might want to test with a simple extraction
@@ -324,11 +332,14 @@ impl HealthChecker {
     }
 
     /// Verify HTTP client configuration is valid
-    #[allow(dead_code)] // TODO: Implement HTTP client config verification
-    fn verify_http_client_config(_state: &AppState) -> bool {
-        // Verify timeout settings, connection pool, etc.
-        // This is a placeholder - add actual configuration checks as needed
-        true
+    fn verify_http_client_config(state: &AppState) -> bool {
+        // Verify timeout settings are reasonable (between 1s and 300s)
+        let fetch_ok = state.config.enhanced_pipeline_config.fetch_timeout_secs >= 1
+            && state.config.enhanced_pipeline_config.fetch_timeout_secs <= 300;
+        let render_ok = state.config.enhanced_pipeline_config.render_timeout_secs >= 1
+            && state.config.enhanced_pipeline_config.render_timeout_secs <= 300;
+
+        fetch_ok && render_ok
     }
 
     /// Check headless service health

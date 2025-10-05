@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::Json,
 };
@@ -188,13 +188,36 @@ pub struct ScheduledJobResponse {
 }
 
 /// Query parameters for job listing
-/// TODO: Implement job listing endpoint
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct JobListQuery {
     pub status: Option<String>,
     pub job_type: Option<String>,
     pub limit: Option<usize>,
+    pub offset: Option<usize>,
+    pub search: Option<String>,
+}
+
+/// Job listing response
+#[derive(Serialize, Debug)]
+pub struct JobListResponse {
+    pub jobs: Vec<JobListItem>,
+    pub total: usize,
+    pub limit: usize,
+    pub offset: usize,
+}
+
+/// Individual job item in list response
+#[derive(Serialize, Debug)]
+pub struct JobListItem {
+    pub job_id: Uuid,
+    pub job_type: String,
+    pub status: JobStatus,
+    pub priority: JobPriority,
+    pub created_at: DateTime<Utc>,
+    pub started_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub worker_id: Option<String>,
+    pub retry_count: u32,
 }
 
 /// Submit a job to the worker queue
@@ -518,4 +541,79 @@ pub async fn get_worker_metrics(
     });
 
     Ok(Json(json))
+}
+
+/// List jobs with filtering and pagination
+pub async fn list_jobs(
+    State(state): State<AppState>,
+    Query(query): Query<JobListQuery>,
+) -> Result<Json<JobListResponse>, (StatusCode, String)> {
+    tracing::info!(
+        status = ?query.status,
+        job_type = ?query.job_type,
+        limit = ?query.limit,
+        offset = ?query.offset,
+        search = ?query.search,
+        "Listing jobs"
+    );
+
+    // Set defaults for limit and offset
+    let limit = query.limit.unwrap_or(50).min(500); // Cap at 500
+    let offset = query.offset.unwrap_or(0);
+
+    // List jobs from worker service
+    let jobs = state
+        .worker_service
+        .list_jobs(
+            query.status.as_deref(),
+            query.job_type.as_deref(),
+            query.search.as_deref(),
+            limit,
+            offset,
+        )
+        .await
+        .map_err(|e| {
+            tracing::error!(error = %e, "Failed to list jobs");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to list jobs: {}", e),
+            )
+        })?;
+
+    // Convert jobs to response items
+    let job_items: Vec<JobListItem> = jobs
+        .iter()
+        .map(|job| {
+            let job_type_str = match &job.job_type {
+                JobType::BatchCrawl { .. } => "batch_crawl".to_string(),
+                JobType::SingleCrawl { .. } => "single_crawl".to_string(),
+                JobType::PdfExtraction { .. } => "pdf_extraction".to_string(),
+                JobType::Maintenance { task_type, .. } => {
+                    format!("maintenance:{}", task_type)
+                }
+                JobType::Custom { job_name, .. } => format!("custom:{}", job_name),
+            };
+
+            JobListItem {
+                job_id: job.id,
+                job_type: job_type_str,
+                status: job.status.clone(),
+                priority: job.priority,
+                created_at: job.created_at,
+                started_at: job.started_at,
+                completed_at: job.completed_at,
+                worker_id: job.worker_id.clone(),
+                retry_count: job.retry_count,
+            }
+        })
+        .collect();
+
+    let total = job_items.len();
+
+    Ok(Json(JobListResponse {
+        jobs: job_items,
+        total,
+        limit,
+        offset,
+    }))
 }

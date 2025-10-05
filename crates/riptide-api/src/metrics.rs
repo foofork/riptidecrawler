@@ -17,22 +17,15 @@ pub struct RipTideMetrics {
     pub http_request_duration: Histogram,
 
     /// Active connections gauge
-    /// TODO: Track active connections in middleware
-    #[allow(dead_code)]
     pub active_connections: Gauge,
 
     /// Cache hit rate gauge
     pub cache_hit_rate: Gauge,
 
     /// Phase timing histograms
-    /// TODO: Integrate phase timing metrics
-    #[allow(dead_code)]
     pub fetch_phase_duration: Histogram,
-    #[allow(dead_code)]
     pub gate_phase_duration: Histogram,
-    #[allow(dead_code)]
     pub wasm_phase_duration: Histogram,
-    #[allow(dead_code)]
     pub render_phase_duration: Histogram,
 
     /// Gate decision counters
@@ -42,27 +35,18 @@ pub struct RipTideMetrics {
     pub gate_decisions_cached: Counter,
 
     /// Error counters
-    /// TODO: Track errors via error handling middleware
-    #[allow(dead_code)]
     pub errors_total: Counter,
-    #[allow(dead_code)]
     pub redis_errors: Counter,
-    #[allow(dead_code)]
     pub wasm_errors: Counter,
     pub http_errors: Counter,
 
     /// Streaming metrics
     pub streaming_active_connections: Gauge,
     pub streaming_total_connections: Gauge,
-    /// TODO: Track streaming messages
-    #[allow(dead_code)]
     pub streaming_messages_sent: Counter,
-    #[allow(dead_code)]
     pub streaming_messages_dropped: Counter,
     pub streaming_error_rate: Gauge,
     pub streaming_memory_usage_bytes: Gauge,
-    /// TODO: Track streaming connection duration
-    #[allow(dead_code)]
     pub streaming_connection_duration: Histogram,
 
     /// Spider crawling metrics
@@ -75,37 +59,21 @@ pub struct RipTideMetrics {
     pub spider_pages_per_second: Gauge,
 
     /// PDF processing metrics
-    /// TODO: Integrate PDF metrics collection
-    #[allow(dead_code)]
     pub pdf_total_processed: Counter,
-    #[allow(dead_code)]
     pub pdf_total_failed: Counter,
-    #[allow(dead_code)]
     pub pdf_memory_limit_failures: Counter,
-    #[allow(dead_code)]
     pub pdf_processing_time: Histogram,
-    #[allow(dead_code)]
     pub pdf_peak_memory_mb: Gauge,
-    #[allow(dead_code)]
     pub pdf_pages_per_pdf: Gauge,
-    #[allow(dead_code)]
     pub pdf_memory_spikes_handled: Counter,
-    #[allow(dead_code)]
     pub pdf_cleanup_operations: Counter,
 
     /// WASM memory metrics
-    /// TODO: Integrate WASM metrics collection
-    #[allow(dead_code)]
     pub wasm_memory_pages: Gauge,
-    #[allow(dead_code)]
     pub wasm_grow_failed_total: Counter,
-    #[allow(dead_code)]
     pub wasm_peak_memory_pages: Gauge,
-    #[allow(dead_code)]
     pub wasm_cold_start_time_ms: Gauge,
-    #[allow(dead_code)]
     pub wasm_aot_cache_hits: Counter,
-    #[allow(dead_code)]
     pub wasm_aot_cache_misses: Counter,
 }
 
@@ -567,8 +535,6 @@ impl RipTideMetrics {
     }
 
     /// Record phase timing
-    /// TODO: Integrate phase timing tracking
-    #[allow(dead_code)]
     pub fn record_phase_timing(&self, phase: PhaseType, duration: f64) {
         match phase {
             PhaseType::Fetch => self.fetch_phase_duration.observe(duration),
@@ -579,8 +545,6 @@ impl RipTideMetrics {
     }
 
     /// Record gate decision
-    /// TODO: Integrate gate decision tracking
-    #[allow(dead_code)]
     pub fn record_gate_decision(&self, decision: &str) {
         match decision {
             "raw" => self.gate_decisions_raw.inc(),
@@ -592,8 +556,6 @@ impl RipTideMetrics {
     }
 
     /// Record error
-    /// TODO: Integrate error tracking
-    #[allow(dead_code)]
     pub fn record_error(&self, error_type: ErrorType) {
         self.errors_total.inc();
         match error_type {
@@ -604,15 +566,11 @@ impl RipTideMetrics {
     }
 
     /// Update cache hit rate
-    /// TODO: Integrate cache hit rate tracking
-    #[allow(dead_code)]
     pub fn update_cache_hit_rate(&self, rate: f64) {
         self.cache_hit_rate.set(rate);
     }
 
     /// Update active connections
-    /// TODO: Integrate active connections tracking
-    #[allow(dead_code)]
     pub fn update_active_connections(&self, count: i64) {
         self.active_connections.set(count as f64);
     }
@@ -646,22 +604,16 @@ impl RipTideMetrics {
     }
 
     /// Record streaming message sent
-    /// TODO: Integrate streaming message tracking
-    #[allow(dead_code)]
     pub fn record_streaming_message_sent(&self) {
         self.streaming_messages_sent.inc();
     }
 
     /// Record streaming message dropped
-    /// TODO: Integrate streaming message dropped tracking
-    #[allow(dead_code)]
     pub fn record_streaming_message_dropped(&self) {
         self.streaming_messages_dropped.inc();
     }
 
     /// Record streaming connection duration
-    /// TODO: Integrate streaming connection duration tracking
-    #[allow(dead_code)]
     pub fn record_streaming_connection_duration(&self, duration_seconds: f64) {
         self.streaming_connection_duration.observe(duration_seconds);
     }
@@ -697,8 +649,6 @@ impl RipTideMetrics {
     }
 
     /// Update PDF metrics from PdfMetricsCollector
-    /// TODO: Integrate PDF metrics collection
-    #[allow(dead_code)]
     pub fn update_pdf_metrics_from_collector(&self, pdf_metrics: &PdfMetricsCollector) {
         let snapshot = pdf_metrics.get_snapshot();
 
@@ -714,15 +664,11 @@ impl RipTideMetrics {
     }
 
     /// Export PDF metrics as Prometheus format from PdfMetricsCollector
-    /// TODO: Integrate PDF metrics export
-    #[allow(dead_code)]
     pub fn export_pdf_metrics(&self, pdf_metrics: &PdfMetricsCollector) -> HashMap<String, f64> {
         pdf_metrics.export_for_prometheus()
     }
 
     /// Record PDF processing success
-    /// TODO: Integrate PDF processing success tracking
-    #[allow(dead_code)]
     pub fn record_pdf_processing_success(&self, duration_seconds: f64, pages: u32, memory_mb: f64) {
         self.pdf_total_processed.inc();
         self.pdf_processing_time.observe(duration_seconds);
@@ -733,8 +679,6 @@ impl RipTideMetrics {
     }
 
     /// Record PDF processing failure
-    /// TODO: Integrate PDF processing failure tracking
-    #[allow(dead_code)]
     pub fn record_pdf_processing_failure(&self, is_memory_limit: bool) {
         self.pdf_total_failed.inc();
         if is_memory_limit {
@@ -743,22 +687,16 @@ impl RipTideMetrics {
     }
 
     /// Record PDF memory spike handled
-    /// TODO: Integrate PDF memory spike tracking
-    #[allow(dead_code)]
     pub fn record_pdf_memory_spike(&self) {
         self.pdf_memory_spikes_handled.inc();
     }
 
     /// Record PDF cleanup operation
-    /// TODO: Integrate PDF cleanup tracking
-    #[allow(dead_code)]
     pub fn record_pdf_cleanup(&self) {
         self.pdf_cleanup_operations.inc();
     }
 
     /// Update WASM memory metrics
-    /// TODO: Integrate WASM memory metrics tracking
-    #[allow(dead_code)]
     pub fn update_wasm_memory_metrics(
         &self,
         current_pages: usize,
@@ -779,29 +717,21 @@ impl RipTideMetrics {
     }
 
     /// Update WASM cold start time
-    /// TODO: Integrate WASM cold start tracking
-    #[allow(dead_code)]
     pub fn update_wasm_cold_start_time(&self, time_ms: f64) {
         self.wasm_cold_start_time_ms.set(time_ms);
     }
 
     /// Record WASM AOT cache hit
-    /// TODO: Integrate WASM AOT cache tracking
-    #[allow(dead_code)]
     pub fn record_wasm_aot_cache_hit(&self) {
         self.wasm_aot_cache_hits.inc();
     }
 
     /// Record WASM AOT cache miss
-    /// TODO: Integrate WASM AOT cache tracking
-    #[allow(dead_code)]
     pub fn record_wasm_aot_cache_miss(&self) {
         self.wasm_aot_cache_misses.inc();
     }
 
     /// Update WASM metrics from component extractor
-    /// TODO: Integrate WASM extractor metrics
-    #[allow(dead_code)]
     pub fn update_wasm_metrics_from_extractor(
         &self,
         wasm_metrics: &std::collections::HashMap<String, f64>,
@@ -834,8 +764,6 @@ impl RipTideMetrics {
 }
 
 /// Phase types for timing measurements
-/// TODO: Use for phase timing metrics
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
 pub enum PhaseType {
     Fetch,
@@ -845,8 +773,6 @@ pub enum PhaseType {
 }
 
 /// Error types for metrics
-/// TODO: Use for error type tracking
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
 pub enum ErrorType {
     Redis,
@@ -855,8 +781,6 @@ pub enum ErrorType {
 }
 
 /// Phase timing tracker for structured logging and metrics
-/// TODO: Use for phase timing tracking
-#[allow(dead_code)]
 #[derive(Debug)]
 pub struct PhaseTimer {
     phase: PhaseType,
@@ -866,8 +790,6 @@ pub struct PhaseTimer {
 
 impl PhaseTimer {
     /// Start timing a phase
-    /// TODO: Use for phase timing
-    #[allow(dead_code)]
     pub fn start(phase: PhaseType, url: String) -> Self {
         info!(
             phase = ?phase,
@@ -883,8 +805,6 @@ impl PhaseTimer {
     }
 
     /// End timing and log results
-    /// TODO: Use for phase timing completion
-    #[allow(dead_code)]
     pub fn end(self, metrics: &RipTideMetrics, success: bool) {
         let duration = self.start_time.elapsed();
         let duration_secs = duration.as_secs_f64();

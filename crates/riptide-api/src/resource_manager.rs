@@ -55,7 +55,6 @@ pub struct PerHostRateLimiter {
     config: ApiConfig,
     host_buckets: RwLock<HashMap<String, HostBucket>>,
     // TODO: Implement background cleanup task - https://github.com/eventmesh/issues/xxx
-    #[allow(dead_code)]
     cleanup_task: Mutex<Option<tokio::task::JoinHandle<()>>>,
     metrics: Arc<ResourceMetrics>,
 }
@@ -79,17 +78,11 @@ pub struct WasmInstanceManager {
 #[derive(Debug)]
 struct WasmWorkerInstance {
     // TODO: Implement health tracking metrics - https://github.com/eventmesh/issues/xxx
-    #[allow(dead_code)]
     pub worker_id: String,
-    #[allow(dead_code)]
     pub created_at: Instant,
-    #[allow(dead_code)]
     pub operations_count: u64,
-    #[allow(dead_code)]
     pub last_operation: Instant,
-    #[allow(dead_code)]
     pub is_healthy: bool,
-    #[allow(dead_code)]
     pub memory_usage: usize,
 }
 
@@ -115,13 +108,10 @@ pub struct PerformanceMonitor {
 #[derive(Default)]
 pub struct ResourceMetrics {
     /// TODO: Track headless pool size metric
-    #[allow(dead_code)]
     pub headless_pool_size: AtomicUsize,
     /// TODO: Track active headless browsers
-    #[allow(dead_code)]
     pub headless_active: AtomicUsize,
     /// TODO: Track active PDF operations
-    #[allow(dead_code)]
     pub pdf_active: AtomicUsize,
     pub wasm_instances: AtomicUsize,
     pub memory_usage_mb: AtomicUsize,
@@ -136,7 +126,6 @@ pub struct ResourceMetrics {
 
 /// Result of resource acquisition
 /// TODO: Use for generic resource tracking
-#[allow(dead_code)]
 pub struct ResourceGuard {
     pub resource_type: String,
     pub acquired_at: Instant,
@@ -165,7 +154,6 @@ pub enum ResourceResult<T> {
     },
     MemoryPressure,
     /// TODO: Use Error variant for error handling
-    #[allow(dead_code)]
     Error(String),
 }
 
@@ -202,9 +190,17 @@ impl ResourceManager {
                 .map_err(|e| anyhow!("Failed to initialize browser pool: {}", e))?,
         );
 
+        // Track headless pool size in metrics
+        metrics
+            .headless_pool_size
+            .store(config.headless.max_pool_size, Ordering::Relaxed);
+
         // Initialize per-host rate limiter
         let rate_limiter =
             Arc::new(PerHostRateLimiter::new(config.clone(), metrics.clone()).await?);
+
+        // Start cleanup task now that we have the Arc
+        rate_limiter.start_cleanup_task().await;
 
         // Initialize PDF semaphore
         let pdf_semaphore = Arc::new(Semaphore::new(config.pdf.max_concurrent));
@@ -268,7 +264,11 @@ impl ResourceManager {
         .await;
 
         let browser_checkout = match browser_result {
-            Ok(Ok(checkout)) => checkout,
+            Ok(Ok(checkout)) => {
+                // Track active headless browser
+                self.metrics.headless_active.fetch_add(1, Ordering::Relaxed);
+                checkout
+            }
             Ok(Err(e)) => {
                 error!(error = %e, "Failed to acquire browser");
                 return Ok(ResourceResult::ResourceExhausted);
@@ -304,7 +304,6 @@ impl ResourceManager {
 
     /// Acquire resources for PDF operation
     /// TODO: Integrate with PDF processing endpoints
-    #[allow(dead_code)]
     pub async fn acquire_pdf_resources(&self) -> Result<ResourceResult<PdfResourceGuard>> {
         // Check memory pressure
         if self.memory_manager.is_under_pressure() {
@@ -397,9 +396,7 @@ impl ResourceManager {
 /// Resource guard for render operations
 pub struct RenderResourceGuard {
     /// TODO: Browser checkout tracking not yet fully integrated
-    #[allow(dead_code)]
     pub browser_checkout: BrowserCheckout,
-    #[allow(dead_code)] // Used for cleanup in Drop impl
     wasm_guard: WasmGuard,
     memory_tracked: usize,
     manager: ResourceManager,
@@ -407,7 +404,6 @@ pub struct RenderResourceGuard {
 
 /// Resource guard for PDF operations
 /// TODO: Integrate with PDF processing
-#[allow(dead_code)]
 pub struct PdfResourceGuard {
     _permit: tokio::sync::OwnedSemaphorePermit,
     memory_tracked: usize,
@@ -418,7 +414,6 @@ pub struct PdfResourceGuard {
 
 /// WASM guard with instance tracking
 pub struct WasmGuard {
-    #[allow(dead_code)] // Used for cleanup in Drop impl
     manager: Arc<WasmInstanceManager>,
 }
 
@@ -426,26 +421,19 @@ pub struct WasmGuard {
 #[derive(Debug)]
 pub struct ResourceStatus {
     /// TODO: Use in status reporting
-    #[allow(dead_code)]
     pub headless_pool_available: usize,
     /// TODO: Use in status reporting
-    #[allow(dead_code)]
     pub headless_pool_total: usize,
     /// TODO: Use in status reporting
-    #[allow(dead_code)]
     pub pdf_available: usize,
     /// TODO: Use in status reporting
-    #[allow(dead_code)]
     pub pdf_total: usize,
     /// TODO: Use in status reporting
-    #[allow(dead_code)]
     pub memory_usage_mb: usize,
     pub memory_pressure: bool,
     /// TODO: Use in status reporting
-    #[allow(dead_code)]
     pub rate_limit_hits: u64,
     /// TODO: Use in status reporting
-    #[allow(dead_code)]
     pub timeout_count: u64,
     pub degradation_score: f64,
 }
@@ -456,17 +444,13 @@ pub struct ResourceStatus {
 
 impl PerHostRateLimiter {
     async fn new(config: ApiConfig, metrics: Arc<ResourceMetrics>) -> Result<Self> {
-        let limiter = Self {
+        Ok(Self {
             config,
             host_buckets: RwLock::new(HashMap::new()),
             cleanup_task: Mutex::new(None),
             metrics,
-        };
-
-        // Start cleanup task
-        limiter.start_cleanup_task().await;
-
-        Ok(limiter)
+        })
+        // Cleanup task will be started after Arc creation in ResourceManager::new
     }
 
     async fn check_rate_limit(&self, host: &str) -> Result<(), Duration> {
@@ -515,9 +499,39 @@ impl PerHostRateLimiter {
         }
     }
 
-    async fn start_cleanup_task(&self) {
-        // Implementation for periodic cleanup of old host buckets
-        // This would run in the background to prevent memory leaks
+    async fn start_cleanup_task(self: &Arc<Self>) {
+        // Clone the Arc to self so the background task can access host_buckets
+        let rate_limiter = Arc::clone(self);
+
+        let cleanup_handle = tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(300)); // 5 minutes
+
+            loop {
+                interval.tick().await;
+
+                let mut buckets = rate_limiter.host_buckets.write().await;
+                let now = Instant::now();
+
+                // Remove buckets inactive for >1 hour
+                let count_before = buckets.len();
+                buckets.retain(|_, bucket| {
+                    now.duration_since(bucket.last_request) < Duration::from_secs(3600)
+                });
+                let count_after = buckets.len();
+
+                if count_before != count_after {
+                    debug!(
+                        removed = count_before - count_after,
+                        remaining = count_after,
+                        "Rate limiter cleanup: removed stale host buckets"
+                    );
+                }
+            }
+        });
+
+        // Use self (not rate_limiter which was moved) to store the task handle
+        let mut task = self.cleanup_task.lock().await;
+        *task = Some(cleanup_handle);
     }
 }
 
@@ -554,6 +568,33 @@ impl WasmInstanceManager {
 
         Ok(WasmGuard {
             manager: self.clone(),
+        })
+    }
+
+    /// Get health status of WASM instances
+    async fn get_instance_health(&self) -> Vec<(String, bool, u64, Duration)> {
+        let instances = self.worker_instances.read().await;
+        instances
+            .iter()
+            .map(|(_id, instance)| {
+                let age = instance.created_at.elapsed();
+                (
+                    instance.worker_id.clone(),
+                    instance.is_healthy,
+                    instance.operations_count,
+                    age,
+                )
+            })
+            .collect()
+    }
+
+    /// Check if any WASM instance needs cleanup (idle for >1 hour)
+    async fn needs_cleanup(&self) -> bool {
+        let instances = self.worker_instances.read().await;
+        let now = Instant::now();
+
+        instances.values().any(|instance| {
+            now.duration_since(instance.last_operation) > Duration::from_secs(3600)
         })
     }
 }

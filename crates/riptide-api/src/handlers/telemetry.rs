@@ -1,6 +1,3 @@
-// TODO: Advanced telemetry endpoints prepared but not yet activated
-#![allow(dead_code)]
-
 //! Telemetry and Trace Visualization Handlers (TELEM-005)
 //!
 //! This module provides HTTP endpoints for:

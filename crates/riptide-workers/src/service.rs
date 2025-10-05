@@ -284,6 +284,21 @@ impl WorkerService {
         }
     }
 
+    /// List jobs with filtering and pagination
+    pub async fn list_jobs(
+        &self,
+        status: Option<&str>,
+        job_type: Option<&str>,
+        search: Option<&str>,
+        limit: usize,
+        offset: usize,
+    ) -> Result<Vec<Job>> {
+        let mut queue = self.queue.lock().await;
+        queue
+            .list_jobs(status, job_type, search, limit, offset)
+            .await
+    }
+
     /// Create job processors
     async fn create_job_processors(&self) -> Result<Vec<Arc<dyn crate::worker::JobProcessor>>> {
         info!("Initializing job processors");

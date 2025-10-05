@@ -6,6 +6,7 @@
 use crate::state::{AppState, PerformanceReport};
 use axum::{extract::State, http::StatusCode, response::Json};
 use serde::Serialize;
+use std::sync::Arc;
 
 // Allow unused imports - these may be used in future endpoint implementations
 #[allow(unused_imports)]
@@ -31,7 +32,7 @@ pub struct HealthScoreResponse {
 /// Returns the current system health score (0-100) based on performance metrics.
 /// This endpoint provides a single numeric value representing overall system health.
 pub async fn get_health_score(
-    State(state): State<AppState>,
+    State(state): State<Arc<AppState>>,
 ) -> Result<Json<HealthScoreResponse>, (StatusCode, String)> {
     let health_score = state
         .monitoring_system
@@ -63,7 +64,7 @@ pub async fn get_health_score(
 /// Returns a detailed performance report including metrics, health score, summary,
 /// and actionable recommendations for system optimization.
 pub async fn get_performance_report(
-    State(state): State<AppState>,
+    State(state): State<Arc<AppState>>,
 ) -> Result<Json<PerformanceReport>, (StatusCode, String)> {
     let report = state
         .monitoring_system
@@ -103,7 +104,7 @@ pub struct AlertRuleSummary {
 /// Returns the list of all configured alert rules, including their thresholds,
 /// conditions, and enabled status.
 pub async fn get_alert_rules(
-    State(state): State<AppState>,
+    State(state): State<Arc<AppState>>,
 ) -> Result<Json<AlertRulesResponse>, (StatusCode, String)> {
     let manager = state.monitoring_system.alert_manager.lock().await;
     let rules = manager.get_rules();
@@ -144,7 +145,7 @@ pub struct ActiveAlertsResponse {
 /// Returns the list of alerts that are currently triggered and within their
 /// cooldown period.
 pub async fn get_active_alerts(
-    State(state): State<AppState>,
+    State(state): State<Arc<AppState>>,
 ) -> Result<Json<ActiveAlertsResponse>, (StatusCode, String)> {
     let manager = state.monitoring_system.alert_manager.lock().await;
     let active_alerts = manager.get_active_alerts();
@@ -167,7 +168,7 @@ pub struct CurrentMetricsResponse {
 /// Returns the current snapshot of all performance metrics including timing,
 /// throughput, resource usage, and error rates.
 pub async fn get_current_metrics(
-    State(state): State<AppState>,
+    State(state): State<Arc<AppState>>,
 ) -> Result<Json<CurrentMetricsResponse>, (StatusCode, String)> {
     let metrics = state
         .monitoring_system
@@ -177,4 +178,20 @@ pub async fn get_current_metrics(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     Ok(Json(CurrentMetricsResponse { metrics }))
+}
+
+/// GET /api/resources/status - Get current resource utilization status
+///
+/// Returns the current status of all managed resources including:
+/// - Headless browser pool availability
+/// - PDF processing semaphore permits
+/// - Memory usage and pressure status
+/// - Rate limiting statistics
+/// - Timeout counts and degradation scores
+pub async fn get_resource_status(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<crate::resource_manager::ResourceStatus>, (StatusCode, String)> {
+    let status = state.resource_manager.get_resource_status().await;
+
+    Ok(Json(status))
 }
