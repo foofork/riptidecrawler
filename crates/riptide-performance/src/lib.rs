@@ -129,7 +129,6 @@ pub struct PerformanceManager {
     targets: PerformanceTargets,
     profiler: RwLock<profiling::MemoryProfiler>,
     monitor: RwLock<monitoring::PerformanceMonitor>,
-    #[allow(dead_code)]
     optimizer: RwLock<optimization::CacheOptimizer>,
     #[allow(dead_code)]
     limiter: RwLock<limits::ResourceLimiter>,
@@ -302,6 +301,22 @@ impl PerformanceManager {
         }
 
         Ok(recommendations)
+    }
+
+    /// Get cache optimizer statistics
+    ///
+    /// Returns current cache statistics including hit rate, total entries, and memory usage.
+    pub async fn get_cache_stats(&self) -> Result<optimization::CacheStats> {
+        let optimizer = self.optimizer.read().await;
+        optimizer.get_stats().await
+    }
+
+    /// Optimize cache based on access patterns
+    ///
+    /// Runs cache optimization strategies and returns the list of optimizations applied.
+    pub async fn optimize_cache(&self) -> Result<Vec<String>> {
+        let optimizer = self.optimizer.read().await;
+        optimizer.optimize().await
     }
 }
 
