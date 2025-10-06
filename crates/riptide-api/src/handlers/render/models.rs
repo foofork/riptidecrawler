@@ -25,8 +25,7 @@ pub struct RenderRequest {
     /// Whether to capture artifacts (screenshots, MHTML)
     pub capture_artifacts: Option<bool>,
 
-    /// Timeout for rendering operation (seconds)
-    #[allow(dead_code)] // TODO: Implement per-request timeout override
+    /// Timeout for rendering operation in seconds (used in handlers.rs:72-76)
     pub timeout: Option<u64>,
 
     /// Session ID to use for persistent browser state (optional)

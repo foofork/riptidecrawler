@@ -29,6 +29,8 @@ pub struct PdfProcessRequest {
     pub stream_progress: Option<bool>,
     /// URL to associate with the document (optional)
     pub url: Option<String>,
+    /// Timeout for PDF processing operation in seconds (optional override)
+    pub timeout: Option<u64>,
 }
 
 /// PDF processing response
@@ -107,13 +109,46 @@ pub async fn process_pdf(
         return Err(ApiError::validation("File does not appear to be a PDF"));
     }
 
-    // Process the PDF
+    // Determine timeout duration (allow per-request override)
+    let pdf_timeout = if let Some(timeout_secs) = request.timeout {
+        std::time::Duration::from_secs(timeout_secs)
+    } else {
+        state.api_config.get_timeout("pdf")
+    };
+
+    // Process the PDF with timeout
     let processing_start = std::time::Instant::now();
-    match pdf_integration
-        .process_pdf_to_extracted_doc(&pdf_data, url.as_deref())
-        .await
-    {
-        Ok(document) => {
+    let pdf_result = tokio::time::timeout(
+        pdf_timeout,
+        pdf_integration.process_pdf_to_extracted_doc(&pdf_data, url.as_deref()),
+    )
+    .await;
+
+    match pdf_result {
+        Err(_) => {
+            // Timeout occurred
+            state.metrics.record_error(ErrorType::Http);
+            warn!(
+                "PDF processing timed out after {}ms",
+                pdf_timeout.as_millis()
+            );
+            return Err(ApiError::timeout(
+                "PDF processing",
+                "PDF processing exceeded maximum time limit",
+            ));
+        }
+        Ok(Err(e)) => {
+            // Processing error
+            let processing_time = processing_start.elapsed();
+            state.metrics.record_error(ErrorType::Wasm);
+            warn!(
+                processing_time_ms = processing_time.as_millis(),
+                error = %e,
+                "PDF processing failed"
+            );
+            return Err(ApiError::internal(format!("PDF processing failed: {}", e)));
+        }
+        Ok(Ok(document)) => {
             let processing_time = processing_start.elapsed();
             let total_time = start_time.elapsed();
 
@@ -156,33 +191,6 @@ pub async fn process_pdf(
                 document: Some(riptide_core::convert_pdf_extracted_doc(document)),
                 error: None,
                 stats,
-            }))
-        }
-        Err(e) => {
-            let error_msg = format!("PDF processing failed: {:?}", e);
-            error!(error = %error_msg, "PDF processing failed");
-
-            // Record error and failed processing
-            state.metrics.record_error(ErrorType::Http);
-            state.metrics.record_http_request(
-                "POST",
-                "/pdf/process",
-                500,
-                start_time.elapsed().as_secs_f64(),
-            );
-
-            Ok(Json(PdfProcessResponse {
-                success: false,
-                document: None,
-                error: Some(error_msg),
-                stats: ProcessingStats {
-                    processing_time_ms: start_time.elapsed().as_millis() as u64,
-                    file_size: pdf_data.len() as u64,
-                    pages_processed: 0,
-                    memory_used: 0,
-                    pages_per_second: 0.0,
-                    progress_overhead_us: None,
-                },
             }))
         }
     }
