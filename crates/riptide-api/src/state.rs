@@ -29,6 +29,8 @@ use std::sync::Arc;
 use std::time::Duration;
 use tracing::info;
 
+use crate::middleware::AuthConfig;
+
 /// Application state shared across all request handlers.
 ///
 /// This struct contains all the shared resources needed for crawling operations,
@@ -98,6 +100,9 @@ pub struct AppState {
 
     /// Performance manager for resource limiting, monitoring, and optimization
     pub performance_manager: Arc<PerformanceManager>,
+
+    /// Authentication configuration for API key validation
+    pub auth_config: AuthConfig,
 
     /// Future: CacheWarmer for intelligent cache pre-warming (placeholder for now)
     pub cache_warmer_enabled: bool,
@@ -692,13 +697,20 @@ impl AppState {
         );
         tracing::info!("PerformanceManager initialized successfully");
 
+        // Initialize authentication configuration
+        let auth_config = AuthConfig::new();
+        tracing::info!(
+            require_auth = auth_config.requires_auth(),
+            "Authentication configuration initialized"
+        );
+
         // Note: CacheWarmer initialization to be added in future
         let cache_warmer_enabled = config.cache_warming_config.enabled;
         if cache_warmer_enabled {
             tracing::info!("CacheWarmer feature flag enabled (full implementation pending)");
         }
 
-        tracing::info!("Application state initialization complete with resource controls, event bus, circuit breaker, monitoring, fetch engine, performance manager, and cache warming");
+        tracing::info!("Application state initialization complete with resource controls, event bus, circuit breaker, monitoring, fetch engine, performance manager, authentication, and cache warming");
 
         Ok(Self {
             http_client,
@@ -722,6 +734,7 @@ impl AppState {
             monitoring_system,
             fetch_engine,
             performance_manager,
+            auth_config,
             cache_warmer_enabled,
         })
     }

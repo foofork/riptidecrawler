@@ -21,7 +21,7 @@ mod validation;
 
 use crate::health::HealthChecker;
 use crate::metrics::{create_metrics_layer, RipTideMetrics};
-use crate::middleware::{rate_limit_middleware, PayloadLimitLayer};
+use crate::middleware::{auth_middleware, rate_limit_middleware, PayloadLimitLayer};
 use crate::sessions::middleware::SessionLayer;
 use crate::state::{AppConfig, AppState};
 use axum::{
@@ -300,6 +300,10 @@ async fn main() -> anyhow::Result<()> {
         .fallback(handlers::not_found)
         .with_state(app_state.clone())
         .layer(SessionLayer::new(app_state.session_manager.clone()))
+        .layer(axum::middleware::from_fn_with_state(
+            app_state.clone(),
+            auth_middleware,
+        )) // Authentication - validates API keys
         .layer(axum::middleware::from_fn_with_state(
             app_state.clone(),
             rate_limit_middleware,
