@@ -354,6 +354,61 @@ curl http://localhost:8080/pipeline/phases
 
 ---
 
+## 🧠 Memory Profiling
+
+**Production-Ready Memory Profiling System**
+
+RipTide includes comprehensive memory profiling capabilities for production monitoring and optimization:
+
+### Components
+
+- **Memory Tracker** - Real-time memory monitoring with jemalloc integration
+- **Leak Detector** - Automatic memory leak detection and analysis
+- **Allocation Analyzer** - Pattern analysis and optimization recommendations
+
+### Features
+
+- ✅ Real-time memory snapshots
+- ✅ Leak detection with growth rate analysis
+- ✅ Allocation pattern optimization
+- ✅ HTTP endpoints for monitoring
+- ✅ Prometheus metrics integration
+- ✅ < 2% performance overhead
+
+### Quick Start
+
+```rust
+use riptide_performance::profiling::MemoryProfiler;
+use uuid::Uuid;
+
+let session_id = Uuid::new_v4();
+let mut profiler = MemoryProfiler::new(session_id)?;
+
+profiler.start_profiling().await?;
+// ... run your workload ...
+let report = profiler.stop_profiling().await?;
+
+println!("Peak memory: {:.2}MB", report.peak_memory_mb);
+println!("Efficiency score: {:.2}/1.0", report.memory_efficiency_score);
+```
+
+### HTTP Endpoints
+
+```bash
+# Get current memory snapshot
+curl http://localhost:8080/profiling/snapshot
+
+# Check for memory alerts
+curl http://localhost:8080/profiling/alerts
+
+# Get profiling report
+curl http://localhost:8080/profiling/report
+```
+
+📘 **[Activation Guide](docs/memory-profiling-activation-guide.md)** | 💡 **[Usage Examples](docs/memory-profiling-examples.md)**
+
+---
+
 ## 📚 Documentation
 
 ### For Users

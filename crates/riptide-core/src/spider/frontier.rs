@@ -17,6 +17,17 @@ pub struct FrontierConfig {
     /// Memory limit in MB for the frontier
     pub memory_limit_mb: usize,
     /// Enable disk spillover for large frontiers
+    ///
+    /// **Status:** ⚠️ Planned Feature - DiskBackedQueue implementation pending
+    /// When enabled, requests exceeding memory limits will be spilled to disk storage.
+    /// Currently, the disk spillover mechanism uses placeholder methods (_push, _pop, _len)
+    /// that need to be implemented for full disk persistence support.
+    ///
+    /// **Implementation Required:**
+    /// - Implement DiskBackedQueue with persistent storage backend (e.g., RocksDB, SQLite)
+    /// - Add proper serialization/deserialization for CrawlRequest
+    /// - Implement atomic disk operations with crash recovery
+    /// - Add disk space monitoring and cleanup
     pub enable_disk_spillover: bool,
     /// Path for disk spillover storage
     pub spillover_path: Option<String>,
@@ -53,7 +64,6 @@ impl Default for FrontierConfig {
 struct PriorityRequest {
     request: CrawlRequest,
     score: f64,
-    #[allow(dead_code)]
     insertion_time: Instant,
 }
 
@@ -83,7 +93,6 @@ impl Ord for PriorityRequest {
 #[derive(Debug)]
 struct HostQueue {
     /// Host name
-    #[allow(dead_code)]
     host: String,
     /// Requests for this host
     requests: VecDeque<CrawlRequest>,

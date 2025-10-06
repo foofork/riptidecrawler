@@ -15,6 +15,26 @@ pub struct SessionConfig {
     /// Enable session persistence
     pub enable_session_persistence: bool,
     /// Enable authentication support
+    ///
+    /// **Status:** ⚠️ Planned Feature - Full authentication implementation pending
+    /// When enabled, the spider will support automatic login sequences and authenticated
+    /// crawling with session state management. Currently, basic session lifecycle is
+    /// implemented, but full authentication features require completion.
+    ///
+    /// **Implementation Required:**
+    /// - Complete LoginConfig integration (login_url, credentials, success indicators)
+    /// - Implement automatic CSRF token extraction (PreLoginStep execution)
+    /// - Add multi-step authentication flows (2FA, OAuth)
+    /// - Implement session validation and re-authentication on expiry
+    /// - Add secure credential storage integration (Vault, KMS)
+    ///
+    /// **Current Status:**
+    /// - ✅ Session lifecycle management (create, extend, cleanup)
+    /// - ✅ Cookie persistence across requests
+    /// - ✅ Session timeout handling
+    /// - ⚠️ Automatic login sequences (incomplete)
+    /// - ⚠️ CSRF token handling (incomplete)
+    /// - ⚠️ Multi-factor authentication (not started)
     pub enable_authentication: bool,
     /// Enable cookie persistence across requests
     pub enable_cookie_persistence: bool,
@@ -203,7 +223,6 @@ pub struct SessionManager {
     /// Session checkpoints for persistence
     checkpoints: Arc<RwLock<HashMap<String, SessionCheckpoint>>>,
     /// Last checkpoint time
-    #[allow(dead_code)]
     last_checkpoint: Arc<RwLock<Instant>>,
 }
 

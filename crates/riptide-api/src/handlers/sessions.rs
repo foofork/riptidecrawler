@@ -363,13 +363,32 @@ pub async fn list_sessions(
 ) -> Result<impl IntoResponse, ApiError> {
     let session_ids = state.session_manager.list_sessions().await;
 
+    // Filter expired sessions if not explicitly requested
+    let include_expired = query.include_expired.unwrap_or(false);
+    let filtered_sessions = if !include_expired {
+        // Filter out expired sessions by checking each one
+        let mut active_sessions = Vec::new();
+        for session_id in session_ids {
+            if let Ok(Some(session)) = state.session_manager.get_session(&session_id).await {
+                let now = std::time::SystemTime::now();
+                if session.expires_at > now {
+                    active_sessions.push(session_id);
+                }
+            }
+        }
+        active_sessions
+    } else {
+        session_ids
+    };
+
     let limit = query.limit.unwrap_or(100);
-    let limited_sessions: Vec<String> = session_ids.into_iter().take(limit).collect();
+    let limited_sessions: Vec<String> = filtered_sessions.into_iter().take(limit).collect();
 
     debug!(
         session_count = limited_sessions.len(),
         limit = limit,
-        "Listed active sessions"
+        include_expired = include_expired,
+        "Listed sessions"
     );
 
     Ok(Json(limited_sessions))

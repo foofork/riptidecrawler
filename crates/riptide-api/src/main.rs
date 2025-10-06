@@ -264,6 +264,19 @@ async fn main() -> anyhow::Result<()> {
             "/monitoring/alerts/active",
             get(handlers::monitoring::get_active_alerts),
         )
+        // Performance profiling endpoints
+        .route(
+            "/monitoring/profiling/memory",
+            get(handlers::monitoring::get_memory_metrics),
+        )
+        .route(
+            "/monitoring/profiling/leaks",
+            get(handlers::monitoring::get_leak_analysis),
+        )
+        .route(
+            "/monitoring/profiling/allocations",
+            get(handlers::monitoring::get_allocation_metrics),
+        )
         // Resource management status endpoint
         .route(
             "/api/resources/status",

@@ -18,7 +18,6 @@ pub struct AllocationAnalyzer {
 struct AllocatorStats {
     total_allocations: u64,
     total_bytes: u64,
-    #[allow(dead_code)]
     peak_bytes: u64,
     average_size: f64,
     largest_allocation: usize,

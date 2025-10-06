@@ -311,7 +311,6 @@ pub struct BudgetManager {
     host_budgets: Arc<RwLock<HashMap<String, HostBudget>>>,
 
     // Per-session budget tracking
-    #[allow(dead_code)]
     session_budgets: Arc<RwLock<HashMap<String, BudgetUsage>>>,
 
     // Atomic counters for performance

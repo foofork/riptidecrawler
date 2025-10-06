@@ -12,7 +12,10 @@ mod monitor;
 mod reports;
 
 // Public re-exports
-pub use alerts::{AlertSeverity, PerformanceAlert};
+pub use alerts::{
+    AlertCategory, AlertChannel, AlertCondition, AlertRule, AlertSeverity, ConsoleAlertChannel,
+    MemoryAlertManager, PerformanceAlert,
+};
 pub use bottlenecks::{Bottleneck, BottleneckAnalysis, BottleneckSeverity};
 pub use config::{AlertMultipliers, MonitoringConfig};
 pub use metrics::{ApplicationMetrics, SystemMetrics};

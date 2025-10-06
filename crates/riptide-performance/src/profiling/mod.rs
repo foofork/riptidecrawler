@@ -11,6 +11,7 @@ pub mod allocation_analyzer;
 pub mod flamegraph_generator;
 pub mod leak_detector;
 pub mod memory_tracker;
+pub mod telemetry;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -24,6 +25,7 @@ use allocation_analyzer::AllocationAnalyzer;
 use flamegraph_generator::FlamegraphGenerator;
 use leak_detector::LeakDetector;
 use memory_tracker::MemoryTracker;
+pub use telemetry::{MemoryTelemetryExporter, TelemetryConfig};
 
 /// Memory profiling configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,6 +44,10 @@ pub struct MemoryProfileConfig {
     pub warning_threshold_mb: f64,
     /// Memory threshold for alerts (MB)
     pub alert_threshold_mb: f64,
+    /// Enable telemetry export
+    pub export_telemetry: bool,
+    /// Telemetry configuration
+    pub telemetry_config: Option<TelemetryConfig>,
 }
 
 impl Default for MemoryProfileConfig {
@@ -54,6 +60,8 @@ impl Default for MemoryProfileConfig {
             generate_flamegraphs: false, // Expensive, disabled by default
             warning_threshold_mb: 650.0,
             alert_threshold_mb: 700.0,
+            export_telemetry: false, // Disabled by default
+            telemetry_config: None,
         }
     }
 }
@@ -138,6 +146,7 @@ pub struct MemoryProfiler {
     leak_detector: Arc<RwLock<LeakDetector>>,
     allocation_analyzer: Arc<RwLock<AllocationAnalyzer>>,
     flamegraph_generator: Option<Arc<RwLock<FlamegraphGenerator>>>,
+    telemetry_exporter: Option<Arc<RwLock<MemoryTelemetryExporter>>>,
 
     snapshots: Arc<RwLock<Vec<MemorySnapshot>>>,
     is_profiling: Arc<RwLock<bool>>,
@@ -163,6 +172,15 @@ impl MemoryProfiler {
             None
         };
 
+        let telemetry_exporter = if config.export_telemetry {
+            let telemetry_config = config.telemetry_config.clone().unwrap_or_default();
+            Some(Arc::new(RwLock::new(MemoryTelemetryExporter::new(
+                telemetry_config,
+            )?)))
+        } else {
+            None
+        };
+
         Ok(Self {
             config,
             session_id,
@@ -171,6 +189,7 @@ impl MemoryProfiler {
             leak_detector: Arc::new(RwLock::new(LeakDetector::new()?)),
             allocation_analyzer: Arc::new(RwLock::new(AllocationAnalyzer::new()?)),
             flamegraph_generator,
+            telemetry_exporter,
             snapshots: Arc::new(RwLock::new(Vec::new())),
             is_profiling: Arc::new(RwLock::new(false)),
         })
@@ -289,6 +308,7 @@ impl MemoryProfiler {
         let tracker = Arc::clone(&self.tracker);
         let snapshots = Arc::clone(&self.snapshots);
         let is_profiling = Arc::clone(&self.is_profiling);
+        let telemetry_exporter = self.telemetry_exporter.clone();
         let sampling_interval = self.config.sampling_interval;
         let max_samples = self.config.max_samples;
         let session_id = self.session_id;
@@ -302,12 +322,24 @@ impl MemoryProfiler {
                     tracker.get_current_snapshot().await
                 } {
                     let mut snapshots = snapshots.write().await;
-                    snapshots.push(snapshot);
+                    snapshots.push(snapshot.clone());
 
                     // Keep only the most recent samples
                     if snapshots.len() > max_samples {
                         let excess = snapshots.len() - max_samples;
                         snapshots.drain(0..excess);
+                    }
+
+                    // Export to telemetry if enabled
+                    if let Some(ref exporter) = telemetry_exporter {
+                        let exporter = exporter.read().await;
+                        let session_id_str = session_id.to_string();
+                        if let Err(e) = exporter
+                            .export_snapshot(&snapshot, None, Some(&session_id_str))
+                            .await
+                        {
+                            warn!("Failed to export snapshot to telemetry: {}", e);
+                        }
                     }
                 }
 
@@ -372,9 +404,29 @@ impl MemoryProfiler {
         let leak_detector = self.leak_detector.read().await;
         let leak_analysis = leak_detector.analyze_leaks().await?;
 
+        // Export leak analysis to telemetry
+        if let Some(ref exporter) = self.telemetry_exporter {
+            let exporter = exporter.read().await;
+            if let Err(e) = exporter.export_leak_analysis(&leak_analysis).await {
+                warn!("Failed to export leak analysis to telemetry: {}", e);
+            }
+        }
+
         // Get top allocators
         let allocation_analyzer = self.allocation_analyzer.read().await;
         let top_allocators = allocation_analyzer.get_top_allocators().await?;
+
+        // Export allocation statistics to telemetry
+        if let Some(ref exporter) = self.telemetry_exporter {
+            let size_distribution = allocation_analyzer.get_size_distribution().await?;
+            let exporter = exporter.read().await;
+            if let Err(e) = exporter
+                .export_allocation_stats(&top_allocators, &size_distribution)
+                .await
+            {
+                warn!("Failed to export allocation stats to telemetry: {}", e);
+            }
+        }
 
         // Generate memory timeline
         let memory_timeline: Vec<(chrono::DateTime<chrono::Utc>, f64)> = snapshots
@@ -386,6 +438,14 @@ impl MemoryProfiler {
         let recommendations = self
             .generate_recommendations(peak_memory_mb, memory_growth_rate_mb_s, &leak_analysis)
             .await?;
+
+        // Flush telemetry before returning report
+        if let Some(ref exporter) = self.telemetry_exporter {
+            let exporter = exporter.read().await;
+            if let Err(e) = exporter.flush().await {
+                warn!("Failed to flush telemetry: {}", e);
+            }
+        }
 
         Ok(MemoryReport {
             session_id: self.session_id,

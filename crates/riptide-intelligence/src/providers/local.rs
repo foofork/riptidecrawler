@@ -58,25 +58,28 @@ struct OllamaOptions {
 }
 
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 struct OllamaModelsResponse {
     models: Vec<OllamaModelInfo>,
 }
 
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 struct OllamaModelInfo {
     name: String,
+    #[allow(dead_code)] // API response field, used for debugging
     size: u64,
+    #[allow(dead_code)] // API response field, used for debugging
     digest: String,
+    #[allow(dead_code)] // API response field, used for debugging
     details: OllamaModelDetails,
 }
 
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 struct OllamaModelDetails {
+    #[allow(dead_code)] // API response field, used for debugging
     format: String,
+    #[allow(dead_code)] // API response field, used for debugging
     family: String,
+    #[allow(dead_code)] // API response field, used for debugging
     parameter_size: String,
 }
 
@@ -84,7 +87,6 @@ struct OllamaModelDetails {
 pub struct OllamaProvider {
     client: Client,
     base_url: String,
-    #[allow(dead_code)]
     available_models: Vec<String>,
 }
 
@@ -105,8 +107,23 @@ impl OllamaProvider {
         })
     }
 
-    #[allow(dead_code)]
-    async fn fetch_available_models(&mut self) -> Result<()> {
+    /// Fetch available models from Ollama server
+    ///
+    /// This method queries the Ollama API to discover which models are currently
+    /// installed and available for use. The discovered models are stored in
+    /// `available_models` and can be used for model validation or dynamic
+    /// model selection.
+    ///
+    /// # Example
+    /// ```no_run
+    /// # use riptide_intelligence::providers::OllamaProvider;
+    /// # async fn example() -> anyhow::Result<()> {
+    /// let mut provider = OllamaProvider::new("http://localhost:11434".to_string())?;
+    /// provider.fetch_available_models().await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn fetch_available_models(&mut self) -> Result<()> {
         let url = format!("{}/api/tags", self.base_url);
 
         let response =
@@ -124,9 +141,19 @@ impl OllamaProvider {
                 .into_iter()
                 .map(|model| model.name)
                 .collect();
+
+            debug!("Discovered {} available Ollama models", self.available_models.len());
         }
 
         Ok(())
+    }
+
+    /// Get list of available models
+    ///
+    /// Returns the list of models discovered by `fetch_available_models()`.
+    /// If models haven't been fetched yet, returns an empty vector.
+    pub fn available_models(&self) -> &[String] {
+        &self.available_models
     }
 
     fn convert_role_to_ollama(role: &Role) -> String {

@@ -772,7 +772,6 @@ pub mod test_helpers {
     }
 
     /// Create a spider with custom configuration for testing
-    #[allow(dead_code)]
     pub async fn create_test_spider() -> Spider {
         let config = SpiderPresets::development();
         Spider::new(config)
@@ -781,7 +780,6 @@ pub mod test_helpers {
     }
 
     /// Simulate crawling without actual HTTP requests
-    #[allow(dead_code)]
     pub async fn simulate_crawl(spider: &Spider, pages: usize) {
         for i in 0..pages {
             let url = format!("https://test.example.com/page{}", i);

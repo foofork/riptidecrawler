@@ -68,7 +68,13 @@ pub async fn render(
     };
 
     // Apply hard timeout wrapper around entire operation (3s requirement)
-    let render_timeout = state.api_config.get_timeout("render");
+    // Allow per-request timeout override if specified in request
+    let render_timeout = if let Some(timeout_secs) = body.timeout {
+        std::time::Duration::from_secs(timeout_secs)
+    } else {
+        state.api_config.get_timeout("render")
+    };
+
     let render_result = tokio::time::timeout(render_timeout, async {
         render_with_resources(state.clone(), session_ctx, body, resource_guard).await
     })

@@ -29,7 +29,7 @@ struct VertexCandidate {
 #[derive(Debug, Deserialize)]
 struct VertexContent {
     parts: Vec<VertexPart>,
-    #[allow(dead_code)]
+    #[allow(dead_code)] // API response field, not used internally
     role: Option<String>,
 }
 

@@ -11,8 +11,6 @@ use super::{AllocationInfo, LeakAnalysis, LeakInfo};
 pub struct LeakDetector {
     allocations: HashMap<String, ComponentAllocations>,
     start_time: Instant,
-    #[allow(dead_code)]
-    last_analysis: Option<Instant>,
 }
 
 /// Allocation tracking for a specific component
@@ -34,7 +32,6 @@ impl LeakDetector {
         Ok(Self {
             allocations: HashMap::new(),
             start_time: Instant::now(),
-            last_analysis: None,
         })
     }
 

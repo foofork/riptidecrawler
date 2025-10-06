@@ -12,12 +12,9 @@ use url::Url;
 /// - Early stopping logic efficiency
 /// - Overall throughput impact (<10% requirement)
 /// - On-topic token lift (≥20% requirement)
-#[allow(dead_code)]
 pub struct QueryAwareBenchmark {
-    #[allow(dead_code)]
     config: QueryAwareConfig,
     test_documents: Vec<String>,
-    #[allow(dead_code)]
     test_urls: Vec<String>,
 }
 

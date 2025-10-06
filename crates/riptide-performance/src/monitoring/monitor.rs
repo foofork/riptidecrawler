@@ -364,33 +364,43 @@ impl PerformanceMonitor {
             targets.memory_alert_mb as f64 * config.alert_multipliers.critical;
 
         if system_metrics.memory_rss_mb > memory_critical_threshold {
-            alerts.push(PerformanceAlert {
-                id: Uuid::new_v4(),
-                severity: AlertSeverity::Critical,
-                metric: "memory_rss".to_string(),
-                current_value: system_metrics.memory_rss_mb,
-                threshold_value: memory_critical_threshold,
-                message: format!(
-                    "Critical memory usage: {:.1}MB exceeds {:.1}MB threshold",
-                    system_metrics.memory_rss_mb, memory_critical_threshold
-                ),
-                timestamp: chrono::Utc::now(),
-                acknowledged: false,
-            });
+            alerts.push(
+                PerformanceAlert::new(
+                    AlertSeverity::Critical,
+                    AlertCategory::MemoryThreshold,
+                    "memory_rss".to_string(),
+                    system_metrics.memory_rss_mb,
+                    memory_critical_threshold,
+                    format!(
+                        "Critical memory usage: {:.1}MB exceeds {:.1}MB threshold",
+                        system_metrics.memory_rss_mb, memory_critical_threshold
+                    ),
+                )
+                .with_component("system".to_string())
+                .with_recommendations(vec![
+                    "Reduce memory usage immediately".to_string(),
+                    "Review memory-intensive operations".to_string(),
+                ]),
+            );
         } else if system_metrics.memory_rss_mb > memory_warning_threshold {
-            alerts.push(PerformanceAlert {
-                id: Uuid::new_v4(),
-                severity: AlertSeverity::Warning,
-                metric: "memory_rss".to_string(),
-                current_value: system_metrics.memory_rss_mb,
-                threshold_value: memory_warning_threshold,
-                message: format!(
-                    "High memory usage: {:.1}MB exceeds {:.1}MB warning threshold",
-                    system_metrics.memory_rss_mb, memory_warning_threshold
-                ),
-                timestamp: chrono::Utc::now(),
-                acknowledged: false,
-            });
+            alerts.push(
+                PerformanceAlert::new(
+                    AlertSeverity::Warning,
+                    AlertCategory::MemoryThreshold,
+                    "memory_rss".to_string(),
+                    system_metrics.memory_rss_mb,
+                    memory_warning_threshold,
+                    format!(
+                        "High memory usage: {:.1}MB exceeds {:.1}MB warning threshold",
+                        system_metrics.memory_rss_mb, memory_warning_threshold
+                    ),
+                )
+                .with_component("system".to_string())
+                .with_recommendations(vec![
+                    "Monitor memory usage closely".to_string(),
+                    "Consider optimizing memory-intensive operations".to_string(),
+                ]),
+            );
         }
 
         // Latency threshold checks
@@ -400,63 +410,83 @@ impl PerformanceMonitor {
             targets.p95_latency_ms as f64 * config.alert_multipliers.critical;
 
         if app_metrics.p95_response_time_ms > latency_critical_threshold {
-            alerts.push(PerformanceAlert {
-                id: Uuid::new_v4(),
-                severity: AlertSeverity::Critical,
-                metric: "p95_latency".to_string(),
-                current_value: app_metrics.p95_response_time_ms,
-                threshold_value: latency_critical_threshold,
-                message: format!(
-                    "Critical latency: {:.1}ms exceeds {:.1}ms threshold",
-                    app_metrics.p95_response_time_ms, latency_critical_threshold
-                ),
-                timestamp: chrono::Utc::now(),
-                acknowledged: false,
-            });
+            alerts.push(
+                PerformanceAlert::new(
+                    AlertSeverity::Critical,
+                    AlertCategory::ApplicationLatency,
+                    "p95_latency".to_string(),
+                    app_metrics.p95_response_time_ms,
+                    latency_critical_threshold,
+                    format!(
+                        "Critical latency: {:.1}ms exceeds {:.1}ms threshold",
+                        app_metrics.p95_response_time_ms, latency_critical_threshold
+                    ),
+                )
+                .with_component("application".to_string())
+                .with_recommendations(vec![
+                    "Optimize critical path operations".to_string(),
+                    "Review database query performance".to_string(),
+                ]),
+            );
         } else if app_metrics.p95_response_time_ms > latency_warning_threshold {
-            alerts.push(PerformanceAlert {
-                id: Uuid::new_v4(),
-                severity: AlertSeverity::Warning,
-                metric: "p95_latency".to_string(),
-                current_value: app_metrics.p95_response_time_ms,
-                threshold_value: latency_warning_threshold,
-                message: format!(
-                    "High latency: {:.1}ms exceeds {:.1}ms warning threshold",
-                    app_metrics.p95_response_time_ms, latency_warning_threshold
-                ),
-                timestamp: chrono::Utc::now(),
-                acknowledged: false,
-            });
+            alerts.push(
+                PerformanceAlert::new(
+                    AlertSeverity::Warning,
+                    AlertCategory::ApplicationLatency,
+                    "p95_latency".to_string(),
+                    app_metrics.p95_response_time_ms,
+                    latency_warning_threshold,
+                    format!(
+                        "High latency: {:.1}ms exceeds {:.1}ms warning threshold",
+                        app_metrics.p95_response_time_ms, latency_warning_threshold
+                    ),
+                )
+                .with_component("application".to_string())
+                .with_recommendations(vec![
+                    "Monitor latency trends".to_string(),
+                    "Consider caching frequently accessed data".to_string(),
+                ]),
+            );
         }
 
         // CPU threshold checks
         if system_metrics.cpu_usage_percent > 90.0 {
-            alerts.push(PerformanceAlert {
-                id: Uuid::new_v4(),
-                severity: AlertSeverity::Critical,
-                metric: "cpu_usage".to_string(),
-                current_value: system_metrics.cpu_usage_percent,
-                threshold_value: 90.0,
-                message: format!(
-                    "Critical CPU usage: {:.1}% exceeds 90% threshold",
-                    system_metrics.cpu_usage_percent
-                ),
-                timestamp: chrono::Utc::now(),
-                acknowledged: false,
-            });
+            alerts.push(
+                PerformanceAlert::new(
+                    AlertSeverity::Critical,
+                    AlertCategory::CpuUsage,
+                    "cpu_usage".to_string(),
+                    system_metrics.cpu_usage_percent,
+                    90.0,
+                    format!(
+                        "Critical CPU usage: {:.1}% exceeds 90% threshold",
+                        system_metrics.cpu_usage_percent
+                    ),
+                )
+                .with_component("system".to_string())
+                .with_recommendations(vec![
+                    "Reduce CPU-intensive operations".to_string(),
+                    "Scale horizontally if needed".to_string(),
+                ]),
+            );
         } else if system_metrics.cpu_usage_percent > 75.0 {
-            alerts.push(PerformanceAlert {
-                id: Uuid::new_v4(),
-                severity: AlertSeverity::Warning,
-                metric: "cpu_usage".to_string(),
-                current_value: system_metrics.cpu_usage_percent,
-                threshold_value: 75.0,
-                message: format!(
-                    "High CPU usage: {:.1}% exceeds 75% warning threshold",
-                    system_metrics.cpu_usage_percent
-                ),
-                timestamp: chrono::Utc::now(),
-                acknowledged: false,
+            alerts.push(
+                PerformanceAlert::new(
+                    AlertSeverity::Warning,
+                    AlertCategory::CpuUsage,
+                    "cpu_usage".to_string(),
+                    system_metrics.cpu_usage_percent,
+                    75.0,
+                    format!(
+                        "High CPU usage: {:.1}% exceeds 75% warning threshold",
+                        system_metrics.cpu_usage_percent
+                    ),
+                )
+                .with_component("system".to_string())
+                .with_recommendations(vec![
+                    "Monitor CPU usage trends".to_string(),
+                    "Review recent changes that may increase CPU load".to_string(),
+                ]),
             });
         }
 

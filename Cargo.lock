@@ -6479,6 +6479,7 @@ dependencies = [
  "tokio-metrics",
  "tokio-stream",
  "tokio-test",
+ "toml",
  "tower 0.5.2",
  "tower-http 0.6.6",
  "tower-limit",

@@ -1,0 +1,68 @@
+# Riptide Performance - Development Configuration
+# Optimized for debugging and detailed profiling
+
+[memory_profiling]
+# Memory profiling settings - more aggressive in dev
+enabled = true
+sampling_interval_secs = 5  # More frequent sampling in dev
+max_samples = 5000
+track_allocations = true
+detect_leaks = true
+generate_flamegraphs = true  # Enable for debugging
+
+[thresholds]
+# Lower thresholds for dev to catch issues early
+warning_threshold_mb = 400
+alert_threshold_mb = 500
+critical_threshold_mb = 600
+
+[telemetry]
+# Local telemetry export
+export_enabled = true
+export_interval_secs = 10
+otlp_endpoint = "http://localhost:4317"
+
+[alerts]
+# More verbose alerts in development
+enabled = true
+notification_channels = ["log", "otlp", "stdout"]
+alert_cooldown_secs = 60
+
+[features]
+# All features enabled for development
+jemalloc = true
+memory_profiling = true
+bottleneck_analysis = true
+cache_optimization = true
+resource_limits = false  # Disable limits for testing
+
+[bottleneck_analysis]
+# Aggressive bottleneck detection
+enabled = true
+analysis_interval_secs = 60
+track_async_tasks = true
+track_lock_contention = true
+flamegraph_on_demand = true
+continuous_flamegraph = true  # Dev-only feature
+
+[cache_optimization]
+# Smaller cache for faster iteration
+enabled = true
+max_cache_size_mb = 64
+eviction_policy = "lru"
+track_hit_rate = true
+detailed_metrics = true
+
+[resource_limits]
+# Relaxed limits for development
+enabled = false
+max_concurrent_requests = 10000
+rate_limit_per_second = 1000
+burst_size = 1500
+
+[debug]
+# Development-only debug features
+verbose_logging = true
+trace_all_allocations = false  # Very expensive, use sparingly
+dump_heap_snapshots = true
+snapshot_interval_secs = 300

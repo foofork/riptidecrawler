@@ -191,3 +191,117 @@ pub async fn get_resource_status(
 
     Ok(Json(status))
 }
+
+// ==================== Performance Profiling Endpoints ====================
+
+/// Memory metrics response
+#[derive(Debug, Serialize)]
+pub struct MemoryMetricsResponse {
+    pub rss_mb: f64,
+    pub heap_mb: f64,
+    pub virtual_mb: f64,
+    pub timestamp: String,
+}
+
+/// Leak summary response
+#[derive(Debug, Serialize)]
+pub struct LeakSummaryResponse {
+    pub potential_leak_count: usize,
+    pub growth_rate_mb_per_hour: f64,
+    pub highest_risk_component: Option<String>,
+}
+
+/// Allocation metrics response
+#[derive(Debug, Serialize)]
+pub struct AllocationMetricsResponse {
+    pub top_allocators: Vec<(String, u64)>,
+    pub efficiency_score: f64,
+    pub recommendations: Vec<String>,
+}
+
+/// GET /monitoring/profiling/memory - Get current memory usage metrics
+///
+/// Returns real-time memory usage including RSS, heap, and virtual memory.
+/// Useful for tracking memory consumption and identifying leaks.
+pub async fn get_memory_metrics(
+    State(state): State<AppState>,
+) -> Result<impl IntoResponse, ApiError> {
+    let perf_manager = state.performance_metrics.lock().await;
+
+    let snapshot = perf_manager
+        .profiler
+        .tracker
+        .get_current_snapshot()
+        .await
+        .map_err(|e| ApiError::internal(format!("Failed to get memory snapshot: {}", e)))?;
+
+    Ok(Json(MemoryMetricsResponse {
+        rss_mb: snapshot.rss_bytes as f64 / 1024.0 / 1024.0,
+        heap_mb: snapshot.heap_bytes as f64 / 1024.0 / 1024.0,
+        virtual_mb: snapshot.virtual_bytes as f64 / 1024.0 / 1024.0,
+        timestamp: snapshot.timestamp.to_rfc3339(),
+    }))
+}
+
+/// GET /monitoring/profiling/leaks - Get memory leak analysis
+///
+/// Returns analysis of potential memory leaks based on allocation patterns.
+/// Includes growth rates, suspicious patterns, and highest-risk components.
+pub async fn get_leak_analysis(
+    State(state): State<AppState>,
+) -> Result<impl IntoResponse, ApiError> {
+    let perf_manager = state.performance_metrics.lock().await;
+
+    let analysis = perf_manager
+        .profiler
+        .leak_detector
+        .analyze_leaks()
+        .await
+        .map_err(|e| ApiError::internal(format!("Failed to analyze leaks: {}", e)))?;
+
+    Ok(Json(LeakSummaryResponse {
+        potential_leak_count: analysis.potential_leaks.len(),
+        growth_rate_mb_per_hour: analysis.growth_rate_mb_per_hour,
+        highest_risk_component: analysis
+            .potential_leaks
+            .first()
+            .map(|leak| leak.component.clone()),
+    }))
+}
+
+/// GET /monitoring/profiling/allocations - Get allocation analysis
+///
+/// Returns allocation patterns and optimization recommendations.
+/// Includes top allocators, size distribution, and efficiency scoring.
+pub async fn get_allocation_metrics(
+    State(state): State<AppState>,
+) -> Result<impl IntoResponse, ApiError> {
+    let perf_manager = state.performance_metrics.lock().await;
+
+    let top_allocators = perf_manager
+        .profiler
+        .allocation_analyzer
+        .get_top_allocators()
+        .await
+        .map_err(|e| ApiError::internal(format!("Failed to get top allocators: {}", e)))?;
+
+    let recommendations = perf_manager
+        .profiler
+        .allocation_analyzer
+        .analyze_patterns()
+        .await
+        .map_err(|e| ApiError::internal(format!("Failed to analyze patterns: {}", e)))?;
+
+    let efficiency = perf_manager
+        .profiler
+        .allocation_analyzer
+        .calculate_efficiency_score()
+        .await
+        .map_err(|e| ApiError::internal(format!("Failed to calculate efficiency: {}", e)))?;
+
+    Ok(Json(AllocationMetricsResponse {
+        top_allocators,
+        efficiency_score: efficiency,
+        recommendations,
+    }))
+}

@@ -11,10 +11,8 @@ use super::MemorySnapshot;
 
 /// Memory tracker for collecting system and process memory statistics
 pub struct MemoryTracker {
-    #[allow(dead_code)]
     system: System,
     pid: u32,
-    #[allow(dead_code)]
     jemalloc_stats: Option<JemallocStats>,
 }
 
@@ -157,8 +155,6 @@ impl MemoryTracker {
     pub async fn force_gc(&self) -> Result<()> {
         #[cfg(feature = "jemalloc")]
         {
-            use jemalloc_ctl::arenas;
-
             // Note: jemalloc purge functionality would be implemented here
             // if jemalloc is available and configured
             debug!("Memory purge requested - would purge jemalloc arenas if available");

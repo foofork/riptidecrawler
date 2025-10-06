@@ -1,0 +1,59 @@
+# Riptide Performance - Production Configuration
+# Optimized for production workloads with minimal overhead
+
+[memory_profiling]
+# Memory profiling settings
+enabled = true
+sampling_interval_secs = 30
+max_samples = 2000
+track_allocations = true
+detect_leaks = true
+generate_flamegraphs = false  # Expensive, on-demand only
+
+[thresholds]
+# Memory usage thresholds (in MB)
+warning_threshold_mb = 650
+alert_threshold_mb = 700
+critical_threshold_mb = 750
+
+[telemetry]
+# OpenTelemetry export configuration
+export_enabled = true
+export_interval_secs = 60
+otlp_endpoint = "http://localhost:4317"
+
+[alerts]
+# Alert notification settings
+enabled = true
+notification_channels = ["log", "otlp"]
+alert_cooldown_secs = 300
+
+[features]
+# Feature flags for production
+jemalloc = true
+memory_profiling = true
+bottleneck_analysis = true
+cache_optimization = true
+resource_limits = true
+
+[bottleneck_analysis]
+# Bottleneck detection configuration
+enabled = true
+analysis_interval_secs = 300
+track_async_tasks = true
+track_lock_contention = true
+flamegraph_on_demand = true
+
+[cache_optimization]
+# Cache performance settings
+enabled = true
+max_cache_size_mb = 256
+eviction_policy = "lru"
+track_hit_rate = true
+
+[resource_limits]
+# Resource limiting configuration
+enabled = true
+max_concurrent_requests = 1000
+rate_limit_per_second = 100
+burst_size = 150
