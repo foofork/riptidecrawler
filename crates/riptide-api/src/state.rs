@@ -23,6 +23,7 @@ use riptide_core::{
     telemetry::TelemetrySystem,
 };
 use riptide_html::wasm_extraction::WasmExtractor;
+use riptide_performance::PerformanceManager;
 use riptide_workers::{WorkerService, WorkerServiceConfig};
 use std::sync::Arc;
 use std::time::Duration;
@@ -94,6 +95,9 @@ pub struct AppState {
 
     /// FetchEngine for HTTP operations with per-host circuit breakers and rate limiting
     pub fetch_engine: Arc<FetchEngine>,
+
+    /// Performance manager for resource limiting, monitoring, and optimization
+    pub performance_manager: Arc<PerformanceManager>,
 
     /// Future: CacheWarmer for intelligent cache pre-warming (placeholder for now)
     pub cache_warmer_enabled: bool,
@@ -680,13 +684,21 @@ impl AppState {
         );
         tracing::info!("FetchEngine initialized successfully");
 
+        // Initialize PerformanceManager for resource limiting and monitoring
+        tracing::info!("Initializing PerformanceManager for resource limiting");
+        let performance_manager = Arc::new(
+            PerformanceManager::new()
+                .map_err(|e| anyhow::anyhow!("Failed to initialize PerformanceManager: {}", e))?,
+        );
+        tracing::info!("PerformanceManager initialized successfully");
+
         // Note: CacheWarmer initialization to be added in future
         let cache_warmer_enabled = config.cache_warming_config.enabled;
         if cache_warmer_enabled {
             tracing::info!("CacheWarmer feature flag enabled (full implementation pending)");
         }
 
-        tracing::info!("Application state initialization complete with resource controls, event bus, circuit breaker, monitoring, fetch engine, and cache warming");
+        tracing::info!("Application state initialization complete with resource controls, event bus, circuit breaker, monitoring, fetch engine, performance manager, and cache warming");
 
         Ok(Self {
             http_client,
@@ -709,6 +721,7 @@ impl AppState {
             performance_metrics,
             monitoring_system,
             fetch_engine,
+            performance_manager,
             cache_warmer_enabled,
         })
     }

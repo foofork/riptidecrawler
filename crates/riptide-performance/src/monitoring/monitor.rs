@@ -1,6 +1,6 @@
 //! Performance monitor implementation
 
-use super::alerts::{AlertSeverity, PerformanceAlert};
+use super::alerts::{AlertCategory, AlertSeverity, PerformanceAlert};
 use super::bottlenecks::{Bottleneck, BottleneckAnalysis, BottleneckSeverity};
 use super::config::MonitoringConfig;
 use super::metrics::{ApplicationMetrics, SystemMetrics};
@@ -486,8 +486,8 @@ impl PerformanceMonitor {
                 .with_recommendations(vec![
                     "Monitor CPU usage trends".to_string(),
                     "Review recent changes that may increase CPU load".to_string(),
-                ]),
-            });
+                ])
+            );
         }
 
         alerts

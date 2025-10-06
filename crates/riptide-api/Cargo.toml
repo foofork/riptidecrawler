@@ -51,6 +51,7 @@ riptide-intelligence = { path = "../riptide-intelligence" }
 riptide-workers = { path = "../riptide-workers" }
 riptide-headless = { path = "../riptide-headless" }
 riptide-search = { path = "../riptide-search" }
+riptide-performance = { path = "../riptide-performance" }
 chromiumoxide = { workspace = true }
 wasmtime = { workspace = true }
 axum-prometheus = "0.7"

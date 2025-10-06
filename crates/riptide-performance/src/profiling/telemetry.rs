@@ -15,6 +15,7 @@ use opentelemetry_sdk::{
     Resource,
 };
 use opentelemetry_semantic_conventions::resource::{SERVICE_NAME, SERVICE_VERSION};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -23,7 +24,7 @@ use tracing::{debug, info, warn};
 use super::{AllocationInfo, LeakAnalysis, LeakInfo, MemorySnapshot};
 
 /// Configuration for telemetry export
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TelemetryConfig {
     /// OTLP endpoint (e.g., "http://localhost:4317")
     pub endpoint: String,
@@ -419,12 +420,12 @@ impl MemoryTelemetryExporter {
     }
 
     /// Shutdown the telemetry exporter
-    pub async fn shutdown(self) -> Result<()> {
+    pub async fn shutdown(mut self) -> Result<()> {
         if !self.config.enabled {
             return Ok(());
         }
 
-        if let Some(provider) = self.meter_provider {
+        if let Some(provider) = self.meter_provider.take() {
             info!("Shutting down telemetry exporter");
             provider.shutdown()?;
         }

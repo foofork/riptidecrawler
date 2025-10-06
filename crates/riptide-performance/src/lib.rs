@@ -130,7 +130,6 @@ pub struct PerformanceManager {
     profiler: RwLock<profiling::MemoryProfiler>,
     monitor: RwLock<monitoring::PerformanceMonitor>,
     optimizer: RwLock<optimization::CacheOptimizer>,
-    #[allow(dead_code)]
     limiter: RwLock<limits::ResourceLimiter>,
     session_id: Uuid,
 }
@@ -317,6 +316,41 @@ impl PerformanceManager {
     pub async fn optimize_cache(&self) -> Result<Vec<String>> {
         let optimizer = self.optimizer.read().await;
         optimizer.optimize().await
+    }
+
+    /// Acquire a request permit for rate limiting and concurrency control
+    ///
+    /// This method blocks if the system is at capacity and returns a permit that
+    /// automatically releases when dropped.
+    pub async fn acquire_request_permit(&self) -> Result<limits::RequestPermit> {
+        let limiter = self.limiter.read().await;
+        limiter.acquire_request_permit().await
+    }
+
+    /// Check rate limits for a specific client
+    ///
+    /// Returns an error if the client has exceeded their rate limit.
+    pub async fn check_rate_limits(&self, client_id: Option<&str>) -> Result<()> {
+        let limiter = self.limiter.read().await;
+        limiter.check_rate_limits(client_id).await
+    }
+
+    /// Record successful request for circuit breaker tracking
+    pub async fn record_success(&self, service: &str) -> Result<()> {
+        let limiter = self.limiter.read().await;
+        limiter.record_success(service).await
+    }
+
+    /// Record failed request for circuit breaker tracking
+    pub async fn record_failure(&self, service: &str) -> Result<()> {
+        let limiter = self.limiter.read().await;
+        limiter.record_failure(service).await
+    }
+
+    /// Get current resource usage and violations
+    pub async fn get_resource_usage(&self) -> Result<limits::ResourceUsage> {
+        let limiter = self.limiter.read().await;
+        limiter.get_current_usage().await
     }
 }
 

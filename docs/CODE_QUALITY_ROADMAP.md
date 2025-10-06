@@ -636,40 +636,40 @@ ApiError::AuthenticationError  // Exists but never used
 
 ---
 
-## 🗑️ PRIORITY 4: Dead Code to Remove
+## 🗑️ PRIORITY 4: Dead Code to Remove ✅ COMPLETED
 
 ### Overview
-**3 items of truly dead code** that should be deleted immediately.
+**3 items of truly dead code** - ✅ ALL REMOVED (commit 7e5eb7f)
 
-### 1. Session Expired Field Suppression ✅
+### 1. Session Expired Field Suppression ✅ COMPLETED
 **File**: `crates/riptide-api/src/handlers/sessions.rs:69`
-**Action**: **REMOVE** `#[allow(dead_code)]` - field IS used on line 367
-**Effort**: 1 minute
+**Action**: Removed `#[allow(dead_code)]` suppression (FALSE POSITIVE)
+**Resolution**: Field was already being used in list_sessions handler (line 367)
 
 ---
 
-### 2. Simulate Extraction Function 🗑️
+### 2. Simulate Extraction Function ✅ DELETED
 **File**: `wasm/riptide-extractor-wasm/tests/test_wasm_extractor.rs:208`
-**Action**: **DELETE** `simulate_extraction()` function
-**Effort**: 5 minutes
+**Action**: Deleted obsolete `simulate_extraction()` function (15 lines)
+**Resolution**: Function was placeholder replaced by component.extract()
 
 ---
 
-### 3. SerperProvider Timeout Field 🗑️
+### 3. SerperProvider Timeout Field ✅ DELETED
 **File**: `crates/riptide-search/src/providers.rs:28`
-**Action**: **DELETE** `timeout_seconds` field
-**Effort**: 10 minutes
+**Action**: Deleted unused `timeout_seconds` field
+**Resolution**: Timeout configured in reqwest::Client, no need to store separately
 
 ---
 
-### Dead Code Removal Plan
-- [ ] Remove sessions.rs suppression (1 min)
-- [ ] Delete simulate_extraction() (5 min)
-- [ ] Delete timeout_seconds field (10 min)
-- [ ] Run cargo check
-- [ ] Commit cleanup
+### Dead Code Removal Summary (2025-10-06)
+- [x] Remove sessions.rs suppression (FALSE POSITIVE - commit 7e5eb7f)
+- [x] Delete simulate_extraction() (15 lines removed - commit 7e5eb7f)
+- [x] Delete timeout_seconds field + Debug impl (5 lines removed - commit 7e5eb7f)
+- [x] Run cargo check (passed)
+- [x] Commit cleanup (commit 7e5eb7f)
 
-**TOTAL EFFORT**: 30 minutes
+**TOTAL EFFORT**: 30 minutes ✅ COMPLETED
 
 ---
 
