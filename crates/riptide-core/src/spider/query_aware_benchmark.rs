@@ -15,7 +15,6 @@ use url::Url;
 pub struct QueryAwareBenchmark {
     config: QueryAwareConfig,
     test_documents: Vec<String>,
-    test_urls: Vec<String>,
 }
 
 impl QueryAwareBenchmark {
@@ -36,12 +35,9 @@ impl QueryAwareBenchmark {
 
         // Generate realistic test data
         let test_documents = Self::generate_test_documents();
-        let test_urls = Self::generate_test_urls();
-
         Self {
             config,
             test_documents,
-            test_urls,
         }
     }
 
@@ -536,6 +532,7 @@ impl QueryAwareBenchmark {
     }
 
     /// Generate realistic test URLs for benchmarking
+    #[allow(dead_code)]
     fn generate_test_urls() -> Vec<String> {
         vec![
             "https://ml.stanford.edu/machine-learning/algorithms".to_string(),

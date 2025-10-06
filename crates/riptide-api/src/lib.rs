@@ -3,6 +3,7 @@ pub mod errors;
 pub mod handlers;
 pub mod health;
 pub mod metrics;
+pub mod middleware;
 pub mod models;
 pub mod pipeline;
 pub mod pipeline_dual;

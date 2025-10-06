@@ -222,8 +222,6 @@ pub struct SessionManager {
     sessions: Arc<RwLock<HashMap<String, SessionState>>>,
     /// Session checkpoints for persistence
     checkpoints: Arc<RwLock<HashMap<String, SessionCheckpoint>>>,
-    /// Last checkpoint time
-    last_checkpoint: Arc<RwLock<Instant>>,
 }
 
 impl SessionManager {
@@ -232,7 +230,6 @@ impl SessionManager {
             config,
             sessions: Arc::new(RwLock::new(HashMap::new())),
             checkpoints: Arc::new(RwLock::new(HashMap::new())),
-            last_checkpoint: Arc::new(RwLock::new(Instant::now())),
         }
     }
 

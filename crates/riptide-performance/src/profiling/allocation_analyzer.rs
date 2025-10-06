@@ -15,6 +15,7 @@ pub struct AllocationAnalyzer {
 
 /// Statistics for a specific allocator/component
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct AllocatorStats {
     total_allocations: u64,
     total_bytes: u64,

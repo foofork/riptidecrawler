@@ -1,11 +1,11 @@
-//! Azure OpenAI provider implementation
+//! Azure OpenAI provider implementation (refactored with base utilities)
 
 use async_trait::async_trait;
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::{debug, info};
 
+use super::base::{CostCalculator, HttpClientBuilder, ModelCost};
 use crate::{
     CompletionRequest, CompletionResponse, Cost, IntelligenceError, LlmCapabilities, LlmProvider,
     ModelInfo, Result, Role, Usage,
@@ -17,40 +17,40 @@ use crate::providers::openai::{
     OpenAIResponse,
 };
 
-/// Azure OpenAI provider implementation
+/// Azure OpenAI provider implementation (refactored)
 pub struct AzureOpenAIProvider {
-    client: Client,
+    client: reqwest::Client,
     api_key: String,
     endpoint: String,
     api_version: String,
-    model_costs: HashMap<String, (f64, f64)>, // (prompt_cost_per_1k, completion_cost_per_1k)
+    cost_calculator: CostCalculator,
 }
 
 impl AzureOpenAIProvider {
     /// Create a new Azure OpenAI provider
     pub fn new(api_key: String, endpoint: String, api_version: String) -> Result<Self> {
-        let client = Client::builder()
-            .timeout(std::time::Duration::from_secs(60))
-            .build()
-            .map_err(|e| {
-                IntelligenceError::Configuration(format!("Failed to create HTTP client: {}", e))
-            })?;
+        // Use shared HTTP client builder
+        let client = HttpClientBuilder::new().build()?;
 
-        let mut model_costs = HashMap::new();
+        // Initialize cost calculator with Azure OpenAI pricing
+        let mut cost_calculator = CostCalculator::new()
+            .with_default_model("gpt-4o".to_string());
+
         // Azure OpenAI pricing (similar to OpenAI but may vary by region)
-        model_costs.insert("gpt-4".to_string(), (0.03, 0.06));
-        model_costs.insert("gpt-4-32k".to_string(), (0.06, 0.12));
-        model_costs.insert("gpt-4o".to_string(), (0.005, 0.015));
-        model_costs.insert("gpt-4o-mini".to_string(), (0.00015, 0.0006));
-        model_costs.insert("gpt-35-turbo".to_string(), (0.0015, 0.002));
-        model_costs.insert("gpt-35-turbo-16k".to_string(), (0.003, 0.004));
+        cost_calculator
+            .add_model_cost("gpt-4".to_string(), ModelCost::new(0.03, 0.06))
+            .add_model_cost("gpt-4-32k".to_string(), ModelCost::new(0.06, 0.12))
+            .add_model_cost("gpt-4o".to_string(), ModelCost::new(0.005, 0.015))
+            .add_model_cost("gpt-4o-mini".to_string(), ModelCost::new(0.00015, 0.0006))
+            .add_model_cost("gpt-35-turbo".to_string(), ModelCost::new(0.0015, 0.002))
+            .add_model_cost("gpt-35-turbo-16k".to_string(), ModelCost::new(0.003, 0.004));
 
         Ok(Self {
             client,
             api_key,
             endpoint,
             api_version,
-            model_costs,
+            cost_calculator,
         })
     }
 
@@ -103,10 +103,13 @@ impl AzureOpenAIProvider {
         )
     }
 
+    /// Azure-specific request method (uses api-key header instead of Bearer)
     async fn make_request<T>(&self, url: &str, payload: &impl Serialize) -> Result<T>
     where
         T: for<'de> Deserialize<'de>,
     {
+        debug!("Making POST request to: {}", url);
+
         let response = self
             .client
             .post(url)
@@ -117,23 +120,22 @@ impl AzureOpenAIProvider {
             .await
             .map_err(|e| IntelligenceError::Network(format!("Request failed: {}", e)))?;
 
-        if !response.status().is_success() {
+        let status = response.status();
+        if !status.is_success() {
             let error_text = response
                 .text()
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
             return Err(IntelligenceError::Provider(format!(
-                "Azure OpenAI API error: {}",
-                error_text
+                "Azure OpenAI API error ({}): {}",
+                status, error_text
             )));
         }
 
-        let result = response
+        response
             .json::<T>()
             .await
-            .map_err(|e| IntelligenceError::Provider(format!("Failed to parse response: {}", e)))?;
-
-        Ok(result)
+            .map_err(|e| IntelligenceError::Provider(format!("Failed to parse response: {}", e)))
     }
 }
 
@@ -254,30 +256,17 @@ impl LlmProvider for AzureOpenAIProvider {
     }
 
     fn estimate_cost(&self, tokens: usize) -> Cost {
-        // Default to GPT-4o pricing if model not found
-        let (prompt_cost_per_1k, completion_cost_per_1k) = self
-            .model_costs
-            .get("gpt-4o")
-            .copied()
-            .unwrap_or((0.005, 0.015));
-
-        // Assume even split between prompt and completion tokens
-        let prompt_tokens = tokens / 2;
-        let completion_tokens = tokens - prompt_tokens;
-
-        let prompt_cost = (prompt_tokens as f64 / 1000.0) * prompt_cost_per_1k;
-        let completion_cost = (completion_tokens as f64 / 1000.0) * completion_cost_per_1k;
-
-        Cost::new(prompt_cost, completion_cost, "USD")
+        // Use shared cost calculator
+        self.cost_calculator.estimate_cost(tokens, None)
     }
 
     async fn health_check(&self) -> Result<()> {
         debug!("Performing Azure OpenAI health check");
 
-        // Use a simple embeddings call for health check since it's less resource-intensive
+        // Use a simple embeddings call for health check
         let request = OpenAIEmbeddingRequest {
             model: "text-embedding-ada-002".to_string(),
-            input: "health check".to_string(),
+            input: "ping".to_string(),
         };
 
         let url = self.build_embedding_url("text-embedding-ada-002");

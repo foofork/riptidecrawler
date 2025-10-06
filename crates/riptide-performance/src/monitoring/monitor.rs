@@ -52,12 +52,15 @@ impl PerformanceMonitor {
         let (alert_sender, _) = watch::channel(PerformanceAlert {
             id: Uuid::new_v4(),
             severity: AlertSeverity::Info,
+            category: AlertCategory::General,
             metric: "system".to_string(),
             current_value: 0.0,
             threshold_value: 0.0,
             message: "Monitor initialized".to_string(),
             timestamp: chrono::Utc::now(),
             acknowledged: true,
+            component: None,
+            recommendations: vec![],
         });
 
         Ok(Self {

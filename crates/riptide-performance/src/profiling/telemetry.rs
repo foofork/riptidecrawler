@@ -8,9 +8,9 @@ use opentelemetry::{
     metrics::{Histogram, Meter, MeterProvider, ObservableGauge},
     KeyValue,
 };
-use opentelemetry_otlp::{MetricsExporter, WithExportConfig};
+use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{
-    metrics::{PeriodicReader, SdkMeterProvider},
+    metrics::SdkMeterProvider,
     runtime,
     Resource,
 };
@@ -51,6 +51,7 @@ impl Default for TelemetryConfig {
 }
 
 /// Memory telemetry exporter for OpenTelemetry
+#[allow(dead_code)]
 pub struct MemoryTelemetryExporter {
     config: TelemetryConfig,
     meter_provider: Option<SdkMeterProvider>,
@@ -93,28 +94,23 @@ impl MemoryTelemetryExporter {
             "Initializing OpenTelemetry metrics exporter"
         );
 
-        // Create OTLP exporter
-        let exporter = MetricsExporter::builder()
-            .with_tonic()
-            .with_endpoint(&config.endpoint)
-            .build()?;
-
-        // Create metric reader with periodic export
-        let reader = PeriodicReader::builder(exporter, runtime::Tokio)
-            .with_interval(std::time::Duration::from_secs(config.export_interval_seconds))
-            .build();
-
         // Create resource with service information
         let resource = Resource::new(vec![
             KeyValue::new(SERVICE_NAME, config.service_name.clone()),
             KeyValue::new(SERVICE_VERSION, config.service_version.clone()),
         ]);
 
-        // Create meter provider
-        let meter_provider = SdkMeterProvider::builder()
-            .with_reader(reader)
+        // Create OTLP metrics pipeline
+        let meter_provider = opentelemetry_otlp::new_pipeline()
+            .metrics(runtime::Tokio)
+            .with_exporter(
+                opentelemetry_otlp::new_exporter()
+                    .tonic()
+                    .with_endpoint(&config.endpoint),
+            )
             .with_resource(resource)
-            .build();
+            .with_period(std::time::Duration::from_secs(config.export_interval_seconds))
+            .build()?;
 
         // Create meter
         let meter = meter_provider.meter("riptide-performance-profiling");
@@ -123,7 +119,7 @@ impl MemoryTelemetryExporter {
         let cached_leak_analysis = Arc::new(RwLock::new(None));
 
         // Create gauge metrics with callbacks
-        let snapshot_clone = Arc::clone(&cached_snapshot);
+        let snapshot_clone: Arc<RwLock<Option<MemorySnapshot>>> = Arc::clone(&cached_snapshot);
         let memory_rss_gauge = meter
             .u64_observable_gauge("memory.rss_bytes")
             .with_description("Resident Set Size (RSS) in bytes")
@@ -135,7 +131,7 @@ impl MemoryTelemetryExporter {
             })
             .init();
 
-        let snapshot_clone = Arc::clone(&cached_snapshot);
+        let snapshot_clone: Arc<RwLock<Option<MemorySnapshot>>> = Arc::clone(&cached_snapshot);
         let memory_heap_gauge = meter
             .u64_observable_gauge("memory.heap_bytes")
             .with_description("Heap memory usage in bytes")
@@ -147,7 +143,7 @@ impl MemoryTelemetryExporter {
             })
             .init();
 
-        let snapshot_clone = Arc::clone(&cached_snapshot);
+        let snapshot_clone: Arc<RwLock<Option<MemorySnapshot>>> = Arc::clone(&cached_snapshot);
         let memory_virtual_gauge = meter
             .u64_observable_gauge("memory.virtual_bytes")
             .with_description("Virtual memory usage in bytes")
@@ -462,7 +458,7 @@ impl MemoryTelemetryExporter {
         // Efficiency based on:
         // 1. Prefer medium-sized allocations (4KB-64KB)
         // 2. Avoid very small (<1KB) or very large (>1MB) allocations
-        let size_efficiency = if avg_size >= 4096.0 && avg_size <= 65536.0 {
+        let size_efficiency = if (4096.0..=65536.0).contains(&avg_size) {
             1.0
         } else if avg_size < 1024.0 {
             0.3 // Penalty for tiny allocations

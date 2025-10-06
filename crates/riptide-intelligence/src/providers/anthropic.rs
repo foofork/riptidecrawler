@@ -1,11 +1,11 @@
-//! Anthropic provider implementation
+//! Anthropic provider implementation (refactored with base utilities)
 
 use async_trait::async_trait;
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tracing::{debug, info};
+use tracing::debug;
 
+use super::base::{AuthHeader, CostCalculator, HealthChecker, HttpClientBuilder, HttpRequestHandler, ModelCost};
 use crate::{
     CompletionRequest, CompletionResponse, Cost, IntelligenceError, LlmCapabilities, LlmProvider,
     ModelInfo, Result, Role, Usage,
@@ -14,8 +14,6 @@ use crate::{
 /// Anthropic API response structure
 #[derive(Debug, Deserialize)]
 struct AnthropicResponse {
-    #[allow(dead_code)]
-    id: String,
     content: Vec<AnthropicContent>,
     usage: AnthropicUsage,
     model: String,
@@ -57,39 +55,46 @@ struct AnthropicMessageRequest {
     content: String,
 }
 
-/// Anthropic provider implementation
+/// Anthropic provider implementation (refactored)
 pub struct AnthropicProvider {
-    client: Client,
-    api_key: String,
-    base_url: String,
-    model_costs: HashMap<String, (f64, f64)>, // (prompt_cost_per_1k, completion_cost_per_1k)
+    http_handler: HttpRequestHandler,
+    cost_calculator: CostCalculator,
 }
 
 impl AnthropicProvider {
     /// Create a new Anthropic provider
     pub fn new(api_key: String) -> Result<Self> {
-        let client = Client::builder()
-            .timeout(std::time::Duration::from_secs(60))
-            .build()
-            .map_err(|e| {
-                IntelligenceError::Configuration(format!("Failed to create HTTP client: {}", e))
-            })?;
+        // Use shared HTTP client builder
+        let client = HttpClientBuilder::new().build()?;
 
-        let base_url = "https://api.anthropic.com/v1".to_string();
+        // Create HTTP request handler with Anthropic-specific auth
+        let auth_headers = vec![
+            ("x-api-key".to_string(), api_key),
+            ("anthropic-version".to_string(), "2023-06-01".to_string()),
+        ];
+        let auth = AuthHeader::Custom(auth_headers);
 
-        let mut model_costs = HashMap::new();
+        let http_handler = HttpRequestHandler::new(
+            client,
+            "https://api.anthropic.com/v1".to_string(),
+            auth,
+        );
+
+        // Initialize cost calculator with Anthropic pricing
+        let mut cost_calculator = CostCalculator::new()
+            .with_default_model("claude-3-5-sonnet-20241022".to_string());
+
         // Anthropic pricing as of 2024 (per 1K tokens)
-        model_costs.insert("claude-3-5-sonnet-20241022".to_string(), (0.003, 0.015));
-        model_costs.insert("claude-3-5-haiku-20241022".to_string(), (0.0008, 0.004));
-        model_costs.insert("claude-3-opus-20240229".to_string(), (0.015, 0.075));
-        model_costs.insert("claude-3-sonnet-20240229".to_string(), (0.003, 0.015));
-        model_costs.insert("claude-3-haiku-20240307".to_string(), (0.00025, 0.00125));
+        cost_calculator
+            .add_model_cost("claude-3-5-sonnet-20241022".to_string(), ModelCost::new(0.003, 0.015))
+            .add_model_cost("claude-3-5-haiku-20241022".to_string(), ModelCost::new(0.0008, 0.004))
+            .add_model_cost("claude-3-opus-20240229".to_string(), ModelCost::new(0.015, 0.075))
+            .add_model_cost("claude-3-sonnet-20240229".to_string(), ModelCost::new(0.003, 0.015))
+            .add_model_cost("claude-3-haiku-20240307".to_string(), ModelCost::new(0.00025, 0.00125));
 
         Ok(Self {
-            client,
-            api_key,
-            base_url,
-            model_costs,
+            http_handler,
+            cost_calculator,
         })
     }
 
@@ -130,42 +135,6 @@ impl AnthropicProvider {
             system: system_message,
         }
     }
-
-    async fn make_request<T>(&self, endpoint: &str, payload: &impl Serialize) -> Result<T>
-    where
-        T: for<'de> Deserialize<'de>,
-    {
-        let url = format!("{}/{}", self.base_url, endpoint);
-
-        let response = self
-            .client
-            .post(&url)
-            .header("x-api-key", &self.api_key)
-            .header("Content-Type", "application/json")
-            .header("anthropic-version", "2023-06-01")
-            .json(payload)
-            .send()
-            .await
-            .map_err(|e| IntelligenceError::Network(format!("Request failed: {}", e)))?;
-
-        if !response.status().is_success() {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(IntelligenceError::Provider(format!(
-                "Anthropic API error: {}",
-                error_text
-            )));
-        }
-
-        let result = response
-            .json::<T>()
-            .await
-            .map_err(|e| IntelligenceError::Provider(format!("Failed to parse response: {}", e)))?;
-
-        Ok(result)
-    }
 }
 
 #[async_trait]
@@ -177,7 +146,12 @@ impl LlmProvider for AnthropicProvider {
         );
 
         let anthropic_request = self.build_anthropic_request(&request);
-        let response: AnthropicResponse = self.make_request("messages", &anthropic_request).await?;
+
+        // Use shared HTTP handler
+        let response: AnthropicResponse = self
+            .http_handler
+            .post("messages", &anthropic_request)
+            .await?;
 
         let content = response
             .content
@@ -295,25 +269,13 @@ impl LlmProvider for AnthropicProvider {
     }
 
     fn estimate_cost(&self, tokens: usize) -> Cost {
-        // Default to Claude 3.5 Sonnet pricing if model not found
-        let (prompt_cost_per_1k, completion_cost_per_1k) = self
-            .model_costs
-            .get("claude-3-5-sonnet-20241022")
-            .copied()
-            .unwrap_or((0.003, 0.015));
-
-        // Assume even split between prompt and completion tokens
-        let prompt_tokens = tokens / 2;
-        let completion_tokens = tokens - prompt_tokens;
-
-        let prompt_cost = (prompt_tokens as f64 / 1000.0) * prompt_cost_per_1k;
-        let completion_cost = (completion_tokens as f64 / 1000.0) * completion_cost_per_1k;
-
-        Cost::new(prompt_cost, completion_cost, "USD")
+        // Use shared cost calculator
+        self.cost_calculator.estimate_cost(tokens, None)
     }
 
     async fn health_check(&self) -> Result<()> {
-        debug!("Performing Anthropic health check");
+        // Use shared health checker
+        let checker = HealthChecker::new("Anthropic", "claude-3-haiku-20240307", "messages");
 
         let test_request = AnthropicRequest {
             model: "claude-3-haiku-20240307".to_string(),
@@ -328,10 +290,7 @@ impl LlmProvider for AnthropicProvider {
             system: None,
         };
 
-        self.make_request::<AnthropicResponse>("messages", &test_request)
-            .await?;
-        info!("Anthropic health check successful");
-        Ok(())
+        checker.check::<AnthropicResponse, _>(&self.http_handler, test_request).await
     }
 
     fn name(&self) -> &str {

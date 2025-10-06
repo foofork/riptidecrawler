@@ -1,25 +1,26 @@
-//! AWS Bedrock provider implementation
+//! AWS Bedrock provider implementation (refactored with base utilities)
+//! Note: This is a simplified implementation. In practice, you would use the AWS SDK
+//! and proper authentication mechanisms.
 
 use async_trait::async_trait;
 use serde::Deserialize;
 use std::collections::HashMap;
 use tracing::{debug, info};
 
+use super::base::{CostCalculator, ModelCost};
 use crate::{
     CompletionRequest, CompletionResponse, Cost, IntelligenceError, LlmCapabilities, LlmProvider,
     ModelInfo, Result, Role, Usage,
 };
 
-/// AWS Bedrock provider implementation
-/// Note: This is a simplified implementation. In practice, you would use the AWS SDK
-/// and proper authentication mechanisms.
+/// AWS Bedrock provider implementation (simplified/mock)
 pub struct BedrockProvider {
     region: String,
     #[allow(dead_code)]
     access_key: Option<String>,
     #[allow(dead_code)]
     secret_key: Option<String>,
-    model_costs: HashMap<String, (f64, f64)>, // (prompt_cost_per_1k, completion_cost_per_1k)
+    cost_calculator: CostCalculator,
 }
 
 impl BedrockProvider {
@@ -29,30 +30,34 @@ impl BedrockProvider {
         access_key: Option<String>,
         secret_key: Option<String>,
     ) -> Result<Self> {
-        let mut model_costs = HashMap::new();
+        // Initialize cost calculator with Bedrock pricing
+        let mut cost_calculator = CostCalculator::new()
+            .with_default_model("anthropic.claude-3-sonnet-20240229-v1:0".to_string());
+
         // AWS Bedrock pricing (approximate, varies by region)
-        model_costs.insert(
-            "anthropic.claude-3-sonnet-20240229-v1:0".to_string(),
-            (0.003, 0.015),
-        );
-        model_costs.insert(
-            "anthropic.claude-3-haiku-20240307-v1:0".to_string(),
-            (0.00025, 0.00125),
-        );
-        model_costs.insert(
-            "anthropic.claude-3-opus-20240229-v1:0".to_string(),
-            (0.015, 0.075),
-        );
-        model_costs.insert("amazon.titan-text-express-v1".to_string(), (0.0008, 0.0016));
-        model_costs.insert("amazon.titan-text-lite-v1".to_string(), (0.0003, 0.0004));
-        model_costs.insert("meta.llama2-70b-chat-v1".to_string(), (0.00195, 0.00256));
-        model_costs.insert("meta.llama2-13b-chat-v1".to_string(), (0.00075, 0.001));
+        cost_calculator
+            .add_model_cost(
+                "anthropic.claude-3-sonnet-20240229-v1:0".to_string(),
+                ModelCost::new(0.003, 0.015),
+            )
+            .add_model_cost(
+                "anthropic.claude-3-haiku-20240307-v1:0".to_string(),
+                ModelCost::new(0.00025, 0.00125),
+            )
+            .add_model_cost(
+                "anthropic.claude-3-opus-20240229-v1:0".to_string(),
+                ModelCost::new(0.015, 0.075),
+            )
+            .add_model_cost("amazon.titan-text-express-v1".to_string(), ModelCost::new(0.0008, 0.0016))
+            .add_model_cost("amazon.titan-text-lite-v1".to_string(), ModelCost::new(0.0003, 0.0004))
+            .add_model_cost("meta.llama2-70b-chat-v1".to_string(), ModelCost::new(0.00195, 0.00256))
+            .add_model_cost("meta.llama2-13b-chat-v1".to_string(), ModelCost::new(0.00075, 0.001));
 
         Ok(Self {
             region,
             access_key,
             secret_key,
-            model_costs,
+            cost_calculator,
         })
     }
 
@@ -461,21 +466,8 @@ impl LlmProvider for BedrockProvider {
     }
 
     fn estimate_cost(&self, tokens: usize) -> Cost {
-        // Default to Claude 3 Sonnet pricing if model not found
-        let (prompt_cost_per_1k, completion_cost_per_1k) = self
-            .model_costs
-            .get("anthropic.claude-3-sonnet-20240229-v1:0")
-            .copied()
-            .unwrap_or((0.003, 0.015));
-
-        // Assume even split between prompt and completion tokens
-        let prompt_tokens = tokens / 2;
-        let completion_tokens = tokens - prompt_tokens;
-
-        let prompt_cost = (prompt_tokens as f64 / 1000.0) * prompt_cost_per_1k;
-        let completion_cost = (completion_tokens as f64 / 1000.0) * completion_cost_per_1k;
-
-        Cost::new(prompt_cost, completion_cost, "USD")
+        // Use shared cost calculator
+        self.cost_calculator.estimate_cost(tokens, None)
     }
 
     async fn health_check(&self) -> Result<()> {

@@ -1,11 +1,11 @@
-//! OpenAI provider implementation
+//! OpenAI provider implementation (refactored with base utilities)
 
 use async_trait::async_trait;
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tracing::{debug, info};
+use tracing::debug;
 
+use super::base::{AuthHeader, CostCalculator, HealthChecker, HttpClientBuilder, HttpRequestHandler, ModelCost};
 use crate::{
     CompletionRequest, CompletionResponse, Cost, IntelligenceError, LlmCapabilities, LlmProvider,
     ModelInfo, Result, Role, Usage,
@@ -81,40 +81,40 @@ pub struct OpenAIEmbeddingRequest {
     pub input: String,
 }
 
-/// OpenAI provider implementation
+/// OpenAI provider implementation (refactored)
 pub struct OpenAIProvider {
-    client: Client,
-    api_key: String,
-    base_url: String,
-    model_costs: HashMap<String, (f64, f64)>, // (prompt_cost_per_1k, completion_cost_per_1k)
+    http_handler: HttpRequestHandler,
+    cost_calculator: CostCalculator,
 }
 
 impl OpenAIProvider {
     /// Create a new OpenAI provider
     pub fn new(api_key: String, base_url: Option<String>) -> Result<Self> {
-        let client = Client::builder()
-            .timeout(std::time::Duration::from_secs(60))
-            .build()
-            .map_err(|e| {
-                IntelligenceError::Configuration(format!("Failed to create HTTP client: {}", e))
-            })?;
+        // Use shared HTTP client builder
+        let client = HttpClientBuilder::new().build()?;
 
         let base_url = base_url.unwrap_or_else(|| "https://api.openai.com/v1".to_string());
 
-        let mut model_costs = HashMap::new();
+        // Create HTTP request handler with Bearer token auth
+        let auth = AuthHeader::Bearer(api_key);
+        let http_handler = HttpRequestHandler::new(client, base_url, auth);
+
+        // Initialize cost calculator with OpenAI pricing
+        let mut cost_calculator = CostCalculator::new()
+            .with_default_model("gpt-4o".to_string());
+
         // OpenAI pricing as of 2024 (per 1K tokens)
-        model_costs.insert("gpt-4".to_string(), (0.03, 0.06));
-        model_costs.insert("gpt-4-32k".to_string(), (0.06, 0.12));
-        model_costs.insert("gpt-4o".to_string(), (0.005, 0.015));
-        model_costs.insert("gpt-4o-mini".to_string(), (0.00015, 0.0006));
-        model_costs.insert("gpt-3.5-turbo".to_string(), (0.0015, 0.002));
-        model_costs.insert("gpt-3.5-turbo-16k".to_string(), (0.003, 0.004));
+        cost_calculator
+            .add_model_cost("gpt-4".to_string(), ModelCost::new(0.03, 0.06))
+            .add_model_cost("gpt-4-32k".to_string(), ModelCost::new(0.06, 0.12))
+            .add_model_cost("gpt-4o".to_string(), ModelCost::new(0.005, 0.015))
+            .add_model_cost("gpt-4o-mini".to_string(), ModelCost::new(0.00015, 0.0006))
+            .add_model_cost("gpt-3.5-turbo".to_string(), ModelCost::new(0.0015, 0.002))
+            .add_model_cost("gpt-3.5-turbo-16k".to_string(), ModelCost::new(0.003, 0.004));
 
         Ok(Self {
-            client,
-            api_key,
-            base_url,
-            model_costs,
+            http_handler,
+            cost_calculator,
         })
     }
 
@@ -148,41 +148,6 @@ impl OpenAIProvider {
             stop: request.stop.clone(),
         }
     }
-
-    async fn make_request<T>(&self, endpoint: &str, payload: &impl Serialize) -> Result<T>
-    where
-        T: for<'de> Deserialize<'de>,
-    {
-        let url = format!("{}/{}", self.base_url, endpoint);
-
-        let response = self
-            .client
-            .post(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .header("Content-Type", "application/json")
-            .json(payload)
-            .send()
-            .await
-            .map_err(|e| IntelligenceError::Network(format!("Request failed: {}", e)))?;
-
-        if !response.status().is_success() {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(IntelligenceError::Provider(format!(
-                "OpenAI API error: {}",
-                error_text
-            )));
-        }
-
-        let result = response
-            .json::<T>()
-            .await
-            .map_err(|e| IntelligenceError::Provider(format!("Failed to parse response: {}", e)))?;
-
-        Ok(result)
-    }
 }
 
 #[async_trait]
@@ -194,8 +159,11 @@ impl LlmProvider for OpenAIProvider {
         );
 
         let openai_request = self.build_openai_request(&request);
+
+        // Use shared HTTP handler
         let response: OpenAIResponse = self
-            .make_request("chat/completions", &openai_request)
+            .http_handler
+            .post("chat/completions", &openai_request)
             .await?;
 
         let choice = response.choices.into_iter().next().ok_or_else(|| {
@@ -235,7 +203,10 @@ impl LlmProvider for OpenAIProvider {
             input: text.to_string(),
         };
 
-        let response: OpenAIEmbeddingResponse = self.make_request("embeddings", &request).await?;
+        let response: OpenAIEmbeddingResponse = self
+            .http_handler
+            .post("embeddings", &request)
+            .await?;
 
         let embedding = response
             .data
@@ -254,20 +225,10 @@ impl LlmProvider for OpenAIProvider {
     fn capabilities(&self) -> LlmCapabilities {
         let models = vec![
             ModelInfo {
-                id: "gpt-4".to_string(),
-                name: "GPT-4".to_string(),
-                description: "Most capable GPT-4 model".to_string(),
-                max_tokens: 8192,
-                supports_functions: true,
-                supports_streaming: true,
-                cost_per_1k_prompt_tokens: 0.03,
-                cost_per_1k_completion_tokens: 0.06,
-            },
-            ModelInfo {
                 id: "gpt-4o".to_string(),
                 name: "GPT-4o".to_string(),
-                description: "High intelligence model, cheaper than GPT-4".to_string(),
-                max_tokens: 4096,
+                description: "Most capable GPT-4 model, optimized for chat and code".to_string(),
+                max_tokens: 8192,
                 supports_functions: true,
                 supports_streaming: true,
                 cost_per_1k_prompt_tokens: 0.005,
@@ -276,7 +237,8 @@ impl LlmProvider for OpenAIProvider {
             ModelInfo {
                 id: "gpt-4o-mini".to_string(),
                 name: "GPT-4o Mini".to_string(),
-                description: "Affordable and intelligent small model".to_string(),
+                description: "Affordable and intelligent small model for fast, lightweight tasks"
+                    .to_string(),
                 max_tokens: 16384,
                 supports_functions: true,
                 supports_streaming: true,
@@ -313,25 +275,13 @@ impl LlmProvider for OpenAIProvider {
     }
 
     fn estimate_cost(&self, tokens: usize) -> Cost {
-        // Default to GPT-4o pricing if model not found
-        let (prompt_cost_per_1k, completion_cost_per_1k) = self
-            .model_costs
-            .get("gpt-4o")
-            .copied()
-            .unwrap_or((0.005, 0.015));
-
-        // Assume even split between prompt and completion tokens
-        let prompt_tokens = tokens / 2;
-        let completion_tokens = tokens - prompt_tokens;
-
-        let prompt_cost = (prompt_tokens as f64 / 1000.0) * prompt_cost_per_1k;
-        let completion_cost = (completion_tokens as f64 / 1000.0) * completion_cost_per_1k;
-
-        Cost::new(prompt_cost, completion_cost, "USD")
+        // Use shared cost calculator
+        self.cost_calculator.estimate_cost(tokens, None)
     }
 
     async fn health_check(&self) -> Result<()> {
-        debug!("Performing OpenAI health check");
+        // Use shared health checker
+        let checker = HealthChecker::new("OpenAI", "gpt-3.5-turbo", "chat/completions");
 
         let test_request = OpenAIRequest {
             model: "gpt-3.5-turbo".to_string(),
@@ -347,10 +297,7 @@ impl LlmProvider for OpenAIProvider {
             stop: None,
         };
 
-        self.make_request::<OpenAIResponse>("chat/completions", &test_request)
-            .await?;
-        info!("OpenAI health check successful");
-        Ok(())
+        checker.check::<OpenAIResponse, _>(&self.http_handler, test_request).await
     }
 
     fn name(&self) -> &str {

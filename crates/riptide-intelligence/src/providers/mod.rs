@@ -8,6 +8,7 @@
 //! - AWS Bedrock
 //! - Google Vertex AI
 
+pub mod base;
 pub mod anthropic;
 pub mod aws_bedrock;
 pub mod azure;

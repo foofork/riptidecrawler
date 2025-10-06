@@ -1,11 +1,11 @@
-//! Google Vertex AI provider implementation
+//! Google Vertex AI provider implementation (refactored with base utilities)
 
 use async_trait::async_trait;
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::{debug, info};
 
+use super::base::{CostCalculator, HttpClientBuilder, ModelCost};
 use crate::{
     CompletionRequest, CompletionResponse, Cost, IntelligenceError, LlmCapabilities, LlmProvider,
     ModelInfo, Result, Role, Usage,
@@ -90,39 +90,39 @@ struct VertexSafetySetting {
     threshold: String,
 }
 
-/// Google Vertex AI provider implementation
+/// Google Vertex AI provider implementation (refactored)
 pub struct VertexAIProvider {
-    client: Client,
+    client: reqwest::Client,
     project_id: String,
     location: String,
     access_token: Option<String>,
-    model_costs: HashMap<String, (f64, f64)>, // (prompt_cost_per_1k, completion_cost_per_1k)
+    cost_calculator: CostCalculator,
 }
 
 impl VertexAIProvider {
     /// Create a new Vertex AI provider
     pub fn new(project_id: String, location: String) -> Result<Self> {
-        let client = Client::builder()
-            .timeout(std::time::Duration::from_secs(60))
-            .build()
-            .map_err(|e| {
-                IntelligenceError::Configuration(format!("Failed to create HTTP client: {}", e))
-            })?;
+        // Use shared HTTP client builder
+        let client = HttpClientBuilder::new().build()?;
 
-        let mut model_costs = HashMap::new();
+        // Initialize cost calculator with Vertex AI pricing
+        let mut cost_calculator = CostCalculator::new()
+            .with_default_model("gemini-1.5-pro".to_string());
+
         // Vertex AI pricing (approximate, varies by region)
-        model_costs.insert("gemini-1.5-pro".to_string(), (0.00125, 0.00375));
-        model_costs.insert("gemini-1.5-flash".to_string(), (0.000075, 0.0003));
-        model_costs.insert("gemini-1.0-pro".to_string(), (0.0005, 0.0015));
-        model_costs.insert("text-bison".to_string(), (0.001, 0.001));
-        model_costs.insert("chat-bison".to_string(), (0.0005, 0.0005));
+        cost_calculator
+            .add_model_cost("gemini-1.5-pro".to_string(), ModelCost::new(0.00125, 0.00375))
+            .add_model_cost("gemini-1.5-flash".to_string(), ModelCost::new(0.000075, 0.0003))
+            .add_model_cost("gemini-1.0-pro".to_string(), ModelCost::new(0.0005, 0.0015))
+            .add_model_cost("text-bison".to_string(), ModelCost::new(0.001, 0.001))
+            .add_model_cost("chat-bison".to_string(), ModelCost::new(0.0005, 0.0005));
 
         Ok(Self {
             client,
             project_id,
             location,
             access_token: None,
-            model_costs,
+            cost_calculator,
         })
     }
 
@@ -205,10 +205,13 @@ impl VertexAIProvider {
         )
     }
 
+    /// Vertex-specific request method (uses Bearer token authentication)
     async fn make_request<T>(&self, url: &str, payload: &impl Serialize) -> Result<T>
     where
         T: for<'de> Deserialize<'de>,
     {
+        debug!("Making POST request to: {}", url);
+
         let mut request_builder = self
             .client
             .post(url)
@@ -224,23 +227,22 @@ impl VertexAIProvider {
             .await
             .map_err(|e| IntelligenceError::Network(format!("Request failed: {}", e)))?;
 
-        if !response.status().is_success() {
+        let status = response.status();
+        if !status.is_success() {
             let error_text = response
                 .text()
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
             return Err(IntelligenceError::Provider(format!(
-                "Vertex AI API error: {}",
-                error_text
+                "Vertex AI API error ({}): {}",
+                status, error_text
             )));
         }
 
-        let result = response
+        response
             .json::<T>()
             .await
-            .map_err(|e| IntelligenceError::Provider(format!("Failed to parse response: {}", e)))?;
-
-        Ok(result)
+            .map_err(|e| IntelligenceError::Provider(format!("Failed to parse response: {}", e)))
     }
 }
 
@@ -421,21 +423,8 @@ impl LlmProvider for VertexAIProvider {
     }
 
     fn estimate_cost(&self, tokens: usize) -> Cost {
-        // Default to Gemini 1.5 Pro pricing if model not found
-        let (prompt_cost_per_1k, completion_cost_per_1k) = self
-            .model_costs
-            .get("gemini-1.5-pro")
-            .copied()
-            .unwrap_or((0.00125, 0.00375));
-
-        // Assume even split between prompt and completion tokens
-        let prompt_tokens = tokens / 2;
-        let completion_tokens = tokens - prompt_tokens;
-
-        let prompt_cost = (prompt_tokens as f64 / 1000.0) * prompt_cost_per_1k;
-        let completion_cost = (completion_tokens as f64 / 1000.0) * completion_cost_per_1k;
-
-        Cost::new(prompt_cost, completion_cost, "USD")
+        // Use shared cost calculator
+        self.cost_calculator.estimate_cost(tokens, None)
     }
 
     async fn health_check(&self) -> Result<()> {

@@ -89,6 +89,7 @@ pub struct ProgressTracker {
     progress_info: Arc<RwLock<HashMap<Uuid, ProgressInfo>>>,
     event_senders: Arc<RwLock<HashMap<Uuid, mpsc::UnboundedSender<ProgressEvent>>>>,
     config: ProgressConfig,
+    #[allow(clippy::type_complexity)]
     rate_samples: Arc<RwLock<HashMap<Uuid, Vec<(Instant, usize)>>>>,
 }
 

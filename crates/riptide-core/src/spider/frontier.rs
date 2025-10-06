@@ -64,7 +64,6 @@ impl Default for FrontierConfig {
 struct PriorityRequest {
     request: CrawlRequest,
     score: f64,
-    insertion_time: Instant,
 }
 
 impl PartialEq for PriorityRequest {
@@ -92,8 +91,6 @@ impl Ord for PriorityRequest {
 /// Per-host queue management
 #[derive(Debug)]
 struct HostQueue {
-    /// Host name
-    host: String,
     /// Requests for this host
     requests: VecDeque<CrawlRequest>,
     /// Host state and metrics
@@ -105,8 +102,7 @@ struct HostQueue {
 impl HostQueue {
     fn new(host: String) -> Self {
         Self {
-            state: HostState::new(host.clone()),
-            host,
+            state: HostState::new(host),
             requests: VecDeque::new(),
             last_access: Instant::now(),
         }
@@ -275,7 +271,6 @@ impl FrontierManager {
             let priority_request = PriorityRequest {
                 request,
                 score,
-                insertion_time: Instant::now(),
             };
             self.best_first_queue.lock().await.push(priority_request);
         } else {

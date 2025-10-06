@@ -310,9 +310,6 @@ pub struct BudgetManager {
     // Per-host budget tracking
     host_budgets: Arc<RwLock<HashMap<String, HostBudget>>>,
 
-    // Per-session budget tracking
-    session_budgets: Arc<RwLock<HashMap<String, BudgetUsage>>>,
-
     // Atomic counters for performance
     pages_crawled: AtomicU64,
     bandwidth_used: AtomicU64,
@@ -334,7 +331,6 @@ impl BudgetManager {
             config,
             global_usage: Arc::new(RwLock::new(global_usage)),
             host_budgets: Arc::new(RwLock::new(HashMap::new())),
-            session_budgets: Arc::new(RwLock::new(HashMap::new())),
             pages_crawled: AtomicU64::new(0),
             bandwidth_used: AtomicU64::new(0),
             concurrent_requests: AtomicUsize::new(0),

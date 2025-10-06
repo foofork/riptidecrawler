@@ -10,6 +10,7 @@ use tracing::debug;
 use super::MemorySnapshot;
 
 /// Memory tracker for collecting system and process memory statistics
+#[allow(dead_code)]
 pub struct MemoryTracker {
     system: System,
     pid: u32,
