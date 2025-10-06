@@ -769,6 +769,14 @@ impl StateManager {
         info!("Graceful shutdown completed");
         Ok(())
     }
+
+    /// Get spillover metrics for monitoring
+    ///
+    /// Returns current spillover metrics including spill/restore counts and timing data.
+    /// This data is useful for monitoring session persistence performance and disk usage.
+    pub async fn get_spillover_metrics(&self) -> SpilloverMetrics {
+        self.spillover_manager.get_metrics().await
+    }
 }
 
 impl Clone for StateManager {
@@ -987,7 +995,7 @@ pub struct SessionSpilloverManager {
 }
 
 /// Spillover metrics tracking
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SpilloverMetrics {
     pub total_spilled: u64,
     pub total_restored: u64,
@@ -1119,9 +1127,8 @@ impl SessionSpilloverManager {
             .collect()
     }
 
-    /// Get spillover metrics
-    #[allow(dead_code)]
-    async fn get_metrics(&self) -> SpilloverMetrics {
+    /// Get spillover metrics for monitoring
+    pub async fn get_metrics(&self) -> SpilloverMetrics {
         self.metrics.read().await.clone()
     }
 }
