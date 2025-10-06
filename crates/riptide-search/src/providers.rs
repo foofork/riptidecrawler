@@ -25,8 +25,7 @@ use std::time::Duration;
 pub struct SerperProvider {
     api_key: String,
     client: reqwest::Client,
-    #[allow(dead_code)]
-    timeout_seconds: u64,
+    // timeout is configured in the reqwest::Client, no need to store separately
 }
 
 impl SerperProvider {
@@ -45,7 +44,6 @@ impl SerperProvider {
         Self {
             api_key,
             client,
-            timeout_seconds,
         }
     }
 }
@@ -160,7 +158,6 @@ impl std::fmt::Debug for SerperProvider {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SerperProvider")
             .field("api_key", &"***")
-            .field("timeout_seconds", &self.timeout_seconds)
             .finish()
     }
 }

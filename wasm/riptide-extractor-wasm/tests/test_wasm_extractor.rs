@@ -204,20 +204,7 @@ fn test_extraction_direct(fixture: &TestFixture, mode: &ExtractionMode) -> Resul
     }
 }
 
-/// Simulate extraction (placeholder - replace with actual WASM calls)
-#[allow(dead_code)]
-fn simulate_extraction(html: &str, _url: &str, _mode: &str) -> ExtractedFields {
-    ExtractedFields {
-        has_title: html.contains("<title>"),
-        has_content: html.len() > 100,
-        links_count: html.matches("<a ").count(),
-        media_count: html.matches("<img ").count() + html.matches("<video").count(),
-        has_language: html.contains("lang="),
-        categories_count: html.matches("category").count(),
-        word_count: html.split_whitespace().count() as u32,
-        quality_score: 75,
-    }
-}
+// simulate_extraction() function deleted - replaced by component.extract() in actual tests
 
 /// Run edge case tests using component directly
 fn run_edge_case_tests_direct() -> Result<()> {
