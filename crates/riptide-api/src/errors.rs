@@ -72,8 +72,8 @@ pub enum ApiError {
     NotFound { resource: String },
 
     /// Request payload too large (413 Payload Too Large)
+    /// Used by payload_limit middleware to enforce request size limits
     #[error("Request payload too large: {message}")]
-    #[allow(dead_code)] // TODO: Implement payload size validation middleware
     PayloadTooLarge { message: String },
 }
 

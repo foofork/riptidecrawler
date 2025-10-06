@@ -3,6 +3,7 @@ mod errors;
 mod handlers;
 mod health;
 mod metrics;
+mod middleware;
 mod models;
 mod pipeline;
 mod pipeline_enhanced;
@@ -20,6 +21,7 @@ mod validation;
 
 use crate::health::HealthChecker;
 use crate::metrics::{create_metrics_layer, RipTideMetrics};
+use crate::middleware::PayloadLimitLayer;
 use crate::sessions::middleware::SessionLayer;
 use crate::state::{AppConfig, AppState};
 use axum::{
@@ -298,6 +300,7 @@ async fn main() -> anyhow::Result<()> {
         .fallback(handlers::not_found)
         .with_state(app_state.clone())
         .layer(SessionLayer::new(app_state.session_manager.clone()))
+        .layer(PayloadLimitLayer::with_limit(50 * 1024 * 1024)) // 50MB limit for large PDF/HTML payloads
         .layer(prometheus_layer)
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(Duration::from_secs(30)))
