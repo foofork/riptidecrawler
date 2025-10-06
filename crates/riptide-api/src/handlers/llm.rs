@@ -84,8 +84,7 @@ pub struct ModelInfo {
 pub struct SwitchProviderRequest {
     /// Name of the provider to switch to
     pub provider_name: String,
-    /// Optional configuration updates
-    #[allow(dead_code)] // TODO: Implement provider config updates
+    /// Optional configuration updates to apply during switch
     pub config_updates: Option<HashMap<String, String>>,
     /// Whether to perform gradual rollout
     #[serde(default)]
@@ -343,6 +342,53 @@ pub async fn switch_provider(
         return Err(ApiError::validation(
             "Rollout percentage must be between 0 and 100".to_string(),
         ));
+    }
+
+    // Apply configuration updates if provided
+    if let Some(config_updates) = &request.config_updates {
+        info!(
+            provider_name = %request.provider_name,
+            config_keys = ?config_updates.keys().collect::<Vec<_>>(),
+            "Applying configuration updates during provider switch"
+        );
+
+        // Validate configuration before applying
+        if let Err(e) = validate_provider_config(&request.provider_name, config_updates).await {
+            return Err(ApiError::validation(format!(
+                "Configuration validation failed: {}",
+                e
+            )));
+        }
+
+        // Convert HashMap<String, String> to HashMap<String, serde_json::Value>
+        let config_values: HashMap<String, serde_json::Value> = config_updates
+            .clone()
+            .into_iter()
+            .map(|(k, v)| (k, serde_json::Value::String(v)))
+            .collect();
+
+        // Create provider config using the builder pattern
+        let provider_config = ProviderConfig::new(
+            request.provider_name.clone(),
+            request.provider_name.clone(),
+        )
+        .with_config(
+            "config",
+            serde_json::Value::Object(config_values.into_iter().collect()),
+        );
+
+        // Apply the configuration by loading the provider
+        if let Err(e) = registry_guard.load_provider(provider_config) {
+            return Err(ApiError::internal(format!(
+                "Failed to apply configuration updates: {}",
+                e
+            )));
+        }
+
+        info!(
+            provider_name = %request.provider_name,
+            "Configuration updates applied successfully"
+        );
     }
 
     drop(registry_guard);
