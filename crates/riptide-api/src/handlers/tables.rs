@@ -33,16 +33,14 @@ pub struct TableExtractionRequest {
 /// Table extraction configuration options
 #[derive(Deserialize, Debug, Clone)]
 pub struct TableExtractionOptions {
-    /// Include headers in extraction
+    /// Include headers in extraction (used in CSV conversion line 334)
     #[serde(default = "default_true")]
-    #[allow(dead_code)] // TODO: Implement header inclusion toggle
     pub include_headers: bool,
     /// Preserve HTML formatting in cells
     #[serde(default)]
     pub preserve_formatting: bool,
-    /// Detect data types in columns
+    /// Detect data types in columns (wired to detect_column_types() on line 228)
     #[serde(default)]
-    #[allow(dead_code)] // TODO: Implement data type detection
     pub detect_data_types: bool,
     /// Include nested tables
     #[serde(default = "default_true")]
@@ -224,8 +222,12 @@ pub async fn extract_tables(
             .map(|row| row.cells.iter().map(|cell| cell.content.clone()).collect())
             .collect();
 
-        // Detect data types (simplified implementation)
-        let data_types = detect_column_types(&table);
+        // Detect data types if enabled
+        let data_types = if options.detect_data_types {
+            detect_column_types(&table)
+        } else {
+            vec![]
+        };
 
         let summary = TableSummary {
             id: export_id.clone(),
