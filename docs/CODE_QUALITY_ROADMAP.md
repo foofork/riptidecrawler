@@ -13,7 +13,7 @@ This roadmap addresses **critical code quality issues** that are **NOT ACCEPTABL
 | Category | Count | Impact | Effort | Status |
 |----------|-------|--------|--------|--------|
 | **Duplicated Code** | 6 major patterns (~3,500 lines) | 🔴 CRITICAL | 28-43 hours | ⏳ P0 |
-| **Unactivated Features** | 11 items (6 done, 5 remaining) | 🟠 HIGH | 3.5 days | ✅ 55% (P1) |
+| **Unactivated Features** | 11 items (9 done, 2 remaining) | 🟢 LOW | 1.5 days | ✅ 82% DONE |
 | **Legacy/Technical Debt** | 92 TODOs across 44 files | 🟡 MEDIUM | 15-20 days | ⏳ P2 |
 | **Large Files (>600 LOC)** | 10 files needing refactoring | 🟡 MEDIUM | 10-15 days | ⏳ P3 |
 | **Dead Code to Remove** | 3 items | 🟢 LOW | 2 hours | ✅ DONE (P4) |
@@ -236,24 +236,21 @@ pub struct ApiResponse<T> { /* generic wrapper */ }
 ### Overview
 **11 features are fully or partially implemented but NOT ACTIVATED**. These represent wasted development effort and missing functionality.
 
-### 1. Authentication Middleware 🔴 CRITICAL
-**File**: `crates/riptide-api/src/errors.rs:30`
-**Status**: Error variant exists, middleware NOT implemented
-**Impact**: Security vulnerability - no authentication on protected endpoints
+### 1. Authentication Middleware ✅ COMPLETED
+**File**: `crates/riptide-api/src/middleware/auth.rs`
+**Status**: ✅ Implemented (commit 673c05f)
+**Impact**: Security vulnerability CLOSED - API key authentication active
 **Effort**: 2-3 days
 **Priority**: P0 - CRITICAL SECURITY
 
-#### Current State
-```rust
-ApiError::AuthenticationError  // Exists but never used
-// TODO: Implement authentication middleware
-```
-
-#### Action Required
-- [ ] Implement JWT/API key authentication middleware
-- [ ] Add authentication to protected endpoints
-- [ ] Add authentication tests
-- [ ] Document authentication flow
+#### Completion Summary (2025-10-06)
+- [x] Implemented API key authentication middleware (275+ lines with tests)
+- [x] Added AuthConfig for key management
+- [x] Supports X-API-Key and Authorization Bearer headers
+- [x] Public paths exempted: /health, /metrics
+- [x] Configurable via API_KEYS environment variable
+- [x] Can be disabled for development (REQUIRE_AUTH=false)
+- **Files**: `src/middleware/auth.rs`, `src/state.rs`, `src/main.rs`, `src/middleware/mod.rs`
 
 ---
 
@@ -273,26 +270,39 @@ ApiError::AuthenticationError  // Exists but never used
 
 ---
 
-### 3. Resource Limiter Integration 🟠 HIGH
+### 3. Resource Limiter Integration ✅ COMPLETED
 **File**: `crates/riptide-performance/src/lib.rs:134`
-**Status**: Fully implemented, NOT wired to request processing
-**Impact**: No abuse prevention, resource exhaustion possible
+**Status**: ✅ Implemented (commit 8f86d6b)
+**Impact**: Abuse prevention ACTIVE - rate limiting and concurrency control enabled
 **Effort**: 1-2 days
 **Priority**: P1 - HIGH
 
-#### Action Required
-- [ ] Wire limiter to request handlers
-- [ ] Add per-user rate limiting
-- [ ] Add resource limit configuration
+#### Completion Summary (2025-10-06)
+- [x] Removed dead_code suppression from ResourceLimiter (line 134)
+- [x] Exposed 5 limiter methods on PerformanceManager
+- [x] Created rate_limit_middleware (240+ lines with tests)
+- [x] Wired middleware to API router
+- [x] Added PerformanceManager to AppState
+- [x] Per-client rate limiting via X-Client-ID/X-API-Key headers
+- [x] Circuit breaker tracking for service health
+- **Files**: 6 files changed - `src/lib.rs`, `src/middleware/rate_limit.rs`, `src/state.rs`, `src/main.rs`, `Cargo.toml`, `src/middleware/mod.rs`
 
 ---
 
-### 4. Provider Config Updates 🟠 HIGH
+### 4. Provider Config Updates ✅ COMPLETED
 **File**: `crates/riptide-api/src/handlers/llm.rs:88`
-**Status**: Field exists, logic NOT implemented
-**Impact**: Cannot reconfigure providers at runtime
+**Status**: ✅ Implemented (commit 8f80fc5)
+**Impact**: Runtime provider reconfiguration ACTIVE
 **Effort**: 1 day
 **Priority**: P1 - HIGH
+
+#### Completion Summary (2025-10-06)
+- [x] Removed dead_code suppression from config_updates field (line 88)
+- [x] Added config validation in switch_provider() before switch
+- [x] Applied config updates using load_provider() pattern
+- [x] Comprehensive error handling for validation/application failures
+- [x] Logging for config application tracking
+- **Files**: `crates/riptide-api/src/handlers/llm.rs`
 
 ---
 
@@ -368,10 +378,13 @@ ApiError::AuthenticationError  // Exists but never used
 
 ### Unactivated Features Summary
 
-**Total**: 11 items (6 completed ✅, 5 remaining)
+**Total**: 11 items (9 completed ✅, 2 remaining)
 
 **Completed (2025-10-06)**:
 - ✅ P0: Payload Size Validation (commit e50799b)
+- ✅ P0: Authentication Middleware (commit 673c05f) **NEW**
+- ✅ P1: Resource Limiter Integration (commit 8f86d6b) **NEW**
+- ✅ P1: Provider Config Updates (commit 8f80fc5) **NEW**
 - ✅ P2: Spillover Metrics API (commit 7f13ebb)
 - ✅ P2: Table Header Toggle (FALSE POSITIVE - commit e8eac23)
 - ✅ P3: Data Type Detection (commit e8eac23)
@@ -379,17 +392,17 @@ ApiError::AuthenticationError  // Exists but never used
 - ✅ P4: Session Expired Field (FALSE POSITIVE - commit 7e5eb7f)
 
 **Remaining by Priority**:
-- 🔴 CRITICAL (P0): 1 item - Authentication Middleware (2-3 days)
-- 🟠 HIGH (P1): 2 items - Resource Limiter, Provider Config (3 days)
 - 🟡 MEDIUM (P2): 1 item - Request Timeout Override (1 day)
 - 🟡 LOW (P3): 1 item - Session validation improvements (0.5 days)
 
-**REMAINING ACTIVATION EFFORT**: 3.5 days (was 8.5 days)
+**REMAINING ACTIVATION EFFORT**: 1.5 days (was 8.5 days, then 3.5 days)
+
+**Progress**: 82% complete (9/11 items)
 
 **Updated Sprint Plan**:
-- **Sprint 1 (Week 5)**: ✅ DONE - P0 Payload validation, P2-P3 quick wins
-- **Sprint 2 (Week 6)**: P0 Authentication + P1 operational items (4-5 days)
-- **Sprint 3 (Week 7)**: P2 timeout override + code duplication (5 days)
+- **Sprint 1 (Week 5)**: ✅ DONE - P0 Payload validation, P2-P3 quick wins (6 items)
+- **Sprint 2 (Week 6)**: ✅ DONE - P0 Authentication + P1 operational items (3 items) **JUST COMPLETED**
+- **Sprint 3 (Week 7)**: P2 timeout override + P3 session validation (1.5 days)
 
 ---
 
