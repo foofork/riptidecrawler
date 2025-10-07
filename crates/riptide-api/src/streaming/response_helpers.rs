@@ -105,12 +105,14 @@ impl StreamingResponseBuilder {
     }
 
     /// Set the HTTP status code
+    #[allow(dead_code)] // Reserved for streaming API builder pattern
     pub fn status(mut self, status: StatusCode) -> Self {
         self.status = status;
         self
     }
 
     /// Add custom headers
+    #[allow(dead_code)] // Reserved for streaming API builder pattern
     pub fn headers(mut self, headers: HeaderMap) -> Self {
         for (key, value) in headers {
             if let Some(key) = key {
@@ -133,6 +135,7 @@ impl StreamingResponseBuilder {
     }
 
     /// Enable compression (if supported by the client)
+    #[allow(dead_code)] // Reserved for streaming API builder pattern
     pub fn with_compression(mut self) -> Self {
         self.compression = true;
         self
@@ -261,6 +264,7 @@ impl StreamingErrorResponse {
     }
 
     /// Create an SSE error response
+    #[allow(dead_code)] // Reserved for streaming error handling
     pub fn sse(error: impl Serialize) -> Response {
         let error_sse = match serde_json::to_string(&error) {
             Ok(json) => format!("event: error\ndata: {}\n\n", json),
@@ -281,6 +285,7 @@ impl StreamingErrorResponse {
     }
 
     /// Create a JSON error response
+    #[allow(dead_code)] // Reserved for streaming error handling
     pub fn json(error: impl Serialize) -> Response {
         match serde_json::to_string(&error) {
             Ok(json) => {
@@ -308,6 +313,7 @@ impl StreamingErrorResponse {
     }
 
     /// Create error response based on response type
+    #[allow(dead_code)] // Reserved for streaming error handling
     pub fn for_type(response_type: StreamingResponseType, error: impl Serialize) -> Response {
         match response_type {
             StreamingResponseType::Ndjson => Self::ndjson(error),
@@ -318,10 +324,12 @@ impl StreamingErrorResponse {
 }
 
 /// Helper for creating keep-alive messages
+#[allow(dead_code)] // Reserved for streaming API toolkit
 pub struct KeepAliveHelper;
 
 impl KeepAliveHelper {
     /// Create NDJSON keep-alive message
+    #[allow(dead_code)] // Reserved for streaming API toolkit
     pub fn ndjson_message() -> String {
         format!(
             "{{\"type\":\"keep-alive\",\"timestamp\":\"{}\"}}\n",
@@ -330,11 +338,13 @@ impl KeepAliveHelper {
     }
 
     /// Create SSE keep-alive message
+    #[allow(dead_code)] // Reserved for streaming API toolkit
     pub fn sse_message() -> String {
         format!(": keep-alive {}\n\n", chrono::Utc::now().to_rfc3339())
     }
 
     /// Create keep-alive message for specific type
+    #[allow(dead_code)] // Reserved for streaming API toolkit
     pub fn for_type(response_type: StreamingResponseType) -> String {
         match response_type {
             StreamingResponseType::Ndjson => Self::ndjson_message(),
