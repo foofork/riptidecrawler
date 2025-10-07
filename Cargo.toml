@@ -13,8 +13,9 @@ members = [
   "crates/riptide-pdf",
   "crates/riptide-performance",
   "wasm/riptide-extractor-wasm",
-  "xtask",
 ]
+# xtask excluded to avoid Docker build failures (dev tool only)
+exclude = ["xtask"]
 resolver = "2"
 
 [workspace.package]
