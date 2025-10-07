@@ -11,7 +11,9 @@ use crate::{errors::ApiResult, state::AppState};
 /// - Per-host request counts, success/failure rates, average duration
 /// - Circuit breaker states for each host
 /// - Total requests across all hosts
-pub async fn get_fetch_metrics(State(_state): State<AppState>) -> ApiResult<Json<FetchMetricsResponse>> {
+pub async fn get_fetch_metrics(
+    State(_state): State<AppState>,
+) -> ApiResult<Json<FetchMetricsResponse>> {
     // TODO(P0): Fix method resolution issue with Arc<FetchEngine>
     // ISSUE: The get_all_metrics method exists but isn't accessible through Arc
     // PLAN: Update FetchEngine to expose metrics through Arc wrapper

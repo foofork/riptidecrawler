@@ -87,7 +87,10 @@ async fn exec_actions(page: &Page, actions: &[PageAction]) -> anyhow::Result<()>
                     .find_element(css)
                     .await
                     .map_err(|e| anyhow::anyhow!("CSS selector not found: {}", e))?;
-                debug!("Waited for CSS selector: {} (timeout_ms: {:?})", css, timeout_ms);
+                debug!(
+                    "Waited for CSS selector: {} (timeout_ms: {:?})",
+                    css, timeout_ms
+                );
             }
             PageAction::WaitForJs { expr, timeout_ms } => {
                 let deadline = Instant::now() + Duration::from_millis(timeout_ms.unwrap_or(5000));

@@ -489,7 +489,7 @@ impl PerformanceMonitor {
                 .with_recommendations(vec![
                     "Monitor CPU usage trends".to_string(),
                     "Review recent changes that may increase CPU load".to_string(),
-                ])
+                ]),
             );
         }
 

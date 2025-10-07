@@ -9,11 +9,7 @@ use opentelemetry::{
     KeyValue,
 };
 use opentelemetry_otlp::WithExportConfig;
-use opentelemetry_sdk::{
-    metrics::SdkMeterProvider,
-    runtime,
-    Resource,
-};
+use opentelemetry_sdk::{metrics::SdkMeterProvider, runtime, Resource};
 use opentelemetry_semantic_conventions::resource::{SERVICE_NAME, SERVICE_VERSION};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -109,7 +105,9 @@ impl MemoryTelemetryExporter {
                     .with_endpoint(&config.endpoint),
             )
             .with_resource(resource)
-            .with_period(std::time::Duration::from_secs(config.export_interval_seconds))
+            .with_period(std::time::Duration::from_secs(
+                config.export_interval_seconds,
+            ))
             .build()?;
 
         // Create meter
@@ -379,10 +377,7 @@ impl MemoryTelemetryExporter {
             .init();
 
         for (component, bytes) in top_allocators.iter().take(20) {
-            allocator_bytes_gauge.record(
-                *bytes,
-                &[KeyValue::new("component", component.clone())],
-            );
+            allocator_bytes_gauge.record(*bytes, &[KeyValue::new("component", component.clone())]);
         }
 
         // Export size distribution
@@ -392,10 +387,7 @@ impl MemoryTelemetryExporter {
             .init();
 
         for (category, count) in size_distribution {
-            distribution_counter.add(
-                *count,
-                &[KeyValue::new("size_category", category.clone())],
-            );
+            distribution_counter.add(*count, &[KeyValue::new("size_category", category.clone())]);
         }
 
         Ok(())

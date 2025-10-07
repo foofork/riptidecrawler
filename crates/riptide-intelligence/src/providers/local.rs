@@ -142,7 +142,10 @@ impl OllamaProvider {
                 .map(|model| model.name)
                 .collect();
 
-            debug!("Discovered {} available Ollama models", self.available_models.len());
+            debug!(
+                "Discovered {} available Ollama models",
+                self.available_models.len()
+            );
         }
 
         Ok(())

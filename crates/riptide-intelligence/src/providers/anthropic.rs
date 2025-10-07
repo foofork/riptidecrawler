@@ -5,7 +5,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::debug;
 
-use super::base::{AuthHeader, CostCalculator, HealthChecker, HttpClientBuilder, HttpRequestHandler, ModelCost};
+use super::base::{
+    AuthHeader, CostCalculator, HealthChecker, HttpClientBuilder, HttpRequestHandler, ModelCost,
+};
 use crate::{
     CompletionRequest, CompletionResponse, Cost, IntelligenceError, LlmCapabilities, LlmProvider,
     ModelInfo, Result, Role, Usage,
@@ -74,23 +76,35 @@ impl AnthropicProvider {
         ];
         let auth = AuthHeader::Custom(auth_headers);
 
-        let http_handler = HttpRequestHandler::new(
-            client,
-            "https://api.anthropic.com/v1".to_string(),
-            auth,
-        );
+        let http_handler =
+            HttpRequestHandler::new(client, "https://api.anthropic.com/v1".to_string(), auth);
 
         // Initialize cost calculator with Anthropic pricing
-        let mut cost_calculator = CostCalculator::new()
-            .with_default_model("claude-3-5-sonnet-20241022".to_string());
+        let mut cost_calculator =
+            CostCalculator::new().with_default_model("claude-3-5-sonnet-20241022".to_string());
 
         // Anthropic pricing as of 2024 (per 1K tokens)
         cost_calculator
-            .add_model_cost("claude-3-5-sonnet-20241022".to_string(), ModelCost::new(0.003, 0.015))
-            .add_model_cost("claude-3-5-haiku-20241022".to_string(), ModelCost::new(0.0008, 0.004))
-            .add_model_cost("claude-3-opus-20240229".to_string(), ModelCost::new(0.015, 0.075))
-            .add_model_cost("claude-3-sonnet-20240229".to_string(), ModelCost::new(0.003, 0.015))
-            .add_model_cost("claude-3-haiku-20240307".to_string(), ModelCost::new(0.00025, 0.00125));
+            .add_model_cost(
+                "claude-3-5-sonnet-20241022".to_string(),
+                ModelCost::new(0.003, 0.015),
+            )
+            .add_model_cost(
+                "claude-3-5-haiku-20241022".to_string(),
+                ModelCost::new(0.0008, 0.004),
+            )
+            .add_model_cost(
+                "claude-3-opus-20240229".to_string(),
+                ModelCost::new(0.015, 0.075),
+            )
+            .add_model_cost(
+                "claude-3-sonnet-20240229".to_string(),
+                ModelCost::new(0.003, 0.015),
+            )
+            .add_model_cost(
+                "claude-3-haiku-20240307".to_string(),
+                ModelCost::new(0.00025, 0.00125),
+            );
 
         Ok(Self {
             http_handler,
@@ -290,7 +304,9 @@ impl LlmProvider for AnthropicProvider {
             system: None,
         };
 
-        checker.check::<AnthropicResponse, _>(&self.http_handler, test_request).await
+        checker
+            .check::<AnthropicResponse, _>(&self.http_handler, test_request)
+            .await
     }
 
     fn name(&self) -> &str {

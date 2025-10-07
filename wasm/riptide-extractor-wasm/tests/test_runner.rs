@@ -40,7 +40,6 @@ async fn run_comprehensive_test_suite() {
 
 // Individual test category runners enabled - all modules are accessible
 
-
 #[tokio::test]
 async fn run_golden_tests_only() {
     println!("📸 Running Golden Tests Only");
@@ -62,16 +61,15 @@ async fn run_performance_benchmarks_only() {
             println!("✅ Benchmarks completed!");
 
             // Assert reasonable performance
-            let avg_time: f64 = suite.results.iter()
-                .map(|r| r.duration_ms)
-                .sum::<f64>() / suite.results.len() as f64;
+            let avg_time: f64 = suite.results.iter().map(|r| r.duration_ms).sum::<f64>()
+                / suite.results.len() as f64;
 
             assert!(
                 avg_time < 50.0,
                 "Average benchmark time too high: {:.2}ms",
                 avg_time
             );
-        },
+        }
         Err(e) => panic!("Benchmarks failed: {}", e),
     }
 }
@@ -89,12 +87,12 @@ async fn run_memory_tests_only() {
             println!("✅ Memory tests completed: {}/{} passed", passed, total);
 
             assert!(
-                passed >= total * 8 / 10,  // At least 80% success
+                passed >= total * 8 / 10, // At least 80% success
                 "Too many memory test failures: {}/{}",
                 total - passed,
                 total
             );
-        },
+        }
         Err(e) => panic!("Memory tests failed: {}", e),
     }
 }
@@ -112,13 +110,13 @@ async fn run_cache_tests_only() {
             println!("✅ Cache tests completed: {}/{} passed", passed, total);
 
             // Check for cache performance improvement
-            if let Some(warm_test) = results.iter().find(|r| r.test_name == "warm_start_performance") {
-                assert!(
-                    warm_test.success,
-                    "Warm start performance test failed"
-                );
+            if let Some(warm_test) = results
+                .iter()
+                .find(|r| r.test_name == "warm_start_performance")
+            {
+                assert!(warm_test.success, "Warm start performance test failed");
             }
-        },
+        }
         Err(e) => panic!("Cache tests failed: {}", e),
     }
 }
@@ -134,16 +132,19 @@ async fn run_integration_tests_only() {
             let passed = results.iter().filter(|r| r.success).count();
             let total = results.len();
 
-            println!("✅ Integration tests completed: {}/{} passed", passed, total);
+            println!(
+                "✅ Integration tests completed: {}/{} passed",
+                passed, total
+            );
 
             // Allow some failures for integration tests under stress
             assert!(
-                passed >= total * 7 / 10,  // At least 70% success
+                passed >= total * 7 / 10, // At least 70% success
                 "Too many integration test failures: {}/{}",
                 total - passed,
                 total
             );
-        },
+        }
         Err(e) => panic!("Integration tests failed: {}", e),
     }
 }
@@ -167,7 +168,9 @@ async fn regression_test_performance_baseline() {
                     assert!(
                         result.duration_ms < MAX_EXTRACTION_TIME_MS,
                         "Regression: {} took {:.2}ms (baseline: {:.2}ms)",
-                        result.name, result.duration_ms, MAX_EXTRACTION_TIME_MS
+                        result.name,
+                        result.duration_ms,
+                        MAX_EXTRACTION_TIME_MS
                     );
                 }
 
@@ -176,7 +179,9 @@ async fn regression_test_performance_baseline() {
                     assert!(
                         memory_mb < MAX_MEMORY_USAGE_MB,
                         "Regression: {} used {:.1}MB (baseline: {:.1}MB)",
-                        result.name, memory_mb, MAX_MEMORY_USAGE_MB
+                        result.name,
+                        memory_mb,
+                        MAX_MEMORY_USAGE_MB
                     );
                 }
 
@@ -184,13 +189,15 @@ async fn regression_test_performance_baseline() {
                     assert!(
                         result.throughput_ops_per_sec > MIN_THROUGHPUT_OPS_SEC,
                         "Regression: {} achieved {:.1} ops/sec (baseline: {:.1} ops/sec)",
-                        result.name, result.throughput_ops_per_sec, MIN_THROUGHPUT_OPS_SEC
+                        result.name,
+                        result.throughput_ops_per_sec,
+                        MIN_THROUGHPUT_OPS_SEC
                     );
                 }
             }
 
             println!("✅ No performance regressions detected");
-        },
+        }
         Err(e) => panic!("Regression test failed: {}", e),
     }
 }
@@ -203,8 +210,9 @@ async fn stress_test_production_readiness() {
 
     // This test simulates production-like conditions
     let _component = Component::new();
-    let html = std::fs::read_to_string("tests/fixtures/blog_post.html")
-        .unwrap_or_else(|_| "<html><body><h1>Fallback</h1><p>Content</p></body></html>".to_string());
+    let html = std::fs::read_to_string("tests/fixtures/blog_post.html").unwrap_or_else(|_| {
+        "<html><body><h1>Fallback</h1><p>Content</p></body></html>".to_string()
+    });
 
     let stress_iterations = 1000;
     let concurrent_threads = 4;
@@ -222,10 +230,10 @@ async fn stress_test_production_readiness() {
                 match component.extract(
                     html.clone(),
                     format!("https://stress.test/{}/{}", thread_id, i),
-                    ExtractionMode::Article
+                    ExtractionMode::Article,
                 ) {
                     Ok(_) => successes += 1,
-                    Err(_) => {}, // Count failures implicitly
+                    Err(_) => {} // Count failures implicitly
                 }
             }
 
@@ -246,13 +254,16 @@ async fn stress_test_production_readiness() {
 
     let total_failures = stress_iterations - total_successes;
 
-    println!("Stress test results: {}/{} succeeded ({} failures)",
-             total_successes, stress_iterations, total_failures);
+    println!(
+        "Stress test results: {}/{} succeeded ({} failures)",
+        total_successes, stress_iterations, total_failures
+    );
 
     assert!(
         total_failures <= max_failures_allowed,
         "Too many failures under stress: {} (max allowed: {})",
-        total_failures, max_failures_allowed
+        total_failures,
+        max_failures_allowed
     );
 
     println!("✅ Production readiness stress test passed");
@@ -271,7 +282,7 @@ fn smoke_test_basic_functionality() {
     let result = component.extract(
         html.to_string(),
         "https://example.com/smoke-test".to_string(),
-        ExtractionMode::Article
+        ExtractionMode::Article,
     );
 
     assert!(result.is_ok(), "Basic extraction should succeed");
@@ -299,8 +310,9 @@ fn compatibility_test_extraction_modes() {
     println!("=============================");
 
     let component = Component::new();
-    let html = std::fs::read_to_string("tests/fixtures/news_site.html")
-        .unwrap_or_else(|_| "<html><body><h1>News</h1><p>Story content</p></body></html>".to_string());
+    let html = std::fs::read_to_string("tests/fixtures/news_site.html").unwrap_or_else(|_| {
+        "<html><body><h1>News</h1><p>Story content</p></body></html>".to_string()
+    });
 
     let modes = vec![
         ExtractionMode::Article,
@@ -312,14 +324,10 @@ fn compatibility_test_extraction_modes() {
         let result = component.extract(
             html.clone(),
             format!("https://compat.test/{:?}", mode),
-            mode.clone()
+            mode.clone(),
         );
 
-        assert!(
-            result.is_ok(),
-            "Extraction mode {:?} should work",
-            mode
-        );
+        assert!(result.is_ok(), "Extraction mode {:?} should work", mode);
 
         let content = result.unwrap();
 
@@ -344,9 +352,9 @@ fn error_handling_test() {
 
     // Test invalid HTML
     let result = component.extract(
-        "".to_string(),  // Empty HTML
+        "".to_string(), // Empty HTML
         "https://example.com".to_string(),
-        ExtractionMode::Article
+        ExtractionMode::Article,
     );
 
     assert!(result.is_err(), "Empty HTML should fail gracefully");
@@ -355,7 +363,7 @@ fn error_handling_test() {
     let result = component.extract(
         "<html><body><p>Unclosed paragraph".to_string(),
         "https://example.com".to_string(),
-        ExtractionMode::Article
+        ExtractionMode::Article,
     );
 
     // Should either succeed with fallback or fail gracefully
@@ -373,7 +381,10 @@ mod test_utilities {
 
     pub fn generate_test_html(content_type: &str, size: usize) -> String {
         match content_type {
-            "simple" => format!("<html><body>{}</body></html>", "Test content ".repeat(size / 13)),
+            "simple" => format!(
+                "<html><body>{}</body></html>",
+                "Test content ".repeat(size / 13)
+            ),
             "complex" => generate_complex_test_html(size),
             _ => "<html><body>Default test content</body></html>".to_string(),
         }
@@ -393,7 +404,10 @@ mod test_utilities {
         html
     }
 
-    pub fn validate_extraction_result(content: &riptide_extractor_wasm::ExtractedContent, expected_type: &str) -> bool {
+    pub fn validate_extraction_result(
+        content: &riptide_extractor_wasm::ExtractedContent,
+        expected_type: &str,
+    ) -> bool {
         match expected_type {
             "news" => content.title.is_some() && content.text.len() > 100,
             "blog" => content.text.len() > 500,

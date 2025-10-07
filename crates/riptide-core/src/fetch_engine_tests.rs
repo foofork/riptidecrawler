@@ -153,10 +153,7 @@ mod fetch_engine_tests {
         // Make a failing request
         let bad_url = "https://httpbin.org/status/500";
         let result_fail = engine.fetch(bad_url).await;
-        assert!(
-            result_fail.is_err(),
-            "Request to 500 endpoint should fail"
-        );
+        assert!(result_fail.is_err(), "Request to 500 endpoint should fail");
     }
 
     /// Test metrics tracking per host
@@ -179,10 +176,7 @@ mod fetch_engine_tests {
 
         // Get metrics for host A
         let metrics_a = engine.get_host_metrics("httpbin.org");
-        assert!(
-            metrics_a.is_some(),
-            "Should have metrics for httpbin.org"
-        );
+        assert!(metrics_a.is_some(), "Should have metrics for httpbin.org");
 
         if let Some(metrics) = metrics_a {
             assert!(
@@ -374,10 +368,7 @@ mod fetch_engine_tests {
 
             // Calculate average duration
             let avg_duration = m.total_duration_ms as f64 / m.request_count as f64;
-            assert!(
-                avg_duration > 0.0,
-                "Average duration should be positive"
-            );
+            assert!(avg_duration > 0.0, "Average duration should be positive");
         }
     }
 }

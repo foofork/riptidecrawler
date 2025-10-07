@@ -33,8 +33,7 @@ impl AzureOpenAIProvider {
         let client = HttpClientBuilder::new().build()?;
 
         // Initialize cost calculator with Azure OpenAI pricing
-        let mut cost_calculator = CostCalculator::new()
-            .with_default_model("gpt-4o".to_string());
+        let mut cost_calculator = CostCalculator::new().with_default_model("gpt-4o".to_string());
 
         // Azure OpenAI pricing (similar to OpenAI but may vary by region)
         cost_calculator

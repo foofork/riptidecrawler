@@ -48,10 +48,22 @@ impl BedrockProvider {
                 "anthropic.claude-3-opus-20240229-v1:0".to_string(),
                 ModelCost::new(0.015, 0.075),
             )
-            .add_model_cost("amazon.titan-text-express-v1".to_string(), ModelCost::new(0.0008, 0.0016))
-            .add_model_cost("amazon.titan-text-lite-v1".to_string(), ModelCost::new(0.0003, 0.0004))
-            .add_model_cost("meta.llama2-70b-chat-v1".to_string(), ModelCost::new(0.00195, 0.00256))
-            .add_model_cost("meta.llama2-13b-chat-v1".to_string(), ModelCost::new(0.00075, 0.001));
+            .add_model_cost(
+                "amazon.titan-text-express-v1".to_string(),
+                ModelCost::new(0.0008, 0.0016),
+            )
+            .add_model_cost(
+                "amazon.titan-text-lite-v1".to_string(),
+                ModelCost::new(0.0003, 0.0004),
+            )
+            .add_model_cost(
+                "meta.llama2-70b-chat-v1".to_string(),
+                ModelCost::new(0.00195, 0.00256),
+            )
+            .add_model_cost(
+                "meta.llama2-13b-chat-v1".to_string(),
+                ModelCost::new(0.00075, 0.001),
+            );
 
         Ok(Self {
             region,

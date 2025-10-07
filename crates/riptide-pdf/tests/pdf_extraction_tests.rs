@@ -1,11 +1,11 @@
 //! Real-world PDF extraction tests
 
-use std::sync::Arc;
 use riptide_pdf::*;
+use std::sync::Arc;
 
 #[cfg(test)]
 mod pdf_parsing_tests {
-    use riptide_pdf::{PdfConfig, create_pdf_processor};
+    use riptide_pdf::{create_pdf_processor, PdfConfig};
 
     fn create_test_pdf_bytes() -> Vec<u8> {
         // Create a minimal valid PDF for testing

@@ -251,14 +251,18 @@ pub async fn component_health_check(
         "redis" => health_response.dependencies.redis,
         "extractor" => health_response.dependencies.extractor,
         "http_client" => health_response.dependencies.http_client,
-        "headless" => health_response.dependencies.headless_service
+        "headless" => health_response
+            .dependencies
+            .headless_service
             .unwrap_or_else(|| ServiceHealth {
                 status: "not_configured".to_string(),
                 message: Some("Headless service not configured".to_string()),
                 response_time_ms: None,
                 last_check: timestamp,
             }),
-        "spider" => health_response.dependencies.spider_engine
+        "spider" => health_response
+            .dependencies
+            .spider_engine
             .unwrap_or_else(|| ServiceHealth {
                 status: "not_configured".to_string(),
                 message: Some("Spider engine not configured".to_string()),
@@ -295,9 +299,9 @@ pub async fn health_metrics_check(
 
     let health_response = state.health_checker.check_health(&state).await;
 
-    let metrics = health_response.metrics.unwrap_or_else(|| {
-        collect_system_metrics(0.0)
-    });
+    let metrics = health_response
+        .metrics
+        .unwrap_or_else(|| collect_system_metrics(0.0));
 
     info!(
         memory_mb = metrics.memory_usage_bytes / (1024 * 1024),

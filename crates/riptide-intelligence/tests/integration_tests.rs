@@ -300,7 +300,10 @@ async fn test_config_driven_loading() {
     let start = std::time::Instant::now();
     let response = client.complete(request.clone()).await.unwrap();
     let fast_duration = start.elapsed();
-    assert!(!response.content.is_empty(), "Response should contain content");
+    assert!(
+        !response.content.is_empty(),
+        "Response should contain content"
+    );
 
     // Slow provider should take longer
     let start = std::time::Instant::now();

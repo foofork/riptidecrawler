@@ -125,7 +125,8 @@ impl WorkerService {
 
         // Create and configure worker pool
         // Note: JobQueue doesn't implement Clone, so we create a new connection for the worker pool
-        let queue_for_pool = JobQueue::new(&self.config.redis_url, self.config.queue_config.clone()).await?;
+        let queue_for_pool =
+            JobQueue::new(&self.config.redis_url, self.config.queue_config.clone()).await?;
         let mut worker_pool = WorkerPool::new(self.config.worker_config.clone(), queue_for_pool);
 
         // Add processors to worker pool

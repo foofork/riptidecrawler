@@ -268,10 +268,7 @@ impl FrontierManager {
 
         // Add to appropriate queue based on priority and score
         if let Some(score) = request.score {
-            let priority_request = PriorityRequest {
-                request,
-                score,
-            };
+            let priority_request = PriorityRequest { request, score };
             self.best_first_queue.lock().await.push(priority_request);
         } else {
             match request.priority {

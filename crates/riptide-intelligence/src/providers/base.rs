@@ -57,7 +57,9 @@ impl HttpClientBuilder {
         Client::builder()
             .timeout(self.timeout)
             .build()
-            .map_err(|e| IntelligenceError::Configuration(format!("Failed to create HTTP client: {}", e)))
+            .map_err(|e| {
+                IntelligenceError::Configuration(format!("Failed to create HTTP client: {}", e))
+            })
     }
 }
 
@@ -90,7 +92,11 @@ impl HttpRequestHandler {
         T: DeserializeOwned,
         P: Serialize,
     {
-        let url = format!("{}/{}", self.base_url.trim_end_matches('/'), endpoint.trim_start_matches('/'));
+        let url = format!(
+            "{}/{}",
+            self.base_url.trim_end_matches('/'),
+            endpoint.trim_start_matches('/')
+        );
 
         debug!("Making POST request to: {}", url);
 
@@ -101,7 +107,9 @@ impl HttpRequestHandler {
 
         // Add authentication headers
         request = match &self.auth {
-            AuthHeader::Bearer(token) => request.header("Authorization", format!("Bearer {}", token)),
+            AuthHeader::Bearer(token) => {
+                request.header("Authorization", format!("Bearer {}", token))
+            }
             AuthHeader::ApiKey { header_name, key } => request.header(header_name, key),
             AuthHeader::Custom(headers) => {
                 for (name, value) in headers {
@@ -201,7 +209,8 @@ impl CostCalculator {
         let completion_tokens = tokens - prompt_tokens;
 
         let prompt_cost = (prompt_tokens as f64 / 1000.0) * cost_entry.prompt_cost_per_1k;
-        let completion_cost = (completion_tokens as f64 / 1000.0) * cost_entry.completion_cost_per_1k;
+        let completion_cost =
+            (completion_tokens as f64 / 1000.0) * cost_entry.completion_cost_per_1k;
 
         Cost::new(prompt_cost, completion_cost, "USD")
     }
@@ -216,7 +225,8 @@ impl CostCalculator {
         let cost_entry = self.get_model_cost(model);
 
         let prompt_cost = (prompt_tokens as f64 / 1000.0) * cost_entry.prompt_cost_per_1k;
-        let completion_cost = (completion_tokens as f64 / 1000.0) * cost_entry.completion_cost_per_1k;
+        let completion_cost =
+            (completion_tokens as f64 / 1000.0) * cost_entry.completion_cost_per_1k;
 
         Cost::new(prompt_cost, completion_cost, "USD")
     }
@@ -302,10 +312,7 @@ mod tests {
     #[test]
     fn test_cost_calculator() {
         let mut calculator = CostCalculator::new();
-        calculator.add_model_cost(
-            "test-model".to_string(),
-            ModelCost::new(0.001, 0.002),
-        );
+        calculator.add_model_cost("test-model".to_string(), ModelCost::new(0.001, 0.002));
 
         let cost = calculator.estimate_cost(1000, Some("test-model"));
         assert!(cost.total_cost > 0.0);
@@ -315,10 +322,7 @@ mod tests {
     #[test]
     fn test_cost_calculator_detailed() {
         let mut calculator = CostCalculator::new();
-        calculator.add_model_cost(
-            "test-model".to_string(),
-            ModelCost::new(0.001, 0.002),
-        );
+        calculator.add_model_cost("test-model".to_string(), ModelCost::new(0.001, 0.002));
 
         let cost = calculator.estimate_cost_detailed(500, 500, Some("test-model"));
         assert_eq!(cost.prompt_cost, 0.0005);

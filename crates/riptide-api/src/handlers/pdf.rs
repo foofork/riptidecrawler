@@ -79,12 +79,10 @@ pub async fn process_pdf(
         .pdf_data
         .ok_or_else(|| ApiError::validation("PDF data is required"))?;
 
-    let decoded_data = BASE64_STANDARD
-        .decode(&pdf_data)
-        .map_err(|e| {
-            state.metrics.record_error(ErrorType::Http);
-            ApiError::validation(format!("Invalid base64 PDF data: {}", e))
-        })?;
+    let decoded_data = BASE64_STANDARD.decode(&pdf_data).map_err(|e| {
+        state.metrics.record_error(ErrorType::Http);
+        ApiError::validation(format!("Invalid base64 PDF data: {}", e))
+    })?;
 
     let (pdf_data, filename, url) = (decoded_data, request.filename, request.url);
 
@@ -257,12 +255,10 @@ pub async fn process_pdf_stream(
         .pdf_data
         .ok_or_else(|| ApiError::validation("PDF data is required"))?;
 
-    let decoded_data = BASE64_STANDARD
-        .decode(&pdf_data)
-        .map_err(|e| {
-            state.metrics.record_error(ErrorType::Http);
-            ApiError::validation(format!("Invalid base64 PDF data: {}", e))
-        })?;
+    let decoded_data = BASE64_STANDARD.decode(&pdf_data).map_err(|e| {
+        state.metrics.record_error(ErrorType::Http);
+        ApiError::validation(format!("Invalid base64 PDF data: {}", e))
+    })?;
 
     let (pdf_data, filename, _) = (decoded_data, request.filename, request.url);
 

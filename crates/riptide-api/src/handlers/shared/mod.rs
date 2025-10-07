@@ -2,8 +2,8 @@
 
 pub mod spider;
 
-use crate::state::AppState;
 use crate::errors::ApiError;
+use crate::state::AppState;
 
 /// Helper for recording metrics in handlers
 pub struct MetricsRecorder<'a> {
@@ -28,7 +28,12 @@ impl<'a> MetricsRecorder<'a> {
         // Error metrics
     }
 
-    pub fn record_spider_crawl(&self, _pages_crawled: u64, _pages_failed: u64, _duration: std::time::Duration) {
+    pub fn record_spider_crawl(
+        &self,
+        _pages_crawled: u64,
+        _pages_failed: u64,
+        _duration: std::time::Duration,
+    ) {
         // Spider crawl metrics
     }
 
@@ -40,7 +45,13 @@ impl<'a> MetricsRecorder<'a> {
         // Frontier size metrics
     }
 
-    pub fn record_http_request(&self, _method: &str, _path: &str, _status: u16, _duration: std::time::Duration) {
+    pub fn record_http_request(
+        &self,
+        _method: &str,
+        _path: &str,
+        _status: u16,
+        _duration: std::time::Duration,
+    ) {
         // HTTP request metrics
     }
 }
@@ -83,7 +94,10 @@ pub struct SpiderConfigBuilder<'a> {
 
 impl<'a> SpiderConfigBuilder<'a> {
     pub fn new(state: &'a AppState, seed_url: url::Url) -> Self {
-        Self { _state: state, seed_url }
+        Self {
+            _state: state,
+            seed_url,
+        }
     }
 
     pub fn with_max_depth(self, _max_depth: usize) -> Self {

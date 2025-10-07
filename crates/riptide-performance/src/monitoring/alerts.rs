@@ -296,7 +296,10 @@ impl MemoryAlertManager {
     }
 
     /// Check memory alerts based on a memory report
-    pub async fn check_memory_alerts(&mut self, report: &MemoryReport) -> Result<Vec<PerformanceAlert>> {
+    pub async fn check_memory_alerts(
+        &mut self,
+        report: &MemoryReport,
+    ) -> Result<Vec<PerformanceAlert>> {
         let mut alerts = Vec::new();
 
         // Check memory growth rate alerts
@@ -321,7 +324,10 @@ impl MemoryAlertManager {
     }
 
     /// Check leak-specific alerts
-    pub async fn check_leak_alerts(&mut self, analysis: &LeakAnalysis) -> Result<Vec<PerformanceAlert>> {
+    pub async fn check_leak_alerts(
+        &mut self,
+        analysis: &LeakAnalysis,
+    ) -> Result<Vec<PerformanceAlert>> {
         let mut alerts = Vec::new();
 
         // Check if we have any potential leaks
@@ -391,7 +397,10 @@ impl MemoryAlertManager {
     }
 
     /// Check memory growth rate alerts
-    async fn check_growth_rate_alerts(&self, report: &MemoryReport) -> Result<Vec<PerformanceAlert>> {
+    async fn check_growth_rate_alerts(
+        &self,
+        report: &MemoryReport,
+    ) -> Result<Vec<PerformanceAlert>> {
         let mut alerts = Vec::new();
         let growth_rate = report.memory_growth_rate_mb_s;
 
@@ -426,7 +435,10 @@ impl MemoryAlertManager {
     }
 
     /// Check memory efficiency alerts
-    async fn check_efficiency_alerts(&self, report: &MemoryReport) -> Result<Vec<PerformanceAlert>> {
+    async fn check_efficiency_alerts(
+        &self,
+        report: &MemoryReport,
+    ) -> Result<Vec<PerformanceAlert>> {
         let mut alerts = Vec::new();
         let efficiency_score = report.memory_efficiency_score;
 
@@ -567,7 +579,11 @@ impl MemoryAlertManager {
     /// Get unacknowledged alerts
     pub async fn get_unacknowledged_alerts(&self) -> Vec<PerformanceAlert> {
         let history = self.alert_history.read().await;
-        history.iter().filter(|a| !a.acknowledged).cloned().collect()
+        history
+            .iter()
+            .filter(|a| !a.acknowledged)
+            .cloned()
+            .collect()
     }
 
     /// Acknowledge an alert by ID
@@ -781,10 +797,7 @@ mod tests {
             "Test 2".to_string(),
         );
 
-        manager
-            .add_to_history(vec![alert1, alert2])
-            .await
-            .unwrap();
+        manager.add_to_history(vec![alert1, alert2]).await.unwrap();
 
         let leak_alerts = manager
             .get_alerts_by_category(AlertCategory::MemoryLeak)

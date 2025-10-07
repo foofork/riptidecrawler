@@ -5,7 +5,10 @@
 
 use crate::errors::ApiError;
 use crate::state::AppState;
-use axum::{extract::State, response::{IntoResponse, Json}};
+use axum::{
+    extract::State,
+    response::{IntoResponse, Json},
+};
 use serde::Serialize;
 
 // Allow unused imports - these may be used in future endpoint implementations
@@ -32,10 +35,7 @@ pub struct HealthScoreResponse {
 pub async fn get_health_score(
     State(state): State<AppState>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let health_score = state
-        .monitoring_system
-        .calculate_health_score()
-        .await?;
+    let health_score = state.monitoring_system.calculate_health_score().await?;
 
     let status = crate::health::classify_health_score(health_score);
 
@@ -89,9 +89,7 @@ pub struct AlertRuleSummary {
 ///
 /// Returns the list of all configured alert rules, including their thresholds,
 /// conditions, and enabled status.
-pub async fn get_alert_rules(
-    State(state): State<AppState>,
-) -> Result<impl IntoResponse, ApiError> {
+pub async fn get_alert_rules(State(state): State<AppState>) -> Result<impl IntoResponse, ApiError> {
     let manager = state.monitoring_system.alert_manager.lock().await;
     let rules = manager.get_rules();
 

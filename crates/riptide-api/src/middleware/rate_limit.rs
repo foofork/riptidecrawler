@@ -163,30 +163,21 @@ mod tests {
             .header("X-Client-ID", "client-123")
             .body(Body::empty())
             .unwrap();
-        assert_eq!(
-            extract_client_id(&request),
-            Some("client-123".to_string())
-        );
+        assert_eq!(extract_client_id(&request), Some("client-123".to_string()));
 
         // Test X-API-Key
         let request = Request::builder()
             .header("X-API-Key", "api-key-456")
             .body(Body::empty())
             .unwrap();
-        assert_eq!(
-            extract_client_id(&request),
-            Some("api-key-456".to_string())
-        );
+        assert_eq!(extract_client_id(&request), Some("api-key-456".to_string()));
 
         // Test X-Forwarded-For
         let request = Request::builder()
             .header("X-Forwarded-For", "192.168.1.1, 10.0.0.1")
             .body(Body::empty())
             .unwrap();
-        assert_eq!(
-            extract_client_id(&request),
-            Some("192.168.1.1".to_string())
-        );
+        assert_eq!(extract_client_id(&request), Some("192.168.1.1".to_string()));
 
         // Test no headers
         let request = Request::builder().body(Body::empty()).unwrap();

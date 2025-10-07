@@ -332,21 +332,17 @@ pub async fn export_table(
     // Export based on format
     let (content, content_type) = match params.format.as_str() {
         "csv" => {
-            let csv_content = table
-                .to_csv(params.include_headers)
-                .map_err(|e| {
-                    state.metrics.record_error(crate::metrics::ErrorType::Wasm);
-                    ApiError::internal(format!("CSV export failed: {}", e))
-                })?;
+            let csv_content = table.to_csv(params.include_headers).map_err(|e| {
+                state.metrics.record_error(crate::metrics::ErrorType::Wasm);
+                ApiError::internal(format!("CSV export failed: {}", e))
+            })?;
             (csv_content, "text/csv")
         }
         "markdown" => {
-            let md_content = table
-                .to_markdown(params.include_metadata)
-                .map_err(|e| {
-                    state.metrics.record_error(crate::metrics::ErrorType::Wasm);
-                    ApiError::internal(format!("Markdown export failed: {}", e))
-                })?;
+            let md_content = table.to_markdown(params.include_metadata).map_err(|e| {
+                state.metrics.record_error(crate::metrics::ErrorType::Wasm);
+                ApiError::internal(format!("Markdown export failed: {}", e))
+            })?;
             (md_content, "text/markdown")
         }
         _ => unreachable!("Format validation should prevent this"),

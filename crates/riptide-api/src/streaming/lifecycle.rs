@@ -331,7 +331,9 @@ impl StreamLifecycleManager {
             } => {
                 // Update active connections gauge
                 let active_count = active_connections.read().await.len();
-                metrics.streaming_active_connections.set(active_count as f64);
+                metrics
+                    .streaming_active_connections
+                    .set(active_count as f64);
                 metrics.streaming_total_connections.inc();
 
                 info!(
@@ -453,14 +455,18 @@ impl StreamLifecycleManager {
             } => {
                 // Update active connections count
                 let active_count = active_connections.read().await.len();
-                metrics.streaming_active_connections.set(active_count as f64);
+                metrics
+                    .streaming_active_connections
+                    .set(active_count as f64);
 
                 // Record connection duration
                 metrics.record_streaming_connection_duration(duration.as_secs_f64());
 
                 // Update memory usage estimate based on bytes sent
                 let current_memory = bytes_sent * active_count.max(1);
-                metrics.streaming_memory_usage_bytes.set(current_memory as f64);
+                metrics
+                    .streaming_memory_usage_bytes
+                    .set(current_memory as f64);
 
                 info!(
                     connection_id = %connection_id,

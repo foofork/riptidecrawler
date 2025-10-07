@@ -46,7 +46,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Demonstrate session management
     let session_id = demonstrate_session_workflow(&state_manager, &tenant_id).await?;
-    println!("✅ Session workflow demonstrated (Session ID: {})", session_id);
+    println!(
+        "✅ Session workflow demonstrated (Session ID: {})",
+        session_id
+    );
 
     // Demonstrate state persistence and recovery
     demonstrate_checkpoint_workflow(&state_manager).await?;

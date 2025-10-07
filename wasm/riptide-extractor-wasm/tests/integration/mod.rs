@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use riptide_extractor_wasm::{Component, ExtractionMode, ExtractedContent, ExtractionError};
+use riptide_extractor_wasm::{Component, ExtractedContent, ExtractionError, ExtractionMode};
 
 /// Integration Tests Module
 ///
@@ -95,7 +95,9 @@ pub fn run_integration_tests() -> Result<Vec<IntegrationTestResult>, String> {
 }
 
 /// Test end-to-end extraction pipeline
-fn test_end_to_end_extraction(_config: &IntegrationTestConfig) -> Result<IntegrationTestResult, String> {
+fn test_end_to_end_extraction(
+    _config: &IntegrationTestConfig,
+) -> Result<IntegrationTestResult, String> {
     println!("\n🎯 Testing end-to-end extraction pipeline...");
 
     let start_time = Instant::now();
@@ -109,10 +111,26 @@ fn test_end_to_end_extraction(_config: &IntegrationTestConfig) -> Result<Integra
 
     // Test different content types in a realistic pipeline
     let test_cases = vec![
-        ("news_site", "https://news.example.com/breaking", ExtractionMode::Article),
-        ("blog_post", "https://blog.example.com/tutorial", ExtractionMode::Article),
-        ("gallery_site", "https://gallery.example.com/photos", ExtractionMode::Full),
-        ("nav_heavy_site", "https://app.example.com/dashboard", ExtractionMode::Metadata),
+        (
+            "news_site",
+            "https://news.example.com/breaking",
+            ExtractionMode::Article,
+        ),
+        (
+            "blog_post",
+            "https://blog.example.com/tutorial",
+            ExtractionMode::Article,
+        ),
+        (
+            "gallery_site",
+            "https://gallery.example.com/photos",
+            ExtractionMode::Full,
+        ),
+        (
+            "nav_heavy_site",
+            "https://app.example.com/dashboard",
+            ExtractionMode::Metadata,
+        ),
     ];
 
     for (fixture, url, mode) in test_cases {
@@ -131,15 +149,13 @@ fn test_end_to_end_extraction(_config: &IntegrationTestConfig) -> Result<Integra
                 // Collect performance metrics
                 performance_metrics.insert(
                     format!("{}_processing_time", fixture),
-                    stats.processing_time_ms as f64
+                    stats.processing_time_ms as f64,
                 );
-                performance_metrics.insert(
-                    format!("{}_memory_used", fixture),
-                    stats.memory_used as f64
-                );
+                performance_metrics
+                    .insert(format!("{}_memory_used", fixture), stats.memory_used as f64);
 
                 println!("  ✅ {} extracted in {:.2}ms", fixture, extraction_time);
-            },
+            }
             Err(e) => {
                 failed += 1;
                 let error_msg = format!("{} extraction failed: {:?}", fixture, e);
@@ -152,7 +168,9 @@ fn test_end_to_end_extraction(_config: &IntegrationTestConfig) -> Result<Integra
     let _total_time = start_time.elapsed().as_secs_f64() * 1000.0;
     let avg_time = if !timings.is_empty() {
         timings.iter().sum::<f64>() / timings.len() as f64
-    } else { 0.0 };
+    } else {
+        0.0
+    };
 
     Ok(IntegrationTestResult {
         test_name: "end_to_end_extraction".to_string(),
@@ -167,7 +185,9 @@ fn test_end_to_end_extraction(_config: &IntegrationTestConfig) -> Result<Integra
 }
 
 /// Test fallback mechanisms
-fn test_fallback_mechanisms(_config: &IntegrationTestConfig) -> Result<IntegrationTestResult, String> {
+fn test_fallback_mechanisms(
+    _config: &IntegrationTestConfig,
+) -> Result<IntegrationTestResult, String> {
     println!("\n🔄 Testing fallback mechanisms...");
 
     let _start_time = Instant::now();
@@ -181,11 +201,20 @@ fn test_fallback_mechanisms(_config: &IntegrationTestConfig) -> Result<Integrati
     // Test various failure scenarios and recovery
     let very_large_html = generate_stress_test_html(10 * 1024 * 1024);
     let fallback_scenarios = vec![
-        ("malformed_html", "<html><body><p>Broken HTML without closing tags"),
+        (
+            "malformed_html",
+            "<html><body><p>Broken HTML without closing tags",
+        ),
         ("empty_content", ""),
         ("very_large", &very_large_html), // 10MB
-        ("special_chars", "<!DOCTYPE html><html><body>Special chars: 你好 العالم 🌍</body></html>"),
-        ("malicious_content", "<html><body><script>alert('xss')</script></body></html>"),
+        (
+            "special_chars",
+            "<!DOCTYPE html><html><body>Special chars: 你好 العالم 🌍</body></html>",
+        ),
+        (
+            "malicious_content",
+            "<html><body><script>alert('xss')</script></body></html>",
+        ),
     ];
 
     for (scenario, html) in fallback_scenarios {
@@ -194,7 +223,7 @@ fn test_fallback_mechanisms(_config: &IntegrationTestConfig) -> Result<Integrati
         match component.extract(
             html.to_string(),
             format!("https://test.example.com/{}", scenario),
-            ExtractionMode::Article
+            ExtractionMode::Article,
         ) {
             Ok(content) => {
                 completed += 1;
@@ -207,16 +236,13 @@ fn test_fallback_mechanisms(_config: &IntegrationTestConfig) -> Result<Integrati
                     println!("  ✅ {} handled via fallback", scenario);
                 }
 
-                performance_metrics.insert(
-                    format!("{}_fallback_time", scenario),
-                    extraction_time
-                );
-            },
+                performance_metrics.insert(format!("{}_fallback_time", scenario), extraction_time);
+            }
             Err(ExtractionError::InvalidHtml(_)) => {
                 // Expected for some scenarios
                 completed += 1;
                 println!("  ✅ {} correctly rejected as invalid", scenario);
-            },
+            }
             Err(e) => {
                 failed += 1;
                 let error_msg = format!("{} fallback failed: {:?}", scenario, e);
@@ -231,7 +257,8 @@ fn test_fallback_mechanisms(_config: &IntegrationTestConfig) -> Result<Integrati
         success: failed < 2, // Allow some failures for extremely malformed content
         extractions_completed: completed,
         extractions_failed: failed,
-        average_time_ms: performance_metrics.values().sum::<f64>() / performance_metrics.len() as f64,
+        average_time_ms: performance_metrics.values().sum::<f64>()
+            / performance_metrics.len() as f64,
         peak_memory_mb: get_peak_memory_usage() as f64 / 1024.0 / 1024.0,
         error_details,
         performance_metrics,
@@ -239,8 +266,13 @@ fn test_fallback_mechanisms(_config: &IntegrationTestConfig) -> Result<Integrati
 }
 
 /// Test concurrent extraction stress
-fn test_concurrent_extraction_stress(config: &IntegrationTestConfig) -> Result<IntegrationTestResult, String> {
-    println!("\n🚀 Testing concurrent extraction stress ({} threads)...", config.max_concurrent_extractions);
+fn test_concurrent_extraction_stress(
+    config: &IntegrationTestConfig,
+) -> Result<IntegrationTestResult, String> {
+    println!(
+        "\n🚀 Testing concurrent extraction stress ({} threads)...",
+        config.max_concurrent_extractions
+    );
 
     let start_time = Instant::now();
 
@@ -269,7 +301,7 @@ fn test_concurrent_extraction_stress(config: &IntegrationTestConfig) -> Result<I
                 match component.extract(
                     (*html).clone(),
                     format!("https://stress.example.com/{}/{}", thread_id, op_id),
-                    ExtractionMode::Article
+                    ExtractionMode::Article,
                 ) {
                     Ok(_) => {
                         let extraction_time = extraction_start.elapsed().as_secs_f64() * 1000.0;
@@ -283,7 +315,7 @@ fn test_concurrent_extraction_stress(config: &IntegrationTestConfig) -> Result<I
                             let mut timings_guard = timings.lock().unwrap();
                             timings_guard.push(extraction_time);
                         }
-                    },
+                    }
                     Err(e) => {
                         {
                             let mut failed_guard = failed.lock().unwrap();
@@ -292,7 +324,8 @@ fn test_concurrent_extraction_stress(config: &IntegrationTestConfig) -> Result<I
 
                         {
                             let mut errors_guard = error_details.lock().unwrap();
-                            errors_guard.push(format!("Thread {}, Op {}: {:?}", thread_id, op_id, e));
+                            errors_guard
+                                .push(format!("Thread {}, Op {}: {:?}", thread_id, op_id, e));
                         }
                     }
                 }
@@ -304,7 +337,9 @@ fn test_concurrent_extraction_stress(config: &IntegrationTestConfig) -> Result<I
 
     // Wait for all threads to complete
     for handle in handles {
-        handle.join().map_err(|_| "Thread panicked during stress test".to_string())?;
+        handle
+            .join()
+            .map_err(|_| "Thread panicked during stress test".to_string())?;
     }
 
     let final_completed = *completed.lock().unwrap();
@@ -315,7 +350,9 @@ fn test_concurrent_extraction_stress(config: &IntegrationTestConfig) -> Result<I
     let total_time = start_time.elapsed().as_secs_f64() * 1000.0;
     let avg_time = if !final_timings.is_empty() {
         final_timings.iter().sum::<f64>() / final_timings.len() as f64
-    } else { 0.0 };
+    } else {
+        0.0
+    };
 
     let throughput = final_completed as f64 / (total_time / 1000.0);
 
@@ -339,7 +376,9 @@ fn test_concurrent_extraction_stress(config: &IntegrationTestConfig) -> Result<I
 }
 
 /// Test long-running memory stability
-fn test_long_running_memory_stability(_config: &IntegrationTestConfig) -> Result<IntegrationTestResult, String> {
+fn test_long_running_memory_stability(
+    _config: &IntegrationTestConfig,
+) -> Result<IntegrationTestResult, String> {
     println!("\n🧠 Testing long-running memory stability...");
 
     let _start_time = Instant::now();
@@ -358,7 +397,7 @@ fn test_long_running_memory_stability(_config: &IntegrationTestConfig) -> Result
         match component.extract(
             html.clone(),
             format!("https://memory.example.com/{}", i),
-            ExtractionMode::Article
+            ExtractionMode::Article,
         ) {
             Ok(_) => {
                 completed += 1;
@@ -372,7 +411,7 @@ fn test_long_running_memory_stability(_config: &IntegrationTestConfig) -> Result
                         println!("  Iteration {}: {:.1}MB memory", i, current_memory);
                     }
                 }
-            },
+            }
             Err(e) => {
                 failed += 1;
                 error_details.push(format!("Iteration {}: {:?}", i, e));
@@ -394,13 +433,18 @@ fn test_long_running_memory_stability(_config: &IntegrationTestConfig) -> Result
     };
 
     performance_metrics.insert("memory_growth_per_iteration_mb".to_string(), memory_trend);
-    performance_metrics.insert("peak_memory_mb".to_string(),
-        memory_samples.iter().fold(0.0_f64, |a, &b| a.max(b)));
+    performance_metrics.insert(
+        "peak_memory_mb".to_string(),
+        memory_samples.iter().fold(0.0_f64, |a, &b| a.max(b)),
+    );
 
     let success = failed < 10 && memory_trend < 0.01; // Less than 10KB growth per iteration
 
     if memory_trend > 0.01 {
-        error_details.push(format!("Potential memory leak: {:.3}MB growth per iteration", memory_trend));
+        error_details.push(format!(
+            "Potential memory leak: {:.3}MB growth per iteration",
+            memory_trend
+        ));
     }
 
     println!("  Memory trend: {:.3}MB per iteration", memory_trend);
@@ -418,7 +462,9 @@ fn test_long_running_memory_stability(_config: &IntegrationTestConfig) -> Result
 }
 
 /// Test error handling and recovery
-fn test_error_handling_recovery(_config: &IntegrationTestConfig) -> Result<IntegrationTestResult, String> {
+fn test_error_handling_recovery(
+    _config: &IntegrationTestConfig,
+) -> Result<IntegrationTestResult, String> {
     println!("\n🔧 Testing error handling and recovery...");
 
     let _start_time = Instant::now();
@@ -431,19 +477,39 @@ fn test_error_handling_recovery(_config: &IntegrationTestConfig) -> Result<Integ
 
     // Test recovery from various error conditions
     let error_scenarios = vec![
-        ("timeout_simulation", generate_complex_html(), ExtractionMode::Full),
-        ("memory_pressure", generate_stress_test_html(1024 * 1024), ExtractionMode::Article),
-        ("invalid_encoding", "<!DOCTYPE html><html><body>Invalid bytes</body></html>".to_string(), ExtractionMode::Article),
-        ("nested_structures", generate_deeply_nested_html(100), ExtractionMode::Full),
+        (
+            "timeout_simulation",
+            generate_complex_html(),
+            ExtractionMode::Full,
+        ),
+        (
+            "memory_pressure",
+            generate_stress_test_html(1024 * 1024),
+            ExtractionMode::Article,
+        ),
+        (
+            "invalid_encoding",
+            "<!DOCTYPE html><html><body>Invalid bytes</body></html>".to_string(),
+            ExtractionMode::Article,
+        ),
+        (
+            "nested_structures",
+            generate_deeply_nested_html(100),
+            ExtractionMode::Full,
+        ),
     ];
 
     for (scenario, html, mode) in error_scenarios {
         // First, try the problematic extraction
-        match component.extract(html, format!("https://error.example.com/{}", scenario), mode.clone()) {
+        match component.extract(
+            html,
+            format!("https://error.example.com/{}", scenario),
+            mode.clone(),
+        ) {
             Ok(_) => {
                 completed += 1;
                 println!("  ✅ {} handled successfully", scenario);
-            },
+            }
             Err(e) => {
                 println!("  ⚠️  {} failed as expected: {:?}", scenario, e);
 
@@ -452,15 +518,18 @@ fn test_error_handling_recovery(_config: &IntegrationTestConfig) -> Result<Integ
                 match component.extract(
                     recovery_html,
                     format!("https://recovery.example.com/{}", scenario),
-                    ExtractionMode::Article
+                    ExtractionMode::Article,
                 ) {
                     Ok(_) => {
                         completed += 1;
                         println!("    ✅ Recovery successful after {}", scenario);
-                    },
+                    }
                     Err(recovery_error) => {
                         failed += 1;
-                        error_details.push(format!("{} recovery failed: {:?}", scenario, recovery_error));
+                        error_details.push(format!(
+                            "{} recovery failed: {:?}",
+                            scenario, recovery_error
+                        ));
                     }
                 }
             }
@@ -474,17 +543,21 @@ fn test_error_handling_recovery(_config: &IntegrationTestConfig) -> Result<Integ
 
             // Verify normal operation after reset
             let test_html = load_test_fixture("blog_post")?;
-            match component.extract(test_html, "https://post-reset.example.com".to_string(), ExtractionMode::Article) {
+            match component.extract(
+                test_html,
+                "https://post-reset.example.com".to_string(),
+                ExtractionMode::Article,
+            ) {
                 Ok(_) => {
                     completed += 1;
                     println!("    ✅ Normal operation restored after reset");
-                },
+                }
                 Err(e) => {
                     failed += 1;
                     error_details.push(format!("Post-reset operation failed: {:?}", e));
                 }
             }
-        },
+        }
         Err(e) => {
             failed += 1;
             error_details.push(format!("Component reset failed: {:?}", e));
@@ -504,7 +577,9 @@ fn test_error_handling_recovery(_config: &IntegrationTestConfig) -> Result<Integ
 }
 
 /// Test multi-language content processing
-fn test_multi_language_processing(_config: &IntegrationTestConfig) -> Result<IntegrationTestResult, String> {
+fn test_multi_language_processing(
+    _config: &IntegrationTestConfig,
+) -> Result<IntegrationTestResult, String> {
     println!("\n🌍 Testing multi-language processing...");
 
     let component = Component;
@@ -528,7 +603,7 @@ fn test_multi_language_processing(_config: &IntegrationTestConfig) -> Result<Int
         match component.extract(
             html.to_string(),
             format!("https://multilang.example.com/{}", language),
-            ExtractionMode::Article
+            ExtractionMode::Article,
         ) {
             Ok(content) => {
                 completed += 1;
@@ -546,11 +621,9 @@ fn test_multi_language_processing(_config: &IntegrationTestConfig) -> Result<Int
                     }
                 }
 
-                performance_metrics.insert(
-                    format!("{}_extraction_time", language),
-                    extraction_time
-                );
-            },
+                performance_metrics
+                    .insert(format!("{}_extraction_time", language), extraction_time);
+            }
             Err(e) => {
                 failed += 1;
                 error_details.push(format!("{} extraction failed: {:?}", language, e));
@@ -563,7 +636,8 @@ fn test_multi_language_processing(_config: &IntegrationTestConfig) -> Result<Int
         success: failed == 0,
         extractions_completed: completed,
         extractions_failed: failed,
-        average_time_ms: performance_metrics.values().sum::<f64>() / performance_metrics.len() as f64,
+        average_time_ms: performance_metrics.values().sum::<f64>()
+            / performance_metrics.len() as f64,
         peak_memory_mb: get_peak_memory_usage() as f64 / 1024.0 / 1024.0,
         error_details,
         performance_metrics,
@@ -571,7 +645,9 @@ fn test_multi_language_processing(_config: &IntegrationTestConfig) -> Result<Int
 }
 
 /// Test batch processing performance
-fn test_batch_processing_performance(config: &IntegrationTestConfig) -> Result<IntegrationTestResult, String> {
+fn test_batch_processing_performance(
+    config: &IntegrationTestConfig,
+) -> Result<IntegrationTestResult, String> {
     println!("\n📦 Testing batch processing performance...");
 
     let start_time = Instant::now();
@@ -598,7 +674,7 @@ fn test_batch_processing_performance(config: &IntegrationTestConfig) -> Result<I
         match component.extract(
             html,
             format!("https://batch.example.com/item/{}", i),
-            ExtractionMode::Article
+            ExtractionMode::Article,
         ) {
             Ok(_) => {
                 completed += 1;
@@ -608,7 +684,7 @@ fn test_batch_processing_performance(config: &IntegrationTestConfig) -> Result<I
                 if (i + 1) % 10 == 0 {
                     println!("    Processed {} items", i + 1);
                 }
-            },
+            }
             Err(e) => {
                 failed += 1;
                 error_details.push(format!("Batch item {}: {:?}", i, e));
@@ -620,14 +696,20 @@ fn test_batch_processing_performance(config: &IntegrationTestConfig) -> Result<I
     let throughput = completed as f64 / (total_time / 1000.0);
     let avg_time = if !batch_timings.is_empty() {
         batch_timings.iter().sum::<f64>() / batch_timings.len() as f64
-    } else { 0.0 };
+    } else {
+        0.0
+    };
 
     performance_metrics.insert("batch_throughput_ops_per_sec".to_string(), throughput);
     performance_metrics.insert("total_batch_time_ms".to_string(), total_time);
     performance_metrics.insert("items_per_second".to_string(), throughput);
 
-    println!("  Batch completed: {} items in {:.2}s ({:.1} items/sec)",
-             completed, total_time / 1000.0, throughput);
+    println!(
+        "  Batch completed: {} items in {:.2}s ({:.1} items/sec)",
+        completed,
+        total_time / 1000.0,
+        throughput
+    );
 
     Ok(IntegrationTestResult {
         test_name: "batch_processing_performance".to_string(),
@@ -642,7 +724,9 @@ fn test_batch_processing_performance(config: &IntegrationTestConfig) -> Result<I
 }
 
 /// Test real-world website simulation
-fn test_real_world_website_simulation(_config: &IntegrationTestConfig) -> Result<IntegrationTestResult, String> {
+fn test_real_world_website_simulation(
+    _config: &IntegrationTestConfig,
+) -> Result<IntegrationTestResult, String> {
     println!("\n🌐 Testing real-world website simulation...");
 
     let component = Component;
@@ -666,7 +750,7 @@ fn test_real_world_website_simulation(_config: &IntegrationTestConfig) -> Result
         match component.extract_with_stats(
             html,
             format!("https://{}.example.com", site_type),
-            ExtractionMode::Full
+            ExtractionMode::Full,
         ) {
             Ok((content, _stats)) => {
                 completed += 1;
@@ -675,17 +759,15 @@ fn test_real_world_website_simulation(_config: &IntegrationTestConfig) -> Result
                 // Validate realistic content extraction
                 let quality_score = validate_real_world_extraction(&content, site_type);
 
-                println!("  ✅ {} extracted (quality: {:.1}%)", site_type, quality_score);
+                println!(
+                    "  ✅ {} extracted (quality: {:.1}%)",
+                    site_type, quality_score
+                );
 
-                performance_metrics.insert(
-                    format!("{}_quality_score", site_type),
-                    quality_score
-                );
-                performance_metrics.insert(
-                    format!("{}_extraction_time", site_type),
-                    extraction_time
-                );
-            },
+                performance_metrics.insert(format!("{}_quality_score", site_type), quality_score);
+                performance_metrics
+                    .insert(format!("{}_extraction_time", site_type), extraction_time);
+            }
             Err(e) => {
                 failed += 1;
                 error_details.push(format!("{} simulation failed: {:?}", site_type, e));
@@ -693,10 +775,12 @@ fn test_real_world_website_simulation(_config: &IntegrationTestConfig) -> Result
         }
     }
 
-    let avg_quality: f64 = performance_metrics.iter()
+    let avg_quality: f64 = performance_metrics
+        .iter()
         .filter(|(k, _)| k.contains("quality_score"))
         .map(|(_, v)| *v)
-        .sum::<f64>() / completed.max(1) as f64;
+        .sum::<f64>()
+        / completed.max(1) as f64;
 
     performance_metrics.insert("average_quality_score".to_string(), avg_quality);
 
@@ -707,10 +791,12 @@ fn test_real_world_website_simulation(_config: &IntegrationTestConfig) -> Result
         success: failed == 0 && avg_quality > 70.0,
         extractions_completed: completed,
         extractions_failed: failed,
-        average_time_ms: performance_metrics.iter()
+        average_time_ms: performance_metrics
+            .iter()
             .filter(|(k, _)| k.contains("extraction_time"))
             .map(|(_, v)| *v)
-            .sum::<f64>() / completed.max(1) as f64,
+            .sum::<f64>()
+            / completed.max(1) as f64,
         peak_memory_mb: get_peak_memory_usage() as f64 / 1024.0 / 1024.0,
         error_details,
         performance_metrics,
@@ -718,7 +804,9 @@ fn test_real_world_website_simulation(_config: &IntegrationTestConfig) -> Result
 }
 
 /// Test edge case handling
-fn test_edge_case_handling(_config: &IntegrationTestConfig) -> Result<IntegrationTestResult, String> {
+fn test_edge_case_handling(
+    _config: &IntegrationTestConfig,
+) -> Result<IntegrationTestResult, String> {
     println!("\n🔍 Testing edge case handling...");
 
     let component = Component;
@@ -730,18 +818,37 @@ fn test_edge_case_handling(_config: &IntegrationTestConfig) -> Result<Integratio
     let edge_cases = vec![
         ("empty_document", "".to_string()),
         ("whitespace_only", "   \n\t   ".to_string()),
-        ("html_comments_only", "<!-- This is just a comment -->".to_string()),
-        ("script_heavy", "<html><body><script>var x = 1;</script><script>var y = 2;</script></body></html>".to_string()),
-        ("style_heavy", "<html><head><style>body { color: red; }</style></head><body></body></html>".to_string()),
-        ("no_text_content", "<html><body><img src='test.jpg'><video src='test.mp4'></video></body></html>".to_string()),
-        ("malformed_tags", "<html><body><p>Unclosed paragraph<div>Nested incorrectly</p></div></body></html>".to_string()),
+        (
+            "html_comments_only",
+            "<!-- This is just a comment -->".to_string(),
+        ),
+        (
+            "script_heavy",
+            "<html><body><script>var x = 1;</script><script>var y = 2;</script></body></html>"
+                .to_string(),
+        ),
+        (
+            "style_heavy",
+            "<html><head><style>body { color: red; }</style></head><body></body></html>"
+                .to_string(),
+        ),
+        (
+            "no_text_content",
+            "<html><body><img src='test.jpg'><video src='test.mp4'></video></body></html>"
+                .to_string(),
+        ),
+        (
+            "malformed_tags",
+            "<html><body><p>Unclosed paragraph<div>Nested incorrectly</p></div></body></html>"
+                .to_string(),
+        ),
     ];
 
     for (case_name, html) in edge_cases {
         match component.extract(
             html,
             format!("https://edge.example.com/{}", case_name),
-            ExtractionMode::Article
+            ExtractionMode::Article,
         ) {
             Ok(content) => {
                 completed += 1;
@@ -753,11 +860,11 @@ fn test_edge_case_handling(_config: &IntegrationTestConfig) -> Result<Integratio
                 } else {
                     println!("  ✅ {} handled gracefully (no content)", case_name);
                 }
-            },
+            }
             Err(ExtractionError::InvalidHtml(_)) => {
                 completed += 1; // Expected for some edge cases
                 println!("  ✅ {} correctly rejected", case_name);
-            },
+            }
             Err(e) => {
                 // Some edge cases might legitimately fail
                 if case_name == "empty_document" || case_name == "whitespace_only" {
@@ -785,7 +892,9 @@ fn test_edge_case_handling(_config: &IntegrationTestConfig) -> Result<Integratio
 }
 
 /// Test production load simulation
-fn test_production_load_simulation(config: &IntegrationTestConfig) -> Result<IntegrationTestResult, String> {
+fn test_production_load_simulation(
+    config: &IntegrationTestConfig,
+) -> Result<IntegrationTestResult, String> {
     println!("\n🏭 Testing production load simulation...");
 
     let start_time = Instant::now();
@@ -796,7 +905,10 @@ fn test_production_load_simulation(config: &IntegrationTestConfig) -> Result<Int
     let target_rps = 50; // Requests per second
     let total_requests = load_duration_seconds * target_rps;
 
-    println!("  Simulating {}s of production load at {} RPS...", load_duration_seconds, target_rps);
+    println!(
+        "  Simulating {}s of production load at {} RPS...",
+        load_duration_seconds, target_rps
+    );
 
     let html_variants = vec![
         load_test_fixture("news_site").unwrap_or_default(),
@@ -826,12 +938,12 @@ fn test_production_load_simulation(config: &IntegrationTestConfig) -> Result<Int
                 match component.extract(
                     html.clone(),
                     format!("https://prod.example.com/{}/{}", thread_id, req_id),
-                    ExtractionMode::Article
+                    ExtractionMode::Article,
                 ) {
                     Ok(_) => {
                         let mut count = completed.lock().unwrap();
                         *count += 1;
-                    },
+                    }
                     Err(e) => {
                         let mut fail_count = failed.lock().unwrap();
                         *fail_count += 1;
@@ -851,7 +963,9 @@ fn test_production_load_simulation(config: &IntegrationTestConfig) -> Result<Int
 
     // Wait for simulation to complete
     for handle in handles {
-        handle.join().map_err(|_| "Production simulation thread panicked".to_string())?;
+        handle
+            .join()
+            .map_err(|_| "Production simulation thread panicked".to_string())?;
     }
 
     let final_completed = *completed_counter.lock().unwrap();
@@ -863,15 +977,19 @@ fn test_production_load_simulation(config: &IntegrationTestConfig) -> Result<Int
 
     performance_metrics.insert("actual_rps".to_string(), actual_rps);
     performance_metrics.insert("target_rps".to_string(), target_rps as f64);
-    performance_metrics.insert("success_rate".to_string(),
-        final_completed as f64 / (final_completed + final_failed) as f64);
+    performance_metrics.insert(
+        "success_rate".to_string(),
+        final_completed as f64 / (final_completed + final_failed) as f64,
+    );
 
     println!("  Production simulation completed:");
     println!("    Requests completed: {}", final_completed);
     println!("    Requests failed: {}", final_failed);
     println!("    Actual RPS: {:.1}", actual_rps);
-    println!("    Success rate: {:.1}%",
-             final_completed as f64 / (final_completed + final_failed) as f64 * 100.0);
+    println!(
+        "    Success rate: {:.1}%",
+        final_completed as f64 / (final_completed + final_failed) as f64 * 100.0
+    );
 
     Ok(IntegrationTestResult {
         test_name: "production_load_simulation".to_string(),
@@ -888,11 +1006,18 @@ fn test_production_load_simulation(config: &IntegrationTestConfig) -> Result<Int
 // Helper functions for integration tests
 
 fn load_test_fixture(fixture_name: &str) -> Result<String, String> {
-    std::fs::read_to_string(format!("tests/fixtures/{}.html", fixture_name))
-        .or_else(|_| Ok(format!("<html><body>Fallback content for {}</body></html>", fixture_name)))
+    std::fs::read_to_string(format!("tests/fixtures/{}.html", fixture_name)).or_else(|_| {
+        Ok(format!(
+            "<html><body>Fallback content for {}</body></html>",
+            fixture_name
+        ))
+    })
 }
 
-fn validate_extracted_content(content: &ExtractedContent, fixture_type: &str) -> Result<(), String> {
+fn validate_extracted_content(
+    content: &ExtractedContent,
+    fixture_type: &str,
+) -> Result<(), String> {
     match fixture_type {
         "news_site" => {
             if content.title.is_none() {
@@ -901,17 +1026,17 @@ fn validate_extracted_content(content: &ExtractedContent, fixture_type: &str) ->
             if content.text.len() < 100 {
                 return Err("News site should have substantial text content".to_string());
             }
-        },
+        }
         "blog_post" => {
             if content.byline.is_none() {
                 return Err("Blog post should have author information".to_string());
             }
-        },
+        }
         "gallery_site" => {
             if content.media.is_empty() {
                 return Err("Gallery site should have media content".to_string());
             }
-        },
+        }
         _ => {} // Other types have flexible validation
     }
 
@@ -922,27 +1047,49 @@ fn validate_real_world_extraction(content: &ExtractedContent, site_type: &str) -
     let mut score: f64 = 0.0;
 
     // Base score for having content
-    if !content.text.is_empty() { score += 20.0; }
-    if content.title.is_some() { score += 20.0; }
+    if !content.text.is_empty() {
+        score += 20.0;
+    }
+    if content.title.is_some() {
+        score += 20.0;
+    }
 
     // Content-specific scoring
     match site_type {
         "e_commerce" => {
-            if content.text.contains("Price") || content.text.contains("$") { score += 20.0; }
-            if !content.media.is_empty() { score += 15.0; }
-            if !content.links.is_empty() { score += 10.0; }
-        },
+            if content.text.contains("Price") || content.text.contains("$") {
+                score += 20.0;
+            }
+            if !content.media.is_empty() {
+                score += 15.0;
+            }
+            if !content.links.is_empty() {
+                score += 10.0;
+            }
+        }
         "news_portal" => {
-            if content.byline.is_some() { score += 15.0; }
-            if content.published_iso.is_some() { score += 10.0; }
-            if !content.categories.is_empty() { score += 10.0; }
-        },
+            if content.byline.is_some() {
+                score += 15.0;
+            }
+            if content.published_iso.is_some() {
+                score += 10.0;
+            }
+            if !content.categories.is_empty() {
+                score += 10.0;
+            }
+        }
         "documentation" => {
-            if content.text.len() > 1000 { score += 25.0; }
-            if !content.links.is_empty() { score += 10.0; }
-        },
+            if content.text.len() > 1000 {
+                score += 25.0;
+            }
+            if !content.links.is_empty() {
+                score += 10.0;
+            }
+        }
         _ => {
-            if content.word_count.unwrap_or(0) > 100 { score += 15.0; }
+            if content.word_count.unwrap_or(0) > 100 {
+                score += 15.0;
+            }
         }
     }
 
@@ -963,7 +1110,8 @@ fn generate_stress_test_html(size_bytes: usize) -> String {
 }
 
 fn generate_complex_html() -> String {
-    format!(r#"
+    format!(
+        r#"
         <!DOCTYPE html>
         <html>
         <head>
@@ -995,9 +1143,18 @@ fn generate_complex_html() -> String {
         </body>
         </html>
     "#,
-    (0..20).map(|i| format!("<li><a href='/page/{}'>Page {}</a></li>", i, i)).collect::<String>(),
-    (0..50).map(|i| format!("<p>Paragraph {} with some content and <a href='/link/{}'>links</a>.</p>", i, i)).collect::<String>(),
-    (0..10).map(|i| format!("<div>Sidebar item {}</div>", i)).collect::<String>()
+        (0..20)
+            .map(|i| format!("<li><a href='/page/{}'>Page {}</a></li>", i, i))
+            .collect::<String>(),
+        (0..50)
+            .map(|i| format!(
+                "<p>Paragraph {} with some content and <a href='/link/{}'>links</a>.</p>",
+                i, i
+            ))
+            .collect::<String>(),
+        (0..10)
+            .map(|i| format!("<div>Sidebar item {}</div>", i))
+            .collect::<String>()
     )
 }
 
@@ -1033,7 +1190,8 @@ fn create_ecommerce_html() -> String {
     </div>
     <img src="headphones.jpg" alt="Premium Headphones">
     <button>Add to Cart</button>
-    </body></html>"#.to_string()
+    </body></html>"#
+        .to_string()
 }
 
 fn create_news_portal_html() -> String {
@@ -1098,7 +1256,8 @@ fn create_landing_page_html() -> String {
     <div class="cta">
         <button>Start Free Trial</button>
     </div>
-    </body></html>"#.to_string()
+    </body></html>"#
+        .to_string()
 }
 
 fn get_current_memory_usage() -> u64 {
@@ -1134,12 +1293,21 @@ fn print_integration_test_summary(results: &[IntegrationTestResult]) {
         println!("Overall success rate: {:.1}%", success_rate * 100.0);
     }
 
-    let peak_memory: f64 = results.iter().map(|r| r.peak_memory_mb).fold(0.0_f64, |a, b| a.max(b));
+    let peak_memory: f64 = results
+        .iter()
+        .map(|r| r.peak_memory_mb)
+        .fold(0.0_f64, |a, b| a.max(b));
     println!("Peak memory usage: {:.1}MB", peak_memory);
 
     // Show performance highlights
-    if let Some(stress_test) = results.iter().find(|r| r.test_name == "concurrent_extraction_stress") {
-        if let Some(throughput) = stress_test.performance_metrics.get("throughput_ops_per_sec") {
+    if let Some(stress_test) = results
+        .iter()
+        .find(|r| r.test_name == "concurrent_extraction_stress")
+    {
+        if let Some(throughput) = stress_test
+            .performance_metrics
+            .get("throughput_ops_per_sec")
+        {
             println!("Max throughput: {:.1} ops/sec", throughput);
         }
     }
@@ -1157,7 +1325,9 @@ fn print_integration_test_summary(results: &[IntegrationTestResult]) {
     if passed == total_tests {
         println!("\n🎉 All integration tests passed! System is production-ready.");
     } else if passed >= total_tests * 8 / 10 {
-        println!("\n✅ Most integration tests passed. Review failed tests before production deployment.");
+        println!(
+            "\n✅ Most integration tests passed. Review failed tests before production deployment."
+        );
     } else {
         println!("\n⚠️  Significant integration test failures. System needs attention before production use.");
     }

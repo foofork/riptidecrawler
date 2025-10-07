@@ -41,10 +41,7 @@ impl SerperProvider {
             .build()
             .expect("Failed to create HTTP client");
 
-        Self {
-            api_key,
-            client,
-        }
+        Self { api_key, client }
     }
 }
 

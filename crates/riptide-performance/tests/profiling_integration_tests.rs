@@ -10,10 +10,8 @@
 
 use anyhow::Result;
 use riptide_performance::profiling::{
-    allocation_analyzer::AllocationAnalyzer,
-    leak_detector::LeakDetector,
-    memory_tracker::MemoryTracker,
-    AllocationInfo, LeakAnalysis,
+    allocation_analyzer::AllocationAnalyzer, leak_detector::LeakDetector,
+    memory_tracker::MemoryTracker, AllocationInfo, LeakAnalysis,
 };
 use std::collections::HashMap;
 use std::time::{Duration, SystemTime};
@@ -99,10 +97,7 @@ async fn test_complete_profiling_workflow() {
         .await
         .expect("Failed to get top allocators");
 
-    assert!(
-        top_allocators.len() > 0,
-        "Should have top allocators data"
-    );
+    assert!(top_allocators.len() > 0, "Should have top allocators data");
     assert!(
         top_allocators.len() <= 5,
         "Should have at most 5 components"
@@ -172,7 +167,10 @@ async fn test_telemetry_export() {
     // Verify snapshot structure matches telemetry requirements
     let metrics = convert_snapshot_to_metrics(&snapshot);
 
-    assert!(metrics.contains_key("memory.rss"), "Should export RSS metric");
+    assert!(
+        metrics.contains_key("memory.rss"),
+        "Should export RSS metric"
+    );
     assert!(
         metrics.contains_key("memory.virtual"),
         "Should export virtual memory metric"
@@ -345,7 +343,10 @@ async fn test_memory_leak_alert() {
         leak_info.total_size_bytes > 50 * 1024 * 1024,
         "Should have significant memory usage"
     );
-    assert_eq!(leak_info.allocation_count, 200, "Should track all allocations");
+    assert_eq!(
+        leak_info.allocation_count, 200,
+        "Should track all allocations"
+    );
 
     // Test alert triggering logic
     let alerts = generate_leak_alerts(&leak_analysis);
@@ -443,7 +444,9 @@ async fn test_memory_tracker_accuracy() {
         .expect("Failed to get snapshot");
 
     // Calculate difference
-    let rss_increase = after_allocation.rss_bytes.saturating_sub(baseline.rss_bytes);
+    let rss_increase = after_allocation
+        .rss_bytes
+        .saturating_sub(baseline.rss_bytes);
 
     // Verify increase is reasonable (should be close to 100MB, but allow for overhead)
     assert!(
@@ -462,10 +465,7 @@ async fn test_memory_tracker_accuracy() {
         .expect("Failed to get breakdown");
 
     let rss_total = breakdown.get("rss_total").unwrap_or(&0);
-    assert!(
-        *rss_total > 0,
-        "RSS total should be positive in breakdown"
-    );
+    assert!(*rss_total > 0, "RSS total should be positive in breakdown");
 }
 
 #[tokio::test]
@@ -635,9 +635,9 @@ async fn test_allocation_analysis() {
 
     // Create diverse allocation patterns
     let patterns = vec![
-        ("pool_candidate", "allocate", 64, 1000),   // Many small
+        ("pool_candidate", "allocate", 64, 1000),      // Many small
         ("large_component", "process", 10_000_000, 5), // Few large
-        ("medium_component", "compute", 100_000, 50), // Medium
+        ("medium_component", "compute", 100_000, 50),  // Medium
     ];
 
     for (component, operation, size, count) in patterns {
@@ -714,10 +714,7 @@ async fn test_allocation_analysis() {
         .await
         .expect("Failed to analyze fragmentation");
 
-    assert!(
-        fragmentation.len() > 0,
-        "Should have fragmentation metrics"
-    );
+    assert!(fragmentation.len() > 0, "Should have fragmentation metrics");
 
     // Test efficiency score
     let efficiency = analyzer
@@ -938,10 +935,7 @@ fn convert_snapshot_to_metrics(
     metrics
 }
 
-async fn get_metrics_endpoint(
-    tracker: &MemoryTracker,
-    detector: &LeakDetector,
-) -> Result<String> {
+async fn get_metrics_endpoint(tracker: &MemoryTracker, detector: &LeakDetector) -> Result<String> {
     let snapshot = tracker.get_current_snapshot().await?;
     let pressure = detector.get_memory_pressure().await?;
 

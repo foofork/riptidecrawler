@@ -5,7 +5,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::debug;
 
-use super::base::{AuthHeader, CostCalculator, HealthChecker, HttpClientBuilder, HttpRequestHandler, ModelCost};
+use super::base::{
+    AuthHeader, CostCalculator, HealthChecker, HttpClientBuilder, HttpRequestHandler, ModelCost,
+};
 use crate::{
     CompletionRequest, CompletionResponse, Cost, IntelligenceError, LlmCapabilities, LlmProvider,
     ModelInfo, Result, Role, Usage,
@@ -100,8 +102,7 @@ impl OpenAIProvider {
         let http_handler = HttpRequestHandler::new(client, base_url, auth);
 
         // Initialize cost calculator with OpenAI pricing
-        let mut cost_calculator = CostCalculator::new()
-            .with_default_model("gpt-4o".to_string());
+        let mut cost_calculator = CostCalculator::new().with_default_model("gpt-4o".to_string());
 
         // OpenAI pricing as of 2024 (per 1K tokens)
         cost_calculator
@@ -110,7 +111,10 @@ impl OpenAIProvider {
             .add_model_cost("gpt-4o".to_string(), ModelCost::new(0.005, 0.015))
             .add_model_cost("gpt-4o-mini".to_string(), ModelCost::new(0.00015, 0.0006))
             .add_model_cost("gpt-3.5-turbo".to_string(), ModelCost::new(0.0015, 0.002))
-            .add_model_cost("gpt-3.5-turbo-16k".to_string(), ModelCost::new(0.003, 0.004));
+            .add_model_cost(
+                "gpt-3.5-turbo-16k".to_string(),
+                ModelCost::new(0.003, 0.004),
+            );
 
         Ok(Self {
             http_handler,
@@ -203,10 +207,8 @@ impl LlmProvider for OpenAIProvider {
             input: text.to_string(),
         };
 
-        let response: OpenAIEmbeddingResponse = self
-            .http_handler
-            .post("embeddings", &request)
-            .await?;
+        let response: OpenAIEmbeddingResponse =
+            self.http_handler.post("embeddings", &request).await?;
 
         let embedding = response
             .data
@@ -297,7 +299,9 @@ impl LlmProvider for OpenAIProvider {
             stop: None,
         };
 
-        checker.check::<OpenAIResponse, _>(&self.http_handler, test_request).await
+        checker
+            .check::<OpenAIResponse, _>(&self.http_handler, test_request)
+            .await
     }
 
     fn name(&self) -> &str {

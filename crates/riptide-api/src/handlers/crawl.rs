@@ -243,8 +243,8 @@ pub(super) async fn handle_spider_crawl(
     let seed_urls = parse_seed_urls(urls)?;
 
     // Build spider config using shared builder
-    let _spider_config = SpiderConfigBuilder::new(state, seed_urls[0].clone())
-        .from_crawl_options(options);
+    let _spider_config =
+        SpiderConfigBuilder::new(state, seed_urls[0].clone()).from_crawl_options(options);
 
     debug!("Using spider crawl with provided options");
 

@@ -10,8 +10,8 @@ pub mod benchmarks;
 /// of the WASM extractor with golden tests, benchmarks, and integration testing.
 // Re-export test modules
 pub mod golden;
-pub mod memory_limiter;
 pub mod integration;
+pub mod memory_limiter;
 
 // Import the main component for testing
 // Note: Specific imports should be done in each test module as needed
@@ -289,7 +289,8 @@ fn run_integration_test_category() -> Result<TestCategoryResult, String> {
             let passed = results.iter().filter(|r| r.success).count();
             let failed = results.len() - passed;
 
-            let errors: Vec<String> = results.iter()
+            let errors: Vec<String> = results
+                .iter()
                 .filter(|r| !r.success)
                 .flat_map(|r| r.error_details.iter().cloned())
                 .take(10) // Limit error details
@@ -303,17 +304,15 @@ fn run_integration_test_category() -> Result<TestCategoryResult, String> {
                 duration_ms: duration,
                 errors,
             })
-        },
-        Err(e) => {
-            Ok(TestCategoryResult {
-                passed: 0,
-                failed: 1,
-                total: 1,
-                success_rate: 0.0,
-                duration_ms: start_time.elapsed().as_secs_f64() * 1000.0,
-                errors: vec![e],
-            })
         }
+        Err(e) => Ok(TestCategoryResult {
+            passed: 0,
+            failed: 1,
+            total: 1,
+            success_rate: 0.0,
+            duration_ms: start_time.elapsed().as_secs_f64() * 1000.0,
+            errors: vec![e],
+        }),
     }
 }
 

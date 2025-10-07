@@ -4,9 +4,9 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use tower::{Layer, Service};
-use std::task::{Context, Poll};
 use std::pin::Pin;
+use std::task::{Context, Poll};
+use tower::{Layer, Service};
 
 /// Default maximum request body size (10 MB)
 const DEFAULT_MAX_PAYLOAD_SIZE: usize = 10 * 1024 * 1024;
@@ -62,7 +62,8 @@ where
 {
     type Response = S::Response;
     type Error = S::Error;
-    type Future = Pin<Box<dyn std::future::Future<Output = Result<Self::Response, Self::Error>> + Send>>;
+    type Future =
+        Pin<Box<dyn std::future::Future<Output = Result<Self::Response, Self::Error>> + Send>>;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         self.inner.poll_ready(cx)
@@ -81,8 +82,7 @@ where
                         if length > max_size {
                             let error_msg = format!(
                                 "Request payload too large: {} bytes (max {} bytes)",
-                                length,
-                                max_size
+                                length, max_size
                             );
                             tracing::warn!(
                                 size = length,

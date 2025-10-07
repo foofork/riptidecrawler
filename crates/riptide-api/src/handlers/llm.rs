@@ -368,14 +368,12 @@ pub async fn switch_provider(
             .collect();
 
         // Create provider config using the builder pattern
-        let provider_config = ProviderConfig::new(
-            request.provider_name.clone(),
-            request.provider_name.clone(),
-        )
-        .with_config(
-            "config",
-            serde_json::Value::Object(config_values.into_iter().collect()),
-        );
+        let provider_config =
+            ProviderConfig::new(request.provider_name.clone(), request.provider_name.clone())
+                .with_config(
+                    "config",
+                    serde_json::Value::Object(config_values.into_iter().collect()),
+                );
 
         // Apply the configuration by loading the provider
         if let Err(e) = registry_guard.load_provider(provider_config) {

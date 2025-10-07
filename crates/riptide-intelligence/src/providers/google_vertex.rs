@@ -106,13 +106,19 @@ impl VertexAIProvider {
         let client = HttpClientBuilder::new().build()?;
 
         // Initialize cost calculator with Vertex AI pricing
-        let mut cost_calculator = CostCalculator::new()
-            .with_default_model("gemini-1.5-pro".to_string());
+        let mut cost_calculator =
+            CostCalculator::new().with_default_model("gemini-1.5-pro".to_string());
 
         // Vertex AI pricing (approximate, varies by region)
         cost_calculator
-            .add_model_cost("gemini-1.5-pro".to_string(), ModelCost::new(0.00125, 0.00375))
-            .add_model_cost("gemini-1.5-flash".to_string(), ModelCost::new(0.000075, 0.0003))
+            .add_model_cost(
+                "gemini-1.5-pro".to_string(),
+                ModelCost::new(0.00125, 0.00375),
+            )
+            .add_model_cost(
+                "gemini-1.5-flash".to_string(),
+                ModelCost::new(0.000075, 0.0003),
+            )
             .add_model_cost("gemini-1.0-pro".to_string(), ModelCost::new(0.0005, 0.0015))
             .add_model_cost("text-bison".to_string(), ModelCost::new(0.001, 0.001))
             .add_model_cost("chat-bison".to_string(), ModelCost::new(0.0005, 0.0005));

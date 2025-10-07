@@ -8,16 +8,15 @@ use walkdir::WalkDir;
 
 static RE_LET_UNDERSCORE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r#"(?m)^\s*let\s+(_[A-Za-z0-9_]+)\s*=\s*(.+?);\s*$"#).unwrap());
-static RE_TODO: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r#"(?i)\b(TODO|FIXME|HACK|XXX)\b"#).unwrap());
-static RE_GUARD: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r#"(Mutex|RwLock|parking_lot|RwLockReadGuard|RwLockWriteGuard)"#).unwrap());
-static RE_SPAWN: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r#"tokio::spawn\s*\("#).unwrap());
-static RE_RESULT_HINT: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r#"(Result<|anyhow::Result|eyre::Result|std::io::Result|\?)"#).unwrap());
-static RE_SPIDER_CONFIG: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r#"SpiderConfigBuilder"#).unwrap());
+static RE_TODO: Lazy<Regex> = Lazy::new(|| Regex::new(r#"(?i)\b(TODO|FIXME|HACK|XXX)\b"#).unwrap());
+static RE_GUARD: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r#"(Mutex|RwLock|parking_lot|RwLockReadGuard|RwLockWriteGuard)"#).unwrap()
+});
+static RE_SPAWN: Lazy<Regex> = Lazy::new(|| Regex::new(r#"tokio::spawn\s*\("#).unwrap());
+static RE_RESULT_HINT: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r#"(Result<|anyhow::Result|eyre::Result|std::io::Result|\?)"#).unwrap()
+});
+static RE_SPIDER_CONFIG: Lazy<Regex> = Lazy::new(|| Regex::new(r#"SpiderConfigBuilder"#).unwrap());
 static RE_CONNECTION_POOL: Lazy<Regex> =
     Lazy::new(|| Regex::new(r#"ConnectionPool|Pool<"#).unwrap());
 static RE_AXUM_HANDLER: Lazy<Regex> =
@@ -67,7 +66,10 @@ fn get_crate_name(path: &Path) -> Option<String> {
     let components: Vec<_> = path.components().collect();
     for (i, comp) in components.iter().enumerate() {
         if comp.as_os_str() == "crates" && i + 1 < components.len() {
-            return components[i + 1].as_os_str().to_str().map(|s| s.to_string());
+            return components[i + 1]
+                .as_os_str()
+                .to_str()
+                .map(|s| s.to_string());
         }
         if comp.as_os_str() == "playground" {
             return Some("playground".to_string());
@@ -85,7 +87,8 @@ fn scan_dir(root: &Path, crate_filter: Option<&str>) -> Result<Vec<Finding>> {
             !p.components().any(|c| {
                 let os_str = c.as_os_str();
                 os_str == "target" || os_str == "node_modules" || os_str == ".git"
-            }) && !p.file_name()
+            }) && !p
+                .file_name()
                 .map(|n| n.to_string_lossy().starts_with('.'))
                 .unwrap_or(false)
         })
@@ -199,7 +202,8 @@ fn write_markdown(findings: &[Finding]) -> Result<()> {
     s.push_str("---\n\n");
 
     // Group by crate first
-    let mut crates: Vec<String> = findings.iter()
+    let mut crates: Vec<String> = findings
+        .iter()
         .map(|f| f.crate_name.clone())
         .collect::<std::collections::HashSet<_>>()
         .into_iter()
@@ -207,7 +211,8 @@ fn write_markdown(findings: &[Finding]) -> Result<()> {
     crates.sort();
 
     for crate_name in &crates {
-        let crate_findings: Vec<_> = findings.iter()
+        let crate_findings: Vec<_> = findings
+            .iter()
             .filter(|f| &f.crate_name == crate_name)
             .cloned()
             .collect();
@@ -219,7 +224,8 @@ fn write_markdown(findings: &[Finding]) -> Result<()> {
         s.push_str(&format!("## Crate: `{}`\n\n", crate_name));
 
         for category in ["Underscore lets", "TODOs"] {
-            let mut group: Vec<_> = crate_findings.iter()
+            let mut group: Vec<_> = crate_findings
+                .iter()
                 .filter(|f| f.category == category)
                 .cloned()
                 .collect();
@@ -231,12 +237,20 @@ fn write_markdown(findings: &[Finding]) -> Result<()> {
             group.sort_by(|a, b| a.file.cmp(&b.file).then(a.line.cmp(&b.line)));
 
             s.push_str(&format!("### {}\n\n", category));
-            s.push_str("| ✔ | File | Line | Variable | Snippet / Context | Initial | Decision | Notes |\n");
-            s.push_str("|:-:|:-----|-----:|:--------:|:------------------|:--------|:---------|:------|\n");
+            s.push_str(
+                "| ✔ | File | Line | Variable | Snippet / Context | Initial | Decision | Notes |\n",
+            );
+            s.push_str(
+                "|:-:|:-----|-----:|:--------:|:------------------|:--------|:---------|:------|\n",
+            );
 
             for f in group {
                 let check = " "; // space placeholder for manual ticking
-                let var = if f.variable.is_empty() { "—" } else { f.variable.as_str() };
+                let var = if f.variable.is_empty() {
+                    "—"
+                } else {
+                    f.variable.as_str()
+                };
                 // Escape pipes inside snippet for GFM tables and truncate if too long
                 let snippet = f.snippet.replace('|', r"\|");
                 let snippet = if snippet.len() > 80 {
@@ -246,7 +260,9 @@ fn write_markdown(findings: &[Finding]) -> Result<()> {
                 };
 
                 // Make file path relative if possible
-                let rel_file = f.file.strip_prefix("/workspaces/eventmesh/")
+                let rel_file = f
+                    .file
+                    .strip_prefix("/workspaces/eventmesh/")
                     .unwrap_or(&f.file);
 
                 s.push_str(&format!(
@@ -262,10 +278,16 @@ fn write_markdown(findings: &[Finding]) -> Result<()> {
     s.push_str("---\n\n## Summary\n\n");
     s.push_str(&format!("- **Total findings:** {}\n", findings.len()));
 
-    let underscore_count = findings.iter().filter(|f| f.category == "Underscore lets").count();
+    let underscore_count = findings
+        .iter()
+        .filter(|f| f.category == "Underscore lets")
+        .count();
     let todo_count = findings.iter().filter(|f| f.category == "TODOs").count();
 
-    s.push_str(&format!("- **Underscore bindings:** {}\n", underscore_count));
+    s.push_str(&format!(
+        "- **Underscore bindings:** {}\n",
+        underscore_count
+    ));
     s.push_str(&format!("- **TODOs/FIXMEs:** {}\n", todo_count));
     s.push_str(&format!("- **Crates analyzed:** {}\n", crates.len()));
 
@@ -300,7 +322,9 @@ fn apply_simple_rewrites(root: &Path, crate_filter: Option<&str>) -> Result<usiz
             }
         }
 
-        let Ok(text) = fs::read_to_string(path) else { continue };
+        let Ok(text) = fs::read_to_string(path) else {
+            continue;
+        };
         let mut line_changes = 0;
 
         let replaced = RE_LET_UNDERSCORE
@@ -312,8 +336,7 @@ fn apply_simple_rewrites(root: &Path, crate_filter: Option<&str>) -> Result<usiz
             .to_string();
 
         if replaced != text {
-            fs::write(path, replaced)
-                .with_context(|| format!("writing {}", path.display()))?;
+            fs::write(path, replaced).with_context(|| format!("writing {}", path.display()))?;
             files_changed += 1;
             changed += line_changes;
             println!("  Fixed {} lines in {}", line_changes, path.display());
@@ -341,7 +364,10 @@ fn main() -> Result<()> {
             let findings = scan_dir(Path::new("."), crate_name.as_deref())?;
             write_markdown(&findings)?;
 
-            println!("\n✅ Report written to .reports/triage.md ({} findings)", findings.len());
+            println!(
+                "\n✅ Report written to .reports/triage.md ({} findings)",
+                findings.len()
+            );
             println!("\nNext steps:");
             println!("  1. Review .reports/triage.md");
             println!("  2. Fill in Decision column for each finding");

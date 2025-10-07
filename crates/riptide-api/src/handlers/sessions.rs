@@ -73,14 +73,10 @@ pub struct ListSessionsQuery {
 
 /// Create a new session
 pub async fn create_session(State(state): State<AppState>) -> Result<impl IntoResponse, ApiError> {
-    let session = state
-        .session_manager
-        .create_session()
-        .await
-        .map_err(|e| {
-            state.metrics.record_error(crate::metrics::ErrorType::Redis);
-            ApiError::dependency("session_manager", e.to_string())
-        })?;
+    let session = state.session_manager.create_session().await.map_err(|e| {
+        state.metrics.record_error(crate::metrics::ErrorType::Redis);
+        ApiError::dependency("session_manager", e.to_string())
+    })?;
 
     let response = CreateSessionResponse {
         session_id: session.session_id.clone(),
@@ -397,14 +393,10 @@ pub async fn list_sessions(
 pub async fn get_session_stats(
     State(state): State<AppState>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let stats = state
-        .session_manager
-        .get_stats()
-        .await
-        .map_err(|e| {
-            state.metrics.record_error(crate::metrics::ErrorType::Redis);
-            ApiError::dependency("session_manager", e.to_string())
-        })?;
+    let stats = state.session_manager.get_stats().await.map_err(|e| {
+        state.metrics.record_error(crate::metrics::ErrorType::Redis);
+        ApiError::dependency("session_manager", e.to_string())
+    })?;
 
     debug!(
         total_sessions = stats.total_sessions,
@@ -419,14 +411,10 @@ pub async fn get_session_stats(
 pub async fn cleanup_expired_sessions(
     State(state): State<AppState>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let removed_count = state
-        .session_manager
-        .cleanup_expired()
-        .await
-        .map_err(|e| {
-            state.metrics.record_error(crate::metrics::ErrorType::Redis);
-            ApiError::dependency("session_manager", e.to_string())
-        })?;
+    let removed_count = state.session_manager.cleanup_expired().await.map_err(|e| {
+        state.metrics.record_error(crate::metrics::ErrorType::Redis);
+        ApiError::dependency("session_manager", e.to_string())
+    })?;
 
     info!(
         removed_count = removed_count,

@@ -15,10 +15,10 @@ pub mod reports;
 
 pub use ndjson::*;
 // pub use reports::*;      // Keep disabled until ReportGenerator resolved
-pub use progress::*; // ✅ ENABLED
+pub use backpressure::*;
 pub use config::*; // ✅ ENABLED
-pub use backpressure::*; // ✅ ENABLED - for streaming tests
-// pub use openapi::*;       // Verify before enabling
+pub use progress::*; // ✅ ENABLED // ✅ ENABLED - for streaming tests
+                                   // pub use openapi::*;       // Verify before enabling
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};

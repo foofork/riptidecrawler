@@ -530,8 +530,7 @@ impl PerHostFetchEngine {
 
     /// Extract hostname from URL
     fn extract_host(url: &str) -> Result<String> {
-        let parsed = url::Url::parse(url)
-            .map_err(|e| anyhow::anyhow!("Invalid URL: {}", e))?;
+        let parsed = url::Url::parse(url).map_err(|e| anyhow::anyhow!("Invalid URL: {}", e))?;
 
         let host = parsed
             .host_str()
@@ -577,9 +576,7 @@ impl PerHostFetchEngine {
     /// Record metrics for a host
     fn record_metrics(&self, host: &str, duration: Duration, success: bool) {
         let mut metrics_map = self.metrics.write().unwrap();
-        let host_metrics = metrics_map
-            .entry(host.to_string())
-            .or_default();
+        let host_metrics = metrics_map.entry(host.to_string()).or_default();
 
         host_metrics.request_count += 1;
         host_metrics.total_duration_ms += duration.as_millis() as u64;
@@ -720,7 +717,8 @@ mod tests {
 
     #[test]
     fn test_reliable_client_creation() {
-        let _client = ReliableHttpClient::new(RetryConfig::default(), CircuitBreakerConfig::default());
+        let _client =
+            ReliableHttpClient::new(RetryConfig::default(), CircuitBreakerConfig::default());
         // Test passes if client creation doesn't panic
     }
 
