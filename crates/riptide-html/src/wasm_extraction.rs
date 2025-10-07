@@ -306,7 +306,8 @@ impl CmExtractor {
 
         // Enable AOT cache if configured
         if config.enable_aot_cache {
-            wasmtime_config.cache_config_load_default()?;
+            // wasmtime v34: cache_config_load_default() removed, use cache_config_load() with None for default
+            wasmtime_config.cache_config_load(None)?;
         }
 
         let engine = Engine::new(&wasmtime_config)?;

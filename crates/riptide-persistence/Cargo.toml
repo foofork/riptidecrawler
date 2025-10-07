@@ -34,7 +34,7 @@ crc32fast = "1.4"
 serde_yaml = "0.9"
 
 # For metrics and monitoring
-prometheus = { version = "0.13", features = ["process"], optional = true }
+prometheus = { version = "0.14", features = ["process"], optional = true }  # Updated to fix protobuf RUSTSEC-2024-0437
 
 [dev-dependencies]
 tokio-test = "0.4"

@@ -9,7 +9,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-wit-bindgen = "0.30"
+wit-bindgen = "0.34"  # Updated to match wasmtime 34.0.2 wit-parser version
 trek-rs = "0.1"  # Use actual available version
 once_cell = "1"
 chrono = { version = "0.4", features = ["serde", "wasm-bindgen"] }
