@@ -215,17 +215,22 @@ impl WorkloadGenerator {
             let times = request_times.clone();
 
             let handle = tokio::spawn(async move {
-                let _permit = sem.acquire().await.unwrap();
+                // RAII guard: hold semaphore permit for the duration of the operation
+                let permit = sem.acquire().await.unwrap();
                 let start = Instant::now();
 
-                match op().await {
+                let result = match op().await {
                     Ok(latency) => {
                         let mut times_guard = times.lock().unwrap();
                         times_guard.push(latency.as_millis() as f64);
                         Ok(())
                     }
                     Err(e) => Err(e),
-                }
+                };
+
+                // Permit dropped here automatically
+                drop(permit);
+                result
             });
 
             handles.push(handle);
@@ -599,10 +604,14 @@ async fn test_resource_limit_enforcement() {
     for i in 0..20 {
         let sem = semaphore.clone();
         let handle = tokio::spawn(async move {
-            let _permit = sem.acquire().await.unwrap();
+            // RAII guard: hold semaphore permit to limit concurrency
+            let permit = sem.acquire().await.unwrap();
 
             // Simulate work
             tokio::time::sleep(Duration::from_millis(100)).await;
+
+            // Permit dropped here automatically
+            drop(permit);
             i
         });
         handles.push(handle);

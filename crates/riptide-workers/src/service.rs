@@ -124,12 +124,9 @@ impl WorkerService {
         let processors = self.create_job_processors().await?;
 
         // Create and configure worker pool
-        let mut worker_pool = WorkerPool::new(self.config.worker_config.clone(), {
-            let _queue = self.queue.lock().await;
-            // We need to clone the queue, but JobQueue doesn't implement Clone
-            // For now, we'll create a new queue connection
-            JobQueue::new(&self.config.redis_url, self.config.queue_config.clone()).await?
-        });
+        // Note: JobQueue doesn't implement Clone, so we create a new connection for the worker pool
+        let queue_for_pool = JobQueue::new(&self.config.redis_url, self.config.queue_config.clone()).await?;
+        let mut worker_pool = WorkerPool::new(self.config.worker_config.clone(), queue_for_pool);
 
         // Add processors to worker pool
         for processor in processors {
@@ -151,8 +148,9 @@ impl WorkerService {
 
             // Start worker pool
             let worker_handle = {
-                let worker_pool = self.worker_pool.as_ref().unwrap();
-                let _worker_pool_clone = Arc::new(worker_pool);
+                let _worker_pool = self.worker_pool.as_ref().unwrap();
+                // TODO: Implement proper worker pool lifecycle management
+                // The worker pool needs to be moved into the spawned task or wrapped in Arc
                 tokio::spawn(async move {
                     // Due to ownership issues, we'll need to handle this differently
                     // For now, we'll log that the worker pool would start here

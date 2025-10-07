@@ -280,7 +280,8 @@ async fn test_session_management_performance() -> Result<(), Box<dyn std::error:
     let retrieve_start = Instant::now();
 
     for session_id in &session_ids {
-        let _session = state_manager.get_session(session_id).await?;
+        let session = state_manager.get_session(session_id).await?;
+        assert!(session.is_some(), "Session should exist during performance test");
     }
 
     let retrieve_duration = retrieve_start.elapsed();
@@ -409,8 +410,8 @@ async fn test_memory_usage_patterns() -> Result<(), Box<dyn std::error::Error>> 
     println!("Memory usage after {} entries: {} bytes", data_points, after_write_memory);
 
     // Clear cache and measure memory cleanup
-    let _cleared = cache_manager.clear().await?;
-
+    let cleared_count = cache_manager.clear().await?;
+    assert!(cleared_count > 0, "Should have cleared some entries");
     // Give some time for cleanup
     tokio::time::sleep(Duration::from_millis(100)).await;
 

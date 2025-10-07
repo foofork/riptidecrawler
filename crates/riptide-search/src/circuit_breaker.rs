@@ -348,9 +348,10 @@ mod tests {
         };
         let circuit = CircuitBreakerWrapper::with_config(provider, config);
 
-        // Generate failures to trip the circuit
-        let _fail1 = circuit.search("no urls here", 1, "us", "en").await;
-        let _fail2 = circuit.search("still no urls", 1, "us", "en").await;
+        // Generate intentional failures to trip the circuit breaker
+        // These searches contain invalid input to trigger the failure threshold
+        let _fail1_result = circuit.search("no urls here", 1, "us", "en").await;
+        let _fail2_result = circuit.search("still no urls", 1, "us", "en").await;
 
         // Circuit should now be open due to 100% failure rate
         assert_eq!(circuit.current_state(), CircuitState::Open);
@@ -375,9 +376,10 @@ mod tests {
         };
         let circuit = CircuitBreakerWrapper::with_config(provider, config);
 
-        // Trip the circuit
-        let _fail1 = circuit.search("no urls", 1, "us", "en").await;
-        let _fail2 = circuit.search("no urls", 1, "us", "en").await;
+        // Trip the circuit breaker with intentional failures
+        // These invalid queries are expected to fail and open the circuit
+        let _fail1_result = circuit.search("no urls", 1, "us", "en").await;
+        let _fail2_result = circuit.search("no urls", 1, "us", "en").await;
         assert_eq!(circuit.current_state(), CircuitState::Open);
 
         // Wait for recovery timeout

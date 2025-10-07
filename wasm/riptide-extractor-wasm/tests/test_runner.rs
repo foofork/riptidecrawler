@@ -3,10 +3,13 @@
 /// This test runner coordinates all test suites and generates comprehensive reports
 /// for the WASM extractor component validation.
 // Import the main crate
-use riptide_extractor_wasm::Component;
-// Note: In standalone test files, we need to call test functions differently
-// These modules are available in the mod.rs but not directly importable here
-// Note: integration module is defined in tests/mod.rs but doesn't exist yet
+use riptide_extractor_wasm::{Component, ExtractionMode};
+
+mod aot_cache;
+mod benchmarks;
+mod golden;
+mod integration;
+mod memory_limiter;
 
 #[tokio::test]
 async fn run_comprehensive_test_suite() {
@@ -32,12 +35,12 @@ async fn run_comprehensive_test_suite() {
     println!("✅ Basic component functionality tests passed!");
     println!("🎉 Component is ready for basic usage testing.");
 
-    // TODO: Re-enable full test suite when modules are properly accessible
+    // Full test suite enabled - all modules are now accessible
 }
 
-// TODO: Re-enable individual test category runners when modules are accessible
+// Individual test category runners enabled - all modules are accessible
 
-/*
+
 #[tokio::test]
 async fn run_golden_tests_only() {
     println!("📸 Running Golden Tests Only");
@@ -125,9 +128,8 @@ async fn run_integration_tests_only() {
     println!("🔗 Running Integration Tests Only");
     println!("=================================");
 
-    // TODO: Re-enable when integration module is implemented
-    // match integration::run_integration_tests() {
-    match Ok(vec![]) {
+    // Re-enabled: integration module is now implemented
+    match integration::run_integration_tests() {
         Ok(results) => {
             let passed = results.iter().filter(|r| r.success).count();
             let total = results.len();
@@ -310,7 +312,7 @@ fn compatibility_test_extraction_modes() {
         let result = component.extract(
             html.clone(),
             format!("https://compat.test/{:?}", mode),
-            mode
+            mode.clone()
         );
 
         assert!(
@@ -400,4 +402,3 @@ mod test_utilities {
         }
     }
 }
-*/

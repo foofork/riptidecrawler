@@ -69,7 +69,8 @@ async fn test_render_timeout_hard_cap() -> Result<()> {
     let result = tokio::time::timeout(
         Duration::from_secs(4), // Longer than the 3s cap
         async {
-            let _guard = manager
+            // Acquire guard and keep it alive for the duration of the test
+            let _render_guard = manager
                 .acquire_render_resources("https://example.com")
                 .await?;
             sleep(Duration::from_secs(5)).await; // Simulate slow operation
@@ -342,8 +343,8 @@ async fn test_concurrent_operations_stress() -> Result<()> {
             let result = manager_clone.acquire_render_resources(&url).await;
 
             match result {
-                Ok(ResourceResult::Success(_guard)) => {
-                    // Simulate work
+                Ok(ResourceResult::Success(_render_guard)) => {
+                    // Simulate work while holding the guard
                     sleep(Duration::from_millis(100)).await;
                     true
                 }

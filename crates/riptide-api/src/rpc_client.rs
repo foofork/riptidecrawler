@@ -52,7 +52,18 @@ impl RpcClient {
         // Convert dynamic config to headless browser format
         let request = HeadlessRenderRequest {
             url: url.to_string(),
-            session_id: None, // TODO: Implement session persistence
+            session_id: None,
+            // TODO(P1): Implement session persistence for stateful rendering
+            // PLAN: Pass session_id from session manager to headless service
+            // IMPLEMENTATION:
+            //   1. Accept session_id parameter in render_dynamic method
+            //   2. Include in HeadlessRenderRequest
+            //   3. Headless service uses session_id for browser profile selection
+            //   4. Maintains cookies, localStorage, and authentication state
+            // DEPENDENCIES: Related to render/processors.rs:132
+            // EFFORT: Low (2-3 hours)
+            // PRIORITY: Required for authenticated workflows
+            // BLOCKER: None - just needs parameter plumbing
             actions: Some(convert_actions(&config.actions)),
             timeouts: Some(HeadlessTimeouts {
                 nav_ms: Some(1000),

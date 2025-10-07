@@ -100,7 +100,18 @@ impl<'a> SpiderConfigBuilder<'a> {
 
     pub fn from_crawl_options(self, _options: &riptide_core::types::CrawlOptions) -> Self {
         // Apply options to the builder
-        // TODO: Apply CrawlOptions to spider config
+        // TODO(P1): Apply CrawlOptions to spider config
+        // PLAN: Map CrawlOptions fields to SpiderConfig
+        // IMPLEMENTATION:
+        //   1. Map depth limit from CrawlOptions
+        //   2. Apply URL patterns and exclusion rules
+        //   3. Set concurrency and rate limiting options
+        //   4. Configure respect_robots_txt flag
+        //   5. Apply custom headers and authentication
+        // DEPENDENCIES: None - both types are available
+        // EFFORT: Low (2-3 hours)
+        // PRIORITY: Required for full spider functionality
+        // BLOCKER: None
         self
     }
 

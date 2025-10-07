@@ -3,7 +3,7 @@ use crate::metrics::ErrorType;
 use crate::models::*;
 use crate::state::AppState;
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use riptide_core::spider::SpiderConfig;
+use riptide_core::spider::{CrawlingStrategy, ScoringConfig, SpiderConfig};
 use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
 

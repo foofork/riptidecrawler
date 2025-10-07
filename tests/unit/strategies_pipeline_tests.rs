@@ -177,8 +177,11 @@ mod strategies_pipeline_tests {
             };
 
             // All modes should be valid and cloneable
-            let _cloned = config.clone();
-            let _debug_str = format!("{:?}", config);
+            let cloned = config.clone();
+            assert_eq!(config.mode, cloned.mode, "Clone should preserve mode");
+            let debug_str = format!("{:?}", config);
+            // Verify debug output contains configuration details
+            assert!(!debug_str.is_empty(), "Debug output should not be empty");
         }
     }
 
@@ -468,7 +471,9 @@ mod strategies_pipeline_tests {
         for strategy in strategies {
             // Each strategy should be cloneable and debuggable
             let cloned = strategy.clone();
-            let _debug_str = format!("{:?}", cloned);
+            let debug_str = format!("{:?}", cloned);
+            // Verify debug output contains strategy information
+            assert!(!debug_str.is_empty(), "Debug output should not be empty");
 
             // Test strategy matching
             match strategy {
@@ -538,7 +543,10 @@ mod strategy_config_tests {
             };
 
             // All configurations should be valid structurally
-            let _debug_str = format!("{:?}", config);
+            let debug_str = format!("{:?}", config);
+            // Verify debug output contains configuration details
+            assert!(!debug_str.is_empty(), "Debug output should not be empty");
+            assert!(debug_str.contains("ChunkingConfig"), "Debug should show type");
         }
     }
 

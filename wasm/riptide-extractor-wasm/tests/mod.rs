@@ -11,8 +11,7 @@ pub mod benchmarks;
 // Re-export test modules
 pub mod golden;
 pub mod memory_limiter;
-// TODO: Create integration module
-// pub mod integration;
+pub mod integration;
 
 // Import the main component for testing
 // Note: Specific imports should be done in each test module as needed
@@ -77,16 +76,8 @@ pub fn run_comprehensive_test_suite() -> Result<TestSuiteResults, String> {
     let benchmark_result = run_benchmark_category()?;
     let memory_result = run_memory_test_category()?;
     let cache_result = run_cache_test_category()?;
-    // TODO: Re-enable when integration module is implemented
-    // let integration_result = run_integration_test_category()?;
-    let integration_result = TestCategoryResult {
-        passed: 0,
-        failed: 0,
-        total: 0,
-        success_rate: 1.0,
-        duration_ms: 0.0,
-        errors: Vec::new(),
-    };
+    // Re-enabled: integration module is now implemented
+    let integration_result = run_integration_test_category()?;
 
     // Generate coverage report
     let coverage_report = generate_coverage_report()?;
@@ -288,53 +279,42 @@ fn run_cache_test_category() -> Result<TestCategoryResult, String> {
 }
 
 /// Run integration test category
-/// TODO: Re-enable when integration module is implemented
-fn _run_integration_test_category() -> Result<TestCategoryResult, String> {
+fn run_integration_test_category() -> Result<TestCategoryResult, String> {
     println!("\n🔗 Running Integration Tests...");
     let start_time = Instant::now();
 
-    // TODO: Enable when integration module exists
-    // match integration::run_integration_tests() {
-    //     Ok(results) => {
-    //         let duration = start_time.elapsed().as_secs_f64() * 1000.0;
-    //         let passed = results.iter().filter(|r| r.success).count();
-    //         let failed = results.len() - passed;
+    match integration::run_integration_tests() {
+        Ok(results) => {
+            let duration = start_time.elapsed().as_secs_f64() * 1000.0;
+            let passed = results.iter().filter(|r| r.success).count();
+            let failed = results.len() - passed;
 
-    //         let errors: Vec<String> = results.iter()
-    //             .filter(|r| !r.success)
-    //             .flat_map(|r| r.error_details.iter().cloned())
-    //             .take(10) // Limit error details
-    //             .collect();
+            let errors: Vec<String> = results.iter()
+                .filter(|r| !r.success)
+                .flat_map(|r| r.error_details.iter().cloned())
+                .take(10) // Limit error details
+                .collect();
 
-    //         Ok(TestCategoryResult {
-    //             passed,
-    //             failed,
-    //             total: results.len(),
-    //             success_rate: passed as f64 / results.len() as f64,
-    //             duration_ms: duration,
-    //             errors,
-    //         })
-    //     },
-    //     Err(e) => {
-    //         Ok(TestCategoryResult {
-    //             passed: 0,
-    //             failed: 1,
-    //             total: 1,
-    //             success_rate: 0.0,
-    //             duration_ms: start_time.elapsed().as_secs_f64() * 1000.0,
-    //             errors: vec![e],
-    //         })
-    //     }
-    // }
-
-    Ok(TestCategoryResult {
-        passed: 0,
-        failed: 0,
-        total: 0,
-        success_rate: 1.0,
-        duration_ms: start_time.elapsed().as_secs_f64() * 1000.0,
-        errors: Vec::new(),
-    })
+            Ok(TestCategoryResult {
+                passed,
+                failed,
+                total: results.len(),
+                success_rate: passed as f64 / results.len() as f64,
+                duration_ms: duration,
+                errors,
+            })
+        },
+        Err(e) => {
+            Ok(TestCategoryResult {
+                passed: 0,
+                failed: 1,
+                total: 1,
+                success_rate: 0.0,
+                duration_ms: start_time.elapsed().as_secs_f64() * 1000.0,
+                errors: vec![e],
+            })
+        }
+    }
 }
 
 /// Generate coverage report

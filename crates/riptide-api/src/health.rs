@@ -35,7 +35,12 @@ impl HealthChecker {
             "riptide-api".to_string(),
             env!("CARGO_PKG_VERSION").to_string(),
         );
-        component_versions.insert("riptide-core".to_string(), "0.1.0".to_string()); // TODO: Get from workspace
+        component_versions.insert("riptide-core".to_string(), "0.1.0".to_string());
+        // TODO(P1): Get version from workspace Cargo.toml dynamically
+        // PLAN: Use workspace resolver to read riptide-core version at compile time
+        // DEPENDENCIES: None - can use cargo_metadata or compile-time env vars
+        // EFFORT: Low (1-2 hours)
+        // BLOCKER: None
         component_versions.insert("rust".to_string(), "unknown".to_string());
 
         // Dependency versions
@@ -148,8 +153,6 @@ impl HealthChecker {
 
     /// Check all dependencies with enhanced diagnostics
     async fn check_dependencies(&self, state: &AppState) -> DependencyStatus {
-        let _timestamp = chrono::Utc::now().to_rfc3339();
-
         // Redis health check with timing
         let redis_health = self.check_redis_health(state).await;
 
@@ -171,7 +174,17 @@ impl HealthChecker {
             extractor: extractor_health,
             http_client: http_health,
             headless_service: headless_health,
-            spider_engine: None, // TODO: Implement spider health check
+            spider_engine: None,
+            // TODO(P1): Implement spider health check
+            // PLAN: Add spider engine health monitoring with connectivity test
+            // IMPLEMENTATION:
+            //   1. Check spider engine initialization status
+            //   2. Test crawl queue connectivity
+            //   3. Verify spider worker pool health
+            //   4. Return status with response time metrics
+            // DEPENDENCIES: Requires spider engine API to expose health check method
+            // EFFORT: Medium (4-6 hours)
+            // BLOCKER: Spider engine must be initialized in AppState
         }
     }
 

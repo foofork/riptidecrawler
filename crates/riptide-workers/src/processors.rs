@@ -181,8 +181,8 @@ impl JobProcessor for BatchCrawlProcessor {
                     let cache = Arc::clone(&self.cache);
 
                     let handle = tokio::spawn(async move {
-                        let _permit = semaphore.acquire().await.expect("Semaphore closed");
-
+                        // RAII guard: Enforces max_concurrency limit for batch URL processing
+                        let _batch_permit = semaphore.acquire().await.expect("Semaphore closed");
                         // Create a temporary processor for this task
                         let temp_processor = BatchCrawlProcessor {
                             http_client,

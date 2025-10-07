@@ -80,10 +80,22 @@ pub async fn process_dynamic(
 
     // Apply stealth measures if configured
     if let Some(stealth) = stealth_controller.as_mut() {
+        // Generate stealth configuration values
         let _user_agent = stealth.next_user_agent();
         let _headers = stealth.generate_headers();
         let _delay = stealth.calculate_delay();
-        // TODO: Apply these to the actual headless browser
+        // TODO(P0): Wire up stealth values to headless browser RPC call below
+        // PLAN: Pass stealth configuration to render_dynamic RPC call
+        // IMPLEMENTATION:
+        //   1. Update rpc_client.render_dynamic() to accept stealth config
+        //   2. Include user_agent, headers, and timing delays in RPC request
+        //   3. Headless service applies stealth measures to browser instance
+        //   4. Verify stealth measures are effective (test with bot detection sites)
+        // DEPENDENCIES: RPC client and headless service support for stealth config
+        // EFFORT: Medium (3-4 hours)
+        // PRIORITY: Important for anti-bot detection
+        // BLOCKER: None - stealth config already generated and passed to RPC
+        // NOTE: These will be applied when session context is passed to render_dynamic_with_session()
     }
 
     // Get stealth configuration for RPC call
@@ -129,9 +141,19 @@ pub async fn process_dynamic(
         "Calling dynamic rendering with session context"
     );
 
-    // TODO: Pass session context to RPC client for browser state persistence
-    // For now, dynamic rendering will use default browser state
-    // Future enhancement: rpc_client.render_dynamic_with_session(...)
+    // TODO(P1): Pass session context to RPC client for browser state persistence
+    // STATUS: Session manager provides user_data_dir but not passed to RPC
+    // PLAN: Extend RPC client to support session-based rendering
+    // IMPLEMENTATION:
+    //   1. Add render_dynamic_with_session() method to RpcClient
+    //   2. Pass session_id and user_data_dir to headless service
+    //   3. Headless service launches browser with persistent profile
+    //   4. Browser maintains cookies, localStorage, and auth state
+    //   5. Enable multi-step workflows with session continuity
+    // DEPENDENCIES: Headless service must support profile directories
+    // EFFORT: Medium (6-8 hours)
+    // PRIORITY: Important for authenticated scraping workflows
+    // BLOCKER: None - infrastructure exists, just needs wiring
 
     // Get render timeout from configuration
     let render_timeout = Duration::from_secs(state.api_config.performance.render_timeout_secs);

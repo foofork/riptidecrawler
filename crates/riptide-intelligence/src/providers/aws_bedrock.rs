@@ -360,7 +360,6 @@ impl LlmProvider for BedrockProvider {
 
         // Build the payload for the specific model
         let _payload = self.build_bedrock_payload(&request)?;
-
         // This is where you would make the actual AWS Bedrock API call
         // Example structure:
         /*
@@ -370,7 +369,7 @@ impl LlmProvider for BedrockProvider {
             .invoke_model()
             .model_id(&request.model)
             .content_type("application/json")
-            .body(serde_json::to_vec(&payload)?)
+            .body(serde_json::to_vec(&_payload)?)
             .send()
             .await?;
         */

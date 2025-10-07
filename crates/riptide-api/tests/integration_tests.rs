@@ -25,7 +25,17 @@ mod test_utils {
     use super::*;
 
     /// Creates a test app instance for integration testing
-    /// TODO: This will need to be implemented to create the actual app with all routes
+    /// TODO(P1): Implement app factory for integration testing
+    /// PLAN: Create testable app instance with proper configuration
+    /// IMPLEMENTATION:
+    ///   1. Move app creation logic to lib.rs as public function
+    ///   2. Accept test configuration for deterministic behavior
+    ///   3. Use in-memory backends for Redis/services where possible
+    ///   4. Return configured Router ready for testing
+    /// DEPENDENCIES: Requires refactoring main.rs app setup
+    /// EFFORT: Medium (4-6 hours)
+    /// PRIORITY: Important for comprehensive testing
+    /// BLOCKER: None
     /// This should eventually call the real app creation function from riptide_api
     pub fn create_test_app() -> axum::Router {
         // This will fail until the app factory function is created in lib.rs or similar
@@ -305,7 +315,15 @@ mod table_extraction_tests {
         // This test will FAIL until the endpoint is implemented
         assert_eq!(status, StatusCode::OK, "CSV export should return OK");
 
-        // TODO: Validate CSV content structure
+        // TODO(P1): Validate CSV content structure
+        // VALIDATION CHECKLIST:
+        //   1. Check content-type header is text/csv
+        //   2. Validate CSV format with proper escaping
+        //   3. Ensure headers are included if requested
+        //   4. Verify row count matches table rows
+        //   5. Check special characters are properly escaped
+        // EFFORT: Low (1-2 hours)
+        // BLOCKER: Requires endpoint implementation first
         // - Check content-type header is text/csv
         // - Validate CSV format with proper escaping
         // - Ensure headers are included if requested
@@ -335,7 +353,15 @@ mod table_extraction_tests {
         // This test will FAIL until the endpoint is implemented
         assert_eq!(status, StatusCode::OK, "Markdown export should return OK");
 
-        // TODO: Validate Markdown table format
+        // TODO(P1): Validate Markdown table format
+        // VALIDATION CHECKLIST:
+        //   1. Check content includes proper table syntax with |
+        //   2. Verify alignment row with ---
+        //   3. Ensure special characters are escaped properly
+        //   4. Validate table headers match structure
+        //   5. Check cell content formatting
+        // EFFORT: Low (1-2 hours)
+        // BLOCKER: Requires endpoint implementation first
         // - Check content includes proper table syntax with |
         // - Verify alignment row with ---
         // - Ensure special characters are escaped properly
@@ -795,7 +821,18 @@ mod llm_provider_tests {
             "Should set failover chain"
         );
 
-        // TODO: Test actual failover behavior
+        // TODO(P1): Test actual failover behavior
+        // TEST PLAN: Simulate provider failures and verify failover
+        // IMPLEMENTATION:
+        //   1. Mock primary provider to return errors
+        //   2. Verify system switches to secondary provider
+        //   3. Test failover chain order is respected
+        //   4. Validate metrics track failover events
+        //   5. Test recovery back to primary when available
+        // DEPENDENCIES: Requires provider simulation/mocking infrastructure
+        // EFFORT: High (8-10 hours for comprehensive failover testing)
+        // PRIORITY: Important for reliability validation
+        // BLOCKER: Requires failover implementation first
         // This would require more complex integration testing with provider simulation
     }
 

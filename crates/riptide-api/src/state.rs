@@ -1012,7 +1012,17 @@ impl MonitoringSystem {
 
     /// Start background alert evaluation task
     pub fn start_alert_evaluation_task(&self, _event_bus: Arc<EventBus>) {
-        // TODO: Publish alerts to event bus
+        // TODO(P1): Publish alerts to event bus for system-wide notification
+        // PLAN: Use event_bus parameter to broadcast alerts
+        // IMPLEMENTATION:
+        //   1. Construct AlertEvent with rule, severity, and metrics
+        //   2. Publish to event bus topic: "monitoring.alerts"
+        //   3. Subscribers can trigger notifications, webhooks, or automation
+        //   4. Add event payload with full context for debugging
+        // DEPENDENCIES: Event bus is passed but not used (param: _event_bus)
+        // EFFORT: Low (1-2 hours)
+        // PRIORITY: Important for alerting infrastructure
+        // BLOCKER: None - just need to call event_bus.publish()
         let metrics_collector = self.metrics_collector.clone();
         let alert_manager = self.alert_manager.clone();
         tokio::spawn(async move {
@@ -1065,7 +1075,17 @@ impl MonitoringSystem {
                             // Create a generic event for the alert
                             use riptide_core::events::BaseEvent;
                             let _base_event = BaseEvent::new(
-                                // TODO: Publish to event bus
+                                // TODO(P1): Publish BaseEvent to event bus
+                                // PLAN: Use event_bus to publish alert events
+                                // IMPLEMENTATION:
+                                //   1. Convert BaseEvent to event bus format
+                                //   2. Publish to topic: "monitoring.alert.triggered"
+                                //   3. Include alert metadata: rule_name, severity, threshold
+                                //   4. Enable downstream alerting (Slack, PagerDuty, email)
+                                // DEPENDENCIES: Same as state.rs:1015
+                                // EFFORT: Low (part of alert publishing feature)
+                                // PRIORITY: Important for alert distribution
+                                // BLOCKER: None
                                 "monitoring.alert.triggered",
                                 "monitoring_system",
                                 match alert.severity {

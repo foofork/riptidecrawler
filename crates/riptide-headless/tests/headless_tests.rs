@@ -82,8 +82,9 @@ async fn test_browser_pool_checkout_checkin() {
     assert!(checkout.is_ok());
 
     if let Ok(checkout) = checkout {
-        let _browser_id = checkout.browser_id().to_string();
-
+        // Verify browser_id is non-empty
+        let browser_id = checkout.browser_id().to_string();
+        assert!(!browser_id.is_empty(), "Browser ID should not be empty");
         // Check stats after checkout
         let stats = pool.stats().await;
         assert_eq!(stats.available, 0);
@@ -215,8 +216,8 @@ async fn test_browser_pool_stats() {
     assert_eq!(stats.utilization, 0.0);
 
     // Checkout a browser to change stats
+    // Guard must stay alive to keep browser checked out
     let _checkout = pool.checkout().await.unwrap();
-
     let stats = pool.stats().await;
     assert_eq!(stats.available, 1);
     assert_eq!(stats.in_use, 1);
@@ -306,9 +307,9 @@ async fn test_launch_session_functionality() {
         assert_eq!(initial_stats.successful_requests, 0);
         assert_eq!(initial_stats.failed_requests, 0);
 
-        // Test pool events structure
-        let _events = launcher.pool_events();
-
+        // Test pool events structure - verify receiver is returned
+        let events = launcher.pool_events();
+        assert!(events.is_some(), "Pool events receiver should be available");
         let _ = launcher.shutdown().await;
     }
 }

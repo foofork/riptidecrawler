@@ -442,6 +442,7 @@ mod tests {
     #[test]
     fn test_security_middleware_creation() {
         let _middleware = SecurityMiddleware::with_defaults().expect("Failed to create middleware");
+        // Test passes if middleware creation doesn't panic
     }
 
     #[test]

@@ -53,8 +53,9 @@ impl LockManager {
                     operation,
                     poison_err
                 );
-                // Attempt to recover by getting the inner guard
+                // Attempt to recover by getting the inner guard and immediately dropping it
                 let _guard = poison_err.into_inner();
+                // Guard is automatically dropped, potentially clearing poisoned state
                 // In a real scenario, we might want to reset the state here
                 // For now, we'll just log and continue
                 tracing::info!("Successfully recovered poisoned lock for {}", operation);

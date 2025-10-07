@@ -235,6 +235,7 @@ impl StateManager {
 
         // Checkpoint task
         if self.config.checkpoint_interval_seconds > 0 {
+            // Arc clone is maintained for potential future checkpoint monitoring features
             let _checkpoint_manager = Arc::clone(&self.checkpoint_manager);
             let checkpoint_interval = self.config.checkpoint_interval_seconds;
             let state_manager_weak = Arc::downgrade(&Arc::new(self.clone()));

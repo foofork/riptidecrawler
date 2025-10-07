@@ -115,7 +115,8 @@ impl Guest for Component {
         url: String,
         mode: ExtractionMode,
     ) -> Result<ExtractedContent, ExtractionError> {
-        let _start_time = std::time::Instant::now();
+        // Timing measurement removed - not used in production
+        // Could be re-added with feature flag for profiling if needed
 
         // Increment extraction counter
         EXTRACTION_COUNT.fetch_add(1, Ordering::Relaxed);
