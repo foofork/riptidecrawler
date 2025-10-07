@@ -197,8 +197,9 @@ fn bench_pool_efficiency(c: &mut Criterion) {
             |b, _| {
                 b.iter(|| {
                     rt.block_on(async {
-let _ = CmExtractor::new(config.clone());
+                        let extractor = CmExtractor::new(config.clone());
                         // Warm-up functionality not yet implemented
+                        black_box(extractor);
                         black_box(Ok::<(), String>(()))
                     })
                 })

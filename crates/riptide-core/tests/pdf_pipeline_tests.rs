@@ -292,10 +292,10 @@ mod tests {
             .await;
 
         // Check metrics were updated
-let _ = pipeline.get_metrics_snapshot();
+        let updated_metrics = pipeline.get_metrics_snapshot();
         // Without pdf feature, this should show as a failure
         #[cfg(not(feature = "pdf"))]
-        assert_eq!(_updated_metrics.total_failed, 1);
+        assert_eq!(updated_metrics.total_failed, 1);
     }
 
     #[test]

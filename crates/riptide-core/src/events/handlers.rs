@@ -51,7 +51,6 @@ impl EventHandler for LoggingEventHandler {
         }
 
         // Create structured log entry
-let _ = event.metadata();
         let json_data = event.to_json().unwrap_or_else(|_| "{}".to_string());
 
         match event.severity() {

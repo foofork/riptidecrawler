@@ -278,7 +278,8 @@ mod tests {
 
         // Advance time and transition to HalfOpen
         clock.advance(1_000);
-let _ = cb.try_acquire().expect("should get permit");
+        // RAII guard: must remain in scope to transition circuit breaker state
+        let _permit = cb.try_acquire().expect("should get permit");
         assert_eq!(cb.state(), State::HalfOpen);
 
         // Failure in HalfOpen immediately reopens

@@ -262,9 +262,9 @@ mod tests {
     #[tokio::test]
     async fn test_cache_warming_pool_creation() {
         // This would need a real WASM component for full testing
-        // For now, just test the structure
-let _ = Engine::default();
-let _ = ExtractorConfig::default();
+        // For now, just test the structure can be created
+        let _engine = Engine::default();
+        let _config = ExtractorConfig::default();
         // Note: This test would need to be expanded with actual pool creation
         // when the full integration is available
     }

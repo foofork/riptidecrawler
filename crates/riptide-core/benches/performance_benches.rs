@@ -285,8 +285,8 @@ fn bench_telemetry_system(c: &mut Criterion) {
         c.bench_function("telemetry_create_span", |b| {
             b.iter(|| {
                 let tracer = telemetry.tracer();
-let _ = tracer.start("benchmark_span");
-                black_box(_span);
+                let span = tracer.start("benchmark_span");
+                black_box(span);
             });
         });
 

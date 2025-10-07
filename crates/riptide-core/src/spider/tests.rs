@@ -20,7 +20,6 @@ pub mod scenarios {
             .expect("Spider creation should work");
 
         // Simulate crawling a simple website structure
-let _ = [Url::from_str("https://example.com/").expect("Valid URL")];
         // This would normally perform actual HTTP requests
         // In a real test, you'd use a mock HTTP server
         // let result = spider.crawl(seeds).await.expect("Crawl should work");
