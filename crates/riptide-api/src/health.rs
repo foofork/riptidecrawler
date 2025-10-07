@@ -1,6 +1,6 @@
 use crate::models::{DependencyStatus, HealthResponse, ServiceHealth, SystemMetrics};
 use crate::state::AppState;
-use prometheus::proto_ext::MessageFieldExt; // For protobuf 3.x API
+// prometheus 0.14 uses protobuf 3.x - no trait import needed
 use serde_json::Value;
 use std::collections::HashMap;
 use std::time::Instant;
@@ -402,20 +402,23 @@ impl HealthChecker {
         let mut count_response_time = 0u64;
 
         // Parse the metrics to extract request count and response times
+        // protobuf 3.x API: use .as_ref() to access MessageField contents
         for family in &metrics_data {
             if family.name() == "riptide_http_requests_total" {
                 for metric in family.get_metric() {
-                    let counter = metric.get_counter();
-                    if counter.has_value() {
-                        total_requests += counter.get_value() as u64;
+                    if let Some(counter) = metric.counter.as_ref() {
+                        if let Some(value) = counter.value {
+                            total_requests += value as u64;
+                        }
                     }
                 }
             } else if family.name() == "riptide_request_duration_seconds" {
                 for metric in family.get_metric() {
-                    let histogram = metric.get_histogram();
-                    if histogram.has_sample_count() {
-                        sum_response_time += histogram.get_sample_sum();
-                        count_response_time += histogram.get_sample_count();
+                    if let Some(histogram) = metric.histogram.as_ref() {
+                        if let Some(count) = histogram.sample_count {
+                            sum_response_time += histogram.sample_sum.unwrap_or(0.0);
+                            count_response_time += count;
+                        }
                     }
                 }
             }
