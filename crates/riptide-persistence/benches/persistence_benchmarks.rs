@@ -341,7 +341,8 @@ fn bench_session_management(c: &mut Criterion) {
     group.bench_function("get_session", |b| {
         b.to_async(&rt).iter(|| async {
             let session_id = &session_ids[black_box(fastrand::usize(0..session_ids.len()))];
-let _ = state_manager.get_session(session_id).await.unwrap();
+            // Benchmark: Result intentionally unused to measure pure operation latency
+            let _session = state_manager.get_session(session_id).await.unwrap();
         });
     });
 
@@ -458,7 +459,8 @@ fn bench_tenant_management(c: &mut Criterion) {
     group.bench_function("get_tenant", |b| {
         b.to_async(&rt).iter(|| async {
             let tenant_id = &tenant_ids[black_box(fastrand::usize(0..tenant_ids.len()))];
-let _ = tenant_manager.get_tenant(tenant_id).await.unwrap();
+            // Benchmark: Result intentionally unused to measure pure retrieval latency
+            let _tenant = tenant_manager.get_tenant(tenant_id).await.unwrap();
         });
     });
 

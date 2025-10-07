@@ -231,7 +231,8 @@ impl Worker {
     /// Process the next available job
     async fn process_next_job(&self) -> Result<bool> {
         // Acquire semaphore permit for concurrency control
-let _ = self.semaphore.acquire().await?;
+        // RAII guard: Must stay alive through entire job processing to limit concurrent jobs
+        let _concurrency_permit = self.semaphore.acquire().await?;
         let mut queue = self.queue.lock().await;
         if let Some(job) = queue.next_job(&self.id).await? {
             drop(queue); // Release queue lock early

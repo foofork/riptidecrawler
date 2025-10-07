@@ -148,8 +148,9 @@ impl WorkerService {
 
             // Start worker pool
             let worker_handle = {
-                let worker_pool = self.worker_pool.as_ref().unwrap();
-let _ = Arc::new(worker_pool);
+                let _worker_pool = self.worker_pool.as_ref().unwrap();
+                // TODO: Implement proper worker pool lifecycle management
+                // The worker pool needs to be moved into the spawned task or wrapped in Arc
                 tokio::spawn(async move {
                     // Due to ownership issues, we'll need to handle this differently
                     // For now, we'll log that the worker pool would start here

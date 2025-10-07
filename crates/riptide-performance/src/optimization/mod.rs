@@ -429,7 +429,7 @@ impl CacheOptimizer {
         let is_optimizing_periodic = Arc::clone(&self.is_optimizing);
         let cache = Arc::clone(&self.memory_cache);
         let stats = Arc::clone(&self.cache_stats);
-        let _config = self.config.clone();
+        // Note: config not currently used in background tasks
 
         // Cleanup expired entries task
         tokio::spawn(async move {

@@ -346,7 +346,11 @@ impl CacheMetrics {
             avg_access_time_us,
             ops_per_second,
             total_operations,
-            eviction_count: 0, // TODO: Implement eviction tracking
+            // TODO(#eviction-tracking): Implement LRU eviction tracking
+            // Plan: Add eviction counter to InternalCacheStats, increment on cache evictions
+            // Track: evicted_keys Vec<String> with timestamps, expose via get_eviction_stats()
+            // Priority: Medium - needed for capacity planning and monitoring
+            eviction_count: 0,
             avg_compression_ratio,
             slow_operations: stats.slow_operations,
             error_count: stats.total_errors,

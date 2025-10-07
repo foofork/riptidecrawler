@@ -416,7 +416,8 @@ mod tests {
     async fn test_start_and_update_tracking() {
         let tracker = ProgressTracker::new();
         let stream_id = Uuid::new_v4();
-let _ = tracker.start_tracking(stream_id).await.unwrap();
+        // Event receiver not monitored in this test - we only test progress state updates
+        let _rx = tracker.start_tracking(stream_id).await.unwrap();
         tracker
             .update_progress(stream_id, 50, Some(100))
             .await
@@ -431,7 +432,8 @@ let _ = tracker.start_tracking(stream_id).await.unwrap();
     async fn test_stage_changes() {
         let tracker = ProgressTracker::new();
         let stream_id = Uuid::new_v4();
-let _ = tracker.start_tracking(stream_id).await.unwrap();
+        // Event receiver not monitored - test focuses on stage transitions
+        let _rx = tracker.start_tracking(stream_id).await.unwrap();
         tracker
             .set_stage(stream_id, ProgressStage::Extracting)
             .await
@@ -452,7 +454,8 @@ let _ = tracker.start_tracking(stream_id).await.unwrap();
 
         let tracker = ProgressTracker::with_config(config);
         let stream_id = Uuid::new_v4();
-let _ = tracker.start_tracking(stream_id).await.unwrap();
+        // Event receiver not monitored - test validates rate calculation logic
+        let _rx = tracker.start_tracking(stream_id).await.unwrap();
         // Simulate processing over time
         tracker
             .update_progress(stream_id, 10, Some(100))
@@ -478,7 +481,8 @@ let _ = tracker.start_tracking(stream_id).await.unwrap();
     async fn test_complete_tracking() {
         let tracker = ProgressTracker::new();
         let stream_id = Uuid::new_v4();
-let _ = tracker.start_tracking(stream_id).await.unwrap();
+        // Event receiver not monitored - test validates completion state
+        let _rx = tracker.start_tracking(stream_id).await.unwrap();
         tracker.complete_tracking(stream_id).await.unwrap();
 
         let progress = tracker.get_progress(&stream_id).await.unwrap();
