@@ -24,7 +24,7 @@ tokio = { version = "1", features = ["full"] }
 tokio-test = "0.4"
 tracing = "0.1"
 tracing-test = "0.2"
-wasmtime = { version = "27", features = ["component-model"] }  # Updated for security (RUSTSEC-2025-0046)
+wasmtime = { version = "34", features = ["component-model"] }  # Updated for security (RUSTSEC-2025-0046)
 chrono = { version = "0.4", features = ["serde"] }
 
 [build-dependencies]

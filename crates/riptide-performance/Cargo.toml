@@ -63,7 +63,8 @@ pin-project-lite = "0.2"
 
 # Resource management
 governor = { version = "0.6", optional = true }
-tower-limit = { version = "0.3.1", optional = true }
+# tower-limit removed due to old tokio 0.2.25 dependency (RUSTSEC-2025-0023)
+# Using governor for rate limiting instead
 
 # Internal dependencies
 riptide-core = { path = "../riptide-core" }
@@ -82,7 +83,7 @@ default = ["memory-profiling", "bottleneck-analysis", "cache-optimization", "res
 memory-profiling = ["jemalloc-ctl", "pprof", "memory-stats"]
 bottleneck-analysis = ["flamegraph", "criterion"]
 cache-optimization = ["moka", "redis"]
-resource-limits = ["governor", "tower-limit"]
+resource-limits = ["governor"]  # tower-limit removed due to security advisory
 
 # Allocator features
 jemalloc = ["jemalloc-ctl"]
