@@ -148,8 +148,7 @@ impl HealthChecker {
 
     /// Check all dependencies with enhanced diagnostics
     async fn check_dependencies(&self, state: &AppState) -> DependencyStatus {
-        let _timestamp = chrono::Utc::now().to_rfc3339();
-
+let _ = chrono::Utc::now().to_rfc3339();
         // Redis health check with timing
         let redis_health = self.check_redis_health(state).await;
 

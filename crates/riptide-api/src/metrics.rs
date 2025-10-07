@@ -680,9 +680,8 @@ impl RipTideMetrics {
         // For counters, we need to track the difference and add it
         // This is a simplified approach - in production you'd want to track previous values
         // For now, we'll just set the gauge to the current value
-        let _messages_sent_diff = streaming_metrics.total_messages_sent as f64;
-        let _messages_dropped_diff = streaming_metrics.total_messages_dropped as f64;
-
+let _ = streaming_metrics.total_messages_sent as f64;
+let _ = streaming_metrics.total_messages_dropped as f64;
         // Since counters can't be set directly, we observe individual increments
         // This method should ideally be called with delta values, not absolute values
         // For this integration, we'll track via separate gauges that mirror the counter values

@@ -220,9 +220,7 @@ impl PdfPipelineIntegration {
         progress_sender: super::types::ProgressSender,
     ) -> PdfResult<ExtractedDoc> {
         use super::types::ProgressUpdate;
-
-        let _start_time = std::time::Instant::now();
-
+let _ = std::time::Instant::now();
         // Send started event
         let _ = progress_sender.send(ProgressUpdate::Started {
             total_pages: 0, // Will be updated once document loads

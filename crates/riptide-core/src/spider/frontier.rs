@@ -471,7 +471,7 @@ impl FrontierManager {
 
     /// Clean up expired requests
     async fn cleanup_expired_requests(&self) -> Result<()> {
-        let _now = Instant::now();
+let _ = Instant::now();
         let mut cleaned = 0;
 
         // Clean up host queues

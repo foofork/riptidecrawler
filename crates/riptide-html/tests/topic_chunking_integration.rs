@@ -315,8 +315,7 @@ async fn test_mixed_content_chunking() {
     let _has_html = chunks
         .iter()
         .any(|c| c.content.contains('<') && c.content.contains('>'));
-    let _has_text = chunks.iter().any(|c| !c.content.contains('<'));
-
+let _ = chunks.iter().any(|c| !c.content.contains('<'));
     // All chunks should have content (HTML tags might be preserved or stripped)
     for chunk in &chunks {
         assert!(

@@ -80,7 +80,7 @@ mod instance_pool_tests {
         drop(permits.pop());
 
         // Now should be able to acquire one more
-        let _final_permit = semaphore.try_acquire().unwrap();
+let _ = semaphore.try_acquire().unwrap();
     }
 
     #[tokio::test]

@@ -298,7 +298,7 @@ async fn test_config_driven_loading() {
 
     // Fast provider should respond quickly
     let start = std::time::Instant::now();
-    let _response = client.complete(request.clone()).await.unwrap();
+let _ = client.complete(request.clone()).await.unwrap();
     let fast_duration = start.elapsed();
 
     // Slow provider should take longer

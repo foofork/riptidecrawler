@@ -150,11 +150,10 @@ impl ReliableHttpClient {
         );
 
         info!("Starting HTTP GET request with retry");
-        let _overall_start = std::time::Instant::now();
-
+let _ = std::time::Instant::now();
         // Check robots.txt compliance first if manager is available
         if let Some(robots_manager) = &self.robots_manager {
-            let _robots_span = telemetry_span!("robots_check", url = %url);
+let _ = telemetry_span!("robots_check", url = %url);
             if !robots_manager.can_crawl_with_wait(url).await? {
                 error!("URL blocked by robots.txt: {}", url);
                 return Err(anyhow::anyhow!("URL blocked by robots.txt: {}", url));
@@ -716,13 +715,12 @@ mod tests {
 
     #[test]
     fn test_client_creation() {
-        let _client = http_client();
+let _ = http_client();
     }
 
     #[test]
     fn test_reliable_client_creation() {
-        let _client =
-            ReliableHttpClient::new(RetryConfig::default(), CircuitBreakerConfig::default());
+let _ = ReliableHttpClient::new(RetryConfig::default(), CircuitBreakerConfig::default());
     }
 
     #[test]

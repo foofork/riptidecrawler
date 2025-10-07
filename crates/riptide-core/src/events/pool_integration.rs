@@ -487,8 +487,7 @@ mod tests {
         // This test would require a real AdvancedInstancePool which needs WASM components
         // For now, we'll just test the configuration and factory
         let event_bus = Arc::new(EventBus::new());
-        let _factory = EventAwarePoolFactory::new(event_bus);
-
+let _ = EventAwarePoolFactory::new(event_bus);
         // Test that the factory is created successfully
         // TODO: Add actual test logic when WASM components are available
     }

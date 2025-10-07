@@ -80,9 +80,9 @@ pub async fn process_dynamic(
 
     // Apply stealth measures if configured
     if let Some(stealth) = stealth_controller.as_mut() {
-        let _user_agent = stealth.next_user_agent();
-        let _headers = stealth.generate_headers();
-        let _delay = stealth.calculate_delay();
+let _ = stealth.next_user_agent();
+let _ = stealth.generate_headers();
+let _ = stealth.calculate_delay();
         // TODO: Apply these to the actual headless browser
     }
 

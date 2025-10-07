@@ -52,16 +52,15 @@ fn test_stealth_controller_api() {
 #[test]
 fn test_config_types() {
     // Test that all config types are properly exported
-    let _stealth_config = StealthConfig::default();
-    let _user_agent_config = UserAgentConfig::default();
-    let _fingerprinting_config = FingerprintingConfig::default();
-    let _request_randomization = RequestRandomization::default();
-
+let _ = StealthConfig::default();
+let _ = UserAgentConfig::default();
+let _ = FingerprintingConfig::default();
+let _ = RequestRandomization::default();
     // Test enums
-    let _rotation_strategy = RotationStrategy::Random;
-    let _browser_type = BrowserType::Chrome;
-    let _locale_strategy = LocaleStrategy::Random;
-    let _stealth_preset = StealthPreset::Medium;
+let _ = RotationStrategy::Random;
+let _ = BrowserType::Chrome;
+let _ = LocaleStrategy::Random;
+let _ = StealthPreset::Medium;
 }
 
 #[test]

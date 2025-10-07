@@ -186,8 +186,7 @@ impl BackgroundAiProcessor {
 
                     if let Some(task) = task {
                         // Acquire semaphore permit for concurrency control
-                        let _permit = semaphore.acquire().await.unwrap();
-
+let _ = semaphore.acquire().await.unwrap();
                         // Process the task
                         if let Err(e) = Self::process_task_worker(
                             worker_id,

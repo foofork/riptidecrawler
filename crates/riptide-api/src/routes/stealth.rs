@@ -32,8 +32,7 @@ async fn stealth_health_check() -> axum::response::Json<serde_json::Value> {
     use riptide_stealth::{StealthController, StealthPreset};
 
     // Test basic stealth functionality
-    let _controller = StealthController::from_preset(StealthPreset::Medium);
-
+let _ = StealthController::from_preset(StealthPreset::Medium);
     axum::response::Json(serde_json::json!({
         "status": "healthy",
         "stealth_available": true,

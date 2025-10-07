@@ -81,7 +81,7 @@ async fn exec_actions(page: &Page, actions: &[PageAction]) -> anyhow::Result<()>
     for action in actions {
         match action {
             PageAction::WaitForCss { css, timeout_ms } => {
-                let _timeout = Duration::from_millis(timeout_ms.unwrap_or(5000));
+let _ = Duration::from_millis(timeout_ms.unwrap_or(5000));
                 let _ = page
                     .find_element(css)
                     .await

@@ -131,8 +131,7 @@ impl EnhancedStrategyManager {
         html: &str,
         url: &str,
     ) -> Result<EnhancedProcessingResult> {
-        let _start = std::time::Instant::now();
-
+let _ = std::time::Instant::now();
         // Select best extraction strategy
         let strategy_name = if self.config.auto_strategy_selection {
             self.select_best_extraction_strategy(html).await?

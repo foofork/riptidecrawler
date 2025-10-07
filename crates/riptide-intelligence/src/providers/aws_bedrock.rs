@@ -359,8 +359,7 @@ impl LlmProvider for BedrockProvider {
         // For now, this is a placeholder that shows the structure
 
         // Build the payload for the specific model
-        let _payload = self.build_bedrock_payload(&request)?;
-
+let _ = self.build_bedrock_payload(&request)?;
         // This is where you would make the actual AWS Bedrock API call
         // Example structure:
         /*

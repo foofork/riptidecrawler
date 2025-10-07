@@ -231,8 +231,7 @@ impl Worker {
     /// Process the next available job
     async fn process_next_job(&self) -> Result<bool> {
         // Acquire semaphore permit for concurrency control
-        let _permit = self.semaphore.acquire().await?;
-
+let _ = self.semaphore.acquire().await?;
         let mut queue = self.queue.lock().await;
         if let Some(job) = queue.next_job(&self.id).await? {
             drop(queue); // Release queue lock early

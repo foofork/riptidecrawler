@@ -94,7 +94,7 @@ impl EnhancedPipelineOrchestrator {
                 let url = url.clone();
 
                 tokio::spawn(async move {
-                    let _permit = semaphore.acquire().await.ok()?;
+let _ = semaphore.acquire().await.ok()?;
                     orchestrator.execute_enhanced(&url).await.ok()
                 })
             })

@@ -113,7 +113,7 @@ impl PdfiumProcessor {
         progress_callback: Option<ProgressCallback>,
     ) -> PdfResult<PdfProcessingResult> {
         // Create a resource guard to ensure cleanup
-        let _resource_guard = ProcessingResourceGuard::new();
+let _ = ProcessingResourceGuard::new();
         let start_time = std::time::Instant::now();
         let initial_memory_stats = self.get_memory_stats();
 
@@ -465,7 +465,7 @@ impl PdfiumProcessor {
         let pdf_version = Some(format!("{:?}", version));
 
         // Check document permissions - use conservative defaults if API unavailable
-        let _permissions = document.permissions();
+let _ = document.permissions();
         // Note: API methods changed - using safe defaults until proper methods are found
         let allows_copying = true; // Default to allowed
         let allows_printing = true; // Default to allowed

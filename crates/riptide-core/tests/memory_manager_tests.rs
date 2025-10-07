@@ -94,7 +94,7 @@ mod tests {
         for i in 0..5 {
             let manager_clone = manager.clone();
             let handle = tokio::spawn(async move {
-                let _stats = manager_clone.stats();
+let _ = manager_clone.stats();
                 // Verify each task can access stats successfully
                 // No need to assert on values since u64/usize are always >= 0
                 i // Return task id for verification
@@ -150,8 +150,7 @@ mod tests {
         let manager = MemoryManager::new(config, engine).await?;
 
         // Verify manager is operational
-        let _stats = manager.stats();
-
+let _ = manager.stats();
         // Shutdown should complete without error
         manager.shutdown().await?;
         Ok(())
@@ -236,8 +235,7 @@ mod tests {
 
         // Let the manager run for a bit with aggressive GC
         tokio::time::sleep(Duration::from_millis(200)).await;
-
-        let _stats = manager.stats();
+let _ = manager.stats();
         // With aggressive GC, we might see some GC activity even with no instances
         // No need to assert on gc_runs >= 0 as u64 is always >= 0
 

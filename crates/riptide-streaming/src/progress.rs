@@ -416,9 +416,7 @@ mod tests {
     async fn test_start_and_update_tracking() {
         let tracker = ProgressTracker::new();
         let stream_id = Uuid::new_v4();
-
-        let _rx = tracker.start_tracking(stream_id).await.unwrap();
-
+let _ = tracker.start_tracking(stream_id).await.unwrap();
         tracker
             .update_progress(stream_id, 50, Some(100))
             .await
@@ -433,9 +431,7 @@ mod tests {
     async fn test_stage_changes() {
         let tracker = ProgressTracker::new();
         let stream_id = Uuid::new_v4();
-
-        let _rx = tracker.start_tracking(stream_id).await.unwrap();
-
+let _ = tracker.start_tracking(stream_id).await.unwrap();
         tracker
             .set_stage(stream_id, ProgressStage::Extracting)
             .await
@@ -456,9 +452,7 @@ mod tests {
 
         let tracker = ProgressTracker::with_config(config);
         let stream_id = Uuid::new_v4();
-
-        let _rx = tracker.start_tracking(stream_id).await.unwrap();
-
+let _ = tracker.start_tracking(stream_id).await.unwrap();
         // Simulate processing over time
         tracker
             .update_progress(stream_id, 10, Some(100))
@@ -484,8 +478,7 @@ mod tests {
     async fn test_complete_tracking() {
         let tracker = ProgressTracker::new();
         let stream_id = Uuid::new_v4();
-
-        let _rx = tracker.start_tracking(stream_id).await.unwrap();
+let _ = tracker.start_tracking(stream_id).await.unwrap();
         tracker.complete_tracking(stream_id).await.unwrap();
 
         let progress = tracker.get_progress(&stream_id).await.unwrap();

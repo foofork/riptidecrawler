@@ -271,8 +271,7 @@ impl HeadlessLauncher {
             .map_err(|e| anyhow!("Failed to inject stealth JS: {}", e))?;
 
         // Apply additional stealth measures
-        let _stealth_controller = self.stealth_controller.read().await;
-
+let _ = self.stealth_controller.read().await;
         // Set viewport to common resolution
         page.execute(
             SetDeviceMetricsOverrideParams::builder()

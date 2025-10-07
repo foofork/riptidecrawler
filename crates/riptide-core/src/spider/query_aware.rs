@@ -493,8 +493,7 @@ mod tests {
     #[test]
     fn test_depth_scoring() {
         let analyzer = UrlSignalAnalyzer::new(None);
-        let _url = Url::from_str("https://example.com/page").unwrap();
-
+let _ = Url::from_str("https://example.com/page").unwrap();
         let shallow_score = analyzer.calculate_depth_score(1);
         let deep_score = analyzer.calculate_depth_score(5);
 

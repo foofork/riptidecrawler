@@ -82,8 +82,7 @@ async fn test_browser_pool_checkout_checkin() {
     assert!(checkout.is_ok());
 
     if let Ok(checkout) = checkout {
-        let _browser_id = checkout.browser_id().to_string();
-
+let _ = checkout.browser_id().to_string();
         // Check stats after checkout
         let stats = pool.stats().await;
         assert_eq!(stats.available, 0);
@@ -215,8 +214,7 @@ async fn test_browser_pool_stats() {
     assert_eq!(stats.utilization, 0.0);
 
     // Checkout a browser to change stats
-    let _checkout = pool.checkout().await.unwrap();
-
+let _ = pool.checkout().await.unwrap();
     let stats = pool.stats().await;
     assert_eq!(stats.available, 1);
     assert_eq!(stats.in_use, 1);
@@ -307,8 +305,7 @@ async fn test_launch_session_functionality() {
         assert_eq!(initial_stats.failed_requests, 0);
 
         // Test pool events structure
-        let _events = launcher.pool_events();
-
+let _ = launcher.pool_events();
         let _ = launcher.shutdown().await;
     }
 }

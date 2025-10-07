@@ -48,8 +48,7 @@ async fn test_progress_tracker_integration() {
     let stream_id = Uuid::new_v4();
 
     // Start tracking
-    let _rx = tracker.start_tracking(stream_id).await.unwrap();
-
+let _ = tracker.start_tracking(stream_id).await.unwrap();
     // Update progress
     tracker
         .update_progress(stream_id, 50, Some(100))
@@ -106,7 +105,7 @@ async fn test_backpressure_controller_integration() {
     tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
 
     // Should be able to acquire again
-    let _permit = controller.acquire(stream_id, 1024).await.unwrap();
+let _ = controller.acquire(stream_id, 1024).await.unwrap();
 }
 
 #[tokio::test]
@@ -156,8 +155,7 @@ async fn test_error_handling() {
     let stream_id = Uuid::new_v4();
 
     controller.register_stream(stream_id).await.unwrap();
-    let _permit = controller.acquire(stream_id, 1024).await.unwrap();
-
+let _ = controller.acquire(stream_id, 1024).await.unwrap();
     let result = controller.acquire(stream_id, 1024).await;
     assert!(matches!(
         result.unwrap_err(),
@@ -169,9 +167,7 @@ async fn test_error_handling() {
 async fn test_progress_stages() {
     let tracker = ProgressTracker::new();
     let stream_id = Uuid::new_v4();
-
-    let _rx = tracker.start_tracking(stream_id).await.unwrap();
-
+let _ = tracker.start_tracking(stream_id).await.unwrap();
     // Test different stages
     tracker
         .set_stage(stream_id, ProgressStage::Discovering)
