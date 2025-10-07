@@ -51,16 +51,17 @@ fn test_stealth_controller_api() {
 
 #[test]
 fn test_config_types() {
-    // Test that all config types are properly exported
-let _ = StealthConfig::default();
-let _ = UserAgentConfig::default();
-let _ = FingerprintingConfig::default();
-let _ = RequestRandomization::default();
-    // Test enums
-let _ = RotationStrategy::Random;
-let _ = BrowserType::Chrome;
-let _ = LocaleStrategy::Random;
-let _ = StealthPreset::Medium;
+    // Smoke test: verify all config types are properly exported and constructible
+    StealthConfig::default();
+    UserAgentConfig::default();
+    FingerprintingConfig::default();
+    RequestRandomization::default();
+
+    // Verify enum variants are accessible
+    let _ = RotationStrategy::Random;
+    let _ = BrowserType::Chrome;
+    let _ = LocaleStrategy::Random;
+    let _ = StealthPreset::Medium;
 }
 
 #[test]
