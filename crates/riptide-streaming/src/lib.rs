@@ -18,7 +18,7 @@ pub use ndjson::*;
 pub use backpressure::*;
 pub use config::*; // ✅ ENABLED
 pub use progress::*; // ✅ ENABLED // ✅ ENABLED - for streaming tests
-                                   // pub use openapi::*;       // Verify before enabling
+                     // pub use openapi::*;       // Verify before enabling
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
