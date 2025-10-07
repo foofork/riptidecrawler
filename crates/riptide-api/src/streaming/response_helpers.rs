@@ -345,10 +345,12 @@ impl KeepAliveHelper {
 }
 
 /// Helper for creating completion messages
+#[allow(dead_code)] // Reserved for streaming API toolkit
 pub struct CompletionHelper;
 
 impl CompletionHelper {
     /// Create NDJSON completion message
+    #[allow(dead_code)] // Reserved for streaming API toolkit
     pub fn ndjson_message(summary: impl Serialize) -> String {
         match serde_json::to_string(&json!({
             "type": "completion",
@@ -361,6 +363,7 @@ impl CompletionHelper {
     }
 
     /// Create SSE completion message
+    #[allow(dead_code)] // Reserved for streaming API toolkit
     pub fn sse_message(summary: impl Serialize) -> String {
         match serde_json::to_string(&summary) {
             Ok(json) => format!("event: completion\ndata: {}\n\n", json),
@@ -369,6 +372,7 @@ impl CompletionHelper {
     }
 
     /// Create completion message for specific type
+    #[allow(dead_code)] // Reserved for streaming API toolkit
     pub fn for_type(response_type: StreamingResponseType, summary: impl Serialize) -> String {
         match response_type {
             StreamingResponseType::Ndjson => Self::ndjson_message(summary),
@@ -379,10 +383,12 @@ impl CompletionHelper {
 }
 
 /// Helper for creating progress messages
+#[allow(dead_code)] // Reserved for streaming API toolkit
 pub struct ProgressHelper;
 
 impl ProgressHelper {
     /// Create NDJSON progress message
+    #[allow(dead_code)] // Reserved for streaming API toolkit
     pub fn ndjson_message(progress: impl Serialize) -> String {
         match serde_json::to_string(&json!({
             "type": "progress",
@@ -395,6 +401,7 @@ impl ProgressHelper {
     }
 
     /// Create SSE progress message
+    #[allow(dead_code)] // Reserved for streaming API toolkit
     pub fn sse_message(progress: impl Serialize) -> String {
         match serde_json::to_string(&progress) {
             Ok(json) => format!("event: progress\ndata: {}\n\n", json),
@@ -403,6 +410,7 @@ impl ProgressHelper {
     }
 
     /// Create progress message for specific type
+    #[allow(dead_code)] // Reserved for streaming API toolkit
     pub fn for_type(response_type: StreamingResponseType, progress: impl Serialize) -> String {
         match response_type {
             StreamingResponseType::Ndjson => Self::ndjson_message(progress),
@@ -413,6 +421,7 @@ impl ProgressHelper {
 }
 
 /// Utility for creating streaming responses from channels
+#[allow(dead_code)] // Reserved for streaming API toolkit
 pub fn stream_from_receiver<T>(
     receiver: tokio::sync::mpsc::Receiver<T>,
     response_type: StreamingResponseType,
