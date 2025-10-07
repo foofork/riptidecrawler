@@ -601,8 +601,8 @@ fn generate_medium_html_document(size_bytes: usize) -> String {
     let mut html = String::with_capacity(size_bytes);
     html.push_str("<!DOCTYPE html><html><head><title>Test Document</title></head><body>");
 
-    let content_chunk = "<p>This is test content for memory testing. ".repeat(10);
-    while html.len() < size_bytes - 100 {
+    let content_chunk = "<p>This is test content for memory testing. ".repeat(20);
+    while html.len() < size_bytes {
         html.push_str(&content_chunk);
     }
 

@@ -202,7 +202,7 @@ async fn stress_test_production_readiness() {
     println!("===========================================");
 
     // This test simulates production-like conditions
-    let component = Component::new();
+    let _component = Component::new();
     let html = std::fs::read_to_string("tests/fixtures/blog_post.html")
         .unwrap_or_else(|_| "<html><body><h1>Fallback</h1><p>Content</p></body></html>".to_string());
 

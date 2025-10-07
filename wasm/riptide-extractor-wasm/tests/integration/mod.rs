@@ -95,7 +95,7 @@ pub fn run_integration_tests() -> Result<Vec<IntegrationTestResult>, String> {
 }
 
 /// Test end-to-end extraction pipeline
-fn test_end_to_end_extraction(config: &IntegrationTestConfig) -> Result<IntegrationTestResult, String> {
+fn test_end_to_end_extraction(_config: &IntegrationTestConfig) -> Result<IntegrationTestResult, String> {
     println!("\n🎯 Testing end-to-end extraction pipeline...");
 
     let start_time = Instant::now();
@@ -149,7 +149,7 @@ fn test_end_to_end_extraction(config: &IntegrationTestConfig) -> Result<Integrat
         }
     }
 
-    let total_time = start_time.elapsed().as_secs_f64() * 1000.0;
+    let _total_time = start_time.elapsed().as_secs_f64() * 1000.0;
     let avg_time = if !timings.is_empty() {
         timings.iter().sum::<f64>() / timings.len() as f64
     } else { 0.0 };
@@ -167,10 +167,10 @@ fn test_end_to_end_extraction(config: &IntegrationTestConfig) -> Result<Integrat
 }
 
 /// Test fallback mechanisms
-fn test_fallback_mechanisms(config: &IntegrationTestConfig) -> Result<IntegrationTestResult, String> {
+fn test_fallback_mechanisms(_config: &IntegrationTestConfig) -> Result<IntegrationTestResult, String> {
     println!("\n🔄 Testing fallback mechanisms...");
 
-    let start_time = Instant::now();
+    let _start_time = Instant::now();
     let component = Component;
 
     let mut completed = 0;
@@ -339,10 +339,10 @@ fn test_concurrent_extraction_stress(config: &IntegrationTestConfig) -> Result<I
 }
 
 /// Test long-running memory stability
-fn test_long_running_memory_stability(config: &IntegrationTestConfig) -> Result<IntegrationTestResult, String> {
+fn test_long_running_memory_stability(_config: &IntegrationTestConfig) -> Result<IntegrationTestResult, String> {
     println!("\n🧠 Testing long-running memory stability...");
 
-    let start_time = Instant::now();
+    let _start_time = Instant::now();
     let component = Component;
 
     let mut completed = 0;
@@ -418,16 +418,16 @@ fn test_long_running_memory_stability(config: &IntegrationTestConfig) -> Result<
 }
 
 /// Test error handling and recovery
-fn test_error_handling_recovery(config: &IntegrationTestConfig) -> Result<IntegrationTestResult, String> {
+fn test_error_handling_recovery(_config: &IntegrationTestConfig) -> Result<IntegrationTestResult, String> {
     println!("\n🔧 Testing error handling and recovery...");
 
-    let start_time = Instant::now();
+    let _start_time = Instant::now();
     let component = Component;
 
     let mut completed = 0;
     let mut failed = 0;
     let mut error_details = Vec::new();
-    let mut performance_metrics = HashMap::new();
+    let performance_metrics = HashMap::new();
 
     // Test recovery from various error conditions
     let error_scenarios = vec![
@@ -504,7 +504,7 @@ fn test_error_handling_recovery(config: &IntegrationTestConfig) -> Result<Integr
 }
 
 /// Test multi-language content processing
-fn test_multi_language_processing(config: &IntegrationTestConfig) -> Result<IntegrationTestResult, String> {
+fn test_multi_language_processing(_config: &IntegrationTestConfig) -> Result<IntegrationTestResult, String> {
     println!("\n🌍 Testing multi-language processing...");
 
     let component = Component;
@@ -668,7 +668,7 @@ fn test_real_world_website_simulation(_config: &IntegrationTestConfig) -> Result
             format!("https://{}.example.com", site_type),
             ExtractionMode::Full
         ) {
-            Ok((content, stats)) => {
+            Ok((content, _stats)) => {
                 completed += 1;
                 let extraction_time = extraction_start.elapsed().as_secs_f64() * 1000.0;
 
@@ -725,7 +725,7 @@ fn test_edge_case_handling(_config: &IntegrationTestConfig) -> Result<Integratio
     let mut completed = 0;
     let mut failed = 0;
     let mut error_details = Vec::new();
-    let mut performance_metrics = HashMap::new();
+    let performance_metrics = HashMap::new();
 
     let edge_cases = vec![
         ("empty_document", "".to_string()),
@@ -789,9 +789,6 @@ fn test_production_load_simulation(config: &IntegrationTestConfig) -> Result<Int
     println!("\n🏭 Testing production load simulation...");
 
     let start_time = Instant::now();
-    let mut completed = 0;
-    let mut failed = 0;
-    let mut error_details: Vec<String> = Vec::new();
     let mut performance_metrics = HashMap::new();
 
     // Simulate production load with mixed content types and concurrency
