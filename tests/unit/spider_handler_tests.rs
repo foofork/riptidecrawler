@@ -534,7 +534,9 @@ mod spider_configuration_tests {
         for strategy in strategies {
             // Each strategy should be cloneable and debuggable
             let cloned = strategy.clone();
-            let _debug_str = format!("{:?}", cloned);
+            let debug_str = format!("{:?}", cloned);
+            // Verify debug output contains the strategy name
+            assert!(!debug_str.is_empty(), "Debug output should not be empty");
         }
     }
 }

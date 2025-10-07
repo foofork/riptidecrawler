@@ -384,8 +384,7 @@ impl Spider {
                         }
 
                         // Analyze result for adaptive stopping
-                        let _metrics = self.adaptive_stop_engine.analyze_result(&result).await?;
-
+                        self.adaptive_stop_engine.analyze_result(&result).await?;
                         // Record strategy performance
                         self.strategy_engine
                             .read()

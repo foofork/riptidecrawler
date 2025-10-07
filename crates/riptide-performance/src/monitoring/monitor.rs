@@ -211,7 +211,7 @@ impl PerformanceMonitor {
         let is_monitoring = Arc::clone(&self.is_monitoring);
         let system_metrics = Arc::clone(&self.system_metrics);
         let application_metrics = Arc::clone(&self.application_metrics);
-        let _performance_metrics = Arc::clone(&self.performance_metrics);
+        // Note: performance_metrics not currently used in background tasks
         let active_alerts = Arc::clone(&self.active_alerts);
         let alert_sender = self.alert_sender.clone();
 

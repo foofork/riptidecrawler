@@ -151,7 +151,6 @@ mod tests {
 
         // Verify manager is operational
         let _stats = manager.stats();
-
         // Shutdown should complete without error
         manager.shutdown().await?;
         Ok(())
@@ -236,7 +235,6 @@ mod tests {
 
         // Let the manager run for a bit with aggressive GC
         tokio::time::sleep(Duration::from_millis(200)).await;
-
         let _stats = manager.stats();
         // With aggressive GC, we might see some GC activity even with no instances
         // No need to assert on gc_runs >= 0 as u64 is always >= 0

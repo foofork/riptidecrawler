@@ -67,9 +67,10 @@ mod profiling_tests {
         let profiler = Profiler::new();
 
         {
+            // RAII guard: ProfileScope measures timing from creation to drop
             let _scope = ProfileScope::new(&profiler, "test_operation");
             std::thread::sleep(Duration::from_millis(50));
-        }
+        } // _scope drops here, recording the 50ms duration
 
         let profile = profiler.get_profile("test_operation");
         assert!(profile.is_some());
@@ -80,9 +81,10 @@ mod profiling_tests {
     async fn test_async_profiling() {
         let profiler = Profiler::new();
 
+        // RAII guard: ProfileScope measures timing from creation to explicit drop
         let _scope = ProfileScope::new(&profiler, "async_operation");
         tokio::time::sleep(Duration::from_millis(100)).await;
-        drop(_scope);
+        drop(_scope); // Explicitly drop to record 100ms duration
 
         let profile = profiler.get_profile("async_operation");
         assert!(profile.unwrap().duration_ms >= 100);
@@ -92,18 +94,21 @@ mod profiling_tests {
     fn test_flame_graph_generation() {
         let profiler = Profiler::new();
 
-        // Simulate nested operations
+        // Simulate nested operations with RAII timing guards
         {
+            // RAII guard: Outer scope measures total time (~30ms)
             let _outer = ProfileScope::new(&profiler, "outer");
             {
+                // RAII guard: Inner scope 1 measures ~10ms
                 let _inner1 = ProfileScope::new(&profiler, "inner1");
                 std::thread::sleep(Duration::from_millis(10));
-            }
+            } // _inner1 drops here
             {
+                // RAII guard: Inner scope 2 measures ~20ms
                 let _inner2 = ProfileScope::new(&profiler, "inner2");
                 std::thread::sleep(Duration::from_millis(20));
-            }
-        }
+            } // _inner2 drops here
+        } // _outer drops here
 
         let flame_graph = profiler.generate_flame_graph();
         assert!(flame_graph.contains("outer"));

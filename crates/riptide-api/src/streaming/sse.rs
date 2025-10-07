@@ -6,8 +6,8 @@
 use super::buffer::{BackpressureHandler, BufferManager};
 use super::config::StreamConfig;
 use super::error::{StreamingError, StreamingResult};
-use super::metrics::SseMetrics;
 use crate::errors::ApiError;
+use std::sync::Arc;
 use crate::models::*;
 use crate::pipeline::PipelineOrchestrator;
 use crate::state::AppState;

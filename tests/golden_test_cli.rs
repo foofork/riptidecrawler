@@ -265,14 +265,16 @@ async fn main() -> Result<()> {
         },
         
         Some(("validate-baselines", sub_matches)) => {
-            let _fix = sub_matches.get_flag("fix");
-            
+            // CLI argument not used in current implementation
+            // Will be needed when auto-fix functionality is implemented
+            let _fix_flag = sub_matches.get_flag("fix");
+
             println!("🔍 Validating baselines...");
-            
+
             // Load and validate baselines
             use golden::performance_baseline::{validate_baselines};
             let baseline_path = PathBuf::from("tests/benchmarks/baselines.json");
-            
+
             match validate_baselines(&baseline_path).await {
                 Ok(report) => {
                     report.print_report();
@@ -286,25 +288,29 @@ async fn main() -> Result<()> {
                 }
             }
         },
-        
+
         Some(("run-test", sub_matches)) => {
             let test_name = sub_matches.get_one::<String>("test-name").unwrap();
-            let _create_baseline = sub_matches.get_flag("create-baseline");
-            
+            // CLI argument not used in current implementation
+            // Will be needed when baseline creation is implemented
+            let _create_baseline_flag = sub_matches.get_flag("create-baseline");
+
             println!("🧪 Running golden test: {}", test_name);
-            
+
             // TODO: Implement single test execution
             println!("Single test execution not yet implemented");
         },
-        
+
         Some(("benchmark", sub_matches)) => {
-            let _benchmark_name = sub_matches.get_one::<String>("benchmark-name");
-            let _iterations: usize = sub_matches.get_one::<String>("iterations")
+            // CLI arguments not used in current implementation
+            // Will be needed when benchmark execution is implemented
+            let _benchmark_name_arg = sub_matches.get_one::<String>("benchmark-name");
+            let _iterations_arg: usize = sub_matches.get_one::<String>("iterations")
                 .unwrap().parse().unwrap_or(100);
-            let _save_baseline = sub_matches.get_flag("save-baseline");
-            
+            let _save_baseline_flag = sub_matches.get_flag("save-baseline");
+
             println!("⚡ Running performance benchmarks...");
-            
+
             // TODO: Implement benchmark execution
             println!("Benchmark execution not yet implemented");
         },

@@ -265,8 +265,12 @@ fn assert_json_matches(actual: Value, expected: Value) {
 }
 
 fn assert_error_type(error: &dyn std::error::Error, expected_type: &str) {
-    // This would be implemented to check specific error types
-    // Placeholder for now
-    let _error_type_name = expected_type;
-    // Implementation would depend on actual error enum structure
+    // Check error type by comparing the debug representation
+    let error_debug = format!("{:?}", error);
+    assert!(
+        error_debug.contains(expected_type) || error.to_string().contains(expected_type),
+        "Error type should match expected type: {}. Got: {:?}",
+        expected_type,
+        error
+    );
 }

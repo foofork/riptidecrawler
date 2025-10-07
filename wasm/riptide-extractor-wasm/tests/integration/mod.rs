@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use crate::*;
+use riptide_extractor_wasm::{Component, ExtractionMode, ExtractedContent, ExtractionError};
 
 /// Integration Tests Module
 ///
@@ -179,10 +179,11 @@ fn test_fallback_mechanisms(config: &IntegrationTestConfig) -> Result<Integratio
     let mut performance_metrics = HashMap::new();
 
     // Test various failure scenarios and recovery
+    let very_large_html = generate_stress_test_html(10 * 1024 * 1024);
     let fallback_scenarios = vec![
         ("malformed_html", "<html><body><p>Broken HTML without closing tags"),
         ("empty_content", ""),
-        ("very_large", &generate_stress_test_html(10 * 1024 * 1024)), // 10MB
+        ("very_large", &very_large_html), // 10MB
         ("special_chars", "<!DOCTYPE html><html><body>Special chars: 你好 العالم 🌍</body></html>"),
         ("malicious_content", "<html><body><script>alert('xss')</script></body></html>"),
     ];
@@ -211,7 +212,7 @@ fn test_fallback_mechanisms(config: &IntegrationTestConfig) -> Result<Integratio
                     extraction_time
                 );
             },
-            Err(ExtractionError::InvalidInput(_)) => {
+            Err(ExtractionError::InvalidHtml(_)) => {
                 // Expected for some scenarios
                 completed += 1;
                 println!("  ✅ {} correctly rejected as invalid", scenario);
@@ -753,7 +754,7 @@ fn test_edge_case_handling(_config: &IntegrationTestConfig) -> Result<Integratio
                     println!("  ✅ {} handled gracefully (no content)", case_name);
                 }
             },
-            Err(ExtractionError::InvalidInput(_)) => {
+            Err(ExtractionError::InvalidHtml(_)) => {
                 completed += 1; // Expected for some edge cases
                 println!("  ✅ {} correctly rejected", case_name);
             },
@@ -790,7 +791,7 @@ fn test_production_load_simulation(config: &IntegrationTestConfig) -> Result<Int
     let start_time = Instant::now();
     let mut completed = 0;
     let mut failed = 0;
-    let mut error_details = Vec::new();
+    let mut error_details: Vec<String> = Vec::new();
     let mut performance_metrics = HashMap::new();
 
     // Simulate production load with mixed content types and concurrency

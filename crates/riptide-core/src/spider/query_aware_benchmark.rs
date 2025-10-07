@@ -168,6 +168,7 @@ impl QueryAwareBenchmark {
         for _ in 0..num_iterations {
             for (i, url_str) in test_urls.iter().enumerate() {
                 if let Ok(url) = Url::from_str(url_str) {
+                    // Benchmark scoring performance
                     let _score = analyzer.score(&url, i + 1);
                 }
             }
@@ -575,4 +576,5 @@ fn tokenize(text: &str) -> Vec<String> {
 pub fn run_query_aware_benchmark() {
     let benchmark = QueryAwareBenchmark::new("machine learning artificial intelligence");
     let _results = benchmark.run_full_benchmark();
+    // Results are printed to stdout by run_full_benchmark
 }

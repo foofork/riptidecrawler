@@ -495,8 +495,6 @@ impl PipelineOrchestrator {
 
     /// Process PDF content using the PDF pipeline.
     async fn process_pdf_content(&self, pdf_bytes: &[u8], url: &str) -> ApiResult<ExtractedDoc> {
-        let _pdf_config = self.options.pdf_config.clone().unwrap_or_default();
-
         info!(
             url = %url,
             file_size = pdf_bytes.len(),

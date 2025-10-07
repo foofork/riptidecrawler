@@ -80,6 +80,7 @@ mod instance_pool_tests {
         drop(permits.pop());
 
         // Now should be able to acquire one more
+        // RAII guard: validates that semaphore correctly allows one more acquisition
         let _final_permit = semaphore.try_acquire().unwrap();
     }
 

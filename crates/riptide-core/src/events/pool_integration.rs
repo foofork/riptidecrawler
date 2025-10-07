@@ -488,8 +488,7 @@ mod tests {
         // For now, we'll just test the configuration and factory
         let event_bus = Arc::new(EventBus::new());
         let _factory = EventAwarePoolFactory::new(event_bus);
-
-        // Test that the factory is created successfully
+        // Test that the factory is created successfully without panicking
         // TODO: Add actual test logic when WASM components are available
     }
 

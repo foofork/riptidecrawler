@@ -319,17 +319,16 @@ impl CircuitBreaker {
     pub async fn health_check(&self) -> Result<()> {
         match self.inner.health_check().await {
             Ok(_) => {
-                let _state = self.state.read();
+                let state = self.state.read();
                 // Don't record as success to avoid skewing stats, but note the health
-                if matches!(_state.stats.state, CircuitState::Open) {
+                if matches!(state.stats.state, CircuitState::Open) {
                     // Optionally transition to half-open if health check passes
                     // This is a policy decision - some implementations might not do this
                 }
                 Ok(())
             }
             Err(e) => {
-                let _state = self.state.read();
-                // Similarly, don't record as failure for health checks
+                // Don't record as failure for health checks to avoid skewing stats
                 Err(e)
             }
         }

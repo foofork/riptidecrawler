@@ -584,8 +584,10 @@ mod compile_time_tests {
             // Test API integration specific compilation
             use riptide_core::common::error_conversions;
 
-            // Verify API integration types are available
-            let _converter = error_conversions::CoreErrorConverter::new();
+            // Verify API integration types are available - instantiation validates compilation
+            let converter = error_conversions::CoreErrorConverter::new();
+            // Verify the converter can be created without panicking
+            assert!(std::ptr::addr_of!(converter) as usize != 0);
         }
 
         #[cfg(not(feature = "api-integration"))]

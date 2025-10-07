@@ -216,8 +216,18 @@ pub struct AllocationMetricsResponse {
 pub async fn get_memory_metrics(
     State(_state): State<AppState>,
 ) -> Result<impl IntoResponse, ApiError> {
-    // TODO: Implement memory profiling integration
-    // The profiler field has not been activated yet
+    // TODO(P2): Implement memory profiling integration
+    // STATUS: Profiler field exists in AppState but not activated
+    // PLAN: Wire up memory profiler to collect real-time metrics
+    // IMPLEMENTATION:
+    //   1. Enable profiler in AppState initialization
+    //   2. Integrate with jemalloc or tikv-jemallocator
+    //   3. Add profiling data collection in background task
+    //   4. Return real RSS/heap/virtual memory stats
+    // DEPENDENCIES: Memory profiling crate (jemalloc_ctl or similar)
+    // EFFORT: Medium (6-8 hours)
+    // PRIORITY: Nice-to-have for production debugging
+    // BLOCKER: None
     Ok(Json(MemoryMetricsResponse {
         rss_mb: 0.0,
         heap_mb: 0.0,
@@ -233,8 +243,18 @@ pub async fn get_memory_metrics(
 pub async fn get_leak_analysis(
     State(_state): State<AppState>,
 ) -> Result<impl IntoResponse, ApiError> {
-    // TODO: Implement leak detection integration
-    // The profiler field has not been activated yet
+    // TODO(P2): Implement leak detection integration
+    // STATUS: Profiler field exists but not activated
+    // PLAN: Add memory leak detection analysis
+    // IMPLEMENTATION:
+    //   1. Track allocation patterns over time windows
+    //   2. Analyze growth rates and identify suspicious patterns
+    //   3. Categorize allocations by component/module
+    //   4. Generate leak detection reports with root cause hints
+    // DEPENDENCIES: Requires memory profiling (see monitoring.rs:219)
+    // EFFORT: High (8-12 hours)
+    // PRIORITY: Optional - for advanced debugging
+    // BLOCKER: Must implement memory profiling first
     Ok(Json(LeakSummaryResponse {
         potential_leak_count: 0,
         growth_rate_mb_per_hour: 0.0,
@@ -249,8 +269,18 @@ pub async fn get_leak_analysis(
 pub async fn get_allocation_metrics(
     State(_state): State<AppState>,
 ) -> Result<impl IntoResponse, ApiError> {
-    // TODO: Implement allocation analysis integration
-    // The profiler field has not been activated yet
+    // TODO(P2): Implement allocation analysis integration
+    // STATUS: Profiler field exists but not activated
+    // PLAN: Add allocation pattern analysis and optimization recommendations
+    // IMPLEMENTATION:
+    //   1. Track allocation sizes and frequencies by call site
+    //   2. Identify top allocators and hot paths
+    //   3. Calculate allocation efficiency scores
+    //   4. Generate actionable optimization recommendations
+    // DEPENDENCIES: Requires memory profiling (see monitoring.rs:219)
+    // EFFORT: High (8-12 hours)
+    // PRIORITY: Optional - for performance optimization
+    // BLOCKER: Must implement memory profiling first
     Ok(Json(AllocationMetricsResponse {
         top_allocators: vec![],
         efficiency_score: 0.0,

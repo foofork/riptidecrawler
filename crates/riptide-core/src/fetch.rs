@@ -150,8 +150,6 @@ impl ReliableHttpClient {
         );
 
         info!("Starting HTTP GET request with retry");
-        let _overall_start = std::time::Instant::now();
-
         // Check robots.txt compliance first if manager is available
         if let Some(robots_manager) = &self.robots_manager {
             let _robots_span = telemetry_span!("robots_check", url = %url);
@@ -717,12 +715,13 @@ mod tests {
     #[test]
     fn test_client_creation() {
         let _client = http_client();
+        // Test passes if client creation doesn't panic
     }
 
     #[test]
     fn test_reliable_client_creation() {
-        let _client =
-            ReliableHttpClient::new(RetryConfig::default(), CircuitBreakerConfig::default());
+        let _client = ReliableHttpClient::new(RetryConfig::default(), CircuitBreakerConfig::default());
+        // Test passes if client creation doesn't panic
     }
 
     #[test]

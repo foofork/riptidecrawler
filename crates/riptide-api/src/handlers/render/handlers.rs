@@ -19,8 +19,6 @@ pub async fn render(
     session_ctx: SessionContext,
     Json(body): Json<RenderRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let _start_time = Instant::now();
-
     // Apply comprehensive resource controls first
     let resource_guard = match state
         .resource_manager
