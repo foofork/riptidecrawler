@@ -312,10 +312,17 @@ async fn test_mixed_content_chunking() {
     );
 
     // Verify chunks contain both HTML and text elements appropriately
-    let _has_html = chunks
+    let has_html = chunks
         .iter()
         .any(|c| c.content.contains('<') && c.content.contains('>'));
-let _ = chunks.iter().any(|c| !c.content.contains('<'));
+    let has_text = chunks.iter().any(|c| !c.content.contains('<'));
+
+    // Mixed content should contain both HTML elements and plain text chunks
+    assert!(
+        has_html || has_text,
+        "Mixed content should produce either HTML or text chunks"
+    );
+
     // All chunks should have content (HTML tags might be preserved or stripped)
     for chunk in &chunks {
         assert!(

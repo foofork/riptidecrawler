@@ -339,8 +339,23 @@ impl CmExtractor {
         let mut store = Store::new(&self.engine, resource_tracker);
         store.set_fuel(1_000_000)?; // Set fuel limit for execution
 
-        // TODO: Implement actual WASM component binding and invocation
-        // This is a placeholder for the actual WASM component integration
+        // TODO(wasm-integration): Implement WASM Component Model binding
+        // Current status: Basic WASM runtime is configured but component binding is incomplete
+        //
+        // Required implementation steps:
+        //   1. Define WIT (WASM Interface Types) for HTML extraction interface
+        //   2. Create component bindings using wasmtime::component::bindgen!
+        //   3. Load and instantiate WASM component with linker
+        //   4. Invoke extraction function through component instance
+        //   5. Handle result marshalling between WASM and Rust types
+        //
+        // Rationale for WASM approach:
+        //   - Sandboxed execution with resource limits (memory, fuel)
+        //   - Portable extraction logic that can be updated independently
+        //   - Language-agnostic implementation (could be Rust, AssemblyScript, etc.)
+        //
+        // For now, using fallback Rust extraction to maintain functionality
+        // See: https://docs.wasmtime.dev/examples-rust-wasm.html
 
         let extraction_time = start_time.elapsed();
 

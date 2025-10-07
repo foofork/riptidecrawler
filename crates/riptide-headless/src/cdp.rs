@@ -81,12 +81,13 @@ async fn exec_actions(page: &Page, actions: &[PageAction]) -> anyhow::Result<()>
     for action in actions {
         match action {
             PageAction::WaitForCss { css, timeout_ms } => {
-let _ = Duration::from_millis(timeout_ms.unwrap_or(5000));
+                // Note: timeout is not currently enforced by chromiumoxide's find_element
+                // TODO: Implement timeout mechanism similar to WaitForJs with deadline check
                 let _ = page
                     .find_element(css)
                     .await
                     .map_err(|e| anyhow::anyhow!("CSS selector not found: {}", e))?;
-                debug!("Waited for CSS selector: {}", css);
+                debug!("Waited for CSS selector: {} (timeout_ms: {:?})", css, timeout_ms);
             }
             PageAction::WaitForJs { expr, timeout_ms } => {
                 let deadline = Instant::now() + Duration::from_millis(timeout_ms.unwrap_or(5000));
