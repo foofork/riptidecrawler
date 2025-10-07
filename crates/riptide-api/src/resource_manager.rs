@@ -76,6 +76,7 @@ pub struct WasmInstanceManager {
 
 /// WASM instance for a specific worker
 #[derive(Debug)]
+#[allow(dead_code)] // Reserved for health monitoring API
 struct WasmWorkerInstance {
     // Fields used in health monitoring (get_instance_health method)
     pub worker_id: String,
@@ -397,6 +398,7 @@ impl ResourceManager {
 /// Resource guard for render operations
 pub struct RenderResourceGuard {
     pub browser_checkout: BrowserCheckout,
+    #[allow(dead_code)] // Holds WASM resources, dropped on guard drop
     wasm_guard: WasmGuard,
     memory_tracked: usize,
     manager: ResourceManager,
@@ -414,6 +416,7 @@ pub struct PdfResourceGuard {
 
 /// WASM guard with instance tracking
 pub struct WasmGuard {
+    #[allow(dead_code)] // Keeps manager Arc alive for lifetime of guard
     manager: Arc<WasmInstanceManager>,
 }
 
@@ -574,6 +577,7 @@ impl WasmInstanceManager {
     }
 
     /// Get health status of WASM instances
+    #[allow(dead_code)] // Reserved for future health monitoring API
     async fn get_instance_health(&self) -> Vec<(String, bool, u64, Duration)> {
         let instances = self.worker_instances.read().await;
         instances
@@ -591,6 +595,7 @@ impl WasmInstanceManager {
     }
 
     /// Check if any WASM instance needs cleanup (idle for >1 hour)
+    #[allow(dead_code)] // Reserved for future cleanup scheduling
     async fn needs_cleanup(&self) -> bool {
         let instances = self.worker_instances.read().await;
         let now = Instant::now();
