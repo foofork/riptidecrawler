@@ -11,6 +11,7 @@ pub mod pipeline_phases;
 pub mod render;
 pub mod resources;
 pub mod sessions;
+pub mod shared; // Shared utilities for handlers (reduces duplication)
 pub mod spider;
 pub mod stealth;
 pub mod strategies;

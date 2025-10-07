@@ -3,10 +3,11 @@ use crate::metrics::ErrorType;
 use crate::models::*;
 use crate::state::AppState;
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use riptide_core::spider::{CrawlingStrategy, ScoringConfig, SpiderConfig};
+use riptide_core::spider::SpiderConfig;
 use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
-use url::Url;
+
+use super::shared::{spider::parse_seed_urls, MetricsRecorder};
 
 /// Spider crawl endpoint for deep crawling operations.
 ///
@@ -47,25 +48,8 @@ pub async fn spider_crawl(
         message: "Spider engine is not enabled".to_string(),
     })?;
 
-    // Validate seed URLs
-    let seed_urls: Vec<Url> = body
-        .seed_urls
-        .iter()
-        .map(|url_str| {
-            Url::parse(url_str)
-                .map_err(|e| {
-                    state.metrics.record_error(ErrorType::Http);
-                    ApiError::validation(format!("Invalid URL '{}': {}", url_str, e))
-                })
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-
-    if seed_urls.is_empty() {
-        state.metrics.record_error(ErrorType::Http);
-        return Err(ApiError::validation(
-            "At least one seed URL is required".to_string(),
-        ));
-    }
+    // Parse and validate seed URLs using shared utility
+    let seed_urls = parse_seed_urls(&body.seed_urls)?;
 
     // Create a temporary spider config based on request parameters
     let mut spider_config = if let Some(base_config) = &state.config.spider_config {
@@ -121,32 +105,26 @@ pub async fn spider_crawl(
 
     debug!("Spider configuration prepared: {:?}", spider_config);
 
-    // Record spider crawl start
-    state.metrics.record_spider_crawl_start();
+    // Create metrics recorder
+    let metrics = MetricsRecorder::new(&state);
 
     // Perform the crawl
-    let crawl_result = match spider.crawl(seed_urls).await {
-        Ok(result) => result,
-        Err(e) => {
-            // Record failed spider crawl
-            state.metrics.record_error(ErrorType::Http);
-            state.metrics.record_spider_crawl_completion(0, 1, 0.0);
-            return Err(ApiError::internal(format!("Spider crawl failed: {}", e)));
-        }
-    };
+    let crawl_result = spider.crawl(seed_urls).await.map_err(|e| {
+        // Record failed spider crawl
+        metrics.record_spider_crawl_failure();
+        ApiError::internal(format!("Spider crawl failed: {}", e))
+    })?;
 
     // Record successful spider crawl completion
-    state.metrics.record_spider_crawl_completion(
+    metrics.record_spider_crawl(
         crawl_result.pages_crawled,
         crawl_result.pages_failed,
-        crawl_result.duration.as_secs_f64(),
+        crawl_result.duration,
     );
 
     // Update frontier size metrics
     let frontier_stats = spider.get_frontier_stats().await;
-    state
-        .metrics
-        .update_spider_frontier_size(frontier_stats.total_requests);
+    metrics.update_frontier_size(frontier_stats.total_requests);
 
     // Get current state and performance metrics
     let crawl_state = spider.get_crawl_state().await;
@@ -175,13 +153,8 @@ pub async fn spider_crawl(
         "Spider crawl completed"
     );
 
-    // Record metrics
-    state.metrics.record_http_request(
-        "POST",
-        "/spider/crawl",
-        200,
-        start_time.elapsed().as_secs_f64(),
-    );
+    // Record HTTP request metrics
+    metrics.record_http_request("POST", "/spider/crawl", 200, start_time.elapsed());
 
     Ok(Json(response))
 }

@@ -9,11 +9,12 @@ use base64::prelude::*;
 use futures_util::stream::Stream;
 use riptide_core::pdf::types::{ProgressReceiver, ProgressUpdate};
 use serde::{Deserialize, Serialize};
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 
 use crate::{
     errors::ApiError,
     metrics::ErrorType,
+    resource_manager::ResourceResult,
     state::AppState,
     streaming::response_helpers::{StreamingResponseBuilder, StreamingResponseType},
 };
@@ -99,6 +100,51 @@ pub async fn process_pdf(
         state.metrics.record_error(ErrorType::Http);
         return Err(ApiError::validation("PDF file too large (max 50MB)"));
     }
+
+    // Acquire PDF processing resources (semaphore + memory tracking)
+    let _pdf_guard = match state.resource_manager.acquire_pdf_resources().await {
+        Ok(ResourceResult::Success(guard)) => guard,
+        Ok(ResourceResult::Timeout) => {
+            state.metrics.record_error(ErrorType::Http);
+            return Err(ApiError::timeout(
+                "Resource acquisition",
+                "Timeout acquiring PDF processing resources",
+            ));
+        }
+        Ok(ResourceResult::ResourceExhausted) => {
+            state.metrics.record_error(ErrorType::Http);
+            return Err(ApiError::internal(
+                "PDF processing resources exhausted, please try again later",
+            ));
+        }
+        Ok(ResourceResult::MemoryPressure) => {
+            state.metrics.record_error(ErrorType::Http);
+            return Err(ApiError::internal(
+                "System under memory pressure, please try again later",
+            ));
+        }
+        Ok(ResourceResult::RateLimited { retry_after }) => {
+            state.metrics.record_error(ErrorType::Http);
+            return Err(ApiError::internal(format!(
+                "Rate limited, retry after {}ms",
+                retry_after.as_millis()
+            )));
+        }
+        Ok(ResourceResult::Error(msg)) => {
+            state.metrics.record_error(ErrorType::Http);
+            return Err(ApiError::internal(format!(
+                "Failed to acquire PDF resources: {}",
+                msg
+            )));
+        }
+        Err(e) => {
+            state.metrics.record_error(ErrorType::Http);
+            return Err(ApiError::internal(format!(
+                "Failed to acquire PDF resources: {}",
+                e
+            )));
+        }
+    };
 
     // Create PDF integration
     let pdf_integration = riptide_core::pdf::integration::create_pdf_integration_for_pipeline();

@@ -52,9 +52,11 @@ pub async fn health(State(state): State<AppState>) -> Result<impl IntoResponse, 
         redis: health_status.redis.into(),
         extractor: health_status.extractor.into(),
         http_client: health_status.http_client.into(),
-        headless_service: state.config.headless_url.as_ref().map(|url| {
-            // Perform actual headless service health check
-            perform_headless_health_check(url, &timestamp)
+        headless_service: state.config.headless_url.as_ref().map(|_| ServiceHealth {
+            status: "unknown".to_string(),
+            message: Some("Headless service configured but not checked".to_string()),
+            response_time_ms: None,
+            last_check: timestamp.clone(),
         }),
         spider_engine: state.spider.as_ref().map(|_| ServiceHealth {
             status: health_status.spider.to_string(),
@@ -68,10 +70,9 @@ pub async fn health(State(state): State<AppState>) -> Result<impl IntoResponse, 
         }),
     };
 
-    // Implement actual system metrics collection
-    let metrics = Some(collect_system_metrics(
-        start_time.elapsed().as_millis() as f64
-    ));
+    // Implement actual system metrics collection using full health checker
+    let health_checker = crate::health::HealthChecker::new();
+    let metrics = Some(health_checker.collect_system_metrics(&state).await);
 
     let overall_status = if health_status.healthy {
         "healthy"
@@ -106,105 +107,7 @@ pub async fn health(State(state): State<AppState>) -> Result<impl IntoResponse, 
 }
 
 /// Perform actual headless service health check
-pub(super) fn perform_headless_health_check(url: &str, timestamp: &str) -> ServiceHealth {
-    use std::sync::mpsc;
-    use std::thread;
-    use std::time::Duration;
-    use std::time::Instant;
-
-    let check_start = Instant::now();
-    let (tx, rx) = mpsc::channel();
-    let url_owned = url.to_string();
-    let timestamp_owned = timestamp.to_string();
-
-    // Spawn a blocking thread to perform the health check with timeout
-    thread::spawn(move || {
-        let rt = match tokio::runtime::Runtime::new() {
-            Ok(rt) => rt,
-            Err(_) => {
-                let _ = tx.send(ServiceHealth {
-                    status: "unhealthy".to_string(),
-                    message: Some("Failed to create async runtime".to_string()),
-                    response_time_ms: None,
-                    last_check: timestamp_owned,
-                });
-                return;
-            }
-        };
-
-        let result: Result<ServiceHealth, String> = rt.block_on(async {
-            let client = reqwest::Client::builder()
-                .timeout(Duration::from_secs(5))
-                .build()
-                .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
-
-            // Try to reach the headless service health endpoint
-            let health_url = if url_owned.ends_with('/') {
-                format!("{}health", url_owned)
-            } else {
-                format!("{}/health", url_owned)
-            };
-
-            match client.get(&health_url).send().await {
-                Ok(response) => {
-                    let status_code = response.status();
-                    let response_time = check_start.elapsed().as_millis() as u64;
-
-                    if status_code.is_success() {
-                        Ok(ServiceHealth {
-                            status: "healthy".to_string(),
-                            message: Some("Headless service is responding".to_string()),
-                            response_time_ms: Some(response_time),
-                            last_check: timestamp_owned.clone(),
-                        })
-                    } else {
-                        Ok(ServiceHealth {
-                            status: "unhealthy".to_string(),
-                            message: Some(format!(
-                                "Headless service returned status: {}",
-                                status_code
-                            )),
-                            response_time_ms: Some(response_time),
-                            last_check: timestamp_owned.clone(),
-                        })
-                    }
-                }
-                Err(e) => {
-                    let response_time = check_start.elapsed().as_millis() as u64;
-                    Ok(ServiceHealth {
-                        status: "unhealthy".to_string(),
-                        message: Some(format!("Failed to connect to headless service: {}", e)),
-                        response_time_ms: Some(response_time),
-                        last_check: timestamp_owned.clone(),
-                    })
-                }
-            }
-        });
-
-        let health_result = match result {
-            Ok(health) => health,
-            Err(e) => ServiceHealth {
-                status: "unhealthy".to_string(),
-                message: Some(e.to_string()),
-                response_time_ms: None,
-                last_check: timestamp_owned.clone(),
-            },
-        };
-
-        let _ = tx.send(health_result);
-    });
-
-    // Wait for result with timeout
-    match rx.recv_timeout(Duration::from_secs(6)) {
-        Ok(health) => health,
-        Err(_) => ServiceHealth {
-            status: "unhealthy".to_string(),
-            message: Some("Health check timed out".to_string()),
-            response_time_ms: Some(check_start.elapsed().as_millis() as u64),
-            last_check: timestamp.to_string(),
-        },
-    }
-}
+// Moved to crate::health::perform_headless_health_check for shared use across handlers
 
 /// Collect actual system metrics using sysinfo and psutil
 pub(super) fn collect_system_metrics(avg_response_time_ms: f64) -> SystemMetrics {

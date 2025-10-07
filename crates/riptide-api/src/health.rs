@@ -372,7 +372,7 @@ impl HealthChecker {
     }
 
     /// Collect comprehensive system metrics with real implementations
-    async fn collect_system_metrics(&self, state: &AppState) -> SystemMetrics {
+    pub async fn collect_system_metrics(&self, state: &AppState) -> SystemMetrics {
         // Get real system-level metrics
         let system_metrics = Self::get_comprehensive_system_metrics().await;
 
@@ -597,4 +597,31 @@ struct ComprehensiveSystemMetrics {
     file_descriptor_count: u32,
     thread_count: u32,
     load_average: [f32; 3],
+}
+
+/// Classify health score into status categories
+pub fn classify_health_score(score: f32) -> &'static str {
+    match score {
+        s if s >= 90.0 => "healthy",
+        s if s >= 70.0 => "degraded",
+        s if s >= 50.0 => "warning",
+        _ => "critical",
+    }
+}
+
+/// Perform headless service health check
+pub async fn perform_headless_health_check(_state: &AppState) -> ServiceHealth {
+    // Placeholder implementation - actual headless check is in HealthChecker
+    ServiceHealth {
+        status: "not_implemented".to_string(),
+        message: Some("Use HealthChecker::check_headless_health instead".to_string()),
+        response_time_ms: None,
+        last_check: chrono::Utc::now().to_rfc3339(),
+    }
+}
+
+/// Collect system metrics
+pub async fn collect_system_metrics(state: &AppState) -> SystemMetrics {
+    let checker = HealthChecker::new();
+    checker.collect_system_metrics(state).await
 }

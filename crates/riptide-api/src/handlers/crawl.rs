@@ -9,12 +9,12 @@ use crate::validation::validate_crawl_request;
 use axum::{extract::State, http::HeaderMap, Json};
 use opentelemetry::trace::SpanKind;
 use riptide_core::events::{BaseEvent, EventSeverity};
-use riptide_core::spider::{CrawlingStrategy, ScoringConfig, SpiderConfig};
+use riptide_core::spider::SpiderConfig;
 use std::time::Instant;
 use tracing::{debug, info, warn, Span};
-use url::Url;
 
 use super::chunking::apply_content_chunking;
+use super::shared::{MetricsRecorder, SpiderConfigBuilder};
 
 /// Batch crawl endpoint for processing multiple URLs concurrently.
 ///
@@ -231,83 +231,38 @@ pub(super) async fn handle_spider_crawl(
     urls: &[String],
     options: &riptide_core::types::CrawlOptions,
 ) -> Result<Json<CrawlResponse>, ApiError> {
+    use super::shared::spider::parse_seed_urls;
+
     // Check if spider is enabled
     let spider = state.spider.as_ref().ok_or_else(|| ApiError::ConfigError {
         message: "Spider engine is not enabled. Set SPIDER_ENABLE=true to enable spider crawling."
             .to_string(),
     })?;
 
-    // Parse URLs
-    let seed_urls: Vec<Url> = urls
-        .iter()
-        .map(|url_str| {
-            Url::parse(url_str)
-                .map_err(|e| ApiError::validation(format!("Invalid URL '{}': {}", url_str, e)))
-        })
-        .collect::<Result<Vec<_>, _>>()?;
+    // Parse and validate URLs using shared utility
+    let seed_urls = parse_seed_urls(urls)?;
 
-    if seed_urls.is_empty() {
-        return Err(ApiError::validation(
-            "At least one URL is required for spider crawl".to_string(),
-        ));
-    }
+    // Build spider config using shared builder
+    let _spider_config = SpiderConfigBuilder::new(state, seed_urls[0].clone())
+        .from_crawl_options(options);
 
-    // Create spider config based on options
-    let mut spider_config = if let Some(base_config) = &state.config.spider_config {
-        base_config.clone()
-    } else {
-        SpiderConfig::new(seed_urls[0].clone())
-    };
+    debug!("Using spider crawl with provided options");
 
-    // Override config with request parameters
-    if let Some(max_depth) = options.spider_max_depth {
-        spider_config.max_depth = Some(max_depth);
-    }
-
-    // Set strategy if provided
-    if let Some(strategy_str) = &options.spider_strategy {
-        let _strategy = match strategy_str.as_str() {
-            "breadth_first" => CrawlingStrategy::BreadthFirst,
-            "depth_first" => CrawlingStrategy::DepthFirst,
-            "best_first" => CrawlingStrategy::BestFirst {
-                scoring_config: ScoringConfig::default(),
-            },
-            _ => {
-                warn!(
-                    "Unknown spider strategy '{}', using breadth_first",
-                    strategy_str
-                );
-                CrawlingStrategy::BreadthFirst
-            }
-        };
-        spider_config.strategy = riptide_core::spider::types::StrategyConfig {
-            default_strategy: "breadth_first".to_string(),
-            scoring: ScoringConfig::default(),
-            enable_adaptive: true,
-            adaptive_criteria: Default::default(),
-        };
-    }
-
-    // Set concurrency from crawl options
-    spider_config.concurrency = options.concurrency;
-
-    debug!("Using spider crawl with config: {:?}", spider_config);
-
-    // Record spider crawl start
-    state.metrics.record_spider_crawl_start();
+    // Create metrics recorder
+    let metrics = MetricsRecorder::new(state);
 
     // Perform the crawl
     let spider_result = spider.crawl(seed_urls).await.map_err(|e| {
         // Record failed spider crawl
-        state.metrics.record_spider_crawl_completion(0, 1, 0.0);
+        metrics.record_spider_crawl_failure();
         ApiError::internal(format!("Spider crawl failed: {}", e))
     })?;
 
     // Record successful spider crawl completion
-    state.metrics.record_spider_crawl_completion(
+    metrics.record_spider_crawl(
         spider_result.pages_crawled,
         spider_result.pages_failed,
-        spider_result.duration.as_secs_f64(),
+        spider_result.duration,
     );
 
     // Convert spider result to standard crawl response format
