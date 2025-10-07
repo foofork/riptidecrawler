@@ -328,8 +328,7 @@ impl CircuitBreaker {
                 Ok(())
             }
             Err(e) => {
-let _ = self.state.read();
-                // Similarly, don't record as failure for health checks
+                // Don't record as failure for health checks to avoid skewing stats
                 Err(e)
             }
         }
