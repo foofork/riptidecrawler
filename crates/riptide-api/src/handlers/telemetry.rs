@@ -162,7 +162,19 @@ pub struct TraceSummary {
     )
 )]
 pub async fn list_traces(
-    State(_state): State<AppState>, // TODO: Wire up to actual trace backend
+    State(_state): State<AppState>,
+    // TODO(P1): Wire up to actual trace backend (Jaeger/Zipkin/OTLP)
+    // PLAN: Integrate with OpenTelemetry trace storage
+    // IMPLEMENTATION:
+    //   1. Add trace backend client to AppState (Jaeger/Zipkin client)
+    //   2. Configure OTLP exporter or native backend client
+    //   3. Query traces from backend storage
+    //   4. Parse and return real trace metadata
+    //   5. Support filtering by service, time range, status
+    // DEPENDENCIES: OpenTelemetry backend deployment
+    // EFFORT: High (8-12 hours)
+    // PRIORITY: Important for production observability
+    // BLOCKER: Requires trace backend infrastructure
     Query(query): Query<TraceQueryParams>,
 ) -> Result<Json<Vec<TraceMetadata>>, ApiError> {
     info!("Listing traces with query: {:?}", query);
@@ -204,7 +216,18 @@ pub async fn list_traces(
     )
 )]
 pub async fn get_trace_tree(
-    State(_state): State<AppState>, // TODO: Wire up to actual trace backend
+    State(_state): State<AppState>,
+    // TODO(P1): Wire up to actual trace backend for trace tree retrieval
+    // PLAN: Query complete trace spans and build parent-child tree
+    // IMPLEMENTATION:
+    //   1. Query all spans for given trace_id from backend
+    //   2. Build span tree from parent-child relationships
+    //   3. Calculate critical path timing
+    //   4. Return TraceTreeResponse with full hierarchy
+    // DEPENDENCIES: Same as list_traces (telemetry.rs:165)
+    // EFFORT: Medium (6-8 hours)
+    // PRIORITY: Important for distributed tracing analysis
+    // BLOCKER: Requires trace backend integration
     Query(query): Query<TraceQueryParams>,
 ) -> Result<Json<TraceTreeResponse>, ApiError> {
     let trace_id_str = query
@@ -354,7 +377,18 @@ pub async fn get_trace_tree(
     )
 )]
 pub async fn get_telemetry_status(
-    State(_state): State<AppState>, // TODO: Use state for runtime telemetry info
+    State(_state): State<AppState>,
+    // TODO(P2): Use state for runtime telemetry info
+    // PLAN: Add real-time runtime telemetry data from AppState
+    // IMPLEMENTATION:
+    //   1. Query metrics collector for current system state
+    //   2. Include active request counts and resource usage
+    //   3. Add component status from health checker
+    //   4. Return comprehensive runtime diagnostics
+    // DEPENDENCIES: None - metrics already available in state
+    // EFFORT: Low (2-3 hours)
+    // PRIORITY: Nice-to-have for debugging
+    // BLOCKER: None
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let config = crate::telemetry_config::TelemetryConfig::from_env();
 

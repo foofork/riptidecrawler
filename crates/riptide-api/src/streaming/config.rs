@@ -1,4 +1,16 @@
-// TODO: Streaming infrastructure - will be activated when routes are added
+// TODO(P2): Streaming infrastructure - will be activated when routes are added
+// STATUS: Complete infrastructure prepared, waiting for route activation
+// PLAN: Activate when streaming endpoints are implemented
+// IMPLEMENTATION:
+//   1. Create streaming route handlers in handlers/streaming/
+//   2. Wire up NDJSON, SSE, and WebSocket endpoints
+//   3. Connect to this config module for stream settings
+//   4. Add streaming handlers to main router
+//   5. Enable streaming feature flags in config
+// DEPENDENCIES: None - infrastructure is ready
+// EFFORT: Medium (6-8 hours for all streaming routes)
+// PRIORITY: Future feature - not blocking production
+// BLOCKER: None
 #![allow(dead_code)]
 
 //! Configuration for streaming operations.

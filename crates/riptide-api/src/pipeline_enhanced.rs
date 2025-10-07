@@ -1,4 +1,15 @@
-// TODO: Enhanced pipeline orchestrator prepared for production use
+// TODO(P2): Enhanced pipeline orchestrator prepared for production use
+// STATUS: Module is complete but marked for production validation
+// PLAN: Validate and activate for production workloads
+// VALIDATION CHECKLIST:
+//   1. Load testing with concurrent requests (100+ RPS)
+//   2. Memory leak testing over 24+ hour runs
+//   3. Error handling validation with fault injection
+//   4. Metrics accuracy verification
+//   5. Phase timing calibration under various loads
+// EFFORT: Medium (4-6 hours for comprehensive testing)
+// PRIORITY: Important before production deployment
+// BLOCKER: None - code is ready, just needs validation
 #![allow(dead_code)]
 
 use crate::errors::ApiResult;
@@ -94,7 +105,8 @@ impl EnhancedPipelineOrchestrator {
                 let url = url.clone();
 
                 tokio::spawn(async move {
-let _ = semaphore.acquire().await.ok()?;
+                    // Acquire semaphore permit and keep it alive for the duration of the task
+                    let _permit = semaphore.acquire().await.ok()?;
                     orchestrator.execute_enhanced(&url).await.ok()
                 })
             })

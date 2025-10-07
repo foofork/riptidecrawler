@@ -277,8 +277,9 @@ async fn test_deepsearch_basic_streaming() {
         ),
     ];
 
-    let _serper_mock = framework.setup_serper_mock("streaming technology", search_results.clone());
-    let _content_mocks = framework.setup_content_mocks(&[
+    // Setup mock servers - must keep mocks alive for duration of test
+    let _serper_mock_guard = framework.setup_serper_mock("streaming technology", search_results.clone());
+    let _content_mocks_guard = framework.setup_content_mocks(&[
         &format!("{}/article1", framework.content_mock_server.base_url()),
         &format!("{}/article2", framework.content_mock_server.base_url()),
     ]);
@@ -346,7 +347,8 @@ async fn test_deepsearch_without_content_extraction() {
         ),
     ];
 
-    let _serper_mock = framework.setup_serper_mock("fast search", search_results);
+    // Setup mock server - must keep mock alive for duration of test
+    let _serper_mock_guard = framework.setup_serper_mock("fast search", search_results);
 
     let request = framework.create_request("fast search", 1, false, None);
     let response = framework.make_streaming_request(request).await
@@ -387,8 +389,9 @@ async fn test_deepsearch_ttfb_performance() {
         ),
     ];
 
-    let _serper_mock = framework.setup_serper_mock("cached query", search_results);
-    let _content_mocks = framework.setup_content_mocks(&[
+    // Setup mock servers - must keep mocks alive for duration of test
+    let _serper_mock_guard = framework.setup_serper_mock("cached query", search_results);
+    let _content_mocks_guard = framework.setup_content_mocks(&[
         &format!("{}/cached", framework.content_mock_server.base_url()),
     ]);
 
@@ -435,11 +438,12 @@ async fn test_deepsearch_error_handling() {
         ),
     ];
 
-    let _serper_mock = framework.setup_serper_mock("mixed results", search_results);
-    let _working_mock = framework.setup_content_mocks(&[
+    // Setup mock servers - must keep mocks alive for duration of test
+    let _serper_mock_guard = framework.setup_serper_mock("mixed results", search_results);
+    let _working_mock_guard = framework.setup_content_mocks(&[
         &format!("{}/working", framework.content_mock_server.base_url()),
     ]);
-    let _failing_mock = framework.setup_failing_content_mocks(&[
+    let _failing_mock_guard = framework.setup_failing_content_mocks(&[
         &format!("{}/broken", framework.content_mock_server.base_url()),
     ]);
 
@@ -531,8 +535,9 @@ async fn test_deepsearch_large_result_set() {
     let working_refs: Vec<&str> = working_urls.iter().map(|s| s.as_str()).collect();
     let failing_refs: Vec<&str> = failing_urls.iter().map(|s| s.as_str()).collect();
 
-    let _working_mocks = framework.setup_content_mocks(&working_refs);
-    let _failing_mocks = framework.setup_failing_content_mocks(&failing_refs);
+    // Setup mock servers - must keep mocks alive for duration of test
+    let _working_mocks_guard = framework.setup_content_mocks(&working_refs);
+    let _failing_mocks_guard = framework.setup_failing_content_mocks(&failing_refs);
 
     let request = framework.create_request("large query", 10, true, Some(5));
     let response = framework.make_streaming_request(request).await
@@ -599,8 +604,9 @@ async fn test_concurrent_deepsearch_sessions() {
         SearchResultData::new("Result 2A", "https://example.com/2a", "Content 2A", 1),
     ];
 
-    let _serper_mock1 = framework.setup_serper_mock("query one", search_results1);
-    let _serper_mock2 = framework.setup_serper_mock("query two", search_results2);
+    // Setup mock servers - must keep mocks alive for duration of test
+    let _serper_mock1_guard = framework.setup_serper_mock("query one", search_results1);
+    let _serper_mock2_guard = framework.setup_serper_mock("query two", search_results2);
 
     let request1 = framework.create_request("query one", 2, false, None);
     let request2 = framework.create_request("query two", 1, false, None);
@@ -643,7 +649,8 @@ async fn test_deepsearch_rate_limiting() {
         )
     }).collect();
 
-    let _serper_mock = framework.setup_serper_mock("rate limit test", search_results);
+    // Setup mock server - must keep mock alive for duration of test
+    let _serper_mock_guard = framework.setup_serper_mock("rate limit test", search_results);
 
     // Setup content with some fast, some slow responses
     let urls: Vec<String> = (1..=20).map(|i|

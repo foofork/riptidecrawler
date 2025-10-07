@@ -31,8 +31,8 @@ pub fn stealth_routes() -> Router<AppState> {
 async fn stealth_health_check() -> axum::response::Json<serde_json::Value> {
     use riptide_stealth::{StealthController, StealthPreset};
 
-    // Test basic stealth functionality
-let _ = StealthController::from_preset(StealthPreset::Medium);
+    // Test basic stealth functionality to verify module is available
+    let _controller = StealthController::from_preset(StealthPreset::Medium);
     axum::response::Json(serde_json::json!({
         "status": "healthy",
         "stealth_available": true,

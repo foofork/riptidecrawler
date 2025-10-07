@@ -27,7 +27,19 @@ pub enum ApiError {
 
     /// Authentication/authorization errors (401/403)
     #[error("Authentication failed: {message}")]
-    #[allow(dead_code)] // TODO: Implement authentication middleware
+    #[allow(dead_code)]
+    // TODO(P1): Implement authentication middleware
+    // PLAN: Add JWT/API key authentication layer
+    // IMPLEMENTATION:
+    //   1. Create auth middleware with JWT token validation
+    //   2. Add API key authentication support
+    //   3. Implement role-based access control (RBAC)
+    //   4. Add auth state to AppState with token validator
+    //   5. Wire up to protected routes in handlers
+    // DEPENDENCIES: None - can use jsonwebtoken crate
+    // EFFORT: High (12-16 hours for full implementation)
+    // PRIORITY: Required for production deployment
+    // BLOCKER: None
     AuthenticationError { message: String },
 
     /// Content fetch errors (502 Bad Gateway or 404 Not Found)

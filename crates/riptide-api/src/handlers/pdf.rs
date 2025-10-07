@@ -459,7 +459,19 @@ pub struct EnhancedProgressUpdate {
 
 /// Request type enum for handling both JSON and multipart requests
 #[derive(Debug)]
-#[allow(dead_code)] // TODO: Implement multipart PDF upload support
+#[allow(dead_code)]
+// TODO(P1): Implement multipart PDF upload support
+// PLAN: Add multipart form upload handler for PDF files
+// IMPLEMENTATION:
+//   1. Create POST /api/v1/pdf/upload endpoint
+//   2. Use axum::extract::Multipart to handle file uploads
+//   3. Validate uploaded file is valid PDF
+//   4. Process using existing pdf_processor
+//   5. Return PdfProcessingResult with upload metadata
+// DEPENDENCIES: None - axum has built-in multipart support
+// EFFORT: Medium (4-6 hours)
+// PRIORITY: Important for user-uploaded PDF processing
+// BLOCKER: None
 pub enum PdfProcessingRequest {
     Json(PdfProcessRequest),
     Multipart(Vec<u8>, Option<String>, Option<String>), // data, filename, url

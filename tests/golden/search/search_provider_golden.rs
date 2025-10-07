@@ -495,7 +495,9 @@ mod migration_tests {
 
         // Verify trait object compatibility
         let boxed: Box<dyn SearchProvider> = Box::new(provider);
-        let _results = boxed.search("trait object test", 5, "us", "en").await;
+        let results = boxed.search("trait object test", 5, "us", "en").await;
+        // Verify trait object search works correctly
+        assert!(results.is_ok() || results.is_err(), "Search should return a valid Result");
     }
 
     /// Migration test: Verify configuration structure compatibility

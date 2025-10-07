@@ -677,14 +677,9 @@ impl RipTideMetrics {
         self.streaming_total_connections
             .set(streaming_metrics.total_connections as f64);
 
-        // For counters, we need to track the difference and add it
-        // This is a simplified approach - in production you'd want to track previous values
-        // For now, we'll just set the gauge to the current value
-let _ = streaming_metrics.total_messages_sent as f64;
-let _ = streaming_metrics.total_messages_dropped as f64;
-        // Since counters can't be set directly, we observe individual increments
-        // This method should ideally be called with delta values, not absolute values
-        // For this integration, we'll track via separate gauges that mirror the counter values
+        // Note: Counters (messages_sent/dropped) should be incremented via
+        // record_streaming_message_sent() and record_streaming_message_dropped()
+        // methods below, not set directly from snapshot values.
 
         self.streaming_error_rate.set(streaming_metrics.error_rate);
         self.streaming_memory_usage_bytes

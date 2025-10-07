@@ -247,8 +247,11 @@ impl PerformanceReportGenerator {
 
             for _ in 0..iterations {
                 let start = Instant::now();
-                let _chunks = chunk_content(&test_text, &config).await.unwrap();
+                let chunks = chunk_content(&test_text, &config).await.unwrap();
                 let elapsed = start.elapsed();
+
+                // Verify chunking produces results
+                assert!(!chunks.is_empty(), "Chunking should produce at least one chunk");
 
                 times.push(elapsed.as_secs_f64() * 1000.0);
                 throughputs.push((size as f64 / 1024.0 / 1024.0) / elapsed.as_secs_f64());
