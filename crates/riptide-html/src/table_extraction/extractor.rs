@@ -104,7 +104,15 @@ impl TableExtractor {
             id: table_id,
             headers: TableHeaders {
                 main: headers,
-                sub_headers: Vec::new(), // TODO: Implement multi-level headers
+                // TODO(feature): Implement multi-level header extraction
+                // Multi-level headers occur when <thead> contains multiple <tr> elements
+                // where cells use colspan/rowspan to create hierarchical column groups.
+                // Implementation requires:
+                //   1. Detect multiple header rows in <thead>
+                //   2. Parse colspan/rowspan relationships between header rows
+                //   3. Build hierarchical structure mapping sub-headers to main headers
+                // See: https://www.w3.org/TR/html5/tabular-data.html#header-and-data-cell-semantics
+                sub_headers: Vec::new(),
                 column_groups,
             },
             rows: body_rows,
