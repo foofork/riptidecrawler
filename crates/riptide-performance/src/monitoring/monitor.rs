@@ -23,6 +23,7 @@ pub struct PerformanceMonitor {
     // Metric storage
     pub(crate) system_metrics: Arc<RwLock<VecDeque<SystemMetrics>>>,
     pub(crate) application_metrics: Arc<RwLock<VecDeque<ApplicationMetrics>>>,
+    #[allow(dead_code)] // Reserved for future use - currently computed on-demand
     performance_metrics: Arc<RwLock<VecDeque<PerformanceMetrics>>>,
 
     // Alert management
