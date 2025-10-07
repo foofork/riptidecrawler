@@ -9,7 +9,7 @@ use base64::prelude::*;
 use futures_util::stream::Stream;
 use riptide_core::pdf::types::{ProgressReceiver, ProgressUpdate};
 use serde::{Deserialize, Serialize};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info, warn};
 
 use crate::{
     errors::ApiError,

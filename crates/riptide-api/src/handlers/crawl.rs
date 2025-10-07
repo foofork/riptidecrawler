@@ -9,7 +9,7 @@ use crate::validation::validate_crawl_request;
 use axum::{extract::State, http::HeaderMap, Json};
 use opentelemetry::trace::SpanKind;
 use riptide_core::events::{BaseEvent, EventSeverity};
-use riptide_core::spider::SpiderConfig;
+// use riptide_core::spider::SpiderConfig; // Unused
 use std::time::Instant;
 use tracing::{debug, info, warn, Span};
 

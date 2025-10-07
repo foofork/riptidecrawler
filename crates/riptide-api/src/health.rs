@@ -1,5 +1,6 @@
 use crate::models::{DependencyStatus, HealthResponse, ServiceHealth, SystemMetrics};
 use crate::state::AppState;
+use prometheus::proto_ext::MessageFieldExt; // For protobuf 3.x API
 use serde_json::Value;
 use std::collections::HashMap;
 use std::time::Instant;
@@ -402,17 +403,17 @@ impl HealthChecker {
 
         // Parse the metrics to extract request count and response times
         for family in &metrics_data {
-            if family.get_name() == "riptide_http_requests_total" {
+            if family.name() == "riptide_http_requests_total" {
                 for metric in family.get_metric() {
-                    if metric.has_counter() {
-                        let counter = metric.get_counter();
+                    let counter = metric.get_counter();
+                    if counter.has_value() {
                         total_requests += counter.get_value() as u64;
                     }
                 }
-            } else if family.get_name() == "riptide_request_duration_seconds" {
+            } else if family.name() == "riptide_request_duration_seconds" {
                 for metric in family.get_metric() {
-                    if metric.has_histogram() {
-                        let histogram = metric.get_histogram();
+                    let histogram = metric.get_histogram();
+                    if histogram.has_sample_count() {
                         sum_response_time += histogram.get_sample_sum();
                         count_response_time += histogram.get_sample_count();
                     }

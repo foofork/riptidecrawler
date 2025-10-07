@@ -6,15 +6,25 @@ allow = [
     "MIT",
     "Apache-2.0",
     "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
     "BSD-3-Clause",
     "ISC",
+    "CC0-1.0",
+    "Zlib",
+    "MPL-2.0",
+    "Unicode-3.0",
     "Unicode-DFS-2016",
+    "0BSD",
 ]
 
 [bans]
 multiple-versions = "warn"
 wildcards = "allow"
 highlight = "all"
+# Allow some common duplicates during transition periods
+skip = [
+    # These duplicates will be resolved via cargo update
+]
 
 [advisories]
 db-path = "~/.cargo/advisory-db"

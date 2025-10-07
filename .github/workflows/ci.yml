@@ -109,15 +109,29 @@ jobs:
             wasm-artifacts-${{ hashFiles('wasm/riptide-extractor-wasm/Cargo.lock') }}-
             wasm-artifacts-
 
-      - name: Upload build artifacts
+      - name: Upload native build artifacts
+        if: matrix.target == 'native'
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts-${{ matrix.target }}
           path: |
-            target/release/riptide-*
+            target/release/riptide-api
+            target/release/riptide-headless
+            target/release/riptide-workers
+          retention-days: 7
+          compression-level: 6
+          if-no-files-found: warn
+
+      - name: Upload WASM build artifacts
+        if: matrix.target == 'wasm32-wasip2'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts-${{ matrix.target }}
+          path: |
             wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/*.wasm
           retention-days: 7
           compression-level: 6
+          if-no-files-found: warn
 
   # Parallel testing
   test:
@@ -230,7 +244,7 @@ jobs:
           echo "====================="
 
           # Check native binaries
-          for binary in artifacts/target/release/riptide-*; do
+          for binary in artifacts/riptide-*; do
             if [[ -f "$binary" ]]; then
               size=$(stat --format=%s "$binary")
               size_mb=$(echo "scale=2; $size / 1024 / 1024" | bc)
@@ -244,17 +258,18 @@ jobs:
           done
 
           # Check WASM binary
-          wasm_file="artifacts/wasm/wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm"
-          if [[ -f "$wasm_file" ]]; then
-            size=$(stat --format=%s "$wasm_file")
-            size_kb=$(echo "scale=2; $size / 1024" | bc)
-            echo "WASM module: ${size_kb}KB"
+          find artifacts/wasm -name "*.wasm" | while read wasm_file; do
+            if [[ -f "$wasm_file" ]]; then
+              size=$(stat --format=%s "$wasm_file")
+              size_kb=$(echo "scale=2; $size / 1024" | bc)
+              echo "$(basename "$wasm_file"): ${size_kb}KB"
 
-            # WASM size limit
-            if (( $(echo "$size_kb > 1024" | bc -l) )); then
-              echo "⚠️  Warning: WASM module is larger than 1MB"
+              # WASM size limit
+              if (( $(echo "$size_kb > 1024" | bc -l) )); then
+                echo "⚠️  Warning: $(basename "$wasm_file") is larger than 1MB"
+              fi
             fi
-          fi
+          done
 
           echo "\n🎯 Optimization suggestions:"
           echo "- Use 'cargo bloat' to analyze binary composition"

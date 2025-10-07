@@ -6,7 +6,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use riptide_performance::limits::RequestPermit;
-use std::sync::Arc;
+// use std::sync::Arc; // Unused
 use tracing::{debug, warn};
 
 use crate::state::AppState;
