@@ -73,6 +73,7 @@ pub mod buffer;
 pub mod config;
 pub mod error;
 pub mod lifecycle;
+pub mod metrics;
 pub mod ndjson;
 
 // Re-export NDJSON handlers for convenience

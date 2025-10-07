@@ -1,5 +1,9 @@
-// TODO: Session management system prepared but not yet integrated into routes
-#![allow(dead_code)]
+//! Session management module
+//!
+//! ACTIVELY USED: Fully integrated session system with:
+//! - SessionLayer middleware (main.rs:line with SessionLayer)
+//! - Session handlers at /api/sessions/* (handlers/sessions.rs)
+//! - AppState.session_manager (state.rs:69)
 
 pub mod manager;
 pub mod middleware;

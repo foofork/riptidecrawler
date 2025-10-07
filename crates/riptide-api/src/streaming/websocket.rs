@@ -6,6 +6,7 @@
 use super::buffer::{BackpressureHandler, BufferManager};
 use super::config::StreamConfig;
 use super::error::{ClientType, ConnectionContext, StreamingError, StreamingResult};
+use super::metrics::WebSocketMetrics;
 use crate::models::*;
 use crate::pipeline::PipelineOrchestrator;
 use crate::state::AppState;
@@ -577,59 +578,9 @@ pub struct WebSocketMessage {
     pub timestamp: String,
 }
 
-/// WebSocket connection metrics
-#[derive(Debug, Default)]
-pub struct WebSocketMetrics {
-    pub active_connections: usize,
-    pub total_connections: usize,
-    pub total_messages_sent: usize,
-    pub total_messages_received: usize,
-    pub average_connection_duration_ms: f64,
-    pub error_count: usize,
-}
-
-impl WebSocketMetrics {
-    /// Record a new connection
-    pub fn record_connection(&mut self) {
-        self.active_connections += 1;
-        self.total_connections += 1;
-    }
-
-    /// Record connection closure
-    pub fn record_disconnection(&mut self, duration: Duration) {
-        self.active_connections = self.active_connections.saturating_sub(1);
-
-        // Update average duration
-        let total_duration =
-            self.average_connection_duration_ms * (self.total_connections - 1) as f64;
-        self.average_connection_duration_ms =
-            (total_duration + duration.as_millis() as f64) / self.total_connections as f64;
-    }
-
-    /// Record message sent
-    pub fn record_message_sent(&mut self) {
-        self.total_messages_sent += 1;
-    }
-
-    /// Record message received
-    pub fn record_message_received(&mut self) {
-        self.total_messages_received += 1;
-    }
-
-    /// Record error
-    pub fn record_error(&mut self) {
-        self.error_count += 1;
-    }
-
-    /// Get connection health ratio
-    pub fn health_ratio(&self) -> f64 {
-        if self.total_connections == 0 {
-            1.0
-        } else {
-            1.0 - (self.error_count as f64 / self.total_connections as f64)
-        }
-    }
-}
+// Note: WebSocketMetrics is now imported from super::metrics
+// The previous duplicate implementation (52 lines) has been removed
+// and replaced with the shared StreamingMetrics from metrics.rs
 
 #[cfg(test)]
 mod tests {
@@ -677,10 +628,10 @@ mod tests {
         assert_eq!(metrics.active_connections, 1);
         assert_eq!(metrics.total_connections, 1);
 
-        metrics.record_message_sent();
-        metrics.record_message_received();
-        assert_eq!(metrics.total_messages_sent, 1);
-        assert_eq!(metrics.total_messages_received, 1);
+        metrics.record_item_sent();
+        metrics.record_item_received();
+        assert_eq!(metrics.total_items_sent, 1);
+        assert_eq!(metrics.total_items_received, 1);
 
         metrics.record_disconnection(Duration::from_secs(60));
         assert_eq!(metrics.active_connections, 0);

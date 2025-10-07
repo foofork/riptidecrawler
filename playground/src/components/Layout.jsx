@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { FaGithub, FaBook, FaCode, FaPlay } from 'react-icons/fa'
+import { FaGithub, FaBook, FaCode, FaPlay, FaServer, FaStream, FaHeartbeat } from 'react-icons/fa'
 
 export default function Layout({ children }) {
   const location = useLocation()
@@ -29,6 +29,36 @@ export default function Layout({ children }) {
               >
                 <FaPlay />
                 <span>Playground</span>
+              </Link>
+
+              <Link
+                to="/workers"
+                className={`flex items-center space-x-2 hover:text-riptide-blue transition-colors ${
+                  isActive('/workers') ? 'text-riptide-blue' : ''
+                }`}
+              >
+                <FaServer />
+                <span>Workers</span>
+              </Link>
+
+              <Link
+                to="/streaming"
+                className={`flex items-center space-x-2 hover:text-riptide-blue transition-colors ${
+                  isActive('/streaming') ? 'text-riptide-blue' : ''
+                }`}
+              >
+                <FaStream />
+                <span>Streaming</span>
+              </Link>
+
+              <Link
+                to="/monitoring"
+                className={`flex items-center space-x-2 hover:text-riptide-blue transition-colors ${
+                  isActive('/monitoring') ? 'text-riptide-blue' : ''
+                }`}
+              >
+                <FaHeartbeat />
+                <span>Monitoring</span>
               </Link>
 
               <Link

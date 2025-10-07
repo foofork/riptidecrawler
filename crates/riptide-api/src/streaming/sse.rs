@@ -6,6 +6,7 @@
 use super::buffer::{BackpressureHandler, BufferManager};
 use super::config::StreamConfig;
 use super::error::{StreamingError, StreamingResult};
+use super::metrics::SseMetrics;
 use crate::errors::ApiError;
 use crate::models::*;
 use crate::pipeline::PipelineOrchestrator;
@@ -16,7 +17,6 @@ use axum::response::sse::{Event, KeepAlive};
 use axum::response::{IntoResponse, Response, Sse};
 use serde::Serialize;
 use std::convert::Infallible;
-use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
@@ -477,69 +477,9 @@ struct SseCompletion {
     average_processing_time_ms: f64,
 }
 
-/// SSE connection metrics
-#[derive(Debug, Default)]
-pub struct SseMetrics {
-    pub active_connections: usize,
-    pub total_connections: usize,
-    pub total_events_sent: usize,
-    pub events_dropped: usize,
-    pub average_connection_duration_ms: f64,
-    pub reconnection_count: usize,
-}
-
-impl SseMetrics {
-    /// Record a new SSE connection
-    pub fn record_connection(&mut self) {
-        self.active_connections += 1;
-        self.total_connections += 1;
-    }
-
-    /// Record SSE connection closure
-    pub fn record_disconnection(&mut self, duration: Duration) {
-        self.active_connections = self.active_connections.saturating_sub(1);
-
-        // Update average duration
-        let total_duration =
-            self.average_connection_duration_ms * (self.total_connections - 1) as f64;
-        self.average_connection_duration_ms =
-            (total_duration + duration.as_millis() as f64) / self.total_connections as f64;
-    }
-
-    /// Record event sent
-    pub fn record_event_sent(&mut self) {
-        self.total_events_sent += 1;
-    }
-
-    /// Record event dropped
-    pub fn record_event_dropped(&mut self) {
-        self.events_dropped += 1;
-    }
-
-    /// Record client reconnection
-    pub fn record_reconnection(&mut self) {
-        self.reconnection_count += 1;
-    }
-
-    /// Get event delivery ratio
-    pub fn delivery_ratio(&self) -> f64 {
-        let total_events = self.total_events_sent + self.events_dropped;
-        if total_events == 0 {
-            1.0
-        } else {
-            self.total_events_sent as f64 / total_events as f64
-        }
-    }
-
-    /// Get reconnection rate
-    pub fn reconnection_rate(&self) -> f64 {
-        if self.total_connections == 0 {
-            0.0
-        } else {
-            self.reconnection_count as f64 / self.total_connections as f64
-        }
-    }
-}
+// Note: SseMetrics is now imported from super::metrics
+// The previous duplicate implementation (62 lines) has been removed
+// and replaced with the shared StreamingMetrics from metrics.rs
 
 #[cfg(test)]
 mod tests {
@@ -601,11 +541,11 @@ mod tests {
         assert_eq!(metrics.active_connections, 1);
         assert_eq!(metrics.total_connections, 1);
 
-        metrics.record_event_sent();
-        metrics.record_event_sent();
-        metrics.record_event_dropped();
-        assert_eq!(metrics.total_events_sent, 2);
-        assert_eq!(metrics.events_dropped, 1);
+        metrics.record_item_sent(); // was record_event_sent
+        metrics.record_item_sent();
+        metrics.record_item_dropped(); // was record_event_dropped
+        assert_eq!(metrics.total_items_sent, 2); // was total_events_sent
+        assert_eq!(metrics.items_dropped, 1); // was events_dropped
         assert_eq!(metrics.delivery_ratio(), 2.0 / 3.0);
 
         metrics.record_reconnection();

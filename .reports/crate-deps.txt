@@ -1,0 +1,193 @@
+riptide-api v0.1.0 (/workspaces/eventmesh/crates/riptide-api)
+├── anyhow v1.0.100
+├── async-stream v0.3.6
+├── axum v0.7.9
+├── axum-prometheus v0.7.0
+├── base64 v0.22.1
+├── bytes v1.10.1
+├── chromiumoxide v0.7.0
+├── chrono v0.4.42
+├── clap v4.5.48
+├── futures v0.3.31
+├── futures-util v0.3.31
+├── hex v0.4.3
+├── http v1.3.1
+├── once_cell v1.21.3
+├── opentelemetry v0.26.0
+├── opentelemetry-otlp v0.26.0
+├── opentelemetry-semantic-conventions v0.26.0
+├── opentelemetry_sdk v0.26.0
+├── prometheus v0.13.4
+├── psutil v3.3.0
+├── rand v0.8.5
+├── redis v0.26.1
+├── regex v1.11.3
+├── reqwest v0.12.23
+├── riptide-core v0.1.0 (/workspaces/eventmesh/crates/riptide-core)
+│   [dev-dependencies]
+├── riptide-headless v0.1.0 (/workspaces/eventmesh/crates/riptide-headless)
+│   [dev-dependencies]
+├── riptide-html v0.1.0 (/workspaces/eventmesh/crates/riptide-html)
+│   [dev-dependencies]
+├── riptide-intelligence v0.1.0 (/workspaces/eventmesh/crates/riptide-intelligence)
+│   [dev-dependencies]
+├── riptide-pdf v0.1.0 (/workspaces/eventmesh/crates/riptide-pdf)
+│   [dev-dependencies]
+├── riptide-performance v0.1.0 (/workspaces/eventmesh/crates/riptide-performance)
+│   [dev-dependencies]
+├── riptide-search v0.1.0 (/workspaces/eventmesh/crates/riptide-search)
+│   [dev-dependencies]
+├── riptide-stealth v0.1.0 (/workspaces/eventmesh/crates/riptide-stealth)
+│   [dev-dependencies]
+├── riptide-workers v0.1.0 (/workspaces/eventmesh/crates/riptide-workers)
+│   [dev-dependencies]
+├── serde v1.0.228
+├── serde_json v1.0.145
+├── sysinfo v0.32.1
+├── thiserror v1.0.69
+├── tokio v1.47.1
+├── tokio-stream v0.1.17
+├── tower v0.5.2
+├── tower-http v0.6.6
+├── tracing v0.1.41
+├── tracing-opentelemetry v0.27.0
+├── tracing-subscriber v0.3.20
+├── url v2.5.7
+├── uuid v1.18.1
+└── wasmtime v27.0.0
+    [build-dependencies]
+[dev-dependencies]
+├── axum-extra v0.9.6
+├── criterion v0.5.1
+├── futures-util v0.3.31 (*)
+├── httpmock v0.7.0
+├── mockall v0.13.1
+├── proptest v1.8.0
+├── rstest v0.22.0
+│   [build-dependencies]
+├── tempfile v3.23.0
+├── tokio-test v0.4.4
+├── tokio-tungstenite v0.23.1
+└── wiremock v0.6.5
+
+riptide-core v0.1.0 (/workspaces/eventmesh/crates/riptide-core) (*)
+
+riptide-extractor-wasm v0.1.0 (/workspaces/eventmesh/wasm/riptide-extractor-wasm)
+├── anyhow v1.0.100
+├── chrono v0.4.42 (*)
+├── once_cell v1.21.3
+├── regex v1.11.3 (*)
+├── scraper v0.20.0
+├── serde v1.0.228 (*)
+├── serde_json v1.0.145 (*)
+├── trek-rs v0.1.1
+├── url v2.5.7 (*)
+├── whatlang v0.16.4
+└── wit-bindgen v0.30.0
+[build-dependencies]
+└── vergen v8.3.2
+    [build-dependencies]
+[dev-dependencies]
+├── chrono v0.4.42 (*)
+├── tokio v1.47.1 (*)
+├── tokio-test v0.4.4 (*)
+├── tracing v0.1.41 (*)
+├── tracing-test v0.2.5
+└── wasmtime v27.0.0 (*)
+
+riptide-headless v0.1.0 (/workspaces/eventmesh/crates/riptide-headless) (*)
+
+riptide-html v0.1.0 (/workspaces/eventmesh/crates/riptide-html) (*)
+
+riptide-intelligence v0.1.0 (/workspaces/eventmesh/crates/riptide-intelligence) (*)
+
+riptide-pdf v0.1.0 (/workspaces/eventmesh/crates/riptide-pdf) (*)
+
+riptide-performance v0.1.0 (/workspaces/eventmesh/crates/riptide-performance) (*)
+
+riptide-persistence v0.1.0 (/workspaces/eventmesh/crates/riptide-persistence)
+├── anyhow v1.0.100
+├── async-trait v0.1.89 (proc-macro)
+├── blake3 v1.8.2
+│   [build-dependencies]
+├── bytes v1.10.1 (*)
+├── chrono v0.4.42 (*)
+├── crc32fast v1.5.0
+├── dashmap v6.1.0
+├── futures v0.3.31 (*)
+├── lz4_flex v0.11.5
+├── notify v6.1.1
+├── once_cell v1.21.3
+├── parking_lot v0.12.4
+├── prometheus v0.13.4 (*)
+├── redis v0.26.1 (*)
+├── riptide-core v0.1.0 (/workspaces/eventmesh/crates/riptide-core) (*)
+├── serde v1.0.228 (*)
+├── serde_json v1.0.145 (*)
+├── serde_yaml v0.9.34+deprecated
+├── sha2 v0.10.9
+├── thiserror v1.0.69 (*)
+├── tokio v1.47.1 (*)
+├── tracing v0.1.41 (*)
+├── uuid v1.18.1 (*)
+└── zstd v0.13.3
+[dev-dependencies]
+├── criterion v0.5.1 (*)
+├── rand v0.8.5 (*)
+├── tempfile v3.23.0 (*)
+├── tokio-test v0.4.4 (*)
+└── tracing-subscriber v0.3.20 (*)
+
+riptide-search v0.1.0 (/workspaces/eventmesh/crates/riptide-search) (*)
+
+riptide-stealth v0.1.0 (/workspaces/eventmesh/crates/riptide-stealth) (*)
+
+riptide-streaming v0.1.0 (/workspaces/eventmesh/crates/riptide-streaming)
+├── anyhow v1.0.100
+├── async-stream v0.3.6 (*)
+├── async-trait v0.1.89 (proc-macro) (*)
+├── axum v0.7.9 (*)
+├── base64 v0.22.1
+├── bytes v1.10.1 (*)
+├── chrono v0.4.42 (*)
+├── clap v4.5.48 (*)
+├── colored v2.2.0
+├── config v0.14.1
+├── crossterm v0.28.1
+├── directories v5.0.1
+├── futures v0.3.31 (*)
+├── futures-util v0.3.31 (*)
+├── handlebars v6.3.2
+├── http v1.3.1 (*)
+├── hyper v1.7.0
+├── image v0.25.8
+├── indicatif v0.17.11
+├── pin-project-lite v0.2.16
+├── plotters v0.3.7
+├── rand v0.8.5 (*)
+├── reqwest v0.12.23 (*)
+├── riptide-core v0.1.0 (/workspaces/eventmesh/crates/riptide-core) (*)
+├── riptide-html v0.1.0 (/workspaces/eventmesh/crates/riptide-html) (*)
+├── serde v1.0.228 (*)
+├── serde_json v1.0.145 (*)
+├── serde_yaml v0.9.34+deprecated (*)
+├── thiserror v1.0.69 (*)
+├── tokio v1.47.1 (*)
+├── tokio-stream v0.1.17 (*)
+├── tokio-util v0.7.16
+├── toml v0.8.23
+├── tower v0.5.2 (*)
+├── tower-http v0.6.6 (*)
+├── tracing v0.1.41 (*)
+├── tracing-subscriber v0.3.20 (*)
+├── url v2.5.7 (*)
+├── utoipa v5.4.0
+└── uuid v1.18.1 (*)
+[dev-dependencies]
+├── criterion v0.5.1 (*)
+├── mockall v0.13.1 (*)
+├── rstest v0.22.0 (*)
+├── tempfile v3.23.0 (*)
+└── tokio-test v0.4.4 (*)
+
+riptide-workers v0.1.0 (/workspaces/eventmesh/crates/riptide-workers) (*)

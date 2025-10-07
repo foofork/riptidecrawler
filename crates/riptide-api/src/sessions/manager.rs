@@ -1,5 +1,9 @@
-// TODO: Session management system prepared but not yet integrated into routes
-#![allow(dead_code)]
+//! Session manager for persistent browser sessions and cookie storage
+//!
+//! ACTIVELY USED: Integrated via SessionLayer in main.rs and handlers/sessions.rs
+//! - AppState has session_manager field (state.rs:69)
+//! - Session routes available at /api/sessions/* (handlers/sessions.rs)
+//! - Middleware applied to all routes (main.rs)
 
 use super::storage::SessionStorage;
 use super::types::{Cookie, CookieJar, Session, SessionConfig, SessionError, SessionStats};

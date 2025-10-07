@@ -13,6 +13,7 @@ members = [
   "crates/riptide-pdf",
   "crates/riptide-performance",
   "wasm/riptide-extractor-wasm",
+  "xtask",
 ]
 resolver = "2"
 

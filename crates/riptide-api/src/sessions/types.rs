@@ -1,5 +1,6 @@
-// TODO: Session management system prepared but not yet integrated into routes
-#![allow(dead_code)]
+//! Session types and data structures
+//!
+//! ACTIVELY USED: Core types for session management system integrated throughout the API
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

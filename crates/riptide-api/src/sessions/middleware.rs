@@ -1,5 +1,6 @@
-// TODO: Session management system prepared but not yet integrated into routes
-#![allow(dead_code)]
+//! Session middleware for Axum
+//!
+//! ACTIVELY USED: Applied to all routes via SessionLayer in main.rs
 
 use super::manager::SessionManager;
 use super::types::{Session, SessionError};

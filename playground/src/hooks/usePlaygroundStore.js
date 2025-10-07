@@ -4,20 +4,22 @@ import axios from 'axios'
 export const usePlaygroundStore = create((set, get) => ({
   selectedEndpoint: null,
   requestBody: '{}',
+  pathParameters: {},
   response: null,
   responseHeaders: null,
   isLoading: false,
   error: null,
 
-  setSelectedEndpoint: (endpoint) => set({ selectedEndpoint: endpoint }),
+  setSelectedEndpoint: (endpoint) => set({ selectedEndpoint: endpoint, pathParameters: {} }),
   setRequestBody: (body) => set({ requestBody: body }),
+  setPathParameters: (params) => set({ pathParameters: params }),
   setResponse: (response) => set({ response }),
   setResponseHeaders: (headers) => set({ responseHeaders: headers }),
   setIsLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),
 
   executeRequest: async () => {
-    const { selectedEndpoint, requestBody } = get()
+    const { selectedEndpoint, requestBody, pathParameters } = get()
 
     if (!selectedEndpoint) {
       set({ error: 'No endpoint selected' })
@@ -28,9 +30,19 @@ export const usePlaygroundStore = create((set, get) => ({
     const startTime = Date.now()
 
     try {
+      // Build URL with path parameters replaced
+      let url = selectedEndpoint.path
+
+      // Replace path parameters
+      if (selectedEndpoint.parameters) {
+        Object.entries(pathParameters).forEach(([key, value]) => {
+          url = url.replace(`:${key}`, value || `:${key}`)
+        })
+      }
+
       const config = {
         method: selectedEndpoint.method,
-        url: `/api${selectedEndpoint.path}`,
+        url: `/api${url}`,
         headers: {
           'Content-Type': 'application/json',
         },

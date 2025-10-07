@@ -80,7 +80,20 @@ export default function Playground() {
               <div className="text-sm text-blue-800 space-y-1">
                 <p><strong>Method:</strong> {selectedEndpoint.method}</p>
                 <p><strong>Path:</strong> {selectedEndpoint.path}</p>
+                <p><strong>Category:</strong> {selectedEndpoint.category}</p>
                 <p><strong>Description:</strong> {selectedEndpoint.description}</p>
+                {selectedEndpoint.parameters && Object.keys(selectedEndpoint.parameters).length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-blue-200">
+                    <p className="font-semibold mb-1">Parameters:</p>
+                    <ul className="list-disc list-inside pl-2 space-y-0.5">
+                      {Object.entries(selectedEndpoint.parameters).map(([name, info]) => (
+                        <li key={name}>
+                          <code className="bg-blue-100 px-1 rounded">{name}</code>: {info.description}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
           )}
