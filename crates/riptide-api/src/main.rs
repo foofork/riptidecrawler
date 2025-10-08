@@ -303,6 +303,11 @@ async fn main() -> anyhow::Result<()> {
             "/monitoring/profiling/allocations",
             get(handlers::monitoring::get_allocation_metrics),
         )
+        // WASM instance health monitoring
+        .route(
+            "/monitoring/wasm-instances",
+            get(handlers::monitoring::get_wasm_health),
+        )
         // Resource management status endpoint
         .route(
             "/api/resources/status",

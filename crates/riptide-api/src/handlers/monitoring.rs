@@ -285,3 +285,62 @@ pub async fn get_allocation_metrics(
         recommendations: vec![],
     }))
 }
+
+// ==================== WASM Instance Health Monitoring ====================
+
+/// WASM instance health information
+#[derive(Debug, Serialize)]
+pub struct WasmInstanceHealth {
+    pub worker_id: String,
+    pub is_healthy: bool,
+    pub operations_count: u64,
+    pub uptime_seconds: u64,
+}
+
+/// WASM health response
+#[derive(Debug, Serialize)]
+pub struct WasmHealthResponse {
+    pub instances: Vec<WasmInstanceHealth>,
+    pub total_instances: usize,
+    pub healthy_instances: usize,
+    pub needs_cleanup: bool,
+    pub timestamp: String,
+}
+
+/// GET /monitoring/wasm-instances - Get WASM instance health status
+///
+/// Returns health information for all WASM worker instances including:
+/// - Worker ID and health status
+/// - Operation counts and uptime
+/// - Cleanup recommendations
+pub async fn get_wasm_health(State(state): State<AppState>) -> Result<impl IntoResponse, ApiError> {
+    let health_data = state
+        .resource_manager
+        .wasm_manager
+        .get_instance_health()
+        .await;
+
+    let needs_cleanup = state.resource_manager.wasm_manager.needs_cleanup().await;
+
+    let instances: Vec<WasmInstanceHealth> = health_data
+        .into_iter()
+        .map(
+            |(worker_id, is_healthy, operations_count, uptime)| WasmInstanceHealth {
+                worker_id,
+                is_healthy,
+                operations_count,
+                uptime_seconds: uptime.as_secs(),
+            },
+        )
+        .collect();
+
+    let healthy_count = instances.iter().filter(|i| i.is_healthy).count();
+
+    Ok(Json(WasmHealthResponse {
+        total_instances: instances.len(),
+        healthy_instances: healthy_count,
+        needs_cleanup,
+        instances,
+        timestamp: chrono::Utc::now().to_rfc3339(),
+    }))
+}
