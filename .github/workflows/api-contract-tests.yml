@@ -24,6 +24,17 @@ jobs:
     name: Dredd API Contract Tests
     runs-on: ubuntu-latest
 
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -32,6 +43,9 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
 
       - name: Cache Cargo
         uses: actions/cache@v3
@@ -46,14 +60,32 @@ jobs:
         run: cargo build --release --package riptide-api
 
       - name: Start RipTide API
+        env:
+          REDIS_URL: redis://localhost:6379
+          RUST_LOG: info
+          API_HOST: 0.0.0.0
+          API_PORT: 8080
         run: |
-          ./target/release/riptide-api &
-          echo "API_PID=$!" >> $GITHUB_ENV
-          sleep 5
+          ./target/release/riptide-api > api.log 2>&1 &
+          API_PID=$!
+          echo "API_PID=$API_PID" >> $GITHUB_ENV
+          echo "Started API with PID: $API_PID"
 
       - name: Wait for API to be healthy
         run: |
-          timeout 30 bash -c 'until curl -f http://localhost:8080/healthz; do sleep 1; done'
+          echo "Waiting for API to be ready..."
+          for i in {1..30}; do
+            if curl --silent --fail http://localhost:8080/healthz; then
+              echo "✅ API is healthy!"
+              exit 0
+            fi
+            echo "Attempt $i/30: API not ready yet, waiting..."
+            sleep 2
+          done
+          echo "❌ API failed to start within 60 seconds"
+          echo "=== API Logs ==="
+          cat api.log || echo "No logs found"
+          exit 1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -90,6 +122,17 @@ jobs:
     name: Schemathesis API Fuzzing
     runs-on: ubuntu-latest
 
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -99,14 +142,39 @@ jobs:
         with:
           toolchain: stable
 
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
       - name: Build RipTide API
         run: cargo build --release --package riptide-api
 
       - name: Start RipTide API
+        env:
+          REDIS_URL: redis://localhost:6379
+          RUST_LOG: info
+          API_HOST: 0.0.0.0
+          API_PORT: 8080
         run: |
-          ./target/release/riptide-api &
-          echo "API_PID=$!" >> $GITHUB_ENV
-          sleep 5
+          ./target/release/riptide-api > api.log 2>&1 &
+          API_PID=$!
+          echo "API_PID=$API_PID" >> $GITHUB_ENV
+          echo "Started API with PID: $API_PID"
+
+      - name: Wait for API to be healthy
+        run: |
+          echo "Waiting for API to be ready..."
+          for i in {1..30}; do
+            if curl --silent --fail http://localhost:8080/healthz; then
+              echo "✅ API is healthy!"
+              exit 0
+            fi
+            echo "Attempt $i/30: API not ready yet, waiting..."
+            sleep 2
+          done
+          echo "❌ API failed to start within 60 seconds"
+          echo "=== API Logs ==="
+          cat api.log || echo "No logs found"
+          exit 1
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -126,9 +194,23 @@ jobs:
             --show-errors-tracebacks \
             --report
 
+      - name: Upload API logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: schemathesis-api-logs
+          path: api.log
+          if-no-files-found: ignore
+
       - name: Stop API
         if: always()
-        run: kill $API_PID || true
+        run: |
+          if [ -n "$API_PID" ]; then
+            echo "Stopping API (PID: $API_PID)"
+            kill $API_PID || true
+            sleep 2
+            kill -9 $API_PID 2>/dev/null || true
+          fi
 
   # Test 3: OpenAPI Spec Validation
   openapi-validation:
@@ -168,6 +250,17 @@ jobs:
     name: API Performance Tests
     runs-on: ubuntu-latest
 
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -177,14 +270,39 @@ jobs:
         with:
           toolchain: stable
 
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
       - name: Build RipTide API (release)
         run: cargo build --release --package riptide-api
 
       - name: Start RipTide API
+        env:
+          REDIS_URL: redis://localhost:6379
+          RUST_LOG: info
+          API_HOST: 0.0.0.0
+          API_PORT: 8080
         run: |
-          ./target/release/riptide-api &
-          echo "API_PID=$!" >> $GITHUB_ENV
-          sleep 5
+          ./target/release/riptide-api > api.log 2>&1 &
+          API_PID=$!
+          echo "API_PID=$API_PID" >> $GITHUB_ENV
+          echo "Started API with PID: $API_PID"
+
+      - name: Wait for API to be healthy
+        run: |
+          echo "Waiting for API to be ready..."
+          for i in {1..30}; do
+            if curl --silent --fail http://localhost:8080/healthz; then
+              echo "✅ API is healthy!"
+              exit 0
+            fi
+            echo "Attempt $i/30: API not ready yet, waiting..."
+            sleep 2
+          done
+          echo "❌ API failed to start within 60 seconds"
+          echo "=== API Logs ==="
+          cat api.log || echo "No logs found"
+          exit 1
 
       - name: Install k6 (load testing)
         run: |
@@ -213,14 +331,39 @@ jobs:
           }
           EOF
 
+      - name: Upload API logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-api-logs
+          path: api.log
+          if-no-files-found: ignore
+
       - name: Stop API
         if: always()
-        run: kill $API_PID || true
+        run: |
+          if [ -n "$API_PID" ]; then
+            echo "Stopping API (PID: $API_PID)"
+            kill $API_PID || true
+            sleep 2
+            kill -9 $API_PID 2>/dev/null || true
+          fi
 
   # Test 5: Security Scanning
   security-tests:
     name: API Security Scanning
     runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout code
@@ -231,16 +374,39 @@ jobs:
         with:
           toolchain: stable
 
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
       - name: Build RipTide API
         run: cargo build --release --package riptide-api
 
       - name: Start RipTide API
+        env:
+          REDIS_URL: redis://localhost:6379
+          RUST_LOG: info
+          API_HOST: 0.0.0.0
+          API_PORT: 8080
         run: |
-          ./target/release/riptide-api &
-          echo "API_PID=$!" >> $GITHUB_ENV
-          sleep 5
-          # Wait for API to be ready
-          timeout 30 bash -c 'until curl -f http://localhost:8080/healthz 2>/dev/null; do sleep 1; done' || echo "API may not be ready"
+          ./target/release/riptide-api > api.log 2>&1 &
+          API_PID=$!
+          echo "API_PID=$API_PID" >> $GITHUB_ENV
+          echo "Started API with PID: $API_PID"
+
+      - name: Wait for API to be healthy
+        run: |
+          echo "Waiting for API to be ready..."
+          for i in {1..30}; do
+            if curl --silent --fail http://localhost:8080/healthz; then
+              echo "✅ API is healthy!"
+              exit 0
+            fi
+            echo "Attempt $i/30: API not ready yet, waiting..."
+            sleep 2
+          done
+          echo "❌ API failed to start within 60 seconds"
+          echo "=== API Logs ==="
+          cat api.log || echo "No logs found"
+          exit 1
 
       - name: Run OWASP ZAP baseline scan
         uses: zaproxy/action-baseline@v0.9.0
