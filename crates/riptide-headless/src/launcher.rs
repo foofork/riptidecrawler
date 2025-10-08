@@ -1,3 +1,6 @@
+//! Headless browser launcher with pool management (WIP - scaffolding)
+#![cfg_attr(not(feature = "headless"), allow(dead_code, unused))]
+
 use crate::pool::{BrowserCheckout, BrowserPool, BrowserPoolConfig, PoolEvent};
 use anyhow::{anyhow, Result};
 use chromiumoxide::{

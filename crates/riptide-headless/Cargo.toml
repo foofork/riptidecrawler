@@ -30,3 +30,8 @@ uuid = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util", "macros"] }
+
+[features]
+default = []
+# WIP: Full headless browser automation (scaffolding not yet fully wired)
+headless = []

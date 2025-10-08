@@ -1,3 +1,6 @@
+//! Browser pool management with resource tracking (WIP - scaffolding)
+#![cfg_attr(not(feature = "headless"), allow(dead_code, unused))]
+
 use anyhow::{anyhow, Result};
 use chromiumoxide::{Browser, BrowserConfig, Page};
 use futures::StreamExt;
