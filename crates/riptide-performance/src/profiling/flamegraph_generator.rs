@@ -244,18 +244,18 @@ impl FlamegraphGenerator {
     }
 
     /// Generate flamegraph using Rust flamegraph library
-    async fn rust_flamegraph(&self, folded_path: &Path, output_path: &Path) -> Result<()> {
+    async fn rust_flamegraph(&self, _folded_path: &Path, output_path: &Path) -> Result<()> {
         #[cfg(feature = "bottleneck-analysis")]
         {
             // use flamegraph::{from_lines, Options};
 
-            let folded_content = std::fs::read_to_string(folded_path)?;
+            let folded_content = std::fs::read_to_string(_folded_path)?;
             let _lines: Vec<&str> = folded_content.lines().collect();
 
             // Simplified fallback without flamegraph dependencies
             let flamegraph_svg = format!(
                 "<svg>Flamegraph placeholder for {}</svg>",
-                folded_path.display()
+                _folded_path.display()
             );
 
             std::fs::write(output_path, flamegraph_svg)?;
