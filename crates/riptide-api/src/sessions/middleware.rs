@@ -151,6 +151,7 @@ impl SessionContext {
     }
 
     /// Set a cookie for this session
+    #[allow(dead_code)] // Public API - sets cookies for session
     pub async fn set_cookie(
         &self,
         domain: &str,
@@ -162,6 +163,7 @@ impl SessionContext {
     }
 
     /// Get a cookie from this session
+    #[allow(dead_code)] // Public API - retrieves cookies from session
     pub async fn get_cookie(
         &self,
         domain: &str,
@@ -183,6 +185,7 @@ impl SessionContext {
     }
 
     /// Update the session
+    #[allow(dead_code)] // Public API - updates session data
     pub async fn update_session(&self, session: Session) -> Result<(), SessionError> {
         self.manager.update_session(session).await
     }

@@ -477,7 +477,7 @@ impl Default for ProviderManager {
 #[cfg(test)]
 mod provider_health_tests {
     use super::*;
-    use crate::circuit_breaker::{with_circuit_breaker, CircuitBreakerConfig};
+    use crate::circuit_breaker::with_circuit_breaker;
     use crate::mock_provider::MockLlmProvider;
 
     #[tokio::test]

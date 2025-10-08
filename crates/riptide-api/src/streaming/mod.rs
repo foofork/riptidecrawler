@@ -99,6 +99,7 @@ pub use websocket::crawl_websocket;
 
 /// Streaming protocol types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)] // Public API - streaming protocol enum
 pub enum StreamingProtocol {
     /// NDJSON (Newline Delimited JSON) streaming
     Ndjson,
@@ -110,6 +111,7 @@ pub enum StreamingProtocol {
 
 impl StreamingProtocol {
     /// Get the content type for this protocol
+    #[allow(dead_code)] // Public API - gets content type for protocol
     pub fn content_type(&self) -> &'static str {
         match self {
             StreamingProtocol::Ndjson => "application/x-ndjson",
@@ -119,11 +121,13 @@ impl StreamingProtocol {
     }
 
     /// Check if protocol supports bidirectional communication
+    #[allow(dead_code)] // Public API - checks if protocol is bidirectional
     pub fn is_bidirectional(&self) -> bool {
         matches!(self, StreamingProtocol::WebSocket)
     }
 
     /// Get default buffer size for this protocol
+    #[allow(dead_code)] // Public API - gets default buffer size
     pub fn default_buffer_size(&self) -> usize {
         match self {
             StreamingProtocol::Ndjson => 256,
@@ -133,6 +137,7 @@ impl StreamingProtocol {
     }
 
     /// Get recommended keep-alive interval
+    #[allow(dead_code)] // Public API - gets keep-alive interval
     pub fn keep_alive_interval(&self) -> std::time::Duration {
         match self {
             StreamingProtocol::Ndjson => std::time::Duration::from_secs(60), // Less frequent
@@ -176,6 +181,7 @@ pub enum StreamingHealth {
     /// Critical issues affecting operation
     Critical,
     /// System is down or unavailable
+    #[allow(dead_code)] // Public API - system down health status
     Down,
 }
 
@@ -186,6 +192,7 @@ impl StreamingHealth {
     }
 
     /// Get numeric score (0-100)
+    #[allow(dead_code)] // Public API - gets health score
     pub fn score(&self) -> u8 {
         match self {
             StreamingHealth::Healthy => 100,
@@ -208,6 +215,7 @@ pub struct GlobalStreamingMetrics {
     /// Total messages dropped due to backpressure
     pub total_messages_dropped: usize,
     /// Average connection duration in milliseconds
+    #[allow(dead_code)] // Public API - average connection duration metric
     pub average_connection_duration_ms: f64,
     /// Current system health status
     pub health_status: StreamingHealth,
@@ -242,6 +250,7 @@ impl GlobalStreamingMetrics {
     }
 
     /// Calculate overall system efficiency (0.0 to 1.0)
+    #[allow(dead_code)] // Public API - calculates system efficiency
     pub fn efficiency(&self) -> f64 {
         if self.total_messages_sent == 0 {
             return 1.0; // No messages is perfectly efficient
@@ -260,6 +269,7 @@ impl GlobalStreamingMetrics {
     }
 
     /// Get memory usage in MB
+    #[allow(dead_code)] // Public API - gets memory usage in MB
     pub fn memory_usage_mb(&self) -> f64 {
         self.memory_usage_bytes as f64 / (1024.0 * 1024.0)
     }
@@ -270,6 +280,7 @@ pub struct StreamingModule {
     config: StreamConfig,
     buffer_manager: std::sync::Arc<BufferManager>,
     metrics: std::sync::Arc<tokio::sync::RwLock<GlobalStreamingMetrics>>,
+    #[allow(dead_code)] // Public API - lifecycle manager for stream lifecycle
     lifecycle_manager: Option<std::sync::Arc<StreamLifecycleManager>>,
 }
 
@@ -307,16 +318,19 @@ impl StreamingModule {
     }
 
     /// Get the configuration
+    #[allow(dead_code)] // Public API - gets stream configuration
     pub fn config(&self) -> &StreamConfig {
         &self.config
     }
 
     /// Get the buffer manager
+    #[allow(dead_code)] // Public API - gets buffer manager
     pub fn buffer_manager(&self) -> &std::sync::Arc<BufferManager> {
         &self.buffer_manager
     }
 
     /// Get the lifecycle manager
+    #[allow(dead_code)] // Public API - gets lifecycle manager
     pub fn lifecycle_manager(&self) -> Option<&std::sync::Arc<StreamLifecycleManager>> {
         self.lifecycle_manager.as_ref()
     }
@@ -327,6 +341,7 @@ impl StreamingModule {
     }
 
     /// Update global metrics
+    #[allow(dead_code)] // Public API - updates global metrics
     pub async fn update_metrics<F>(&self, update_fn: F)
     where
         F: FnOnce(&mut GlobalStreamingMetrics),
@@ -388,6 +403,7 @@ impl Default for StreamingModule {
 }
 
 /// Convenience function to create a streaming pipeline
+#[allow(dead_code)] // Public API - creates streaming pipeline
 pub fn create_pipeline(
     app: crate::state::AppState,
     request_id: Option<String>,
@@ -396,11 +412,13 @@ pub fn create_pipeline(
 }
 
 /// Convenience function to validate streaming configuration
+#[allow(dead_code)] // Public API - validates streaming configuration
 pub fn validate_config(config: &StreamConfig) -> Result<(), String> {
     config.validate()
 }
 
 /// Get protocol-specific optimal configuration
+#[allow(dead_code)] // Public API - gets protocol-specific configuration
 pub fn get_protocol_config(
     protocol: StreamingProtocol,
     base_config: &StreamConfig,

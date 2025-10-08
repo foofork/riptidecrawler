@@ -14,10 +14,7 @@ pub use handlers::{crawl_stream, deepsearch_stream};
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::CrawlOptions;
-    use crate::state::AppState;
     use crate::streaming::ndjson::progress::OperationProgress;
-    use crate::streaming::ndjson::streaming::NdjsonStreamingHandler;
     #[allow(unused_imports)]
     use axum::http::StatusCode;
     use std::time::Instant;

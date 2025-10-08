@@ -154,6 +154,7 @@ pub struct AppConfig {
     pub reliability_config: ReliabilityConfig,
 
     /// Monitoring system configuration
+    #[allow(dead_code)] // Public API - monitoring configuration
     pub monitoring_config: MonitoringConfig,
 
     /// Enhanced pipeline configuration
@@ -169,14 +170,18 @@ pub struct EnhancedPipelineConfig {
     /// Enable enhanced pipeline with detailed phase timing
     pub enable_enhanced_pipeline: bool,
     /// Enable phase timing metrics collection
+    #[allow(dead_code)] // Public API - phase metrics configuration
     pub enable_phase_metrics: bool,
     /// Enable detailed debug logging for each phase
+    #[allow(dead_code)] // Public API - debug logging configuration
     pub enable_debug_logging: bool,
     /// Timeout for fetch phase in seconds
     pub fetch_timeout_secs: u64,
     /// Timeout for gate phase in seconds
+    #[allow(dead_code)] // Public API - gate timeout configuration
     pub gate_timeout_secs: u64,
     /// Timeout for WASM phase in seconds
+    #[allow(dead_code)] // Public API - WASM timeout configuration
     pub wasm_timeout_secs: u64,
     /// Timeout for render phase in seconds
     pub render_timeout_secs: u64,
@@ -225,6 +230,7 @@ pub struct CircuitBreakerConfig {
     /// Timeout duration in milliseconds before transitioning from Open to HalfOpen
     pub timeout_ms: u64,
     /// Minimum requests to consider before evaluating failure rate
+    #[allow(dead_code)] // Public API - circuit breaker minimum requests threshold
     pub min_requests: u64,
 }
 
@@ -458,6 +464,7 @@ impl AppState {
     }
 
     /// Initialize with custom API configuration
+    #[allow(dead_code)] // Public API - alternative constructor with custom API config
     pub async fn new_with_api_config(
         config: AppConfig,
         api_config: ApiConfig,
@@ -949,6 +956,7 @@ pub struct MonitoringSystem {
     pub health_calculator: Arc<HealthCalculator>,
 
     /// Configuration for monitoring behavior
+    #[allow(dead_code)] // Public API - monitoring system configuration
     pub config: MonitoringConfig,
 }
 
