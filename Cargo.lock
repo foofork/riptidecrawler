@@ -2408,7 +2408,7 @@ dependencies = [
  "clap",
  "clap_complete",
  "indicatif 0.18.0",
- "inferno 0.12.3",
+ "inferno",
  "opener",
  "rustc-demangle",
  "shlex",
@@ -3502,24 +3502,6 @@ dependencies = [
 
 [[package]]
 name = "inferno"
-version = "0.11.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "232929e1d75fe899576a3d5c7416ad0d88dbfbb3c3d6aa00873a7408a50ddb88"
-dependencies = [
- "ahash",
- "indexmap 2.11.4",
- "is-terminal",
- "itoa 1.0.15",
- "log",
- "num-format",
- "once_cell",
- "quick-xml 0.26.0",
- "rgb",
- "str_stack",
-]
-
-[[package]]
-name = "inferno"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e96d2465363ed2d81857759fc864cf6bb7997f79327aec028d65bd7989393685"
@@ -3533,7 +3515,7 @@ dependencies = [
  "log",
  "num-format",
  "once_cell",
- "quick-xml 0.37.5",
+ "quick-xml",
  "rgb",
  "str_stack",
 ]
@@ -5233,7 +5215,6 @@ dependencies = [
  "backtrace",
  "cfg-if",
  "findshlibs",
- "inferno 0.11.21",
  "libc",
  "log",
  "nix 0.26.4",
@@ -5595,15 +5576,6 @@ name = "quick-error"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a993555f31e5a609f617c12db6250dedcac1b0a85076912c436e6fc9b2c8e6a3"
-
-[[package]]
-name = "quick-xml"
-version = "0.26.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f50b1c63b38611e7d4d7f68b82d3ad0cc71a2ad2e7f61fc10f1328d917c93cd"
-dependencies = [
- "memchr",
-]
 
 [[package]]
 name = "quick-xml"
@@ -7349,7 +7321,6 @@ version = "12.16.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13d359ef6192db1760a34321ec4f089245ede4342c27e59be99642f12a859de8"
 dependencies = [
- "cpp_demangle",
  "rustc-demangle",
  "symbolic-common",
 ]
