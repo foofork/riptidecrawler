@@ -1,12 +1,9 @@
 //! Real-world HTML extraction tests
 
-use anyhow::Result;
 use riptide_html::*;
 
 #[cfg(test)]
 mod css_selector_tests {
-    use super::*;
-
     // Note: CSS selector tests have been removed because the `selectors` module
     // does not exist in riptide-html. CSS extraction is available through the
     // css_extraction module with different APIs.

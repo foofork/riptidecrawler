@@ -490,7 +490,7 @@ async fn test_conflict_audit_with_transformers() -> Result<()> {
     let mut other_results = HashMap::new();
     other_results.insert("price".to_string(), vec!["$1,299.99".to_string()]); // Raw value
 
-    let (merged, conflicts) = extractor.merge_with_other(&css_results, &other_results);
+    let (_merged, conflicts) = extractor.merge_with_other(&css_results, &other_results);
 
     // Should detect conflict even with different formats
     assert!(!conflicts.is_empty());

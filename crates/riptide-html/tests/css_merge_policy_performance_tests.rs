@@ -29,7 +29,7 @@ async fn test_merge_policy_performance() -> Result<()> {
     // Should process merge efficiently
     assert!(duration.as_millis() < 50, "Merge should complete in <50ms");
     assert!(!merged.is_empty());
-    assert!(conflicts.len() > 0); // Should detect conflicts
+    assert!(!conflicts.is_empty()); // Should detect conflicts
 
     Ok(())
 }
@@ -216,7 +216,7 @@ async fn test_realistic_merge_scenario() -> Result<()> {
     );
 
     // Should have comprehensive conflict audit
-    assert!(conflicts.len() > 0);
+    assert!(!conflicts.is_empty());
 
     for conflict in conflicts {
         match conflict.policy_used {

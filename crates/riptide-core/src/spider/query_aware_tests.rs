@@ -3,6 +3,7 @@
 #[cfg(test)]
 mod query_aware_week7_tests {
     use crate::spider::query_aware::*;
+    use crate::spider::CrawlRequest;
     use std::time::Instant;
     use url::Url;
 

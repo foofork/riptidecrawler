@@ -206,6 +206,7 @@ mod tests {
         }
     }
 
+    #[allow(dead_code)]
     fn create_test_table() -> AdvancedTableData {
         AdvancedTableData {
             id: "test_1".to_string(),
@@ -263,6 +264,7 @@ mod tests {
         }
     }
 
+    #[allow(dead_code)]
     fn create_test_cell(content: &str, cell_type: CellType, row: usize, col: usize) -> TableCell {
         TableCell {
             content: content.to_string(),
