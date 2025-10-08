@@ -65,7 +65,11 @@ pub struct RipTideMetrics {
     pub pdf_processing_time: Histogram,
     pub pdf_peak_memory_mb: Gauge,
     pub pdf_pages_per_pdf: Gauge,
+    /// Reserved for PDF memory spike handling - will be recorded when feature is implemented
+    #[allow(dead_code)]
     pub pdf_memory_spikes_handled: Counter,
+    /// Reserved for PDF cleanup operations - will be recorded when feature is implemented
+    #[allow(dead_code)]
     pub pdf_cleanup_operations: Counter,
 
     /// WASM memory metrics
@@ -73,7 +77,11 @@ pub struct RipTideMetrics {
     pub wasm_grow_failed_total: Counter,
     pub wasm_peak_memory_pages: Gauge,
     pub wasm_cold_start_time_ms: Gauge,
+    /// Reserved for WASM AOT cache hit tracking - will be recorded when caching is implemented
+    #[allow(dead_code)]
     pub wasm_aot_cache_hits: Counter,
+    /// Reserved for WASM AOT cache miss tracking - will be recorded when caching is implemented
+    #[allow(dead_code)]
     pub wasm_aot_cache_misses: Counter,
 
     /// Worker management metrics (Phase 4B Feature 5)
@@ -83,6 +91,8 @@ pub struct RipTideMetrics {
     pub worker_jobs_completed: Counter,
     pub worker_jobs_failed: Counter,
     pub worker_jobs_retried: Counter,
+    /// Reserved for worker processing time tracking - will be recorded when worker metrics are wired up
+    #[allow(dead_code)]
     pub worker_processing_time: Histogram,
     pub worker_queue_depth: Gauge,
 }
@@ -773,11 +783,15 @@ impl RipTideMetrics {
     }
 
     /// Record PDF memory spike handled
+    /// Reserved for PDF memory spike handling - will be wired up when feature is implemented
+    #[allow(dead_code)]
     pub fn record_pdf_memory_spike(&self) {
         self.pdf_memory_spikes_handled.inc();
     }
 
     /// Record PDF cleanup operation
+    /// Reserved for PDF cleanup tracking - will be wired up when feature is implemented
+    #[allow(dead_code)]
     pub fn record_pdf_cleanup(&self) {
         self.pdf_cleanup_operations.inc();
     }
@@ -808,11 +822,15 @@ impl RipTideMetrics {
     }
 
     /// Record WASM AOT cache hit
+    /// Reserved for WASM AOT caching - will be wired up when caching is implemented
+    #[allow(dead_code)]
     pub fn record_wasm_aot_cache_hit(&self) {
         self.wasm_aot_cache_hits.inc();
     }
 
     /// Record WASM AOT cache miss
+    /// Reserved for WASM AOT caching - will be wired up when caching is implemented
+    #[allow(dead_code)]
     pub fn record_wasm_aot_cache_miss(&self) {
         self.wasm_aot_cache_misses.inc();
     }
@@ -918,6 +936,8 @@ impl RipTideMetrics {
     }
 
     /// Record worker job completion with processing time (Phase 4B Feature 5)
+    /// Reserved for worker metrics - will be wired up when worker monitoring is implemented
+    #[allow(dead_code)]
     pub fn record_worker_job_completion(&self, processing_time_ms: u64) {
         self.worker_jobs_completed.inc();
         self.worker_processing_time
@@ -925,11 +945,15 @@ impl RipTideMetrics {
     }
 
     /// Record worker job failure (Phase 4B Feature 5)
+    /// Reserved for worker metrics - will be wired up when worker monitoring is implemented
+    #[allow(dead_code)]
     pub fn record_worker_job_failure(&self) {
         self.worker_jobs_failed.inc();
     }
 
     /// Record worker job submission (Phase 4B Feature 5)
+    /// Reserved for worker metrics - will be wired up when worker monitoring is implemented
+    #[allow(dead_code)]
     pub fn record_worker_job_submission(&self) {
         self.worker_jobs_submitted.inc();
     }

@@ -120,6 +120,9 @@ where
 #[derive(Clone, Debug)]
 pub struct SessionContext {
     pub session: Session,
+    /// Session manager for future session operations
+    /// Reserved for future session update and management features
+    #[allow(dead_code)]
     pub manager: Arc<SessionManager>,
 }
 

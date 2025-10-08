@@ -155,6 +155,8 @@ pub enum ResourceResult<T> {
     },
     MemoryPressure,
     /// Error variant for generic error handling (used in PDF integration)
+    /// Reserved for extensibility - provides generic error handling capability
+    #[allow(dead_code)]
     Error(String),
 }
 
@@ -407,6 +409,9 @@ impl ResourceManager {
 
 /// Resource guard for render operations
 pub struct RenderResourceGuard {
+    /// Browser checkout for render operations
+    /// Public API field that may be accessed by render handlers
+    #[allow(dead_code)]
     pub browser_checkout: BrowserCheckout,
     #[allow(dead_code)] // Holds WASM resources, dropped on guard drop
     wasm_guard: WasmGuard,

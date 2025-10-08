@@ -43,6 +43,8 @@ use std::sync::Arc;
 /// // Get browser data directory
 /// let data_dir = session.get_user_data_dir();
 /// ```
+/// Reserved for future high-level session management system wrapper
+#[allow(dead_code)]
 #[derive(Clone)]
 pub struct SessionSystem {
     manager: Arc<SessionManager>,
@@ -50,32 +52,44 @@ pub struct SessionSystem {
 
 impl SessionSystem {
     /// Create a new session system with the given configuration
+    /// Reserved for future high-level session management system wrapper
+    #[allow(dead_code)]
     pub async fn new(config: SessionConfig) -> Result<Self> {
         let manager = Arc::new(SessionManager::new(config).await?);
         Ok(Self { manager })
     }
 
     /// Create a new session system with default configuration
+    /// Reserved for future high-level session management system wrapper
+    #[allow(dead_code)]
     pub async fn default() -> Result<Self> {
         Self::new(SessionConfig::default()).await
     }
 
     /// Get the session manager
+    /// Reserved for future high-level session management system wrapper
+    #[allow(dead_code)]
     pub fn manager(&self) -> &Arc<SessionManager> {
         &self.manager
     }
 
     /// Get or create a session for the given session ID
+    /// Reserved for future high-level session management system wrapper
+    #[allow(dead_code)]
     pub async fn get_or_create_session(&self, session_id: &str) -> Result<Session> {
         self.manager.get_or_create_session(session_id).await
     }
 
     /// Clean up expired sessions
+    /// Reserved for future high-level session management system wrapper
+    #[allow(dead_code)]
     pub async fn cleanup_expired(&self) -> Result<usize> {
         self.manager.cleanup_expired().await
     }
 
     /// Get session statistics
+    /// Reserved for future high-level session management system wrapper
+    #[allow(dead_code)]
     pub async fn get_stats(&self) -> Result<SessionStats> {
         self.manager.get_stats().await
     }

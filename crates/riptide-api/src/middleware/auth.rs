@@ -53,6 +53,8 @@ impl AuthConfig {
     }
 
     /// Create configuration with custom API keys
+    /// Reserved for future API key authentication features
+    #[allow(dead_code)]
     pub fn with_api_keys(api_keys: Vec<String>) -> Self {
         Self {
             valid_api_keys: Arc::new(RwLock::new(api_keys.into_iter().collect())),
@@ -67,12 +69,16 @@ impl AuthConfig {
     }
 
     /// Add a valid API key
+    /// Reserved for future API key authentication features
+    #[allow(dead_code)]
     pub async fn add_api_key(&self, key: String) {
         let mut keys = self.valid_api_keys.write().await;
         keys.insert(key);
     }
 
     /// Remove an API key
+    /// Reserved for future API key authentication features
+    #[allow(dead_code)]
     pub async fn remove_api_key(&self, key: &str) {
         let mut keys = self.valid_api_keys.write().await;
         keys.remove(key);

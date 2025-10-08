@@ -16,6 +16,9 @@ pub struct WasmExtractorAdapter {
 }
 
 impl WasmExtractorAdapter {
+    /// Create a new WASM extractor adapter without metrics
+    /// Public API for reliability system initialization
+    #[allow(dead_code)]
     pub fn new(extractor: Arc<ConcreteWasmExtractor>) -> Self {
         Self {
             extractor,

@@ -9,7 +9,7 @@ on:
 
 env:
   RUST_BACKTRACE: 1
-  RUSTFLAGS: "-Dwarnings -C target-cpu=native"
+  # Note: RUSTFLAGS moved to per-job config to avoid applying x86 flags to WASM
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
   CARGO_NET_RETRY: 10
@@ -80,15 +80,19 @@ jobs:
 
       - name: Build native binaries
         if: matrix.target == 'native'
+        env:
+          RUSTFLAGS: "-Dwarnings -C target-cpu=native"
         run: |
           # Incremental build with optimizations
           cargo build --release --workspace
 
       - name: Build WASM component with caching
         if: matrix.target == 'wasm32-wasip2'
+        env:
+          RUSTFLAGS: "-Dwarnings"  # Only warnings, NO x86 CPU flags for WASM
         working-directory: wasm/riptide-extractor-wasm
         run: |
-          # Build with size optimization
+          # Build with size optimization (using wasm profile from Cargo.toml)
           cargo build --release --target wasm32-wasip2
 
           # List built artifacts for debugging
@@ -173,11 +177,15 @@ jobs:
 
       - name: Run unit tests
         if: matrix.test-type == 'unit'
+        env:
+          RUSTFLAGS: "-Dwarnings -C target-cpu=native"
         run: |
           cargo test --workspace --lib --bins -- --nocapture --test-threads=4
 
       - name: Run integration tests
         if: matrix.test-type == 'integration'
+        env:
+          RUSTFLAGS: "-Dwarnings -C target-cpu=native"
         run: |
           cargo test --workspace --tests -- --nocapture --test-threads=2
 
