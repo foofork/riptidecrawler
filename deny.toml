@@ -21,9 +21,232 @@ allow = [
 multiple-versions = "warn"
 wildcards = "allow"
 highlight = "all"
-# Allow some common duplicates during transition periods
+
+# Allow documented duplicates that are unavoidable due to ecosystem constraints
+# Format: { name = "crate-name", version = "=exact.version" }
+# Note: Only skip duplicates that cannot be resolved through cargo update
 skip = [
-    # These duplicates will be resolved via cargo update
+    # === MAJOR VERSION CONFLICTS (Breaking Changes) ===
+    # bitflags: v1.x (old deps) vs v2.x (modern deps)
+    { name = "bitflags", version = "=1.3.2" },  # Required by: nix 0.24, inotify 0.9, selectors 0.22
+
+    # hashbrown: Multiple major versions due to indexmap/dashmap ecosystem
+    { name = "hashbrown", version = "=0.12.3" },  # indexmap 1.x
+    { name = "hashbrown", version = "=0.13.2" },  # lol_html 1.x
+    { name = "hashbrown", version = "=0.14.5" },  # dashmap 5.x, wasmparser 0.219
+    { name = "hashbrown", version = "=0.15.5" },  # cranelift/regalloc2
+    { name = "hashbrown", version = "=0.16.0" },  # indexmap 2.x (latest)
+
+    # indexmap: v1.x (tower) vs v2.x (modern deps)
+    { name = "indexmap", version = "=1.9.3" },  # tower 0.4 requires indexmap 1.x
+
+    # === HTML PARSING ECOSYSTEM FRAGMENTATION ===
+    # Multiple scraper versions require different html5ever/cssparser/selectors
+    # scraper 0.20 (riptide-html), 0.22 (riptide-core)
+    # lol_html 1.2 (trek-rs), 2.7 (riptide-html)
+
+    { name = "cssparser", version = "=0.27.2" },  # lol_html 1.2, selectors 0.22
+    { name = "cssparser", version = "=0.31.2" },  # scraper 0.20, selectors 0.25
+    { name = "cssparser", version = "=0.34.0" },  # scraper 0.22, selectors 0.26
+    { name = "cssparser", version = "=0.35.0" },  # lol_html 2.7, selectors 0.32
+
+    { name = "selectors", version = "=0.22.0" },  # lol_html 1.2
+    { name = "selectors", version = "=0.25.0" },  # scraper 0.20
+    { name = "selectors", version = "=0.26.0" },  # scraper 0.22
+    { name = "selectors", version = "=0.32.0" },  # lol_html 2.7
+
+    { name = "markup5ever", version = "=0.12.1" },  # html5ever 0.27
+
+    { name = "html5ever", version = "=0.27.0" },  # scraper 0.20
+
+    { name = "ego-tree", version = "=0.6.3" },  # scraper 0.20
+
+    { name = "lol_html", version = "=1.2.1" },  # trek-rs dependency
+
+    # === ASYNC ECOSYSTEM (async-std vs tokio) ===
+    # async-channel: v1.x (async-std) vs v2.x (blocking crate)
+    { name = "async-channel", version = "=1.9.0" },  # async-std 1.13 internals
+
+    { name = "event-listener", version = "=2.5.3" },  # async-channel 1.x
+
+    # === WASMTIME DEPENDENCY TREE ===
+    # Wasmtime has a large locked dependency tree with specific versions
+    { name = "addr2line", version = "=0.24.2" },  # wasmtime 34.x
+
+    { name = "gimli", version = "=0.31.1" },  # wasmtime 34.x, addr2line 0.24
+
+    { name = "object", version = "=0.36.7" },  # wasmtime 34.x
+
+    { name = "wasmparser", version = "=0.219.2" },  # wit-bindgen 0.34, wasm-metadata 0.219
+
+    { name = "wit-parser", version = "=0.219.2" },  # wit-bindgen-core 0.34
+
+    # === UTILITY CRATES (Semver Conflicts) ===
+    # base64: v0.21 (older deps) vs v0.22 (axum/modern deps)
+    { name = "base64", version = "=0.21.7" },  # ron 0.8, tiktoken-rs
+
+    # syn: v1.x (old proc-macros) vs v2.x (modern)
+    { name = "syn", version = "=1.0.109" },  # Old proc-macro dependencies
+
+    # serde: v1.0.x minor version conflicts
+    { name = "serde", version = "=1.0.213" },  # Older dependencies
+
+    # time: v0.3.x minor version conflicts
+    { name = "time", version = "=0.3.37" },  # Older dependencies
+
+    # getrandom: v0.1 (rand 0.7), v0.2 (rand 0.8), v0.3 (tempfile, ahash)
+    { name = "getrandom", version = "=0.1.16" },  # rand 0.7 (phf_generator 0.8)
+    { name = "getrandom", version = "=0.2.16" },  # rand 0.8 (most modern deps)
+
+    { name = "rand_core", version = "=0.5.1" },  # rand 0.7
+    { name = "rand_core", version = "=0.6.4" },  # rand 0.8
+
+    { name = "rand_chacha", version = "=0.2.2" },  # rand 0.7
+    { name = "rand_chacha", version = "=0.3.1" },  # rand 0.8
+
+    { name = "rand", version = "=0.7.3" },  # phf_generator 0.8
+
+    # dashmap: v5.x (governor) vs v6.x (modern deps)
+    { name = "dashmap", version = "=5.5.3" },  # governor 0.6
+
+    # heck: v0.4 (chromiumoxide_pdl) vs v0.5 (clap_derive)
+    { name = "heck", version = "=0.4.1" },  # chromiumoxide_pdl 0.7
+
+    # console: v0.15 (indicatif 0.17) vs v0.16 (indicatif 0.18)
+    { name = "console", version = "=0.15.11" },  # indicatif 0.17
+
+    { name = "indicatif", version = "=0.17.11" },  # riptide-streaming uses 0.17
+
+    # rustix: v0.38 (crossterm, which) vs v1.x (async-io, modern deps)
+    { name = "rustix", version = "=0.38.44" },  # crossterm, procfs, which 6.x
+
+    # tower/tower-http: v0.4/v0.5 (axum-prometheus) vs v0.5/v0.6 (axum 0.7)
+    { name = "tower", version = "=0.4.13" },  # axum-prometheus 0.7
+    { name = "tower-http", version = "=0.5.2" },  # axum-prometheus 0.7
+
+    # phf ecosystem: v0.8 (selectors 0.22) vs v0.10/v0.11 (modern)
+    { name = "phf", version = "=0.8.0" },  # selectors 0.22
+    { name = "phf_shared", version = "=0.8.0" },  # phf 0.8
+    { name = "phf_generator", version = "=0.8.0" },  # phf_codegen 0.8
+    { name = "phf_codegen", version = "=0.8.0" },  # selectors 0.22 build
+    { name = "phf_macros", version = "=0.8.0" },  # phf 0.8
+
+    { name = "phf_generator", version = "=0.10.0" },  # phf_codegen 0.10
+    { name = "phf_codegen", version = "=0.10.0" },  # selectors 0.25 build
+
+    { name = "siphasher", version = "=0.3.12" },  # phf 0.8
+
+    # derive_more: v0.99 (selectors) vs v2.0 (modern)
+    { name = "derive_more", version = "=0.99.20" },  # selectors 0.22/0.25/0.26
+
+    # convert_case: v0.4 (derive_more 0.99) vs v0.6 (config)
+    { name = "convert_case", version = "=0.4.0" },  # derive_more 0.99
+
+    # image/png/gif: Different versions for different use cases
+    { name = "png", version = "=0.17.16" },  # image 0.24, plotters
+    { name = "image", version = "=0.24.9" },  # plotters 0.3
+    { name = "gif", version = "=0.12.0" },  # plotters-bitmap 0.3
+
+    # nix: v0.24 (psutil) vs v0.26 (pprof)
+    { name = "nix", version = "=0.24.3" },  # psutil 3.3
+
+    # dirs-sys: v0.4 (directories) vs v0.5 (dirs)
+    { name = "dirs-sys", version = "=0.4.1" },  # directories 5.x
+
+    # inferno: v0.11 (pprof) vs v0.12 (flamegraph)
+    { name = "inferno", version = "=0.11.21" },  # pprof 0.15
+
+    # bit-set/bit-vec: v0.5/v0.6 (fancy-regex) vs v0.8 (proptest)
+    { name = "bit-set", version = "=0.5.3" },  # fancy-regex 0.12
+    { name = "bit-vec", version = "=0.6.3" },  # bit-set 0.5
+
+    # tungstenite/tokio-tungstenite: v0.23 (async-tungstenite) vs v0.24 (axum)
+    { name = "tungstenite", version = "=0.23.0" },  # async-tungstenite 0.27
+    { name = "tokio-tungstenite", version = "=0.23.1" },  # Test dependencies
+
+    # === WASMTIME INTERNAL DUPLICATES ===
+    # These are within wasmtime's own dependency tree
+    { name = "cranelift-bitset", version = "=0.121.2" },  # cranelift/pulley shared
+    { name = "bumpalo", version = "=3.19.0" },  # wasm-bindgen vs wasmtime
+    { name = "foldhash", version = "=0.1.5" },  # hashbrown 0.15
+    { name = "foldhash", version = "=0.2.0" },  # hashbrown 0.16
+    { name = "pulley-interpreter", version = "=34.0.2" },  # cranelift-codegen-meta vs runtime
+
+    # === BUILD-TIME ONLY DUPLICATES ===
+    # These only affect build time, not runtime
+    { name = "which", version = "=4.4.2" },  # protobuf-parse (build)
+
+    # === ADDITIONAL UTILITY DUPLICATES ===
+    # itertools: Multiple versions across ecosystem
+    { name = "itertools", version = "=0.10.5" },  # Older dependencies
+    { name = "itertools", version = "=0.12.1" },  # Mid-range dependencies
+
+    # linux-raw-sys: v0.4 (rustix 0.38) vs v0.11 (rustix 1.x)
+    { name = "linux-raw-sys", version = "=0.4.15" },  # rustix 0.38
+
+    # mio: v0.8 (tokio older) vs v1.0 (tokio newer)
+    { name = "mio", version = "=0.8.11" },  # Older tokio versions
+
+    # quick-xml: v0.26 (older) vs v0.37 (newer)
+    { name = "quick-xml", version = "=0.26.0" },  # Older XML parsing deps
+
+    # socket2: v0.5 (older) vs v0.6 (newer)
+    { name = "socket2", version = "=0.5.10" },  # Older networking deps
+
+    # smallvec: Same version but different feature sets
+    { name = "smallvec", version = "=1.15.1" },  # Various feature configurations
+
+    # mockall: v0.12 vs v0.13
+    { name = "mockall", version = "=0.12.1" },  # Older test dependencies
+    { name = "mockall_derive", version = "=0.12.1" },  # Matches mockall
+
+    # rustc-hash: v1.x vs v2.x
+    { name = "rustc-hash", version = "=1.1.0" },  # Older dependencies
+
+    # servo_arc: Multiple versions for HTML parsing ecosystem
+    { name = "servo_arc", version = "=0.1.1" },  # selectors 0.22
+    { name = "servo_arc", version = "=0.3.0" },  # selectors 0.25/0.26
+
+    # spin: v0.9 vs v0.10
+    { name = "spin", version = "=0.9.8" },  # Older lock-free dependencies
+
+    # thiserror: v1.x vs v2.x
+    { name = "thiserror", version = "=1.0.69" },  # Most dependencies use v1
+    { name = "thiserror-impl", version = "=1.0.69" },  # Matches thiserror
+
+    # toml_datetime/toml_edit: v0.6/v0.22 vs v0.7/v0.23
+    { name = "toml_datetime", version = "=0.6.11" },  # toml 0.8, toml_edit 0.22
+    { name = "toml_edit", version = "=0.22.27" },  # toml 0.8
+
+    # wasm-encoder: Multiple versions for wasmtime/wit ecosystem
+    { name = "wasm-encoder", version = "=0.219.2" },  # wit-component 0.219
+    { name = "wasm-encoder", version = "=0.233.0" },  # wasmtime 34.x
+
+    # itoa: v0.4 vs v1.x
+    { name = "itoa", version = "=0.4.8" },  # Older serde dependencies
+
+    # quick-error: v1.x vs v2.x
+    { name = "quick-error", version = "=1.2.3" },  # Older error handling
+
+    # wast: Different versions for wasmtime ecosystem
+    { name = "wast", version = "=35.0.2" },  # Older wasmtime testing
+
+    # object: v0.36 (wasmtime 34.x) vs v0.37 (newer)
+    { name = "object", version = "=0.37.3" },  # Newer backtrace/addr2line
+]
+
+# Skip-tree: Ignore duplicate warnings for entire dependency subtrees
+# Use this for large dep trees where individual skips become unwieldy
+skip-tree = [
+    # Wasmtime ecosystem (34.0.2) - large locked dependency tree
+    { name = "wasmtime", version = "=34.0.2" },
+
+    # Scraper/HTML parsing - fragmented ecosystem
+    { name = "scraper", version = "=0.20.0" },
+    { name = "lol_html", version = "=1.2.1" },
+
+    # async-std ecosystem - being phased out but required by chromiumoxide
+    { name = "async-std", version = "=1.13.2" },
 ]
 
 [advisories]
