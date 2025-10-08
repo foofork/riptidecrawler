@@ -560,6 +560,7 @@ pub struct ConnectionInfo {
     pub backpressure_count: usize,
     pub is_slow: bool,
     pub message_count: usize,
+    #[allow(dead_code)] // Public API - connection start time for duration tracking
     pub connection_start: Instant,
 }
 
