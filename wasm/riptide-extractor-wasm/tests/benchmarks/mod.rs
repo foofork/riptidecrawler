@@ -19,25 +19,41 @@ pub struct BenchmarkResult {
     pub duration_ms: f64,
     pub memory_used_bytes: u64,
     pub throughput_ops_per_sec: f64,
+    /// Reserved for benchmark reporting - will be used when detailed reports are generated
+    #[allow(dead_code)]
     pub concurrency_level: usize,
+    /// Reserved for benchmark reporting - will be used when detailed reports are generated
+    #[allow(dead_code)]
     pub iterations: usize,
+    /// Reserved for benchmark reporting - will be used when detailed reports are generated
+    #[allow(dead_code)]
     pub cpu_usage_percent: f64,
+    /// Reserved for benchmark reporting - will be used when detailed reports are generated
+    #[allow(dead_code)]
     pub cache_hit_rate: f64,
 }
 
 #[derive(Debug)]
 pub struct BenchmarkSuite {
     pub results: Vec<BenchmarkResult>,
+    /// Reserved for benchmark suite reporting - will be used when reports are generated
+    #[allow(dead_code)]
     pub total_duration: Duration,
+    /// Reserved for benchmark suite reporting - will be used when reports are generated
+    #[allow(dead_code)]
     pub system_info: SystemInfo,
 }
 
 #[derive(Debug)]
 pub struct SystemInfo {
+    /// Reserved for system info reporting - will be used when benchmark reports are generated
+    #[allow(dead_code)]
     pub cpu_model: String,
     pub core_count: usize,
     pub memory_gb: f64,
     pub simd_support: bool,
+    /// Reserved for system info reporting - will be used when benchmark reports are generated
+    #[allow(dead_code)]
     pub wasm_runtime: String,
 }
 
@@ -441,6 +457,8 @@ fn run_memory_benchmark(
 }
 
 /// Generate performance report
+/// Reserved for benchmark reporting - will be used when benchmark reports are generated
+#[allow(dead_code)]
 pub fn generate_performance_report(suite: &BenchmarkSuite) -> Result<String, String> {
     let mut report = String::new();
 

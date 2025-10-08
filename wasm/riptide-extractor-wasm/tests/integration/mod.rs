@@ -23,6 +23,8 @@ pub struct IntegrationTestConfig {
     pub max_concurrent_extractions: usize,
     pub timeout_ms: u64,
     pub memory_limit_mb: u64,
+    /// Reserved for integration test retry logic - will be used when retry mechanism is implemented
+    #[allow(dead_code)]
     pub retry_attempts: u32,
     pub batch_size: usize,
 }
@@ -45,6 +47,8 @@ pub struct IntegrationTestResult {
     pub success: bool,
     pub extractions_completed: usize,
     pub extractions_failed: usize,
+    /// Reserved for test reporting - will be used when detailed test reports are generated
+    #[allow(dead_code)]
     pub average_time_ms: f64,
     pub peak_memory_mb: f64,
     pub error_details: Vec<String>,

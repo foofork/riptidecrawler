@@ -24,7 +24,7 @@ mod tests {
     #[tokio::test]
     async fn test_render_request_validation() {
         // Test empty URL validation
-        let empty_url_request = RenderRequest {
+        let _empty_url_request = RenderRequest {
             url: "".to_string(),
             mode: None,
             dynamic_config: None,

@@ -44,6 +44,8 @@ pub struct MemoryTestResult {
     pub peak_memory_bytes: u64,
     pub circuit_breaker_triggered: bool,
     pub error_message: Option<String>,
+    /// Reserved for test timing metrics - will be used when test runner reports detailed timing
+    #[allow(dead_code)]
     pub duration_ms: f64,
 }
 

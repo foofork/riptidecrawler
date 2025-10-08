@@ -379,6 +379,8 @@ fn error_handling_test() {
 mod test_utilities {
     /// Utility functions for test data generation and validation
 
+    /// Reserved for test data generation - will be used when test fixtures need HTML generation
+    #[allow(dead_code)]
     pub fn generate_test_html(content_type: &str, size: usize) -> String {
         match content_type {
             "simple" => format!(
@@ -390,6 +392,8 @@ mod test_utilities {
         }
     }
 
+    /// Reserved for test data generation - helper function for complex HTML generation
+    #[allow(dead_code)]
     fn generate_complex_test_html(target_size: usize) -> String {
         let mut html = String::with_capacity(target_size);
         html.push_str("<!DOCTYPE html><html><head><title>Complex Test</title></head><body>");
@@ -404,6 +408,8 @@ mod test_utilities {
         html
     }
 
+    /// Reserved for test validation - will be used when test fixtures need result validation
+    #[allow(dead_code)]
     pub fn validate_extraction_result(
         content: &riptide_extractor_wasm::ExtractedContent,
         expected_type: &str,

@@ -65,6 +65,8 @@ pub struct AOTCacheTestResult {
     pub success: bool,
     pub metrics: AOTCacheMetrics,
     pub error_message: Option<String>,
+    /// Reserved for test timing metrics - will be used when test runner reports detailed timing
+    #[allow(dead_code)]
     pub duration_ms: f64,
 }
 
