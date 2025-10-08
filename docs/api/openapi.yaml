@@ -303,6 +303,13 @@ paths:
       tags:
       - Tables
       summary: Export table (CSV/Markdown)
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Table identifier
       responses:
         '200':
           description: Success
@@ -382,6 +389,13 @@ paths:
       tags:
       - Sessions
       summary: Get session info
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Session identifier
       responses:
         '200':
           description: Success
@@ -390,6 +404,13 @@ paths:
       tags:
       - Sessions
       summary: Delete session
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Session identifier
       responses:
         '200':
           description: Success
@@ -399,6 +420,13 @@ paths:
       tags:
       - Sessions
       summary: Extend session TTL
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Session identifier
       responses:
         '200':
           description: Success
@@ -408,6 +436,13 @@ paths:
       tags:
       - Sessions
       summary: Set cookie
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Session identifier
       responses:
         '200':
           description: Success
@@ -416,6 +451,13 @@ paths:
       tags:
       - Sessions
       summary: Clear all cookies
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Session identifier
       responses:
         '200':
           description: Success
@@ -425,6 +467,19 @@ paths:
       tags:
       - Sessions
       summary: Get domain cookies
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Session identifier
+      - name: domain
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Cookie domain
       responses:
         '200':
           description: Success
@@ -434,6 +489,25 @@ paths:
       tags:
       - Sessions
       summary: Get specific cookie
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Session identifier
+      - name: domain
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Cookie domain
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Cookie name
       responses:
         '200':
           description: Success
@@ -442,6 +516,25 @@ paths:
       tags:
       - Sessions
       summary: Delete cookie
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Session identifier
+      - name: domain
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Cookie domain
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Cookie name
       responses:
         '200':
           description: Success
@@ -460,6 +553,13 @@ paths:
       tags:
       - Workers
       summary: Get job status
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Job identifier
       responses:
         '200':
           description: Success
@@ -469,6 +569,13 @@ paths:
       tags:
       - Workers
       summary: Get job result
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Job identifier
       responses:
         '200':
           description: Success
@@ -522,6 +629,13 @@ paths:
       tags:
       - Workers
       summary: Delete scheduled job
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Scheduled job identifier
       responses:
         '200':
           description: Success
