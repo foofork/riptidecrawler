@@ -7,7 +7,7 @@
 //! - Deterministic boundary detection
 
 use riptide_html::chunking::topic::TopicChunker;
-use riptide_html::chunking::{create_strategy, ChunkingConfig, ChunkingMode, ChunkingStrategy};
+use riptide_html::chunking::{ChunkingConfig, ChunkingStrategy};
 use std::time::Instant;
 
 /// Test enhanced coherence scoring produces better boundaries than basic cosine similarity

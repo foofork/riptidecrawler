@@ -3,6 +3,7 @@
 //! Tests per-host circuit breakers, rate limiting, logging, and metrics tracking
 
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod fetch_engine_tests {
     use crate::fetch::{CircuitBreakerConfig, PerHostFetchEngine, RateLimitConfig, RetryConfig};
     use std::time::Duration;

@@ -264,7 +264,7 @@ mod query_aware_week7_tests {
             ..Default::default()
         };
 
-        let mut scorer = QueryAwareScorer::new(config);
+        let mut scorer = QueryAwareScorer::new(config.clone());
 
         // Create relevant request and content
         let url = Url::parse("https://ml.example.com/machine-learning/tutorial").unwrap();

@@ -12,7 +12,7 @@ mod css_selector_tests {
 #[cfg(test)]
 mod table_extraction_tests {
     use super::*;
-    use riptide_html::table_extraction::*;
+    use riptide_html::table_extraction::extract_tables_advanced;
 
     #[tokio::test]
     async fn test_simple_table_extraction() {
@@ -162,9 +162,6 @@ Line 2</td></tr>
 
 #[cfg(test)]
 mod chunking_tests {
-    use super::*;
-    use riptide_html::chunking::*;
-
     // Note: Chunking tests have been removed because FixedSizeChunker and TextTilingChunker
     // don't exist in the current riptide-html::chunking module. The chunking API uses
     // a different pattern with create_strategy() and ChunkingStrategy trait.
@@ -172,8 +169,6 @@ mod chunking_tests {
 
 #[cfg(test)]
 mod real_world_extraction_tests {
-    use super::*;
-
     // Note: Real-world extraction tests have been removed because they depend on
     // CssExtractor and related types from the non-existent `selectors` module.
     // CSS extraction is available through the css_extraction module with different APIs.

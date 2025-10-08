@@ -347,7 +347,7 @@ async fn test_large_document_performance() {
 
     // Generate a large document with multiple topics
     let mut large_doc = String::new();
-    let topics = vec![
+    let topics = [
         "artificial intelligence and machine learning applications",
         "climate change and environmental sustainability measures",
         "economic policy and global financial markets analysis",

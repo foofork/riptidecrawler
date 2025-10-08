@@ -8,7 +8,6 @@
 
 use anyhow::Result;
 use riptide_html::table_extraction::*;
-use serde_json;
 use std::collections::HashMap;
 
 /// Test TABLE-001: Basic table structure parsing

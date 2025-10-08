@@ -3,7 +3,6 @@
 //! These tests verify the core functionality works correctly in real-world scenarios
 
 use anyhow::Result;
-use riptide_core::*;
 
 #[cfg(test)]
 mod reliability_tests {
@@ -161,7 +160,7 @@ mod circuit_breaker_tests {
 
 #[cfg(test)]
 mod cache_tests {
-    use super::*;
+    use anyhow::Result;
     use riptide_core::cache::{CacheConfig, CacheManager};
     use std::time::Duration;
 
