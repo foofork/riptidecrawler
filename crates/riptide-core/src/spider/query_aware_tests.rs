@@ -86,7 +86,7 @@ mod query_aware_week7_tests {
         let analyzer = UrlSignalAnalyzer::new(Some("machine learning tutorial"));
 
         // Test depth scoring
-        let base_url = Url::from_str("https://example.com/base").unwrap();
+        let base_url = Url::parse("https://example.com/base").unwrap();
         let score_depth_1 = analyzer.score(&base_url, 1);
         let score_depth_5 = analyzer.score(&base_url, 5);
 
@@ -97,14 +97,14 @@ mod query_aware_week7_tests {
 
         // Test path relevance
         let relevant_urls = [
-            Url::from_str("https://ml.example.com/machine-learning/tutorial").unwrap(),
-            Url::from_str("https://example.com/tutorials/machine-learning").unwrap(),
-            Url::from_str("https://example.com/learning/machine/intro").unwrap(),
+            Url::parse("https://ml.example.com/machine-learning/tutorial").unwrap(),
+            Url::parse("https://example.com/tutorials/machine-learning").unwrap(),
+            Url::parse("https://example.com/learning/machine/intro").unwrap(),
         ];
 
         let irrelevant_urls = [
-            Url::from_str("https://example.com/cooking/recipes").unwrap(),
-            Url::from_str("https://example.com/random/path").unwrap(),
+            Url::parse("https://example.com/cooking/recipes").unwrap(),
+            Url::parse("https://example.com/random/path").unwrap(),
         ];
 
         let relevant_scores: Vec<f64> = relevant_urls
@@ -126,10 +126,9 @@ mod query_aware_week7_tests {
         );
 
         // Test domain bonus
-        let domain_url = Url::from_str("https://machinelearning.example.com/tutorial").unwrap();
+        let domain_url = Url::parse("https://machinelearning.example.com/tutorial").unwrap();
         let domain_score = analyzer.score(&domain_url, 2);
-        let regular_score =
-            analyzer.score(&Url::from_str("https://example.com/tutorial").unwrap(), 2);
+        let regular_score = analyzer.score(&Url::parse("https://example.com/tutorial").unwrap(), 2);
 
         assert!(
             domain_score > regular_score,
@@ -267,7 +266,7 @@ mod query_aware_week7_tests {
         let mut scorer = QueryAwareScorer::new(config);
 
         // Create relevant request and content
-        let url = Url::from_str("https://ml.example.com/machine-learning/tutorial").unwrap();
+        let url = Url::parse("https://ml.example.com/machine-learning/tutorial").unwrap();
         let request = CrawlRequest::new(url).with_depth(1);
         let content =
             "Machine learning algorithms are used in artificial intelligence to create models";
@@ -287,7 +286,7 @@ mod query_aware_week7_tests {
         assert!(score <= 1.0, "Score should be normalized"); // Given our weights sum to 1.0
 
         // Test with irrelevant content
-        let irrelevant_url = Url::from_str("https://cooking.example.com/recipes/pasta").unwrap();
+        let irrelevant_url = Url::parse("https://cooking.example.com/recipes/pasta").unwrap();
         let irrelevant_request = CrawlRequest::new(irrelevant_url).with_depth(3);
         let irrelevant_content = "This pasta recipe uses tomatoes and cheese for a delicious meal";
 
@@ -338,7 +337,7 @@ mod query_aware_week7_tests {
         let baseline_start = Instant::now();
 
         for i in 0..num_requests {
-            let url = Url::from_str(&format!("https://example.com/page{}", i)).unwrap();
+            let url = Url::parse(&format!("https://example.com/page{}", i)).unwrap();
             let request = CrawlRequest::new(url);
             let content = "a".repeat(content_size);
             baseline_scorer.score_request(&request, Some(&content));
@@ -357,7 +356,7 @@ mod query_aware_week7_tests {
         let qa_start = Instant::now();
 
         for i in 0..num_requests {
-            let url = Url::from_str(&format!("https://example.com/page{}", i)).unwrap();
+            let url = Url::parse(&format!("https://example.com/page{}", i)).unwrap();
             let request = CrawlRequest::new(url);
             let content = format!(
                 "Page {} content about machine learning and artificial intelligence. {}",
@@ -552,7 +551,7 @@ mod query_aware_week7_tests {
             let mut scorer = QueryAwareScorer::new(config.clone());
 
             // Test that custom weights affect scoring
-            let url = Url::from_str("https://example.com/test").unwrap();
+            let url = Url::parse("https://example.com/test").unwrap();
             let request = CrawlRequest::new(url);
             let content = "Test content with some keywords";
 
@@ -673,7 +672,7 @@ mod query_aware_integration_tests {
         assert!(stats.enabled, "Query-aware features should be enabled");
 
         // Test scoring integration
-        let url = Url::from_str("https://ml.example.com/machine-learning").unwrap();
+        let url = Url::parse("https://ml.example.com/machine-learning").unwrap();
         let request = CrawlRequest::new(url);
 
         // This would normally be done during crawling
@@ -704,7 +703,7 @@ mod query_aware_integration_tests {
 
         // Simulate multiple low-relevance results
         for i in 0..5 {
-            let url = Url::from_str(&format!("https://example.com/irrelevant{}", i)).unwrap();
+            let url = Url::parse(&format!("https://example.com/irrelevant{}", i)).unwrap();
             let request = CrawlRequest::new(url);
             let result = CrawlResult::success(request);
 
@@ -738,7 +737,7 @@ mod query_aware_integration_tests {
 
         // Simulate processing 1000 URLs with query-aware scoring
         for i in 0..1000 {
-            let url = Url::from_str(&format!("https://example.com/page{}", i)).unwrap();
+            let url = Url::parse(&format!("https://example.com/page{}", i)).unwrap();
             let request = CrawlRequest::new(url);
             let content = format!("Page {} about various topics including some keywords", i);
 
