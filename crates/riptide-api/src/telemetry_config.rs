@@ -6,7 +6,10 @@
 //! - Telemetry configuration from environment variables
 //! - Span utilities for consistent instrumentation
 
-use opentelemetry::trace::{SpanContext, SpanId, TraceId};
+use opentelemetry::trace::{SpanContext, TraceId};
+
+#[cfg(test)]
+use opentelemetry::trace::SpanId;
 
 use opentelemetry::trace::TraceContextExt;
 use opentelemetry::{global, KeyValue};
@@ -180,6 +183,7 @@ impl TelemetryConfig {
     }
 
     /// Initialize the OpenTelemetry tracing subscriber
+    #[allow(dead_code)] // Public API for application initialization, called from main.rs
     pub fn init_tracing(&self) -> anyhow::Result<()> {
         if !self.enabled || self.exporter_type == ExporterType::None {
             tracing::info!("Telemetry disabled, using default tracing subscriber");
@@ -216,6 +220,7 @@ impl TelemetryConfig {
 
     /// Create a tracer with configured exporter
     /// OpenTelemetry 0.26: install_batch() returns TracerProvider, call .tracer() to get Tracer
+    #[allow(dead_code)] // Used by init_tracing
     fn create_tracer(&self) -> anyhow::Result<opentelemetry_sdk::trace::Tracer> {
         use opentelemetry::trace::TracerProvider as _;
 
@@ -280,6 +285,7 @@ impl TelemetryConfig {
     }
 
     /// Helper to create OTLP tracer
+    #[allow(dead_code)] // Used by create_tracer
     fn create_otlp_tracer(
         &self,
         resource: Resource,
@@ -315,6 +321,7 @@ impl TelemetryConfig {
     }
 
     /// Shutdown telemetry (flush remaining spans)
+    #[allow(dead_code)] // Public API for application shutdown, called from main.rs
     pub fn shutdown() {
         global::shutdown_tracer_provider();
     }
@@ -353,6 +360,7 @@ pub fn extract_trace_context(headers: &axum::http::HeaderMap) -> Option<SpanCont
 
 /// Inject trace context into HTTP headers (TELEM-004)
 /// OpenTelemetry 0.26: Use global::get_text_map_propagator() for inject
+#[allow(dead_code)] // Public API for outbound HTTP requests, used when making external calls
 pub fn inject_trace_context(headers: &mut reqwest::header::HeaderMap, span_context: &SpanContext) {
     use opentelemetry::propagation::Injector;
 
@@ -397,6 +405,7 @@ pub fn parse_trace_id(trace_id_str: &str) -> Option<TraceId> {
 }
 
 /// Parse span ID from string
+#[cfg(test)]
 pub fn parse_span_id(span_id_str: &str) -> Option<SpanId> {
     if span_id_str.len() == 16 {
         // Hex string format

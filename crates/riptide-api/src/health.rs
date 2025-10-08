@@ -627,6 +627,7 @@ pub fn classify_health_score(score: f32) -> &'static str {
 }
 
 /// Perform headless service health check
+#[allow(dead_code)] // Public API for external use, actual implementation in HealthChecker
 pub async fn perform_headless_health_check(_state: &AppState) -> ServiceHealth {
     // Placeholder implementation - actual headless check is in HealthChecker
     ServiceHealth {
@@ -638,6 +639,7 @@ pub async fn perform_headless_health_check(_state: &AppState) -> ServiceHealth {
 }
 
 /// Collect system metrics
+#[allow(dead_code)] // Public API for external use, delegates to HealthChecker
 pub async fn collect_system_metrics(state: &AppState) -> SystemMetrics {
     let checker = HealthChecker::new();
     checker.collect_system_metrics(state).await

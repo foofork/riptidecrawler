@@ -7,12 +7,12 @@ use crate::state::AppState;
 
 /// Helper for recording metrics in handlers
 pub struct MetricsRecorder<'a> {
-    _state: &'a AppState,
+    state: &'a AppState,
 }
 
 impl<'a> MetricsRecorder<'a> {
     pub fn new(state: &'a AppState) -> Self {
-        Self { _state: state }
+        Self { state }
     }
 
     #[allow(dead_code)] // Reserved for future metrics collection
@@ -33,29 +33,39 @@ impl<'a> MetricsRecorder<'a> {
 
     pub fn record_spider_crawl(
         &self,
-        _pages_crawled: u64,
-        _pages_failed: u64,
-        _duration: std::time::Duration,
+        pages_crawled: u64,
+        pages_failed: u64,
+        duration: std::time::Duration,
     ) {
-        // Spider crawl metrics
+        // Record spider crawl completion metrics
+        self.state.metrics.record_spider_crawl_completion(
+            pages_crawled,
+            pages_failed,
+            duration.as_secs_f64(),
+        );
     }
 
     pub fn record_spider_crawl_failure(&self) {
-        // Spider crawl failure metrics
+        // Spider crawl failure - record as failed without completion
+        self.state.metrics.spider_active_crawls.dec();
     }
 
-    pub fn update_frontier_size(&self, _size: usize) {
-        // Frontier size metrics
+    pub fn update_frontier_size(&self, size: usize) {
+        // Update spider frontier size gauge
+        self.state.metrics.update_spider_frontier_size(size);
     }
 
     pub fn record_http_request(
         &self,
-        _method: &str,
-        _path: &str,
-        _status: u16,
-        _duration: std::time::Duration,
+        method: &str,
+        path: &str,
+        status: u16,
+        duration: std::time::Duration,
     ) {
-        // HTTP request metrics
+        // Record HTTP request metrics
+        self.state
+            .metrics
+            .record_http_request(method, path, status, duration.as_secs_f64());
     }
 }
 

@@ -102,7 +102,7 @@ pub struct StreamLifecycleManager {
 pub struct ConnectionInfo {
     pub connection_id: String,
     pub protocol: String,
-    pub start_time: Instant,
+    pub connection_start: Instant, // Renamed from start_time to match usage
     pub bytes_sent: usize,
     pub messages_sent: usize,
     pub current_request_id: Option<String>,
@@ -151,7 +151,7 @@ impl StreamLifecycleManager {
         let conn_info = ConnectionInfo {
             connection_id: connection_id.clone(),
             protocol,
-            start_time: Instant::now(),
+            connection_start: Instant::now(),
             bytes_sent: 0,
             messages_sent: 0,
             current_request_id: None,
@@ -283,7 +283,7 @@ impl StreamLifecycleManager {
         if let Some(info) = conn_info {
             let event = LifecycleEvent::ConnectionClosed {
                 connection_id,
-                duration: info.start_time.elapsed(),
+                duration: info.connection_start.elapsed(),
                 bytes_sent: info.bytes_sent,
                 messages_sent: info.messages_sent,
                 timestamp: Instant::now(),
@@ -335,6 +335,9 @@ impl StreamLifecycleManager {
                     .streaming_active_connections
                     .set(active_count as f64);
                 metrics.streaming_total_connections.inc();
+
+                // Update main active_connections gauge
+                metrics.active_connections.inc();
 
                 info!(
                     connection_id = %connection_id,
@@ -458,6 +461,9 @@ impl StreamLifecycleManager {
                 metrics
                     .streaming_active_connections
                     .set(active_count as f64);
+
+                // Decrement main active_connections gauge
+                metrics.active_connections.dec();
 
                 // Record connection duration
                 metrics.record_streaming_connection_duration(duration.as_secs_f64());

@@ -108,6 +108,9 @@ pub async fn spider_crawl(
     // Create metrics recorder
     let metrics = MetricsRecorder::new(&state);
 
+    // Record spider crawl start
+    state.metrics.record_spider_crawl_start();
+
     // Perform the crawl
     let crawl_result = spider.crawl(seed_urls).await.map_err(|e| {
         // Record failed spider crawl

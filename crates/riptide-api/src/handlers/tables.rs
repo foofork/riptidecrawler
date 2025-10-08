@@ -206,21 +206,26 @@ pub async fn extract_tables(
         // Generate unique ID for this extraction session
         let export_id = Uuid::new_v4().to_string();
 
-        // Create table summary
-        let headers: Vec<String> = table
-            .headers
-            .main
-            .iter()
-            .map(|cell| cell.content.clone())
-            .collect();
+        // Get sample data and headers based on options
+        let (headers, sample_data) = if options.include_headers {
+            let headers: Vec<String> = table
+                .headers
+                .main
+                .iter()
+                .map(|cell| cell.content.clone())
+                .collect();
 
-        // Get sample data (first 3 rows)
-        let sample_data: Vec<Vec<String>> = table
-            .rows
-            .iter()
-            .take(3)
-            .map(|row| row.cells.iter().map(|cell| cell.content.clone()).collect())
-            .collect();
+            let sample_data: Vec<Vec<String>> = table
+                .rows
+                .iter()
+                .take(3)
+                .map(|row| row.cells.iter().map(|cell| cell.content.clone()).collect())
+                .collect();
+
+            (headers, sample_data)
+        } else {
+            (vec![], vec![])
+        };
 
         // Detect data types if enabled
         let data_types = if options.detect_data_types {

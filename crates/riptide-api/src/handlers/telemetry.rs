@@ -182,7 +182,7 @@ pub async fn list_traces(
     // Note: In a real implementation, this would query a trace backend like Jaeger/Zipkin
     // For demonstration purposes, we'll return mock data
 
-    let traces = vec![TraceMetadata {
+    let mut traces = vec![TraceMetadata {
         trace_id: "0af7651916cd43dd8448eb211c80319c".to_string(),
         root_span_id: "b7ad6b7169203331".to_string(),
         start_time: "2025-10-03T10:00:00Z".to_string(),
@@ -197,6 +197,11 @@ pub async fn list_traces(
             attrs
         },
     }];
+
+    // Filter by service if specified
+    if let Some(ref service_filter) = query.service {
+        traces.retain(|t| t.service_name.contains(service_filter));
+    }
 
     debug!(trace_count = traces.len(), "Returning traces");
     Ok(Json(traces))

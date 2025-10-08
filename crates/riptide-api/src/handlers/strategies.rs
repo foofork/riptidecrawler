@@ -297,16 +297,23 @@ pub struct ChunkingModeInfo {
 
 /// Build strategy configuration from request parameters
 fn build_strategy_config(
-    _request: &StrategiesCrawlRequest,
+    request: &StrategiesCrawlRequest,
     _params: &StrategiesQueryParams,
 ) -> ApiResult<StrategyConfig> {
     // Core only supports Trek extraction strategy
     let extraction = ExtractionStrategy::Trek;
 
+    // TODO: Use css_selectors, regex_patterns, llm_config when those strategies are implemented
+    let _ = (
+        &request.css_selectors,
+        &request.regex_patterns,
+        &request.llm_config,
+    );
+
     Ok(StrategyConfig {
         extraction,
-        enable_metrics: true,
-        validate_schema: true,
+        enable_metrics: request.enable_metrics,
+        validate_schema: request.validate_schema,
     })
 }
 
