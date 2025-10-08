@@ -30,7 +30,20 @@ skip = [
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
 # Updated configuration per cargo-deny 0.16+ migration
-ignore = []  # List of advisory IDs to ignore
+# Ignore unmaintained crate advisories for transitive dependencies
+# These are informational only and cannot be easily replaced without
+# updating or replacing the parent dependencies
+ignore = [
+    "RUSTSEC-2025-0052",  # async-std unmaintained - pulled by chromiumoxide & httpmock
+                          # Replacement strategy: Update chromiumoxide or switch to alternatives
+                          # Note: async-std is only used by headless browsing deps
+    "RUSTSEC-2024-0436",  # paste unmaintained - pulled by jemalloc-ctl & rav1e
+                          # Replacement: pastey (but deeply nested dependency)
+                          # Low risk: proc-macro only, no runtime impact
+    "RUSTSEC-2025-0057",  # fxhash unmaintained - pulled by wasmtime's fxprof-processed-profile
+                          # Replacement: rustc-hash (requires upstream update)
+                          # Low risk: only used in wasmtime profiling tools
+]
 # severity-threshold replaced with severity in cargo-deny 0.16+
 # See: https://github.com/EmbarkStudios/cargo-deny/pull/611
 # Use advisory severity levels to filter: low, medium, high, critical

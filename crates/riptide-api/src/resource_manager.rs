@@ -179,7 +179,18 @@ impl ResourceManager {
             max_retries: config.headless.max_retries,
         };
 
-        // Configure browser with headless settings
+        // DEPENDENCY NOTE: chromiumoxide uses async-std internally (RUSTSEC-2025-0052)
+        // JUSTIFICATION:
+        //   - Provides Chrome DevTools Protocol (CDP) access for headless browsing
+        //   - Isolated to browser pool management (this module only)
+        //   - Main application runtime remains pure Tokio
+        //   - async-std tasks are spawned in isolated browser process contexts
+        //   - No runtime conflict: chromiumoxide manages its own task executor
+        // ALTERNATIVES CONSIDERED:
+        //   - thirtyfour (WebDriver): Less direct CDP control, higher latency
+        //   - Sidecar process: Over-engineering for current scale
+        // MITIGATION: Feature-gate for optional headless support if needed
+        // MONITORING: Track chromiumoxide updates for Tokio migration
         let browser_config = chromiumoxide::BrowserConfig::builder()
             .with_head()
             .no_sandbox()

@@ -15,15 +15,18 @@ impl<'a> MetricsRecorder<'a> {
         Self { _state: state }
     }
 
+    #[allow(dead_code)] // Reserved for future metrics collection
     pub fn record_request(&self, _endpoint: &str) {
         // Metrics recording implementation
         // This can be expanded as metrics infrastructure is activated
     }
 
+    #[allow(dead_code)] // Reserved for future metrics collection
     pub fn record_success(&self, _endpoint: &str, _duration_ms: u64) {
         // Success metrics
     }
 
+    #[allow(dead_code)] // Reserved for future metrics collection
     pub fn record_error(&self, _endpoint: &str, _error_type: &str) {
         // Error metrics
     }
@@ -56,11 +59,13 @@ impl<'a> MetricsRecorder<'a> {
     }
 }
 
-/// Helper for emitting events in handlers
+/// Helper for emitting events in handlers (WIP - behind `events` feature)
+#[cfg(feature = "events")]
 pub struct EventEmitter<'a> {
     _state: &'a AppState,
 }
 
+#[cfg(feature = "events")]
 impl<'a> EventEmitter<'a> {
     pub fn new(state: &'a AppState) -> Self {
         Self { _state: state }
@@ -71,15 +76,18 @@ impl<'a> EventEmitter<'a> {
     }
 }
 
-/// Helper for transforming crawl results
+/// Helper for transforming crawl results (WIP - behind `events` feature)
+#[cfg(feature = "events")]
 pub struct ResultTransformer;
 
+#[cfg(feature = "events")]
 impl ResultTransformer {
     pub fn new() -> Self {
         Self
     }
 }
 
+#[cfg(feature = "events")]
 impl Default for ResultTransformer {
     fn default() -> Self {
         Self::new()
@@ -89,6 +97,7 @@ impl Default for ResultTransformer {
 /// Helper for building spider configurations
 pub struct SpiderConfigBuilder<'a> {
     _state: &'a AppState,
+    #[allow(dead_code)] // Reserved for future spider configuration
     seed_url: url::Url,
 }
 
@@ -100,14 +109,17 @@ impl<'a> SpiderConfigBuilder<'a> {
         }
     }
 
+    #[allow(dead_code)] // Reserved for future spider configuration
     pub fn with_max_depth(self, _max_depth: usize) -> Self {
         self
     }
 
+    #[allow(dead_code)] // Reserved for future spider configuration
     pub fn with_max_pages(self, _max_pages: usize) -> Self {
         self
     }
 
+    #[allow(dead_code)] // Reserved for future spider configuration
     pub fn with_strategy(self, _strategy: &str) -> Self {
         self
     }
@@ -129,6 +141,7 @@ impl<'a> SpiderConfigBuilder<'a> {
         self
     }
 
+    #[allow(dead_code)] // Reserved for future spider configuration
     pub fn build(self) -> Result<riptide_core::spider::SpiderConfig, ApiError> {
         Ok(riptide_core::spider::SpiderConfig::new(self.seed_url))
     }

@@ -67,6 +67,7 @@ impl StreamingResponseType {
     }
 
     /// Check if this response type supports keep-alive
+    #[allow(dead_code)] // Reserved for streaming protocol detection
     pub fn supports_keep_alive(&self) -> bool {
         matches!(
             self,
@@ -75,6 +76,7 @@ impl StreamingResponseType {
     }
 
     /// Get recommended buffer size
+    #[allow(dead_code)] // Reserved for streaming buffer configuration
     pub fn buffer_size(&self) -> usize {
         match self {
             StreamingResponseType::Ndjson => 256,
@@ -444,6 +446,7 @@ where
 }
 
 /// Utility for creating streaming responses with error handling
+#[allow(dead_code)] // Reserved for error-safe streaming utility
 pub fn safe_stream_response<S, T>(stream: S, response_type: StreamingResponseType) -> Response
 where
     S: Stream<Item = Result<T, Box<dyn std::error::Error + Send + Sync>>> + Send + 'static,

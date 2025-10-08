@@ -21,9 +21,11 @@ pub struct StrategiesCrawlRequest {
     pub url: String,
 
     /// Optional extraction strategy override (future feature - CSS_JSON, REGEX, LLM strategies)
+    #[allow(dead_code)] // Reserved for future extraction strategies
     pub extraction_strategy: Option<String>,
 
     /// Optional chunking configuration (future feature - moved to riptide-html)
+    #[allow(dead_code)] // Reserved for future chunking feature
     pub chunking_config: Option<ChunkingConfigRequest>,
 
     /// Enable performance metrics collection (future feature)
@@ -49,6 +51,7 @@ pub struct StrategiesCrawlRequest {
 }
 
 /// Chunking configuration from request (future feature - chunking moved to riptide-html)
+#[allow(dead_code, unused)] // Serde-only type: deserialized but fields not yet read
 #[derive(Debug, Deserialize)]
 pub struct ChunkingConfigRequest {
     pub mode: String, // "sliding", "fixed", "sentence", "topic", "regex"
@@ -67,6 +70,7 @@ pub struct ChunkingConfigRequest {
 }
 
 /// Regex pattern from request (future feature - REGEX extraction strategy)
+#[allow(unused)] // Serde-only type: deserialized but fields not yet read
 #[derive(Debug, Deserialize)]
 pub struct RegexPatternRequest {
     pub name: String,
@@ -76,6 +80,7 @@ pub struct RegexPatternRequest {
 }
 
 /// LLM configuration from request (future feature - LLM extraction strategy)
+#[allow(unused)] // Serde-only type: deserialized but fields not yet read
 #[derive(Debug, Deserialize)]
 pub struct LlmConfigRequest {
     pub enabled: bool,

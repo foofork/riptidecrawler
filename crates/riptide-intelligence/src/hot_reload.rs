@@ -657,7 +657,7 @@ mod tests {
         let config_loader = ConfigLoader::new();
         let initial_config = IntelligenceConfig::default();
 
-        let (mut manager, _rx) =
+        let (manager, _rx) =
             HotReloadManager::new(config, registry, config_loader, initial_config).unwrap();
 
         // Should be able to create manager

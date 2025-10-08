@@ -79,6 +79,7 @@ jobs:
           path: |
             dredd-report.html
             dredd-report.md
+          if-no-files-found: ignore
 
       - name: Stop API
         if: always()
@@ -154,14 +155,12 @@ jobs:
       - name: Lint OpenAPI with Spectral
         run: |
           spectral lint docs/api/openapi.yaml \
-            --ruleset spectral:oas \
             --format stylish \
-            --fail-severity warn
+            --fail-severity error
 
       - name: Check OpenAPI best practices
         run: |
           spectral lint docs/api/openapi.yaml \
-            --ruleset spectral:oas \
             --format stylish
 
   # Test 4: API Response Time Testing

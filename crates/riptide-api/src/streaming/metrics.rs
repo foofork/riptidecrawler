@@ -109,6 +109,7 @@ impl StreamingMetrics {
 // Convenience type aliases for clarity in specific protocols
 pub type SseMetrics = StreamingMetrics;
 pub type WebSocketMetrics = StreamingMetrics;
+#[allow(dead_code)] // Type alias for streaming metrics compatibility
 pub type NdjsonMetrics = StreamingMetrics;
 
 #[cfg(test)]

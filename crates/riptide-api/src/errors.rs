@@ -85,6 +85,7 @@ pub enum ApiError {
 
     /// Request payload too large (413 Payload Too Large)
     /// Used by payload_limit middleware to enforce request size limits
+    #[allow(dead_code)] // Reserved for future payload limit middleware
     #[error("Request payload too large: {message}")]
     PayloadTooLarge { message: String },
 }

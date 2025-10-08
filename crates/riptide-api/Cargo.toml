@@ -2,6 +2,7 @@
 name = "riptide-api"
 version = "0.1.0"
 edition = "2021"
+license = "Apache-2.0"
 
 [lib]
 name = "riptide_api"
@@ -66,9 +67,18 @@ mockall = "0.13"
 tempfile = "3.8"
 proptest = "1.4"
 criterion = { version = "0.5", features = ["html_reports"] }
-httpmock = "0.7"
 wiremock = "0.6"
 rstest = "0.22"
 axum-extra = { version = "0.9" }
 futures-util = "0.3"
 tokio-tungstenite = "0.23"
+
+[features]
+default = []
+# WIP feature gates for scaffolding code not yet fully wired
+events = []           # EventEmitter/ResultTransformer in handlers/shared
+sessions = []         # Session management system
+streaming = []        # SSE/WebSocket/NDJSON streaming
+telemetry = []        # Telemetry configuration
+# Full feature set for production (when ready)
+full = ["events", "sessions", "streaming", "telemetry"]
