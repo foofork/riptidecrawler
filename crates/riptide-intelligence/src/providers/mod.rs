@@ -558,6 +558,6 @@ mod provider_health_tests {
         let _ = manager.check_provider_health("test2").await;
 
         let system_health = manager.get_system_health_percentage();
-        assert!(system_health >= 0.0 && system_health <= 100.0);
+        assert!((0.0..=100.0).contains(&system_health));
     }
 }

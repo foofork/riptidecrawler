@@ -28,8 +28,6 @@ use riptide_intelligence::{
     Cost,
     CostTrackingConfig,
     DashboardGenerator,
-    FailoverConfig,
-    FailoverManager,
     FallbackChain,
     // HealthMonitorBuilder, // Not exported - use HealthMonitor::new() directly
     HotReloadConfig,
@@ -44,12 +42,10 @@ use riptide_intelligence::{
     MetricsCollector,
     MockLlmProvider,
     ProviderConfig,
-    ProviderPriority,
     ReloadStatus,
     TenantIsolationConfig,
     TenantIsolationManager,
     TenantLimits,
-    TenantState,
     TenantStatus,
     TimeWindow,
     TimeoutWrapper,
@@ -100,7 +96,7 @@ async fn test_timeout_functionality() {
 #[tokio::test]
 async fn test_circuit_breaker_functionality() {
     let failing_provider = Arc::new(MockLlmProvider::new().fail_after(0)); // Always fail
-    let config = CircuitBreakerConfig::strict();
+    let _config = CircuitBreakerConfig::strict();
     let circuit_provider = with_circuit_breaker(failing_provider);
 
     let request = CompletionRequest::new("mock-gpt-3.5", vec![Message::user("This will fail")]);
@@ -857,7 +853,7 @@ async fn test_memory_management_and_cleanup() {
 
     // Generate many requests to test memory management
     for i in 0..50 {
-        let request = CompletionRequest::new("gpt-4", vec![Message::user(&format!("Test {}", i))]);
+        let request = CompletionRequest::new("gpt-4", vec![Message::user(format!("Test {}", i))]);
         let request_id = metrics_collector
             .start_request(&request, "test_provider", None)
             .await;
@@ -879,7 +875,8 @@ async fn test_memory_management_and_cleanup() {
         .await;
 
     // Should still have some data (within retention period)
-    assert!(dashboard.overall_metrics.request_count >= 0);
+    // request_count is always >= 0 for unsigned types, just check it exists
+    let _ = dashboard.overall_metrics.request_count;
 }
 
 /// Test concurrent access and thread safety for new components
@@ -904,12 +901,12 @@ async fn test_enhanced_concurrent_access() {
 
         let task = tokio::spawn(async move {
             // Load a provider
-            let config = ProviderConfig::new(&format!("provider_{}", i), "concurrent_test");
+            let config = ProviderConfig::new(format!("provider_{}", i), "concurrent_test");
             registry_clone.load_provider(config).unwrap();
 
             // Start and complete a request in metrics
             let request =
-                CompletionRequest::new("gpt-4", vec![Message::user(&format!("Test {}", i))]);
+                CompletionRequest::new("gpt-4", vec![Message::user(format!("Test {}", i))]);
             let request_id = metrics_clone
                 .start_request(&request, &format!("provider_{}", i), None)
                 .await;

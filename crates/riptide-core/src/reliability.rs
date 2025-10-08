@@ -449,7 +449,7 @@ mod tests {
                 title: Some("Test Title".to_string()),
                 byline: None,
                 published_iso: None,
-                markdown: "# Test Content".to_string(),
+                markdown: Some("# Test Content".to_string()),
                 text: if html_str.len() > 100 {
                     "Long content with good quality"
                 } else {
@@ -477,9 +477,9 @@ mod tests {
             url: "https://test.com".to_string(),
             title: Some("Great Article Title".to_string()),
             text: "This is a long and comprehensive article with lots of valuable content that should score well on quality metrics.".repeat(20),
-            markdown: "# Title
+            markdown: Some("# Title
 ## Subtitle
-*emphasis* and [links](url)".to_string(),
+*emphasis* and [links](url)".to_string()),
             byline: Some("Author Name".to_string()),
             description: Some("Article description".to_string()),
             ..Default::default()
@@ -496,7 +496,7 @@ mod tests {
             url: "https://test.com".to_string(),
             title: None,
             text: "Short".to_string(),
-            markdown: "Short".to_string(),
+            markdown: Some("Short".to_string()),
             ..Default::default()
         };
 

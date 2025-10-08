@@ -639,11 +639,8 @@ mod query_aware_week7_tests {
 /// Integration tests for query-aware spider with other components
 #[cfg(test)]
 mod query_aware_integration_tests {
-    use super::*;
-    use crate::spider::{
-        config::{SpiderConfig, SpiderPresets},
-        core::Spider,
-    };
+    use crate::spider::{config::SpiderPresets, core::Spider, CrawlRequest};
+    use reqwest::Url;
 
     /// Test integration with spider configuration
     #[tokio::test]
