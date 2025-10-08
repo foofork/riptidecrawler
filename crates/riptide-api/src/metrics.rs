@@ -668,11 +668,13 @@ impl RipTideMetrics {
     }
 
     /// Update cache hit rate
+    #[allow(dead_code)] // Public API - will be wired up in cache metrics collection
     pub fn update_cache_hit_rate(&self, rate: f64) {
         self.cache_hit_rate.set(rate);
     }
 
     /// Update active connections
+    #[allow(dead_code)] // Public API - will be wired up in connection metrics collection
     pub fn update_active_connections(&self, count: i64) {
         self.active_connections.set(count as f64);
     }
@@ -745,6 +747,7 @@ impl RipTideMetrics {
     }
 
     /// Update PDF metrics from PdfMetricsCollector
+    #[allow(dead_code)] // Public API - integrates PDF metrics from collector
     pub fn update_pdf_metrics_from_collector(&self, pdf_metrics: &PdfMetricsCollector) {
         let snapshot = pdf_metrics.get_snapshot();
 
@@ -760,6 +763,7 @@ impl RipTideMetrics {
     }
 
     /// Export PDF metrics as Prometheus format from PdfMetricsCollector
+    #[allow(dead_code)] // Public API - exports PDF metrics for Prometheus
     pub fn export_pdf_metrics(&self, pdf_metrics: &PdfMetricsCollector) -> HashMap<String, f64> {
         pdf_metrics.export_for_prometheus()
     }
@@ -836,6 +840,7 @@ impl RipTideMetrics {
     }
 
     /// Update WASM metrics from component extractor
+    #[allow(dead_code)] // Public API - integrates WASM metrics from extractor
     pub fn update_wasm_metrics_from_extractor(
         &self,
         wasm_metrics: &std::collections::HashMap<String, f64>,

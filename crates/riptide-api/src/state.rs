@@ -72,12 +72,14 @@ pub struct AppState {
     pub streaming: Arc<StreamingModule>,
 
     /// Telemetry system for observability
+    #[allow(dead_code)] // Public API - will be wired up in telemetry integration
     pub telemetry: Option<Arc<TelemetrySystem>>,
 
     /// Spider engine for deep crawling
     pub spider: Option<Arc<Spider>>,
 
     /// PDF metrics collector for monitoring PDF processing
+    #[allow(dead_code)] // Public API - used via metrics.update_pdf_metrics_from_collector
     pub pdf_metrics: Arc<PdfMetricsCollector>,
 
     /// Worker service for background job processing
@@ -90,12 +92,14 @@ pub struct AppState {
     pub circuit_breaker: Arc<tokio::sync::Mutex<CircuitBreakerState>>,
 
     /// Performance metrics for circuit breaker tracking
+    #[allow(dead_code)] // Public API - used for circuit breaker performance tracking
     pub performance_metrics: Arc<tokio::sync::Mutex<PerformanceMetrics>>,
 
     /// Monitoring system for performance tracking and alerting
     pub monitoring_system: Arc<MonitoringSystem>,
 
     /// FetchEngine for HTTP operations with per-host circuit breakers and rate limiting
+    #[allow(dead_code)] // Public API - used for HTTP fetch operations with rate limiting
     pub fetch_engine: Arc<FetchEngine>,
 
     /// Performance manager for resource limiting, monitoring, and optimization
@@ -105,6 +109,7 @@ pub struct AppState {
     pub auth_config: AuthConfig,
 
     /// Future: CacheWarmer for intelligent cache pre-warming (placeholder for now)
+    #[allow(dead_code)] // Future feature - intentionally not used yet
     pub cache_warmer_enabled: bool,
 }
 

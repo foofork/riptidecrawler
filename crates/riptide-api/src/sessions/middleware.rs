@@ -133,16 +133,19 @@ impl SessionContext {
     }
 
     /// Get the session
+    #[allow(dead_code)] // Public API - provides access to session data
     pub fn session(&self) -> &Session {
         &self.session
     }
 
     /// Get the session manager
+    #[allow(dead_code)] // Public API - provides access to session manager
     pub fn manager(&self) -> &Arc<SessionManager> {
         &self.manager
     }
 
     /// Get the user data directory for this session
+    #[allow(dead_code)] // Public API - provides access to session directory
     pub fn user_data_dir(&self) -> &std::path::PathBuf {
         &self.session.user_data_dir
     }
@@ -223,6 +226,7 @@ impl IntoResponse for SessionError {
 
 /// Session-aware request header for browser automation
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // Public API - used for browser automation integration
 pub struct SessionHeaders {
     pub session_id: String,
     pub user_agent: Option<String>,
@@ -232,6 +236,7 @@ pub struct SessionHeaders {
 
 impl SessionHeaders {
     /// Create session headers from a session context
+    #[allow(dead_code)] // Public API - constructs headers from session
     pub async fn from_session_context(
         ctx: &SessionContext,
         domain: &str,
@@ -252,6 +257,7 @@ impl SessionHeaders {
     }
 
     /// Convert to HTTP header map
+    #[allow(dead_code)] // Public API - converts session headers to HTTP headers
     pub fn to_header_map(&self) -> std::collections::HashMap<String, String> {
         let mut headers = std::collections::HashMap::new();
 

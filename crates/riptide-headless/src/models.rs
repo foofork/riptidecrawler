@@ -21,6 +21,7 @@ pub struct RenderReq {
     pub actions: Option<Vec<PageAction>>,
 
     /// Timeout configurations
+    #[allow(dead_code)] // Public API - timeout configuration for render requests
     pub timeouts: Option<Timeouts>,
 
     /// Artifacts to capture
@@ -34,12 +35,15 @@ pub struct RenderReq {
 #[derive(Deserialize, Clone, Debug)]
 pub struct Timeouts {
     /// Navigation timeout in milliseconds
+    #[allow(dead_code)] // Public API - navigation timeout configuration
     pub nav_ms: Option<u64>,
 
     /// Idle time after DOMContentLoaded
+    #[allow(dead_code)] // Public API - idle timeout after DOMContentLoaded
     pub idle_after_dcl_ms: Option<u64>,
 
     /// Hard cap timeout for entire render
+    #[allow(dead_code)] // Public API - hard timeout cap for rendering
     pub hard_cap_ms: Option<u64>,
 }
 
