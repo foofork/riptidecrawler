@@ -264,8 +264,11 @@ impl FlamegraphGenerator {
         #[cfg(not(feature = "bottleneck-analysis"))]
         {
             // Generate placeholder
-            self.generate_placeholder_flamegraph(output_path, "Flamegraph (library not available)")
-                .await?;
+            self.generate_placeholder_flamegraph(
+                &output_path.to_path_buf(),
+                "Flamegraph (library not available)",
+            )
+            .await?;
         }
 
         Ok(())

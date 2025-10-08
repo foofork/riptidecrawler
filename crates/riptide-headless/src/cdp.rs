@@ -1,19 +1,24 @@
-use crate::models::*;
-use axum::{http::StatusCode, Json};
-use chromiumoxide::{Browser, BrowserConfig, Page};
-use futures::StreamExt;
-use riptide_core::stealth::{StealthController, StealthPreset};
-// Removed: std::collections::HashMap (only used by removed SessionStore)
-// Removed: std::sync::Arc (only used by removed SessionStore)
-use std::time::{Duration, Instant};
-// Removed: tokio::sync::RwLock (only used by removed SessionStore)
+use crate::{launcher::HeadlessLauncher, models::*};
+use axum::{extract::State, http::StatusCode, Json};
+use chromiumoxide::Page;
+use riptide_core::stealth::StealthPreset;
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 use tokio::time::{sleep, timeout};
 use tracing::{debug, error, info, warn};
 
-// Removed: SessionStore type alias - never used
+/// Shared application state for the headless service
+#[derive(Clone)]
+pub struct AppState {
+    /// Headless browser launcher with pooling and stealth
+    pub launcher: Arc<HeadlessLauncher>,
+}
 
-/// Enhanced render function with timeout management and resilience patterns
+/// Enhanced render function with browser pooling and timeout management
 pub async fn render(
+    State(state): State<AppState>,
     Json(req): Json<RenderReq>,
 ) -> Result<Json<RenderResp>, (StatusCode, Json<RenderErrorResp>)> {
     let start_time = Instant::now();
@@ -32,7 +37,7 @@ pub async fn render(
 
     match timeout(
         render_timeout,
-        render_internal(req.clone(), request_id.clone()),
+        render_internal(state, req.clone(), request_id.clone()),
     )
     .await
     {
@@ -147,89 +152,41 @@ async fn exec_actions(page: &Page, actions: &[PageAction]) -> anyhow::Result<()>
     Ok(())
 }
 
-/// Internal render implementation with detailed error handling
+/// Internal render implementation using HeadlessLauncher with browser pooling
 async fn render_internal(
+    state: AppState,
     req: RenderReq,
     request_id: String,
 ) -> Result<RenderResp, RenderErrorResp> {
-    // Initialize stealth controller based on configuration or environment
+    // Determine stealth preset from request
     let stealth_preset = determine_stealth_preset(&req)?;
-    let mut stealth_controller = StealthController::from_preset(stealth_preset.clone());
 
-    // Browser configuration with Phase 3 stealth integration
-    let mut builder = BrowserConfig::builder();
+    debug!(
+        request_id = %request_id,
+        url = %req.url,
+        stealth_preset = ?stealth_preset,
+        "Launching browser page from pool"
+    );
 
-    // Apply stealth flags based on preset
-    if stealth_preset != StealthPreset::None {
-        let stealth_flags = stealth_controller.get_cdp_flags();
-        for flag in stealth_flags {
-            builder = builder.arg(&flag);
-        }
-
-        // Set user agent if stealth is enabled
-        let user_agent = stealth_controller.next_user_agent();
-        builder = builder.arg(format!("--user-agent={}", user_agent));
-
-        debug!(
-            request_id = %request_id,
-            preset = ?stealth_preset,
-            user_agent = %user_agent,
-            "Applied stealth configuration"
-        );
-    } else {
-        builder = builder.with_head(); // Keep headful for debugging when not in stealth
-    }
-
-    let browser_config = builder.build().map_err(|e| RenderErrorResp {
-        error: format!("Failed to build browser config: {}", e),
-        request_id: Some(request_id.clone()),
-        duration_ms: 0,
-    })?;
-
-    // Launch browser with timeout
-    let (mut browser, mut handler) = timeout(
-        Duration::from_millis(1500), // Allow 1.5s for browser launch
-        Browser::launch(browser_config),
+    // Launch page using the pooled launcher (this reuses browsers from the pool!)
+    let session = timeout(
+        Duration::from_millis(2000), // 2s for checkout + navigation
+        state.launcher.launch_page(&req.url, Some(stealth_preset)),
     )
     .await
     .map_err(|_| RenderErrorResp {
-        error: "Browser launch timed out".to_string(),
+        error: "Browser session launch timed out".to_string(),
         request_id: Some(request_id.clone()),
-        duration_ms: 1500,
+        duration_ms: 2000,
     })?
     .map_err(|e| RenderErrorResp {
-        error: format!("Failed to launch browser: {}", e),
+        error: format!("Failed to launch browser session: {}", e),
         request_id: Some(request_id.clone()),
         duration_ms: 0,
     })?;
 
-    // Spawn handler task
-    let handler_task = tokio::spawn(async move {
-        while let Some(event) = handler.next().await {
-            if let Err(e) = event {
-                debug!("Browser event error: {}", e);
-            }
-        }
-    });
-
-    // Create page with navigation timeout
-    let page_result = timeout(
-        Duration::from_millis(1000), // 1s for page creation and navigation
-        create_and_navigate_page(&browser, &req.url),
-    )
-    .await
-    .map_err(|_| RenderErrorResp {
-        error: "Page navigation timed out".to_string(),
-        request_id: Some(request_id.clone()),
-        duration_ms: 1000,
-    })?
-    .map_err(|e| RenderErrorResp {
-        error: e,
-        request_id: Some(request_id.clone()),
-        duration_ms: 0,
-    })?;
-
-    let page = page_result;
+    // Get the page from the session
+    let page = session.page();
 
     // Execute any custom actions if provided
     if let Some(actions) = &req.actions {
@@ -290,11 +247,9 @@ async fn render_internal(
         }
     }
 
-    // Clean up
-    handler_task.abort();
-    if let Err(e) = browser.close().await {
-        debug!(request_id = %request_id, "Browser cleanup warning: {}", e);
-    }
+    // Session cleanup is automatic when session is dropped
+    // Browser is returned to pool for reuse
+    debug!(request_id = %request_id, "Browser session completed, returning to pool");
 
     Ok(RenderResp {
         final_url,
@@ -305,39 +260,8 @@ async fn render_internal(
     })
 }
 
-/// Inject stealth JavaScript early in page lifecycle
-async fn inject_stealth_js(page: &Page) -> Result<(), String> {
-    // Read the stealth.js file and inject it
-    let stealth_js = include_str!("stealth.js");
-
-    // Use addScriptToEvaluateOnNewDocument to inject before any page scripts run
-    page.evaluate_on_new_document(stealth_js)
-        .await
-        .map_err(|e| format!("Failed to inject stealth JS: {}", e))?;
-
-    debug!("Stealth JavaScript injected successfully");
-    Ok(())
-}
-
-/// Create page and navigate with proper error handling
-async fn create_and_navigate_page(browser: &Browser, url: &str) -> Result<Page, String> {
-    let page = browser
-        .new_page(url)
-        .await
-        .map_err(|e| format!("Failed to create page: {}", e))?;
-
-    // Inject stealth JavaScript early in page lifecycle
-    if let Err(e) = inject_stealth_js(&page).await {
-        debug!("Stealth JS injection failed (non-critical): {}", e);
-    }
-
-    // Wait for basic navigation to complete
-    if let Err(e) = page.wait_for_navigation().await {
-        debug!("Navigation wait failed (non-critical): {}", e);
-    }
-
-    Ok(page)
-}
+// Note: inject_stealth_js and create_and_navigate_page removed
+// These are now handled by HeadlessLauncher internally
 
 /// Wait for DOMContentLoaded + 1s idle time with fallback
 async fn wait_for_content_and_idle(
