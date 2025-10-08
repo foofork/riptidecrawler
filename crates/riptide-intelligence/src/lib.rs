@@ -44,6 +44,7 @@ pub use failover::{
 pub use fallback::{
     create_fallback_chain, create_fallback_chain_with_strategy, FallbackChain, FallbackStrategy,
 };
+pub use health::{HealthMonitor, HealthMonitorBuilder};
 pub use hot_reload::{
     ConfigChangeEvent, HotReloadConfig, HotReloadManager, ReloadStatus, ValidationStatus,
 };

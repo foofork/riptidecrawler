@@ -16,32 +16,28 @@ use riptide_intelligence::{
     // Configuration system
     ConfigLoader,
     CostTrackingConfig,
-
     DashboardGenerator,
+    // Failover
     FailoverConfig,
     FailoverManager,
-    // Health monitoring and failover
+    // Health monitoring
     HealthMonitorBuilder,
     HotReloadConfig,
-
     // Hot reload
     HotReloadManager,
     IntelligenceConfig,
     // Core types
     LlmRegistry,
     Message,
-
     // Metrics and dashboards
     MetricsCollector,
     // Mock provider for this example
     MockLlmProvider,
     ProviderConfig,
     ProviderPriority,
-
     TenantIsolationConfig,
     // Tenant isolation
     TenantIsolationManager,
-
     TenantLimits,
     TimeWindow,
 };
@@ -49,7 +45,7 @@ use riptide_intelligence::{
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize tracing
-    tracing_subscriber::init();
+    tracing_subscriber::fmt().init();
 
     println!("🚀 RipTide Intelligence Multi-Provider Support Demo");
     println!("==================================================");
@@ -258,11 +254,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 11. Test hot-reload
     println!("\n🔄 11. Testing Hot-Reload");
-    if let Ok(mut manager) = hot_reload_manager {
-        match manager.trigger_reload(false).await {
-            Ok(_) => println!("    ✅ Hot-reload triggered successfully"),
-            Err(e) => println!("    ⚠️  Hot-reload error: {}", e),
-        }
+    match hot_reload_manager.trigger_reload(false).await {
+        Ok(_) => println!("    ✅ Hot-reload triggered successfully"),
+        Err(e) => println!("    ⚠️  Hot-reload error: {}", e),
     }
 
     // Clean up
