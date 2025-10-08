@@ -90,24 +90,78 @@ jobs:
         if: matrix.target == 'wasm32-wasip2'
         env:
           RUSTFLAGS: "-Dwarnings"  # Only warnings, NO x86 CPU flags for WASM
-        working-directory: wasm/riptide-extractor-wasm
         run: |
-          # Build with size optimization (using wasm profile from Cargo.toml)
-          cargo build --release --target wasm32-wasip2
+          # Debug: Show versions and config
+          echo "RUSTC: $(rustc -vV)"
+          echo "CARGO: $(cargo --version)"
+          echo "TARGET_DIR: ${CARGO_TARGET_DIR:-target}"
+          echo "Building WASM with explicit package selection..."
 
-          # List built artifacts for debugging
-          echo "Built WASM artifacts:"
-          ls -lh target/wasm32-wasip2/release/ | grep -E "\.wasm$" || echo "No .wasm files found"
+          # Build with explicit package flag (uses workspace root target dir)
+          cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm -v 2>&1 | tail -20
+
+          # List what was actually built
+          echo ""
+          echo "Scanning for WASM artifacts in workspace target:"
+          OUTDIR="${CARGO_TARGET_DIR:-target}"
+          for T in wasm32-wasip2 wasm32-wasi; do
+            if [ -d "$OUTDIR/$T/release" ]; then
+              echo "Contents of $OUTDIR/$T/release:"
+              ls -lh "$OUTDIR/$T/release/" | grep -E "\.wasm$" || echo "  (no .wasm files)"
+              if [ -d "$OUTDIR/$T/release/deps" ]; then
+                echo "Contents of $OUTDIR/$T/release/deps:"
+                ls -lh "$OUTDIR/$T/release/deps/" | grep -E "\.wasm$" || echo "  (no .wasm files)"
+              fi
+            fi
+          done
+
+          # Bulletproof artifact collection
+          echo ""
+          echo "Collecting WASM artifacts..."
+          mkdir -p wasm-dist
+          FOUND=0
+
+          for T in wasm32-wasip2 wasm32-wasi; do
+            DIR="$OUTDIR/$T/release"
+            if [ -d "$DIR" ]; then
+              echo "Checking $DIR for .wasm files"
+              # Prefer top-level .wasm over deps/*.wasm
+              if compgen -G "$DIR/*.wasm" > /dev/null; then
+                echo "Found top-level .wasm files in $DIR"
+                cp "$DIR/"*.wasm wasm-dist/
+                FOUND=1
+                break
+              fi
+              # Fallback to deps (some setups leave artifacts there)
+              if [ -d "$DIR/deps" ] && compgen -G "$DIR/deps/*.wasm" > /dev/null; then
+                echo "Found .wasm files in $DIR/deps"
+                cp "$DIR/deps/"*.wasm wasm-dist/
+                FOUND=1
+                break
+              fi
+            fi
+          done
+
+          if [ "$FOUND" -eq 0 ]; then
+            echo "ERROR: No .wasm artifacts found!"
+            echo "Directory tree:"
+            find "$OUTDIR" -maxdepth 4 -type d -name "wasm32-*" -exec echo {} \; -exec ls -la {} \; || true
+            exit 1
+          fi
+
+          echo ""
+          echo "Collected artifacts:"
+          ls -lh wasm-dist/
 
           # Optimize WASM binary if it exists
-          if [ -f target/wasm32-wasip2/release/riptide_extractor_wasm.wasm ]; then
+          if [ -f wasm-dist/riptide_extractor_wasm.wasm ]; then
             if command -v wasm-opt >/dev/null 2>&1; then
-              wasm-opt -Oz target/wasm32-wasip2/release/riptide_extractor_wasm.wasm \
-                -o target/wasm32-wasip2/release/riptide_extractor_wasm.optimized.wasm
+              echo "Optimizing with wasm-opt..."
+              wasm-opt -Oz wasm-dist/riptide_extractor_wasm.wasm \
+                -o wasm-dist/riptide_extractor_wasm.optimized.wasm
+              echo "Optimized artifact size:"
+              ls -lh wasm-dist/riptide_extractor_wasm.optimized.wasm
             fi
-          else
-            echo "Warning: riptide_extractor_wasm.wasm not found, checking for alternatives..."
-            find target/wasm32-wasip2/release -name "*.wasm" -type f
           fi
 
       - name: Cache WASM artifacts
@@ -115,7 +169,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/*.wasm
+            target/wasm32-wasip2/release/*.wasm
+            wasm-dist/*.wasm
             ~/.cargo/registry/cache/
           key: wasm-artifacts-${{ hashFiles('wasm/riptide-extractor-wasm/Cargo.lock') }}-${{ github.sha }}
           restore-keys: |
@@ -140,12 +195,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts-${{ matrix.target }}
-          path: |
-            wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
-            wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.optimized.wasm
+          path: wasm-dist/*.wasm
           retention-days: 7
           compression-level: 6
-          if-no-files-found: ignore
+          if-no-files-found: error
 
   # Parallel testing
   test:
@@ -216,7 +269,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts-wasm32-wasip2
-          path: artifacts/wasm/
+          path: wasm-dist/
 
       - name: Build Docker image with cache
         uses: docker/build-push-action@v5
@@ -254,7 +307,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts-wasm32-wasip2
-          path: artifacts/wasm/
+          path: wasm-dist/
 
       - name: Check binary sizes
         run: |
@@ -276,7 +329,7 @@ jobs:
           done
 
           # Check WASM binary
-          find artifacts/wasm -name "*.wasm" | while read wasm_file; do
+          find wasm-dist -name "*.wasm" 2>/dev/null | while read wasm_file; do
             if [[ -f "$wasm_file" ]]; then
               size=$(stat --format=%s "$wasm_file")
               size_kb=$(echo "scale=2; $size / 1024" | bc)
