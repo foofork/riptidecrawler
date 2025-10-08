@@ -634,8 +634,7 @@ impl Default for MemoryAlertManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::profiling::{AllocationInfo, LeakInfo};
-    use std::time::Duration;
+    use crate::profiling::LeakInfo;
 
     #[tokio::test]
     async fn test_alert_creation() {

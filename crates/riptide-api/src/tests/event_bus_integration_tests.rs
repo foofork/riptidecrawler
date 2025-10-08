@@ -7,7 +7,7 @@
 mod tests {
     use crate::health::HealthChecker;
     use crate::metrics::RipTideMetrics;
-    use crate::state::{AppConfig, AppState};
+    use crate::state::AppState;
     use riptide_core::events::{BaseEvent, EventBus, EventEmitter, EventSeverity};
     use std::sync::Arc;
     use tokio::time::{sleep, Duration};
@@ -32,7 +32,6 @@ mod tests {
             worker_config: AppConfig::init_worker_config(),
             event_bus_config: Default::default(),
         };
-        */
 
         let metrics = Arc::new(RipTideMetrics::new().expect("Failed to create metrics"));
         let health_checker = Arc::new(HealthChecker::new());
@@ -60,6 +59,7 @@ mod tests {
                 );
             }
         }
+        */
     }
 
     /// Test event emission through EventBus

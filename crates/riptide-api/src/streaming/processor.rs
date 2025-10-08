@@ -554,8 +554,6 @@ impl Default for PerformanceMonitor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::CrawlOptions;
-    use crate::state::AppState;
 
     #[tokio::test]
     async fn test_processing_stats_update() {
