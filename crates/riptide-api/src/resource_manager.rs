@@ -406,7 +406,6 @@ impl ResourceManager {
 }
 
 /// Resource guard for render operations
-#[derive(Debug)]
 pub struct RenderResourceGuard {
     pub browser_checkout: BrowserCheckout,
     #[allow(dead_code)] // Holds WASM resources, dropped on guard drop
@@ -415,13 +414,31 @@ pub struct RenderResourceGuard {
     manager: ResourceManager,
 }
 
+impl std::fmt::Debug for RenderResourceGuard {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RenderResourceGuard")
+            .field("memory_tracked", &self.memory_tracked)
+            .field("browser_checkout", &"<BrowserCheckout>")
+            .field("wasm_guard", &"<WasmGuard>")
+            .finish()
+    }
+}
+
 /// Resource guard for PDF operations
 /// Used by PDF handler at crates/riptide-api/src/handlers/pdf.rs:105
-#[derive(Debug)]
 pub struct PdfResourceGuard {
     _permit: tokio::sync::OwnedSemaphorePermit,
     memory_tracked: usize,
     manager: ResourceManager,
+}
+
+impl std::fmt::Debug for PdfResourceGuard {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PdfResourceGuard")
+            .field("memory_tracked", &self.memory_tracked)
+            .field("_permit", &"<OwnedSemaphorePermit>")
+            .finish()
+    }
 }
 
 // Browser guard is now provided by BrowserCheckout from riptide-headless
