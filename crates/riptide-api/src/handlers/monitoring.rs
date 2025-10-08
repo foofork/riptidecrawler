@@ -294,6 +294,7 @@ pub struct WasmInstanceHealth {
     pub worker_id: String,
     pub is_healthy: bool,
     pub operations_count: u64,
+    pub memory_usage_bytes: usize,
     pub uptime_seconds: u64,
 }
 
@@ -325,10 +326,11 @@ pub async fn get_wasm_health(State(state): State<AppState>) -> Result<impl IntoR
     let instances: Vec<WasmInstanceHealth> = health_data
         .into_iter()
         .map(
-            |(worker_id, is_healthy, operations_count, uptime)| WasmInstanceHealth {
+            |(worker_id, is_healthy, operations_count, memory_usage, uptime)| WasmInstanceHealth {
                 worker_id,
                 is_healthy,
                 operations_count,
+                memory_usage_bytes: memory_usage,
                 uptime_seconds: uptime.as_secs(),
             },
         )

@@ -408,9 +408,9 @@ mod tests {
     fn test_fast_path_result_creation() {
         let doc = ExtractedDoc {
             url: "https://example.com".to_string(),
-            title: "Test".to_string(),
+            title: Some("Test".to_string()),
             text: "Content".to_string(),
-            quality_score: 0.8,
+            quality_score: Some(80u8),
             ..Default::default()
         };
 

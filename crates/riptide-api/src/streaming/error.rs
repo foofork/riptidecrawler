@@ -267,6 +267,6 @@ mod tests {
     fn test_api_error_conversion() {
         let streaming_err = StreamingError::invalid_request("Bad format");
         let api_err: ApiError = streaming_err.into();
-        assert!(matches!(api_err, ApiError::Validation { .. }));
+        assert!(matches!(api_err, ApiError::ValidationError { .. }));
     }
 }

@@ -484,6 +484,7 @@ struct SseCompletion {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::streaming::metrics::SseMetrics;
 
     #[test]
     fn test_sse_metadata_serialization() {

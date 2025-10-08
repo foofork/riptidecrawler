@@ -15,6 +15,7 @@ pub use handlers::render;
 mod tests {
     #[allow(unused_imports)]
     use super::*;
+    use crate::handlers::render::models::{RenderRequest, RenderStats};
     #[allow(unused_imports)]
     use crate::state::AppState;
     use axum::http::StatusCode;

@@ -406,6 +406,7 @@ impl ResourceManager {
 }
 
 /// Resource guard for render operations
+#[derive(Debug)]
 pub struct RenderResourceGuard {
     pub browser_checkout: BrowserCheckout,
     #[allow(dead_code)] // Holds WASM resources, dropped on guard drop
@@ -416,6 +417,7 @@ pub struct RenderResourceGuard {
 
 /// Resource guard for PDF operations
 /// Used by PDF handler at crates/riptide-api/src/handlers/pdf.rs:105
+#[derive(Debug)]
 pub struct PdfResourceGuard {
     _permit: tokio::sync::OwnedSemaphorePermit,
     memory_tracked: usize,
@@ -587,7 +589,7 @@ impl WasmInstanceManager {
     }
 
     /// Get health status of WASM instances
-    pub async fn get_instance_health(&self) -> Vec<(String, bool, u64, Duration)> {
+    pub async fn get_instance_health(&self) -> Vec<(String, bool, u64, usize, Duration)> {
         let instances = self.worker_instances.read().await;
         instances
             .values()
@@ -597,6 +599,7 @@ impl WasmInstanceManager {
                     instance.worker_id.clone(),
                     instance.is_healthy,
                     instance.operations_count,
+                    instance.memory_usage,
                     age,
                 )
             })

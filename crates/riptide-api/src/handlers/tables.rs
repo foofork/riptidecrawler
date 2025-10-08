@@ -500,23 +500,24 @@ mod tests {
     #[test]
     fn test_detect_type_from_samples() {
         // Test numeric detection
-        let numeric_samples = vec![&"123".to_string(), &"45.6".to_string(), &"0".to_string()];
+        let s1 = "123".to_string();
+        let s2 = "45.6".to_string();
+        let s3 = "0".to_string();
+        let numeric_samples = vec![&s1, &s2, &s3];
         assert_eq!(detect_type_from_samples(&numeric_samples), "number");
 
         // Test string detection
-        let string_samples = vec![
-            &"hello".to_string(),
-            &"world".to_string(),
-            &"test".to_string(),
-        ];
+        let s4 = "hello".to_string();
+        let s5 = "world".to_string();
+        let s6 = "test".to_string();
+        let string_samples = vec![&s4, &s5, &s6];
         assert_eq!(detect_type_from_samples(&string_samples), "string");
 
         // Test boolean detection
-        let boolean_samples = vec![
-            &"true".to_string(),
-            &"false".to_string(),
-            &"yes".to_string(),
-        ];
+        let s7 = "true".to_string();
+        let s8 = "false".to_string();
+        let s9 = "yes".to_string();
+        let boolean_samples = vec![&s7, &s8, &s9];
         assert_eq!(detect_type_from_samples(&boolean_samples), "boolean");
 
         // Test empty samples

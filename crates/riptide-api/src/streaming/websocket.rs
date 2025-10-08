@@ -585,6 +585,7 @@ pub struct WebSocketMessage {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::streaming::metrics::WebSocketMetrics;
 
     #[test]
     fn test_websocket_request_deserialization() {

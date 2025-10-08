@@ -280,9 +280,9 @@ mod tests {
                 scroll.steps, 3,
                 "Article sites should have moderate scrolling"
             );
-            assert_eq!(
-                scroll.mode,
-                ScrollMode::Smooth,
+            // Note: ScrollMode doesn't implement PartialEq, so we check discriminant
+            assert!(
+                matches!(scroll.mode, riptide_core::dynamic::ScrollMode::Smooth),
                 "Should use smooth scrolling"
             );
             assert!(
