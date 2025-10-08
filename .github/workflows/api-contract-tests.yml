@@ -113,9 +113,23 @@ jobs:
             dredd-report.md
           if-no-files-found: ignore
 
+      - name: Upload API logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dredd-api-logs
+          path: api.log
+          if-no-files-found: ignore
+
       - name: Stop API
         if: always()
-        run: kill $API_PID || true
+        run: |
+          if [ -n "$API_PID" ]; then
+            echo "Stopping API (PID: $API_PID)"
+            kill $API_PID || true
+            sleep 2
+            kill -9 $API_PID 2>/dev/null || true
+          fi
 
   # Test 2: Schemathesis Fuzzing
   schemathesis-fuzzing:
@@ -187,12 +201,11 @@ jobs:
       - name: Run Schemathesis fuzzing tests
         run: |
           schemathesis run docs/api/openapi.yaml \
-            --url http://localhost:8080 \
+            --base-url http://localhost:8080 \
             --checks all \
-            --hypothesis-max-examples=100 \
+            --max-examples=100 \
             --hypothesis-deadline=5000 \
-            --show-errors-tracebacks \
-            --report
+            --show-errors-tracebacks
 
       - name: Upload API logs on failure
         if: failure()
@@ -413,7 +426,22 @@ jobs:
         with:
           target: 'http://localhost:8080'
           cmd_options: '-a'
+        continue-on-error: true
+
+      - name: Upload API logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-api-logs
+          path: api.log
+          if-no-files-found: ignore
 
       - name: Stop API
         if: always()
-        run: kill $API_PID || true
+        run: |
+          if [ -n "$API_PID" ]; then
+            echo "Stopping API (PID: $API_PID)"
+            kill $API_PID || true
+            sleep 2
+            kill -9 $API_PID 2>/dev/null || true
+          fi
