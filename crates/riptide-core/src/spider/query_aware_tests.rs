@@ -3,6 +3,8 @@
 #[cfg(test)]
 mod query_aware_week7_tests {
     use crate::spider::query_aware::*;
+    use std::time::Instant;
+    use url::Url;
 
     /// Test BM25 scoring algorithm accuracy with known relevance rankings
     #[test]
@@ -639,8 +641,10 @@ mod query_aware_week7_tests {
 /// Integration tests for query-aware spider with other components
 #[cfg(test)]
 mod query_aware_integration_tests {
-    use crate::spider::{config::SpiderPresets, core::Spider, CrawlRequest};
-    use reqwest::Url;
+    use crate::spider::query_aware::*;
+    use crate::spider::{config::SpiderPresets, core::Spider, CrawlRequest, CrawlResult};
+    use std::time::Instant;
+    use url::Url;
 
     /// Test integration with spider configuration
     #[tokio::test]

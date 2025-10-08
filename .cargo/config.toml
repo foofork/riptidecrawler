@@ -5,10 +5,11 @@ target = "x86_64-unknown-linux-gnu"
 # Note: Removed forced linker selection to allow cargo and dependencies
 # (like pdfium-render) to choose appropriate linker based on availability
 
-# Native x86_64 builds - OK to optimize for specific CPU features
+# Native x86_64 builds - Use baseline CPU for portability (avoids SIGILL errors)
+# Changed from target-cpu=native to x86-64-v2 for wider compatibility
 [target.'cfg(all(target_arch = "x86_64", not(target_family = "wasm")))']
 rustflags = [
-  "-C", "target-cpu=native",
+  "-C", "target-cpu=x86-64-v2",  # Baseline: 2009+ CPUs (SSE4.2, POPCNT)
 ]
 
 # WASM builds - must NOT inherit x86 CPU flags

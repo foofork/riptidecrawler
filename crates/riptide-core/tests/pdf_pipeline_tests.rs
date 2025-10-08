@@ -212,7 +212,6 @@ mod tests {
 
         let metadata = PdfMetadata {
             title: Some("Test Document".to_string()),
-            author: Some("Test Author".to_string()),
             subject: Some("Test Subject".to_string()),
             keywords: Some("test, pdf".to_string()), // Keywords is Option<String>, not Vec<String>
             creator: Some("Test Creator".to_string()),
@@ -242,7 +241,6 @@ mod tests {
             text: Some("Extracted text content".to_string()),
             metadata: PdfMetadata {
                 title: Some("Test".to_string()),
-                author: None,
                 subject: None,
                 keywords: None, // Option<String>, not Vec<String>
                 creator: None,

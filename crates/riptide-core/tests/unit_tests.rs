@@ -16,23 +16,22 @@ mod extraction_tests {
             text: "Test content".to_string(),
             markdown: Some("# Test Title\nTest content".to_string()),
             published_iso: Some("2024-03-15T12:00:00Z".to_string()),
-            author: Some("John Doe".to_string()),
             byline: Some("By John Doe".to_string()),
             language: Some("en".to_string()),
-            favicon: Some("https://example.com/favicon.ico".to_string()),
-            tags: vec!["test".to_string(), "example".to_string()],
             media: vec![],
             links: vec![],
-            extraction_confidence: 0.95,
-            word_count: 2,
-            extraction_method: "css_selector".to_string(),
-            repair_applied: false,
+            word_count: Some(2),
+            quality_score: Some(85),
+            reading_time: Some(1),
+            categories: vec![],
+            site_name: None,
+            description: None,
         };
 
         assert_eq!(doc.url, "https://example.com");
         assert_eq!(doc.title.unwrap(), "Test Title");
-        assert_eq!(doc.word_count, 2);
-        assert!(doc.extraction_confidence > 0.9);
+        assert_eq!(doc.word_count, Some(2));
+        assert_eq!(doc.quality_score, Some(85));
     }
 
     #[test]

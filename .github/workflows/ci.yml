@@ -81,7 +81,7 @@ jobs:
       - name: Build native binaries
         if: matrix.target == 'native'
         env:
-          RUSTFLAGS: "-Dwarnings -C target-cpu=native"
+          RUSTFLAGS: "-Dwarnings -C target-cpu=x86-64-v2"  # Baseline CPU for portability
         run: |
           # Incremental build with optimizations
           cargo build --release --workspace
