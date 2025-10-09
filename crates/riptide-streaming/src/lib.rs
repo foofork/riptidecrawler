@@ -15,8 +15,8 @@ pub mod reports;
 
 pub use ndjson::*;
 // pub use reports::*;      // Keep disabled until ReportGenerator resolved
-pub use backpressure::*; // ✅ ENABLED - for tests
-pub use config::*; // ✅ ENABLED
+// pub use backpressure::*; // BackpressureController not needed - tests can use backpressure::BackpressureController directly
+pub use config::*; // ✅ ENABLED - includes BackpressureConfig
 pub use progress::*; // ✅ ENABLED // ✅ ENABLED - for streaming tests
                      // pub use openapi::*;       // Verify before enabling
 
