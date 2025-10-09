@@ -24,7 +24,8 @@ RUN mkdir -p crates/riptide-core/src \
     crates/riptide-intelligence/src \
     crates/riptide-performance/src \
     crates/riptide-persistence/src \
-    crates/riptide-streaming/src
+    crates/riptide-streaming/src \
+    wasm/riptide-extractor-wasm/src
 
 # Copy individual Cargo.toml files to preserve structure
 COPY crates/riptide-core/Cargo.toml crates/riptide-core/
@@ -39,6 +40,7 @@ COPY crates/riptide-intelligence/Cargo.toml crates/riptide-intelligence/
 COPY crates/riptide-performance/Cargo.toml crates/riptide-performance/
 COPY crates/riptide-persistence/Cargo.toml crates/riptide-persistence/
 COPY crates/riptide-streaming/Cargo.toml crates/riptide-streaming/
+COPY wasm/riptide-extractor-wasm/Cargo.toml wasm/riptide-extractor-wasm/
 
 # Create stub source files for dependency pre-building
 RUN echo "fn main() {}" > crates/riptide-core/src/lib.rs && \
@@ -52,16 +54,18 @@ RUN echo "fn main() {}" > crates/riptide-core/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-intelligence/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-performance/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-persistence/src/lib.rs && \
-    echo "fn main() {}" > crates/riptide-streaming/src/lib.rs
+    echo "fn main() {}" > crates/riptide-streaming/src/lib.rs && \
+    echo "fn main() {}" > wasm/riptide-extractor-wasm/src/lib.rs
 
 # Pre-build dependencies (this layer will be cached)
 RUN cargo build --release --bin riptide-headless
 
 # Copy actual source code
 COPY crates crates/
+COPY wasm wasm/
 
 # Build with real source (leverages cached dependencies)
-RUN touch crates/*/src/lib.rs crates/*/src/main.rs && \
+RUN touch crates/*/src/lib.rs crates/*/src/main.rs wasm/*/src/lib.rs && \
     cargo build --release --bin riptide-headless
 
 # Strip binary for smaller size

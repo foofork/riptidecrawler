@@ -443,6 +443,7 @@ mod integration_tests {
     #[test]
     fn test_protocol_selection() {
         #[derive(Debug, PartialEq)]
+        #[allow(dead_code)]
         enum StreamingProtocol {
             Ndjson,
             Sse,
@@ -516,7 +517,7 @@ mod integration_tests {
             missed_heartbeats: usize,
         }
 
-        let mut health = ConnectionHealth {
+        let health = ConnectionHealth {
             last_activity: Instant::now(),
             is_healthy: true,
             missed_heartbeats: 0,

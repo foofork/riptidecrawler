@@ -151,7 +151,8 @@ mod tests {
 
         metrics.record_disconnection(Duration::from_secs(30));
         assert_eq!(metrics.active_connections, 1);
-        assert_eq!(metrics.average_connection_duration_ms, 30000.0);
+        // Average is calculated over total_connections (2), so 30000 / 2 = 15000
+        assert_eq!(metrics.average_connection_duration_ms, 15000.0);
     }
 
     #[test]

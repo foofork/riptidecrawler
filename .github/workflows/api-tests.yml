@@ -1,0 +1,233 @@
+name: API Unit & Integration Tests
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+env:
+  RUST_BACKTRACE: 1
+  RUSTFLAGS: "-Dwarnings"
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Fast unit tests for API crate
+  api-unit-tests:
+    name: API Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "api-tests"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Check API code formatting
+        run: cargo fmt --package riptide-api -- --check
+
+      - name: Run API clippy lints
+        run: cargo clippy --package riptide-api --all-targets -- -D warnings
+
+      - name: Run API unit tests
+        run: |
+          cargo test --package riptide-api --lib \
+            --no-fail-fast \
+            -- --nocapture --test-threads=4
+
+      - name: Run API doc tests
+        run: cargo test --package riptide-api --doc
+
+  # Integration tests with Redis
+  api-integration-tests:
+    name: API Integration Tests
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "api-integration-tests"
+
+      - name: Run API integration tests
+        env:
+          REDIS_URL: redis://localhost:6379
+          RUST_LOG: debug
+        run: |
+          cargo test --package riptide-api --tests \
+            --no-fail-fast \
+            -- --nocapture --test-threads=2
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-integration-test-logs
+          path: target/debug/deps/*.log
+          if-no-files-found: ignore
+
+  # API benchmark tests (optional, only on main)
+  api-benchmarks:
+    name: API Benchmarks
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run API benchmarks
+        env:
+          REDIS_URL: redis://localhost:6379
+        run: |
+          # Run benchmarks if they exist
+          if cargo bench --package riptide-api --no-run 2>/dev/null; then
+            cargo bench --package riptide-api -- --output-format bencher | tee benchmark-results.txt
+          else
+            echo "No benchmarks defined yet for riptide-api"
+          fi
+
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-benchmark-results
+          path: benchmark-results.txt
+          if-no-files-found: ignore
+
+  # Test coverage reporting
+  api-coverage:
+    name: API Test Coverage
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: llvm-tools-preview
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
+      - name: Install cargo-llvm-cov
+        run: cargo install cargo-llvm-cov --locked
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Generate test coverage
+        env:
+          REDIS_URL: redis://localhost:6379
+        run: |
+          cargo llvm-cov --package riptide-api \
+            --lcov --output-path lcov.info
+
+      - name: Upload coverage to artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-coverage-report
+          path: lcov.info
+
+      - name: Display coverage summary
+        run: |
+          cargo llvm-cov report --package riptide-api || true
+
+  # Final validation
+  validate-api-tests:
+    name: Validate API Tests
+    runs-on: ubuntu-latest
+    needs: [api-unit-tests, api-integration-tests]
+    if: always()
+
+    steps:
+      - name: Check test results
+        run: |
+          echo "🔍 Validating API test results..."
+
+          if [[ "${{ needs.api-unit-tests.result }}" != "success" ]]; then
+            echo "❌ API unit tests failed"
+            exit 1
+          fi
+
+          if [[ "${{ needs.api-integration-tests.result }}" != "success" ]]; then
+            echo "❌ API integration tests failed"
+            exit 1
+          fi
+
+          echo "✅ All API tests passed!"
+          echo "📊 Test Summary:"
+          echo "  - Unit tests: ✅ Passed"
+          echo "  - Integration tests: ✅ Passed"
