@@ -83,8 +83,27 @@ jobs:
         env:
           RUSTFLAGS: "-Dwarnings -C target-cpu=x86-64-v2"  # Baseline CPU for portability
         run: |
-          # Incremental build with optimizations
-          cargo build --release --workspace
+          set -e  # Exit on any error
+          echo "🔨 Building native binaries..."
+          echo "RUSTFLAGS: $RUSTFLAGS"
+          echo "Building packages with binary targets..."
+
+          # Build each binary package explicitly to ensure they're built
+          echo ""
+          echo "Building riptide-api..."
+          cargo build --release -p riptide-api
+
+          echo ""
+          echo "Building riptide-headless..."
+          cargo build --release -p riptide-headless
+
+          echo ""
+          echo "Building riptide-workers..."
+          cargo build --release -p riptide-workers
+
+          echo ""
+          echo "✅ Build completed. Listing target/release contents:"
+          ls -lah target/release/ | grep -E "^-.*riptide-" || echo "No riptide binaries found!"
 
       - name: Build WASM component with caching
         if: matrix.target == 'wasm32-wasip2'
