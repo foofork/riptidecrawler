@@ -176,10 +176,10 @@ pub async fn process_pdf(
                 "PDF processing timed out after {}ms",
                 pdf_timeout.as_millis()
             );
-            return Err(ApiError::timeout(
+            Err(ApiError::timeout(
                 "PDF processing",
                 "PDF processing exceeded maximum time limit",
-            ));
+            ))
         }
         Ok(Err(e)) => {
             // Processing error
@@ -190,7 +190,7 @@ pub async fn process_pdf(
                 error = %e,
                 "PDF processing failed"
             );
-            return Err(ApiError::internal(format!("PDF processing failed: {}", e)));
+            Err(ApiError::internal(format!("PDF processing failed: {}", e)))
         }
         Ok(Ok(document)) => {
             let processing_time = processing_start.elapsed();

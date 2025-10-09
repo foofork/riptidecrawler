@@ -49,8 +49,10 @@ mod tests {
 
     #[test]
     fn test_session_expiration() {
-        let mut config = SessionConfig::default();
-        config.default_ttl = Duration::from_millis(1); // Very short TTL
+        let config = SessionConfig {
+            default_ttl: Duration::from_millis(1), // Very short TTL
+            ..Default::default()
+        };
         let session = Session::new("test_session".to_string(), &config);
 
         // Session should not be expired initially
@@ -84,8 +86,10 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager() {
         let temp_dir = TempDir::new().expect("Failed to create temp dir");
-        let mut config = SessionConfig::default();
-        config.base_data_dir = temp_dir.path().to_path_buf();
+        let config = SessionConfig {
+            base_data_dir: temp_dir.path().to_path_buf(),
+            ..Default::default()
+        };
 
         let manager = SessionManager::new(config.clone())
             .await
@@ -97,7 +101,7 @@ mod tests {
             .await
             .expect("Failed to create session");
         let session_id = session.session_id.clone();
-        assert!(session_id.len() > 0);
+        assert!(!session_id.is_empty());
 
         // Get session
         let retrieved = manager
@@ -138,8 +142,10 @@ mod tests {
     #[tokio::test]
     async fn test_session_storage() {
         let temp_dir = TempDir::new().expect("Failed to create temp dir");
-        let mut config = SessionConfig::default();
-        config.base_data_dir = temp_dir.path().to_path_buf();
+        let config = SessionConfig {
+            base_data_dir: temp_dir.path().to_path_buf(),
+            ..Default::default()
+        };
 
         let storage = SessionStorage::new(config.clone())
             .await
@@ -176,9 +182,11 @@ mod tests {
     #[tokio::test]
     async fn test_session_cleanup() {
         let temp_dir = TempDir::new().expect("Failed to create temp dir");
-        let mut config = SessionConfig::default();
-        config.base_data_dir = temp_dir.path().to_path_buf();
-        config.default_ttl = Duration::from_millis(50); // Short TTL for testing
+        let config = SessionConfig {
+            base_data_dir: temp_dir.path().to_path_buf(),
+            default_ttl: Duration::from_millis(50), // Short TTL for testing
+            ..Default::default()
+        };
 
         let storage = SessionStorage::new(config.clone())
             .await
@@ -279,8 +287,10 @@ mod tests {
     #[tokio::test]
     async fn test_concurrent_cookie_operations() {
         let temp_dir = TempDir::new().expect("Failed to create temp dir");
-        let mut config = SessionConfig::default();
-        config.base_data_dir = temp_dir.path().to_path_buf();
+        let config = SessionConfig {
+            base_data_dir: temp_dir.path().to_path_buf(),
+            ..Default::default()
+        };
 
         let manager = Arc::new(
             SessionManager::new(config)

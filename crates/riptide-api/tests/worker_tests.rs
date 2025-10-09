@@ -1,6 +1,6 @@
-/// TDD London School Tests for Worker Management (Feature 5: Phase 4B)
-///
-/// Simplified tests focusing on behavior verification and contracts
+//! TDD London School Tests for Worker Management (Feature 5: Phase 4B)
+//!
+//! Simplified tests focusing on behavior verification and contracts
 
 #[cfg(test)]
 mod worker_behavior_tests {

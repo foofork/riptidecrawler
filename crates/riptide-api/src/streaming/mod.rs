@@ -496,10 +496,12 @@ mod tests {
 
     #[test]
     fn test_global_metrics() {
-        let mut metrics = GlobalStreamingMetrics::default();
-        metrics.total_messages_sent = 100;
-        metrics.total_messages_dropped = 5;
-        metrics.error_rate = 0.02;
+        let mut metrics = GlobalStreamingMetrics {
+            total_messages_sent: 100,
+            total_messages_dropped: 5,
+            error_rate: 0.02,
+            ..Default::default()
+        };
 
         assert!((metrics.efficiency() - 0.99).abs() < 0.01); // Should be ~0.99
 

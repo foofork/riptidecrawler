@@ -255,7 +255,7 @@ mod websocket_tests {
     #[test]
     fn test_websocket_binary_frame() {
         // Binary data for streaming
-        let binary_data = vec![0x01, 0x02, 0x03, 0x04, 0x05];
+        let binary_data = [0x01, 0x02, 0x03, 0x04, 0x05];
 
         assert_eq!(binary_data.len(), 5);
         assert_eq!(binary_data[0], 0x01);

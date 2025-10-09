@@ -126,7 +126,7 @@ pub async fn health(State(state): State<AppState>) -> Result<impl IntoResponse, 
     Ok((status_code, Json(response)))
 }
 
-/// Perform actual headless service health check
+// Perform actual headless service health check
 // Moved to crate::health::perform_headless_health_check for shared use across handlers
 
 /// Collect actual system metrics using sysinfo and psutil

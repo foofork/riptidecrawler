@@ -31,11 +31,12 @@ mod test_utils {
     ///   2. Accept test configuration for deterministic behavior
     ///   3. Use in-memory backends for Redis/services where possible
     ///   4. Return configured Router ready for testing
-    /// DEPENDENCIES: Requires refactoring main.rs app setup
-    /// EFFORT: Medium (4-6 hours)
-    /// PRIORITY: Important for comprehensive testing
-    /// BLOCKER: None
-    /// This should eventually call the real app creation function from riptide_api
+    ///
+    ///      DEPENDENCIES: Requires refactoring main.rs app setup
+    ///      EFFORT: Medium (4-6 hours)
+    ///      PRIORITY: Important for comprehensive testing
+    ///      BLOCKER: None
+    ///      This should eventually call the real app creation function from riptide_api
     pub fn create_test_app() -> axum::Router {
         // This will fail until the app factory function is created in lib.rs or similar
         // Expected to be something like: riptide_api::create_app_with_config(test_config)
@@ -1421,7 +1422,7 @@ mod integration_workflow_tests {
 
         let results = response["results"].as_array().unwrap();
         for result in results {
-            if result["tables"].as_array().unwrap().len() > 0 {
+            if !result["tables"].as_array().unwrap().is_empty() {
                 assert!(
                     result["table_analysis"].is_object(),
                     "Should include LLM table analysis"
@@ -1568,7 +1569,7 @@ mod integration_workflow_tests {
         // This test would spawn multiple concurrent requests
         // For TDD purposes, we'll define the expected behavior
 
-        let concurrent_requests = vec![
+        let concurrent_requests = [
             json!({"urls": ["https://example1.com"], "chunking_mode": "topic"}),
             json!({"urls": ["https://example2.com"], "chunking_mode": "sliding"}),
             json!({"html_content": sample_html_with_tables(), "extract_tables": true}),

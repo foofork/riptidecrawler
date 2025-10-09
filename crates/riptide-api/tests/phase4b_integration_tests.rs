@@ -70,10 +70,10 @@ mod test_utils {
         let mut current_data = String::new();
 
         for line in body.lines() {
-            if line.starts_with("event:") {
-                current_event = Some(line[6..].trim().to_string());
-            } else if line.starts_with("data:") {
-                current_data.push_str(line[5..].trim());
+            if let Some(stripped) = line.strip_prefix("event:") {
+                current_event = Some(stripped.trim().to_string());
+            } else if let Some(stripped) = line.strip_prefix("data:") {
+                current_data.push_str(stripped.trim());
             } else if line.is_empty() && current_event.is_some() {
                 if let Ok(data) = serde_json::from_str(&current_data) {
                     events.push((current_event.take().unwrap(), data));
@@ -151,7 +151,7 @@ async fn test_worker_metrics_collection() {
     // Verify metrics have valid values
     let _jobs_submitted = json["jobs_submitted"].as_u64().unwrap();
     let success_rate = json["success_rate"].as_f64().unwrap();
-    assert!(success_rate >= 0.0 && success_rate <= 1.0);
+    assert!((0.0..=1.0).contains(&success_rate));
 }
 
 #[tokio::test]
@@ -261,7 +261,7 @@ async fn test_trace_tree_endpoint() {
     // Test GET /telemetry/traces with a valid trace ID
     let trace_id = "0af7651916cd43dd8448eb211c80319c";
     let request = Request::builder()
-        .uri(&format!("/telemetry/traces?trace_id={}", trace_id))
+        .uri(format!("/telemetry/traces?trace_id={}", trace_id))
         .method("GET")
         .body(Body::empty())
         .unwrap();
@@ -432,12 +432,12 @@ async fn test_buffer_manager_lifecycle() {
 async fn test_streaming_health_calculation() {
     use riptide_api::streaming::{GlobalStreamingMetrics, StreamingHealth};
 
-    let mut metrics = GlobalStreamingMetrics::default();
-
-    // Test healthy state
-    metrics.total_messages_sent = 100;
-    metrics.total_messages_dropped = 0;
-    metrics.error_rate = 0.01;
+    let mut metrics = GlobalStreamingMetrics {
+        total_messages_sent: 100,
+        total_messages_dropped: 0,
+        error_rate: 0.01,
+        ..Default::default()
+    };
     metrics.update_health_status();
     assert_eq!(metrics.health_status, StreamingHealth::Healthy);
 
@@ -456,12 +456,12 @@ async fn test_streaming_health_calculation() {
 async fn test_streaming_metrics_efficiency() {
     use riptide_api::streaming::GlobalStreamingMetrics;
 
-    let mut metrics = GlobalStreamingMetrics::default();
-
-    // Perfect efficiency
-    metrics.total_messages_sent = 100;
-    metrics.total_messages_dropped = 0;
-    metrics.error_rate = 0.0;
+    let mut metrics = GlobalStreamingMetrics {
+        total_messages_sent: 100,
+        total_messages_dropped: 0,
+        error_rate: 0.0,
+        ..Default::default()
+    };
     assert!((metrics.efficiency() - 1.0).abs() < 0.01);
 
     // Reduced efficiency
@@ -499,7 +499,7 @@ async fn test_monitoring_health_score() {
     assert!(json.get("timestamp").is_some());
 
     let health_score = json["health_score"].as_f64().unwrap();
-    assert!(health_score >= 0.0 && health_score <= 100.0);
+    assert!((0.0..=100.0).contains(&health_score));
 
     let status = json["status"].as_str().unwrap();
     assert!(["excellent", "good", "fair", "poor", "critical"].contains(&status));
@@ -693,7 +693,7 @@ async fn test_end_to_end_worker_job_lifecycle() {
 
     // Check job status
     let status_request = Request::builder()
-        .uri(&format!("/api/workers/jobs/{}", job_id))
+        .uri(format!("/api/workers/jobs/{}", job_id))
         .method("GET")
         .body(Body::empty())
         .unwrap();
@@ -783,14 +783,14 @@ async fn test_concurrent_metric_collection() {
 async fn test_streaming_health_under_load() {
     use riptide_api::streaming::GlobalStreamingMetrics;
 
-    let mut metrics = GlobalStreamingMetrics::default();
-
-    // Simulate high load
-    metrics.active_connections = 1000;
-    metrics.total_connections = 1200;
-    metrics.total_messages_sent = 50000;
-    metrics.total_messages_dropped = 100;
-    metrics.error_rate = 0.02;
+    let mut metrics = GlobalStreamingMetrics {
+        active_connections: 1000,
+        total_connections: 1200,
+        total_messages_sent: 50000,
+        total_messages_dropped: 100,
+        error_rate: 0.02,
+        ..Default::default()
+    };
 
     metrics.update_health_status();
 

@@ -134,6 +134,7 @@ impl<'a> SpiderConfigBuilder<'a> {
         self
     }
 
+    #[allow(clippy::wrong_self_convention)] // Builder pattern - applies options to existing builder
     pub fn from_crawl_options(self, _options: &riptide_core::types::CrawlOptions) -> Self {
         // Apply options to the builder
         // TODO(P1): Apply CrawlOptions to spider config

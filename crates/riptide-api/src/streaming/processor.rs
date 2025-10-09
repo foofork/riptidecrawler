@@ -557,8 +557,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_processing_stats_update() {
-        let mut stats = ProcessingStats::default();
-        stats.total_urls = 10;
+        let mut stats = ProcessingStats {
+            total_urls: 10,
+            ..Default::default()
+        };
 
         // Test successful processing
         stats.update(100, false, true);
@@ -607,10 +609,12 @@ mod tests {
 
     #[test]
     fn test_progress_calculation() {
-        let mut stats = ProcessingStats::default();
-        stats.total_urls = 100;
-        stats.completed_count = 80;
-        stats.error_count = 10;
+        let stats = ProcessingStats {
+            total_urls: 100,
+            completed_count: 80,
+            error_count: 10,
+            ..Default::default()
+        };
 
         assert_eq!(stats.progress_percentage(), 90.0);
         assert_eq!(stats.success_rate(), 8.0 / 9.0);

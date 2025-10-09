@@ -512,10 +512,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_buffer_growth() {
-        let mut config = BufferConfig::default();
-        config.initial_size = 64;
-        config.max_size = 256;
-        config.growth_factor = 2.0;
+        let config = BufferConfig {
+            initial_size: 64,
+            max_size: 256,
+            growth_factor: 2.0,
+            ..Default::default()
+        };
 
         let buffer = DynamicBuffer::with_config(config);
 

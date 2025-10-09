@@ -642,19 +642,27 @@ mod tests {
 
     #[test]
     fn test_health_ratio() {
-        let mut metrics = WebSocketMetrics::default();
-
         // Perfect health
-        metrics.total_connections = 10;
-        metrics.error_count = 0;
+        let metrics = WebSocketMetrics {
+            total_connections: 10,
+            error_count: 0,
+            ..Default::default()
+        };
         assert_eq!(metrics.health_ratio(), 1.0);
 
         // Some errors
-        metrics.error_count = 2;
+        let metrics = WebSocketMetrics {
+            total_connections: 10,
+            error_count: 2,
+            ..Default::default()
+        };
         assert_eq!(metrics.health_ratio(), 0.8);
 
         // No connections
-        metrics.total_connections = 0;
+        let metrics = WebSocketMetrics {
+            total_connections: 0,
+            ..Default::default()
+        };
         assert_eq!(metrics.health_ratio(), 1.0);
     }
 }
