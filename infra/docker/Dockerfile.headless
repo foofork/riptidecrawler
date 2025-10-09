@@ -11,15 +11,48 @@ WORKDIR /app
 
 # Copy dependency files first for better layer caching
 COPY Cargo.toml Cargo.lock ./
-COPY crates/*/Cargo.toml crates/
+
+# Create directory structure and copy Cargo.toml files for all crates
+RUN mkdir -p crates/riptide-core/src \
+    crates/riptide-api/src \
+    crates/riptide-headless/src \
+    crates/riptide-workers/src \
+    crates/riptide-html/src \
+    crates/riptide-pdf/src \
+    crates/riptide-stealth/src \
+    crates/riptide-search/src \
+    crates/riptide-intelligence/src \
+    crates/riptide-performance/src \
+    crates/riptide-persistence/src \
+    crates/riptide-streaming/src
+
+# Copy individual Cargo.toml files to preserve structure
+COPY crates/riptide-core/Cargo.toml crates/riptide-core/
+COPY crates/riptide-api/Cargo.toml crates/riptide-api/
+COPY crates/riptide-headless/Cargo.toml crates/riptide-headless/
+COPY crates/riptide-workers/Cargo.toml crates/riptide-workers/
+COPY crates/riptide-html/Cargo.toml crates/riptide-html/
+COPY crates/riptide-pdf/Cargo.toml crates/riptide-pdf/
+COPY crates/riptide-stealth/Cargo.toml crates/riptide-stealth/
+COPY crates/riptide-search/Cargo.toml crates/riptide-search/
+COPY crates/riptide-intelligence/Cargo.toml crates/riptide-intelligence/
+COPY crates/riptide-performance/Cargo.toml crates/riptide-performance/
+COPY crates/riptide-persistence/Cargo.toml crates/riptide-persistence/
+COPY crates/riptide-streaming/Cargo.toml crates/riptide-streaming/
 
 # Create stub source files for dependency pre-building
-RUN mkdir -p crates/riptide-core/src crates/riptide-api/src \
-    crates/riptide-headless/src crates/riptide-workers/src && \
-    echo "fn main() {}" > crates/riptide-core/src/lib.rs && \
+RUN echo "fn main() {}" > crates/riptide-core/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-api/src/main.rs && \
     echo "fn main() {}" > crates/riptide-headless/src/main.rs && \
-    echo "fn main() {}" > crates/riptide-workers/src/lib.rs
+    echo "fn main() {}" > crates/riptide-workers/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-html/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-pdf/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-stealth/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-search/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-intelligence/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-performance/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-persistence/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-streaming/src/lib.rs
 
 # Pre-build dependencies (this layer will be cached)
 RUN cargo build --release --bin riptide-headless
