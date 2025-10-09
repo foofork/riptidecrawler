@@ -1,12 +1,12 @@
 #[cfg(test)]
 mod tests {
     use riptide_api::sessions::{
-        Cookie, CookieJar, SameSite, Session, SessionConfig, SessionManager, SessionStorage,
+        storage::SessionStorage, Cookie, CookieJar, SameSite, Session, SessionConfig,
+        SessionManager,
     };
     use std::sync::Arc;
     use std::time::{Duration, SystemTime};
     use tempfile::TempDir;
-    use uuid::Uuid;
 
     #[test]
     fn test_session_creation() {

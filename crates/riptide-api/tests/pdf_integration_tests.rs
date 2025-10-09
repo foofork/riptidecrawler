@@ -17,13 +17,9 @@ use axum::{
 };
 use base64::prelude::*;
 use futures_util::StreamExt;
-use riptide_core::pdf::{
-    config::PdfConfig,
-    types::{ProcessingStage, ProgressUpdate},
-};
+use riptide_core::pdf::types::ProgressUpdate;
 use serde_json::{json, Value};
 use std::{
-    collections::HashMap,
     sync::{
         atomic::{AtomicU64, Ordering},
         Arc,
@@ -35,7 +31,6 @@ use tokio::{
     time::timeout,
 };
 use tower::ServiceExt;
-use uuid::Uuid;
 
 // Test utilities and mock data
 mod test_utils {
@@ -194,11 +189,7 @@ startxref\n\
     }
 
     fn get_current_memory_usage() -> u64 {
-        // Simple memory usage estimation
-        use std::alloc::{GlobalAlloc, Layout, System};
-
-        // In a real implementation, you might use system-specific APIs
-        // For testing, we'll use a simplified approach
+        // Simple memory usage estimation using system-specific APIs
         #[cfg(unix)]
         {
             use std::fs;
@@ -257,7 +248,6 @@ startxref\n\
 
 // Integration test setup
 mod test_setup {
-    use super::*;
     use axum::Router;
     use riptide_api::{
         health::HealthChecker,
@@ -478,7 +468,7 @@ async fn test_memory_management_large_pdfs() {
             .body(Body::from(request_body.to_string()))
             .unwrap();
 
-        let response = app.oneshot(request).await.unwrap();
+        let _response = app.oneshot(request).await.unwrap();
         let processing_time = timer.elapsed();
 
         // Memory spike should not exceed 200MB (ROADMAP requirement)
@@ -530,12 +520,13 @@ async fn test_error_handling_invalid_pdfs() {
         .unwrap();
 
     let response = app.oneshot(request).await.unwrap();
+    let status = response.status();
     let body = axum::body::to_bytes(response.into_body(), usize::MAX)
         .await
         .unwrap();
     let response_json: Value = serde_json::from_slice(&body).unwrap();
 
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(status, StatusCode::BAD_REQUEST);
     assert!(response_json.get("message").is_some());
 
     // Test 5.2: Corrupted PDF header
@@ -922,7 +913,7 @@ async fn test_pdf_processing_performance_benchmarks() {
     let max_memory_usage = *memory_usages.iter().max().unwrap();
 
     let avg_throughput = throughput_rates.iter().sum::<f64>() / BENCHMARK_ITERATIONS as f64;
-    let max_throughput = throughput_rates.iter().fold(0.0, |a, &b| a.max(b));
+    let max_throughput = throughput_rates.iter().fold(0.0_f64, |a, &b| a.max(b));
 
     // Performance assertions
     assert!(
@@ -1116,22 +1107,21 @@ async fn test_zero_panics_unwraps_production_safety() {
     // This test verifies that the PDF pipeline gracefully handles errors
     // without panicking or using unwrap() in production code paths
 
-    let app = test_setup::create_test_app().await;
-
     let test_scenarios = vec![
-        ("empty_data", ""),
-        ("malformed_base64", "not-base64!@#"),
+        ("empty_data", "".to_string()),
+        ("malformed_base64", "not-base64!@#".to_string()),
         (
             "truncated_pdf",
-            &test_utils::encode_pdf_base64(&b"%PDF-1.7\ntruncated"[..]),
+            test_utils::encode_pdf_base64(&b"%PDF-1.7\ntruncated"[..]),
         ),
         (
             "binary_garbage",
-            &test_utils::encode_pdf_base64(&vec![0xFF; 1000]),
+            test_utils::encode_pdf_base64(&vec![0xFF; 1000]),
         ),
     ];
 
     for (scenario_name, pdf_data) in test_scenarios {
+        let app = test_setup::create_test_app().await;
         let request_body = json!({
             "pdf_data": pdf_data,
             "filename": format!("{}_test.pdf", scenario_name)
