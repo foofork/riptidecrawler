@@ -6418,8 +6418,10 @@ dependencies = [
 name = "riptide-stealth"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "rand 0.8.5",
  "serde",
+ "tokio",
  "tokio-test",
  "tracing",
 ]
