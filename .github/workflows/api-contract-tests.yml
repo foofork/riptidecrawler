@@ -46,6 +46,7 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
+          targets: wasm32-wasip2
 
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
@@ -59,6 +60,12 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
+      - name: Build WASM extractor
+        run: |
+          echo "Building WASM component..."
+          cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm
+          ls -lh target/wasm32-wasip2/release/*.wasm || echo "No WASM files built"
+
       - name: Build RipTide API
         run: cargo build --release --package riptide-api
 
@@ -68,6 +75,7 @@ jobs:
           RUST_LOG: info
           API_HOST: 0.0.0.0
           API_PORT: 8080
+          WASM_EXTRACTOR_PATH: target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
         run: |
           # Find binary location (could be in target/release or target/<triple>/release)
           if [ -f "target/x86_64-unknown-linux-gnu/release/riptide-api" ]; then
@@ -170,9 +178,16 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
+          targets: wasm32-wasip2
 
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
+      - name: Build WASM extractor
+        run: |
+          echo "Building WASM component..."
+          cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm
+          ls -lh target/wasm32-wasip2/release/*.wasm || echo "No WASM files built"
 
       - name: Build RipTide API
         run: cargo build --release --package riptide-api
@@ -183,6 +198,7 @@ jobs:
           RUST_LOG: info
           API_HOST: 0.0.0.0
           API_PORT: 8080
+          WASM_EXTRACTOR_PATH: target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
         run: |
           # Find binary location (could be in target/release or target/<triple>/release)
           if [ -f "target/x86_64-unknown-linux-gnu/release/riptide-api" ]; then
@@ -309,9 +325,16 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
+          targets: wasm32-wasip2
 
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
+      - name: Build WASM extractor
+        run: |
+          echo "Building WASM component..."
+          cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm
+          ls -lh target/wasm32-wasip2/release/*.wasm || echo "No WASM files built"
 
       - name: Build RipTide API (release)
         run: cargo build --release --package riptide-api
@@ -322,6 +345,7 @@ jobs:
           RUST_LOG: info
           API_HOST: 0.0.0.0
           API_PORT: 8080
+          WASM_EXTRACTOR_PATH: target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
         run: |
           # Find binary location (could be in target/release or target/<triple>/release)
           if [ -f "target/x86_64-unknown-linux-gnu/release/riptide-api" ]; then
@@ -425,9 +449,16 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
+          targets: wasm32-wasip2
 
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
+      - name: Build WASM extractor
+        run: |
+          echo "Building WASM component..."
+          cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm
+          ls -lh target/wasm32-wasip2/release/*.wasm || echo "No WASM files built"
 
       - name: Build RipTide API
         run: cargo build --release --package riptide-api
@@ -438,6 +469,7 @@ jobs:
           RUST_LOG: info
           API_HOST: 0.0.0.0
           API_PORT: 8080
+          WASM_EXTRACTOR_PATH: target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
         run: |
           # Find binary location (could be in target/release or target/<triple>/release)
           if [ -f "target/x86_64-unknown-linux-gnu/release/riptide-api" ]; then
