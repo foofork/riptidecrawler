@@ -247,7 +247,7 @@ pub async fn health_detailed(State(state): State<AppState>) -> Result<impl IntoR
         Err(_) => {
             tracing::warn!("Detailed health check timed out after 10 seconds");
             // Return a minimal unhealthy response
-            return Err(ApiError::internal_server_error("Health check timeout"));
+            return Err(ApiError::internal("Health check timeout"));
         }
     };
 
@@ -285,7 +285,7 @@ pub async fn component_health_check(
         Ok(response) => response,
         Err(_) => {
             tracing::warn!("Component health check timed out after 10 seconds");
-            return Err(ApiError::internal_server_error("Health check timeout"));
+            return Err(ApiError::internal("Health check timeout"));
         }
     };
     let timestamp = chrono::Utc::now().to_rfc3339();
@@ -349,7 +349,7 @@ pub async fn health_metrics_check(
         Ok(response) => response,
         Err(_) => {
             tracing::warn!("Metrics health check timed out after 10 seconds");
-            return Err(ApiError::internal_server_error("Health check timeout"));
+            return Err(ApiError::internal("Health check timeout"));
         }
     };
 

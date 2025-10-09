@@ -15,6 +15,7 @@ mod worker_behavior_tests {
             healthy_workers: 4,
             total_jobs_processed: 150,
             total_jobs_failed: 5,
+            worker_stats: vec![],
             is_running: true,
         };
 
@@ -55,34 +56,72 @@ mod worker_behavior_tests {
     /// Test: Health check should report component status
     #[test]
     fn test_health_check_structure() {
+        let metrics_snapshot = WorkerMetricsSnapshot {
+            jobs_submitted: 100,
+            jobs_completed: 95,
+            jobs_failed: 5,
+            jobs_retried: 0,
+            jobs_dead_letter: 0,
+            avg_processing_time_ms: 200,
+            p95_processing_time_ms: 300,
+            p99_processing_time_ms: 450,
+            queue_sizes: HashMap::new(),
+            worker_health: HashMap::new(),
+            job_type_stats: HashMap::new(),
+            uptime_seconds: 3600,
+            success_rate: 95.0,
+            total_workers: 4,
+            healthy_workers: 4,
+            timestamp: chrono::Utc::now(),
+        };
+
         let health = WorkerServiceHealth {
             overall_healthy: true,
             queue_healthy: true,
             worker_pool_healthy: true,
             scheduler_healthy: true,
-            issues: vec![],
+            metrics_snapshot,
         };
 
         assert!(health.overall_healthy);
         assert!(health.queue_healthy);
         assert!(health.worker_pool_healthy);
-        assert!(health.issues.is_empty());
+        assert_eq!(health.metrics_snapshot.success_rate, 95.0);
     }
 
     /// Test: Degraded health should be detectable
     #[test]
     fn test_degraded_health_detection() {
+        let metrics_snapshot = WorkerMetricsSnapshot {
+            jobs_submitted: 100,
+            jobs_completed: 50,
+            jobs_failed: 50,
+            jobs_retried: 10,
+            jobs_dead_letter: 5,
+            avg_processing_time_ms: 200,
+            p95_processing_time_ms: 300,
+            p99_processing_time_ms: 450,
+            queue_sizes: HashMap::new(),
+            worker_health: HashMap::new(),
+            job_type_stats: HashMap::new(),
+            uptime_seconds: 3600,
+            success_rate: 50.0,
+            total_workers: 4,
+            healthy_workers: 2,
+            timestamp: chrono::Utc::now(),
+        };
+
         let health = WorkerServiceHealth {
             overall_healthy: false,
             queue_healthy: true,
             worker_pool_healthy: false,
             scheduler_healthy: true,
-            issues: vec!["50% workers unhealthy".to_string()],
+            metrics_snapshot,
         };
 
         assert!(!health.overall_healthy);
         assert!(!health.worker_pool_healthy);
-        assert!(!health.issues.is_empty());
+        assert_eq!(health.metrics_snapshot.healthy_workers, 2);
     }
 
     /// Test: Metrics should calculate derived values

@@ -242,8 +242,8 @@ mod table_extraction_tests {
             complex_table["id"], "complex",
             "Second table should have id 'complex'"
         );
-        assert!(
-            complex_table["has_spans"],
+        assert_eq!(
+            complex_table["has_spans"], true,
             "Should detect colspan/rowspan usage"
         );
     }
@@ -661,8 +661,8 @@ mod llm_provider_tests {
             response["new_provider"]["name"], "anthropic",
             "Should return new provider info"
         );
-        assert!(
-            response["config_validated"],
+        assert_eq!(
+            response["config_validated"], true,
             "Should confirm config validation"
         );
     }
@@ -783,8 +783,8 @@ mod llm_provider_tests {
             response["updated"], true,
             "Should confirm configuration update"
         );
-        assert!(
-            response["validated"],
+        assert_eq!(
+            response["validated"], true,
             "Should confirm configuration validation"
         );
     }
@@ -1336,7 +1336,10 @@ mod advanced_chunking_tests {
 
         let chunks = response["chunks"].as_array().unwrap();
         for chunk in chunks {
-            assert!(chunk["content_type"], "Chunks should preserve content type");
+            assert!(
+                chunk["content_type"].is_string(),
+                "Chunks should preserve content type"
+            );
             assert!(
                 chunk["html_metadata"].is_object(),
                 "HTML chunks should include structural metadata"
@@ -1540,8 +1543,8 @@ mod integration_workflow_tests {
             response["provider_used"].is_string(),
             "Should indicate which provider was used"
         );
-        assert!(
-            response["failover_triggered"],
+        assert_eq!(
+            response["failover_triggered"], true,
             "Should indicate if failover was triggered"
         );
 

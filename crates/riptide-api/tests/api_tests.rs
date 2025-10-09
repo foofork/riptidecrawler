@@ -1,13 +1,18 @@
 //! API endpoint tests
 
 use axum::body::Body;
-use axum::http::StatusCode;
-use riptide_api::*;
+use axum::http::{Request, StatusCode};
 use tower::ServiceExt;
 
 #[cfg(test)]
 mod api_endpoint_tests {
     use super::*;
+    use axum::Router;
+
+    // TODO: Implement create_app() - TDD RED phase placeholder
+    fn create_app() -> Router {
+        Router::new() // Empty router for compilation
+    }
 
     #[tokio::test]
     async fn test_health_endpoint() {

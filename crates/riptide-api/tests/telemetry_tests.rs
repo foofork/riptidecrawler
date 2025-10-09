@@ -162,9 +162,13 @@ fn test_parse_trace_id_valid() {
     assert!(trace_id.is_some(), "Valid trace ID should parse");
 
     let parsed = trace_id.unwrap();
+    let formatted = parsed
+        .to_bytes()
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect::<String>();
     assert_eq!(
-        format!("{:032x}", parsed.to_bytes()),
-        trace_id_str,
+        formatted, trace_id_str,
         "Parsed trace ID should match original"
     );
 }
@@ -191,9 +195,13 @@ fn test_parse_span_id_valid() {
     assert!(span_id.is_some(), "Valid span ID should parse");
 
     let parsed = span_id.unwrap();
+    let formatted = parsed
+        .to_bytes()
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect::<String>();
     assert_eq!(
-        format!("{:016x}", parsed.to_bytes()),
-        span_id_str,
+        formatted, span_id_str,
         "Parsed span ID should match original"
     );
 }
@@ -367,7 +375,7 @@ fn test_conditional_otel_initialization() {
     std::env::set_var("OTEL_ENDPOINT", "http://localhost:4317");
     std::env::set_var("TELEMETRY_ENABLED", "true");
 
-    let config = TelemetryConfig::from_env();
+    let _config = TelemetryConfig::from_env();
     // With both vars set, we should have endpoint available
     // Note: actual init_tracing() requires running OTLP endpoint, so we just verify config
 

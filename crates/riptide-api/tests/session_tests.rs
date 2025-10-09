@@ -210,8 +210,8 @@ mod tests {
         tokio::time::sleep(Duration::from_millis(100)).await;
 
         // Cleanup expired sessions
-        let cleaned = storage.cleanup_expired().await.expect("Failed to cleanup");
-        assert!(cleaned >= 0); // Should clean up some sessions
+        let _cleaned = storage.cleanup_expired().await.expect("Failed to cleanup");
+        // Note: cleaned is usize, so no need to check >= 0
 
         // Sessions should be expired and removed
         let session1_after = storage

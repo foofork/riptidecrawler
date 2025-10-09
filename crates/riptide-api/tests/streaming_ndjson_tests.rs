@@ -9,7 +9,7 @@
 //! - Error handling in streams
 
 use axum::http::{HeaderValue, StatusCode};
-use futures_util::{stream, StreamExt};
+use futures_util::stream;
 use riptide_api::streaming::response_helpers::{
     CompletionHelper, KeepAliveHelper, ProgressHelper, StreamingErrorResponse,
     StreamingResponseBuilder, StreamingResponseType,
