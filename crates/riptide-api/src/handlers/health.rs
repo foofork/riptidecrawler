@@ -35,8 +35,28 @@ pub async fn health(State(state): State<AppState>) -> Result<impl IntoResponse, 
     let start_time = Instant::now();
     debug!("Starting health check");
 
-    // Perform comprehensive health check
-    let health_status = state.health_check().await;
+    // Perform comprehensive health check with timeout to prevent hanging
+    let health_status =
+        match tokio::time::timeout(std::time::Duration::from_secs(5), state.health_check()).await {
+            Ok(status) => status,
+            Err(_) => {
+                // Health check timed out - return degraded health status
+                tracing::warn!("Health check timed out after 5 seconds");
+                crate::state::HealthStatus {
+                    healthy: false,
+                    redis: crate::state::DependencyHealth::Unknown,
+                    extractor: crate::state::DependencyHealth::Unknown,
+                    http_client: crate::state::DependencyHealth::Unknown,
+                    resource_manager: crate::state::DependencyHealth::Unknown,
+                    streaming: crate::state::DependencyHealth::Unknown,
+                    spider: crate::state::DependencyHealth::Unknown,
+                    worker_service: crate::state::DependencyHealth::Unhealthy(
+                        "Health check timeout".to_string(),
+                    ),
+                    circuit_breaker: crate::state::DependencyHealth::Unknown,
+                }
+            }
+        };
 
     // Calculate uptime
     let uptime = START_TIME
@@ -216,8 +236,20 @@ pub(super) fn get_network_metrics() -> (u32, u64, f64) {
 pub async fn health_detailed(State(state): State<AppState>) -> Result<impl IntoResponse, ApiError> {
     debug!("Starting comprehensive detailed health check");
 
-    // Use HealthChecker to perform comprehensive health check
-    let health_response = state.health_checker.check_health(&state).await;
+    // Use HealthChecker to perform comprehensive health check with timeout
+    let health_response = match tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        state.health_checker.check_health(&state),
+    )
+    .await
+    {
+        Ok(response) => response,
+        Err(_) => {
+            tracing::warn!("Detailed health check timed out after 10 seconds");
+            // Return a minimal unhealthy response
+            return Err(ApiError::internal_server_error("Health check timeout"));
+        }
+    };
 
     info!(
         status = %health_response.status,
@@ -244,7 +276,18 @@ pub async fn component_health_check(
 ) -> Result<impl IntoResponse, ApiError> {
     debug!(component = %component, "Checking specific component health");
 
-    let health_response = state.health_checker.check_health(&state).await;
+    let health_response = match tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        state.health_checker.check_health(&state),
+    )
+    .await
+    {
+        Ok(response) => response,
+        Err(_) => {
+            tracing::warn!("Component health check timed out after 10 seconds");
+            return Err(ApiError::internal_server_error("Health check timeout"));
+        }
+    };
     let timestamp = chrono::Utc::now().to_rfc3339();
 
     let component_health = match component.as_str() {
@@ -297,7 +340,18 @@ pub async fn health_metrics_check(
 ) -> Result<impl IntoResponse, ApiError> {
     debug!("Collecting system metrics");
 
-    let health_response = state.health_checker.check_health(&state).await;
+    let health_response = match tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        state.health_checker.check_health(&state),
+    )
+    .await
+    {
+        Ok(response) => response,
+        Err(_) => {
+            tracing::warn!("Metrics health check timed out after 10 seconds");
+            return Err(ApiError::internal_server_error("Health check timeout"));
+        }
+    };
 
     let metrics = health_response
         .metrics
