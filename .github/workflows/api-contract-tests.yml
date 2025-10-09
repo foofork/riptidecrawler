@@ -89,10 +89,25 @@ jobs:
             exit 1
           fi
           echo "Starting API from: $BINARY_PATH"
-          ./$BINARY_PATH > api.log 2>&1 &
+          # Start API and capture output to both file and stdout initially
+          touch api.log
+          ./$BINARY_PATH >> api.log 2>&1 &
           API_PID=$!
           echo "API_PID=$API_PID" >> $GITHUB_ENV
           echo "Started API with PID: $API_PID"
+
+          # Give it a moment to start or crash
+          sleep 2
+
+          # Check if process is still running
+          if ! kill -0 $API_PID 2>/dev/null; then
+            echo "❌ ERROR: API process died immediately after starting"
+            echo "=== Last 50 lines of api.log ==="
+            tail -50 api.log || echo "No logs found"
+            exit 1
+          fi
+
+          echo "✅ API process is running, proceeding to health checks"
 
       - name: Wait for API to be healthy
         run: |
@@ -214,10 +229,25 @@ jobs:
             exit 1
           fi
           echo "Starting API from: $BINARY_PATH"
-          ./$BINARY_PATH > api.log 2>&1 &
+          # Start API and capture output to both file and stdout initially
+          touch api.log
+          ./$BINARY_PATH >> api.log 2>&1 &
           API_PID=$!
           echo "API_PID=$API_PID" >> $GITHUB_ENV
           echo "Started API with PID: $API_PID"
+
+          # Give it a moment to start or crash
+          sleep 2
+
+          # Check if process is still running
+          if ! kill -0 $API_PID 2>/dev/null; then
+            echo "❌ ERROR: API process died immediately after starting"
+            echo "=== Last 50 lines of api.log ==="
+            tail -50 api.log || echo "No logs found"
+            exit 1
+          fi
+
+          echo "✅ API process is running, proceeding to health checks"
 
       - name: Wait for API to be healthy
         run: |
@@ -363,10 +393,25 @@ jobs:
             exit 1
           fi
           echo "Starting API from: $BINARY_PATH"
-          ./$BINARY_PATH > api.log 2>&1 &
+          # Start API and capture output to both file and stdout initially
+          touch api.log
+          ./$BINARY_PATH >> api.log 2>&1 &
           API_PID=$!
           echo "API_PID=$API_PID" >> $GITHUB_ENV
           echo "Started API with PID: $API_PID"
+
+          # Give it a moment to start or crash
+          sleep 2
+
+          # Check if process is still running
+          if ! kill -0 $API_PID 2>/dev/null; then
+            echo "❌ ERROR: API process died immediately after starting"
+            echo "=== Last 50 lines of api.log ==="
+            tail -50 api.log || echo "No logs found"
+            exit 1
+          fi
+
+          echo "✅ API process is running, proceeding to health checks"
 
       - name: Wait for API to be healthy
         run: |
@@ -489,10 +534,25 @@ jobs:
             exit 1
           fi
           echo "Starting API from: $BINARY_PATH"
-          ./$BINARY_PATH > api.log 2>&1 &
+          # Start API and capture output to both file and stdout initially
+          touch api.log
+          ./$BINARY_PATH >> api.log 2>&1 &
           API_PID=$!
           echo "API_PID=$API_PID" >> $GITHUB_ENV
           echo "Started API with PID: $API_PID"
+
+          # Give it a moment to start or crash
+          sleep 2
+
+          # Check if process is still running
+          if ! kill -0 $API_PID 2>/dev/null; then
+            echo "❌ ERROR: API process died immediately after starting"
+            echo "=== Last 50 lines of api.log ==="
+            tail -50 api.log || echo "No logs found"
+            exit 1
+          fi
+
+          echo "✅ API process is running, proceeding to health checks"
 
       - name: Wait for API to be healthy
         run: |
