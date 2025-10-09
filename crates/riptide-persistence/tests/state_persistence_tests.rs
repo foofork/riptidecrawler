@@ -9,7 +9,7 @@
 
 use riptide_persistence::{
     config::StateConfig,
-    state::{SessionMetadata, SessionState, SessionStatus, StateManager},
+    state::{SessionMetadata, SessionStatus, StateManager},
 };
 use std::collections::HashMap;
 use tempfile::TempDir;
@@ -40,6 +40,7 @@ async fn create_test_state_manager(
         enable_hot_reload: false,
         config_watch_paths: vec![],
         enable_graceful_shutdown: false,
+        shutdown_timeout_seconds: 30,
     };
 
     // Use embedded Redis for testing if available, otherwise use mock

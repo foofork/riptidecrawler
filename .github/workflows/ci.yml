@@ -177,6 +177,18 @@ jobs:
             wasm-artifacts-${{ hashFiles('wasm/riptide-extractor-wasm/Cargo.lock') }}-
             wasm-artifacts-
 
+      - name: Verify native binaries exist
+        if: matrix.target == 'native'
+        run: |
+          echo "Verifying native binaries were built..."
+          for binary in riptide-api riptide-headless riptide-workers; do
+            if [[ ! -f "target/release/$binary" ]]; then
+              echo "❌ ERROR: Binary not found: target/release/$binary"
+              exit 1
+            fi
+            echo "✅ Found: target/release/$binary ($(stat --format=%s target/release/$binary | numfmt --to=iec))"
+          done
+
       - name: Upload native build artifacts
         if: matrix.target == 'native'
         uses: actions/upload-artifact@v4
@@ -188,7 +200,7 @@ jobs:
             target/release/riptide-workers
           retention-days: 7
           compression-level: 6
-          if-no-files-found: warn
+          if-no-files-found: error
 
       - name: Upload WASM build artifacts
         if: matrix.target == 'wasm32-wasip2'
@@ -264,12 +276,35 @@ jobs:
           name: build-artifacts-native
           path: artifacts/
 
+      - name: Verify downloaded artifacts
+        run: |
+          echo "Verifying downloaded native artifacts..."
+          ls -lah artifacts/
+          for binary in riptide-api riptide-headless riptide-workers; do
+            if [[ ! -f "artifacts/$binary" ]]; then
+              echo "❌ ERROR: Downloaded binary not found: artifacts/$binary"
+              exit 1
+            fi
+            echo "✅ Verified: artifacts/$binary"
+          done
+
       - name: Download WASM artifacts
         if: matrix.service == 'api'
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts-wasm32-wasip2
           path: wasm-dist/
+
+      - name: Verify WASM artifacts
+        if: matrix.service == 'api'
+        run: |
+          echo "Verifying downloaded WASM artifacts..."
+          ls -lah wasm-dist/
+          if [[ ! -f wasm-dist/*.wasm ]]; then
+            echo "❌ ERROR: No WASM files found in wasm-dist/"
+            exit 1
+          fi
+          echo "✅ WASM artifacts verified"
 
       - name: Build Docker image with cache
         uses: docker/build-push-action@v5
@@ -308,6 +343,16 @@ jobs:
         with:
           name: build-artifacts-wasm32-wasip2
           path: wasm-dist/
+
+      - name: Verify artifacts before size check
+        run: |
+          echo "Verifying artifacts..."
+          ls -lah artifacts/ wasm-dist/
+          if [[ ! -f artifacts/riptide-api ]]; then
+            echo "❌ ERROR: Native artifacts not found"
+            exit 1
+          fi
+          echo "✅ Artifacts verified"
 
       - name: Check binary sizes
         run: |
@@ -407,6 +452,16 @@ jobs:
         with:
           name: build-artifacts-native
           path: artifacts/
+
+      - name: Verify artifacts for benchmarking
+        run: |
+          echo "Verifying artifacts..."
+          ls -lah artifacts/
+          if [[ ! -f artifacts/riptide-api ]]; then
+            echo "❌ ERROR: Native artifacts not found for benchmarking"
+            exit 1
+          fi
+          echo "✅ Artifacts ready for benchmarking"
 
       - name: Run benchmarks
         run: |

@@ -5,9 +5,6 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::health::HealthChecker;
-    use crate::metrics::RipTideMetrics;
-    use crate::state::AppState;
     use riptide_core::events::{BaseEvent, EventBus, EventEmitter, EventSeverity};
     use std::sync::Arc;
     use tokio::time::{sleep, Duration};
