@@ -1,0 +1,649 @@
+name: API Validation Pipeline
+
+# 🎯 Expert Strategy: Fast, targeted validation for API changes only
+# Runs in parallel with comprehensive CI/CD pipeline
+# Provides 5-8 min feedback vs 20-30 min full build
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'docs/api/openapi.yaml'
+      - 'crates/riptide-api/**'
+      - 'tests/api/**'
+      - '.github/workflows/api-validation.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'docs/api/openapi.yaml'
+      - 'crates/riptide-api/**'
+      - 'tests/api/**'
+      - '.github/workflows/api-validation.yml'
+  workflow_dispatch:
+
+env:
+  RUST_BACKTRACE: 1
+  RUSTFLAGS: "-Dwarnings"
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  CARGO_NET_RETRY: 10
+  RUST_LOG: warn
+
+jobs:
+  # ==========================================
+  # PHASE 1: Fast Static Analysis (2-3 min)
+  # ==========================================
+
+  static-analysis:
+    name: 🔍 Static Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "api-validation"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Check code formatting
+        run: cargo fmt --package riptide-api -- --check
+
+      - name: Run Clippy lints
+        run: cargo clippy --package riptide-api --all-targets -- -D warnings
+
+      - name: Validate OpenAPI spec syntax
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install OpenAPI validators
+        run: npm install -g @apidevtools/swagger-cli @stoplight/spectral-cli
+
+      - name: Validate OpenAPI specification
+        run: |
+          swagger-cli validate docs/api/openapi.yaml
+          spectral lint docs/api/openapi.yaml --format stylish --fail-severity error
+
+  # ==========================================
+  # PHASE 2: Unit Tests (3-4 min)
+  # ==========================================
+
+  unit-tests:
+    name: ⚡ Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "api-validation"
+
+      - name: Run API unit tests
+        run: |
+          cargo test --package riptide-api --lib \
+            --no-fail-fast \
+            -- --nocapture --test-threads=4
+
+      - name: Run API doc tests
+        run: cargo test --package riptide-api --doc
+
+  # ==========================================
+  # PHASE 3: Integration Tests (5-7 min)
+  # ==========================================
+
+  integration-tests:
+    name: 🔗 Integration Tests
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "api-validation"
+
+      - name: Run integration tests
+        env:
+          REDIS_URL: redis://localhost:6379
+          RUST_LOG: debug
+        run: |
+          cargo test --package riptide-api --tests \
+            --no-fail-fast \
+            -- --nocapture --test-threads=2
+
+      - name: Upload test logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-logs
+          path: target/debug/deps/*.log
+          if-no-files-found: ignore
+
+  # ==========================================
+  # PHASE 4: Contract Testing (8-10 min)
+  # ==========================================
+
+  contract-validation:
+    name: 📋 Contract Validation (Dredd)
+    runs-on: ubuntu-latest
+    needs: [static-analysis, unit-tests]
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install WASM target
+        run: rustup target add wasm32-wasip2
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
+      - name: Cache Cargo
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-api-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build WASM extractor
+        run: |
+          cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm
+          ls -lh target/wasm32-wasip2/release/*.wasm
+
+      - name: Build API
+        run: cargo build --release --package riptide-api
+
+      - name: Start API server
+        env:
+          REDIS_URL: redis://localhost:6379
+          RUST_LOG: info
+          API_HOST: 0.0.0.0
+          API_PORT: 8080
+          WASM_EXTRACTOR_PATH: target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
+        run: |
+          BINARY_PATH=$(find target -name "riptide-api" -type f -executable | head -1)
+          echo "Starting API: $BINARY_PATH"
+          $BINARY_PATH > api.log 2>&1 &
+          echo "API_PID=$!" >> $GITHUB_ENV
+
+          # Wait for health
+          for i in {1..30}; do
+            if curl -sf http://localhost:8080/healthz; then
+              echo "✅ API healthy"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "❌ API failed to start" && cat api.log && exit 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run Dredd contract tests
+        run: |
+          npm install -g dredd
+          dredd docs/api/openapi.yaml http://localhost:8080 \
+            --reporter=html \
+            --reporter=markdown \
+            --output=dredd-report.html \
+            --output=dredd-report.md
+
+      - name: Upload Dredd report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dredd-contract-report
+          path: dredd-report.*
+          if-no-files-found: ignore
+
+      - name: Stop API
+        if: always()
+        run: kill ${{ env.API_PID }} || true
+
+  fuzzing-tests:
+    name: 🔀 Fuzzing (Schemathesis)
+    runs-on: ubuntu-latest
+    needs: [static-analysis, unit-tests]
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install WASM target
+        run: rustup target add wasm32-wasip2
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
+      - name: Build WASM + API
+        run: |
+          cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm
+          cargo build --release --package riptide-api
+
+      - name: Start API server
+        env:
+          REDIS_URL: redis://localhost:6379
+          RUST_LOG: info
+          API_HOST: 0.0.0.0
+          API_PORT: 8080
+          WASM_EXTRACTOR_PATH: target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
+        run: |
+          BINARY_PATH=$(find target -name "riptide-api" -type f -executable | head -1)
+          $BINARY_PATH > api.log 2>&1 &
+          echo "API_PID=$!" >> $GITHUB_ENV
+
+          for i in {1..30}; do
+            curl -sf http://localhost:8080/healthz && exit 0 || sleep 2
+          done
+          cat api.log && exit 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Run Schemathesis fuzzing
+        run: |
+          pip install schemathesis
+          schemathesis run docs/api/openapi.yaml \
+            --base-url http://localhost:8080 \
+            --checks all \
+            --max-examples=100 \
+            --hypothesis-deadline=5000
+
+      - name: Stop API
+        if: always()
+        run: kill ${{ env.API_PID }} || true
+
+  # ==========================================
+  # PHASE 5: Performance & Security (8-12 min)
+  # ==========================================
+
+  performance-tests:
+    name: 🚀 Performance Tests
+    runs-on: ubuntu-latest
+    needs: [integration-tests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install WASM target
+        run: rustup target add wasm32-wasip2
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
+      - name: Build optimized release
+        run: |
+          cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm
+          cargo build --release --package riptide-api
+
+      - name: Start API server
+        env:
+          REDIS_URL: redis://localhost:6379
+          RUST_LOG: info
+          API_HOST: 0.0.0.0
+          API_PORT: 8080
+          WASM_EXTRACTOR_PATH: target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
+        run: |
+          BINARY_PATH=$(find target -name "riptide-api" -type f -executable | head -1)
+          $BINARY_PATH > api.log 2>&1 &
+          echo "API_PID=$!" >> $GITHUB_ENV
+
+          for i in {1..30}; do
+            curl -sf http://localhost:8080/healthz && break || sleep 2
+          done
+
+      - name: Install k6
+        run: |
+          curl -L https://github.com/grafana/k6/releases/download/v0.47.0/k6-v0.47.0-linux-amd64.tar.gz | tar xvz
+          sudo mv k6-v0.47.0-linux-amd64/k6 /usr/local/bin/
+
+      - name: Run load tests
+        run: |
+          k6 run --vus 10 --duration 30s - <<'EOF'
+          import http from 'k6/http';
+          import { check, sleep } from 'k6';
+
+          export let options = {
+            thresholds: {
+              http_req_duration: ['p(95)<2000'],
+            },
+          };
+
+          export default function() {
+            let res = http.get('http://localhost:8080/healthz');
+            check(res, {
+              'status is 200': (r) => r.status === 200,
+              'response time < 500ms': (r) => r.timings.duration < 500,
+            });
+            sleep(1);
+          }
+          EOF
+
+      - name: Stop API
+        if: always()
+        run: kill ${{ env.API_PID }} || true
+
+  security-scan:
+    name: 🔒 Security Scan (OWASP ZAP)
+    runs-on: ubuntu-latest
+    needs: [integration-tests]
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install WASM target
+        run: rustup target add wasm32-wasip2
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
+      - name: Build API
+        run: |
+          cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm
+          cargo build --release --package riptide-api
+
+      - name: Start API server
+        env:
+          REDIS_URL: redis://localhost:6379
+          RUST_LOG: info
+          API_HOST: 0.0.0.0
+          API_PORT: 8080
+          WASM_EXTRACTOR_PATH: target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
+        run: |
+          BINARY_PATH=$(find target -name "riptide-api" -type f -executable | head -1)
+          $BINARY_PATH > api.log 2>&1 &
+          echo "API_PID=$!" >> $GITHUB_ENV
+
+          for i in {1..30}; do
+            curl -sf http://localhost:8080/healthz && break || sleep 2
+          done
+
+      - name: Run OWASP ZAP scan
+        uses: zaproxy/action-baseline@v0.9.0
+        with:
+          target: 'http://localhost:8080'
+          cmd_options: '-a'
+        continue-on-error: true
+
+      - name: Stop API
+        if: always()
+        run: kill ${{ env.API_PID }} || true
+
+  # ==========================================
+  # PHASE 6: Coverage & Benchmarks (Optional)
+  # ==========================================
+
+  test-coverage:
+    name: 📊 Test Coverage
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: llvm-tools-preview
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
+      - name: Install cargo-llvm-cov
+        run: cargo install cargo-llvm-cov --locked
+
+      - name: Generate coverage
+        env:
+          REDIS_URL: redis://localhost:6379
+        run: |
+          cargo llvm-cov --package riptide-api \
+            --lcov --output-path lcov.info
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: lcov.info
+
+      - name: Display summary
+        run: cargo llvm-cov report --package riptide-api || true
+
+  api-benchmarks:
+    name: ⚡ Benchmarks
+    runs-on: ubuntu-latest
+    needs: [integration-tests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
+      - name: Run benchmarks
+        env:
+          REDIS_URL: redis://localhost:6379
+        run: |
+          if cargo bench --package riptide-api --no-run 2>/dev/null; then
+            cargo bench --package riptide-api -- --output-format bencher | tee benchmark-results.txt
+          else
+            echo "No benchmarks defined for riptide-api"
+          fi
+
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmark-results.txt
+          if-no-files-found: ignore
+
+  # ==========================================
+  # FINAL VALIDATION
+  # ==========================================
+
+  validation-complete:
+    name: ✅ Validation Complete
+    runs-on: ubuntu-latest
+    needs:
+      - static-analysis
+      - unit-tests
+      - integration-tests
+      - contract-validation
+      - fuzzing-tests
+    if: always()
+
+    steps:
+      - name: Check all required jobs
+        run: |
+          echo "🔍 Validating API test results..."
+
+          FAILED=0
+
+          if [[ "${{ needs.static-analysis.result }}" != "success" ]]; then
+            echo "❌ Static analysis failed"
+            FAILED=1
+          fi
+
+          if [[ "${{ needs.unit-tests.result }}" != "success" ]]; then
+            echo "❌ Unit tests failed"
+            FAILED=1
+          fi
+
+          if [[ "${{ needs.integration-tests.result }}" != "success" ]]; then
+            echo "❌ Integration tests failed"
+            FAILED=1
+          fi
+
+          if [[ "${{ needs.contract-validation.result }}" != "success" ]]; then
+            echo "❌ Contract validation failed"
+            FAILED=1
+          fi
+
+          if [[ "${{ needs.fuzzing-tests.result }}" != "success" ]]; then
+            echo "❌ Fuzzing tests failed"
+            FAILED=1
+          fi
+
+          if [[ $FAILED -eq 1 ]]; then
+            echo ""
+            echo "❌ API Validation Pipeline Failed"
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ API Validation Pipeline Passed!"
+          echo "📊 Results Summary:"
+          echo "  • Static Analysis: ✅"
+          echo "  • Unit Tests: ✅"
+          echo "  • Integration Tests: ✅"
+          echo "  • Contract Validation: ✅"
+          echo "  • Fuzzing Tests: ✅"
