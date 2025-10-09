@@ -1,1 +1,546 @@
-//! Backpressure handling for streaming operations\n//!\n//! This module provides sophisticated backpressure control to prevent memory\n//! exhaustion and ensure smooth streaming performance under varying load conditions.\n\nuse crate::{StreamingError, StreamingResult};\nuse std::collections::HashMap;\nuse std::sync::Arc;\nuse std::time::{Duration, Instant};\nuse tokio::sync::{Semaphore, RwLock, mpsc};\nuse uuid::Uuid;\nuse serde::{Deserialize, Serialize};\nuse tokio::time::interval;\n\n/// Backpressure control configuration\n#[derive(Debug, Clone, Serialize, Deserialize)]\npub struct BackpressureConfig {\n    /// Maximum number of items in flight per stream\n    pub max_in_flight: usize,\n    /// Maximum memory usage in bytes\n    pub max_memory_bytes: u64,\n    /// Maximum total items across all streams\n    pub max_total_items: usize,\n    /// Backpressure activation threshold (0.0 - 1.0)\n    pub activation_threshold: f64,\n    /// Recovery threshold (0.0 - 1.0)\n    pub recovery_threshold: f64,\n    /// Check interval for resource monitoring\n    pub check_interval: Duration,\n    /// Enable adaptive backpressure\n    pub adaptive: bool,\n}\n\nimpl Default for BackpressureConfig {\n    fn default() -> Self {\n        Self {\n            max_in_flight: 1000,\n            max_memory_bytes: 100 * 1024 * 1024, // 100 MB\n            max_total_items: 10000,\n            activation_threshold: 0.8,\n            recovery_threshold: 0.6,\n            check_interval: Duration::from_millis(500),\n            adaptive: true,\n        }\n    }\n}\n\n/// Backpressure status\n#[derive(Debug, Clone, Serialize, Deserialize)]\npub enum BackpressureStatus {\n    Normal,\n    Warning,\n    Critical,\n    Throttled,\n}\n\n/// Stream resource usage\n#[derive(Debug, Clone)]\nstruct StreamResources {\n    in_flight_items: usize,\n    memory_usage: u64,\n    last_activity: Instant,\n    throttle_until: Option<Instant>,\n}\n\n/// Backpressure metrics\n#[derive(Debug, Clone, Serialize, Deserialize)]\npub struct BackpressureMetrics {\n    pub total_streams: usize,\n    pub total_in_flight: usize,\n    pub total_memory_usage: u64,\n    pub status: BackpressureStatus,\n    pub throttled_streams: usize,\n    pub rejection_rate: f64,\n    pub average_wait_time: Duration,\n}\n\n/// Backpressure controller for managing resource usage\n#[derive(Debug)]\npub struct BackpressureController {\n    config: BackpressureConfig,\n    stream_resources: Arc<RwLock<HashMap<Uuid, StreamResources>>>,\n    global_semaphore: Arc<Semaphore>,\n    memory_semaphore: Arc<Semaphore>,\n    metrics: Arc<RwLock<BackpressureMetrics>>,\n    rejection_count: Arc<RwLock<u64>>,\n    total_requests: Arc<RwLock<u64>>,\n    wait_times: Arc<RwLock<Vec<Duration>>>,\n}\n\nimpl BackpressureController {\n    /// Create a new backpressure controller\n    pub fn new(config: BackpressureConfig) -> Self {\n        let global_semaphore = Arc::new(Semaphore::new(config.max_total_items));\n        let memory_semaphore = Arc::new(Semaphore::new(\n            (config.max_memory_bytes / 1024) as usize // Convert to KB for semaphore\n        ));\n        \n        let controller = Self {\n            config: config.clone(),\n            stream_resources: Arc::new(RwLock::new(HashMap::new())),\n            global_semaphore,\n            memory_semaphore,\n            metrics: Arc::new(RwLock::new(BackpressureMetrics {\n                total_streams: 0,\n                total_in_flight: 0,\n                total_memory_usage: 0,\n                status: BackpressureStatus::Normal,\n                throttled_streams: 0,\n                rejection_rate: 0.0,\n                average_wait_time: Duration::from_millis(0),\n            })),\n            rejection_count: Arc::new(RwLock::new(0)),\n            total_requests: Arc::new(RwLock::new(0)),\n            wait_times: Arc::new(RwLock::new(Vec::new())),\n        };\n        \n        // Start background monitoring\n        controller.start_monitoring();\n        \n        controller\n    }\n\n    /// Register a new stream\n    pub async fn register_stream(&self, stream_id: Uuid) -> StreamingResult<()> {\n        let mut resources = self.stream_resources.write().await;\n        resources.insert(stream_id, StreamResources {\n            in_flight_items: 0,\n            memory_usage: 0,\n            last_activity: Instant::now(),\n            throttle_until: None,\n        });\n        \n        self.update_metrics().await;\n        Ok(())\n    }\n\n    /// Attempt to acquire resources for processing an item\n    pub async fn acquire(&self, stream_id: Uuid, estimated_memory: u64) -> StreamingResult<BackpressurePermit> {\n        let start_time = Instant::now();\n        *self.total_requests.write().await += 1;\n        \n        // Check if stream is throttled\n        {\n            let resources = self.stream_resources.read().await;\n            if let Some(stream_res) = resources.get(&stream_id) {\n                if let Some(throttle_until) = stream_res.throttle_until {\n                    if Instant::now() < throttle_until {\n                        *self.rejection_count.write().await += 1;\n                        return Err(StreamingError::BackpressureExceeded);\n                    }\n                }\n            }\n        }\n        \n        // Check stream-specific limits\n        {\n            let resources = self.stream_resources.read().await;\n            if let Some(stream_res) = resources.get(&stream_id) {\n                if stream_res.in_flight_items >= self.config.max_in_flight {\n                    *self.rejection_count.write().await += 1;\n                    return Err(StreamingError::BackpressureExceeded);\n                }\n            }\n        }\n        \n        // Try to acquire global semaphore permit\n        let global_permit = match self.global_semaphore.try_acquire() {\n            Ok(permit) => permit,\n            Err(_) => {\n                *self.rejection_count.write().await += 1;\n                return Err(StreamingError::BackpressureExceeded);\n            }\n        };\n        \n        // Try to acquire memory permit\n        let memory_kb = (estimated_memory / 1024).max(1) as usize;\n        let memory_permit = match self.memory_semaphore.try_acquire_many(memory_kb as u32) {\n            Ok(permit) => Some(permit),\n            Err(_) => {\n                // Release global permit and reject\n                drop(global_permit);\n                *self.rejection_count.write().await += 1;\n                return Err(StreamingError::BackpressureExceeded);\n            }\n        };\n        \n        // Update stream resources\n        {\n            let mut resources = self.stream_resources.write().await;\n            if let Some(stream_res) = resources.get_mut(&stream_id) {\n                stream_res.in_flight_items += 1;\n                stream_res.memory_usage += estimated_memory;\n                stream_res.last_activity = Instant::now();\n            }\n        }\n        \n        // Record wait time\n        let wait_time = start_time.elapsed();\n        {\n            let mut wait_times = self.wait_times.write().await;\n            wait_times.push(wait_time);\n            if wait_times.len() > 1000 {\n                wait_times.remove(0);\n            }\n        }\n        \n        self.update_metrics().await;\n        \n        Ok(BackpressurePermit {\n            stream_id,\n            estimated_memory,\n            controller: self.clone(),\n            _global_permit: global_permit,\n            _memory_permit: memory_permit,\n        })\n    }\n\n    /// Release resources for a stream\n    pub async fn release(&self, stream_id: Uuid, actual_memory: u64) {\n        let mut resources = self.stream_resources.write().await;\n        if let Some(stream_res) = resources.get_mut(&stream_id) {\n            stream_res.in_flight_items = stream_res.in_flight_items.saturating_sub(1);\n            stream_res.memory_usage = stream_res.memory_usage.saturating_sub(actual_memory);\n            stream_res.last_activity = Instant::now();\n        }\n        \n        drop(resources);\n        self.update_metrics().await;\n    }\n\n    /// Unregister a stream\n    pub async fn unregister_stream(&self, stream_id: Uuid) {\n        let mut resources = self.stream_resources.write().await;\n        resources.remove(&stream_id);\n        drop(resources);\n        self.update_metrics().await;\n    }\n\n    /// Get current backpressure metrics\n    pub async fn get_metrics(&self) -> BackpressureMetrics {\n        let metrics = self.metrics.read().await;\n        metrics.clone()\n    }\n\n    /// Update internal metrics\n    async fn update_metrics(&self) {\n        let resources = self.stream_resources.read().await;\n        \n        let total_streams = resources.len();\n        let total_in_flight = resources.values().map(|r| r.in_flight_items).sum();\n        let total_memory_usage = resources.values().map(|r| r.memory_usage).sum();\n        let throttled_streams = resources.values()\n            .filter(|r| r.throttle_until.map_or(false, |t| Instant::now() < t))\n            .count();\n        \n        // Calculate rejection rate\n        let rejections = *self.rejection_count.read().await;\n        let total_reqs = *self.total_requests.read().await;\n        let rejection_rate = if total_reqs > 0 {\n            rejections as f64 / total_reqs as f64\n        } else {\n            0.0\n        };\n        \n        // Calculate average wait time\n        let wait_times = self.wait_times.read().await;\n        let average_wait_time = if !wait_times.is_empty() {\n            let total: Duration = wait_times.iter().sum();\n            total / wait_times.len() as u32\n        } else {\n            Duration::from_millis(0)\n        };\n        \n        // Determine status\n        let memory_usage_ratio = total_memory_usage as f64 / self.config.max_memory_bytes as f64;\n        let items_usage_ratio = total_in_flight as f64 / self.config.max_total_items as f64;\n        let max_usage = memory_usage_ratio.max(items_usage_ratio);\n        \n        let status = if max_usage >= self.config.activation_threshold {\n            if max_usage >= 0.95 {\n                BackpressureStatus::Critical\n            } else {\n                BackpressureStatus::Throttled\n            }\n        } else if max_usage >= 0.7 {\n            BackpressureStatus::Warning\n        } else {\n            BackpressureStatus::Normal\n        };\n        \n        let mut metrics = self.metrics.write().await;\n        *metrics = BackpressureMetrics {\n            total_streams,\n            total_in_flight,\n            total_memory_usage,\n            status,\n            throttled_streams,\n            rejection_rate,\n            average_wait_time,\n        };\n    }\n\n    /// Start background monitoring task\n    fn start_monitoring(&self) {\n        let controller = self.clone();\n        tokio::spawn(async move {\n            let mut interval = interval(controller.config.check_interval);\n            \n            loop {\n                interval.tick().await;\n                controller.monitor_and_adjust().await;\n            }\n        });\n    }\n\n    /// Monitor resources and adjust throttling\n    async fn monitor_and_adjust(&self) {\n        if !self.config.adaptive {\n            return;\n        }\n        \n        let metrics = self.get_metrics().await;\n        let now = Instant::now();\n        \n        // Clean up old streams\n        {\n            let mut resources = self.stream_resources.write().await;\n            let inactive_streams: Vec<Uuid> = resources\n                .iter()\n                .filter(|(_, res)| now.duration_since(res.last_activity) > Duration::from_secs(300))\n                .map(|(id, _)| *id)\n                .collect();\n            \n            for stream_id in inactive_streams {\n                resources.remove(&stream_id);\n            }\n        }\n        \n        // Adjust throttling based on current load\n        match metrics.status {\n            BackpressureStatus::Critical => {\n                self.apply_throttling(Duration::from_secs(5)).await;\n            }\n            BackpressureStatus::Throttled => {\n                self.apply_throttling(Duration::from_secs(2)).await;\n            }\n            BackpressureStatus::Warning => {\n                self.apply_throttling(Duration::from_millis(500)).await;\n            }\n            BackpressureStatus::Normal => {\n                self.clear_throttling().await;\n            }\n        }\n    }\n\n    /// Apply throttling to all streams\n    async fn apply_throttling(&self, duration: Duration) {\n        let mut resources = self.stream_resources.write().await;\n        let throttle_until = Instant::now() + duration;\n        \n        for stream_res in resources.values_mut() {\n            stream_res.throttle_until = Some(throttle_until);\n        }\n    }\n\n    /// Clear throttling from all streams\n    async fn clear_throttling(&self) {\n        let mut resources = self.stream_resources.write().await;\n        \n        for stream_res in resources.values_mut() {\n            stream_res.throttle_until = None;\n        }\n    }\n}\n\nimpl Clone for BackpressureController {\n    fn clone(&self) -> Self {\n        Self {\n            config: self.config.clone(),\n            stream_resources: Arc::clone(&self.stream_resources),\n            global_semaphore: Arc::clone(&self.global_semaphore),\n            memory_semaphore: Arc::clone(&self.memory_semaphore),\n            metrics: Arc::clone(&self.metrics),\n            rejection_count: Arc::clone(&self.rejection_count),\n            total_requests: Arc::clone(&self.total_requests),\n            wait_times: Arc::clone(&self.wait_times),\n        }\n    }\n}\n\n/// Permit for processing an item with backpressure control\npub struct BackpressurePermit {\n    stream_id: Uuid,\n    estimated_memory: u64,\n    controller: BackpressureController,\n    _global_permit: tokio::sync::SemaphorePermit<'static>,\n    _memory_permit: Option<tokio::sync::SemaphorePermit<'static>>,\n}\n\nimpl BackpressurePermit {\n    /// Get the stream ID this permit is for\n    pub fn stream_id(&self) -> Uuid {\n        self.stream_id\n    }\n    \n    /// Get the estimated memory usage\n    pub fn estimated_memory(&self) -> u64 {\n        self.estimated_memory\n    }\n}\n\nimpl Drop for BackpressurePermit {\n    fn drop(&mut self) {\n        let controller = self.controller.clone();\n        let stream_id = self.stream_id;\n        let memory = self.estimated_memory;\n        \n        tokio::spawn(async move {\n            controller.release(stream_id, memory).await;\n        });\n    }\n}\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n    use tokio::time::sleep;\n\n    #[tokio::test]\n    async fn test_backpressure_controller_creation() {\n        let config = BackpressureConfig::default();\n        let controller = BackpressureController::new(config);\n        \n        let metrics = controller.get_metrics().await;\n        assert_eq!(metrics.total_streams, 0);\n        assert!(matches!(metrics.status, BackpressureStatus::Normal));\n    }\n\n    #[tokio::test]\n    async fn test_stream_registration() {\n        let config = BackpressureConfig::default();\n        let controller = BackpressureController::new(config);\n        let stream_id = Uuid::new_v4();\n        \n        controller.register_stream(stream_id).await.unwrap();\n        \n        let metrics = controller.get_metrics().await;\n        assert_eq!(metrics.total_streams, 1);\n    }\n\n    #[tokio::test]\n    async fn test_resource_acquisition() {\n        let config = BackpressureConfig::default();\n        let controller = BackpressureController::new(config);\n        let stream_id = Uuid::new_v4();\n        \n        controller.register_stream(stream_id).await.unwrap();\n        \n        let permit = controller.acquire(stream_id, 1024).await.unwrap();\n        assert_eq!(permit.stream_id(), stream_id);\n        assert_eq!(permit.estimated_memory(), 1024);\n        \n        let metrics = controller.get_metrics().await;\n        assert_eq!(metrics.total_in_flight, 1);\n        \n        drop(permit);\n        \n        // Wait for cleanup\n        sleep(Duration::from_millis(10)).await;\n        \n        let metrics = controller.get_metrics().await;\n        assert_eq!(metrics.total_in_flight, 0);\n    }\n\n    #[tokio::test]\n    async fn test_backpressure_limits() {\n        let config = BackpressureConfig {\n            max_in_flight: 2,\n            max_total_items: 2,\n            ..Default::default()\n        };\n        let controller = BackpressureController::new(config);\n        let stream_id = Uuid::new_v4();\n        \n        controller.register_stream(stream_id).await.unwrap();\n        \n        // Acquire maximum permits\n        let _permit1 = controller.acquire(stream_id, 1024).await.unwrap();\n        let _permit2 = controller.acquire(stream_id, 1024).await.unwrap();\n        \n        // Third acquisition should fail\n        let result = controller.acquire(stream_id, 1024).await;\n        assert!(result.is_err());\n        assert!(matches!(result.unwrap_err(), StreamingError::BackpressureExceeded));\n    }\n\n    #[tokio::test]\n    async fn test_memory_limits() {\n        let config = BackpressureConfig {\n            max_memory_bytes: 2048, // 2KB\n            ..Default::default()\n        };\n        let controller = BackpressureController::new(config);\n        let stream_id = Uuid::new_v4();\n        \n        controller.register_stream(stream_id).await.unwrap();\n        \n        // Acquire permit using all available memory\n        let _permit1 = controller.acquire(stream_id, 2048).await.unwrap();\n        \n        // Second acquisition should fail due to memory limit\n        let result = controller.acquire(stream_id, 1024).await;\n        assert!(result.is_err());\n    }\n\n    #[tokio::test]\n    async fn test_metrics_calculation() {\n        let config = BackpressureConfig::default();\n        let controller = BackpressureController::new(config);\n        let stream_id = Uuid::new_v4();\n        \n        controller.register_stream(stream_id).await.unwrap();\n        \n        let _permit = controller.acquire(stream_id, 1024).await.unwrap();\n        \n        let metrics = controller.get_metrics().await;\n        assert_eq!(metrics.total_streams, 1);\n        assert_eq!(metrics.total_in_flight, 1);\n        assert_eq!(metrics.total_memory_usage, 1024);\n    }\n}\n"
+//! Backpressure handling for streaming operations
+//!
+//! This module provides sophisticated backpressure control to prevent memory
+//! exhaustion and ensure smooth streaming performance under varying load conditions.
+
+use crate::{StreamingError, StreamingResult};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+use tokio::sync::{RwLock, Semaphore};
+use tokio::time::interval;
+use uuid::Uuid;
+
+/// Backpressure control configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackpressureConfig {
+    /// Maximum number of items in flight per stream
+    pub max_in_flight: usize,
+    /// Maximum memory usage in bytes
+    pub max_memory_bytes: u64,
+    /// Maximum total items across all streams
+    pub max_total_items: usize,
+    /// Backpressure activation threshold (0.0 - 1.0)
+    pub activation_threshold: f64,
+    /// Recovery threshold (0.0 - 1.0)
+    pub recovery_threshold: f64,
+    /// Check interval for resource monitoring
+    pub check_interval: Duration,
+    /// Enable adaptive backpressure
+    pub adaptive: bool,
+}
+
+impl Default for BackpressureConfig {
+    fn default() -> Self {
+        Self {
+            max_in_flight: 1000,
+            max_memory_bytes: 100 * 1024 * 1024, // 100 MB
+            max_total_items: 10000,
+            activation_threshold: 0.8,
+            recovery_threshold: 0.6,
+            check_interval: Duration::from_millis(500),
+            adaptive: true,
+        }
+    }
+}
+
+/// Backpressure status
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum BackpressureStatus {
+    Normal,
+    Warning,
+    Critical,
+    Throttled,
+}
+
+/// Stream resource usage
+#[derive(Debug, Clone)]
+struct StreamResources {
+    in_flight_items: usize,
+    memory_usage: u64,
+    last_activity: Instant,
+    throttle_until: Option<Instant>,
+}
+
+/// Backpressure metrics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackpressureMetrics {
+    pub total_streams: usize,
+    pub total_in_flight: usize,
+    pub total_memory_usage: u64,
+    pub status: BackpressureStatus,
+    pub throttled_streams: usize,
+    pub rejection_rate: f64,
+    pub average_wait_time: Duration,
+}
+
+/// Backpressure controller for managing resource usage
+#[derive(Debug)]
+pub struct BackpressureController {
+    config: BackpressureConfig,
+    stream_resources: Arc<RwLock<HashMap<Uuid, StreamResources>>>,
+    global_semaphore: Arc<Semaphore>,
+    memory_semaphore: Arc<Semaphore>,
+    metrics: Arc<RwLock<BackpressureMetrics>>,
+    rejection_count: Arc<RwLock<u64>>,
+    total_requests: Arc<RwLock<u64>>,
+    wait_times: Arc<RwLock<Vec<Duration>>>,
+}
+
+impl BackpressureController {
+    /// Create a new backpressure controller
+    pub fn new(config: BackpressureConfig) -> Self {
+        let global_semaphore = Arc::new(Semaphore::new(config.max_total_items));
+        let memory_semaphore = Arc::new(Semaphore::new(
+            (config.max_memory_bytes / 1024) as usize, // Convert to KB for semaphore
+        ));
+
+        let controller = Self {
+            config: config.clone(),
+            stream_resources: Arc::new(RwLock::new(HashMap::new())),
+            global_semaphore,
+            memory_semaphore,
+            metrics: Arc::new(RwLock::new(BackpressureMetrics {
+                total_streams: 0,
+                total_in_flight: 0,
+                total_memory_usage: 0,
+                status: BackpressureStatus::Normal,
+                throttled_streams: 0,
+                rejection_rate: 0.0,
+                average_wait_time: Duration::from_millis(0),
+            })),
+            rejection_count: Arc::new(RwLock::new(0)),
+            total_requests: Arc::new(RwLock::new(0)),
+            wait_times: Arc::new(RwLock::new(Vec::new())),
+        };
+
+        // Start background monitoring
+        controller.start_monitoring();
+
+        controller
+    }
+
+    /// Register a new stream
+    pub async fn register_stream(&self, stream_id: Uuid) -> StreamingResult<()> {
+        let mut resources = self.stream_resources.write().await;
+        resources.insert(
+            stream_id,
+            StreamResources {
+                in_flight_items: 0,
+                memory_usage: 0,
+                last_activity: Instant::now(),
+                throttle_until: None,
+            },
+        );
+
+        self.update_metrics().await;
+        Ok(())
+    }
+
+    /// Attempt to acquire resources for processing an item
+    pub async fn acquire(
+        &self,
+        stream_id: Uuid,
+        estimated_memory: u64,
+    ) -> StreamingResult<BackpressurePermit> {
+        let start_time = Instant::now();
+        *self.total_requests.write().await += 1;
+
+        // Check if stream is throttled
+        {
+            let resources = self.stream_resources.read().await;
+            if let Some(stream_res) = resources.get(&stream_id) {
+                if let Some(throttle_until) = stream_res.throttle_until {
+                    if Instant::now() < throttle_until {
+                        *self.rejection_count.write().await += 1;
+                        return Err(StreamingError::BackpressureExceeded);
+                    }
+                }
+            }
+        }
+
+        // Check stream-specific limits
+        {
+            let resources = self.stream_resources.read().await;
+            if let Some(stream_res) = resources.get(&stream_id) {
+                if stream_res.in_flight_items >= self.config.max_in_flight {
+                    *self.rejection_count.write().await += 1;
+                    return Err(StreamingError::BackpressureExceeded);
+                }
+            }
+        }
+
+        // Try to acquire global semaphore permit (owned to avoid lifetime issues)
+        let global_permit = match Arc::clone(&self.global_semaphore).try_acquire_owned() {
+            Ok(permit) => permit,
+            Err(_) => {
+                *self.rejection_count.write().await += 1;
+                return Err(StreamingError::BackpressureExceeded);
+            }
+        };
+
+        // Try to acquire memory permit (owned to avoid lifetime issues)
+        let memory_kb = (estimated_memory / 1024).max(1) as usize;
+        let memory_permit =
+            match Arc::clone(&self.memory_semaphore).try_acquire_many_owned(memory_kb as u32) {
+                Ok(permit) => Some(permit),
+                Err(_) => {
+                    // Release global permit and reject
+                    drop(global_permit);
+                    *self.rejection_count.write().await += 1;
+                    return Err(StreamingError::BackpressureExceeded);
+                }
+            };
+
+        // Update stream resources
+        {
+            let mut resources = self.stream_resources.write().await;
+            if let Some(stream_res) = resources.get_mut(&stream_id) {
+                stream_res.in_flight_items += 1;
+                stream_res.memory_usage += estimated_memory;
+                stream_res.last_activity = Instant::now();
+            }
+        }
+
+        // Record wait time
+        let wait_time = start_time.elapsed();
+        {
+            let mut wait_times = self.wait_times.write().await;
+            wait_times.push(wait_time);
+            if wait_times.len() > 1000 {
+                wait_times.remove(0);
+            }
+        }
+
+        self.update_metrics().await;
+
+        Ok(BackpressurePermit {
+            stream_id,
+            estimated_memory,
+            controller: self.clone(),
+            _global_permit: global_permit,
+            _memory_permit: memory_permit,
+        })
+    }
+
+    /// Release resources for a stream
+    pub async fn release(&self, stream_id: Uuid, actual_memory: u64) {
+        let mut resources = self.stream_resources.write().await;
+        if let Some(stream_res) = resources.get_mut(&stream_id) {
+            stream_res.in_flight_items = stream_res.in_flight_items.saturating_sub(1);
+            stream_res.memory_usage = stream_res.memory_usage.saturating_sub(actual_memory);
+            stream_res.last_activity = Instant::now();
+        }
+
+        drop(resources);
+        self.update_metrics().await;
+    }
+
+    /// Unregister a stream
+    pub async fn unregister_stream(&self, stream_id: Uuid) {
+        let mut resources = self.stream_resources.write().await;
+        resources.remove(&stream_id);
+        drop(resources);
+        self.update_metrics().await;
+    }
+
+    /// Get current backpressure metrics
+    pub async fn get_metrics(&self) -> BackpressureMetrics {
+        let metrics = self.metrics.read().await;
+        metrics.clone()
+    }
+
+    /// Update internal metrics
+    async fn update_metrics(&self) {
+        let resources = self.stream_resources.read().await;
+
+        let total_streams = resources.len();
+        let total_in_flight = resources.values().map(|r| r.in_flight_items).sum();
+        let total_memory_usage = resources.values().map(|r| r.memory_usage).sum();
+        let throttled_streams = resources
+            .values()
+            .filter(|r| r.throttle_until.map_or(false, |t| Instant::now() < t))
+            .count();
+
+        // Calculate rejection rate
+        let rejections = *self.rejection_count.read().await;
+        let total_reqs = *self.total_requests.read().await;
+        let rejection_rate = if total_reqs > 0 {
+            rejections as f64 / total_reqs as f64
+        } else {
+            0.0
+        };
+
+        // Calculate average wait time
+        let wait_times = self.wait_times.read().await;
+        let average_wait_time = if !wait_times.is_empty() {
+            let total: Duration = wait_times.iter().sum();
+            total / wait_times.len() as u32
+        } else {
+            Duration::from_millis(0)
+        };
+
+        // Determine status
+        let memory_usage_ratio = total_memory_usage as f64 / self.config.max_memory_bytes as f64;
+        let items_usage_ratio = total_in_flight as f64 / self.config.max_total_items as f64;
+        let max_usage = memory_usage_ratio.max(items_usage_ratio);
+
+        let status = if max_usage >= self.config.activation_threshold {
+            if max_usage >= 0.95 {
+                BackpressureStatus::Critical
+            } else {
+                BackpressureStatus::Throttled
+            }
+        } else if max_usage >= 0.7 {
+            BackpressureStatus::Warning
+        } else {
+            BackpressureStatus::Normal
+        };
+
+        let mut metrics = self.metrics.write().await;
+        *metrics = BackpressureMetrics {
+            total_streams,
+            total_in_flight,
+            total_memory_usage,
+            status,
+            throttled_streams,
+            rejection_rate,
+            average_wait_time,
+        };
+    }
+
+    /// Start background monitoring task
+    fn start_monitoring(&self) {
+        let controller = self.clone();
+        tokio::spawn(async move {
+            let mut interval = interval(controller.config.check_interval);
+
+            loop {
+                interval.tick().await;
+                controller.monitor_and_adjust().await;
+            }
+        });
+    }
+
+    /// Monitor resources and adjust throttling
+    async fn monitor_and_adjust(&self) {
+        if !self.config.adaptive {
+            return;
+        }
+
+        let metrics = self.get_metrics().await;
+        let now = Instant::now();
+
+        // Clean up old streams
+        {
+            let mut resources = self.stream_resources.write().await;
+            let inactive_streams: Vec<Uuid> = resources
+                .iter()
+                .filter(|(_, res)| now.duration_since(res.last_activity) > Duration::from_secs(300))
+                .map(|(id, _)| *id)
+                .collect();
+
+            for stream_id in inactive_streams {
+                resources.remove(&stream_id);
+            }
+        }
+
+        // Adjust throttling based on current load
+        match metrics.status {
+            BackpressureStatus::Critical => {
+                self.apply_throttling(Duration::from_secs(5)).await;
+            }
+            BackpressureStatus::Throttled => {
+                self.apply_throttling(Duration::from_secs(2)).await;
+            }
+            BackpressureStatus::Warning => {
+                self.apply_throttling(Duration::from_millis(500)).await;
+            }
+            BackpressureStatus::Normal => {
+                self.clear_throttling().await;
+            }
+        }
+    }
+
+    /// Apply throttling to all streams
+    async fn apply_throttling(&self, duration: Duration) {
+        let mut resources = self.stream_resources.write().await;
+        let throttle_until = Instant::now() + duration;
+
+        for stream_res in resources.values_mut() {
+            stream_res.throttle_until = Some(throttle_until);
+        }
+    }
+
+    /// Clear throttling from all streams
+    async fn clear_throttling(&self) {
+        let mut resources = self.stream_resources.write().await;
+
+        for stream_res in resources.values_mut() {
+            stream_res.throttle_until = None;
+        }
+    }
+}
+
+impl Clone for BackpressureController {
+    fn clone(&self) -> Self {
+        Self {
+            config: self.config.clone(),
+            stream_resources: Arc::clone(&self.stream_resources),
+            global_semaphore: Arc::clone(&self.global_semaphore),
+            memory_semaphore: Arc::clone(&self.memory_semaphore),
+            metrics: Arc::clone(&self.metrics),
+            rejection_count: Arc::clone(&self.rejection_count),
+            total_requests: Arc::clone(&self.total_requests),
+            wait_times: Arc::clone(&self.wait_times),
+        }
+    }
+}
+
+/// Permit for processing an item with backpressure control
+#[derive(Debug)]
+pub struct BackpressurePermit {
+    stream_id: Uuid,
+    estimated_memory: u64,
+    #[allow(dead_code)]
+    controller: BackpressureController,
+    _global_permit: tokio::sync::OwnedSemaphorePermit,
+    _memory_permit: Option<tokio::sync::OwnedSemaphorePermit>,
+}
+
+impl BackpressurePermit {
+    /// Get the stream ID this permit is for
+    pub fn stream_id(&self) -> Uuid {
+        self.stream_id
+    }
+
+    /// Get the estimated memory usage
+    pub fn estimated_memory(&self) -> u64 {
+        self.estimated_memory
+    }
+}
+
+impl Drop for BackpressurePermit {
+    fn drop(&mut self) {
+        let controller = self.controller.clone();
+        let stream_id = self.stream_id;
+        let memory = self.estimated_memory;
+
+        tokio::spawn(async move {
+            controller.release(stream_id, memory).await;
+        });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::time::sleep;
+
+    #[tokio::test]
+    async fn test_backpressure_controller_creation() {
+        let config = BackpressureConfig::default();
+        let controller = BackpressureController::new(config);
+
+        let metrics = controller.get_metrics().await;
+        assert_eq!(metrics.total_streams, 0);
+        assert!(matches!(metrics.status, BackpressureStatus::Normal));
+    }
+
+    #[tokio::test]
+    async fn test_stream_registration() {
+        let config = BackpressureConfig::default();
+        let controller = BackpressureController::new(config);
+        let stream_id = Uuid::new_v4();
+
+        controller.register_stream(stream_id).await.unwrap();
+
+        let metrics = controller.get_metrics().await;
+        assert_eq!(metrics.total_streams, 1);
+    }
+
+    #[tokio::test]
+    async fn test_resource_acquisition() {
+        let config = BackpressureConfig::default();
+        let controller = BackpressureController::new(config);
+        let stream_id = Uuid::new_v4();
+
+        controller.register_stream(stream_id).await.unwrap();
+
+        let permit = controller.acquire(stream_id, 1024).await.unwrap();
+        assert_eq!(permit.stream_id(), stream_id);
+        assert_eq!(permit.estimated_memory(), 1024);
+
+        let metrics = controller.get_metrics().await;
+        assert_eq!(metrics.total_in_flight, 1);
+
+        drop(permit);
+
+        // Wait for cleanup
+        sleep(Duration::from_millis(10)).await;
+
+        let metrics = controller.get_metrics().await;
+        assert_eq!(metrics.total_in_flight, 0);
+    }
+
+    #[tokio::test]
+    async fn test_backpressure_limits() {
+        let config = BackpressureConfig {
+            max_in_flight: 2,
+            max_total_items: 2,
+            ..Default::default()
+        };
+        let controller = BackpressureController::new(config);
+        let stream_id = Uuid::new_v4();
+
+        controller.register_stream(stream_id).await.unwrap();
+
+        // Acquire maximum permits
+        let _permit1 = controller.acquire(stream_id, 1024).await.unwrap();
+        let _permit2 = controller.acquire(stream_id, 1024).await.unwrap();
+
+        // Third acquisition should fail
+        let result = controller.acquire(stream_id, 1024).await;
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            StreamingError::BackpressureExceeded
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_memory_limits() {
+        let config = BackpressureConfig {
+            max_memory_bytes: 2048, // 2KB
+            ..Default::default()
+        };
+        let controller = BackpressureController::new(config);
+        let stream_id = Uuid::new_v4();
+
+        controller.register_stream(stream_id).await.unwrap();
+
+        // Acquire permit using all available memory
+        let _permit1 = controller.acquire(stream_id, 2048).await.unwrap();
+
+        // Second acquisition should fail due to memory limit
+        let result = controller.acquire(stream_id, 1024).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_metrics_calculation() {
+        let config = BackpressureConfig::default();
+        let controller = BackpressureController::new(config);
+        let stream_id = Uuid::new_v4();
+
+        controller.register_stream(stream_id).await.unwrap();
+
+        let _permit = controller.acquire(stream_id, 1024).await.unwrap();
+
+        let metrics = controller.get_metrics().await;
+        assert_eq!(metrics.total_streams, 1);
+        assert_eq!(metrics.total_in_flight, 1);
+        assert_eq!(metrics.total_memory_usage, 1024);
+    }
+}

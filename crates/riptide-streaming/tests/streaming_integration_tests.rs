@@ -3,6 +3,8 @@
 //! Tests for streaming coordinator, progress tracking, and backpressure control
 
 use riptide_streaming::*;
+// Import backpressure types from the backpressure module (not config module)
+use riptide_streaming::backpressure;
 use uuid::Uuid;
 
 #[tokio::test]
@@ -69,14 +71,14 @@ async fn test_progress_tracker_integration() {
 
 #[tokio::test]
 async fn test_backpressure_controller_integration() {
-    let config = BackpressureConfig {
+    let config = backpressure::BackpressureConfig {
         max_in_flight: 5,
         max_total_items: 10,
         max_memory_bytes: 1024 * 1024, // 1MB
         ..Default::default()
     };
 
-    let controller = BackpressureController::new(config);
+    let controller = backpressure::BackpressureController::new(config);
     let stream_id = Uuid::new_v4();
 
     // Register stream
@@ -146,12 +148,12 @@ async fn test_error_handling() {
     assert!(result.is_none());
 
     // Test backpressure exceeded error
-    let config = BackpressureConfig {
+    let config = backpressure::BackpressureConfig {
         max_in_flight: 1,
         max_total_items: 1,
         ..Default::default()
     };
-    let controller = BackpressureController::new(config);
+    let controller = backpressure::BackpressureController::new(config);
     let stream_id = Uuid::new_v4();
 
     controller.register_stream(stream_id).await.unwrap();
