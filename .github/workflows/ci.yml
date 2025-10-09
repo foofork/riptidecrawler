@@ -102,7 +102,18 @@ jobs:
           cargo build --release -p riptide-workers
 
           echo ""
-          echo "✅ Build completed. Listing target/release contents:"
+          echo "✅ Build completed. Detecting binary location..."
+
+          # Cargo may build to target/release or target/<triple>/release depending on configuration
+          # Find the actual location and copy binaries to standard location
+          if [ -f "target/x86_64-unknown-linux-gnu/release/riptide-api" ]; then
+            echo "Found binaries in target/x86_64-unknown-linux-gnu/release/"
+            mkdir -p target/release
+            cp target/x86_64-unknown-linux-gnu/release/riptide-{api,headless,workers} target/release/
+            echo "Copied binaries to target/release/"
+          fi
+
+          echo "Final binary listing:"
           ls -lah target/release/ | grep -E "^-.*riptide-" || echo "No riptide binaries found!"
 
       - name: Build WASM component with caching
