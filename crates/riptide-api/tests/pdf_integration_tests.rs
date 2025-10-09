@@ -178,6 +178,7 @@ startxref\n\
             self.get_peak_memory().saturating_sub(self.initial_memory)
         }
 
+        #[allow(dead_code)]
         pub async fn get_average_memory(&self) -> u64 {
             let measurements = self.measurements.lock().await;
             if measurements.is_empty() {
@@ -232,6 +233,7 @@ startxref\n\
             self.start.elapsed()
         }
 
+        #[allow(dead_code)]
         pub fn get_checkpoint_durations(&self) -> Vec<(String, Duration)> {
             let mut results = Vec::new();
             let mut last_time = self.start;
