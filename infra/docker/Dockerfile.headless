@@ -14,6 +14,7 @@ COPY Cargo.toml Cargo.lock ./
 
 # Create directory structure and copy Cargo.toml files for all crates
 RUN mkdir -p crates/riptide-core/src \
+    crates/riptide-core/benches \
     crates/riptide-api/src \
     crates/riptide-headless/src \
     crates/riptide-workers/src \
@@ -44,6 +45,7 @@ COPY wasm/riptide-extractor-wasm/Cargo.toml wasm/riptide-extractor-wasm/
 
 # Create stub source files for dependency pre-building
 RUN echo "fn main() {}" > crates/riptide-core/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-core/benches/performance_benches.rs && \
     echo "fn main() {}" > crates/riptide-api/src/main.rs && \
     echo "fn main() {}" > crates/riptide-headless/src/main.rs && \
     echo "fn main() {}" > crates/riptide-workers/src/lib.rs && \
