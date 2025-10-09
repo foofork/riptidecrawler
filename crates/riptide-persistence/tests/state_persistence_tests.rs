@@ -27,7 +27,7 @@ fn init_test_logging() {
 
 /// Create test state manager with spillover enabled
 async fn create_test_state_manager(
-    temp_dir: &TempDir,
+    _temp_dir: &TempDir,
 ) -> Result<StateManager, Box<dyn std::error::Error>> {
     init_test_logging();
 

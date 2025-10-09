@@ -330,7 +330,8 @@ jobs:
         run: |
           echo "Verifying downloaded WASM artifacts..."
           ls -lah wasm-dist/
-          if [[ ! -f wasm-dist/*.wasm ]]; then
+          # Check if any .wasm files exist (use compgen for glob)
+          if ! compgen -G "wasm-dist/*.wasm" > /dev/null; then
             echo "❌ ERROR: No WASM files found in wasm-dist/"
             exit 1
           fi
