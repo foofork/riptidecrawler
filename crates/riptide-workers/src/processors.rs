@@ -803,14 +803,40 @@ pub struct PdfExtractionStats {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use riptide_core::cache::CacheManager;
+    use riptide_core::extract::WasmExtractor;
+    use riptide_core::types::ExtractedDoc;
 
-    #[test]
-    #[allow(invalid_value)] // Using unsafe zeroed for test mocks
-    fn test_batch_crawl_processor_name() {
+    /// Simple mock extractor for testing processor metadata
+    struct MockWasmExtractor;
+
+    impl WasmExtractor for MockWasmExtractor {
+        fn extract(&self, _html: &[u8], url: &str, _mode: &str) -> Result<ExtractedDoc> {
+            Ok(ExtractedDoc {
+                url: url.to_string(),
+                title: Some("Mock Title".to_string()),
+                text: "Mock content".to_string(),
+                ..Default::default()
+            })
+        }
+    }
+
+    #[tokio::test]
+    async fn test_batch_crawl_processor_name() {
+        // Create cache manager for testing (may fail if Redis unavailable)
+        let cache = match CacheManager::new("redis://localhost:6379").await {
+            Ok(cm) => Arc::new(tokio::sync::Mutex::new(cm)),
+            Err(_) => {
+                // Skip test if Redis not available
+                eprintln!("⚠️  Skipping test - Redis not available");
+                return;
+            }
+        };
+
         let processor = BatchCrawlProcessor {
             http_client: reqwest::Client::new(),
-            extractor: Arc::new(unsafe { std::mem::zeroed() }), // Mock for test
-            cache: Arc::new(tokio::sync::Mutex::new(unsafe { std::mem::zeroed() })), // Mock for test
+            extractor: Arc::new(MockWasmExtractor),
+            cache,
             max_batch_size: 100,
             max_concurrency: 10,
         };
