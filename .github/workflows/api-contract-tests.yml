@@ -66,7 +66,19 @@ jobs:
           API_HOST: 0.0.0.0
           API_PORT: 8080
         run: |
-          ./target/release/riptide-api > api.log 2>&1 &
+          # Find binary location (could be in target/release or target/<triple>/release)
+          if [ -f "target/x86_64-unknown-linux-gnu/release/riptide-api" ]; then
+            BINARY_PATH="target/x86_64-unknown-linux-gnu/release/riptide-api"
+          elif [ -f "target/release/riptide-api" ]; then
+            BINARY_PATH="target/release/riptide-api"
+          else
+            echo "❌ ERROR: riptide-api binary not found in expected locations"
+            echo "Checked: target/x86_64-unknown-linux-gnu/release/ and target/release/"
+            find target -name "riptide-api" -type f || echo "No riptide-api binary found anywhere in target/"
+            exit 1
+          fi
+          echo "Starting API from: $BINARY_PATH"
+          ./$BINARY_PATH > api.log 2>&1 &
           API_PID=$!
           echo "API_PID=$API_PID" >> $GITHUB_ENV
           echo "Started API with PID: $API_PID"
@@ -169,7 +181,19 @@ jobs:
           API_HOST: 0.0.0.0
           API_PORT: 8080
         run: |
-          ./target/release/riptide-api > api.log 2>&1 &
+          # Find binary location (could be in target/release or target/<triple>/release)
+          if [ -f "target/x86_64-unknown-linux-gnu/release/riptide-api" ]; then
+            BINARY_PATH="target/x86_64-unknown-linux-gnu/release/riptide-api"
+          elif [ -f "target/release/riptide-api" ]; then
+            BINARY_PATH="target/release/riptide-api"
+          else
+            echo "❌ ERROR: riptide-api binary not found in expected locations"
+            echo "Checked: target/x86_64-unknown-linux-gnu/release/ and target/release/"
+            find target -name "riptide-api" -type f || echo "No riptide-api binary found anywhere in target/"
+            exit 1
+          fi
+          echo "Starting API from: $BINARY_PATH"
+          ./$BINARY_PATH > api.log 2>&1 &
           API_PID=$!
           echo "API_PID=$API_PID" >> $GITHUB_ENV
           echo "Started API with PID: $API_PID"
@@ -296,7 +320,19 @@ jobs:
           API_HOST: 0.0.0.0
           API_PORT: 8080
         run: |
-          ./target/release/riptide-api > api.log 2>&1 &
+          # Find binary location (could be in target/release or target/<triple>/release)
+          if [ -f "target/x86_64-unknown-linux-gnu/release/riptide-api" ]; then
+            BINARY_PATH="target/x86_64-unknown-linux-gnu/release/riptide-api"
+          elif [ -f "target/release/riptide-api" ]; then
+            BINARY_PATH="target/release/riptide-api"
+          else
+            echo "❌ ERROR: riptide-api binary not found in expected locations"
+            echo "Checked: target/x86_64-unknown-linux-gnu/release/ and target/release/"
+            find target -name "riptide-api" -type f || echo "No riptide-api binary found anywhere in target/"
+            exit 1
+          fi
+          echo "Starting API from: $BINARY_PATH"
+          ./$BINARY_PATH > api.log 2>&1 &
           API_PID=$!
           echo "API_PID=$API_PID" >> $GITHUB_ENV
           echo "Started API with PID: $API_PID"
@@ -400,7 +436,19 @@ jobs:
           API_HOST: 0.0.0.0
           API_PORT: 8080
         run: |
-          ./target/release/riptide-api > api.log 2>&1 &
+          # Find binary location (could be in target/release or target/<triple>/release)
+          if [ -f "target/x86_64-unknown-linux-gnu/release/riptide-api" ]; then
+            BINARY_PATH="target/x86_64-unknown-linux-gnu/release/riptide-api"
+          elif [ -f "target/release/riptide-api" ]; then
+            BINARY_PATH="target/release/riptide-api"
+          else
+            echo "❌ ERROR: riptide-api binary not found in expected locations"
+            echo "Checked: target/x86_64-unknown-linux-gnu/release/ and target/release/"
+            find target -name "riptide-api" -type f || echo "No riptide-api binary found anywhere in target/"
+            exit 1
+          fi
+          echo "Starting API from: $BINARY_PATH"
+          ./$BINARY_PATH > api.log 2>&1 &
           API_PID=$!
           echo "API_PID=$API_PID" >> $GITHUB_ENV
           echo "Started API with PID: $API_PID"
