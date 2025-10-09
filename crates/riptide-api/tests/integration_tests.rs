@@ -10,10 +10,9 @@
 
 use axum::{
     body::Body,
-    http::{HeaderValue, Request, StatusCode},
+    http::{Request, StatusCode},
 };
 use serde_json::{json, Value};
-use std::collections::HashMap;
 use tower::ServiceExt;
 
 // Import from existing API structure - this will fail until create_app exists
@@ -1067,7 +1066,7 @@ mod advanced_chunking_tests {
 
         // Validate chunk sizes and overlaps
         for (i, chunk) in chunks.iter().enumerate() {
-            let content = chunk["content"].as_str().unwrap();
+            let _content = chunk["content"].as_str().unwrap();
             let start_offset = chunk["start_offset"].as_u64().unwrap();
             let end_offset = chunk["end_offset"].as_u64().unwrap();
 

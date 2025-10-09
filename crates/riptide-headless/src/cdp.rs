@@ -190,7 +190,7 @@ async fn render_internal(
 
     // Execute any custom actions if provided
     if let Some(actions) = &req.actions {
-        if let Err(e) = exec_actions(&page, actions).await {
+        if let Err(e) = exec_actions(page, actions).await {
             warn!(
                 request_id = %request_id,
                 error = %e,
@@ -199,7 +199,7 @@ async fn render_internal(
         }
     } else {
         // Legacy path: wait for DOMContentLoaded + 1s idle time
-        if let Err(e) = wait_for_content_and_idle(&page, &req, &request_id).await {
+        if let Err(e) = wait_for_content_and_idle(page, &req, &request_id).await {
             warn!(
                 request_id = %request_id,
                 error = %e,
@@ -210,7 +210,7 @@ async fn render_internal(
 
     // Perform scrolling if requested
     if let Some(steps) = req.scroll_steps {
-        if let Err(e) = perform_scrolling(&page, steps, &request_id).await {
+        if let Err(e) = perform_scrolling(page, steps, &request_id).await {
             warn!(
                 request_id = %request_id,
                 error = %e,
@@ -220,7 +220,7 @@ async fn render_internal(
     }
 
     // Extract content
-    let (html, final_url) = extract_page_content(&page, &req.url, &request_id).await?;
+    let (html, final_url) = extract_page_content(page, &req.url, &request_id).await?;
 
     // Capture artifacts if requested
     let mut artifacts_out = ArtifactsOut::default();
