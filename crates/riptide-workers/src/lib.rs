@@ -15,7 +15,7 @@ pub use processors::{
 };
 pub use queue::{JobQueue, QueueConfig, QueueStats};
 pub use scheduler::{JobScheduler, ScheduledJob, SchedulerConfig, SchedulerStats};
-pub use service::{WorkerService, WorkerServiceConfig};
+pub use service::{WorkerService, WorkerServiceConfig, WorkerServiceHealth};
 pub use worker::{
     JobProcessor, Worker, WorkerConfig, WorkerPool, WorkerPoolStats, WorkerStatsSnapshot,
 };

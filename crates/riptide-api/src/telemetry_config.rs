@@ -6,10 +6,7 @@
 //! - Telemetry configuration from environment variables
 //! - Span utilities for consistent instrumentation
 
-use opentelemetry::trace::{SpanContext, TraceId};
-
-#[cfg(test)]
-use opentelemetry::trace::SpanId;
+use opentelemetry::trace::{SpanContext, SpanId, TraceId};
 
 use opentelemetry::trace::TraceContextExt;
 use opentelemetry::{global, KeyValue};
@@ -405,7 +402,7 @@ pub fn parse_trace_id(trace_id_str: &str) -> Option<TraceId> {
 }
 
 /// Parse span ID from string
-#[cfg(test)]
+#[allow(dead_code)] // Used in test modules
 pub fn parse_span_id(span_id_str: &str) -> Option<SpanId> {
     if span_id_str.len() == 16 {
         // Hex string format
