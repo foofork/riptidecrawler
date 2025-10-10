@@ -8,11 +8,11 @@
 //! - Concurrent access patterns
 
 use riptide_search::{
-    SearchProvider, SearchBackend, CircuitBreakerWrapper, CircuitBreakerConfig,
-    CircuitState, NoneProvider,
+    CircuitBreakerConfig, CircuitBreakerWrapper, CircuitState, NoneProvider, SearchBackend,
+    SearchProvider,
 };
-use std::time::Duration;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::time::sleep;
 
 // ============================================================================
@@ -119,7 +119,9 @@ mod circuit_breaker_failure_tests {
 
         // Generate failures (queries with no URLs)
         for i in 0..4 {
-            let result = circuit.search(&format!("no urls {}", i), 1, "us", "en").await;
+            let result = circuit
+                .search(&format!("no urls {}", i), 1, "us", "en")
+                .await;
             assert!(result.is_err(), "Request {} should fail", i);
         }
 
@@ -198,7 +200,10 @@ mod circuit_breaker_failure_tests {
         let elapsed = start.elapsed();
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("circuit breaker is OPEN"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("circuit breaker is OPEN"));
         assert!(elapsed < Duration::from_millis(50), "Should fail fast");
     }
 }
@@ -308,17 +313,23 @@ mod circuit_breaker_recovery_tests {
         // Send multiple requests concurrently
         let circuit_clone = circuit.clone();
         let handle1 = tokio::spawn(async move {
-            circuit_clone.search("https://example1.com", 1, "us", "en").await
+            circuit_clone
+                .search("https://example1.com", 1, "us", "en")
+                .await
         });
 
         let circuit_clone = circuit.clone();
         let handle2 = tokio::spawn(async move {
-            circuit_clone.search("https://example2.com", 1, "us", "en").await
+            circuit_clone
+                .search("https://example2.com", 1, "us", "en")
+                .await
         });
 
         let circuit_clone = circuit.clone();
         let handle3 = tokio::spawn(async move {
-            circuit_clone.search("https://example3.com", 1, "us", "en").await
+            circuit_clone
+                .search("https://example3.com", 1, "us", "en")
+                .await
         });
 
         let results = tokio::try_join!(handle1, handle2, handle3);
@@ -423,10 +434,9 @@ mod circuit_breaker_concurrency_tests {
         for i in 0..20 {
             let circuit_clone = circuit.clone();
             set.spawn(async move {
-                circuit_clone.search(
-                    &format!("https://example{}.com", i),
-                    1, "us", "en"
-                ).await
+                circuit_clone
+                    .search(&format!("https://example{}.com", i), 1, "us", "en")
+                    .await
             });
         }
 
@@ -457,7 +467,9 @@ mod circuit_breaker_concurrency_tests {
         for i in 0..10 {
             let circuit_clone = circuit.clone();
             set.spawn(async move {
-                circuit_clone.search(&format!("no urls {}", i), 1, "us", "en").await
+                circuit_clone
+                    .search(&format!("no urls {}", i), 1, "us", "en")
+                    .await
             });
         }
 
@@ -477,17 +489,18 @@ mod circuit_breaker_concurrency_tests {
         is_send_sync::<CircuitBreakerWrapper>();
 
         // Spawn on different threads
-        let handles: Vec<_> = (0..4).map(|i| {
-            let circuit_clone = circuit.clone();
-            tokio::spawn(async move {
-                for j in 0..5 {
-                    let _ = circuit_clone.search(
-                        &format!("https://example{}-{}.com", i, j),
-                        1, "us", "en"
-                    ).await;
-                }
+        let handles: Vec<_> = (0..4)
+            .map(|i| {
+                let circuit_clone = circuit.clone();
+                tokio::spawn(async move {
+                    for j in 0..5 {
+                        let _ = circuit_clone
+                            .search(&format!("https://example{}-{}.com", i, j), 1, "us", "en")
+                            .await;
+                    }
+                })
             })
-        }).collect();
+            .collect();
 
         for handle in handles {
             handle.await.unwrap();

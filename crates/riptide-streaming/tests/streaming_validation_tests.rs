@@ -8,14 +8,14 @@
 //! - Error scenarios and recovery
 //! - Performance benchmarks
 
-use std::time::{Duration, Instant};
-use tokio::time::timeout;
-use serde_json::Value;
+use axum::http::{HeaderMap, StatusCode};
 use bytes::Bytes;
 use futures::stream::StreamExt;
-use axum::http::{HeaderMap, StatusCode};
 use httpmock::prelude::*;
 use reqwest::Client;
+use serde_json::Value;
+use std::time::{Duration, Instant};
+use tokio::time::timeout;
 use uuid::Uuid;
 
 /// Comprehensive streaming test framework
@@ -71,14 +71,22 @@ impl StreamingValidationFramework {
                     ));
             });
 
-            urls.push(format!("{}/timed-content-{}", self.mock_server.base_url(), i));
+            urls.push(format!(
+                "{}/timed-content-{}",
+                self.mock_server.base_url(),
+                i
+            ));
         }
 
         urls
     }
 
     /// Setup mock responses that will randomly succeed or fail
-    pub fn setup_mixed_reliability_mocks(&self, total_count: usize, success_ratio: f64) -> Vec<String> {
+    pub fn setup_mixed_reliability_mocks(
+        &self,
+        total_count: usize,
+        success_ratio: f64,
+    ) -> Vec<String> {
         let mut urls = Vec::new();
         let success_count = (total_count as f64 * success_ratio) as usize;
 
@@ -108,7 +116,11 @@ impl StreamingValidationFramework {
                 }
             });
 
-            urls.push(format!("{}/mixed-content-{}", self.mock_server.base_url(), i));
+            urls.push(format!(
+                "{}/mixed-content-{}",
+                self.mock_server.base_url(),
+                i
+            ));
         }
 
         urls
@@ -123,7 +135,8 @@ impl StreamingValidationFramework {
     ) -> Result<StreamingValidationResponse, StreamingError> {
         let start_time = Instant::now();
 
-        let response = self.client
+        let response = self
+            .client
             .post(&format!("{}/{}", self.api_base_url, endpoint))
             .header("Accept", "application/x-ndjson")
             .header("User-Agent", "StreamingValidationTest/1.0")
@@ -161,8 +174,7 @@ impl StreamingValidationFramework {
         let mut total_bytes = 0;
 
         while let Some(chunk_result) = stream.next().await {
-            let chunk = chunk_result
-                .map_err(|e| StreamingError::Stream(e.to_string()))?;
+            let chunk = chunk_result.map_err(|e| StreamingError::Stream(e.to_string()))?;
 
             total_bytes += chunk.len();
 
@@ -179,9 +191,10 @@ impl StreamingValidationFramework {
 
                 if !line.is_empty() {
                     let line_time = start_time.elapsed();
-                    let parsed_line = serde_json::from_str::<Value>(line)
-                        .map_err(|e| StreamingError::Parse(format!("Line: '{}', Error: {}", line, e)))?;
-                    
+                    let parsed_line = serde_json::from_str::<Value>(line).map_err(|e| {
+                        StreamingError::Parse(format!("Line: '{}', Error: {}", line, e))
+                    })?;
+
                     lines.push(parsed_line);
                     line_timestamps.push(line_time);
                 }
@@ -201,7 +214,12 @@ impl StreamingValidationFramework {
     }
 
     /// Create crawl request with performance testing options
-    pub fn create_performance_crawl_request(&self, urls: Vec<String>, cache_mode: &str, concurrency: u32) -> Value {
+    pub fn create_performance_crawl_request(
+        &self,
+        urls: Vec<String>,
+        cache_mode: &str,
+        concurrency: u32,
+    ) -> Value {
         serde_json::json!({
             "urls": urls,
             "options": {
@@ -234,40 +252,55 @@ impl StreamingValidationResponse {
     /// Validate NDJSON format compliance
     pub fn validate_ndjson_format(&self) -> Result<(), StreamingError> {
         // Check headers
-        let content_type = self.headers.get("content-type")
+        let content_type = self
+            .headers
+            .get("content-type")
             .and_then(|v| v.to_str().ok())
             .ok_or_else(|| StreamingError::Format("Missing content-type header".to_string()))?;
 
         if content_type != "application/x-ndjson" {
-            return Err(StreamingError::Format(
-                format!("Expected content-type 'application/x-ndjson', got '{}'", content_type)
-            ));
+            return Err(StreamingError::Format(format!(
+                "Expected content-type 'application/x-ndjson', got '{}'",
+                content_type
+            )));
         }
 
         // Check for required streaming headers
         if self.headers.get("transfer-encoding").is_none() {
-            return Err(StreamingError::Format("Missing transfer-encoding header".to_string()));
+            return Err(StreamingError::Format(
+                "Missing transfer-encoding header".to_string(),
+            ));
         }
 
         // Validate structure
         if self.lines.is_empty() {
-            return Err(StreamingError::Format("No NDJSON lines received".to_string()));
+            return Err(StreamingError::Format(
+                "No NDJSON lines received".to_string(),
+            ));
         }
 
         // Check for metadata (first line)
-        let metadata = self.lines.get(0)
+        let metadata = self
+            .lines
+            .get(0)
             .ok_or_else(|| StreamingError::Format("No metadata line".to_string()))?;
 
         if !metadata.get("total_urls").is_some() || !metadata.get("request_id").is_some() {
-            return Err(StreamingError::Format("Invalid metadata structure".to_string()));
+            return Err(StreamingError::Format(
+                "Invalid metadata structure".to_string(),
+            ));
         }
 
         // Check for summary (last line)
-        let summary = self.lines.last()
+        let summary = self
+            .lines
+            .last()
             .ok_or_else(|| StreamingError::Format("No summary line".to_string()))?;
 
         if !summary.get("total_urls").is_some() {
-            return Err(StreamingError::Format("Invalid summary structure".to_string()));
+            return Err(StreamingError::Format(
+                "Invalid summary structure".to_string(),
+            ));
         }
 
         Ok(())
@@ -290,7 +323,8 @@ impl StreamingValidationResponse {
         let non_zero_gaps = gaps.iter().filter(|&&g| g > 0).count();
         if non_zero_gaps == 0 && self.lines.len() > 3 {
             return Err(StreamingError::Streaming(
-                "All lines arrived simultaneously - indicates batching instead of streaming".to_string()
+                "All lines arrived simultaneously - indicates batching instead of streaming"
+                    .to_string(),
             ));
         }
 
@@ -310,14 +344,16 @@ impl StreamingValidationResponse {
 
     /// Get result lines (excluding metadata/summary)
     pub fn result_lines(&self) -> Vec<&Value> {
-        self.lines.iter()
+        self.lines
+            .iter()
             .filter(|line| line.get("result").is_some() || line.get("search_result").is_some())
             .collect()
     }
 
     /// Get error count from results
     pub fn error_count(&self) -> usize {
-        self.result_lines().iter()
+        self.result_lines()
+            .iter()
             .filter(|line| {
                 if let Some(result) = line.get("result") {
                     result.get("error").is_some()
@@ -384,18 +420,27 @@ async fn test_ttfb_500ms_requirement_warm_cache() {
 
     // First request to warm cache
     let request = framework.create_performance_crawl_request(urls.clone(), "write_through", 3);
-    let _ = framework.make_validated_streaming_request("crawl/stream", request.clone(), None).await;
+    let _ = framework
+        .make_validated_streaming_request("crawl/stream", request.clone(), None)
+        .await;
 
     // Second request should hit warm cache and meet TTFB requirement
-    let response = framework.make_validated_streaming_request(
-        "crawl/stream",
-        request,
-        Some(500), // Enforce 500ms TTFB limit
-    ).await.expect("TTFB test with warm cache should succeed");
+    let response = framework
+        .make_validated_streaming_request(
+            "crawl/stream",
+            request,
+            Some(500), // Enforce 500ms TTFB limit
+        )
+        .await
+        .expect("TTFB test with warm cache should succeed");
 
     // Validate format compliance
-    response.validate_ndjson_format().expect("NDJSON format should be valid");
-    response.validate_streaming_behavior().expect("Should demonstrate streaming behavior");
+    response
+        .validate_ndjson_format()
+        .expect("NDJSON format should be valid");
+    response
+        .validate_streaming_behavior()
+        .expect("Should demonstrate streaming behavior");
 
     println!("TTFB with warm cache: {}ms", response.ttfb.as_millis());
     assert!(response.ttfb.as_millis() < 500, "TTFB requirement not met");
@@ -408,26 +453,36 @@ async fn test_buffer_management_65536_bytes() {
     let urls = framework.setup_timed_content_mocks(20, 100); // Many URLs
 
     let request = framework.create_performance_crawl_request(urls, "disabled", 10);
-    let response = framework.make_validated_streaming_request(
-        "crawl/stream",
-        request,
-        None,
-    ).await.expect("Buffer management test should succeed");
+    let response = framework
+        .make_validated_streaming_request("crawl/stream", request, None)
+        .await
+        .expect("Buffer management test should succeed");
 
     // Validate buffer usage stays within limits
-    response.validate_buffer_usage(65536).expect("Buffer usage should be within limits");
-    response.validate_streaming_behavior().expect("Should stream incrementally");
+    response
+        .validate_buffer_usage(65536)
+        .expect("Buffer usage should be within limits");
+    response
+        .validate_streaming_behavior()
+        .expect("Should stream incrementally");
 
-    assert_eq!(response.result_lines().len(), 20, "All results should be delivered");
-    println!("Total bytes: {}, Throughput: {:.2} items/sec", 
-             response.total_bytes, response.throughput());
+    assert_eq!(
+        response.result_lines().len(),
+        20,
+        "All results should be delivered"
+    );
+    println!(
+        "Total bytes: {}, Throughput: {:.2} items/sec",
+        response.total_bytes,
+        response.throughput()
+    );
 }
 
 /// Test that results stream as they complete (no batching)
 #[tokio::test]
 async fn test_no_batching_streaming_behavior() {
     let framework = StreamingValidationFramework::new();
-    
+
     // Create URLs with different processing times to test streaming
     let mut urls = Vec::new();
     for (i, delay) in [100, 300, 150, 250, 200].iter().enumerate() {
@@ -437,25 +492,41 @@ async fn test_no_batching_streaming_behavior() {
             then.status(200)
                 .delay(Duration::from_millis(*delay))
                 .header("content-type", "text/html")
-                .body(&format!("<html><body><h1>Content {} ({}ms delay)</h1></body></html>", i, delay));
+                .body(&format!(
+                    "<html><body><h1>Content {} ({}ms delay)</h1></body></html>",
+                    i, delay
+                ));
         });
-        urls.push(format!("{}/streaming-test-{}", framework.mock_server.base_url(), i));
+        urls.push(format!(
+            "{}/streaming-test-{}",
+            framework.mock_server.base_url(),
+            i
+        ));
     }
 
     let request = framework.create_performance_crawl_request(urls, "disabled", 5);
-    let response = framework.make_validated_streaming_request(
-        "crawl/stream",
-        request,
-        None,
-    ).await.expect("Streaming behavior test should succeed");
+    let response = framework
+        .make_validated_streaming_request("crawl/stream", request, None)
+        .await
+        .expect("Streaming behavior test should succeed");
 
-    response.validate_streaming_behavior().expect("Should demonstrate true streaming");
-    response.validate_ndjson_format().expect("Format should be valid");
+    response
+        .validate_streaming_behavior()
+        .expect("Should demonstrate true streaming");
+    response
+        .validate_ndjson_format()
+        .expect("Format should be valid");
 
     // Results should arrive in order of completion, not request order
     assert_eq!(response.result_lines().len(), 5);
-    println!("Line timestamps: {:?}", response.line_timestamps.iter()
-             .map(|d| d.as_millis()).collect::<Vec<_>>());
+    println!(
+        "Line timestamps: {:?}",
+        response
+            .line_timestamps
+            .iter()
+            .map(|d| d.as_millis())
+            .collect::<Vec<_>>()
+    );
 }
 
 /// Test error scenarios and recovery paths
@@ -465,13 +536,14 @@ async fn test_error_scenarios_and_recovery() {
     let urls = framework.setup_mixed_reliability_mocks(10, 0.6); // 60% success rate
 
     let request = framework.create_performance_crawl_request(urls, "disabled", 5);
-    let response = framework.make_validated_streaming_request(
-        "crawl/stream",
-        request,
-        None,
-    ).await.expect("Error scenario test should succeed overall");
+    let response = framework
+        .make_validated_streaming_request("crawl/stream", request, None)
+        .await
+        .expect("Error scenario test should succeed overall");
 
-    response.validate_ndjson_format().expect("Format should be valid despite errors");
+    response
+        .validate_ndjson_format()
+        .expect("Format should be valid despite errors");
 
     let total_results = response.result_lines().len();
     let success_count = response.success_count();
@@ -480,7 +552,11 @@ async fn test_error_scenarios_and_recovery() {
     assert_eq!(total_results, 10, "Should process all URLs despite errors");
     assert!(success_count >= 5, "Should have some successes");
     assert!(error_count >= 3, "Should have some errors");
-    assert_eq!(success_count + error_count, total_results, "All results should be accounted for");
+    assert_eq!(
+        success_count + error_count,
+        total_results,
+        "All results should be accounted for"
+    );
 
     // Validate error structure
     for line in response.result_lines() {
@@ -488,12 +564,18 @@ async fn test_error_scenarios_and_recovery() {
             if let Some(error) = result.get("error") {
                 assert!(error["error_type"].is_string(), "Error should have type");
                 assert!(error["message"].is_string(), "Error should have message");
-                assert!(error["retryable"].is_boolean(), "Error should indicate if retryable");
+                assert!(
+                    error["retryable"].is_boolean(),
+                    "Error should indicate if retryable"
+                );
             }
         }
     }
 
-    println!("Success: {}, Errors: {}, Total: {}", success_count, error_count, total_results);
+    println!(
+        "Success: {}, Errors: {}, Total: {}",
+        success_count, error_count, total_results
+    );
 }
 
 /// Test stream lifecycle management
@@ -503,11 +585,10 @@ async fn test_stream_lifecycle_management() {
     let urls = framework.setup_timed_content_mocks(5, 200);
 
     let request = framework.create_performance_crawl_request(urls, "disabled", 3);
-    let response = framework.make_validated_streaming_request(
-        "crawl/stream",
-        request,
-        Some(1000),
-    ).await.expect("Stream lifecycle test should succeed");
+    let response = framework
+        .make_validated_streaming_request("crawl/stream", request, Some(1000))
+        .await
+        .expect("Stream lifecycle test should succeed");
 
     // Validate complete lifecycle: start -> stream -> close
     assert!(!response.lines.is_empty(), "Should have lines");
@@ -515,7 +596,10 @@ async fn test_stream_lifecycle_management() {
     // Should have metadata (start)
     let metadata = response.lines.first().expect("Should have first line");
     assert!(metadata.get("total_urls").is_some(), "Should have metadata");
-    assert!(metadata.get("request_id").is_some(), "Should have request ID");
+    assert!(
+        metadata.get("request_id").is_some(),
+        "Should have request ID"
+    );
     assert_eq!(metadata["stream_type"], "crawl");
 
     // Should have results (stream)
@@ -525,13 +609,21 @@ async fn test_stream_lifecycle_management() {
     // Should have summary (close)
     let summary = response.lines.last().expect("Should have last line");
     assert!(summary.get("total_urls").is_some(), "Should have summary");
-    assert!(summary.get("successful").is_some(), "Should report success count");
+    assert!(
+        summary.get("successful").is_some(),
+        "Should report success count"
+    );
 
     // Validate request ID consistency
-    let request_id = metadata["request_id"].as_str().expect("Should have request ID");
+    let request_id = metadata["request_id"]
+        .as_str()
+        .expect("Should have request ID");
     if let Some(header_request_id) = response.headers.get("X-Request-ID") {
-        assert_eq!(header_request_id.to_str().unwrap(), request_id, 
-                   "Request ID should be consistent across headers and content");
+        assert_eq!(
+            header_request_id.to_str().unwrap(),
+            request_id,
+            "Request ID should be consistent across headers and content"
+        );
     }
 
     println!("Stream lifecycle validated with request ID: {}", request_id);
@@ -564,22 +656,33 @@ async fn test_concurrent_streaming_isolation() {
     // Different request IDs
     let req_id1 = response1.lines[0]["request_id"].as_str().unwrap();
     let req_id2 = response2.lines[0]["request_id"].as_str().unwrap();
-    assert_ne!(req_id1, req_id2, "Concurrent streams should have different request IDs");
+    assert_ne!(
+        req_id1, req_id2,
+        "Concurrent streams should have different request IDs"
+    );
 
     // Both should meet performance requirements
-    response1.validate_streaming_behavior().expect("Stream 1 should demonstrate streaming");
-    response2.validate_streaming_behavior().expect("Stream 2 should demonstrate streaming");
+    response1
+        .validate_streaming_behavior()
+        .expect("Stream 1 should demonstrate streaming");
+    response2
+        .validate_streaming_behavior()
+        .expect("Stream 2 should demonstrate streaming");
 
-    println!("Concurrent streams completed: {} ({}ms), {} ({}ms)",
-             req_id1, response1.total_time.as_millis(),
-             req_id2, response2.total_time.as_millis());
+    println!(
+        "Concurrent streams completed: {} ({}ms), {} ({}ms)",
+        req_id1,
+        response1.total_time.as_millis(),
+        req_id2,
+        response2.total_time.as_millis()
+    );
 }
 
 /// Test backpressure handling under high load
 #[tokio::test]
 async fn test_backpressure_handling_high_load() {
     let framework = StreamingValidationFramework::new();
-    
+
     // Create high load scenario
     let urls = framework.setup_timed_content_mocks(50, 100);
     let request = framework.create_performance_crawl_request(urls, "disabled", 20);
@@ -587,25 +690,40 @@ async fn test_backpressure_handling_high_load() {
     let start_time = Instant::now();
     let response = timeout(
         Duration::from_secs(30),
-        framework.make_validated_streaming_request("crawl/stream", request, None)
-    ).await
-        .map_err(|_| StreamingError::Timeout)?
-        .expect("High load test should succeed");
+        framework.make_validated_streaming_request("crawl/stream", request, None),
+    )
+    .await
+    .map_err(|_| StreamingError::Timeout)?
+    .expect("High load test should succeed");
 
     let total_time = start_time.elapsed();
 
     // Should handle all URLs without dropping (good backpressure handling)
-    assert_eq!(response.result_lines().len(), 50, "All URLs should be processed");
-    
+    assert_eq!(
+        response.result_lines().len(),
+        50,
+        "All URLs should be processed"
+    );
+
     // Should maintain reasonable throughput
     let throughput = response.throughput();
-    assert!(throughput > 1.0, "Should maintain reasonable throughput: {:.2} items/sec", throughput);
+    assert!(
+        throughput > 1.0,
+        "Should maintain reasonable throughput: {:.2} items/sec",
+        throughput
+    );
 
     // Should stay within buffer limits
-    response.validate_buffer_usage(65536).expect("Should manage buffer properly under load");
+    response
+        .validate_buffer_usage(65536)
+        .expect("Should manage buffer properly under load");
 
-    println!("High load test: {} URLs in {}ms, throughput: {:.2} items/sec",
-             response.result_lines().len(), total_time.as_millis(), throughput);
+    println!(
+        "High load test: {} URLs in {}ms, throughput: {:.2} items/sec",
+        response.result_lines().len(),
+        total_time.as_millis(),
+        throughput
+    );
 }
 
 /// Performance benchmark test
@@ -615,36 +733,52 @@ async fn test_streaming_performance_benchmark() {
     let urls = framework.setup_timed_content_mocks(25, 80);
 
     let request = framework.create_performance_crawl_request(urls, "write_through", 10);
-    
+
     let start_time = Instant::now();
-    let response = framework.make_validated_streaming_request(
-        "crawl/stream",
-        request,
-        Some(1000), // TTFB requirement
-    ).await.expect("Performance benchmark should succeed");
+    let response = framework
+        .make_validated_streaming_request(
+            "crawl/stream",
+            request,
+            Some(1000), // TTFB requirement
+        )
+        .await
+        .expect("Performance benchmark should succeed");
 
     let total_time = start_time.elapsed();
 
     // Performance assertions
     assert!(response.ttfb.as_millis() < 1000, "TTFB should be under 1s");
-    assert!(response.first_line_time.as_millis() < 1500, "First line should arrive quickly");
-    
+    assert!(
+        response.first_line_time.as_millis() < 1500,
+        "First line should arrive quickly"
+    );
+
     let throughput = response.throughput();
-    assert!(throughput > 2.0, "Should achieve reasonable throughput: {:.2} items/sec", throughput);
+    assert!(
+        throughput > 2.0,
+        "Should achieve reasonable throughput: {:.2} items/sec",
+        throughput
+    );
 
     // Validate all performance requirements
-    response.validate_ndjson_format().expect("Format compliance");
-    response.validate_streaming_behavior().expect("Streaming behavior");
-    response.validate_buffer_usage(65536).expect("Buffer management");
+    response
+        .validate_ndjson_format()
+        .expect("Format compliance");
+    response
+        .validate_streaming_behavior()
+        .expect("Streaming behavior");
+    response
+        .validate_buffer_usage(65536)
+        .expect("Buffer management");
 
     println!(
-        "Performance Benchmark Results:\n" +
-        "  TTFB: {}ms\n" +
-        "  First Line: {}ms\n" +
-        "  Total Time: {}ms\n" +
-        "  Throughput: {:.2} items/sec\n" +
-        "  Total Bytes: {}\n" +
-        "  Success Rate: {:.1}%",
+        "Performance Benchmark Results:\n"
+            + "  TTFB: {}ms\n"
+            + "  First Line: {}ms\n"
+            + "  Total Time: {}ms\n"
+            + "  Throughput: {:.2} items/sec\n"
+            + "  Total Bytes: {}\n"
+            + "  Success Rate: {:.1}%",
         response.ttfb.as_millis(),
         response.first_line_time.as_millis(),
         total_time.as_millis(),

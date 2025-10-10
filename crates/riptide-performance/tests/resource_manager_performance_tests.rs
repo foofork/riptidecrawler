@@ -143,7 +143,10 @@ async fn perf_pdf_semaphore_contention() -> Result<()> {
     println!("  Requests: {}", requests);
     println!("  Successful: {}", success);
     println!("  Duration: {:?}", duration);
-    println!("  Throughput: {:.2} req/s", success as f64 / duration.as_secs_f64());
+    println!(
+        "  Throughput: {:.2} req/s",
+        success as f64 / duration.as_secs_f64()
+    );
 
     Ok(())
 }
@@ -234,7 +237,10 @@ async fn perf_wasm_instance_lookup() -> Result<()> {
 
     for i in 0..iterations {
         let worker_id = format!("worker_{}", i % 10);
-        manager.wasm_manager.test_acquire_instance(&worker_id).await?;
+        manager
+            .wasm_manager
+            .test_acquire_instance(&worker_id)
+            .await?;
     }
 
     let duration = start.elapsed();
@@ -387,15 +393,9 @@ async fn perf_mixed_workload_simulation() -> Result<()> {
 
     println!("Mixed Workload Simulation:");
     println!("  Duration: {:?}", duration);
-    println!(
-        "  Render ops: {}",
-        render_counter.load(Ordering::Relaxed)
-    );
+    println!("  Render ops: {}", render_counter.load(Ordering::Relaxed));
     println!("  PDF ops: {}", pdf_counter.load(Ordering::Relaxed));
-    println!(
-        "  Memory ops: {}",
-        memory_counter.load(Ordering::Relaxed)
-    );
+    println!("  Memory ops: {}", memory_counter.load(Ordering::Relaxed));
 
     let status = manager.get_resource_status().await;
     println!("  Final status: {:?}", status);

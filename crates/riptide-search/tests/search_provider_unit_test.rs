@@ -1,6 +1,6 @@
+use serde_json::json;
 use std::time::Duration;
 use tokio::time::timeout;
-use serde_json::json;
 
 // Note: These tests will initially fail as SearchProvider implementations don't exist yet
 // This follows TDD red-green-refactor cycle
@@ -38,7 +38,10 @@ mod search_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(false, "SearchProvider trait not implemented yet - TDD red phase");
+        assert!(
+            false,
+            "SearchProvider trait not implemented yet - TDD red phase"
+        );
     }
 
     #[tokio::test]
@@ -60,7 +63,10 @@ mod search_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(false, "SearchResult struct not implemented yet - TDD red phase");
+        assert!(
+            false,
+            "SearchResult struct not implemented yet - TDD red phase"
+        );
     }
 
     #[tokio::test]
@@ -103,6 +109,9 @@ mod search_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(false, "Timeout handling not implemented yet - TDD red phase");
+        assert!(
+            false,
+            "Timeout handling not implemented yet - TDD red phase"
+        );
     }
 }

@@ -9,9 +9,9 @@
 
 use anyhow::Result;
 use riptide_search::{
-    SearchProvider, SearchBackend, SearchConfig, AdvancedSearchConfig,
-    create_search_provider, create_search_provider_from_env,
-    SearchProviderFactory, CircuitBreakerConfigOptions,
+    create_search_provider, create_search_provider_from_env, AdvancedSearchConfig,
+    CircuitBreakerConfigOptions, SearchBackend, SearchConfig, SearchProvider,
+    SearchProviderFactory,
 };
 use std::sync::Arc;
 use std::time::Duration;
@@ -87,7 +87,10 @@ mod provider_creation_tests {
 
         let result = create_search_provider(config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("not yet implemented"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("not yet implemented"));
     }
 
     #[tokio::test]
@@ -104,7 +107,9 @@ mod provider_creation_tests {
         assert!(provider.is_ok());
 
         // Test that request completes within timeout
-        let search_future = provider.unwrap().search("https://example.com", 10, "us", "en");
+        let search_future = provider
+            .unwrap()
+            .search("https://example.com", 10, "us", "en");
         let result = timeout(Duration::from_secs(10), search_future).await;
         assert!(result.is_ok());
     }
@@ -230,7 +235,7 @@ mod advanced_config_tests {
 #[cfg(test)]
 mod circuit_breaker_integration {
     use super::*;
-    use riptide_search::{CircuitBreakerWrapper, CircuitBreakerConfig};
+    use riptide_search::{CircuitBreakerConfig, CircuitBreakerWrapper};
 
     #[tokio::test]
     async fn test_circuit_breaker_protects_provider() {
@@ -282,7 +287,9 @@ mod circuit_breaker_integration {
             },
         };
 
-        let provider = SearchProviderFactory::create_provider(config).await.unwrap();
+        let provider = SearchProviderFactory::create_provider(config)
+            .await
+            .unwrap();
 
         // Trip the circuit
         let _ = provider.search("no urls 1", 10, "us", "en").await;
@@ -313,7 +320,9 @@ mod multi_provider_tests {
             base_url: None,
             timeout_seconds: 30,
             enable_url_parsing: true,
-        }).await.unwrap();
+        })
+        .await
+        .unwrap();
 
         let serper_provider = create_search_provider(SearchConfig {
             backend: SearchBackend::Serper,
@@ -321,13 +330,17 @@ mod multi_provider_tests {
             base_url: None,
             timeout_seconds: 30,
             enable_url_parsing: false,
-        }).await.unwrap();
+        })
+        .await
+        .unwrap();
 
         assert_eq!(none_provider.backend_type(), SearchBackend::None);
         assert_eq!(serper_provider.backend_type(), SearchBackend::Serper);
 
         // Both should be usable independently
-        let none_result = none_provider.search("https://example.com", 10, "us", "en").await;
+        let none_result = none_provider
+            .search("https://example.com", 10, "us", "en")
+            .await;
         assert!(none_result.is_ok());
     }
 
@@ -357,7 +370,9 @@ mod multi_provider_tests {
             };
 
             let none_provider = create_search_provider(none_config).await.unwrap();
-            let none_result = none_provider.search("https://example.com", 10, "us", "en").await;
+            let none_result = none_provider
+                .search("https://example.com", 10, "us", "en")
+                .await;
 
             assert!(none_result.is_ok());
         }
@@ -374,7 +389,9 @@ mod multi_provider_tests {
                 base_url: None,
                 timeout_seconds: 30,
                 enable_url_parsing: true,
-            }).await.unwrap()
+            })
+            .await
+            .unwrap(),
         );
 
         let mut set = JoinSet::new();
@@ -383,10 +400,9 @@ mod multi_provider_tests {
         for i in 0..20 {
             let provider_clone = provider.clone();
             set.spawn(async move {
-                provider_clone.search(
-                    &format!("https://example{}.com", i),
-                    10, "us", "en"
-                ).await
+                provider_clone
+                    .search(&format!("https://example{}.com", i), 10, "us", "en")
+                    .await
             });
         }
 
@@ -417,7 +433,9 @@ mod health_monitoring_tests {
             base_url: None,
             timeout_seconds: 30,
             enable_url_parsing: true,
-        }).await.unwrap();
+        })
+        .await
+        .unwrap();
 
         let health = none_provider.health_check().await;
         assert!(health.is_ok());
@@ -431,7 +449,9 @@ mod health_monitoring_tests {
             base_url: None,
             timeout_seconds: 10,
             enable_url_parsing: false,
-        }).await.unwrap();
+        })
+        .await
+        .unwrap();
 
         // Health check should fail with invalid key
         let health = provider.health_check().await;
@@ -456,7 +476,9 @@ mod error_handling_tests {
             base_url: None,
             timeout_seconds: 30,
             enable_url_parsing: true,
-        }).await.unwrap();
+        })
+        .await
+        .unwrap();
 
         // Test various error conditions
         let empty_result = provider.search("", 10, "us", "en").await;
@@ -474,7 +496,9 @@ mod error_handling_tests {
             base_url: None,
             timeout_seconds: 1,
             enable_url_parsing: true,
-        }).await.unwrap();
+        })
+        .await
+        .unwrap();
 
         // Fast operations should complete within timeout
         let start = std::time::Instant::now();
@@ -493,7 +517,9 @@ mod error_handling_tests {
             base_url: None,
             timeout_seconds: 30,
             enable_url_parsing: true,
-        }).await.unwrap();
+        })
+        .await
+        .unwrap();
 
         // Generate some errors
         for _ in 0..5 {
@@ -523,7 +549,9 @@ mod performance_tests {
                 base_url: None,
                 timeout_seconds: 30,
                 enable_url_parsing: true,
-            }).await.unwrap()
+            })
+            .await
+            .unwrap(),
         );
 
         let start = std::time::Instant::now();
@@ -532,22 +560,25 @@ mod performance_tests {
         for i in 0..100 {
             let provider_clone = provider.clone();
             handles.push(tokio::spawn(async move {
-                provider_clone.search(
-                    &format!("https://example{}.com", i),
-                    10, "us", "en"
-                ).await
+                provider_clone
+                    .search(&format!("https://example{}.com", i), 10, "us", "en")
+                    .await
             }));
         }
 
         let results = futures::future::join_all(handles).await;
         let elapsed = start.elapsed();
 
-        let success_count = results.iter()
+        let success_count = results
+            .iter()
             .filter(|r| r.is_ok() && r.as_ref().unwrap().is_ok())
             .count();
 
         assert_eq!(success_count, 100);
-        assert!(elapsed < Duration::from_secs(5), "Should complete within 5 seconds");
+        assert!(
+            elapsed < Duration::from_secs(5),
+            "Should complete within 5 seconds"
+        );
     }
 
     #[tokio::test]
@@ -558,14 +589,15 @@ mod performance_tests {
             base_url: None,
             timeout_seconds: 30,
             enable_url_parsing: true,
-        }).await.unwrap();
+        })
+        .await
+        .unwrap();
 
         // Simulate rapid requests
         for i in 0..50 {
-            let result = provider.search(
-                &format!("https://example{}.com", i),
-                10, "us", "en"
-            ).await;
+            let result = provider
+                .search(&format!("https://example{}.com", i), 10, "us", "en")
+                .await;
             assert!(result.is_ok());
 
             // Small delay to simulate rate limiting

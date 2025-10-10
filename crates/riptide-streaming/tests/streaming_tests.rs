@@ -1,10 +1,9 @@
+use crate::fixtures::test_data::*;
 /// Streaming Response Tests - London School TDD
 ///
 /// Tests streaming functionality with timeout handling using mock collaborations
 /// to verify real-time response behavior and backpressure management.
-
 use crate::fixtures::*;
-use crate::fixtures::test_data::*;
 use mockall::predicate::*;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -31,8 +30,13 @@ mod streaming_tests {
 
     #[async_trait::async_trait]
     pub trait StreamingHandlerTrait {
-        async fn start_stream(&self, url: &str, config: &StreamConfig) -> Result<StreamHandle, String>;
-        async fn send_chunk(&self, handle: &StreamHandle, chunk: StreamChunk) -> Result<(), String>;
+        async fn start_stream(
+            &self,
+            url: &str,
+            config: &StreamConfig,
+        ) -> Result<StreamHandle, String>;
+        async fn send_chunk(&self, handle: &StreamHandle, chunk: StreamChunk)
+            -> Result<(), String>;
         async fn close_stream(&self, handle: &StreamHandle) -> Result<StreamStats, String>;
         async fn get_stream_status(&self, handle: &StreamHandle) -> Result<StreamStatus, String>;
     }
@@ -118,9 +122,7 @@ mod streaming_tests {
                 sequence: 3,
                 data: b"world!".to_vec(),
                 is_final: true,
-                metadata: HashMap::from([
-                    ("content_type".to_string(), "text/plain".to_string()),
-                ]),
+                metadata: HashMap::from([("content_type".to_string(), "text/plain".to_string())]),
             },
         ];
 
@@ -147,15 +149,23 @@ mod streaming_tests {
             });
 
         // Act & Assert
-        let handle = mock_streaming.start_stream("https://example.com/stream", &config).await;
+        let handle = mock_streaming
+            .start_stream("https://example.com/stream", &config)
+            .await;
         assert!(handle.is_ok());
         let stream_handle = handle.unwrap();
         assert!(!stream_handle.id.is_empty());
 
         // Send chunks
         for chunk in test_chunks.iter() {
-            let result = mock_streaming.send_chunk(&stream_handle, chunk.clone()).await;
-            assert!(result.is_ok(), "Chunk {} should be sent successfully", chunk.sequence);
+            let result = mock_streaming
+                .send_chunk(&stream_handle, chunk.clone())
+                .await;
+            assert!(
+                result.is_ok(),
+                "Chunk {} should be sent successfully",
+                chunk.sequence
+            );
         }
 
         // Close stream and verify stats
@@ -189,7 +199,10 @@ mod streaming_tests {
         // Expect stream start to succeed
         mock_streaming
             .expect_start_stream()
-            .with(eq("https://slow-response.com/stream"), eq(short_timeout_config.clone()))
+            .with(
+                eq("https://slow-response.com/stream"),
+                eq(short_timeout_config.clone()),
+            )
             .times(1)
             .returning(move |_, _| Ok(stream_handle.clone()));
 
@@ -232,7 +245,9 @@ mod streaming_tests {
             });
 
         // Act & Assert
-        let handle = mock_streaming.start_stream("https://slow-response.com/stream", &short_timeout_config).await;
+        let handle = mock_streaming
+            .start_stream("https://slow-response.com/stream", &short_timeout_config)
+            .await;
         assert!(handle.is_ok());
         let stream_handle = handle.unwrap();
 
@@ -246,8 +261,9 @@ mod streaming_tests {
 
         let chunk_result = timeout(
             Duration::from_millis(150),
-            mock_streaming.send_chunk(&stream_handle, slow_chunk)
-        ).await;
+            mock_streaming.send_chunk(&stream_handle, slow_chunk),
+        )
+        .await;
 
         // Should timeout or return error
         match chunk_result {
@@ -292,7 +308,10 @@ mod streaming_tests {
 
         mock_streaming
             .expect_start_stream()
-            .with(eq("https://high-volume.com/stream"), eq(backpressure_config.clone()))
+            .with(
+                eq("https://high-volume.com/stream"),
+                eq(backpressure_config.clone()),
+            )
             .times(1)
             .returning(move |_, _| Ok(stream_handle.clone()));
 
@@ -304,7 +323,7 @@ mod streaming_tests {
             .returning(move |_, chunk| {
                 call_count += 1;
                 match call_count {
-                    1..=2 => Ok(()), // First two chunks succeed
+                    1..=2 => Ok(()),                                    // First two chunks succeed
                     3 => Err("Backpressure limit reached".to_string()), // Third triggers backpressure
                     4..=5 => Ok(()), // Subsequent chunks succeed after backpressure relief
                     _ => Err("Unexpected call".to_string()),
@@ -348,23 +367,29 @@ mod streaming_tests {
             });
 
         // Act & Assert
-        let handle = mock_streaming.start_stream("https://high-volume.com/stream", &backpressure_config).await;
+        let handle = mock_streaming
+            .start_stream("https://high-volume.com/stream", &backpressure_config)
+            .await;
         assert!(handle.is_ok());
         let stream_handle = handle.unwrap();
 
         // Send chunks and handle backpressure
-        let chunks = (1..=5).map(|i| StreamChunk {
-            sequence: i,
-            data: vec![0u8; 512],
-            is_final: i == 5,
-            metadata: HashMap::new(),
-        }).collect::<Vec<_>>();
+        let chunks = (1..=5)
+            .map(|i| StreamChunk {
+                sequence: i,
+                data: vec![0u8; 512],
+                is_final: i == 5,
+                metadata: HashMap::new(),
+            })
+            .collect::<Vec<_>>();
 
         let mut successful_chunks = 0;
         let mut backpressure_encountered = false;
 
         for chunk in chunks.iter() {
-            let result = mock_streaming.send_chunk(&stream_handle, chunk.clone()).await;
+            let result = mock_streaming
+                .send_chunk(&stream_handle, chunk.clone())
+                .await;
             match result {
                 Ok(_) => {
                     successful_chunks += 1;
@@ -373,14 +398,20 @@ mod streaming_tests {
                     backpressure_encountered = true;
 
                     // Check stream status during backpressure
-                    let status = mock_streaming.get_stream_status(&stream_handle).await.unwrap();
+                    let status = mock_streaming
+                        .get_stream_status(&stream_handle)
+                        .await
+                        .unwrap();
                     assert_eq!(status.state, "backpressure");
 
                     // Wait for backpressure to be relieved (simulated)
                     tokio::time::sleep(Duration::from_millis(10)).await;
 
                     // Check status again
-                    let status = mock_streaming.get_stream_status(&stream_handle).await.unwrap();
+                    let status = mock_streaming
+                        .get_stream_status(&stream_handle)
+                        .await
+                        .unwrap();
                     assert_eq!(status.state, "flowing");
                 }
                 Err(error) => {
@@ -389,8 +420,14 @@ mod streaming_tests {
             }
         }
 
-        assert!(backpressure_encountered, "Should have encountered backpressure");
-        assert!(successful_chunks >= 4, "Most chunks should eventually succeed");
+        assert!(
+            backpressure_encountered,
+            "Should have encountered backpressure"
+        );
+        assert!(
+            successful_chunks >= 4,
+            "Most chunks should eventually succeed"
+        );
 
         let final_stats = mock_streaming.close_stream(&stream_handle).await.unwrap();
         assert_eq!(final_stats.total_chunks, 4);
@@ -419,10 +456,7 @@ mod streaming_tests {
 
                 streaming
                     .expect_start_stream()
-                    .with(
-                        eq(format!("https://concurrent.com/stream/{}", i)),
-                        always()
-                    )
+                    .with(eq(format!("https://concurrent.com/stream/{}", i)), always())
                     .times(1)
                     .returning(move |_, _| Ok(handle.clone()));
             }
@@ -476,9 +510,7 @@ mod streaming_tests {
                         sequence: j as u64 + 1,
                         data: vec![i as u8; 100],
                         is_final: j == chunks_per_session - 1,
-                        metadata: HashMap::from([
-                            ("session_id".to_string(), i.to_string()),
-                        ]),
+                        metadata: HashMap::from([("session_id".to_string(), i.to_string())]),
                     };
 
                     streaming.send_chunk(&stream_handle, chunk).await?;
@@ -528,7 +560,10 @@ mod streaming_tests {
         // Expect primary stream to start and fail
         mock_streaming
             .expect_start_stream()
-            .with(eq("https://unreliable.com/stream"), eq(resilient_config.clone()))
+            .with(
+                eq("https://unreliable.com/stream"),
+                eq(resilient_config.clone()),
+            )
             .times(1)
             .returning(move |_, _| Ok(primary_handle.clone()));
 
@@ -577,7 +612,10 @@ mod streaming_tests {
         // Recovery stream starts
         mock_streaming
             .expect_start_stream()
-            .with(eq("https://reliable-backup.com/stream"), eq(resilient_config.clone()))
+            .with(
+                eq("https://reliable-backup.com/stream"),
+                eq(resilient_config.clone()),
+            )
             .times(1)
             .returning(move |_, _| Ok(recovery_handle.clone()));
 
@@ -604,7 +642,9 @@ mod streaming_tests {
         // Act & Assert - Test error recovery flow
 
         // Start primary stream
-        let handle = mock_streaming.start_stream("https://unreliable.com/stream", &resilient_config).await;
+        let handle = mock_streaming
+            .start_stream("https://unreliable.com/stream", &resilient_config)
+            .await;
         assert!(handle.is_ok());
         let primary_handle = handle.unwrap();
 
@@ -625,12 +665,17 @@ mod streaming_tests {
             is_final: false,
             metadata: HashMap::new(),
         };
-        let result2 = mock_streaming.send_chunk(&primary_handle, chunk2.clone()).await;
+        let result2 = mock_streaming
+            .send_chunk(&primary_handle, chunk2.clone())
+            .await;
         assert!(result2.is_err());
         assert!(result2.unwrap_err().contains("Network connection lost"));
 
         // Check stream status
-        let status = mock_streaming.get_stream_status(&primary_handle).await.unwrap();
+        let status = mock_streaming
+            .get_stream_status(&primary_handle)
+            .await
+            .unwrap();
         assert_eq!(status.state, "failed");
         assert_eq!(status.chunks_sent, 1);
 
@@ -639,11 +684,17 @@ mod streaming_tests {
         assert_eq!(failed_stats.total_chunks, 1);
 
         // Start recovery stream
-        let recovery_handle = mock_streaming.start_stream("https://reliable-backup.com/stream", &resilient_config).await.unwrap();
+        let recovery_handle = mock_streaming
+            .start_stream("https://reliable-backup.com/stream", &resilient_config)
+            .await
+            .unwrap();
 
         // Retry failed chunk on recovery stream
         let retry_result = mock_streaming.send_chunk(&recovery_handle, chunk2).await;
-        assert!(retry_result.is_ok(), "Recovery stream should handle the chunk");
+        assert!(
+            retry_result.is_ok(),
+            "Recovery stream should handle the chunk"
+        );
 
         // Send final chunk
         let chunk3 = StreamChunk {
@@ -675,7 +726,7 @@ mod streaming_tests {
         let high_performance_config = StreamConfig {
             buffer_size: 65536, // 64KB buffer
             timeout: Duration::from_secs(5),
-            chunk_size: 8192, // 8KB chunks
+            chunk_size: 8192,           // 8KB chunks
             backpressure_limit: 131072, // 128KB backpressure limit
         };
 
@@ -689,7 +740,10 @@ mod streaming_tests {
 
         mock_streaming
             .expect_start_stream()
-            .with(eq("https://high-performance.com/stream"), eq(high_performance_config.clone()))
+            .with(
+                eq("https://high-performance.com/stream"),
+                eq(high_performance_config.clone()),
+            )
             .times(1)
             .returning(move |_, _| Ok(stream_handle.clone()));
 
@@ -717,7 +771,13 @@ mod streaming_tests {
 
         // Act
         let start_time = Instant::now();
-        let handle = mock_streaming.start_stream("https://high-performance.com/stream", &high_performance_config).await.unwrap();
+        let handle = mock_streaming
+            .start_stream(
+                "https://high-performance.com/stream",
+                &high_performance_config,
+            )
+            .await
+            .unwrap();
 
         // Send chunks at high speed
         for i in 0..chunk_count {
@@ -744,7 +804,8 @@ mod streaming_tests {
         assert!(
             stats.average_throughput >= min_throughput,
             "Throughput was {:.2} bytes/s, expected >= {:.2}",
-            stats.average_throughput, min_throughput
+            stats.average_throughput,
+            min_throughput
         );
 
         // Processing should complete within reasonable time
@@ -752,11 +813,16 @@ mod streaming_tests {
         assert!(
             processing_time <= max_processing_time,
             "Processing took {:?}, expected <= {:?}",
-            processing_time, max_processing_time
+            processing_time,
+            max_processing_time
         );
 
-        println!("Performance test: {} chunks ({} bytes) in {:?} at {:.2} MB/s",
-            chunk_count, total_bytes, processing_time,
-            stats.average_throughput / 1_000_000.0);
+        println!(
+            "Performance test: {} chunks ({} bytes) in {:?} at {:.2} MB/s",
+            chunk_count,
+            total_bytes,
+            processing_time,
+            stats.average_throughput / 1_000_000.0
+        );
     }
 }

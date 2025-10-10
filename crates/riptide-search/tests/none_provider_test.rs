@@ -36,7 +36,10 @@ mod none_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(false, "NoneProvider URL detection not implemented yet - TDD red phase");
+        assert!(
+            false,
+            "NoneProvider URL detection not implemented yet - TDD red phase"
+        );
     }
 
     #[tokio::test]
@@ -47,8 +50,8 @@ mod none_provider_tests {
             "apache kafka vs eventmesh",
             "how to install eventmesh",
             "eventmesh.apache.org", // Missing protocol
-            "localhost:8080", // Missing protocol
-            "ftp://example.com", // Unsupported protocol
+            "localhost:8080",       // Missing protocol
+            "ftp://example.com",    // Unsupported protocol
             "",
             "   ", // Whitespace only
         ];
@@ -70,21 +73,27 @@ mod none_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(false, "NoneProvider non-URL handling not implemented yet - TDD red phase");
+        assert!(
+            false,
+            "NoneProvider non-URL handling not implemented yet - TDD red phase"
+        );
     }
 
     #[tokio::test]
     async fn test_none_provider_url_validation_edge_cases() {
         // Test edge cases in URL validation
         let edge_cases = vec![
-            ("https://", false), // Incomplete URL
-            ("https://localhost", true), // Simple localhost
+            ("https://", false),                    // Incomplete URL
+            ("https://localhost", true),            // Simple localhost
             ("https://192.168.1.1:8080/api", true), // IP with port and path
-            ("https://subdomain.example.com/very/long/path?many=params&more=values#anchor", true),
+            (
+                "https://subdomain.example.com/very/long/path?many=params&more=values#anchor",
+                true,
+            ),
             ("javascript:alert('xss')", false), // Security: reject javascript protocol
             ("data:text/html,<h1>Hello</h1>", false), // Security: reject data protocol
-            ("file:///etc/passwd", false), // Security: reject file protocol
-            ("HTTP://UPPERCASE.COM", true), // Case insensitive protocol
+            ("file:///etc/passwd", false),      // Security: reject file protocol
+            ("HTTP://UPPERCASE.COM", true),     // Case insensitive protocol
         ];
 
         // Uncomment when NoneProvider is implemented:
@@ -100,7 +109,10 @@ mod none_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(false, "NoneProvider URL validation edge cases not implemented yet - TDD red phase");
+        assert!(
+            false,
+            "NoneProvider URL validation edge cases not implemented yet - TDD red phase"
+        );
     }
 
     #[tokio::test]
@@ -126,7 +138,10 @@ mod none_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(false, "NoneProvider search result formatting not implemented yet - TDD red phase");
+        assert!(
+            false,
+            "NoneProvider search result formatting not implemented yet - TDD red phase"
+        );
     }
 
     #[tokio::test]
@@ -170,7 +185,10 @@ mod none_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(false, "NoneProvider concurrency not implemented yet - TDD red phase");
+        assert!(
+            false,
+            "NoneProvider concurrency not implemented yet - TDD red phase"
+        );
     }
 
     #[test]
@@ -190,19 +208,27 @@ mod none_provider_tests {
         ];
 
         let invalid_urls = vec![
-            "example.com", // Missing protocol
+            "example.com",       // Missing protocol
             "ftp://example.com", // Wrong protocol
-            "https://", // Incomplete
+            "https://",          // Incomplete
             "not a url at all",
             "",
         ];
 
         for url in valid_urls {
-            assert!(url_regex.is_match(url), "Regex should match valid URL: {}", url);
+            assert!(
+                url_regex.is_match(url),
+                "Regex should match valid URL: {}",
+                url
+            );
         }
 
         for url in invalid_urls {
-            assert!(!url_regex.is_match(url), "Regex should NOT match invalid URL: {}", url);
+            assert!(
+                !url_regex.is_match(url),
+                "Regex should NOT match invalid URL: {}",
+                url
+            );
         }
     }
 }

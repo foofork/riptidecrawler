@@ -1,10 +1,9 @@
+use crate::fixtures::test_data::*;
 /// Performance Benchmark Tests - London School TDD
 ///
 /// Tests performance characteristics using mocks to verify timing contracts
 /// and service level objectives (SLOs) for TTFB, P95 latency, and throughput.
-
 use crate::fixtures::*;
-use crate::fixtures::test_data::*;
 use criterion::{black_box, Criterion};
 use mockall::predicate::*;
 use std::sync::Arc;
@@ -34,8 +33,7 @@ mod performance_tests {
 
         for (scenario, simulated_ttfb) in test_cases.iter() {
             let url = format!("https://performance-test.com/{}", scenario);
-            let response = MockResponses::successful_article()
-                .with_url(url.clone());
+            let response = MockResponses::successful_article().with_url(url.clone());
 
             mock_http
                 .expect_get()
@@ -56,11 +54,17 @@ mod performance_tests {
             let result = mock_http.get(&url).await;
             let measured_ttfb = start_time.elapsed();
 
-            assert!(result.is_ok(), "Request should succeed for scenario: {}", scenario);
+            assert!(
+                result.is_ok(),
+                "Request should succeed for scenario: {}",
+                scenario
+            );
             assert!(
                 measured_ttfb <= ttfb_target,
                 "TTFB for '{}' was {:?}, exceeds SLO of {:?}",
-                scenario, measured_ttfb, ttfb_target
+                scenario,
+                measured_ttfb,
+                ttfb_target
             );
 
             // Verify the mock simulation is working correctly
@@ -111,11 +115,7 @@ mod performance_tests {
 
         for url in batch_urls.iter() {
             let start_time = Instant::now();
-            let result = mock_extractor.extract(
-                &HtmlSamples::article_html(),
-                url,
-                "article"
-            );
+            let result = mock_extractor.extract(&HtmlSamples::article_html(), url, "article");
             let latency = start_time.elapsed();
 
             assert!(result.is_ok(), "Extraction should succeed for URL: {}", url);
@@ -132,7 +132,8 @@ mod performance_tests {
         assert!(
             p95_latency <= p95_target,
             "P95 latency was {:?}, exceeds SLO of {:?}",
-            p95_latency, p95_target
+            p95_latency,
+            p95_target
         );
 
         // Additional metrics for monitoring
@@ -148,8 +149,14 @@ mod performance_tests {
         println!("  P99 latency: {:?}", p99_latency);
 
         // Verify other percentiles are reasonable
-        assert!(p50_latency <= Duration::from_secs(1), "P50 should be under 1 second");
-        assert!(avg_latency <= Duration::from_millis(300), "Average should be under 300ms");
+        assert!(
+            p50_latency <= Duration::from_secs(1),
+            "P50 should be under 1 second"
+        );
+        assert!(
+            avg_latency <= Duration::from_millis(300),
+            "Average should be under 300ms"
+        );
     }
 
     /// Test throughput performance for concurrent processing
@@ -192,11 +199,7 @@ mod performance_tests {
 
                 let handle = tokio::spawn(async move {
                     let mut extractor = extractor.lock().unwrap();
-                    extractor.extract(
-                        "<html><body>Test content</body></html>",
-                        &url,
-                        "article"
-                    )
+                    extractor.extract("<html><body>Test content</body></html>", &url, "article")
                 });
                 handles.push(handle);
             }
@@ -215,18 +218,27 @@ mod performance_tests {
             let throughput = success_count as f64 / total_time.as_secs_f64();
 
             // Assert throughput expectations
-            assert_eq!(success_count, requests_per_level, "All requests should succeed");
+            assert_eq!(
+                success_count, requests_per_level,
+                "All requests should succeed"
+            );
 
             // Verify throughput scaling (allowing for overhead)
             let expected_min_throughput = if concurrency == 1 { 8.0 } else { 15.0 };
             assert!(
                 throughput >= expected_min_throughput,
                 "Throughput at concurrency {} was {:.2} req/s, expected >= {:.2}",
-                concurrency, throughput, expected_min_throughput
+                concurrency,
+                throughput,
+                expected_min_throughput
             );
 
-            println!("Concurrency {}: {:.2} req/s ({:.2}s total)",
-                concurrency, throughput, total_time.as_secs_f64());
+            println!(
+                "Concurrency {}: {:.2} req/s ({:.2}s total)",
+                concurrency,
+                throughput,
+                total_time.as_secs_f64()
+            );
         }
     }
 
@@ -249,7 +261,8 @@ mod performance_tests {
                     // Simulate memory usage proportional to content size
                     let simulated_memory = html.len() as u64 * 2; // 2x factor for processing overhead
 
-                    if simulated_memory > 50 * 1024 * 1024 { // 50MB limit
+                    if simulated_memory > 50 * 1024 * 1024 {
+                        // 50MB limit
                         Err("Content too large for processing".to_string())
                     } else {
                         Ok(ExtractedContent {
@@ -272,7 +285,8 @@ mod performance_tests {
             let result = mock_extractor.extract(&large_content, &url, "article");
             let processing_time = start_time.elapsed();
 
-            if *size <= 1048576 { // 1MB should be processable
+            if *size <= 1048576 {
+                // 1MB should be processable
                 assert!(result.is_ok(), "Should handle content size: {} bytes", size);
 
                 // Verify processing time scales reasonably
@@ -280,11 +294,17 @@ mod performance_tests {
                 assert!(
                     processing_time <= expected_max_time,
                     "Processing {} bytes took {:?}, expected <= {:?}",
-                    size, processing_time, expected_max_time
+                    size,
+                    processing_time,
+                    expected_max_time
                 );
             } else {
                 // Very large content should be rejected
-                assert!(result.is_err(), "Should reject oversized content: {} bytes", size);
+                assert!(
+                    result.is_err(),
+                    "Should reject oversized content: {} bytes",
+                    size
+                );
             }
         }
     }
@@ -312,7 +332,10 @@ mod performance_tests {
                     // Simulate streaming response time
                     std::thread::sleep(*response_time);
                     Ok(RenderResult {
-                        html: format!("<html><body>Streaming content from {}</body></html>", scenario),
+                        html: format!(
+                            "<html><body>Streaming content from {}</body></html>",
+                            scenario
+                        ),
                         success: true,
                         actions_executed: vec![],
                     })
@@ -332,14 +355,20 @@ mod performance_tests {
             let result = mock_renderer.render(&url, &config).await;
             let response_time = start_time.elapsed();
 
-            assert!(result.is_ok(), "Streaming should succeed for scenario: {}", scenario);
+            assert!(
+                result.is_ok(),
+                "Streaming should succeed for scenario: {}",
+                scenario
+            );
 
             // Verify streaming performance
             let tolerance = Duration::from_millis(50);
             assert!(
                 response_time >= *expected_time && response_time <= *expected_time + tolerance,
                 "Streaming response time for '{}' was {:?}, expected ~{:?}",
-                scenario, response_time, expected_time
+                scenario,
+                response_time,
+                expected_time
             );
 
             let render_result = result.unwrap();
@@ -411,7 +440,8 @@ mod performance_tests {
             assert!(
                 (actual_error_rate - error_rate).abs() <= tolerance,
                 "Error rate should be ~{}, got {}",
-                error_rate, actual_error_rate
+                error_rate,
+                actual_error_rate
             );
 
             // Verify throughput doesn't degrade significantly under errors
@@ -419,11 +449,18 @@ mod performance_tests {
             assert!(
                 throughput >= min_expected_throughput,
                 "Throughput at {}% error rate was {:.2} req/s, expected >= {:.2}",
-                error_rate * 100.0, throughput, min_expected_throughput
+                error_rate * 100.0,
+                throughput,
+                min_expected_throughput
             );
 
-            println!("Error rate {:.1}%: {:.2} req/s, {} success, {} errors",
-                error_rate * 100.0, throughput, success_count, error_count);
+            println!(
+                "Error rate {:.1}%: {:.2} req/s, {} success, {} errors",
+                error_rate * 100.0,
+                throughput,
+                success_count,
+                error_count
+            );
         }
     }
 
@@ -495,17 +532,21 @@ mod performance_tests {
             assert!(
                 create_throughput >= 1000.0,
                 "Create throughput for {} sessions was {:.2} ops/s, expected >= 1000",
-                count, create_throughput
+                count,
+                create_throughput
             );
 
             assert!(
                 cleanup_throughput >= 2000.0,
                 "Cleanup throughput for {} sessions was {:.2} ops/s, expected >= 2000",
-                count, cleanup_throughput
+                count,
+                cleanup_throughput
             );
 
-            println!("Sessions {}: create {:.2} ops/s, cleanup {:.2} ops/s",
-                count, create_throughput, cleanup_throughput);
+            println!(
+                "Sessions {}: create {:.2} ops/s, cleanup {:.2} ops/s",
+                count, create_throughput, cleanup_throughput
+            );
         }
     }
 }

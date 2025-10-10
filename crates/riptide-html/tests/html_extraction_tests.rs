@@ -1,11 +1,11 @@
 //! Comprehensive tests for HTML extraction functionality
 //! Tests CSS selectors, regex patterns, and DOM traversal utilities
 
+use riptide_html::css_extraction::*;
+use riptide_html::extraction_strategies::*;
+use riptide_html::regex_extraction::*;
+use riptide_html::RegexPattern;
 use std::collections::HashMap;
-use riptide_core::strategies::extraction::*;
-use riptide_core::strategies::extraction::css_json::*;
-use riptide_core::strategies::extraction::regex::*;
-use riptide_core::strategies::RegexPattern;
 
 /// Test module for CSS selector extraction
 mod css_extraction_tests {
@@ -34,7 +34,9 @@ mod css_extraction_tests {
         "#;
 
         let selectors = default_selectors();
-        let result = extract(html, "https://example.com", &selectors).await.unwrap();
+        let result = extract(html, "https://example.com", &selectors)
+            .await
+            .unwrap();
 
         assert_eq!(result.title, "Test Page");
         assert!(result.content.contains("First paragraph"));
@@ -80,7 +82,9 @@ mod css_extraction_tests {
         selectors.insert("tags".to_string(), ".tag, .category".to_string());
         selectors.insert("date".to_string(), "time.published".to_string());
 
-        let result = extract(html, "https://example.com", &selectors).await.unwrap();
+        let result = extract(html, "https://example.com", &selectors)
+            .await
+            .unwrap();
 
         assert_eq!(result.title, "Article Title");
         assert!(result.content.contains("main content"));
@@ -155,13 +159,18 @@ mod css_extraction_tests {
     async fn test_css_selector_edge_cases() {
         // Test empty HTML
         let empty_html = "";
-        let result = extract_default(empty_html, "https://example.com").await.unwrap();
+        let result = extract_default(empty_html, "https://example.com")
+            .await
+            .unwrap();
         assert_eq!(result.title, "Untitled");
         assert!(result.content.is_empty());
 
         // Test malformed HTML
-        let malformed_html = "<html><title>Test</title><p>Unclosed paragraph<div>Mixed tags</p></div>";
-        let result = extract_default(malformed_html, "https://example.com").await.unwrap();
+        let malformed_html =
+            "<html><title>Test</title><p>Unclosed paragraph<div>Mixed tags</p></div>";
+        let result = extract_default(malformed_html, "https://example.com")
+            .await
+            .unwrap();
         assert_eq!(result.title, "Test");
 
         // Test HTML with special characters
@@ -171,7 +180,9 @@ mod css_extraction_tests {
         <body><p>Content with é accents and 中文 characters</p></body>
         </html>
         "#;
-        let result = extract_default(special_html, "https://example.com").await.unwrap();
+        let result = extract_default(special_html, "https://example.com")
+            .await
+            .unwrap();
         assert!(result.title.contains("Special"));
         assert!(result.content.contains("é"));
         assert!(result.content.contains("中文"));
@@ -197,7 +208,7 @@ mod css_extraction_tests {
         "#;
 
         let result = extract_default(html, "https://example.com").await.unwrap();
-        
+
         assert!(result.content.contains("First level content"));
         assert!(result.content.contains("Nested content"));
         assert!(result.content.contains("Nested span"));
@@ -221,17 +232,18 @@ mod regex_extraction_tests {
         </html>
         "#;
 
-        let patterns = vec![
-            RegexPattern {
-                name: "email".to_string(),
-                pattern: r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b".to_string(),
-                field: "emails".to_string(),
-                required: false,
-            }
-        ];
+        let patterns = vec![RegexPattern {
+            name: "email".to_string(),
+            pattern: r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b".to_string(),
+            field: "emails".to_string(),
+            required: false,
+        }];
 
         let extractor = RegexExtractor::new(&patterns).unwrap();
-        let result = extractor.extract(html, "https://example.com").await.unwrap();
+        let result = extractor
+            .extract(html, "https://example.com")
+            .await
+            .unwrap();
 
         // Should extract valid emails but not invalid ones
         assert!(result.content.contains("support@example.com"));
@@ -250,17 +262,18 @@ mod regex_extraction_tests {
         </html>
         "#;
 
-        let patterns = vec![
-            RegexPattern {
-                name: "phone".to_string(),
-                pattern: r"\b\d{3}-\d{3}-\d{4}\b|\b\(\d{3}\)\s?\d{3}-\d{4}\b".to_string(),
-                field: "phones".to_string(),
-                required: false,
-            }
-        ];
+        let patterns = vec![RegexPattern {
+            name: "phone".to_string(),
+            pattern: r"\b\d{3}-\d{3}-\d{4}\b|\b\(\d{3}\)\s?\d{3}-\d{4}\b".to_string(),
+            field: "phones".to_string(),
+            required: false,
+        }];
 
         let extractor = RegexExtractor::new(&patterns).unwrap();
-        let result = extractor.extract(html, "https://example.com").await.unwrap();
+        let result = extractor
+            .extract(html, "https://example.com")
+            .await
+            .unwrap();
 
         assert!(result.content.contains("123-456-7890"));
         assert!(result.content.contains("(555) 123-4567"));
@@ -278,21 +291,24 @@ mod regex_extraction_tests {
         </html>
         "#;
 
-        let patterns = vec![
-            RegexPattern {
-                name: "url".to_string(),
-                pattern: r"https?://[^\s<>]+".to_string(),
-                field: "urls".to_string(),
-                required: false,
-            }
-        ];
+        let patterns = vec![RegexPattern {
+            name: "url".to_string(),
+            pattern: r"https?://[^\s<>]+".to_string(),
+            field: "urls".to_string(),
+            required: false,
+        }];
 
         let extractor = RegexExtractor::new(&patterns).unwrap();
-        let result = extractor.extract(html, "https://example.com").await.unwrap();
+        let result = extractor
+            .extract(html, "https://example.com")
+            .await
+            .unwrap();
 
         assert!(result.content.contains("https://www.example.com"));
         assert!(result.content.contains("http://test.org"));
-        assert!(result.content.contains("https://secure.site.net/path?param=value"));
+        assert!(result
+            .content
+            .contains("https://secure.site.net/path?param=value"));
     }
 
     #[tokio::test]
@@ -325,11 +341,14 @@ mod regex_extraction_tests {
                 pattern: r"v\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?".to_string(),
                 field: "versions".to_string(),
                 required: false,
-            }
+            },
         ];
 
         let extractor = RegexExtractor::new(&patterns).unwrap();
-        let result = extractor.extract(html, "https://example.com").await.unwrap();
+        let result = extractor
+            .extract(html, "https://example.com")
+            .await
+            .unwrap();
 
         assert_eq!(result.strategy_used, "regex");
         assert!(result.extraction_confidence > 0.7); // Should be high due to required pattern match
@@ -353,7 +372,8 @@ mod regex_extraction_tests {
 
         // HTML with both patterns
         let complete_html = "<p>REQUIRED-123 and OPTIONAL-456</p>";
-        let extractor = RegexExtractor::new(&[required_pattern.clone(), optional_pattern.clone()]).unwrap();
+        let extractor =
+            RegexExtractor::new(&[required_pattern.clone(), optional_pattern.clone()]).unwrap();
         let complete_confidence = extractor.confidence_score(complete_html);
 
         // HTML with only required pattern
@@ -385,23 +405,24 @@ mod regex_extraction_tests {
         </html>
         "#;
 
-        let patterns = vec![
-            RegexPattern {
-                name: "text".to_string(),
-                pattern: r"text".to_string(),
-                field: "content".to_string(),
-                required: false,
-            }
-        ];
+        let patterns = vec![RegexPattern {
+            name: "text".to_string(),
+            pattern: r"text".to_string(),
+            field: "content".to_string(),
+            required: false,
+        }];
 
         let extractor = RegexExtractor::new(&patterns).unwrap();
-        let result = extractor.extract(html, "https://example.com").await.unwrap();
+        let result = extractor
+            .extract(html, "https://example.com")
+            .await
+            .unwrap();
 
         // Should not contain script or style content
         assert!(!result.content.contains("console.log"));
         assert!(!result.content.contains("color: red"));
         assert!(!result.content.contains("alert"));
-        
+
         // Should contain regular text content
         assert!(result.content.contains("This text should remain"));
         assert!(result.content.contains("Regular content"));
@@ -410,20 +431,30 @@ mod regex_extraction_tests {
     #[tokio::test]
     async fn test_regex_fallback_title_extraction() {
         // Test with title tag
-        let html_with_title = "<html><head><title>Page Title</title></head><body><p>Content</p></body></html>";
+        let html_with_title =
+            "<html><head><title>Page Title</title></head><body><p>Content</p></body></html>";
         let patterns = vec![];
         let extractor = RegexExtractor::new(&patterns).unwrap();
-        let result = extractor.extract(html_with_title, "https://example.com").await.unwrap();
+        let result = extractor
+            .extract(html_with_title, "https://example.com")
+            .await
+            .unwrap();
         assert_eq!(result.title, "Page Title");
 
         // Test with h1 fallback
         let html_with_h1 = "<html><head></head><body><h1>H1 Title</h1><p>Content</p></body></html>";
-        let result = extractor.extract(html_with_h1, "https://example.com").await.unwrap();
+        let result = extractor
+            .extract(html_with_h1, "https://example.com")
+            .await
+            .unwrap();
         assert_eq!(result.title, "H1 Title");
 
         // Test with no title
         let html_no_title = "<html><head></head><body><p>Just content</p></body></html>";
-        let result = extractor.extract(html_no_title, "https://example.com").await.unwrap();
+        let result = extractor
+            .extract(html_no_title, "https://example.com")
+            .await
+            .unwrap();
         assert_eq!(result.title, "Untitled");
     }
 }
@@ -449,7 +480,10 @@ mod dom_traversal_tests {
         let class_selector = Selector::parse(".paragraph").unwrap();
         let class_matches: Vec<_> = document.select(&class_selector).collect();
         assert_eq!(class_matches.len(), 1);
-        assert_eq!(class_matches[0].text().collect::<String>(), "First paragraph");
+        assert_eq!(
+            class_matches[0].text().collect::<String>(),
+            "First paragraph"
+        );
 
         // Test ID selector
         let id_selector = Selector::parse("#special").unwrap();
@@ -501,7 +535,10 @@ mod dom_traversal_tests {
         let first_child_selector = Selector::parse(".content p:first-child").unwrap();
         let first_child_matches: Vec<_> = document.select(&first_child_selector).collect();
         assert_eq!(first_child_matches.len(), 1);
-        assert_eq!(first_child_matches[0].text().collect::<String>(), "First content paragraph");
+        assert_eq!(
+            first_child_matches[0].text().collect::<String>(),
+            "First content paragraph"
+        );
 
         // Test multiple selector
         let multiple_selector = Selector::parse("h1, .subtitle").unwrap();
@@ -521,7 +558,7 @@ mod dom_traversal_tests {
 
         let document = Html::parse_document(html);
         let selector = Selector::parse("p").unwrap();
-        
+
         let paragraphs: Vec<_> = document.select(&selector).collect();
         assert_eq!(paragraphs.len(), 3);
 
@@ -561,22 +598,29 @@ mod dom_traversal_tests {
         let link_selector = Selector::parse("a").unwrap();
         let links: Vec<_> = document.select(&link_selector).collect();
         assert_eq!(links.len(), 1);
-        assert_eq!(links[0].value().attr("href").unwrap(), "https://example.com");
+        assert_eq!(
+            links[0].value().attr("href").unwrap(),
+            "https://example.com"
+        );
         assert_eq!(links[0].value().attr("title").unwrap(), "Example link");
 
         // Test meta content extraction
         let meta_selector = Selector::parse("meta[name='description']").unwrap();
         let metas: Vec<_> = document.select(&meta_selector).collect();
         assert_eq!(metas.len(), 1);
-        assert_eq!(metas[0].value().attr("content").unwrap(), "Page description");
+        assert_eq!(
+            metas[0].value().attr("content").unwrap(),
+            "Page description"
+        );
     }
 
     #[test]
     fn test_malformed_html_handling() {
         // Test with unclosed tags
-        let malformed_html = "<div><p>Unclosed paragraph<span>Unclosed span<p>Another paragraph</div>";
+        let malformed_html =
+            "<div><p>Unclosed paragraph<span>Unclosed span<p>Another paragraph</div>";
         let document = Html::parse_document(malformed_html);
-        
+
         let p_selector = Selector::parse("p").unwrap();
         let paragraphs: Vec<_> = document.select(&p_selector).collect();
         assert!(paragraphs.len() > 0); // Should still find paragraphs
@@ -584,7 +628,7 @@ mod dom_traversal_tests {
         // Test with invalid nesting
         let invalid_nesting = "<p><div>Block inside paragraph</div></p>";
         let document = Html::parse_document(invalid_nesting);
-        
+
         let div_selector = Selector::parse("div").unwrap();
         let divs: Vec<_> = document.select(&div_selector).collect();
         assert_eq!(divs.len(), 1);
@@ -605,14 +649,15 @@ mod dom_traversal_tests {
         let document = Html::parse_document(html);
         let p_selector = Selector::parse("p").unwrap();
         let paragraphs: Vec<_> = document.select(&p_selector).collect();
-        
+
         assert_eq!(paragraphs.len(), 5);
-        
+
         // Test trimming and whitespace handling
-        let texts: Vec<String> = paragraphs.iter()
+        let texts: Vec<String> = paragraphs
+            .iter()
             .map(|p| p.text().collect::<String>().trim().to_string())
             .collect();
-        
+
         assert_eq!(texts[0], ""); // Just spaces
         assert_eq!(texts[1], ""); // Empty
         assert_eq!(texts[2], ""); // Just whitespace chars
@@ -639,7 +684,9 @@ mod performance_edge_case_tests {
         large_html.push_str("</body></html>");
 
         let start = Instant::now();
-        let result = extract_default(&large_html, "https://example.com").await.unwrap();
+        let result = extract_default(&large_html, "https://example.com")
+            .await
+            .unwrap();
         let duration = start.elapsed();
 
         // Should complete within reasonable time (adjust threshold as needed)
@@ -661,7 +708,9 @@ mod performance_edge_case_tests {
         }
         nested_html.push_str("</body></html>");
 
-        let result = extract_default(&nested_html, "https://example.com").await.unwrap();
+        let result = extract_default(&nested_html, "https://example.com")
+            .await
+            .unwrap();
         assert!(result.content.contains("Deep content"));
     }
 
@@ -669,8 +718,7 @@ mod performance_edge_case_tests {
     async fn test_html_with_invalid_characters() {
         let html_with_invalid = format!(
             "<html><body><p>Content with {} null bytes and {} control characters</p></body></html>",
-            "\x00\x01\x02",
-            "\x1f\x7f"
+            "\x00\x01\x02", "\x1f\x7f"
         );
 
         let result = extract_default(&html_with_invalid, "https://example.com").await;
@@ -687,7 +735,7 @@ mod performance_edge_case_tests {
 
         let result = extract_default(&html_with_binary, "https://example.com").await;
         assert!(result.is_ok());
-        
+
         let content = result.unwrap();
         assert!(content.content.contains("Text before"));
         assert!(content.content.contains("Text after"));
@@ -718,7 +766,9 @@ mod performance_edge_case_tests {
 
         // Test regex extraction
         let regex_patterns = default_patterns();
-        let regex_result = extract(html, "https://example.com", &regex_patterns).await.unwrap();
+        let regex_result = extract(html, "https://example.com", &regex_patterns)
+            .await
+            .unwrap();
         assert_eq!(regex_result.strategy_used, "regex");
         assert_eq!(regex_result.title, "Multi-Strategy Test"); // Fallback title extraction
     }
@@ -733,7 +783,7 @@ mod performance_edge_case_tests {
         "#;
 
         let mut handles = vec![];
-        
+
         // Start multiple concurrent extractions
         for i in 0..10 {
             let html_clone = html.to_string();
@@ -745,7 +795,7 @@ mod performance_edge_case_tests {
 
         // Wait for all to complete
         let results = futures::future::join_all(handles).await;
-        
+
         // All should succeed
         for result in results {
             assert!(result.is_ok());

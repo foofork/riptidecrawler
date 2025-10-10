@@ -4,9 +4,9 @@
 //! including edge cases, error handling, and environment-based configuration.
 
 use riptide_core::search::{
-    SearchBackend, SearchConfig, SearchProvider, AdvancedSearchConfig,
-    CircuitBreakerConfigOptions, SearchProviderFactory,
-    create_search_provider, create_search_provider_from_env
+    create_search_provider, create_search_provider_from_env, AdvancedSearchConfig,
+    CircuitBreakerConfigOptions, SearchBackend, SearchConfig, SearchProvider,
+    SearchProviderFactory,
 };
 use std::env;
 use std::time::Duration;
@@ -434,7 +434,7 @@ mod provider_health_check_tests {
 #[cfg(test)]
 mod comprehensive_circuit_breaker_tests {
     use super::*;
-    use riptide_core::search::circuit_breaker::{CircuitBreakerWrapper, CircuitBreakerConfig};
+    use riptide_core::search::circuit_breaker::{CircuitBreakerConfig, CircuitBreakerWrapper};
     use riptide_core::search::none_provider::NoneProvider;
     use std::time::Duration;
 
@@ -455,10 +455,14 @@ mod comprehensive_circuit_breaker_tests {
 
         // Initial state should be closed (allowing requests)
         // Test with successful requests first
-        let result1 = provider.search("https://example1.com", 10, "us", "en").await;
+        let result1 = provider
+            .search("https://example1.com", 10, "us", "en")
+            .await;
         assert!(result1.is_ok());
 
-        let result2 = provider.search("https://example2.com", 10, "us", "en").await;
+        let result2 = provider
+            .search("https://example2.com", 10, "us", "en")
+            .await;
         assert!(result2.is_ok());
 
         // Test with failing requests to trigger circuit opening
@@ -470,7 +474,9 @@ mod comprehensive_circuit_breaker_tests {
 
         // Circuit should now be open (we've hit the failure threshold)
         // Next request should be rejected immediately
-        let result5 = provider.search("https://example3.com", 10, "us", "en").await;
+        let result5 = provider
+            .search("https://example3.com", 10, "us", "en")
+            .await;
         // This may or may not fail depending on circuit breaker implementation
         // But we can verify the provider is still functional
         assert!(result5.is_ok() || result5.is_err()); // Either is acceptable
@@ -501,7 +507,9 @@ mod comprehensive_circuit_breaker_tests {
         tokio::time::sleep(Duration::from_millis(100)).await;
 
         // Should still be working
-        let final_result = provider.search("https://final-test.com", 10, "us", "en").await;
+        let final_result = provider
+            .search("https://final-test.com", 10, "us", "en")
+            .await;
         assert!(final_result.is_ok());
     }
 
@@ -512,7 +520,9 @@ mod comprehensive_circuit_breaker_tests {
         let none_provider = Box::new(NoneProvider::new(true));
         let none_cb = CircuitBreakerWrapper::new(none_provider);
 
-        let result = none_cb.search("https://none-provider-test.com", 10, "us", "en").await;
+        let result = none_cb
+            .search("https://none-provider-test.com", 10, "us", "en")
+            .await;
         assert!(result.is_ok());
         assert_eq!(none_cb.backend_type(), SearchBackend::None);
 
@@ -631,7 +641,11 @@ mod advanced_factory_pattern_tests {
 
         for (i, config) in invalid_configs.into_iter().enumerate() {
             let validation_result = config.validate();
-            assert!(validation_result.is_err(), "Configuration {} should be invalid", i);
+            assert!(
+                validation_result.is_err(),
+                "Configuration {} should be invalid",
+                i
+            );
         }
     }
 
@@ -644,7 +658,8 @@ mod advanced_factory_pattern_tests {
             ("serper", "45", "false", "80", "7", "180"),
         ];
 
-        for (backend, timeout, url_parsing, cb_threshold, cb_min_req, cb_recovery) in env_test_cases {
+        for (backend, timeout, url_parsing, cb_threshold, cb_min_req, cb_recovery) in env_test_cases
+        {
             env::set_var("SEARCH_BACKEND", backend);
             env::set_var("SEARCH_TIMEOUT", timeout);
             env::set_var("SEARCH_ENABLE_URL_PARSING", url_parsing);
@@ -656,10 +671,22 @@ mod advanced_factory_pattern_tests {
 
             assert_eq!(config.backend.to_string(), backend);
             assert_eq!(config.timeout_seconds, timeout.parse::<u64>().unwrap());
-            assert_eq!(config.enable_url_parsing, url_parsing.parse::<bool>().unwrap());
-            assert_eq!(config.circuit_breaker.failure_threshold, cb_threshold.parse::<u32>().unwrap());
-            assert_eq!(config.circuit_breaker.min_requests, cb_min_req.parse::<u32>().unwrap());
-            assert_eq!(config.circuit_breaker.recovery_timeout_secs, cb_recovery.parse::<u64>().unwrap());
+            assert_eq!(
+                config.enable_url_parsing,
+                url_parsing.parse::<bool>().unwrap()
+            );
+            assert_eq!(
+                config.circuit_breaker.failure_threshold,
+                cb_threshold.parse::<u32>().unwrap()
+            );
+            assert_eq!(
+                config.circuit_breaker.min_requests,
+                cb_min_req.parse::<u32>().unwrap()
+            );
+            assert_eq!(
+                config.circuit_breaker.recovery_timeout_secs,
+                cb_recovery.parse::<u64>().unwrap()
+            );
         }
 
         // Clean up environment
@@ -702,6 +729,9 @@ mod advanced_factory_pattern_tests {
             }
         }
 
-        assert_eq!(success_count, 5, "All concurrent factory calls should succeed");
+        assert_eq!(
+            success_count, 5,
+            "All concurrent factory calls should succeed"
+        );
     }
 }

@@ -4,8 +4,8 @@
 //! It ensures all provider types can be created with proper configuration validation.
 
 use riptide_core::search::{
-    SearchBackend, SearchConfig, SearchProvider,
-    create_search_provider, create_search_provider_from_env
+    create_search_provider, create_search_provider_from_env, SearchBackend, SearchConfig,
+    SearchProvider,
 };
 use std::env;
 use std::time::Duration;
@@ -48,14 +48,32 @@ mod advanced_search_config_tests {
     #[test]
     fn test_search_backend_parsing() {
         // Test valid parsing
-        assert_eq!("serper".parse::<SearchBackend>().unwrap(), SearchBackend::Serper);
-        assert_eq!("none".parse::<SearchBackend>().unwrap(), SearchBackend::None);
-        assert_eq!("searxng".parse::<SearchBackend>().unwrap(), SearchBackend::SearXNG);
+        assert_eq!(
+            "serper".parse::<SearchBackend>().unwrap(),
+            SearchBackend::Serper
+        );
+        assert_eq!(
+            "none".parse::<SearchBackend>().unwrap(),
+            SearchBackend::None
+        );
+        assert_eq!(
+            "searxng".parse::<SearchBackend>().unwrap(),
+            SearchBackend::SearXNG
+        );
 
         // Test case insensitive
-        assert_eq!("SERPER".parse::<SearchBackend>().unwrap(), SearchBackend::Serper);
-        assert_eq!("None".parse::<SearchBackend>().unwrap(), SearchBackend::None);
-        assert_eq!("SearXNG".parse::<SearchBackend>().unwrap(), SearchBackend::SearXNG);
+        assert_eq!(
+            "SERPER".parse::<SearchBackend>().unwrap(),
+            SearchBackend::Serper
+        );
+        assert_eq!(
+            "None".parse::<SearchBackend>().unwrap(),
+            SearchBackend::None
+        );
+        assert_eq!(
+            "SearXNG".parse::<SearchBackend>().unwrap(),
+            SearchBackend::SearXNG
+        );
 
         // Test invalid parsing
         assert!("invalid_backend".parse::<SearchBackend>().is_err());
@@ -242,8 +260,10 @@ mod provider_factory_tests {
         // This might fail if the default backend is Serper and no API key is set
         // We'll check the error message to determine if it's the expected failure
         if let Err(error) = provider {
-            assert!(error.to_string().contains("API key") ||
-                   error.to_string().contains("not yet implemented"));
+            assert!(
+                error.to_string().contains("API key")
+                    || error.to_string().contains("not yet implemented")
+            );
         }
     }
 

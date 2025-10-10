@@ -1,9 +1,7 @@
 //! Quick integration test for the SearchProvider trait implementation
 //! This validates that Phase 1 of the roadmap is working correctly.
 
-use riptide_core::search::{
-    create_search_provider, SearchBackend, SearchConfig, SearchProvider,
-};
+use riptide_core::search::{create_search_provider, SearchBackend, SearchConfig, SearchProvider};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -22,7 +20,8 @@ async fn main() -> anyhow::Result<()> {
     println!("Backend type: {}", none_provider.backend_type());
 
     // Test URL extraction
-    let query = "Check these sites: https://example.com, https://rust-lang.org and https://github.com";
+    let query =
+        "Check these sites: https://example.com, https://rust-lang.org and https://github.com";
     match none_provider.search(query, 5, "us", "en").await {
         Ok(results) => {
             println!("✓ URL extraction successful: {} URLs found", results.len());
@@ -40,7 +39,10 @@ async fn main() -> anyhow::Result<()> {
 
     // Test 2: None provider with no URLs
     println!("\n=== Test 2: None Provider - No URLs ===");
-    match none_provider.search("just some text without any URLs", 5, "us", "en").await {
+    match none_provider
+        .search("just some text without any URLs", 5, "us", "en")
+        .await
+    {
         Ok(_) => println!("✗ Expected error but got success"),
         Err(e) => println!("✓ Correctly rejected query with no URLs: {}", e),
     }
@@ -65,8 +67,10 @@ async fn main() -> anyhow::Result<()> {
     // Test 6: Configuration
     println!("\n=== Test 6: Configuration ===");
     let default_config = SearchConfig::default();
-    println!("✓ Default config: backend={}, timeout={}s",
-             default_config.backend, default_config.timeout_seconds);
+    println!(
+        "✓ Default config: backend={}, timeout={}s",
+        default_config.backend, default_config.timeout_seconds
+    );
 
     println!("\n🎉 All Phase 1 SearchProvider tests completed successfully!");
     println!("Implementation is ready for integration with /deepsearch endpoint");

@@ -1,5 +1,5 @@
-use std::time::Duration;
 use serde_json::json;
+use std::time::Duration;
 use tokio::time::timeout;
 
 // Mock HTTP client for testing
@@ -122,7 +122,10 @@ mod serper_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(false, "SerperProvider error handling not implemented yet - TDD red phase");
+        assert!(
+            false,
+            "SerperProvider error handling not implemented yet - TDD red phase"
+        );
     }
 
     #[tokio::test]
@@ -156,7 +159,10 @@ mod serper_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(false, "SerperProvider rate limiting not implemented yet - TDD red phase");
+        assert!(
+            false,
+            "SerperProvider rate limiting not implemented yet - TDD red phase"
+        );
     }
 
     #[tokio::test]
@@ -186,7 +192,10 @@ mod serper_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(false, "SerperProvider JSON parsing not implemented yet - TDD red phase");
+        assert!(
+            false,
+            "SerperProvider JSON parsing not implemented yet - TDD red phase"
+        );
     }
 
     #[tokio::test]
@@ -219,7 +228,10 @@ mod serper_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(false, "SerperProvider empty results handling not implemented yet - TDD red phase");
+        assert!(
+            false,
+            "SerperProvider empty results handling not implemented yet - TDD red phase"
+        );
     }
 
     #[tokio::test]
@@ -236,6 +248,9 @@ mod serper_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(false, "SerperProvider timeout handling not implemented yet - TDD red phase");
+        assert!(
+            false,
+            "SerperProvider timeout handling not implemented yet - TDD red phase"
+        );
     }
 }

@@ -6,13 +6,13 @@
 //! - Error handling in search context
 //! - Performance with search + crawl operations
 
+use futures::stream::StreamExt;
+use httpmock::prelude::*;
+use reqwest::Client;
+use serde_json::Value;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
-use serde_json::Value;
-use httpmock::prelude::*;
 use uuid::Uuid;
-use reqwest::Client;
-use futures::stream::StreamExt;
 
 /// Test framework specifically for deep search streaming
 struct DeepSearchStreamingTestFramework {
@@ -42,27 +42,31 @@ impl DeepSearchStreamingTestFramework {
 
     /// Setup mock Serper API response
     fn setup_serper_mock(&self, query: &str, results: Vec<SearchResultData>) -> Mock {
-        let organic_results: Vec<Value> = results.into_iter().map(|r| serde_json::json!({
-            "title": r.title,
-            "link": r.url,
-            "snippet": r.snippet,
-            "position": r.position
-        })).collect();
+        let organic_results: Vec<Value> = results
+            .into_iter()
+            .map(|r| {
+                serde_json::json!({
+                    "title": r.title,
+                    "link": r.url,
+                    "snippet": r.snippet,
+                    "position": r.position
+                })
+            })
+            .collect();
 
         self.serper_mock_server.mock(|when, then| {
             when.method(POST)
                 .path("/search")
                 .header("X-API-KEY", "test_api_key_123")
                 .json_body_partial(&format!(r#"{{"q":"{}"}}"#, query));
-            then.status(200)
-                .json_body(serde_json::json!({
-                    "organic": organic_results,
-                    "searchParameters": {
-                        "q": query,
-                        "gl": "us",
-                        "hl": "en"
-                    }
-                }));
+            then.status(200).json_body(serde_json::json!({
+                "organic": organic_results,
+                "searchParameters": {
+                    "q": query,
+                    "gl": "us",
+                    "hl": "en"
+                }
+            }));
         })
     }
 
@@ -98,19 +102,27 @@ impl DeepSearchStreamingTestFramework {
 
     /// Setup failing content mocks
     fn setup_failing_content_mocks(&self, urls: Vec<&str>) -> Vec<Mock> {
-        urls.into_iter().map(|url| {
-            let path = url.trim_start_matches(&self.content_mock_server.base_url());
-            self.content_mock_server.mock(|when, then| {
-                when.method(GET).path(path);
-                then.status(404)
-                    .header("content-type", "text/html")
-                    .body("<html><body><h1>404 Not Found</h1></body></html>");
+        urls.into_iter()
+            .map(|url| {
+                let path = url.trim_start_matches(&self.content_mock_server.base_url());
+                self.content_mock_server.mock(|when, then| {
+                    when.method(GET).path(path);
+                    then.status(404)
+                        .header("content-type", "text/html")
+                        .body("<html><body><h1>404 Not Found</h1></body></html>");
+                })
             })
-        }).collect()
+            .collect()
     }
 
     /// Create deepsearch request
-    fn create_request(&self, query: &str, limit: u32, include_content: bool, concurrency: Option<u32>) -> Value {
+    fn create_request(
+        &self,
+        query: &str,
+        limit: u32,
+        include_content: bool,
+        concurrency: Option<u32>,
+    ) -> Value {
         let mut request = serde_json::json!({
             "query": query,
             "limit": limit,
@@ -130,10 +142,14 @@ impl DeepSearchStreamingTestFramework {
     }
 
     /// Make streaming request and parse response
-    async fn make_streaming_request(&self, request: Value) -> Result<DeepSearchStreamingResponse, String> {
+    async fn make_streaming_request(
+        &self,
+        request: Value,
+    ) -> Result<DeepSearchStreamingResponse, String> {
         let start_time = Instant::now();
 
-        let response = self.client
+        let response = self
+            .client
             .post(&format!("{}/deepsearch/stream", self.api_base_url))
             .json(&request)
             .send()
@@ -219,33 +235,42 @@ struct DeepSearchStreamingResponse {
 
 impl DeepSearchStreamingResponse {
     fn stream_metadata(&self) -> Option<&Value> {
-        self.lines.iter()
+        self.lines
+            .iter()
             .find(|line| line.get("stream_type").is_some())
     }
 
     fn search_metadata(&self) -> Option<&Value> {
-        self.lines.iter()
+        self.lines
+            .iter()
             .find(|line| line.get("query").is_some() && line.get("urls_found").is_some())
     }
 
     fn search_results(&self) -> Vec<&Value> {
-        self.lines.iter()
+        self.lines
+            .iter()
             .filter(|line| line.get("search_result").is_some())
             .collect()
     }
 
     fn summary(&self) -> Option<&Value> {
-        self.lines.iter()
+        self.lines
+            .iter()
             .find(|line| line.get("query").is_some() && line.get("status").is_some())
     }
 
     fn validate_headers(&self) -> Result<(), String> {
-        let content_type = self.headers.get("content-type")
+        let content_type = self
+            .headers
+            .get("content-type")
             .and_then(|v| v.to_str().ok())
             .ok_or_else(|| "Missing content-type header".to_string())?;
 
         if content_type != "application/x-ndjson" {
-            return Err(format!("Expected content-type 'application/x-ndjson', got '{}'", content_type));
+            return Err(format!(
+                "Expected content-type 'application/x-ndjson', got '{}'",
+                content_type
+            ));
         }
 
         if self.headers.get("transfer-encoding").is_none() {
@@ -267,39 +292,46 @@ async fn test_deepsearch_basic_streaming() {
             "Test Article 1",
             &format!("{}/article1", framework.content_mock_server.base_url()),
             "This is a test article about streaming",
-            1
+            1,
         ),
         SearchResultData::new(
             "Test Article 2",
             &format!("{}/article2", framework.content_mock_server.base_url()),
             "Another test article with relevant content",
-            2
+            2,
         ),
     ];
 
     // Setup mock servers - must keep mocks alive for duration of test
-    let _serper_mock_guard = framework.setup_serper_mock("streaming technology", search_results.clone());
+    let _serper_mock_guard =
+        framework.setup_serper_mock("streaming technology", search_results.clone());
     let _content_mocks_guard = framework.setup_content_mocks(&[
         &format!("{}/article1", framework.content_mock_server.base_url()),
         &format!("{}/article2", framework.content_mock_server.base_url()),
     ]);
 
     let request = framework.create_request("streaming technology", 2, true, Some(2));
-    let response = framework.make_streaming_request(request).await
+    let response = framework
+        .make_streaming_request(request)
+        .await
         .expect("Basic deep search streaming should succeed");
 
     // Validate response structure
-    response.validate_headers().expect("Headers should be valid");
+    response
+        .validate_headers()
+        .expect("Headers should be valid");
     assert!(!response.lines.is_empty(), "Should have response lines");
 
     // Check stream metadata
-    let stream_metadata = response.stream_metadata()
+    let stream_metadata = response
+        .stream_metadata()
         .expect("Should have stream metadata");
     assert_eq!(stream_metadata["stream_type"], "deepsearch");
     assert!(stream_metadata["request_id"].is_string());
 
     // Check search metadata
-    let search_metadata = response.search_metadata()
+    let search_metadata = response
+        .search_metadata()
         .expect("Should have search metadata");
     assert_eq!(search_metadata["query"], "streaming technology");
     assert_eq!(search_metadata["urls_found"], 2);
@@ -317,7 +349,8 @@ async fn test_deepsearch_basic_streaming() {
         assert!(search_result["search_snippet"].is_string());
 
         // Since include_content=true, should have crawl results
-        let crawl_result = result["crawl_result"].as_object()
+        let crawl_result = result["crawl_result"]
+            .as_object()
             .expect("Should have crawl result when include_content=true");
         assert!(crawl_result["status"].is_number());
         assert!(crawl_result["gate_decision"].is_string());
@@ -338,20 +371,20 @@ async fn test_deepsearch_basic_streaming() {
 async fn test_deepsearch_without_content_extraction() {
     let framework = DeepSearchStreamingTestFramework::new();
 
-    let search_results = vec![
-        SearchResultData::new(
-            "Fast Result",
-            "https://example.com/fast",
-            "Quick result without crawling",
-            1
-        ),
-    ];
+    let search_results = vec![SearchResultData::new(
+        "Fast Result",
+        "https://example.com/fast",
+        "Quick result without crawling",
+        1,
+    )];
 
     // Setup mock server - must keep mock alive for duration of test
     let _serper_mock_guard = framework.setup_serper_mock("fast search", search_results);
 
     let request = framework.create_request("fast search", 1, false, None);
-    let response = framework.make_streaming_request(request).await
+    let response = framework
+        .make_streaming_request(request)
+        .await
         .expect("Search without content should succeed");
 
     // Should complete quickly since no crawling
@@ -366,8 +399,10 @@ async fn test_deepsearch_without_content_extraction() {
 
     // Should not have crawl results
     let result = &search_results[0];
-    assert!(result["crawl_result"].is_null() || !result.get("crawl_result").is_some(),
-            "Should not have crawl result when include_content=false");
+    assert!(
+        result["crawl_result"].is_null() || !result.get("crawl_result").is_some(),
+        "Should not have crawl result when include_content=false"
+    );
 
     // But should have search data
     let search_result = &result["search_result"];
@@ -380,27 +415,28 @@ async fn test_deepsearch_without_content_extraction() {
 async fn test_deepsearch_ttfb_performance() {
     let framework = DeepSearchStreamingTestFramework::new();
 
-    let search_results = vec![
-        SearchResultData::new(
-            "Cached Content",
-            &format!("{}/cached", framework.content_mock_server.base_url()),
-            "This should be fast",
-            1
-        ),
-    ];
+    let search_results = vec![SearchResultData::new(
+        "Cached Content",
+        &format!("{}/cached", framework.content_mock_server.base_url()),
+        "This should be fast",
+        1,
+    )];
 
     // Setup mock servers - must keep mocks alive for duration of test
     let _serper_mock_guard = framework.setup_serper_mock("cached query", search_results);
-    let _content_mocks_guard = framework.setup_content_mocks(&[
-        &format!("{}/cached", framework.content_mock_server.base_url()),
-    ]);
+    let _content_mocks_guard = framework.setup_content_mocks(&[&format!(
+        "{}/cached",
+        framework.content_mock_server.base_url()
+    )]);
 
     // First request to potentially warm cache
     let request = framework.create_request("cached query", 1, true, Some(1));
     let _ = framework.make_streaming_request(request.clone()).await;
 
     // Second request should be faster
-    let response = framework.make_streaming_request(request).await
+    let response = framework
+        .make_streaming_request(request)
+        .await
         .expect("Cached deep search should succeed");
 
     // TTFB should be reasonable for deepsearch (more lenient than crawl due to external API)
@@ -428,27 +464,31 @@ async fn test_deepsearch_error_handling() {
             "Working Article",
             &format!("{}/working", framework.content_mock_server.base_url()),
             "This article works fine",
-            1
+            1,
         ),
         SearchResultData::new(
             "Broken Article",
             &format!("{}/broken", framework.content_mock_server.base_url()),
             "This article will fail",
-            2
+            2,
         ),
     ];
 
     // Setup mock servers - must keep mocks alive for duration of test
     let _serper_mock_guard = framework.setup_serper_mock("mixed results", search_results);
-    let _working_mock_guard = framework.setup_content_mocks(&[
-        &format!("{}/working", framework.content_mock_server.base_url()),
-    ]);
-    let _failing_mock_guard = framework.setup_failing_content_mocks(&[
-        &format!("{}/broken", framework.content_mock_server.base_url()),
-    ]);
+    let _working_mock_guard = framework.setup_content_mocks(&[&format!(
+        "{}/working",
+        framework.content_mock_server.base_url()
+    )]);
+    let _failing_mock_guard = framework.setup_failing_content_mocks(&[&format!(
+        "{}/broken",
+        framework.content_mock_server.base_url()
+    )]);
 
     let request = framework.create_request("mixed results", 2, true, Some(2));
-    let response = framework.make_streaming_request(request).await
+    let response = framework
+        .make_streaming_request(request)
+        .await
         .expect("Mixed results should succeed overall");
 
     let search_results = response.search_results();
@@ -513,24 +553,26 @@ async fn test_deepsearch_large_result_set() {
     let framework = DeepSearchStreamingTestFramework::new();
 
     // Create many search results
-    let search_results: Vec<SearchResultData> = (1..=10).map(|i| {
-        SearchResultData::new(
-            &format!("Article {}", i),
-            &format!("{}/article{}", framework.content_mock_server.base_url(), i),
-            &format!("Content snippet for article {}", i),
-            i as u32,
-        )
-    }).collect();
+    let search_results: Vec<SearchResultData> = (1..=10)
+        .map(|i| {
+            SearchResultData::new(
+                &format!("Article {}", i),
+                &format!("{}/article{}", framework.content_mock_server.base_url(), i),
+                &format!("Content snippet for article {}", i),
+                i as u32,
+            )
+        })
+        .collect();
 
     let _serper_mock = framework.setup_serper_mock("large query", search_results);
 
     // Setup some working and some failing content
-    let working_urls: Vec<String> = (1..=5).map(|i|
-        format!("{}/article{}", framework.content_mock_server.base_url(), i)
-    ).collect();
-    let failing_urls: Vec<String> = (6..=10).map(|i|
-        format!("{}/article{}", framework.content_mock_server.base_url(), i)
-    ).collect();
+    let working_urls: Vec<String> = (1..=5)
+        .map(|i| format!("{}/article{}", framework.content_mock_server.base_url(), i))
+        .collect();
+    let failing_urls: Vec<String> = (6..=10)
+        .map(|i| format!("{}/article{}", framework.content_mock_server.base_url(), i))
+        .collect();
 
     let working_refs: Vec<&str> = working_urls.iter().map(|s| s.as_str()).collect();
     let failing_refs: Vec<&str> = failing_urls.iter().map(|s| s.as_str()).collect();
@@ -540,7 +582,9 @@ async fn test_deepsearch_large_result_set() {
     let _failing_mocks_guard = framework.setup_failing_content_mocks(&failing_refs);
 
     let request = framework.create_request("large query", 10, true, Some(5));
-    let response = framework.make_streaming_request(request).await
+    let response = framework
+        .make_streaming_request(request)
+        .await
         .expect("Large result set should succeed");
 
     // Should handle all results
@@ -573,8 +617,7 @@ async fn test_deepsearch_search_api_failure() {
         when.method(POST)
             .path("/search")
             .header("X-API-KEY", "test_api_key_123");
-        then.status(500)
-            .body("Internal Server Error");
+        then.status(500).body("Internal Server Error");
     });
 
     let request = framework.create_request("failing query", 5, true, Some(2));
@@ -600,9 +643,12 @@ async fn test_concurrent_deepsearch_sessions() {
         SearchResultData::new("Result 1A", "https://example.com/1a", "Content 1A", 1),
         SearchResultData::new("Result 1B", "https://example.com/1b", "Content 1B", 2),
     ];
-    let search_results2 = vec![
-        SearchResultData::new("Result 2A", "https://example.com/2a", "Content 2A", 1),
-    ];
+    let search_results2 = vec![SearchResultData::new(
+        "Result 2A",
+        "https://example.com/2a",
+        "Content 2A",
+        1,
+    )];
 
     // Setup mock servers - must keep mocks alive for duration of test
     let _serper_mock1_guard = framework.setup_serper_mock("query one", search_results1);
@@ -625,9 +671,16 @@ async fn test_concurrent_deepsearch_sessions() {
     assert_eq!(response2.search_results().len(), 1);
 
     // Check different request IDs
-    let req_id1 = response1.stream_metadata().unwrap()["request_id"].as_str().unwrap();
-    let req_id2 = response2.stream_metadata().unwrap()["request_id"].as_str().unwrap();
-    assert_ne!(req_id1, req_id2, "Concurrent sessions should have different request IDs");
+    let req_id1 = response1.stream_metadata().unwrap()["request_id"]
+        .as_str()
+        .unwrap();
+    let req_id2 = response2.stream_metadata().unwrap()["request_id"]
+        .as_str()
+        .unwrap();
+    assert_ne!(
+        req_id1, req_id2,
+        "Concurrent sessions should have different request IDs"
+    );
 
     // Both should complete in reasonable time
     assert!(response1.total_time.as_millis() < 5000);
@@ -640,22 +693,24 @@ async fn test_deepsearch_rate_limiting() {
     let framework = DeepSearchStreamingTestFramework::new();
 
     // Create large number of search results to test limits
-    let search_results: Vec<SearchResultData> = (1..=20).map(|i| {
-        SearchResultData::new(
-            &format!("Rate Test {}", i),
-            &format!("{}/rate{}", framework.content_mock_server.base_url(), i),
-            &format!("Rate limiting test content {}", i),
-            i as u32,
-        )
-    }).collect();
+    let search_results: Vec<SearchResultData> = (1..=20)
+        .map(|i| {
+            SearchResultData::new(
+                &format!("Rate Test {}", i),
+                &format!("{}/rate{}", framework.content_mock_server.base_url(), i),
+                &format!("Rate limiting test content {}", i),
+                i as u32,
+            )
+        })
+        .collect();
 
     // Setup mock server - must keep mock alive for duration of test
     let _serper_mock_guard = framework.setup_serper_mock("rate limit test", search_results);
 
     // Setup content with some fast, some slow responses
-    let urls: Vec<String> = (1..=20).map(|i|
-        format!("{}/rate{}", framework.content_mock_server.base_url(), i)
-    ).collect();
+    let urls: Vec<String> = (1..=20)
+        .map(|i| format!("{}/rate{}", framework.content_mock_server.base_url(), i))
+        .collect();
 
     for (i, url) in urls.iter().enumerate() {
         let path = url.trim_start_matches(&framework.content_mock_server.base_url());
@@ -671,12 +726,18 @@ async fn test_deepsearch_rate_limiting() {
     }
 
     let request = framework.create_request("rate limit test", 20, true, Some(5)); // Limited concurrency
-    let response = framework.make_streaming_request(request).await
+    let response = framework
+        .make_streaming_request(request)
+        .await
         .expect("Rate limiting test should succeed");
 
     // Should handle all results despite rate limiting
     let search_results = response.search_results();
-    assert_eq!(search_results.len(), 20, "All results should be processed despite rate limiting");
+    assert_eq!(
+        search_results.len(),
+        20,
+        "All results should be processed despite rate limiting"
+    );
 
     // Processing should respect concurrency limits (not too fast)
     // With 20 URLs and concurrency 5, should take reasonable time

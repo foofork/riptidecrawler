@@ -1,7 +1,7 @@
-use std::time::Instant;
 use futures::stream::StreamExt;
 use httpmock::prelude::*;
 use serde_json::Value;
+use std::time::Instant;
 use tokio_test;
 
 /// Test NDJSON streaming endpoints for RipTide API.
@@ -106,11 +106,14 @@ async fn test_ndjson_crawl_streaming() {
 
     // Verify we received expected number of lines
     // Expected: metadata + 2 results + summary = 4 lines
-    assert!(lines.len() >= 4, "Expected at least 4 NDJSON lines, got {}", lines.len());
+    assert!(
+        lines.len() >= 4,
+        "Expected at least 4 NDJSON lines, got {}",
+        lines.len()
+    );
 
     // Parse and verify first line (metadata)
-    let metadata: Value = serde_json::from_str(&lines[0])
-        .expect("Failed to parse metadata line");
+    let metadata: Value = serde_json::from_str(&lines[0]).expect("Failed to parse metadata line");
 
     assert_eq!(metadata["total_urls"], 2);
     assert_eq!(metadata["stream_type"], "crawl");
@@ -121,7 +124,7 @@ async fn test_ndjson_crawl_streaming() {
     let mut result_count = 0;
     let mut successful_results = 0;
 
-    for line in &lines[1..lines.len()-1] {
+    for line in &lines[1..lines.len() - 1] {
         if let Ok(result) = serde_json::from_str::<Value>(line) {
             if result.get("result").is_some() {
                 result_count += 1;
@@ -153,8 +156,8 @@ async fn test_ndjson_crawl_streaming() {
     assert_eq!(result_count, 2, "Expected 2 result lines");
 
     // Parse and verify last line (summary)
-    let summary: Value = serde_json::from_str(lines.last().unwrap())
-        .expect("Failed to parse summary line");
+    let summary: Value =
+        serde_json::from_str(lines.last().unwrap()).expect("Failed to parse summary line");
 
     assert_eq!(summary["total_urls"], 2);
     assert!(summary["successful"].is_number());
@@ -178,21 +181,20 @@ async fn test_ndjson_deepsearch_streaming() {
         when.method(POST)
             .path("/search")
             .header("X-API-KEY", "test_key");
-        then.status(200)
-            .json_body(serde_json::json!({
-                "organic": [
-                    {
-                        "title": "Test Result 1",
-                        "link": "https://example.com/test1",
-                        "snippet": "Test snippet 1"
-                    },
-                    {
-                        "title": "Test Result 2",
-                        "link": "https://example.com/test2",
-                        "snippet": "Test snippet 2"
-                    }
-                ]
-            }));
+        then.status(200).json_body(serde_json::json!({
+            "organic": [
+                {
+                    "title": "Test Result 1",
+                    "link": "https://example.com/test1",
+                    "snippet": "Test snippet 1"
+                },
+                {
+                    "title": "Test Result 2",
+                    "link": "https://example.com/test2",
+                    "snippet": "Test snippet 2"
+                }
+            ]
+        }));
     });
 
     // Mock the target websites
@@ -275,11 +277,14 @@ async fn test_ndjson_deepsearch_streaming() {
 
     // Verify we received expected lines
     // Expected: metadata + search_metadata + 2 results + summary = 5+ lines
-    assert!(lines.len() >= 5, "Expected at least 5 NDJSON lines, got {}", lines.len());
+    assert!(
+        lines.len() >= 5,
+        "Expected at least 5 NDJSON lines, got {}",
+        lines.len()
+    );
 
     // Parse and verify first line (stream metadata)
-    let metadata: Value = serde_json::from_str(&lines[0])
-        .expect("Failed to parse metadata line");
+    let metadata: Value = serde_json::from_str(&lines[0]).expect("Failed to parse metadata line");
 
     assert_eq!(metadata["stream_type"], "deepsearch");
     assert!(metadata["request_id"].is_string());
@@ -300,7 +305,7 @@ async fn test_ndjson_deepsearch_streaming() {
 
     // Verify at least one search result with crawl data
     let mut found_search_result = false;
-    for line in &lines[1..lines.len()-1] {
+    for line in &lines[1..lines.len() - 1] {
         if let Ok(parsed) = serde_json::from_str::<Value>(line) {
             if parsed.get("search_result").is_some() {
                 let search_result = &parsed["search_result"];
@@ -322,8 +327,8 @@ async fn test_ndjson_deepsearch_streaming() {
     assert!(found_search_result, "Search result not found");
 
     // Parse and verify summary
-    let summary: Value = serde_json::from_str(lines.last().unwrap())
-        .expect("Failed to parse summary line");
+    let summary: Value =
+        serde_json::from_str(lines.last().unwrap()).expect("Failed to parse summary line");
 
     assert_eq!(summary["query"], "test search");
     assert!(summary["total_urls_found"].is_number());
@@ -376,7 +381,7 @@ async fn test_streaming_error_handling() {
 
     // Verify error results are properly formatted
     let mut error_count = 0;
-    for line in &lines[1..lines.len()-1] {
+    for line in &lines[1..lines.len() - 1] {
         if let Ok(result) = serde_json::from_str::<Value>(line) {
             if let Some(result_obj) = result.get("result") {
                 if result_obj["error"].is_object() {
@@ -413,8 +418,8 @@ async fn test_streaming_request_validation() {
     assert_eq!(response.status(), 400);
 
     let response_text = response.text().await.expect("Failed to read response");
-    let response_json: Value = serde_json::from_str(&response_text)
-        .expect("Failed to parse error response");
+    let response_json: Value =
+        serde_json::from_str(&response_text).expect("Failed to parse error response");
 
     assert_eq!(response_json["error"]["type"], "validation_error");
     assert_eq!(response_json["error"]["retryable"], false);
@@ -432,7 +437,10 @@ async fn test_streaming_large_batch_performance() {
             when.method(GET).path(&format!("/test{}", i));
             then.status(200)
                 .header("content-type", "text/html")
-                .body(&format!("<html><head><title>Test {}</title></head><body><p>Content {}</p></body></html>", i, i));
+                .body(&format!(
+                "<html><head><title>Test {}</title></head><body><p>Content {}</p></body></html>",
+                i, i
+            ));
         });
 
         urls.push(format!("{}/test{}", server.base_url(), i));
@@ -498,5 +506,8 @@ async fn test_streaming_large_batch_performance() {
     }
 
     let total_time = start_time.elapsed();
-    println!("Total streaming time for 10 URLs: {} ms", total_time.as_millis());
+    println!(
+        "Total streaming time for 10 URLs: {} ms",
+        total_time.as_millis()
+    );
 }

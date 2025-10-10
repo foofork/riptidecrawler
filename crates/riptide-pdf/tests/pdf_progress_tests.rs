@@ -12,7 +12,7 @@ use tokio_stream::StreamExt;
 async fn test_pdf_progress_tracking() {
     use riptide_core::pdf::{
         integration::PdfPipelineIntegration,
-        types::{ProgressUpdate, ProcessingStage},
+        types::{ProcessingStage, ProgressUpdate},
     };
 
     // Create PDF integration
@@ -55,10 +55,17 @@ async fn test_pdf_progress_tracking() {
     assert!(!updates.is_empty(), "Should receive progress updates");
 
     // Check for expected progress sequence
-    let has_started = updates.iter().any(|u| matches!(u, ProgressUpdate::Started { .. }));
-    let has_progress = updates.iter().any(|u| matches!(u, ProgressUpdate::Progress(_)));
+    let has_started = updates
+        .iter()
+        .any(|u| matches!(u, ProgressUpdate::Started { .. }));
+    let has_progress = updates
+        .iter()
+        .any(|u| matches!(u, ProgressUpdate::Progress(_)));
     let has_completion = updates.iter().any(|u| {
-        matches!(u, ProgressUpdate::Completed { .. } | ProgressUpdate::Failed { .. })
+        matches!(
+            u,
+            ProgressUpdate::Completed { .. } | ProgressUpdate::Failed { .. }
+        )
     });
 
     assert!(has_started, "Should have started event");
@@ -112,7 +119,10 @@ async fn test_detailed_progress_callback() {
             }
 
             // Should have at least one progress update
-            assert!(!updates.is_empty(), "Should receive detailed progress updates");
+            assert!(
+                !updates.is_empty(),
+                "Should receive detailed progress updates"
+            );
         }
         Err(e) => panic!("PDF processing failed: {:?}", e),
     }
@@ -181,8 +191,8 @@ fn test_progress_update_serialization() {
 
     // Verify all updates can be serialized to JSON (for NDJSON streaming)
     for update in &updates {
-        let serialized = serde_json::to_string(update)
-            .expect("Progress update should serialize to JSON");
+        let serialized =
+            serde_json::to_string(update).expect("Progress update should serialize to JSON");
         assert!(!serialized.is_empty());
 
         // Verify it can be deserialized back
@@ -273,10 +283,7 @@ startxref
 #[tokio::test]
 #[cfg(feature = "pdf")]
 async fn test_pdf_processing_error_handling() {
-    use riptide_core::pdf::{
-        integration::PdfPipelineIntegration,
-        types::ProgressUpdate,
-    };
+    use riptide_core::pdf::{integration::PdfPipelineIntegration, types::ProgressUpdate};
 
     let integration = PdfPipelineIntegration::new();
 
@@ -310,7 +317,10 @@ async fn test_pdf_processing_error_handling() {
         }
     }
 
-    assert!(received_failure, "Should receive failure notification for invalid PDF");
+    assert!(
+        received_failure,
+        "Should receive failure notification for invalid PDF"
+    );
 }
 
 #[test]

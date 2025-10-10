@@ -34,7 +34,7 @@ impl Default for MemoryStabilityTestConfig {
             test_duration: Duration::from_secs(30),
             total_operations: 50,
             pdf_size_pages: 10,
-            max_concurrent: 2, // ROADMAP requirement
+            max_concurrent: 2,                     // ROADMAP requirement
             memory_spike_limit: 200 * 1024 * 1024, // ROADMAP requirement: 200MB
         }
     }
@@ -117,8 +117,10 @@ impl MemoryStabilityTester {
 
     /// Run sustained load test to validate memory stability
     pub async fn run_sustained_load_test(&self) -> MemoryStabilityResults {
-        info!("Starting PDF memory stability test with {} operations over {:?}",
-              self.config.total_operations, self.config.test_duration);
+        info!(
+            "Starting PDF memory stability test with {} operations over {:?}",
+            self.config.total_operations, self.config.test_duration
+        );
 
         let start_time = Instant::now();
         let mut join_set = JoinSet::new();
@@ -137,7 +139,8 @@ impl MemoryStabilityTester {
 
         // Spawn PDF processing tasks with controlled rate
         let test_pdf = self.generate_test_pdf(self.config.pdf_size_pages);
-        let operations_per_second = self.config.total_operations as f64 / self.config.test_duration.as_secs_f64();
+        let operations_per_second =
+            self.config.total_operations as f64 / self.config.test_duration.as_secs_f64();
         let task_interval = Duration::from_millis((1000.0 / operations_per_second) as u64);
 
         for task_id in 0..self.config.total_operations {
@@ -148,7 +151,10 @@ impl MemoryStabilityTester {
                 let task_start = Instant::now();
                 let url = Some(format!("test://pdf/task/{}", task_id).as_str());
 
-                match integration.process_pdf_to_extracted_doc(&pdf_data, url).await {
+                match integration
+                    .process_pdf_to_extracted_doc(&pdf_data, url)
+                    .await
+                {
                     Ok(_) => (task_id, true, task_start.elapsed()),
                     Err(e) => {
                         warn!("Task {} failed: {:?}", task_id, e);
@@ -168,9 +174,11 @@ impl MemoryStabilityTester {
 
                 if memory_spike > self.config.memory_spike_limit {
                     memory_spike_violations += 1;
-                    warn!("Memory spike violation: {} MB (limit: {} MB)",
-                          memory_spike / (1024 * 1024),
-                          self.config.memory_spike_limit / (1024 * 1024));
+                    warn!(
+                        "Memory spike violation: {} MB (limit: {} MB)",
+                        memory_spike / (1024 * 1024),
+                        self.config.memory_spike_limit / (1024 * 1024)
+                    );
                 }
 
                 // Check concurrent operations (approximation)
@@ -198,7 +206,7 @@ impl MemoryStabilityTester {
         while !join_set.is_empty() && Instant::now() < completion_deadline {
             if let Some(result) = join_set.join_next().await {
                 match result {
-                    Ok((task_id, success, duration)) => {
+                    Ok((_task_id, success, duration)) => {
                         if success {
                             successful += 1;
                         } else {
@@ -282,22 +290,32 @@ mod tests {
         let results = tester.run_sustained_load_test().await;
 
         // Validate ROADMAP requirements
-        assert!(results.concurrency_compliance,
-               "Concurrency violation: observed {} concurrent operations, limit is {}",
-               results.max_concurrent_observed, 2);
+        assert!(
+            results.concurrency_compliance,
+            "Concurrency violation: observed {} concurrent operations, limit is {}",
+            results.max_concurrent_observed, 2
+        );
 
-        assert!(results.memory_compliance,
-               "Memory spike violations: {} (max spike: {} MB)",
-               results.memory_spike_violations,
-               results.max_memory_spike_bytes / (1024 * 1024));
+        assert!(
+            results.memory_compliance,
+            "Memory spike violations: {} (max spike: {} MB)",
+            results.memory_spike_violations,
+            results.max_memory_spike_bytes / (1024 * 1024)
+        );
 
-        assert!(results.memory_stability_score > 0.8,
-               "Memory stability score too low: {}", results.memory_stability_score);
+        assert!(
+            results.memory_stability_score > 0.8,
+            "Memory stability score too low: {}",
+            results.memory_stability_score
+        );
 
         // Performance validations
-        assert!(results.successful_operations > results.failed_operations,
-               "More failures than successes: {} failed vs {} successful",
-               results.failed_operations, results.successful_operations);
+        assert!(
+            results.successful_operations > results.failed_operations,
+            "More failures than successes: {} failed vs {} successful",
+            results.failed_operations,
+            results.successful_operations
+        );
     }
 
     #[test]
@@ -306,7 +324,7 @@ mod tests {
         let config = MemoryStabilityTestConfig {
             test_duration: Duration::from_secs(10),
             total_operations: 30, // High operation count
-            pdf_size_pages: 3, // Small PDFs
+            pdf_size_pages: 3,    // Small PDFs
             max_concurrent: 2,
             ..Default::default()
         };
@@ -314,9 +332,11 @@ mod tests {
         let tester = MemoryStabilityTester::new(config);
         let results = tester.run_sustained_load_test().await;
 
-        assert!(results.concurrency_compliance,
-               "PDF concurrency limit violated: {} concurrent operations observed (limit: 2)",
-               results.max_concurrent_observed);
+        assert!(
+            results.concurrency_compliance,
+            "PDF concurrency limit violated: {} concurrent operations observed (limit: 2)",
+            results.max_concurrent_observed
+        );
     }
 
     #[test]
@@ -325,7 +345,7 @@ mod tests {
         let config = MemoryStabilityTestConfig {
             test_duration: Duration::from_secs(20),
             total_operations: 15,
-            pdf_size_pages: 15, // Larger PDFs to stress memory
+            pdf_size_pages: 15,                    // Larger PDFs to stress memory
             memory_spike_limit: 200 * 1024 * 1024, // 200MB limit
             ..Default::default()
         };
@@ -333,9 +353,12 @@ mod tests {
         let tester = MemoryStabilityTester::new(config);
         let results = tester.run_sustained_load_test().await;
 
-        assert_eq!(results.memory_spike_violations, 0,
-                  "Memory spike violations detected: {} spikes, max spike: {} MB",
-                  results.memory_spike_violations,
-                  results.max_memory_spike_bytes / (1024 * 1024));
+        assert_eq!(
+            results.memory_spike_violations,
+            0,
+            "Memory spike violations detected: {} spikes, max spike: {} MB",
+            results.memory_spike_violations,
+            results.max_memory_spike_bytes / (1024 * 1024)
+        );
     }
 }

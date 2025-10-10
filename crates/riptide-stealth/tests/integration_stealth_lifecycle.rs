@@ -1,13 +1,10 @@
 use riptide_stealth::{
-    StealthController, StealthConfig, StealthPreset, UserAgentManager, UserAgentConfig,
-    RotationStrategy, BrowserType, FingerprintingConfig, JavaScriptInjector,
-    LocaleStrategy, HardwareConfig, WebGlConfig, CanvasConfig, RequestRandomization,
-    TimingConfig, load_user_agents_from_file
+    load_user_agents_from_file, BrowserType, CanvasConfig, FingerprintingConfig, HardwareConfig,
+    JavaScriptInjector, LocaleStrategy, RequestRandomization, RotationStrategy, StealthConfig,
+    StealthController, StealthPreset, TimingConfig, UserAgentConfig, UserAgentManager, WebGlConfig,
 };
 use std::collections::HashSet;
 use std::time::{Duration, Instant};
-use std::sync::Arc;
-use tokio::sync::RwLock;
 
 /// Integration tests for stealth mode component lifecycle
 /// Tests the complete stealth system including user agent rotation,
@@ -56,9 +53,7 @@ async fn test_stealth_controller_complete_lifecycle() {
     assert!(viewports.len() > 1);
 
     // Test timing delays
-    let delays: Vec<Duration> = (0..5)
-        .map(|_| controller.calculate_delay())
-        .collect();
+    let delays: Vec<Duration> = (0..5).map(|_| controller.calculate_delay()).collect();
 
     for delay in &delays {
         assert!(delay.as_millis() > 0);
@@ -80,8 +75,8 @@ async fn test_user_agent_manager_rotation_strategies() {
             "Mozilla/5.0 (Chrome) Random2".to_string(),
             "Mozilla/5.0 (Chrome) Random3".to_string(),
         ],
-        browser_type_filter: None,
-        mobile_filter: false,
+        include_mobile: false,
+        browser_preference: BrowserType::Mixed,
     };
 
     let mut random_manager = UserAgentManager::new(random_config);
@@ -103,8 +98,8 @@ async fn test_user_agent_manager_rotation_strategies() {
             "Mozilla/5.0 (Chrome) Seq2".to_string(),
             "Mozilla/5.0 (Chrome) Seq3".to_string(),
         ],
-        browser_type_filter: None,
-        mobile_filter: false,
+        include_mobile: false,
+        browser_preference: BrowserType::Mixed,
     };
 
     let mut sequential_manager = UserAgentManager::new(sequential_config);
@@ -124,8 +119,8 @@ async fn test_user_agent_manager_rotation_strategies() {
             "Mozilla/5.0 (Chrome) Sticky1".to_string(),
             "Mozilla/5.0 (Chrome) Sticky2".to_string(),
         ],
-        browser_type_filter: None,
-        mobile_filter: false,
+        include_mobile: false,
+        browser_preference: BrowserType::Mixed,
     };
 
     let mut sticky_manager = UserAgentManager::new(sticky_config);
@@ -149,8 +144,8 @@ async fn test_browser_type_filtering() {
     let config = UserAgentConfig {
         strategy: RotationStrategy::Random,
         agents: test_agents,
-        browser_type_filter: None,
-        mobile_filter: false,
+        include_mobile: false,
+        browser_preference: BrowserType::Mixed,
     };
 
     let mut manager = UserAgentManager::new(config);
@@ -175,8 +170,8 @@ async fn test_browser_type_filtering() {
             "Mozilla/5.0 (Firefox) Test".to_string(),
             "Mozilla/5.0 (Safari) Test".to_string(),
         ],
-        browser_type_filter: None,
-        mobile_filter: false,
+        include_mobile: false,
+        browser_preference: BrowserType::Mixed,
     };
 
     let mut manager2 = UserAgentManager::new(config2);
@@ -198,8 +193,8 @@ async fn test_mobile_agent_filtering() {
     let config = UserAgentConfig {
         strategy: RotationStrategy::Random,
         agents: test_agents,
-        browser_type_filter: None,
-        mobile_filter: false,
+        include_mobile: false,
+        browser_preference: BrowserType::Mixed,
     };
 
     let mut manager = UserAgentManager::new(config);
@@ -268,12 +263,8 @@ async fn test_javascript_injection_generation() {
     ];
 
     for strategy in strategies {
-        let injector = JavaScriptInjector::new(
-            &hardware_config,
-            &webgl_config,
-            &canvas_config,
-            &strategy,
-        );
+        let injector =
+            JavaScriptInjector::new(&hardware_config, &webgl_config, &canvas_config, &strategy);
 
         let js_code = injector.generate_stealth_js();
 
@@ -368,7 +359,9 @@ async fn test_stealth_preset_configurations() {
                 // Medium and High should have comprehensive stealth
                 let flags = config.get_cdp_flags();
                 assert!(!flags.is_empty());
-                assert!(flags.iter().any(|f| f.contains("no-sandbox") || f.contains("disable")));
+                assert!(flags
+                    .iter()
+                    .any(|f| f.contains("no-sandbox") || f.contains("disable")));
             }
         }
 
@@ -415,8 +408,8 @@ async fn test_error_handling_and_fallbacks() {
     let empty_config = UserAgentConfig {
         strategy: RotationStrategy::Random,
         agents: vec![], // Empty list
-        browser_type_filter: None,
-        mobile_filter: false,
+        include_mobile: false,
+        browser_preference: BrowserType::Mixed,
     };
 
     let mut empty_manager = UserAgentManager::new(empty_config);
@@ -434,8 +427,8 @@ async fn test_error_handling_and_fallbacks() {
     let chrome_only_config = UserAgentConfig {
         strategy: RotationStrategy::Random,
         agents: vec!["Mozilla/5.0 (Firefox only)".to_string()],
-        browser_type_filter: None,
-        mobile_filter: false,
+        include_mobile: false,
+        browser_preference: BrowserType::Mixed,
     };
 
     let mut chrome_manager = UserAgentManager::new(chrome_only_config);
@@ -472,23 +465,16 @@ async fn test_stealth_performance_and_memory() {
     assert!(js_time < Duration::from_millis(500)); // Should be reasonably fast
 
     // Test concurrent access simulation
-    let shared_controller = Arc::new(RwLock::new(
-        StealthController::from_preset(StealthPreset::Medium)
-    ));
-
-    let mut handles = vec![];
+    // Note: Using sequential access since StealthController uses thread_rng internally
+    // which is not Send. In production, each request thread would have its own controller.
+    let mut controller = StealthController::from_preset(StealthPreset::Medium);
+    let mut user_agents = Vec::new();
     for _ in 0..10 {
-        let controller_ref = Arc::clone(&shared_controller);
-        let handle = tokio::spawn(async move {
-            let mut controller = controller_ref.write().await;
-            controller.next_user_agent().to_string()
-        });
-        handles.push(handle);
+        let ua = controller.next_user_agent().to_string();
+        user_agents.push(ua);
     }
 
-    let concurrent_results = futures::future::join_all(handles).await;
-    for result in concurrent_results {
-        let ua = result.unwrap();
+    for ua in user_agents {
         assert!(!ua.is_empty());
     }
 

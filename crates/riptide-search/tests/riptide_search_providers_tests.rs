@@ -5,10 +5,9 @@
 
 use anyhow::Result;
 use riptide_search::{
-    SearchProvider, SearchBackend, SearchHit, SearchConfig,
-    SerperProvider, NoneProvider, CircuitBreakerWrapper,
-    create_search_provider, create_search_provider_from_env,
-    AdvancedSearchConfig, SearchProviderFactory,
+    create_search_provider, create_search_provider_from_env, AdvancedSearchConfig,
+    CircuitBreakerWrapper, NoneProvider, SearchBackend, SearchConfig, SearchHit, SearchProvider,
+    SearchProviderFactory, SerperProvider,
 };
 use std::time::Duration;
 
@@ -45,8 +44,8 @@ mod search_hit_tests {
 
     #[test]
     fn test_search_hit_serialization() {
-        let hit = SearchHit::new("https://example.com".to_string(), 1)
-            .with_title("Test".to_string());
+        let hit =
+            SearchHit::new("https://example.com".to_string(), 1).with_title("Test".to_string());
 
         let json = serde_json::to_string(&hit);
         assert!(json.is_ok());
@@ -76,16 +75,34 @@ mod search_backend_tests {
 
     #[test]
     fn test_search_backend_from_str_valid() {
-        assert_eq!(SearchBackend::from_str("serper").unwrap(), SearchBackend::Serper);
-        assert_eq!(SearchBackend::from_str("none").unwrap(), SearchBackend::None);
-        assert_eq!(SearchBackend::from_str("searxng").unwrap(), SearchBackend::SearXNG);
+        assert_eq!(
+            SearchBackend::from_str("serper").unwrap(),
+            SearchBackend::Serper
+        );
+        assert_eq!(
+            SearchBackend::from_str("none").unwrap(),
+            SearchBackend::None
+        );
+        assert_eq!(
+            SearchBackend::from_str("searxng").unwrap(),
+            SearchBackend::SearXNG
+        );
     }
 
     #[test]
     fn test_search_backend_from_str_case_insensitive() {
-        assert_eq!(SearchBackend::from_str("SERPER").unwrap(), SearchBackend::Serper);
-        assert_eq!(SearchBackend::from_str("None").unwrap(), SearchBackend::None);
-        assert_eq!(SearchBackend::from_str("SearXNG").unwrap(), SearchBackend::SearXNG);
+        assert_eq!(
+            SearchBackend::from_str("SERPER").unwrap(),
+            SearchBackend::Serper
+        );
+        assert_eq!(
+            SearchBackend::from_str("None").unwrap(),
+            SearchBackend::None
+        );
+        assert_eq!(
+            SearchBackend::from_str("SearXNG").unwrap(),
+            SearchBackend::SearXNG
+        );
     }
 
     #[test]
@@ -138,10 +155,14 @@ mod none_provider_tests {
     async fn test_none_provider_multiple_urls() {
         let provider = NoneProvider::new(true);
 
-        let result = provider.search(
-            "https://example.com https://test.org https://demo.io",
-            10, "us", "en"
-        ).await;
+        let result = provider
+            .search(
+                "https://example.com https://test.org https://demo.io",
+                10,
+                "us",
+                "en",
+            )
+            .await;
 
         assert!(result.is_ok());
         let hits = result.unwrap();
@@ -172,7 +193,10 @@ mod none_provider_tests {
     async fn test_none_provider_respects_limit() {
         let provider = NoneProvider::new(true);
 
-        let urls = (0..20).map(|i| format!("https://example{}.com", i)).collect::<Vec<_>>().join(" ");
+        let urls = (0..20)
+            .map(|i| format!("https://example{}.com", i))
+            .collect::<Vec<_>>()
+            .join(" ");
         let result = provider.search(&urls, 5, "us", "en").await;
 
         assert!(result.is_ok());
@@ -429,7 +453,10 @@ mod factory_tests {
 
         let result = create_search_provider(config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("not yet implemented"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("not yet implemented"));
     }
 
     #[tokio::test]
@@ -452,7 +479,9 @@ mod edge_case_tests {
     async fn test_none_provider_unicode_urls() {
         let provider = NoneProvider::new(true);
 
-        let result = provider.search("https://例え.jp https://тест.ru", 10, "us", "en").await;
+        let result = provider
+            .search("https://例え.jp https://тест.ru", 10, "us", "en")
+            .await;
         // Should handle unicode domains
         assert!(result.is_ok() || result.is_err());
     }
@@ -471,14 +500,21 @@ mod edge_case_tests {
     async fn test_none_provider_special_characters() {
         let provider = NoneProvider::new(true);
 
-        let result = provider.search(
-            "https://example.com/path?query=test&value=123#anchor",
-            10, "us", "en"
-        ).await;
+        let result = provider
+            .search(
+                "https://example.com/path?query=test&value=123#anchor",
+                10,
+                "us",
+                "en",
+            )
+            .await;
 
         assert!(result.is_ok());
         let hits = result.unwrap();
-        assert_eq!(hits[0].url, "https://example.com/path?query=test&value=123#anchor");
+        assert_eq!(
+            hits[0].url,
+            "https://example.com/path?query=test&value=123#anchor"
+        );
     }
 
     #[tokio::test]
@@ -492,10 +528,9 @@ mod edge_case_tests {
         for i in 0..10 {
             let provider_clone = provider.clone();
             set.spawn(async move {
-                provider_clone.search(
-                    &format!("https://example{}.com", i),
-                    10, "us", "en"
-                ).await
+                provider_clone
+                    .search(&format!("https://example{}.com", i), 10, "us", "en")
+                    .await
             });
         }
 

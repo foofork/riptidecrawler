@@ -42,6 +42,7 @@ criterion = { version = "0.5", features = ["html_reports"] }
 tokio-test = "0.4"
 tempfile = { workspace = true }
 riptide-core = { path = "../riptide-core" }
+tokio-stream = { version = "0.1", features = ["sync"] }
 
 [features]
 default = ["pdf"]

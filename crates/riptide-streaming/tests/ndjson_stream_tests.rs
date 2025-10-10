@@ -8,14 +8,14 @@
 //! - Progress records and error handling
 //! - Resource controls and performance optimization
 
-use std::collections::HashMap;
-use std::time::{Duration, Instant};
-use serde_json::Value;
-use tokio::time::timeout;
+use axum::http::{HeaderMap, StatusCode};
 use bytes::Bytes;
 use futures::stream::StreamExt;
-use axum::http::{HeaderMap, StatusCode};
 use httpmock::prelude::*;
+use serde_json::Value;
+use std::collections::HashMap;
+use std::time::{Duration, Instant};
+use tokio::time::timeout;
 use uuid::Uuid;
 
 /// Test framework for NDJSON streaming
@@ -62,7 +62,11 @@ impl NdjsonStreamingTestFramework {
                     ));
             });
 
-            urls.push(format!("{}/test-content-{}", self.mock_server.base_url(), i));
+            urls.push(format!(
+                "{}/test-content-{}",
+                self.mock_server.base_url(),
+                i
+            ));
         }
 
         urls
@@ -90,7 +94,11 @@ impl NdjsonStreamingTestFramework {
                     ));
             });
 
-            urls.push(format!("{}/delayed-content-{}", self.mock_server.base_url(), i));
+            urls.push(format!(
+                "{}/delayed-content-{}",
+                self.mock_server.base_url(),
+                i
+            ));
         }
 
         urls
@@ -109,7 +117,11 @@ impl NdjsonStreamingTestFramework {
                     .body("Internal Server Error");
             });
 
-            urls.push(format!("{}/error-content-{}", self.mock_server.base_url(), i));
+            urls.push(format!(
+                "{}/error-content-{}",
+                self.mock_server.base_url(),
+                i
+            ));
         }
 
         urls
@@ -145,10 +157,15 @@ impl NdjsonStreamingTestFramework {
     }
 
     /// Make streaming request and parse NDJSON lines
-    async fn make_streaming_request(&self, endpoint: &str, body: Value) -> Result<StreamingResponse, TestError> {
+    async fn make_streaming_request(
+        &self,
+        endpoint: &str,
+        body: Value,
+    ) -> Result<StreamingResponse, TestError> {
         let start_time = Instant::now();
 
-        let response = self.client
+        let response = self
+            .client
             .post(&format!("{}/{}", self.base_url, endpoint))
             .json(&body)
             .send()
@@ -161,7 +178,10 @@ impl NdjsonStreamingTestFramework {
 
         if !status.is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            return Err(TestError::RequestFailed(format!("Status: {}, Body: {}", status, error_text)));
+            return Err(TestError::RequestFailed(format!(
+                "Status: {}, Body: {}",
+                status, error_text
+            )));
         }
 
         let mut stream = response.bytes_stream();
@@ -184,8 +204,9 @@ impl NdjsonStreamingTestFramework {
                 buffer = buffer[newline_pos + 1..].to_string();
 
                 if !line.trim().is_empty() {
-                    let parsed_line = serde_json::from_str::<Value>(&line)
-                        .map_err(|e| TestError::ParseError(format!("Line: {}, Error: {}", line, e)))?;
+                    let parsed_line = serde_json::from_str::<Value>(&line).map_err(|e| {
+                        TestError::ParseError(format!("Line: {}, Error: {}", line, e))
+                    })?;
                     lines.push(parsed_line);
                 }
             }
@@ -216,50 +237,63 @@ struct StreamingResponse {
 impl StreamingResponse {
     /// Get metadata line (should be first)
     fn metadata(&self) -> Result<&Value, TestError> {
-        self.lines.get(0)
+        self.lines
+            .get(0)
             .ok_or_else(|| TestError::ParseError("No metadata line found".to_string()))
     }
 
     /// Get result lines (excluding metadata and summary)
     fn result_lines(&self) -> Vec<&Value> {
-        self.lines.iter()
+        self.lines
+            .iter()
             .filter(|line| line.get("result").is_some() || line.get("search_result").is_some())
             .collect()
     }
 
     /// Get summary line (should be last)
     fn summary(&self) -> Result<&Value, TestError> {
-        self.lines.last()
+        self.lines
+            .last()
             .ok_or_else(|| TestError::ParseError("No summary line found".to_string()))
     }
 
     /// Get progress lines
     fn progress_lines(&self) -> Vec<&Value> {
-        self.lines.iter()
-            .filter(|line| line.get("progress_percentage").is_some() || line.get("operation_type").is_some())
+        self.lines
+            .iter()
+            .filter(|line| {
+                line.get("progress_percentage").is_some() || line.get("operation_type").is_some()
+            })
             .collect()
     }
 
     /// Validate NDJSON structure
     fn validate_structure(&self) -> Result<(), TestError> {
         if self.lines.is_empty() {
-            return Err(TestError::ValidationError("No NDJSON lines received".to_string()));
+            return Err(TestError::ValidationError(
+                "No NDJSON lines received".to_string(),
+            ));
         }
 
         // Check for required headers
-        let content_type = self.headers.get("content-type")
+        let content_type = self
+            .headers
+            .get("content-type")
             .and_then(|v| v.to_str().ok())
             .ok_or_else(|| TestError::ValidationError("Missing content-type header".to_string()))?;
 
         if content_type != "application/x-ndjson" {
-            return Err(TestError::ValidationError(
-                format!("Expected content-type 'application/x-ndjson', got '{}'", content_type)
-            ));
+            return Err(TestError::ValidationError(format!(
+                "Expected content-type 'application/x-ndjson', got '{}'",
+                content_type
+            )));
         }
 
         // Check for streaming headers
         if self.headers.get("transfer-encoding").is_none() {
-            return Err(TestError::ValidationError("Missing transfer-encoding header".to_string()));
+            return Err(TestError::ValidationError(
+                "Missing transfer-encoding header".to_string(),
+            ));
         }
 
         Ok(())
@@ -300,10 +334,14 @@ async fn test_crawl_stream_ttfb_under_500ms() {
 
     // First request to warm up cache
     let request = framework.create_crawl_request(urls.clone(), "write_through", 3);
-    let _ = framework.make_streaming_request("crawl/stream", request.clone()).await;
+    let _ = framework
+        .make_streaming_request("crawl/stream", request.clone())
+        .await;
 
     // Second request should hit warm cache
-    let response = framework.make_streaming_request("crawl/stream", request).await
+    let response = framework
+        .make_streaming_request("crawl/stream", request)
+        .await
         .expect("Streaming request should succeed");
 
     // Validate TTFB requirement
@@ -314,7 +352,9 @@ async fn test_crawl_stream_ttfb_under_500ms() {
     );
 
     // Validate streaming structure
-    response.validate_structure().expect("Response structure should be valid");
+    response
+        .validate_structure()
+        .expect("Response structure should be valid");
 
     // Validate metadata
     let metadata = response.metadata().expect("Should have metadata");
@@ -333,7 +373,9 @@ async fn test_crawl_stream_incremental_results() {
     let request = framework.create_crawl_request(urls, "disabled", 3);
 
     let start_time = Instant::now();
-    let response = framework.make_streaming_request("crawl/stream", request).await
+    let response = framework
+        .make_streaming_request("crawl/stream", request)
+        .await
         .expect("Streaming request should succeed");
 
     let result_lines = response.result_lines();
@@ -373,7 +415,9 @@ async fn test_crawl_stream_error_handling() {
     all_urls.extend(framework.setup_error_content_mocks(2));
 
     let request = framework.create_crawl_request(all_urls, "disabled", 4);
-    let response = framework.make_streaming_request("crawl/stream", request).await
+    let response = framework
+        .make_streaming_request("crawl/stream", request)
+        .await
         .expect("Streaming request should succeed even with errors");
 
     let result_lines = response.result_lines();
@@ -392,14 +436,20 @@ async fn test_crawl_stream_error_handling() {
             // Validate structured error object
             assert!(error["error_type"].is_string(), "Error should have type");
             assert!(error["message"].is_string(), "Error should have message");
-            assert!(error["retryable"].is_boolean(), "Error should indicate if retryable");
+            assert!(
+                error["retryable"].is_boolean(),
+                "Error should indicate if retryable"
+            );
 
             // Validate that URL and other fields are still present
             assert!(result["url"].is_string());
             assert_eq!(result["from_cache"], false);
         } else {
             success_count += 1;
-            assert!(result["document"].is_object(), "Success should have document");
+            assert!(
+                result["document"].is_object(),
+                "Success should have document"
+            );
             assert!(result["status"].as_u64().unwrap() >= 200);
         }
     }
@@ -427,45 +477,55 @@ async fn test_deepsearch_stream_endpoint() {
         when.method(POST)
             .path("/search")
             .header("X-API-KEY", "test_key");
-        then.status(200)
-            .json_body(serde_json::json!({
-                "organic": [
-                    {
-                        "title": "Test Result 1",
-                        "link": "https://example.com/test1",
-                        "snippet": "Test snippet 1"
-                    },
-                    {
-                        "title": "Test Result 2",
-                        "link": "https://example.com/test2",
-                        "snippet": "Test snippet 2"
-                    }
-                ]
-            }));
+        then.status(200).json_body(serde_json::json!({
+            "organic": [
+                {
+                    "title": "Test Result 1",
+                    "link": "https://example.com/test1",
+                    "snippet": "Test snippet 1"
+                },
+                {
+                    "title": "Test Result 2",
+                    "link": "https://example.com/test2",
+                    "snippet": "Test snippet 2"
+                }
+            ]
+        }));
     });
 
     let request = framework.create_deepsearch_request("test query", 2, true);
-    let response = framework.make_streaming_request("deepsearch/stream", request).await
+    let response = framework
+        .make_streaming_request("deepsearch/stream", request)
+        .await
         .expect("Deep search streaming should succeed");
 
-    response.validate_structure().expect("Response structure should be valid");
+    response
+        .validate_structure()
+        .expect("Response structure should be valid");
 
     // Check for deepsearch-specific metadata
     let metadata = response.metadata().expect("Should have metadata");
     assert_eq!(metadata["stream_type"], "deepsearch");
 
     // Should have search metadata
-    let search_metadata_lines: Vec<&Value> = response.lines.iter()
+    let search_metadata_lines: Vec<&Value> = response
+        .lines
+        .iter()
         .filter(|line| line.get("query").is_some() && line.get("urls_found").is_some())
         .collect();
-    assert!(!search_metadata_lines.is_empty(), "Should have search metadata");
+    assert!(
+        !search_metadata_lines.is_empty(),
+        "Should have search metadata"
+    );
 
     let search_metadata = search_metadata_lines[0];
     assert_eq!(search_metadata["query"], "test query");
     assert!(search_metadata["urls_found"].is_number());
 
     // Should have search results with crawl data
-    let search_results: Vec<&Value> = response.lines.iter()
+    let search_results: Vec<&Value> = response
+        .lines
+        .iter()
         .filter(|line| line.get("search_result").is_some())
         .collect();
     assert!(!search_results.is_empty(), "Should have search results");
@@ -494,11 +554,17 @@ async fn test_backpressure_and_buffer_management() {
     let urls = framework.setup_successful_content_mocks(20);
     let request = framework.create_crawl_request(urls, "disabled", 10);
 
-    let response = framework.make_streaming_request("crawl/stream", request).await
+    let response = framework
+        .make_streaming_request("crawl/stream", request)
+        .await
         .expect("High-load streaming should succeed");
 
     // Should handle all URLs without dropping
-    assert_eq!(response.result_lines().len(), 20, "All results should be delivered");
+    assert_eq!(
+        response.result_lines().len(),
+        20,
+        "All results should be delivered"
+    );
 
     // Check if progress updates were sent for large batches
     let progress_lines = response.progress_lines();
@@ -526,7 +592,9 @@ async fn test_streaming_request_validation() {
 
     // Test empty URLs
     let invalid_request = framework.create_crawl_request(vec![], "disabled", 1);
-    let result = framework.make_streaming_request("crawl/stream", invalid_request).await;
+    let result = framework
+        .make_streaming_request("crawl/stream", invalid_request)
+        .await;
     assert!(result.is_err(), "Empty URLs should be rejected");
 
     // Test invalid cache mode
@@ -537,13 +605,17 @@ async fn test_streaming_request_validation() {
             "concurrency": 1
         }
     });
-    let result = framework.make_streaming_request("crawl/stream", invalid_request).await;
+    let result = framework
+        .make_streaming_request("crawl/stream", invalid_request)
+        .await;
     assert!(result.is_err(), "Invalid cache mode should be rejected");
 
     // Test missing SERPER_API_KEY for deepsearch
     std::env::remove_var("SERPER_API_KEY");
     let deepsearch_request = framework.create_deepsearch_request("test", 5, false);
-    let result = framework.make_streaming_request("deepsearch/stream", deepsearch_request).await;
+    let result = framework
+        .make_streaming_request("deepsearch/stream", deepsearch_request)
+        .await;
     assert!(result.is_err(), "Missing API key should be rejected");
 }
 
@@ -557,7 +629,9 @@ async fn test_streaming_performance_and_metrics() {
     let request = framework.create_crawl_request(urls, "disabled", 5);
 
     let start_time = Instant::now();
-    let response = framework.make_streaming_request("crawl/stream", request).await
+    let response = framework
+        .make_streaming_request("crawl/stream", request)
+        .await
         .expect("Performance test should succeed");
 
     // Validate performance metrics are included
@@ -579,8 +653,8 @@ async fn test_streaming_performance_and_metrics() {
     );
 
     // Verify request ID is consistent across all lines
-    let request_id = response.metadata()
-        .expect("Should have metadata")["request_id"].as_str()
+    let request_id = response.metadata().expect("Should have metadata")["request_id"]
+        .as_str()
         .expect("Should have request ID");
 
     // Check headers contain request ID
@@ -619,13 +693,26 @@ async fn test_concurrent_streaming_sessions() {
     assert_eq!(response2.result_lines().len(), 5);
 
     // Verify different request IDs
-    let request_id1 = response1.metadata().unwrap()["request_id"].as_str().unwrap();
-    let request_id2 = response2.metadata().unwrap()["request_id"].as_str().unwrap();
-    assert_ne!(request_id1, request_id2, "Concurrent sessions should have different request IDs");
+    let request_id1 = response1.metadata().unwrap()["request_id"]
+        .as_str()
+        .unwrap();
+    let request_id2 = response2.metadata().unwrap()["request_id"]
+        .as_str()
+        .unwrap();
+    assert_ne!(
+        request_id1, request_id2,
+        "Concurrent sessions should have different request IDs"
+    );
 
     // Both should meet TTFB requirements
-    assert!(response1.ttfb.as_millis() < 2000, "Concurrent session 1 TTFB should be reasonable");
-    assert!(response2.ttfb.as_millis() < 2000, "Concurrent session 2 TTFB should be reasonable");
+    assert!(
+        response1.ttfb.as_millis() < 2000,
+        "Concurrent session 1 TTFB should be reasonable"
+    );
+    assert!(
+        response2.ttfb.as_millis() < 2000,
+        "Concurrent session 2 TTFB should be reasonable"
+    );
 }
 
 /// Integration test for complete streaming workflow
@@ -639,14 +726,21 @@ async fn test_complete_streaming_workflow() {
     all_urls.extend(framework.setup_error_content_mocks(1));
 
     let request = framework.create_crawl_request(all_urls, "write_through", 3);
-    let response = framework.make_streaming_request("crawl/stream", request).await
+    let response = framework
+        .make_streaming_request("crawl/stream", request)
+        .await
         .expect("Complete workflow should succeed");
 
     // Validate complete NDJSON structure
-    response.validate_structure().expect("Structure should be valid");
+    response
+        .validate_structure()
+        .expect("Structure should be valid");
 
     // Should have metadata, results, and summary
-    assert!(response.lines.len() >= 7, "Should have metadata + 5 results + summary + possible progress");
+    assert!(
+        response.lines.len() >= 7,
+        "Should have metadata + 5 results + summary + possible progress"
+    );
 
     let metadata = response.metadata().expect("Should have metadata");
     let summary = response.summary().expect("Should have summary");

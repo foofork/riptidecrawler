@@ -3,23 +3,23 @@
 //! This module tests the integration between search providers and the event system,
 //! ensuring that search operations emit appropriate events and that handlers receive them.
 
-use riptide_core::search::{
-    SearchProvider, SearchBackend, SearchConfig, create_search_provider,
-    none_provider::NoneProvider, circuit_breaker::CircuitBreakerWrapper
-};
-use riptide_core::events::{
-    Event, EventEmitter, EventHandler, EventSeverity, EventBus, EventBusConfig,
-    BaseEvent, HandlerConfig,
-    types::{SystemEvent, MetricsEvent, MetricType},
-    handlers::{LoggingEventHandler, HealthEventHandler}
-};
-use std::sync::Arc;
-use std::sync::atomic::{AtomicU32, Ordering};
-use std::collections::HashMap;
-use tokio::sync::Mutex;
-use std::time::Duration;
-use async_trait::async_trait;
 use anyhow::Result;
+use async_trait::async_trait;
+use riptide_core::events::{
+    handlers::{HealthEventHandler, LoggingEventHandler},
+    types::{MetricType, MetricsEvent, SystemEvent},
+    BaseEvent, Event, EventBus, EventBusConfig, EventEmitter, EventHandler, EventSeverity,
+    HandlerConfig,
+};
+use riptide_core::search::{
+    circuit_breaker::CircuitBreakerWrapper, create_search_provider, none_provider::NoneProvider,
+    SearchBackend, SearchConfig, SearchProvider,
+};
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::Mutex;
 
 // Mock event handler for testing integration
 struct SearchProviderEventHandler {
@@ -100,7 +100,7 @@ impl EventEmittingSearchProvider {
             "search_started".to_string(),
             event_data,
             EventSeverity::Info,
-            "search_provider"
+            "search_provider",
         );
 
         self.event_emitter.emit_event(event).await
@@ -117,7 +117,7 @@ impl EventEmittingSearchProvider {
             "search_completed".to_string(),
             event_data,
             EventSeverity::Info,
-            "search_provider"
+            "search_provider",
         );
 
         self.event_emitter.emit_event(event).await
@@ -134,7 +134,7 @@ impl EventEmittingSearchProvider {
             "search_failed".to_string(),
             event_data,
             EventSeverity::Error,
-            "search_provider"
+            "search_provider",
         );
 
         self.event_emitter.emit_event(event).await
@@ -142,15 +142,19 @@ impl EventEmittingSearchProvider {
 
     async fn emit_metrics_event(&self, query: &str, duration_ms: u64) -> Result<()> {
         let mut tags = HashMap::new();
-        tags.insert("provider".to_string(), self.inner_provider.backend_type().to_string());
+        tags.insert(
+            "provider".to_string(),
+            self.inner_provider.backend_type().to_string(),
+        );
         tags.insert("query_length".to_string(), query.len().to_string());
 
         let event = MetricsEvent::new(
             "search_duration_ms".to_string(),
             duration_ms as f64,
             MetricType::Histogram,
-            "search_provider"
-        ).with_tags(tags);
+            "search_provider",
+        )
+        .with_tags(tags);
 
         self.event_emitter.emit_event(event).await
     }
@@ -173,7 +177,10 @@ impl SearchProvider for EventEmittingSearchProvider {
         }
 
         // Perform actual search
-        let result = self.inner_provider.search(query, limit, country, locale).await;
+        let result = self
+            .inner_provider
+            .search(query, limit, country, locale)
+            .await;
 
         let duration_ms = start_time.elapsed().as_millis() as u64;
 
@@ -190,7 +197,10 @@ impl SearchProvider for EventEmittingSearchProvider {
                 }
             }
             Err(error) => {
-                if let Err(e) = self.emit_search_failed_event(query, &error.to_string()).await {
+                if let Err(e) = self
+                    .emit_search_failed_event(query, &error.to_string())
+                    .await
+                {
                     eprintln!("Failed to emit search failed event: {}", e);
                 }
             }
@@ -228,18 +238,13 @@ mod integration_tests {
 
         // Create search provider with event integration
         let none_provider = Box::new(NoneProvider::new(true));
-        let event_emitting_provider = EventEmittingSearchProvider::new(
-            none_provider,
-            Arc::new(event_bus)
-        );
+        let event_emitting_provider =
+            EventEmittingSearchProvider::new(none_provider, Arc::new(event_bus));
 
         // Perform search operations
-        let result = event_emitting_provider.search(
-            "https://example.com",
-            10,
-            "us",
-            "en"
-        ).await;
+        let result = event_emitting_provider
+            .search("https://example.com", 10, "us", "en")
+            .await;
 
         assert!(result.is_ok());
 
@@ -269,18 +274,13 @@ mod integration_tests {
 
         // Create provider that will fail (None provider with invalid query)
         let none_provider = Box::new(NoneProvider::new(true));
-        let event_emitting_provider = EventEmittingSearchProvider::new(
-            none_provider,
-            Arc::new(event_bus)
-        );
+        let event_emitting_provider =
+            EventEmittingSearchProvider::new(none_provider, Arc::new(event_bus));
 
         // Perform search that will fail
-        let result = event_emitting_provider.search(
-            "not a valid url",
-            10,
-            "us",
-            "en"
-        ).await;
+        let result = event_emitting_provider
+            .search("not a valid url", 10, "us", "en")
+            .await;
 
         assert!(result.is_err());
 
@@ -310,18 +310,13 @@ mod integration_tests {
         // Create circuit breaker wrapped provider
         let none_provider = Box::new(NoneProvider::new(true));
         let circuit_breaker_provider = Box::new(CircuitBreakerWrapper::new(none_provider));
-        let event_emitting_provider = EventEmittingSearchProvider::new(
-            circuit_breaker_provider,
-            Arc::new(event_bus)
-        );
+        let event_emitting_provider =
+            EventEmittingSearchProvider::new(circuit_breaker_provider, Arc::new(event_bus));
 
         // Perform successful search
-        let result = event_emitting_provider.search(
-            "https://example.com",
-            10,
-            "us",
-            "en"
-        ).await;
+        let result = event_emitting_provider
+            .search("https://example.com", 10, "us", "en")
+            .await;
 
         assert!(result.is_ok());
 
@@ -342,7 +337,10 @@ mod integration_tests {
         let health_handler = Arc::new(HealthEventHandler::new());
 
         // Register all handlers
-        event_bus.register_handler(search_handler.clone()).await.unwrap();
+        event_bus
+            .register_handler(search_handler.clone())
+            .await
+            .unwrap();
         event_bus.register_handler(logging_handler).await.unwrap();
         event_bus.register_handler(health_handler).await.unwrap();
 
@@ -350,10 +348,8 @@ mod integration_tests {
 
         // Create search provider
         let none_provider = Box::new(NoneProvider::new(true));
-        let event_emitting_provider = EventEmittingSearchProvider::new(
-            none_provider,
-            Arc::new(event_bus)
-        );
+        let event_emitting_provider =
+            EventEmittingSearchProvider::new(none_provider, Arc::new(event_bus));
 
         // Perform searches
         for i in 0..3 {
@@ -387,18 +383,13 @@ mod integration_tests {
         event_bus.start().await.unwrap();
 
         let none_provider = Box::new(NoneProvider::new(true));
-        let event_emitting_provider = EventEmittingSearchProvider::new(
-            none_provider,
-            Arc::new(event_bus)
-        );
+        let event_emitting_provider =
+            EventEmittingSearchProvider::new(none_provider, Arc::new(event_bus));
 
         // Perform search
-        let result = event_emitting_provider.search(
-            "https://example.com https://test.org",
-            10,
-            "us",
-            "en"
-        ).await;
+        let result = event_emitting_provider
+            .search("https://example.com https://test.org", 10, "us", "en")
+            .await;
 
         assert!(result.is_ok());
         let hits = result.unwrap();
@@ -421,10 +412,8 @@ mod integration_tests {
         event_bus.start().await.unwrap();
 
         let none_provider = Box::new(NoneProvider::new(true));
-        let event_emitting_provider = EventEmittingSearchProvider::new(
-            none_provider,
-            Arc::new(event_bus)
-        );
+        let event_emitting_provider =
+            EventEmittingSearchProvider::new(none_provider, Arc::new(event_bus));
 
         // Perform health check (None provider should always pass)
         let health_result = event_emitting_provider.health_check().await;
@@ -448,7 +437,7 @@ mod integration_tests {
         let none_provider = Box::new(NoneProvider::new(true));
         let provider = Arc::new(EventEmittingSearchProvider::new(
             none_provider,
-            Arc::new(event_bus)
+            Arc::new(event_bus),
         ));
 
         // Launch concurrent searches
@@ -495,27 +484,19 @@ mod integration_tests {
         event_bus.start().await.unwrap();
 
         let none_provider = Box::new(NoneProvider::new(true));
-        let event_emitting_provider = EventEmittingSearchProvider::new(
-            none_provider,
-            Arc::new(event_bus)
-        );
+        let event_emitting_provider =
+            EventEmittingSearchProvider::new(none_provider, Arc::new(event_bus));
 
         // Perform successful search (Info level events)
-        let result = event_emitting_provider.search(
-            "https://example.com",
-            10,
-            "us",
-            "en"
-        ).await;
+        let result = event_emitting_provider
+            .search("https://example.com", 10, "us", "en")
+            .await;
         assert!(result.is_ok());
 
         // Perform failed search (Error level events)
-        let result = event_emitting_provider.search(
-            "not a url",
-            10,
-            "us",
-            "en"
-        ).await;
+        let result = event_emitting_provider
+            .search("not a url", 10, "us", "en")
+            .await;
         assert!(result.is_err());
 
         tokio::time::sleep(Duration::from_millis(200)).await;
@@ -543,7 +524,7 @@ mod event_system_robustness_tests {
         let none_provider = Box::new(NoneProvider::new(true));
         let provider = Arc::new(EventEmittingSearchProvider::new(
             none_provider,
-            Arc::new(event_bus)
+            Arc::new(event_bus),
         ));
 
         // Generate high load
@@ -588,10 +569,7 @@ mod event_system_robustness_tests {
         event_bus.start().await.unwrap();
 
         let none_provider = Box::new(NoneProvider::new(true));
-        let provider = EventEmittingSearchProvider::new(
-            none_provider,
-            Arc::new(event_bus)
-        );
+        let provider = EventEmittingSearchProvider::new(none_provider, Arc::new(event_bus));
 
         // Try to overwhelm the system
         for i in 0..15 {

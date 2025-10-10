@@ -8,12 +8,12 @@
 //! - Performance regression detection
 
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tokio::sync::Semaphore;
 use tokio::time::timeout;
-use serde::{Deserialize, Serialize};
 
 /// Performance metrics collector
 #[derive(Debug, Clone)]
@@ -48,41 +48,53 @@ impl PerformanceCollector {
         let mut baselines = HashMap::new();
 
         // Establish performance baselines for different components
-        baselines.insert("search_query".to_string(), PerformanceBaseline {
-            name: "search_query".to_string(),
-            max_latency_ms: 500.0,
-            min_throughput_rps: 100.0,
-            max_memory_bytes: 50 * 1024 * 1024, // 50MB
-            max_cpu_percent: 80.0,
-            regression_threshold_percent: 5.0,
-        });
+        baselines.insert(
+            "search_query".to_string(),
+            PerformanceBaseline {
+                name: "search_query".to_string(),
+                max_latency_ms: 500.0,
+                min_throughput_rps: 100.0,
+                max_memory_bytes: 50 * 1024 * 1024, // 50MB
+                max_cpu_percent: 80.0,
+                regression_threshold_percent: 5.0,
+            },
+        );
 
-        baselines.insert("pdf_extraction".to_string(), PerformanceBaseline {
-            name: "pdf_extraction".to_string(),
-            max_latency_ms: 2000.0,
-            min_throughput_rps: 10.0,
-            max_memory_bytes: 200 * 1024 * 1024, // 200MB
-            max_cpu_percent: 90.0,
-            regression_threshold_percent: 10.0,
-        });
+        baselines.insert(
+            "pdf_extraction".to_string(),
+            PerformanceBaseline {
+                name: "pdf_extraction".to_string(),
+                max_latency_ms: 2000.0,
+                min_throughput_rps: 10.0,
+                max_memory_bytes: 200 * 1024 * 1024, // 200MB
+                max_cpu_percent: 90.0,
+                regression_threshold_percent: 10.0,
+            },
+        );
 
-        baselines.insert("html_parsing".to_string(), PerformanceBaseline {
-            name: "html_parsing".to_string(),
-            max_latency_ms: 200.0,
-            min_throughput_rps: 200.0,
-            max_memory_bytes: 20 * 1024 * 1024, // 20MB
-            max_cpu_percent: 60.0,
-            regression_threshold_percent: 5.0,
-        });
+        baselines.insert(
+            "html_parsing".to_string(),
+            PerformanceBaseline {
+                name: "html_parsing".to_string(),
+                max_latency_ms: 200.0,
+                min_throughput_rps: 200.0,
+                max_memory_bytes: 20 * 1024 * 1024, // 20MB
+                max_cpu_percent: 60.0,
+                regression_threshold_percent: 5.0,
+            },
+        );
 
-        baselines.insert("api_request".to_string(), PerformanceBaseline {
-            name: "api_request".to_string(),
-            max_latency_ms: 100.0,
-            min_throughput_rps: 500.0,
-            max_memory_bytes: 10 * 1024 * 1024, // 10MB
-            max_cpu_percent: 50.0,
-            regression_threshold_percent: 3.0,
-        });
+        baselines.insert(
+            "api_request".to_string(),
+            PerformanceBaseline {
+                name: "api_request".to_string(),
+                max_latency_ms: 100.0,
+                min_throughput_rps: 500.0,
+                max_memory_bytes: 10 * 1024 * 1024, // 10MB
+                max_cpu_percent: 50.0,
+                regression_threshold_percent: 3.0,
+            },
+        );
 
         Self {
             metrics: Arc::new(Mutex::new(HashMap::new())),
@@ -104,10 +116,12 @@ impl PerformanceCollector {
         let metrics = self.metrics.lock().unwrap();
         let baselines = self.baselines.lock().unwrap();
 
-        let metric = metrics.get(name)
+        let metric = metrics
+            .get(name)
             .ok_or_else(|| anyhow::anyhow!("Metric '{}' not found", name))?;
 
-        let baseline = baselines.get(name)
+        let baseline = baselines
+            .get(name)
             .ok_or_else(|| anyhow::anyhow!("Baseline '{}' not found", name))?;
 
         let mut violations = Vec::new();
@@ -119,7 +133,9 @@ impl PerformanceCollector {
                 "Latency {} ms exceeds baseline {} ms",
                 metric.latency_ms, baseline.max_latency_ms
             ));
-        } else if metric.latency_ms > baseline.max_latency_ms * (1.0 - baseline.regression_threshold_percent / 100.0) {
+        } else if metric.latency_ms
+            > baseline.max_latency_ms * (1.0 - baseline.regression_threshold_percent / 100.0)
+        {
             warnings.push(format!(
                 "Latency {} ms approaching baseline {} ms",
                 metric.latency_ms, baseline.max_latency_ms
@@ -132,7 +148,9 @@ impl PerformanceCollector {
                 "Throughput {} rps below baseline {} rps",
                 metric.throughput_rps, baseline.min_throughput_rps
             ));
-        } else if metric.throughput_rps < baseline.min_throughput_rps * (1.0 + baseline.regression_threshold_percent / 100.0) {
+        } else if metric.throughput_rps
+            < baseline.min_throughput_rps * (1.0 + baseline.regression_threshold_percent / 100.0)
+        {
             warnings.push(format!(
                 "Throughput {} rps approaching baseline {} rps",
                 metric.throughput_rps, baseline.min_throughput_rps
@@ -397,7 +415,11 @@ async fn test_search_query_performance_baseline() {
         memory_bytes: 25 * 1024 * 1024, // 25MB
         cpu_percent: 45.0,
         timestamp: chrono::Utc::now(),
-        samples: vec![result.average_latency, result.p95_latency, result.p99_latency],
+        samples: vec![
+            result.average_latency,
+            result.p95_latency,
+            result.p99_latency,
+        ],
     };
 
     collector.record_metric(metric);
@@ -410,12 +432,24 @@ async fn test_search_query_performance_baseline() {
     println!("  P95 Latency: {:.2} ms", result.p95_latency);
     println!("  P99 Latency: {:.2} ms", result.p99_latency);
     println!("  Throughput: {:.2} RPS", result.throughput_rps);
-    println!("  Success Rate: {:.2}%",
-        (result.successful_requests as f64 / result.total_requests as f64) * 100.0);
+    println!(
+        "  Success Rate: {:.2}%",
+        (result.successful_requests as f64 / result.total_requests as f64) * 100.0
+    );
 
-    assert!(baseline_check.passed, "Search query should meet baseline: {:?}", baseline_check.violations);
-    assert!(result.average_latency < 500.0, "Average latency should be under 500ms");
-    assert!(result.throughput_rps > 30.0, "Throughput should be above 30 RPS");
+    assert!(
+        baseline_check.passed,
+        "Search query should meet baseline: {:?}",
+        baseline_check.violations
+    );
+    assert!(
+        result.average_latency < 500.0,
+        "Average latency should be under 500ms"
+    );
+    assert!(
+        result.throughput_rps > 30.0,
+        "Throughput should be above 30 RPS"
+    );
 }
 
 #[tokio::test]
@@ -447,7 +481,11 @@ async fn test_pdf_extraction_performance() {
         memory_bytes: 150 * 1024 * 1024, // 150MB
         cpu_percent: 75.0,
         timestamp: chrono::Utc::now(),
-        samples: vec![result.average_latency, result.p95_latency, result.p99_latency],
+        samples: vec![
+            result.average_latency,
+            result.p95_latency,
+            result.p99_latency,
+        ],
     };
 
     collector.record_metric(metric);
@@ -459,8 +497,15 @@ async fn test_pdf_extraction_performance() {
     println!("  P95 Latency: {:.2} ms", result.p95_latency);
     println!("  Throughput: {:.2} RPS", result.throughput_rps);
 
-    assert!(baseline_check.passed, "PDF extraction should meet baseline: {:?}", baseline_check.violations);
-    assert!(result.average_latency < 2000.0, "PDF extraction should complete under 2s");
+    assert!(
+        baseline_check.passed,
+        "PDF extraction should meet baseline: {:?}",
+        baseline_check.violations
+    );
+    assert!(
+        result.average_latency < 2000.0,
+        "PDF extraction should complete under 2s"
+    );
 }
 
 #[tokio::test]
@@ -492,7 +537,11 @@ async fn test_html_parsing_performance() {
         memory_bytes: 15 * 1024 * 1024, // 15MB
         cpu_percent: 40.0,
         timestamp: chrono::Utc::now(),
-        samples: vec![result.average_latency, result.p95_latency, result.p99_latency],
+        samples: vec![
+            result.average_latency,
+            result.p95_latency,
+            result.p99_latency,
+        ],
     };
 
     collector.record_metric(metric);
@@ -503,8 +552,15 @@ async fn test_html_parsing_performance() {
     println!("  Average Latency: {:.2} ms", result.average_latency);
     println!("  Throughput: {:.2} RPS", result.throughput_rps);
 
-    assert!(baseline_check.passed, "HTML parsing should meet baseline: {:?}", baseline_check.violations);
-    assert!(result.throughput_rps > 80.0, "HTML parsing throughput should be above 80 RPS");
+    assert!(
+        baseline_check.passed,
+        "HTML parsing should meet baseline: {:?}",
+        baseline_check.violations
+    );
+    assert!(
+        result.throughput_rps > 80.0,
+        "HTML parsing throughput should be above 80 RPS"
+    );
 }
 
 #[tokio::test]
@@ -536,7 +592,11 @@ async fn test_api_request_performance() {
         memory_bytes: 5 * 1024 * 1024, // 5MB
         cpu_percent: 30.0,
         timestamp: chrono::Utc::now(),
-        samples: vec![result.average_latency, result.p95_latency, result.p99_latency],
+        samples: vec![
+            result.average_latency,
+            result.p95_latency,
+            result.p99_latency,
+        ],
     };
 
     collector.record_metric(metric);
@@ -547,9 +607,19 @@ async fn test_api_request_performance() {
     println!("  Average Latency: {:.2} ms", result.average_latency);
     println!("  Throughput: {:.2} RPS", result.throughput_rps);
 
-    assert!(baseline_check.passed, "API requests should meet baseline: {:?}", baseline_check.violations);
-    assert!(result.average_latency < 100.0, "API latency should be under 100ms");
-    assert!(result.throughput_rps > 150.0, "API throughput should be above 150 RPS");
+    assert!(
+        baseline_check.passed,
+        "API requests should meet baseline: {:?}",
+        baseline_check.violations
+    );
+    assert!(
+        result.average_latency < 100.0,
+        "API latency should be under 100ms"
+    );
+    assert!(
+        result.throughput_rps > 150.0,
+        "API throughput should be above 150 RPS"
+    );
 }
 
 #[tokio::test]
@@ -587,7 +657,10 @@ async fn test_memory_usage_monitoring() {
     println!("  Samples: {}", growth_result.samples.len());
 
     // Memory growth should be reasonable
-    assert!(growth_result.samples.len() > 10, "Should have multiple memory samples");
+    assert!(
+        growth_result.samples.len() > 10,
+        "Should have multiple memory samples"
+    );
 
     // Clean up allocated memory
     drop(data_vectors);
@@ -628,7 +701,10 @@ async fn test_resource_limit_enforcement() {
     let duration = start.elapsed();
 
     // With 10 concurrent limit and 100ms per task, 20 tasks should take at least 200ms
-    assert!(duration >= Duration::from_millis(180), "Resource limiting should enforce concurrency limits");
+    assert!(
+        duration >= Duration::from_millis(180),
+        "Resource limiting should enforce concurrency limits"
+    );
     assert_eq!(results.len(), 20, "All tasks should complete");
 
     // Test memory limit enforcement
@@ -654,7 +730,10 @@ async fn test_resource_limit_enforcement() {
 
     // Test with reasonable memory limit
     let result = memory_intensive_task(10).await; // 10MB limit
-    assert!(result.is_ok(), "Should be able to allocate within memory limits");
+    assert!(
+        result.is_ok(),
+        "Should be able to allocate within memory limits"
+    );
 }
 
 #[tokio::test]
@@ -675,14 +754,17 @@ async fn test_performance_regression_detection() {
     // Add a custom baseline for this test
     {
         let mut baselines = collector.baselines.lock().unwrap();
-        baselines.insert("regression_test".to_string(), PerformanceBaseline {
-            name: "regression_test".to_string(),
-            max_latency_ms: 120.0,
-            min_throughput_rps: 180.0,
-            max_memory_bytes: 25 * 1024 * 1024,
-            max_cpu_percent: 60.0,
-            regression_threshold_percent: 5.0,
-        });
+        baselines.insert(
+            "regression_test".to_string(),
+            PerformanceBaseline {
+                name: "regression_test".to_string(),
+                max_latency_ms: 120.0,
+                min_throughput_rps: 180.0,
+                max_memory_bytes: 25 * 1024 * 1024,
+                max_cpu_percent: 60.0,
+                regression_threshold_percent: 5.0,
+            },
+        );
     }
 
     collector.record_metric(baseline_metric);
@@ -690,7 +772,7 @@ async fn test_performance_regression_detection() {
     // Test 1: Performance within baseline
     let good_metric = PerformanceMetric {
         name: "regression_test".to_string(),
-        latency_ms: 105.0, // Within limits
+        latency_ms: 105.0,     // Within limits
         throughput_rps: 195.0, // Within limits
         memory_bytes: 22 * 1024 * 1024,
         cpu_percent: 55.0,
@@ -717,8 +799,14 @@ async fn test_performance_regression_detection() {
     collector.record_metric(bad_latency_metric);
     let check = collector.check_baseline("regression_test").unwrap();
     assert!(!check.passed, "High latency should fail baseline check");
-    assert!(!check.violations.is_empty(), "Should have latency violation");
-    assert!(check.violations[0].contains("Latency"), "Should mention latency violation");
+    assert!(
+        !check.violations.is_empty(),
+        "Should have latency violation"
+    );
+    assert!(
+        check.violations[0].contains("Latency"),
+        "Should mention latency violation"
+    );
 
     // Test 3: Performance regression (throughput too low)
     let bad_throughput_metric = PerformanceMetric {
@@ -734,7 +822,10 @@ async fn test_performance_regression_detection() {
     collector.record_metric(bad_throughput_metric);
     let check = collector.check_baseline("regression_test").unwrap();
     assert!(!check.passed, "Low throughput should fail baseline check");
-    assert!(check.violations.iter().any(|v| v.contains("Throughput")), "Should have throughput violation");
+    assert!(
+        check.violations.iter().any(|v| v.contains("Throughput")),
+        "Should have throughput violation"
+    );
 }
 
 #[tokio::test]
@@ -756,7 +847,10 @@ async fn test_load_testing_scenarios() {
     );
 
     let steady_result = steady_workload.run_workload(steady_load_operation).await;
-    assert!(steady_result.successful_requests > 80, "Steady load should process most requests");
+    assert!(
+        steady_result.successful_requests > 80,
+        "Steady load should process most requests"
+    );
 
     // Scenario 2: Burst load
     async fn burst_operation() -> Result<Duration> {
@@ -767,23 +861,22 @@ async fn test_load_testing_scenarios() {
 
     let burst_workload = WorkloadGenerator::new(
         "burst_load".to_string(),
-        50, // High concurrency
+        50,                     // High concurrency
         Duration::from_secs(2), // Short duration
-        100.0, // High RPS
+        100.0,                  // High RPS
     );
 
     let burst_result = burst_workload.run_workload(burst_operation).await;
-    assert!(burst_result.throughput_rps > 50.0, "Should handle burst load effectively");
+    assert!(
+        burst_result.throughput_rps > 50.0,
+        "Should handle burst load effectively"
+    );
 
     // Scenario 3: Gradual ramp-up
     let mut ramp_results = Vec::new();
     for rps in [10.0, 25.0, 50.0, 75.0, 100.0] {
-        let ramp_workload = WorkloadGenerator::new(
-            format!("ramp_{}", rps),
-            20,
-            Duration::from_secs(2),
-            rps,
-        );
+        let ramp_workload =
+            WorkloadGenerator::new(format!("ramp_{}", rps), 20, Duration::from_secs(2), rps);
 
         let result = ramp_workload.run_workload(burst_operation).await;
         ramp_results.push((rps, result.throughput_rps, result.average_latency));
@@ -791,16 +884,22 @@ async fn test_load_testing_scenarios() {
 
     println!("Ramp-up test results:");
     for (target_rps, actual_rps, latency) in &ramp_results {
-        println!("  Target: {} RPS, Actual: {:.1} RPS, Latency: {:.1} ms",
-                target_rps, actual_rps, latency);
+        println!(
+            "  Target: {} RPS, Actual: {:.1} RPS, Latency: {:.1} ms",
+            target_rps, actual_rps, latency
+        );
     }
 
     // Latency should remain reasonable even as load increases
-    let max_latency = ramp_results.iter()
+    let max_latency = ramp_results
+        .iter()
         .map(|(_, _, latency)| *latency)
         .fold(0.0f64, f64::max);
 
-    assert!(max_latency < 200.0, "Latency should remain reasonable under load");
+    assert!(
+        max_latency < 200.0,
+        "Latency should remain reasonable under load"
+    );
 }
 
 #[tokio::test]
@@ -853,9 +952,15 @@ async fn test_concurrent_performance_monitoring() {
     assert_eq!(all_results.len(), 5, "All concurrent tests should complete");
 
     let total_requests: usize = all_results.iter().map(|r| r.successful_requests).sum();
-    assert!(total_requests > 100, "Should process significant number of requests concurrently");
+    assert!(
+        total_requests > 100,
+        "Should process significant number of requests concurrently"
+    );
 
     // Check that metrics were recorded for all tests
     let all_metrics = collector.get_all_metrics();
-    assert!(all_metrics.len() >= 5, "Should have metrics for all concurrent tests");
+    assert!(
+        all_metrics.len() >= 5,
+        "Should have metrics for all concurrent tests"
+    );
 }
