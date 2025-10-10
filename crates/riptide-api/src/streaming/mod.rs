@@ -503,7 +503,15 @@ mod tests {
             ..Default::default()
         };
 
-        assert!((metrics.efficiency() - 0.99).abs() < 0.01); // Should be ~0.99
+        // Efficiency = (delivery_ratio + error_factor) / 2.0
+        // delivery_ratio = (100 - 5) / 100 = 0.95
+        // error_factor = 1.0 - 0.02 = 0.98
+        // efficiency = (0.95 + 0.98) / 2.0 = 0.965
+        assert!(
+            (metrics.efficiency() - 0.965).abs() < 0.01,
+            "Expected ~0.965, got {}",
+            metrics.efficiency()
+        );
 
         metrics.update_health_status();
         assert_eq!(metrics.health_status, StreamingHealth::Healthy);

@@ -520,7 +520,12 @@ mod tests {
     fn test_calculate_throughput() {
         let start_time = Instant::now() - Duration::from_secs(120); // 2 minutes ago
         let throughput = calculate_throughput(start_time, 60);
-        assert_eq!(throughput, 30.0); // 30 items per minute
+        // Use approximate comparison for floating point (30 items per minute)
+        assert!(
+            (throughput - 30.0).abs() < 0.01,
+            "Expected ~30.0, got {}",
+            throughput
+        );
     }
 
     #[test]
