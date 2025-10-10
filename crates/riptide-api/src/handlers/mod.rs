@@ -2,6 +2,7 @@
 pub mod chunking;
 pub mod crawl;
 pub mod deepsearch;
+pub mod extract;
 pub mod fetch;
 pub mod health;
 pub mod llm;
@@ -10,6 +11,7 @@ pub mod pdf;
 pub mod pipeline_phases;
 pub mod render;
 pub mod resources;
+pub mod search;
 pub mod sessions;
 pub mod shared; // Shared utilities for handlers (reduces duplication)
 pub mod spider;
@@ -23,7 +25,9 @@ pub mod workers;
 // Re-export main handlers for backward compatibility
 pub use crawl::crawl;
 pub use deepsearch::deepsearch;
+pub use extract::extract;
 pub use health::{health, health_detailed, init_startup_time, START_TIME};
 pub use pipeline_phases::get_pipeline_phases;
 pub use render::render;
+pub use search::search;
 pub use utils::{metrics, not_found};

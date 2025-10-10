@@ -133,7 +133,9 @@ async fn main() -> anyhow::Result<()> {
 
     // Build the application router with middleware stack
     let app = Router::new()
+        // Health endpoints - both root and v1 paths
         .route("/healthz", get(handlers::health))
+        .route("/api/v1/health", get(handlers::health)) // v1 alias
         .route("/api/health/detailed", get(handlers::health_detailed))
         .route(
             "/health/:component",
@@ -143,12 +145,24 @@ async fn main() -> anyhow::Result<()> {
             "/health/metrics",
             get(handlers::health::health_metrics_check),
         )
+        // Metrics - both root and v1 paths
         .route("/metrics", get(handlers::metrics))
+        .route("/api/v1/metrics", get(handlers::metrics)) // v1 alias
+        // Core operations
         .route("/render", post(handlers::render))
+        // Crawl endpoints - both root and v1 paths
         .route("/crawl", post(handlers::crawl))
+        .route("/api/v1/crawl", post(handlers::crawl)) // v1 alias
         .route("/crawl/stream", post(streaming::ndjson_crawl_stream))
         .route("/crawl/sse", post(streaming::crawl_sse))
         .route("/crawl/ws", get(streaming::crawl_websocket))
+        // Extract endpoint - NEW v1.1 feature
+        .route("/api/v1/extract", post(handlers::extract))
+        .route("/extract", post(handlers::extract)) // Root alias for backward compatibility
+        // Search endpoint - NEW v1.1 feature
+        .route("/api/v1/search", get(handlers::search))
+        .route("/search", get(handlers::search)) // Root alias for backward compatibility
+        // DeepSearch
         .route("/deepsearch", post(handlers::deepsearch))
         // PDF processing endpoints with progress tracking
         .nest("/pdf", routes::pdf::pdf_routes())

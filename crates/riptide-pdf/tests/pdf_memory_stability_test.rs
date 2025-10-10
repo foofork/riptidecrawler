@@ -149,7 +149,8 @@ impl MemoryStabilityTester {
 
             join_set.spawn(async move {
                 let task_start = Instant::now();
-                let url = Some(format!("test://pdf/task/{}", task_id).as_str());
+                let url_str = format!("test://pdf/task/{}", task_id);
+                let url = Some(url_str.as_str());
 
                 match integration
                     .process_pdf_to_extracted_doc(&pdf_data, url)
