@@ -57,6 +57,7 @@ impl ResourceMetrics {
     }
 
     /// Get a snapshot of current metrics
+    #[allow(dead_code)] // Reserved for future monitoring API
     pub fn snapshot(&self) -> MetricsSnapshot {
         MetricsSnapshot {
             headless_pool_size: self.headless_pool_size.load(Ordering::Relaxed),
@@ -92,6 +93,7 @@ impl ResourceMetrics {
     }
 
     /// Calculate render success rate (0.0-1.0)
+    #[allow(dead_code)] // Reserved for future monitoring API
     pub fn render_success_rate(&self) -> f64 {
         let total = self.render_operations.load(Ordering::Relaxed);
         if total == 0 {
@@ -102,6 +104,7 @@ impl ResourceMetrics {
     }
 
     /// Calculate browser pool utilization (0.0-1.0)
+    #[allow(dead_code)] // Reserved for future monitoring API
     pub fn browser_pool_utilization(&self) -> f64 {
         let capacity = self.headless_pool_size.load(Ordering::Relaxed);
         if capacity == 0 {

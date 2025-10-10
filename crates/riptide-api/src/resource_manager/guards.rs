@@ -16,6 +16,7 @@ use tokio::sync::OwnedSemaphorePermit;
 /// proper cleanup through RAII (Drop trait).
 pub struct RenderResourceGuard {
     /// Browser checkout for render operations
+    #[allow(dead_code)] // RAII guard field, accessed by browser() method
     pub browser_checkout: BrowserCheckout,
     #[allow(dead_code)] // Holds WASM resources, dropped on guard drop
     wasm_guard: WasmGuard,
@@ -43,11 +44,13 @@ impl RenderResourceGuard {
     }
 
     /// Get the browser checkout for use
+    #[allow(dead_code)] // Reserved for future monitoring API
     pub fn browser(&self) -> &BrowserCheckout {
         &self.browser_checkout
     }
 
     /// Get memory tracked by this guard
+    #[allow(dead_code)] // Reserved for future monitoring API
     pub fn memory_tracked_mb(&self) -> usize {
         self.memory_tracked
     }
@@ -108,6 +111,7 @@ impl PdfResourceGuard {
     }
 
     /// Get memory tracked by this guard
+    #[allow(dead_code)] // Reserved for future monitoring API
     pub fn memory_tracked_mb(&self) -> usize {
         self.memory_tracked
     }

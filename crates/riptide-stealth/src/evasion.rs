@@ -9,12 +9,14 @@ use std::collections::HashMap;
 use std::time::Instant;
 use tracing::warn;
 
+use crate::behavior::BehaviorSimulator;
 use crate::config::{LocaleStrategy, StealthConfig, StealthPreset};
 use crate::enhancements::{
     screen_resolution::ScreenResolution, HeaderConsistencyManager, ScreenResolutionManager,
     TimezoneManager, WebRtcEnhanced,
 };
 use crate::javascript::JavaScriptInjector;
+use crate::rate_limiter::RateLimiter;
 use crate::user_agent::UserAgentManager;
 
 /// Stealth controller for managing anti-detection measures
@@ -28,6 +30,9 @@ pub struct StealthController {
     screen_resolution_manager: ScreenResolutionManager,
     timezone_manager: TimezoneManager,
     webrtc_enhanced: WebRtcEnhanced,
+    // Advanced anti-detection features
+    rate_limiter: RateLimiter,
+    behavior_simulator: BehaviorSimulator,
 }
 
 impl StealthController {
@@ -58,6 +63,9 @@ impl StealthController {
             },
         };
 
+        // Initialize rate limiter with default timing from config
+        let rate_limiter = RateLimiter::new(config.timing.default_timing.clone());
+
         Self {
             config,
             user_agent_manager,
@@ -67,6 +75,8 @@ impl StealthController {
             screen_resolution_manager: ScreenResolutionManager::new(),
             timezone_manager: TimezoneManager::new(),
             webrtc_enhanced,
+            rate_limiter,
+            behavior_simulator: BehaviorSimulator::new(),
         }
     }
 
@@ -349,6 +359,9 @@ impl StealthController {
         // Reset enhanced features
         self.screen_resolution_manager = ScreenResolutionManager::new();
         self.timezone_manager = TimezoneManager::new();
+        // Reset advanced anti-detection features
+        self.rate_limiter = RateLimiter::new(self.config.timing.default_timing.clone());
+        self.behavior_simulator = BehaviorSimulator::new();
     }
 
     /// Get enhanced screen resolution
@@ -373,6 +386,68 @@ impl StealthController {
         let default_ua = String::from("Mozilla/5.0");
         let user_agent = self.current_user_agent().unwrap_or(&default_ua);
         HeaderConsistencyManager::validate_consistency(user_agent, headers)
+    }
+
+    /// Get rate limiter reference for advanced rate limiting control
+    ///
+    /// Allows direct access to rate limiting functionality including:
+    /// - Checking if requests are allowed for a domain
+    /// - Recording request results for adaptive throttling
+    /// - Getting domain statistics
+    pub fn rate_limiter(&self) -> &RateLimiter {
+        &self.rate_limiter
+    }
+
+    /// Get mutable rate limiter reference
+    pub fn rate_limiter_mut(&mut self) -> &mut RateLimiter {
+        &mut self.rate_limiter
+    }
+
+    /// Get behavior simulator reference for human-like interactions
+    ///
+    /// Allows generation of:
+    /// - Human-like mouse movements
+    /// - Smooth scrolling actions
+    /// - Natural reading pauses
+    /// - Realistic click delays
+    pub fn behavior_simulator(&self) -> &BehaviorSimulator {
+        &self.behavior_simulator
+    }
+
+    /// Get mutable behavior simulator reference
+    pub fn behavior_simulator_mut(&mut self) -> &mut BehaviorSimulator {
+        &mut self.behavior_simulator
+    }
+
+    /// Check rate limit for a domain before making a request
+    ///
+    /// This integrates rate limiting into the request flow.
+    /// Returns Ok(delay) if allowed, Err(retry_after) if rate limited.
+    pub async fn check_rate_limit_for_domain(
+        &self,
+        domain: &str,
+    ) -> Result<std::time::Duration, std::time::Duration> {
+        let timing = self.get_domain_timing(domain);
+        self.rate_limiter
+            .check_rate_limit(domain, Some(timing))
+            .await
+    }
+
+    /// Record the result of a request for adaptive rate limiting
+    ///
+    /// Call this after each request completes to enable adaptive throttling.
+    /// The rate limiter will automatically adjust delays based on success/failure patterns.
+    ///
+    /// # Arguments
+    /// * `domain` - The domain the request was made to
+    /// * `success` - Whether the request succeeded
+    /// * `status_code` - HTTP status code (used to detect rate limiting: 429, 503)
+    pub fn record_request_result(&self, domain: &str, success: bool, status_code: Option<u16>) {
+        let is_rate_limit_error = status_code
+            .map(|code| code == 429 || code == 503)
+            .unwrap_or(false);
+        self.rate_limiter
+            .record_request_result(domain, success, is_rate_limit_error);
     }
 }
 

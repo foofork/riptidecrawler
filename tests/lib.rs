@@ -38,8 +38,8 @@ pub mod unit {
     pub mod streaming_tests;
 }
 
-// Stealth and Anti-Detection Tests
-pub mod stealth;
+// Note: Stealth tests are located in crates/riptide-stealth/tests/
+// and crates/riptide-stealth/src/tests.rs (not here in workspace tests/)
 
 // Common test utilities
 pub mod common {

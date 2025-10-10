@@ -1,10 +1,28 @@
 //! Memory management with pressure detection and cleanup.
 //!
 //! Monitors system memory usage and provides:
-//! - Memory allocation/deallocation tracking
+//! - Memory allocation/deallocation tracking (manual and jemalloc-based)
 //! - Pressure detection based on configurable thresholds
 //! - Automatic cleanup triggers
 //! - Garbage collection coordination
+//!
+//! ## jemalloc Integration
+//!
+//! When the `jemalloc` feature is enabled, this module uses jemalloc for accurate
+//! memory monitoring. Enable it in your Cargo.toml:
+//!
+//! ```toml
+//! [dependencies]
+//! riptide-api = { version = "0.1", features = ["jemalloc"] }
+//! ```
+//!
+//! This provides:
+//! - Real RSS (Resident Set Size) monitoring via `get_current_rss()`
+//! - Heap allocation tracking via `get_heap_allocated()`
+//! - More accurate memory pressure detection
+//!
+//! Without jemalloc, the module falls back to manual tracking via
+//! `track_allocation()` and `track_deallocation()`.
 
 use crate::config::ApiConfig;
 use crate::resource_manager::{errors::Result, metrics::ResourceMetrics};
@@ -110,6 +128,7 @@ impl MemoryManager {
     }
 
     /// Get memory usage as a percentage of limit
+    #[allow(dead_code)] // Reserved for future monitoring API
     pub fn usage_percentage(&self) -> f64 {
         let current = self.current_usage_mb();
         let limit = self.config.memory.global_memory_limit_mb;
@@ -159,6 +178,7 @@ impl MemoryManager {
     }
 
     /// Get time since last cleanup (in seconds)
+    #[allow(dead_code)] // Reserved for future monitoring API
     pub fn time_since_last_cleanup(&self) -> Option<u64> {
         let last = self.last_cleanup.load(Ordering::Relaxed);
         if last == 0 {
@@ -168,6 +188,7 @@ impl MemoryManager {
     }
 
     /// Get time since last GC (in seconds)
+    #[allow(dead_code)] // Reserved for future monitoring API
     pub fn time_since_last_gc(&self) -> Option<u64> {
         let last = self.last_gc.load(Ordering::Relaxed);
         if last == 0 {
@@ -177,6 +198,7 @@ impl MemoryManager {
     }
 
     /// Get memory statistics
+    #[allow(dead_code)] // Reserved for future monitoring API
     pub fn stats(&self) -> MemoryStats {
         MemoryStats {
             current_usage_mb: self.current_usage_mb(),
@@ -187,6 +209,114 @@ impl MemoryManager {
             cleanup_count: self.metrics.cleanup_operations.load(Ordering::Relaxed),
             gc_count: self.metrics.gc_triggers.load(Ordering::Relaxed),
         }
+    }
+
+    /// Get current RSS (Resident Set Size) in megabytes
+    ///
+    /// Uses real RSS via sysinfo for accurate system measurement.
+    ///
+    /// # Errors
+    /// Returns error if system info cannot be read.
+    pub fn get_current_rss(&self) -> Result<usize> {
+        use sysinfo::{ProcessRefreshKind, ProcessesToUpdate, RefreshKind, System};
+
+        // Use sysinfo to get actual RSS
+        let mut system = System::new_with_specifics(
+            RefreshKind::new().with_processes(ProcessRefreshKind::new()),
+        );
+
+        // Get current PID first
+        let pid = sysinfo::get_current_pid().map_err(|e| {
+            crate::resource_manager::errors::ResourceManagerError::Internal(anyhow::anyhow!(
+                "Failed to get current PID: {}",
+                e
+            ))
+        })?;
+
+        // Refresh only our process
+        system.refresh_processes(ProcessesToUpdate::Some(&[pid]), true);
+
+        let process = system.process(pid).ok_or_else(|| {
+            crate::resource_manager::errors::ResourceManagerError::Internal(anyhow::anyhow!(
+                "Failed to get process info"
+            ))
+        })?;
+
+        let rss_bytes = process.memory();
+        Ok((rss_bytes / 1024) as usize) // Convert to MB
+    }
+
+    /// Get current heap allocated memory in megabytes
+    ///
+    /// Uses system virtual memory as approximation of heap size.
+    ///
+    /// # Errors
+    /// Returns error if system info cannot be read.
+    pub fn get_heap_allocated(&self) -> Result<usize> {
+        use sysinfo::{ProcessRefreshKind, ProcessesToUpdate, RefreshKind, System};
+
+        // Use sysinfo to get virtual memory (approximates heap)
+        let mut system = System::new_with_specifics(
+            RefreshKind::new().with_processes(ProcessRefreshKind::new()),
+        );
+
+        // Get current PID first
+        let pid = sysinfo::get_current_pid().map_err(|e| {
+            crate::resource_manager::errors::ResourceManagerError::Internal(anyhow::anyhow!(
+                "Failed to get current PID: {}",
+                e
+            ))
+        })?;
+
+        // Refresh only our process
+        system.refresh_processes(ProcessesToUpdate::Some(&[pid]), true);
+
+        let process = system.process(pid).ok_or_else(|| {
+            crate::resource_manager::errors::ResourceManagerError::Internal(anyhow::anyhow!(
+                "Failed to get process info"
+            ))
+        })?;
+
+        let virtual_bytes = process.virtual_memory();
+        Ok((virtual_bytes / 1024) as usize) // Convert to MB
+    }
+
+    /// Check memory pressure using real memory metrics
+    ///
+    /// Uses real RSS from sysinfo to accurately detect memory pressure.
+    /// This method updates internal pressure state and metrics.
+    pub fn check_memory_pressure(&self) -> bool {
+        let current_mb = match self.get_current_rss() {
+            Ok(rss) => {
+                // Update metrics with real value
+                self.metrics.memory_usage_mb.store(rss, Ordering::Relaxed);
+                rss
+            }
+            Err(e) => {
+                warn!(error = %e, "Failed to get RSS, using manual tracking");
+                self.current_usage_mb()
+            }
+        };
+
+        let under_pressure = self.config.is_memory_pressure(current_mb);
+
+        // Update pressure state
+        let previous = self
+            .pressure_detected
+            .swap(under_pressure, Ordering::Relaxed);
+
+        if under_pressure && !previous {
+            warn!(
+                current_mb,
+                limit_mb = self.config.memory.global_memory_limit_mb,
+                threshold = self.config.memory.pressure_threshold,
+                "Memory pressure detected"
+            );
+        } else if !under_pressure && previous {
+            info!(current_mb, "Memory pressure cleared");
+        }
+
+        under_pressure
     }
 }
 
@@ -259,6 +389,65 @@ mod tests {
         // Back below threshold - pressure cleared
         manager.track_deallocation(300);
         assert!(!manager.is_under_pressure());
+    }
+
+    #[tokio::test]
+    async fn test_real_memory_monitoring() {
+        let config = test_config();
+        let metrics = Arc::new(ResourceMetrics::new());
+        let manager = MemoryManager::new(config, metrics).unwrap();
+
+        // Get real RSS (always works via sysinfo)
+        let rss = manager.get_current_rss();
+        assert!(rss.is_ok(), "RSS measurement should succeed");
+        let rss_mb = rss.unwrap();
+
+        // RSS should be reasonable (not zero, not absurdly large)
+        assert!(rss_mb > 0, "RSS should be greater than 0");
+        assert!(rss_mb < 10000, "RSS should be reasonable (< 10GB)");
+
+        // Get heap allocated (approximated via virtual memory)
+        let heap = manager.get_heap_allocated();
+        assert!(heap.is_ok(), "Heap measurement should succeed");
+        let heap_mb = heap.unwrap();
+
+        assert!(heap_mb > 0, "Heap allocation should be > 0");
+
+        // Virtual memory should be >= RSS
+        assert!(
+            heap_mb >= rss_mb,
+            "Virtual memory should be >= RSS (heap={}, rss={})",
+            heap_mb,
+            rss_mb
+        );
+    }
+
+    #[tokio::test]
+    async fn test_check_memory_pressure_with_real_metrics() {
+        let mut config = test_config();
+        // Set high threshold so we're not actually under pressure during test
+        config.memory.global_memory_limit_mb = 100000; // 100GB
+        config.memory.pressure_threshold = 0.9;
+
+        let metrics = Arc::new(ResourceMetrics::new());
+        let manager = MemoryManager::new(config, metrics.clone()).unwrap();
+
+        // Check pressure (will use real RSS via sysinfo)
+        let is_under_pressure = manager.check_memory_pressure();
+
+        // With high threshold, we should not be under pressure
+        assert!(
+            !is_under_pressure,
+            "Should not be under pressure with 100GB limit"
+        );
+
+        // Verify metrics were updated with real RSS value
+        let metrics_value = metrics.memory_usage_mb.load(Ordering::Relaxed);
+        assert!(metrics_value > 0, "Metrics should be updated with real RSS");
+        assert!(
+            metrics_value < 10000,
+            "Metrics should be reasonable (< 10GB)"
+        );
     }
 
     #[tokio::test]

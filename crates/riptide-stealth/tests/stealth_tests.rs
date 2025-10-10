@@ -34,38 +34,8 @@ mod user_agent_tests {
     #[allow(unused_imports)]
     use riptide_stealth::user_agent::{UserAgentConfig, UserAgentManager};
 
-    #[test]
-    #[ignore] // TODO: Fix test to match actual UserAgentConfig API (uses agents, not browsers/platforms)
-    fn test_user_agent_rotation() {
-        // TODO: Actual UserAgentConfig fields: agents, strategy, include_mobile, browser_preference
-        // Test user agent variety and mobile agent distribution
-        unimplemented!("UserAgentRotator API needs to match actual UserAgentConfig")
-    }
-
-    #[test]
-    #[ignore] // TODO: UserAgentManager.next() method not implemented yet
-    fn test_user_agent_validity() {
-        // TODO: Test user agent structure and realistic version numbers for Chrome/Firefox
-        unimplemented!("UserAgentManager.next() method not implemented yet")
-    }
-
-    #[allow(dead_code)]
-    fn extract_chrome_version(ua: &str) -> u32 {
-        ua.split("Chrome/")
-            .nth(1)
-            .and_then(|s| s.split('.').next())
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(0)
-    }
-
-    #[allow(dead_code)]
-    fn extract_firefox_version(ua: &str) -> u32 {
-        ua.split("Firefox/")
-            .nth(1)
-            .and_then(|s| s.split('.').next())
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(0)
-    }
+    // Note: User agent rotation and validity tests are now in src/tests.rs
+    // See test_user_agent_manager_strategies() and test_stealth_controller_full_workflow()
 
     #[test]
     #[ignore] // TODO: generate_consistent_headers method not implemented
@@ -77,47 +47,23 @@ mod user_agent_tests {
 
 #[cfg(test)]
 mod behavior_simulation_tests {
-    // TODO: behavior module not implemented yet
+    // ✅ BehaviorSimulator is now implemented!
+    // Comprehensive tests are available in src/behavior.rs
 
-    #[tokio::test]
-    #[ignore] // TODO: BehaviorSimulator not implemented
-    async fn test_human_like_mouse_movement() {
-        // TODO: Test curved mouse paths with realistic timing
-        unimplemented!("BehaviorSimulator not implemented")
-    }
-
-    #[tokio::test]
-    #[ignore] // TODO: BehaviorSimulator not implemented
-    async fn test_realistic_scroll_patterns() {
-        // TODO: Test varied scroll speeds, reading pauses, and page coverage
-        unimplemented!("BehaviorSimulator not implemented")
-    }
-
-    #[tokio::test]
-    #[ignore] // TODO: BehaviorSimulator not implemented
-    async fn test_typing_simulation() {
-        // TODO: Test realistic inter-key delays, variation, and occasional thinking pauses
-        unimplemented!("BehaviorSimulator not implemented")
-    }
+    // Note: All behavior simulation tests have been moved to src/behavior.rs
+    // See tests for: mouse movement, bezier curves, scrolling, easing functions,
+    // reading pauses, click delays, typing delays, and page load waits.
 }
 
 #[cfg(test)]
 mod detection_evasion_tests {
-    // TODO: DetectionEvasion and EvasionConfig not implemented yet
+    // ✅ Webdriver and headless detection bypass are now implemented!
+    // Comprehensive tests are available in src/tests.rs
 
-    #[tokio::test]
-    #[ignore] // TODO: DetectionEvasion API not implemented
-    async fn test_webdriver_detection_bypass() {
-        // TODO: Test evasion script hides webdriver property and handles chrome properties
-        unimplemented!("DetectionEvasion API not implemented")
-    }
-
-    #[tokio::test]
-    #[ignore] // TODO: DetectionEvasion API not implemented
-    async fn test_headless_detection_bypass() {
-        // TODO: Test headless patches for navigator, window.chrome, and WebGL properties
-        unimplemented!("DetectionEvasion API not implemented")
-    }
+    // Note: test_webdriver_detection_bypass and test_headless_detection_bypass
+    // have been removed as redundant. JavaScript evasion is tested in:
+    // - src/tests.rs: test_javascript_injector_comprehensive()
+    // - src/evasion.rs: test_javascript_generation()
 
     #[tokio::test]
     #[ignore] // TODO: DetectionEvasion API not implemented
@@ -136,19 +82,10 @@ mod detection_evasion_tests {
 
 #[cfg(test)]
 mod rate_limiting_tests {
-    // TODO: rate_limit module not implemented yet
+    // ✅ RateLimiter with adaptive throttling is now implemented!
+    // Comprehensive tests are available in src/rate_limiter.rs
 
-    #[tokio::test]
-    #[ignore] // TODO: RateLimiter API not implemented
-    async fn test_rate_limiting_per_domain() {
-        // TODO: Test burst rate limiting and per-domain isolation
-        unimplemented!("RateLimiter API not implemented")
-    }
-
-    #[tokio::test]
-    #[ignore] // TODO: AdaptiveRateLimiter not implemented yet
-    async fn test_adaptive_rate_limiting() {
-        // TODO: Test adaptive rate limiting based on server responses (200 vs 429)
-        unimplemented!("AdaptiveRateLimiter not implemented yet")
-    }
+    // Note: All rate limiting tests have been moved to src/rate_limiter.rs
+    // See tests for: per-domain limiting, adaptive rate limiting, exponential backoff,
+    // domain isolation, and token refill over time.
 }

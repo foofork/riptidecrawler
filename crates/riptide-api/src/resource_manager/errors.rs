@@ -7,6 +7,7 @@ use thiserror::Error;
 
 /// Comprehensive error type for resource management operations
 #[derive(Debug, Error)]
+#[allow(dead_code)] // Some variants reserved for future use
 pub enum ResourceManagerError {
     /// Browser pool operation failed
     #[error("Browser pool error: {0}")]
@@ -66,6 +67,7 @@ impl From<url::ParseError> for ResourceManagerError {
 }
 
 /// Helper function to create a timeout error
+#[allow(dead_code)] // Reserved for future error handling paths
 pub fn timeout_error(operation: impl Into<String>, duration: Duration) -> ResourceManagerError {
     ResourceManagerError::Timeout {
         operation: operation.into(),
@@ -74,6 +76,7 @@ pub fn timeout_error(operation: impl Into<String>, duration: Duration) -> Resour
 }
 
 /// Helper function to create a resource exhausted error
+#[allow(dead_code)] // Reserved for future error handling paths
 pub fn exhausted_error(resource_type: impl Into<String>) -> ResourceManagerError {
     ResourceManagerError::ResourceExhausted {
         resource_type: resource_type.into(),

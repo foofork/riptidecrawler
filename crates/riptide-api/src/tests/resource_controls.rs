@@ -252,14 +252,8 @@ async fn test_wasm_single_instance_per_worker() -> Result<()> {
     let worker_id = "test_worker_123";
 
     // Multiple acquisitions for the same worker should reuse the same instance
-    let _guard1 = manager
-        .wasm_manager
-        .test_acquire_instance(worker_id)
-        .await?;
-    let _guard2 = manager
-        .wasm_manager
-        .test_acquire_instance(worker_id)
-        .await?;
+    let _guard1 = manager.wasm_manager.acquire_instance(worker_id).await?;
+    let _guard2 = manager.wasm_manager.acquire_instance(worker_id).await?;
 
     // Verify instance count - should only be 1 instance for this worker
     let health = manager.wasm_manager.get_instance_health().await;

@@ -52,6 +52,10 @@ pub mod user_agent;
 // Enhanced stealth features for crawl4ai parity
 pub mod enhancements;
 
+// Advanced anti-detection features
+pub mod behavior;
+pub mod rate_limiter;
+
 // Re-export main types for easy access
 pub use config::{
     load_user_agents_from_file, DomainTiming, HeaderRandomization, LocaleRandomization,
@@ -76,6 +80,10 @@ pub use enhancements::{
     HeaderConsistencyManager, ScreenResolution, ScreenResolutionManager, TimezoneInfo,
     TimezoneManager, WebRtcEnhanced,
 };
+
+// Re-export advanced anti-detection features
+pub use behavior::{BehaviorSimulator, MousePath, Point, ScrollAction};
+pub use rate_limiter::{DomainStats, RateLimiter};
 
 // Tests module
 #[cfg(test)]

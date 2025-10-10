@@ -6098,6 +6098,7 @@ dependencies = [
  "chrono",
  "clap",
  "criterion",
+ "dashmap 5.5.3",
  "futures",
  "futures-util",
  "hex",
@@ -6419,6 +6420,7 @@ name = "riptide-stealth"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "dashmap 5.5.3",
  "rand 0.8.5",
  "serde",
  "tokio",

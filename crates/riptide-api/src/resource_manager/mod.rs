@@ -56,12 +56,19 @@ pub mod rate_limiter;
 pub mod wasm_manager;
 
 // Re-export public types for backward compatibility
+#[allow(unused_imports)] // Helper functions reserved for future use
 pub use errors::{exhausted_error, timeout_error, ResourceManagerError, Result};
+#[allow(unused_imports)] // WasmGuard reserved for future public API
 pub use guards::{PdfResourceGuard, RenderResourceGuard, WasmGuard};
+#[allow(unused_imports)] // MemoryStats reserved for monitoring endpoints
 pub use memory_manager::{MemoryManager, MemoryStats};
+#[allow(unused_imports)] // MetricsSnapshot reserved for monitoring endpoints
 pub use metrics::{MetricsSnapshot, ResourceMetrics};
+#[allow(unused_imports)] // PerformanceStats reserved for monitoring endpoints
 pub use performance::{PerformanceMonitor, PerformanceStats};
+#[allow(unused_imports)] // HostStats reserved for monitoring endpoints
 pub use rate_limiter::{HostStats, PerHostRateLimiter};
+#[allow(unused_imports)] // WasmInstanceStats reserved for monitoring endpoints
 pub use wasm_manager::{WasmInstanceManager, WasmInstanceStats};
 
 // Standard library imports

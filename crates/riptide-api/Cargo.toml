@@ -60,6 +60,7 @@ prometheus = "0.14"  # Updated to fix protobuf RUSTSEC-2024-0437
 async-stream = "0.3"
 base64 = "0.22"
 hex = "0.4"
+dashmap = "5.5"
 
 [dev-dependencies]
 tokio-test = "0.4"
@@ -80,5 +81,6 @@ events = []           # EventEmitter/ResultTransformer in handlers/shared
 sessions = []         # Session management system
 streaming = []        # SSE/WebSocket/NDJSON streaming
 telemetry = []        # Telemetry configuration
+jemalloc = ["riptide-performance/jemalloc"]  # Real memory monitoring via riptide-performance's jemalloc
 # Full feature set for production (when ready)
-full = ["events", "sessions", "streaming", "telemetry"]
+full = ["events", "sessions", "streaming", "telemetry", "jemalloc"]
