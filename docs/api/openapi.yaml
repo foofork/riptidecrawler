@@ -2,6 +2,7 @@ openapi: 3.0.0
 info:
   title: RipTide API - Comprehensive Specification
   version: 1.0.0
+  x-last-validated: "2025-10-10T07:44:00Z"
   description: '# RipTide Crawler API
 
 
