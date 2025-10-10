@@ -6,7 +6,7 @@
 use super::*;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{broadcast, RwLock};
+use tokio::sync::{broadcast, mpsc, RwLock};
 use tokio::task::JoinHandle;
 
 /// Configuration for the Event Bus
@@ -56,6 +56,7 @@ pub struct EventBus {
     _receiver: broadcast::Receiver<Arc<dyn Event>>, // Keep for capacity
     running: Arc<std::sync::atomic::AtomicBool>,
     handler_task: Option<JoinHandle<()>>,
+    shutdown_tx: Option<mpsc::Sender<()>>,
 }
 
 impl EventBus {
@@ -76,6 +77,7 @@ impl EventBus {
             _receiver: receiver,
             running: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             handler_task: None,
+            shutdown_tx: None,
         }
     }
 
@@ -92,99 +94,110 @@ impl EventBus {
         let handlers = self.handlers.clone();
         let config = self.config.clone();
         let routing = self.routing.clone();
-        let running = self.running.clone();
+
+        // Create shutdown channel
+        let (shutdown_tx, mut shutdown_rx) = mpsc::channel::<()>(1);
+        self.shutdown_tx = Some(shutdown_tx);
 
         let handler_task = tokio::spawn(async move {
             info!("Event bus started processing");
 
-            while running.load(std::sync::atomic::Ordering::Relaxed) {
-                match receiver.recv().await {
-                    Ok(event) => {
-                        let handlers_map = handlers.read().await;
-                        let target_handlers =
-                            Self::get_target_handlers(&handlers_map, &*event, &routing);
+            loop {
+                tokio::select! {
+                    result = receiver.recv() => {
+                        match result {
+                            Ok(event) => {
+                                let handlers_map = handlers.read().await;
+                                let target_handlers =
+                                    Self::get_target_handlers(&handlers_map, &*event, &routing);
 
-                        if config.async_handlers {
-                            // Process handlers concurrently
-                            let mut handler_futures = Vec::new();
+                                if config.async_handlers {
+                                    // Process handlers concurrently
+                                    let mut handler_futures = Vec::new();
 
-                            for (handler_name, handler) in target_handlers {
-                                let event_clone = event.clone();
-                                let handler_timeout = config.handler_timeout;
+                                    for (handler_name, handler) in target_handlers {
+                                        let event_clone = event.clone();
+                                        let handler_timeout = config.handler_timeout;
 
-                                let future = tokio::spawn(async move {
-                                    let result = tokio::time::timeout(
-                                        handler_timeout,
-                                        handler.handle(&*event_clone),
-                                    )
-                                    .await;
+                                        let future = tokio::spawn(async move {
+                                            let result = tokio::time::timeout(
+                                                handler_timeout,
+                                                handler.handle(&*event_clone),
+                                            )
+                                            .await;
 
-                                    match result {
-                                        Ok(Ok(_)) => {
-                                            debug!(handler = %handler_name, event_id = %event_clone.event_id(), "Handler processed event successfully");
-                                        }
-                                        Ok(Err(e)) => {
-                                            error!(handler = %handler_name, event_id = %event_clone.event_id(), error = %e, "Handler failed to process event");
-                                        }
-                                        Err(_) => {
-                                            warn!(handler = %handler_name, event_id = %event_clone.event_id(), "Handler timed out processing event");
-                                        }
+                                            match result {
+                                                Ok(Ok(_)) => {
+                                                    debug!(handler = %handler_name, event_id = %event_clone.event_id(), "Handler processed event successfully");
+                                                }
+                                                Ok(Err(e)) => {
+                                                    error!(handler = %handler_name, event_id = %event_clone.event_id(), error = %e, "Handler failed to process event");
+                                                }
+                                                Err(_) => {
+                                                    warn!(handler = %handler_name, event_id = %event_clone.event_id(), "Handler timed out processing event");
+                                                }
+                                            }
+                                        });
+
+                                        handler_futures.push(future);
                                     }
-                                });
 
-                                handler_futures.push(future);
-                            }
+                                    // Wait for all handlers to complete
+                                    futures::future::join_all(handler_futures).await;
+                                } else {
+                                    // Process handlers sequentially
+                                    for (handler_name, handler) in target_handlers {
+                                        let start = Instant::now();
 
-                            // Wait for all handlers to complete
-                            futures::future::join_all(handler_futures).await;
-                        } else {
-                            // Process handlers sequentially
-                            for (handler_name, handler) in target_handlers {
-                                let start = Instant::now();
+                                        match tokio::time::timeout(
+                                            config.handler_timeout,
+                                            handler.handle(&*event),
+                                        )
+                                        .await
+                                        {
+                                            Ok(Ok(_)) => {
+                                                debug!(
+                                                    handler = %handler_name,
+                                                    event_id = %event.event_id(),
+                                                    duration_ms = %start.elapsed().as_millis(),
+                                                    "Handler processed event successfully"
+                                                );
+                                            }
+                                            Ok(Err(e)) => {
+                                                error!(
+                                                    handler = %handler_name,
+                                                    event_id = %event.event_id(),
+                                                    error = %e,
+                                                    "Handler failed to process event"
+                                                );
 
-                                match tokio::time::timeout(
-                                    config.handler_timeout,
-                                    handler.handle(&*event),
-                                )
-                                .await
-                                {
-                                    Ok(Ok(_)) => {
-                                        debug!(
-                                            handler = %handler_name,
-                                            event_id = %event.event_id(),
-                                            duration_ms = %start.elapsed().as_millis(),
-                                            "Handler processed event successfully"
-                                        );
-                                    }
-                                    Ok(Err(e)) => {
-                                        error!(
-                                            handler = %handler_name,
-                                            event_id = %event.event_id(),
-                                            error = %e,
-                                            "Handler failed to process event"
-                                        );
-
-                                        if !config.continue_on_handler_error {
-                                            break;
+                                                if !config.continue_on_handler_error {
+                                                    break;
+                                                }
+                                            }
+                                            Err(_) => {
+                                                warn!(
+                                                    handler = %handler_name,
+                                                    event_id = %event.event_id(),
+                                                    "Handler timed out processing event"
+                                                );
+                                            }
                                         }
-                                    }
-                                    Err(_) => {
-                                        warn!(
-                                            handler = %handler_name,
-                                            event_id = %event.event_id(),
-                                            "Handler timed out processing event"
-                                        );
                                     }
                                 }
                             }
+                            Err(broadcast::error::RecvError::Closed) => {
+                                info!("Event bus channel closed, stopping processing");
+                                break;
+                            }
+                            Err(broadcast::error::RecvError::Lagged(count)) => {
+                                warn!(lagged_events = %count, "Event bus receiver lagged, some events may have been lost");
+                            }
                         }
                     }
-                    Err(broadcast::error::RecvError::Closed) => {
-                        info!("Event bus channel closed, stopping processing");
+                    _ = shutdown_rx.recv() => {
+                        info!("Event bus received shutdown signal");
                         break;
-                    }
-                    Err(broadcast::error::RecvError::Lagged(count)) => {
-                        warn!(lagged_events = %count, "Event bus receiver lagged, some events may have been lost");
                     }
                 }
             }
@@ -201,6 +214,12 @@ impl EventBus {
         self.running
             .store(false, std::sync::atomic::Ordering::Relaxed);
 
+        // Send shutdown signal
+        if let Some(shutdown_tx) = self.shutdown_tx.take() {
+            let _ = shutdown_tx.send(()).await;
+        }
+
+        // Wait for handler task to complete
         if let Some(handler_task) = self.handler_task.take() {
             let _ = handler_task.await;
         }

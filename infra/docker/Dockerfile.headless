@@ -50,6 +50,7 @@ RUN echo "fn main() {}" > crates/riptide-core/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-core/benches/performance_benches.rs && \
     echo "fn main() {}" > crates/riptide-api/src/main.rs && \
     echo "fn main() {}" > crates/riptide-headless/src/main.rs && \
+    echo "fn main() {}" > crates/riptide-headless/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-workers/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-html/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-html/examples/basic_extraction.rs && \
