@@ -12,10 +12,6 @@ on:
       - 'crates/riptide-api/**'
       - 'tests/api/**'
       - '.github/workflows/api-validation.yml'
-    paths-ignore:
-      - 'docs/**'
-      - '!docs/api/openapi.yaml'  # Exception: openapi.yaml IS needed
-      - '**.md'
   pull_request:
     branches: [main, develop]
     paths:
@@ -23,10 +19,6 @@ on:
       - 'crates/riptide-api/**'
       - 'tests/api/**'
       - '.github/workflows/api-validation.yml'
-    paths-ignore:
-      - 'docs/**'
-      - '!docs/api/openapi.yaml'  # Exception: openapi.yaml IS needed
-      - '**.md'
   workflow_dispatch:
 
 # Cancel previous runs on new push
