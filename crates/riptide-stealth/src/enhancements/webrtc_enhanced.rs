@@ -83,11 +83,7 @@ impl WebRtcEnhanced {
 
     /// Generate IP leak protection JavaScript
     fn generate_ip_leak_protection(&self) -> String {
-        let fake_ip = self
-            .fake_ip
-            .as_ref()
-            .map(|ip| ip.as_str())
-            .unwrap_or("192.168.1.1");
+        let fake_ip = self.fake_ip.as_deref().unwrap_or("192.168.1.1");
 
         format!(
             r#"

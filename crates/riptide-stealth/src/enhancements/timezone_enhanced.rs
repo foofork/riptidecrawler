@@ -422,7 +422,7 @@ impl TimezoneManager {
 
     /// Get timezone by locale (best match)
     pub fn for_locale(&mut self, locale: &str) -> Option<TimezoneInfo> {
-        for (_, tz) in &self.timezones {
+        for tz in self.timezones.values() {
             if tz.typical_locale == locale {
                 let tz_clone = tz.clone();
                 self.current = Some(tz_clone.clone());
@@ -434,9 +434,8 @@ impl TimezoneManager {
 
     /// Get timezone by IANA name
     pub fn by_name(&mut self, name: &str) -> Option<TimezoneInfo> {
-        self.timezones.get(name).cloned().map(|tz| {
+        self.timezones.get(name).cloned().inspect(|tz| {
             self.current = Some(tz.clone());
-            tz
         })
     }
 

@@ -15,8 +15,8 @@ impl HeaderConsistencyManager {
 
         // Detect browser type
         let is_chrome = user_agent.contains("Chrome") && !user_agent.contains("Edg");
-        let is_firefox = user_agent.contains("Firefox");
-        let is_safari = user_agent.contains("Safari") && !user_agent.contains("Chrome");
+        let _is_firefox = user_agent.contains("Firefox");
+        let _is_safari = user_agent.contains("Safari") && !user_agent.contains("Chrome");
         let is_edge = user_agent.contains("Edg");
 
         // Detect platform
