@@ -251,6 +251,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Self-hosting guide
 - Quick-start guide
 - Troubleshooting guide
+- **Future Features & TODOs Analysis** - Comprehensive roadmap for v1.1+ features
 
 #### Quality Metrics (Phase 2 Score: 90/100 - Grade A-)
 - Mock Infrastructure: 100/100
@@ -333,6 +334,8 @@ For deployment instructions, see:
 - **Master Plan**: [V1_MASTER_PLAN.md](docs/V1_MASTER_PLAN.md)
 - **Phase 1 Progress**: [docs/phase1/](docs/phase1/)
 - **Phase 2 Completion**: [docs/phase2/COMPLETION_REPORT.md](docs/phase2/COMPLETION_REPORT.md)
+- **Future Features Analysis**: [docs/phase2/future-features-and-todos.md](docs/phase2/future-features-and-todos.md)
+- **Remaining Sleep Calls**: [docs/phase2/remaining-sleep-calls.md](docs/phase2/remaining-sleep-calls.md)
 
 ---
 
