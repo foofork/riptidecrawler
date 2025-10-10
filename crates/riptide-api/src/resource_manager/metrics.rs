@@ -137,6 +137,7 @@ pub struct MetricsSnapshot {
 
 impl MetricsSnapshot {
     /// Calculate render success rate
+    #[allow(dead_code)]
     pub fn render_success_rate(&self) -> f64 {
         if self.render_operations == 0 {
             return 0.0;
@@ -145,6 +146,7 @@ impl MetricsSnapshot {
     }
 
     /// Calculate browser pool utilization
+    #[allow(dead_code)]
     pub fn browser_pool_utilization(&self) -> f64 {
         if self.headless_pool_size == 0 {
             return 0.0;

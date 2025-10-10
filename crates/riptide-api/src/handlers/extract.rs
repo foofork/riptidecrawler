@@ -42,6 +42,7 @@ pub struct ExtractOptions {
     pub quality_threshold: f64,
     /// Timeout in milliseconds
     #[serde(default = "default_timeout")]
+    #[allow(dead_code)]
     pub timeout_ms: u64,
 }
 

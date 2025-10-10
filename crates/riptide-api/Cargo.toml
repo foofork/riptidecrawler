@@ -60,7 +60,7 @@ prometheus = "0.14"  # Updated to fix protobuf RUSTSEC-2024-0437
 async-stream = "0.3"
 base64 = "0.22"
 hex = "0.4"
-dashmap = "5.5"
+dashmap = { workspace = true }
 serde_urlencoded = "0.7.1"
 
 [dev-dependencies]

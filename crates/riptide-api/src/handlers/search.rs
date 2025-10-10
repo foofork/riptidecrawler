@@ -85,7 +85,7 @@ pub async fn search(State(_state): State<AppState>, Query(params): Query<SearchQ
     }
 
     // Validate and cap limit
-    let limit = params.limit.min(50).max(1);
+    let limit = params.limit.clamp(1, 50);
 
     tracing::info!(
         query = %params.q,

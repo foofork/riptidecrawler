@@ -11,9 +11,9 @@ categories = ["web-programming", "development-tools"]
 [dependencies]
 # Core dependencies
 serde = { workspace = true }
-rand = { workspace = true }
+rand = { workspace = true, features = ["small_rng"] }
 tracing = { workspace = true }
-dashmap = "5.5"
+dashmap = { workspace = true }
 
 [dev-dependencies]
 tokio-test = "0.4"

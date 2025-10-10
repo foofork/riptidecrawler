@@ -81,15 +81,15 @@ impl MemoryManager {
             .store(new_usage, Ordering::Relaxed);
 
         // Check for memory pressure
-        if self.config.is_memory_pressure(new_usage) {
-            if !self.pressure_detected.swap(true, Ordering::Relaxed) {
-                warn!(
-                    current_mb = new_usage,
-                    limit_mb = self.config.memory.global_memory_limit_mb,
-                    threshold = self.config.memory.pressure_threshold,
-                    "Memory pressure detected"
-                );
-            }
+        if self.config.is_memory_pressure(new_usage)
+            && !self.pressure_detected.swap(true, Ordering::Relaxed)
+        {
+            warn!(
+                current_mb = new_usage,
+                limit_mb = self.config.memory.global_memory_limit_mb,
+                threshold = self.config.memory.pressure_threshold,
+                "Memory pressure detected"
+            );
         }
     }
 
@@ -108,10 +108,10 @@ impl MemoryManager {
             .store(new_usage, Ordering::Relaxed);
 
         // Update pressure status
-        if !self.config.is_memory_pressure(new_usage) {
-            if self.pressure_detected.swap(false, Ordering::Relaxed) {
-                info!(current_mb = new_usage, "Memory pressure cleared");
-            }
+        if !self.config.is_memory_pressure(new_usage)
+            && self.pressure_detected.swap(false, Ordering::Relaxed)
+        {
+            info!(current_mb = new_usage, "Memory pressure cleared");
         }
     }
 
@@ -217,6 +217,7 @@ impl MemoryManager {
     ///
     /// # Errors
     /// Returns error if system info cannot be read.
+    #[allow(dead_code)]
     pub fn get_current_rss(&self) -> Result<usize> {
         use sysinfo::{ProcessRefreshKind, ProcessesToUpdate, RefreshKind, System};
 
@@ -252,6 +253,7 @@ impl MemoryManager {
     ///
     /// # Errors
     /// Returns error if system info cannot be read.
+    #[allow(dead_code)]
     pub fn get_heap_allocated(&self) -> Result<usize> {
         use sysinfo::{ProcessRefreshKind, ProcessesToUpdate, RefreshKind, System};
 
@@ -285,6 +287,7 @@ impl MemoryManager {
     ///
     /// Uses real RSS from sysinfo to accurately detect memory pressure.
     /// This method updates internal pressure state and metrics.
+    #[allow(dead_code)]
     pub fn check_memory_pressure(&self) -> bool {
         let current_mb = match self.get_current_rss() {
             Ok(rss) => {

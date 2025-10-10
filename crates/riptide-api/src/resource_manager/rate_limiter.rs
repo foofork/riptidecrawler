@@ -236,6 +236,7 @@ impl PerHostRateLimiter {
 
 /// Statistics for a specific host's rate limiting
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct HostStats {
     /// Total requests from this host
     pub request_count: u64,
@@ -251,17 +252,18 @@ mod tests {
     use crate::config::RateLimitingConfig;
 
     fn test_config() -> ApiConfig {
-        let mut config = ApiConfig::default();
-        config.rate_limiting = RateLimitingConfig {
-            enabled: true,
-            requests_per_second_per_host: 2.0,
-            burst_capacity_per_host: 5,
-            jitter_factor: 0.0, // Disable jitter for predictable testing
-            window_duration_secs: 60,
-            cleanup_interval_secs: 300,
-            max_tracked_hosts: 1000,
-        };
-        config
+        ApiConfig {
+            rate_limiting: RateLimitingConfig {
+                enabled: true,
+                requests_per_second_per_host: 2.0,
+                burst_capacity_per_host: 5,
+                jitter_factor: 0.0, // Disable jitter for predictable testing
+                window_duration_secs: 60,
+                cleanup_interval_secs: 300,
+                max_tracked_hosts: 1000,
+            },
+            ..Default::default()
+        }
     }
 
     #[tokio::test]
