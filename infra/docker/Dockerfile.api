@@ -79,10 +79,10 @@ RUN cd wasm/riptide-extractor-wasm && \
 RUN apt-get update && apt-get install -y binaryen && rm -rf /var/lib/apt/lists/*
 
 # Optimize WASM or fallback to unoptimized version
-RUN wasm-opt -Oz wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm \
-    -o wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.optimized.wasm || \
-    cp wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm \
-       wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.optimized.wasm
+RUN wasm-opt -Oz target/wasm32-wasip2/release/riptide_extractor_wasm.wasm \
+    -o target/wasm32-wasip2/release/riptide_extractor_wasm.optimized.wasm || \
+    cp target/wasm32-wasip2/release/riptide_extractor_wasm.wasm \
+       target/wasm32-wasip2/release/riptide_extractor_wasm.optimized.wasm
 
 # Optimized runtime stage
 FROM debian:bookworm-slim AS runtime
@@ -110,7 +110,7 @@ COPY --from=builder --chown=riptide:riptide \
 
 # Copy optimized WASM module
 COPY --from=builder --chown=riptide:riptide \
-    /app/wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.optimized.wasm \
+    /app/target/wasm32-wasip2/release/riptide_extractor_wasm.optimized.wasm \
     /opt/riptide/extractor/extractor.wasm
 
 # Copy configs
