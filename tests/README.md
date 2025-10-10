@@ -14,7 +14,7 @@ This comprehensive test suite follows the **London School (mockist) approach** t
 ## 📁 Test Suite Organization
 
 ```
-tests/
+tests/                         # Workspace-level integration tests
 ├── fixtures/                  # Mock objects and test data (London School TDD)
 │   ├── mod.rs                 # Core mock traits and implementations
 │   └── test_data.rs           # Comprehensive test data sets
@@ -24,16 +24,21 @@ tests/
 │   └── dynamic_rendering_tests.rs
 ├── chaos/                     # Chaos Engineering & Error Resilience
 │   └── error_resilience_tests.rs
-├── performance/               # Performance Benchmarks
-│   └── benchmark_tests.rs
 ├── integration/               # Cross-Component Integration
 │   ├── session_persistence_tests.rs
 │   └── contract_tests.rs
 ├── unit/                      # Component-Level Unit Tests
-│   ├── component_model_tests.rs
-│   └── streaming_tests.rs
+│   └── component_model_tests.rs
 ├── lib.rs                     # Test framework and utilities
 └── Cargo.toml                 # Test dependencies
+
+crates/                        # Crate-specific tests
+├── riptide-html/tests/        # HTML extraction tests
+├── riptide-search/tests/      # Search provider tests
+├── riptide-stealth/tests/     # Stealth mode tests
+├── riptide-pdf/tests/         # PDF processing tests
+├── riptide-streaming/tests/   # Streaming response tests
+└── riptide-performance/tests/ # Performance benchmark tests
 ```
 
 ## 🧪 Test Categories
@@ -88,7 +93,7 @@ Tests system resilience under adverse conditions:
 - Behavior validation during system degradation
 
 ### 4. Performance Benchmarks
-**File**: `tests/performance/benchmark_tests.rs`
+**File**: `crates/riptide-performance/tests/benchmark_tests.rs`
 
 Tests performance characteristics and SLOs:
 - ✅ **TTFB performance** (< 500ms SLO)
@@ -138,7 +143,7 @@ Tests WASM Component Model interface contracts:
 - Behavior validation of component lifecycle
 
 ### 7. Streaming Response Tests
-**File**: `tests/unit/streaming_tests.rs`
+**File**: `crates/riptide-streaming/tests/streaming_tests.rs`
 
 Tests real-time streaming functionality:
 - ✅ **Basic streaming response** functionality

@@ -20,6 +20,8 @@ tokio = { workspace = true, features = ["time"] }
 
 [dev-dependencies]
 tokio-test = "0.4"
+riptide-core = { path = "../riptide-core" }
+mockall = "0.12"
 
 [features]
 default = []

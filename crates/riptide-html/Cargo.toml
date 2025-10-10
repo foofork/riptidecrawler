@@ -41,6 +41,8 @@ chrono = { workspace = true, features = ["serde"] }
 [dev-dependencies]
 tokio-test = "0.4"
 tempfile.workspace = true
+riptide-core = { path = "../riptide-core" }
+futures.workspace = true
 
 [features]
 default = ["css-extraction", "regex-extraction", "dom-utils", "chunking"]

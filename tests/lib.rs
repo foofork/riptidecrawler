@@ -21,11 +21,6 @@ pub mod chaos {
     pub mod error_resilience_tests;
 }
 
-// Performance and Benchmarking
-pub mod performance {
-    pub mod benchmark_tests;
-}
-
 // Integration Tests
 pub mod integration {
     pub mod session_persistence_tests;
@@ -35,8 +30,13 @@ pub mod integration {
 // Unit Tests
 pub mod unit {
     pub mod component_model_tests;
-    pub mod streaming_tests;
 }
+
+// Note: Performance tests moved to crates/riptide-performance/tests/
+// Note: Streaming tests moved to crates/riptide-streaming/tests/
+// Note: Search provider tests moved to crates/riptide-search/tests/
+// Note: PDF tests moved to crates/riptide-pdf/tests/
+// Note: HTML extraction tests moved to crates/riptide-html/tests/
 
 // Note: Stealth tests are located in crates/riptide-stealth/tests/
 // and crates/riptide-stealth/src/tests.rs (not here in workspace tests/)

@@ -13,7 +13,7 @@ use std::sync::Arc;
 use crate::state::AppState;
 
 /// Configure stealth settings (stub)
-pub async fn configure_stealth(State(_state): State<Arc<AppState>>) -> Response {
+pub async fn configure_stealth(State(_state): State<AppState>) -> Response {
     (
         StatusCode::NOT_IMPLEMENTED,
         Json(json!({
@@ -25,7 +25,7 @@ pub async fn configure_stealth(State(_state): State<Arc<AppState>>) -> Response 
 }
 
 /// Test stealth capabilities (stub)
-pub async fn test_stealth(State(_state): State<Arc<AppState>>) -> Response {
+pub async fn test_stealth(State(_state): State<AppState>) -> Response {
     (
         StatusCode::NOT_IMPLEMENTED,
         Json(json!({
@@ -37,7 +37,7 @@ pub async fn test_stealth(State(_state): State<Arc<AppState>>) -> Response {
 }
 
 /// Get stealth capabilities (stub)
-pub async fn get_stealth_capabilities(State(_state): State<Arc<AppState>>) -> Response {
+pub async fn get_stealth_capabilities(State(_state): State<AppState>) -> Response {
     (
         StatusCode::OK,
         Json(json!({

@@ -1,4 +1,4 @@
-use riptide_core::stealth::{
+use riptide_stealth::{
     StealthController, StealthConfig, StealthPreset, UserAgentManager, UserAgentConfig,
     RotationStrategy, BrowserType, FingerprintingConfig, JavaScriptInjector,
     LocaleStrategy, HardwareConfig, WebGlConfig, CanvasConfig, RequestRandomization,
