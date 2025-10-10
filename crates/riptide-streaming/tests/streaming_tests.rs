@@ -1,10 +1,9 @@
-use crate::fixtures::test_data::*;
 /// Streaming Response Tests - London School TDD
 ///
 /// Tests streaming functionality with timeout handling using mock collaborations
 /// to verify real-time response behavior and backpressure management.
-use crate::fixtures::*;
 use mockall::predicate::*;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::time::timeout;

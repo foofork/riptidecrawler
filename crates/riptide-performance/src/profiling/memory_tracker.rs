@@ -129,7 +129,7 @@ impl MemoryTracker {
     fn get_jemalloc_stats(&self) -> Option<JemallocStats> {
         #[cfg(feature = "jemalloc")]
         {
-            use jemalloc_ctl::{epoch, stats};
+            use tikv_jemalloc_ctl::{epoch, stats};
 
             // Advance the epoch to get fresh statistics
             if epoch::advance().is_err() {

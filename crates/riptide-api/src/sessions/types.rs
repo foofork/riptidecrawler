@@ -26,8 +26,7 @@ pub struct SessionConfig {
     /// Whether to persist cookies to disk
     pub persist_cookies: bool,
 
-    /// Whether to enable session encryption
-    #[allow(dead_code)] // Future feature - encryption not yet implemented
+    /// Whether to enable session encryption (reserved for future implementation)
     pub encrypt_session_data: bool,
 }
 
@@ -246,7 +245,6 @@ pub enum SessionError {
     SessionNotFound { session_id: String },
 
     #[error("Session expired: {session_id}")]
-    #[allow(dead_code)] // Public API - will be used in session expiration logic
     SessionExpired { session_id: String },
 
     #[error("Maximum number of sessions reached: {max_sessions}")]
@@ -305,7 +303,6 @@ impl Session {
     }
 
     /// Get the user data directory path
-    #[allow(dead_code)] // Public API - used for session directory access
     pub fn get_user_data_dir(&self) -> &PathBuf {
         &self.user_data_dir
     }
@@ -349,7 +346,6 @@ impl CookieJar {
     }
 
     /// Remove expired cookies
-    #[allow(dead_code)] // Public API - should be called during cleanup
     pub fn remove_expired(&mut self) {
         let now = SystemTime::now();
         for domain_cookies in self.cookies.values_mut() {
@@ -408,14 +404,12 @@ impl Cookie {
     }
 
     /// Set SameSite attribute
-    #[allow(dead_code)] // Public API - builder pattern for cookie configuration
     pub fn with_same_site(mut self, same_site: SameSite) -> Self {
         self.same_site = Some(same_site);
         self
     }
 
     /// Check if the cookie has expired
-    #[allow(dead_code)] // Public API - used for cookie validation
     pub fn is_expired(&self) -> bool {
         self.expires
             .is_some_and(|expires| SystemTime::now() > expires)

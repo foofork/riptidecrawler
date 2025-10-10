@@ -638,39 +638,51 @@ pub async fn get_config(State(state): State<AppState>) -> Result<impl IntoRespon
     Ok((StatusCode::OK, Json(config_summary)))
 }
 
-/// Create provider info from registry data
+/// Create provider info from registry data with real health check
 async fn create_provider_info(
-    _registry: &LlmRegistry,
+    registry: &LlmRegistry,
     provider_name: &str,
     params: &ProviderQuery,
 ) -> ApiResult<ProviderInfo> {
-    // Get provider (simplified - in real implementation would use registry methods)
-    let provider_type = if provider_name.contains("openai") {
-        "openai"
-    } else if provider_name.contains("anthropic") {
-        "anthropic"
-    } else if provider_name.contains("ollama") {
-        "ollama"
+    // Get actual provider from registry
+    let provider = registry
+        .get_provider(provider_name)
+        .ok_or_else(|| ApiError::not_found(format!("Provider '{}' not found", provider_name)))?;
+
+    // Perform health check
+    let is_available = provider.is_available().await;
+    let status = if is_available {
+        "healthy"
     } else {
-        "unknown"
+        "unavailable"
     };
 
-    // Create capabilities list
-    let capabilities = match provider_type {
-        "openai" => vec!["text-generation", "embedding", "chat", "function-calling"],
-        "anthropic" => vec!["text-generation", "chat"],
-        "ollama" => vec!["text-generation", "embedding", "chat"],
-        _ => vec!["text-generation"],
-    }
-    .into_iter()
-    .map(|s| s.to_string())
-    .collect();
+    // Get capabilities from provider
+    let llm_capabilities = provider.capabilities();
 
-    // Create config requirements
-    let config_required = match provider_type {
-        "openai" => vec!["api_key", "model"],
+    let mut capabilities = vec!["text-generation".to_string()];
+    if llm_capabilities.supports_embeddings {
+        capabilities.push("embedding".to_string());
+    }
+    if llm_capabilities.supports_functions {
+        capabilities.push("function-calling".to_string());
+    }
+    if llm_capabilities.supports_streaming {
+        capabilities.push("streaming".to_string());
+    }
+    capabilities.push("chat".to_string());
+
+    // Determine provider type from name
+    let provider_type = provider.name().to_string();
+
+    // Create config requirements based on provider type
+    let config_required = match provider_type.as_str() {
+        "openai" | "azure_openai" => vec!["api_key", "model"],
         "anthropic" => vec!["api_key", "model"],
         "ollama" => vec!["base_url", "model"],
+        "localai" => vec!["base_url", "model"],
+        "aws_bedrock" => vec!["region", "model"],
+        "google_vertex" => vec!["project_id", "location", "model"],
         _ => vec!["api_key"],
     }
     .into_iter()
@@ -679,18 +691,15 @@ async fn create_provider_info(
 
     // Create cost info if requested
     let cost_info = if params.include_cost {
-        match provider_type {
-            "openai" => Some(CostInfo {
-                input_token_cost: Some(0.001),
-                output_token_cost: Some(0.002),
+        // Use actual cost from first model if available
+        if let Some(model) = llm_capabilities.models.first() {
+            Some(CostInfo {
+                input_token_cost: Some(model.cost_per_1k_prompt_tokens),
+                output_token_cost: Some(model.cost_per_1k_completion_tokens),
                 currency: "USD".to_string(),
-            }),
-            "anthropic" => Some(CostInfo {
-                input_token_cost: Some(0.008),
-                output_token_cost: Some(0.024),
-                currency: "USD".to_string(),
-            }),
-            _ => None,
+            })
+        } else {
+            None
         }
     } else {
         None
@@ -698,40 +707,27 @@ async fn create_provider_info(
 
     // Create model info if requested
     let models = if params.include_models {
-        match provider_type {
-            "openai" => vec![
-                ModelInfo {
-                    name: "gpt-4".to_string(),
-                    context_window: Some(8192),
-                    max_output_tokens: Some(4096),
-                    supports_functions: true,
-                },
-                ModelInfo {
-                    name: "gpt-3.5-turbo".to_string(),
-                    context_window: Some(4096),
-                    max_output_tokens: Some(4096),
-                    supports_functions: true,
-                },
-            ],
-            "anthropic" => vec![ModelInfo {
-                name: "claude-3-opus".to_string(),
-                context_window: Some(200000),
-                max_output_tokens: Some(4096),
-                supports_functions: false,
-            }],
-            _ => vec![],
-        }
+        llm_capabilities
+            .models
+            .into_iter()
+            .map(|m| ModelInfo {
+                name: m.id,
+                context_window: Some(m.max_tokens as usize),
+                max_output_tokens: Some(m.max_tokens as usize),
+                supports_functions: m.supports_functions,
+            })
+            .collect()
     } else {
         vec![]
     };
 
     Ok(ProviderInfo {
         name: provider_name.to_string(),
-        provider_type: provider_type.to_string(),
-        status: "available".to_string(),
+        provider_type,
+        status: status.to_string(),
         capabilities,
         config_required,
-        available: true, // Would check actual availability in production
+        available: is_available,
         cost_info,
         models,
     })

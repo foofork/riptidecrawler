@@ -1,7 +1,7 @@
 //! Benchmarks for core extraction strategies and performance
 //!
 //! Note: CSS/Regex extraction and chunking features have been moved to riptide-html crate.
-//! This benchmark focuses on the core Trek extraction strategy and metadata extraction.
+//! This benchmark focuses on the core strategy manager and metadata extraction.
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use riptide_core::strategies::*;
@@ -63,18 +63,25 @@ fn bench_core_extraction(c: &mut Criterion) {
         let content = create_test_content(size);
         group.throughput(Throughput::Bytes(content.len() as u64));
 
-        // Trek extraction benchmark (core strategy)
-        group.bench_with_input(BenchmarkId::new("trek", size), &content, |b, content| {
-            b.iter(|| {
-                rt.block_on(async {
-                    black_box(
-                        extraction::trek::extract(black_box(content), "http://example.com")
-                            .await
-                            .unwrap(),
-                    )
+        // Strategy manager extraction benchmark (core implementation)
+        group.bench_with_input(
+            BenchmarkId::new("strategy_manager_extract", size),
+            &content,
+            |b, content| {
+                b.iter(|| {
+                    rt.block_on(async {
+                        let config = StrategyConfig::default();
+                        let mut manager = StrategyManager::new(config);
+                        black_box(
+                            manager
+                                .extract_content(black_box(content), "http://example.com")
+                                .await
+                                .unwrap(),
+                        )
+                    })
                 })
-            })
-        });
+            },
+        );
     }
 
     group.finish();

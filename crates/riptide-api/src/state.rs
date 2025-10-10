@@ -702,12 +702,19 @@ impl AppState {
         tracing::info!("FetchEngine initialized successfully");
 
         // Initialize PerformanceManager for resource limiting and monitoring
-        tracing::info!("Initializing PerformanceManager for resource limiting");
+        tracing::info!("Initializing PerformanceManager for resource limiting and profiling");
         let performance_manager = Arc::new(
             PerformanceManager::new()
                 .map_err(|e| anyhow::anyhow!("Failed to initialize PerformanceManager: {}", e))?,
         );
-        tracing::info!("PerformanceManager initialized successfully");
+
+        // Start background profiling and monitoring
+        performance_manager.start_monitoring().await.map_err(|e| {
+            tracing::warn!("Failed to start performance monitoring: {}", e);
+            anyhow::anyhow!("Failed to start performance monitoring: {}", e)
+        })?;
+
+        tracing::info!("PerformanceManager initialized and started with profiling overhead <2%");
 
         // Initialize authentication configuration
         let auth_config = AuthConfig::new();

@@ -9,7 +9,7 @@ mod search_provider_integration_tests {
 
     #[tokio::test]
     async fn test_search_provider_creation() {
-        use riptide_core::search::{create_search_provider, SearchBackend, SearchConfig};
+        use riptide_search::{create_search_provider, SearchBackend, SearchConfig};
 
         // Test NoneProvider creation (no API key needed)
         let none_config = SearchConfig {
@@ -58,7 +58,7 @@ mod search_provider_integration_tests {
 
     #[tokio::test]
     async fn test_none_provider_url_parsing() {
-        use riptide_core::search::{none_provider::NoneProvider, SearchProvider};
+        use riptide_search::{NoneProvider, SearchProvider};
 
         let provider = NoneProvider::new(true);
 
@@ -89,7 +89,7 @@ mod search_provider_integration_tests {
 
     #[tokio::test]
     async fn test_concurrent_search_requests() {
-        use riptide_core::search::{none_provider::NoneProvider, SearchProvider};
+        use riptide_search::{NoneProvider, SearchProvider};
 
         let provider = Arc::new(NoneProvider::new(true));
         let queries = vec![
@@ -123,7 +123,7 @@ mod search_provider_integration_tests {
 
     #[tokio::test]
     async fn test_search_provider_with_timeout() {
-        use riptide_core::search::{none_provider::NoneProvider, SearchProvider};
+        use riptide_search::{NoneProvider, SearchProvider};
 
         // Test with reasonable timeout - NoneProvider should be very fast
         let provider = NoneProvider::new(true);
@@ -137,7 +137,7 @@ mod search_provider_integration_tests {
 
     #[tokio::test]
     async fn test_search_result_consistency() {
-        use riptide_core::search::{none_provider::NoneProvider, SearchProvider};
+        use riptide_search::{NoneProvider, SearchProvider};
 
         let provider = NoneProvider::new(true);
         let test_url = "https://eventmesh.apache.org/docs";
@@ -159,9 +159,7 @@ mod search_provider_integration_tests {
 
     #[tokio::test]
     async fn test_circuit_breaker_integration() {
-        use riptide_core::search::{
-            circuit_breaker::CircuitBreakerWrapper, none_provider::NoneProvider, SearchProvider,
-        };
+        use riptide_search::{CircuitBreakerWrapper, NoneProvider, SearchProvider};
 
         let provider = Box::new(NoneProvider::new(true));
         let circuit_wrapped_provider = CircuitBreakerWrapper::new(provider);
@@ -175,7 +173,7 @@ mod search_provider_integration_tests {
         // Test backend type is preserved
         assert_eq!(
             circuit_wrapped_provider.backend_type(),
-            riptide_core::search::SearchBackend::None
+            riptide_search::SearchBackend::None
         );
     }
 }

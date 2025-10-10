@@ -3,7 +3,7 @@
 //! This module tests the advanced configuration and factory pattern for search providers.
 //! It ensures all provider types can be created with proper configuration validation.
 
-use riptide_core::search::{
+use riptide_search::{
     create_search_provider, create_search_provider_from_env, SearchBackend, SearchConfig,
     SearchProvider,
 };
@@ -241,7 +241,7 @@ mod advanced_search_config_tests {
 #[cfg(test)]
 mod provider_factory_tests {
     use super::*;
-    use riptide_core::search::SearchProviderFactory;
+    use riptide_search::SearchProviderFactory;
 
     /// Test SearchProviderFactory creation with various backends
     #[tokio::test]

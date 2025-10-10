@@ -1,0 +1,471 @@
+//! Integration tests for report generation
+//!
+//! Tests cover:
+//! - Report generation in all formats (HTML, JSON, CSV, PDF)
+//! - Chart generation with Plotters
+//! - Template rendering with Handlebars
+//! - Theme variations
+//! - API endpoints
+
+use riptide_streaming::reports::{
+    DomainStats, ExtractionResult, ReportConfig, ReportData, ReportFormat, ReportGenerator,
+    ReportTheme, TimelineEntry, WordFrequency,
+};
+use std::collections::HashMap;
+
+/// Create sample extraction results for testing
+fn create_sample_results() -> Vec<ExtractionResult> {
+    vec![
+        ExtractionResult {
+            id: "result-1".to_string(),
+            url: "https://example.com/page1".to_string(),
+            title: Some("Example Page 1 - Technology News".to_string()),
+            content: "This is sample content from page 1 about technology".to_string(),
+            metadata: HashMap::new(),
+            timestamp: chrono::Utc::now(),
+            extraction_time_ms: 250,
+            word_count: 150,
+            links: vec![
+                "https://example.com/link1".to_string(),
+                "https://example.com/link2".to_string(),
+            ],
+            images: vec!["https://example.com/image1.jpg".to_string()],
+        },
+        ExtractionResult {
+            id: "result-2".to_string(),
+            url: "https://example.com/page2".to_string(),
+            title: Some("Example Page 2 - Science Updates".to_string()),
+            content:
+                "This is sample content from page 2 with more detailed information about science"
+                    .to_string(),
+            metadata: HashMap::new(),
+            timestamp: chrono::Utc::now(),
+            extraction_time_ms: 180,
+            word_count: 320,
+            links: vec!["https://example.com/link3".to_string()],
+            images: vec![
+                "https://example.com/image2.jpg".to_string(),
+                "https://example.com/image3.jpg".to_string(),
+            ],
+        },
+        ExtractionResult {
+            id: "result-3".to_string(),
+            url: "https://news.example.com/article1".to_string(),
+            title: Some("Breaking News Article".to_string()),
+            content: "Latest breaking news content".to_string(),
+            metadata: HashMap::new(),
+            timestamp: chrono::Utc::now(),
+            extraction_time_ms: 420,
+            word_count: 580,
+            links: vec![],
+            images: vec![],
+        },
+        ExtractionResult {
+            id: "result-4".to_string(),
+            url: "https://blog.example.com/post1".to_string(),
+            title: Some("Blog Post About Web Scraping".to_string()),
+            content: "Comprehensive guide to web scraping technologies and best practices"
+                .to_string(),
+            metadata: HashMap::new(),
+            timestamp: chrono::Utc::now(),
+            extraction_time_ms: 350,
+            word_count: 1250,
+            links: vec![
+                "https://blog.example.com/link1".to_string(),
+                "https://blog.example.com/link2".to_string(),
+                "https://blog.example.com/link3".to_string(),
+            ],
+            images: vec!["https://blog.example.com/header.jpg".to_string()],
+        },
+    ]
+}
+
+#[test]
+fn test_report_generator_creation() {
+    let generator = ReportGenerator::new();
+    assert_eq!(generator.config.title, "RipTide Extraction Report");
+    assert!(generator.config.include_charts);
+}
+
+#[test]
+fn test_custom_report_config() {
+    let config = ReportConfig {
+        title: "Custom Report Title".to_string(),
+        include_charts: false,
+        include_raw_data: true,
+        include_metadata: false,
+        chart_width: 1024,
+        chart_height: 768,
+        theme: ReportTheme::Dark,
+    };
+
+    let generator = ReportGenerator::with_config(config.clone());
+    assert_eq!(generator.config.title, "Custom Report Title");
+    assert!(!generator.config.include_charts);
+    assert!(generator.config.include_raw_data);
+    assert_eq!(generator.config.chart_width, 1024);
+    assert_eq!(generator.config.chart_height, 768);
+}
+
+#[tokio::test]
+async fn test_generate_html_report() {
+    let generator = ReportGenerator::new();
+    let result = generator
+        .generate_report("test-extraction-1", ReportFormat::Html)
+        .await;
+
+    assert!(result.is_ok());
+    let html = String::from_utf8(result.unwrap()).unwrap();
+
+    // Verify HTML structure
+    assert!(html.contains("<!DOCTYPE html>"));
+    assert!(html.contains("<html"));
+    assert!(html.contains("RipTide Extraction Report"));
+    assert!(html.contains("test-extraction-1"));
+}
+
+#[tokio::test]
+async fn test_generate_json_report() {
+    let generator = ReportGenerator::new();
+    let result = generator
+        .generate_report("test-extraction-2", ReportFormat::Json)
+        .await;
+
+    assert!(result.is_ok());
+    let json_str = String::from_utf8(result.unwrap()).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+
+    // Verify JSON structure
+    assert!(json.get("extraction_id").is_some());
+    assert!(json.get("total_results").is_some());
+    assert!(json.get("results").is_some());
+    assert_eq!(
+        json.get("extraction_id").unwrap().as_str().unwrap(),
+        "test-extraction-2"
+    );
+}
+
+#[tokio::test]
+async fn test_generate_csv_report() {
+    let generator = ReportGenerator::new();
+    let result = generator
+        .generate_report("test-extraction-3", ReportFormat::Csv)
+        .await;
+
+    assert!(result.is_ok());
+    let csv = String::from_utf8(result.unwrap()).unwrap();
+
+    // Verify CSV structure
+    assert!(csv.contains("ID,URL,Title,Word Count,Processing Time"));
+    let lines: Vec<&str> = csv.lines().collect();
+    assert!(lines.len() > 1); // Header + at least one data row
+}
+
+#[tokio::test]
+async fn test_report_with_charts() {
+    let config = ReportConfig {
+        include_charts: true,
+        ..Default::default()
+    };
+
+    let generator = ReportGenerator::with_config(config);
+    let result = generator
+        .generate_report("test-extraction-4", ReportFormat::Html)
+        .await;
+
+    assert!(result.is_ok());
+    let html = String::from_utf8(result.unwrap()).unwrap();
+
+    // Charts should be embedded as base64 images
+    assert!(html.contains("data:image/png;base64,"));
+}
+
+#[tokio::test]
+async fn test_report_without_charts() {
+    let config = ReportConfig {
+        include_charts: false,
+        ..Default::default()
+    };
+
+    let generator = ReportGenerator::with_config(config);
+    let result = generator
+        .generate_report("test-extraction-5", ReportFormat::Html)
+        .await;
+
+    assert!(result.is_ok());
+    let html = String::from_utf8(result.unwrap()).unwrap();
+
+    // Should not contain chart images
+    assert!(!html.contains("data:image/png;base64,"));
+}
+
+#[test]
+fn test_domain_stats_calculation() {
+    let generator = ReportGenerator::new();
+    let results = create_sample_results();
+
+    let domain_stats = generator.calculate_domain_stats(&results);
+
+    // Verify example.com stats
+    let example_stats = domain_stats.get("example.com");
+    assert!(example_stats.is_some());
+
+    let stats = example_stats.unwrap();
+    assert_eq!(stats.count, 2);
+    assert_eq!(stats.total_words, 470); // 150 + 320
+
+    // Verify news.example.com stats
+    let news_stats = domain_stats.get("news.example.com");
+    assert!(news_stats.is_some());
+    assert_eq!(news_stats.unwrap().count, 1);
+
+    // Verify blog.example.com stats
+    let blog_stats = domain_stats.get("blog.example.com");
+    assert!(blog_stats.is_some());
+    assert_eq!(blog_stats.unwrap().count, 1);
+    assert_eq!(blog_stats.unwrap().total_words, 1250);
+}
+
+#[test]
+fn test_timeline_generation() {
+    let generator = ReportGenerator::new();
+    let results = create_sample_results();
+
+    let timeline = generator.generate_timeline(&results);
+
+    assert!(!timeline.is_empty());
+    // Timeline entries should be sorted by timestamp
+    for i in 1..timeline.len() {
+        assert!(timeline[i - 1].timestamp <= timeline[i].timestamp);
+    }
+}
+
+#[test]
+fn test_word_cloud_generation() {
+    let generator = ReportGenerator::new();
+    let results = create_sample_results();
+
+    let word_cloud_data = generator.generate_word_cloud_data(&results);
+
+    assert!(!word_cloud_data.is_empty());
+    // Should be sorted by frequency (descending)
+    for i in 1..word_cloud_data.len() {
+        assert!(word_cloud_data[i - 1].frequency >= word_cloud_data[i].frequency);
+    }
+
+    // Should only contain words longer than 3 characters
+    for word_freq in &word_cloud_data {
+        assert!(word_freq.word.len() > 3);
+    }
+
+    // Should have percentage calculated
+    let total_percentage: f64 = word_cloud_data.iter().map(|w| w.percentage).sum();
+    assert!(total_percentage > 0.0);
+    assert!(total_percentage <= 100.0);
+}
+
+#[tokio::test]
+async fn test_prepare_report_data() {
+    let generator = ReportGenerator::new();
+    let results = create_sample_results();
+    let extraction_id = "test-data-prep";
+
+    let report_data = generator
+        .prepare_report_data(extraction_id, results.clone())
+        .await
+        .unwrap();
+
+    assert_eq!(report_data.extraction_id, extraction_id);
+    assert_eq!(report_data.total_results, results.len());
+    assert_eq!(
+        report_data.total_words,
+        results.iter().map(|r| r.word_count).sum::<usize>()
+    );
+    assert!(report_data.average_processing_time > 0.0);
+    assert!(!report_data.domain_stats.is_empty());
+    assert!(!report_data.timeline.is_empty());
+    assert!(!report_data.word_cloud_data.is_empty());
+}
+
+#[tokio::test]
+async fn test_chart_generation() {
+    let config = ReportConfig {
+        include_charts: true,
+        chart_width: 800,
+        chart_height: 400,
+        ..Default::default()
+    };
+
+    let generator = ReportGenerator::with_config(config);
+    let results = create_sample_results();
+    let domain_stats = generator.calculate_domain_stats(&results);
+    let timeline = generator.generate_timeline(&results);
+
+    let charts = generator
+        .generate_charts(&results, &domain_stats, &timeline)
+        .await
+        .unwrap();
+
+    // Verify all chart types are generated
+    assert!(charts.contains_key("processing_time"));
+    assert!(charts.contains_key("domain_distribution"));
+    assert!(charts.contains_key("timeline"));
+    assert!(charts.contains_key("word_count"));
+
+    // Verify charts are base64 encoded PNG images
+    for (name, chart_data) in &charts {
+        assert!(
+            chart_data.starts_with("data:image/png;base64,"),
+            "Chart {} should be base64 encoded PNG",
+            name
+        );
+    }
+}
+
+#[tokio::test]
+async fn test_all_themes() {
+    let themes = vec![
+        ReportTheme::Light,
+        ReportTheme::Dark,
+        ReportTheme::Corporate,
+        ReportTheme::Modern,
+    ];
+
+    for theme in themes {
+        let config = ReportConfig {
+            theme: theme.clone(),
+            include_charts: false, // Faster test
+            ..Default::default()
+        };
+
+        let generator = ReportGenerator::with_config(config);
+        let result = generator
+            .generate_report("test-theme", ReportFormat::Html)
+            .await;
+
+        assert!(
+            result.is_ok(),
+            "Theme {:?} should generate successfully",
+            theme
+        );
+
+        let html = String::from_utf8(result.unwrap()).unwrap();
+        assert!(html.contains("<!DOCTYPE html>"));
+    }
+}
+
+#[test]
+fn test_report_format_serialization() {
+    let formats = vec![
+        ReportFormat::Html,
+        ReportFormat::Json,
+        ReportFormat::Csv,
+        ReportFormat::Pdf,
+    ];
+
+    for format in formats {
+        let json = serde_json::to_string(&format).unwrap();
+        let deserialized: ReportFormat = serde_json::from_str(&json).unwrap();
+        // Format should be consistently serialized
+        assert_eq!(format!("{:?}", format), format!("{:?}", deserialized));
+    }
+}
+
+#[tokio::test]
+async fn test_large_dataset_report() {
+    let mut large_results = Vec::new();
+
+    // Generate 100 sample results
+    for i in 0..100 {
+        large_results.push(ExtractionResult {
+            id: format!("result-{}", i),
+            url: format!("https://example{}.com/page{}", i % 10, i),
+            title: Some(format!("Page Title {}", i)),
+            content: format!("Content for page {}", i),
+            metadata: HashMap::new(),
+            timestamp: chrono::Utc::now(),
+            extraction_time_ms: 100 + (i as u64 * 10),
+            word_count: 100 + (i * 50),
+            links: vec![format!("https://example.com/link{}", i)],
+            images: vec![],
+        });
+    }
+
+    let generator = ReportGenerator::new();
+    let report_data = generator
+        .prepare_report_data("large-dataset", large_results)
+        .await
+        .unwrap();
+
+    assert_eq!(report_data.total_results, 100);
+    assert!(report_data.total_words > 0);
+    assert!(!report_data.domain_stats.is_empty());
+
+    // Generate HTML report
+    let html_report = generator.generate_html_report(&report_data).await;
+    assert!(html_report.is_ok());
+
+    let html = String::from_utf8(html_report.unwrap()).unwrap();
+    assert!(html.len() > 10000); // Large report should be substantial
+}
+
+#[tokio::test]
+async fn test_report_with_empty_results() {
+    let generator = ReportGenerator::new();
+    let empty_results: Vec<ExtractionResult> = vec![];
+
+    let report_data = generator
+        .prepare_report_data("empty-test", empty_results)
+        .await
+        .unwrap();
+
+    assert_eq!(report_data.total_results, 0);
+    assert_eq!(report_data.total_words, 0);
+    assert_eq!(report_data.average_processing_time, 0.0);
+
+    // Should still generate valid HTML
+    let html_report = generator.generate_html_report(&report_data).await;
+    assert!(html_report.is_ok());
+}
+
+#[test]
+fn test_handlebars_helper_functions() {
+    // Test that Handlebars helpers are registered correctly
+    let generator = ReportGenerator::new();
+
+    // Helpers should be registered during construction
+    assert!(generator.handlebars.get_helper("format_duration").is_some());
+    assert!(generator.handlebars.get_helper("format_number").is_some());
+    assert!(generator
+        .handlebars
+        .get_helper("format_percentage")
+        .is_some());
+    assert!(generator.handlebars.get_helper("truncate").is_some());
+    assert!(generator
+        .handlebars
+        .get_helper("highlight_keywords")
+        .is_some());
+}
+
+#[tokio::test]
+async fn test_concurrent_report_generation() {
+    let generator = ReportGenerator::new();
+
+    // Generate multiple reports concurrently
+    let mut handles = vec![];
+
+    for i in 0..5 {
+        let gen = generator.clone();
+        let handle = tokio::spawn(async move {
+            gen.generate_report(&format!("concurrent-{}", i), ReportFormat::Json)
+                .await
+        });
+        handles.push(handle);
+    }
+
+    // All reports should complete successfully
+    for handle in handles {
+        let result = handle.await.unwrap();
+        assert!(result.is_ok());
+    }
+}

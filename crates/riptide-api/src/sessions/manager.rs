@@ -67,8 +67,6 @@ impl SessionManager {
     }
 
     /// Update session metadata
-    /// Reserved for future session management features
-    #[allow(dead_code)]
     pub async fn update_session(&self, session: Session) -> Result<(), SessionError> {
         self.storage.store_session(session).await
     }
@@ -266,8 +264,6 @@ impl SessionManager {
     }
 
     /// Import cookies from a Netscape format cookie file
-    /// Reserved for future cookie import/export features
-    #[allow(dead_code)]
     pub async fn import_cookies_from_file(
         &self,
         session_id: &str,
@@ -313,8 +309,6 @@ impl SessionManager {
     }
 
     /// Export cookies to a Netscape format cookie file
-    /// Reserved for future cookie import/export features
-    #[allow(dead_code)]
     pub async fn export_cookies_to_file(
         &self,
         session_id: &str,
@@ -376,8 +370,6 @@ impl SessionManager {
     }
 
     /// Parse Netscape format cookies
-    /// Reserved for future cookie import/export features
-    #[allow(dead_code)]
     fn parse_netscape_cookies(&self, content: &str) -> Result<Vec<(String, Cookie)>, SessionError> {
         let mut cookies = Vec::new();
 
@@ -428,8 +420,6 @@ impl SessionManager {
     }
 
     /// Format cookies as Netscape format
-    /// Reserved for future cookie import/export features
-    #[allow(dead_code)]
     fn format_netscape_cookies(&self, cookie_jar: &CookieJar) -> String {
         let mut lines = vec![
             "# Netscape HTTP Cookie File".to_string(),

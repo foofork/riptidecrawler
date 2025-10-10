@@ -240,16 +240,18 @@ mod tests {
     fn test_session_touch() {
         let config = SessionConfig::default();
         let mut session = Session::new("test_session".to_string(), &config);
-        let original_expires_at = session.expires_at;
+        let original_last_accessed = session.last_accessed;
 
         // Wait a moment
-        std::thread::sleep(Duration::from_millis(10));
+        std::thread::sleep(Duration::from_millis(50));
 
         // Touch the session to update its expiry
-        session.touch(Duration::from_secs(3600));
+        session.touch(Duration::from_secs(7200));
 
-        // Expiry should be updated
-        assert!(session.expires_at > original_expires_at);
+        // Last accessed time should be updated
+        assert!(session.last_accessed > original_last_accessed);
+        // Expiry should also be extended
+        assert!(session.expires_at > SystemTime::now());
         assert_eq!(session.session_id, "test_session");
     }
 

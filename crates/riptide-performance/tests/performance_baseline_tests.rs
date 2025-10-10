@@ -13,7 +13,6 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tokio::sync::Semaphore;
-use tokio::time::timeout;
 
 /// Performance metrics collector
 #[derive(Debug, Clone)]
@@ -222,7 +221,7 @@ impl WorkloadGenerator {
         let semaphore = Arc::new(Semaphore::new(self.concurrency));
         let mut handles = Vec::new();
         let start_time = Instant::now();
-        let mut request_times = Arc::new(Mutex::new(Vec::new()));
+        let request_times = Arc::new(Mutex::new(Vec::new()));
 
         let requests_per_second = self.request_rate;
         let interval = Duration::from_secs_f64(1.0 / requests_per_second);
@@ -234,8 +233,7 @@ impl WorkloadGenerator {
 
             let handle = tokio::spawn(async move {
                 // RAII guard: hold semaphore permit for the duration of the operation
-                let permit = sem.acquire().await.unwrap();
-                let start = Instant::now();
+                let _permit = sem.acquire().await.unwrap();
 
                 let result = match op().await {
                     Ok(latency) => {
@@ -246,8 +244,6 @@ impl WorkloadGenerator {
                     Err(e) => Err(e),
                 };
 
-                // Permit dropped here automatically
-                drop(permit);
                 result
             });
 

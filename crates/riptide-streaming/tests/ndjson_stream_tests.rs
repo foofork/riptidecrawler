@@ -185,6 +185,7 @@ impl NdjsonStreamingTestFramework {
         }
 
         let mut stream = response.bytes_stream();
+        #[allow(unused_variables)]
         let mut lines = Vec::new();
         let mut buffer = String::new();
         let mut first_line_time = None;

@@ -76,19 +76,15 @@ async fn test_ndjson_crawl_streaming() {
     // Process streaming response
     let mut stream = response.bytes_stream();
     let mut lines = Vec::new();
-    let mut ttfb_measured = false;
     let mut buffer = String::new();
 
     while let Some(chunk) = stream.next().await {
-        if !ttfb_measured {
-            let ttfb = start_time.elapsed();
-            assert!(
-                ttfb.as_millis() < 500,
-                "TTFB {} ms exceeds 500ms requirement",
-                ttfb.as_millis()
-            );
-            ttfb_measured = true;
-        }
+        let ttfb = start_time.elapsed();
+        assert!(
+            ttfb.as_millis() < 500,
+            "TTFB {} ms exceeds 500ms requirement",
+            ttfb.as_millis()
+        );
 
         let chunk = chunk.expect("Failed to read chunk");
         buffer.push_str(&String::from_utf8_lossy(&chunk));
@@ -247,19 +243,15 @@ async fn test_ndjson_deepsearch_streaming() {
     // Process streaming response
     let mut stream = response.bytes_stream();
     let mut lines = Vec::new();
-    let mut ttfb_measured = false;
     let mut buffer = String::new();
 
     while let Some(chunk) = stream.next().await {
-        if !ttfb_measured {
-            let ttfb = start_time.elapsed();
-            assert!(
-                ttfb.as_millis() < 500,
-                "TTFB {} ms exceeds 500ms requirement",
-                ttfb.as_millis()
-            );
-            ttfb_measured = true;
-        }
+        let ttfb = start_time.elapsed();
+        assert!(
+            ttfb.as_millis() < 500,
+            "TTFB {} ms exceeds 500ms requirement",
+            ttfb.as_millis()
+        );
 
         let chunk = chunk.expect("Failed to read chunk");
         buffer.push_str(&String::from_utf8_lossy(&chunk));
@@ -469,10 +461,10 @@ async fn test_streaming_large_batch_performance() {
     // Process stream and count results
     let mut stream = response.bytes_stream();
     let mut result_count = 0;
-    let mut first_result_time = None;
     let mut buffer = String::new();
 
     while let Some(chunk) = stream.next().await {
+        let first_result_time = start_time.elapsed();
         let chunk = chunk.expect("Failed to read chunk");
         buffer.push_str(&String::from_utf8_lossy(&chunk));
 
@@ -482,9 +474,6 @@ async fn test_streaming_large_batch_performance() {
 
             if !line.trim().is_empty() {
                 if let Ok(parsed) = serde_json::from_str::<Value>(&line) {
-                    if parsed.get("result").is_some() && first_result_time.is_none() {
-                        first_result_time = Some(start_time.elapsed());
-                    }
                     if parsed.get("result").is_some() {
                         result_count += 1;
                     }
@@ -496,14 +485,13 @@ async fn test_streaming_large_batch_performance() {
     // Verify performance characteristics
     assert_eq!(result_count, 10, "Expected 10 results");
 
-    if let Some(first_result_time) = first_result_time {
-        // First result should arrive quickly (streaming benefit)
-        assert!(
-            first_result_time.as_millis() < 2000,
-            "First result took {} ms, expected < 2000ms for streaming benefit",
-            first_result_time.as_millis()
-        );
-    }
+    // First result should arrive quickly (streaming benefit)
+    let first_result_duration = start_time.elapsed();
+    assert!(
+        first_result_duration.as_millis() < 2000,
+        "First result took {} ms, expected < 2000ms for streaming benefit",
+        first_result_duration.as_millis()
+    );
 
     let total_time = start_time.elapsed();
     println!(

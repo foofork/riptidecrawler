@@ -9,6 +9,7 @@ pub mod llm;
 pub mod monitoring;
 pub mod pdf;
 pub mod pipeline_phases;
+pub mod profiling;
 pub mod render;
 pub mod resources;
 pub mod search;

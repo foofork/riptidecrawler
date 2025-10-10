@@ -200,6 +200,7 @@ impl PerformanceMonitor {
 
     /// Reset all performance metrics (useful for testing)
     #[cfg(test)]
+    #[allow(dead_code)]
     pub async fn reset(&self) {
         self.render_times.lock().await.clear();
         self.timeout_count.store(0, Ordering::Relaxed);

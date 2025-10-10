@@ -6,6 +6,65 @@
 //! - Progress tracking and backpressure handling
 //! - CLI tools for riptide
 
+use anyhow::Result;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use uuid::Uuid;
+
+/// Result from an extraction operation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExtractionResult {
+    pub id: String,
+    pub url: String,
+    pub title: Option<String>,
+    pub content: String,
+    pub metadata: HashMap<String, serde_json::Value>,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+    pub extraction_time_ms: u64,
+    pub word_count: usize,
+    pub links: Vec<String>,
+    pub images: Vec<String>,
+}
+
+/// Error types for streaming operations
+#[derive(Debug, thiserror::Error)]
+pub enum StreamingError {
+    #[error("Stream not found: {0}")]
+    StreamNotFound(Uuid),
+
+    #[error("Stream already completed: {0}")]
+    StreamCompleted(Uuid),
+
+    #[error("Backpressure limit exceeded")]
+    BackpressureExceeded,
+
+    #[error("Report generation failed: {0}")]
+    ReportGenerationFailed(String),
+
+    #[error("Configuration error: {0}")]
+    ConfigError(String),
+
+    #[error("IO error: {0}")]
+    IoError(#[from] std::io::Error),
+
+    #[error("Serialization error: {0}")]
+    SerializationError(#[from] serde_json::Error),
+}
+
+impl From<tokio_util::codec::LinesCodecError> for StreamingError {
+    fn from(err: tokio_util::codec::LinesCodecError) -> Self {
+        match err {
+            tokio_util::codec::LinesCodecError::MaxLineLengthExceeded => {
+                StreamingError::ConfigError("Line length exceeded maximum".to_string())
+            }
+            tokio_util::codec::LinesCodecError::Io(io_err) => StreamingError::IoError(io_err),
+        }
+    }
+}
+
+pub type StreamingResult<T> = Result<T, StreamingError>;
+
+pub mod api_handlers;
 pub mod backpressure;
 pub mod config;
 pub mod ndjson;
@@ -13,22 +72,20 @@ pub mod openapi;
 pub mod progress;
 pub mod reports;
 
+pub use api_handlers::*; // ✅ ENABLED - API handlers for report endpoints
 pub use ndjson::*;
-// pub use reports::*;      // Keep disabled until ReportGenerator resolved
-// pub use backpressure::*; // BackpressureController not needed - tests can use backpressure::BackpressureController directly
+pub use reports::{
+    DomainStats, ReportConfig, ReportData, ReportFormat, ReportGenerator, ReportTheme,
+    TimelineEntry, WordFrequency,
+}; // ✅ ENABLED - ReportGenerator activated for Sprint 5A (selective export to avoid monitoring conflict)
+   // pub use backpressure::*; // BackpressureController not needed - tests can use backpressure::BackpressureController directly
 pub use config::*; // ✅ ENABLED - includes BackpressureConfig
 pub use progress::*; // ✅ ENABLED // ✅ ENABLED - for streaming tests
                      // pub use openapi::*;       // Verify before enabling
 
-use anyhow::Result;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use uuid::Uuid;
-
-// Note: ReportGenerator integration is deferred pending API stabilization
-// between riptide-core and riptide-streaming modules. The signature mismatch
-// and export issues will be resolved when both APIs are finalized.
-// For now, streaming uses its own reporting mechanisms.
+// Note: ReportGenerator has been activated for Sprint 5A with HTML templates,
+// chart generation, and visualization support. The module uses its own
+// ExtractionResult type defined in this crate for streaming reports.
 
 /// Main streaming coordinator for extraction results
 #[derive(Debug, Clone)]
@@ -64,7 +121,7 @@ impl StreamingCoordinator {
         Self {
             streams: HashMap::new(),
             progress_tracker: ProgressTracker::new(), // ✅ ENABLED
-                                                      // reporter: ReportGenerator::new(),        // Keep disabled
+                                                      // reporter: ReportGenerator::new(),        // Available but not used in coordinator
         }
     }
 
@@ -119,13 +176,13 @@ impl StreamingCoordinator {
         Ok(())
     }
 
-    // Note: Report generation is commented out pending resolution of
-    // ReportGenerator API compatibility between riptide-core and riptide-streaming.
-    // Will be re-enabled when module APIs are aligned.
+    // Note: Report generation is available via ReportGenerator.
+    // The coordinator can optionally integrate it in the future:
     /*
-    /// Generate report for a completed extraction (currently disabled)
+    /// Generate report for a completed extraction
     pub async fn generate_report(&self, extraction_id: &str, format: ReportFormat) -> Result<Vec<u8>> {
-        self.reporter.generate_report(extraction_id, format).await
+        let generator = ReportGenerator::new();
+        generator.generate_report(extraction_id, format).await
     }
     */
 }
@@ -134,21 +191,6 @@ impl Default for StreamingCoordinator {
     fn default() -> Self {
         Self::new()
     }
-}
-
-/// Result from an extraction operation
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExtractionResult {
-    pub id: String,
-    pub url: String,
-    pub title: Option<String>,
-    pub content: String,
-    pub metadata: HashMap<String, serde_json::Value>,
-    pub timestamp: chrono::DateTime<chrono::Utc>,
-    pub extraction_time_ms: u64,
-    pub word_count: usize,
-    pub links: Vec<String>,
-    pub images: Vec<String>,
 }
 
 /// Progress update for streaming
@@ -163,44 +205,6 @@ pub struct ProgressUpdate {
     pub rate_per_second: f64,
     pub estimated_completion: Option<chrono::DateTime<chrono::Utc>>,
 }
-
-/// Error types for streaming operations
-#[derive(Debug, thiserror::Error)]
-pub enum StreamingError {
-    #[error("Stream not found: {0}")]
-    StreamNotFound(Uuid),
-
-    #[error("Stream already completed: {0}")]
-    StreamCompleted(Uuid),
-
-    #[error("Backpressure limit exceeded")]
-    BackpressureExceeded,
-
-    #[error("Report generation failed: {0}")]
-    ReportGenerationFailed(String),
-
-    #[error("Configuration error: {0}")]
-    ConfigError(String),
-
-    #[error("IO error: {0}")]
-    IoError(#[from] std::io::Error),
-
-    #[error("Serialization error: {0}")]
-    SerializationError(#[from] serde_json::Error),
-}
-
-impl From<tokio_util::codec::LinesCodecError> for StreamingError {
-    fn from(err: tokio_util::codec::LinesCodecError) -> Self {
-        match err {
-            tokio_util::codec::LinesCodecError::MaxLineLengthExceeded => {
-                StreamingError::ConfigError("Line length exceeded maximum".to_string())
-            }
-            tokio_util::codec::LinesCodecError::Io(io_err) => StreamingError::IoError(io_err),
-        }
-    }
-}
-
-pub type StreamingResult<T> = Result<T, StreamingError>;
 
 #[cfg(test)]
 mod tests {

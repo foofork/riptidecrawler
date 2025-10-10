@@ -19,6 +19,14 @@ mod telemetry_config;
 mod tests;
 mod validation;
 
+// Configure jemalloc allocator for memory profiling (non-MSVC targets only)
+#[cfg(all(feature = "jemalloc", not(target_env = "msvc")))]
+use tikv_jemallocator::Jemalloc;
+
+#[cfg(all(feature = "jemalloc", not(target_env = "msvc")))]
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
+
 use crate::health::HealthChecker;
 use crate::metrics::{create_metrics_layer, RipTideMetrics};
 use crate::middleware::{auth_middleware, rate_limit_middleware, PayloadLimitLayer};
@@ -101,6 +109,24 @@ async fn main() -> anyhow::Result<()> {
     let metrics = Arc::new(RipTideMetrics::new()?);
     let (prometheus_layer, _metric_handle) = create_metrics_layer()?;
     tracing::info!("Prometheus metrics initialized");
+
+    // Log jemalloc initialization and memory stats if enabled
+    #[cfg(feature = "jemalloc")]
+    {
+        tracing::info!("jemalloc allocator enabled for memory profiling");
+
+        // Log initial memory stats using jemalloc-ctl if available
+        #[cfg(not(target_env = "msvc"))]
+        {
+            if let Ok(allocated) = tikv_jemalloc_ctl::stats::allocated::read() {
+                tracing::info!(
+                    memory_allocated_bytes = allocated,
+                    memory_allocated_mb = allocated as f64 / 1024.0 / 1024.0,
+                    "Initial jemalloc memory allocation"
+                );
+            }
+        }
+    }
 
     // Initialize health checker
     let health_checker = Arc::new(HealthChecker::new());
@@ -315,7 +341,32 @@ async fn main() -> anyhow::Result<()> {
             "/monitoring/alerts/active",
             get(handlers::monitoring::get_active_alerts),
         )
-        // Performance profiling endpoints
+        // Performance profiling endpoints (riptide-performance integration)
+        .route(
+            "/api/profiling/memory",
+            get(handlers::profiling::get_memory_profile),
+        )
+        .route(
+            "/api/profiling/cpu",
+            get(handlers::profiling::get_cpu_profile),
+        )
+        .route(
+            "/api/profiling/bottlenecks",
+            get(handlers::profiling::get_bottleneck_analysis),
+        )
+        .route(
+            "/api/profiling/allocations",
+            get(handlers::profiling::get_allocation_metrics),
+        )
+        .route(
+            "/api/profiling/leak-detection",
+            post(handlers::profiling::trigger_leak_detection),
+        )
+        .route(
+            "/api/profiling/snapshot",
+            post(handlers::profiling::trigger_heap_snapshot),
+        )
+        // Legacy monitoring profiling endpoints (deprecated, kept for compatibility)
         .route(
             "/monitoring/profiling/memory",
             get(handlers::monitoring::get_memory_metrics),

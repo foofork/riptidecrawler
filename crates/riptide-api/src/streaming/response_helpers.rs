@@ -2,6 +2,161 @@
 //!
 //! This module provides reusable response handling patterns for different
 //! streaming protocols (NDJSON, SSE, WebSocket) to reduce code duplication.
+//!
+//! # Response Format Specifications
+//!
+//! ## NDJSON (Newline Delimited JSON)
+//!
+//! Each line contains a complete JSON object followed by a newline (`\n`):
+//! ```text
+//! {"type":"metadata","request_id":"123","total_urls":5}
+//! {"type":"result","index":0,"data":{"url":"https://example.com","status":200}}
+//! {"type":"progress","completed":1,"total":5}
+//! {"type":"completion","summary":{"total":5,"successful":5}}
+//! ```
+//!
+//! Content-Type: `application/x-ndjson`
+//!
+//! ## SSE (Server-Sent Events)
+//!
+//! Events follow the SSE protocol with event type, data, and optional ID:
+//! ```text
+//! event: metadata
+//! data: {"request_id":"123","total_urls":5}
+//! id: 0
+//!
+//! event: result
+//! data: {"index":0,"url":"https://example.com","status":200}
+//! id: 1
+//!
+//! event: progress
+//! data: {"completed":1,"total":5}
+//!
+//! event: completion
+//! data: {"summary":{"total":5,"successful":5}}
+//!
+//! ```
+//!
+//! Content-Type: `text/event-stream`
+//!
+//! Keep-alive comments (sent every 30 seconds):
+//! ```text
+//! : keep-alive 2024-01-01T00:00:00Z
+//!
+//! ```
+//!
+//! ## JSON (Single Response)
+//!
+//! Single JSON object containing all results:
+//! ```json
+//! [
+//!   {"index":0,"url":"https://example.com","status":200},
+//!   {"index":1,"url":"https://example.org","status":200}
+//! ]
+//! ```
+//!
+//! Content-Type: `application/json`
+//!
+//! # Error Response Formats
+//!
+//! All error responses follow a consistent structure across protocols:
+//!
+//! ## NDJSON Error
+//! ```json
+//! {"error":"validation_error","message":"Invalid request","retryable":false}
+//! ```
+//!
+//! ## SSE Error
+//! ```text
+//! event: error
+//! data: {"error":"processing_error","message":"Failed to process","retryable":true}
+//!
+//! ```
+//!
+//! ## JSON Error
+//! ```json
+//! {"error":"internal_error","message":"Server error occurred","retryable":false}
+//! ```
+//!
+//! # Usage Examples
+//!
+//! ## Creating an NDJSON Streaming Response
+//!
+//! ```rust,no_run
+//! use riptide_api::streaming::response_helpers::{StreamingResponseBuilder, StreamingResponseType};
+//! use futures_util::stream;
+//! use serde_json::json;
+//!
+//! let data_stream = stream::iter(vec![
+//!     json!({"index": 0, "value": "first"}),
+//!     json!({"index": 1, "value": "second"}),
+//! ]);
+//!
+//! let response = StreamingResponseBuilder::new(StreamingResponseType::Ndjson)
+//!     .build(data_stream);
+//! ```
+//!
+//! ## Creating an SSE Response
+//!
+//! ```rust,no_run
+//! use riptide_api::streaming::response_helpers::{StreamingResponseBuilder, StreamingResponseType};
+//! use futures_util::stream;
+//! use serde_json::json;
+//!
+//! let events = stream::iter(vec![
+//!     json!({"event": "start", "timestamp": "2024-01-01T00:00:00Z"}),
+//!     json!({"event": "data", "value": 42}),
+//! ]);
+//!
+//! let response = StreamingResponseBuilder::new(StreamingResponseType::Sse)
+//!     .build(events);
+//! ```
+//!
+//! ## Creating Error Responses
+//!
+//! ```rust,no_run
+//! use riptide_api::streaming::response_helpers::StreamingErrorResponse;
+//! use serde_json::json;
+//!
+//! let error = json!({
+//!     "error": "validation_failed",
+//!     "message": "Invalid input parameters",
+//!     "retryable": false
+//! });
+//!
+//! // NDJSON error
+//! let ndjson_error = StreamingErrorResponse::ndjson(&error);
+//!
+//! // SSE error
+//! let sse_error = StreamingErrorResponse::sse(&error);
+//!
+//! // JSON error
+//! let json_error = StreamingErrorResponse::json(&error);
+//! ```
+//!
+//! ## Using Helper Messages
+//!
+//! ```rust,no_run
+//! use riptide_api::streaming::response_helpers::{KeepAliveHelper, ProgressHelper, CompletionHelper};
+//! use serde_json::json;
+//!
+//! // Keep-alive message
+//! let keepalive = KeepAliveHelper::ndjson_message();
+//!
+//! // Progress update
+//! let progress = ProgressHelper::ndjson_message(json!({
+//!     "current": 5,
+//!     "total": 10,
+//!     "percent": 50.0
+//! }));
+//!
+//! // Completion message
+//! let completion = CompletionHelper::ndjson_message(json!({
+//!     "total": 10,
+//!     "successful": 9,
+//!     "failed": 1
+//! }));
+//! ```
 
 use axum::{
     http::{HeaderMap, HeaderValue, StatusCode},
@@ -67,7 +222,6 @@ impl StreamingResponseType {
     }
 
     /// Check if this response type supports keep-alive
-    #[allow(dead_code)] // Reserved for streaming protocol detection
     pub fn supports_keep_alive(&self) -> bool {
         matches!(
             self,
@@ -75,8 +229,7 @@ impl StreamingResponseType {
         )
     }
 
-    /// Get recommended buffer size
-    #[allow(dead_code)] // Reserved for streaming buffer configuration
+    /// Get recommended buffer size for this response type
     pub fn buffer_size(&self) -> usize {
         match self {
             StreamingResponseType::Ndjson => 256,
@@ -107,14 +260,12 @@ impl StreamingResponseBuilder {
     }
 
     /// Set the HTTP status code
-    #[allow(dead_code)] // Reserved for streaming API builder pattern
     pub fn status(mut self, status: StatusCode) -> Self {
         self.status = status;
         self
     }
 
     /// Add custom headers
-    #[allow(dead_code)] // Reserved for streaming API builder pattern
     pub fn headers(mut self, headers: HeaderMap) -> Self {
         for (key, value) in headers {
             if let Some(key) = key {
@@ -137,7 +288,6 @@ impl StreamingResponseBuilder {
     }
 
     /// Enable compression (if supported by the client)
-    #[allow(dead_code)] // Reserved for streaming API builder pattern
     pub fn with_compression(mut self) -> Self {
         self.compression = true;
         self
@@ -266,7 +416,6 @@ impl StreamingErrorResponse {
     }
 
     /// Create an SSE error response
-    #[allow(dead_code)] // Reserved for streaming error handling
     pub fn sse(error: impl Serialize) -> Response {
         let error_sse = match serde_json::to_string(&error) {
             Ok(json) => format!("event: error\ndata: {}\n\n", json),
@@ -287,7 +436,6 @@ impl StreamingErrorResponse {
     }
 
     /// Create a JSON error response
-    #[allow(dead_code)] // Reserved for streaming error handling
     pub fn json(error: impl Serialize) -> Response {
         match serde_json::to_string(&error) {
             Ok(json) => {
@@ -315,7 +463,6 @@ impl StreamingErrorResponse {
     }
 
     /// Create error response based on response type
-    #[allow(dead_code)] // Reserved for streaming error handling
     pub fn for_type(response_type: StreamingResponseType, error: impl Serialize) -> Response {
         match response_type {
             StreamingResponseType::Ndjson => Self::ndjson(error),
@@ -326,12 +473,10 @@ impl StreamingErrorResponse {
 }
 
 /// Helper for creating keep-alive messages
-#[allow(dead_code)] // Reserved for streaming API toolkit
 pub struct KeepAliveHelper;
 
 impl KeepAliveHelper {
     /// Create NDJSON keep-alive message
-    #[allow(dead_code)] // Reserved for streaming API toolkit
     pub fn ndjson_message() -> String {
         format!(
             "{{\"type\":\"keep-alive\",\"timestamp\":\"{}\"}}\n",
@@ -340,13 +485,11 @@ impl KeepAliveHelper {
     }
 
     /// Create SSE keep-alive message
-    #[allow(dead_code)] // Reserved for streaming API toolkit
     pub fn sse_message() -> String {
         format!(": keep-alive {}\n\n", chrono::Utc::now().to_rfc3339())
     }
 
     /// Create keep-alive message for specific type
-    #[allow(dead_code)] // Reserved for streaming API toolkit
     pub fn for_type(response_type: StreamingResponseType) -> String {
         match response_type {
             StreamingResponseType::Ndjson => Self::ndjson_message(),
@@ -357,12 +500,10 @@ impl KeepAliveHelper {
 }
 
 /// Helper for creating completion messages
-#[allow(dead_code)] // Reserved for streaming API toolkit
 pub struct CompletionHelper;
 
 impl CompletionHelper {
     /// Create NDJSON completion message
-    #[allow(dead_code)] // Reserved for streaming API toolkit
     pub fn ndjson_message(summary: impl Serialize) -> String {
         match serde_json::to_string(&json!({
             "type": "completion",
@@ -375,7 +516,6 @@ impl CompletionHelper {
     }
 
     /// Create SSE completion message
-    #[allow(dead_code)] // Reserved for streaming API toolkit
     pub fn sse_message(summary: impl Serialize) -> String {
         match serde_json::to_string(&summary) {
             Ok(json) => format!("event: completion\ndata: {}\n\n", json),
@@ -384,7 +524,6 @@ impl CompletionHelper {
     }
 
     /// Create completion message for specific type
-    #[allow(dead_code)] // Reserved for streaming API toolkit
     pub fn for_type(response_type: StreamingResponseType, summary: impl Serialize) -> String {
         match response_type {
             StreamingResponseType::Ndjson => Self::ndjson_message(summary),
@@ -395,12 +534,10 @@ impl CompletionHelper {
 }
 
 /// Helper for creating progress messages
-#[allow(dead_code)] // Reserved for streaming API toolkit
 pub struct ProgressHelper;
 
 impl ProgressHelper {
     /// Create NDJSON progress message
-    #[allow(dead_code)] // Reserved for streaming API toolkit
     pub fn ndjson_message(progress: impl Serialize) -> String {
         match serde_json::to_string(&json!({
             "type": "progress",
@@ -413,7 +550,6 @@ impl ProgressHelper {
     }
 
     /// Create SSE progress message
-    #[allow(dead_code)] // Reserved for streaming API toolkit
     pub fn sse_message(progress: impl Serialize) -> String {
         match serde_json::to_string(&progress) {
             Ok(json) => format!("event: progress\ndata: {}\n\n", json),
@@ -422,7 +558,6 @@ impl ProgressHelper {
     }
 
     /// Create progress message for specific type
-    #[allow(dead_code)] // Reserved for streaming API toolkit
     pub fn for_type(response_type: StreamingResponseType, progress: impl Serialize) -> String {
         match response_type {
             StreamingResponseType::Ndjson => Self::ndjson_message(progress),
@@ -433,7 +568,6 @@ impl ProgressHelper {
 }
 
 /// Utility for creating streaming responses from channels
-#[allow(dead_code)] // Reserved for streaming API toolkit
 pub fn stream_from_receiver<T>(
     receiver: tokio::sync::mpsc::Receiver<T>,
     response_type: StreamingResponseType,
@@ -446,7 +580,6 @@ where
 }
 
 /// Utility for creating streaming responses with error handling
-#[allow(dead_code)] // Reserved for error-safe streaming utility
 pub fn safe_stream_response<S, T>(stream: S, response_type: StreamingResponseType) -> Response
 where
     S: Stream<Item = Result<T, Box<dyn std::error::Error + Send + Sync>>> + Send + 'static,
@@ -460,7 +593,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[allow(unused_imports)]
+    use axum::body::to_bytes;
     use serde_json::Value;
 
     #[test]
@@ -484,14 +617,61 @@ mod tests {
     }
 
     #[test]
+    fn test_buffer_sizes() {
+        assert_eq!(StreamingResponseType::Ndjson.buffer_size(), 256);
+        assert_eq!(StreamingResponseType::Sse.buffer_size(), 128);
+        assert_eq!(StreamingResponseType::Json.buffer_size(), 64);
+    }
+
+    #[test]
+    fn test_response_type_headers() {
+        let ndjson_headers = StreamingResponseType::Ndjson.headers();
+        assert_eq!(
+            ndjson_headers.get("content-type").unwrap(),
+            "application/x-ndjson"
+        );
+        assert_eq!(ndjson_headers.get("cache-control").unwrap(), "no-cache");
+        assert_eq!(ndjson_headers.get("connection").unwrap(), "keep-alive");
+
+        let sse_headers = StreamingResponseType::Sse.headers();
+        assert_eq!(
+            sse_headers.get("content-type").unwrap(),
+            "text/event-stream"
+        );
+        assert_eq!(sse_headers.get("connection").unwrap(), "keep-alive");
+
+        let json_headers = StreamingResponseType::Json.headers();
+        assert_eq!(
+            json_headers.get("content-type").unwrap(),
+            "application/json"
+        );
+        assert_eq!(json_headers.get("connection").unwrap(), "close");
+    }
+
+    #[test]
     fn test_keep_alive_helpers() {
         let ndjson_msg = KeepAliveHelper::ndjson_message();
         assert!(ndjson_msg.contains("keep-alive"));
         assert!(ndjson_msg.ends_with('\n'));
+        let parsed: Value = serde_json::from_str(ndjson_msg.trim()).unwrap();
+        assert_eq!(parsed["type"], "keep-alive");
+        assert!(parsed["timestamp"].is_string());
 
         let sse_msg = KeepAliveHelper::sse_message();
         assert!(sse_msg.starts_with(": keep-alive"));
         assert!(sse_msg.ends_with("\n\n"));
+    }
+
+    #[test]
+    fn test_keep_alive_for_type() {
+        let ndjson = KeepAliveHelper::for_type(StreamingResponseType::Ndjson);
+        assert!(ndjson.contains("keep-alive"));
+
+        let sse = KeepAliveHelper::for_type(StreamingResponseType::Sse);
+        assert!(sse.starts_with(":"));
+
+        let json = KeepAliveHelper::for_type(StreamingResponseType::Json);
+        assert!(json.is_empty());
     }
 
     #[test]
@@ -501,11 +681,28 @@ mod tests {
         let ndjson_msg = CompletionHelper::ndjson_message(&summary);
         assert!(ndjson_msg.contains("completion"));
         assert!(ndjson_msg.ends_with('\n'));
+        let parsed: Value = serde_json::from_str(ndjson_msg.trim()).unwrap();
+        assert_eq!(parsed["type"], "completion");
+        assert_eq!(parsed["summary"]["total"], 5);
 
         let sse_msg = CompletionHelper::sse_message(&summary);
         assert!(sse_msg.starts_with("event: completion"));
         assert!(sse_msg.contains("data:"));
         assert!(sse_msg.ends_with("\n\n"));
+    }
+
+    #[test]
+    fn test_completion_for_type() {
+        let summary = json!({ "items": 10 });
+
+        let ndjson = CompletionHelper::for_type(StreamingResponseType::Ndjson, &summary);
+        assert!(ndjson.contains("completion"));
+
+        let sse = CompletionHelper::for_type(StreamingResponseType::Sse, &summary);
+        assert!(sse.starts_with("event: completion"));
+
+        let json = CompletionHelper::for_type(StreamingResponseType::Json, &summary);
+        assert!(json.is_empty());
     }
 
     #[test]
@@ -515,10 +712,191 @@ mod tests {
         let ndjson_msg = ProgressHelper::ndjson_message(&progress);
         assert!(ndjson_msg.contains("progress"));
         assert!(ndjson_msg.ends_with('\n'));
+        let parsed: Value = serde_json::from_str(ndjson_msg.trim()).unwrap();
+        assert_eq!(parsed["type"], "progress");
+        assert_eq!(parsed["data"]["current"], 3);
 
         let sse_msg = ProgressHelper::sse_message(&progress);
         assert!(sse_msg.starts_with("event: progress"));
         assert!(sse_msg.contains("data:"));
         assert!(sse_msg.ends_with("\n\n"));
+    }
+
+    #[test]
+    fn test_progress_for_type() {
+        let progress = json!({ "percent": 50 });
+
+        let ndjson = ProgressHelper::for_type(StreamingResponseType::Ndjson, &progress);
+        assert!(ndjson.contains("progress"));
+
+        let sse = ProgressHelper::for_type(StreamingResponseType::Sse, &progress);
+        assert!(sse.starts_with("event: progress"));
+
+        let json = ProgressHelper::for_type(StreamingResponseType::Json, &progress);
+        assert!(json.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_streaming_error_response_ndjson() {
+        let error = json!({
+            "error": "test_error",
+            "message": "This is a test error"
+        });
+
+        let response = StreamingErrorResponse::ndjson(error);
+
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(
+            response.headers().get("content-type").unwrap(),
+            "application/x-ndjson"
+        );
+
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let body_str = String::from_utf8(body.to_vec()).unwrap();
+        assert!(body_str.ends_with('\n'));
+
+        let parsed: Value = serde_json::from_str(body_str.trim()).unwrap();
+        assert_eq!(parsed["error"], "test_error");
+    }
+
+    #[tokio::test]
+    async fn test_streaming_error_response_sse() {
+        let error = json!({
+            "error": "sse_error",
+            "message": "SSE error message"
+        });
+
+        let response = StreamingErrorResponse::sse(error);
+
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(
+            response.headers().get("content-type").unwrap(),
+            "text/event-stream"
+        );
+
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let body_str = String::from_utf8(body.to_vec()).unwrap();
+        assert!(body_str.starts_with("event: error"));
+        assert!(body_str.contains("data:"));
+        assert!(body_str.ends_with("\n\n"));
+    }
+
+    #[tokio::test]
+    async fn test_streaming_error_response_json() {
+        let error = json!({
+            "error": "json_error",
+            "details": "Error details"
+        });
+
+        let response = StreamingErrorResponse::json(error);
+
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(
+            response.headers().get("content-type").unwrap(),
+            "application/json"
+        );
+
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let body_str = String::from_utf8(body.to_vec()).unwrap();
+        let parsed: Value = serde_json::from_str(&body_str).unwrap();
+        assert_eq!(parsed["error"], "json_error");
+    }
+
+    #[tokio::test]
+    async fn test_streaming_error_response_for_type() {
+        let error = json!({"error": "generic_error"});
+
+        let ndjson_resp = StreamingErrorResponse::for_type(StreamingResponseType::Ndjson, &error);
+        assert_eq!(
+            ndjson_resp.headers().get("content-type").unwrap(),
+            "application/x-ndjson"
+        );
+
+        let sse_resp = StreamingErrorResponse::for_type(StreamingResponseType::Sse, &error);
+        assert_eq!(
+            sse_resp.headers().get("content-type").unwrap(),
+            "text/event-stream"
+        );
+
+        let json_resp = StreamingErrorResponse::for_type(StreamingResponseType::Json, &error);
+        assert_eq!(
+            json_resp.headers().get("content-type").unwrap(),
+            "application/json"
+        );
+    }
+
+    #[test]
+    fn test_streaming_response_builder() {
+        let builder = StreamingResponseBuilder::new(StreamingResponseType::Ndjson);
+        assert_eq!(builder.status, StatusCode::OK);
+        assert!(!builder.compression);
+    }
+
+    #[test]
+    fn test_streaming_response_builder_with_status() {
+        let builder = StreamingResponseBuilder::new(StreamingResponseType::Ndjson)
+            .status(StatusCode::ACCEPTED);
+        assert_eq!(builder.status, StatusCode::ACCEPTED);
+    }
+
+    #[test]
+    fn test_streaming_response_builder_with_compression() {
+        let builder = StreamingResponseBuilder::new(StreamingResponseType::Sse).with_compression();
+        assert!(builder.compression);
+    }
+
+    #[test]
+    fn test_streaming_response_builder_with_header() {
+        let builder = StreamingResponseBuilder::new(StreamingResponseType::Json)
+            .header("x-custom-header", "custom-value");
+
+        assert!(builder.headers.contains_key("x-custom-header"));
+    }
+
+    #[tokio::test]
+    async fn test_stream_from_receiver() {
+        let (tx, rx) = tokio::sync::mpsc::channel(10);
+
+        // Spawn task to send test data
+        tokio::spawn(async move {
+            tx.send(json!({"id": 1, "name": "test1"})).await.unwrap();
+            tx.send(json!({"id": 2, "name": "test2"})).await.unwrap();
+        });
+
+        let response = stream_from_receiver(rx, StreamingResponseType::Ndjson);
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers().get("content-type").unwrap(),
+            "application/x-ndjson"
+        );
+    }
+
+    #[test]
+    fn test_message_formatting_consistency() {
+        // Test that all message types have consistent structure
+        let test_data = json!({"test": "value", "count": 42});
+
+        // Test NDJSON formatting
+        let ndjson_progress = ProgressHelper::ndjson_message(&test_data);
+        assert!(ndjson_progress.contains("\"type\":\"progress\""));
+        assert!(ndjson_progress.contains("\"timestamp\":"));
+        assert!(ndjson_progress.ends_with('\n'));
+
+        let ndjson_completion = CompletionHelper::ndjson_message(&test_data);
+        assert!(ndjson_completion.contains("\"type\":\"completion\""));
+        assert!(ndjson_completion.contains("\"timestamp\":"));
+        assert!(ndjson_completion.ends_with('\n'));
+
+        // Test SSE formatting
+        let sse_progress = ProgressHelper::sse_message(&test_data);
+        assert!(sse_progress.starts_with("event: progress\n"));
+        assert!(sse_progress.contains("data:"));
+        assert!(sse_progress.ends_with("\n\n"));
+
+        let sse_completion = CompletionHelper::sse_message(&test_data);
+        assert!(sse_completion.starts_with("event: completion\n"));
+        assert!(sse_completion.contains("data:"));
+        assert!(sse_completion.ends_with("\n\n"));
     }
 }

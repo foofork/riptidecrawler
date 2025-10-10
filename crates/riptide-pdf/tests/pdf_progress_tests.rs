@@ -9,10 +9,7 @@ use std::time::Duration;
 #[tokio::test]
 #[cfg(feature = "pdf")]
 async fn test_pdf_progress_tracking() {
-    use riptide_core::pdf::{
-        integration::PdfPipelineIntegration,
-        types::{ProcessingStage, ProgressUpdate},
-    };
+    use riptide_pdf::{integration::PdfPipelineIntegration, types::ProgressUpdate};
 
     // Create PDF integration
     let integration = PdfPipelineIntegration::new();
@@ -58,7 +55,7 @@ async fn test_pdf_progress_tracking() {
     let has_started = updates
         .iter()
         .any(|u| matches!(u, ProgressUpdate::Started { .. }));
-    let has_progress = updates
+    let _has_progress = updates
         .iter()
         .any(|u| matches!(u, ProgressUpdate::Progress(_)));
     let has_completion = updates.iter().any(|u| {
@@ -137,7 +134,7 @@ async fn test_detailed_progress_callback() {
 #[tokio::test]
 #[cfg(feature = "pdf")]
 async fn test_pdf_metrics_collection() {
-    use riptide_core::pdf::integration::PdfPipelineIntegration;
+    use riptide_pdf::integration::PdfPipelineIntegration;
 
     let integration = PdfPipelineIntegration::new();
     let test_pdf = create_test_pdf();
@@ -169,7 +166,7 @@ async fn test_pdf_metrics_collection() {
 /// Test streaming response format compatibility
 #[test]
 fn test_progress_update_serialization() {
-    use riptide_core::pdf::types::{ProcessingProgress, ProcessingStage, ProgressUpdate};
+    use riptide_pdf::types::{ProcessingProgress, ProcessingStage, ProgressUpdate};
 
     // Test different progress update types
     let updates = vec![
@@ -288,7 +285,7 @@ startxref
 #[tokio::test]
 #[cfg(feature = "pdf")]
 async fn test_pdf_processing_error_handling() {
-    use riptide_core::pdf::{integration::PdfPipelineIntegration, types::ProgressUpdate};
+    use riptide_pdf::{integration::PdfPipelineIntegration, types::ProgressUpdate};
 
     let integration = PdfPipelineIntegration::new();
 
@@ -334,7 +331,7 @@ fn test_pdf_processing_disabled() {
     // When PDF feature is disabled, operations should fail gracefully
     #[cfg(not(feature = "pdf"))]
     {
-        use riptide_core::pdf::integration::PdfPipelineIntegration;
+        use riptide_pdf::integration::PdfPipelineIntegration;
 
         let integration = PdfPipelineIntegration::new();
         assert!(!integration.is_available());

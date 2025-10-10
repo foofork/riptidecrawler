@@ -5,9 +5,7 @@
 //! - No >200MB RSS spikes per worker
 //! - Stable memory under sustained load
 
-use riptide_core::pdf::{
-    create_pdf_processor, PdfConfig, PdfMetricsCollector, PdfPipelineIntegration,
-};
+use riptide_pdf::{PdfConfig, PdfPipelineIntegration};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::task::JoinSet;
@@ -70,7 +68,7 @@ impl MemoryStabilityTester {
             extract_text: true,
             extract_images: false, // Disable to focus on memory stability
             extract_metadata: true,
-            memory_settings: riptide_core::pdf::config::MemorySettings {
+            memory_settings: riptide_pdf::config::MemorySettings {
                 max_memory_spike_bytes: config.memory_spike_limit,
                 max_concurrent_operations: config.max_concurrent,
                 memory_check_interval: 3,
@@ -81,9 +79,8 @@ impl MemoryStabilityTester {
             ..Default::default()
         };
 
-        let integration = Arc::new(
-            riptide_core::pdf::integration::PdfPipelineIntegration::with_config(pdf_config),
-        );
+        let integration =
+            Arc::new(riptide_pdf::integration::PdfPipelineIntegration::with_config(pdf_config));
 
         Self {
             config,

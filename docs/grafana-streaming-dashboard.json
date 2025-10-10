@@ -1,0 +1,270 @@
+{
+  "dashboard": {
+    "title": "RipTide Streaming Metrics",
+    "tags": ["riptide", "streaming", "performance"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Active Streaming Connections",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "riptide_streaming_active_connections",
+            "legendFormat": "Active Connections",
+            "refId": "A"
+          }
+        ],
+        "alert": {
+          "name": "High Active Connections",
+          "conditions": [
+            {
+              "type": "query",
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "type": "avg"
+              },
+              "evaluator": {
+                "type": "gt",
+                "params": [100]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "id": 2,
+        "title": "Connection Growth Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(riptide_streaming_total_connections[5m])",
+            "legendFormat": "Connections/sec",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Message Throughput",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(riptide_streaming_messages_sent_total[5m])",
+            "legendFormat": "Messages Sent/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(riptide_streaming_messages_dropped_total[5m])",
+            "legendFormat": "Messages Dropped/sec",
+            "refId": "B"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Delivery Success Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "(rate(riptide_streaming_messages_sent_total[5m]) / (rate(riptide_streaming_messages_sent_total[5m]) + rate(riptide_streaming_messages_dropped_total[5m]))) * 100",
+            "legendFormat": "Success Rate %",
+            "refId": "A"
+          }
+        ],
+        "alert": {
+          "name": "Low Delivery Success Rate",
+          "conditions": [
+            {
+              "type": "query",
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "type": "avg"
+              },
+              "evaluator": {
+                "type": "lt",
+                "params": [90]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "id": 5,
+        "title": "Connection Duration Percentiles",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(riptide_streaming_connection_duration_seconds_bucket[5m]))",
+            "legendFormat": "P50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(riptide_streaming_connection_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(riptide_streaming_connection_duration_seconds_bucket[5m]))",
+            "legendFormat": "P99",
+            "refId": "C"
+          }
+        ],
+        "alert": {
+          "name": "High Connection Duration P99",
+          "conditions": [
+            {
+              "type": "query",
+              "query": {
+                "params": ["C", "5m", "now"]
+              },
+              "reducer": {
+                "type": "avg"
+              },
+              "evaluator": {
+                "type": "gt",
+                "params": [60]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "id": 6,
+        "title": "Streaming Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "riptide_streaming_error_rate * 100",
+            "legendFormat": "Error Rate %",
+            "refId": "A"
+          }
+        ],
+        "alert": {
+          "name": "High Streaming Error Rate",
+          "conditions": [
+            {
+              "type": "query",
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "type": "avg"
+              },
+              "evaluator": {
+                "type": "gt",
+                "params": [5]
+              }
+            }
+          ],
+          "message": "Streaming error rate exceeded 5%"
+        }
+      },
+      {
+        "id": 7,
+        "title": "Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "riptide_streaming_memory_usage_bytes / (1024 * 1024)",
+            "legendFormat": "Memory Usage (MB)",
+            "refId": "A"
+          }
+        ],
+        "alert": {
+          "name": "High Streaming Memory Usage",
+          "conditions": [
+            {
+              "type": "query",
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "type": "avg"
+              },
+              "evaluator": {
+                "type": "gt",
+                "params": [500]
+              }
+            }
+          ],
+          "message": "Streaming memory usage exceeded 500MB"
+        }
+      },
+      {
+        "id": 8,
+        "title": "Backpressure Events",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(riptide_streaming_messages_dropped_total[5m]) * 60",
+            "legendFormat": "Drops/min",
+            "refId": "A"
+          }
+        ],
+        "alert": {
+          "name": "High Backpressure",
+          "conditions": [
+            {
+              "type": "query",
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "type": "avg"
+              },
+              "evaluator": {
+                "type": "gt",
+                "params": [10]
+              }
+            }
+          ],
+          "message": "High backpressure detected: >10 drops/min"
+        }
+      },
+      {
+        "id": 9,
+        "title": "Stream Health Overview",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "riptide_streaming_active_connections",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          },
+          {
+            "expr": "riptide_streaming_error_rate",
+            "format": "table",
+            "instant": true,
+            "refId": "B"
+          },
+          {
+            "expr": "(rate(riptide_streaming_messages_sent_total[5m]) / (rate(riptide_streaming_messages_sent_total[5m]) + rate(riptide_streaming_messages_dropped_total[5m]))) * 100",
+            "format": "table",
+            "instant": true,
+            "refId": "C"
+          }
+        ]
+      }
+    ],
+    "annotations": {
+      "list": [
+        {
+          "name": "Stream Failures",
+          "datasource": "Prometheus",
+          "expr": "changes(riptide_streaming_error_rate[5m]) > 0"
+        }
+      ]
+    },
+    "refresh": "10s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    }
+  }
+}

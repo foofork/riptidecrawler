@@ -6,7 +6,7 @@
 use super::buffer::{BackpressureHandler, BufferManager};
 use super::config::StreamConfig;
 use super::error::{StreamingError, StreamingResult};
-use crate::errors::ApiError;
+use super::response_helpers::StreamingErrorResponse;
 use crate::models::*;
 use crate::pipeline::PipelineOrchestrator;
 use crate::state::AppState;
@@ -37,7 +37,14 @@ pub async fn crawl_sse(State(app): State<AppState>, Json(body): Json<CrawlBody>)
 
     // Validate the request early to fail fast
     if let Err(e) = validate_crawl_request(&body) {
-        return create_sse_error_response(e).into_response();
+        let error_json = serde_json::json!({
+            "error": {
+                "type": "validation_error",
+                "message": e.to_string(),
+                "retryable": false
+            }
+        });
+        return StreamingErrorResponse::sse(error_json).into_response();
     }
 
     // Create SSE handler
@@ -45,7 +52,16 @@ pub async fn crawl_sse(State(app): State<AppState>, Json(body): Json<CrawlBody>)
 
     match sse_handler.handle_crawl_stream(body, start_time).await {
         Ok(response) => response.into_response(),
-        Err(e) => create_sse_error_response(ApiError::from(e)).into_response(),
+        Err(e) => {
+            let error_json = serde_json::json!({
+                "error": {
+                    "type": "streaming_error",
+                    "message": e.to_string(),
+                    "retryable": true
+                }
+            });
+            StreamingErrorResponse::sse(error_json).into_response()
+        }
     }
 }
 
@@ -376,28 +392,6 @@ async fn send_sse_event<T: Serialize>(
     backpressure_handler.record_send_time(send_duration).await?;
 
     Ok(())
-}
-
-/// Create an SSE error response
-fn create_sse_error_response(error: ApiError) -> impl IntoResponse {
-    let error_data = serde_json::json!({
-        "error": {
-            "type": "validation_error",
-            "message": error.to_string(),
-            "retryable": false
-        }
-    });
-
-    let error_event = Event::default().event("error").data(error_data.to_string());
-
-    let (tx, rx) = mpsc::channel::<Result<Event, Infallible>>(1);
-
-    // Send error event and close
-    tokio::spawn(async move {
-        let _ = tx.send(Ok(error_event)).await;
-    });
-
-    Sse::new(ReceiverStream::new(rx)).into_response()
 }
 
 /// Calculate processing throughput

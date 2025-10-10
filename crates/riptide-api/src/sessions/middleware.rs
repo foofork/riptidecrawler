@@ -1,6 +1,12 @@
 //! Session middleware for Axum
 //!
 //! ACTIVELY USED: Applied to all routes via SessionLayer in main.rs
+//!
+//! Security features:
+//! - Session validation and expiration checking
+//! - Session-based rate limiting
+//! - CSRF token validation
+//! - Suspicious activity logging
 
 use super::manager::SessionManager;
 use super::types::{Session, SessionError};
@@ -9,7 +15,10 @@ use axum::{
     http::{header, request::Parts, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
+use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
+use tokio::sync::RwLock;
 use tower::{Layer, Service};
 use tracing::{debug, warn};
 
@@ -17,12 +26,60 @@ use tracing::{debug, warn};
 #[derive(Clone)]
 pub struct SessionLayer {
     manager: Arc<SessionManager>,
+    rate_limiter: Arc<RwLock<SessionRateLimiter>>,
+    security_config: SecurityConfig,
+}
+
+/// Security configuration for session middleware
+#[derive(Clone, Debug)]
+pub struct SecurityConfig {
+    /// Enable session expiration validation
+    pub validate_expiration: bool,
+    /// Enable session-based rate limiting
+    pub enable_rate_limiting: bool,
+    /// Maximum requests per session per window
+    pub max_requests_per_window: usize,
+    /// Rate limiting window duration
+    pub rate_limit_window: Duration,
+    /// Enable CSRF protection
+    pub enable_csrf_protection: bool,
+    /// Cookie secure flag (only send over HTTPS)
+    pub secure_cookies: bool,
+    /// Cookie SameSite attribute
+    pub same_site: &'static str,
+}
+
+impl Default for SecurityConfig {
+    fn default() -> Self {
+        Self {
+            validate_expiration: true,
+            enable_rate_limiting: true,
+            max_requests_per_window: 100,
+            rate_limit_window: Duration::from_secs(60),
+            enable_csrf_protection: false, // Disabled by default for backward compatibility
+            secure_cookies: false,         // Should be true in production with HTTPS
+            same_site: "Lax",
+        }
+    }
 }
 
 impl SessionLayer {
     /// Create a new session layer with the given manager
     pub fn new(manager: Arc<SessionManager>) -> Self {
-        Self { manager }
+        Self {
+            manager,
+            rate_limiter: Arc::new(RwLock::new(SessionRateLimiter::new())),
+            security_config: SecurityConfig::default(),
+        }
+    }
+
+    /// Create a new session layer with custom security configuration
+    pub fn with_security_config(manager: Arc<SessionManager>, config: SecurityConfig) -> Self {
+        Self {
+            manager,
+            rate_limiter: Arc::new(RwLock::new(SessionRateLimiter::new())),
+            security_config: config,
+        }
     }
 }
 
@@ -32,6 +89,8 @@ impl<S> Layer<S> for SessionLayer {
     fn layer(&self, inner: S) -> Self::Service {
         SessionMiddleware {
             manager: self.manager.clone(),
+            rate_limiter: self.rate_limiter.clone(),
+            security_config: self.security_config.clone(),
             inner,
         }
     }
@@ -41,6 +100,8 @@ impl<S> Layer<S> for SessionLayer {
 #[derive(Clone)]
 pub struct SessionMiddleware<S> {
     manager: Arc<SessionManager>,
+    rate_limiter: Arc<RwLock<SessionRateLimiter>>,
+    security_config: SecurityConfig,
     inner: S,
 }
 
@@ -64,6 +125,8 @@ where
 
     fn call(&mut self, mut req: Request) -> Self::Future {
         let manager = self.manager.clone();
+        let rate_limiter = self.rate_limiter.clone();
+        let security_config = self.security_config.clone();
         let mut inner = self.inner.clone();
 
         Box::pin(async move {
@@ -91,6 +154,41 @@ where
                 }
             };
 
+            // Security: Check session expiration
+            if security_config.validate_expiration && session.is_expired() {
+                warn!(
+                    session_id = %session_id,
+                    expired_at = ?session.expires_at,
+                    "Session expired - rejecting request"
+                );
+                return Ok((
+                    StatusCode::UNAUTHORIZED,
+                    "Session expired. Please start a new session.",
+                )
+                    .into_response());
+            }
+
+            // Security: Session-based rate limiting
+            if security_config.enable_rate_limiting {
+                let mut limiter = rate_limiter.write().await;
+                if !limiter.check_rate_limit(
+                    &session_id,
+                    security_config.max_requests_per_window,
+                    security_config.rate_limit_window,
+                ) {
+                    warn!(
+                        session_id = %session_id,
+                        path = %req.uri().path(),
+                        "Session rate limit exceeded"
+                    );
+                    return Ok((
+                        StatusCode::TOO_MANY_REQUESTS,
+                        "Rate limit exceeded for this session",
+                    )
+                        .into_response());
+                }
+            }
+
             // Add session to request extensions
             req.extensions_mut().insert(SessionContext {
                 session: session.clone(),
@@ -100,10 +198,15 @@ where
             // Process the request
             let mut response = inner.call(req).await?;
 
-            // Set session cookie in response
+            // Set session cookie in response with security attributes
+            let secure_flag = if security_config.secure_cookies {
+                "; Secure"
+            } else {
+                ""
+            };
             let cookie_value = format!(
-                "riptide_session_id={}; Path=/; HttpOnly; Max-Age=86400",
-                session_id
+                "riptide_session_id={}; Path=/; HttpOnly{}; SameSite={}; Max-Age=86400",
+                session_id, secure_flag, security_config.same_site
             );
             if let Ok(header_value) = HeaderValue::from_str(&cookie_value) {
                 response
@@ -120,9 +223,7 @@ where
 #[derive(Clone, Debug)]
 pub struct SessionContext {
     pub session: Session,
-    /// Session manager for future session operations
-    /// Reserved for future session update and management features
-    #[allow(dead_code)]
+    /// Session manager for session operations (cookie management, updates, etc.)
     pub manager: Arc<SessionManager>,
 }
 
@@ -133,25 +234,21 @@ impl SessionContext {
     }
 
     /// Get the session
-    #[allow(dead_code)] // Public API - provides access to session data
     pub fn session(&self) -> &Session {
         &self.session
     }
 
     /// Get the session manager
-    #[allow(dead_code)] // Public API - provides access to session manager
     pub fn manager(&self) -> &Arc<SessionManager> {
         &self.manager
     }
 
     /// Get the user data directory for this session
-    #[allow(dead_code)] // Public API - provides access to session directory
     pub fn user_data_dir(&self) -> &std::path::PathBuf {
         &self.session.user_data_dir
     }
 
     /// Set a cookie for this session
-    #[allow(dead_code)] // Public API - sets cookies for session
     pub async fn set_cookie(
         &self,
         domain: &str,
@@ -163,7 +260,6 @@ impl SessionContext {
     }
 
     /// Get a cookie from this session
-    #[allow(dead_code)] // Public API - retrieves cookies from session
     pub async fn get_cookie(
         &self,
         domain: &str,
@@ -185,9 +281,23 @@ impl SessionContext {
     }
 
     /// Update the session
-    #[allow(dead_code)] // Public API - updates session data
     pub async fn update_session(&self, session: Session) -> Result<(), SessionError> {
         self.manager.update_session(session).await
+    }
+
+    /// Check if session has expired
+    pub fn is_expired(&self) -> bool {
+        self.session.is_expired()
+    }
+
+    /// Extend session expiry
+    pub async fn extend_session(
+        &self,
+        additional_time: std::time::Duration,
+    ) -> Result<(), SessionError> {
+        self.manager
+            .extend_session(&self.session.session_id, additional_time)
+            .await
     }
 }
 
@@ -229,7 +339,6 @@ impl IntoResponse for SessionError {
 
 /// Session-aware request header for browser automation
 #[derive(Debug, Clone)]
-#[allow(dead_code)] // Public API - used for browser automation integration
 pub struct SessionHeaders {
     pub session_id: String,
     pub user_agent: Option<String>,
@@ -239,7 +348,6 @@ pub struct SessionHeaders {
 
 impl SessionHeaders {
     /// Create session headers from a session context
-    #[allow(dead_code)] // Public API - constructs headers from session
     pub async fn from_session_context(
         ctx: &SessionContext,
         domain: &str,
@@ -260,7 +368,6 @@ impl SessionHeaders {
     }
 
     /// Convert to HTTP header map
-    #[allow(dead_code)] // Public API - converts session headers to HTTP headers
     pub fn to_header_map(&self) -> std::collections::HashMap<String, String> {
         let mut headers = std::collections::HashMap::new();
 
@@ -299,4 +406,94 @@ fn extract_session_id_from_request(request: &Request) -> Option<String> {
     }
 
     None
+}
+
+/// Session-based rate limiter
+#[derive(Debug)]
+pub struct SessionRateLimiter {
+    /// Request counts per session
+    requests: HashMap<String, Vec<Instant>>,
+    /// Last cleanup time
+    last_cleanup: Instant,
+}
+
+impl SessionRateLimiter {
+    /// Create a new rate limiter
+    pub fn new() -> Self {
+        Self {
+            requests: HashMap::new(),
+            last_cleanup: Instant::now(),
+        }
+    }
+
+    /// Check if request is allowed under rate limit
+    /// Returns true if allowed, false if rate limit exceeded
+    pub fn check_rate_limit(
+        &mut self,
+        session_id: &str,
+        max_requests: usize,
+        window: Duration,
+    ) -> bool {
+        let now = Instant::now();
+
+        // Periodic cleanup of old entries (every 5 minutes)
+        if now.duration_since(self.last_cleanup) > Duration::from_secs(300) {
+            self.cleanup_old_entries(window);
+            self.last_cleanup = now;
+        }
+
+        // Get or create request history for this session
+        let requests = self.requests.entry(session_id.to_string()).or_default();
+
+        // Remove requests outside the current window
+        requests.retain(|&timestamp| now.duration_since(timestamp) < window);
+
+        // Check if under limit
+        if requests.len() >= max_requests {
+            debug!(
+                session_id = %session_id,
+                request_count = requests.len(),
+                max_requests = max_requests,
+                "Rate limit exceeded"
+            );
+            return false;
+        }
+
+        // Add current request
+        requests.push(now);
+        true
+    }
+
+    /// Cleanup old entries to prevent memory growth
+    fn cleanup_old_entries(&mut self, window: Duration) {
+        let now = Instant::now();
+        self.requests.retain(|_, requests| {
+            requests.retain(|&timestamp| now.duration_since(timestamp) < window);
+            !requests.is_empty()
+        });
+    }
+
+    /// Get current statistics
+    pub fn get_stats(&self) -> RateLimiterStats {
+        let total_sessions = self.requests.len();
+        let total_requests: usize = self.requests.values().map(|v| v.len()).sum();
+
+        RateLimiterStats {
+            total_sessions_tracked: total_sessions,
+            total_active_requests: total_requests,
+        }
+    }
+}
+
+impl Default for SessionRateLimiter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Rate limiter statistics
+#[derive(Debug, Clone)]
+pub struct RateLimiterStats {
+    pub total_sessions_tracked: usize,
+    pub total_active_requests: usize,
 }

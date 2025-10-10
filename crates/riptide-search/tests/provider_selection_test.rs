@@ -3,7 +3,7 @@
 //! This module tests provider selection logic with various configurations,
 //! including edge cases, error handling, and environment-based configuration.
 
-use riptide_core::search::{
+use riptide_search::{
     create_search_provider, create_search_provider_from_env, AdvancedSearchConfig,
     CircuitBreakerConfigOptions, SearchBackend, SearchConfig, SearchProvider,
     SearchProviderFactory,
@@ -434,8 +434,8 @@ mod provider_health_check_tests {
 #[cfg(test)]
 mod comprehensive_circuit_breaker_tests {
     use super::*;
-    use riptide_core::search::circuit_breaker::{CircuitBreakerConfig, CircuitBreakerWrapper};
-    use riptide_core::search::none_provider::NoneProvider;
+    use riptide_search::NoneProvider;
+    use riptide_search::{CircuitBreakerConfig, CircuitBreakerWrapper};
     use std::time::Duration;
 
     /// Test circuit breaker state transitions
@@ -553,7 +553,7 @@ mod comprehensive_circuit_breaker_tests {
 #[cfg(test)]
 mod advanced_factory_pattern_tests {
     use super::*;
-    use riptide_core::search::SearchProviderFactory;
+    use riptide_search::SearchProviderFactory;
 
     /// Test factory pattern with comprehensive configurations
     #[tokio::test]

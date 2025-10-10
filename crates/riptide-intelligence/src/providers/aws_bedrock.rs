@@ -16,9 +16,7 @@ use crate::{
 /// AWS Bedrock provider implementation (simplified/mock)
 pub struct BedrockProvider {
     region: String,
-    #[allow(dead_code)]
     access_key: Option<String>,
-    #[allow(dead_code)]
     secret_key: Option<String>,
     cost_calculator: CostCalculator,
 }
@@ -30,6 +28,13 @@ impl BedrockProvider {
         access_key: Option<String>,
         secret_key: Option<String>,
     ) -> Result<Self> {
+        // Validate region is not empty
+        if region.is_empty() {
+            return Err(IntelligenceError::Configuration(
+                "AWS region cannot be empty".to_string(),
+            ));
+        }
+
         // Initialize cost calculator with Bedrock pricing
         let mut cost_calculator = CostCalculator::new()
             .with_default_model("anthropic.claude-3-sonnet-20240229-v1:0".to_string());
@@ -71,6 +76,17 @@ impl BedrockProvider {
             secret_key,
             cost_calculator,
         })
+    }
+
+    /// Get AWS credentials for authentication
+    /// Returns (access_key, secret_key) tuple
+    pub fn credentials(&self) -> (Option<&String>, Option<&String>) {
+        (self.access_key.as_ref(), self.secret_key.as_ref())
+    }
+
+    /// Check if credentials are configured
+    pub fn has_credentials(&self) -> bool {
+        self.access_key.is_some() && self.secret_key.is_some()
     }
 
     /// Convert internal message format to Bedrock format
@@ -238,6 +254,7 @@ impl BedrockProvider {
     }
 
     /// Parse response based on model type
+    /// Used when actual AWS SDK integration is enabled
     #[allow(dead_code)]
     fn parse_bedrock_response(&self, model: &str, response_body: &str) -> Result<(String, Usage)> {
         if model.starts_with("anthropic.claude") {
@@ -254,7 +271,6 @@ impl BedrockProvider {
         }
     }
 
-    #[allow(dead_code)]
     fn parse_claude_response(&self, response_body: &str) -> Result<(String, Usage)> {
         #[derive(Deserialize)]
         struct ClaudeResponse {
@@ -290,7 +306,6 @@ impl BedrockProvider {
         Ok((response.completion, usage))
     }
 
-    #[allow(dead_code)]
     fn parse_titan_response(&self, response_body: &str) -> Result<(String, Usage)> {
         #[derive(Deserialize)]
         struct TitanResponse {
@@ -329,7 +344,6 @@ impl BedrockProvider {
         Ok((result.output_text, usage))
     }
 
-    #[allow(dead_code)]
     fn parse_llama_response(&self, response_body: &str) -> Result<(String, Usage)> {
         #[derive(Deserialize)]
         struct LlamaResponse {
@@ -547,5 +561,63 @@ mod tests {
         let cost = provider.estimate_cost(1000);
         assert!(cost.total_cost > 0.0);
         assert_eq!(cost.currency, "USD");
+    }
+
+    #[test]
+    fn test_credentials() {
+        let provider = BedrockProvider::new(
+            "us-east-1".to_string(),
+            Some("access".to_string()),
+            Some("secret".to_string()),
+        )
+        .unwrap();
+
+        assert!(provider.has_credentials());
+        let (access, secret) = provider.credentials();
+        assert_eq!(access.unwrap(), "access");
+        assert_eq!(secret.unwrap(), "secret");
+
+        // Test without credentials
+        let provider_no_creds = BedrockProvider::new("us-east-1".to_string(), None, None).unwrap();
+        assert!(!provider_no_creds.has_credentials());
+    }
+
+    #[test]
+    fn test_parse_responses() {
+        let provider = BedrockProvider::new("us-east-1".to_string(), None, None).unwrap();
+
+        // Test Claude response parsing
+        let claude_response =
+            r#"{"completion": "Hello, world!", "usage": {"input_tokens": 5, "output_tokens": 3}}"#;
+        let (content, usage) = provider.parse_claude_response(claude_response).unwrap();
+        assert_eq!(content, "Hello, world!");
+        assert_eq!(usage.prompt_tokens, 5);
+        assert_eq!(usage.completion_tokens, 3);
+
+        // Test Titan response parsing
+        let titan_response = r#"{"results": [{"outputText": "Response text", "tokenCount": 10}], "inputTextTokenCount": 20}"#;
+        let (content, usage) = provider.parse_titan_response(titan_response).unwrap();
+        assert_eq!(content, "Response text");
+        assert_eq!(usage.prompt_tokens, 20);
+        assert_eq!(usage.completion_tokens, 10);
+
+        // Test Llama response parsing
+        let llama_response = r#"{"generation": "Generated text", "prompt_token_count": 15, "generation_token_count": 25}"#;
+        let (content, usage) = provider.parse_llama_response(llama_response).unwrap();
+        assert_eq!(content, "Generated text");
+        assert_eq!(usage.prompt_tokens, 15);
+        assert_eq!(usage.completion_tokens, 25);
+
+        // Test parse_bedrock_response routing
+        let (content, _) = provider
+            .parse_bedrock_response("anthropic.claude-3-sonnet-20240229-v1:0", claude_response)
+            .unwrap();
+        assert_eq!(content, "Hello, world!");
+    }
+
+    #[test]
+    fn test_empty_region_validation() {
+        let result = BedrockProvider::new("".to_string(), None, None);
+        assert!(result.is_err());
     }
 }

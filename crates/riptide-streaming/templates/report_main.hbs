@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="RipTide Extraction Report - Detailed analysis of web scraping results">
+    <title>{{title}}</title>
+    <style>
+        {{{theme_css}}}
+
+        /* Additional responsive styles */
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr !important;
+            }
+
+            header h1 {
+                font-size: 1.8em !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr !important;
+            }
+
+            section {
+                padding: 20px !important;
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+            }
+
+            header {
+                background: #667eea !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .no-print {
+                display: none;
+            }
+
+            section {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>{{title}}</h1>
+            <div class="generation-info">
+                Generated on {{generation_time}} for extraction: <code>{{extraction_id}}</code>
+            </div>
+        </header>
+
+        <!-- Summary Section -->
+        <section class="summary">
+            <h2>📊 Summary</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>{{format_number total_results}}</h3>
+                    <p>Total Results</p>
+                </div>
+                <div class="stat-card">
+                    <h3>{{format_number total_words}}</h3>
+                    <p>Total Words</p>
+                </div>
+                <div class="stat-card">
+                    <h3>{{format_duration total_processing_time}}</h3>
+                    <p>Total Processing Time</p>
+                </div>
+                <div class="stat-card">
+                    <h3>{{format_percentage success_rate}}</h3>
+                    <p>Success Rate</p>
+                </div>
+            </div>
+
+            <div class="stats-detail">
+                <p><strong>Average Processing Time:</strong> {{format_duration average_processing_time}}</p>
+                <p><strong>Total Pages Processed:</strong> {{total_pages}}</p>
+                <p><strong>Average Words per Page:</strong> {{#if total_results}}{{divide total_words total_results}}{{else}}0{{/if}}</p>
+            </div>
+        </section>
+
+        <!-- Charts Section -->
+        {{#if config.include_charts}}
+        <section class="charts">
+            <h2>📈 Analytics</h2>
+            <div class="charts-grid">
+                {{#if charts.processing_time}}
+                <div class="chart">
+                    <h3>Processing Time Distribution</h3>
+                    <img src="{{charts.processing_time}}" alt="Processing Time Chart" loading="lazy" />
+                </div>
+                {{/if}}
+
+                {{#if charts.domain_distribution}}
+                <div class="chart">
+                    <h3>Domain Distribution</h3>
+                    <img src="{{charts.domain_distribution}}" alt="Domain Distribution Chart" loading="lazy" />
+                </div>
+                {{/if}}
+
+                {{#if charts.timeline}}
+                <div class="chart">
+                    <h3>Extraction Timeline</h3>
+                    <img src="{{charts.timeline}}" alt="Timeline Chart" loading="lazy" />
+                </div>
+                {{/if}}
+
+                {{#if charts.word_count}}
+                <div class="chart">
+                    <h3>Word Count Distribution</h3>
+                    <img src="{{charts.word_count}}" alt="Word Count Chart" loading="lazy" />
+                </div>
+                {{/if}}
+            </div>
+        </section>
+        {{/if}}
+
+        <!-- Domain Statistics Section -->
+        {{#if domain_stats}}
+        <section class="domain-stats">
+            <h2>🌐 Domain Statistics</h2>
+            <div class="domain-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Domain</th>
+                            <th>Count</th>
+                            <th>Total Words</th>
+                            <th>Avg Words</th>
+                            <th>Avg Time</th>
+                            <th>Success Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#each domain_stats}}
+                        <tr>
+                            <td><strong>{{this.domain}}</strong></td>
+                            <td>{{this.count}}</td>
+                            <td>{{format_number this.total_words}}</td>
+                            <td>{{format_number this.average_words}}</td>
+                            <td>{{format_duration this.average_processing_time}}</td>
+                            <td>{{format_percentage this.success_rate}}</td>
+                        </tr>
+                        {{/each}}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {{/if}}
+
+        <!-- Results Section -->
+        <section class="results">
+            <h2>📄 Extraction Results</h2>
+            <div class="results-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>URL</th>
+                            <th>Title</th>
+                            <th>Word Count</th>
+                            <th>Processing Time</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#each results}}
+                        <tr>
+                            <td><a href="{{url}}" target="_blank" rel="noopener">{{truncate url 50}}</a></td>
+                            <td>{{#if title}}{{title}}{{else}}<em>No title</em>{{/if}}</td>
+                            <td>{{word_count}}</td>
+                            <td>{{format_duration extraction_time_ms}}</td>
+                            <td>{{timestamp}}</td>
+                        </tr>
+                        {{/each}}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Timeline Section -->
+        {{#if timeline}}
+        <section class="timeline-section">
+            <h2>⏱️ Extraction Timeline</h2>
+            <div class="timeline">
+                {{#each timeline}}
+                <div class="timeline-entry">
+                    <div class="timeline-time">{{timestamp}}</div>
+                    <div class="timeline-event">
+                        <strong>{{event}}</strong>
+                        <p>{{count}} extractions ({{format_number rate}}/hour)</p>
+                    </div>
+                </div>
+                {{/each}}
+            </div>
+        </section>
+        {{/if}}
+
+        <!-- Word Cloud Section -->
+        {{#if word_cloud_data}}
+        <section class="word-cloud-section">
+            <h2>☁️ Top Keywords</h2>
+            <div class="word-cloud">
+                {{#each word_cloud_data}}
+                <span class="word-item" style="font-size: {{multiply percentage 0.5}}em; opacity: {{divide frequency 100}};">
+                    {{word}}
+                </span>
+                {{/each}}
+            </div>
+        </section>
+        {{/if}}
+
+        <footer>
+            <p>Generated by RipTide Streaming v{{version}} | <a href="https://github.com/yourusername/riptide">Documentation</a></p>
+        </footer>
+    </div>
+</body>
+</html>

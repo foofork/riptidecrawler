@@ -1,6 +1,6 @@
 //! Real-world PDF extraction tests
 
-use riptide_pdf::*;
+use riptide_pdf::{create_pdf_processor, PdfConfig};
 use std::sync::Arc;
 
 #[cfg(test)]

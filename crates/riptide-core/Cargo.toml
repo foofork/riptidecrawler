@@ -75,3 +75,8 @@ api-integration = ["pdf", "stealth"]
 name = "performance_benches"
 harness = false
 required-features = ["benchmarks"]
+
+[[bench]]
+name = "strategies_bench"
+harness = false
+required-features = ["benchmarks"]

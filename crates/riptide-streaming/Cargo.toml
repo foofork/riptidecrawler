@@ -65,6 +65,9 @@ tokio-test = "0.4"
 mockall = "0.13"
 criterion = { version = "0.5", features = ["html_reports"] }
 rstest = "0.22"
+httpmock = "0.7"
+fastrand = "2.0"
+tracing-test = "0.2"
 
 [features]
 default = ["reports", "cli"]

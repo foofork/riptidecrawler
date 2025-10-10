@@ -4,10 +4,7 @@
 
 use axum::routing::{get, post};
 use axum::Router;
-use riptide_api::{
-    config::ApiConfig, handlers, health::HealthChecker, metrics::RipTideMetrics, state::AppState,
-    streaming,
-};
+use riptide_api::{handlers, health::HealthChecker, metrics::RipTideMetrics, state::AppState};
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 

@@ -693,7 +693,8 @@ async fn test_backpressure_handling_high_load() {
         framework.make_validated_streaming_request("crawl/stream", request, None),
     )
     .await
-    .map_err(|_| StreamingError::Timeout)?
+    .map_err(|_| StreamingError::Timeout)
+    .and_then(|r| r)
     .expect("High load test should succeed");
 
     let total_time = start_time.elapsed();

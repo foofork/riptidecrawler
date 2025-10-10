@@ -11,9 +11,9 @@ use riptide_core::events::{
     BaseEvent, Event, EventBus, EventBusConfig, EventEmitter, EventHandler, EventSeverity,
     HandlerConfig,
 };
-use riptide_core::search::{
-    circuit_breaker::CircuitBreakerWrapper, create_search_provider, none_provider::NoneProvider,
-    SearchBackend, SearchConfig, SearchProvider,
+use riptide_search::{
+    create_search_provider, CircuitBreakerWrapper, NoneProvider, SearchBackend, SearchConfig,
+    SearchHit, SearchProvider,
 };
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -168,7 +168,7 @@ impl SearchProvider for EventEmittingSearchProvider {
         limit: u32,
         country: &str,
         locale: &str,
-    ) -> Result<Vec<riptide_core::search::SearchHit>> {
+    ) -> Result<Vec<SearchHit>> {
         let start_time = std::time::Instant::now();
 
         // Emit search started event

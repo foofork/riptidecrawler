@@ -3,7 +3,7 @@
 
 use anyhow::Result;
 use mockall::predicate::*;
-use riptide_core::search::{
+use riptide_search::{
     create_search_provider, SearchBackend, SearchConfig, SearchHit, SearchProvider,
 };
 

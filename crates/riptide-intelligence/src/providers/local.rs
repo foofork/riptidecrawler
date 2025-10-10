@@ -24,9 +24,15 @@ struct OllamaResponse {
 
 #[derive(Debug, Deserialize)]
 struct OllamaMessage {
-    #[allow(dead_code)]
     role: String,
     content: String,
+}
+
+impl OllamaMessage {
+    /// Get the role of the message
+    pub fn role(&self) -> &str {
+        &self.role
+    }
 }
 
 /// Ollama API request structure
@@ -63,24 +69,57 @@ struct OllamaModelsResponse {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct OllamaModelInfo {
     name: String,
-    #[allow(dead_code)] // API response field, used for debugging
     size: u64,
-    #[allow(dead_code)] // API response field, used for debugging
     digest: String,
-    #[allow(dead_code)] // API response field, used for debugging
     details: OllamaModelDetails,
 }
 
+impl OllamaModelInfo {
+    /// Get model size in bytes
+    pub fn size(&self) -> u64 {
+        self.size
+    }
+
+    /// Get model digest hash
+    #[allow(dead_code)]
+    pub fn digest(&self) -> &str {
+        &self.digest
+    }
+
+    /// Get model details
+    pub fn details(&self) -> &OllamaModelDetails {
+        &self.details
+    }
+}
+
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct OllamaModelDetails {
-    #[allow(dead_code)] // API response field, used for debugging
     format: String,
-    #[allow(dead_code)] // API response field, used for debugging
     family: String,
-    #[allow(dead_code)] // API response field, used for debugging
     parameter_size: String,
+}
+
+impl OllamaModelDetails {
+    /// Get model format (e.g., "gguf")
+    #[allow(dead_code)]
+    pub fn format(&self) -> &str {
+        &self.format
+    }
+
+    /// Get model family (e.g., "llama")
+    pub fn family(&self) -> &str {
+        &self.family
+    }
+
+    /// Get parameter size (e.g., "7B", "13B")
+    #[allow(dead_code)]
+    pub fn parameter_size(&self) -> &str {
+        &self.parameter_size
+    }
 }
 
 /// Ollama provider implementation
@@ -139,7 +178,16 @@ impl OllamaProvider {
             self.available_models = models_response
                 .models
                 .into_iter()
-                .map(|model| model.name)
+                .map(|model| {
+                    // Log model details for observability
+                    debug!(
+                        "Discovered model: {} (size: {} bytes, family: {})",
+                        model.name,
+                        model.size(),
+                        model.details().family()
+                    );
+                    model.name
+                })
                 .collect();
 
             debug!(
@@ -246,6 +294,9 @@ impl LlmProvider for OllamaProvider {
 
         let ollama_request = self.build_ollama_request(&request);
         let response: OllamaResponse = self.make_request("api/chat", &ollama_request).await?;
+
+        // Log the response role for debugging
+        debug!("Ollama response role: {}", response.message.role());
 
         let usage = Usage {
             prompt_tokens: response.prompt_eval_count.unwrap_or(0),
@@ -633,5 +684,38 @@ mod tests {
         let provider = OllamaProvider::new("http://localhost:11434".to_string()).unwrap();
         let cost = provider.estimate_cost(1000);
         assert_eq!(cost.total_cost, 0.0); // Local models are free
+    }
+
+    #[test]
+    fn test_ollama_message_methods() {
+        let message = OllamaMessage {
+            role: "assistant".to_string(),
+            content: "Hello".to_string(),
+        };
+        assert_eq!(message.role(), "assistant");
+    }
+
+    #[test]
+    fn test_ollama_model_info_methods() {
+        let details = OllamaModelDetails {
+            format: "gguf".to_string(),
+            family: "llama".to_string(),
+            parameter_size: "7B".to_string(),
+        };
+
+        assert_eq!(details.format(), "gguf");
+        assert_eq!(details.family(), "llama");
+        assert_eq!(details.parameter_size(), "7B");
+
+        let model_info = OllamaModelInfo {
+            name: "llama3.2".to_string(),
+            size: 4096000000,
+            digest: "sha256:abcd1234".to_string(),
+            details,
+        };
+
+        assert_eq!(model_info.size(), 4096000000);
+        assert_eq!(model_info.digest(), "sha256:abcd1234");
+        assert_eq!(model_info.details().family(), "llama");
     }
 }

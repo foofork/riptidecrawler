@@ -28,7 +28,8 @@ sysinfo = { workspace = true }
 psutil = { workspace = true }
 
 # Memory profiling and analysis
-jemalloc-ctl = { version = "0.5", optional = true }
+# Using tikv-jemalloc-ctl to match tikv-jemallocator used in riptide-api
+tikv-jemalloc-ctl = { version = "0.5", optional = true }
 # pprof without flamegraph to avoid CDDL-1.0 license (inferno dependency)
 # Use protobuf-codec for profiling output; flamegraph feature removed for CI compliance
 pprof = { version = "0.15", default-features = false, features = ["protobuf-codec"], optional = true }
@@ -86,14 +87,14 @@ tokio-test = "0.4"
 default = ["memory-profiling", "cache-optimization", "resource-limits"]
 
 # Core feature groups
-memory-profiling = ["jemalloc-ctl", "pprof", "memory-stats"]
+memory-profiling = ["pprof", "memory-stats"]  # tikv-jemalloc-ctl removed due to conflicts
 bottleneck-analysis = ["criterion"]  # flamegraph removed from default
 bottleneck-analysis-full = ["bottleneck-analysis", "flamegraph"]  # Dev-only: includes flamegraph
 cache-optimization = ["moka", "redis"]
 resource-limits = ["governor"]  # tower-limit removed due to security advisory
 
 # Allocator features
-jemalloc = ["jemalloc-ctl"]
+jemalloc = []  # Feature flag only, actual allocator in riptide-api
 
 # Environment-specific feature sets
 # Production excludes flamegraph for license compliance
