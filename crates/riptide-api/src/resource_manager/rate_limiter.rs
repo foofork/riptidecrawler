@@ -5,15 +5,16 @@
 //! - Configurable burst capacity
 //! - Jitter to prevent thundering herd
 //! - Automatic cleanup of stale host buckets
+//! - Lock-free concurrent access via DashMap
 
 use crate::config::ApiConfig;
-use crate::resource_manager::{errors::Result, metrics::ResourceMetrics};
+use crate::resource_manager::metrics::ResourceMetrics;
+use dashmap::DashMap;
 use std::{
-    collections::HashMap,
     sync::Arc,
     time::{Duration, Instant},
 };
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::Mutex;
 use tracing::{debug, warn};
 
 /// Per-host rate limiter with token bucket algorithm
@@ -21,9 +22,12 @@ use tracing::{debug, warn};
 /// Each host gets its own token bucket that refills at a configured rate.
 /// This prevents any single host from overwhelming the system while allowing
 /// burst traffic within configured limits.
+///
+/// Uses DashMap for lock-free concurrent access, eliminating contention
+/// and improving throughput under high load.
 pub struct PerHostRateLimiter {
     config: ApiConfig,
-    host_buckets: RwLock<HashMap<String, HostBucket>>,
+    host_buckets: Arc<DashMap<String, HostBucket>>,
     cleanup_task: Mutex<Option<tokio::task::JoinHandle<()>>>,
     metrics: Arc<ResourceMetrics>,
 }
@@ -55,12 +59,12 @@ impl PerHostRateLimiter {
             rps = config.rate_limiting.requests_per_second_per_host,
             burst = config.rate_limiting.burst_capacity_per_host,
             enabled = config.rate_limiting.enabled,
-            "Initializing per-host rate limiter"
+            "Initializing per-host rate limiter with lock-free DashMap"
         );
 
         Self {
             config,
-            host_buckets: RwLock::new(HashMap::new()),
+            host_buckets: Arc::new(DashMap::new()),
             cleanup_task: Mutex::new(None),
             metrics,
         }
@@ -79,13 +83,25 @@ impl PerHostRateLimiter {
             loop {
                 interval.tick().await;
 
-                let mut buckets = rate_limiter.host_buckets.write().await;
+                let buckets = &rate_limiter.host_buckets;
                 let now = Instant::now();
 
                 let count_before = buckets.len();
-                buckets.retain(|_, bucket| {
-                    now.duration_since(bucket.last_request) < Duration::from_secs(3600)
-                });
+
+                // Collect stale host keys
+                let stale_hosts: Vec<String> = buckets
+                    .iter()
+                    .filter(|entry| {
+                        now.duration_since(entry.value().last_request) >= Duration::from_secs(3600)
+                    })
+                    .map(|entry| entry.key().clone())
+                    .collect();
+
+                // Remove stale hosts
+                for host in &stale_hosts {
+                    buckets.remove(host);
+                }
+
                 let count_after = buckets.len();
 
                 if count_before != count_after {
@@ -119,16 +135,20 @@ impl PerHostRateLimiter {
         }
 
         let now = Instant::now();
-        let mut buckets = self.host_buckets.write().await;
+        let host_key = host.to_string();
 
-        let bucket = buckets
-            .entry(host.to_string())
+        // Get or insert bucket using DashMap's entry API
+        let mut entry = self
+            .host_buckets
+            .entry(host_key.clone())
             .or_insert_with(|| HostBucket {
                 tokens: self.config.rate_limiting.requests_per_second_per_host,
                 last_refill: now,
                 request_count: 0,
                 last_request: now,
             });
+
+        let bucket = entry.value_mut();
 
         // Refill tokens based on time elapsed
         let time_passed = now.duration_since(bucket.last_refill).as_secs_f64();
@@ -143,27 +163,33 @@ impl PerHostRateLimiter {
             bucket.request_count += 1;
             bucket.last_request = now;
 
+            // Drop entry before sleeping to release the lock
+            drop(entry);
+
             // Add jitter delay to prevent thundering herd
             let jitter_delay = self.config.calculate_jittered_delay();
             if jitter_delay > Duration::from_millis(1) {
-                drop(buckets); // Release lock before sleeping
                 tokio::time::sleep(jitter_delay).await;
             }
 
             Ok(())
         } else {
             // Rate limited
+            let request_count = bucket.request_count;
+            drop(entry); // Release lock before incrementing metrics
+
             self.metrics
                 .rate_limit_hits
                 .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
-            let retry_after =
-                Duration::from_secs_f64(1.0 / self.config.rate_limiting.requests_per_second_per_host);
+            let retry_after = Duration::from_secs_f64(
+                1.0 / self.config.rate_limiting.requests_per_second_per_host,
+            );
 
             warn!(
                 host = %host,
                 retry_after_ms = retry_after.as_millis(),
-                requests = bucket.request_count,
+                requests = request_count,
                 "Rate limit exceeded for host"
             );
 
@@ -175,8 +201,7 @@ impl PerHostRateLimiter {
     ///
     /// Returns `None` if the host hasn't made any requests yet.
     pub async fn get_host_stats(&self, host: &str) -> Option<HostStats> {
-        let buckets = self.host_buckets.read().await;
-        buckets.get(host).map(|bucket| HostStats {
+        self.host_buckets.get(host).map(|bucket| HostStats {
             request_count: bucket.request_count,
             available_tokens: bucket.tokens,
             last_request_age: bucket.last_request.elapsed(),
@@ -185,16 +210,15 @@ impl PerHostRateLimiter {
 
     /// Get statistics for all hosts
     pub async fn get_all_stats(&self) -> Vec<(String, HostStats)> {
-        let buckets = self.host_buckets.read().await;
-        buckets
+        self.host_buckets
             .iter()
-            .map(|(host, bucket)| {
+            .map(|entry| {
                 (
-                    host.clone(),
+                    entry.key().clone(),
                     HostStats {
-                        request_count: bucket.request_count,
-                        available_tokens: bucket.tokens,
-                        last_request_age: bucket.last_request.elapsed(),
+                        request_count: entry.value().request_count,
+                        available_tokens: entry.value().tokens,
+                        last_request_age: entry.value().last_request.elapsed(),
                     },
                 )
             })
@@ -203,7 +227,7 @@ impl PerHostRateLimiter {
 
     /// Get total number of hosts being tracked
     pub async fn tracked_hosts_count(&self) -> usize {
-        self.host_buckets.read().await.len()
+        self.host_buckets.len()
     }
 }
 
@@ -229,7 +253,10 @@ mod tests {
             enabled: true,
             requests_per_second_per_host: 2.0,
             burst_capacity_per_host: 5,
-            jitter_ms: 0, // Disable jitter for predictable testing
+            jitter_factor: 0.0, // Disable jitter for predictable testing
+            window_duration_secs: 60,
+            cleanup_interval_secs: 300,
+            max_tracked_hosts: 1000,
         };
         config
     }
@@ -269,7 +296,12 @@ mod tests {
         assert!(limiter.check_rate_limit(host).await.is_err());
 
         // Verify metrics
-        assert!(metrics.rate_limit_hits.load(std::sync::atomic::Ordering::Relaxed) > 0);
+        assert!(
+            metrics
+                .rate_limit_hits
+                .load(std::sync::atomic::Ordering::Relaxed)
+                > 0
+        );
     }
 
     #[tokio::test]

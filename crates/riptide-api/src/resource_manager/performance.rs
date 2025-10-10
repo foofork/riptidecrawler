@@ -46,10 +46,7 @@ impl PerformanceMonitor {
         let count = self.timeout_count.fetch_add(1, Ordering::Relaxed);
         self.metrics.timeouts_count.fetch_add(1, Ordering::Relaxed);
 
-        warn!(
-            timeout_count = count + 1,
-            "Operation timeout recorded"
-        );
+        warn!(timeout_count = count + 1, "Operation timeout recorded");
 
         // Update degradation score based on timeout frequency
         self.update_degradation_score().await;

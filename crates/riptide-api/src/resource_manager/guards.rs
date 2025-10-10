@@ -185,7 +185,6 @@ impl std::fmt::Debug for ResourceGuard {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::ApiConfig;
     use crate::resource_manager::ResourceMetrics;
 
     #[tokio::test]

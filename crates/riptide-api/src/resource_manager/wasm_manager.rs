@@ -5,7 +5,7 @@
 //! - Health monitoring
 //! - Automatic cleanup of stale instances
 
-use crate::resource_manager::{errors::Result, metrics::ResourceMetrics};
+use crate::resource_manager::{errors::Result, guards::WasmGuard, metrics::ResourceMetrics};
 use std::{
     collections::HashMap,
     sync::Arc,
@@ -34,12 +34,6 @@ struct WasmWorkerInstance {
     pub memory_usage: usize,
 }
 
-/// WASM guard that maintains instance lifetime
-pub struct WasmGuard {
-    #[allow(dead_code)] // Keeps manager Arc alive for lifetime of guard
-    manager: Arc<WasmInstanceManager>,
-}
-
 impl WasmInstanceManager {
     /// Create a new WASM instance manager
     pub(crate) fn new(metrics: Arc<ResourceMetrics>) -> Result<Self> {
@@ -61,10 +55,7 @@ impl WasmInstanceManager {
     ///
     /// # Returns
     /// A `WasmGuard` that keeps the instance alive
-    pub(crate) async fn acquire_instance(
-        self: &Arc<Self>,
-        worker_id: &str,
-    ) -> Result<WasmGuard> {
+    pub(crate) async fn acquire_instance(self: &Arc<Self>, worker_id: &str) -> Result<WasmGuard> {
         let mut instances = self.worker_instances.write().await;
 
         // Ensure single instance per worker (requirement)
@@ -98,9 +89,7 @@ impl WasmInstanceManager {
             );
         }
 
-        Ok(WasmGuard {
-            manager: self.clone(),
-        })
+        Ok(WasmGuard::new(self.clone()))
     }
 
     /// Get health status of all WASM instances
@@ -149,9 +138,9 @@ impl WasmInstanceManager {
         let instances = self.worker_instances.read().await;
         let now = Instant::now();
 
-        instances.values().any(|instance| {
-            now.duration_since(instance.last_operation) > Duration::from_secs(3600)
-        })
+        instances
+            .values()
+            .any(|instance| now.duration_since(instance.last_operation) > Duration::from_secs(3600))
     }
 
     /// Clean up stale WASM instances
@@ -185,7 +174,11 @@ impl WasmInstanceManager {
         let cleaned = count_before - count_after;
 
         if cleaned > 0 {
-            info!(cleaned = cleaned, remaining = count_after, "Cleaned up stale WASM instances");
+            info!(
+                cleaned = cleaned,
+                remaining = count_after,
+                "Cleaned up stale WASM instances"
+            );
             self.metrics
                 .wasm_instances
                 .store(count_after, std::sync::atomic::Ordering::Relaxed);
@@ -301,7 +294,9 @@ mod tests {
         assert_eq!(cleaned, 0);
 
         // Should cleanup with zero threshold
-        let cleaned = manager.cleanup_stale_instances(Duration::from_secs(0)).await;
+        let cleaned = manager
+            .cleanup_stale_instances(Duration::from_secs(0))
+            .await;
         assert_eq!(cleaned, 1);
         assert_eq!(manager.instance_count().await, 0);
     }

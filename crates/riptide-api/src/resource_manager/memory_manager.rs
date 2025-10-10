@@ -92,10 +92,7 @@ impl MemoryManager {
         // Update pressure status
         if !self.config.is_memory_pressure(new_usage) {
             if self.pressure_detected.swap(false, Ordering::Relaxed) {
-                info!(
-                    current_mb = new_usage,
-                    "Memory pressure cleared"
-                );
+                info!(current_mb = new_usage, "Memory pressure cleared");
             }
         }
     }
