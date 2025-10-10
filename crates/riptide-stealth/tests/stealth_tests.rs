@@ -79,6 +79,7 @@ mod fingerprint_tests {
 
 #[cfg(test)]
 mod user_agent_tests {
+    #[allow(unused_imports)]
     use riptide_stealth::user_agent::{UserAgentConfig, UserAgentManager};
 
     #[test]
@@ -142,6 +143,7 @@ mod user_agent_tests {
         */
     }
 
+    #[allow(dead_code)]
     fn extract_chrome_version(ua: &str) -> u32 {
         ua.split("Chrome/")
             .nth(1)
@@ -150,6 +152,7 @@ mod user_agent_tests {
             .unwrap_or(0)
     }
 
+    #[allow(dead_code)]
     fn extract_firefox_version(ua: &str) -> u32 {
         ua.split("Firefox/")
             .nth(1)
