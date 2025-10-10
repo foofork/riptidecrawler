@@ -158,8 +158,8 @@ fn init_opentelemetry() -> Result<opentelemetry_sdk::trace::Tracer> {
 
 /// Initialize tracing subscriber with OpenTelemetry layer
 fn init_tracing_subscriber() -> Result<()> {
-    let env_filter =
-        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info,riptide=debug"));
+    let env_filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("info,cranelift_codegen=warn"));
 
     // Initialize OpenTelemetry tracer for distributed tracing
     let tracer = init_opentelemetry()?;
