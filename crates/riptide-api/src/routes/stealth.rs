@@ -7,7 +7,6 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use std::sync::Arc;
 
 /// Configure stealth processing routes
 ///

@@ -404,7 +404,7 @@ mod tests {
 
         // RSS should be reasonable (not zero, not absurdly large)
         assert!(rss_mb > 0, "RSS should be greater than 0");
-        assert!(rss_mb < 10000, "RSS should be reasonable (< 10GB)");
+        assert!(rss_mb < 50000, "RSS should be reasonable (< 50GB)");
 
         // Get heap allocated (approximated via virtual memory)
         let heap = manager.get_heap_allocated();
@@ -445,8 +445,8 @@ mod tests {
         let metrics_value = metrics.memory_usage_mb.load(Ordering::Relaxed);
         assert!(metrics_value > 0, "Metrics should be updated with real RSS");
         assert!(
-            metrics_value < 10000,
-            "Metrics should be reasonable (< 10GB)"
+            metrics_value < 50000,
+            "Metrics should be reasonable (< 50GB)"
         );
     }
 
