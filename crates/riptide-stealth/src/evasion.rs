@@ -10,6 +10,10 @@ use std::time::Instant;
 use tracing::warn;
 
 use crate::config::{LocaleStrategy, StealthConfig, StealthPreset};
+use crate::enhancements::{
+    screen_resolution::ScreenResolution, HeaderConsistencyManager, ScreenResolutionManager,
+    TimezoneManager, WebRtcEnhanced,
+};
 use crate::javascript::JavaScriptInjector;
 use crate::user_agent::UserAgentManager;
 
@@ -20,6 +24,10 @@ pub struct StealthController {
     request_count: u64,
     last_request_time: Instant,
     js_injector: Option<JavaScriptInjector>,
+    // Enhanced features for crawl4ai parity
+    screen_resolution_manager: ScreenResolutionManager,
+    timezone_manager: TimezoneManager,
+    webrtc_enhanced: WebRtcEnhanced,
 }
 
 impl StealthController {
@@ -32,12 +40,33 @@ impl StealthController {
 
         let user_agent_manager = UserAgentManager::new(config.user_agent.clone());
 
+        // Initialize enhanced features based on preset
+        let webrtc_enhanced = match config.preset {
+            StealthPreset::High => WebRtcEnhanced::high_security(),
+            StealthPreset::Medium => WebRtcEnhanced::default(),
+            StealthPreset::Low => WebRtcEnhanced {
+                block_ip_leak: true,
+                ..Default::default()
+            },
+            StealthPreset::None => WebRtcEnhanced {
+                block_completely: false,
+                block_ip_leak: false,
+                spoof_media_devices: false,
+                block_data_channels: false,
+                block_stun_turn: false,
+                fake_ip: None,
+            },
+        };
+
         Self {
             config,
             user_agent_manager,
             request_count: 0,
             last_request_time: Instant::now(),
             js_injector: None,
+            screen_resolution_manager: ScreenResolutionManager::new(),
+            timezone_manager: TimezoneManager::new(),
+            webrtc_enhanced,
         }
     }
 
@@ -69,60 +98,21 @@ impl StealthController {
 
     /// Generate randomized headers for the request
     pub fn generate_headers(&self) -> HashMap<String, String> {
-        let mut headers = HashMap::new();
+        // Use HeaderConsistencyManager for enhanced consistency
+        let default_ua = String::from("Mozilla/5.0");
+        let user_agent = self.current_user_agent().unwrap_or(&default_ua);
+        let mut headers = HeaderConsistencyManager::generate_consistent_headers(user_agent);
+
+        // Add locale-specific headers
         let mut rng = rand::thread_rng();
-
-        // Accept header
-        let accept_index = rng.gen_range(
-            0..self
-                .config
-                .request_randomization
-                .headers
-                .accept_variations
-                .len(),
-        );
-        headers.insert(
-            "Accept".to_string(),
-            self.config.request_randomization.headers.accept_variations[accept_index].clone(),
+        let (locale, _) = self.random_locale();
+        HeaderConsistencyManager::add_locale_headers(
+            &mut headers,
+            locale,
+            &self.config.request_randomization.locale.locales,
         );
 
-        // Accept-Language header
-        let lang_index = rng.gen_range(
-            0..self
-                .config
-                .request_randomization
-                .headers
-                .accept_language_variations
-                .len(),
-        );
-        headers.insert(
-            "Accept-Language".to_string(),
-            self.config
-                .request_randomization
-                .headers
-                .accept_language_variations[lang_index]
-                .clone(),
-        );
-
-        // Accept-Encoding header
-        let enc_index = rng.gen_range(
-            0..self
-                .config
-                .request_randomization
-                .headers
-                .accept_encoding_variations
-                .len(),
-        );
-        headers.insert(
-            "Accept-Encoding".to_string(),
-            self.config
-                .request_randomization
-                .headers
-                .accept_encoding_variations[enc_index]
-                .clone(),
-        );
-
-        // Add custom headers if configured
+        // Add randomized custom headers if configured
         for (header_name, variations) in &self.config.request_randomization.headers.custom_headers {
             if !variations.is_empty() {
                 let index = rng.gen_range(0..variations.len());
@@ -255,7 +245,27 @@ impl StealthController {
             ));
         }
 
-        self.js_injector.as_ref().unwrap().generate_stealth_js()
+        let mut js_parts = vec![self.js_injector.as_ref().unwrap().generate_stealth_js()];
+
+        // Add enhanced WebRTC protection
+        if self.config.preset != StealthPreset::None {
+            js_parts.push(self.webrtc_enhanced.generate_js());
+        }
+
+        // Add timezone spoofing
+        if self.config.preset != StealthPreset::None {
+            let tz = self.timezone_manager.random_timezone();
+            js_parts.push(self.timezone_manager.generate_js(&tz, true));
+        }
+
+        // Add screen resolution spoofing
+        if self.config.preset == StealthPreset::High || self.config.preset == StealthPreset::Medium
+        {
+            let resolution = self.screen_resolution_manager.get_current();
+            js_parts.push(self.screen_resolution_manager.generate_js(&resolution));
+        }
+
+        js_parts.join("\n\n")
     }
 
     /// Check if stealth mode is enabled
@@ -286,6 +296,23 @@ impl StealthController {
         self.user_agent_manager = UserAgentManager::new(self.config.user_agent.clone());
         // Clear JS injector to force regeneration with new config
         self.js_injector = None;
+        // Update WebRTC configuration based on new preset
+        self.webrtc_enhanced = match self.config.preset {
+            StealthPreset::High => WebRtcEnhanced::high_security(),
+            StealthPreset::Medium => WebRtcEnhanced::default(),
+            StealthPreset::Low => WebRtcEnhanced {
+                block_ip_leak: true,
+                ..Default::default()
+            },
+            StealthPreset::None => WebRtcEnhanced {
+                block_completely: false,
+                block_ip_leak: false,
+                spoof_media_devices: false,
+                block_data_channels: false,
+                block_stun_turn: false,
+                fake_ip: None,
+            },
+        };
     }
 
     /// Get domain-specific timing configuration
@@ -319,6 +346,33 @@ impl StealthController {
         self.js_injector = None;
         // Reset user agent manager session
         self.user_agent_manager = UserAgentManager::new(self.config.user_agent.clone());
+        // Reset enhanced features
+        self.screen_resolution_manager = ScreenResolutionManager::new();
+        self.timezone_manager = TimezoneManager::new();
+    }
+
+    /// Get enhanced screen resolution
+    pub fn get_enhanced_resolution(&mut self) -> ScreenResolution {
+        self.screen_resolution_manager.generate()
+    }
+
+    /// Get enhanced timezone
+    pub fn get_enhanced_timezone(
+        &mut self,
+    ) -> crate::enhancements::timezone_enhanced::TimezoneInfo {
+        self.timezone_manager.random_timezone()
+    }
+
+    /// Get WebRTC enhanced configuration
+    pub fn get_webrtc_config(&self) -> &WebRtcEnhanced {
+        &self.webrtc_enhanced
+    }
+
+    /// Validate header consistency with current user agent
+    pub fn validate_headers(&self, headers: &HashMap<String, String>) -> Result<(), Vec<String>> {
+        let default_ua = String::from("Mozilla/5.0");
+        let user_agent = self.current_user_agent().unwrap_or(&default_ua);
+        HeaderConsistencyManager::validate_consistency(user_agent, headers)
     }
 }
 
@@ -363,9 +417,12 @@ mod tests {
         let controller = StealthController::new(config);
 
         let headers = controller.generate_headers();
-        assert!(headers.contains_key("Accept"));
-        assert!(headers.contains_key("Accept-Language"));
-        assert!(headers.contains_key("Accept-Encoding"));
+        // HeaderConsistencyManager uses lowercase keys
+        assert!(headers.contains_key("accept") || headers.contains_key("Accept"));
+        assert!(headers.contains_key("accept-language") || headers.contains_key("Accept-Language"));
+        assert!(headers.contains_key("accept-encoding") || headers.contains_key("Accept-Encoding"));
+        // Should also have enhanced headers
+        assert!(!headers.is_empty());
     }
 
     #[test]

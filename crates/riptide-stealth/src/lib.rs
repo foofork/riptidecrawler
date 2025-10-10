@@ -73,7 +73,8 @@ pub use user_agent::{BrowserType, RotationStrategy, UserAgentConfig, UserAgentMa
 
 // Re-export enhanced features
 pub use enhancements::{
-    HeaderConsistencyManager, ScreenResolutionManager, TimezoneManager, WebRtcEnhanced,
+    HeaderConsistencyManager, ScreenResolution, ScreenResolutionManager, TimezoneInfo,
+    TimezoneManager, WebRtcEnhanced,
 };
 
 // Tests module
