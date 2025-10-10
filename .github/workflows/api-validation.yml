@@ -119,6 +119,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+            ~/.cache/wasmtime
             target
           key: ${{ runner.os }}-cargo-api-${{ hashFiles('**/Cargo.lock') }}
 
