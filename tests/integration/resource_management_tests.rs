@@ -3,7 +3,6 @@ use riptide_core::memory_manager::{MemoryManager, MemoryManagerConfig};
 use riptide_headless::launcher::{HeadlessLauncher, LauncherConfig};
 use riptide_headless::pool::{BrowserPool, BrowserPoolConfig};
 use std::time::Duration;
-use tokio::time::sleep;
 use wasmtime::{Config, Engine};
 
 #[tokio::test]
@@ -147,7 +146,7 @@ async fn test_headless_launcher_configuration() -> Result<()> {
     Ok(())
 }
 
-#[tokio::test]
+#[tokio::test(start_paused = true)]
 async fn test_memory_pressure_simulation() -> Result<()> {
     // Create memory manager with low thresholds for testing
     let config = MemoryManagerConfig {
@@ -168,8 +167,9 @@ async fn test_memory_pressure_simulation() -> Result<()> {
 
     let memory_manager = MemoryManager::new(config, engine).await?;
 
-    // Monitor for a short period to test GC activation
-    sleep(Duration::from_secs(3)).await;
+    // Use time control instead of sleep - advance time for GC to trigger
+    // GC interval is 1s, advance 3s to ensure at least 2 GC runs
+    tokio::time::advance(Duration::from_secs(3)).await;
 
     let stats = memory_manager.stats();
     println!("Memory stats after monitoring: {:?}", stats);
@@ -181,7 +181,7 @@ async fn test_memory_pressure_simulation() -> Result<()> {
     Ok(())
 }
 
-#[tokio::test]
+#[tokio::test(start_paused = true)]
 async fn test_browser_pool_health_checks() -> Result<()> {
     let config = BrowserPoolConfig {
         min_pool_size: 1,
@@ -203,8 +203,8 @@ async fn test_browser_pool_health_checks() -> Result<()> {
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
-    // Let health checks run for a few cycles
-    sleep(Duration::from_secs(6)).await;
+    // Use time control - advance time for health checks to run (3 cycles at 2s interval)
+    tokio::time::advance(Duration::from_secs(6)).await;
 
     let stats = pool.stats().await;
     println!("Pool stats after health checks: {:?}", stats);
@@ -216,7 +216,7 @@ async fn test_browser_pool_health_checks() -> Result<()> {
     Ok(())
 }
 
-#[tokio::test]
+#[tokio::test(start_paused = true)]
 async fn test_resource_cleanup_on_timeout() -> Result<()> {
     let config = BrowserPoolConfig {
         min_pool_size: 1,
@@ -242,8 +242,8 @@ async fn test_resource_cleanup_on_timeout() -> Result<()> {
     let initial_stats = pool.stats().await;
     println!("Initial stats: {:?}", initial_stats);
 
-    // Wait for idle timeout to trigger cleanup
-    sleep(Duration::from_secs(8)).await;
+    // Use time control - advance time to trigger idle timeout cleanup (3s timeout + extra time)
+    tokio::time::advance(Duration::from_secs(8)).await;
 
     let final_stats = pool.stats().await;
     println!("Final stats: {:?}", final_stats);
@@ -255,7 +255,7 @@ async fn test_resource_cleanup_on_timeout() -> Result<()> {
     Ok(())
 }
 
-#[tokio::test]
+#[tokio::test(start_paused = true)]
 async fn test_integration_browser_and_memory_coordination() -> Result<()> {
     // Test coordination between browser pool and memory manager
     let launcher_config = LauncherConfig {
@@ -297,8 +297,8 @@ async fn test_integration_browser_and_memory_coordination() -> Result<()> {
 
     let memory_manager = MemoryManager::new(memory_config, engine).await?;
 
-    // Monitor both systems working together
-    sleep(Duration::from_secs(5)).await;
+    // Use time control - advance time for both systems to run coordination tasks
+    tokio::time::advance(Duration::from_secs(5)).await;
 
     let launcher_stats = launcher.stats().await;
     let memory_stats = memory_manager.stats();
