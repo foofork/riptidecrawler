@@ -10,7 +10,7 @@
 //! - Natural click patterns
 //! - Human-like timing variations
 
-use rand::Rng;
+use rand::{Rng, SeedableRng};
 use std::time::Duration;
 
 /// Human-like behavior simulator
@@ -21,8 +21,8 @@ use std::time::Duration;
 /// - Natural timing variations
 /// - Reading pauses
 pub struct BehaviorSimulator {
-    /// Random number generator for variations
-    rng: rand::rngs::ThreadRng,
+    /// Random number generator for variations (Send-safe)
+    rng: rand::rngs::SmallRng,
 }
 
 /// A 2D point representing screen coordinates
@@ -76,7 +76,7 @@ impl BehaviorSimulator {
     /// Create a new behavior simulator
     pub fn new() -> Self {
         Self {
-            rng: rand::thread_rng(),
+            rng: rand::rngs::SmallRng::from_entropy(),
         }
     }
 

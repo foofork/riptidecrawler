@@ -4,22 +4,16 @@ use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use tower::ServiceExt;
 
+mod test_helpers;
+
 #[cfg(test)]
 mod api_endpoint_tests {
     use super::*;
-    use axum::Router;
-
-    // TODO: Implement create_app() with full dependencies
-    // For now, these tests require a running API server
-    // Mark them as #[ignore] until proper test infrastructure is set up
-    fn create_app() -> Router {
-        Router::new() // Empty router - tests need refactoring
-    }
+    use test_helpers::create_minimal_test_app;
 
     #[tokio::test]
-    #[ignore = "TODO: Requires real API server with AppState - endpoint is /healthz not /health"]
     async fn test_health_endpoint() {
-        let app = create_app();
+        let app = create_minimal_test_app();
 
         let response = app
             .oneshot(
@@ -35,9 +29,8 @@ mod api_endpoint_tests {
     }
 
     #[tokio::test]
-    #[ignore = "TODO: Requires real API server - endpoint is /crawl not /api/v1/crawl"]
     async fn test_crawl_endpoint() {
-        let app = create_app();
+        let app = create_minimal_test_app();
 
         let body = r#"{"urls": ["https://example.com"], "max_pages": 10}"#;
         let response = app
@@ -56,9 +49,8 @@ mod api_endpoint_tests {
     }
 
     #[tokio::test]
-    #[ignore = "TODO: /api/v1/extract endpoint not implemented"]
     async fn test_extract_endpoint() {
-        let app = create_app();
+        let app = create_minimal_test_app();
 
         let body = r#"{"url": "https://example.com", "mode": "standard"}"#;
         let response = app
@@ -79,9 +71,8 @@ mod api_endpoint_tests {
     }
 
     #[tokio::test]
-    #[ignore = "TODO: /api/v1/search endpoint not implemented"]
     async fn test_search_endpoint() {
-        let app = create_app();
+        let app = create_minimal_test_app();
 
         let response = app
             .oneshot(
@@ -98,7 +89,7 @@ mod api_endpoint_tests {
 
     #[tokio::test]
     async fn test_status_endpoint() {
-        let app = create_app();
+        let app = create_minimal_test_app();
 
         let response = app
             .oneshot(
@@ -114,9 +105,8 @@ mod api_endpoint_tests {
     }
 
     #[tokio::test]
-    #[ignore = "TODO: Requires real API server - endpoint is /metrics not /api/v1/metrics"]
     async fn test_metrics_endpoint() {
-        let app = create_app();
+        let app = create_minimal_test_app();
 
         let response = app
             .oneshot(
@@ -133,7 +123,7 @@ mod api_endpoint_tests {
 
     #[tokio::test]
     async fn test_invalid_endpoint() {
-        let app = create_app();
+        let app = create_minimal_test_app();
 
         let response = app
             .oneshot(
@@ -149,9 +139,8 @@ mod api_endpoint_tests {
     }
 
     #[tokio::test]
-    #[ignore = "TODO: Requires real API server with CORS middleware"]
     async fn test_cors_headers() {
-        let app = create_app();
+        let app = create_minimal_test_app();
 
         let response = app
             .oneshot(

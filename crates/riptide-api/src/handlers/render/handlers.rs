@@ -137,14 +137,8 @@ async fn render_with_resources(
         "Processing render request"
     );
 
-    // Initialize stealth controller if configured
+    // Initialize stealth tracking
     let mut stealth_applied = Vec::new();
-    let mut stealth_controller = body.stealth_config.as_ref().map(|config| {
-        stealth_applied.push("user_agent_rotation".to_string());
-        stealth_applied.push("header_randomization".to_string());
-        stealth_applied.push("timing_jitter".to_string());
-        StealthController::new(config.clone())
-    });
 
     // Get session information for rendering context
     let session_info = if let Some(ref sid) = session_id {
@@ -199,11 +193,17 @@ async fn render_with_resources(
     // Determine processing path based on content type and mode
     let (final_url, render_result, pdf_result) = match &mode {
         riptide_core::types::RenderMode::Pdf => {
-            // Handle PDF processing
+            // Handle PDF processing (no stealth support)
             process_pdf(&state, &url, body.pdf_config.as_ref()).await?
         }
         riptide_core::types::RenderMode::Dynamic => {
-            // Force dynamic rendering
+            // Force dynamic rendering with stealth
+            let mut stealth_controller = body.stealth_config.as_ref().map(|config| {
+                stealth_applied.push("user_agent_rotation".to_string());
+                stealth_applied.push("header_randomization".to_string());
+                stealth_applied.push("timing_jitter".to_string());
+                StealthController::new(config.clone())
+            });
             let dynamic_config = body.dynamic_config.unwrap_or_default();
             process_dynamic(
                 &state,
@@ -215,7 +215,13 @@ async fn render_with_resources(
             .await?
         }
         riptide_core::types::RenderMode::Static => {
-            // Force static processing
+            // Force static processing with stealth
+            let mut stealth_controller = body.stealth_config.as_ref().map(|config| {
+                stealth_applied.push("user_agent_rotation".to_string());
+                stealth_applied.push("header_randomization".to_string());
+                stealth_applied.push("timing_jitter".to_string());
+                StealthController::new(config.clone())
+            });
             process_static(
                 &state,
                 &url,
@@ -225,7 +231,13 @@ async fn render_with_resources(
             .await?
         }
         riptide_core::types::RenderMode::Adaptive => {
-            // Adaptive processing based on content analysis
+            // Adaptive processing with stealth
+            let mut stealth_controller = body.stealth_config.as_ref().map(|config| {
+                stealth_applied.push("user_agent_rotation".to_string());
+                stealth_applied.push("header_randomization".to_string());
+                stealth_applied.push("timing_jitter".to_string());
+                StealthController::new(config.clone())
+            });
             process_adaptive(
                 &state,
                 &url,
@@ -236,7 +248,13 @@ async fn render_with_resources(
             .await?
         }
         riptide_core::types::RenderMode::Html => {
-            // HTML output mode - process as static
+            // HTML output mode with stealth
+            let mut stealth_controller = body.stealth_config.as_ref().map(|config| {
+                stealth_applied.push("user_agent_rotation".to_string());
+                stealth_applied.push("header_randomization".to_string());
+                stealth_applied.push("timing_jitter".to_string());
+                StealthController::new(config.clone())
+            });
             process_static(
                 &state,
                 &url,
@@ -246,7 +264,13 @@ async fn render_with_resources(
             .await?
         }
         riptide_core::types::RenderMode::Markdown => {
-            // Markdown output mode - process as static
+            // Markdown output mode with stealth
+            let mut stealth_controller = body.stealth_config.as_ref().map(|config| {
+                stealth_applied.push("user_agent_rotation".to_string());
+                stealth_applied.push("header_randomization".to_string());
+                stealth_applied.push("timing_jitter".to_string());
+                StealthController::new(config.clone())
+            });
             process_static(
                 &state,
                 &url,

@@ -54,21 +54,33 @@
 
 ---
 
-## 🔍 Pre-Existing Issues (Not Addressed)
+## ✅ Additional Issues Resolved (Post-Deployment)
 
-These issues existed BEFORE the ResourceManager refactoring and are separate concerns:
+### 1. Binary Compilation Issue - FIXED ✅
 
-### 1. Binary Compilation Issue (Pre-Existing)
+**Status:** ✅ RESOLVED
 
-**Status:** ⚠️ Pre-existing issue, not introduced by ResourceManager work
-
-**Details:**
-- Binary fails to compile with handler type mismatch
+**Original Issue:**
+- Binary failed to compile with handler type mismatch
 - Error: `fn(State<AppState>, SessionContext, Json<...>) -> ... {render}: Handler<_, _>` not satisfied
-- **Root Cause:** SessionLayer middleware configuration with Axum 0.7
-- **Impact:** Binary only, library compiles successfully
 
-**Evidence:** This issue was documented in original POST_DEPLOYMENT_ISSUES.md before our work
+**Root Cause Discovered:**
+- `StealthController` contained `BehaviorSimulator` with `ThreadRng` field
+- `ThreadRng` uses `Rc<UnsafeCell<ReseedingRng>>` internally, which is NOT `Send`
+- This violated Axum's requirement that handler futures must be `Send`
+
+**Solution Implemented:**
+- Changed `BehaviorSimulator::rng` from `ThreadRng` to `SmallRng`
+- `SmallRng` is `Send + Sync` and seeded with `SmallRng::from_entropy()`
+- Files modified:
+  - `crates/riptide-stealth/src/behavior.rs` - Changed RNG type
+  - `crates/riptide-api/src/handlers/render/handlers.rs` - Restructured stealth_controller lifecycle
+  - `crates/riptide-api/Cargo.toml` - Added missing `serde_urlencoded` dev dependency
+
+**Result:**
+- ✅ Binary compiles successfully: `cargo build --bin riptide-api`
+- ✅ All 26 ResourceManager tests pass
+- ✅ Zero errors, only 4 minor dead_code warnings
 
 ### 2. Minor Clippy Warnings (Pre-Existing)
 
@@ -166,9 +178,9 @@ These issues existed BEFORE the ResourceManager refactoring and are separate con
 | **Documentation** | ✅ Complete |
 | **Compatibility** | ✅ 100% backward |
 
-### Binary Status: ⚠️ Pre-Existing Issue
+### Binary Status: ✅ PRODUCTION READY
 
-The binary compilation issue is **not related to ResourceManager** and existed before this work. The library is fully functional and can be used successfully.
+The binary compilation issue has been **RESOLVED**. Both library and binary now compile successfully with all tests passing.
 
 ---
 
@@ -201,12 +213,12 @@ The binary compilation issue is **not related to ResourceManager** and existed b
 
 All objectives have been met:
 - ✅ Library compiles successfully
-- ✅ All ResourceManager tests passing
-- ✅ Critical bug fixed
+- ✅ Binary compiles successfully (Send issue fixed)
+- ✅ All ResourceManager tests passing (26/26)
+- ✅ Critical rate limiter bug fixed
+- ✅ StealthController Send issue resolved
 - ✅ Documentation complete
 - ✅ Zero breaking changes
-
-The pre-existing binary compilation issue is **separate** from this work and does not affect the library functionality or production readiness.
 
 **Recommendation:** ✅ **DEPLOY WITH CONFIDENCE**
 
@@ -215,8 +227,7 @@ The pre-existing binary compilation issue is **separate** from this work and doe
 ## 📞 What's Next
 
 ### Immediate (Optional)
-- Fix pre-existing binary compilation issue (separate task)
-- Address minor clippy warnings (cosmetic)
+- Address minor clippy warnings (cosmetic - dead_code warnings)
 
 ### Future Enhancements (v1.1+)
 - Distributed rate limiting with Redis

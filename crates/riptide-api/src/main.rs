@@ -148,8 +148,6 @@ async fn main() -> anyhow::Result<()> {
         // Metrics - both root and v1 paths
         .route("/metrics", get(handlers::metrics))
         .route("/api/v1/metrics", get(handlers::metrics)) // v1 alias
-        // Core operations
-        .route("/render", post(handlers::render))
         // Crawl endpoints - both root and v1 paths
         .route("/crawl", post(handlers::crawl))
         .route("/api/v1/crawl", post(handlers::crawl)) // v1 alias
@@ -353,9 +351,20 @@ async fn main() -> anyhow::Result<()> {
             "/api/telemetry/traces/:trace_id",
             get(handlers::telemetry::get_trace_tree),
         )
-        .fallback(handlers::not_found)
-        .with_state(app_state.clone())
+        .fallback(handlers::not_found);
+
+    // Create separate router for session-aware routes
+    // SessionLayer must be applied BEFORE with_state for proper type inference
+    let session_routes = Router::new()
+        .route("/render", post(handlers::render))
+        .route("/api/v1/render", post(handlers::render))
         .layer(SessionLayer::new(app_state.session_manager.clone()))
+        .with_state(app_state.clone());
+
+    // Merge session routes into main app
+    let app = app
+        .merge(session_routes)
+        .with_state(app_state.clone())
         .layer(axum::middleware::from_fn_with_state(
             app_state.clone(),
             auth_middleware,

@@ -67,8 +67,8 @@ pub struct SearchResponse {
 /// This endpoint provides search functionality using the riptide-search
 /// provider infrastructure. It supports multiple providers with automatic
 /// fallback capabilities.
-#[tracing::instrument(skip(state), fields(query = %params.q, limit = params.limit))]
-pub async fn search(State(state): State<AppState>, Query(params): Query<SearchQuery>) -> Response {
+#[tracing::instrument(skip(_state), fields(query = %params.q, limit = params.limit))]
+pub async fn search(State(_state): State<AppState>, Query(params): Query<SearchQuery>) -> Response {
     let start = Instant::now();
 
     // Validate query

@@ -61,6 +61,7 @@ async-stream = "0.3"
 base64 = "0.22"
 hex = "0.4"
 dashmap = "5.5"
+serde_urlencoded = "0.7.1"
 
 [dev-dependencies]
 tokio-test = "0.4"

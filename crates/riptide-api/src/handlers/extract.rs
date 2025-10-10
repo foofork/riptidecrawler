@@ -82,9 +82,9 @@ pub struct ContentMetadata {
 ///
 /// This endpoint provides a unified interface for content extraction,
 /// using the existing strategies pipeline internally.
-#[tracing::instrument(skip(state), fields(url = %payload.url, mode = %payload.mode))]
+#[tracing::instrument(skip(_state), fields(url = %payload.url, mode = %payload.mode))]
 pub async fn extract(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Json(payload): Json<ExtractRequest>,
 ) -> Response {
     let start = Instant::now();
