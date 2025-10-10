@@ -306,9 +306,17 @@ impl CmExtractor {
 
         // Enable AOT cache if configured
         if config.enable_aot_cache {
-            // Enable AOT compilation cache for faster subsequent startups
-            // First run: compiles and caches, subsequent runs: loads from cache (<5s vs 30-60s)
-            wasmtime_config.cache_config_load_default()?;
+            // TODO(wasmtime-34): The cache_config_load_default() method doesn't exist in Wasmtime 34.
+            // The caching API has changed between versions. Need to investigate the correct API for v34.
+            // For now, caching is disabled to unblock CI - functionality works without it, just slower on first run.
+            // See: https://docs.wasmtime.dev/api/wasmtime/struct.Config.html
+            //
+            // Possible solutions to investigate:
+            // 1. Check if caching is enabled by default in v34
+            // 2. Use a different caching configuration method
+            // 3. Upgrade to a newer Wasmtime version with better caching support
+            //
+            // wasmtime_config.cache_config_load_default()?; // This method doesn't exist in v34
         }
 
         let engine = Engine::new(&wasmtime_config)?;
