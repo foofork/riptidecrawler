@@ -140,18 +140,38 @@ jobs:
         run: |
           BINARY_PATH=$(find target -name "riptide-api" -type f -executable | head -1)
           echo "Starting API: $BINARY_PATH"
+
+          # Verify WASM file exists
+          if [ ! -f "$WASM_EXTRACTOR_PATH" ]; then
+            echo "❌ ERROR: WASM file not found at $WASM_EXTRACTOR_PATH"
+            ls -la target/wasm32-wasip2/release/
+            exit 1
+          fi
+          echo "✅ WASM file found: $WASM_EXTRACTOR_PATH"
+
+          # Start API in background
           $BINARY_PATH > api.log 2>&1 &
-          echo "API_PID=$!" >> $GITHUB_ENV
+          API_PID=$!
+          echo "API_PID=$API_PID" >> $GITHUB_ENV
+          echo "Started API with PID: $API_PID"
 
           # Wait for health
+          echo "Waiting for API to be healthy..."
           for i in {1..30}; do
             if curl -sf http://localhost:8080/healthz; then
               echo "✅ API healthy"
               exit 0
             fi
+            echo "Attempt $i/30: API not ready yet..."
             sleep 2
           done
-          echo "❌ API failed to start" && cat api.log && exit 1
+
+          echo ""
+          echo "❌ API failed to start after 60 seconds"
+          echo "=== API LOG ==="
+          cat api.log
+          echo "==============="
+          exit 1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -224,13 +244,32 @@ jobs:
           WASM_EXTRACTOR_PATH: target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
         run: |
           BINARY_PATH=$(find target -name "riptide-api" -type f -executable | head -1)
-          $BINARY_PATH > api.log 2>&1 &
-          echo "API_PID=$!" >> $GITHUB_ENV
+          echo "Starting API: $BINARY_PATH"
 
+          # Verify WASM file exists
+          if [ ! -f "$WASM_EXTRACTOR_PATH" ]; then
+            echo "❌ ERROR: WASM file not found at $WASM_EXTRACTOR_PATH"
+            ls -la target/wasm32-wasip2/release/
+            exit 1
+          fi
+
+          # Start API
+          $BINARY_PATH > api.log 2>&1 &
+          API_PID=$!
+          echo "API_PID=$API_PID" >> $GITHUB_ENV
+
+          # Wait for health
           for i in {1..30}; do
-            curl -sf http://localhost:8080/healthz && exit 0 || sleep 2
+            if curl -sf http://localhost:8080/healthz; then
+              echo "✅ API healthy"
+              exit 0
+            fi
+            sleep 2
           done
-          cat api.log && exit 1
+
+          echo "❌ API failed to start"
+          cat api.log
+          exit 1
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -300,12 +339,35 @@ jobs:
           WASM_EXTRACTOR_PATH: target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
         run: |
           BINARY_PATH=$(find target -name "riptide-api" -type f -executable | head -1)
-          $BINARY_PATH > api.log 2>&1 &
-          echo "API_PID=$!" >> $GITHUB_ENV
+          echo "Starting API: $BINARY_PATH"
 
+          # Verify WASM file exists
+          if [ ! -f "$WASM_EXTRACTOR_PATH" ]; then
+            echo "❌ ERROR: WASM file not found"
+            ls -la target/wasm32-wasip2/release/ || true
+            exit 1
+          fi
+
+          # Start API
+          $BINARY_PATH > api.log 2>&1 &
+          API_PID=$!
+          echo "API_PID=$API_PID" >> $GITHUB_ENV
+
+          # Wait for health
           for i in {1..30}; do
-            curl -sf http://localhost:8080/healthz && break || sleep 2
+            if curl -sf http://localhost:8080/healthz; then
+              echo "✅ API healthy"
+              break
+            fi
+            sleep 2
           done
+
+          # Check if API is still running
+          if ! kill -0 $API_PID 2>/dev/null; then
+            echo "❌ API process died"
+            cat api.log
+            exit 1
+          fi
 
       - name: Install k6
         run: |
@@ -383,12 +445,35 @@ jobs:
           WASM_EXTRACTOR_PATH: target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
         run: |
           BINARY_PATH=$(find target -name "riptide-api" -type f -executable | head -1)
-          $BINARY_PATH > api.log 2>&1 &
-          echo "API_PID=$!" >> $GITHUB_ENV
+          echo "Starting API: $BINARY_PATH"
 
+          # Verify WASM file exists
+          if [ ! -f "$WASM_EXTRACTOR_PATH" ]; then
+            echo "❌ ERROR: WASM file not found"
+            ls -la target/wasm32-wasip2/release/ || true
+            exit 1
+          fi
+
+          # Start API
+          $BINARY_PATH > api.log 2>&1 &
+          API_PID=$!
+          echo "API_PID=$API_PID" >> $GITHUB_ENV
+
+          # Wait for health
           for i in {1..30}; do
-            curl -sf http://localhost:8080/healthz && break || sleep 2
+            if curl -sf http://localhost:8080/healthz; then
+              echo "✅ API healthy"
+              break
+            fi
+            sleep 2
           done
+
+          # Check if API is still running
+          if ! kill -0 $API_PID 2>/dev/null; then
+            echo "❌ API process died"
+            cat api.log
+            exit 1
+          fi
 
       - name: Run OWASP ZAP scan
         uses: zaproxy/action-baseline@v0.9.0
