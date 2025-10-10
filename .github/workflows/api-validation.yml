@@ -647,3 +647,4 @@ jobs:
           echo "  • Integration Tests: ✅"
           echo "  • Contract Validation: ✅"
           echo "  • Fuzzing Tests: ✅"
+# Trigger API validation
