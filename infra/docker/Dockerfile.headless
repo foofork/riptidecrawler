@@ -19,6 +19,7 @@ RUN mkdir -p crates/riptide-core/src \
     crates/riptide-headless/src \
     crates/riptide-workers/src \
     crates/riptide-html/src \
+    crates/riptide-html/examples \
     crates/riptide-pdf/src \
     crates/riptide-stealth/src \
     crates/riptide-search/src \
@@ -51,6 +52,7 @@ RUN echo "fn main() {}" > crates/riptide-core/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-headless/src/main.rs && \
     echo "fn main() {}" > crates/riptide-workers/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-html/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-html/examples/basic_extraction.rs && \
     echo "fn main() {}" > crates/riptide-pdf/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-stealth/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-search/src/lib.rs && \

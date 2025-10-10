@@ -13,16 +13,15 @@ use std::time::Duration;
 
 // Import only types that actually exist
 use riptide_core::{
-    cache::{CacheConfig, CacheManager},
     circuit::{CircuitBreaker, Config as CircuitConfig, State as CircuitState},
-    events::{BaseEvent, EventBus, EventSeverity},
+    events::{BaseEvent, EventBus, EventEmitter, EventSeverity},
 };
 
 /// Test that core orchestration components can be initialized
 #[tokio::test]
 async fn test_core_orchestration_initialization() -> Result<()> {
     // Test Event Bus initialization
-    let event_bus = EventBus::new();
+    let _event_bus = EventBus::new();
     // EventBus doesn't have is_healthy method anymore
     // assert!(event_bus.is_healthy().await);
 
@@ -55,7 +54,9 @@ async fn test_circuit_breaker_orchestration() -> Result<()> {
 
     // Simulate successful operations
     for _ in 0..3 {
-        let _permit = circuit_breaker.try_acquire()?;
+        let _permit = circuit_breaker
+            .try_acquire()
+            .map_err(|e| anyhow::anyhow!("Circuit breaker error: {}", e))?;
         circuit_breaker.on_success();
     }
     assert_eq!(circuit_breaker.state(), CircuitState::Closed);
@@ -73,7 +74,9 @@ async fn test_circuit_breaker_orchestration() -> Result<()> {
     tokio::time::sleep(Duration::from_secs(6)).await;
 
     // Should allow one test call
-    let _permit = circuit_breaker.try_acquire()?;
+    let _permit = circuit_breaker
+        .try_acquire()
+        .map_err(|e| anyhow::anyhow!("Circuit breaker error: {}", e))?;
     assert_eq!(circuit_breaker.state(), CircuitState::HalfOpen);
 
     Ok(())
