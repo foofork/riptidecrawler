@@ -49,12 +49,14 @@ pub struct TelemetrySystem {
 
 impl TelemetrySystem {
     /// Initialize the telemetry system with OpenTelemetry
+    /// Note: This will set up the global tracing subscriber, so it should only be called once
     pub fn init() -> Result<Self> {
-        info!("Initializing telemetry system");
-
         // Initialize tracing subscriber with OpenTelemetry layer
         // This also initializes OpenTelemetry internally
         init_tracing_subscriber()?;
+
+        // Now we can safely use tracing
+        info!("Telemetry system initialized");
 
         // Set up global propagator
         global::set_text_map_propagator(TraceContextPropagator::new());
@@ -65,8 +67,6 @@ impl TelemetrySystem {
         let sanitizer = DataSanitizer::new();
         let sla_monitor = SlaMonitor::new();
         let resource_tracker = ResourceTracker::new();
-
-        info!("Telemetry system initialized successfully");
 
         Ok(Self {
             tracer: Arc::new(tracer),

@@ -50,14 +50,27 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // Initialize telemetry system conditionally based on OTEL_ENDPOINT
-    let _telemetry_system = if std::env::var("OTEL_ENDPOINT").is_ok() {
-        tracing::info!("OTEL_ENDPOINT detected, initializing OpenTelemetry");
-        Some(Arc::new(TelemetrySystem::init()?))
+    // Initialize tracing subscriber FIRST (before any tracing calls)
+    // Check if OpenTelemetry should be enabled
+    let otel_enabled = std::env::var("OTEL_ENDPOINT").is_ok();
+
+    if otel_enabled {
+        // Initialize with OpenTelemetry support
+        // Note: TelemetrySystem::init() will set up the subscriber
+        let _telemetry_system = Arc::new(TelemetrySystem::init()?);
+        tracing::info!("OTEL_ENDPOINT detected, OpenTelemetry initialized");
     } else {
-        tracing::info!("OTEL_ENDPOINT not set, telemetry disabled");
-        None
-    };
+        // Initialize basic tracing subscriber without OpenTelemetry
+        use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+        tracing_subscriber::registry()
+            .with(
+                tracing_subscriber::EnvFilter::try_from_default_env()
+                    .unwrap_or_else(|_| "info,riptide=debug".into()),
+            )
+            .with(tracing_subscriber::fmt::layer())
+            .init();
+        tracing::info!("OTEL_ENDPOINT not set, using basic tracing");
+    }
 
     let args = Args::parse();
 
