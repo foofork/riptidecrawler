@@ -38,6 +38,9 @@ pub mod unit {
     pub mod streaming_tests;
 }
 
+// Stealth and Anti-Detection Tests
+pub mod stealth;
+
 // Common test utilities
 pub mod common {
     use std::time::Duration;

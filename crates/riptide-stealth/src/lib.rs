@@ -49,6 +49,9 @@ pub mod fingerprint;
 pub mod javascript;
 pub mod user_agent;
 
+// Enhanced stealth features for crawl4ai parity
+pub mod enhancements;
+
 // Re-export main types for easy access
 pub use config::{
     load_user_agents_from_file, DomainTiming, HeaderRandomization, LocaleRandomization,
@@ -67,6 +70,11 @@ pub use fingerprint::{
 pub use javascript::JavaScriptInjector;
 
 pub use user_agent::{BrowserType, RotationStrategy, UserAgentConfig, UserAgentManager};
+
+// Re-export enhanced features
+pub use enhancements::{
+    HeaderConsistencyManager, ScreenResolutionManager, TimezoneManager, WebRtcEnhanced,
+};
 
 // Tests module
 #[cfg(test)]
