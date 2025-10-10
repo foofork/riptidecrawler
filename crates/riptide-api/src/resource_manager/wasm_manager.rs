@@ -118,6 +118,7 @@ impl WasmInstanceManager {
     }
 
     /// Get statistics for all WASM instances
+    #[allow(dead_code)] // Reserved for future monitoring API
     pub async fn get_all_stats(&self) -> Vec<WasmInstanceStats> {
         let instances = self.worker_instances.read().await;
         instances
@@ -152,6 +153,7 @@ impl WasmInstanceManager {
     ///
     /// # Returns
     /// Number of instances cleaned up
+    #[allow(dead_code)] // Reserved for future monitoring API
     pub async fn cleanup_stale_instances(&self, idle_threshold: Duration) -> usize {
         let mut instances = self.worker_instances.write().await;
         let now = Instant::now();
@@ -188,11 +190,13 @@ impl WasmInstanceManager {
     }
 
     /// Get total number of active WASM instances
+    #[allow(dead_code)] // Reserved for future monitoring API
     pub async fn instance_count(&self) -> usize {
         self.worker_instances.read().await.len()
     }
 
     /// Get statistics for a specific worker
+    #[allow(dead_code)] // Reserved for future monitoring API
     pub async fn get_worker_stats(&self, worker_id: &str) -> Option<WasmInstanceStats> {
         let instances = self.worker_instances.read().await;
         instances.get(worker_id).map(|instance| WasmInstanceStats {

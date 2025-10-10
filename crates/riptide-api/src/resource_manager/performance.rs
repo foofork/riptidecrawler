@@ -142,6 +142,7 @@ impl PerformanceMonitor {
     }
 
     /// Get performance statistics
+    #[allow(dead_code)] // Reserved for future monitoring API
     pub async fn get_stats(&self) -> PerformanceStats {
         let render_times = self.render_times.lock().await;
 
@@ -182,6 +183,7 @@ impl PerformanceMonitor {
     }
 
     /// Get recent render times for analysis
+    #[allow(dead_code)] // Reserved for future monitoring API
     pub async fn get_recent_render_times(&self, limit: usize) -> Vec<Duration> {
         let render_times = self.render_times.lock().await;
         let start = render_times.len().saturating_sub(limit);
@@ -191,6 +193,7 @@ impl PerformanceMonitor {
     /// Check if performance is degraded
     ///
     /// Returns `true` if degradation score exceeds 0.6 (critical threshold)
+    #[allow(dead_code)] // Reserved for future monitoring API
     pub async fn is_degraded(&self) -> bool {
         self.get_degradation_score().await > 0.6
     }

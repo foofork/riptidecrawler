@@ -200,6 +200,7 @@ impl PerHostRateLimiter {
     /// Get statistics for a specific host
     ///
     /// Returns `None` if the host hasn't made any requests yet.
+    #[allow(dead_code)] // Reserved for future monitoring API
     pub async fn get_host_stats(&self, host: &str) -> Option<HostStats> {
         self.host_buckets.get(host).map(|bucket| HostStats {
             request_count: bucket.request_count,
@@ -209,6 +210,7 @@ impl PerHostRateLimiter {
     }
 
     /// Get statistics for all hosts
+    #[allow(dead_code)] // Reserved for future monitoring API
     pub async fn get_all_stats(&self) -> Vec<(String, HostStats)> {
         self.host_buckets
             .iter()
@@ -226,6 +228,7 @@ impl PerHostRateLimiter {
     }
 
     /// Get total number of hosts being tracked
+    #[allow(dead_code)] // Reserved for future monitoring API
     pub async fn tracked_hosts_count(&self) -> usize {
         self.host_buckets.len()
     }

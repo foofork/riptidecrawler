@@ -65,6 +65,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Canvas/WebGL fingerprint evasion
 - Timezone and locale spoofing
 - Header manipulation and management
+- **Per-host rate limiting** with token bucket algorithm and adaptive throttling
+- **Behavior simulation** with human-like mouse movements and scroll patterns
+- **Exponential backoff** for 429/503 responses (2x multiplier, max 3x slower)
+- **Adaptive speed-up** after consecutive successes (0.9x after 5 successes, max 2x faster)
 
 #### Real-Time Streaming
 - NDJSON streaming for bulk operations
@@ -260,10 +264,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 See [V1_MASTER_PLAN.md](docs/V1_MASTER_PLAN.md) for detailed information on:
 
 #### Deferred to v1.1+
-- Advanced stealth features (FingerprintGenerator, BehaviorSimulator)
-- High-level DetectionEvasion API
-- Advanced RateLimiter
+- Advanced stealth features (FingerprintGenerator high-level API)
+- High-level DetectionEvasion API wrapper
 - CaptchaDetector integration
+- Typing simulation for form interactions
 
 #### Minor Technical Debt
 - 6 remaining sleep() calls in tests (95% eliminated, 4 need event-driven replacement)
