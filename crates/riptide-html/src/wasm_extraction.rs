@@ -306,9 +306,9 @@ impl CmExtractor {
 
         // Enable AOT cache if configured
         if config.enable_aot_cache {
-            // wasmtime v34: Caching API changed, simply enable via cache(None) for default behavior
-            // Note: Default filesystem cache is used when None is passed
-            wasmtime_config.cache(None);
+            // Enable AOT compilation cache for faster subsequent startups
+            // First run: compiles and caches, subsequent runs: loads from cache (<5s vs 30-60s)
+            wasmtime_config.cache_config_load_default()?;
         }
 
         let engine = Engine::new(&wasmtime_config)?;
