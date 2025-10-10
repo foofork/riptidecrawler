@@ -308,8 +308,8 @@ async fn test_launch_session_functionality() {
         assert_eq!(initial_stats.failed_requests, 0);
 
         // Test pool events structure - verify receiver is returned
-        let events = launcher.pool_events();
-        assert!(events.is_some(), "Pool events receiver should be available");
+        let _events = launcher.pool_events();
+        // pool_events() always returns Arc<Mutex<Receiver>>, so just verify we can call it
         let _ = launcher.shutdown().await;
     }
 }

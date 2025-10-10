@@ -25,6 +25,7 @@ RUN mkdir -p crates/riptide-core/src \
     crates/riptide-intelligence/src \
     crates/riptide-performance/src \
     crates/riptide-persistence/src \
+    crates/riptide-persistence/benches \
     crates/riptide-streaming/src \
     wasm/riptide-extractor-wasm/src
 
@@ -56,6 +57,7 @@ RUN echo "fn main() {}" > crates/riptide-core/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-intelligence/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-performance/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-persistence/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-persistence/benches/persistence_benchmarks.rs && \
     echo "fn main() {}" > crates/riptide-streaming/src/lib.rs && \
     echo "fn main() {}" > wasm/riptide-extractor-wasm/src/lib.rs
 
