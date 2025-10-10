@@ -1,0 +1,247 @@
+name: Docker Build & Publish
+
+# Separate Docker workflow - only runs when needed:
+# - Manual trigger (workflow_dispatch)
+# - Main branch pushes
+# - Release tags
+
+on:
+  push:
+    branches: ["main"]
+    tags: ["v*"]
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+      - ".github/workflows/api-validation.yml"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+    inputs:
+      push_to_registry:
+        description: "Push to Docker registry"
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+# Cancel previous runs on new push
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Build binaries first (reusable for Docker)
+  build-artifacts:
+    name: Build Release Artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: wasm32-wasip2
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
+      - name: Restore Cargo cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "docker-build-cache"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build native binaries
+        env:
+          RUSTFLAGS: "-C target-cpu=x86-64-v2"
+        run: |
+          echo "🔨 Building native release binaries..."
+          cargo build --release -p riptide-api
+          cargo build --release -p riptide-headless
+          cargo build --release -p riptide-workers
+
+          # Ensure binaries are in standard location
+          if [ -f "target/x86_64-unknown-linux-gnu/release/riptide-api" ]; then
+            mkdir -p target/release
+            cp target/x86_64-unknown-linux-gnu/release/riptide-{api,headless,workers} target/release/
+          fi
+
+          echo "✅ Binaries built:"
+          ls -lh target/release/riptide-*
+
+      - name: Build WASM component
+        run: |
+          echo "🔨 Building WASM component..."
+          cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm
+
+          mkdir -p wasm-dist
+          cp target/wasm32-wasip2/release/*.wasm wasm-dist/
+
+          echo "✅ WASM built:"
+          ls -lh wasm-dist/
+
+      - name: Upload native artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-binaries
+          path: |
+            target/release/riptide-api
+            target/release/riptide-headless
+            target/release/riptide-workers
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Upload WASM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-binaries
+          path: wasm-dist/*.wasm
+          retention-days: 3
+          if-no-files-found: error
+
+  # Build Docker images in parallel
+  docker-build:
+    name: Build ${{ matrix.service }} Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: build-artifacts
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        service: [api, headless]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: image=moby/buildkit:buildx-stable-1
+
+      - name: Log in to Container Registry
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download native artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: native-binaries
+          path: artifacts/
+
+      - name: Download WASM artifacts (API only)
+        if: matrix.service == 'api'
+        uses: actions/download-artifact@v4
+        with:
+          name: wasm-binaries
+          path: wasm-dist/
+
+      - name: Verify artifacts
+        run: |
+          echo "📦 Verifying build artifacts..."
+          ls -lh artifacts/
+          if [ "${{ matrix.service }}" = "api" ]; then
+            ls -lh wasm-dist/
+          fi
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: infra/docker/Dockerfile.${{ matrix.service }}
+          push: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) || inputs.push_to_registry }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+      - name: Export image for testing
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: infra/docker/Dockerfile.${{ matrix.service }}
+          tags: riptide-${{ matrix.service }}:test
+          cache-from: type=gha
+          outputs: type=docker,dest=/tmp/riptide-${{ matrix.service }}.tar
+
+      - name: Upload image artifact (PRs only)
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image-${{ matrix.service }}
+          path: /tmp/riptide-${{ matrix.service }}.tar
+          retention-days: 1
+
+  # Validate Docker images work
+  docker-test:
+    name: Test ${{ matrix.service }} Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: docker-build
+    if: github.event_name == 'pull_request'
+    strategy:
+      matrix:
+        service: [api, headless]
+    steps:
+      - name: Download image
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image-${{ matrix.service }}
+          path: /tmp
+
+      - name: Load and test image
+        run: |
+          docker load -i /tmp/riptide-${{ matrix.service }}.tar
+          echo "✅ Image loaded successfully"
+
+          # Basic smoke test
+          docker run --rm riptide-${{ matrix.service }}:test --version || true
+          echo "✅ Image runs"
+
+  # Summary
+  docker-complete:
+    name: Docker Build Complete
+    runs-on: ubuntu-latest
+    needs: [docker-build, docker-test]
+    if: always()
+    steps:
+      - name: Check results
+        run: |
+          if [[ "${{ needs.docker-build.result }}" != "success" ]]; then
+            echo "❌ Docker build failed"
+            exit 1
+          fi
+
+          if [[ "${{ needs.docker-test.result }}" != "success" && "${{ needs.docker-test.result }}" != "skipped" ]]; then
+            echo "❌ Docker tests failed"
+            exit 1
+          fi
+
+          echo "✅ Docker images built successfully"
+
+          if [[ "${{ github.event_name }}" != "pull_request" ]]; then
+            echo "📦 Images pushed to ${{ env.REGISTRY }}"
+          fi

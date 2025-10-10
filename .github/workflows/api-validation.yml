@@ -12,6 +12,10 @@ on:
       - 'crates/riptide-api/**'
       - 'tests/api/**'
       - '.github/workflows/api-validation.yml'
+    paths-ignore:
+      - 'docs/**'
+      - '!docs/api/openapi.yaml'  # Exception: openapi.yaml IS needed
+      - '**.md'
   pull_request:
     branches: [main, develop]
     paths:
@@ -19,7 +23,16 @@ on:
       - 'crates/riptide-api/**'
       - 'tests/api/**'
       - '.github/workflows/api-validation.yml'
+    paths-ignore:
+      - 'docs/**'
+      - '!docs/api/openapi.yaml'  # Exception: openapi.yaml IS needed
+      - '**.md'
   workflow_dispatch:
+
+# Cancel previous runs on new push
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   RUST_BACKTRACE: 1
@@ -37,6 +50,7 @@ jobs:
   static-analysis:
     name: 🔍 Static Analysis
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
@@ -85,6 +99,7 @@ jobs:
   contract-validation:
     name: 📋 Contract Validation (Dredd)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [static-analysis]
 
     services:
@@ -292,6 +307,7 @@ jobs:
   fuzzing-tests:
     name: 🔀 Fuzzing (Schemathesis)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [static-analysis]
 
     services:
@@ -396,6 +412,7 @@ jobs:
   performance-tests:
     name: 🚀 Performance Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [contract-validation]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
@@ -510,6 +527,7 @@ jobs:
   security-scan:
     name: 🔒 Security Scan (OWASP ZAP)
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     needs: [contract-validation]
 
     services:
@@ -607,6 +625,7 @@ jobs:
   test-coverage:
     name: 📊 Test Coverage
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [contract-validation]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
@@ -656,6 +675,7 @@ jobs:
   api-benchmarks:
     name: ⚡ Benchmarks
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [contract-validation]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
@@ -707,6 +727,7 @@ jobs:
   validation-complete:
     name: ✅ Validation Complete
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs:
       - static-analysis
       - contract-validation

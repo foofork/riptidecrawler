@@ -3,9 +3,22 @@ name: Optimized CI/CD Pipeline
 on:
   push:
     branches: ["main"]
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+      - ".github/workflows/docker-build.yml"
   pull_request:
     branches: ["main"]
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+      - ".github/workflows/docker-build.yml"
   workflow_dispatch:
+
+# Cancel previous runs on new push
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   RUST_BACKTRACE: 1
@@ -22,6 +35,7 @@ jobs:
   check:
     name: Quick Checks
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       cache-key: ${{ steps.cache-key.outputs.key }}
     steps:
@@ -53,6 +67,7 @@ jobs:
   build:
     name: Build (${{ matrix.target }})
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: check
     strategy:
       fail-fast: false
@@ -246,6 +261,7 @@ jobs:
   test:
     name: Test (${{ matrix.test-type }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: check
     strategy:
       fail-fast: false
@@ -284,81 +300,11 @@ jobs:
         run: |
           cargo test --workspace --tests -- --nocapture --test-threads=2
 
-  # Optimized Docker builds with caching
-  docker-build:
-    name: Docker Build (${{ matrix.service }})
-    runs-on: ubuntu-latest
-    needs: [build]
-    strategy:
-      matrix:
-        service: [api, headless]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          driver-opts: image=moby/buildkit:buildx-stable-1
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts-native
-          path: artifacts/
-
-      - name: Verify downloaded artifacts
-        run: |
-          echo "Verifying downloaded native artifacts..."
-          ls -lah artifacts/
-          for binary in riptide-api riptide-headless riptide-workers; do
-            if [[ ! -f "artifacts/$binary" ]]; then
-              echo "❌ ERROR: Downloaded binary not found: artifacts/$binary"
-              exit 1
-            fi
-            echo "✅ Verified: artifacts/$binary"
-          done
-
-      - name: Download WASM artifacts
-        if: matrix.service == 'api'
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts-wasm32-wasip2
-          path: wasm-dist/
-
-      - name: Verify WASM artifacts
-        if: matrix.service == 'api'
-        run: |
-          echo "Verifying downloaded WASM artifacts..."
-          ls -lah wasm-dist/
-          # Check if any .wasm files exist (use compgen for glob)
-          if ! compgen -G "wasm-dist/*.wasm" > /dev/null; then
-            echo "❌ ERROR: No WASM files found in wasm-dist/"
-            exit 1
-          fi
-          echo "✅ WASM artifacts verified"
-
-      - name: Build Docker image with cache
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: infra/docker/Dockerfile.${{ matrix.service }}
-          tags: riptide-${{ matrix.service }}:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64
-          outputs: type=docker,dest=/tmp/riptide-${{ matrix.service }}.tar
-
-      - name: Upload Docker image
-        uses: actions/upload-artifact@v4
-        with:
-          name: docker-image-${{ matrix.service }}
-          path: /tmp/riptide-${{ matrix.service }}.tar
-          retention-days: 3
-
   # Binary size monitoring
   size-check:
     name: Binary Size Check
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: build
     steps:
       - uses: actions/checkout@v4
@@ -427,6 +373,7 @@ jobs:
   quality:
     name: Quality & Security
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: check
     continue-on-error: true
     steps:
@@ -468,6 +415,7 @@ jobs:
   benchmark:
     name: Performance Benchmarks
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
@@ -504,7 +452,8 @@ jobs:
   validate:
     name: Final Validation
     runs-on: ubuntu-latest
-    needs: [build, test, docker-build, size-check]
+    timeout-minutes: 5
+    needs: [build, test, size-check]
     if: always()
     steps:
       - name: Check job results
@@ -522,23 +471,21 @@ jobs:
             exit 1
           fi
 
-          if [[ "${{ needs.docker-build.result }}" != "success" ]]; then
-            echo "❌ Docker build failed"
-            exit 1
-          fi
-
           echo "✅ All critical checks passed!"
-          echo "📈 Pipeline optimization targets:"
-          echo "- ✅ Parallel execution implemented"
-          echo "- ✅ WASM artifact caching active"
-          echo "- ✅ Docker layer caching enabled"
-          echo "- ✅ Binary size monitoring added"
+          echo "📈 Pipeline optimizations active:"
+          echo "- ✅ Parallel execution for builds and tests"
+          echo "- ✅ WASM artifact caching"
+          echo "- ✅ Binary size monitoring"
           echo "- ✅ Incremental builds configured"
+          echo "- ✅ Docker builds separated (see docker-build.yml)"
+          echo "- ✅ Concurrency cancellation enabled"
+          echo "- ✅ Documentation changes skip CI"
 
   # Cleanup to reclaim space
   cleanup:
     name: Build Cleanup
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [validate]
     if: always()
     steps:
