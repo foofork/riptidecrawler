@@ -133,13 +133,18 @@ jobs:
       - name: Start API server
         env:
           REDIS_URL: redis://localhost:6379
-          RUST_LOG: info
+          RUST_LOG: debug
+          RUST_BACKTRACE: full
           API_HOST: 0.0.0.0
           API_PORT: 8080
           WASM_EXTRACTOR_PATH: target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
         run: |
           BINARY_PATH=$(find target -name "riptide-api" -type f -executable | head -1)
-          echo "Starting API: $BINARY_PATH"
+          echo "🔍 Diagnostic Information:"
+          echo "  Binary: $BINARY_PATH"
+          echo "  WASM Path: $WASM_EXTRACTOR_PATH"
+          echo "  Redis URL: $REDIS_URL"
+          echo ""
 
           # Verify WASM file exists
           if [ ! -f "$WASM_EXTRACTOR_PATH" ]; then
@@ -147,30 +152,112 @@ jobs:
             ls -la target/wasm32-wasip2/release/
             exit 1
           fi
-          echo "✅ WASM file found: $WASM_EXTRACTOR_PATH"
+          echo "✅ WASM file found ($(stat -c%s "$WASM_EXTRACTOR_PATH") bytes)"
 
-          # Start API in background
-          $BINARY_PATH > api.log 2>&1 &
+          # Test Redis connectivity
+          echo ""
+          echo "🔍 Testing Redis connectivity..."
+          if redis-cli -h localhost -p 6379 ping; then
+            echo "✅ Redis is responding"
+          else
+            echo "❌ Redis connection failed"
+            exit 1
+          fi
+
+          # Check binary dependencies
+          echo ""
+          echo "🔍 Checking binary dependencies..."
+          ldd $BINARY_PATH | head -20 || echo "ldd check skipped"
+
+          # Try running API with direct output first to catch immediate errors
+          echo ""
+          echo "🚀 Testing API binary (direct execution for 3 seconds)..."
+          timeout 3s $BINARY_PATH || {
+            EXIT_CODE=$?
+            if [ $EXIT_CODE -eq 124 ]; then
+              echo "✅ API started successfully (timeout as expected)"
+            else
+              echo "❌ API failed immediately with exit code: $EXIT_CODE"
+              exit 1
+            fi
+          }
+
+          # Start API in background with unbuffered output
+          echo ""
+          echo "🚀 Starting API server..."
+          stdbuf -oL -eL $BINARY_PATH > api.log 2>&1 &
           API_PID=$!
           echo "API_PID=$API_PID" >> $GITHUB_ENV
           echo "Started API with PID: $API_PID"
 
-          # Wait for health
-          echo "Waiting for API to be healthy..."
+          # Give it a moment to crash if it's going to
+          sleep 2
+
+          # Check if process is still alive
+          if ! kill -0 $API_PID 2>/dev/null; then
+            echo "❌ API process died immediately!"
+            echo "=== API LOG ==="
+            cat api.log || echo "(no log output)"
+            echo "==============="
+            exit 1
+          fi
+          echo "✅ Process is running"
+
+          # Check for any log output
+          if [ -s api.log ]; then
+            echo "📝 Initial log output:"
+            head -20 api.log
+          else
+            echo "⚠️  No log output yet (file is empty)"
+          fi
+
+          # Wait for health with detailed status
+          echo ""
+          echo "🏥 Waiting for API health endpoint..."
           for i in {1..30}; do
-            if curl -sf http://localhost:8080/healthz; then
-              echo "✅ API healthy"
+            # Check if process is still alive
+            if ! kill -0 $API_PID 2>/dev/null; then
+              echo "❌ API process died during startup!"
+              break
+            fi
+
+            # Try health check
+            if curl -sf http://localhost:8080/healthz > /dev/null 2>&1; then
+              echo "✅ API is healthy!"
+              echo ""
+              echo "=== Final API Log (first 50 lines) ==="
+              head -50 api.log
+              echo "======================================="
               exit 0
             fi
-            echo "Attempt $i/30: API not ready yet..."
+
+            # Show progress every 5 attempts
+            if [ $((i % 5)) -eq 0 ]; then
+              echo "⏳ Attempt $i/30: Still waiting..."
+              if [ -s api.log ]; then
+                echo "   Latest log entries:"
+                tail -5 api.log | sed 's/^/   /'
+              fi
+            fi
             sleep 2
           done
 
+          # Failed to start
           echo ""
-          echo "❌ API failed to start after 60 seconds"
-          echo "=== API LOG ==="
-          cat api.log
-          echo "==============="
+          echo "❌ API failed to become healthy after 60 seconds"
+          echo ""
+          echo "🔍 Process status:"
+          if kill -0 $API_PID 2>/dev/null; then
+            echo "  Process is still RUNNING (but not responding to health checks)"
+            echo "  Checking port binding:"
+            netstat -tlnp 2>/dev/null | grep :8080 || echo "  Port 8080 not bound"
+          else
+            echo "  Process DIED"
+          fi
+          echo ""
+          echo "=== FULL API LOG ==="
+          cat api.log || echo "(no log file or empty)"
+          echo "===================="
           exit 1
 
       - name: Setup Node.js
@@ -238,36 +325,45 @@ jobs:
       - name: Start API server
         env:
           REDIS_URL: redis://localhost:6379
-          RUST_LOG: info
+          RUST_LOG: debug
+          RUST_BACKTRACE: full
           API_HOST: 0.0.0.0
           API_PORT: 8080
           WASM_EXTRACTOR_PATH: target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
         run: |
           BINARY_PATH=$(find target -name "riptide-api" -type f -executable | head -1)
-          echo "Starting API: $BINARY_PATH"
+          echo "🔍 Starting API: $BINARY_PATH"
 
-          # Verify WASM file exists
-          if [ ! -f "$WASM_EXTRACTOR_PATH" ]; then
-            echo "❌ ERROR: WASM file not found at $WASM_EXTRACTOR_PATH"
-            ls -la target/wasm32-wasip2/release/
+          # Verify WASM
+          [ -f "$WASM_EXTRACTOR_PATH" ] && echo "✅ WASM found" || { echo "❌ WASM missing"; exit 1; }
+
+          # Test Redis
+          redis-cli ping > /dev/null && echo "✅ Redis OK" || { echo "❌ Redis failed"; exit 1; }
+
+          # Start API with unbuffered output
+          stdbuf -oL -eL $BINARY_PATH > api.log 2>&1 &
+          API_PID=$!
+          echo "API_PID=$API_PID" >> $GITHUB_ENV
+          sleep 2
+
+          # Check process alive
+          if ! kill -0 $API_PID 2>/dev/null; then
+            echo "❌ API died immediately"
+            cat api.log
             exit 1
           fi
 
-          # Start API
-          $BINARY_PATH > api.log 2>&1 &
-          API_PID=$!
-          echo "API_PID=$API_PID" >> $GITHUB_ENV
-
           # Wait for health
+          echo "🏥 Waiting for health..."
           for i in {1..30}; do
-            if curl -sf http://localhost:8080/healthz; then
-              echo "✅ API healthy"
-              exit 0
-            fi
+            kill -0 $API_PID 2>/dev/null || { echo "❌ Process died"; cat api.log; exit 1; }
+            curl -sf http://localhost:8080/healthz > /dev/null 2>&1 && { echo "✅ API healthy"; exit 0; }
+            [ $((i % 5)) -eq 0 ] && echo "⏳ Attempt $i/30..."
             sleep 2
           done
 
-          echo "❌ API failed to start"
+          echo "❌ Health check timeout"
+          kill -0 $API_PID 2>/dev/null && echo "Process still running" || echo "Process died"
           cat api.log
           exit 1
 
@@ -333,38 +429,45 @@ jobs:
       - name: Start API server
         env:
           REDIS_URL: redis://localhost:6379
-          RUST_LOG: info
+          RUST_LOG: debug
+          RUST_BACKTRACE: full
           API_HOST: 0.0.0.0
           API_PORT: 8080
           WASM_EXTRACTOR_PATH: target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
         run: |
           BINARY_PATH=$(find target -name "riptide-api" -type f -executable | head -1)
-          echo "Starting API: $BINARY_PATH"
+          echo "🔍 Starting API: $BINARY_PATH"
 
-          # Verify WASM file exists
-          if [ ! -f "$WASM_EXTRACTOR_PATH" ]; then
-            echo "❌ ERROR: WASM file not found"
-            ls -la target/wasm32-wasip2/release/ || true
+          # Verify WASM + Redis
+          [ -f "$WASM_EXTRACTOR_PATH" ] && echo "✅ WASM found" || { echo "❌ WASM missing"; exit 1; }
+          redis-cli ping > /dev/null && echo "✅ Redis OK" || { echo "❌ Redis failed"; exit 1; }
+
+          # Start API with unbuffered output
+          stdbuf -oL -eL $BINARY_PATH > api.log 2>&1 &
+          API_PID=$!
+          echo "API_PID=$API_PID" >> $GITHUB_ENV
+          sleep 2
+
+          # Check process alive
+          if ! kill -0 $API_PID 2>/dev/null; then
+            echo "❌ API died immediately"
+            cat api.log
             exit 1
           fi
 
-          # Start API
-          $BINARY_PATH > api.log 2>&1 &
-          API_PID=$!
-          echo "API_PID=$API_PID" >> $GITHUB_ENV
-
           # Wait for health
+          echo "🏥 Waiting for health..."
           for i in {1..30}; do
-            if curl -sf http://localhost:8080/healthz; then
-              echo "✅ API healthy"
-              break
-            fi
+            kill -0 $API_PID 2>/dev/null || { echo "❌ Process died"; cat api.log; exit 1; }
+            curl -sf http://localhost:8080/healthz > /dev/null 2>&1 && { echo "✅ API healthy"; break; }
+            [ $((i % 5)) -eq 0 ] && echo "⏳ Attempt $i/30..."
             sleep 2
           done
 
-          # Check if API is still running
-          if ! kill -0 $API_PID 2>/dev/null; then
-            echo "❌ API process died"
+          # Final check
+          if ! curl -sf http://localhost:8080/healthz > /dev/null 2>&1; then
+            echo "❌ Health check failed"
+            kill -0 $API_PID 2>/dev/null && echo "Process running but not healthy" || echo "Process died"
             cat api.log
             exit 1
           fi
@@ -439,38 +542,45 @@ jobs:
       - name: Start API server
         env:
           REDIS_URL: redis://localhost:6379
-          RUST_LOG: info
+          RUST_LOG: debug
+          RUST_BACKTRACE: full
           API_HOST: 0.0.0.0
           API_PORT: 8080
           WASM_EXTRACTOR_PATH: target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
         run: |
           BINARY_PATH=$(find target -name "riptide-api" -type f -executable | head -1)
-          echo "Starting API: $BINARY_PATH"
+          echo "🔍 Starting API: $BINARY_PATH"
 
-          # Verify WASM file exists
-          if [ ! -f "$WASM_EXTRACTOR_PATH" ]; then
-            echo "❌ ERROR: WASM file not found"
-            ls -la target/wasm32-wasip2/release/ || true
+          # Verify WASM + Redis
+          [ -f "$WASM_EXTRACTOR_PATH" ] && echo "✅ WASM found" || { echo "❌ WASM missing"; exit 1; }
+          redis-cli ping > /dev/null && echo "✅ Redis OK" || { echo "❌ Redis failed"; exit 1; }
+
+          # Start API with unbuffered output
+          stdbuf -oL -eL $BINARY_PATH > api.log 2>&1 &
+          API_PID=$!
+          echo "API_PID=$API_PID" >> $GITHUB_ENV
+          sleep 2
+
+          # Check process alive
+          if ! kill -0 $API_PID 2>/dev/null; then
+            echo "❌ API died immediately"
+            cat api.log
             exit 1
           fi
 
-          # Start API
-          $BINARY_PATH > api.log 2>&1 &
-          API_PID=$!
-          echo "API_PID=$API_PID" >> $GITHUB_ENV
-
           # Wait for health
+          echo "🏥 Waiting for health..."
           for i in {1..30}; do
-            if curl -sf http://localhost:8080/healthz; then
-              echo "✅ API healthy"
-              break
-            fi
+            kill -0 $API_PID 2>/dev/null || { echo "❌ Process died"; cat api.log; exit 1; }
+            curl -sf http://localhost:8080/healthz > /dev/null 2>&1 && { echo "✅ API healthy"; break; }
+            [ $((i % 5)) -eq 0 ] && echo "⏳ Attempt $i/30..."
             sleep 2
           done
 
-          # Check if API is still running
-          if ! kill -0 $API_PID 2>/dev/null; then
-            echo "❌ API process died"
+          # Final check
+          if ! curl -sf http://localhost:8080/healthz > /dev/null 2>&1; then
+            echo "❌ Health check failed"
+            kill -0 $API_PID 2>/dev/null && echo "Process running but not healthy" || echo "Process died"
             cat api.log
             exit 1
           fi
