@@ -1,4 +1,5 @@
 use crate::job::{Job, JobResult, JobType};
+use crate::metrics::WorkerMetrics;
 use crate::queue::JobQueue;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -72,6 +73,8 @@ pub struct Worker {
     stats: Arc<WorkerStats>,
     /// Concurrency semaphore
     semaphore: Arc<Semaphore>,
+    /// Optional metrics collector for production monitoring
+    metrics: Option<Arc<WorkerMetrics>>,
 }
 
 /// Worker statistics
@@ -109,6 +112,29 @@ impl Worker {
             running: Arc::new(AtomicBool::new(false)),
             stats: Arc::new(WorkerStats::default()),
             semaphore,
+            metrics: None,
+        }
+    }
+
+    /// Create a new worker instance with metrics collector
+    pub fn with_metrics(
+        id: String,
+        config: WorkerConfig,
+        queue: Arc<tokio::sync::Mutex<JobQueue>>,
+        processors: Vec<Arc<dyn JobProcessor>>,
+        metrics: Arc<WorkerMetrics>,
+    ) -> Self {
+        let semaphore = Arc::new(Semaphore::new(config.max_concurrent_jobs));
+
+        Self {
+            id,
+            config,
+            queue,
+            processors,
+            running: Arc::new(AtomicBool::new(false)),
+            stats: Arc::new(WorkerStats::default()),
+            semaphore,
+            metrics: Some(metrics),
         }
     }
 
@@ -272,10 +298,24 @@ impl Worker {
 
             // Handle job result
             let mut queue = self.queue.lock().await;
+            let job_type_name = match &job.job_type {
+                JobType::BatchCrawl { .. } => "BatchCrawl",
+                JobType::SingleCrawl { .. } => "SingleCrawl",
+                JobType::PdfExtraction { .. } => "PdfExtraction",
+                JobType::Maintenance { .. } => "Maintenance",
+                JobType::Custom { job_name, .. } => job_name.as_str(),
+            };
+
             match result {
                 Ok(job_result) => {
                     queue.complete_job(job.id, job_result).await?;
                     self.stats.jobs_processed.fetch_add(1, Ordering::Relaxed);
+
+                    // Record metrics if available
+                    if let Some(ref metrics) = self.metrics {
+                        metrics.record_job_completed(job_type_name, processing_time_ms);
+                    }
+
                     info!(
                         worker_id = %self.id,
                         job_id = %job.id,
@@ -286,6 +326,12 @@ impl Worker {
                 Err(e) => {
                     queue.fail_job(job.id, e.to_string()).await?;
                     self.stats.jobs_failed.fetch_add(1, Ordering::Relaxed);
+
+                    // Record metrics if available
+                    if let Some(ref metrics) = self.metrics {
+                        metrics.record_job_failed(job_type_name);
+                    }
+
                     error!(
                         worker_id = %self.id,
                         job_id = %job.id,

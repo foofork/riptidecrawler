@@ -188,6 +188,7 @@ impl HeadlessLauncher {
     }
 
     /// Launch a browser page with default stealth settings
+    #[allow(dead_code)]
     pub async fn launch_page_default<'a>(&'a self, url: &str) -> Result<LaunchSession<'a>> {
         let stealth_preset = if self.config.enable_stealth {
             Some(self.config.default_stealth_preset.clone())
@@ -199,6 +200,7 @@ impl HeadlessLauncher {
     }
 
     /// Launch a browser page without stealth (for testing/debugging)
+    #[allow(dead_code)]
     pub async fn launch_page_no_stealth<'a>(&'a self, url: &str) -> Result<LaunchSession<'a>> {
         self.launch_page(url, Some(StealthPreset::None)).await
     }
@@ -212,6 +214,7 @@ impl HeadlessLauncher {
     }
 
     /// Get pool events for monitoring
+    #[allow(dead_code)]
     pub fn pool_events(
         &self,
     ) -> Arc<tokio::sync::Mutex<tokio::sync::mpsc::UnboundedReceiver<PoolEvent>>> {
@@ -359,6 +362,7 @@ impl HeadlessLauncher {
     }
 
     /// Shutdown the launcher and clean up resources
+    #[allow(dead_code)]
     pub async fn shutdown(&self) -> Result<()> {
         info!("Shutting down headless launcher");
         self.browser_pool.shutdown().await?;
@@ -379,6 +383,7 @@ pub struct LaunchSession<'a> {
 
 impl<'a> LaunchSession<'a> {
     /// Get the session ID
+    #[allow(dead_code)]
     pub fn session_id(&self) -> &str {
         &self.session_id
     }
@@ -394,6 +399,7 @@ impl<'a> LaunchSession<'a> {
     }
 
     /// Navigate to a new URL
+    #[allow(dead_code)]
     pub async fn navigate(&self, url: &str) -> Result<()> {
         debug!(
             session_id = %self.session_id,
@@ -416,6 +422,7 @@ impl<'a> LaunchSession<'a> {
     }
 
     /// Wait for a specific element
+    #[allow(dead_code)]
     pub async fn wait_for_element(&self, selector: &str, timeout_ms: Option<u64>) -> Result<()> {
         let timeout_duration = Duration::from_millis(timeout_ms.unwrap_or(5000));
 
@@ -441,6 +448,7 @@ impl<'a> LaunchSession<'a> {
     }
 
     /// Execute JavaScript on the page
+    #[allow(dead_code)]
     pub async fn execute_script(&self, script: &str) -> Result<serde_json::Value> {
         debug!(
             session_id = %self.session_id,
@@ -466,6 +474,7 @@ impl<'a> LaunchSession<'a> {
     }
 
     /// Take a screenshot
+    #[allow(dead_code)]
     pub async fn screenshot(&self) -> Result<Vec<u8>> {
         debug!(
             session_id = %self.session_id,
@@ -491,6 +500,7 @@ impl<'a> LaunchSession<'a> {
     }
 
     /// Get page content (HTML)
+    #[allow(dead_code)]
     pub async fn content(&self) -> Result<String> {
         debug!(
             session_id = %self.session_id,
@@ -512,6 +522,7 @@ impl<'a> LaunchSession<'a> {
     }
 
     /// Manually close the session (automatic on drop)
+    #[allow(dead_code)]
     pub async fn close(self) -> Result<()> {
         debug!(
             session_id = %self.session_id,

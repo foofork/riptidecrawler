@@ -6,7 +6,7 @@ use std::time::Instant;
 
 use super::config::{PdfCapabilities, PdfConfig};
 use super::errors::{PdfError, PdfResult};
-// Removed: unused import PdfMetricsCollector
+use super::metrics::PdfMetricsCollector;
 use super::types::{PdfImage, PdfMetadata, PdfProcessingResult, PdfStats, ProgressCallback};
 use super::utils;
 
@@ -69,6 +69,8 @@ pub trait PdfProcessor: Send + Sync {
 #[derive(Clone)]
 pub struct PdfiumProcessor {
     capabilities: PdfCapabilities,
+    /// Optional metrics collector for production monitoring
+    metrics: Option<Arc<PdfMetricsCollector>>,
 }
 
 #[cfg(feature = "pdf")]
@@ -102,7 +104,15 @@ impl PdfiumProcessor {
                     "2.0".to_string(),
                 ],
             },
+            metrics: None,
         }
+    }
+
+    /// Create a new processor with metrics collector
+    pub fn with_metrics(metrics: Arc<PdfMetricsCollector>) -> Self {
+        let mut processor = Self::new();
+        processor.metrics = Some(metrics);
+        processor
     }
 
     /// Enhanced PDF processing with page-by-page extraction and progress tracking
@@ -174,6 +184,12 @@ impl PdfiumProcessor {
                     if memory_spike > 200 * 1024 * 1024 { // Hard limit: 200MB spike
                         tracing::error!("Memory spike detected: {} MB above initial (HARD LIMIT: 200MB)",
                                       memory_spike / (1024 * 1024));
+
+                        // Record memory spike in metrics
+                        if let Some(ref metrics) = processor_clone.metrics {
+                            metrics.record_memory_spike_detected();
+                        }
+
                         return Err(PdfError::MemoryLimit {
                             used: memory_stats.current_rss,
                             limit: initial_memory_stats.current_rss + (200 * 1024 * 1024),
@@ -184,6 +200,12 @@ impl PdfiumProcessor {
                     if memory_spike > 150 * 1024 * 1024 {
                         tracing::warn!("Approaching memory limit: {} MB above initial (warning at 150MB)",
                                       memory_spike / (1024 * 1024));
+
+                        // Record approaching memory spike
+                        if let Some(ref metrics) = processor_clone.metrics {
+                            metrics.record_memory_spike_detected();
+                        }
+
                         processor_clone.perform_aggressive_cleanup();
                     }
 

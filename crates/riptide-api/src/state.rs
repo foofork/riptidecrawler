@@ -1024,18 +1024,7 @@ impl MonitoringSystem {
     }
 
     /// Start background alert evaluation task
-    pub fn start_alert_evaluation_task(&self, _event_bus: Arc<EventBus>) {
-        // TODO(P1): Publish alerts to event bus for system-wide notification
-        // PLAN: Use event_bus parameter to broadcast alerts
-        // IMPLEMENTATION:
-        //   1. Construct AlertEvent with rule, severity, and metrics
-        //   2. Publish to event bus topic: "monitoring.alerts"
-        //   3. Subscribers can trigger notifications, webhooks, or automation
-        //   4. Add event payload with full context for debugging
-        // DEPENDENCIES: Event bus is passed but not used (param: _event_bus)
-        // EFFORT: Low (1-2 hours)
-        // PRIORITY: Important for alerting infrastructure
-        // BLOCKER: None - just need to call event_bus.publish()
+    pub fn start_alert_evaluation_task(&self, event_bus: Arc<EventBus>) {
         let metrics_collector = self.metrics_collector.clone();
         let alert_manager = self.alert_manager.clone();
         tokio::spawn(async move {
@@ -1085,20 +1074,9 @@ impl MonitoringSystem {
                                 ),
                             }
 
-                            // Create a generic event for the alert
+                            // Create and publish alert event to event bus
                             use riptide_core::events::BaseEvent;
-                            let _base_event = BaseEvent::new(
-                                // TODO(P1): Publish BaseEvent to event bus
-                                // PLAN: Use event_bus to publish alert events
-                                // IMPLEMENTATION:
-                                //   1. Convert BaseEvent to event bus format
-                                //   2. Publish to topic: "monitoring.alert.triggered"
-                                //   3. Include alert metadata: rule_name, severity, threshold
-                                //   4. Enable downstream alerting (Slack, PagerDuty, email)
-                                // DEPENDENCIES: Same as state.rs:1015
-                                // EFFORT: Low (part of alert publishing feature)
-                                // PRIORITY: Important for alert distribution
-                                // BLOCKER: None
+                            let mut base_event = BaseEvent::new(
                                 "monitoring.alert.triggered",
                                 "monitoring_system",
                                 match alert.severity {
@@ -1109,8 +1087,28 @@ impl MonitoringSystem {
                                 },
                             );
 
-                            // Note: Event publishing is simplified for now
-                            // Future: Implement full event publishing with proper types
+                            // Add alert metadata for downstream consumers
+                            base_event.add_metadata("rule_name", &alert.rule_name);
+                            base_event.add_metadata("message", &alert.message);
+                            base_event
+                                .add_metadata("current_value", &alert.current_value.to_string());
+                            base_event.add_metadata("threshold", &alert.threshold.to_string());
+                            base_event.add_metadata("severity", &format!("{:?}", alert.severity));
+
+                            // Publish event to event bus for system-wide notification
+                            // This enables downstream alerting (Slack, PagerDuty, email, webhooks)
+                            if let Err(e) = event_bus.emit(base_event).await {
+                                tracing::warn!(
+                                    rule_name = %alert.rule_name,
+                                    error = %e,
+                                    "Failed to publish alert event to event bus"
+                                );
+                            } else {
+                                tracing::debug!(
+                                    rule_name = %alert.rule_name,
+                                    "Alert event published to event bus successfully"
+                                );
+                            }
                         }
                     }
                     Err(e) => {
@@ -1120,7 +1118,7 @@ impl MonitoringSystem {
             }
         });
 
-        tracing::info!("Started background alert evaluation task with 30-second interval");
+        tracing::info!("Started background alert evaluation task with 30-second interval and event bus integration");
     }
 
     /// Calculate current health score

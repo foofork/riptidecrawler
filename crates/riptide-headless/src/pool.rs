@@ -220,6 +220,7 @@ pub struct BrowserPool {
     semaphore: Arc<Semaphore>,
     event_sender: mpsc::UnboundedSender<PoolEvent>,
     event_receiver: Arc<Mutex<mpsc::UnboundedReceiver<PoolEvent>>>,
+    #[allow(dead_code)]
     shutdown_sender: mpsc::Sender<()>,
     _management_task: tokio::task::JoinHandle<()>,
 }
@@ -604,6 +605,7 @@ impl BrowserPool {
     }
 
     /// Shutdown the pool and clean up all resources
+    #[allow(dead_code)]
     pub async fn shutdown(&self) -> Result<()> {
         info!("Shutting down browser pool");
 
@@ -695,6 +697,7 @@ impl BrowserCheckout {
     }
 
     /// Manually check in the browser (consumes the checkout)
+    #[allow(dead_code)]
     pub async fn checkin(mut self) -> Result<()> {
         let result = self.pool.checkin(&self.browser_id).await;
         // Prevent drop from trying to checkin again

@@ -43,8 +43,9 @@ pub struct ResourceManager {
     pub memory_manager: Arc<MemoryManager>,
     /// Performance monitor
     pub performance_monitor: Arc<PerformanceMonitor>,
-    /// Resource metrics
-    metrics: Arc<ResourceMetrics>,
+    /// Resource metrics (public for testing)
+    #[cfg_attr(test, allow(dead_code))]
+    pub(crate) metrics: Arc<ResourceMetrics>,
 }
 
 // Browser pool implementation moved to riptide-headless crate
@@ -582,6 +583,7 @@ impl WasmInstanceManager {
         })
     }
 
+    #[cfg_attr(test, allow(dead_code))]
     async fn acquire_instance(self: &Arc<Self>, worker_id: &str) -> Result<WasmGuard> {
         let mut instances = self.worker_instances.write().await;
 
@@ -608,6 +610,14 @@ impl WasmInstanceManager {
         Ok(WasmGuard {
             manager: self.clone(),
         })
+    }
+
+    /// Test-only method to access acquire_instance for testing
+    /// Note: self is already &Arc<Self> when called from ResourceManager,
+    /// so we need to properly handle the Arc wrapper
+    #[cfg(test)]
+    pub async fn test_acquire_instance(self: &Arc<Self>, worker_id: &str) -> Result<WasmGuard> {
+        self.acquire_instance(worker_id).await
     }
 
     /// Get health status of WASM instances

@@ -51,8 +51,10 @@ async fn main() -> Result<()> {
     );
 
     // Create worker service configuration
-    let mut config = WorkerServiceConfig::default();
-    config.redis_url = args.redis_url;
+    let mut config = WorkerServiceConfig {
+        redis_url: args.redis_url,
+        ..Default::default()
+    };
     config.worker_config.worker_count = args.worker_count;
     config.max_batch_size = args.max_batch_size;
     config.max_concurrency = args.max_concurrency;

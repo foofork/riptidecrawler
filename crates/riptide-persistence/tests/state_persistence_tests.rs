@@ -15,7 +15,6 @@ use std::collections::HashMap;
 use tempfile::TempDir;
 use tokio::time::{sleep, Duration};
 use tracing::info;
-use tracing_subscriber;
 
 /// Initialize test logging
 fn init_test_logging() {

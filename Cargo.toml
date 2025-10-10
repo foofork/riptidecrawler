@@ -66,6 +66,7 @@ pdfium-render = { version = "0.8", features = ["sync", "thread_safe"] }
 env_logger = { version = "0.10" }
 tempfile = { version = "3" }
 dashmap = "6.1"
+wiremock = "0.6"
 
 # Performance optimization settings
 [profile.release]

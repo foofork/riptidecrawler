@@ -227,14 +227,17 @@ async fn stress_test_production_readiness() {
             let mut successes = 0;
 
             for i in 0..stress_iterations / concurrent_threads {
-                match component.extract(
-                    html.clone(),
-                    format!("https://stress.test/{}/{}", thread_id, i),
-                    ExtractionMode::Article,
-                ) {
-                    Ok(_) => successes += 1,
-                    Err(_) => {} // Count failures implicitly
+                if component
+                    .extract(
+                        html.clone(),
+                        format!("https://stress.test/{}/{}", thread_id, i),
+                        ExtractionMode::Article,
+                    )
+                    .is_ok()
+                {
+                    successes += 1;
                 }
+                // Count failures implicitly
             }
 
             Ok(successes)
@@ -378,7 +381,7 @@ fn error_handling_test() {
 #[cfg(test)]
 mod test_utilities {
     /// Utility functions for test data generation and validation
-
+    ///
     /// Reserved for test data generation - will be used when test fixtures need HTML generation
     #[allow(dead_code)]
     pub fn generate_test_html(content_type: &str, size: usize) -> String {

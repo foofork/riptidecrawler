@@ -36,6 +36,7 @@ tokio-test = "0.4"
 [dev-dependencies]
 # Mocking framework
 mockall = "0.12"
+wiremock = "0.6"
 
 # Test utilities
 assert_matches = "1.5"

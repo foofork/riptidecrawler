@@ -260,7 +260,7 @@ impl BackpressureController {
         let total_memory_usage = resources.values().map(|r| r.memory_usage).sum();
         let throttled_streams = resources
             .values()
-            .filter(|r| r.throttle_until.map_or(false, |t| Instant::now() < t))
+            .filter(|r| r.throttle_until.is_some_and(|t| Instant::now() < t))
             .count();
 
         // Calculate rejection rate

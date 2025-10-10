@@ -77,10 +77,12 @@ pub struct EventEmitter<'a> {
 
 #[cfg(feature = "events")]
 impl<'a> EventEmitter<'a> {
+    #[allow(dead_code)]
     pub fn new(state: &'a AppState) -> Self {
         Self { _state: state }
     }
 
+    #[allow(dead_code)]
     pub fn emit_event(&self, _event_type: &str, _data: serde_json::Value) {
         // Event emission implementation
     }
@@ -92,6 +94,7 @@ pub struct ResultTransformer;
 
 #[cfg(feature = "events")]
 impl ResultTransformer {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self
     }

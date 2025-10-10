@@ -61,37 +61,28 @@ pub fn run_integration_tests() -> Result<Vec<IntegrationTestResult>, String> {
     println!("============================================");
 
     let config = IntegrationTestConfig::default();
-    let mut results = Vec::new();
-
-    // Test 1: End-to-end extraction pipeline
-    results.push(test_end_to_end_extraction(&config)?);
-
-    // Test 2: Fallback mechanism validation
-    results.push(test_fallback_mechanisms(&config)?);
-
-    // Test 3: Concurrent extraction stress test
-    results.push(test_concurrent_extraction_stress(&config)?);
-
-    // Test 4: Memory leak detection over time
-    results.push(test_long_running_memory_stability(&config)?);
-
-    // Test 5: Error handling and recovery
-    results.push(test_error_handling_recovery(&config)?);
-
-    // Test 6: Multi-language content processing
-    results.push(test_multi_language_processing(&config)?);
-
-    // Test 7: Large-scale batch processing
-    results.push(test_batch_processing_performance(&config)?);
-
-    // Test 8: Real-world website simulation
-    results.push(test_real_world_website_simulation(&config)?);
-
-    // Test 9: Edge case handling
-    results.push(test_edge_case_handling(&config)?);
-
-    // Test 10: Production load simulation
-    results.push(test_production_load_simulation(&config)?);
+    let results = vec![
+        // Test 1: End-to-end extraction pipeline
+        test_end_to_end_extraction(&config)?,
+        // Test 2: Fallback mechanism validation
+        test_fallback_mechanisms(&config)?,
+        // Test 3: Concurrent extraction stress test
+        test_concurrent_extraction_stress(&config)?,
+        // Test 4: Memory leak detection over time
+        test_long_running_memory_stability(&config)?,
+        // Test 5: Error handling and recovery
+        test_error_handling_recovery(&config)?,
+        // Test 6: Multi-language content processing
+        test_multi_language_processing(&config)?,
+        // Test 7: Large-scale batch processing
+        test_batch_processing_performance(&config)?,
+        // Test 8: Real-world website simulation
+        test_real_world_website_simulation(&config)?,
+        // Test 9: Edge case handling
+        test_edge_case_handling(&config)?,
+        // Test 10: Production load simulation
+        test_production_load_simulation(&config)?,
+    ];
 
     print_integration_test_summary(&results);
 

@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use serde_json;
 use std::fs;
 use std::path::Path;
 
@@ -576,6 +575,6 @@ mod tests {
         assert_eq!(calculate_similarity("hello", ""), 0.0);
 
         let sim = calculate_similarity("hello world foo", "hello world bar");
-        assert!(sim >= 0.5 && sim < 1.0);
+        assert!((0.5..1.0).contains(&sim));
     }
 }
