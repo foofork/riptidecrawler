@@ -259,6 +259,23 @@ async fn main() -> anyhow::Result<()> {
         // Worker management endpoints
         .route("/workers/jobs", post(handlers::workers::submit_job))
         .route("/workers/jobs", get(handlers::workers::list_jobs))
+        // Browser management endpoints
+        .route(
+            "/api/v1/browser/session",
+            post(handlers::browser::create_browser_session),
+        )
+        .route(
+            "/api/v1/browser/action",
+            post(handlers::browser::execute_browser_action),
+        )
+        .route(
+            "/api/v1/browser/pool/status",
+            get(handlers::browser::get_browser_pool_status),
+        )
+        .route(
+            "/api/v1/browser/session/:id",
+            axum::routing::delete(handlers::browser::close_browser_session),
+        )
         // Resource monitoring endpoints
         .route(
             "/resources/status",
@@ -401,8 +418,50 @@ async fn main() -> anyhow::Result<()> {
         .route(
             "/api/telemetry/traces/:trace_id",
             get(handlers::telemetry::get_trace_tree),
+        );
+
+    // Persistence and Multi-tenancy Admin Endpoints (feature-gated)
+    #[cfg(feature = "persistence")]
+    let app = app
+        // Tenant management
+        .route("/admin/tenants", post(handlers::admin::create_tenant))
+        .route("/admin/tenants", get(handlers::admin::list_tenants))
+        .route("/admin/tenants/:id", get(handlers::admin::get_tenant))
+        .route(
+            "/admin/tenants/:id",
+            axum::routing::put(handlers::admin::update_tenant),
         )
-        .fallback(handlers::not_found);
+        .route(
+            "/admin/tenants/:id",
+            axum::routing::delete(handlers::admin::delete_tenant),
+        )
+        .route(
+            "/admin/tenants/:id/usage",
+            get(handlers::admin::get_tenant_usage),
+        )
+        .route(
+            "/admin/tenants/:id/billing",
+            get(handlers::admin::get_tenant_billing),
+        )
+        // Cache management
+        .route("/admin/cache/warm", post(handlers::admin::warm_cache))
+        .route(
+            "/admin/cache/invalidate",
+            post(handlers::admin::invalidate_cache),
+        )
+        .route("/admin/cache/stats", get(handlers::admin::get_cache_stats))
+        // State management
+        .route("/admin/state/reload", post(handlers::admin::reload_state))
+        .route(
+            "/admin/state/checkpoint",
+            post(handlers::admin::create_checkpoint),
+        )
+        .route(
+            "/admin/state/restore/:id",
+            post(handlers::admin::restore_checkpoint),
+        );
+
+    let app = app.fallback(handlers::not_found);
 
     // Create separate router for session-aware routes
     // SessionLayer must be applied BEFORE with_state for proper type inference

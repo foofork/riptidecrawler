@@ -692,15 +692,11 @@ async fn create_provider_info(
     // Create cost info if requested
     let cost_info = if params.include_cost {
         // Use actual cost from first model if available
-        if let Some(model) = llm_capabilities.models.first() {
-            Some(CostInfo {
-                input_token_cost: Some(model.cost_per_1k_prompt_tokens),
-                output_token_cost: Some(model.cost_per_1k_completion_tokens),
-                currency: "USD".to_string(),
-            })
-        } else {
-            None
-        }
+        llm_capabilities.models.first().map(|model| CostInfo {
+            input_token_cost: Some(model.cost_per_1k_prompt_tokens),
+            output_token_cost: Some(model.cost_per_1k_completion_tokens),
+            currency: "USD".to_string(),
+        })
     } else {
         None
     };

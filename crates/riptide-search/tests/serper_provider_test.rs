@@ -1,6 +1,4 @@
 use serde_json::json;
-use std::time::Duration;
-use tokio::time::timeout;
 
 // Mock HTTP client for testing
 struct MockHttpResponse {

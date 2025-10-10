@@ -7,11 +7,9 @@
 //! - Advanced configuration options
 //! - Multi-provider scenarios
 
-use anyhow::Result;
 use riptide_search::{
-    create_search_provider, create_search_provider_from_env, AdvancedSearchConfig,
-    CircuitBreakerConfigOptions, SearchBackend, SearchConfig, SearchProvider,
-    SearchProviderFactory,
+    create_search_provider, AdvancedSearchConfig, CircuitBreakerConfigOptions, SearchBackend,
+    SearchConfig, SearchProviderFactory,
 };
 use std::sync::Arc;
 use std::time::Duration;
@@ -235,7 +233,6 @@ mod advanced_config_tests {
 #[cfg(test)]
 mod circuit_breaker_integration {
     use super::*;
-    use riptide_search::{CircuitBreakerConfig, CircuitBreakerWrapper};
 
     #[tokio::test]
     async fn test_circuit_breaker_protects_provider() {

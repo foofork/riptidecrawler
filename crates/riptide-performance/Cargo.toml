@@ -87,14 +87,14 @@ tokio-test = "0.4"
 default = ["memory-profiling", "cache-optimization", "resource-limits"]
 
 # Core feature groups
-memory-profiling = ["pprof", "memory-stats"]  # tikv-jemalloc-ctl removed due to conflicts
+memory-profiling = ["tikv-jemalloc-ctl", "pprof", "memory-stats"]  # Re-enabled tikv-jemalloc-ctl for memory profiling
 bottleneck-analysis = ["criterion"]  # flamegraph removed from default
 bottleneck-analysis-full = ["bottleneck-analysis", "flamegraph"]  # Dev-only: includes flamegraph
 cache-optimization = ["moka", "redis"]
 resource-limits = ["governor"]  # tower-limit removed due to security advisory
 
 # Allocator features
-jemalloc = []  # Feature flag only, actual allocator in riptide-api
+jemalloc = ["tikv-jemalloc-ctl"]  # Feature flag enables tikv-jemalloc-ctl for control interface
 
 # Environment-specific feature sets
 # Production excludes flamegraph for license compliance

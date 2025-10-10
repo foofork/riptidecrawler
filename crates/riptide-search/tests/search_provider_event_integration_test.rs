@@ -8,12 +8,10 @@ use async_trait::async_trait;
 use riptide_core::events::{
     handlers::{HealthEventHandler, LoggingEventHandler},
     types::{MetricType, MetricsEvent, SystemEvent},
-    BaseEvent, Event, EventBus, EventBusConfig, EventEmitter, EventHandler, EventSeverity,
-    HandlerConfig,
+    Event, EventBus, EventBusConfig, EventHandler, EventSeverity, HandlerConfig,
 };
 use riptide_search::{
-    create_search_provider, CircuitBreakerWrapper, NoneProvider, SearchBackend, SearchConfig,
-    SearchHit, SearchProvider,
+    CircuitBreakerWrapper, NoneProvider, SearchBackend, SearchHit, SearchProvider,
 };
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU32, Ordering};

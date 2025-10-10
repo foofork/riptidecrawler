@@ -1,4 +1,7 @@
 // Module declarations
+#[cfg(feature = "persistence")]
+pub mod admin;
+pub mod browser;
 pub mod chunking;
 pub mod crawl;
 pub mod deepsearch;

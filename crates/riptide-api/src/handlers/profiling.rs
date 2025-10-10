@@ -26,8 +26,7 @@ use axum::{
     extract::State,
     response::{IntoResponse, Json},
 };
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use serde::Serialize;
 
 // ==================== Response Models ====================
 
@@ -617,10 +616,11 @@ mod tests {
 
     #[test]
     fn test_threshold_status_classification() {
+        let rss_mb = 500.0;
         assert_eq!(
-            if 500.0 > 700.0 {
+            if rss_mb > 700.0 {
                 "critical"
-            } else if 500.0 > 650.0 {
+            } else if rss_mb > 650.0 {
                 "warning"
             } else {
                 "normal"
@@ -628,10 +628,11 @@ mod tests {
             "normal"
         );
 
+        let rss_mb = 670.0;
         assert_eq!(
-            if 670.0 > 700.0 {
+            if rss_mb > 700.0 {
                 "critical"
-            } else if 670.0 > 650.0 {
+            } else if rss_mb > 650.0 {
                 "warning"
             } else {
                 "normal"

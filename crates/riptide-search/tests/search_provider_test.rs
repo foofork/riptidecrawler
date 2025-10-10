@@ -1,11 +1,7 @@
 //! TDD tests for SearchProvider implementation
 //! Following London School TDD with mock collaborations
 
-use anyhow::Result;
-use mockall::predicate::*;
-use riptide_search::{
-    create_search_provider, SearchBackend, SearchConfig, SearchHit, SearchProvider,
-};
+use riptide_search::{create_search_provider, SearchBackend, SearchConfig, SearchHit};
 
 #[tokio::test]
 async fn test_serper_provider_requires_api_key() {

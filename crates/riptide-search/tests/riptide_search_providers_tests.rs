@@ -5,9 +5,8 @@
 
 use anyhow::Result;
 use riptide_search::{
-    create_search_provider, create_search_provider_from_env, AdvancedSearchConfig,
-    CircuitBreakerWrapper, NoneProvider, SearchBackend, SearchConfig, SearchHit, SearchProvider,
-    SearchProviderFactory, SerperProvider,
+    create_search_provider, AdvancedSearchConfig, NoneProvider, SearchBackend, SearchConfig,
+    SearchHit, SearchProvider, SearchProviderFactory, SerperProvider,
 };
 use std::time::Duration;
 
@@ -371,8 +370,10 @@ mod search_config_tests {
 
     #[test]
     fn test_advanced_search_config_validation_circuit_breaker() {
-        let mut config = AdvancedSearchConfig::default();
-        config.backend = SearchBackend::None;
+        let mut config = AdvancedSearchConfig {
+            backend: SearchBackend::None,
+            ..Default::default()
+        };
         config.circuit_breaker.failure_threshold = 150;
 
         assert!(config.validate().is_err());

@@ -5,10 +5,8 @@
 
 use riptide_search::{
     create_search_provider, create_search_provider_from_env, SearchBackend, SearchConfig,
-    SearchProvider,
 };
 use std::env;
-use std::time::Duration;
 
 #[cfg(test)]
 mod advanced_search_config_tests {

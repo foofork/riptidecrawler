@@ -4,12 +4,10 @@
 //! including edge cases, error handling, and environment-based configuration.
 
 use riptide_search::{
-    create_search_provider, create_search_provider_from_env, AdvancedSearchConfig,
-    CircuitBreakerConfigOptions, SearchBackend, SearchConfig, SearchProvider,
-    SearchProviderFactory,
+    create_search_provider, AdvancedSearchConfig, CircuitBreakerConfigOptions, SearchBackend,
+    SearchConfig, SearchProvider, SearchProviderFactory,
 };
 use std::env;
-use std::time::Duration;
 
 // Activate all provider selection tests
 #[cfg(test)]
@@ -701,8 +699,6 @@ mod advanced_factory_pattern_tests {
     /// Test factory pattern thread safety
     #[tokio::test]
     async fn test_factory_thread_safety() {
-        use std::sync::Arc;
-
         // Create providers concurrently from multiple threads
         let mut handles = Vec::new();
 

@@ -22,6 +22,7 @@ use riptide_core::{
     spider::{Spider, SpiderConfig},
     telemetry::TelemetrySystem,
 };
+use riptide_headless::launcher::HeadlessLauncher;
 use riptide_html::wasm_extraction::WasmExtractor;
 use riptide_performance::PerformanceManager;
 use riptide_workers::{WorkerService, WorkerServiceConfig};
@@ -111,6 +112,9 @@ pub struct AppState {
     /// Future: CacheWarmer for intelligent cache pre-warming (placeholder for now)
     #[allow(dead_code)] // Future feature - intentionally not used yet
     pub cache_warmer_enabled: bool,
+
+    /// Headless browser launcher with connection pooling and stealth support
+    pub browser_launcher: Arc<HeadlessLauncher>,
 }
 
 /// Application configuration loaded from environment and config files.
@@ -729,7 +733,45 @@ impl AppState {
             tracing::info!("CacheWarmer feature flag enabled (full implementation pending)");
         }
 
-        tracing::info!("Application state initialization complete with resource controls, event bus, circuit breaker, monitoring, fetch engine, performance manager, authentication, and cache warming");
+        // Initialize headless browser launcher with pooling
+        tracing::info!(
+            max_pool_size = api_config.headless.max_pool_size,
+            "Initializing headless browser launcher with connection pooling"
+        );
+
+        let browser_launcher_config = riptide_headless::launcher::LauncherConfig {
+            pool_config: riptide_headless::pool::BrowserPoolConfig {
+                min_pool_size: std::cmp::max(1, api_config.headless.max_pool_size / 2),
+                max_pool_size: api_config.headless.max_pool_size,
+                initial_pool_size: std::cmp::max(1, api_config.headless.max_pool_size / 4),
+                idle_timeout: Duration::from_secs(api_config.headless.idle_timeout_secs),
+                max_lifetime: Duration::from_secs(300), // 5 minutes max lifetime
+                health_check_interval: Duration::from_secs(30),
+                memory_threshold_mb: 500,
+                enable_recovery: true,
+                max_retries: 3,
+            },
+            default_stealth_preset: riptide_core::stealth::StealthPreset::Medium,
+            enable_stealth: true,
+            page_timeout: Duration::from_secs(30),
+            enable_monitoring: true,
+        };
+
+        let browser_launcher = Arc::new(
+            HeadlessLauncher::with_config(browser_launcher_config)
+                .await
+                .map_err(|e| {
+                    tracing::error!(error = %e, "Failed to initialize browser launcher");
+                    anyhow::anyhow!("Failed to initialize browser launcher: {}", e)
+                })?,
+        );
+
+        tracing::info!(
+            pool_size = api_config.headless.max_pool_size,
+            "Headless browser launcher initialized successfully"
+        );
+
+        tracing::info!("Application state initialization complete with resource controls, event bus, circuit breaker, monitoring, fetch engine, performance manager, authentication, cache warming, and browser launcher");
 
         Ok(Self {
             http_client,
@@ -755,6 +797,7 @@ impl AppState {
             performance_manager,
             auth_config,
             cache_warmer_enabled,
+            browser_launcher,
         })
     }
 

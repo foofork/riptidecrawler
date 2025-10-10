@@ -1,7 +1,7 @@
 //! Quick integration test for the SearchProvider trait implementation
 //! This validates that Phase 1 of the roadmap is working correctly.
 
-use riptide_search::{create_search_provider, SearchBackend, SearchConfig, SearchProvider};
+use riptide_search::{create_search_provider, SearchBackend, SearchConfig};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

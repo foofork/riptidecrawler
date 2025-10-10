@@ -6246,6 +6246,7 @@ dependencies = [
  "riptide-intelligence",
  "riptide-pdf",
  "riptide-performance",
+ "riptide-persistence",
  "riptide-search",
  "riptide-stealth",
  "riptide-workers",

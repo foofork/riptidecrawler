@@ -1,8 +1,8 @@
 //! Comprehensive tests for extraction strategies and chunking modes
 
 use anyhow::Result;
-use riptide_core::strategies::*;
 use riptide_core::strategies::chunking::ChunkingMode;
+use riptide_core::strategies::*;
 use std::collections::HashMap;
 
 #[tokio::test]
@@ -149,7 +149,10 @@ async fn test_sentence_chunking() -> Result<()> {
 async fn test_fixed_chunking() -> Result<()> {
     let content = "Word ".repeat(200); // Create content with known word count
     let config = ChunkingConfig {
-        mode: ChunkingMode::Fixed { size: 100, by_tokens: false },
+        mode: ChunkingMode::Fixed {
+            size: 100,
+            by_tokens: false,
+        },
         token_max: 1000,
         overlap: 0,
         preserve_sentences: false,
@@ -263,10 +266,12 @@ async fn test_metadata_extraction() -> Result<()> {
     assert!(metadata.confidence_scores.author > 0.0);
 
     // Test extraction methods used
-    assert!(metadata.extraction_method.open_graph ||
-            metadata.extraction_method.json_ld ||
-            metadata.extraction_method.meta_tags ||
-            metadata.extraction_method.heuristics);
+    assert!(
+        metadata.extraction_method.open_graph
+            || metadata.extraction_method.json_ld
+            || metadata.extraction_method.meta_tags
+            || metadata.extraction_method.heuristics
+    );
 
     Ok(())
 }
@@ -274,21 +279,30 @@ async fn test_metadata_extraction() -> Result<()> {
 #[tokio::test]
 async fn test_byline_extraction_accuracy() -> Result<()> {
     let test_cases = vec![
-        (r#"<meta property="article:author" content="John Smith">"#, "John Smith"),
+        (
+            r#"<meta property="article:author" content="John Smith">"#,
+            "John Smith",
+        ),
         (r#"<div class="byline">By Jane Doe</div>"#, "Jane Doe"),
         (r#"<span class="author">Bob Wilson</span>"#, "Bob Wilson"),
-        (r#"<meta name="author" content="Alice Johnson">"#, "Alice Johnson"),
+        (
+            r#"<meta name="author" content="Alice Johnson">"#,
+            "Alice Johnson",
+        ),
     ];
 
     let mut correct_extractions = 0;
 
     for (html_snippet, expected_author) in &test_cases {
-        let full_html = format!(r#"
+        let full_html = format!(
+            r#"
             <html>
             <head><title>Test</title></head>
             <body>{}</body>
             </html>
-        "#, html_snippet);
+        "#,
+            html_snippet
+        );
 
         let metadata = metadata::extract_metadata(&full_html, "http://example.com").await?;
 
@@ -300,7 +314,11 @@ async fn test_byline_extraction_accuracy() -> Result<()> {
     }
 
     let accuracy = correct_extractions as f64 / test_cases.len() as f64;
-    assert!(accuracy >= 0.8, "Byline extraction accuracy: {:.2}% (required: 80%)", accuracy * 100.0);
+    assert!(
+        accuracy >= 0.8,
+        "Byline extraction accuracy: {:.2}% (required: 80%)",
+        accuracy * 100.0
+    );
 
     Ok(())
 }
@@ -308,21 +326,33 @@ async fn test_byline_extraction_accuracy() -> Result<()> {
 #[tokio::test]
 async fn test_date_extraction_accuracy() -> Result<()> {
     let test_cases = vec![
-        (r#"<meta property="article:published_time" content="2023-12-01T10:00:00Z">"#, "2023-12-01"),
-        (r#"<time datetime="2023-11-15">November 15, 2023</time>"#, "2023-11-15"),
+        (
+            r#"<meta property="article:published_time" content="2023-12-01T10:00:00Z">"#,
+            "2023-12-01",
+        ),
+        (
+            r#"<time datetime="2023-11-15">November 15, 2023</time>"#,
+            "2023-11-15",
+        ),
         (r#"<div class="date">2023-10-20</div>"#, "2023-10-20"),
-        (r#"<span class="published">January 5, 2024</span>"#, "2024-01-05"),
+        (
+            r#"<span class="published">January 5, 2024</span>"#,
+            "2024-01-05",
+        ),
     ];
 
     let mut correct_extractions = 0;
 
     for (html_snippet, expected_date) in &test_cases {
-        let full_html = format!(r#"
+        let full_html = format!(
+            r#"
             <html>
             <head><title>Test</title></head>
             <body>{}</body>
             </html>
-        "#, html_snippet);
+        "#,
+            html_snippet
+        );
 
         let metadata = metadata::extract_metadata(&full_html, "http://example.com").await?;
 
@@ -335,7 +365,11 @@ async fn test_date_extraction_accuracy() -> Result<()> {
     }
 
     let accuracy = correct_extractions as f64 / test_cases.len() as f64;
-    assert!(accuracy >= 0.8, "Date extraction accuracy: {:.2}% (required: 80%)", accuracy * 100.0);
+    assert!(
+        accuracy >= 0.8,
+        "Date extraction accuracy: {:.2}% (required: 80%)",
+        accuracy * 100.0
+    );
 
     Ok(())
 }
@@ -357,7 +391,9 @@ async fn test_strategy_manager() -> Result<()> {
         </html>
     "#;
 
-    let result = manager.extract_and_chunk(html, "http://example.com").await?;
+    let result = manager
+        .extract_and_chunk(html, "http://example.com")
+        .await?;
 
     assert!(!result.extracted.title.is_empty());
     assert!(!result.extracted.content.is_empty());
@@ -385,7 +421,9 @@ async fn test_performance_metrics() -> Result<()> {
     );
 
     metrics.record_extraction(
-        &ExtractionStrategy::CssJson { selectors: HashMap::new() },
+        &ExtractionStrategy::CssJson {
+            selectors: HashMap::new(),
+        },
         std::time::Duration::from_millis(150),
         1200,
         6,
@@ -448,7 +486,12 @@ async fn test_chunk_quality_scoring() -> Result<()> {
     let high_score = high_chunks[0].metadata.quality_score;
     let low_score = low_chunks[0].metadata.quality_score;
 
-    assert!(high_score > low_score, "High quality: {}, Low quality: {}", high_score, low_score);
+    assert!(
+        high_score > low_score,
+        "High quality: {}, Low quality: {}",
+        high_score,
+        low_score
+    );
 
     Ok(())
 }
@@ -459,7 +502,11 @@ async fn test_token_counting() -> Result<()> {
     let token_count = chunking::count_tokens(test_text);
 
     // Should be roughly 10-13 tokens (words + some overhead)
-    assert!(token_count >= 8 && token_count <= 15, "Token count: {}", token_count);
+    assert!(
+        token_count >= 8 && token_count <= 15,
+        "Token count: {}",
+        token_count
+    );
 
     Ok(())
 }
@@ -475,7 +522,11 @@ async fn test_topic_keyword_extraction() -> Result<()> {
 
     // Should contain relevant technical terms
     let keywords_str = keywords.join(" ").to_lowercase();
-    assert!(keywords_str.contains("machine") || keywords_str.contains("learning") || keywords_str.contains("neural"));
+    assert!(
+        keywords_str.contains("machine")
+            || keywords_str.contains("learning")
+            || keywords_str.contains("neural")
+    );
 
     Ok(())
 }

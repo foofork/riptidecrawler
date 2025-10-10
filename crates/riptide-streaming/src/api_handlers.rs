@@ -111,7 +111,8 @@ fn parse_theme(theme: &str) -> ReportTheme {
         "light" => ReportTheme::Light,
         "dark" => ReportTheme::Dark,
         "corporate" => ReportTheme::Corporate,
-        "modern" | _ => ReportTheme::Modern,
+        "modern" => ReportTheme::Modern,
+        _ => ReportTheme::Modern, // Default for unknown themes
     }
 }
 

@@ -1,5 +1,4 @@
 use regex::Regex;
-use url::Url;
 
 #[cfg(test)]
 mod none_provider_tests {

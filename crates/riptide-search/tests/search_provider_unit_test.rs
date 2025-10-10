@@ -1,14 +1,8 @@
-use serde_json::json;
-use std::time::Duration;
-use tokio::time::timeout;
-
 // Note: These tests will initially fail as SearchProvider implementations don't exist yet
 // This follows TDD red-green-refactor cycle
 
 #[cfg(test)]
 mod search_provider_tests {
-    use super::*;
-
     // Mock structures that will be replaced with actual implementations
     struct MockSearchResult {
         title: String,
