@@ -154,13 +154,15 @@ jobs:
           fi
           echo "✅ WASM file found ($(stat -c%s "$WASM_EXTRACTOR_PATH") bytes)"
 
-          # Test Redis connectivity
+          # Test Redis connectivity (install client first)
           echo ""
           echo "🔍 Testing Redis connectivity..."
-          if redis-cli -h localhost -p 6379 ping; then
+          sudo apt-get install -y redis-tools > /dev/null 2>&1
+          if redis-cli -h localhost -p 6379 ping > /dev/null 2>&1; then
             echo "✅ Redis is responding"
           else
             echo "❌ Redis connection failed"
+            redis-cli -h localhost -p 6379 ping || true
             exit 1
           fi
 
@@ -337,8 +339,9 @@ jobs:
           # Verify WASM
           [ -f "$WASM_EXTRACTOR_PATH" ] && echo "✅ WASM found" || { echo "❌ WASM missing"; exit 1; }
 
-          # Test Redis
-          redis-cli ping > /dev/null && echo "✅ Redis OK" || { echo "❌ Redis failed"; exit 1; }
+          # Test Redis (install client first)
+          sudo apt-get install -y redis-tools > /dev/null 2>&1
+          redis-cli -h localhost -p 6379 ping > /dev/null && echo "✅ Redis OK" || { echo "❌ Redis failed"; exit 1; }
 
           # Start API with unbuffered output
           stdbuf -oL -eL $BINARY_PATH > api.log 2>&1 &
