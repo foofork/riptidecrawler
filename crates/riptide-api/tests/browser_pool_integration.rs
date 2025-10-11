@@ -3,7 +3,9 @@
 //! Comprehensive test suite for riptide-headless browser pool integration with riptide-api
 
 use axum::http::StatusCode;
+use http_body_util::BodyExt;
 use serde_json::json;
+use tower::ServiceExt;
 
 mod test_helpers;
 use test_helpers::*;
@@ -33,7 +35,7 @@ async fn test_create_browser_session_success() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
     let session_response: serde_json::Value = serde_json::from_slice(&body).unwrap();
 
     assert!(session_response["session_id"].is_string());
@@ -113,7 +115,7 @@ async fn test_execute_navigate_action() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
     let action_result: serde_json::Value = serde_json::from_slice(&body).unwrap();
 
     assert_eq!(action_result["success"], true);
@@ -147,7 +149,7 @@ async fn test_execute_screenshot_action() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
     let action_result: serde_json::Value = serde_json::from_slice(&body).unwrap();
 
     assert_eq!(action_result["success"], true);
@@ -180,7 +182,7 @@ async fn test_execute_script_action() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
     let action_result: serde_json::Value = serde_json::from_slice(&body).unwrap();
 
     assert_eq!(action_result["success"], true);
@@ -210,7 +212,7 @@ async fn test_execute_get_content_action() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
     let action_result: serde_json::Value = serde_json::from_slice(&body).unwrap();
 
     assert_eq!(action_result["success"], true);
@@ -341,7 +343,7 @@ async fn test_get_browser_pool_status() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
     let pool_status: serde_json::Value = serde_json::from_slice(&body).unwrap();
 
     assert!(pool_status["stats"].is_object());
@@ -394,7 +396,7 @@ async fn test_browser_pool_auto_scaling() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
     let pool_status: serde_json::Value = serde_json::from_slice(&body).unwrap();
 
     // Verify pool has capacity
@@ -421,9 +423,12 @@ async fn test_browser_session_lifecycle() {
 
     assert_eq!(create_response.status(), StatusCode::OK);
 
-    let body = hyper::body::to_bytes(create_response.into_body())
+    let body = create_response
+        .into_body()
+        .collect()
         .await
-        .unwrap();
+        .unwrap()
+        .to_bytes();
     let session_response: serde_json::Value = serde_json::from_slice(&body).unwrap();
     let session_id = session_response["session_id"].as_str().unwrap();
 

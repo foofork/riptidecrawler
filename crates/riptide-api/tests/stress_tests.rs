@@ -124,7 +124,7 @@ mod stress_tests {
         for i in 0..20 {
             let app_clone = Arc::clone(&app);
             let handle = tokio::spawn(async move {
-                app_clone
+                (*app_clone)
                     .clone()
                     .oneshot(
                         Request::builder()
@@ -187,7 +187,7 @@ mod stress_tests {
         // Fill cache with large entries
         for i in 0..1000 {
             let large_value = "x".repeat(10_000); // 10KB per entry
-            let _ = app
+            let _ = (*app)
                 .clone()
                 .oneshot(
                     Request::builder()
@@ -212,7 +212,7 @@ mod stress_tests {
         }
 
         // Verify cache is handling pressure
-        let stats_response = app
+        let stats_response = (*app)
             .clone()
             .oneshot(
                 Request::builder()
@@ -226,7 +226,8 @@ mod stress_tests {
         assert_eq!(stats_response.status(), StatusCode::OK);
 
         // Verify old entries can still be accessed (LRU should keep recent ones)
-        let recent_entry_response = app
+        let recent_entry_response = (*app)
+            .clone()
             .oneshot(
                 Request::builder()
                     .uri("/api/v1/cache/get?key=large_entry_999")
@@ -246,7 +247,7 @@ mod stress_tests {
         let app = Arc::new(test_helpers::create_minimal_test_app());
 
         // Create tenant with strict limits
-        let _ = app
+        let _ = (*app)
             .clone()
             .oneshot(
                 Request::builder()
@@ -270,7 +271,7 @@ mod stress_tests {
         for i in 0..200 {
             let app_clone = Arc::clone(&app);
             let handle = tokio::spawn(async move {
-                app_clone
+                (*app_clone)
                     .clone()
                     .oneshot(
                         Request::builder()
@@ -409,7 +410,7 @@ mod stress_tests {
             let handle = tokio::spawn(async move {
                 for j in 0..10 {
                     let key = format!("shared_key_{}", j % 5); // Only 5 keys, lots of contention
-                    let _ = app_clone
+                    let _ = (*app_clone)
                         .clone()
                         .oneshot(
                             Request::builder()
@@ -438,7 +439,7 @@ mod stress_tests {
         // Verify cache is still functional and consistent
         for j in 0..5 {
             let key = format!("shared_key_{}", j);
-            let response = app
+            let response = (*app)
                 .clone()
                 .oneshot(
                     Request::builder()
@@ -454,7 +455,8 @@ mod stress_tests {
         }
 
         // Verify no cache corruption
-        let stats = app
+        let stats = (*app)
+            .clone()
             .oneshot(
                 Request::builder()
                     .uri("/api/v1/cache/stats")
@@ -469,7 +471,7 @@ mod stress_tests {
 
     // Helper function to get memory usage
     async fn get_memory_usage(app: &Arc<axum::Router>) -> f64 {
-        let response = app
+        let response = (**app)
             .clone()
             .oneshot(
                 Request::builder()
