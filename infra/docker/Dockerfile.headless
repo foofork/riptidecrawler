@@ -48,6 +48,7 @@ COPY wasm/riptide-extractor-wasm/Cargo.toml wasm/riptide-extractor-wasm/
 # Create stub source files for dependency pre-building
 RUN echo "fn main() {}" > crates/riptide-core/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-core/benches/performance_benches.rs && \
+    echo "fn main() {}" > crates/riptide-core/benches/strategies_bench.rs && \
     echo "fn main() {}" > crates/riptide-api/src/main.rs && \
     echo "fn main() {}" > crates/riptide-headless/src/main.rs && \
     echo "fn main() {}" > crates/riptide-headless/src/lib.rs && \

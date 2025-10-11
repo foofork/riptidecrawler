@@ -2,19 +2,18 @@
 ///
 /// Tests streaming functionality with timeout handling using mock collaborations
 /// to verify real-time response behavior and backpressure management.
-use mockall::predicate::*;
+use mockall::{mock, predicate::*};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::time::timeout;
-use tokio_test;
 use tracing_test::traced_test;
 
 #[cfg(test)]
 mod streaming_tests {
     use super::*;
 
-    /// Mock streaming response handler
+    // Mock streaming response handler
     mock! {
         pub StreamingHandler {}
 
@@ -54,7 +53,7 @@ mod streaming_tests {
         pub created_at: Instant,
     }
 
-    #[derive(Clone, Debug)]
+    #[derive(Clone, Debug, PartialEq)]
     pub struct StreamChunk {
         pub sequence: u64,
         pub data: Vec<u8>,
@@ -96,12 +95,13 @@ mod streaming_tests {
             created_at: Instant::now(),
         };
 
+        let stream_handle_clone = stream_handle.clone();
         // Expect stream initialization
         mock_streaming
             .expect_start_stream()
             .with(eq("https://example.com/stream"), eq(config.clone()))
             .times(1)
-            .returning(move |_, _| Ok(stream_handle.clone()));
+            .returning(move |_, _| Ok(stream_handle_clone.clone()));
 
         // Expect chunk sending
         let test_chunks = vec![
@@ -195,6 +195,7 @@ mod streaming_tests {
             created_at: Instant::now(),
         };
 
+        let stream_handle_clone = stream_handle.clone();
         // Expect stream start to succeed
         mock_streaming
             .expect_start_stream()
@@ -203,7 +204,7 @@ mod streaming_tests {
                 eq(short_timeout_config.clone()),
             )
             .times(1)
-            .returning(move |_, _| Ok(stream_handle.clone()));
+            .returning(move |_, _| Ok(stream_handle_clone.clone()));
 
         // Expect chunk sending to simulate slow response
         mock_streaming
@@ -305,6 +306,7 @@ mod streaming_tests {
             created_at: Instant::now(),
         };
 
+        let stream_handle_clone = stream_handle.clone();
         mock_streaming
             .expect_start_stream()
             .with(
@@ -312,7 +314,7 @@ mod streaming_tests {
                 eq(backpressure_config.clone()),
             )
             .times(1)
-            .returning(move |_, _| Ok(stream_handle.clone()));
+            .returning(move |_, _| Ok(stream_handle_clone.clone()));
 
         // Simulate backpressure scenario
         let mut call_count = 0;
@@ -437,13 +439,13 @@ mod streaming_tests {
     #[tokio::test]
     async fn test_concurrent_streaming_sessions() {
         // Arrange
-        let mock_streaming = Arc::new(std::sync::Mutex::new(MockStreamingHandler::new()));
+        let mock_streaming = Arc::new(tokio::sync::Mutex::new(MockStreamingHandler::new()));
         let session_count = 3;
         let chunks_per_session = 5;
 
         // Set up expectations for concurrent streams
         {
-            let mut streaming = mock_streaming.lock().unwrap();
+            let mut streaming = mock_streaming.lock().await;
 
             // Expect stream starts
             for i in 0..session_count {
@@ -474,7 +476,7 @@ mod streaming_tests {
             streaming
                 .expect_close_stream()
                 .times(session_count)
-                .returning(|_| {
+                .returning(move |_| {
                     Ok(StreamStats {
                         total_chunks: chunks_per_session as u64,
                         total_bytes: chunks_per_session as u64 * 100,
@@ -488,9 +490,10 @@ mod streaming_tests {
         let mut handles = Vec::new();
 
         for i in 0..session_count {
-            let streaming_arc = Arc::clone(&mock_streaming);
+            let streaming_arc: Arc<tokio::sync::Mutex<MockStreamingHandler>> =
+                Arc::clone(&mock_streaming);
             let handle = tokio::spawn(async move {
-                let mut streaming = streaming_arc.lock().unwrap();
+                let mut streaming = streaming_arc.lock().await;
 
                 // Start stream
                 let config = StreamConfig {
@@ -556,6 +559,7 @@ mod streaming_tests {
             created_at: Instant::now(),
         };
 
+        let primary_handle_clone = primary_handle.clone();
         // Expect primary stream to start and fail
         mock_streaming
             .expect_start_stream()
@@ -564,7 +568,7 @@ mod streaming_tests {
                 eq(resilient_config.clone()),
             )
             .times(1)
-            .returning(move |_, _| Ok(primary_handle.clone()));
+            .returning(move |_, _| Ok(primary_handle_clone.clone()));
 
         // First chunk succeeds
         mock_streaming
@@ -608,6 +612,7 @@ mod streaming_tests {
                 })
             });
 
+        let recovery_handle_clone = recovery_handle.clone();
         // Recovery stream starts
         mock_streaming
             .expect_start_stream()
@@ -616,7 +621,7 @@ mod streaming_tests {
                 eq(resilient_config.clone()),
             )
             .times(1)
-            .returning(move |_, _| Ok(recovery_handle.clone()));
+            .returning(move |_, _| Ok(recovery_handle_clone.clone()));
 
         // Recovery stream succeeds
         mock_streaming
@@ -737,6 +742,7 @@ mod streaming_tests {
         let chunk_count = 100;
         let total_bytes = chunk_count * 8192;
 
+        let stream_handle_clone = stream_handle.clone();
         mock_streaming
             .expect_start_stream()
             .with(
@@ -744,7 +750,7 @@ mod streaming_tests {
                 eq(high_performance_config.clone()),
             )
             .times(1)
-            .returning(move |_, _| Ok(stream_handle.clone()));
+            .returning(move |_, _| Ok(stream_handle_clone.clone()));
 
         // Expect high-throughput chunk sending
         mock_streaming
