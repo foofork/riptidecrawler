@@ -27,6 +27,7 @@
 // Core infrastructure modules
 pub mod ai_processor;
 pub mod cache;
+pub mod cache_key;
 pub mod cache_warming;
 pub mod cache_warming_integration;
 pub mod circuit;
@@ -34,11 +35,14 @@ pub mod circuit_breaker;
 pub mod common;
 pub mod component;
 pub mod conditional;
+pub mod confidence;
+pub mod confidence_integration;
 pub mod dynamic;
 pub mod error;
 pub mod events;
 pub mod fetch;
 pub mod gate;
+pub mod html_parser;
 pub mod instance_pool;
 pub mod integrated_cache;
 pub mod memory_manager;
@@ -54,6 +58,7 @@ pub mod robots;
 pub mod security;
 pub mod spider;
 pub mod strategies;
+pub mod strategy_composition;
 pub mod telemetry;
 pub mod types;
 

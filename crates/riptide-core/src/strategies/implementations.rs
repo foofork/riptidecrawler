@@ -7,6 +7,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use std::collections::HashMap;
 
+use crate::html_parser::{EnhancedHtmlExtractor, Metadata as HtmlMetadata};
 use crate::strategies::{traits::*, ExtractedContent, PerformanceMetrics};
 
 // ============================================================================
@@ -21,31 +22,80 @@ pub struct TrekExtractionStrategy;
 impl ExtractionStrategy for TrekExtractionStrategy {
     async fn extract(&self, html: &str, _url: &str) -> Result<ExtractionResult> {
         let start = std::time::Instant::now();
-        // Trek extraction moved to riptide-html, returning mock result
+
+        // Use enhanced HTML extraction
+        let extractor = EnhancedHtmlExtractor::new(Some(_url))?;
+        let extracted = extractor.extract(html, _url)?;
+
+        // Clone metadata for use
+        let html_metadata = extracted.metadata.clone();
+
+        // Convert to ExtractedContent format
+        let title = html_metadata
+            .title
+            .clone()
+            .or_else(|| html_metadata.og_title.clone())
+            .unwrap_or_else(|| "Untitled".to_string());
+
+        let summary = html_metadata
+            .description
+            .clone()
+            .or_else(|| html_metadata.og_description.clone())
+            .or_else(|| Some(create_summary(&extracted.markdown_content)));
+
         let content = ExtractedContent {
-            title: "Mock Title".to_string(),
-            content: html.chars().take(1000).collect(),
-            summary: Some("Mock summary for testing".to_string()),
+            title: title.clone(),
+            content: extracted.markdown_content.clone(),
+            summary,
             url: _url.to_string(),
             strategy_used: "trek".to_string(),
-            extraction_confidence: 0.85,
+            extraction_confidence: extracted.quality_score,
         };
         let duration = start.elapsed();
 
-        let quality = ExtractionQuality {
-            content_length: content.content.len(),
-            title_quality: if content.title.is_empty() { 0.0 } else { 0.9 },
-            content_quality: calculate_content_quality(&content.content),
-            structure_score: 0.85, // Trek provides good structure
-            metadata_completeness: 0.8,
+        // Calculate quality metrics
+        let title_quality = if title.is_empty() {
+            0.0
+        } else if html_metadata.og_title.is_some() {
+            1.0 // High quality if we have OG title
+        } else {
+            0.8
         };
 
+        let metadata_score = calculate_metadata_completeness(&html_metadata);
+
+        let quality = ExtractionQuality {
+            content_length: content.content.len(),
+            title_quality,
+            content_quality: calculate_content_quality(&content.content),
+            structure_score: if extracted.is_article { 0.95 } else { 0.75 },
+            metadata_completeness: metadata_score,
+        };
+
+        // Build metadata map with extraction details
         let mut metadata = HashMap::new();
         metadata.insert(
             "extraction_time_ms".to_string(),
             duration.as_millis().to_string(),
         );
-        metadata.insert("strategy_version".to_string(), "1.0".to_string());
+        metadata.insert("strategy_version".to_string(), "2.0".to_string());
+        metadata.insert("is_article".to_string(), extracted.is_article.to_string());
+        metadata.insert("link_count".to_string(), extracted.links.len().to_string());
+        metadata.insert("media_count".to_string(), extracted.media.len().to_string());
+        metadata.insert(
+            "quality_score".to_string(),
+            extracted.quality_score.to_string(),
+        );
+
+        if let Some(author) = html_metadata.author {
+            metadata.insert("author".to_string(), author);
+        }
+        if let Some(published) = html_metadata.published_date {
+            metadata.insert("published_date".to_string(), published);
+        }
+        if !html_metadata.keywords.is_empty() {
+            metadata.insert("keywords".to_string(), html_metadata.keywords.join(", "));
+        }
 
         Ok(ExtractionResult {
             content,
@@ -127,4 +177,98 @@ fn calculate_content_quality(content: &str) -> f64 {
     }
 
     score.min(1.0)
+}
+
+/// Extract title from HTML
+fn extract_title_from_html(html: &str) -> Option<String> {
+    // Simple regex-like title extraction
+    if let Some(start) = html.find("<title>") {
+        if let Some(end) = html[start..].find("</title>") {
+            let title = &html[start + 7..start + end];
+            return Some(title.trim().to_string());
+        }
+    }
+    None
+}
+
+/// Extract main content from HTML
+fn extract_main_content(html: &str) -> String {
+    // Remove script and style tags
+    let mut content = html.to_string();
+
+    // Remove <script> tags
+    while let Some(start) = content.find("<script") {
+        if let Some(end) = content[start..].find("</script>") {
+            content.replace_range(start..start + end + 9, "");
+        } else {
+            break;
+        }
+    }
+
+    // Remove <style> tags
+    while let Some(start) = content.find("<style") {
+        if let Some(end) = content[start..].find("</style>") {
+            content.replace_range(start..start + end + 8, "");
+        } else {
+            break;
+        }
+    }
+
+    // Remove all HTML tags
+    let mut result = String::new();
+    let mut in_tag = false;
+
+    for c in content.chars() {
+        match c {
+            '<' => in_tag = true,
+            '>' => in_tag = false,
+            _ if !in_tag => result.push(c),
+            _ => {}
+        }
+    }
+
+    // Clean up whitespace
+    result
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .trim()
+        .to_string()
+}
+
+/// Create a summary from content
+fn create_summary(content: &str) -> String {
+    let words: Vec<&str> = content.split_whitespace().collect();
+    let summary_length = words.len().min(50);
+    words[..summary_length].join(" ") + if words.len() > 50 { "..." } else { "" }
+}
+
+/// Calculate metadata completeness score
+fn calculate_metadata_completeness(metadata: &HtmlMetadata) -> f64 {
+    let mut score = 0.0;
+    let max_score = 7.0;
+
+    if metadata.title.is_some() {
+        score += 1.0;
+    }
+    if metadata.description.is_some() {
+        score += 1.0;
+    }
+    if metadata.og_title.is_some() {
+        score += 1.0;
+    }
+    if metadata.og_description.is_some() {
+        score += 1.0;
+    }
+    if metadata.author.is_some() {
+        score += 1.0;
+    }
+    if !metadata.keywords.is_empty() {
+        score += 1.0;
+    }
+    if metadata.published_date.is_some() {
+        score += 1.0;
+    }
+
+    score / max_score
 }

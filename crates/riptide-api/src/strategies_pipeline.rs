@@ -474,21 +474,27 @@ impl StrategiesPipelineOrchestrator {
             .map_err(|e| ApiError::cache(format!("Cache write failed: {}", e)))
     }
 
-    /// Generate cache key with strategy config
+    /// Generate cache key with strategy config using deterministic builder
     fn generate_cache_key(&self, url: &str) -> String {
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::{Hash, Hasher};
+        use riptide_core::cache_key::CacheKeyBuilder;
+        use std::collections::BTreeMap;
 
-        let mut hasher = DefaultHasher::new();
-        url.hash(&mut hasher);
-        self.options.cache_mode.hash(&mut hasher);
-        format!("{:?}", self.strategy_config.extraction).hash(&mut hasher);
+        // Build deterministic options map
+        let mut options = BTreeMap::new();
+        options.insert("cache_mode".to_string(), self.options.cache_mode.clone());
+        options.insert(
+            "extraction".to_string(),
+            format!("{:?}", self.strategy_config.extraction),
+        );
 
-        format!(
-            "riptide:strategies:v1:{}:{:x}",
-            self.options.cache_mode,
-            hasher.finish()
-        )
+        // Use deterministic cache key builder
+        CacheKeyBuilder::new()
+            .url(url)
+            .method(format!("{:?}", self.strategy_config.extraction))
+            .version("v1")
+            .options(options)
+            .namespace("strategies")
+            .build()
     }
 }
 

@@ -38,6 +38,9 @@ wasmtime-wasi = { workspace = true }
 # Table extraction dependencies
 chrono = { workspace = true, features = ["serde"] }
 
+[build-dependencies]
+wit-bindgen = "0.16"
+
 [dev-dependencies]
 tokio-test = "0.4"
 tempfile.workspace = true

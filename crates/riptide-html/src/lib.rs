@@ -33,6 +33,9 @@
 //! # }
 //! ```
 
+// NOTE: confidence_integration requires riptide-core dependency which causes circular dependency
+// This module should be moved to riptide-core or a shared crate
+// pub mod confidence_integration;
 pub mod css_extraction;
 pub mod dom_utils;
 pub mod processor;

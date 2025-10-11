@@ -5,6 +5,15 @@
 //! - CSS/Regex extraction: riptide-html
 //! - LLM extraction: riptide-intelligence
 //! - Content chunking: riptide-html
+//!
+//! ## Strategy Composition
+//!
+//! The composition submodule (re-exported from crate::strategy_composition) enables
+//! chaining multiple strategies with different execution modes:
+//! - Chain: Sequential execution with fallback
+//! - Parallel: Concurrent execution with result merging
+//! - Fallback: Primary with secondary backup
+//! - Best: Run all and pick highest confidence
 
 // Extraction module moved to riptide-html
 // pub mod extraction;
@@ -16,6 +25,13 @@ pub mod traits;
 // pub mod spider_implementations;
 pub mod compatibility;
 pub mod manager;
+
+// New extraction strategies
+pub mod css_strategy;
+pub mod regex_strategy;
+
+// Re-export composition from top-level module
+pub use crate::strategy_composition as composition;
 
 #[cfg(test)]
 mod tests;
@@ -30,6 +46,10 @@ pub use traits::*;
 // pub use spider_implementations::*;
 pub use compatibility::*;
 pub use manager::*;
+
+// Re-export new strategies
+pub use css_strategy::CssSelectorStrategy;
+pub use regex_strategy::{PatternConfig, RegexPatternStrategy};
 
 use anyhow::Result;
 use schemars::JsonSchema;

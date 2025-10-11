@@ -1,0 +1,33 @@
+[package]
+name = "riptide-cli"
+version = "1.0.0"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Command-line interface for RipTide web crawler and content extraction"
+
+[[bin]]
+name = "riptide"
+path = "src/main.rs"
+
+[dependencies]
+# Core dependencies
+anyhow.workspace = true
+clap.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+reqwest.workspace = true
+url.workspace = true
+
+# CLI-specific
+colored = "2.1"
+indicatif = "0.17"
+comfy-table = "7.1"
+dialoguer = "0.11"
+
+# Utilities
+chrono.workspace = true
+humantime = "2.1"
+urlencoding = "2.1"
+env_logger.workspace = true
