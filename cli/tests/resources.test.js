@@ -3,8 +3,7 @@
  * Simplified unit tests focusing on command structure and formatters
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import chalk from 'chalk';
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 
 // Import formatters and helpers to test directly
 // We'll test command structure without full integration
@@ -13,8 +12,8 @@ describe('Resources Command', () => {
   let consoleErrorSpy;
 
   beforeEach(() => {
-    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation();
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation();
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
   });
 
   afterEach(() => {

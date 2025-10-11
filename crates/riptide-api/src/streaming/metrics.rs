@@ -82,18 +82,24 @@ pub struct StreamingMetrics {
     // Connection tracking (common)
     pub active_connections: usize,
     pub total_connections: usize,
+    #[allow(dead_code)]
     pub average_connection_duration_ms: f64,
 
     // Message tracking (common - generic name works for both events and messages)
+    #[allow(dead_code)]
     pub total_items_sent: usize,
+    #[allow(dead_code)]
     pub total_items_received: usize,
+    #[allow(dead_code)]
     pub items_dropped: usize,
 
     // Error tracking (common)
     pub error_count: usize,
+    #[allow(dead_code)]
     pub reconnection_count: usize,
 }
 
+#[allow(dead_code)]
 impl StreamingMetrics {
     /// Record a new streaming connection
     ///
@@ -228,12 +234,15 @@ impl StreamingMetrics {
 
 // Convenience type aliases for clarity in specific protocols
 /// SSE-specific metrics type alias
+#[allow(dead_code)]
 pub type SseMetrics = StreamingMetrics;
 
 /// WebSocket-specific metrics type alias
+#[allow(dead_code)]
 pub type WebSocketMetrics = StreamingMetrics;
 
 /// NDJSON-specific metrics type alias
+#[allow(dead_code)]
 pub type NdjsonMetrics = StreamingMetrics;
 
 #[cfg(test)]

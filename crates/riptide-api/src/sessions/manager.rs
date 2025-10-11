@@ -20,6 +20,7 @@ pub struct SessionManager {
     config: SessionConfig,
 }
 
+#[allow(dead_code)]
 impl SessionManager {
     /// Create a new session manager with the given configuration
     pub async fn new(config: SessionConfig) -> Result<Self> {

@@ -135,7 +135,7 @@ async fn test_cpu_profile_endpoint_returns_valid_data() {
     // Verify CPU percentages are valid
     let cpu_usage = json["cpu_usage_percent"].as_f64().unwrap();
     assert!(
-        cpu_usage >= 0.0 && cpu_usage <= 100.0,
+        (0.0..=100.0).contains(&cpu_usage),
         "CPU usage should be 0-100%"
     );
 
@@ -226,7 +226,7 @@ async fn test_allocation_metrics_endpoint_returns_allocator_info() {
     // Verify efficiency score is valid
     let efficiency = json["efficiency_score"].as_f64().unwrap();
     assert!(
-        efficiency >= 0.0 && efficiency <= 1.0,
+        (0.0..=1.0).contains(&efficiency),
         "Efficiency score should be 0-1"
     );
 

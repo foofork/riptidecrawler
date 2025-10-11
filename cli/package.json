@@ -1,6 +1,6 @@
 {
   "name": "@riptide/cli",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Command-line interface for RipTide web crawler API",
   "type": "module",
   "bin": {

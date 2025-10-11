@@ -42,6 +42,7 @@ pub struct SecurityConfig {
     /// Rate limiting window duration
     pub rate_limit_window: Duration,
     /// Enable CSRF protection
+    #[allow(dead_code)]
     pub enable_csrf_protection: bool,
     /// Cookie secure flag (only send over HTTPS)
     pub secure_cookies: bool,
@@ -74,6 +75,7 @@ impl SessionLayer {
     }
 
     /// Create a new session layer with custom security configuration
+    #[allow(dead_code)]
     pub fn with_security_config(manager: Arc<SessionManager>, config: SecurityConfig) -> Self {
         Self {
             manager,
@@ -224,9 +226,11 @@ where
 pub struct SessionContext {
     pub session: Session,
     /// Session manager for session operations (cookie management, updates, etc.)
+    #[allow(dead_code)]
     pub manager: Arc<SessionManager>,
 }
 
+#[allow(dead_code)]
 impl SessionContext {
     /// Get the session ID
     pub fn session_id(&self) -> &str {
@@ -339,6 +343,7 @@ impl IntoResponse for SessionError {
 
 /// Session-aware request header for browser automation
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct SessionHeaders {
     pub session_id: String,
     pub user_agent: Option<String>,
@@ -346,6 +351,7 @@ pub struct SessionHeaders {
     pub cookies: Vec<String>,
 }
 
+#[allow(dead_code)]
 impl SessionHeaders {
     /// Create session headers from a session context
     pub async fn from_session_context(
@@ -474,6 +480,7 @@ impl SessionRateLimiter {
     }
 
     /// Get current statistics
+    #[allow(dead_code)]
     pub fn get_stats(&self) -> RateLimiterStats {
         let total_sessions = self.requests.len();
         let total_requests: usize = self.requests.values().map(|v| v.len()).sum();
@@ -493,6 +500,7 @@ impl Default for SessionRateLimiter {
 
 /// Rate limiter statistics
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct RateLimiterStats {
     pub total_sessions_tracked: usize,
     pub total_active_requests: usize,

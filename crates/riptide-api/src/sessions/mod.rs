@@ -46,10 +46,12 @@ use std::sync::Arc;
 /// High-level session management system wrapper
 /// Provides a convenient facade over SessionManager for application-level usage
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct SessionSystem {
     manager: Arc<SessionManager>,
 }
 
+#[allow(dead_code)]
 impl SessionSystem {
     /// Create a new session system with the given configuration
     pub async fn new(config: SessionConfig) -> Result<Self> {

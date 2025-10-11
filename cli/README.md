@@ -30,6 +30,24 @@ riptide interactive
 
 ## Commands
 
+### Commands Overview
+
+- `riptide crawl` - Crawl URLs and extract content
+- `riptide search` - Deep search the web
+- `riptide health` - Check API health
+- `riptide stream` - Real-time streaming
+- `riptide session` - Manage sessions
+- `riptide worker` - Worker queue management
+- `riptide monitor` - Real-time monitoring
+- `riptide profiling` - System profiling and diagnostics
+- `riptide resources` - Monitor and manage resources
+- `riptide llm` - LLM provider management
+- `riptide spider` - Deep crawl websites
+- `riptide batch` - Process URLs from file
+- `riptide config` - Manage configuration
+- `riptide interactive` - Interactive shell
+- `riptide examples` - Show examples
+
 ### Core Commands
 
 #### `crawl` - Crawl URLs
@@ -155,6 +173,93 @@ riptide monitor --metrics
 - `-i, --interval <seconds>` - Update interval (default: 30)
 - `--score` - Show health score
 - `--metrics` - Show performance metrics
+
+### Profiling
+
+System profiling and diagnostics:
+
+```bash
+# Memory profile
+riptide profiling memory
+riptide profile memory --format json
+
+# CPU profile
+riptide profiling cpu
+
+# Identify bottlenecks
+riptide profiling bottlenecks
+
+# Memory allocations
+riptide profiling allocations
+
+# Detect memory leaks
+riptide profiling leaks
+
+# Create heap snapshot
+riptide profiling snapshot
+```
+
+**Options:**
+- `-f, --format <type>` - Output format (json|text), default: text
+- `-o, --output <file>` - Save output to file
+
+### Resources
+
+Monitor and manage system resources:
+
+```bash
+# Overall resource status
+riptide resources status
+
+# Browser pool metrics
+riptide resources browser-pool
+
+# Rate limiter status
+riptide resources rate-limiter
+
+# Memory usage by component
+riptide resources memory
+
+# Performance metrics
+riptide resources performance
+
+# PDF processing status
+riptide resources pdf
+
+# Watch mode (continuous monitoring)
+riptide resources status --watch
+riptide resources browser-pool --watch --interval 5
+```
+
+**Options:**
+- `-f, --format <type>` - Output format (json|text|table), default: table
+- `-o, --output <file>` - Save output to file
+- `-w, --watch` - Continuous monitoring mode
+- `-i, --interval <seconds>` - Watch interval, default: 10
+
+### LLM Provider Management
+
+Manage LLM provider configuration:
+
+```bash
+# List available providers
+riptide llm providers
+
+# Switch active provider
+riptide llm switch openai
+riptide llm switch anthropic
+
+# Get configuration
+riptide llm config get
+riptide llm config get temperature
+
+# Set configuration
+riptide llm config set temperature 0.8
+riptide llm config set max_tokens 2000
+```
+
+**Options:**
+- `-f, --format <type>` - Output format (json|text|table), default: table
 
 ### Spider (Deep Crawling)
 

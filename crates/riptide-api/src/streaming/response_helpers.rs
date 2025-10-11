@@ -176,6 +176,7 @@ pub enum StreamingResponseType {
     /// Server-Sent Events
     Sse,
     /// JSON streaming (for WebSocket-like responses)
+    #[allow(dead_code)]
     Json,
 }
 
@@ -222,6 +223,7 @@ impl StreamingResponseType {
     }
 
     /// Check if this response type supports keep-alive
+    #[allow(dead_code)]
     pub fn supports_keep_alive(&self) -> bool {
         matches!(
             self,
@@ -230,6 +232,7 @@ impl StreamingResponseType {
     }
 
     /// Get recommended buffer size for this response type
+    #[allow(dead_code)]
     pub fn buffer_size(&self) -> usize {
         match self {
             StreamingResponseType::Ndjson => 256,
@@ -260,6 +263,7 @@ impl StreamingResponseBuilder {
     }
 
     /// Set the HTTP status code
+    #[allow(dead_code)]
     pub fn status(mut self, status: StatusCode) -> Self {
         self.status = status;
         self
@@ -289,6 +293,7 @@ impl StreamingResponseBuilder {
     }
 
     /// Enable compression (if supported by the client)
+    #[allow(dead_code)]
     pub fn with_compression(mut self) -> Self {
         self.compression = true;
         self
@@ -395,6 +400,7 @@ impl StreamingResponseBuilder {
 /// Helper for creating error responses in streaming format
 pub struct StreamingErrorResponse;
 
+#[allow(dead_code)]
 impl StreamingErrorResponse {
     /// Create an NDJSON error response
     pub fn ndjson(error: impl Serialize) -> Response {
@@ -476,6 +482,7 @@ impl StreamingErrorResponse {
 /// Helper for creating keep-alive messages
 pub struct KeepAliveHelper;
 
+#[allow(dead_code)]
 impl KeepAliveHelper {
     /// Create NDJSON keep-alive message
     pub fn ndjson_message() -> String {
@@ -503,6 +510,7 @@ impl KeepAliveHelper {
 /// Helper for creating completion messages
 pub struct CompletionHelper;
 
+#[allow(dead_code)]
 impl CompletionHelper {
     /// Create NDJSON completion message
     pub fn ndjson_message(summary: impl Serialize) -> String {

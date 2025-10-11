@@ -52,6 +52,7 @@ pub enum BrowserAction {
     ExecuteScript {
         session_id: String,
         script: String,
+        #[allow(dead_code)]
         timeout_ms: Option<u64>,
     },
     /// Take a screenshot
