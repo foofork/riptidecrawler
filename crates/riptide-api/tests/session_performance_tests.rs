@@ -116,7 +116,7 @@ mod performance_tests {
 
     #[tokio::test]
     async fn benchmark_rate_limiter_performance() {
-        let mut rate_limiter = SessionRateLimiter::new();
+        let _rate_limiter = SessionRateLimiter::new();
 
         let session_id = "benchmark_session";
         let max_requests = 100;

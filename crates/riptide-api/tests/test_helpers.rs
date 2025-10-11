@@ -51,7 +51,7 @@ pub async fn create_test_app() -> Router {
 }
 
 /// Create router with all routes configured
-fn create_test_router(state: AppState) -> Router {
+pub fn create_test_router(state: AppState) -> Router {
     use riptide_api::streaming;
 
     Router::new()
@@ -197,6 +197,7 @@ pub async fn trigger_test_profiling() -> serde_json::Value {
 }
 
 /// Simulate load by making multiple concurrent requests
+#[allow(dead_code)]
 pub async fn simulate_load(
     app: &Router,
     rps: usize,
@@ -219,7 +220,7 @@ pub async fn simulate_load(
             let failure_clone = Arc::clone(&failure_count);
 
             let handle = tokio::spawn(async move {
-                let result = app_clone
+                let result = (*app_clone)
                     .clone()
                     .oneshot(
                         Request::builder()
@@ -258,6 +259,7 @@ pub async fn simulate_load(
 }
 
 /// Result of load testing
+#[allow(dead_code)]
 pub struct LoadTestResult {
     pub total_requests: usize,
     pub successful_requests: usize,
@@ -276,12 +278,14 @@ impl LoadTestResult {
 }
 
 /// Clean up test resources
+#[allow(dead_code)]
 pub async fn cleanup_test_resources() {
     // Clean up any test files, sessions, caches, etc.
     // This is a placeholder for actual cleanup logic
 }
 
 /// Wait for async operation to complete with timeout
+#[allow(dead_code)]
 pub async fn wait_for_condition<F, Fut>(
     condition: F,
     timeout: std::time::Duration,
@@ -304,6 +308,7 @@ where
 }
 
 /// Assert response has expected status with detailed error message
+#[allow(dead_code)]
 pub fn assert_status_with_context(
     response: &axum::http::Response<Body>,
     expected: StatusCode,

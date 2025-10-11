@@ -79,6 +79,7 @@ rstest = "0.22"
 axum-extra = { version = "0.9" }
 futures-util = "0.3"
 tokio-tungstenite = "0.23"
+http-body-util = "0.1"
 
 [features]
 default = []

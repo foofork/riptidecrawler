@@ -202,6 +202,7 @@ impl StreamingMetrics {
     /// Get error rate (errors / total connections)
     ///
     /// Exported to Prometheus as riptide_streaming_error_rate
+    #[allow(dead_code)]
     pub fn error_rate(&self) -> f64 {
         if self.total_connections == 0 {
             0.0
@@ -213,6 +214,7 @@ impl StreamingMetrics {
     /// Export metrics to Prometheus format
     ///
     /// Used by RipTideMetrics to sync with Prometheus registry
+    #[allow(dead_code)]
     pub fn to_prometheus(&self, metrics: &crate::metrics::RipTideMetrics) {
         metrics
             .streaming_active_connections

@@ -14,20 +14,14 @@ use axum::{
     http::{Request, StatusCode},
 };
 use bytes::Bytes;
-use futures_util::{SinkExt, StreamExt};
 use http_body_util::BodyExt;
-use riptide_api::{
-    models::CrawlBody,
-    state::{AppConfig, AppState},
-};
+use riptide_api::state::{AppConfig, AppState};
 use serde_json::{json, Value};
 use std::sync::Arc;
 use tokio::time::{timeout, Duration};
-use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use tower::ServiceExt;
 
 mod test_helpers;
-use test_helpers::*;
 
 /// Test helper to create test AppState
 async fn create_test_app_state() -> AppState {
@@ -57,7 +51,7 @@ async fn parse_ndjson_body(body: Bytes) -> Vec<Value> {
 #[tokio::test]
 async fn test_ndjson_streaming_endpoint_exists() {
     let app_state = create_test_app_state().await;
-    let app = riptide_api::routes::create_router(app_state);
+    let app = test_helpers::create_test_router(app_state);
 
     let request = Request::builder()
         .method("POST")
@@ -81,7 +75,7 @@ async fn test_ndjson_streaming_endpoint_exists() {
 #[tokio::test]
 async fn test_ndjson_streaming_content_type() {
     let app_state = create_test_app_state().await;
-    let app = riptide_api::routes::create_router(app_state);
+    let app = test_helpers::create_test_router(app_state);
 
     let request = Request::builder()
         .method("POST")
@@ -115,7 +109,7 @@ async fn test_ndjson_streaming_content_type() {
 #[tokio::test]
 async fn test_ndjson_streaming_response_format() {
     let app_state = create_test_app_state().await;
-    let app = riptide_api::routes::create_router(app_state);
+    let app = test_helpers::create_test_router(app_state);
 
     let request = Request::builder()
         .method("POST")
@@ -147,7 +141,7 @@ async fn test_ndjson_streaming_response_format() {
 #[tokio::test]
 async fn test_ndjson_multiple_urls() {
     let app_state = create_test_app_state().await;
-    let app = riptide_api::routes::create_router(app_state);
+    let app = test_helpers::create_test_router(app_state);
 
     let request = Request::builder()
         .method("POST")
@@ -174,7 +168,7 @@ async fn test_ndjson_multiple_urls() {
 #[tokio::test]
 async fn test_ndjson_invalid_request() {
     let app_state = create_test_app_state().await;
-    let app = riptide_api::routes::create_router(app_state);
+    let app = test_helpers::create_test_router(app_state);
 
     let request = Request::builder()
         .method("POST")
@@ -199,7 +193,7 @@ async fn test_ndjson_invalid_request() {
 #[tokio::test]
 async fn test_sse_endpoint_exists() {
     let app_state = create_test_app_state().await;
-    let app = riptide_api::routes::create_router(app_state);
+    let app = test_helpers::create_test_router(app_state);
 
     let request = Request::builder()
         .method("POST")
@@ -223,7 +217,7 @@ async fn test_sse_endpoint_exists() {
 #[tokio::test]
 async fn test_sse_content_type() {
     let app_state = create_test_app_state().await;
-    let app = riptide_api::routes::create_router(app_state);
+    let app = test_helpers::create_test_router(app_state);
 
     let request = Request::builder()
         .method("POST")
@@ -257,7 +251,7 @@ async fn test_sse_content_type() {
 #[tokio::test]
 async fn test_sse_event_format() {
     let app_state = create_test_app_state().await;
-    let app = riptide_api::routes::create_router(app_state);
+    let app = test_helpers::create_test_router(app_state);
 
     let request = Request::builder()
         .method("POST")
@@ -289,7 +283,7 @@ async fn test_sse_event_format() {
 #[tokio::test]
 async fn test_sse_reconnection_support() {
     let app_state = create_test_app_state().await;
-    let app = riptide_api::routes::create_router(app_state);
+    let app = test_helpers::create_test_router(app_state);
 
     let request = Request::builder()
         .method("POST")
@@ -321,7 +315,7 @@ async fn test_sse_reconnection_support() {
 #[tokio::test]
 async fn test_websocket_endpoint_exists() {
     let app_state = create_test_app_state().await;
-    let app = riptide_api::routes::create_router(app_state);
+    let app = test_helpers::create_test_router(app_state);
 
     let request = Request::builder()
         .method("GET")
@@ -342,7 +336,7 @@ async fn test_websocket_endpoint_exists() {
 #[tokio::test]
 async fn test_websocket_upgrade_headers() {
     let app_state = create_test_app_state().await;
-    let app = riptide_api::routes::create_router(app_state);
+    let app = test_helpers::create_test_router(app_state);
 
     let request = Request::builder()
         .method("GET")
@@ -386,7 +380,7 @@ async fn test_metrics_updated_after_stream() {
     let app_state = create_test_app_state().await;
     let initial_connections = app_state.metrics.streaming_total_connections.get();
 
-    let app = riptide_api::routes::create_router(app_state.clone());
+    let app = test_helpers::create_test_router(app_state.clone());
 
     let request = Request::builder()
         .method("POST")
@@ -418,7 +412,7 @@ async fn test_metrics_updated_after_stream() {
 #[tokio::test]
 async fn test_backpressure_handling() {
     let app_state = create_test_app_state().await;
-    let app = riptide_api::routes::create_router(app_state);
+    let app = test_helpers::create_test_router(app_state);
 
     // Send request with large batch to test backpressure
     let urls: Vec<String> = (0..50)
@@ -453,7 +447,7 @@ async fn test_concurrent_streaming_requests() {
         .map(|_| {
             let state = app_state.clone();
             tokio::spawn(async move {
-                let app = riptide_api::routes::create_router(state);
+                let app = test_helpers::create_test_router(state);
                 let request = Request::builder()
                     .method("POST")
                     .uri("/crawl/stream")
@@ -489,7 +483,7 @@ async fn test_concurrent_streaming_requests() {
 #[tokio::test]
 async fn test_streaming_with_invalid_url() {
     let app_state = create_test_app_state().await;
-    let app = riptide_api::routes::create_router(app_state);
+    let app = test_helpers::create_test_router(app_state);
 
     let request = Request::builder()
         .method("POST")
@@ -516,7 +510,7 @@ async fn test_streaming_with_invalid_url() {
 #[tokio::test]
 async fn test_streaming_with_empty_urls() {
     let app_state = create_test_app_state().await;
-    let app = riptide_api::routes::create_router(app_state);
+    let app = test_helpers::create_test_router(app_state);
 
     let request = Request::builder()
         .method("POST")

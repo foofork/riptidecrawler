@@ -39,6 +39,9 @@ import { streamCommand } from '../src/commands/stream.js';
 import { batchCommand } from '../src/commands/batch.js';
 import { interactiveCommand } from '../src/commands/interactive.js';
 import { spiderCommand } from '../src/commands/spider.js';
+import { profilingCommand } from '../src/commands/profiling.js';
+import { resourcesCommand } from '../src/commands/resources.js';
+import { llmCommand } from '../src/commands/llm.js';
 
 // Configure CLI
 program
@@ -170,6 +173,45 @@ program
   .option('--score', 'Show health score')
   .option('--metrics', 'Show performance metrics')
   .action(monitorCommand);
+
+// Profiling command
+program
+  .command('profiling')
+  .alias('profile')
+  .description('System profiling and diagnostics')
+  .argument('[subcommand]', 'Subcommand (memory|cpu|bottlenecks|allocations|leaks|snapshot)')
+  .option('-f, --format <type>', 'Output format (json|text)', 'text')
+  .option('-o, --output <file>', 'Output file')
+  .action(profilingCommand);
+
+// ============================================================================
+// RESOURCE MANAGEMENT COMMANDS
+// ============================================================================
+
+// Resources command
+program
+  .command('resources')
+  .alias('res')
+  .description('Monitor and manage system resources')
+  .argument('[subcommand]', 'Subcommand (status|browser-pool|rate-limiter|memory|performance|pdf)')
+  .option('-f, --format <type>', 'Output format (json|text|table)', 'table')
+  .option('-o, --output <file>', 'Output file')
+  .option('-w, --watch', 'Continuous monitoring mode')
+  .option('-i, --interval <seconds>', 'Watch interval in seconds', '10')
+  .action(resourcesCommand);
+
+// ============================================================================
+// LLM PROVIDER COMMANDS
+// ============================================================================
+
+// LLM command
+program
+  .command('llm')
+  .description('Manage LLM provider configuration')
+  .argument('[subcommand]', 'Subcommand (providers|switch|config)')
+  .argument('[args...]', 'Additional arguments')
+  .option('-f, --format <type>', 'Output format (json|text|table)', 'table')
+  .action(llmCommand);
 
 // ============================================================================
 // SPIDER COMMANDS

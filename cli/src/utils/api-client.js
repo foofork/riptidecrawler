@@ -198,4 +198,149 @@ export class RipTideClient {
   async getStrategies() {
     return this.client.get('/strategies/info');
   }
+
+  // ============================================================
+  // Profiling Endpoints
+  // ============================================================
+
+  /**
+   * Get memory profiling data
+   * @returns {Promise<Object>} Memory profile including heap usage, allocations
+   */
+  async getMemoryProfile() {
+    return this.client.get('/monitoring/profiling/memory');
+  }
+
+  /**
+   * Get CPU profiling data
+   * @returns {Promise<Object>} CPU profile including execution time and hotspots
+   */
+  async getCPUProfile() {
+    return this.client.get('/monitoring/profiling/cpu');
+  }
+
+  /**
+   * Detect performance bottlenecks
+   * @returns {Promise<Object>} Identified bottlenecks and performance issues
+   */
+  async getBottlenecks() {
+    return this.client.get('/monitoring/profiling/bottlenecks');
+  }
+
+  /**
+   * Get memory allocation details
+   * @returns {Promise<Object>} Detailed allocation information by component
+   */
+  async getAllocations() {
+    return this.client.get('/monitoring/profiling/allocations');
+  }
+
+  /**
+   * Trigger memory leak detection
+   * @returns {Promise<Object>} Leak detection results and analysis
+   */
+  async detectLeaks() {
+    return this.client.post('/monitoring/profiling/leak-detection');
+  }
+
+  /**
+   * Create system snapshot for debugging
+   * @returns {Promise<Object>} Snapshot information and location
+   */
+  async createSnapshot() {
+    return this.client.post('/monitoring/profiling/snapshot');
+  }
+
+  // ============================================================
+  // Resource Management Endpoints
+  // ============================================================
+
+  /**
+   * Get overall resource manager status
+   * @returns {Promise<Object>} Current status of all managed resources
+   */
+  async getResourceStatus() {
+    return this.client.get('/api/v1/resources/status');
+  }
+
+  /**
+   * Get browser pool status
+   * @returns {Promise<Object>} Browser pool metrics and availability
+   */
+  async getBrowserPoolStatus() {
+    return this.client.get('/api/v1/resources/browser-pool');
+  }
+
+  /**
+   * Get rate limiter status
+   * @returns {Promise<Object>} Current rate limiting state and quotas
+   */
+  async getRateLimiterStatus() {
+    return this.client.get('/api/v1/resources/rate-limiter');
+  }
+
+  /**
+   * Get resource memory usage
+   * @returns {Promise<Object>} Memory consumption by resource type
+   */
+  async getResourceMemory() {
+    return this.client.get('/api/v1/resources/memory');
+  }
+
+  /**
+   * Get resource performance metrics
+   * @returns {Promise<Object>} Performance statistics for all resources
+   */
+  async getResourcePerformance() {
+    return this.client.get('/api/v1/resources/performance');
+  }
+
+  /**
+   * Get PDF processing resource status
+   * @returns {Promise<Object>} PDF worker pool status and metrics
+   */
+  async getPDFResourceStatus() {
+    return this.client.get('/api/v1/resources/pdf');
+  }
+
+  // ============================================================
+  // LLM Provider Management Endpoints
+  // ============================================================
+
+  /**
+   * List available LLM providers
+   * @returns {Promise<Object>} Available providers and their status
+   */
+  async listLLMProviders() {
+    return this.client.get('/api/v1/llm/providers');
+  }
+
+  /**
+   * Switch active LLM provider
+   * @param {string} provider - Provider name to switch to
+   * @returns {Promise<Object>} Confirmation of provider switch
+   */
+  async switchLLMProvider(provider) {
+    return this.client.post('/api/v1/llm/switch', { provider });
+  }
+
+  /**
+   * Get LLM configuration
+   * @param {string|null} key - Optional specific configuration key
+   * @returns {Promise<Object>} LLM configuration settings
+   */
+  async getLLMConfig(key = null) {
+    const url = key ? `/api/v1/llm/config/${key}` : '/api/v1/llm/config';
+    return this.client.get(url);
+  }
+
+  /**
+   * Set LLM configuration value
+   * @param {string} key - Configuration key to set
+   * @param {any} value - Configuration value
+   * @returns {Promise<Object>} Confirmation of configuration update
+   */
+  async setLLMConfig(key, value) {
+    return this.client.put('/api/v1/llm/config', { key, value });
+  }
 }

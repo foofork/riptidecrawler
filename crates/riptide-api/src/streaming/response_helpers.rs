@@ -266,6 +266,7 @@ impl StreamingResponseBuilder {
     }
 
     /// Add custom headers
+    #[allow(dead_code)]
     pub fn headers(mut self, headers: HeaderMap) -> Self {
         for (key, value) in headers {
             if let Some(key) = key {
@@ -534,8 +535,10 @@ impl CompletionHelper {
 }
 
 /// Helper for creating progress messages
+#[allow(dead_code)]
 pub struct ProgressHelper;
 
+#[allow(dead_code)]
 impl ProgressHelper {
     /// Create NDJSON progress message
     pub fn ndjson_message(progress: impl Serialize) -> String {
@@ -568,6 +571,7 @@ impl ProgressHelper {
 }
 
 /// Utility for creating streaming responses from channels
+#[allow(dead_code)]
 pub fn stream_from_receiver<T>(
     receiver: tokio::sync::mpsc::Receiver<T>,
     response_type: StreamingResponseType,
@@ -580,6 +584,7 @@ where
 }
 
 /// Utility for creating streaming responses with error handling
+#[allow(dead_code)]
 pub fn safe_stream_response<S, T>(stream: S, response_type: StreamingResponseType) -> Response
 where
     S: Stream<Item = Result<T, Box<dyn std::error::Error + Send + Sync>>> + Send + 'static,
