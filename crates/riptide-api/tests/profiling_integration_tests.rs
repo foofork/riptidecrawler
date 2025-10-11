@@ -64,10 +64,9 @@ async fn test_profiling_cache_stats() {
         stats.hit_rate >= 0.0 && stats.hit_rate <= 1.0,
         "Hit rate should be between 0 and 1"
     );
-    assert!(
-        stats.total_entries >= 0,
-        "Total entries should be non-negative"
-    );
+    // total_entries is unsigned, so it's always non-negative
+    // Just verify it's accessible
+    let _ = stats.total_entries;
 }
 
 #[tokio::test]
@@ -200,11 +199,9 @@ async fn test_profiling_resource_limits() {
 
     let resource_usage = usage.unwrap();
 
-    // Verify resource tracking
-    assert!(
-        resource_usage.active_permits >= 0,
-        "Active permits should be non-negative"
-    );
+    // Verify resource tracking - ResourceUsage has active_requests (unsigned, always non-negative)
+    // Just verify it's accessible
+    let _ = resource_usage.active_requests;
 }
 
 #[tokio::test]
@@ -218,7 +215,7 @@ async fn test_profiling_cache_optimization() {
         .expect("Failed to initialize AppState");
 
     // Get cache stats before optimization
-    let initial_stats = state.performance_manager.get_cache_stats().await.unwrap();
+    let _initial_stats = state.performance_manager.get_cache_stats().await.unwrap();
 
     // Run cache optimization
     let result = state.performance_manager.optimize_cache().await;
@@ -230,11 +227,9 @@ async fn test_profiling_cache_optimization() {
     // Get cache stats after optimization
     let final_stats = state.performance_manager.get_cache_stats().await.unwrap();
 
-    // Stats should be valid after optimization
-    assert!(
-        final_stats.total_entries >= 0,
-        "Cache should have valid entry count after optimization"
-    );
+    // Stats should be valid after optimization (total_entries is unsigned, always valid)
+    // Just verify it's accessible
+    let _ = final_stats.total_entries;
 }
 
 #[tokio::test]
@@ -288,7 +283,7 @@ async fn test_profiling_memory_growth_tracking() {
         .expect("Failed to initialize AppState");
 
     // Take initial snapshot
-    let initial = state.performance_manager.get_metrics().await.unwrap();
+    let _initial = state.performance_manager.get_metrics().await.unwrap();
 
     // Wait for profiling to collect some data
     sleep(Duration::from_secs(3)).await;
@@ -329,10 +324,8 @@ async fn test_profiling_metrics_completeness() {
         metrics.cache_hit_rate >= 0.0,
         "Cache hit rate should be populated"
     );
-    assert!(
-        metrics.total_requests >= 0,
-        "Total requests should be populated"
-    );
+    // total_requests is unsigned, always non-negative - just verify it's accessible
+    let _ = metrics.total_requests;
 
     println!("Profiling metrics: {:#?}", metrics);
 }
