@@ -127,6 +127,191 @@ curl -X POST http://localhost:8080/deepsearch \
 
 ---
 
+## CLI Usage
+
+RipTide includes a powerful command-line interface for all operations.
+
+### Installation
+
+```bash
+# Build CLI from source
+cargo build --release -p riptide-cli
+
+# Add to PATH (optional)
+sudo cp target/release/riptide /usr/local/bin/
+
+# Or run directly
+./target/release/riptide --help
+```
+
+### Content Extraction
+
+```bash
+# Basic extraction
+riptide extract --url "https://example.com"
+
+# With confidence scoring
+riptide extract --url "https://example.com" --show-confidence
+
+# Strategy composition - chain multiple methods
+riptide extract --url "https://example.com" --strategy "chain:trek,css,regex"
+
+# Parallel strategy execution
+riptide extract --url "https://example.com" --strategy "parallel:all"
+
+# Fallback strategy (try trek, fall back to css)
+riptide extract --url "https://example.com" --strategy "fallback:trek,css"
+
+# Specific extraction method
+riptide extract --url "https://example.com" --method trek
+
+# CSS selector extraction
+riptide extract --url "https://example.com" --method css --selector "article.content"
+
+# Save to file
+riptide extract --url "https://example.com" -f output.md
+
+# JSON output with metadata
+riptide extract --url "https://example.com" --metadata -o json
+```
+
+### Web Crawling
+
+```bash
+# Basic crawl
+riptide crawl --url "https://example.com" --depth 3 --max-pages 100
+
+# Follow external links
+riptide crawl --url "https://example.com" --follow-external
+
+# Save results to directory
+riptide crawl --url "https://example.com" -d ./crawl-results
+
+# Streaming mode
+riptide crawl --url "https://example.com" --stream
+```
+
+### Search
+
+```bash
+# Basic search
+riptide search --query "rust web scraping" --limit 10
+
+# Domain-specific search
+riptide search --query "crawler" --domain "github.com"
+
+# Table output
+riptide search --query "content extraction" -o table
+```
+
+### Cache Management
+
+```bash
+# Check cache status
+riptide cache status
+
+# View cache statistics
+riptide cache stats
+
+# Clear all cache
+riptide cache clear
+
+# Clear cache for specific method
+riptide cache clear --method trek
+
+# Validate cache integrity
+riptide cache validate
+```
+
+### WASM Management
+
+```bash
+# Show WASM runtime information
+riptide wasm info
+
+# Run performance benchmarks
+riptide wasm benchmark --iterations 100
+
+# Check WASM health
+riptide wasm health
+```
+
+### System Operations
+
+```bash
+# Health check
+riptide health
+
+# View system metrics
+riptide metrics
+
+# Validate configuration
+riptide validate
+
+# Comprehensive system check
+riptide system-check
+```
+
+### Global Options
+
+```bash
+# Specify API server URL
+riptide --api-url "http://localhost:8080" health
+
+# Use API key authentication
+riptide --api-key "your-api-key" extract --url "https://example.com"
+
+# JSON output format
+riptide -o json metrics
+
+# Table output format
+riptide -o table cache status
+
+# Verbose logging
+riptide -v extract --url "https://example.com"
+
+# Environment variables
+export RIPTIDE_API_URL="http://localhost:8080"
+export RIPTIDE_API_KEY="your-api-key"
+riptide health
+```
+
+### Advanced Examples
+
+```bash
+# Extract with confidence scoring and strategy composition
+riptide extract \
+  --url "https://blog.example.com/article" \
+  --show-confidence \
+  --strategy "chain:trek,css" \
+  --metadata \
+  -f article.md
+
+# Crawl with comprehensive options
+riptide crawl \
+  --url "https://docs.example.com" \
+  --depth 5 \
+  --max-pages 500 \
+  --follow-external \
+  -d ./docs-crawl \
+  -o json
+
+# System validation before production
+riptide validate && \
+riptide system-check && \
+echo "✓ System ready for production"
+
+# Monitoring workflow
+riptide health -o json > health.json && \
+riptide metrics -o json > metrics.json && \
+riptide cache stats -o json > cache.json
+
+# Performance benchmarking
+riptide wasm benchmark --iterations 1000 -o table
+```
+
+---
+
 ## Architecture
 
 ### System Overview

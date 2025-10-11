@@ -4,6 +4,7 @@ members = [
   "crates/riptide-html",
   "crates/riptide-search",
   "crates/riptide-api",
+  "crates/riptide-cli",
   "crates/riptide-headless",
   "crates/riptide-workers",
   "crates/riptide-intelligence",

@@ -1,0 +1,11 @@
+[package]
+name = "wasm-memory-tests"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Will be linked to actual riptide-html when integrated
+
+[[test]]
+name = "memory_leak_tests"
+path = "memory_leak_tests.rs"

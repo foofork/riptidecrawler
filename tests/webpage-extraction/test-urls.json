@@ -1,0 +1,335 @@
+{
+  "test_urls": [
+    {
+      "id": "news-cnn-article",
+      "url": "https://www.cnn.com/2024/01/15/tech/openai-gpt-store/index.html",
+      "category": "news",
+      "expected": {
+        "has_title": true,
+        "has_content": true,
+        "min_content_length": 500,
+        "has_metadata": true
+      },
+      "notes": "Major news article with structured content"
+    },
+    {
+      "id": "news-bbc-breaking",
+      "url": "https://www.bbc.com/news/technology-67890123",
+      "category": "news",
+      "expected": {
+        "has_title": true,
+        "has_content": true,
+        "min_content_length": 300,
+        "has_images": true
+      },
+      "notes": "BBC news article with multimedia"
+    },
+    {
+      "id": "news-reuters-tech",
+      "url": "https://www.reuters.com/technology/artificial-intelligence",
+      "category": "news",
+      "expected": {
+        "has_title": true,
+        "has_content": true,
+        "has_metadata": true
+      },
+      "notes": "Reuters tech section"
+    },
+    {
+      "id": "ecommerce-amazon-product",
+      "url": "https://www.amazon.com/dp/B08N5WRWNW",
+      "category": "ecommerce",
+      "expected": {
+        "has_title": true,
+        "has_price": true,
+        "has_description": true,
+        "has_images": true
+      },
+      "notes": "Amazon product page with rich metadata"
+    },
+    {
+      "id": "ecommerce-ebay-listing",
+      "url": "https://www.ebay.com/itm/123456789",
+      "category": "ecommerce",
+      "expected": {
+        "has_title": true,
+        "has_price": true,
+        "has_description": true
+      },
+      "notes": "eBay listing with auction details"
+    },
+    {
+      "id": "docs-mdn-javascript",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array",
+      "category": "documentation",
+      "expected": {
+        "has_title": true,
+        "has_content": true,
+        "has_code_examples": true,
+        "min_content_length": 1000
+      },
+      "notes": "MDN documentation with code examples"
+    },
+    {
+      "id": "docs-github-actions",
+      "url": "https://docs.github.com/en/actions/quickstart",
+      "category": "documentation",
+      "expected": {
+        "has_title": true,
+        "has_content": true,
+        "has_code_examples": true,
+        "has_navigation": true
+      },
+      "notes": "GitHub documentation with navigation"
+    },
+    {
+      "id": "docs-rust-book",
+      "url": "https://doc.rust-lang.org/book/ch01-01-installation.html",
+      "category": "documentation",
+      "expected": {
+        "has_title": true,
+        "has_content": true,
+        "has_code_examples": true
+      },
+      "notes": "Rust book documentation"
+    },
+    {
+      "id": "blog-medium-article",
+      "url": "https://medium.com/@user/ai-article-example-123abc",
+      "category": "blog",
+      "expected": {
+        "has_title": true,
+        "has_content": true,
+        "has_author": true,
+        "min_content_length": 800
+      },
+      "notes": "Medium blog post with author info"
+    },
+    {
+      "id": "blog-personal-tech",
+      "url": "https://blog.cloudflare.com/technology-news",
+      "category": "blog",
+      "expected": {
+        "has_title": true,
+        "has_content": true,
+        "min_content_length": 500
+      },
+      "notes": "Corporate tech blog"
+    },
+    {
+      "id": "social-reddit-thread",
+      "url": "https://www.reddit.com/r/programming/comments/abc123/title",
+      "category": "social",
+      "expected": {
+        "has_title": true,
+        "has_content": true,
+        "has_comments": true
+      },
+      "notes": "Reddit thread with comments"
+    },
+    {
+      "id": "social-twitter-thread",
+      "url": "https://twitter.com/user/status/1234567890",
+      "category": "social",
+      "expected": {
+        "has_title": true,
+        "has_content": true,
+        "has_author": true
+      },
+      "notes": "Twitter/X post thread"
+    },
+    {
+      "id": "api-docs-stripe",
+      "url": "https://stripe.com/docs/api/charges",
+      "category": "api_documentation",
+      "expected": {
+        "has_title": true,
+        "has_content": true,
+        "has_code_examples": true,
+        "has_navigation": true
+      },
+      "notes": "Stripe API documentation with examples"
+    },
+    {
+      "id": "api-docs-openai",
+      "url": "https://platform.openai.com/docs/api-reference/chat",
+      "category": "api_documentation",
+      "expected": {
+        "has_title": true,
+        "has_content": true,
+        "has_code_examples": true
+      },
+      "notes": "OpenAI API reference"
+    },
+    {
+      "id": "wiki-wikipedia-tech",
+      "url": "https://en.wikipedia.org/wiki/Artificial_intelligence",
+      "category": "wiki",
+      "expected": {
+        "has_title": true,
+        "has_content": true,
+        "has_references": true,
+        "min_content_length": 2000
+      },
+      "notes": "Wikipedia article with citations"
+    },
+    {
+      "id": "news-international-arabic",
+      "url": "https://www.aljazeera.com/news/technology",
+      "category": "international",
+      "expected": {
+        "has_title": true,
+        "has_content": true
+      },
+      "notes": "International news site (Al Jazeera)"
+    },
+    {
+      "id": "news-international-japanese",
+      "url": "https://www.asahi.com/tech/",
+      "category": "international",
+      "expected": {
+        "has_title": true,
+        "has_content": true
+      },
+      "notes": "Japanese news site (Asahi)"
+    },
+    {
+      "id": "spa-react-app",
+      "url": "https://reactjs.org/docs/getting-started.html",
+      "category": "spa",
+      "expected": {
+        "has_title": true,
+        "has_content": true,
+        "has_code_examples": true
+      },
+      "notes": "React SPA with dynamic content"
+    },
+    {
+      "id": "academic-arxiv",
+      "url": "https://arxiv.org/abs/2301.00001",
+      "category": "academic",
+      "expected": {
+        "has_title": true,
+        "has_abstract": true,
+        "has_authors": true,
+        "has_metadata": true
+      },
+      "notes": "ArXiv academic paper"
+    },
+    {
+      "id": "forums-stackoverflow",
+      "url": "https://stackoverflow.com/questions/12345678/example-question",
+      "category": "forums",
+      "expected": {
+        "has_title": true,
+        "has_content": true,
+        "has_answers": true,
+        "has_code_examples": true
+      },
+      "notes": "StackOverflow question with answers"
+    },
+    {
+      "id": "government-usagov",
+      "url": "https://www.usa.gov/technology",
+      "category": "government",
+      "expected": {
+        "has_title": true,
+        "has_content": true
+      },
+      "notes": "US Government website"
+    },
+    {
+      "id": "media-youtube-video",
+      "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "category": "media",
+      "expected": {
+        "has_title": true,
+        "has_description": true,
+        "has_metadata": true
+      },
+      "notes": "YouTube video page"
+    },
+    {
+      "id": "paywall-nytimes",
+      "url": "https://www.nytimes.com/2024/01/15/technology/ai-news.html",
+      "category": "paywall",
+      "expected": {
+        "has_title": true,
+        "has_partial_content": true,
+        "paywall_detected": true
+      },
+      "notes": "NYTimes article behind paywall"
+    },
+    {
+      "id": "dynamic-weather-forecast",
+      "url": "https://weather.com/weather/today",
+      "category": "dynamic",
+      "expected": {
+        "has_title": true,
+        "has_content": true,
+        "dynamic_content": true
+      },
+      "notes": "Weather.com with dynamic forecasts"
+    },
+    {
+      "id": "pdf-embedded-document",
+      "url": "https://www.example.com/document.pdf",
+      "category": "document",
+      "expected": {
+        "is_pdf": true,
+        "extractable": true
+      },
+      "notes": "PDF document (if available)"
+    },
+    {
+      "id": "cdn-cloudflare-page",
+      "url": "https://www.cloudflare.com/learning/",
+      "category": "cdn",
+      "expected": {
+        "has_title": true,
+        "has_content": true
+      },
+      "notes": "Cloudflare CDN-served content"
+    },
+    {
+      "id": "auth-required-github-private",
+      "url": "https://github.com/private-repo/settings",
+      "category": "authenticated",
+      "expected": {
+        "requires_auth": true,
+        "has_title": true
+      },
+      "notes": "GitHub page requiring authentication"
+    },
+    {
+      "id": "malformed-broken-links",
+      "url": "https://example.com/broken-page-404",
+      "category": "error",
+      "expected": {
+        "error_404": true
+      },
+      "notes": "404 error page for testing error handling"
+    },
+    {
+      "id": "heavy-javascript-app",
+      "url": "https://www.figma.com/community",
+      "category": "heavy_js",
+      "expected": {
+        "has_title": true,
+        "requires_js": true
+      },
+      "notes": "Heavy JavaScript application"
+    },
+    {
+      "id": "simple-static-html",
+      "url": "https://example.com",
+      "category": "simple",
+      "expected": {
+        "has_title": true,
+        "has_content": true,
+        "is_simple_html": true
+      },
+      "notes": "Simple static HTML page"
+    }
+  ]
+}

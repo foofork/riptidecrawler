@@ -1,0 +1,30 @@
+# Test URLs for Webpage Extraction Comparison
+# Format: url|category|url_id
+
+# Category A: News and Articles
+https://www.bbc.com/news|news|bbc_news
+https://techcrunch.com|news|techcrunch
+https://www.theguardian.com/international|news|guardian
+https://arstechnica.com|news|arstechnica
+https://www.reuters.com|news|reuters
+
+# Category B: Documentation and Blogs
+https://docs.rs|docs|docs_rs
+https://developer.mozilla.org/en-US/|docs|mdn
+https://blog.rust-lang.org|blog|rust_blog
+https://aws.amazon.com/blogs/aws/|blog|aws_blog
+https://github.com|docs|github
+
+# Category C: Complex Layouts
+https://stackoverflow.com/questions|complex|stackoverflow
+https://www.reddit.com|complex|reddit
+https://medium.com|complex|medium
+
+# Category D: Structured Data
+https://en.wikipedia.org/wiki/Rust_(programming_language)|structured|wikipedia_rust
+https://www.imdb.com|structured|imdb
+https://finance.yahoo.com|structured|yahoo_finance
+
+# Category E: Edge Cases
+data:text/html,<html><body><h1>Test</h1><p>Content</p></body></html>|edge|data_url
+https://example.com|edge|simple_page

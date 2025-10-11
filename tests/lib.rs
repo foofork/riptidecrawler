@@ -25,7 +25,15 @@ pub mod chaos {
 pub mod integration {
     pub mod session_persistence_tests;
     pub mod contract_tests;
+    pub mod gap_fixes_integration;
 }
+
+// Gap fixes integration tests
+#[cfg(test)]
+pub mod confidence_scoring;
+
+#[cfg(test)]
+pub mod cache_consistency;
 
 // Unit Tests
 pub mod unit {
