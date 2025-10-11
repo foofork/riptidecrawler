@@ -10,6 +10,7 @@
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use serde_json::json;
+#[cfg(feature = "streaming")]
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -470,6 +471,7 @@ mod stress_tests {
     }
 
     // Helper function to get memory usage
+    #[cfg(feature = "profiling-full")]
     async fn get_memory_usage(app: &Arc<axum::Router>) -> f64 {
         let response = (**app)
             .clone()

@@ -140,17 +140,14 @@ fn benchmark_api_response_times(c: &mut Criterion) {
     group.bench_function("metrics_endpoint", |b| {
         b.iter(|| {
             std::thread::sleep(Duration::from_micros(500));
-            let metrics =
-                black_box("# HELP requests Total requests\n# TYPE requests counter\nrequests 1000");
-            metrics
+            black_box("# HELP requests Total requests\n# TYPE requests counter\nrequests 1000")
         });
     });
 
     group.bench_function("extract_endpoint", |b| {
         b.iter(|| {
             std::thread::sleep(Duration::from_millis(50));
-            let response = black_box(r#"{"url":"https://example.com","content":"test"}"#);
-            response
+            black_box(r#"{"url":"https://example.com","content":"test"}"#)
         });
     });
 
@@ -209,7 +206,7 @@ fn benchmark_tenant_quota_checking(c: &mut Criterion) {
 
     group.bench_function("check_tenant_quota", |b| {
         b.iter(|| {
-            let tenant_id = black_box("tenant-123");
+            let _tenant_id = black_box("tenant-123");
             let requests = black_box(85u32);
             let limit = black_box(100u32);
             let _allowed = requests < limit;
@@ -324,7 +321,6 @@ criterion_main!(benches);
 
 #[cfg(test)]
 mod performance_tests {
-    use super::*;
 
     /// Performance Test 1: Verify streaming meets throughput target
     #[test]

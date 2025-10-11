@@ -6,7 +6,7 @@
 use axum::body::to_bytes;
 use riptide_api::streaming::response_helpers::{
     CompletionHelper, KeepAliveHelper, ProgressHelper, StreamingErrorResponse,
-    StreamingResponseBuilder, StreamingResponseType,
+    StreamingResponseType,
 };
 use serde_json::{json, Value};
 
