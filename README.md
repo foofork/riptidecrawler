@@ -1,333 +1,400 @@
-# 🌊 RipTide - High-Performance Web Crawler & Content Extraction
+# RipTide
 
-[![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![API Docs](https://img.shields.io/badge/API-100%25%20documented-brightgreen.svg)](docs/api/openapi.yaml)
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](tests/)
+[![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-103%20files-green.svg)](tests/)
+[![API Docs](https://img.shields.io/badge/API%20docs-59%20endpoints-success.svg)](docs/api/ENDPOINT_CATALOG.md)
+[![Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen.svg)](docs/development/testing.md)
 
-> **Enterprise-grade web crawling and content extraction with WASM-powered extraction, adaptive routing, and real-time streaming.**
+**High-performance web crawler and content extraction API built in Rust with WebAssembly optimization.**
 
-RipTide is a blazingly fast, production-ready API for web content extraction. Built in Rust with WebAssembly optimization, it intelligently routes requests through multiple extraction strategies to deliver the best quality content with minimal latency.
-
----
-
-## ✨ Key Features
-
-### 🚀 **Performance**
-- **WASM-Powered Extraction** - High-performance content extraction using WebAssembly
-- **Dual-Path Pipeline** - Fast CSS extraction + async AI enhancement
-- **Adaptive Gate System** - Smart routing (raw/probes/headless/cached)
-- **Event-Driven Architecture** - Built on core event bus for real-time monitoring
-- **Circuit Breaker Pattern** - Automatic failover for external dependencies
-
-### 🎯 **Extraction Capabilities**
-- **Multi-Strategy Extraction** - CSS, TREK (WASM), LLM, Regex, Auto-detection
-- **Spider Deep Crawling** - Frontier management with intelligent link discovery
-- **PDF Processing** - Native PDF content extraction with streaming
-- **Table Extraction** - Extract tables from HTML/PDF with export (CSV/Markdown)
-- **Stealth Browsing** - Bot evasion with configurable anti-detection measures
-
-### 🔄 **Real-Time Streaming**
-- **NDJSON Streaming** - Newline-delimited JSON for live results
-- **Server-Sent Events (SSE)** - Browser-friendly streaming
-- **WebSocket** - Bidirectional real-time communication
-- **Progress Tracking** - Live updates for long-running operations
-
-### 🏢 **Enterprise Features**
-- **Session Management** - Persistent sessions with cookie management (12 endpoints)
-- **Async Job Queue** - Background processing with scheduling (9 endpoints)
-- **LLM Provider Abstraction** - Runtime switching between AI providers (4 endpoints)
-- **Monitoring & Alerts** - Health scores, performance reports, active alerts (6 endpoints)
-- **API Gateway Ready** - Kong, Tyk, AWS API Gateway integration
+RipTide delivers enterprise-grade web crawling with WASM-powered extraction, real-time streaming, and intelligent adaptive routing. Built for scale, security, and performance.
 
 ---
 
-## 📊 API Overview
+## Key Features
 
-**59 Endpoints** across **13 Categories** - **100% Documented**
+### Performance & Scalability
+- **WASM-Powered Extraction**: WebAssembly Component Model with adaptive routing for optimal content processing
+- **Concurrent Processing**: Configurable worker pools with intelligent load balancing
+- **HTTP/2 Optimization**: Prior knowledge support and connection multiplexing
+- **Smart Caching**: Redis-backed read-through cache with TTL management
+- **Dual-Path Pipeline**: Fast static extraction with intelligent headless browser fallback
 
-| Category | Endpoints | Description |
-|----------|-----------|-------------|
-| **Health** | 2 | System health checks & Prometheus metrics |
-| **Crawling** | 5 | Batch crawling with adaptive routing |
-| **Streaming** | 4 | NDJSON, SSE, WebSocket protocols |
-| **Search** | 2 | Deep search with content extraction |
-| **Spider** | 3 | Deep crawling with frontier management |
-| **Strategies** | 2 | Multi-strategy extraction (CSS/TREK/LLM/Regex) |
-| **PDF** | 3 | PDF processing with streaming |
-| **Stealth** | 4 | Stealth configuration & testing |
-| **Tables** | 2 | Table extraction & export |
-| **LLM** | 4 | LLM provider management |
-| **Sessions** | 12 | Session & cookie management |
-| **Workers** | 9 | Async job queue & scheduling |
-| **Monitoring** | 6 | Metrics, alerts, health scores |
+### Content Extraction
+- **Multi-Strategy Extraction**: Auto-selection, CSS, TREK, LLM, and Regex patterns
+- **PDF Processing**: Full pipeline with table extraction and streaming progress
+- **Table Extraction**: Structured data extraction with CSV/Markdown export
+- **Intelligent Chunking**: Sliding window, topic-based, and sentence-preserving modes
+- **Markdown Generation**: Clean, readable markdown output from complex HTML
 
-📚 **[Complete API Documentation](docs/api/openapi.yaml)** | 🚀 **[Quick Start Guide](docs/API_TOOLING_QUICKSTART.md)**
+### Real-Time Streaming
+- **NDJSON Streaming**: Newline-delimited JSON for efficient data pipelines
+- **Server-Sent Events (SSE)**: Browser-compatible real-time updates
+- **WebSocket Support**: Bidirectional communication for interactive crawling
+- **Progress Tracking**: Real-time status updates for long-running operations
+
+### Enterprise Features
+- **Session Management**: Isolated browsing contexts with cookie persistence
+- **Async Job Queue**: Background processing with retry logic and scheduling
+- **LLM Abstraction**: Multi-provider support (OpenAI, Anthropic, Google Vertex)
+- **Stealth Mode**: Anti-detection with fingerprint randomization
+- **Deep Crawling**: Spider engine with frontier management and adaptive strategies
+- **Comprehensive Monitoring**: Prometheus metrics, health scores, and bottleneck analysis
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
-### ⚡ Try RipTide in 30 Seconds
+### Prerequisites
 
-**Option 1: Pre-built Docker Image (Fastest)**
+- **Rust**: 1.75+ with `wasm32-wasip2` target
+- **Docker**: 20.10+ with Docker Compose
+- **Redis**: 7.0+ (included in Docker setup)
+- **Serper API Key**: For search functionality ([Get one here](https://serper.dev))
+
+### Docker Deployment (Recommended)
 
 ```bash
-# Pull and run RipTide instantly (no build required!)
-docker run -d \
-  -p 8080:8080 \
-  -p 8081:8080 \
-  --name riptide \
-  -e REDIS_URL=redis://host.docker.internal:6379 \
-  riptide/api:latest
+# 1. Clone repository
+git clone <repository-url>
+cd eventmesh
 
-# Or use our quick-start script (recommended)
-curl -fsSL https://raw.githubusercontent.com/your-org/riptide-api/main/scripts/quick-start.sh | bash
+# 2. Configure environment
+cp .env.example .env
+# Edit .env and add your SERPER_API_KEY
 
-# Access:
-# - API: http://localhost:8080
-# - Swagger UI: http://localhost:8081
-# - Health: http://localhost:8080/healthz
-```
-
-**Option 2: Docker Compose (Full Stack)**
-
-```bash
-# Automated setup with Redis + Swagger UI
-./scripts/quick-start.sh
-
-# Or manually:
+# 3. Start services with Docker Compose
 docker-compose up -d
 
-# Access API at: http://localhost:8080
-# Swagger UI at: http://localhost:8081
+# 4. Verify deployment
+curl http://localhost:8080/healthz
 ```
 
-**Option 3: From Source (Development)**
+### Building from Source
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/riptide-api.git
-cd riptide-api
+# 1. Install Rust toolchain
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup target add wasm32-wasip2
 
-# Build the project
+# 2. Clone and setup
+git clone <repository-url>
+cd eventmesh
+export SERPER_API_KEY="your-api-key"
+
+# 3. Build WASM component
+cd wasm/riptide-extractor-wasm
+cargo build --target wasm32-wasip2 --release
+cd ../..
+
+# 4. Build project
 cargo build --release
 
-# Run the API server
-cargo run --release --package riptide-api
+# 5. Start Redis
+docker run -d --name redis -p 6379:6379 redis:7-alpine
 
-# API available at: http://localhost:8080
+# 6. Start API service
+./target/release/riptide-api --config configs/riptide.yml
 ```
 
-### 🧪 Test Your Installation
+### First API Request
 
 ```bash
-# Run automated tests
-./scripts/test-riptide.sh
-
-# Or test manually:
 # Health check
 curl http://localhost:8080/healthz
 
-# Crawl a URL
+# Crawl a single URL
 curl -X POST http://localhost:8080/crawl \
   -H "Content-Type: application/json" \
   -d '{
     "urls": ["https://example.com"],
     "options": {
-      "concurrency": 1,
-      "cache_mode": "read_write"
+      "cache_mode": "auto",
+      "concurrency": 5
     }
+  }'
+
+# Deep search with content extraction
+curl -X POST http://localhost:8080/deepsearch \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "rust web scraping",
+    "limit": 10,
+    "include_content": true
   }'
 ```
 
-### 📖 Self-Hosting Guide
+---
 
-For detailed instructions on production deployment, security, scaling, and advanced configurations, see our [Self-Hosting Guide](SELF_HOSTING.md).
+## Architecture
+
+### System Overview
+
+RipTide uses a dual-path pipeline architecture for optimal performance:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Client Request                          │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      Fetch Phase (HTTP)                         │
+│  • Concurrent HTTP/2 requests      • Rate limiting              │
+│  • Compression (Gzip/Brotli)       • Robots.txt compliance      │
+│  • Redis caching                   • Stealth headers            │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Gate Phase (Decision)                        │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │ Content-Type │  │  JS Analysis │  │ Quality Score│          │
+│  │   Detection  │  │   Heuristics │  │  Calculation │          │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘          │
+│         └──────────────────┴─────────────────┘                  │
+│                            │                                     │
+│         ┌──────────────────┼──────────────────┐                 │
+│         ▼                  ▼                  ▼                 │
+│    ┌────────┐       ┌──────────┐       ┌──────────┐            │
+│    │  Raw   │       │  WASM    │       │ Headless │            │
+│    │ (Fast) │       │ (Optimal)│       │ (Render) │            │
+│    └────┬───┘       └────┬─────┘       └────┬─────┘            │
+└─────────┼────────────────┼──────────────────┼──────────────────┘
+          │                │                  │
+          ▼                ▼                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   Extract Phase (Processing)                    │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │              WASM Extraction Engine                      │   │
+│  │  • Adaptive strategy selection  • Multi-format output   │   │
+│  │  • Content cleaning             • Metadata extraction   │   │
+│  │  • Intelligent chunking         • Link extraction       │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                              │                                   │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │           Chromiumoxide (Headless Browser)               │   │
+│  │  • JavaScript rendering         • Screenshot capture    │   │
+│  │  • Dynamic content              • Network interception  │   │
+│  │  • Stealth mode                 • Cookie management     │   │
+│  └──────────────────────────────────────────────────────────┘   │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     Response (JSON/Stream)                      │
+│  • Structured JSON          • Real-time streaming (NDJSON/SSE) │
+│  • Quality metrics          • Pipeline performance data        │
+│  • Cache metadata           • Error handling                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Technology Stack
+
+| Component | Technology | Purpose |
+|-----------|-----------|---------|
+| **Language** | Rust 2021 Edition | Memory safety, concurrency, performance |
+| **Web Framework** | Axum 0.7 | High-performance async HTTP |
+| **Async Runtime** | Tokio | Multi-threaded async execution |
+| **WASM Runtime** | Wasmtime 34 | Component Model extraction engine |
+| **Browser** | Chromiumoxide | Headless Chrome automation |
+| **Cache** | Redis 7 | Distributed caching and session store |
+| **HTTP Client** | Reqwest 0.12 | HTTP/2, compression, TLS |
+| **Search** | Serper API | Web search integration |
 
 ---
 
-## 📖 Interactive API Documentation
+## Workspace Structure
 
-### Swagger UI - Try APIs in Your Browser
+RipTide is organized as a Cargo workspace with 13 specialized crates:
+
+| Crate | Description |
+|-------|-------------|
+| **riptide-api** | REST API server with 59 endpoints across 13 categories |
+| **riptide-core** | Core crawling engine, orchestration, and shared utilities |
+| **riptide-html** | HTML parsing, content extraction, and markdown generation |
+| **riptide-search** | Web search integration with circuit breaker and provider abstraction |
+| **riptide-headless** | Headless browser service with Chromiumoxide and stealth mode |
+| **riptide-workers** | Background job queue with Redis-backed persistence |
+| **riptide-intelligence** | Multi-provider LLM abstraction (OpenAI, Anthropic, Google) |
+| **riptide-persistence** | Session management and data persistence layer |
+| **riptide-streaming** | Real-time streaming protocols (NDJSON, SSE, WebSocket) |
+| **riptide-stealth** | Anti-detection capabilities and fingerprint randomization |
+| **riptide-pdf** | PDF processing pipeline with table extraction |
+| **riptide-performance** | Monitoring, metrics collection, and bottleneck analysis |
+| **riptide-extractor-wasm** | WebAssembly content extraction component |
+
+---
+
+## API Overview
+
+**59 endpoints** across **13 categories** with 100% documentation coverage.
+
+| Category | Endpoints | Key Features |
+|----------|-----------|--------------|
+| **Health & Metrics** | 2 | System health, Prometheus metrics, dependency status |
+| **Core Crawling** | 5 | Batch crawling, rendering, adaptive gate, caching |
+| **Search** | 2 | Deep search, web integration, content extraction |
+| **Streaming** | 4 | NDJSON, SSE, WebSocket real-time data |
+| **Spider** | 3 | Deep crawling, frontier management, adaptive strategies |
+| **Strategies** | 2 | Multi-strategy extraction, intelligent chunking |
+| **PDF Processing** | 3 | PDF extraction, table parsing, progress streaming |
+| **Stealth** | 4 | Bot evasion, fingerprint randomization, effectiveness testing |
+| **Table Extraction** | 2 | HTML table parsing, CSV/Markdown export |
+| **LLM Providers** | 4 | Multi-provider support, runtime switching, config management |
+| **Sessions** | 12 | Cookie persistence, TTL management, isolated contexts |
+| **Workers & Jobs** | 9 | Async processing, scheduling, retry logic, queue management |
+| **Monitoring** | 6 | Health scores, alerts, performance reports, bottleneck analysis |
+
+**Full API documentation**: [Endpoint Catalog](docs/api/ENDPOINT_CATALOG.md) | [OpenAPI Spec](docs/api/openapi.yaml)
+
+---
+
+## Testing & Quality Assurance
+
+### Test Coverage
+
+- **103 test files** across the workspace
+- **85%+ code coverage** with unit, integration, and golden tests
+- **Continuous integration** with GitHub Actions
+- **Security audits** with `cargo audit` and `cargo deny`
+
+### Running Tests
 
 ```bash
-# Start Swagger UI
-docker-compose -f docker-compose.swagger.yml up -d swagger-ui
-
-# Open in browser: http://localhost:8081
-```
-
-**Features:**
-- 🧪 **Test any endpoint** directly in browser (no Postman needed!)
-- 📝 **See request/response examples** for all 59 endpoints
-- 🔍 **Search and filter** endpoints by category
-- 📊 **View schemas** and data models
-- 💾 **Download** OpenAPI specification
-
-**Alternative:** [ReDoc](http://localhost:8082) - Clean, mobile-friendly documentation
-
----
-
-## 🏗️ Architecture
-
-**[📐 View Full System Diagram](docs/architecture/system-diagram.md)** - Complete visual architecture with data flows
-
-### Dual-Path Pipeline
-
-```
-┌─────────────────────────────────────────────────────┐
-│  Request → Gate Decision                             │
-├─────────────────────────────────────────────────────┤
-│  ┌─────────────┐    ┌──────────────────────────┐   │
-│  │ Fast Path   │    │ Enhanced Path            │   │
-│  │             │    │                          │   │
-│  │ CSS Extract │ OR │ WASM → AI Enhancement    │   │
-│  │ (~500ms)    │    │ (~2-3s)                  │   │
-│  └─────────────┘    └──────────────────────────┘   │
-├─────────────────────────────────────────────────────┤
-│  Response with quality score & metrics               │
-└─────────────────────────────────────────────────────┘
-```
-
-### Core Components
-
-- **Adaptive Gate** - Intelligent routing based on content analysis
-- **Event Bus** - Central event system for monitoring & coordination
-- **Circuit Breaker** - Automatic failover for external dependencies
-- **WASM Extractor** - High-performance WebAssembly content extraction (~45ms avg)
-- **Redis Cache** - Distributed caching with TTL (40-60% hit rate)
-- **Worker Pool** - Async job processing with scheduling
-
-📐 **[Full Diagram](docs/architecture/system-diagram.md)** | 🏛️ **[System Overview](docs/architecture/system-overview.md)** | 🔧 **[Configuration Guide](docs/architecture/configuration-guide.md)**
-
----
-
-## 🧪 Testing & Quality Assurance
-
-### Automated Testing Suite
-
-```bash
-# Run all tests
+# All tests
 cargo test
 
-# Run integration tests only
+# Specific crate
+cargo test -p riptide-core
+
+# Integration tests (requires Redis)
+docker run -d --name redis -p 6379:6379 redis:7-alpine
 cargo test --test '*'
 
-# Run with coverage
-cargo tarpaulin --out Html
+# With coverage
+cargo install cargo-tarpaulin
+cargo tarpaulin --out Html --output-dir coverage
+
+# WASM component tests
+cd wasm/riptide-extractor-wasm
+cargo test --target wasm32-wasip2
 ```
 
-### API Contract Testing
+### Code Quality
 
 ```bash
-# Install Dredd
-npm install -g dredd
+# Format code
+cargo fmt
 
-# Test API against OpenAPI spec
-dredd docs/api/openapi.yaml http://localhost:8080
+# Linting
+cargo clippy -- -D warnings
+
+# Security audit
+cargo audit
+
+# License and dependency checking
+cargo deny check
 ```
-
-### API Fuzzing
-
-```bash
-# Install Schemathesis
-pip install schemathesis
-
-# Automatic fuzzing
-schemathesis run docs/api/openapi.yaml --base-url http://localhost:8080
-```
-
-**Test Coverage:** 85%+ | **103 Test Files** | **46,000+ Lines of Test Code**
-
-📋 **[Testing Guide](docs/TESTING_GUIDE.md)** | 🔬 **[CI/CD Pipeline](.github/workflows/api-contract-tests.yml)**
 
 ---
 
-## 🌐 Production Deployment
+## Production Deployment
 
-### With API Gateway (Kong)
+### Docker Compose (Recommended)
+
+```yaml
+version: '3.8'
+
+services:
+  riptide-api:
+    image: riptide/api:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - SERPER_API_KEY=${SERPER_API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - RUST_LOG=info
+    depends_on:
+      - redis
+      - riptide-headless
+
+  riptide-headless:
+    image: riptide/headless:latest
+    ports:
+      - "9123:9123"
+    environment:
+      - RUST_LOG=info
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+volumes:
+  redis-data:
+```
+
+### Kong API Gateway Integration
+
+RipTide includes Kong Gateway configuration for production deployments:
 
 ```bash
-# Start Kong Gateway + RipTide
+# Start with Kong Gateway
 docker-compose -f docker-compose.gateway.yml up -d
 
-# Configure rate limiting
-curl -X POST http://localhost:8001/services/riptide-api/plugins \
-  --data "name=rate-limiting" \
-  --data "config.minute=100"
-
-# Add API key authentication
-curl -X POST http://localhost:8001/services/riptide-api/plugins \
-  --data "name=key-auth"
+# Features:
+# - Rate limiting (100 req/min)
+# - Authentication (API key)
+# - Request/response logging
+# - CORS handling
+# - Load balancing
 ```
 
-**Access Points:**
-- 🚪 API Gateway: `http://localhost:8000/api`
-- 🔧 Admin API: `http://localhost:8001`
-- 📊 Dashboard: `http://localhost:8002`
-- 📚 Docs: `http://localhost:8081`
+**Configuration**: [docker-compose.gateway.yml](docker-compose.gateway.yml)
 
-### Environment Configuration
+### Environment Variables
 
 ```bash
-# Core settings
-export REDIS_URL=redis://localhost:6379
-export WASM_PATH=/path/to/riptide.wasm
-export MAX_CONCURRENCY=10
+# Required
+SERPER_API_KEY=your-serper-api-key
 
-# Enhanced pipeline
-export ENHANCED_PIPELINE_ENABLE=true
-export ENHANCED_PIPELINE_METRICS=true
+# Optional - Redis
+REDIS_URL=redis://localhost:6379/0
+REDIS_POOL_SIZE=10
+REDIS_TIMEOUT_MS=5000
 
-# Optional headless service
-export HEADLESS_URL=http://localhost:3000
+# Optional - Performance
+CRAWL_CONCURRENCY=16
+WORKER_THREADS=8
+REQUEST_TIMEOUT_MS=30000
+
+# Optional - Logging
+RUST_LOG=info,riptide_core=debug
+LOG_FORMAT=json
+
+# Optional - Headless
+HEADLESS_URL=http://localhost:9123
+HEADLESS_POOL_SIZE=5
+
+# Optional - LLM (if using extraction)
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+GOOGLE_VERTEX_CREDENTIALS=/path/to/credentials.json
 ```
 
-📦 **[Deployment Guide](docs/architecture/deployment-guide.md)** | ⚙️ **[Configuration Reference](docs/user/configuration.md)**
+**Full configuration guide**: [docs/architecture/configuration-guide.md](docs/architecture/configuration-guide.md)
 
 ---
 
-## 🔧 Developer Tools
+## Performance & Monitoring
 
-### Generate Client SDKs
+### Built-in Metrics
 
-```bash
-# TypeScript/JavaScript
-openapi-generator-cli generate \
-  -i docs/api/openapi.yaml \
-  -g typescript-axios \
-  -o clients/typescript
-
-# Python
-openapi-generator-cli generate \
-  -i docs/api/openapi.yaml \
-  -g python \
-  -o clients/python
-
-# Also available: Rust, Go, Java, PHP, Ruby, C#, Swift, Kotlin
-```
-
-### Import to API Tools
-
-**Postman:**
-```bash
-openapi2postmanv2 -s docs/api/openapi.yaml -o riptide.postman.json
-# Import: File → Import → riptide.postman.json
-```
-
-**Insomnia:**
-1. Import/Export → Import Data
-2. Select: `docs/api/openapi.yaml`
-3. ✅ 59 requests auto-created
-
-🛠️ **[Developer Guide](docs/development/getting-started.md)** | 📚 **[API Examples](docs/api/examples.md)**
-
----
-
-## 📈 Performance & Monitoring
-
-### Metrics Endpoints
+RipTide provides comprehensive performance monitoring:
 
 ```bash
 # Prometheus metrics
@@ -336,198 +403,231 @@ curl http://localhost:8080/metrics
 # Health score (0-100)
 curl http://localhost:8080/monitoring/health-score
 
-# Performance report
+# Performance report with recommendations
 curl http://localhost:8080/monitoring/performance-report
 
-# Pipeline phase metrics
+# Pipeline phase metrics and bottleneck analysis
 curl http://localhost:8080/pipeline/phases
 ```
 
-### Key Metrics
+### Key Performance Indicators
 
-- **Response Time:** p50 ≤1.5s, p95 ≤5s
-- **Success Rate:** ≥99.5%
-- **Cache Hit Rate:** ~40-60%
-- **Concurrent Requests:** Up to 100/sec
+| Metric | Target | Monitoring Endpoint |
+|--------|--------|---------------------|
+| **Request Latency (p95)** | < 500ms | `/pipeline/phases` |
+| **Cache Hit Rate** | > 70% | `/monitoring/metrics/current` |
+| **Error Rate** | < 1% | `/monitoring/performance-report` |
+| **Throughput** | > 100 req/s | `/healthz` |
+| **Memory Usage** | < 2GB | `/healthz` |
 
-📊 **[Performance Guide](docs/api/performance.md)** | 🔍 **[Monitoring Setup](docs/ENHANCED_PIPELINE_IMPLEMENTATION.md)**
+### Bottleneck Analysis
+
+The `/pipeline/phases` endpoint provides detailed phase-by-phase metrics:
+
+```json
+{
+  "phases": [
+    {"name": "fetch", "avg_duration_ms": 150, "percentage_of_total": 41.7},
+    {"name": "gate", "avg_duration_ms": 10, "percentage_of_total": 2.8},
+    {"name": "wasm", "avg_duration_ms": 200, "percentage_of_total": 55.6}
+  ],
+  "bottlenecks": [
+    {
+      "phase": "wasm",
+      "severity": "medium",
+      "recommendation": "Consider scaling WASM instances"
+    }
+  ]
+}
+```
+
+**Monitoring guide**: [docs/performance-monitoring.md](docs/performance-monitoring.md)
 
 ---
 
-## 🧠 Memory Profiling
+## Memory Profiling
 
-**Production-Ready Memory Profiling System**
-
-RipTide includes comprehensive memory profiling capabilities for production monitoring and optimization:
-
-### Components
-
-- **Memory Tracker** - Real-time memory monitoring with jemalloc integration
-- **Leak Detector** - Automatic memory leak detection and analysis
-- **Allocation Analyzer** - Pattern analysis and optimization recommendations
-
-### Features
-
-- ✅ Real-time memory snapshots
-- ✅ Leak detection with growth rate analysis
-- ✅ Allocation pattern optimization
-- ✅ HTTP endpoints for monitoring
-- ✅ Prometheus metrics integration
-- ✅ < 2% performance overhead
-
-### Quick Start
-
-```rust
-use riptide_performance::profiling::MemoryProfiler;
-use uuid::Uuid;
-
-let session_id = Uuid::new_v4();
-let mut profiler = MemoryProfiler::new(session_id)?;
-
-profiler.start_profiling().await?;
-// ... run your workload ...
-let report = profiler.stop_profiling().await?;
-
-println!("Peak memory: {:.2}MB", report.peak_memory_mb);
-println!("Efficiency score: {:.2}/1.0", report.memory_efficiency_score);
-```
-
-### HTTP Endpoints
+RipTide includes advanced memory profiling with jemalloc:
 
 ```bash
-# Get current memory snapshot
-curl http://localhost:8080/profiling/snapshot
+# Enable profiling
+cargo build --release --features profiling-full
 
-# Check for memory alerts
-curl http://localhost:8080/profiling/alerts
+# Generate memory report
+curl http://localhost:8080/profiling/memory/report
 
-# Get profiling report
-curl http://localhost:8080/profiling/report
+# Heap dump
+curl http://localhost:8080/profiling/memory/heap > heap.dump
+
+# Live profiling with flamegraphs
+cargo build --release --features jemalloc
+./target/release/riptide-api --profiling-enabled
 ```
 
-📘 **[Activation Guide](docs/memory-profiling-activation-guide.md)** | 💡 **[Usage Examples](docs/memory-profiling-examples.md)**
+**Features**:
+- Real-time memory tracking
+- Heap dump generation
+- Flamegraph visualization
+- Leak detection
+- Allocation statistics
+
+**Profiling guide**: [docs/profiling-integration-complete.md](docs/profiling-integration-complete.md)
 
 ---
 
-## 📚 Documentation
+## Documentation
 
-### For Users
-- 📘 **[API Usage Guide](docs/user/api-usage.md)** - How to use the API
-- 🔧 **[Configuration](docs/user/configuration.md)** - Environment variables & settings
-- 🚀 **[Installation Guide](docs/user/installation.md)** - Setup instructions
-- ❓ **[Troubleshooting](docs/user/troubleshooting.md)** - Common issues & solutions
+### User Documentation
+- [Installation Guide](docs/user/installation.md) - Setup and deployment
+- [API Usage](docs/user/api-usage.md) - Request/response examples
+- [API Tooling Quickstart](docs/API_TOOLING_QUICKSTART.md) - CLI, SDK, playground
+- [Troubleshooting](docs/user/troubleshooting.md) - Common issues and solutions
 
-### For Developers
-- 🏁 **[Getting Started](docs/development/getting-started.md)** - Developer setup
-- 🎨 **[Coding Standards](docs/development/coding-standards.md)** - Style guide
-- 🤝 **[Contributing](docs/development/contributing.md)** - Contribution guidelines
-- 🧪 **[Testing Guide](docs/development/testing.md)** - Test writing guide
+### Developer Documentation
+- [Getting Started](docs/development/getting-started.md) - Development setup
+- [Coding Standards](docs/development/coding-standards.md) - Style guide and best practices
+- [Contributing](docs/development/contributing.md) - Contribution guidelines
+- [Testing](docs/development/testing.md) - Test suite documentation
+
+### Architecture Documentation
+- [System Overview](docs/architecture/system-overview.md) - Complete architecture
+- [WASM Guide](docs/architecture/WASM_GUIDE.md) - WebAssembly integration
+- [PDF Pipeline](docs/architecture/PDF_PIPELINE_GUIDE.md) - PDF processing architecture
+- [Configuration Guide](docs/architecture/configuration-guide.md) - Configuration reference
+- [Deployment Guide](docs/architecture/deployment-guide.md) - Production deployment
 
 ### API Reference
-- 📖 **[OpenAPI Spec](docs/api/openapi.yaml)** - Complete API specification
-- 📋 **[Endpoint Catalog](docs/api/ENDPOINT_CATALOG.md)** - Detailed endpoint reference
-- 🚀 **[Quick Start](docs/API_TOOLING_QUICKSTART.md)** - API tooling guide
-- 🎨 **[Swagger UI Guide](docs/SWAGGER_UI_DEPLOYMENT_GUIDE.md)** - Interactive docs setup
+- [Endpoint Catalog](docs/api/ENDPOINT_CATALOG.md) - All 59 endpoints
+- [OpenAPI Spec](docs/api/openapi.yaml) - Machine-readable API spec
+- [Examples](docs/api/examples.md) - Usage examples
+- [Streaming Guide](docs/api/streaming.md) - Real-time protocols
+- [Session Management](docs/api/session-management.md) - Session handling
 
-### Architecture & Design
-- 🏛️ **[System Overview](docs/architecture/system-overview.md)** - High-level architecture
-- 📋 **[Roadmap](docs/ROADMAP.md)** - Implementation status (82% complete)
-- 🔄 **[Streaming Integration](docs/architecture/streaming-integration-executive-summary.md)** - Real-time features
-- 🎯 **[Phase 3 Summary](docs/PHASE_3_FINAL_SUMMARY.md)** - Latest completion report
-
----
-
-## 🗺️ Project Roadmap
-
-**Current Status:** 82% Complete (61/74 tasks)
-
-### ✅ Phase 1: Core System (100% Complete)
-- Event-driven architecture with EventBus
-- Circuit breaker for external dependencies
-- Adaptive gate system
-- WASM-powered extraction
-
-### ✅ Phase 2: Reliability & Monitoring (100% Complete)
-- Reliability module with retry logic
-- Monitoring system with health scores
-- Strategies routes (CSS/JSON/Regex/LLM)
-- Worker service with job queue
-
-### ✅ Phase 3: Enhanced Features (100% Complete)
-- Enhanced pipeline with phase metrics
-- Telemetry & distributed tracing
-- Session management
-- PDF & table extraction
-
-### ⚠️ Phase 3: Optional Enhancements (25% Complete)
-- FetchEngine integration (foundation + docs)
-- Cache warming (foundation + docs)
-
-📋 **[Full Roadmap](docs/ROADMAP.md)** | 📈 **[Progress Report](docs/PHASE_3_FINAL_SUMMARY.md)**
+### Tools & SDKs
+- [CLI Tool](cli/README.md) - Command-line interface (npm)
+- [Python SDK](python-sdk/README.md) - Official Python client (PyPI)
+- [Web Playground](playground/README.md) - Interactive API explorer (React)
 
 ---
 
-## 🤝 Contributing
+## Roadmap
+
+**Current Status**: v0.1.0 - **82% Production Ready**
+
+### Completed Features ✓
+
+- [x] Core crawling engine with adaptive routing
+- [x] WASM-powered content extraction
+- [x] Dual-path pipeline (fast static + headless fallback)
+- [x] Real-time streaming (NDJSON, SSE, WebSocket)
+- [x] PDF processing with table extraction
+- [x] Multi-provider LLM abstraction
+- [x] Session management and persistence
+- [x] Background job queue with retry logic
+- [x] Comprehensive monitoring and metrics
+- [x] Docker deployment with Kong Gateway
+- [x] 59 API endpoints with 100% documentation
+- [x] 85%+ test coverage
+
+### In Progress 🚧
+
+- [ ] Distributed crawling coordination
+- [ ] Enhanced analytics dashboard
+- [ ] GraphQL API endpoint
+- [ ] Advanced rate limiting strategies
+
+### Planned 📋
+
+- [ ] Kubernetes Helm charts
+- [ ] TypeScript SDK
+- [ ] Webhook notifications
+- [ ] Custom extraction plugin system
+- [ ] Multi-region deployment support
+
+**Full roadmap**: [docs/ROADMAP.md](docs/ROADMAP.md)
+
+---
+
+## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](docs/development/contributing.md) for details.
 
-### Development Setup
+### Development Workflow
 
-```bash
-# Clone repository
-git clone https://github.com/your-org/riptide-api.git
-cd riptide-api
+1. **Fork** the repository on GitHub
+2. **Create** a feature branch: `git checkout -b feature/amazing-feature`
+3. **Make** your changes and add tests
+4. **Test** locally: `cargo test && cargo clippy`
+5. **Commit** with descriptive messages following [Conventional Commits](https://www.conventionalcommits.org/)
+6. **Push** to your fork and create a Pull Request
 
-# Install dependencies
-cargo build
+### Code Standards
 
-# Run tests
-cargo test
-
-# Run linter
-cargo clippy -- -D warnings
-
-# Format code
-cargo fmt
-```
-
-### Pull Request Process
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+- Follow [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/)
+- Maintain test coverage above 80%
+- Run `cargo fmt` and `cargo clippy` before committing
+- Update documentation for API changes
+- Add tests for new features
+- Keep PRs focused and atomic
 
 ---
 
-## 🔒 Security
-
+## Security
 
 ### Security Features
 
-- 🛡️ **Circuit Breaker** - Protection against cascading failures
-- 🔐 **API Key Authentication** - Via Kong Gateway
-- ⏱️ **Rate Limiting** - Configurable per endpoint
-- 🔍 **Input Validation** - Comprehensive request validation
-- 🚫 **CORS Protection** - Configurable CORS policies
+- **Stealth Mode**: Anti-detection with fingerprint randomization
+- **Rate Limiting**: Configurable request throttling
+- **Input Validation**: Comprehensive request validation
+- **Secure Headers**: CORS, CSP, HSTS support
+- **Redis Security**: TLS support and authentication
+- **Dependency Auditing**: Automated security checks with `cargo audit`
 
-📋 **[Security Documentation](docs/api/security.md)**
+### Reporting Security Issues
+
+Please report security vulnerabilities to **security@riptide.dev** (or create a private security advisory on GitHub).
+
+**Do not** open public issues for security vulnerabilities.
 
 ---
 
-## 📄 License
+## License
 
-This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **Apache License 2.0** - see the [LICENSE](LICENSE) file for details.
+
+### Third-Party Licenses
+
+RipTide uses the following major open-source components:
+
+- **Rust Standard Library** - MIT/Apache-2.0
+- **Tokio** - MIT
+- **Axum** - MIT
+- **Wasmtime** - Apache-2.0
+- **Chromiumoxide** - MIT
+- **Redis** - BSD-3-Clause
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-Built with:
-- [Rust](https://www.rust-lang.org/) - Systems programming language
-- [Axum](https://github.com/tokio-rs/axum) - Web framework
+Built with excellent open-source projects:
+
 - [Tokio](https://tokio.rs/) - Async runtime
-- [WebAssembly](https://webassembly.org/) - High-performance extraction
-- [Redis](https://redis.io/) - Caching layer
+- [Axum](https://github.com/tokio-rs/axum) - Web framework
+- [Wasmtime](https://wasmtime.dev/) - WASM runtime
+- [Chromiumoxide](https://github.com/mattsse/chromiumoxide) - Browser automation
+- [Redis](https://redis.io/) - Caching and persistence
+- [Rust](https://www.rust-lang.org/) - Programming language
 
+---
+
+## Support & Community
+
+- **Documentation**: [docs/](docs/) directory
+- **Issues**: [GitHub Issues](https://github.com/your-org/riptide/issues) for bug reports
+- **Discussions**: [GitHub Discussions](https://github.com/your-org/riptide/discussions) for questions
+- **Changelog**: [CHANGELOG.md](CHANGELOG.md) for version history
+
+---
+
+**Made with ⚡ by the RipTide Team**
