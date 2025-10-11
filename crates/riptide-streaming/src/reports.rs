@@ -104,10 +104,10 @@ pub struct WordFrequency {
 }
 
 /// HTML report generator
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ReportGenerator {
-    handlebars: Handlebars<'static>,
-    config: ReportConfig,
+    pub handlebars: Handlebars<'static>,
+    pub config: ReportConfig,
 }
 
 impl ReportGenerator {
@@ -164,7 +164,7 @@ impl ReportGenerator {
     }
 
     /// Generate HTML report
-    async fn generate_html_report(&self, data: &ReportData) -> Result<Vec<u8>> {
+    pub async fn generate_html_report(&self, data: &ReportData) -> Result<Vec<u8>> {
         let mut context = serde_json::to_value(data)?;
 
         // Add configuration to context
@@ -221,7 +221,7 @@ impl ReportGenerator {
     }
 
     /// Prepare report data from extraction results
-    async fn prepare_report_data(
+    pub async fn prepare_report_data(
         &self,
         extraction_id: &str,
         results: Vec<ExtractionResult>,
@@ -271,7 +271,10 @@ impl ReportGenerator {
     }
 
     /// Calculate domain statistics
-    fn calculate_domain_stats(&self, results: &[ExtractionResult]) -> HashMap<String, DomainStats> {
+    pub fn calculate_domain_stats(
+        &self,
+        results: &[ExtractionResult],
+    ) -> HashMap<String, DomainStats> {
         let mut stats: HashMap<String, Vec<&ExtractionResult>> = HashMap::new();
 
         // Group results by domain
@@ -309,7 +312,7 @@ impl ReportGenerator {
     }
 
     /// Generate timeline entries
-    fn generate_timeline(&self, results: &[ExtractionResult]) -> Vec<TimelineEntry> {
+    pub fn generate_timeline(&self, results: &[ExtractionResult]) -> Vec<TimelineEntry> {
         let mut timeline = Vec::new();
         let mut sorted_results: Vec<_> = results.iter().collect();
         sorted_results.sort_by_key(|r| r.timestamp);
@@ -379,7 +382,7 @@ impl ReportGenerator {
     }
 
     /// Generate charts
-    async fn generate_charts(
+    pub async fn generate_charts(
         &self,
         results: &[ExtractionResult],
         domain_stats: &HashMap<String, DomainStats>,

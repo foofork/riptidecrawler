@@ -105,9 +105,8 @@ mod provider_creation_tests {
         assert!(provider.is_ok());
 
         // Test that request completes within timeout
-        let search_future = provider
-            .unwrap()
-            .search("https://example.com", 10, "us", "en");
+        let provider = provider.unwrap();
+        let search_future = provider.search("https://example.com", 10, "us", "en");
         let result = timeout(Duration::from_secs(10), search_future).await;
         assert!(result.is_ok());
     }

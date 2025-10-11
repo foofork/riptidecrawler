@@ -32,7 +32,7 @@ fn default_mode() -> String {
 }
 
 /// Extraction options
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct ExtractOptions {
     /// Strategy to use (auto, css, wasm, llm, multi)
     #[serde(default = "default_strategy")]
@@ -44,6 +44,16 @@ pub struct ExtractOptions {
     #[serde(default = "default_timeout")]
     #[allow(dead_code)]
     pub timeout_ms: u64,
+}
+
+impl Default for ExtractOptions {
+    fn default() -> Self {
+        Self {
+            strategy: default_strategy(),
+            quality_threshold: default_quality_threshold(),
+            timeout_ms: default_timeout(),
+        }
+    }
 }
 
 fn default_strategy() -> String {

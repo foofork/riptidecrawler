@@ -5,7 +5,6 @@ use httpmock::prelude::*;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
-use tokio_test;
 use tracing_test::traced_test;
 
 #[tokio::test]
@@ -29,5 +28,5 @@ async fn test_dependencies_compile() {
 #[tokio::test]
 async fn test_tracing_test_works() {
     tracing::info!("Test tracing works");
-    assert!(true);
+    // Tracing works if we get here without panicking
 }
