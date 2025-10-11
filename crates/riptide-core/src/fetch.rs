@@ -74,7 +74,6 @@ impl ReliableHttpClient {
     ) -> Result<Self> {
         let client = Client::builder()
             .user_agent("RipTide/1.0")
-            .http2_prior_knowledge()
             .gzip(true)
             .brotli(true)
             .connect_timeout(Duration::from_secs(3))
@@ -104,7 +103,6 @@ impl ReliableHttpClient {
     ) -> Result<Self> {
         let client = Client::builder()
             .user_agent(&robots_config.user_agent)
-            .http2_prior_knowledge()
             .gzip(true)
             .brotli(true)
             .connect_timeout(Duration::from_secs(3))
@@ -656,7 +654,6 @@ fn is_retryable_error(error: &reqwest::Error) -> bool {
 pub fn http_client() -> Result<Client> {
     Client::builder()
         .user_agent("RipTide/1.0")
-        .http2_prior_knowledge()
         .gzip(true)
         .brotli(true)
         .connect_timeout(Duration::from_secs(3))

@@ -27,6 +27,7 @@ tracing = "0.1"
 tracing-test = "0.2"
 wasmtime = { version = "34", features = ["component-model"] }  # Updated for security (RUSTSEC-2025-0046)
 chrono = { version = "0.4", features = ["serde"] }
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 
 [build-dependencies]
 vergen = { version = "8", features = ["build", "git", "gitcl"] }

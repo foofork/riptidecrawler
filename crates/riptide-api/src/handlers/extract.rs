@@ -9,10 +9,13 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+use riptide_core::strategies::StrategyConfig;
+use riptide_core::types::CrawlOptions;
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
 
 use crate::state::AppState;
+use crate::strategies_pipeline::StrategiesPipelineOrchestrator;
 
 /// Extract endpoint request payload
 #[derive(Debug, Deserialize)]
@@ -93,9 +96,9 @@ pub struct ContentMetadata {
 ///
 /// This endpoint provides a unified interface for content extraction,
 /// using the existing strategies pipeline internally.
-#[tracing::instrument(skip(_state), fields(url = %payload.url, mode = %payload.mode))]
+#[tracing::instrument(skip(state), fields(url = %payload.url, mode = %payload.mode))]
 pub async fn extract(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     Json(payload): Json<ExtractRequest>,
 ) -> Response {
     let start = Instant::now();
@@ -120,40 +123,79 @@ pub async fn extract(
         "Processing extraction request"
     );
 
-    // Use existing strategies pipeline for extraction
-    // This integrates with the existing crawl/strategies infrastructure
-    // For v1.1, we'll use a simplified approach that calls the strategies pipeline
-
-    // TODO: Integrate with strategies_pipeline for actual extraction
-    // For now, return a well-formed response that demonstrates the API shape
-
-    let content = format!("Content extracted from {}", payload.url);
-    let word_count = content.split_whitespace().count();
-
-    let response = ExtractResponse {
-        url: payload.url.clone(),
-        title: Some(format!("Content from {}", payload.url)),
-        content,
-        metadata: ContentMetadata {
-            word_count,
-            author: Some("Unknown".to_string()),
-            publish_date: None,
-            language: Some("en".to_string()),
-        },
-        strategy_used: payload.options.strategy,
-        quality_score: 0.85,
-        extraction_time_ms: start.elapsed().as_millis() as u64,
+    // Create CrawlOptions from extract options
+    let crawl_options = CrawlOptions {
+        cache_mode: "standard".to_string(),
+        concurrency: 1,
+        ..Default::default()
     };
 
-    tracing::info!(
-        url = %payload.url,
-        strategy_used = %response.strategy_used,
-        quality_score = response.quality_score,
-        extraction_time_ms = response.extraction_time_ms,
-        "Extraction completed successfully"
-    );
+    // Create StrategyConfig - core only supports Trek extraction
+    let strategy_config = StrategyConfig {
+        extraction: riptide_core::strategies::ExtractionStrategy::Trek,
+        enable_metrics: true,
+        validate_schema: false,
+    };
 
-    (StatusCode::OK, Json(response)).into_response()
+    // Create strategies pipeline orchestrator
+    let pipeline =
+        StrategiesPipelineOrchestrator::new(state.clone(), crawl_options, Some(strategy_config));
+
+    // Execute extraction
+    match pipeline.execute_single(&payload.url).await {
+        Ok(result) => {
+            // Access the extracted content fields correctly
+            let extracted = &result.processed_content.extracted;
+            let metadata = &result.processed_content.metadata;
+
+            let response = ExtractResponse {
+                url: payload.url.clone(),
+                title: Some(extracted.title.clone()),
+                content: extracted.content.clone(),
+                metadata: ContentMetadata {
+                    word_count: metadata
+                        .word_count
+                        .unwrap_or_else(|| extracted.content.split_whitespace().count()),
+                    author: metadata.author.clone(),
+                    publish_date: metadata.published_date.as_ref().map(|dt| dt.to_rfc3339()),
+                    language: metadata.language.clone(),
+                },
+                strategy_used: format!("{:?}", result.strategy_config.extraction),
+                quality_score: result.quality_score as f64,
+                extraction_time_ms: result.processing_time_ms,
+            };
+
+            tracing::info!(
+                url = %payload.url,
+                strategy_used = %response.strategy_used,
+                quality_score = response.quality_score,
+                extraction_time_ms = response.extraction_time_ms,
+                from_cache = result.from_cache,
+                gate_decision = %result.gate_decision,
+                "Extraction completed successfully"
+            );
+
+            (StatusCode::OK, Json(response)).into_response()
+        }
+        Err(e) => {
+            tracing::error!(
+                url = %payload.url,
+                error = %e,
+                elapsed_ms = start.elapsed().as_millis(),
+                "Extraction failed"
+            );
+
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({
+                    "error": "Extraction failed",
+                    "message": e.to_string(),
+                    "url": payload.url
+                })),
+            )
+                .into_response()
+        }
+    }
 }
 
 #[cfg(test)]
