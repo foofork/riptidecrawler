@@ -121,6 +121,7 @@ impl RegexPatternStrategy {
     }
 
     /// Extract all matches for a specific pattern
+    #[allow(dead_code)]
     fn extract_pattern(&self, text: &str, pattern_name: &str) -> Vec<String> {
         let config = match self.patterns.get(pattern_name) {
             Some(c) => c,

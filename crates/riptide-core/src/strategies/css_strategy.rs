@@ -81,6 +81,7 @@ impl CssSelectorStrategy {
     }
 
     /// Extract all matching elements for a selector
+    #[allow(dead_code)]
     fn extract_all_by_selector(&self, doc: &Html, content_type: &str) -> Vec<String> {
         let selector_str = match self.selectors.get(content_type) {
             Some(s) => s,

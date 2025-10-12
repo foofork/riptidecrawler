@@ -179,63 +179,6 @@ fn calculate_content_quality(content: &str) -> f64 {
     score.min(1.0)
 }
 
-/// Extract title from HTML
-fn extract_title_from_html(html: &str) -> Option<String> {
-    // Simple regex-like title extraction
-    if let Some(start) = html.find("<title>") {
-        if let Some(end) = html[start..].find("</title>") {
-            let title = &html[start + 7..start + end];
-            return Some(title.trim().to_string());
-        }
-    }
-    None
-}
-
-/// Extract main content from HTML
-fn extract_main_content(html: &str) -> String {
-    // Remove script and style tags
-    let mut content = html.to_string();
-
-    // Remove <script> tags
-    while let Some(start) = content.find("<script") {
-        if let Some(end) = content[start..].find("</script>") {
-            content.replace_range(start..start + end + 9, "");
-        } else {
-            break;
-        }
-    }
-
-    // Remove <style> tags
-    while let Some(start) = content.find("<style") {
-        if let Some(end) = content[start..].find("</style>") {
-            content.replace_range(start..start + end + 8, "");
-        } else {
-            break;
-        }
-    }
-
-    // Remove all HTML tags
-    let mut result = String::new();
-    let mut in_tag = false;
-
-    for c in content.chars() {
-        match c {
-            '<' => in_tag = true,
-            '>' => in_tag = false,
-            _ if !in_tag => result.push(c),
-            _ => {}
-        }
-    }
-
-    // Clean up whitespace
-    result
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
-        .trim()
-        .to_string()
-}
-
 /// Create a summary from content
 fn create_summary(content: &str) -> String {
     let words: Vec<&str> = content.split_whitespace().collect();
