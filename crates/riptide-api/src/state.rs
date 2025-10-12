@@ -115,6 +115,10 @@ pub struct AppState {
 
     /// Headless browser launcher with connection pooling and stealth support
     pub browser_launcher: Arc<HeadlessLauncher>,
+
+    /// Persistence adapter for multi-tenant operations (optional, requires persistence feature)
+    #[cfg(feature = "persistence")]
+    pub persistence_adapter: Option<()>, // TODO: Replace with actual PersistenceAdapter type when available
 }
 
 /// Application configuration loaded from environment and config files.
@@ -798,6 +802,8 @@ impl AppState {
             auth_config,
             cache_warmer_enabled,
             browser_launcher,
+            #[cfg(feature = "persistence")]
+            persistence_adapter: None, // TODO: Initialize actual persistence adapter when integrated
         })
     }
 

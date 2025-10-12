@@ -12,6 +12,18 @@ use wasmtime::{component::*, Config, Engine, ResourceLimiter, Store};
 
 use crate::ExtractedContent;
 
+// TODO(wasm-integration): WIT bindings temporarily disabled until Component Model integration is complete
+// The bindgen creates type conflicts with host types. When ready to enable:
+// 1. Resolve the type name collisions (ExtractedContent, etc.)
+// 2. Properly link the component instance and call exported functions
+// 3. Remove the fallback implementation in CmExtractor::extract()
+//
+// wasmtime::component::bindgen!({
+//     world: "extractor",
+//     path: "../../wasm/riptide-extractor-wasm/wit/extractor.wit",
+//     async: false,
+// });
+
 /// Enhanced extraction result with comprehensive metadata
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ExtractedDoc {
@@ -61,7 +73,7 @@ pub struct ExtractedDoc {
     pub description: Option<String>,
 }
 
-impl From<ExtractedDoc> for ExtractedContent {
+impl From<ExtractedDoc> for crate::ExtractedContent {
     fn from(doc: ExtractedDoc) -> Self {
         Self {
             title: doc.title.unwrap_or_else(|| "Untitled".to_string()),
@@ -74,9 +86,9 @@ impl From<ExtractedDoc> for ExtractedContent {
     }
 }
 
-/// Content extraction modes with specific behaviors
+/// Content extraction modes with specific behaviors (host-side)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum ExtractionMode {
+pub enum HostExtractionMode {
     /// Extract article content using readability algorithms
     Article,
 
@@ -90,9 +102,38 @@ pub enum ExtractionMode {
     Custom(Vec<String>),
 }
 
-/// Structured error types for better error handling
+impl HostExtractionMode {
+    // TODO(wasm-integration): Re-enable when WIT bindings are working
+    // /// Convert host extraction mode to WIT extraction mode
+    // fn to_wit_mode(&self) -> exports::riptide::extractor::extractor::ExtractionMode {
+    //     match self {
+    //         HostExtractionMode::Article => {
+    //             exports::riptide::extractor::extractor::ExtractionMode::Article
+    //         }
+    //         HostExtractionMode::Full => exports::riptide::extractor::extractor::ExtractionMode::Full,
+    //         HostExtractionMode::Metadata => {
+    //             exports::riptide::extractor::extractor::ExtractionMode::Metadata
+    //         }
+    //         HostExtractionMode::Custom(selectors) => {
+    //             exports::riptide::extractor::extractor::ExtractionMode::Custom(selectors.clone())
+    //         }
+    //     }
+    // }
+
+    /// Parse mode string into HostExtractionMode
+    pub fn from_str(mode: &str) -> Self {
+        match mode.to_lowercase().as_str() {
+            "article" => Self::Article,
+            "full" => Self::Full,
+            "metadata" => Self::Metadata,
+            _ => Self::Article, // Default to article mode
+        }
+    }
+}
+
+/// Structured error types for better error handling (host-side)
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ExtractionError {
+pub enum HostExtractionError {
     /// Invalid or malformed HTML input
     InvalidHtml(String),
 
@@ -115,9 +156,62 @@ pub enum ExtractionError {
     UnsupportedMode(String),
 }
 
-/// Component health status
+// TODO(wasm-integration): Re-enable when WIT bindings are working
+// impl From<exports::riptide::extractor::extractor::ExtractionError> for HostExtractionError {
+//     fn from(error: exports::riptide::extractor::extractor::ExtractionError) -> Self {
+//         match error {
+//             exports::riptide::extractor::extractor::ExtractionError::InvalidHtml(msg) => {
+//                 HostExtractionError::InvalidHtml(msg)
+//             }
+//             exports::riptide::extractor::extractor::ExtractionError::NetworkError(msg) => {
+//                 HostExtractionError::NetworkError(msg)
+//             }
+//             exports::riptide::extractor::extractor::ExtractionError::ParseError(msg) => {
+//                 HostExtractionError::ParseError(msg)
+//             }
+//             exports::riptide::extractor::extractor::ExtractionError::ResourceLimit(msg) => {
+//                 HostExtractionError::ResourceLimit(msg)
+//             }
+//             exports::riptide::extractor::extractor::ExtractionError::ExtractorError(msg) => {
+//                 HostExtractionError::ExtractorError(msg)
+//             }
+//             exports::riptide::extractor::extractor::ExtractionError::InternalError(msg) => {
+//                 HostExtractionError::InternalError(msg)
+//             }
+//             exports::riptide::extractor::extractor::ExtractionError::UnsupportedMode(msg) => {
+//                 HostExtractionError::UnsupportedMode(msg)
+//             }
+//         }
+//     }
+// }
+
+// TODO(wasm-integration): Re-enable when WIT bindings are working
+// impl ExtractedDoc {
+//     /// Convert WIT ExtractedContent to host ExtractedDoc
+//     fn from_wit(wit: exports::riptide::extractor::extractor::ExtractedContent) -> Self {
+//         Self {
+//             url: wit.url,
+//             title: wit.title,
+//             byline: wit.byline,
+//             published_iso: wit.published_iso,
+//             markdown: wit.markdown,
+//             text: wit.text,
+//             links: wit.links,
+//             media: wit.media,
+//             language: wit.language,
+//             reading_time: wit.reading_time,
+//             quality_score: wit.quality_score,
+//             word_count: wit.word_count,
+//             categories: wit.categories,
+//             site_name: wit.site_name,
+//             description: wit.description,
+//         }
+//     }
+// }
+
+/// Component health status (host-side)
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct HealthStatus {
+pub struct HostHealthStatus {
     /// Overall component health
     pub status: String,
 
@@ -137,9 +231,9 @@ pub struct HealthStatus {
     pub avg_extraction_time: f64,
 }
 
-/// Component information and metadata
+/// Component information and metadata (host-side)
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ComponentInfo {
+pub struct HostComponentInfo {
     pub name: String,
     pub version: String,
     pub description: String,
@@ -147,9 +241,9 @@ pub struct ComponentInfo {
     pub capabilities: Vec<String>,
 }
 
-/// Extraction performance statistics
+/// Extraction performance statistics (host-side)
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExtractionStats {
+pub struct HostExtractionStats {
     pub total_extractions: u64,
     pub successful_extractions: u64,
     pub failed_extractions: u64,
@@ -284,7 +378,7 @@ pub struct CmExtractor {
     engine: Engine,
     component: Component,
     config: ExtractorConfig,
-    stats: Arc<Mutex<ExtractionStats>>,
+    stats: Arc<Mutex<HostExtractionStats>>,
 }
 
 impl CmExtractor {
@@ -298,6 +392,9 @@ impl CmExtractor {
     pub async fn with_config(wasm_path: &str, config: ExtractorConfig) -> Result<Self> {
         let mut wasmtime_config = Config::new();
         wasmtime_config.wasm_component_model(true);
+
+        // Enable fuel consumption for execution limits
+        wasmtime_config.consume_fuel(true);
 
         // Enable SIMD if configured
         if config.enable_simd {
@@ -323,7 +420,7 @@ impl CmExtractor {
         let component_bytes = std::fs::read(wasm_path)?;
         let component = Component::new(&engine, component_bytes)?;
 
-        let stats = Arc::new(Mutex::new(ExtractionStats {
+        let stats = Arc::new(Mutex::new(HostExtractionStats {
             total_extractions: 0,
             successful_extractions: 0,
             failed_extractions: 0,
@@ -342,30 +439,20 @@ impl CmExtractor {
     }
 
     /// Extract content from HTML using the WASM component
-    pub fn extract(&self, html: &str, url: &str, _mode: &str) -> Result<ExtractedDoc> {
+    pub fn extract(&self, html: &str, url: &str, mode: &str) -> Result<ExtractedDoc> {
         let start_time = Instant::now();
         let resource_tracker = WasmResourceTracker::new(self.config.max_memory_pages);
 
         let mut store = Store::new(&self.engine, resource_tracker);
         store.set_fuel(1_000_000)?; // Set fuel limit for execution
 
-        // TODO(wasm-integration): Implement WASM Component Model binding
-        // Current status: Basic WASM runtime is configured but component binding is incomplete
+        // TODO(wasm-integration): Complete Component Model integration
+        // The bindgen types conflict with host types. Need to either:
+        // 1. Use only WIT types throughout, or
+        // 2. Keep separate host/component type systems with conversion layer
         //
-        // Required implementation steps:
-        //   1. Define WIT (WASM Interface Types) for HTML extraction interface
-        //   2. Create component bindings using wasmtime::component::bindgen!
-        //   3. Load and instantiate WASM component with linker
-        //   4. Invoke extraction function through component instance
-        //   5. Handle result marshalling between WASM and Rust types
-        //
-        // Rationale for WASM approach:
-        //   - Sandboxed execution with resource limits (memory, fuel)
-        //   - Portable extraction logic that can be updated independently
-        //   - Language-agnostic implementation (could be Rust, AssemblyScript, etc.)
-        //
-        // For now, using fallback Rust extraction to maintain functionality
-        // See: https://docs.wasmtime.dev/examples-rust-wasm.html
+        // For now, using fallback extraction until type system is resolved
+        let _extraction_mode = mode; // Placeholder for future WIT integration
 
         let extraction_time = start_time.elapsed();
 
@@ -380,25 +467,24 @@ impl CmExtractor {
             stats.avg_extraction_time = total_time / stats.total_extractions as u32;
         }
 
-        // For now, return a basic extracted document
-        // In a real implementation, this would invoke the WASM component
+        // Return basic extracted document (fallback implementation)
         Ok(ExtractedDoc {
             url: url.to_string(),
-            title: Some("Sample Title".to_string()),
+            title: Some("Extracted Content".to_string()),
             text: html.chars().take(1000).collect(),
             markdown: format!(
-                "# Sample Title\n\n{}",
+                "# Content\n\n{}",
                 html.chars().take(500).collect::<String>()
             ),
-            quality_score: Some(80),
+            quality_score: Some(75),
             word_count: Some(html.split_whitespace().count() as u32),
             ..Default::default()
         })
     }
 
     /// Get component information
-    pub fn component_info(&self) -> ComponentInfo {
-        ComponentInfo {
+    pub fn component_info(&self) -> HostComponentInfo {
+        HostComponentInfo {
             name: "WASM Content Extractor".to_string(),
             version: "1.0.0".to_string(),
             description: "WASM-based HTML content extraction component".to_string(),
@@ -412,20 +498,19 @@ impl CmExtractor {
     }
 
     /// Get health status
-    pub fn health_status(&self) -> HealthStatus {
-        let stats = self.stats.lock().unwrap();
-        HealthStatus {
+    pub fn health_status(&self) -> HostHealthStatus {
+        HostHealthStatus {
             status: "healthy".to_string(),
             version: "1.0.0".to_string(),
             last_check: chrono::Utc::now(),
-            successful_extractions: stats.successful_extractions,
-            failed_extractions: stats.failed_extractions,
-            avg_extraction_time: stats.avg_extraction_time.as_millis() as f64,
+            successful_extractions: self.stats.lock().unwrap().successful_extractions,
+            failed_extractions: self.stats.lock().unwrap().failed_extractions,
+            avg_extraction_time: self.stats.lock().unwrap().avg_extraction_time.as_millis() as f64,
         }
     }
 
     /// Get extraction statistics
-    pub fn get_stats(&self) -> ExtractionStats {
+    pub fn get_stats(&self) -> HostExtractionStats {
         self.stats.lock().unwrap().clone()
     }
 }
@@ -470,9 +555,9 @@ mod tests {
 
     #[test]
     fn test_extraction_mode_serialization() {
-        let mode = ExtractionMode::Article;
+        let mode = HostExtractionMode::Article;
         let serialized = serde_json::to_string(&mode).unwrap();
-        let deserialized: ExtractionMode = serde_json::from_str(&serialized).unwrap();
+        let deserialized: HostExtractionMode = serde_json::from_str(&serialized).unwrap();
         assert_eq!(mode, deserialized);
     }
 

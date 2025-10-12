@@ -142,6 +142,7 @@ coordination/orchestration/*
 *.sqlite
 *.sqlite-journal
 *.sqlite-wal
+dump.rdb
 
 # Generated scripts
 claude-flow

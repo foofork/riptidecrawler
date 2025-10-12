@@ -65,7 +65,8 @@ pub use processor::{
 };
 pub use regex_extraction::{default_patterns, extract as regex_extract, RegexExtractor};
 pub use wasm_extraction::{
-    CmExtractor, ExtractedDoc, ExtractionMode, ExtractorConfig, WasmExtractor, WasmResourceTracker,
+    CmExtractor, ExtractedDoc, ExtractorConfig, HostExtractionMode, WasmExtractor,
+    WasmResourceTracker,
 };
 
 // // Re-export spider functionality
