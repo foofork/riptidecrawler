@@ -444,7 +444,7 @@ mod stress_tests {
                 .clone()
                 .oneshot(
                     Request::builder()
-                        .uri(&format!("/api/v1/cache/get?key={}", key))
+                        .uri(format!("/api/v1/cache/get?key={}", key))
                         .body(Body::empty())
                         .unwrap(),
                 )
