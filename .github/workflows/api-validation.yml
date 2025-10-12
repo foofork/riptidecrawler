@@ -120,6 +120,13 @@ jobs:
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
 
+      - name: Install Chromium for headless browser
+        run: |
+          sudo apt-get install -y chromium-browser chromium-chromedriver
+          echo "🔍 Browser installation check:"
+          which chromium-browser || which google-chrome || echo "⚠️  No browser found"
+          chromium-browser --version 2>/dev/null || google-chrome --version 2>/dev/null || echo "⚠️  Browser not responding"
+
       - name: Cache Cargo
         uses: actions/cache@v3
         with:
@@ -328,6 +335,13 @@ jobs:
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
 
+      - name: Install Chromium for headless browser
+        run: |
+          sudo apt-get install -y chromium-browser chromium-chromedriver
+          echo "🔍 Browser installation check:"
+          which chromium-browser || which google-chrome || echo "⚠️  No browser found"
+          chromium-browser --version 2>/dev/null || google-chrome --version 2>/dev/null || echo "⚠️  Browser not responding"
+
       - name: Build WASM + API
         run: |
           cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm
@@ -433,6 +447,13 @@ jobs:
 
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
+      - name: Install Chromium for headless browser
+        run: |
+          sudo apt-get install -y chromium-browser chromium-chromedriver
+          echo "🔍 Browser installation check:"
+          which chromium-browser || which google-chrome || echo "⚠️  No browser found"
+          chromium-browser --version 2>/dev/null || google-chrome --version 2>/dev/null || echo "⚠️  Browser not responding"
 
       - name: Build optimized release
         run: |
@@ -547,6 +568,13 @@ jobs:
 
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
+      - name: Install Chromium for headless browser
+        run: |
+          sudo apt-get install -y chromium-browser chromium-chromedriver
+          echo "🔍 Browser installation check:"
+          which chromium-browser || which google-chrome || echo "⚠️  No browser found"
+          chromium-browser --version 2>/dev/null || google-chrome --version 2>/dev/null || echo "⚠️  Browser not responding"
 
       - name: Build API
         run: |

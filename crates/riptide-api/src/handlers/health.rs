@@ -67,7 +67,28 @@ pub async fn health(State(state): State<AppState>) -> Result<impl IntoResponse, 
     // Get current timestamp
     let timestamp = chrono::Utc::now().to_rfc3339();
 
-    // Build dependency status
+    // Determine overall status with browser pool failure tolerance BEFORE moving values
+    // If only browser pool is failing, report as "degraded" instead of "unhealthy"
+    let browser_pool_only_failure = !health_status.healthy
+        && matches!(health_status.redis, crate::state::DependencyHealth::Healthy)
+        && matches!(
+            health_status.extractor,
+            crate::state::DependencyHealth::Healthy
+        )
+        && matches!(
+            health_status.http_client,
+            crate::state::DependencyHealth::Healthy
+        );
+
+    let overall_status = if health_status.healthy {
+        "healthy"
+    } else if browser_pool_only_failure {
+        "degraded"
+    } else {
+        "unhealthy"
+    };
+
+    // Build dependency status (moves health_status fields)
     let dependencies = DependencyStatus {
         redis: health_status.redis.into(),
         extractor: health_status.extractor.into(),
@@ -94,12 +115,6 @@ pub async fn health(State(state): State<AppState>) -> Result<impl IntoResponse, 
     let health_checker = crate::health::HealthChecker::new();
     let metrics = Some(health_checker.collect_system_metrics(&state).await);
 
-    let overall_status = if health_status.healthy {
-        "healthy"
-    } else {
-        "unhealthy"
-    };
-
     let response = HealthResponse {
         status: overall_status.to_string(),
         version: env!("CARGO_PKG_VERSION").to_string(),
@@ -117,7 +132,8 @@ pub async fn health(State(state): State<AppState>) -> Result<impl IntoResponse, 
     );
 
     // Return appropriate HTTP status based on health
-    let status_code = if health_status.healthy {
+    // Allow "degraded" status to still return 200 OK (browser pool failures are non-critical)
+    let status_code = if health_status.healthy || overall_status == "degraded" {
         StatusCode::OK
     } else {
         StatusCode::SERVICE_UNAVAILABLE

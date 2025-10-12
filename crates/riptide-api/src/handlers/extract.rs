@@ -3,12 +3,7 @@
 //! Provides a unified endpoint for extracting content from URLs using
 //! the multi-strategy extraction pipeline.
 
-use axum::{
-    extract::State,
-    http::StatusCode,
-    response::{IntoResponse, Response},
-    Json,
-};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use riptide_core::strategies::StrategyConfig;
 use riptide_core::types::CrawlOptions;
 use serde::{Deserialize, Serialize};
@@ -96,11 +91,12 @@ pub struct ContentMetadata {
 ///
 /// This endpoint provides a unified interface for content extraction,
 /// using the existing strategies pipeline internally.
+#[axum::debug_handler]
 #[tracing::instrument(skip(state), fields(url = %payload.url, mode = %payload.mode))]
 pub async fn extract(
     State(state): State<AppState>,
     Json(payload): Json<ExtractRequest>,
-) -> Response {
+) -> impl IntoResponse {
     let start = Instant::now();
 
     // Validate URL

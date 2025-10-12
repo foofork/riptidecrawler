@@ -6,7 +6,7 @@ license = "Apache-2.0"
 
 [dependencies]
 # Other riptide crates
-# riptide-html removed to break cyclic dependency - HTML processing should be separate
+riptide-html = { path = "../riptide-html" }
 riptide-search = { path = "../riptide-search" }
 riptide-stealth = { path = "../riptide-stealth" }
 riptide-pdf = { path = "../riptide-pdf", optional = true }

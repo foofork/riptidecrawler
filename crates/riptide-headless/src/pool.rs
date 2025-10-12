@@ -244,9 +244,10 @@ impl BrowserPool {
 
         let (shutdown_sender, mut shutdown_receiver) = mpsc::channel(1);
 
-        // Create initial browser instances
+        // Create initial browser instances (continue on failures for graceful degradation)
         let mut initial_browsers = VecDeque::new();
-        for _ in 0..config.initial_pool_size {
+        let mut failed_count = 0;
+        for i in 0..config.initial_pool_size {
             match PooledBrowser::new(browser_config.clone()).await {
                 Ok(browser) => {
                     let _ = event_sender.send(PoolEvent::BrowserCreated {
@@ -255,9 +256,22 @@ impl BrowserPool {
                     initial_browsers.push_back(browser);
                 }
                 Err(e) => {
-                    error!(error = %e, "Failed to create initial browser instance");
+                    failed_count += 1;
+                    warn!(
+                        attempt = i + 1,
+                        error = %e,
+                        "Failed to create initial browser instance (will continue)"
+                    );
                 }
             }
+        }
+
+        if failed_count > 0 {
+            warn!(
+                succeeded = initial_browsers.len(),
+                failed = failed_count,
+                "Browser pool initialized with reduced capacity due to launch failures"
+            );
         }
 
         *available.lock().await = initial_browsers;
@@ -546,6 +560,7 @@ impl BrowserPool {
     }
 
     /// Maintain minimum pool size by creating new browsers if needed
+    /// Uses graceful degradation: continues trying to create browsers even if some fail
     async fn maintain_pool_size(
         config: &BrowserPoolConfig,
         browser_config: &BrowserConfig,
@@ -563,24 +578,62 @@ impl BrowserPool {
                 "Expanding pool to maintain minimum size"
             );
 
-            for _ in 0..needed {
+            let mut created = 0;
+            let mut failed = 0;
+
+            // Try to create all needed browsers with exponential backoff on failures
+            for attempt in 0..needed {
                 match PooledBrowser::new(browser_config.clone()).await {
                     Ok(browser) => {
                         let _ = event_sender.send(PoolEvent::BrowserCreated {
                             id: browser.id.clone(),
                         });
                         available_browsers.push_back(browser);
+                        created += 1;
                     }
                     Err(e) => {
-                        error!(error = %e, "Failed to create browser for pool maintenance");
-                        break;
+                        failed += 1;
+                        warn!(
+                            attempt = attempt + 1,
+                            error = %e,
+                            "Failed to create browser for pool maintenance (continuing with remaining attempts)"
+                        );
+
+                        // Add small delay before next attempt to avoid rapid failures
+                        if attempt < needed - 1 {
+                            tokio::time::sleep(Duration::from_millis(100 * (failed as u64))).await;
+                        }
                     }
                 }
             }
 
-            let _ = event_sender.send(PoolEvent::PoolExpanded {
-                new_size: available_browsers.len(),
-            });
+            if created > 0 {
+                let _ = event_sender.send(PoolEvent::PoolExpanded {
+                    new_size: available_browsers.len(),
+                });
+
+                if failed > 0 {
+                    warn!(
+                        created = created,
+                        failed = failed,
+                        current_size = available_browsers.len(),
+                        target_size = config.min_pool_size,
+                        "Pool maintenance completed with partial success"
+                    );
+                } else {
+                    debug!(
+                        created = created,
+                        current_size = available_browsers.len(),
+                        "Pool maintenance completed successfully"
+                    );
+                }
+            } else if failed > 0 {
+                error!(
+                    failed = failed,
+                    current_size = available_browsers.len(),
+                    "Pool maintenance failed to create any new browsers - system may be degraded"
+                );
+            }
         }
     }
 

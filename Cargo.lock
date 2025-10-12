@@ -6381,6 +6381,7 @@ dependencies = [
  "redis",
  "regex",
  "reqwest 0.12.23",
+ "riptide-html",
  "riptide-pdf",
  "riptide-search",
  "riptide-stealth",

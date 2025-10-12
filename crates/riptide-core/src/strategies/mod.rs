@@ -133,52 +133,99 @@ impl StrategyManager {
         })
     }
 
-    async fn perform_extraction(&self, html: &str, _url: &str) -> Result<ExtractedContent> {
+    async fn perform_extraction(&self, html: &str, url: &str) -> Result<ExtractedContent> {
+        use riptide_html::{ContentExtractor, CssExtractorStrategy, TrekExtractor};
+
         match &self.config.extraction {
             ExtractionStrategy::Trek => {
-                // Trek extraction moved to riptide-html, returning mock result
+                // Use real Trek extractor from riptide-html
+                let extractor = TrekExtractor::new(None).await?;
+                let html_result = extractor.extract(html, url).await?;
+                let confidence = extractor.confidence_score(html);
+
+                // Convert riptide_html::ExtractedContent to riptide_core::ExtractedContent
                 Ok(ExtractedContent {
-                    title: "Mock Title".to_string(),
-                    content: html.chars().take(1000).collect(),
-                    summary: Some("Mock summary".to_string()),
-                    url: "".to_string(),
-                    strategy_used: "trek".to_string(),
-                    extraction_confidence: 0.8,
+                    title: html_result.title,
+                    content: html_result.content,
+                    summary: html_result.summary,
+                    url: html_result.url,
+                    strategy_used: html_result.strategy_used,
+                    extraction_confidence: confidence,
                 })
             }
             ExtractionStrategy::Css => {
-                // CSS extraction strategy
+                // Use real CSS extraction strategy from riptide-html
+                let extractor = CssExtractorStrategy::new();
+                let html_result = extractor.extract(html, url).await?;
+                let confidence = extractor.confidence_score(html);
+
+                // Convert riptide_html::ExtractedContent to riptide_core::ExtractedContent
                 Ok(ExtractedContent {
-                    title: "CSS Extracted Title".to_string(),
-                    content: html.chars().take(1000).collect(),
-                    summary: Some("CSS extraction".to_string()),
-                    url: _url.to_string(),
-                    strategy_used: "css".to_string(),
-                    extraction_confidence: 0.75,
+                    title: html_result.title,
+                    content: html_result.content,
+                    summary: html_result.summary,
+                    url: html_result.url,
+                    strategy_used: html_result.strategy_used,
+                    extraction_confidence: confidence,
                 })
             }
             ExtractionStrategy::Regex => {
-                // Regex extraction strategy
+                // Use regex extraction from riptide-html
+                let patterns = riptide_html::default_patterns();
+                let html_result = riptide_html::regex_extract(html, url, &patterns).await?;
+
+                // Convert riptide_html::ExtractedContent to riptide_core::ExtractedContent
                 Ok(ExtractedContent {
-                    title: "Regex Extracted Title".to_string(),
-                    content: html.chars().take(1000).collect(),
-                    summary: Some("Regex extraction".to_string()),
-                    url: _url.to_string(),
-                    strategy_used: "regex".to_string(),
-                    extraction_confidence: 0.7,
+                    title: html_result.title,
+                    content: html_result.content,
+                    summary: html_result.summary,
+                    url: html_result.url,
+                    strategy_used: html_result.strategy_used,
+                    extraction_confidence: html_result.extraction_confidence,
                 })
             }
             ExtractionStrategy::Auto => {
-                // Auto-detect best strategy based on content
-                // Default to Trek for now
-                Ok(ExtractedContent {
-                    title: "Auto Extracted Title".to_string(),
-                    content: html.chars().take(1000).collect(),
-                    summary: Some("Auto-selected strategy".to_string()),
-                    url: _url.to_string(),
-                    strategy_used: "auto".to_string(),
-                    extraction_confidence: 0.85,
-                })
+                // Auto-detect best strategy based on content structure
+                // Priority: CSS (if article tags) > Trek (fallback) > Regex (last resort)
+
+                // Check for semantic HTML structure
+                let has_article = html.contains("<article");
+                let has_main = html.contains("<main");
+                let has_content_classes = html.contains("class=\"content\"")
+                    || html.contains("class=\"post\"")
+                    || html.contains("class=\"article\"");
+
+                if has_article || has_main || has_content_classes {
+                    // Use CSS extraction for semantic HTML
+                    let extractor = CssExtractorStrategy::new();
+                    let html_result = extractor.extract(html, url).await?;
+                    let confidence = extractor.confidence_score(html);
+
+                    // Convert and set auto:css strategy
+                    Ok(ExtractedContent {
+                        title: html_result.title,
+                        content: html_result.content,
+                        summary: html_result.summary,
+                        url: html_result.url,
+                        strategy_used: "auto:css".to_string(),
+                        extraction_confidence: confidence,
+                    })
+                } else {
+                    // Fallback to Trek extraction
+                    let extractor = TrekExtractor::new(None).await?;
+                    let html_result = extractor.extract(html, url).await?;
+                    let confidence = extractor.confidence_score(html);
+
+                    // Convert and set auto:trek strategy
+                    Ok(ExtractedContent {
+                        title: html_result.title,
+                        content: html_result.content,
+                        summary: html_result.summary,
+                        url: html_result.url,
+                        strategy_used: "auto:trek".to_string(),
+                        extraction_confidence: confidence,
+                    })
+                }
             }
         }
     }
