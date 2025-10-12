@@ -141,7 +141,7 @@ jobs:
       - name: Start API server
         env:
           REDIS_URL: redis://localhost:6379
-          RUST_LOG: debug
+          RUST_LOG: info,riptide_api=debug,riptide_core=debug,cranelift=warn,cranelift_codegen=warn,wasmtime=warn
           RUST_BACKTRACE: full
           API_HOST: 0.0.0.0
           API_PORT: 8080
@@ -336,7 +336,7 @@ jobs:
       - name: Start API server
         env:
           REDIS_URL: redis://localhost:6379
-          RUST_LOG: debug
+          RUST_LOG: info,riptide_api=debug,riptide_core=debug,cranelift=warn,cranelift_codegen=warn,wasmtime=warn
           RUST_BACKTRACE: full
           API_HOST: 0.0.0.0
           API_PORT: 8080
@@ -442,7 +442,7 @@ jobs:
       - name: Start API server
         env:
           REDIS_URL: redis://localhost:6379
-          RUST_LOG: debug
+          RUST_LOG: info,riptide_api=debug,riptide_core=debug,cranelift=warn,cranelift_codegen=warn,wasmtime=warn
           RUST_BACKTRACE: full
           API_HOST: 0.0.0.0
           API_PORT: 8080
@@ -556,7 +556,7 @@ jobs:
       - name: Start API server
         env:
           REDIS_URL: redis://localhost:6379
-          RUST_LOG: debug
+          RUST_LOG: info,riptide_api=debug,riptide_core=debug,cranelift=warn,cranelift_codegen=warn,wasmtime=warn
           RUST_BACKTRACE: full
           API_HOST: 0.0.0.0
           API_PORT: 8080

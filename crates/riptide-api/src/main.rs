@@ -73,7 +73,10 @@ async fn main() -> anyhow::Result<()> {
         tracing_subscriber::registry()
             .with(
                 tracing_subscriber::EnvFilter::try_from_default_env()
-                    .unwrap_or_else(|_| "info,cranelift_codegen=warn".into()),
+                    .unwrap_or_else(|_| {
+                        "info,cranelift=warn,cranelift_codegen=warn,wasmtime=warn,wasmtime_cranelift=warn"
+                            .into()
+                    }),
             )
             .with(tracing_subscriber::fmt::layer())
             .init();
