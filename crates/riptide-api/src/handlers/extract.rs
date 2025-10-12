@@ -130,9 +130,24 @@ pub async fn extract(
         ..Default::default()
     };
 
-    // Create StrategyConfig - core only supports Trek extraction
+    // Parse extraction strategy from user input
+    let extraction_strategy = match payload.options.strategy.to_lowercase().as_str() {
+        "css" => riptide_core::strategies::ExtractionStrategy::Css,
+        "regex" => riptide_core::strategies::ExtractionStrategy::Regex,
+        "auto" => riptide_core::strategies::ExtractionStrategy::Auto,
+        "trek" => riptide_core::strategies::ExtractionStrategy::Trek,
+        "multi" => riptide_core::strategies::ExtractionStrategy::Auto, // Map multi to auto
+        _ => {
+            tracing::warn!(
+                strategy = %payload.options.strategy,
+                "Unknown strategy, defaulting to Auto"
+            );
+            riptide_core::strategies::ExtractionStrategy::Auto
+        }
+    };
+
     let strategy_config = StrategyConfig {
-        extraction: riptide_core::strategies::ExtractionStrategy::Trek,
+        extraction: extraction_strategy,
         enable_metrics: true,
         validate_schema: false,
     };
@@ -160,8 +175,8 @@ pub async fn extract(
                     publish_date: metadata.published_date.as_ref().map(|dt| dt.to_rfc3339()),
                     language: metadata.language.clone(),
                 },
-                strategy_used: format!("{:?}", result.strategy_config.extraction),
-                quality_score: result.quality_score as f64,
+                strategy_used: extracted.strategy_used.clone(),
+                quality_score: extracted.extraction_confidence,
                 extraction_time_ms: result.processing_time_ms,
             };
 

@@ -63,10 +63,13 @@ impl CompatibleStrategyManager {
         html: &str,
         url: &str,
     ) -> Result<LegacyProcessedContent> {
+        // Default to trek strategy for compatibility
+        let strategy_name = "trek";
+
         // Use the enhanced manager for extraction
         let result = self
             .enhanced_manager
-            .extract_and_process_with_strategy(html, url, "trek")
+            .extract_and_process_with_strategy(html, url, strategy_name)
             .await?;
 
         Ok(LegacyProcessedContent {
@@ -110,6 +113,9 @@ pub fn migrate_extraction_strategy(
 ) -> Arc<dyn ExtractionStrategy> {
     match strategy {
         crate::strategies::ExtractionStrategy::Trek => Arc::new(TrekExtractionStrategy),
+        crate::strategies::ExtractionStrategy::Css => Arc::new(TrekExtractionStrategy), // Fallback to Trek for now
+        crate::strategies::ExtractionStrategy::Regex => Arc::new(TrekExtractionStrategy), // Fallback to Trek for now
+        crate::strategies::ExtractionStrategy::Auto => Arc::new(TrekExtractionStrategy), // Fallback to Trek for now
     }
 }
 

@@ -1,8 +1,8 @@
 use futures::stream::StreamExt;
+use futures::stream::TryStreamExt;
 use httpmock::prelude::*;
 use serde_json::Value;
 use std::time::Instant;
-use tokio_test;
 
 /// Test NDJSON streaming endpoints for RipTide API.
 ///
@@ -78,7 +78,7 @@ async fn test_ndjson_crawl_streaming() {
     let mut lines = Vec::new();
     let mut buffer = String::new();
 
-    while let Some(chunk) = stream.next().await {
+    while let Some(chunk_result) = stream.next().await {
         let ttfb = start_time.elapsed();
         assert!(
             ttfb.as_millis() < 500,
@@ -86,7 +86,7 @@ async fn test_ndjson_crawl_streaming() {
             ttfb.as_millis()
         );
 
-        let chunk = chunk.expect("Failed to read chunk");
+        let chunk = chunk_result.expect("Failed to read chunk");
         buffer.push_str(&String::from_utf8_lossy(&chunk));
 
         // Process complete lines
@@ -245,7 +245,7 @@ async fn test_ndjson_deepsearch_streaming() {
     let mut lines = Vec::new();
     let mut buffer = String::new();
 
-    while let Some(chunk) = stream.next().await {
+    while let Some(chunk_result) = stream.next().await {
         let ttfb = start_time.elapsed();
         assert!(
             ttfb.as_millis() < 500,
@@ -253,7 +253,7 @@ async fn test_ndjson_deepsearch_streaming() {
             ttfb.as_millis()
         );
 
-        let chunk = chunk.expect("Failed to read chunk");
+        let chunk = chunk_result.expect("Failed to read chunk");
         buffer.push_str(&String::from_utf8_lossy(&chunk));
 
         // Process complete lines
@@ -357,8 +357,8 @@ async fn test_streaming_error_handling() {
     let mut lines = Vec::new();
     let mut buffer = String::new();
 
-    while let Some(chunk) = stream.next().await {
-        let chunk = chunk.expect("Failed to read chunk");
+    while let Some(chunk_result) = stream.next().await {
+        let chunk = chunk_result.expect("Failed to read chunk");
         buffer.push_str(&String::from_utf8_lossy(&chunk));
 
         while let Some(newline_pos) = buffer.find('\n') {
@@ -463,9 +463,9 @@ async fn test_streaming_large_batch_performance() {
     let mut result_count = 0;
     let mut buffer = String::new();
 
-    while let Some(chunk) = stream.next().await {
+    while let Some(chunk_result) = stream.next().await {
         let first_result_time = start_time.elapsed();
-        let chunk = chunk.expect("Failed to read chunk");
+        let chunk = chunk_result.expect("Failed to read chunk");
         buffer.push_str(&String::from_utf8_lossy(&chunk));
 
         while let Some(newline_pos) = buffer.find('\n') {

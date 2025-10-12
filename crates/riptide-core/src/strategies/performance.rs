@@ -419,6 +419,18 @@ async fn run_single_extraction(
             // Returning mock result for testing
             Ok(ExtractionResult { quality: 80.0 })
         }
+        ExtractionStrategy::Css => {
+            // CSS extraction moved to riptide-html
+            Ok(ExtractionResult { quality: 75.0 })
+        }
+        ExtractionStrategy::Regex => {
+            // Regex extraction moved to riptide-html
+            Ok(ExtractionResult { quality: 70.0 })
+        }
+        ExtractionStrategy::Auto => {
+            // Auto selection uses Trek as default
+            Ok(ExtractionResult { quality: 80.0 })
+        }
     }
 }
 
@@ -488,6 +500,9 @@ fn get_memory_usage_mb() -> f64 {
 fn strategy_name(strategy: &ExtractionStrategy) -> String {
     match strategy {
         ExtractionStrategy::Trek => "trek".to_string(),
+        ExtractionStrategy::Css => "css".to_string(),
+        ExtractionStrategy::Regex => "regex".to_string(),
+        ExtractionStrategy::Auto => "auto".to_string(),
     }
 }
 
