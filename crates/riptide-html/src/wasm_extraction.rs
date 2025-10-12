@@ -10,8 +10,6 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use wasmtime::{component::*, Config, Engine, ResourceLimiter, Store};
 
-use crate::ExtractedContent;
-
 // TODO(wasm-integration): WIT bindings temporarily disabled until Component Model integration is complete
 // The bindgen creates type conflicts with host types. When ready to enable:
 // 1. Resolve the type name collisions (ExtractedContent, etc.)
@@ -121,7 +119,8 @@ impl HostExtractionMode {
     // }
 
     /// Parse mode string into HostExtractionMode
-    pub fn from_str(mode: &str) -> Self {
+    /// Note: Named parse_mode instead of from_str to avoid confusion with FromStr trait
+    pub fn parse_mode(mode: &str) -> Self {
         match mode.to_lowercase().as_str() {
             "article" => Self::Article,
             "full" => Self::Full,
@@ -571,7 +570,7 @@ mod tests {
             ..Default::default()
         };
 
-        let content: ExtractedContent = doc.clone().into();
+        let content: crate::ExtractedContent = doc.clone().into();
         assert_eq!(content.title, "Test Title");
         assert_eq!(content.content, "Test content");
         assert_eq!(content.url, "https://example.com");
