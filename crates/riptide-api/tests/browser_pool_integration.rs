@@ -461,7 +461,7 @@ async fn test_browser_session_lifecycle() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(&format!("/api/v1/browser/session/{}", session_id))
+                .uri(format!("/api/v1/browser/session/{}", session_id))
                 .body(axum::body::Body::empty())
                 .unwrap(),
         )
