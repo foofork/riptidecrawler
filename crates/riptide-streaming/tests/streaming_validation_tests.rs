@@ -9,14 +9,12 @@
 //! - Performance benchmarks
 
 use axum::http::{HeaderMap, StatusCode};
-use bytes::Bytes;
 use futures::stream::StreamExt;
 use httpmock::prelude::*;
 use reqwest::Client;
 use serde_json::Value;
 use std::time::{Duration, Instant};
 use tokio::time::timeout;
-use uuid::Uuid;
 
 /// Comprehensive streaming test framework
 pub struct StreamingValidationFramework {
@@ -186,12 +184,12 @@ impl StreamingValidationFramework {
 
             // Process complete lines
             while let Some(newline_pos) = buffer.find('\n') {
-                let line = buffer[..newline_pos].trim();
+                let line = buffer[..newline_pos].trim().to_string();
                 buffer = buffer[newline_pos + 1..].to_string();
 
                 if !line.is_empty() {
                     let line_time = start_time.elapsed();
-                    let parsed_line = serde_json::from_str::<Value>(line).map_err(|e| {
+                    let parsed_line = serde_json::from_str::<Value>(&line).map_err(|e| {
                         StreamingError::Parse(format!("Line: '{}', Error: {}", line, e))
                     })?;
 
@@ -773,13 +771,13 @@ async fn test_streaming_performance_benchmark() {
         .expect("Buffer management");
 
     println!(
-        "Performance Benchmark Results:\n"
-            + "  TTFB: {}ms\n"
-            + "  First Line: {}ms\n"
-            + "  Total Time: {}ms\n"
-            + "  Throughput: {:.2} items/sec\n"
-            + "  Total Bytes: {}\n"
-            + "  Success Rate: {:.1}%",
+        "Performance Benchmark Results:\n\
+         TTFB: {}ms\n\
+         First Line: {}ms\n\
+         Total Time: {}ms\n\
+         Throughput: {:.2} items/sec\n\
+         Total Bytes: {}\n\
+         Success Rate: {:.1}%",
         response.ttfb.as_millis(),
         response.first_line_time.as_millis(),
         total_time.as_millis(),

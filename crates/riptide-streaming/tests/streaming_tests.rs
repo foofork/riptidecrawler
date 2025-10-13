@@ -73,7 +73,9 @@ mod streaming_tests {
     pub struct StreamStatus {
         pub state: String,
         pub chunks_sent: u64,
+        #[allow(dead_code)]
         pub bytes_sent: u64,
+        #[allow(dead_code)]
         pub last_activity: Instant,
     }
 

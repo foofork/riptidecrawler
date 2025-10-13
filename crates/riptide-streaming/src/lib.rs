@@ -71,6 +71,7 @@ pub mod ndjson;
 pub mod openapi;
 pub mod progress;
 pub mod reports;
+pub mod server;
 
 pub use api_handlers::*; // ✅ ENABLED - API handlers for report endpoints
 pub use ndjson::*;
@@ -81,7 +82,8 @@ pub use reports::{
    // pub use backpressure::*; // BackpressureController not needed - tests can use backpressure::BackpressureController directly
 pub use config::*; // ✅ ENABLED - includes BackpressureConfig
 pub use progress::*; // ✅ ENABLED // ✅ ENABLED - for streaming tests
-                     // pub use openapi::*;       // Verify before enabling
+pub use server::{create_server, ServerState}; // ✅ ENABLED - HTTP server for streaming endpoints
+                                              // pub use openapi::*;       // Verify before enabling
 
 // Note: ReportGenerator has been activated for Sprint 5A with HTML templates,
 // chart generation, and visualization support. The module uses its own

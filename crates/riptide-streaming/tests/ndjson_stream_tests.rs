@@ -9,14 +9,10 @@
 //! - Resource controls and performance optimization
 
 use axum::http::{HeaderMap, StatusCode};
-use bytes::Bytes;
 use futures::stream::StreamExt;
 use httpmock::prelude::*;
 use serde_json::Value;
-use std::collections::HashMap;
 use std::time::{Duration, Instant};
-use tokio::time::timeout;
-use uuid::Uuid;
 
 /// Test framework for NDJSON streaming
 struct NdjsonStreamingTestFramework {
@@ -373,7 +369,7 @@ async fn test_crawl_stream_incremental_results() {
     let urls = framework.setup_delayed_content_mocks(vec![100, 500, 200]);
     let request = framework.create_crawl_request(urls, "disabled", 3);
 
-    let start_time = Instant::now();
+    let _start_time = Instant::now();
     let response = framework
         .make_streaming_request("crawl/stream", request)
         .await
@@ -384,7 +380,7 @@ async fn test_crawl_stream_incremental_results() {
 
     // Results should arrive in completion order, not request order
     // This tests that streaming happens as results complete
-    for (i, result_line) in result_lines.iter().enumerate() {
+    for (_i, result_line) in result_lines.iter().enumerate() {
         let result = result_line.get("result").expect("Should have result field");
         assert!(result["processing_time_ms"].is_number());
         assert!(result["url"].is_string());
@@ -629,7 +625,7 @@ async fn test_streaming_performance_and_metrics() {
     let urls = framework.setup_successful_content_mocks(10);
     let request = framework.create_crawl_request(urls, "disabled", 5);
 
-    let start_time = Instant::now();
+    let _start_time = Instant::now();
     let response = framework
         .make_streaming_request("crawl/stream", request)
         .await
