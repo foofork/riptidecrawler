@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use riptide_core::events::{
     handlers::{HealthEventHandler, LoggingEventHandler},
     types::{MetricType, MetricsEvent, SystemEvent},
-    Event, EventBus, EventBusConfig, EventHandler, EventSeverity, HandlerConfig,
+    Event, EventBus, EventBusConfig, EventEmitter, EventHandler, EventSeverity, HandlerConfig,
 };
 use riptide_search::{
     CircuitBreakerWrapper, NoneProvider, SearchBackend, SearchHit, SearchProvider,
@@ -78,6 +78,15 @@ impl EventHandler for SearchProviderEventHandler {
 struct EventEmittingSearchProvider {
     inner_provider: Box<dyn SearchProvider>,
     event_emitter: Arc<EventBus>,
+}
+
+impl std::fmt::Debug for EventEmittingSearchProvider {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("EventEmittingSearchProvider")
+            .field("inner_provider", &"<SearchProvider>")
+            .field("event_emitter", &"<EventBus>")
+            .finish()
+    }
 }
 
 impl EventEmittingSearchProvider {

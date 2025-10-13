@@ -3,6 +3,8 @@
 
 #[cfg(test)]
 mod search_provider_tests {
+    use std::time::Duration;
+
     // Mock structures that will be replaced with actual implementations
     struct MockSearchResult {
         title: String,

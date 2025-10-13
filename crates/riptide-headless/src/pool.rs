@@ -5,8 +5,10 @@ use anyhow::{anyhow, Result};
 use chromiumoxide::{Browser, BrowserConfig, Page};
 use futures::StreamExt;
 use std::collections::{HashMap, VecDeque};
+use std::path::PathBuf;
 use std::sync::{Arc, Weak};
 use std::time::{Duration, Instant};
+use tempfile::TempDir;
 use tokio::sync::{mpsc, Mutex, RwLock, Semaphore};
 use tokio::time::{interval, timeout};
 use tracing::{debug, error, info, warn};
@@ -76,7 +78,6 @@ pub struct BrowserStats {
 }
 
 /// Individual browser instance in the pool
-#[derive(Debug)]
 pub struct PooledBrowser {
     pub id: String,
     pub browser: Browser,
@@ -86,13 +87,56 @@ pub struct PooledBrowser {
     pub health: BrowserHealth,
     pub in_use: bool,
     handler_task: tokio::task::JoinHandle<()>,
+    _temp_dir: TempDir, // Keep temp directory alive for browser lifetime
+}
+
+// Manual Debug implementation (can't derive with TempDir)
+impl std::fmt::Debug for PooledBrowser {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PooledBrowser")
+            .field("id", &self.id)
+            .field("created_at", &self.created_at)
+            .field("last_used", &self.last_used)
+            .field("in_use", &self.in_use)
+            .finish()
+    }
 }
 
 impl PooledBrowser {
-    pub async fn new(browser_config: BrowserConfig) -> Result<Self> {
+    pub async fn new(base_config: BrowserConfig) -> Result<Self> {
         let id = Uuid::new_v4().to_string();
 
         debug!(browser_id = %id, "Creating new browser instance");
+
+        // CRITICAL FIX: Create truly unique temp directory for this browser
+        // This directory must persist for the browser's lifetime
+        let temp_dir =
+            TempDir::new().map_err(|e| anyhow!("Failed to create temp directory: {}", e))?;
+
+        let user_data_dir = temp_dir.path().to_path_buf();
+
+        debug!(browser_id = %id, user_data_dir = ?user_data_dir, "Created unique browser profile directory");
+
+        // Build config with unique user-data-dir
+        // Do NOT use .arg() because chromiumoxide adds its own default AFTER
+        let mut browser_config = BrowserConfig::builder()
+            .arg("--no-sandbox")
+            .arg("--disable-dev-shm-usage")
+            .arg("--disable-gpu")
+            .arg("--disable-web-security")
+            .arg("--disable-extensions")
+            .arg("--disable-plugins")
+            .arg("--disable-images")
+            .arg("--disable-javascript")
+            .arg("--disable-background-timer-throttling")
+            .arg("--disable-backgrounding-occluded-windows")
+            .arg("--disable-renderer-backgrounding")
+            .arg("--memory-pressure-off")
+            .build()
+            .map_err(|e| anyhow!("Failed to build browser config: {}", e))?;
+
+        // Set user_data_dir directly on the config struct to override the default
+        browser_config.user_data_dir = Some(user_data_dir.clone());
 
         let (browser, mut handler) = Browser::launch(browser_config)
             .await
@@ -120,6 +164,7 @@ impl PooledBrowser {
             health: BrowserHealth::Healthy,
             in_use: false,
             handler_task,
+            _temp_dir: temp_dir, // Keep temp directory alive
         })
     }
 

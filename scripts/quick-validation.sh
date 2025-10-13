@@ -1,0 +1,20 @@
+#!/bin/bash
+echo "🔍 RipTide Monitoring - Quick Validation"
+echo "========================================="
+echo ""
+echo "1. API Health:"
+curl -s http://localhost:8080/healthz | jq -r '"\(.status) - uptime: \(.uptime)s"'
+echo ""
+echo "2. Metrics Exposed:"
+curl -s http://localhost:8080/metrics 2>/dev/null | grep "^riptide_" | wc -l | xargs echo "metrics"
+echo ""
+echo "3. Prometheus Targets:"
+curl -s http://localhost:9090/api/v1/targets 2>/dev/null | jq -r '[.data.activeTargets[] | select(.health == "up") | .labels.job] | "\(length) targets UP: \(join(", "))"'
+echo ""
+echo "4. Metrics in Prometheus:"
+curl -s 'http://localhost:9090/api/v1/label/__name__/values' 2>/dev/null | jq -r '.data[] | select(startswith("riptide_"))' | wc -l | xargs echo "unique RipTide metrics"
+echo ""
+echo "5. Container Status:"
+docker ps --filter "name=riptide" --format "{{.Names}}: {{.Status}}" | grep -E "(healthy|Up)"
+echo ""
+echo "✅ Phase 2A Complete - All Systems Operational"

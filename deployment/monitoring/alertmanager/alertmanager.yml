@@ -1,0 +1,96 @@
+global:
+  resolve_timeout: 5m
+  smtp_from: 'alertmanager@riptide.local'
+  smtp_smarthost: 'localhost:25'
+  smtp_require_tls: false
+
+# Default route for all alerts
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  receiver: 'default'
+
+  routes:
+    # Critical alerts route
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      continue: true
+      group_wait: 5s
+      repeat_interval: 4h
+
+    # Warning alerts route
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 30s
+      repeat_interval: 24h
+
+    # Component-specific routes
+    - match:
+        component: api
+      receiver: 'api-team'
+
+    - match:
+        component: wasm
+      receiver: 'wasm-team'
+
+# Receivers configuration
+receivers:
+  - name: 'default'
+    # Webhook for general notifications
+    webhook_configs:
+      - url: 'http://localhost:5001/webhook/default'
+        send_resolved: true
+
+  - name: 'critical-alerts'
+    # Email for critical alerts (configure SMTP settings above)
+    # email_configs:
+    #   - to: 'oncall@riptide.local'
+    #     subject: '[CRITICAL] {{ .GroupLabels.alertname }}'
+    #     html: '{{ template "email.default.html" . }}'
+
+    # Webhook for critical alerts
+    webhook_configs:
+      - url: 'http://localhost:5001/webhook/critical'
+        send_resolved: true
+
+    # Slack integration (uncomment and configure)
+    # slack_configs:
+    #   - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+    #     channel: '#alerts-critical'
+    #     title: 'Critical Alert: {{ .GroupLabels.alertname }}'
+    #     text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+
+  - name: 'warning-alerts'
+    webhook_configs:
+      - url: 'http://localhost:5001/webhook/warning'
+        send_resolved: true
+
+  - name: 'api-team'
+    webhook_configs:
+      - url: 'http://localhost:5001/webhook/api-team'
+        send_resolved: true
+
+  - name: 'wasm-team'
+    webhook_configs:
+      - url: 'http://localhost:5001/webhook/wasm-team'
+        send_resolved: true
+
+# Inhibit rules to prevent alert spam
+inhibit_rules:
+  # Inhibit warning if critical is firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
+
+  # Inhibit specific alerts if instance is down
+  - source_match:
+      alertname: 'RipTideAPIDown'
+    target_match_re:
+      alertname: '(HighResponseTime|HighErrorRate)'
+    equal: ['instance']

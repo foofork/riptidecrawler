@@ -22,6 +22,12 @@ pub struct ServerState {
     pub coordinator: Arc<RwLock<StreamingCoordinator>>,
 }
 
+impl Default for ServerState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ServerState {
     pub fn new() -> Self {
         Self {

@@ -1,0 +1,226 @@
+# RipTide EventMesh Test URL List
+#
+# Comprehensive URL test suite for Week 1 validation
+# Format: URL | Category | Expected Challenge | Priority
+#
+# Legend:
+# - Priority: P0 (Critical), P1 (High), P2 (Medium), P3 (Low)
+# - Expected Challenge: Gate decision (raw/headless), Content type, Performance impact
+#
+# ============================================================================
+# CATEGORY 1: NEWS SITES (4 URLs)
+# ============================================================================
+# Challenge: Dynamic ads, paywalls, live-updating content, cookie banners
+
+https://www.bbc.com/news/technology|news|P0|Dynamic content, cookie consent, high-quality article structure
+https://techcrunch.com/latest|news|P0|SPA architecture, infinite scroll, dynamic loading
+https://www.reuters.com/technology|news|P1|Paywall detection, structured data, video embeds
+https://www.theguardian.com/technology|news|P1|Clean HTML, good metadata, progressive enhancement
+
+# ============================================================================
+# CATEGORY 2: BLOGS & PERSONAL SITES (4 URLs)
+# ============================================================================
+# Challenge: Varied HTML quality, custom themes, minimal structure
+
+https://martinfowler.com/articles/|blog|P0|Clean semantic HTML, long-form content, code samples
+https://blog.cloudflare.com/|blog|P1|Technical content, diagrams, syntax highlighting
+https://rachelbythebay.com/w/|blog|P2|Minimal HTML, no frameworks, plain text style
+https://dev.to/|blog|P1|Community content, varied quality, markdown-based
+
+# ============================================================================
+# CATEGORY 3: DOCUMENTATION SITES (4 URLs)
+# ============================================================================
+# Challenge: Navigation trees, code blocks, syntax highlighting, search
+
+https://docs.rust-lang.org/book/|docs|P0|Static site, excellent structure, code examples
+https://developer.mozilla.org/en-US/docs/Web/JavaScript|docs|P0|Complex navigation, interactive examples, translations
+https://kubernetes.io/docs/concepts/|docs|P1|Multi-language, tabs, collapsible sections
+https://doc.rust-lang.org/std/|docs|P2|Auto-generated API docs, deep linking, search
+
+# ============================================================================
+# CATEGORY 4: E-COMMERCE SITES (3 URLs)
+# ============================================================================
+# Challenge: Product catalogs, dynamic pricing, review widgets, image galleries
+
+https://www.amazon.com/dp/B08N5WRWNW|ecommerce|P1|Heavy JS, lazy loading, structured data, reviews
+https://www.etsy.com/listing/1234567890|ecommerce|P2|Seller content, variations, shipping info
+https://www.newegg.com/p/N82E16819113663|ecommerce|P2|Tech specs tables, comparison tools, inventory
+
+# ============================================================================
+# CATEGORY 5: SOCIAL & COMMUNITY (3 URLs)
+# ============================================================================
+# Challenge: Authentication walls, infinite scroll, dynamic updates, API-driven
+
+https://github.com/trending|social|P0|SPA, client-side rendering, dynamic content
+https://stackoverflow.com/questions|social|P1|Q&A format, code blocks, vote counts
+https://news.ycombinator.com/|social|P2|Minimal HTML, comment threads, simple structure
+
+# ============================================================================
+# CATEGORY 6: COMPLEX SPAs (SINGLE PAGE APPLICATIONS) (3 URLs)
+# ============================================================================
+# Challenge: Requires headless browser, client-side rendering, heavy JavaScript
+
+https://react.dev/|spa|P0|React docs, interactive examples, hooks
+https://www.figma.com/blog/|spa|P1|Design content, embedded prototypes, images
+https://vercel.com/templates|spa|P2|Template gallery, preview cards, filters
+
+# ============================================================================
+# CATEGORY 7: SIMPLE STATIC SITES (2 URLs)
+# ============================================================================
+# Challenge: Baseline for comparison, minimal extraction complexity
+
+https://example.com|static|P0|Minimal HTML, IANA reserved domain, baseline test
+https://info.cern.ch/|static|P3|Historical site, basic HTML, simple structure
+
+# ============================================================================
+# EDGE CASES & CHALLENGE URLS (15 URLs)
+# ============================================================================
+# Testing extraction quality under adverse conditions
+
+# --- Content Structure Challenges ---
+https://medium.com/@username/article|edge-paywall|P1|Paywall detection, member-only content blur
+https://www.nytimes.com/section/technology|edge-paywall|P2|Hard paywall, subscription modal, limited preview
+https://www.notion.so/product|edge-spa-heavy|P1|Heavy client-side app, slow render, minimal SSR
+
+# --- Media-Heavy Pages ---
+https://www.youtube.com/watch?v=dQw4w9WgXcQ|edge-video|P2|Video embed, comments, related videos, heavy JS
+https://www.pinterest.com/|edge-images|P2|Infinite scroll images, masonry layout, lazy load
+https://unsplash.com/|edge-images|P2|High-res images, grid layout, API-driven
+
+# --- JavaScript-Dependent Content ---
+https://codesandbox.io/|edge-ide|P2|Online IDE, heavy interactive JS, code editor
+https://codepen.io/trending|edge-interactive|P2|Live code preview, iframe embeds, community content
+https://tailwindcss.com/docs|edge-interactive|P1|Interactive component demos, code playground
+
+# --- Non-English & Internationalization ---
+https://www.lemonde.fr/technologies/|edge-i18n|P2|French language, accents, encoding test
+https://www3.nhk.or.jp/news/|edge-i18n|P2|Japanese characters, complex encoding, right-to-left
+https://www.bbc.com/arabic|edge-i18n|P2|Arabic script, RTL layout, Unicode handling
+
+# --- Edge HTML Structures ---
+https://old.reddit.com/r/programming|edge-minimal|P2|Old-style HTML, nested tables, minimal JS
+https://lobste.rs/|edge-minimal|P2|Minimal design, simple markup, efficient structure
+https://text.npr.org/|edge-text-only|P3|Text-only version, accessibility, ultra-minimal
+
+# ============================================================================
+# TOTAL: 35 URLS ACROSS 10 CATEGORIES
+# ============================================================================
+#
+# PRIORITY BREAKDOWN:
+# - P0 Critical: 8 URLs (must pass for Week 1 success)
+# - P1 High: 11 URLs (important for validation)
+# - P2 Medium: 14 URLs (nice to have working)
+# - P3 Low: 2 URLs (baseline/historical)
+#
+# CATEGORY COVERAGE:
+# ✓ News sites (varied HTML quality, modern frameworks)
+# ✓ Blogs (semantic HTML, long-form content)
+# ✓ Documentation (code blocks, navigation trees)
+# ✓ E-commerce (structured data, product pages)
+# ✓ Social (authentication, dynamic content)
+# ✓ SPAs (client-side rendering, heavy JS)
+# ✓ Static (baseline comparison)
+# ✓ Edge cases (paywalls, media, i18n, minimal HTML)
+#
+# EXPECTED BEHAVIORS BY CATEGORY:
+#
+# 1. NEWS SITES:
+#    - Gate Decision: Mostly "raw" for article pages
+#    - Common Issues: Cookie banners, ads, live tickers
+#    - Quality Score: 70-90% (high-quality journalism)
+#    - Extraction Mode: Article extraction with cleanup
+#
+# 2. BLOGS:
+#    - Gate Decision: "raw" for well-structured blogs
+#    - Common Issues: Varied HTML quality, custom themes
+#    - Quality Score: 60-85% (depends on theme)
+#    - Extraction Mode: Full-page or article mode
+#
+# 3. DOCUMENTATION:
+#    - Gate Decision: "raw" (static-generated, clean HTML)
+#    - Common Issues: Navigation noise, code block formatting
+#    - Quality Score: 85-95% (excellent structure)
+#    - Extraction Mode: Full-page with code preservation
+#
+# 4. E-COMMERCE:
+#    - Gate Decision: "raw" for product pages
+#    - Common Issues: Dynamic pricing, review widgets, lazy images
+#    - Quality Score: 70-80% (structured but noisy)
+#    - Extraction Mode: Product-specific extraction
+#
+# 5. SOCIAL:
+#    - Gate Decision: "headless" for dynamic feeds
+#    - Common Issues: Authentication walls, infinite scroll
+#    - Quality Score: 50-70% (high noise)
+#    - Extraction Mode: Feed extraction, paginated
+#
+# 6. SPAs:
+#    - Gate Decision: "headless" (requires JS rendering)
+#    - Common Issues: Empty initial HTML, TTFB delays
+#    - Quality Score: 60-80% (varies by SSR support)
+#    - Extraction Mode: Headless with wait conditions
+#
+# 7. STATIC:
+#    - Gate Decision: "raw" (baseline test)
+#    - Common Issues: None expected
+#    - Quality Score: 95-100% (clean baseline)
+#    - Extraction Mode: Simple full-page extraction
+#
+# 8. EDGE CASES:
+#    - Paywalls: Detect and report, extract preview content
+#    - Media-heavy: Handle lazy loading, extract alt text
+#    - I18n: Proper encoding, language detection
+#    - Minimal HTML: Handle old-style markup, tables
+#
+# ============================================================================
+# TESTING PROTOCOL:
+# ============================================================================
+#
+# PHASE 1: SMOKE TEST (P0 URLs - 8 URLs)
+# ```bash
+# grep "|P0|" tests/test-urls.txt | cut -d'|' -f1 | while read url; do
+#   echo "Testing: $url"
+#   cargo run --bin riptide-cli extract "$url" --output json > "results/$(echo $url | md5sum | cut -d' ' -f1).json"
+#   echo "Status: $?"
+# done
+# ```
+#
+# PHASE 2: COMPREHENSIVE TEST (All URLs)
+# ```bash
+# cat tests/test-urls.txt | grep -v '^#' | grep -v '^$' | cut -d'|' -f1 | while read url; do
+#   echo "Testing: $url"
+#   timeout 30s cargo run --bin riptide-cli extract "$url" --output json > "results/$(echo $url | md5sum | cut -d' ' -f1).json" 2>&1
+#   if [ $? -eq 0 ]; then
+#     echo "✓ Success: $url"
+#   else
+#     echo "✗ Failed: $url"
+#   fi
+# done
+# ```
+#
+# PHASE 3: ANALYSIS
+# ```bash
+# # Count successes vs failures
+# find results/ -name "*.json" -size +100c | wc -l  # Successful extractions
+# find results/ -name "*.json" -size -100c | wc -l  # Failed extractions
+#
+# # Analyze quality scores
+# for file in results/*.json; do
+#   jq -r '.quality_score // "N/A"' "$file"
+# done | awk '{sum+=$1; count++} END {print "Average Quality:", sum/count}'
+#
+# # Check gate decisions
+# for file in results/*.json; do
+#   jq -r '.gate_decision // "N/A"' "$file"
+# done | sort | uniq -c
+# ```
+#
+# SUCCESS CRITERIA (Week 1):
+# ✓ 90%+ success rate on P0 URLs (7/8 passing)
+# ✓ 80%+ success rate on P0+P1 URLs (15/19 passing)
+# ✓ No crashes or panics
+# ✓ Average quality score >70% for articles/docs
+# ✓ Proper gate decisions (raw vs headless)
+# ✓ Error handling for paywalls, 404s, timeouts
+#
+# ============================================================================

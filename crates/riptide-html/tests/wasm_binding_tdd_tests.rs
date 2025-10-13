@@ -306,7 +306,7 @@ async fn test_health_status() -> Result<()> {
 
     assert_eq!(health.status, "healthy");
     assert_eq!(health.version, "1.0.0");
-    assert!(health.successful_extractions >= 0);
+    // Verify metrics are valid (not checking >= 0 as these are unsigned/non-negative types)
     assert!(health.avg_extraction_time >= 0.0);
 
     println!("✅ PASS: Health status reporting correctly");

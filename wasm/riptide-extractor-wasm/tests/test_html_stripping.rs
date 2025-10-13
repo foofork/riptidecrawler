@@ -7,7 +7,7 @@ use scraper::{Html, Selector};
 fn strip_html_tags(html: &str) -> String {
     let document = Html::parse_fragment(html);
     let text = document.root_element().text().collect::<Vec<_>>().join("");
-    text.trim().split_whitespace().collect::<Vec<_>>().join(" ")
+    text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// Helper function to extract article content without HTML
@@ -27,7 +27,8 @@ fn extract_article_content(html: &str) -> String {
     }
 
     // Fallback: extract all text
-    document.root_element()
+    document
+        .root_element()
         .text()
         .collect::<Vec<_>>()
         .join(" ")
@@ -293,8 +294,17 @@ mod integration_tests {
         assert!(result.contains("link"));
 
         // Verify similarity (should be >80% text overlap)
-        let expected_words = vec!["Breaking", "News", "paragraph", "emphasis", "Another", "paragraph", "link"];
-        let matches: usize = expected_words.iter()
+        let expected_words = [
+            "Breaking",
+            "News",
+            "paragraph",
+            "emphasis",
+            "Another",
+            "paragraph",
+            "link",
+        ];
+        let matches: usize = expected_words
+            .iter()
             .filter(|word| result.contains(*word))
             .count();
         let similarity = (matches as f64 / expected_words.len() as f64) * 100.0;

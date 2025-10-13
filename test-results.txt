@@ -1,0 +1,187 @@
+warning: unused import: `futures::stream::TryStreamExt`
+ --> crates/riptide-streaming/tests/test_streaming.rs:2:5
+  |
+2 | use futures::stream::TryStreamExt;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: variable `successful_results` is assigned to, but never used
+   --> crates/riptide-streaming/tests/test_streaming.rs:121:13
+    |
+121 |     let mut successful_results = 0;
+    |             ^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider using `_successful_results` instead
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `first_result_time`
+   --> crates/riptide-streaming/tests/test_streaming.rs:467:13
+    |
+467 |         let first_result_time = start_time.elapsed();
+    |             ^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_first_result_time`
+
+warning: field `status` is never read
+   --> crates/riptide-streaming/tests/ndjson_stream_tests.rs:228:5
+    |
+225 | struct StreamingResponse {
+    |        ----------------- field in this struct
+...
+228 |     status: StatusCode,
+    |     ^^^^^^
+    |
+    = note: `StreamingResponse` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` on by default
+
+warning: variants `TTFBTimeout` and `Performance` are never constructed
+   --> crates/riptide-streaming/tests/ndjson_stream_tests.rs:307:5
+    |
+302 | enum TestError {
+    |      --------- variants in this enum
+...
+307 |     TTFBTimeout(Duration),
+    |     ^^^^^^^^^^^
+308 |     Performance(String),
+    |     ^^^^^^^^^^^
+    |
+    = note: `TestError` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+   Compiling riptide-streaming v0.1.0 (/workspaces/eventmesh/crates/riptide-streaming)
+warning: `riptide-streaming` (test "test_streaming") generated 3 warnings (run `cargo fix --test "test_streaming"` to apply 1 suggestion)
+warning: `riptide-streaming` (test "ndjson_stream_tests") generated 2 warnings
+warning: unused variable: `i`
+   --> crates/riptide-streaming/tests/deepsearch_stream_tests.rs:343:10
+    |
+343 |     for (i, result) in search_results.iter().enumerate() {
+    |          ^ help: if this is intentional, prefix it with an underscore: `_i`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: field `status` is never read
+   --> crates/riptide-streaming/tests/deepsearch_stream_tests.rs:229:5
+    |
+226 | struct DeepSearchStreamingResponse {
+    |        --------------------------- field in this struct
+...
+229 |     status: reqwest::StatusCode,
+    |     ^^^^^^
+    |
+    = note: `DeepSearchStreamingResponse` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` on by default
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> crates/riptide-streaming/tests/deepsearch_stream_tests.rs:43:26
+   |
+43 |     fn setup_serper_mock(&self, query: &str, results: Vec<SearchResultData>) -> Mock {
+   |                          ^^^^^ the lifetime is elided here                      ---- the same lifetime is hidden here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+   |
+43 |     fn setup_serper_mock(&self, query: &str, results: Vec<SearchResultData>) -> Mock<'_> {
+   |                                                                                     ++++
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> crates/riptide-streaming/tests/deepsearch_stream_tests.rs:73:28
+   |
+73 |     fn setup_content_mocks(&self, urls: &[&str]) -> Vec<Mock> {
+   |                            ^^^^^                        ---- the same lifetime is hidden here
+   |                            |
+   |                            the lifetime is elided here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+help: use `'_` for type paths
+   |
+73 |     fn setup_content_mocks(&self, urls: &[&str]) -> Vec<Mock<'_>> {
+   |                                                             ++++
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> crates/riptide-streaming/tests/deepsearch_stream_tests.rs:103:36
+    |
+103 |     fn setup_failing_content_mocks(&self, urls: &[&str]) -> Vec<Mock> {
+    |                                    ^^^^^                        ---- the same lifetime is hidden here
+    |                                    |
+    |                                    the lifetime is elided here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+help: use `'_` for type paths
+    |
+103 |     fn setup_failing_content_mocks(&self, urls: &[&str]) -> Vec<Mock<'_>> {
+    |                                                                     ++++
+
+warning: unused variable: `chunk`
+   --> crates/riptide-streaming/tests/streaming_tests.rs:326:33
+    |
+326 |             .returning(move |_, chunk| {
+    |                                 ^^^^^ help: if this is intentional, prefix it with an underscore: `_chunk`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: variable does not need to be mutable
+   --> crates/riptide-streaming/tests/streaming_tests.rs:498:21
+    |
+498 |                 let mut streaming = streaming_arc.lock().await;
+    |                     ----^^^^^^^^^
+    |                     |
+    |                     help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: field `duration` is never read
+  --> crates/riptide-streaming/tests/streaming_tests.rs:68:13
+   |
+65 |     pub struct StreamStats {
+   |                ----------- field in this struct
+...
+68 |         pub duration: Duration,
+   |             ^^^^^^^^
+   |
+   = note: `StreamStats` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` on by default
+
+warning: `riptide-streaming` (test "deepsearch_stream_tests") generated 5 warnings
+warning: `riptide-streaming` (test "streaming_tests") generated 3 warnings (run `cargo fix --test "streaming_tests"` to apply 1 suggestion)
+   Compiling riptide-api v0.1.0 (/workspaces/eventmesh/crates/riptide-api)
+error[E0603]: struct `ExtractionResult` is private
+  --> crates/riptide-streaming/tests/report_generation_tests.rs:11:18
+   |
+11 |     DomainStats, ExtractionResult, ReportConfig, ReportData, ReportFormat, ReportGenerator,
+   |                  ^^^^^^^^^^^^^^^^ private struct
+   |
+note: the struct `ExtractionResult` is defined here
+  --> /workspaces/eventmesh/crates/riptide-streaming/src/reports.rs:6:5
+   |
+ 6 | use crate::ExtractionResult;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+help: import `ExtractionResult` directly
+   |
+11 |     DomainStats, riptide_streaming::ExtractionResult, ReportConfig, ReportData, ReportFormat, ReportGenerator,
+   |                  +++++++++++++++++++
+
+warning: unused imports: `DomainStats`, `ReportData`, `TimelineEntry`, and `WordFrequency`
+  --> crates/riptide-streaming/tests/report_generation_tests.rs:11:5
+   |
+11 |     DomainStats, ExtractionResult, ReportConfig, ReportData, ReportFormat, ReportGenerator,
+   |     ^^^^^^^^^^^                                  ^^^^^^^^^^
+12 |     ReportTheme, TimelineEntry, WordFrequency,
+   |                  ^^^^^^^^^^^^^  ^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+error[E0624]: method `generate_word_cloud_data` is private
+   --> crates/riptide-streaming/tests/report_generation_tests.rs:248:37
+    |
+248 |     let word_cloud_data = generator.generate_word_cloud_data(&results);
+    |                                     ^^^^^^^^^^^^^^^^^^^^^^^^ private method
+    |
+   ::: /workspaces/eventmesh/crates/riptide-streaming/src/reports.rs:349:5
+    |
+349 |     fn generate_word_cloud_data(&self, results: &[ExtractionResult]) -> Vec<WordFrequency> {
+    |     -------------------------------------------------------------------------------------- private method defined here
+
+Some errors have detailed explanations: E0603, E0624.
+For more information about an error, try `rustc --explain E0603`.
+warning: `riptide-streaming` (test "report_generation_tests") generated 1 warning
+error: could not compile `riptide-streaming` (test "report_generation_tests") due to 2 previous errors; 1 warning emitted
+warning: build failed, waiting for other jobs to finish...

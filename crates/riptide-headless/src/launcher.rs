@@ -222,6 +222,7 @@ impl HeadlessLauncher {
     }
 
     /// Build browser configuration with stealth settings
+    /// Note: Unique profile directories are added per-browser in pool.rs to prevent SingletonLock errors
     async fn build_browser_config(config: &LauncherConfig) -> Result<BrowserConfig> {
         let mut builder = BrowserConfig::builder();
 

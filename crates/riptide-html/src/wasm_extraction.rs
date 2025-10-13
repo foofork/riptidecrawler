@@ -259,6 +259,12 @@ pub struct WasmHostContext {
     pub table: ResourceTable,
 }
 
+impl Default for WasmHostContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WasmHostContext {
     pub fn new() -> Self {
         let wasi = WasiCtxBuilder::new().inherit_stdio().inherit_env().build();

@@ -54,7 +54,7 @@ riptide-headless = { path = "../riptide-headless" }
 riptide-search = { path = "../riptide-search" }
 riptide-performance = { path = "../riptide-performance" }
 riptide-persistence = { path = "../riptide-persistence" }
-chromiumoxide = { workspace = true }
+spider_chrome = { workspace = true }
 wasmtime = { workspace = true }
 axum-prometheus = "0.7"
 prometheus = "0.14"  # Updated to fix protobuf RUSTSEC-2024-0437

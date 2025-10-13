@@ -1,7 +1,6 @@
 use axum_prometheus::{metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayer};
 use prometheus::{
-    Counter, Gauge, GaugeVec, Histogram, HistogramOpts, HistogramVec, IntCounterVec,
-    Opts, Registry,
+    Counter, Gauge, GaugeVec, Histogram, HistogramOpts, HistogramVec, IntCounterVec, Opts, Registry,
 };
 use riptide_core::pdf::PdfMetricsCollector;
 use std::collections::HashMap;
@@ -1228,6 +1227,7 @@ impl RipTideMetrics {
     }
 
     /// Record extraction result with quality metrics
+    #[allow(clippy::too_many_arguments)]
     pub fn record_extraction_result(
         &self,
         mode: &str,

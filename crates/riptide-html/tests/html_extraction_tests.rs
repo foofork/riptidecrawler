@@ -3,14 +3,15 @@
 //!
 //! These tests have been updated to work with the current riptide-html API.
 
-use riptide_html::css_extraction::*;
-use riptide_html::regex_extraction::*;
-use riptide_html::RegexPattern;
+use riptide_html::{
+    css_extraction, regex_extraction, regex_extraction::RegexExtractor, RegexPattern,
+};
 use std::collections::HashMap;
 
 /// Test module for CSS selector extraction
 mod css_extraction_tests {
     use super::*;
+    use riptide_html::css_extraction::*;
 
     #[tokio::test]
     async fn test_basic_css_selectors() {

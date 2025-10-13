@@ -8,11 +8,10 @@
 
 use futures::stream::StreamExt;
 use httpmock::prelude::*;
+use httpmock::Mock;
 use reqwest::Client;
 use serde_json::Value;
-use std::collections::HashMap;
 use std::time::{Duration, Instant};
-use uuid::Uuid;
 
 /// Test framework specifically for deep search streaming
 struct DeepSearchStreamingTestFramework {
@@ -71,8 +70,8 @@ impl DeepSearchStreamingTestFramework {
     }
 
     /// Setup mock content servers for search results
-    fn setup_content_mocks(&self, urls: Vec<&str>) -> Vec<Mock> {
-        urls.into_iter().map(|url| {
+    fn setup_content_mocks(&self, urls: &[&str]) -> Vec<Mock> {
+        urls.iter().map(|url| {
             let path = url.trim_start_matches(&self.content_mock_server.base_url());
             self.content_mock_server.mock(|when, then| {
                 when.method(GET).path(path);
@@ -101,8 +100,8 @@ impl DeepSearchStreamingTestFramework {
     }
 
     /// Setup failing content mocks
-    fn setup_failing_content_mocks(&self, urls: Vec<&str>) -> Vec<Mock> {
-        urls.into_iter()
+    fn setup_failing_content_mocks(&self, urls: &[&str]) -> Vec<Mock> {
+        urls.iter()
             .map(|url| {
                 let path = url.trim_start_matches(&self.content_mock_server.base_url());
                 self.content_mock_server.mock(|when, then| {

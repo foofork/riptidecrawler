@@ -1,0 +1,118 @@
+groups:
+  - name: riptide_alerts
+    interval: 30s
+    rules:
+      # Instance down alerts
+      - alert: RipTideAPIDown
+        expr: up{job="riptide-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "RipTide API is down"
+          description: "RipTide API has been down for more than 1 minute"
+
+      - alert: RipTideWASMDown
+        expr: up{job="riptide-wasm"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: wasm
+        annotations:
+          summary: "RipTide WASM Runtime is down"
+          description: "RipTide WASM Runtime has been down for more than 1 minute"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: |
+          (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)
+          / node_memory_MemTotal_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is above 85% for more than 5 minutes (current: {{ $value }}%)"
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: |
+          100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is above 80% for more than 5 minutes (current: {{ $value }}%)"
+
+      # Disk space alerts
+      - alert: LowDiskSpace
+        expr: |
+          (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space is below 15% (current: {{ $value }}%)"
+
+      - alert: CriticalDiskSpace
+        expr: |
+          (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 5
+        for: 1m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Critical disk space"
+          description: "Disk space is below 5% (current: {{ $value }}%)"
+
+      # Response time alerts
+      - alert: HighResponseTime
+        expr: |
+          histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "High API response time"
+          description: "95th percentile response time is above 2 seconds (current: {{ $value }}s)"
+
+      # Error rate alerts
+      - alert: HighErrorRate
+        expr: |
+          rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) * 100 > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is above 5% (current: {{ $value }}%)"
+
+      # WASM-specific alerts
+      - alert: WASMMemoryExhaustion
+        expr: |
+          wasm_memory_usage_bytes / wasm_memory_limit_bytes * 100 > 90
+        for: 2m
+        labels:
+          severity: critical
+          component: wasm
+        annotations:
+          summary: "WASM memory exhaustion"
+          description: "WASM memory usage is above 90% (current: {{ $value }}%)"
+
+      - alert: HighWASMInstanceCount
+        expr: wasm_active_instances > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: wasm
+        annotations:
+          summary: "High WASM instance count"
+          description: "Number of active WASM instances is high (current: {{ $value }})"
