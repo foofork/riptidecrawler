@@ -270,19 +270,26 @@ fn perform_extraction_with_trek(
     };
 
     // Convert trek-rs result to Component Model format
-    convert_response_to_content(response, url, mode)
+    convert_response_to_content(response, url, html, mode)
 }
 
 /// Convert trek-rs TrekResponse to Component Model ExtractedContent
 fn convert_response_to_content(
     response: TrekResponse,
     url: &str,
+    html: &str,
     _mode: &ExtractionMode,
 ) -> Result<ExtractedContent, ExtractionError> {
     // Calculate quality score based on content richness
     let quality_score = calculate_quality_score(&response);
     let word_count = response.metadata.word_count as u32;
     let reading_time = estimate_reading_time(response.metadata.word_count);
+
+    // Extract enhanced content features
+    let links = extract_links(html, url);
+    let media = extract_media(html, url);
+    let language = detect_language(html, &response.content);
+    let categories = extract_categories(html);
 
     Ok(ExtractedContent {
         url: url.to_string(),
@@ -291,13 +298,13 @@ fn convert_response_to_content(
         published_iso: Some(response.metadata.published).filter(|s| !s.is_empty()),
         markdown: response.content_markdown.unwrap_or_default(),
         text: response.content,
-        links: vec![], // TODO: Extract links from content
-        media: vec![], // TODO: Extract media URLs
-        language: None, // TODO: Language detection
+        links,
+        media,
+        language,
         reading_time,
         quality_score: Some(quality_score),
         word_count: Some(word_count),
-        categories: vec![], // TODO: Category extraction
+        categories,
         site_name: Some(response.metadata.site).filter(|s| !s.is_empty()),
         description: Some(response.metadata.description).filter(|s| !s.is_empty()),
     })
