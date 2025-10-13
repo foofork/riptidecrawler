@@ -1,5 +1,8 @@
 use axum_prometheus::{metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayer};
-use prometheus::{Counter, Gauge, Histogram, HistogramOpts, Opts, Registry};
+use prometheus::{
+    Counter, Gauge, GaugeVec, Histogram, HistogramOpts, HistogramVec, IntCounter, IntCounterVec,
+    IntGauge, IntGaugeVec, Opts, Registry,
+};
 use riptide_core::pdf::PdfMetricsCollector;
 use std::collections::HashMap;
 use std::time::Instant;
@@ -95,6 +98,33 @@ pub struct RipTideMetrics {
     #[allow(dead_code)]
     pub worker_processing_time: Histogram,
     pub worker_queue_depth: Gauge,
+
+    // ===== WEEK 1 PHASE 1B: Comprehensive Metrics System (30+ new metrics) =====
+
+    // Gate Decision Enhanced Metrics
+    pub gate_decision_total: IntCounterVec, // By decision type (raw/probes_first/headless)
+    pub gate_score_histogram: Histogram,    // Score distribution (0.0-1.0)
+    pub gate_feature_text_ratio: Histogram, // Text density ratio
+    pub gate_feature_script_density: Histogram, // JavaScript density ratio
+    pub gate_feature_spa_markers: IntCounterVec, // SPA marker count
+    pub gate_decision_duration_ms: Histogram, // Gate latency in milliseconds
+
+    // Extraction Quality Metrics
+    pub extraction_quality_score: HistogramVec, // Quality score by mode (0-100)
+    pub extraction_quality_success_rate: GaugeVec, // Success rate by mode
+    pub extraction_content_length: HistogramVec, // Content length by mode
+    pub extraction_links_found: HistogramVec,   // Links count by mode
+    pub extraction_images_found: HistogramVec,  // Images count by mode
+    pub extraction_has_author: IntCounterVec,   // Author presence by mode
+    pub extraction_has_date: IntCounterVec,     // Date presence by mode
+
+    // Extraction Performance
+    pub extraction_duration_by_mode: HistogramVec, // Duration by extraction mode
+    pub extraction_fallback_triggered: IntCounterVec, // Fallback events (from_mode, to_mode, reason)
+
+    // Pipeline Phase Timing (additional phases)
+    pub pipeline_phase_gate_analysis_ms: Histogram, // Gate analysis phase
+    pub pipeline_phase_extraction_ms: Histogram,    // Extraction phase
 }
 
 impl RipTideMetrics {
@@ -513,6 +543,168 @@ impl RipTideMetrics {
             .const_label("service", "riptide-api"),
         )?;
 
+        // ===== WEEK 1 PHASE 1B: Initialize Comprehensive Metrics =====
+
+        // Gate Decision Enhanced Metrics
+        let gate_decision_total = IntCounterVec::new(
+            Opts::new(
+                "riptide_gate_decision_total",
+                "Gate decisions by type (raw/probes_first/headless)",
+            )
+            .const_label("service", "riptide-api"),
+            &["decision"],
+        )?;
+
+        let gate_score_histogram = Histogram::with_opts(
+            HistogramOpts::new("riptide_gate_score", "Gate score distribution (0.0-1.0)")
+                .const_label("service", "riptide-api")
+                .buckets(vec![0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]),
+        )?;
+
+        let gate_feature_text_ratio = Histogram::with_opts(
+            HistogramOpts::new("riptide_gate_feature_text_ratio", "Text to HTML size ratio")
+                .const_label("service", "riptide-api")
+                .buckets(vec![0.0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.75, 1.0]),
+        )?;
+
+        let gate_feature_script_density = Histogram::with_opts(
+            HistogramOpts::new(
+                "riptide_gate_feature_script_density",
+                "JavaScript to HTML size ratio",
+            )
+            .const_label("service", "riptide-api")
+            .buckets(vec![0.0, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1.0]),
+        )?;
+
+        let gate_feature_spa_markers = IntCounterVec::new(
+            Opts::new(
+                "riptide_gate_feature_spa_markers_total",
+                "SPA marker detection counts",
+            )
+            .const_label("service", "riptide-api"),
+            &["marker_count"],
+        )?;
+
+        let gate_decision_duration_ms = Histogram::with_opts(
+            HistogramOpts::new(
+                "riptide_gate_decision_duration_milliseconds",
+                "Gate decision latency in milliseconds",
+            )
+            .const_label("service", "riptide-api")
+            .buckets(vec![0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 25.0, 50.0, 100.0]),
+        )?;
+
+        // Extraction Quality Metrics
+        let extraction_quality_score = HistogramVec::new(
+            HistogramOpts::new(
+                "riptide_extraction_quality_score",
+                "Extraction quality score by mode (0-100)",
+            )
+            .const_label("service", "riptide-api")
+            .buckets(vec![0.0, 20.0, 40.0, 60.0, 70.0, 80.0, 90.0, 95.0, 100.0]),
+            &["mode"],
+        )?;
+
+        let extraction_quality_success_rate = GaugeVec::new(
+            Opts::new(
+                "riptide_extraction_quality_success_rate",
+                "Extraction success rate by mode (0.0-1.0)",
+            )
+            .const_label("service", "riptide-api"),
+            &["mode"],
+        )?;
+
+        let extraction_content_length = HistogramVec::new(
+            HistogramOpts::new(
+                "riptide_extraction_content_length_bytes",
+                "Extracted content length by mode",
+            )
+            .const_label("service", "riptide-api")
+            .buckets(vec![
+                100.0, 500.0, 1000.0, 5000.0, 10000.0, 50000.0, 100000.0, 500000.0,
+            ]),
+            &["mode"],
+        )?;
+
+        let extraction_links_found = HistogramVec::new(
+            HistogramOpts::new(
+                "riptide_extraction_links_found",
+                "Number of links extracted by mode",
+            )
+            .const_label("service", "riptide-api")
+            .buckets(vec![0.0, 1.0, 5.0, 10.0, 25.0, 50.0, 100.0, 200.0, 500.0]),
+            &["mode"],
+        )?;
+
+        let extraction_images_found = HistogramVec::new(
+            HistogramOpts::new(
+                "riptide_extraction_images_found",
+                "Number of images extracted by mode",
+            )
+            .const_label("service", "riptide-api")
+            .buckets(vec![0.0, 1.0, 5.0, 10.0, 20.0, 50.0, 100.0]),
+            &["mode"],
+        )?;
+
+        let extraction_has_author = IntCounterVec::new(
+            Opts::new(
+                "riptide_extraction_has_author_total",
+                "Extractions with author metadata by mode",
+            )
+            .const_label("service", "riptide-api"),
+            &["mode", "has_author"],
+        )?;
+
+        let extraction_has_date = IntCounterVec::new(
+            Opts::new(
+                "riptide_extraction_has_date_total",
+                "Extractions with publication date by mode",
+            )
+            .const_label("service", "riptide-api"),
+            &["mode", "has_date"],
+        )?;
+
+        // Extraction Performance
+        let extraction_duration_by_mode = HistogramVec::new(
+            HistogramOpts::new(
+                "riptide_extraction_duration_by_mode_seconds",
+                "Extraction duration by mode",
+            )
+            .const_label("service", "riptide-api")
+            .buckets(vec![0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0]),
+            &["mode"],
+        )?;
+
+        let extraction_fallback_triggered = IntCounterVec::new(
+            Opts::new(
+                "riptide_extraction_fallback_triggered_total",
+                "Extraction fallback events",
+            )
+            .const_label("service", "riptide-api"),
+            &["from_mode", "to_mode", "reason"],
+        )?;
+
+        // Pipeline Phase Timing
+        let pipeline_phase_gate_analysis_ms = Histogram::with_opts(
+            HistogramOpts::new(
+                "riptide_pipeline_phase_gate_analysis_milliseconds",
+                "Gate analysis phase duration",
+            )
+            .const_label("service", "riptide-api")
+            .buckets(vec![0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 25.0, 50.0, 100.0]),
+        )?;
+
+        let pipeline_phase_extraction_ms = Histogram::with_opts(
+            HistogramOpts::new(
+                "riptide_pipeline_phase_extraction_milliseconds",
+                "Extraction phase duration",
+            )
+            .const_label("service", "riptide-api")
+            .buckets(vec![
+                10.0, 50.0, 100.0, 250.0, 500.0, 1000.0, 2500.0, 5000.0, 10000.0,
+            ]),
+        )?;
+
         // Register all metrics
         registry.register(Box::new(http_requests_total.clone()))?;
         registry.register(Box::new(http_request_duration.clone()))?;
@@ -567,7 +759,26 @@ impl RipTideMetrics {
         registry.register(Box::new(worker_processing_time.clone()))?;
         registry.register(Box::new(worker_queue_depth.clone()))?;
 
-        info!("Prometheus metrics registry initialized with spider, PDF, WASM, and worker metrics");
+        // Register WEEK 1 PHASE 1B metrics
+        registry.register(Box::new(gate_decision_total.clone()))?;
+        registry.register(Box::new(gate_score_histogram.clone()))?;
+        registry.register(Box::new(gate_feature_text_ratio.clone()))?;
+        registry.register(Box::new(gate_feature_script_density.clone()))?;
+        registry.register(Box::new(gate_feature_spa_markers.clone()))?;
+        registry.register(Box::new(gate_decision_duration_ms.clone()))?;
+        registry.register(Box::new(extraction_quality_score.clone()))?;
+        registry.register(Box::new(extraction_quality_success_rate.clone()))?;
+        registry.register(Box::new(extraction_content_length.clone()))?;
+        registry.register(Box::new(extraction_links_found.clone()))?;
+        registry.register(Box::new(extraction_images_found.clone()))?;
+        registry.register(Box::new(extraction_has_author.clone()))?;
+        registry.register(Box::new(extraction_has_date.clone()))?;
+        registry.register(Box::new(extraction_duration_by_mode.clone()))?;
+        registry.register(Box::new(extraction_fallback_triggered.clone()))?;
+        registry.register(Box::new(pipeline_phase_gate_analysis_ms.clone()))?;
+        registry.register(Box::new(pipeline_phase_extraction_ms.clone()))?;
+
+        info!("Prometheus metrics registry initialized with spider, PDF, WASM, worker, and comprehensive Phase 1B metrics");
 
         Ok(Self {
             registry,
@@ -623,6 +834,24 @@ impl RipTideMetrics {
             worker_jobs_retried,
             worker_processing_time,
             worker_queue_depth,
+            // WEEK 1 PHASE 1B metrics
+            gate_decision_total,
+            gate_score_histogram,
+            gate_feature_text_ratio,
+            gate_feature_script_density,
+            gate_feature_spa_markers,
+            gate_decision_duration_ms,
+            extraction_quality_score,
+            extraction_quality_success_rate,
+            extraction_content_length,
+            extraction_links_found,
+            extraction_images_found,
+            extraction_has_author,
+            extraction_has_date,
+            extraction_duration_by_mode,
+            extraction_fallback_triggered,
+            pipeline_phase_gate_analysis_ms,
+            pipeline_phase_extraction_ms,
         })
     }
 
@@ -961,6 +1190,111 @@ impl RipTideMetrics {
     #[allow(dead_code)]
     pub fn record_worker_job_submission(&self) {
         self.worker_jobs_submitted.inc();
+    }
+
+    // ===== WEEK 1 PHASE 1B: Recording Methods =====
+
+    /// Record enhanced gate decision with features and score
+    pub fn record_gate_decision_enhanced(
+        &self,
+        decision_type: &str,
+        score: f32,
+        text_ratio: f32,
+        script_density: f32,
+        spa_markers: u8,
+        duration_ms: f64,
+    ) {
+        // Decision counter
+        self.gate_decision_total
+            .with_label_values(&[decision_type])
+            .inc();
+
+        // Score distribution
+        self.gate_score_histogram.observe(score as f64);
+
+        // Feature tracking
+        self.gate_feature_text_ratio.observe(text_ratio as f64);
+        self.gate_feature_script_density
+            .observe(script_density as f64);
+
+        // SPA markers
+        self.gate_feature_spa_markers
+            .with_label_values(&[&spa_markers.to_string()])
+            .inc();
+
+        // Decision latency
+        self.gate_decision_duration_ms.observe(duration_ms);
+    }
+
+    /// Record extraction result with quality metrics
+    pub fn record_extraction_result(
+        &self,
+        mode: &str,
+        duration_ms: u64,
+        success: bool,
+        quality_score: f32,
+        content_length: usize,
+        links_count: usize,
+        images_count: usize,
+        has_author: bool,
+        has_date: bool,
+    ) {
+        // Duration
+        self.extraction_duration_by_mode
+            .with_label_values(&[mode])
+            .observe(duration_ms as f64 / 1000.0);
+
+        // Quality metrics if successful
+        if success {
+            self.extraction_quality_score
+                .with_label_values(&[mode])
+                .observe(quality_score as f64);
+
+            self.extraction_content_length
+                .with_label_values(&[mode])
+                .observe(content_length as f64);
+
+            self.extraction_links_found
+                .with_label_values(&[mode])
+                .observe(links_count as f64);
+
+            self.extraction_images_found
+                .with_label_values(&[mode])
+                .observe(images_count as f64);
+
+            // Success rate (moving average via gauge)
+            let success_val = if quality_score > 60.0 { 1.0 } else { 0.0 };
+            self.extraction_quality_success_rate
+                .with_label_values(&[mode])
+                .set(success_val);
+
+            // Author and date presence
+            let author_label = if has_author { "true" } else { "false" };
+            self.extraction_has_author
+                .with_label_values(&[mode, author_label])
+                .inc();
+
+            let date_label = if has_date { "true" } else { "false" };
+            self.extraction_has_date
+                .with_label_values(&[mode, date_label])
+                .inc();
+        }
+    }
+
+    /// Record extraction fallback event
+    pub fn record_extraction_fallback(&self, from_mode: &str, to_mode: &str, reason: &str) {
+        self.extraction_fallback_triggered
+            .with_label_values(&[from_mode, to_mode, reason])
+            .inc();
+    }
+
+    /// Record pipeline phase timing
+    pub fn record_pipeline_phase_ms(&self, phase: &str, duration_ms: f64) {
+        match phase {
+            "gate_analysis" => self.pipeline_phase_gate_analysis_ms.observe(duration_ms),
+            "extraction" => self.pipeline_phase_extraction_ms.observe(duration_ms),
+            _ => {}
+        }
     }
 }
 

@@ -264,6 +264,17 @@ impl PipelineOrchestrator {
             .record_phase_timing(crate::metrics::PhaseType::Gate, gate_duration);
         self.state.metrics.record_gate_decision(&gate_decision_str);
 
+        // INJECTION POINT 1: Enhanced gate metrics (non-blocking)
+        tokio::spawn({
+            let metrics = self.state.metrics.clone();
+            let decision = decision.clone();
+            let score = quality_score;
+            let features = gate_features.clone();
+            async move {
+                metrics.record_gate_decision_enhanced(&decision, score, &features);
+            }
+        });
+
         info!(
             url = %url,
             decision = %gate_decision_str,
@@ -287,12 +298,33 @@ impl PipelineOrchestrator {
         // Step 5: Extract content based on gate decision
         let extract_start = Instant::now();
         let document = self.extract_content(&html_content, url, decision).await?;
-        let extract_duration = extract_start.elapsed().as_secs_f64();
+        let extract_duration = extract_start.elapsed();
 
         // Record WASM extraction phase timing
-        self.state
-            .metrics
-            .record_phase_timing(crate::metrics::PhaseType::Wasm, extract_duration);
+        self.state.metrics.record_phase_timing(
+            crate::metrics::PhaseType::Wasm,
+            extract_duration.as_secs_f64(),
+        );
+
+        // INJECTION POINT 2: Enhanced extraction metrics (non-blocking)
+        tokio::spawn({
+            let metrics = self.state.metrics.clone();
+            let mode = match decision {
+                Decision::Raw => "raw",
+                Decision::ProbesFirst => "probes",
+                Decision::Headless => "headless",
+            };
+            let extraction_duration_ms = extract_duration.as_millis() as u64;
+            let doc_clone = document.clone();
+            async move {
+                metrics.record_extraction_result(
+                    mode,
+                    extraction_duration_ms,
+                    true,
+                    Some(&doc_clone),
+                );
+            }
+        });
 
         // Step 6: Cache the result
         if let Err(e) = self.store_in_cache(&cache_key, &document).await {

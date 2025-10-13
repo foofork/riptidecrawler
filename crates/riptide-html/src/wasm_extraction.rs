@@ -9,6 +9,7 @@ use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use wasmtime::{component::*, Config, Engine, ResourceLimiter, Store};
+use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView};
 
 // WIT bindings - Wasmtime 37 bindgen! macro
 // Generate bindings in a module to avoid namespace pollution
@@ -250,8 +251,7 @@ pub struct HostExtractionStats {
     pub cache_misses: u64,
 }
 
-/// Host-side memory tracking and limits for WASM instances
-#[derive(Debug, Clone)]
+/// Host-side memory tracking and limits for WASM instances with WASI support
 pub struct WasmResourceTracker {
     /// Current memory pages allocated
     pub current_pages: Arc<AtomicUsize>,
@@ -265,10 +265,16 @@ pub struct WasmResourceTracker {
     pub simd_enabled: bool,
     /// AOT cache enabled
     pub aot_cache_enabled: bool,
+    /// WASI context
+    pub wasi: WasiCtx,
+    /// Resource table for WASI
+    pub table: ResourceTable,
 }
 
 impl WasmResourceTracker {
     pub fn new(max_pages: usize) -> Self {
+        let wasi = WasiCtxBuilder::new().inherit_stdio().inherit_env().build();
+
         Self {
             current_pages: Arc::new(AtomicUsize::new(0)),
             max_pages,
@@ -276,6 +282,8 @@ impl WasmResourceTracker {
             peak_pages: Arc::new(AtomicUsize::new(0)),
             simd_enabled: true,
             aot_cache_enabled: true,
+            wasi,
+            table: ResourceTable::new(),
         }
     }
 
@@ -298,26 +306,28 @@ impl WasmResourceTracker {
 impl ResourceLimiter for WasmResourceTracker {
     fn memory_growing(
         &mut self,
-        current: usize,
+        _current: usize,
         desired: usize,
         _maximum: Option<usize>,
     ) -> Result<bool, anyhow::Error> {
-        let pages_needed = desired.saturating_sub(current);
-        let new_total = self.current_pages.load(Ordering::Relaxed) + pages_needed;
+        const WASM_PAGE_SIZE: usize = 65536; // 64KB per page
 
-        if new_total > self.max_pages {
+        // Convert bytes to pages - desired is the NEW total memory size
+        let desired_pages = desired / WASM_PAGE_SIZE;
+
+        if desired_pages > self.max_pages {
             self.grow_failed_count.fetch_add(1, Ordering::Relaxed);
             Ok(false)
         } else {
-            self.current_pages
-                .fetch_add(pages_needed, Ordering::Relaxed);
+            // Store the new total (not a delta)
+            self.current_pages.store(desired_pages, Ordering::Relaxed);
 
             // Update peak memory
             let mut peak = self.peak_pages.load(Ordering::Relaxed);
-            while new_total > peak {
+            while desired_pages > peak {
                 match self.peak_pages.compare_exchange(
                     peak,
-                    new_total,
+                    desired_pages,
                     Ordering::Relaxed,
                     Ordering::Relaxed,
                 ) {
@@ -336,6 +346,15 @@ impl ResourceLimiter for WasmResourceTracker {
         _maximum: Option<usize>,
     ) -> Result<bool, anyhow::Error> {
         Ok(true) // Allow table growth
+    }
+}
+
+impl WasiView for WasmResourceTracker {
+    fn ctx(&mut self) -> WasiCtxView<'_> {
+        WasiCtxView {
+            ctx: &mut self.wasi,
+            table: &mut self.table,
+        }
     }
 }
 
@@ -415,10 +434,9 @@ impl CmExtractor {
         let component_bytes = std::fs::read(wasm_path)?;
         let component = Component::new(&engine, component_bytes)?;
 
-        // Create linker for component imports (if any)
-        let linker = Linker::new(&engine);
-        // Note: Our extractor component currently has no imports, but the linker
-        // is required for instantiation. Add import functions here if needed.
+        // Create linker with WASI Preview 2 support
+        let mut linker = Linker::new(&engine);
+        wasmtime_wasi::p2::add_to_linker_sync(&mut linker)?;
 
         let stats = Arc::new(Mutex::new(HostExtractionStats {
             total_extractions: 0,
@@ -447,6 +465,7 @@ impl CmExtractor {
         let resource_tracker = WasmResourceTracker::new(self.config.max_memory_pages);
 
         let mut store = Store::new(&self.engine, resource_tracker);
+        // Note: Resource limiter is automatically used since WasmResourceTracker implements ResourceLimiter
         store.set_fuel(1_000_000)?; // Set fuel limit for execution
 
         // Parse mode and convert to WIT type

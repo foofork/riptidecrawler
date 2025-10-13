@@ -4,7 +4,10 @@
 //! and riptide-html's WasmExtractor, implementing the trait adapter pattern.
 
 use anyhow::Result;
-use riptide_core::{reliability::WasmExtractor as WasmExtractorTrait, types::ExtractedDoc};
+use riptide_core::{
+    reliability::{ReliabilityMetricsRecorder, WasmExtractor as WasmExtractorTrait},
+    types::ExtractedDoc,
+};
 use riptide_html::wasm_extraction::WasmExtractor as ConcreteWasmExtractor;
 use std::sync::Arc;
 use std::time::Instant;

@@ -97,6 +97,7 @@ pub struct ReliableExtractor {
     http_client: ReliableHttpClient,
     headless_client: ReliableHttpClient,
     config: ReliabilityConfig,
+    metrics: Option<std::sync::Arc<dyn ReliabilityMetricsRecorder>>,
 }
 
 impl ReliableExtractor {
@@ -120,7 +121,18 @@ impl ReliableExtractor {
             http_client,
             headless_client,
             config,
+            metrics: None,
         })
+    }
+
+    /// Create ReliableExtractor with metrics support
+    pub fn new_with_metrics(
+        config: ReliabilityConfig,
+        metrics: std::sync::Arc<dyn ReliabilityMetricsRecorder>,
+    ) -> Result<Self> {
+        let mut extractor = Self::new(config)?;
+        extractor.metrics = Some(metrics);
+        Ok(extractor)
     }
 
     /// Perform content extraction with full reliability patterns
@@ -296,6 +308,15 @@ impl ReliableExtractor {
                     request_id = %request_id,
                     "Fast extraction quality below threshold, trying headless"
                 );
+
+                // INJECTION POINT 3: Record fallback metrics
+                if let Some(ref metrics) = self.metrics {
+                    metrics.record_extraction_fallback(
+                        "raw",
+                        "headless",
+                        "quality_threshold_not_met",
+                    );
+                }
             }
             Err(e) => {
                 warn!(
@@ -303,6 +324,11 @@ impl ReliableExtractor {
                     error = %e,
                     "Fast extraction failed, trying headless"
                 );
+
+                // INJECTION POINT 3: Record fallback metrics
+                if let Some(ref metrics) = self.metrics {
+                    metrics.record_extraction_fallback("raw", "headless", "fast_extraction_failed");
+                }
             }
         }
 
@@ -431,6 +457,12 @@ pub struct ReliabilityMetrics {
 /// WASM extractor trait for dependency injection
 pub trait WasmExtractor: Send + Sync {
     fn extract(&self, html: &[u8], url: &str, mode: &str) -> Result<ExtractedDoc>;
+}
+
+/// Trait for recording reliability metrics (abstraction for metrics integration)
+pub trait ReliabilityMetricsRecorder: Send + Sync {
+    /// Record extraction fallback event
+    fn record_extraction_fallback(&self, from_mode: &str, to_mode: &str, reason: &str);
 }
 
 #[cfg(test)]

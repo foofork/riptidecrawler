@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::env;
 use std::fs;
 use std::path::Path;
 
@@ -144,6 +145,24 @@ pub fn get_golden_test_cases() -> Vec<GoldenTestCase> {
     ]
 }
 
+/// Check if baselines should be updated based on environment variable
+fn should_update_baselines() -> bool {
+    env::var("UPDATE_BASELINES")
+        .map(|v| v == "1" || v.to_lowercase() == "true")
+        .unwrap_or(false)
+}
+
+/// Update a baseline snapshot with new extracted content
+fn update_baseline(test_case: &GoldenTestCase, result: &ExtractedContent) -> Result<(), String> {
+    let snapshot_path = format!("tests/golden/snapshots/{}.json", test_case.name);
+
+    // Create the baseline using the same logic as create_snapshot
+    create_snapshot(result, &snapshot_path, test_case)?;
+
+    println!("✅ Updated baseline: {}", snapshot_path);
+    Ok(())
+}
+
 /// Execute a golden test case
 pub fn run_golden_test(test_case: &GoldenTestCase) -> Result<(), String> {
     // Load HTML fixture
@@ -156,6 +175,11 @@ pub fn run_golden_test(test_case: &GoldenTestCase) -> Result<(), String> {
     let result = component
         .extract(html, test_case.url.to_string(), test_case.mode.clone())
         .map_err(|e| format!("Extraction failed: {:?}", e))?;
+
+    // Check if we should update baselines instead of validating
+    if should_update_baselines() {
+        return update_baseline(test_case, &result);
+    }
 
     // Load or create golden snapshot
     let snapshot_path = format!("tests/golden/snapshots/{}.json", test_case.name);
@@ -512,10 +536,21 @@ fn calculate_similarity(text1: &str, text2: &str) -> f64 {
 pub fn run_all_golden_tests() -> Result<(), String> {
     let mut failures = Vec::new();
     let test_cases = get_golden_test_cases();
+    let updating_baselines = should_update_baselines();
+
+    if updating_baselines {
+        println!("🔄 UPDATE_BASELINES mode enabled - regenerating all baselines...");
+    }
 
     for test_case in &test_cases {
         match run_golden_test(test_case) {
-            Ok(()) => println!("✓ Golden test passed: {}", test_case.name),
+            Ok(()) => {
+                if updating_baselines {
+                    println!("✓ Baseline updated: {}", test_case.name);
+                } else {
+                    println!("✓ Golden test passed: {}", test_case.name);
+                }
+            }
             Err(e) => {
                 println!("✗ Golden test failed: {}: {}", test_case.name, e);
                 failures.push(format!("{}: {}", test_case.name, e));
@@ -524,7 +559,11 @@ pub fn run_all_golden_tests() -> Result<(), String> {
     }
 
     if failures.is_empty() {
-        println!("All {} golden tests passed!", test_cases.len());
+        if updating_baselines {
+            println!("All {} baselines updated successfully!", test_cases.len());
+        } else {
+            println!("All {} golden tests passed!", test_cases.len());
+        }
         Ok(())
     } else {
         Err(format!("Golden tests failed:\n{}", failures.join("\n")))

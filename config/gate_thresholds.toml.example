@@ -1,0 +1,201 @@
+# Gate Threshold Configuration - Example Template
+# Copy this file to gate_thresholds.toml and customize for your environment
+# Version: 1.0
+
+version = "1.0"
+enable_ab_testing = true
+enable_hot_reload = true
+
+# ============================================================================
+# DEFAULT THRESHOLDS
+# These are the baseline thresholds used when no overrides or A/B tests apply
+# ============================================================================
+[default]
+name = "Production Default"
+
+# Decision thresholds:
+# - score >= threshold_raw → Decision::Raw (fast extraction)
+# - score <= threshold_probes → Decision::Headless (browser rendering)
+# - Between thresholds → Decision::ProbesFirst (try fast, fallback to headless)
+threshold_raw = 0.8
+threshold_probes = 0.3
+spa_marker_threshold = 3 # Number of SPA markers to force headless
+
+[default.feature_weights]
+# Positive indicators (increase score toward 1.0)
+text_ratio_weight = 1.2        # Weight for (visible_text / html_bytes) ratio
+text_ratio_cap = 0.6           # Maximum contribution from text ratio
+paragraph_log_scale = 0.06     # Scale factor for ln(paragraph_count + 1)
+paragraph_cap = 0.3            # Maximum contribution from paragraphs
+article_bonus = 0.15           # Bonus for semantic <article> elements
+og_bonus = 0.08                # Bonus for Open Graph metadata
+jsonld_bonus = 0.12            # Bonus for JSON-LD structured data
+
+# Negative indicators (decrease score toward 0.0)
+script_density_penalty = 0.8   # Weight for (script_bytes / html_bytes) ratio
+script_density_cap = 0.4       # Maximum penalty from script density
+spa_marker_penalty = 0.25      # Penalty when SPA markers >= 2
+
+# Domain historical performance
+domain_prior_weight = 0.1      # Weight for domain_prior adjustment
+
+
+# ============================================================================
+# DOMAIN-SPECIFIC OVERRIDES
+# Customize thresholds for specific domains or patterns
+# Pattern format: "*.domain.com" or "exact.domain.com"
+# ============================================================================
+
+# Example: High-quality news sites - favor fast extraction
+[domain_overrides."*.nytimes.com"]
+name = "News Site - NYTimes"
+threshold_raw = 0.7            # Lower threshold = more aggressive raw extraction
+threshold_probes = 0.3
+spa_marker_threshold = 3
+
+[domain_overrides."*.nytimes.com".feature_weights]
+text_ratio_weight = 1.3
+text_ratio_cap = 0.65
+paragraph_log_scale = 0.07
+paragraph_cap = 0.35
+article_bonus = 0.18
+og_bonus = 0.10
+jsonld_bonus = 0.15
+script_density_penalty = 0.7
+script_density_cap = 0.35
+spa_marker_penalty = 0.20
+domain_prior_weight = 0.1
+
+# Example: Heavy SPA sites - favor headless rendering
+[domain_overrides."*.twitter.com"]
+name = "SPA - Twitter"
+threshold_raw = 0.9            # Higher threshold = less likely to use raw
+threshold_probes = 0.5         # Higher = favor headless over probes
+spa_marker_threshold = 2       # Lower = more sensitive to SPA markers
+
+[domain_overrides."*.twitter.com".feature_weights]
+text_ratio_weight = 1.0
+text_ratio_cap = 0.5
+paragraph_log_scale = 0.05
+paragraph_cap = 0.25
+article_bonus = 0.12
+og_bonus = 0.06
+jsonld_bonus = 0.10
+script_density_penalty = 1.0
+script_density_cap = 0.5
+spa_marker_penalty = 0.30
+domain_prior_weight = 0.15
+
+
+# ============================================================================
+# A/B TEST VARIANTS
+# Test different threshold configurations with controlled traffic splits
+# ============================================================================
+
+# Variant 1: Aggressive Raw Extraction
+# Hypothesis: Lowering thresholds increases speed without sacrificing quality
+[[ab_tests]]
+variant_id = "aggressive_raw_v1"
+name = "Aggressive Raw Extraction"
+traffic_percentage = 0.10       # 10% of requests
+enabled = true
+start_date = "2025-10-13T00:00:00Z"
+end_date = "2025-11-13T00:00:00Z"
+
+[ab_tests.thresholds]
+name = "Aggressive Raw"
+threshold_raw = 0.7            # 0.8 → 0.7 (more aggressive)
+threshold_probes = 0.25        # 0.3 → 0.25
+spa_marker_threshold = 3
+
+[ab_tests.thresholds.feature_weights]
+text_ratio_weight = 1.4        # Increase text ratio importance
+text_ratio_cap = 0.7
+paragraph_log_scale = 0.08
+paragraph_cap = 0.35
+article_bonus = 0.18
+og_bonus = 0.10
+jsonld_bonus = 0.15
+script_density_penalty = 0.7   # Reduce script penalty (more tolerant)
+script_density_cap = 0.35
+spa_marker_penalty = 0.25
+domain_prior_weight = 0.1
+
+
+# Variant 2: Conservative Quality-First
+# Hypothesis: Higher thresholds improve quality at cost of speed
+[[ab_tests]]
+variant_id = "conservative_v1"
+name = "Conservative Quality-First"
+traffic_percentage = 0.10       # 10% of requests
+enabled = true
+start_date = "2025-10-13T00:00:00Z"
+end_date = "2025-11-13T00:00:00Z"
+
+[ab_tests.thresholds]
+name = "Conservative"
+threshold_raw = 0.85           # 0.8 → 0.85 (more conservative)
+threshold_probes = 0.35        # 0.3 → 0.35
+spa_marker_threshold = 2       # More sensitive to SPA
+
+[ab_tests.thresholds.feature_weights]
+text_ratio_weight = 1.0        # Reduce text ratio importance
+text_ratio_cap = 0.5
+paragraph_log_scale = 0.06
+paragraph_cap = 0.3
+article_bonus = 0.15
+og_bonus = 0.08
+jsonld_bonus = 0.12
+script_density_penalty = 1.0   # Increase script penalty (less tolerant)
+script_density_cap = 0.5
+spa_marker_penalty = 0.30
+domain_prior_weight = 0.15     # Rely more on historical data
+
+
+# Variant 3: Balanced Approach
+# Hypothesis: Middle ground optimizes both quality and speed
+[[ab_tests]]
+variant_id = "balanced_v1"
+name = "Balanced Extraction"
+traffic_percentage = 0.05       # 5% of requests
+enabled = true
+start_date = "2025-10-13T00:00:00Z"
+end_date = "2025-11-13T00:00:00Z"
+
+[ab_tests.thresholds]
+name = "Balanced"
+threshold_raw = 0.75
+threshold_probes = 0.32
+spa_marker_threshold = 3
+
+[ab_tests.thresholds.feature_weights]
+text_ratio_weight = 1.1
+text_ratio_cap = 0.55
+paragraph_log_scale = 0.07
+paragraph_cap = 0.32
+article_bonus = 0.16
+og_bonus = 0.09
+jsonld_bonus = 0.13
+script_density_penalty = 0.85
+script_density_cap = 0.42
+spa_marker_penalty = 0.27
+domain_prior_weight = 0.12
+
+
+# ============================================================================
+# ENVIRONMENT VARIABLE OVERRIDES
+# These environment variables can override configuration values:
+#
+# GATE_CONFIG_PATH          - Path to this config file
+# GATE_THRESHOLD_RAW        - Override default.threshold_raw
+# GATE_THRESHOLD_PROBES     - Override default.threshold_probes
+# GATE_ENABLE_AB_TESTING    - Override enable_ab_testing
+# GATE_ENABLE_HOT_RELOAD    - Override enable_hot_reload
+# GATE_WEIGHT_TEXT_RATIO    - Override default text_ratio_weight
+# GATE_WEIGHT_SCRIPT_PENALTY - Override default script_density_penalty
+#
+# Example usage:
+# export GATE_THRESHOLD_RAW=0.75
+# export GATE_THRESHOLD_PROBES=0.35
+# riptide-server start
+# ============================================================================
