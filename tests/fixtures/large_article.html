@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Large Test Article for Performance Benchmarking</title>
+    <meta name="description" content="A comprehensive article for testing extraction performance">
+    <meta property="og:title" content="Large Test Article">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://example.com/large-article">
+    <meta property="article:section" content="Technology">
+    <meta property="article:tag" content="Performance">
+    <meta property="article:tag" content="Testing">
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="/">Home</a>
+            <a href="/articles">Articles</a>
+            <a href="/about">About</a>
+            <a href="/contact">Contact</a>
+        </nav>
+    </header>
+
+    <main>
+        <article>
+            <h1>Large Test Article for Performance Benchmarking</h1>
+
+            <p class="byline">By Test Author | Published: October 13, 2025</p>
+
+            <p>This is a comprehensive test article designed to benchmark the performance of WASM-based content extraction. It contains enough content to simulate real-world scenarios while maintaining reasonable test execution times.</p>
+
+            <h2>Introduction</h2>
+            <p>Content extraction is a critical component of modern web applications. The ability to efficiently parse and extract structured information from HTML documents is essential for search engines, content aggregators, and data analysis tools.</p>
+
+            <p>WebAssembly (WASM) provides a unique opportunity to implement high-performance extraction logic that can be shared across multiple platforms. By leveraging the Component Model and WIT bindings, we can create modular, reusable extraction components that operate at near-native speeds.</p>
+
+            <img src="https://example.com/images/extraction-architecture.jpg" alt="Extraction Architecture Diagram">
+
+            <h2>Performance Considerations</h2>
+            <p>When implementing WASM-based extraction, several performance factors must be considered:</p>
+
+            <ul>
+                <li>Cold start time: The initial loading and instantiation of the WASM component</li>
+                <li>Warm execution: The performance of subsequent extractions using cached instances</li>
+                <li>Memory usage: The amount of memory consumed during extraction operations</li>
+                <li>CPU efficiency: The computational cost of parsing and extracting content</li>
+                <li>SIMD optimization: Leveraging SIMD instructions for parallel data processing</li>
+            </ul>
+
+            <h3>Cold Start Optimization</h3>
+            <p>Cold start performance can be significantly improved through ahead-of-time (AOT) compilation. By pre-compiling WASM modules and caching the compiled artifacts, we can reduce initialization overhead from tens of milliseconds to under a millisecond.</p>
+
+            <p>The Wasmtime engine supports AOT compilation through its cache API. Components can be pre-compiled during build time and loaded from disk when needed, bypassing the compilation step entirely.</p>
+
+            <h3>Memory Management</h3>
+            <p>Efficient memory management is crucial for high-throughput extraction scenarios. The Component Model provides resource limiting capabilities that allow hosts to constrain memory usage and prevent resource exhaustion.</p>
+
+            <blockquote>
+                "The key to efficient WASM integration is balancing performance with resource constraints. By carefully managing memory limits and instance pooling, we can achieve both high throughput and stable operation."
+            </blockquote>
+
+            <h2>Implementation Details</h2>
+            <p>Our WASM extraction component is implemented using the trek-rs library, which provides robust HTML parsing and content extraction capabilities. The component exposes a WIT interface that defines extraction modes, error handling, and result structures.</p>
+
+            <pre><code>
+interface extractor {
+    extract: func(html: string, url: string, mode: extraction-mode)
+        -> result<extracted-content, extraction-error>;
+}
+            </code></pre>
+
+            <p>The extraction process involves several stages:</p>
+
+            <ol>
+                <li>HTML validation and parsing</li>
+                <li>DOM tree construction</li>
+                <li>Content extraction using readability algorithms</li>
+                <li>Link and media discovery</li>
+                <li>Language detection</li>
+                <li>Category and metadata extraction</li>
+                <li>Quality scoring</li>
+            </ol>
+
+            <h3>Feature Extraction</h3>
+            <p>Beyond basic text extraction, our component supports comprehensive feature extraction including:</p>
+
+            <ul>
+                <li><strong>Links:</strong> All hyperlinks with full attributes (href, text, rel, hreflang)</li>
+                <li><strong>Media:</strong> Images, videos, audio, and icons with metadata</li>
+                <li><strong>Language:</strong> Multi-stage language detection from HTML attributes, meta tags, and content analysis</li>
+                <li><strong>Categories:</strong> Extraction from JSON-LD, Open Graph, and breadcrumb navigation</li>
+                <li><strong>Structured Data:</strong> Schema.org markup and microdata parsing</li>
+            </ul>
+
+            <img src="https://example.com/images/feature-extraction.jpg" alt="Feature Extraction Pipeline">
+
+            <h2>Benchmarking Results</h2>
+            <p>Preliminary benchmarks show promising performance characteristics:</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                        <th>Target</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Cold start (no cache)</td>
+                        <td>18ms</td>
+                        <td>&lt;20ms</td>
+                    </tr>
+                    <tr>
+                        <td>Cold start (with AOT cache)</td>
+                        <td>12ms</td>
+                        <td>&lt;15ms</td>
+                    </tr>
+                    <tr>
+                        <td>Warm extraction (small)</td>
+                        <td>2ms</td>
+                        <td>&lt;5ms</td>
+                    </tr>
+                    <tr>
+                        <td>Warm extraction (medium)</td>
+                        <td>8ms</td>
+                        <td>&lt;15ms</td>
+                    </tr>
+                    <tr>
+                        <td>Memory usage</td>
+                        <td>42MB</td>
+                        <td>&lt;64MB</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p>These results demonstrate that WASM-based extraction can meet stringent performance requirements while maintaining robust error handling and resource isolation.</p>
+
+            <h2>Future Enhancements</h2>
+            <p>Looking ahead, several enhancements are planned:</p>
+
+            <ul>
+                <li>Streaming extraction for large documents</li>
+                <li>Parallel processing with Web Workers</li>
+                <li>Advanced quality scoring with machine learning</li>
+                <li>Custom extraction rules and DSL</li>
+                <li>Real-time preview capabilities</li>
+            </ul>
+
+            <p>Additionally, we're exploring integration with browser extensions to enable client-side extraction without server round-trips.</p>
+
+            <h2>Conclusion</h2>
+            <p>WebAssembly Component Model provides a powerful foundation for building high-performance, portable content extraction systems. By combining WASM's near-native performance with robust WIT interfaces, we can create extraction components that are both fast and maintainable.</p>
+
+            <p>The comprehensive test suite validates not only functional correctness but also performance characteristics, resource limits, and error handling. This ensures that the extraction component can be deployed with confidence in production environments.</p>
+
+            <p>As the WebAssembly ecosystem continues to mature, we expect even greater performance improvements and broader adoption of component-based architectures.</p>
+
+            <aside class="related-articles">
+                <h3>Related Articles</h3>
+                <ul>
+                    <li><a href="/articles/wasm-performance">WASM Performance Best Practices</a></li>
+                    <li><a href="/articles/component-model">Understanding the Component Model</a></li>
+                    <li><a href="/articles/content-extraction">Advanced Content Extraction Techniques</a></li>
+                </ul>
+            </aside>
+        </article>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Example Site. All rights reserved.</p>
+        <nav>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms of Service</a>
+        </nav>
+    </footer>
+</body>
+</html>

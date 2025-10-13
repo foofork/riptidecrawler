@@ -125,8 +125,6 @@ async fn test_wasm_resource_limits_enforced() -> Result<()> {
         enable_aot_cache: false,
         instance_pool_size: 1,
         max_idle_time: Duration::from_secs(10),
-        fuel_limit: 500_000,
-        enable_leak_detection: true,
     };
 
     let extractor = CmExtractor::with_config(wasm_path.to_str().unwrap(), config).await?;

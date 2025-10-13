@@ -75,6 +75,7 @@ pub fn get_trek_version() -> String {
 }
 
 /// Extract links from HTML content
+#[allow(dead_code)]
 pub fn extract_links(html: &str, base_url: &str) -> Vec<String> {
     use scraper::{Html, Selector};
 
@@ -123,6 +124,7 @@ pub fn extract_links(html: &str, base_url: &str) -> Vec<String> {
 }
 
 /// Extract media URLs (images, videos, audio) from HTML
+#[allow(dead_code)]
 pub fn extract_media(html: &str, base_url: &str) -> Vec<String> {
     use scraper::{Html, Selector};
 
@@ -179,6 +181,7 @@ pub fn extract_media(html: &str, base_url: &str) -> Vec<String> {
 }
 
 /// Helper to resolve media URLs
+#[allow(dead_code)]
 fn resolve_media_url(src: &str, base_url: &str) -> Option<String> {
     if src.starts_with("http://") || src.starts_with("https://") {
         return Some(src.to_string());
@@ -194,6 +197,7 @@ fn resolve_media_url(src: &str, base_url: &str) -> Option<String> {
 }
 
 /// Detect content language from HTML and text
+#[allow(dead_code)]
 pub fn detect_language(html: &str, text: &str) -> Option<String> {
     use scraper::{Html, Selector};
 
@@ -222,6 +226,7 @@ pub fn detect_language(html: &str, text: &str) -> Option<String> {
 }
 
 /// Extract categories/tags from HTML metadata
+#[allow(dead_code)]
 pub fn extract_categories(html: &str) -> Vec<String> {
     use scraper::{Html, Selector};
 
