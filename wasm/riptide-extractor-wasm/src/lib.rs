@@ -8,9 +8,7 @@ use trek_helpers::*;
 mod common_validation;
 use common_validation::*;
 
-// Note: extraction module kept for potential future use
-// but functions from trek_helpers are used instead
-#[allow(dead_code)]
+// Extraction module with comprehensive link, media, language, and category extraction
 mod extraction;
 
 // Generate bindings from enhanced WIT file
@@ -422,11 +420,11 @@ fn perform_enhanced_extraction(
     // First, get the base extraction from trek-rs
     let mut content = perform_extraction_with_trek(html, url, mode)?;
 
-    // Then enhance with our custom extractors from trek_helpers
-    content.links = trek_helpers::extract_links(html, url);
-    content.media = trek_helpers::extract_media(html, url);
-    content.language = trek_helpers::detect_language(html, &content.text);
-    content.categories = trek_helpers::extract_categories(html);
+    // Then enhance with comprehensive extractors from extraction module
+    content.links = extraction::extract_links(html, url);
+    content.media = extraction::extract_media(html, url);
+    content.language = extraction::detect_language(html);
+    content.categories = extraction::extract_categories(html);
 
     // Recalculate quality score based on enhanced data
     content.quality_score = Some(calculate_enhanced_quality_score(&content));

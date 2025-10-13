@@ -6,6 +6,8 @@ use trek_rs::{Trek, TrekOptions, TrekResponse};
 mod trek_helpers;
 use trek_helpers::*;
 
+mod extraction;
+
 // Generate bindings from enhanced WIT file
 wit_bindgen::generate!({
     world: "extractor",
@@ -285,11 +287,11 @@ fn convert_response_to_content(
     let word_count = response.metadata.word_count as u32;
     let reading_time = estimate_reading_time(response.metadata.word_count);
 
-    // Extract enhanced content features
-    let links = extract_links(html, url);
-    let media = extract_media(html, url);
-    let language = detect_language(html, &response.content);
-    let categories = extract_categories(html);
+    // Extract enhanced content features using comprehensive extraction module
+    let links = extraction::extract_links(html, url);
+    let media = extraction::extract_media(html, url);
+    let language = extraction::detect_language(html);
+    let categories = extraction::extract_categories(html);
 
     Ok(ExtractedContent {
         url: url.to_string(),
