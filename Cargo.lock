@@ -6403,6 +6403,7 @@ dependencies = [
  "url",
  "uuid",
  "wasmtime",
+ "wasmtime-wasi",
  "xml",
 ]
 

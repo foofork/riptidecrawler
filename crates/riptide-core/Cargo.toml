@@ -60,6 +60,7 @@ criterion = { version = "0.5", features = ["html_reports"] }
 tokio-test = "0.4"
 tempfile = "3.8"
 wasmtime = { workspace = true }
+wasmtime-wasi = { workspace = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 

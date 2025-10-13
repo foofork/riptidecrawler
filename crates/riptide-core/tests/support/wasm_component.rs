@@ -2,6 +2,7 @@ use anyhow::Result;
 use std::path::PathBuf;
 use wasmtime::component::{bindgen, Component, Linker};
 use wasmtime::{Config, Engine, Store};
+use wasmtime_wasi::p2::{add_to_linker_sync, WasiImpl};
 
 // Generate typed bindings from the WIT world
 bindgen!({
@@ -26,8 +27,14 @@ pub fn extract_content(html: &str, url: &str, mode: &str) -> Result<ExtractedCon
     cfg.wasm_component_model(true);
     let engine = Engine::new(&cfg)?;
     let component = Component::from_file(&engine, wasm_path())?;
-    let linker = Linker::new(&engine);
-    let mut store = Store::new(&engine, ());
+
+    // Create linker with WASI Preview 2 support
+    let mut linker: Linker<WasiImpl<()>> = Linker::new(&engine);
+    add_to_linker_sync(&mut linker)?;
+
+    // Create WASI context
+    let wasi = WasiImpl::new_p2();
+    let mut store = Store::new(&engine, wasi);
 
     let extractor = Extractor::instantiate(&mut store, &component, &linker)?;
 
