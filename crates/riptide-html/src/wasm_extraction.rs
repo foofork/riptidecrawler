@@ -10,12 +10,12 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use wasmtime::{component::*, Config, Engine, ResourceLimiter, Store};
 
-// WIT bindings with namespace separation to avoid type conflicts
+// WIT bindings - Wasmtime 37 bindgen! macro
+// Generate bindings in a module to avoid namespace pollution
 mod wit_bindings {
     wasmtime::component::bindgen!({
         world: "extractor",
         path: "../../wasm/riptide-extractor-wasm/wit/extractor.wit",
-        async: false,
     });
 }
 

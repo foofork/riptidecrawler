@@ -1,14 +1,29 @@
 use anyhow::Result;
 use std::path::PathBuf;
-use wasmtime::component::{bindgen, Component, Linker};
+use wasmtime::component::{bindgen, Component, Linker, ResourceTable};
 use wasmtime::{Config, Engine, Store};
-use wasmtime_wasi::p2::{add_to_linker_sync, WasiImpl};
+use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView};
 
 // Generate typed bindings from the WIT world
 bindgen!({
     world: "extractor",
     path: "../../wasm/riptide-extractor-wasm/wit/extractor.wit",
 });
+
+// Host state that implements WasiView
+struct Host {
+    wasi: WasiCtx,
+    table: ResourceTable,
+}
+
+impl WasiView for Host {
+    fn ctx(&mut self) -> WasiCtxView<'_> {
+        WasiCtxView {
+            ctx: &mut self.wasi,
+            table: &mut self.table,
+        }
+    }
+}
 
 /// Get the path to the WASM component binary
 fn wasm_path() -> PathBuf {
@@ -29,12 +44,17 @@ pub fn extract_content(html: &str, url: &str, mode: &str) -> Result<ExtractedCon
     let component = Component::from_file(&engine, wasm_path())?;
 
     // Create linker with WASI Preview 2 support
-    let mut linker: Linker<WasiImpl<()>> = Linker::new(&engine);
-    add_to_linker_sync(&mut linker)?;
+    let mut linker: Linker<Host> = Linker::new(&engine);
+    wasmtime_wasi::p2::add_to_linker_sync(&mut linker)?;
 
-    // Create WASI context
-    let wasi = WasiImpl::new_p2();
-    let mut store = Store::new(&engine, wasi);
+    // Create WASI context with builder
+    let wasi = WasiCtxBuilder::new().inherit_stdio().inherit_env().build();
+
+    let host = Host {
+        wasi,
+        table: ResourceTable::new(),
+    };
+    let mut store = Store::new(&engine, host);
 
     let extractor = Extractor::instantiate(&mut store, &component, &linker)?;
 

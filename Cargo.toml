@@ -59,8 +59,8 @@ url = "2"
 uuid = { version = "1", features = ["v4", "serde"] }
 lol_html = "2"  # Updated from 1
 scraper = "0.20"
-wasmtime = { version = "34", features = ["cache", "component-model"] }  # Keep 34 for stability (37 requires significant API migration)
-wasmtime-wasi = "34"
+wasmtime = { version = "37", features = ["cache", "component-model"] }  # Upgraded to 37 for simplified WASI API and better test support
+wasmtime-wasi = "37"
 chromiumoxide = "0.7"  # Keep for stability
 spider = "2"
 pdfium-render = { version = "0.8", features = ["sync", "thread_safe"] }
