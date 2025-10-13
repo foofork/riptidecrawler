@@ -52,6 +52,10 @@ pub struct ExtractArgs {
     #[arg(long)]
     pub url: String,
 
+    /// Use local WASM extraction (no API server required)
+    #[arg(long)]
+    pub local: bool,
+
     /// Show confidence scores for extracted content
     #[arg(long)]
     pub show_confidence: bool,

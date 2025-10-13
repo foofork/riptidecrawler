@@ -20,6 +20,9 @@ serde_json.workspace = true
 reqwest.workspace = true
 url.workspace = true
 
+# Local extraction support
+riptide-html = { path = "../riptide-html" }
+
 # CLI-specific
 colored = "2.1"
 indicatif = "0.17"
