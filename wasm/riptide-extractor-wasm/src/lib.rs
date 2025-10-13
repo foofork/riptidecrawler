@@ -1,6 +1,5 @@
 use once_cell::sync::Lazy;
 use std::sync::atomic::{AtomicU64, Ordering};
-use trek_rs::{Trek, TrekOptions, TrekResponse};
 
 mod trek_helpers;
 use trek_helpers::*;
@@ -33,7 +32,6 @@ static COMPONENT_STATE: Lazy<std::sync::Mutex<ComponentState>> =
 
 /// Internal component state
 struct ComponentState {
-    // Note: Trek doesn't implement Clone, so we create fresh instances
     memory_usage: u64,
     #[allow(dead_code)]
     start_time: std::time::Instant,
@@ -42,53 +40,8 @@ struct ComponentState {
 impl ComponentState {
     fn new() -> Self {
         Self {
-            // No caching needed
             memory_usage: 0,
             start_time: std::time::Instant::now(),
-        }
-    }
-}
-
-/// Create a new trek extractor for the given mode
-fn create_extractor(mode: &ExtractionMode) -> Trek {
-    let options = match mode {
-        ExtractionMode::Article => TrekOptions {
-            debug: false,
-            url: None,
-            output: trek_rs::types::OutputOptions {
-                markdown: true,
-                separate_markdown: true,
-            },
-            removal: trek_rs::types::RemovalOptions {
-                remove_exact_selectors: true,
-                remove_partial_selectors: true,
-            },
-        },
-        ExtractionMode::Full => TrekOptions {
-            debug: false,
-            url: None,
-            output: trek_rs::types::OutputOptions {
-                markdown: false,
-                separate_markdown: false,
-            },
-            removal: trek_rs::types::RemovalOptions {
-                remove_exact_selectors: false,
-                remove_partial_selectors: false,
-            },
-        },
-        ExtractionMode::Metadata | ExtractionMode::Custom(_) => TrekOptions::default(),
-    };
-
-    Trek::new(options)
-}
-#[allow(dead_code)]
-fn mode_to_cache_key(mode: &ExtractionMode) -> String {
-    match mode {
-        ExtractionMode::Article => "article".to_string(),
-        ExtractionMode::Full => "full".to_string(),
-        ExtractionMode::Metadata => "metadata".to_string(),
-        ExtractionMode::Custom(selectors) => {
-            format!("custom:{}", selectors.join(","))
         }
     }
 }
@@ -232,7 +185,7 @@ impl Component {
         HealthStatus {
             status: "healthy".to_string(),
             version: COMPONENT_VERSION.to_string(),
-            trek_version: get_trek_version(),
+            trek_version: get_extractor_version(),
             capabilities: get_supported_modes(),
             memory_usage: Some(get_memory_usage()),
             extraction_count: Some(EXTRACTION_COUNT.load(Ordering::Relaxed)),
@@ -250,7 +203,7 @@ impl Component {
                 "full-page-extraction".to_string(),
                 "metadata-extraction".to_string(),
                 "custom-selectors".to_string(),
-                "trek-rs-integration".to_string(),
+                "scraper-based-extraction".to_string(),
                 "links-extraction".to_string(),
                 "media-extraction".to_string(),
                 "language-detection".to_string(),
@@ -343,62 +296,53 @@ impl Guest for Component {
     }
 }
 
-/// Perform content extraction with trek-rs integration
-fn perform_extraction_with_trek(
+/// Perform content extraction using scraper (WASI-compatible, no browser APIs)
+fn perform_extraction_with_scraper(
     html: &str,
     url: &str,
     mode: &ExtractionMode,
 ) -> Result<ExtractedContent, ExtractionError> {
-    // Get or create an extractor for this mode
-    let extractor = {
-        match COMPONENT_STATE.lock() {
-            Ok(_state) => create_extractor(mode),
-            Err(_) => {
-                return Err(ExtractionError::InternalError(
-                    "Failed to acquire component state lock".to_string(),
-                ));
-            }
-        }
+    use scraper::Html;
+
+    let document = Html::parse_document(html);
+
+    // Extract title
+    let title = extract_title(&document);
+
+    // Extract metadata
+    let byline = extract_meta_content(&document, &["author", "article:author"]);
+    let published = extract_meta_content(&document, &["article:published_time", "datePublished"]);
+    let site_name = extract_meta_content(&document, &["og:site_name", "twitter:site"]);
+    let description = extract_meta_content(&document, &["description", "og:description"]);
+
+    // Extract main content based on mode
+    let text = match mode {
+        ExtractionMode::Article => extract_article_content(&document),
+        ExtractionMode::Full => extract_full_content(&document),
+        ExtractionMode::Metadata => String::new(),
+        ExtractionMode::Custom(selectors) => extract_custom_content(&document, selectors),
     };
 
-    // Perform extraction using trek-rs
-    let response = match extractor.parse(html) {
-        Ok(response) => response,
-        Err(trek_error) => {
-            return Err(ExtractionError::ExtractorError(format!(
-                "Trek extraction failed: {}",
-                trek_error
-            )));
-        }
-    };
+    // Calculate word count and reading time
+    let word_count = count_words(&text) as u32;
+    let reading_time = estimate_reading_time(word_count as usize);
 
-    // Convert trek-rs result to Component Model format
-    convert_response_to_content(response, url, mode)
-}
-
-/// Convert trek-rs TrekResponse to Component Model ExtractedContent
-fn convert_response_to_content(
-    response: TrekResponse,
-    url: &str,
-    _mode: &ExtractionMode,
-) -> Result<ExtractedContent, ExtractionError> {
-    // Calculate quality score based on content richness
-    let quality_score = calculate_quality_score(&response);
-    let word_count = response.metadata.word_count as u32;
-    let reading_time = estimate_reading_time(response.metadata.word_count);
-
-    // For full extraction, we need the original HTML to extract additional features
-    // Trek-rs provides the processed content, but we need to re-parse for links/media
-    // Note: In a real implementation, we would need access to the original HTML
-    // For now, we'll extract what we can from the processed content
+    // Calculate quality score
+    let quality_score = calculate_basic_quality_score(
+        title.as_ref().map(|t| t.len()).unwrap_or(0),
+        text.len(),
+        byline.is_some(),
+        published.is_some(),
+        word_count as usize,
+    );
 
     Ok(ExtractedContent {
         url: url.to_string(),
-        title: Some(response.metadata.title).filter(|s| !s.is_empty()),
-        byline: Some(response.metadata.author).filter(|s| !s.is_empty()),
-        published_iso: Some(response.metadata.published).filter(|s| !s.is_empty()),
-        markdown: response.content_markdown.unwrap_or_default(),
-        text: response.content,
+        title,
+        byline,
+        published_iso: published,
+        markdown: String::new(), // Markdown conversion can be added later if needed
+        text,
         links: vec![],  // Will be populated by enhanced extraction
         media: vec![],  // Will be populated by enhanced extraction
         language: None, // Will be populated by enhanced extraction
@@ -406,19 +350,158 @@ fn convert_response_to_content(
         quality_score: Some(quality_score),
         word_count: Some(word_count),
         categories: vec![], // Will be populated by enhanced extraction
-        site_name: Some(response.metadata.site).filter(|s| !s.is_empty()),
-        description: Some(response.metadata.description).filter(|s| !s.is_empty()),
+        site_name,
+        description,
     })
 }
 
-/// Enhanced extraction function that combines trek-rs with our custom extractors
+/// Extract title from HTML document
+fn extract_title(document: &scraper::Html) -> Option<String> {
+    use scraper::Selector;
+
+    // Try <title> tag first
+    if let Ok(selector) = Selector::parse("title") {
+        if let Some(element) = document.select(&selector).next() {
+            let title: String = element.text().collect();
+            let trimmed = title.trim();
+            if !trimmed.is_empty() {
+                return Some(trimmed.to_string());
+            }
+        }
+    }
+
+    // Try Open Graph title
+    if let Ok(selector) = Selector::parse("meta[property='og:title']") {
+        if let Some(element) = document.select(&selector).next() {
+            if let Some(content) = element.value().attr("content") {
+                if !content.is_empty() {
+                    return Some(content.to_string());
+                }
+            }
+        }
+    }
+
+    // Try h1 as fallback
+    if let Ok(selector) = Selector::parse("h1") {
+        if let Some(element) = document.select(&selector).next() {
+            let title: String = element.text().collect();
+            let trimmed = title.trim();
+            if !trimmed.is_empty() {
+                return Some(trimmed.to_string());
+            }
+        }
+    }
+
+    None
+}
+
+/// Extract meta content by property names
+fn extract_meta_content(document: &scraper::Html, properties: &[&str]) -> Option<String> {
+    use scraper::Selector;
+
+    for property in properties {
+        // Try meta[property]
+        let property_selector = format!("meta[property='{}']", property);
+        if let Ok(selector) = Selector::parse(&property_selector) {
+            if let Some(element) = document.select(&selector).next() {
+                if let Some(content) = element.value().attr("content") {
+                    if !content.is_empty() {
+                        return Some(content.to_string());
+                    }
+                }
+            }
+        }; // Semicolon to drop temporary
+
+        // Try meta[name]
+        let name_selector = format!("meta[name='{}']", property);
+        if let Ok(selector) = Selector::parse(&name_selector) {
+            if let Some(element) = document.select(&selector).next() {
+                if let Some(content) = element.value().attr("content") {
+                    if !content.is_empty() {
+                        return Some(content.to_string());
+                    }
+                }
+            }
+        }; // Semicolon to drop temporary
+    }
+
+    None
+}
+
+/// Extract article content using common article selectors
+fn extract_article_content(document: &scraper::Html) -> String {
+    use scraper::Selector;
+
+    // Try common article content selectors
+    let selectors = [
+        "article",
+        "main",
+        "[role='main']",
+        ".article-content",
+        ".post-content",
+        ".entry-content",
+        "#content",
+    ];
+
+    for selector_str in &selectors {
+        if let Ok(selector) = Selector::parse(selector_str) {
+            if let Some(element) = document.select(&selector).next() {
+                let text: String = element.text().collect();
+                let trimmed = text.trim();
+                if trimmed.len() > 200 {
+                    return trimmed.to_string();
+                }
+            }
+        }
+    }
+
+    // Fallback to body
+    extract_full_content(document)
+}
+
+/// Extract full page content
+fn extract_full_content(document: &scraper::Html) -> String {
+    use scraper::Selector;
+
+    if let Ok(selector) = Selector::parse("body") {
+        if let Some(body) = document.select(&selector).next() {
+            let text: String = body.text().collect();
+            return text.trim().to_string();
+        }
+    }
+
+    String::new()
+}
+
+/// Extract content using custom CSS selectors
+fn extract_custom_content(document: &scraper::Html, selectors: &[String]) -> String {
+    use scraper::Selector;
+
+    let mut content = Vec::new();
+
+    for selector_str in selectors {
+        if let Ok(selector) = Selector::parse(selector_str) {
+            for element in document.select(&selector) {
+                let text: String = element.text().collect();
+                let trimmed = text.trim();
+                if !trimmed.is_empty() {
+                    content.push(trimmed.to_string());
+                }
+            }
+        }
+    }
+
+    content.join("\n\n")
+}
+
+/// Enhanced extraction function that combines scraper with our custom extractors
 fn perform_enhanced_extraction(
     html: &str,
     url: &str,
     mode: &ExtractionMode,
 ) -> Result<ExtractedContent, ExtractionError> {
-    // First, get the base extraction from trek-rs
-    let mut content = perform_extraction_with_trek(html, url, mode)?;
+    // First, get the base extraction from scraper
+    let mut content = perform_extraction_with_scraper(html, url, mode)?;
 
     // Then enhance with comprehensive extractors from extraction module
     content.links = extraction::extract_links(html, url);

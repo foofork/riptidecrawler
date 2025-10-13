@@ -11,7 +11,6 @@ crate-type = ["cdylib", "rlib"]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 wit-bindgen = "0.34"  # Updated to match wasmtime 34.0.2 wit-parser version
-trek-rs = "0.1"  # Use actual available version
 once_cell = "1"
 chrono = { version = "0.4", features = ["serde", "wasm-bindgen"] }
 anyhow = "1"
@@ -32,5 +31,5 @@ reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 [build-dependencies]
 vergen = { version = "8", features = ["build", "git", "gitcl"] }
 
-[target.'cfg(target_family = "wasm")'.dependencies]
-getrandom = { version = "0.2", features = ["js"] }
+# Browser APIs not needed for WASI Preview 2
+# getrandom with js feature removed to avoid browser dependencies
