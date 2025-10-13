@@ -251,6 +251,33 @@ pub struct HostExtractionStats {
     pub cache_misses: u64,
 }
 
+/// Simple host context with WASI support (no resource limiting for now)
+pub struct WasmHostContext {
+    /// WASI context
+    pub wasi: WasiCtx,
+    /// Resource table for WASI
+    pub table: ResourceTable,
+}
+
+impl WasmHostContext {
+    pub fn new() -> Self {
+        let wasi = WasiCtxBuilder::new().inherit_stdio().inherit_env().build();
+        Self {
+            wasi,
+            table: ResourceTable::new(),
+        }
+    }
+}
+
+impl WasiView for WasmHostContext {
+    fn ctx(&mut self) -> WasiCtxView<'_> {
+        WasiCtxView {
+            ctx: &mut self.wasi,
+            table: &mut self.table,
+        }
+    }
+}
+
 /// Host-side memory tracking and limits for WASM instances with WASI support
 pub struct WasmResourceTracker {
     /// Current memory pages allocated
@@ -393,7 +420,7 @@ impl Default for ExtractorConfig {
 pub struct CmExtractor {
     engine: Engine,
     component: Component,
-    linker: Linker<WasmResourceTracker>,
+    linker: Linker<WasmHostContext>,
     config: ExtractorConfig,
     stats: Arc<Mutex<HostExtractionStats>>,
 }
@@ -462,10 +489,9 @@ impl CmExtractor {
         use wit_bindings::Extractor;
 
         let start_time = Instant::now();
-        let resource_tracker = WasmResourceTracker::new(self.config.max_memory_pages);
+        let host_context = WasmHostContext::new();
 
-        let mut store = Store::new(&self.engine, resource_tracker);
-        // Note: Resource limiter is automatically used since WasmResourceTracker implements ResourceLimiter
+        let mut store = Store::new(&self.engine, host_context);
         store.set_fuel(1_000_000)?; // Set fuel limit for execution
 
         // Parse mode and convert to WIT type
@@ -496,12 +522,6 @@ impl CmExtractor {
                         * (stats.total_extractions - 1) as u32
                         + extraction_time;
                     stats.avg_extraction_time = total_time / stats.total_extractions as u32;
-
-                    // Update peak memory if needed
-                    let current_memory = store.data().current_memory_pages();
-                    if current_memory > stats.peak_memory_usage {
-                        stats.peak_memory_usage = current_memory;
-                    }
                 }
 
                 Ok(doc)

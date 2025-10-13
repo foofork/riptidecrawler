@@ -460,7 +460,7 @@ pub trait WasmExtractor: Send + Sync {
 }
 
 /// Trait for recording reliability metrics (abstraction for metrics integration)
-pub trait ReliabilityMetricsRecorder: Send + Sync {
+pub trait ReliabilityMetricsRecorder: Send + Sync + std::fmt::Debug {
     /// Record extraction fallback event
     fn record_extraction_fallback(&self, from_mode: &str, to_mode: &str, reason: &str);
 }

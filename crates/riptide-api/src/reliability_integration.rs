@@ -83,3 +83,10 @@ impl WasmExtractorTrait for WasmExtractorAdapter {
         })
     }
 }
+
+/// Implement ReliabilityMetricsRecorder for RipTideMetrics
+impl ReliabilityMetricsRecorder for crate::metrics::RipTideMetrics {
+    fn record_extraction_fallback(&self, from_mode: &str, to_mode: &str, reason: &str) {
+        self.record_extraction_fallback(from_mode, to_mode, reason);
+    }
+}

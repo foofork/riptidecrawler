@@ -17,4 +17,8 @@ rustflags = [
 rustflags = []
 
 [target.wasm32-wasip2]
-rustflags = []
+rustflags = [
+  "-C", "link-arg=--initial-memory=268435456",  # 256MB initial (4096 pages × 64KB)
+  "-C", "link-arg=--max-memory=536870912",      # 512MB max (8192 pages × 64KB)
+  "-C", "link-arg=-zstack-size=2097152",         # 2MB stack size
+]

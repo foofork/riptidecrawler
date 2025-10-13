@@ -258,20 +258,40 @@ impl PipelineOrchestrator {
         }
         .to_string();
 
-        let gate_duration = gate_start.elapsed().as_secs_f64();
+        let gate_duration = gate_start.elapsed();
         self.state
             .metrics
-            .record_phase_timing(crate::metrics::PhaseType::Gate, gate_duration);
+            .record_phase_timing(crate::metrics::PhaseType::Gate, gate_duration.as_secs_f64());
         self.state.metrics.record_gate_decision(&gate_decision_str);
 
         // INJECTION POINT 1: Enhanced gate metrics (non-blocking)
         tokio::spawn({
             let metrics = self.state.metrics.clone();
-            let decision = decision.clone();
+            let decision_str = gate_decision_str.clone();
             let score = quality_score;
             let features = gate_features.clone();
+            let duration_ms = gate_duration.as_millis() as f64;
             async move {
-                metrics.record_gate_decision_enhanced(&decision, score, &features);
+                // Calculate feature ratios
+                let text_ratio = if features.html_bytes > 0 {
+                    features.visible_text_chars as f32 / features.html_bytes as f32
+                } else {
+                    0.0
+                };
+                let script_density = if features.html_bytes > 0 {
+                    features.script_bytes as f32 / features.html_bytes as f32
+                } else {
+                    0.0
+                };
+
+                metrics.record_gate_decision_enhanced(
+                    &decision_str,
+                    score,
+                    text_ratio,
+                    script_density,
+                    features.spa_markers,
+                    duration_ms,
+                );
             }
         });
 
@@ -317,11 +337,23 @@ impl PipelineOrchestrator {
             let extraction_duration_ms = extract_duration.as_millis() as u64;
             let doc_clone = document.clone();
             async move {
+                let quality_score = doc_clone.quality_score.unwrap_or(0) as f32;
+                let content_length = doc_clone.text.len();
+                let links_count = doc_clone.links.len();
+                let images_count = doc_clone.media.len();
+                let has_author = doc_clone.byline.is_some();
+                let has_date = doc_clone.published_iso.is_some();
+
                 metrics.record_extraction_result(
                     mode,
                     extraction_duration_ms,
                     true,
-                    Some(&doc_clone),
+                    quality_score,
+                    content_length,
+                    links_count,
+                    images_count,
+                    has_author,
+                    has_date,
                 );
             }
         });

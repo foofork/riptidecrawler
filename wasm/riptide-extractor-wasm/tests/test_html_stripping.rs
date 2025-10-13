@@ -273,13 +273,13 @@ mod integration_tests {
     #[test]
     fn test_golden_baseline_html_stripping() {
         // Simulate golden test baseline expectation
-        let html = r#"
+        let html = r##"
             <article>
                 <h1>Breaking News</h1>
                 <p>This is a paragraph with <strong>emphasis</strong>.</p>
                 <p>Another paragraph with <a href="#">link</a>.</p>
             </article>
-        "#;
+        "##;
 
         let result = extract_article_content(html);
 

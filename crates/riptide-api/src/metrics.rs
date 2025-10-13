@@ -1,7 +1,7 @@
 use axum_prometheus::{metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayer};
 use prometheus::{
-    Counter, Gauge, GaugeVec, Histogram, HistogramOpts, HistogramVec, IntCounter, IntCounterVec,
-    IntGauge, IntGaugeVec, Opts, Registry,
+    Counter, Gauge, GaugeVec, Histogram, HistogramOpts, HistogramVec, IntCounterVec,
+    Opts, Registry,
 };
 use riptide_core::pdf::PdfMetricsCollector;
 use std::collections::HashMap;
@@ -9,6 +9,7 @@ use std::time::Instant;
 use tracing::{info, warn};
 
 /// Metrics collection and management for RipTide API
+#[derive(Debug)]
 pub struct RipTideMetrics {
     /// Prometheus registry for metrics
     pub registry: Registry,
