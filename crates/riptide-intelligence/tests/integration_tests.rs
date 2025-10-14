@@ -28,8 +28,10 @@ use riptide_intelligence::{
     Cost,
     CostTrackingConfig,
     DashboardGenerator,
+    FailoverConfig,
+    FailoverManager,
     FallbackChain,
-    // HealthMonitorBuilder, // Not exported - use HealthMonitor::new() directly
+    HealthMonitorBuilder,
     HotReloadConfig,
     HotReloadManager,
     // Core types
@@ -42,6 +44,7 @@ use riptide_intelligence::{
     MetricsCollector,
     MockLlmProvider,
     ProviderConfig,
+    ProviderPriority,
     ReloadStatus,
     TenantIsolationConfig,
     TenantIsolationManager,
@@ -453,10 +456,7 @@ async fn test_environment_configuration_loading() {
 
 /// Test automatic provider failover with health monitoring
 #[tokio::test]
-#[ignore = "TODO: HealthMonitorBuilder doesn't exist - MockLlmProvider.set_healthy() now implemented"]
 async fn test_automatic_provider_failover() {
-    // Test requires HealthMonitorBuilder which doesn't exist yet (MockLlmProvider.set_healthy() is now available)
-    /*
     // Create health monitor
     let health_monitor = Arc::new(
         HealthMonitorBuilder::new()
@@ -543,7 +543,6 @@ async fn test_automatic_provider_failover() {
 
     // Clean up
     health_monitor.stop().await;
-    */
 }
 
 /// Test tenant isolation and cost tracking
@@ -799,10 +798,7 @@ async fn test_hot_reload_configuration_management() {
 
 /// Test comprehensive error handling and recovery
 #[tokio::test]
-#[ignore = "TODO: HealthMonitorBuilder doesn't exist - MockLlmProvider.set_healthy() now implemented"]
 async fn test_comprehensive_error_handling_and_recovery() {
-    // Test requires HealthMonitorBuilder which doesn't exist yet (MockLlmProvider.set_healthy() is now available)
-    /*
     // Test invalid configuration handling
     let registry = Arc::new(LlmRegistry::new());
 
@@ -843,7 +839,6 @@ async fn test_comprehensive_error_handling_and_recovery() {
     if let Some(result) = recovered_result {
         assert!(result.success, "Provider should recover to healthy");
     }
-    */
 }
 
 /// Test memory management and resource cleanup
