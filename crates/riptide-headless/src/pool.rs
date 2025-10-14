@@ -45,6 +45,8 @@ pub struct BrowserPoolConfig {
     ///
     /// When None (default), uses system temp directory.
     pub profile_base_dir: Option<std::path::PathBuf>,
+    /// Cleanup timeout for browser checkin operations (seconds)
+    pub cleanup_timeout: Duration,
 }
 
 impl Default for BrowserPoolConfig {
@@ -60,6 +62,7 @@ impl Default for BrowserPoolConfig {
             enable_recovery: true,
             max_retries: 3,
             profile_base_dir: None, // Use system temp directory by default
+            cleanup_timeout: Duration::from_secs(5), // 5 second cleanup timeout
         }
     }
 }
@@ -899,11 +902,38 @@ impl BrowserCheckout {
     }
 
     /// Cleanup with timeout - ensures proper async cleanup
-    #[allow(dead_code)]
+    ///
+    /// Uses the configured cleanup_timeout from BrowserPoolConfig.
+    /// If you need a custom timeout, use cleanup_with_timeout() instead.
     pub async fn cleanup(mut self) -> Result<()> {
-        tokio::time::timeout(Duration::from_secs(5), self.pool.checkin(&self.browser_id))
+        let timeout_duration = self.pool.config.cleanup_timeout;
+        tokio::time::timeout(timeout_duration, self.pool.checkin(&self.browser_id))
             .await
-            .map_err(|_| anyhow!("Timeout checking in browser {}", self.browser_id))?;
+            .map_err(|_| {
+                anyhow!(
+                    "Timeout checking in browser {} after {:?}",
+                    self.browser_id,
+                    timeout_duration
+                )
+            })?;
+
+        // Prevent drop from trying to checkin again
+        self.permit.take();
+        Ok(())
+    }
+
+    /// Cleanup with custom timeout - for cases where you need a different timeout
+    #[allow(dead_code)] // Public API for custom timeout scenarios
+    pub async fn cleanup_with_timeout(mut self, timeout_duration: Duration) -> Result<()> {
+        tokio::time::timeout(timeout_duration, self.pool.checkin(&self.browser_id))
+            .await
+            .map_err(|_| {
+                anyhow!(
+                    "Timeout checking in browser {} after {:?}",
+                    self.browser_id,
+                    timeout_duration
+                )
+            })?;
 
         // Prevent drop from trying to checkin again
         self.permit.take();

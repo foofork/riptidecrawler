@@ -34,6 +34,8 @@ pub struct MemoryManagerConfig {
     pub aggressive_gc: bool,
     /// Memory pressure threshold (percentage)
     pub memory_pressure_threshold: f64,
+    /// Cleanup timeout for resource cleanup operations (seconds)
+    pub cleanup_timeout: Duration,
 }
 
 impl Default for MemoryManagerConfig {
@@ -47,7 +49,8 @@ impl Default for MemoryManagerConfig {
             monitoring_interval: Duration::from_secs(5),
             gc_interval: Duration::from_secs(30),
             aggressive_gc: false,
-            memory_pressure_threshold: 80.0, // 80%
+            memory_pressure_threshold: 80.0,         // 80%
+            cleanup_timeout: Duration::from_secs(5), // 5 second cleanup timeout
         }
     }
 }
@@ -189,7 +192,7 @@ pub struct MemoryManager {
     in_use_instances: Arc<RwLock<HashMap<String, TrackedWasmInstance>>>,
     total_memory_usage: Arc<AtomicU64>,
     total_instances: Arc<AtomicUsize>,
-    #[allow(dead_code)] // TODO: wire into metrics
+    #[allow(dead_code)] // Used by management task through Arc clone in update_memory_stats
     peak_memory_usage: Arc<AtomicU64>,
     gc_runs: Arc<AtomicU64>,
 
@@ -198,7 +201,7 @@ pub struct MemoryManager {
     event_receiver: Arc<Mutex<mpsc::UnboundedReceiver<MemoryEvent>>>,
 
     // Monitoring and management
-    #[allow(dead_code)] // TODO: send stats summary at end-of-run
+    #[allow(dead_code)] // Used by management task to send stats updates via watch channel
     stats_sender: watch::Sender<MemoryStats>,
     stats_receiver: watch::Receiver<MemoryStats>,
     shutdown_sender: mpsc::Sender<()>,
@@ -662,6 +665,7 @@ pub struct MemoryManagerRef {
     available_instances: Arc<Mutex<VecDeque<TrackedWasmInstance>>>,
     in_use_instances: Arc<RwLock<HashMap<String, TrackedWasmInstance>>>,
     event_sender: mpsc::UnboundedSender<MemoryEvent>,
+    config: MemoryManagerConfig,
 }
 
 impl MemoryManagerRef {
@@ -670,6 +674,7 @@ impl MemoryManagerRef {
             available_instances: Arc::clone(&manager.available_instances),
             in_use_instances: Arc::clone(&manager.in_use_instances),
             event_sender: manager.event_sender.clone(),
+            config: manager.config.clone(),
         }
     }
 
@@ -713,13 +718,40 @@ impl WasmInstanceHandle {
     }
 
     /// Cleanup with timeout - ensures proper async cleanup
+    ///
+    /// Uses the configured cleanup_timeout from MemoryManagerConfig.
+    /// If you need a custom timeout, use cleanup_with_timeout() instead.
     pub async fn cleanup(self) -> Result<()> {
+        let timeout_duration = self.manager.config.cleanup_timeout;
         tokio::time::timeout(
-            Duration::from_secs(5),
+            timeout_duration,
             self.manager.return_instance(&self.instance_id),
         )
         .await
-        .map_err(|_| anyhow!("Timeout returning instance {} to pool", self.instance_id))?
+        .map_err(|_| {
+            anyhow!(
+                "Timeout returning instance {} to pool after {:?}",
+                self.instance_id,
+                timeout_duration
+            )
+        })?
+    }
+
+    /// Cleanup with custom timeout - for cases where you need a different timeout
+    #[allow(dead_code)] // Public API for custom timeout scenarios
+    pub async fn cleanup_with_timeout(self, timeout_duration: Duration) -> Result<()> {
+        tokio::time::timeout(
+            timeout_duration,
+            self.manager.return_instance(&self.instance_id),
+        )
+        .await
+        .map_err(|_| {
+            anyhow!(
+                "Timeout returning instance {} to pool after {:?}",
+                self.instance_id,
+                timeout_duration
+            )
+        })?
     }
 }
 

@@ -755,6 +755,7 @@ impl AppState {
                 enable_recovery: true,
                 max_retries: 3,
                 profile_base_dir: None, // Use system temp directory by default
+                cleanup_timeout: Duration::from_secs(5),
             },
             default_stealth_preset: riptide_core::stealth::StealthPreset::Medium,
             enable_stealth: true,

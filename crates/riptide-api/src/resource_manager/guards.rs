@@ -54,6 +54,14 @@ impl RenderResourceGuard {
     pub fn memory_tracked_mb(&self) -> usize {
         self.memory_tracked
     }
+
+    // Note: cleanup() method is not provided for RenderResourceGuard because
+    // BrowserCheckout::cleanup() consumes self, and we can't move out of
+    // a field while self is borrowed. Instead, rely on the Drop implementation
+    // which will handle cleanup via BrowserCheckout's own Drop.
+    //
+    // For explicit cleanup before drop, manage the BrowserCheckout lifecycle
+    // directly without storing in a guard.
 }
 
 impl std::fmt::Debug for RenderResourceGuard {
@@ -76,6 +84,12 @@ impl Drop for RenderResourceGuard {
         metrics
             .headless_active
             .fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+
+        // Note: browser_checkout will be moved in cleanup task below
+        // We can't call cleanup() here directly because it consumes self
+        // and Drop takes &mut self. The BrowserCheckout's own Drop
+        // will handle checkin if cleanup() is not explicitly called.
+        // For explicit cleanup, users should call cleanup() before drop.
 
         // Spawn cleanup task for async operations
         tokio::spawn(async move {
