@@ -5,6 +5,10 @@
 [![Tests](https://img.shields.io/badge/tests-103%20files-green.svg)](tests/)
 [![API Docs](https://img.shields.io/badge/API%20docs-59%20endpoints-success.svg)](docs/api/ENDPOINT_CATALOG.md)
 [![Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen.svg)](docs/development/testing.md)
+[![Safety Audit](https://img.shields.io/badge/safety-audited-success.svg)](.github/workflows/safety-audit.yml)
+
+Something along these lines will be released.  This is a placeholder:
+
 
 **High-performance web crawler and content extraction API built in Rust with WebAssembly optimization.**
 
@@ -22,7 +26,7 @@ RipTide delivers enterprise-grade web crawling with WASM-powered extraction, rea
 - **Dual-Path Pipeline**: Fast static extraction with intelligent headless browser fallback
 
 ### Content Extraction
-- **Multi-Strategy Extraction**: Auto-selection, CSS, TREK, LLM, and Regex patterns
+- **Multi-Strategy Extraction**: Auto-selection, CSS, LLM, and Regex patterns
 - **PDF Processing**: Full pipeline with table extraction and streaming progress
 - **Table Extraction**: Structured data extraction with CSV/Markdown export
 - **Intelligent Chunking**: Sliding window, topic-based, and sentence-preserving modes
@@ -154,13 +158,13 @@ riptide extract --url "https://example.com"
 riptide extract --url "https://example.com" --show-confidence
 
 # Strategy composition - chain multiple methods
-riptide extract --url "https://example.com" --strategy "chain:trek,css,regex"
+riptide extract --url "https://example.com" --strategy "chain:css,regex"
 
 # Parallel strategy execution
 riptide extract --url "https://example.com" --strategy "parallel:all"
 
-# Fallback strategy (try trek, fall back to css)
-riptide extract --url "https://example.com" --strategy "fallback:trek,css"
+# Fallback strategy (try  fall back to css)
+riptide extract --url "https://example.com" --strategy "fallback:css"
 
 # Specific extraction method
 riptide extract --url "https://example.com" --method trek
@@ -216,8 +220,6 @@ riptide cache stats
 # Clear all cache
 riptide cache clear
 
-# Clear cache for specific method
-riptide cache clear --method trek
 
 # Validate cache integrity
 riptide cache validate
@@ -283,7 +285,7 @@ riptide health
 riptide extract \
   --url "https://blog.example.com/article" \
   --show-confidence \
-  --strategy "chain:trek,css" \
+  --strategy "chain:css" \
   --metadata \
   -f article.md
 
@@ -444,6 +446,7 @@ RipTide is organized as a Cargo workspace with 13 specialized crates:
 - **85%+ code coverage** with unit, integration, and golden tests
 - **Continuous integration** with GitHub Actions
 - **Security audits** with `cargo audit` and `cargo deny`
+- **Automated safety audits** enforcing memory safety and code quality standards
 
 ### Running Tests
 
@@ -481,6 +484,50 @@ cargo audit
 
 # License and dependency checking
 cargo deny check
+
+# Safety audit (local)
+.github/workflows/scripts/check-unsafe.sh
+.github/workflows/scripts/check-wasm-safety.sh
+```
+
+### Safety Checks (CI/CD)
+
+RipTide enforces strict safety requirements through automated CI checks:
+
+**Unsafe Code Audit:**
+- All `unsafe` blocks must have `// SAFETY:` documentation
+- Bindings files (`*/bindings.rs`) are excluded from checks
+- Violations block PRs from merging
+
+**Production Code Quality:**
+- No `.unwrap()` or `.expect()` in production code
+- Allowed only in test files
+- Enforced via Clippy with `-D clippy::unwrap_used -D clippy::expect_used`
+
+**Memory Safety (Miri):**
+- Miri checks run on memory_manager tests
+- Timeout: 5 minutes for CI efficiency
+- Catches undefined behavior and memory issues
+
+**WASM Safety Documentation:**
+- All `bindings.rs` files must document WASM FFI safety
+- Required comment: `// SAFETY: Required for WASM component model FFI`
+
+**Running Safety Checks Locally:**
+```bash
+# Unsafe code audit
+.github/workflows/scripts/check-unsafe.sh
+
+# WASM safety check
+.github/workflows/scripts/check-wasm-safety.sh
+
+# Clippy with unwrap/expect checks
+cargo clippy --lib --bins -- -D clippy::unwrap_used -D clippy::expect_used
+
+# Miri memory safety (requires nightly)
+rustup toolchain install nightly
+cargo +nightly miri setup
+cargo +nightly miri test -p riptide-core memory_manager
 ```
 
 ---

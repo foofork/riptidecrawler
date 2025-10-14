@@ -62,11 +62,12 @@ pub use state::{
 
 pub use tenant::{
     BillingPlan, BillingTracker, ResourceUsage, ResourceUsageRecord, SecurityBoundary,
-    TenantContext, TenantManager, TenantOwner, TenantSummary,
+    TenantConfig as TenantContextConfig, TenantContext, TenantManager, TenantOwner, TenantSummary,
 };
 
 pub use config::{
     DistributedConfig, PerformanceConfig, PersistenceConfig, RedisConfig, SecurityConfig,
+    TenantConfig, TenantIsolationLevel,
 };
 
 pub use errors::{PersistenceError, PersistenceResult};

@@ -23,6 +23,12 @@ pub struct StreamingValidationFramework {
     api_base_url: String,
 }
 
+impl Default for StreamingValidationFramework {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StreamingValidationFramework {
     pub fn new() -> Self {
         let mock_server = MockServer::start();
@@ -48,7 +54,7 @@ impl StreamingValidationFramework {
                     .header("content-type", "text/html")
                     .header("content-length", "2048")
                     .delay(Duration::from_millis(delay_ms))
-                    .body(&format!(
+                    .body(format!(
                         r#"<html>
                         <head><title>Timed Content {}</title></head>
                         <body>
@@ -97,7 +103,7 @@ impl StreamingValidationFramework {
                 if is_success {
                     then.status(200)
                         .header("content-type", "text/html")
-                        .body(&format!(
+                        .body(format!(
                             r#"<html>
                             <head><title>Success Content {}</title></head>
                             <body>
@@ -135,7 +141,7 @@ impl StreamingValidationFramework {
 
         let response = self
             .client
-            .post(&format!("{}/{}", self.api_base_url, endpoint))
+            .post(format!("{}/{}", self.api_base_url, endpoint))
             .header("Accept", "application/x-ndjson")
             .header("User-Agent", "StreamingValidationTest/1.0")
             .json(&body)
@@ -280,10 +286,10 @@ impl StreamingValidationResponse {
         // Check for metadata (first line)
         let metadata = self
             .lines
-            .get(0)
+            .first()
             .ok_or_else(|| StreamingError::Format("No metadata line".to_string()))?;
 
-        if !metadata.get("total_urls").is_some() || !metadata.get("request_id").is_some() {
+        if metadata.get("total_urls").is_none() || metadata.get("request_id").is_none() {
             return Err(StreamingError::Format(
                 "Invalid metadata structure".to_string(),
             ));
@@ -295,7 +301,7 @@ impl StreamingValidationResponse {
             .last()
             .ok_or_else(|| StreamingError::Format("No summary line".to_string()))?;
 
-        if !summary.get("total_urls").is_some() {
+        if summary.get("total_urls").is_none() {
             return Err(StreamingError::Format(
                 "Invalid summary structure".to_string(),
             ));
@@ -490,7 +496,7 @@ async fn test_no_batching_streaming_behavior() {
             then.status(200)
                 .delay(Duration::from_millis(*delay))
                 .header("content-type", "text/html")
-                .body(&format!(
+                .body(format!(
                     "<html><body><h1>Content {} ({}ms delay)</h1></body></html>",
                     i, delay
                 ));

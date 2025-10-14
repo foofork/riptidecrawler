@@ -495,6 +495,17 @@ impl StrategiesPipelineOrchestrator {
             .options(options)
             .namespace("strategies")
             .build()
+            .unwrap_or_else(|e| {
+                // Fallback to simple hash-based key if builder fails
+                // This should rarely happen, only if URL/method validation fails
+                tracing::error!(error = %e, url = %url, "Failed to build cache key, using hash fallback");
+                // Use built-in hash
+                use std::collections::hash_map::DefaultHasher;
+                use std::hash::{Hash, Hasher};
+                let mut hasher = DefaultHasher::new();
+                url.hash(&mut hasher);
+                format!("strategies:v1:error:{:x}", hasher.finish())
+            })
     }
 }
 

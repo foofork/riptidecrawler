@@ -6,6 +6,7 @@ mod search_provider_tests {
     use std::time::Duration;
 
     // Mock structures that will be replaced with actual implementations
+    #[allow(dead_code)]
     struct MockSearchResult {
         title: String,
         url: String,
@@ -13,6 +14,7 @@ mod search_provider_tests {
         relevance_score: f64,
     }
 
+    #[allow(dead_code)]
     struct MockSearchProvider {
         should_fail: bool,
         response_delay: Duration,
@@ -34,10 +36,7 @@ mod search_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(
-            false,
-            "SearchProvider trait not implemented yet - TDD red phase"
-        );
+        panic!("SearchProvider trait not implemented yet - TDD red phase");
     }
 
     #[tokio::test]
@@ -59,10 +58,7 @@ mod search_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(
-            false,
-            "SearchResult struct not implemented yet - TDD red phase"
-        );
+        panic!("SearchResult struct not implemented yet - TDD red phase");
     }
 
     #[tokio::test]
@@ -86,7 +82,7 @@ mod search_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(false, "Error handling not implemented yet - TDD red phase");
+        panic!("Error handling not implemented yet - TDD red phase");
     }
 
     #[tokio::test]
@@ -105,9 +101,6 @@ mod search_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(
-            false,
-            "Timeout handling not implemented yet - TDD red phase"
-        );
+        panic!("Timeout handling not implemented yet - TDD red phase");
     }
 }

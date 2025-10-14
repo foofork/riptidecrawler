@@ -65,6 +65,7 @@ mod streaming_tests {
     pub struct StreamStats {
         pub total_chunks: u64,
         pub total_bytes: u64,
+        #[allow(dead_code)]
         pub duration: Duration,
         pub average_throughput: f64,
     }
@@ -323,7 +324,7 @@ mod streaming_tests {
         mock_streaming
             .expect_send_chunk()
             .times(5)
-            .returning(move |_, chunk| {
+            .returning(move |_, _chunk| {
                 call_count += 1;
                 match call_count {
                     1..=2 => Ok(()),                                    // First two chunks succeed
@@ -495,7 +496,7 @@ mod streaming_tests {
             let streaming_arc: Arc<tokio::sync::Mutex<MockStreamingHandler>> =
                 Arc::clone(&mock_streaming);
             let handle = tokio::spawn(async move {
-                let mut streaming = streaming_arc.lock().await;
+                let streaming = streaming_arc.lock().await;
 
                 // Start stream
                 let config = StreamConfig {

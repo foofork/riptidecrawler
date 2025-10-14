@@ -7,7 +7,7 @@ mod none_provider_tests {
     #[tokio::test]
     async fn test_none_provider_url_detection_valid_urls() {
         // Test that NoneProvider correctly identifies valid URLs
-        let test_cases = vec![
+        let _test_cases = [
             "https://eventmesh.apache.org/docs",
             "http://localhost:8080/api",
             "https://github.com/apache/eventmesh",
@@ -35,16 +35,13 @@ mod none_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(
-            false,
-            "NoneProvider URL detection not implemented yet - TDD red phase"
-        );
+        panic!("NoneProvider URL detection not implemented yet - TDD red phase");
     }
 
     #[tokio::test]
     async fn test_none_provider_url_detection_invalid_urls() {
         // Test that NoneProvider correctly identifies non-URLs
-        let test_cases = vec![
+        let _test_cases = [
             "eventmesh architecture",
             "apache kafka vs eventmesh",
             "how to install eventmesh",
@@ -72,16 +69,13 @@ mod none_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(
-            false,
-            "NoneProvider non-URL handling not implemented yet - TDD red phase"
-        );
+        panic!("NoneProvider non-URL handling not implemented yet - TDD red phase");
     }
 
     #[tokio::test]
     async fn test_none_provider_url_validation_edge_cases() {
         // Test edge cases in URL validation
-        let edge_cases = vec![
+        let _edge_cases = [
             ("https://", false),                    // Incomplete URL
             ("https://localhost", true),            // Simple localhost
             ("https://192.168.1.1:8080/api", true), // IP with port and path
@@ -108,16 +102,13 @@ mod none_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(
-            false,
-            "NoneProvider URL validation edge cases not implemented yet - TDD red phase"
-        );
+        panic!("NoneProvider URL validation edge cases not implemented yet - TDD red phase");
     }
 
     #[tokio::test]
     async fn test_none_provider_search_result_format() {
         // Test that URL search results are properly formatted
-        let test_url = "https://eventmesh.apache.org/docs/introduction";
+        let _test_url = "https://eventmesh.apache.org/docs/introduction";
 
         // Uncomment when NoneProvider is implemented:
         /*
@@ -137,16 +128,13 @@ mod none_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(
-            false,
-            "NoneProvider search result formatting not implemented yet - TDD red phase"
-        );
+        panic!("NoneProvider search result formatting not implemented yet - TDD red phase");
     }
 
     #[tokio::test]
     async fn test_none_provider_concurrent_requests() {
         // Test that NoneProvider handles concurrent requests correctly
-        let test_urls = vec![
+        let _test_urls = [
             "https://eventmesh.apache.org/",
             "https://github.com/apache/eventmesh",
             "http://localhost:8080",
@@ -184,10 +172,7 @@ mod none_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(
-            false,
-            "NoneProvider concurrency not implemented yet - TDD red phase"
-        );
+        panic!("NoneProvider concurrency not implemented yet - TDD red phase");
     }
 
     #[test]

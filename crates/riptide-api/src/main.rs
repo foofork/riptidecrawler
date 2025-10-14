@@ -118,16 +118,12 @@ async fn main() -> anyhow::Result<()> {
     {
         tracing::info!("jemalloc allocator enabled for memory profiling");
 
-        // Log initial memory stats using jemalloc-ctl if available
+        // Log initial memory stats using jemalloc if available
         #[cfg(not(target_env = "msvc"))]
         {
-            if let Ok(allocated) = tikv_jemalloc_ctl::stats::allocated::read() {
-                tracing::info!(
-                    memory_allocated_bytes = allocated,
-                    memory_allocated_mb = allocated as f64 / 1024.0 / 1024.0,
-                    "Initial jemalloc memory allocation"
-                );
-            }
+            // Note: jemalloc memory stats not yet wired up
+            // TODO: Add tikv-jemalloc-ctl dependency if needed for memory stats
+            tracing::debug!("Memory allocator: jemalloc (stats not yet implemented)");
         }
     }
 

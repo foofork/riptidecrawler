@@ -75,30 +75,26 @@ impl Default for InternalCacheStats {
 
 impl Default for CacheMetrics {
     fn default() -> Self {
-        Self::new()
+        Self::new().expect("Failed to create default CacheMetrics")
     }
 }
 
 impl CacheMetrics {
     /// Create new cache metrics instance
-    pub fn new() -> Self {
-        let hits = Counter::with_opts(Opts::new("riptide_cache_hits_total", "Total cache hits"))
-            .expect("Failed to create hits counter");
+    pub fn new() -> Result<Self, prometheus::Error> {
+        let hits = Counter::with_opts(Opts::new("riptide_cache_hits_total", "Total cache hits"))?;
 
         let misses = Counter::with_opts(Opts::new(
             "riptide_cache_misses_total",
             "Total cache misses",
-        ))
-        .expect("Failed to create misses counter");
+        ))?;
 
-        let sets = Counter::with_opts(Opts::new("riptide_cache_sets_total", "Total cache sets"))
-            .expect("Failed to create sets counter");
+        let sets = Counter::with_opts(Opts::new("riptide_cache_sets_total", "Total cache sets"))?;
 
         let deletes = Counter::with_opts(Opts::new(
             "riptide_cache_deletes_total",
             "Total cache deletes",
-        ))
-        .expect("Failed to create deletes counter");
+        ))?;
 
         let access_time = Histogram::with_opts(
             HistogramOpts::new(
@@ -108,8 +104,7 @@ impl CacheMetrics {
             .buckets(vec![
                 100.0, 500.0, 1000.0, 2000.0, 5000.0, 10000.0, 20000.0, 50000.0,
             ]),
-        )
-        .expect("Failed to create access time histogram");
+        )?;
 
         let entry_size = Histogram::with_opts(
             HistogramOpts::new("riptide_cache_entry_size_bytes", "Cache entry size").buckets(vec![
@@ -120,34 +115,29 @@ impl CacheMetrics {
                 10485760.0,
                 104857600.0,
             ]),
-        )
-        .expect("Failed to create entry size histogram");
+        )?;
 
         let memory_usage = Gauge::with_opts(Opts::new(
             "riptide_cache_memory_usage_bytes",
             "Cache memory usage",
-        ))
-        .expect("Failed to create memory usage gauge");
+        ))?;
 
         let active_connections = Gauge::with_opts(Opts::new(
             "riptide_cache_active_connections",
             "Active Redis connections",
-        ))
-        .expect("Failed to create connections gauge");
+        ))?;
 
         let errors = Counter::with_opts(Opts::new(
             "riptide_cache_errors_total",
             "Total cache errors",
-        ))
-        .expect("Failed to create errors counter");
+        ))?;
 
         let compression_ratio = Gauge::with_opts(Opts::new(
             "riptide_cache_compression_ratio",
             "Average compression ratio",
-        ))
-        .expect("Failed to create compression ratio gauge");
+        ))?;
 
-        Self {
+        Ok(Self {
             hits,
             misses,
             sets,
@@ -159,7 +149,7 @@ impl CacheMetrics {
             errors,
             compression_ratio,
             stats: Arc::new(RwLock::new(InternalCacheStats::default())),
-        }
+        })
     }
 
     /// Register metrics with Prometheus registry
@@ -525,7 +515,7 @@ impl PersistenceMetrics {
     /// Create new persistence metrics
     pub fn new() -> Result<Self, prometheus::Error> {
         let registry = Arc::new(Registry::new());
-        let cache_metrics = Arc::new(CacheMetrics::new());
+        let cache_metrics = Arc::new(CacheMetrics::new()?);
         cache_metrics.register(&registry)?;
 
         let tenant_metrics = Arc::new(RwLock::new(TenantMetrics::new(registry.clone())));

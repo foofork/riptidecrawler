@@ -1,16 +1,19 @@
 use serde_json::json;
 
 // Mock HTTP client for testing
+#[allow(dead_code)]
 struct MockHttpResponse {
     status: u16,
     body: String,
 }
 
+#[allow(dead_code)]
 struct MockHttpClient {
     responses: Vec<MockHttpResponse>,
     current_response: std::sync::Mutex<usize>,
 }
 
+#[allow(dead_code)]
 impl MockHttpClient {
     fn new(responses: Vec<MockHttpResponse>) -> Self {
         Self {
@@ -38,6 +41,7 @@ impl MockHttpClient {
 mod serper_provider_tests {
     use super::*;
 
+    #[allow(dead_code)]
     const TEST_API_KEY: &str = "test_api_key_12345";
 
     #[tokio::test]
@@ -45,7 +49,7 @@ mod serper_provider_tests {
         // This test will fail initially - SerperProvider doesn't exist yet
         // Following TDD red-green-refactor cycle
 
-        let mock_response = json!({
+        let _mock_response = json!({
             "organic": [
                 {
                     "title": "EventMesh Documentation",
@@ -87,13 +91,13 @@ mod serper_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(false, "SerperProvider not implemented yet - TDD red phase");
+        panic!("SerperProvider not implemented yet - TDD red phase");
     }
 
     #[tokio::test]
     async fn test_serper_provider_api_error() {
         // Test API error handling (401 Unauthorized)
-        let error_response = json!({
+        let _error_response = json!({
             "error": "Invalid API key",
             "status": 401
         });
@@ -120,16 +124,13 @@ mod serper_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(
-            false,
-            "SerperProvider error handling not implemented yet - TDD red phase"
-        );
+        panic!("SerperProvider error handling not implemented yet - TDD red phase");
     }
 
     #[tokio::test]
     async fn test_serper_provider_rate_limiting() {
         // Test rate limiting handling (429 Too Many Requests)
-        let rate_limit_response = json!({
+        let _rate_limit_response = json!({
             "error": "Too many requests",
             "status": 429,
             "retry_after": 60
@@ -157,16 +158,13 @@ mod serper_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(
-            false,
-            "SerperProvider rate limiting not implemented yet - TDD red phase"
-        );
+        panic!("SerperProvider rate limiting not implemented yet - TDD red phase");
     }
 
     #[tokio::test]
     async fn test_serper_provider_malformed_response() {
         // Test handling of malformed JSON responses
-        let malformed_response = "{ invalid json";
+        let _malformed_response = "{ invalid json";
 
         // Uncomment when SerperProvider is implemented:
         /*
@@ -190,16 +188,13 @@ mod serper_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(
-            false,
-            "SerperProvider JSON parsing not implemented yet - TDD red phase"
-        );
+        panic!("SerperProvider JSON parsing not implemented yet - TDD red phase");
     }
 
     #[tokio::test]
     async fn test_serper_provider_empty_results() {
         // Test handling of empty search results
-        let empty_response = json!({
+        let _empty_response = json!({
             "organic": [],
             "searchParameters": {
                 "q": "very_obscure_query_with_no_results",
@@ -226,10 +221,7 @@ mod serper_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(
-            false,
-            "SerperProvider empty results handling not implemented yet - TDD red phase"
-        );
+        panic!("SerperProvider empty results handling not implemented yet - TDD red phase");
     }
 
     #[tokio::test]
@@ -246,9 +238,6 @@ mod serper_provider_tests {
         */
 
         // Placeholder assertion for TDD red phase
-        assert!(
-            false,
-            "SerperProvider timeout handling not implemented yet - TDD red phase"
-        );
+        panic!("SerperProvider timeout handling not implemented yet - TDD red phase");
     }
 }

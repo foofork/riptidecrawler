@@ -1,5 +1,5 @@
 // Disabled due to missing dependencies: mockall, criterion, fixtures
-#![cfg(all(test, feature = "integration-tests-disabled"))]
+#![cfg(not(test))]
 
 /// Performance Benchmark Tests
 ///

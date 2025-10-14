@@ -1,8 +1,7 @@
 //! Integration tests for the comprehensive metrics system (30+ metrics)
 //! Tests WEEK 1 PHASE 1B metrics recording and retrieval
 
-use prometheus::Registry;
-use riptide_api::metrics::{ErrorType, PhaseType, RipTideMetrics};
+use riptide_api::metrics::RipTideMetrics;
 use std::time::Instant;
 
 #[test]
@@ -30,7 +29,7 @@ fn test_gate_decision_enhanced_metrics() {
     // Check gate decision counter
     let gate_decisions = metric_families
         .iter()
-        .find(|m| m.get_name() == "riptide_gate_decision_total");
+        .find(|m| m.name() == "riptide_gate_decision_total");
     assert!(
         gate_decisions.is_some(),
         "Gate decision metric should exist"
@@ -39,18 +38,18 @@ fn test_gate_decision_enhanced_metrics() {
     // Check gate score histogram
     let gate_score = metric_families
         .iter()
-        .find(|m| m.get_name() == "riptide_gate_score");
+        .find(|m| m.name() == "riptide_gate_score");
     assert!(gate_score.is_some(), "Gate score metric should exist");
 
     // Check feature metrics
     let text_ratio = metric_families
         .iter()
-        .find(|m| m.get_name() == "riptide_gate_feature_text_ratio");
+        .find(|m| m.name() == "riptide_gate_feature_text_ratio");
     assert!(text_ratio.is_some(), "Text ratio metric should exist");
 
     let script_density = metric_families
         .iter()
-        .find(|m| m.get_name() == "riptide_gate_feature_script_density");
+        .find(|m| m.name() == "riptide_gate_feature_script_density");
     assert!(
         script_density.is_some(),
         "Script density metric should exist"
@@ -69,13 +68,13 @@ fn test_extraction_quality_metrics() {
     // Check quality score
     let quality_score = metric_families
         .iter()
-        .find(|m| m.get_name() == "riptide_extraction_quality_score");
+        .find(|m| m.name() == "riptide_extraction_quality_score");
     assert!(quality_score.is_some(), "Quality score metric should exist");
 
     // Check content length
     let content_length = metric_families
         .iter()
-        .find(|m| m.get_name() == "riptide_extraction_content_length_bytes");
+        .find(|m| m.name() == "riptide_extraction_content_length_bytes");
     assert!(
         content_length.is_some(),
         "Content length metric should exist"
@@ -84,25 +83,25 @@ fn test_extraction_quality_metrics() {
     // Check links found
     let links_found = metric_families
         .iter()
-        .find(|m| m.get_name() == "riptide_extraction_links_found");
+        .find(|m| m.name() == "riptide_extraction_links_found");
     assert!(links_found.is_some(), "Links found metric should exist");
 
     // Check images found
     let images_found = metric_families
         .iter()
-        .find(|m| m.get_name() == "riptide_extraction_images_found");
+        .find(|m| m.name() == "riptide_extraction_images_found");
     assert!(images_found.is_some(), "Images found metric should exist");
 
     // Check author presence
     let has_author = metric_families
         .iter()
-        .find(|m| m.get_name() == "riptide_extraction_has_author_total");
+        .find(|m| m.name() == "riptide_extraction_has_author_total");
     assert!(has_author.is_some(), "Has author metric should exist");
 
     // Check date presence
     let has_date = metric_families
         .iter()
-        .find(|m| m.get_name() == "riptide_extraction_has_date_total");
+        .find(|m| m.name() == "riptide_extraction_has_date_total");
     assert!(has_date.is_some(), "Has date metric should exist");
 }
 
@@ -117,7 +116,7 @@ fn test_extraction_fallback_metrics() {
 
     let fallback = metric_families
         .iter()
-        .find(|m| m.get_name() == "riptide_extraction_fallback_triggered_total");
+        .find(|m| m.name() == "riptide_extraction_fallback_triggered_total");
     assert!(fallback.is_some(), "Fallback metric should exist");
 }
 
@@ -133,7 +132,7 @@ fn test_pipeline_phase_timing_metrics() {
 
     let gate_analysis = metric_families
         .iter()
-        .find(|m| m.get_name() == "riptide_pipeline_phase_gate_analysis_milliseconds");
+        .find(|m| m.name() == "riptide_pipeline_phase_gate_analysis_milliseconds");
     assert!(
         gate_analysis.is_some(),
         "Gate analysis phase metric should exist"
@@ -141,7 +140,7 @@ fn test_pipeline_phase_timing_metrics() {
 
     let extraction = metric_families
         .iter()
-        .find(|m| m.get_name() == "riptide_pipeline_phase_extraction_milliseconds");
+        .find(|m| m.name() == "riptide_pipeline_phase_extraction_milliseconds");
     assert!(extraction.is_some(), "Extraction phase metric should exist");
 }
 
@@ -195,7 +194,7 @@ fn test_gate_decision_multiple_types() {
     let metric_families = metrics.registry.gather();
     let gate_decisions = metric_families
         .iter()
-        .find(|m| m.get_name() == "riptide_gate_decision_total")
+        .find(|m| m.name() == "riptide_gate_decision_total")
         .expect("Gate decision metric should exist");
 
     // Verify multiple decision types are tracked
@@ -217,7 +216,7 @@ fn test_extraction_duration_by_mode() {
     let metric_families = metrics.registry.gather();
     let duration = metric_families
         .iter()
-        .find(|m| m.get_name() == "riptide_extraction_duration_by_mode_seconds")
+        .find(|m| m.name() == "riptide_extraction_duration_by_mode_seconds")
         .expect("Duration by mode metric should exist");
 
     assert!(
@@ -241,7 +240,7 @@ fn test_extraction_success_vs_failure() {
     // Successful extractions should record quality metrics
     let quality_score = metric_families
         .iter()
-        .find(|m| m.get_name() == "riptide_extraction_quality_score");
+        .find(|m| m.name() == "riptide_extraction_quality_score");
     assert!(
         quality_score.is_some(),
         "Quality score should be recorded for successes"
@@ -260,7 +259,7 @@ fn test_spa_markers_tracking() {
     let metric_families = metrics.registry.gather();
     let spa_markers = metric_families
         .iter()
-        .find(|m| m.get_name() == "riptide_gate_feature_spa_markers_total");
+        .find(|m| m.name() == "riptide_gate_feature_spa_markers_total");
     assert!(spa_markers.is_some(), "SPA markers metric should exist");
 }
 
@@ -284,12 +283,12 @@ fn test_extraction_metadata_presence() {
 
     let has_author = metric_families
         .iter()
-        .find(|m| m.get_name() == "riptide_extraction_has_author_total");
+        .find(|m| m.name() == "riptide_extraction_has_author_total");
     assert!(has_author.is_some(), "Author presence metric should exist");
 
     let has_date = metric_families
         .iter()
-        .find(|m| m.get_name() == "riptide_extraction_has_date_total");
+        .find(|m| m.name() == "riptide_extraction_has_date_total");
     assert!(has_date.is_some(), "Date presence metric should exist");
 }
 
@@ -306,7 +305,7 @@ fn test_gate_score_distribution() {
     let metric_families = metrics.registry.gather();
     let gate_score = metric_families
         .iter()
-        .find(|m| m.get_name() == "riptide_gate_score")
+        .find(|m| m.name() == "riptide_gate_score")
         .expect("Gate score histogram should exist");
 
     // Verify histogram buckets are populated
@@ -338,12 +337,12 @@ fn test_feature_ratio_histograms() {
 
     let text_ratio = metric_families
         .iter()
-        .find(|m| m.get_name() == "riptide_gate_feature_text_ratio");
+        .find(|m| m.name() == "riptide_gate_feature_text_ratio");
     assert!(text_ratio.is_some(), "Text ratio histogram should exist");
 
     let script_density = metric_families
         .iter()
-        .find(|m| m.get_name() == "riptide_gate_feature_script_density");
+        .find(|m| m.name() == "riptide_gate_feature_script_density");
     assert!(
         script_density.is_some(),
         "Script density histogram should exist"
@@ -406,7 +405,7 @@ fn test_all_30_plus_metrics_exist() {
 
     let metric_names: Vec<String> = metric_families
         .iter()
-        .map(|m| m.get_name().to_string())
+        .map(|m| m.name().to_string())
         .collect();
 
     for expected in &expected_metrics {

@@ -136,7 +136,9 @@ impl PersistentCacheManager {
         Ok(Self {
             connections: Arc::new(RwLock::new(connections)),
             config,
-            metrics: Arc::new(CacheMetrics::new()),
+            metrics: Arc::new(CacheMetrics::new().map_err(|e| {
+                PersistenceError::cache(format!("Failed to create cache metrics: {}", e))
+            })?),
             sync_manager: None,
             warmer: None,
         })

@@ -3,15 +3,15 @@
 //!
 //! These tests have been updated to work with the current riptide-html API.
 
-use riptide_html::{
-    css_extract_default as extract_default, default_patterns, RegexExtractor, RegexPattern,
-};
-use std::collections::HashMap;
+#[allow(unused_imports)]
+use riptide_html::{default_patterns, RegexExtractor, RegexPattern};
 
 /// Test module for CSS selector extraction
 mod css_extraction_tests {
-    use super::*;
-    use riptide_html::{css_extract, css_extract_default as extract_default, default_selectors};
+    use riptide_html::{
+        css_extract, css_extract_default as extract_default, default_selectors, CssJsonExtractor,
+    };
+    use std::collections::HashMap;
 
     #[tokio::test]
     async fn test_basic_css_selectors() {
@@ -126,8 +126,8 @@ mod css_extraction_tests {
 
     #[tokio::test]
     async fn test_css_selector_confidence_scoring() {
-        // Use from_simple_selectors for backward compatibility
-        let extractor = CssJsonExtractor::from_simple_selectors(default_selectors_simple());
+        // Use default_selectors which returns CssSelectorConfig
+        let extractor = CssJsonExtractor::new(default_selectors());
 
         // HTML with all expected elements
         let complete_html = r#"
@@ -224,8 +224,7 @@ mod css_extraction_tests {
 
 /// Test module for regex extraction
 mod regex_extraction_tests {
-    use super::*;
-    use riptide_html::{default_patterns, regex_extract};
+    use riptide_html::{RegexExtractor, RegexPattern};
 
     #[tokio::test]
     async fn test_email_extraction() {
@@ -472,9 +471,6 @@ mod regex_extraction_tests {
 
 /// Test module for DOM traversal utilities
 mod dom_traversal_tests {
-    use super::*;
-    #[allow(unused_imports)]
-    use riptide_html::css_extract_default as extract_default;
     use scraper::{Html, Selector};
 
     #[test]
@@ -681,8 +677,7 @@ mod dom_traversal_tests {
 
 /// Performance and edge case tests
 mod performance_edge_case_tests {
-    use super::*;
-    use riptide_html::css_extract_default as extract_default;
+    use riptide_html::{css_extract_default as extract_default, default_patterns, RegexExtractor};
     use std::time::Instant;
 
     #[tokio::test]

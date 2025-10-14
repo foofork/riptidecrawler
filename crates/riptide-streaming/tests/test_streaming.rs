@@ -1,5 +1,4 @@
 use futures::stream::StreamExt;
-use futures::stream::TryStreamExt;
 use httpmock::prelude::*;
 use serde_json::Value;
 use std::time::Instant;
@@ -118,7 +117,6 @@ async fn test_ndjson_crawl_streaming() {
 
     // Verify individual results (should be lines 1 and 2)
     let mut result_count = 0;
-    let mut successful_results = 0;
 
     for line in &lines[1..lines.len() - 1] {
         if let Ok(result) = serde_json::from_str::<Value>(line) {
@@ -134,7 +132,6 @@ async fn test_ndjson_crawl_streaming() {
                 assert!(result_obj["processing_time_ms"].is_number());
 
                 if result_obj["status"].as_u64().unwrap() == 200 {
-                    successful_results += 1;
                     assert!(result_obj["document"].is_object());
                 } else {
                     assert!(result_obj["error"].is_object());
@@ -426,10 +423,10 @@ async fn test_streaming_large_batch_performance() {
     let mut urls = Vec::new();
     for i in 0..10 {
         let _mock = server.mock(|when, then| {
-            when.method(GET).path(&format!("/test{}", i));
+            when.method(GET).path(format!("/test{}", i));
             then.status(200)
                 .header("content-type", "text/html")
-                .body(&format!(
+                .body(format!(
                 "<html><head><title>Test {}</title></head><body><p>Content {}</p></body></html>",
                 i, i
             ));
@@ -464,7 +461,7 @@ async fn test_streaming_large_batch_performance() {
     let mut buffer = String::new();
 
     while let Some(chunk_result) = stream.next().await {
-        let first_result_time = start_time.elapsed();
+        let _first_result_time = start_time.elapsed();
         let chunk = chunk_result.expect("Failed to read chunk");
         buffer.push_str(&String::from_utf8_lossy(&chunk));
 

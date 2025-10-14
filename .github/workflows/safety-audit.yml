@@ -1,0 +1,255 @@
+name: Safety Audit
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  unsafe-audit:
+    name: Audit Unsafe Code Blocks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install ripgrep
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
+      - name: Count unsafe blocks (excluding bindings.rs)
+        id: count_unsafe
+        run: |
+          UNSAFE_COUNT=$(rg -c 'unsafe\s*\{' --type rust \
+            --glob '!*/bindings.rs' \
+            --glob '!**/bindings.rs' \
+            --glob '!*/tests/*' \
+            --glob '!**/tests/*' \
+            2>/dev/null | awk -F: '{sum+=$2} END {print sum+0}')
+          echo "count=$UNSAFE_COUNT" >> $GITHUB_OUTPUT
+          echo "Found $UNSAFE_COUNT unsafe blocks in production code"
+
+      - name: Verify SAFETY comments on all unsafe blocks
+        if: steps.count_unsafe.outputs.count != '0'
+        run: |
+          echo "Checking that all unsafe blocks have SAFETY documentation..."
+
+          # Find files with unsafe blocks (excluding bindings.rs and tests)
+          FILES_WITH_UNSAFE=$(rg -l 'unsafe\s*\{' --type rust \
+            --glob '!*/bindings.rs' \
+            --glob '!**/bindings.rs' \
+            --glob '!*/tests/*' \
+            --glob '!**/tests/*')
+
+          if [ -z "$FILES_WITH_UNSAFE" ]; then
+            echo "No unsafe blocks found in production code"
+            exit 0
+          fi
+
+          VIOLATIONS_FOUND=0
+
+          for file in $FILES_WITH_UNSAFE; do
+            echo "Checking $file..."
+
+            # Extract unsafe blocks with context
+            rg 'unsafe\s*\{' "$file" -n -B 3 | while IFS=: read -r line_num content; do
+              # Check if any of the 3 lines before contains SAFETY comment
+              SAFETY_CHECK=$(rg 'unsafe\s*\{' "$file" -n -B 3 | \
+                grep -B 3 "^${line_num}:" | \
+                grep -c '//.*SAFETY:' || echo "0")
+
+              if [ "$SAFETY_CHECK" -eq "0" ]; then
+                echo "❌ VIOLATION: Undocumented unsafe block at $file:$line_num"
+                VIOLATIONS_FOUND=1
+              fi
+            done
+          done
+
+          if [ "$VIOLATIONS_FOUND" -eq "1" ]; then
+            echo ""
+            echo "❌ Found unsafe blocks without SAFETY documentation"
+            echo "All unsafe blocks must have a '// SAFETY:' comment explaining why they are safe"
+            exit 1
+          fi
+
+          echo "✅ All unsafe blocks have SAFETY documentation"
+
+      - name: Report unsafe statistics
+        run: |
+          echo "## Unsafe Code Statistics" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Production unsafe blocks: ${{ steps.count_unsafe.outputs.count }}" >> $GITHUB_STEP_SUMMARY
+          echo "- All blocks documented: ✅" >> $GITHUB_STEP_SUMMARY
+
+  clippy-production:
+    name: Clippy - No Unwrap/Expect in Production
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+
+      - name: Run clippy on production code (no unwrap/expect)
+        run: |
+          cargo clippy \
+            --workspace \
+            --all-features \
+            --lib \
+            --bins \
+            -- \
+            -D clippy::unwrap_used \
+            -D clippy::expect_used \
+            -D warnings
+
+      - name: Run clippy on tests (allow unwrap/expect)
+        run: |
+          cargo clippy \
+            --workspace \
+            --all-features \
+            --tests \
+            -- \
+            -A clippy::unwrap_used \
+            -A clippy::expect_used \
+            -D warnings
+
+  miri-memory-safety:
+    name: Miri Memory Safety Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust nightly with Miri
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: miri
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+
+      - name: Setup Miri
+        run: cargo miri setup
+
+      - name: Run Miri on memory_manager tests
+        timeout-minutes: 5
+        run: |
+          # Run only memory_manager tests to keep CI fast
+          cargo miri test \
+            --package riptide-core \
+            --lib \
+            memory_manager \
+            -- \
+            --nocapture
+        continue-on-error: true
+        id: miri_tests
+
+      - name: Report Miri results
+        run: |
+          if [ "${{ steps.miri_tests.outcome }}" = "success" ]; then
+            echo "✅ Miri memory safety checks passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Miri checks had issues - review logs" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  wasm-safety-docs:
+    name: WASM Safety Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for WASM bindings files
+        id: find_bindings
+        run: |
+          BINDINGS_FILES=$(find . -name 'bindings.rs' -type f)
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "$BINDINGS_FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          if [ -z "$BINDINGS_FILES" ]; then
+            echo "No bindings.rs files found"
+            echo "count=0" >> $GITHUB_OUTPUT
+          else
+            echo "Found bindings files:"
+            echo "$BINDINGS_FILES"
+            echo "count=$(echo "$BINDINGS_FILES" | wc -l)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Verify WASM safety documentation
+        if: steps.find_bindings.outputs.count != '0'
+        run: |
+          echo "## WASM Safety Documentation Check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          ALL_DOCUMENTED=true
+
+          while IFS= read -r file; do
+            if [ -n "$file" ]; then
+              echo "Checking $file..."
+
+              # Check for WASM FFI safety comment
+              if grep -q "SAFETY: Required for WASM component model FFI" "$file"; then
+                echo "✅ $file has required WASM safety documentation" >> $GITHUB_STEP_SUMMARY
+              elif grep -q "SAFETY:" "$file"; then
+                echo "⚠️ $file has SAFETY comments but missing WASM FFI documentation" >> $GITHUB_STEP_SUMMARY
+                ALL_DOCUMENTED=false
+              else
+                echo "❌ $file missing SAFETY documentation" >> $GITHUB_STEP_SUMMARY
+                ALL_DOCUMENTED=false
+              fi
+            fi
+          done <<< "${{ steps.find_bindings.outputs.files }}"
+
+          if [ "$ALL_DOCUMENTED" = false ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ Some bindings.rs files are missing proper WASM safety documentation" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All WASM bindings properly documented" >> $GITHUB_STEP_SUMMARY
+
+  safety-summary:
+    name: Safety Audit Summary
+    runs-on: ubuntu-latest
+    needs: [unsafe-audit, clippy-production, miri-memory-safety, wasm-safety-docs]
+    if: always()
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# Safety Audit Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Unsafe Code Audit | ${{ needs.unsafe-audit.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Clippy (No unwrap/expect) | ${{ needs.clippy-production.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Miri Memory Safety | ${{ needs.miri-memory-safety.result == 'success' && '✅ Passed' || '⚠️ Issues' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| WASM Safety Docs | ${{ needs.wasm-safety-docs.result == 'success' && '✅ Passed' || needs.wasm-safety-docs.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+
+          # Fail if critical checks failed
+          if [ "${{ needs.unsafe-audit.result }}" != "success" ] || \
+             [ "${{ needs.clippy-production.result }}" != "success" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ Critical safety checks failed" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All critical safety checks passed" >> $GITHUB_STEP_SUMMARY

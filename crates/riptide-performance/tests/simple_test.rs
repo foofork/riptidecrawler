@@ -4,7 +4,7 @@
 #[tokio::test]
 async fn test_compilation() {
     // If this compiles and runs, the basic setup is working
-    assert!(true);
+    // No assertions needed - successful compilation and execution is the test
 }
 
 #[test]

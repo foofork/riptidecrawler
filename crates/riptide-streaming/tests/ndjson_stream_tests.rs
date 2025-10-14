@@ -45,7 +45,7 @@ impl NdjsonStreamingTestFramework {
                 then.status(200)
                     .header("content-type", "text/html")
                     .header("content-length", "1024")
-                    .body(&format!(
+                    .body(format!(
                         r#"<html>
                         <head><title>Test Content {}</title></head>
                         <body>
@@ -81,7 +81,7 @@ impl NdjsonStreamingTestFramework {
                 then.status(200)
                     .header("content-type", "text/html")
                     .delay(Duration::from_millis(delay_ms))
-                    .body(&format!(
+                    .body(format!(
                         r#"<html>
                         <head><title>Delayed Content {}</title></head>
                         <body><p>Content with {}ms delay</p></body>
@@ -162,7 +162,7 @@ impl NdjsonStreamingTestFramework {
 
         let response = self
             .client
-            .post(&format!("{}/{}", self.base_url, endpoint))
+            .post(format!("{}/{}", self.base_url, endpoint))
             .json(&body)
             .send()
             .await
@@ -225,6 +225,7 @@ impl NdjsonStreamingTestFramework {
 struct StreamingResponse {
     ttfb: Duration,
     first_line_time: Duration,
+    #[allow(dead_code)]
     status: StatusCode,
     headers: HeaderMap,
     lines: Vec<Value>,
@@ -235,7 +236,7 @@ impl StreamingResponse {
     /// Get metadata line (should be first)
     fn metadata(&self) -> Result<&Value, TestError> {
         self.lines
-            .get(0)
+            .first()
             .ok_or_else(|| TestError::ParseError("No metadata line found".to_string()))
     }
 
@@ -304,7 +305,9 @@ enum TestError {
     StreamError(String),
     ParseError(String),
     ValidationError(String),
+    #[allow(dead_code)]
     TTFBTimeout(Duration),
+    #[allow(dead_code)]
     Performance(String),
 }
 
@@ -380,7 +383,7 @@ async fn test_crawl_stream_incremental_results() {
 
     // Results should arrive in completion order, not request order
     // This tests that streaming happens as results complete
-    for (_i, result_line) in result_lines.iter().enumerate() {
+    for result_line in result_lines.iter() {
         let result = result_line.get("result").expect("Should have result field");
         assert!(result["processing_time_ms"].is_number());
         assert!(result["url"].is_string());

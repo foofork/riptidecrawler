@@ -11,7 +11,7 @@
 //! - Scalability
 
 // Tests disabled due to missing riptide-api dependency
-#![cfg(all(test, feature = "integration-tests-disabled"))]
+#![cfg(not(test))]
 
 use anyhow::Result;
 use std::sync::atomic::{AtomicU64, Ordering};

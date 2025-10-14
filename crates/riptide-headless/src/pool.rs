@@ -5,7 +5,7 @@ use anyhow::{anyhow, Result};
 use chromiumoxide::{Browser, BrowserConfig, Page};
 use futures::StreamExt;
 use std::collections::{HashMap, VecDeque};
-use std::sync::{Arc, Weak};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tempfile::TempDir;
 use tokio::sync::{mpsc, Mutex, RwLock, Semaphore};
@@ -589,14 +589,20 @@ impl BrowserPool {
                         i += 1;
                     }
                     _ => {
-                        let mut browser = available_browsers.remove(i).unwrap();
-                        browser.cleanup().await;
-                        unhealthy_count += 1;
+                        if let Some(mut browser) = available_browsers.remove(i) {
+                            browser.cleanup().await;
+                            unhealthy_count += 1;
 
-                        let _ = event_sender.send(PoolEvent::BrowserRemoved {
-                            id: browser.id.clone(),
-                            reason: format!("Health check failed: {:?}", health),
-                        });
+                            let _ = event_sender.send(PoolEvent::BrowserRemoved {
+                                id: browser.id.clone(),
+                                reason: format!("Health check failed: {:?}", health),
+                            });
+                        } else {
+                            error!(
+                                "Failed to remove browser at index {} during health check",
+                                i
+                            );
+                        }
                     }
                 }
             }
@@ -642,7 +648,11 @@ impl BrowserPool {
         while i < available_browsers.len() {
             let browser = &available_browsers[i];
             if browser.is_expired(config.max_lifetime) || browser.is_idle(config.idle_timeout) {
-                let mut browser = available_browsers.remove(i).unwrap();
+                let Some(mut browser) = available_browsers.remove(i) else {
+                    error!(index = i, "Failed to remove expired browser at index");
+                    i += 1;
+                    continue;
+                };
                 browser.cleanup().await;
 
                 let reason = if browser.is_expired(config.max_lifetime) {
@@ -907,7 +917,7 @@ impl BrowserCheckout {
     /// If you need a custom timeout, use cleanup_with_timeout() instead.
     pub async fn cleanup(mut self) -> Result<()> {
         let timeout_duration = self.pool.config.cleanup_timeout;
-        tokio::time::timeout(timeout_duration, self.pool.checkin(&self.browser_id))
+        let _ = tokio::time::timeout(timeout_duration, self.pool.checkin(&self.browser_id))
             .await
             .map_err(|_| {
                 anyhow!(
@@ -925,7 +935,7 @@ impl BrowserCheckout {
     /// Cleanup with custom timeout - for cases where you need a different timeout
     #[allow(dead_code)] // Public API for custom timeout scenarios
     pub async fn cleanup_with_timeout(mut self, timeout_duration: Duration) -> Result<()> {
-        tokio::time::timeout(timeout_duration, self.pool.checkin(&self.browser_id))
+        let _ = tokio::time::timeout(timeout_duration, self.pool.checkin(&self.browser_id))
             .await
             .map_err(|_| {
                 anyhow!(

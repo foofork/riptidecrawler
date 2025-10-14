@@ -480,14 +480,20 @@ impl PerHostFetchEngine {
     async fn get_or_create_client(&self, host: &str) -> Result<Arc<ReliableHttpClient>> {
         // Check if client already exists (read lock)
         {
-            let clients = self.clients.read().unwrap();
+            let clients = self
+                .clients
+                .read()
+                .map_err(|e| anyhow::anyhow!("Failed to acquire read lock for clients: {}", e))?;
             if let Some(client) = clients.get(host) {
                 return Ok(client.clone());
             }
         }
 
         // Create new client (write lock)
-        let mut clients = self.clients.write().unwrap();
+        let mut clients = self
+            .clients
+            .write()
+            .map_err(|e| anyhow::anyhow!("Failed to acquire write lock for clients: {}", e))?;
 
         // Double-check in case another thread created it
         if let Some(client) = clients.get(host) {
@@ -507,33 +513,37 @@ impl PerHostFetchEngine {
     }
 
     /// Get or create a per-host rate limiter
-    fn get_or_create_rate_limiter(&self, host: &str) -> Arc<RateLimiter> {
+    fn get_or_create_rate_limiter(&self, host: &str) -> Result<Arc<RateLimiter>> {
         // Check if rate limiter already exists (read lock)
         {
-            let limiters = self.rate_limiters.read().unwrap();
+            let limiters = self.rate_limiters.read().map_err(|e| {
+                anyhow::anyhow!("Failed to acquire read lock for rate limiters: {}", e)
+            })?;
             if let Some(limiter) = limiters.get(host) {
-                return limiter.clone();
+                return Ok(limiter.clone());
             }
         }
 
         // Create new rate limiter (write lock)
-        let mut limiters = self.rate_limiters.write().unwrap();
+        let mut limiters = self.rate_limiters.write().map_err(|e| {
+            anyhow::anyhow!("Failed to acquire write lock for rate limiters: {}", e)
+        })?;
 
         // Double-check in case another thread created it
         if let Some(limiter) = limiters.get(host) {
-            return limiter.clone();
+            return Ok(limiter.clone());
         }
 
         let limiter = Arc::new(RateLimiter::new(self.rate_limit_config.clone()));
         limiters.insert(host.to_string(), limiter.clone());
         debug!(host = %host, "Created new per-host rate limiter");
 
-        limiter
+        Ok(limiter)
     }
 
     /// Check per-host rate limit
     async fn check_rate_limit(&self, host: &str) -> Result<()> {
-        let limiter = self.get_or_create_rate_limiter(host);
+        let limiter = self.get_or_create_rate_limiter(host)?;
         limiter.check_limit().await
     }
 
@@ -584,7 +594,13 @@ impl PerHostFetchEngine {
 
     /// Record metrics for a host
     fn record_metrics(&self, host: &str, duration: Duration, success: bool) {
-        let mut metrics_map = self.metrics.write().unwrap();
+        let mut metrics_map = match self.metrics.write() {
+            Ok(guard) => guard,
+            Err(e) => {
+                error!(host = %host, error = %e, "Failed to acquire write lock for metrics");
+                return;
+            }
+        };
         let host_metrics = metrics_map.entry(host.to_string()).or_default();
 
         host_metrics.request_count += 1;
@@ -599,7 +615,7 @@ impl PerHostFetchEngine {
 
     /// Get metrics for a specific host
     pub fn get_host_metrics(&self, host: &str) -> Option<HostMetrics> {
-        let metrics = self.metrics.read().unwrap();
+        let metrics = self.metrics.read().ok()?;
         metrics.get(host).cloned()
     }
 
@@ -607,8 +623,30 @@ impl PerHostFetchEngine {
     pub async fn get_all_metrics(&self) -> FetchMetricsResponse {
         // Clone data needed from locked sections to avoid holding locks across await
         let (metrics_snapshot, clients_snapshot) = {
-            let metrics = self.metrics.read().unwrap();
-            let clients = self.clients.read().unwrap();
+            let metrics = match self.metrics.read() {
+                Ok(guard) => guard,
+                Err(e) => {
+                    error!(error = %e, "Failed to acquire read lock for metrics");
+                    return FetchMetricsResponse {
+                        hosts: std::collections::HashMap::new(),
+                        total_requests: 0,
+                        total_success: 0,
+                        total_failures: 0,
+                    };
+                }
+            };
+            let clients = match self.clients.read() {
+                Ok(guard) => guard,
+                Err(e) => {
+                    error!(error = %e, "Failed to acquire read lock for clients");
+                    return FetchMetricsResponse {
+                        hosts: std::collections::HashMap::new(),
+                        total_requests: 0,
+                        total_success: 0,
+                        total_failures: 0,
+                    };
+                }
+            };
             (metrics.clone(), clients.clone())
         }; // Locks dropped here
 

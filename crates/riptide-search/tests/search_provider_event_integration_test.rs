@@ -483,8 +483,10 @@ mod integration_tests {
         let mut event_bus = EventBus::new();
 
         // Create handler that only handles error events
-        let mut error_handler_config = HandlerConfig::default();
-        error_handler_config.min_severity = EventSeverity::Error;
+        let _error_handler_config = HandlerConfig {
+            min_severity: EventSeverity::Error,
+            ..Default::default()
+        };
 
         let handler = Arc::new(SearchProviderEventHandler::new());
         event_bus.register_handler(handler.clone()).await.unwrap();

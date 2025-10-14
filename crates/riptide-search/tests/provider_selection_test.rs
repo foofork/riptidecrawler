@@ -398,7 +398,7 @@ mod provider_health_check_tests {
         assert!(provider.is_ok());
 
         let provider = provider.unwrap();
-        let health_result = provider.health_check().await;
+        let _health_result = provider.health_check().await;
         // This should fail because we're using a fake API key
         // But we won't assert that because it requires network access
         // and we want tests to be deterministic

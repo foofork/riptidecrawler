@@ -14,8 +14,6 @@
 /// ```
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use std::collections::VecDeque;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 // Import stratified pool components
@@ -225,7 +223,8 @@ fn bench_promotion_effectiveness(c: &mut Criterion) {
 
     group.bench_function("promote_warm_to_hot", |b| {
         b.iter(|| {
-            black_box(pool.promote_warm_to_hot());
+            pool.promote_warm_to_hot();
+            black_box(());
         });
     });
 

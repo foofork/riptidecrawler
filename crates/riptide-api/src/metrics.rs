@@ -123,8 +123,12 @@ pub struct RipTideMetrics {
     pub extraction_fallback_triggered: IntCounterVec, // Fallback events (from_mode, to_mode, reason)
 
     // Pipeline Phase Timing (additional phases)
+    /// Reserved for pipeline phase tracking - used via record_pipeline_phase_ms()
+    #[allow(dead_code)]
     pub pipeline_phase_gate_analysis_ms: Histogram, // Gate analysis phase
-    pub pipeline_phase_extraction_ms: Histogram,    // Extraction phase
+    /// Reserved for pipeline phase tracking - used via record_pipeline_phase_ms()
+    #[allow(dead_code)]
+    pub pipeline_phase_extraction_ms: Histogram, // Extraction phase
 }
 
 impl RipTideMetrics {
@@ -1290,6 +1294,8 @@ impl RipTideMetrics {
     }
 
     /// Record pipeline phase timing
+    /// Reserved for pipeline phase tracking - will be wired up when metrics collection is implemented
+    #[allow(dead_code)]
     pub fn record_pipeline_phase_ms(&self, phase: &str, duration_ms: f64) {
         match phase {
             "gate_analysis" => self.pipeline_phase_gate_analysis_ms.observe(duration_ms),

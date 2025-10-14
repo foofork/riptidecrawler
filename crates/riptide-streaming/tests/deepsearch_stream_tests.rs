@@ -40,7 +40,7 @@ impl DeepSearchStreamingTestFramework {
     }
 
     /// Setup mock Serper API response
-    fn setup_serper_mock(&self, query: &str, results: Vec<SearchResultData>) -> Mock {
+    fn setup_serper_mock(&self, query: &str, results: Vec<SearchResultData>) -> Mock<'_> {
         let organic_results: Vec<Value> = results
             .into_iter()
             .map(|r| {
@@ -57,7 +57,7 @@ impl DeepSearchStreamingTestFramework {
             when.method(POST)
                 .path("/search")
                 .header("X-API-KEY", "test_api_key_123")
-                .json_body_partial(&format!(r#"{{"q":"{}"}}"#, query));
+                .json_body_partial(format!(r#"{{"q":"{}"}}"#, query));
             then.status(200).json_body(serde_json::json!({
                 "organic": organic_results,
                 "searchParameters": {
@@ -70,14 +70,14 @@ impl DeepSearchStreamingTestFramework {
     }
 
     /// Setup mock content servers for search results
-    fn setup_content_mocks(&self, urls: &[&str]) -> Vec<Mock> {
+    fn setup_content_mocks(&self, urls: &[&str]) -> Vec<Mock<'_>> {
         urls.iter().map(|url| {
             let path = url.trim_start_matches(&self.content_mock_server.base_url());
             self.content_mock_server.mock(|when, then| {
                 when.method(GET).path(path);
                 then.status(200)
                     .header("content-type", "text/html")
-                    .body(&format!(
+                    .body(format!(
                         r#"<html>
                         <head><title>Content for {}</title></head>
                         <body>
@@ -100,7 +100,7 @@ impl DeepSearchStreamingTestFramework {
     }
 
     /// Setup failing content mocks
-    fn setup_failing_content_mocks(&self, urls: &[&str]) -> Vec<Mock> {
+    fn setup_failing_content_mocks(&self, urls: &[&str]) -> Vec<Mock<'_>> {
         urls.iter()
             .map(|url| {
                 let path = url.trim_start_matches(&self.content_mock_server.base_url());
@@ -149,7 +149,7 @@ impl DeepSearchStreamingTestFramework {
 
         let response = self
             .client
-            .post(&format!("{}/deepsearch/stream", self.api_base_url))
+            .post(format!("{}/deepsearch/stream", self.api_base_url))
             .json(&request)
             .send()
             .await
@@ -226,6 +226,7 @@ impl SearchResultData {
 struct DeepSearchStreamingResponse {
     ttfb: Duration,
     first_line_time: Duration,
+    #[allow(dead_code)]
     status: reqwest::StatusCode,
     headers: reqwest::header::HeaderMap,
     lines: Vec<Value>,
@@ -340,7 +341,7 @@ async fn test_deepsearch_basic_streaming() {
     let search_results = response.search_results();
     assert_eq!(search_results.len(), 2, "Should have 2 search results");
 
-    for (i, result) in search_results.iter().enumerate() {
+    for result in search_results.iter() {
         let search_result = &result["search_result"];
         assert!(search_result["url"].is_string());
         assert!(search_result["rank"].is_number());
@@ -399,7 +400,7 @@ async fn test_deepsearch_without_content_extraction() {
     // Should not have crawl results
     let result = &search_results[0];
     assert!(
-        result["crawl_result"].is_null() || !result.get("crawl_result").is_some(),
+        result["crawl_result"].is_null() || result.get("crawl_result").is_none(),
         "Should not have crawl result when include_content=false"
     );
 
@@ -720,7 +721,7 @@ async fn test_deepsearch_rate_limiting() {
             then.status(200)
                 .delay(Duration::from_millis(delay))
                 .header("content-type", "text/html")
-                .body(&format!("<html><body><h1>Content {}</h1></body></html>", i));
+                .body(format!("<html><body><h1>Content {}</h1></body></html>", i));
         });
     }
 

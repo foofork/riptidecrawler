@@ -473,7 +473,7 @@ mod circuit_breaker_concurrency_tests {
             });
         }
 
-        while let Some(_) = set.join_next().await {}
+        while set.join_next().await.is_some() {}
 
         // Circuit should be open due to failures
         assert_eq!(circuit.current_state(), CircuitState::Open);

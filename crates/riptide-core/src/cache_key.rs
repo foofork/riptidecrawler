@@ -103,9 +103,13 @@ impl CacheKeyBuilder {
     ///
     /// Format: `riptide:{namespace}:{version}:{hash}`
     /// Where hash is SHA256 of: url|method|sorted_options
-    pub fn build(self) -> String {
-        let url = self.url.expect("URL is required for cache key");
-        let method = self.method.expect("Method is required for cache key");
+    pub fn build(self) -> Result<String, anyhow::Error> {
+        let url = self
+            .url
+            .ok_or_else(|| anyhow::anyhow!("URL is required for cache key"))?;
+        let method = self
+            .method
+            .ok_or_else(|| anyhow::anyhow!("Method is required for cache key"))?;
 
         // Create deterministic string from components
         let mut hasher = Sha256::new();
@@ -139,10 +143,10 @@ impl CacheKeyBuilder {
         let hash = format!("{:x}", hasher.finalize());
 
         // Build final key
-        match self.namespace {
+        Ok(match self.namespace {
             Some(ns) => format!("riptide:{}:{}:{}", ns, self.version, hash),
             None => format!("riptide:{}:{}", self.version, hash),
-        }
+        })
     }
 
     /// Convert to params struct
@@ -152,8 +156,8 @@ impl CacheKeyBuilder {
         }
 
         Some(CacheKeyParams {
-            url: self.url.clone().unwrap(),
-            method: self.method.clone().unwrap(),
+            url: self.url.clone()?,
+            method: self.method.clone()?,
             version: self.version.clone(),
             options: self.options.clone(),
             namespace: self.namespace.clone(),
@@ -167,7 +171,7 @@ pub fn generate_strategies_cache_key(
     extraction_method: &str,
     cache_mode: &str,
     version: &str,
-) -> String {
+) -> Result<String, anyhow::Error> {
     CacheKeyBuilder::new()
         .url(url)
         .method(extraction_method)
@@ -182,7 +186,7 @@ pub fn generate_fetch_cache_key(
     url: &str,
     version: &str,
     options: &BTreeMap<String, String>,
-) -> String {
+) -> Result<String, anyhow::Error> {
     CacheKeyBuilder::new()
         .url(url)
         .method("fetch")
@@ -193,7 +197,11 @@ pub fn generate_fetch_cache_key(
 }
 
 /// Helper function to create cache key for WASM extraction
-pub fn generate_wasm_cache_key(url: &str, extraction_mode: &str, version: &str) -> String {
+pub fn generate_wasm_cache_key(
+    url: &str,
+    extraction_mode: &str,
+    version: &str,
+) -> Result<String, anyhow::Error> {
     CacheKeyBuilder::new()
         .url(url)
         .method("wasm")
@@ -212,7 +220,8 @@ mod tests {
         let key = CacheKeyBuilder::new()
             .url("https://example.com")
             .method("trek")
-            .build();
+            .build()
+            .expect("Failed to build cache key");
 
         assert!(key.starts_with("riptide:v1:"));
         assert!(key.len() > 20); // Should have hash
@@ -225,7 +234,8 @@ mod tests {
             .method("trek")
             .option("chunking", "sentence")
             .option("language", "en")
-            .build();
+            .build()
+            .expect("Failed to build cache key");
 
         assert!(key.starts_with("riptide:v1:"));
     }
@@ -236,26 +246,33 @@ mod tests {
             .url("https://example.com")
             .method("trek")
             .namespace("strategies")
-            .build();
+            .build()
+            .expect("Failed to build cache key");
 
         assert!(key.starts_with("riptide:strategies:v1:"));
     }
 
     #[test]
-    #[should_panic(expected = "URL is required")]
     fn test_builder_missing_url() {
-        CacheKeyBuilder::new().method("trek").build();
+        let result = CacheKeyBuilder::new().method("trek").build();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("URL is required"));
     }
 
     #[test]
-    #[should_panic(expected = "Method is required")]
     fn test_builder_missing_method() {
-        CacheKeyBuilder::new().url("https://example.com").build();
+        let result = CacheKeyBuilder::new().url("https://example.com").build();
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Method is required"));
     }
 
     #[test]
     fn test_helper_strategies() {
-        let key = generate_strategies_cache_key("https://example.com", "trek", "write", "v1.0.0");
+        let key = generate_strategies_cache_key("https://example.com", "trek", "write", "v1.0.0")
+            .expect("Failed to generate strategies cache key");
 
         assert!(key.starts_with("riptide:strategies:v1.0.0:"));
     }
@@ -265,14 +282,16 @@ mod tests {
         let mut opts = BTreeMap::new();
         opts.insert("timeout".to_string(), "30".to_string());
 
-        let key = generate_fetch_cache_key("https://example.com", "v1.0.0", &opts);
+        let key = generate_fetch_cache_key("https://example.com", "v1.0.0", &opts)
+            .expect("Failed to generate fetch cache key");
 
         assert!(key.starts_with("riptide:fetch:v1.0.0:"));
     }
 
     #[test]
     fn test_helper_wasm() {
-        let key = generate_wasm_cache_key("https://example.com", "article", "v1.0.0");
+        let key = generate_wasm_cache_key("https://example.com", "article", "v1.0.0")
+            .expect("Failed to generate wasm cache key");
 
         assert!(key.starts_with("riptide:wasm:v1.0.0:"));
     }

@@ -106,8 +106,9 @@ impl DomTraverser {
     }
 
     /// Get document statistics
-    pub fn get_stats(&self) -> DocumentStats {
-        let selector = Selector::parse("*").unwrap();
+    pub fn get_stats(&self) -> Result<DocumentStats> {
+        let selector = Selector::parse("*")
+            .map_err(|e| anyhow::anyhow!("Invalid universal selector: {}", e))?;
         let all_elements = self.document.select(&selector);
         let mut tag_counts = HashMap::new();
         let mut total_text_length = 0;
@@ -125,14 +126,14 @@ impl DomTraverser {
         let has_images = tag_counts.contains_key("img");
         let total_elements = tag_counts.values().sum();
 
-        DocumentStats {
+        Ok(DocumentStats {
             total_elements,
             tag_counts,
             total_text_length,
             has_tables,
             has_forms,
             has_images,
-        }
+        })
     }
 }
 
