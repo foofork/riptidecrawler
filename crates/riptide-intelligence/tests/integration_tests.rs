@@ -453,9 +453,9 @@ async fn test_environment_configuration_loading() {
 
 /// Test automatic provider failover with health monitoring
 #[tokio::test]
-#[ignore] // TODO: HealthMonitorBuilder doesn't exist, MockLlmProvider doesn't have set_healthy()
+#[ignore = "TODO: HealthMonitorBuilder doesn't exist - MockLlmProvider.set_healthy() now implemented"]
 async fn test_automatic_provider_failover() {
-    // Test requires HealthMonitorBuilder and MockLlmProvider.set_healthy() which don't exist yet
+    // Test requires HealthMonitorBuilder which doesn't exist yet (MockLlmProvider.set_healthy() is now available)
     /*
     // Create health monitor
     let health_monitor = Arc::new(
@@ -799,9 +799,9 @@ async fn test_hot_reload_configuration_management() {
 
 /// Test comprehensive error handling and recovery
 #[tokio::test]
-#[ignore] // TODO: HealthMonitorBuilder doesn't exist, MockLlmProvider doesn't have set_healthy()
+#[ignore = "TODO: HealthMonitorBuilder doesn't exist - MockLlmProvider.set_healthy() now implemented"]
 async fn test_comprehensive_error_handling_and_recovery() {
-    // Test requires HealthMonitorBuilder and MockLlmProvider.set_healthy() which don't exist yet
+    // Test requires HealthMonitorBuilder which doesn't exist yet (MockLlmProvider.set_healthy() is now available)
     /*
     // Test invalid configuration handling
     let registry = Arc::new(LlmRegistry::new());

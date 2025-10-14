@@ -2,7 +2,7 @@
 
 use async_trait::async_trait;
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -18,6 +18,7 @@ pub struct MockLlmProvider {
     fail_after: Option<u32>,
     delay_ms: Option<u64>,
     should_fail: bool,
+    is_healthy: AtomicBool,
 }
 
 impl MockLlmProvider {
@@ -29,6 +30,7 @@ impl MockLlmProvider {
             fail_after: None,
             delay_ms: None,
             should_fail: false,
+            is_healthy: AtomicBool::new(true),
         }
     }
 
@@ -40,6 +42,7 @@ impl MockLlmProvider {
             fail_after: None,
             delay_ms: None,
             should_fail: false,
+            is_healthy: AtomicBool::new(true),
         }
     }
 
@@ -69,6 +72,16 @@ impl MockLlmProvider {
     /// Reset the request counter
     pub fn reset_counter(&self) {
         self.request_count.store(0, Ordering::SeqCst);
+    }
+
+    /// Set the health status of this provider (for testing health monitoring)
+    pub fn set_healthy(&self, healthy: bool) {
+        self.is_healthy.store(healthy, Ordering::SeqCst);
+    }
+
+    /// Check if the provider is healthy
+    pub fn is_healthy(&self) -> bool {
+        self.is_healthy.load(Ordering::SeqCst)
     }
 
     /// Generate a mock response based on the request
@@ -236,6 +249,13 @@ impl LlmProvider for MockLlmProvider {
         // Add delay if configured (same as in complete)
         if let Some(delay) = self.delay_ms {
             sleep(Duration::from_millis(delay)).await;
+        }
+
+        // Check configured health status first
+        if !self.is_healthy.load(Ordering::SeqCst) {
+            return Err(IntelligenceError::Provider(
+                "Mock provider is unhealthy".to_string(),
+            ));
         }
 
         if self.should_fail {

@@ -47,6 +47,7 @@ pub mod instance_pool;
 pub mod integrated_cache;
 pub mod memory_manager;
 pub mod monitoring;
+pub mod wasm_validation;
 
 // PDF functionality moved to riptide-pdf crate
 #[cfg(feature = "pdf")]

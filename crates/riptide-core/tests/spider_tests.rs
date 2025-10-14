@@ -7,7 +7,6 @@ mod bm25_scoring_tests {
     use super::*;
 
     #[test]
-    #[ignore = "TODO: Adjust test expectations for BM25Scorer - scoring behavior changed"]
     fn test_bm25_calculation() {
         let mut scorer = BM25Scorer::new("quick fox", 1.2, 0.75);
 
@@ -28,16 +27,27 @@ mod bm25_scoring_tests {
         // Test scoring with score() method
         let scores: Vec<f64> = documents.iter().map(|doc| scorer.score(doc)).collect();
 
-        // TODO: Verify expected scoring behavior with new BM25 implementation
-        // The IDF calculation and term frequency handling may differ from old API
+        // Verify scoring behavior: Documents with query terms should score higher
         // Documents with "quick" and "fox" should score highest
-        assert!(scores[0] > scores[1]); // Doc 0 has both terms
-        assert!(scores[2] > scores[1]); // Doc 2 has both terms
-        assert!(scores[4] > scores[3]); // Doc 4 has "fox"
+        assert!(
+            scores[0] > scores[1],
+            "Doc 0 (has both 'quick' and 'fox') should score higher than doc 1 (no query terms)"
+        );
+        assert!(
+            scores[2] > scores[1],
+            "Doc 2 (has both 'quick' and 'fox') should score higher than doc 1 (no query terms)"
+        );
+        assert!(
+            scores[4] > scores[3],
+            "Doc 4 (has 'fox') should score higher than doc 3 (no query terms)"
+        );
+
+        // Ensure documents without query terms have lower scores
+        assert!(scores[0] > 0.0, "Doc 0 should have positive score");
+        assert!(scores[2] > 0.0, "Doc 2 should have positive score");
     }
 
     #[test]
-    #[ignore = "TODO: Adjust saturation expectations for BM25Scorer - implementation changed"]
     fn test_term_frequency_saturation() {
         let mut scorer = BM25Scorer::new("test", 1.2, 0.75);
 
@@ -54,9 +64,27 @@ mod bm25_scoring_tests {
 
         let scores: Vec<f64> = documents.iter().map(|doc| scorer.score(doc)).collect();
 
-        // TODO: Verify saturation behavior with new BM25 implementation
-        // BM25 should saturate - doc with 5 occurrences shouldn't be 5x higher
-        assert!(scores[0] < scores[1] * 3.0);
+        // Verify saturation behavior: BM25 should saturate with k1 parameter
+        // Document with 5 occurrences shouldn't score proportionally higher than 1 occurrence
+        // Due to term frequency saturation, the ratio should be much less than 5x
+        assert!(
+            scores[0] > scores[1],
+            "Doc with 5 'test' occurrences should score higher than doc with 1"
+        );
+        assert!(
+            scores[1] > scores[2],
+            "Doc with 1 'test' occurrence should score higher than doc with 0"
+        );
+        assert!(
+            scores[0] < scores[1] * 5.0,
+            "BM25 saturation: 5 occurrences shouldn't be 5x higher"
+        );
+
+        // With k1=1.2, the saturation should keep it under 3x for reasonable doc lengths
+        assert!(
+            scores[0] < scores[1] * 3.0,
+            "BM25 saturation should limit score growth"
+        );
     }
 
     #[test]
