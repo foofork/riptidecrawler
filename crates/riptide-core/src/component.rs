@@ -26,6 +26,8 @@ pub struct ExtractorConfig {
     pub memory_limit: Option<usize>,
     pub circuit_breaker_timeout: u64,
     pub circuit_breaker_failure_threshold: u32,
+    /// Enable WIT (WebAssembly Interface Types) validation before component instantiation
+    pub enable_wit_validation: bool,
 }
 
 impl Default for ExtractorConfig {
@@ -43,6 +45,7 @@ impl Default for ExtractorConfig {
             memory_limit: Some(512 * 1024 * 1024), // 512MB
             circuit_breaker_timeout: 5000,
             circuit_breaker_failure_threshold: 5,
+            enable_wit_validation: true, // Enable WIT validation by default
         }
     }
 }
@@ -66,6 +69,11 @@ pub struct PerformanceMetrics {
     pub wasm_grow_failed_total: u64,
     pub failed_extractions: u64,
     pub epoch_timeouts: u64,
+    /// P2-2: WIT validation metrics
+    pub wit_validations_total: u64,
+    pub wit_validations_passed: u64,
+    pub wit_validations_failed: u64,
+    pub wit_validation_warnings: u64,
 }
 
 /// Resource tracking for WASM instances

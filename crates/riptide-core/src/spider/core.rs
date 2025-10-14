@@ -807,7 +807,7 @@ impl Spider {
     }
 
     /// Get reference to URL utils for testing
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test-utils"))]
     pub fn url_utils(&self) -> &Arc<RwLock<UrlUtils>> {
         &self.url_utils
     }

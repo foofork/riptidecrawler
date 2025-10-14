@@ -70,6 +70,7 @@ pdf = ["riptide-pdf/pdf"]
 stealth = ["riptide-stealth/stealth"]
 full-stealth = ["riptide-stealth/full-stealth"]
 benchmarks = ["criterion", "geohash"]
+test-utils = []
 api-integration = ["pdf", "stealth"]
 
 [[bench]]
@@ -79,5 +80,10 @@ required-features = ["benchmarks"]
 
 [[bench]]
 name = "strategies_bench"
+harness = false
+required-features = ["benchmarks"]
+
+[[bench]]
+name = "stratified_pool_bench"
 harness = false
 required-features = ["benchmarks"]

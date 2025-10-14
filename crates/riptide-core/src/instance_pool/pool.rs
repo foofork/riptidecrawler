@@ -58,11 +58,52 @@ impl AdvancedInstancePool {
         info!(
             max_pool_size = config.max_pool_size,
             initial_pool_size = config.initial_pool_size,
+            wit_validation_enabled = config.enable_wit_validation,
             "Initializing advanced instance pool"
         );
 
         // Load component
         let component = Component::from_file(&engine, component_path)?;
+
+        // Create initial metrics for tracking validation
+        let initial_metrics = Arc::new(Mutex::new(PerformanceMetrics::default()));
+
+        // P2-2: WIT validation before instantiation
+        if config.enable_wit_validation {
+            use crate::wasm_validation::validate_before_instantiation;
+            info!("Performing WIT validation on component before instantiation");
+
+            // Track validation attempt
+            {
+                let mut metrics = initial_metrics.lock().await;
+                metrics.wit_validations_total += 1;
+            }
+
+            if let Err(e) = validate_before_instantiation(&component) {
+                // Track validation failure
+                {
+                    let mut metrics = initial_metrics.lock().await;
+                    metrics.wit_validations_failed += 1;
+                }
+
+                warn!(
+                    error = %e,
+                    component_path = %component_path,
+                    "WIT validation failed, component may be incompatible"
+                );
+                // Return error to prevent instantiation of invalid components
+                return Err(anyhow!("WIT validation failed: {}", e));
+            }
+
+            // Track validation success
+            {
+                let mut metrics = initial_metrics.lock().await;
+                metrics.wit_validations_passed += 1;
+            }
+
+            info!("WIT validation passed successfully");
+        }
+
         let linker: Linker<WasmResourceTracker> = Linker::new(&engine);
 
         let pool = Self {
@@ -74,7 +115,7 @@ impl AdvancedInstancePool {
                 config.max_pool_size,
             ))),
             semaphore: Arc::new(Semaphore::new(config.max_pool_size)),
-            metrics: Arc::new(Mutex::new(PerformanceMetrics::default())),
+            metrics: initial_metrics,
             circuit_state: Arc::new(Mutex::new(CircuitBreakerState::Closed {
                 failure_count: 0,
                 success_count: 0,

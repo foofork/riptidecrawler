@@ -22,6 +22,8 @@ mod tests {
             gc_interval: Duration::from_secs(5),
             aggressive_gc: false,
             memory_pressure_threshold: 80.0,
+            cleanup_timeout: Duration::from_secs(5),
+            enable_wit_validation: false, // Disable for tests
         }
     }
 
@@ -125,6 +127,8 @@ mod tests {
             gc_interval: Duration::from_secs(2),
             aggressive_gc: true,
             memory_pressure_threshold: 70.0,
+            cleanup_timeout: Duration::from_secs(5),
+            enable_wit_validation: false, // Disable for tests
         };
         let engine = create_test_engine();
 

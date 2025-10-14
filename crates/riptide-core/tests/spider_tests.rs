@@ -655,8 +655,10 @@ mod crawl_orchestration_tests {
 
 #[cfg(test)]
 mod url_frontier_tests {
+    use riptide_core::spider::config::SpiderPresets;
     use riptide_core::spider::frontier::{FrontierConfig, FrontierManager};
     use riptide_core::spider::types::{CrawlRequest, Priority};
+    use riptide_core::spider::Spider;
     use std::str::FromStr;
     use url::Url;
 
@@ -702,21 +704,101 @@ mod url_frontier_tests {
     }
 
     #[tokio::test]
-    #[ignore = "TODO: Implement deduplication test with FrontierManager"]
     async fn test_url_deduplication() {
-        // FrontierManager doesn't automatically deduplicate URLs
-        // Deduplication would need to be handled at a higher level (Spider)
-        // or by checking if URL already exists before adding
+        use std::str::FromStr;
 
-        unimplemented!("Deduplication handled by Spider, not FrontierManager")
+        let config = SpiderPresets::development();
+        let spider = Spider::new(config).await.expect("Spider should be created");
+
+        // Get URL utils instance
+        let url_utils = spider.url_utils();
+        let url_utils_guard = url_utils.read().await;
+
+        // Test duplicate detection
+        let url1 = Url::from_str("https://example.com/page").expect("Valid URL");
+        let url2 = Url::from_str("https://example.com/page").expect("Same URL");
+        let url3 = Url::from_str("https://example.com/other").expect("Different URL");
+
+        // First occurrence should not be duplicate
+        assert!(
+            !url_utils_guard
+                .is_duplicate_and_mark(&url1)
+                .await
+                .expect("Should work"),
+            "First URL should not be marked as duplicate"
+        );
+
+        // Second occurrence should be duplicate
+        assert!(
+            url_utils_guard
+                .is_duplicate_and_mark(&url2)
+                .await
+                .expect("Should work"),
+            "Second identical URL should be marked as duplicate"
+        );
+
+        // Different URL should not be duplicate
+        assert!(
+            !url_utils_guard
+                .is_duplicate_and_mark(&url3)
+                .await
+                .expect("Should work"),
+            "Different URL should not be marked as duplicate"
+        );
+
+        // Verify statistics
+        let stats = url_utils_guard.get_stats().await;
+        assert_eq!(
+            stats.duplicates_found, 1,
+            "Should detect exactly 1 duplicate"
+        );
     }
 
     #[tokio::test]
-    #[ignore = "TODO: URL normalization moved to url_utils module"]
     async fn test_url_normalization() {
-        // URL normalization is in spider/url_utils.rs, not in FrontierManager
-        // Test url_utils::normalize_url() instead
+        use std::str::FromStr;
 
-        unimplemented!("Test url_utils::normalize_url() instead")
+        let config = SpiderPresets::development();
+        let spider = Spider::new(config).await.expect("Spider should be created");
+
+        // Get URL utils instance
+        let url_utils = spider.url_utils();
+        let url_utils_guard = url_utils.read().await;
+
+        // Test normalization features
+        let url =
+            Url::from_str("https://WWW.Example.COM:443/path/?z=3&a=1#fragment").expect("Valid URL");
+
+        let normalized = url_utils_guard
+            .normalize_url(&url)
+            .expect("Normalization should work");
+
+        // Verify normalization transformations
+        assert_eq!(
+            normalized.host_str().unwrap(),
+            "www.example.com",
+            "Should lowercase hostname (www. prefix removal is disabled by default)"
+        );
+        assert_eq!(
+            normalized.port(),
+            None,
+            "Should remove default HTTPS port 443"
+        );
+        assert_eq!(normalized.fragment(), None, "Should remove fragment");
+        assert_eq!(
+            normalized.query(),
+            Some("a=1&z=3"),
+            "Should sort query params alphabetically"
+        );
+        assert_eq!(normalized.path(), "/path", "Path should be preserved");
+
+        // Verify idempotency (normalizing twice gives same result)
+        let normalized_again = url_utils_guard
+            .normalize_url(&normalized)
+            .expect("Should work");
+        assert_eq!(
+            normalized, normalized_again,
+            "Normalization should be idempotent"
+        );
     }
 }

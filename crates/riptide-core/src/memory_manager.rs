@@ -36,6 +36,8 @@ pub struct MemoryManagerConfig {
     pub memory_pressure_threshold: f64,
     /// Cleanup timeout for resource cleanup operations (seconds)
     pub cleanup_timeout: Duration,
+    /// Enable WIT (WebAssembly Interface Types) validation before component instantiation
+    pub enable_wit_validation: bool,
 }
 
 impl Default for MemoryManagerConfig {
@@ -51,6 +53,7 @@ impl Default for MemoryManagerConfig {
             aggressive_gc: false,
             memory_pressure_threshold: 80.0,         // 80%
             cleanup_timeout: Duration::from_secs(5), // 5 second cleanup timeout
+            enable_wit_validation: true,             // Enable WIT validation by default
         }
     }
 }
@@ -730,6 +733,30 @@ impl MemoryManager {
             report_error!(&error, "create_wasm_instance", "component_path" => component_path);
             error
         })?;
+
+        // P2-2: WIT validation before instantiation
+        if self.config.enable_wit_validation {
+            use crate::wasm_validation::validate_before_instantiation;
+            debug!(instance_id = %id, "Performing WIT validation on component");
+
+            if let Err(e) = validate_before_instantiation(&component) {
+                warn!(
+                    instance_id = %id,
+                    error = %e,
+                    component_path = %component_path,
+                    "WIT validation failed for WASM instance"
+                );
+                // Return error to prevent instantiation of incompatible components
+                let error = CoreError::WasmError {
+                    message: format!("WIT validation failed: {}", e),
+                    source: None,
+                };
+                report_error!(&error, "wit_validation", "component_path" => component_path);
+                return Err(error.into());
+            }
+
+            debug!(instance_id = %id, "WIT validation passed");
+        }
 
         let instance = TrackedWasmInstance::new(id, store, component);
 
