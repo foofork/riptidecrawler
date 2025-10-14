@@ -90,6 +90,7 @@ async fn create_test_extractor(
     let extractor_config = ExtractorConfig {
         max_instances: config.pool_size,
         enable_metrics: true,
+        enable_wit_validation: false, // Disable for benchmarks
         timeout_ms: 5000,
         memory_limit_pages: Some(8192),  // 512MB / 64KB per page
         extraction_timeout: Some(30000), // 30 seconds
@@ -179,6 +180,7 @@ fn bench_pool_efficiency(c: &mut Criterion) {
         let config = ExtractorConfig {
             max_instances: pool_size,
             enable_metrics: true,
+            enable_wit_validation: false, // Disable for benchmarks
             timeout_ms: 5000,
             memory_limit_pages: Some(4096),  // 256MB / 64KB per page
             extraction_timeout: Some(30000), // 30 seconds
@@ -340,6 +342,7 @@ fn bench_circuit_breaker(c: &mut Criterion) {
     let config = ExtractorConfig {
         max_instances: 4,
         enable_metrics: true,
+        enable_wit_validation: false,   // Disable for benchmarks
         timeout_ms: 100,                // Short timeout to trigger failures
         memory_limit_pages: Some(1024), // 64MB / 64KB per page
         extraction_timeout: Some(100),  // Short timeout
@@ -380,6 +383,7 @@ fn bench_initialization(c: &mut Criterion) {
             ExtractorConfig {
                 max_instances: 1,
                 enable_metrics: false,
+                enable_wit_validation: false, // Disable for benchmarks
                 timeout_ms: 2000,
                 memory_limit_pages: Some(2048), // 128MB / 64KB per page
                 extraction_timeout: Some(10000), // 10 seconds
@@ -398,6 +402,7 @@ fn bench_initialization(c: &mut Criterion) {
             ExtractorConfig {
                 max_instances: 16,
                 enable_metrics: true,
+                enable_wit_validation: false, // Disable for benchmarks
                 timeout_ms: 10000,
                 memory_limit_pages: Some(16384), // 1GB / 64KB per page
                 extraction_timeout: Some(30000), // 30 seconds
