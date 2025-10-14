@@ -314,6 +314,17 @@ impl FetchEngine {
     pub fn is_robots_enabled(&self) -> bool {
         self.client.is_robots_enabled()
     }
+
+    /// Get metrics (FetchEngine doesn't track per-host metrics, returns empty response)
+    /// For detailed per-host metrics, use PerHostFetchEngine instead
+    pub async fn get_all_metrics(&self) -> FetchMetricsResponse {
+        FetchMetricsResponse {
+            hosts: std::collections::HashMap::new(),
+            total_requests: 0,
+            total_success: 0,
+            total_failures: 0,
+        }
+    }
 }
 
 /// Rate limiting configuration for per-host rate limiting

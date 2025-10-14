@@ -754,6 +754,7 @@ impl AppState {
                 memory_threshold_mb: 500,
                 enable_recovery: true,
                 max_retries: 3,
+                profile_base_dir: None, // Use system temp directory by default
             },
             default_stealth_preset: riptide_core::stealth::StealthPreset::Medium,
             enable_stealth: true,

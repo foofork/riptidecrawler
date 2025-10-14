@@ -69,7 +69,7 @@ pub async fn process_dynamic(
     state: &AppState,
     url: &str,
     dynamic_config: &DynamicConfig,
-    mut stealth_controller: Option<&mut StealthController>,
+    stealth_controller: Option<&mut StealthController>,
     session_id: Option<&str>,
 ) -> ApiResult<(
     String,
@@ -78,27 +78,9 @@ pub async fn process_dynamic(
 )> {
     debug!(url = %url, "Processing with dynamic rendering");
 
-    // Apply stealth measures if configured
-    if let Some(stealth) = stealth_controller.as_mut() {
-        // Generate stealth configuration values
-        let _user_agent = stealth.next_user_agent();
-        let _headers = stealth.generate_headers();
-        let _delay = stealth.calculate_delay();
-        // TODO(P0): Wire up stealth values to headless browser RPC call below
-        // PLAN: Pass stealth configuration to render_dynamic RPC call
-        // IMPLEMENTATION:
-        //   1. Update rpc_client.render_dynamic() to accept stealth config
-        //   2. Include user_agent, headers, and timing delays in RPC request
-        //   3. Headless service applies stealth measures to browser instance
-        //   4. Verify stealth measures are effective (test with bot detection sites)
-        // DEPENDENCIES: RPC client and headless service support for stealth config
-        // EFFORT: Medium (3-4 hours)
-        // PRIORITY: Important for anti-bot detection
-        // BLOCKER: None - stealth config already generated and passed to RPC
-        // NOTE: These will be applied when session context is passed to render_dynamic_with_session()
-    }
-
     // Get stealth configuration for RPC call
+    // The stealth config is passed directly to render_dynamic() below (line 170)
+    // which includes it in the HeadlessRenderRequest for the headless service
     let stealth_config = stealth_controller
         .as_ref()
         .map(|controller| controller.config().clone());

@@ -192,6 +192,7 @@ impl ResourceManager {
             memory_threshold_mb: 500,
             enable_recovery: true,
             max_retries: config.headless.max_retries,
+            profile_base_dir: None, // Use system temp directory by default
         };
 
         // DEPENDENCY NOTE: chromiumoxide uses async-std internally (RUSTSEC-2025-0052)
