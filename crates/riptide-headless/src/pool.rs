@@ -889,7 +889,7 @@ impl BrowserCheckout {
         }
     }
 
-    /// Manually check in the browser (consumes the checkout)
+    /// Manually check in the browser (consumes the checkout, preferred over drop)
     #[allow(dead_code)]
     pub async fn checkin(mut self) -> Result<()> {
         let result = self.pool.checkin(&self.browser_id).await;
@@ -897,15 +897,32 @@ impl BrowserCheckout {
         self.permit.take();
         result
     }
+
+    /// Cleanup with timeout - ensures proper async cleanup
+    #[allow(dead_code)]
+    pub async fn cleanup(mut self) -> Result<()> {
+        tokio::time::timeout(Duration::from_secs(5), self.pool.checkin(&self.browser_id))
+            .await
+            .map_err(|_| anyhow!("Timeout checking in browser {}", self.browser_id))?;
+
+        // Prevent drop from trying to checkin again
+        self.permit.take();
+        Ok(())
+    }
 }
 
 impl Drop for BrowserCheckout {
     fn drop(&mut self) {
         if self.permit.is_some() {
+            warn!(
+                browser_id = %self.browser_id,
+                "BrowserCheckout dropped without explicit cleanup - spawning best-effort background task"
+            );
+
             let browser_id = self.browser_id.clone();
             let pool = self.pool.clone();
 
-            // Spawn a task to handle async checkin during drop
+            // Best-effort cleanup in background (not guaranteed to complete)
             tokio::spawn(async move {
                 if let Err(e) = pool.checkin(&browser_id).await {
                     error!(browser_id = %browser_id, error = %e, "Failed to checkin browser during drop");

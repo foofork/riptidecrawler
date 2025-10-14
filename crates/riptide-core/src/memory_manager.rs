@@ -655,24 +655,42 @@ impl MemoryManager {
 }
 
 /// Reference to memory manager for instance operations
+/// Reference to the memory manager for checkout operations
+/// Uses Arc clones to maintain strong references for safety
+#[derive(Clone)]
 pub struct MemoryManagerRef {
-    manager: std::sync::Weak<MemoryManager>,
+    available_instances: Arc<Mutex<VecDeque<TrackedWasmInstance>>>,
+    in_use_instances: Arc<RwLock<HashMap<String, TrackedWasmInstance>>>,
+    event_sender: mpsc::UnboundedSender<MemoryEvent>,
 }
 
 impl MemoryManagerRef {
     fn new(manager: &MemoryManager) -> Self {
         Self {
-            manager: Arc::downgrade(&Arc::new(unsafe {
-                std::ptr::read(manager as *const MemoryManager)
-            })),
+            available_instances: Arc::clone(&manager.available_instances),
+            in_use_instances: Arc::clone(&manager.in_use_instances),
+            event_sender: manager.event_sender.clone(),
         }
     }
 
     pub async fn return_instance(&self, instance_id: &str) -> Result<()> {
-        if let Some(manager) = self.manager.upgrade() {
-            manager.return_instance(instance_id).await
+        let mut in_use = self.in_use_instances.write().await;
+
+        if let Some(instance) = in_use.remove(instance_id) {
+            drop(in_use);
+
+            let mut available = self.available_instances.lock().await;
+            available.push_back(instance);
+
+            // Notify about instance return
+            let _ = self.event_sender.send(MemoryEvent::PoolShrunk {
+                new_size: available.len(),
+                reason: format!("Instance {} returned to pool", instance_id),
+            });
+
+            Ok(())
         } else {
-            Err(anyhow!("Memory manager has been dropped"))
+            Err(anyhow!("Instance {} not found in use", instance_id))
         }
     }
 }
@@ -689,27 +707,40 @@ impl WasmInstanceHandle {
         &self.instance_id
     }
 
-    /// Manually return the instance to the pool
+    /// Manually return the instance to the pool (preferred over drop)
     pub async fn return_to_pool(self) -> Result<()> {
         self.manager.return_instance(&self.instance_id).await
+    }
+
+    /// Cleanup with timeout - ensures proper async cleanup
+    pub async fn cleanup(self) -> Result<()> {
+        tokio::time::timeout(
+            Duration::from_secs(5),
+            self.manager.return_instance(&self.instance_id),
+        )
+        .await
+        .map_err(|_| anyhow!("Timeout returning instance {} to pool", self.instance_id))?
     }
 }
 
 impl Drop for WasmInstanceHandle {
     fn drop(&mut self) {
-        let instance_id = self.instance_id.clone();
-        let manager = self.manager.manager.clone();
+        warn!(
+            instance_id = %self.instance_id,
+            "WasmInstanceHandle dropped without explicit cleanup - spawning best-effort background task"
+        );
 
-        // Spawn task to handle async return during drop
+        let instance_id = self.instance_id.clone();
+        let manager = self.manager.clone();
+
+        // Best-effort cleanup in background (not guaranteed to complete)
         tokio::spawn(async move {
-            if let Some(manager) = manager.upgrade() {
-                if let Err(e) = manager.return_instance(&instance_id).await {
-                    error!(
-                        instance_id = %instance_id,
-                        error = %e,
-                        "Failed to return WASM instance during drop"
-                    );
-                }
+            if let Err(e) = manager.return_instance(&instance_id).await {
+                error!(
+                    instance_id = %instance_id,
+                    error = %e,
+                    "Failed to return WASM instance during drop"
+                );
             }
         });
     }
