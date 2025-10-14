@@ -11,7 +11,10 @@ fn test_metrics_initialization() {
     assert!(result.is_ok(), "Metrics initialization should succeed");
 
     let metrics = result.unwrap();
-    assert!(!metrics.registry.gather().is_empty(), "Registry should contain metrics");
+    assert!(
+        !metrics.registry.gather().is_empty(),
+        "Registry should contain metrics"
+    );
 }
 
 #[test]
@@ -19,14 +22,7 @@ fn test_gate_decision_enhanced_metrics() {
     let metrics = RipTideMetrics::new().unwrap();
 
     // Record enhanced gate decision
-    metrics.record_gate_decision_enhanced(
-        "raw",
-        0.85,
-        0.45,
-        0.15,
-        3,
-        2.5,
-    );
+    metrics.record_gate_decision_enhanced("raw", 0.85, 0.45, 0.15, 3, 2.5);
 
     // Verify metrics were recorded
     let metric_families = metrics.registry.gather();
@@ -35,7 +31,10 @@ fn test_gate_decision_enhanced_metrics() {
     let gate_decisions = metric_families
         .iter()
         .find(|m| m.get_name() == "riptide_gate_decision_total");
-    assert!(gate_decisions.is_some(), "Gate decision metric should exist");
+    assert!(
+        gate_decisions.is_some(),
+        "Gate decision metric should exist"
+    );
 
     // Check gate score histogram
     let gate_score = metric_families
@@ -52,7 +51,10 @@ fn test_gate_decision_enhanced_metrics() {
     let script_density = metric_families
         .iter()
         .find(|m| m.get_name() == "riptide_gate_feature_script_density");
-    assert!(script_density.is_some(), "Script density metric should exist");
+    assert!(
+        script_density.is_some(),
+        "Script density metric should exist"
+    );
 }
 
 #[test]
@@ -60,17 +62,7 @@ fn test_extraction_quality_metrics() {
     let metrics = RipTideMetrics::new().unwrap();
 
     // Record extraction result
-    metrics.record_extraction_result(
-        "raw",
-        150,
-        true,
-        85.0,
-        5000,
-        25,
-        10,
-        true,
-        true,
-    );
+    metrics.record_extraction_result("raw", 150, true, 85.0, 5000, 25, 10, true, true);
 
     let metric_families = metrics.registry.gather();
 
@@ -84,7 +76,10 @@ fn test_extraction_quality_metrics() {
     let content_length = metric_families
         .iter()
         .find(|m| m.get_name() == "riptide_extraction_content_length_bytes");
-    assert!(content_length.is_some(), "Content length metric should exist");
+    assert!(
+        content_length.is_some(),
+        "Content length metric should exist"
+    );
 
     // Check links found
     let links_found = metric_families
@@ -139,7 +134,10 @@ fn test_pipeline_phase_timing_metrics() {
     let gate_analysis = metric_families
         .iter()
         .find(|m| m.get_name() == "riptide_pipeline_phase_gate_analysis_milliseconds");
-    assert!(gate_analysis.is_some(), "Gate analysis phase metric should exist");
+    assert!(
+        gate_analysis.is_some(),
+        "Gate analysis phase metric should exist"
+    );
 
     let extraction = metric_families
         .iter()
@@ -178,7 +176,11 @@ fn test_metrics_non_blocking() {
     }
 
     let duration = start.elapsed();
-    assert!(duration.as_millis() < 50, "Metrics should be non-blocking (<50ms for 100 recordings), took: {}ms", duration.as_millis());
+    assert!(
+        duration.as_millis() < 50,
+        "Metrics should be non-blocking (<50ms for 100 recordings), took: {}ms",
+        duration.as_millis()
+    );
 }
 
 #[test]
@@ -240,7 +242,10 @@ fn test_extraction_success_vs_failure() {
     let quality_score = metric_families
         .iter()
         .find(|m| m.get_name() == "riptide_extraction_quality_score");
-    assert!(quality_score.is_some(), "Quality score should be recorded for successes");
+    assert!(
+        quality_score.is_some(),
+        "Quality score should be recorded for successes"
+    );
 }
 
 #[test]
@@ -249,14 +254,7 @@ fn test_spa_markers_tracking() {
 
     // Record different SPA marker counts
     for marker_count in 0..10_u8 {
-        metrics.record_gate_decision_enhanced(
-            "raw",
-            0.85,
-            0.45,
-            0.15,
-            marker_count,
-            2.5,
-        );
+        metrics.record_gate_decision_enhanced("raw", 0.85, 0.45, 0.15, marker_count, 2.5);
     }
 
     let metric_families = metrics.registry.gather();
@@ -302,14 +300,7 @@ fn test_gate_score_distribution() {
     // Record various scores across the distribution
     let scores = vec![0.0, 0.2, 0.4, 0.6, 0.7, 0.8, 0.9, 1.0];
     for score in scores {
-        metrics.record_gate_decision_enhanced(
-            "raw",
-            score,
-            0.45,
-            0.15,
-            3,
-            2.5,
-        );
+        metrics.record_gate_decision_enhanced("raw", score, 0.45, 0.15, 3, 2.5);
     }
 
     let metric_families = metrics.registry.gather();
@@ -340,14 +331,7 @@ fn test_feature_ratio_histograms() {
     ];
 
     for (text_ratio, script_density) in ratios {
-        metrics.record_gate_decision_enhanced(
-            "raw",
-            0.75,
-            text_ratio,
-            script_density,
-            3,
-            2.5,
-        );
+        metrics.record_gate_decision_enhanced("raw", 0.75, text_ratio, script_density, 3, 2.5);
     }
 
     let metric_families = metrics.registry.gather();
@@ -360,7 +344,10 @@ fn test_feature_ratio_histograms() {
     let script_density = metric_families
         .iter()
         .find(|m| m.get_name() == "riptide_gate_feature_script_density");
-    assert!(script_density.is_some(), "Script density histogram should exist");
+    assert!(
+        script_density.is_some(),
+        "Script density histogram should exist"
+    );
 }
 
 #[test]

@@ -5,7 +5,6 @@ use anyhow::{anyhow, Result};
 use chromiumoxide::{Browser, BrowserConfig, Page};
 use futures::StreamExt;
 use std::collections::{HashMap, VecDeque};
-use std::path::PathBuf;
 use std::sync::{Arc, Weak};
 use std::time::{Duration, Instant};
 use tempfile::TempDir;
@@ -36,6 +35,16 @@ pub struct BrowserPoolConfig {
     pub enable_recovery: bool,
     /// Maximum retries for browser operations
     pub max_retries: u32,
+    /// Optional custom base directory for browser profiles
+    ///
+    /// When specified, browser profile temp directories will be created within this path.
+    /// Useful for:
+    /// - Container environments with specific temp mounts
+    /// - Systems with limited /tmp space but other storage available
+    /// - Testing and debugging scenarios
+    ///
+    /// When None (default), uses system temp directory.
+    pub profile_base_dir: Option<std::path::PathBuf>,
 }
 
 impl Default for BrowserPoolConfig {
@@ -50,6 +59,7 @@ impl Default for BrowserPoolConfig {
             memory_threshold_mb: 500,
             enable_recovery: true,
             max_retries: 3,
+            profile_base_dir: None, // Use system temp directory by default
         }
     }
 }
@@ -103,22 +113,61 @@ impl std::fmt::Debug for PooledBrowser {
 }
 
 impl PooledBrowser {
-    pub async fn new(base_config: BrowserConfig) -> Result<Self> {
+    /// Creates a new pooled browser instance with unique profile directory.
+    ///
+    /// **Why unique directories are required:**
+    /// Chrome enforces SingletonLock at the profile level to prevent data corruption.
+    /// Even with spider_chrome (which provides better CDP concurrency at the protocol level),
+    /// each browser instance MUST have its own profile directory to allow concurrent operation
+    /// without locking conflicts.
+    ///
+    /// **Important Architecture Notes:**
+    /// - spider_chrome provides CDP-level concurrency improvements (better async/await, message handling)
+    /// - spider_chrome does NOT manage browser profiles or bypass Chrome's SingletonLock
+    /// - Profile isolation is a Chrome-level requirement, independent of the CDP library used
+    ///
+    /// **TempDir Lifetime Management:**
+    /// The TempDir is kept alive via the `_temp_dir` field in PooledBrowser and automatically
+    /// cleaned up when the PooledBrowser is dropped, ensuring:
+    /// - No disk space leaks
+    /// - Clean resource management
+    /// - Proper cleanup even if browser crashes
+    ///
+    /// # Arguments
+    /// * `_base_config` - Base browser configuration (currently unused, reserved for future use)
+    /// * `profile_base_dir` - Optional custom base directory for browser profiles (defaults to system temp)
+    ///
+    /// # Returns
+    /// A new PooledBrowser instance with unique profile directory
+    ///
+    /// # Errors
+    /// Returns error if:
+    /// - Failed to create temporary directory
+    /// - Failed to build browser configuration
+    /// - Failed to launch browser instance
+    pub async fn new(
+        _base_config: BrowserConfig,
+        profile_base_dir: Option<&std::path::Path>,
+    ) -> Result<Self> {
         let id = Uuid::new_v4().to_string();
 
         debug!(browser_id = %id, "Creating new browser instance");
 
-        // CRITICAL FIX: Create truly unique temp directory for this browser
-        // This directory must persist for the browser's lifetime
-        let temp_dir =
-            TempDir::new().map_err(|e| anyhow!("Failed to create temp directory: {}", e))?;
+        // Create truly unique temp directory for this browser instance
+        // Uses custom base directory if provided, otherwise system temp
+        let temp_dir = if let Some(base_dir) = profile_base_dir {
+            TempDir::new_in(base_dir)
+                .map_err(|e| anyhow!("Failed to create temp directory in {:?}: {}", base_dir, e))?
+        } else {
+            TempDir::new().map_err(|e| anyhow!("Failed to create temp directory: {}", e))?
+        };
 
         let user_data_dir = temp_dir.path().to_path_buf();
 
         debug!(browser_id = %id, user_data_dir = ?user_data_dir, "Created unique browser profile directory");
 
         // Build config with unique user-data-dir
-        // Do NOT use .arg() because chromiumoxide adds its own default AFTER
+        // Do NOT use .arg() because spider_chrome adds its own default AFTER
         let mut browser_config = BrowserConfig::builder()
             .arg("--no-sandbox")
             .arg("--disable-dev-shm-usage")
@@ -293,7 +342,9 @@ impl BrowserPool {
         let mut initial_browsers = VecDeque::new();
         let mut failed_count = 0;
         for i in 0..config.initial_pool_size {
-            match PooledBrowser::new(browser_config.clone()).await {
+            match PooledBrowser::new(browser_config.clone(), config.profile_base_dir.as_deref())
+                .await
+            {
                 Ok(browser) => {
                     let _ = event_sender.send(PoolEvent::BrowserCreated {
                         id: browser.id.clone(),
@@ -401,7 +452,12 @@ impl BrowserPool {
         // If no browser available, try to create a new one
         if browser.is_none() {
             debug!("No available browsers, attempting to create new instance");
-            match PooledBrowser::new(self.browser_config.clone()).await {
+            match PooledBrowser::new(
+                self.browser_config.clone(),
+                self.config.profile_base_dir.as_deref(),
+            )
+            .await
+            {
                 Ok(new_browser) => {
                     let _ = self.event_sender.send(PoolEvent::BrowserCreated {
                         id: new_browser.id.clone(),
@@ -628,7 +684,9 @@ impl BrowserPool {
 
             // Try to create all needed browsers with exponential backoff on failures
             for attempt in 0..needed {
-                match PooledBrowser::new(browser_config.clone()).await {
+                match PooledBrowser::new(browser_config.clone(), config.profile_base_dir.as_deref())
+                    .await
+                {
                     Ok(browser) => {
                         let _ = event_sender.send(PoolEvent::BrowserCreated {
                             id: browser.id.clone(),
@@ -742,24 +800,65 @@ pub struct PoolStats {
 }
 
 /// Reference to the browser pool for checkout operations
+/// Uses Arc clones to maintain strong references for safety
+#[derive(Clone)]
 pub struct BrowserPoolRef {
-    pool: Weak<BrowserPool>,
+    available: Arc<Mutex<VecDeque<PooledBrowser>>>,
+    in_use: Arc<RwLock<HashMap<String, PooledBrowser>>>,
+    config: BrowserPoolConfig,
+    event_sender: mpsc::UnboundedSender<PoolEvent>,
 }
 
 impl BrowserPoolRef {
     fn new(pool: &BrowserPool) -> Self {
         Self {
-            pool: Arc::downgrade(&Arc::new(unsafe {
-                std::ptr::read(pool as *const BrowserPool)
-            })),
+            available: Arc::clone(&pool.available),
+            in_use: Arc::clone(&pool.in_use),
+            config: pool.config.clone(),
+            event_sender: pool.event_sender.clone(),
         }
     }
 
     pub async fn checkin(&self, browser_id: &str) -> Result<()> {
-        if let Some(pool) = self.pool.upgrade() {
-            pool.checkin(browser_id).await
+        let mut browser_opt = {
+            let mut in_use = self.in_use.write().await;
+            in_use.remove(browser_id)
+        };
+
+        if let Some(mut browser) = browser_opt.take() {
+            browser.in_use = false;
+
+            // Perform health check before returning to pool
+            let health = browser.health_check(self.config.memory_threshold_mb).await;
+
+            match health {
+                BrowserHealth::Healthy => {
+                    // Return healthy browser to pool
+                    let mut available = self.available.lock().await;
+                    available.push_back(browser);
+
+                    let _ = self.event_sender.send(PoolEvent::BrowserCheckedIn {
+                        id: browser_id.to_string(),
+                    });
+
+                    debug!(browser_id = %browser_id, "Browser checked in to pool");
+                }
+                _ => {
+                    // Clean up unhealthy browser
+                    browser.cleanup().await;
+
+                    let _ = self.event_sender.send(PoolEvent::BrowserRemoved {
+                        id: browser_id.to_string(),
+                        reason: format!("Unhealthy: {:?}", health),
+                    });
+
+                    debug!(browser_id = %browser_id, health = ?health, "Removed unhealthy browser");
+                }
+            }
+
+            Ok(())
         } else {
-            Err(anyhow!("Browser pool has been dropped"))
+            Err(anyhow!("Browser not found in pool"))
         }
     }
 }
@@ -781,16 +880,12 @@ impl BrowserCheckout {
     /// Create a new page in the browser
     #[allow(dead_code)] // Method for future use
     pub async fn new_page(&self, url: &str) -> Result<Page> {
-        if let Some(pool) = self.pool.pool.upgrade() {
-            let in_use = pool.in_use.read().await;
-            if let Some(pooled_browser) = in_use.get(&self.browser_id) {
-                let page = pooled_browser.browser.new_page(url).await?;
-                Ok(page)
-            } else {
-                Err(anyhow!("Browser not found in pool"))
-            }
+        let in_use = self.pool.in_use.read().await;
+        if let Some(pooled_browser) = in_use.get(&self.browser_id) {
+            let page = pooled_browser.browser.new_page(url).await?;
+            Ok(page)
         } else {
-            Err(anyhow!("Browser pool has been dropped"))
+            Err(anyhow!("Browser not found in pool"))
         }
     }
 
@@ -808,14 +903,12 @@ impl Drop for BrowserCheckout {
     fn drop(&mut self) {
         if self.permit.is_some() {
             let browser_id = self.browser_id.clone();
-            let pool = self.pool.pool.clone();
+            let pool = self.pool.clone();
 
             // Spawn a task to handle async checkin during drop
             tokio::spawn(async move {
-                if let Some(pool) = pool.upgrade() {
-                    if let Err(e) = pool.checkin(&browser_id).await {
-                        error!(browser_id = %browser_id, error = %e, "Failed to checkin browser during drop");
-                    }
+                if let Err(e) = pool.checkin(&browser_id).await {
+                    error!(browser_id = %browser_id, error = %e, "Failed to checkin browser during drop");
                 }
             });
         }
@@ -869,12 +962,17 @@ mod tests {
         assert_eq!(stats.available, 0);
         assert_eq!(stats.in_use, 1);
 
-        // Checkin browser
+        // Checkin browser explicitly
         checkout.checkin().await.unwrap();
+
+        // Give a moment for async checkin to complete
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
         let stats = pool.stats().await;
         assert_eq!(stats.available, 1);
         assert_eq!(stats.in_use, 0);
 
-        let _ = pool.shutdown().await;
+        // Shutdown pool properly
+        pool.shutdown().await.unwrap();
     }
 }

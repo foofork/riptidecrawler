@@ -4,14 +4,14 @@
 //! These tests have been updated to work with the current riptide-html API.
 
 use riptide_html::{
-    css_extraction, regex_extraction, regex_extraction::RegexExtractor, RegexPattern,
+    css_extract_default as extract_default, default_patterns, RegexExtractor, RegexPattern,
 };
 use std::collections::HashMap;
 
 /// Test module for CSS selector extraction
 mod css_extraction_tests {
     use super::*;
-    use riptide_html::css_extraction::*;
+    use riptide_html::{css_extract, css_extract_default as extract_default, default_selectors};
 
     #[tokio::test]
     async fn test_basic_css_selectors() {
@@ -85,7 +85,7 @@ mod css_extraction_tests {
         selectors.insert("tags".to_string(), ".tag, .category".to_string());
         selectors.insert("date".to_string(), "time.published".to_string());
 
-        let result = extract(html, "https://example.com", &selectors)
+        let result = css_extract(html, "https://example.com", &selectors)
             .await
             .unwrap();
 
@@ -225,6 +225,7 @@ mod css_extraction_tests {
 /// Test module for regex extraction
 mod regex_extraction_tests {
     use super::*;
+    use riptide_html::{default_patterns, regex_extract};
 
     #[tokio::test]
     async fn test_email_extraction() {
@@ -472,6 +473,8 @@ mod regex_extraction_tests {
 /// Test module for DOM traversal utilities
 mod dom_traversal_tests {
     use super::*;
+    #[allow(unused_imports)]
+    use riptide_html::css_extract_default as extract_default;
     use scraper::{Html, Selector};
 
     #[test]
@@ -679,6 +682,7 @@ mod dom_traversal_tests {
 /// Performance and edge case tests
 mod performance_edge_case_tests {
     use super::*;
+    use riptide_html::css_extract_default as extract_default;
     use std::time::Instant;
 
     #[tokio::test]

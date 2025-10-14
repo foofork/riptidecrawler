@@ -86,7 +86,7 @@ async fn exec_actions(page: &Page, actions: &[PageAction]) -> anyhow::Result<()>
     for action in actions {
         match action {
             PageAction::WaitForCss { css, timeout_ms } => {
-                // Note: timeout is not currently enforced by chromiumoxide's find_element
+                // Note: timeout is not currently enforced by spider_chrome's find_element
                 // TODO: Implement timeout mechanism similar to WaitForJs with deadline check
                 let _ = page
                     .find_element(css)
@@ -242,7 +242,7 @@ async fn render_internal(
             }
         }
         if artifacts.mhtml {
-            // MHTML capture would require CDP command not yet exposed in chromiumoxide
+            // MHTML capture would require CDP command not yet exposed in spider_chrome
             debug!(request_id = %request_id, "MHTML capture not yet implemented");
         }
     }
