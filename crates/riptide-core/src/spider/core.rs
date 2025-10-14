@@ -806,8 +806,7 @@ impl Spider {
         &self.budget_manager
     }
 
-    /// Get reference to URL utils for testing
-    #[cfg(any(test, feature = "test-utils"))]
+    /// Get reference to URL utils for testing and integration tests
     pub fn url_utils(&self) -> &Arc<RwLock<UrlUtils>> {
         &self.url_utils
     }
