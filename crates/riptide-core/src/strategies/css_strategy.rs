@@ -8,6 +8,7 @@ use async_trait::async_trait;
 use scraper::{Html, Selector};
 use std::collections::HashMap;
 
+use crate::enhanced_extractor::StructuredExtractor;
 use crate::strategies::{traits::*, ExtractedContent, PerformanceMetrics};
 
 /// CSS Selector strategy for targeted content extraction
@@ -154,19 +155,13 @@ impl ExtractionStrategy for CssSelectorStrategy {
             .extract_by_selector(&doc, "title")
             .unwrap_or_else(|| "Untitled".to_string());
 
-        let content = self
-            .extract_by_selector(&doc, "article")
-            .unwrap_or_else(|| {
-                // Fallback: extract all text from body
-                if let Ok(body_selector) = Selector::parse("body") {
-                    doc.select(&body_selector)
-                        .next()
-                        .map(|el| el.text().collect::<Vec<_>>().join(" "))
-                        .unwrap_or_default()
-                } else {
-                    String::new()
-                }
-            });
+        // Try site-specific extraction first, then structured extraction
+        let content =
+            if let Some(site_content) = StructuredExtractor::extract_site_specific(html, url) {
+                site_content
+            } else {
+                StructuredExtractor::extract_structured_content(html, Some(url))?
+            };
 
         let author = self.extract_by_selector(&doc, "author");
         let date = self.extract_by_selector(&doc, "date");

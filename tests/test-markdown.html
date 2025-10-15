@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Markdown Extraction</title>
+</head>
+<body>
+    <h1>Main Title</h1>
+    <p>This is a paragraph with <strong>bold text</strong> and <em>italic text</em>.</p>
+
+    <h2>Section with Lists</h2>
+    <p>Here's an unordered list:</p>
+    <ul>
+        <li>First item</li>
+        <li>Second item with <a href="https://example.com">a link</a></li>
+        <li>Third item</li>
+    </ul>
+
+    <p>And an ordered list:</p>
+    <ol>
+        <li>Step one</li>
+        <li>Step two</li>
+        <li>Step three</li>
+    </ol>
+
+    <h3>Code Examples</h3>
+    <pre><code>def hello_world():
+    print("Hello, World!")
+    return True</code></pre>
+
+    <h2>Table Section</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Feature</th>
+                <th>Status</th>
+                <th>Progress</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Extraction</td>
+                <td>Working</td>
+                <td>85%</td>
+            </tr>
+            <tr>
+                <td>Tables</td>
+                <td>Implemented</td>
+                <td>100%</td>
+            </tr>
+            <tr>
+                <td>PDFs</td>
+                <td>Pending</td>
+                <td>0%</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <blockquote>
+        <p>This is a blockquote that should be preserved with proper formatting.</p>
+    </blockquote>
+
+    <h4>Nested Elements</h4>
+    <div>
+        <p>A paragraph inside a div with <code>inline code</code>.</p>
+        <div>
+            <h5>Deeply Nested</h5>
+            <p>Content at multiple levels.</p>
+        </div>
+    </div>
+</body>
+</html>

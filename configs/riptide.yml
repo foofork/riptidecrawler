@@ -18,7 +18,7 @@ crawl:
 
 extraction:
   wasm_module_path: "/opt/riptide/extractor/extractor.wasm"
-  version_tag: "trek:0.1"
+  version_tag: "riptide:1.0"
   mode: "article"
   produce_markdown: true
   produce_json: true

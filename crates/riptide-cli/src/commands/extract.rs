@@ -8,6 +8,96 @@ use std::fs;
 // Local extraction support
 use riptide_html::wasm_extraction::WasmExtractor;
 
+/// Extraction engine selection
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Engine {
+    /// Automatically select engine based on content
+    Auto,
+    /// Pure HTTP fetch without JavaScript execution
+    Raw,
+    /// WASM-based extraction (fast, local)
+    Wasm,
+    /// Headless browser extraction (for JavaScript-heavy sites)
+    Headless,
+}
+
+impl Engine {
+    /// Parse engine from string
+    pub fn from_str(s: &str) -> Result<Self> {
+        match s.to_lowercase().as_str() {
+            "auto" => Ok(Engine::Auto),
+            "raw" => Ok(Engine::Raw),
+            "wasm" => Ok(Engine::Wasm),
+            "headless" => Ok(Engine::Headless),
+            _ => anyhow::bail!(
+                "Invalid engine: {}. Must be one of: auto, raw, wasm, headless",
+                s
+            ),
+        }
+    }
+
+    /// Automatically decide engine based on content characteristics
+    pub fn gate_decision(html: &str, url: &str) -> Self {
+        // Check for heavy JavaScript frameworks
+        let has_react =
+            html.contains("__NEXT_DATA__") || html.contains("react") || html.contains("_reactRoot");
+        let has_vue = html.contains("v-app") || html.contains("vue");
+        let has_angular = html.contains("ng-app") || html.contains("ng-version");
+
+        // Check for dynamic content indicators
+        let has_spa_markers = html.contains("<!-- rendered by")
+            || html.contains("__webpack")
+            || html.contains("window.__INITIAL_STATE__");
+
+        // Check for minimal content (likely client-side rendered)
+        let content_ratio = calculate_content_ratio(html);
+
+        // Decision logic
+        if has_react || has_vue || has_angular || has_spa_markers {
+            output::print_info("Detected JavaScript framework - selecting Headless engine");
+            Engine::Headless
+        } else if content_ratio < 0.1 {
+            output::print_info("Low content ratio detected - selecting Headless engine");
+            Engine::Headless
+        } else if html.contains("wasm") || url.contains(".wasm") {
+            output::print_info("WASM content detected - selecting WASM engine");
+            Engine::Wasm
+        } else {
+            output::print_info(
+                "Standard HTML detected - selecting Raw engine with WASM extraction",
+            );
+            Engine::Wasm // Default to WASM for standard extraction
+        }
+    }
+
+    /// Get human-readable name
+    pub fn name(&self) -> &'static str {
+        match self {
+            Engine::Auto => "auto",
+            Engine::Raw => "raw",
+            Engine::Wasm => "wasm",
+            Engine::Headless => "headless",
+        }
+    }
+}
+
+/// Calculate content-to-markup ratio (heuristic for client-side rendering)
+fn calculate_content_ratio(html: &str) -> f64 {
+    let total_len = html.len() as f64;
+    if total_len == 0.0 {
+        return 0.0;
+    }
+
+    // Count text content (rough estimate)
+    let text_content: String = html
+        .split('<')
+        .map(|s| s.split('>').nth(1).unwrap_or(""))
+        .collect();
+
+    let content_len = text_content.trim().len() as f64;
+    content_len / total_len
+}
+
 #[derive(Serialize)]
 struct ExtractRequest {
     url: String,
@@ -35,15 +125,43 @@ struct ExtractResponse {
 }
 
 pub async fn execute(client: RipTideClient, args: ExtractArgs, output_format: &str) -> Result<()> {
-    output::print_info(&format!("Extracting content from: {}", args.url));
+    // Determine input source with priority: stdin > file > url
+    let (html_content, source_url) = if args.stdin {
+        output::print_info("Reading HTML from stdin...");
+        use std::io::Read;
+        let mut buffer = String::new();
+        std::io::stdin().read_to_string(&mut buffer)?;
+        (Some(buffer), "stdin".to_string())
+    } else if let Some(ref input_file) = args.input_file {
+        output::print_info(&format!("Reading HTML from file: {}", input_file));
+        let content = fs::read_to_string(input_file)?;
+        (Some(content), input_file.clone())
+    } else if let Some(ref url) = args.url {
+        output::print_info(&format!("Extracting content from: {}", url));
+        (None, url.clone())
+    } else {
+        anyhow::bail!("At least one input source is required: --url, --input-file, or --stdin");
+    };
 
-    // Use local extraction if --local flag is set
-    if args.local {
-        return execute_local_extraction(args, output_format).await;
+    // Parse engine selection
+    let engine = Engine::from_str(&args.engine)?;
+    output::print_info(&format!("Engine mode: {}", engine.name()));
+
+    // If we have HTML content directly (from file or stdin), use local extraction
+    if let Some(html) = html_content {
+        return execute_direct_extraction(html, source_url, args, output_format, engine).await;
     }
 
+    // URL-based extraction follows
+    // Use local extraction if --local flag is set
+    if args.local {
+        return execute_local_extraction(args, output_format, engine).await;
+    }
+
+    // API server extraction
+    let url = args.url.as_ref().unwrap(); // Safe because we validated above
     let request = ExtractRequest {
-        url: args.url.clone(),
+        url: url.clone(),
         method: args.method.clone(),
         selector: args.selector,
         pattern: args.pattern,
@@ -94,7 +212,7 @@ pub async fn execute(client: RipTideClient, args: ExtractArgs, output_format: &s
         }
         "table" => {
             let mut table = output::create_table(vec!["Field", "Value"]);
-            table.add_row(vec!["URL", &args.url]);
+            table.add_row(vec!["Source", url]);
 
             if let Some(confidence) = extract_result.confidence {
                 table.add_row(vec!["Confidence", &output::format_confidence(confidence)]);
@@ -124,37 +242,132 @@ pub async fn execute(client: RipTideClient, args: ExtractArgs, output_format: &s
     Ok(())
 }
 
-/// Execute local WASM extraction without API server
-async fn execute_local_extraction(args: ExtractArgs, output_format: &str) -> Result<()> {
+/// Resolve WASM module path with priority order:
+/// 1. CLI flag --wasm-path
+/// 2. Environment variable RIPTIDE_WASM_PATH
+/// 3. Default fallback path
+fn resolve_wasm_path(args: &ExtractArgs) -> String {
+    // Priority 1: CLI flag (already checked via clap's env attribute)
+    if let Some(ref path) = args.wasm_path {
+        output::print_info(&format!("Using WASM path from CLI flag: {}", path));
+        return path.clone();
+    }
+
+    // Priority 2: Environment variable (fallback if CLI not provided)
+    if let Ok(env_path) = std::env::var("RIPTIDE_WASM_PATH") {
+        output::print_info(&format!("Using WASM path from environment: {}", env_path));
+        return env_path;
+    }
+
+    // Priority 3: Default production path
+    let default_path = "/opt/riptide/wasm/riptide_extractor_wasm.wasm";
+
+    // Priority 4: Development fallback if production path doesn't exist
+    if !std::path::Path::new(default_path).exists() {
+        let manifest_dir = std::env!("CARGO_MANIFEST_DIR");
+        let dev_path = format!(
+            "{}/../../target/wasm32-wasip2/release/riptide-extractor-wasm.component.wasm",
+            manifest_dir
+        );
+        output::print_info(&format!("Using development WASM path: {}", dev_path));
+        dev_path
+    } else {
+        output::print_info(&format!("Using default WASM path: {}", default_path));
+        default_path.to_string()
+    }
+}
+
+/// Execute direct extraction from provided HTML content
+async fn execute_direct_extraction(
+    html: String,
+    source: String,
+    args: ExtractArgs,
+    output_format: &str,
+    mut engine: Engine,
+) -> Result<()> {
     use std::time::Instant;
 
-    // Fetch HTML content
-    output::print_info("Fetching HTML content...");
-    let client = reqwest::Client::builder()
-        .user_agent("RipTide/1.0")
-        .timeout(std::time::Duration::from_secs(30))
-        .build()?;
+    // Check if WASM should be skipped
+    if args.no_wasm && (engine == Engine::Wasm || engine == Engine::Auto) {
+        output::print_warning("WASM extraction disabled via --no-wasm flag");
+        engine = Engine::Raw;
+    }
 
-    let start = Instant::now();
-    let response = client.get(&args.url).send().await?;
-    let html = response.text().await?;
-    let fetch_time = start.elapsed();
+    output::print_info("Processing provided HTML content...");
 
-    // Perform local extraction
+    // Auto-detect engine if set to auto
+    if engine == Engine::Auto {
+        engine = Engine::gate_decision(&html, &source);
+    }
+
+    // Handle different engines
+    match engine {
+        Engine::Raw => {
+            output::print_info("Using Raw engine - returning HTML content without extraction");
+            let extract_result = ExtractResponse {
+                content: html.clone(),
+                confidence: Some(1.0),
+                method_used: Some("raw".to_string()),
+                extraction_time_ms: Some(0),
+                metadata: Some(serde_json::json!({
+                    "engine": "raw",
+                    "source": source,
+                    "content_length": html.len(),
+                })),
+            };
+
+            return output_extraction_result(extract_result, &args, output_format, &source);
+        }
+        Engine::Headless => {
+            output::print_warning(
+                "Headless engine not supported for direct HTML input - falling back to WASM",
+            );
+        }
+        Engine::Wasm | Engine::Auto => {
+            // Continue with WASM extraction below
+        }
+    }
+
+    // Perform WASM extraction
     output::print_info("Performing local WASM extraction...");
     let extraction_start = Instant::now();
 
-    // Determine WASM path
-    let wasm_path = std::env::var("RIPTIDE_WASM_PATH").unwrap_or_else(|_| {
-        let manifest_dir = std::env!("CARGO_MANIFEST_DIR");
-        format!(
-            "{}/../../target/wasm32-wasip2/release/riptide-extractor-wasm.component.wasm",
-            manifest_dir
-        )
-    });
+    // Resolve WASM path
+    let wasm_path = resolve_wasm_path(&args);
 
-    // Create extractor and extract content
-    let extractor = WasmExtractor::new(&wasm_path).await?;
+    // Verify WASM file exists
+    if !std::path::Path::new(&wasm_path).exists() {
+        output::print_warning(&format!("WASM file not found at: {}", wasm_path));
+        anyhow::bail!(
+            "WASM module not found at '{}'. Please:\n  \
+             1. Build the WASM module: cargo build --release --target wasm32-wasip2\n  \
+             2. Specify path with: --wasm-path <path>\n  \
+             3. Set environment: RIPTIDE_WASM_PATH=<path>",
+            wasm_path
+        );
+    }
+
+    // Create extractor
+    output::print_info(&format!("Loading WASM module from: {}", wasm_path));
+    let timeout_duration = std::time::Duration::from_millis(args.init_timeout_ms);
+    let extractor_result =
+        tokio::time::timeout(timeout_duration, WasmExtractor::new(&wasm_path)).await;
+
+    let extractor = match extractor_result {
+        Ok(Ok(ext)) => {
+            output::print_info("✓ WASM module loaded successfully");
+            ext
+        }
+        Ok(Err(e)) => {
+            anyhow::bail!("Failed to initialize WASM module: {}", e);
+        }
+        Err(_) => {
+            anyhow::bail!(
+                "WASM module initialization timed out after {}ms",
+                args.init_timeout_ms
+            );
+        }
+    };
 
     let mode = if args.metadata {
         "metadata"
@@ -164,7 +377,235 @@ async fn execute_local_extraction(args: ExtractArgs, output_format: &str) -> Res
         "article"
     };
 
-    let result = extractor.extract(html.as_bytes(), &args.url, mode)?;
+    let result = extractor.extract(html.as_bytes(), &source, mode)?;
+    let extraction_time = extraction_start.elapsed();
+
+    // Calculate metrics
+    let word_count = result.text.split_whitespace().count();
+    let confidence = result.quality_score.unwrap_or(0) as f64 / 100.0;
+
+    // Create response
+    let extract_result = ExtractResponse {
+        content: result.text.clone(),
+        confidence: Some(confidence),
+        method_used: Some(format!("local-{}", engine.name())),
+        extraction_time_ms: Some(extraction_time.as_millis() as u64),
+        metadata: Some(serde_json::json!({
+            "engine": engine.name(),
+            "source": source,
+            "title": result.title,
+            "byline": result.byline,
+            "published": result.published_iso,
+            "site_name": result.site_name,
+            "description": result.description,
+            "word_count": word_count,
+            "reading_time": result.reading_time,
+            "quality_score": result.quality_score,
+            "links_count": result.links.len(),
+            "media_count": result.media.len(),
+            "language": result.language,
+            "categories": result.categories,
+        })),
+    };
+
+    output_extraction_result(extract_result, &args, output_format, &source)
+}
+
+/// Execute local WASM extraction without API server
+async fn execute_local_extraction(
+    args: ExtractArgs,
+    output_format: &str,
+    mut engine: Engine,
+) -> Result<()> {
+    use riptide_stealth::{StealthController, StealthPreset};
+    use std::time::Instant;
+
+    // Validate URL is present
+    let url = args
+        .url
+        .as_ref()
+        .ok_or_else(|| anyhow::anyhow!("URL is required for local extraction"))?;
+
+    // Check if WASM should be skipped
+    if args.no_wasm && (engine == Engine::Wasm || engine == Engine::Auto) {
+        output::print_warning("WASM extraction disabled via --no-wasm flag");
+        engine = Engine::Raw;
+    }
+
+    // Fetch HTML content with optional stealth
+    output::print_info("Fetching HTML content...");
+
+    // Configure stealth if requested
+    let mut stealth_controller = if let Some(level) = &args.stealth_level {
+        let preset = match level.as_str() {
+            "none" => StealthPreset::None,
+            "low" => StealthPreset::Low,
+            "medium" => StealthPreset::Medium,
+            "high" => StealthPreset::High,
+            _ => StealthPreset::Medium,
+        };
+        Some(StealthController::from_preset(preset))
+    } else {
+        None
+    };
+
+    // Build HTTP client with stealth options
+    let mut client_builder = reqwest::Client::builder().timeout(std::time::Duration::from_secs(30));
+
+    // Apply user agent
+    if let Some(custom_ua) = &args.user_agent {
+        client_builder = client_builder.user_agent(custom_ua);
+    } else if let Some(ref mut controller) = stealth_controller {
+        let ua = controller.next_user_agent();
+        client_builder = client_builder.user_agent(ua);
+
+        // Add stealth headers
+        if args.fingerprint_evasion {
+            let headers = controller.generate_headers();
+            let mut header_map = reqwest::header::HeaderMap::new();
+            for (key, value) in headers {
+                if let (Ok(header_name), Ok(header_value)) = (
+                    reqwest::header::HeaderName::from_bytes(key.as_bytes()),
+                    reqwest::header::HeaderValue::from_str(&value),
+                ) {
+                    header_map.insert(header_name, header_value);
+                }
+            }
+            client_builder = client_builder.default_headers(header_map);
+        }
+    } else {
+        client_builder = client_builder.user_agent("RipTide/1.0");
+    }
+
+    // Apply proxy if specified
+    if let Some(proxy_url) = &args.proxy {
+        let proxy = reqwest::Proxy::all(proxy_url)?;
+        client_builder = client_builder.proxy(proxy);
+    }
+
+    let client = client_builder.build()?;
+
+    // Apply timing randomization if requested
+    if args.randomize_timing {
+        if let Some(ref mut controller) = stealth_controller {
+            let delay = controller.calculate_delay();
+            output::print_info(&format!(
+                "Applying timing delay: {:.2}s",
+                delay.as_secs_f64()
+            ));
+            tokio::time::sleep(delay).await;
+        }
+    }
+
+    let start = Instant::now();
+    let response = client.get(url).send().await?;
+    let html = response.text().await?;
+    let fetch_time = start.elapsed();
+
+    // Auto-detect engine if set to auto
+    if engine == Engine::Auto {
+        engine = Engine::gate_decision(&html, url);
+    }
+
+    // Handle different engines
+    match engine {
+        Engine::Raw => {
+            output::print_info("Using Raw engine - basic HTTP fetch without extraction");
+            // Return raw HTML content
+            let extract_result = ExtractResponse {
+                content: html.clone(),
+                confidence: Some(1.0),
+                method_used: Some("raw".to_string()),
+                extraction_time_ms: Some(fetch_time.as_millis() as u64),
+                metadata: Some(serde_json::json!({
+                    "engine": "raw",
+                    "content_length": html.len(),
+                    "fetch_time_ms": fetch_time.as_millis(),
+                })),
+            };
+
+            return output_extraction_result(extract_result, &args, output_format, url);
+        }
+        Engine::Headless => {
+            output::print_warning("Headless engine not yet implemented - falling back to WASM");
+            // TODO: Implement headless browser extraction
+            // For now, fall through to WASM
+        }
+        Engine::Wasm | Engine::Auto => {
+            // Continue with WASM extraction below
+        }
+    }
+
+    // Perform local extraction
+    output::print_info("Performing local WASM extraction...");
+    let extraction_start = Instant::now();
+
+    // Resolve WASM path with priority order
+    let wasm_path = resolve_wasm_path(&args);
+
+    // Verify WASM file exists before attempting to load
+    if !std::path::Path::new(&wasm_path).exists() {
+        output::print_warning(&format!("WASM file not found at: {}", wasm_path));
+        anyhow::bail!(
+            "WASM module not found at '{}'. Please:\n  \
+             1. Build the WASM module: cargo build --release --target wasm32-wasip2\n  \
+             2. Specify path with: --wasm-path <path>\n  \
+             3. Set environment: RIPTIDE_WASM_PATH=<path>\n  \
+             4. Or use API server mode without --local flag",
+            wasm_path
+        );
+    }
+
+    // Create extractor with timeout handling
+    output::print_info(&format!("Loading WASM module from: {}", wasm_path));
+    output::print_info(&format!(
+        "Initialization timeout: {}ms",
+        args.init_timeout_ms
+    ));
+
+    let timeout_duration = std::time::Duration::from_millis(args.init_timeout_ms);
+    let extractor_result =
+        tokio::time::timeout(timeout_duration, WasmExtractor::new(&wasm_path)).await;
+
+    let extractor = match extractor_result {
+        Ok(Ok(ext)) => {
+            output::print_info("✓ WASM module loaded successfully");
+            ext
+        }
+        Ok(Err(e)) => {
+            output::print_warning(&format!("WASM initialization failed: {}", e));
+            anyhow::bail!(
+                "Failed to initialize WASM module: {}\n  \
+                 Tip: Verify the WASM file is valid and compatible with the current runtime",
+                e
+            );
+        }
+        Err(_) => {
+            output::print_warning(&format!(
+                "WASM initialization timed out after {}ms",
+                args.init_timeout_ms
+            ));
+            anyhow::bail!(
+                "WASM module initialization timed out after {}ms.\n  \
+                 Possible causes:\n  \
+                 - WASM file is too large or complex\n  \
+                 - System resource constraints\n  \
+                 - File I/O issues\n  \
+                 Try: Increase timeout with --init-timeout-ms <milliseconds>",
+                args.init_timeout_ms
+            );
+        }
+    };
+
+    let mode = if args.metadata {
+        "metadata"
+    } else if args.method == "full" {
+        "full"
+    } else {
+        "article"
+    };
+
+    let result = extractor.extract(html.as_bytes(), url, mode)?;
     let extraction_time = extraction_start.elapsed();
 
     // Calculate word count and confidence
@@ -175,9 +616,10 @@ async fn execute_local_extraction(args: ExtractArgs, output_format: &str) -> Res
     let extract_result = ExtractResponse {
         content: result.text.clone(),
         confidence: Some(confidence),
-        method_used: Some("local-wasm".to_string()),
+        method_used: Some(format!("local-{}", engine.name())),
         extraction_time_ms: Some(extraction_time.as_millis() as u64),
         metadata: Some(serde_json::json!({
+            "engine": engine.name(),
             "title": result.title,
             "byline": result.byline,
             "published": result.published_iso,
@@ -194,13 +636,28 @@ async fn execute_local_extraction(args: ExtractArgs, output_format: &str) -> Res
         })),
     };
 
-    // Output results
+    output_extraction_result(extract_result, &args, output_format, url)
+}
+
+/// Output extraction results in the specified format
+fn output_extraction_result(
+    extract_result: ExtractResponse,
+    args: &ExtractArgs,
+    output_format: &str,
+    source: &str,
+) -> Result<()> {
     match output_format {
         "json" => {
             output::print_json(&extract_result);
         }
         "text" => {
-            output::print_success("Content extracted successfully (local mode)");
+            output::print_success(&format!(
+                "Content extracted successfully ({})",
+                extract_result
+                    .method_used
+                    .as_ref()
+                    .unwrap_or(&"unknown".to_string())
+            ));
             println!();
 
             if args.show_confidence {
@@ -228,15 +685,18 @@ async fn execute_local_extraction(args: ExtractArgs, output_format: &str) -> Res
             println!("{}", extract_result.content);
 
             // Save to file if specified
-            if let Some(file_path) = args.file {
-                fs::write(&file_path, &extract_result.content)?;
+            if let Some(ref file_path) = args.file {
+                fs::write(file_path, &extract_result.content)?;
                 output::print_success(&format!("Content saved to: {}", file_path));
             }
         }
         "table" => {
             let mut table = output::create_table(vec!["Field", "Value"]);
-            table.add_row(vec!["URL", &args.url]);
-            table.add_row(vec!["Mode", "Local WASM"]);
+            table.add_row(vec!["Source", source]);
+
+            if let Some(ref method) = extract_result.method_used {
+                table.add_row(vec!["Mode", method]);
+            }
 
             if let Some(confidence) = extract_result.confidence {
                 table.add_row(vec!["Confidence", &output::format_confidence(confidence)]);

@@ -7,6 +7,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use std::collections::HashMap;
 
+use crate::enhanced_extractor::StructuredExtractor;
 use crate::html_parser::{EnhancedHtmlExtractor, Metadata as HtmlMetadata};
 use crate::strategies::{traits::*, ExtractedContent, PerformanceMetrics};
 
@@ -14,21 +15,28 @@ use crate::strategies::{traits::*, ExtractedContent, PerformanceMetrics};
 // EXTRACTION STRATEGY IMPLEMENTATIONS
 // ============================================================================
 
-/// Trek extraction strategy implementation
+/// WASM extraction strategy implementation (formerly Trek)
 #[derive(Debug, Clone)]
-pub struct TrekExtractionStrategy;
+pub struct WasmExtractionStrategy;
 
 #[async_trait]
-impl ExtractionStrategy for TrekExtractionStrategy {
+impl ExtractionStrategy for WasmExtractionStrategy {
     async fn extract(&self, html: &str, _url: &str) -> Result<ExtractionResult> {
         let start = std::time::Instant::now();
 
-        // Use enhanced HTML extraction
-        let extractor = EnhancedHtmlExtractor::new(Some(_url))?;
-        let extracted = extractor.extract(html, _url)?;
+        // First try site-specific extraction
+        let structured_content =
+            if let Some(site_content) = StructuredExtractor::extract_site_specific(html, _url) {
+                site_content
+            } else {
+                // Use structured extraction for better content preservation
+                StructuredExtractor::extract_structured_content(html, Some(_url))?
+            };
 
-        // Clone metadata for use
-        let html_metadata = extracted.metadata.clone();
+        // Also extract metadata using the existing extractor
+        let extractor = EnhancedHtmlExtractor::new(Some(_url))?;
+        let metadata_result = extractor.extract(html, _url)?;
+        let html_metadata = metadata_result.metadata.clone();
 
         // Convert to ExtractedContent format
         let title = html_metadata
@@ -41,15 +49,15 @@ impl ExtractionStrategy for TrekExtractionStrategy {
             .description
             .clone()
             .or_else(|| html_metadata.og_description.clone())
-            .or_else(|| Some(create_summary(&extracted.markdown_content)));
+            .or_else(|| Some(create_summary(&structured_content)));
 
         let content = ExtractedContent {
             title: title.clone(),
-            content: extracted.markdown_content.clone(),
+            content: structured_content.clone(),
             summary,
             url: _url.to_string(),
-            strategy_used: "trek".to_string(),
-            extraction_confidence: extracted.quality_score,
+            strategy_used: "wasm".to_string(),
+            extraction_confidence: metadata_result.quality_score,
         };
         let duration = start.elapsed();
 
@@ -68,7 +76,11 @@ impl ExtractionStrategy for TrekExtractionStrategy {
             content_length: content.content.len(),
             title_quality,
             content_quality: calculate_content_quality(&content.content),
-            structure_score: if extracted.is_article { 0.95 } else { 0.75 },
+            structure_score: if metadata_result.is_article {
+                0.95
+            } else {
+                0.75
+            },
             metadata_completeness: metadata_score,
         };
 
@@ -78,13 +90,26 @@ impl ExtractionStrategy for TrekExtractionStrategy {
             "extraction_time_ms".to_string(),
             duration.as_millis().to_string(),
         );
-        metadata.insert("strategy_version".to_string(), "2.0".to_string());
-        metadata.insert("is_article".to_string(), extracted.is_article.to_string());
-        metadata.insert("link_count".to_string(), extracted.links.len().to_string());
-        metadata.insert("media_count".to_string(), extracted.media.len().to_string());
+        metadata.insert("strategy_version".to_string(), "3.0".to_string());
+        metadata.insert(
+            "is_article".to_string(),
+            metadata_result.is_article.to_string(),
+        );
+        metadata.insert(
+            "link_count".to_string(),
+            metadata_result.links.len().to_string(),
+        );
+        metadata.insert(
+            "media_count".to_string(),
+            metadata_result.media.len().to_string(),
+        );
         metadata.insert(
             "quality_score".to_string(),
-            extracted.quality_score.to_string(),
+            metadata_result.quality_score.to_string(),
+        );
+        metadata.insert(
+            "word_count".to_string(),
+            structured_content.split_whitespace().count().to_string(),
         );
 
         if let Some(author) = html_metadata.author {
@@ -106,7 +131,7 @@ impl ExtractionStrategy for TrekExtractionStrategy {
     }
 
     fn name(&self) -> &str {
-        "trek"
+        "wasm"
     }
 
     fn capabilities(&self) -> StrategyCapabilities {
@@ -132,7 +157,7 @@ impl ExtractionStrategy for TrekExtractionStrategy {
     }
 
     fn confidence_score(&self, html: &str) -> f64 {
-        // Trek is good for most HTML content
+        // WASM extraction is good for most HTML content
         if html.contains("<html") || html.contains("<!DOCTYPE") {
             0.8
         } else if html.contains("<body") || html.contains("<div") {
@@ -142,6 +167,9 @@ impl ExtractionStrategy for TrekExtractionStrategy {
         }
     }
 }
+
+// Backward compatibility alias
+pub type TrekExtractionStrategy = WasmExtractionStrategy;
 
 // CSS and Regex extraction strategies have been moved to riptide-html crate
 

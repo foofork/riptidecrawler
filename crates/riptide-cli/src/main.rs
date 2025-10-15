@@ -27,6 +27,10 @@ struct Cli {
     #[arg(long, short = 'v')]
     verbose: bool,
 
+    /// Global WASM module path (can be overridden per-command)
+    #[arg(long, env = "RIPTIDE_WASM_PATH", global = true)]
+    wasm_path: Option<String>,
+
     #[command(subcommand)]
     command: Commands,
 }
@@ -47,13 +51,34 @@ async fn main() -> Result<()> {
     // Execute command
     match cli.command {
         Commands::Extract(args) => commands::extract::execute(client, args, &cli.output).await,
+        Commands::Render(args) => commands::render::execute(args, &cli.output).await,
         Commands::Crawl(args) => commands::crawl::execute(client, args, &cli.output).await,
         Commands::Search(args) => commands::search::execute(client, args, &cli.output).await,
         Commands::Cache { command } => commands::cache::execute(client, command, &cli.output).await,
         Commands::Wasm { command } => commands::wasm::execute(client, command, &cli.output).await,
+        Commands::Stealth { command } => commands::stealth::execute(command).await,
+        Commands::Domain { command } => {
+            commands::domain::execute(client, command, &cli.output).await
+        }
         Commands::Health => commands::health::execute(client, &cli.output).await,
-        Commands::Metrics => commands::metrics::execute(client, &cli.output).await,
+        Commands::Metrics { command } => match command {
+            Some(commands::MetricsCommands::Show) | None => {
+                commands::metrics::execute(client, &cli.output).await
+            }
+            Some(commands::MetricsCommands::Export {
+                format,
+                output,
+                metric,
+            }) => commands::metrics::export(client, &format, output, metric).await,
+        },
         Commands::Validate => commands::validate::execute(client, &cli.output).await,
         Commands::SystemCheck => commands::system_check::execute(client, &cli.output).await,
+        Commands::Tables(args) => commands::tables::execute(client, args, &cli.output).await,
+        Commands::Schema { command } => {
+            commands::schema::execute(client, command, &cli.output).await
+        }
+        Commands::Pdf { command } => commands::pdf::execute(client, command, &cli.output).await,
+        Commands::Job { command } => commands::job::execute(client, command, &cli.output).await,
+        Commands::Session { command } => commands::session::execute(command, &cli.output).await,
     }
 }

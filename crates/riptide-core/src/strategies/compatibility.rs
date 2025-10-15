@@ -98,7 +98,7 @@ pub fn create_default_strategies() -> StrategyRegistry {
     let mut registry = StrategyRegistry::new();
 
     // Register core extraction strategies only
-    registry.register_extraction(Arc::new(TrekExtractionStrategy));
+    registry.register_extraction(Arc::new(WasmExtractionStrategy));
 
     // NOTE: CSS, Regex, and LLM strategies have been moved to other crates:
     // - CSS/Regex: riptide-html
@@ -112,10 +112,10 @@ pub fn migrate_extraction_strategy(
     strategy: &crate::strategies::ExtractionStrategy,
 ) -> Arc<dyn ExtractionStrategy> {
     match strategy {
-        crate::strategies::ExtractionStrategy::Trek => Arc::new(TrekExtractionStrategy),
-        crate::strategies::ExtractionStrategy::Css => Arc::new(TrekExtractionStrategy), // Fallback to Trek for now
-        crate::strategies::ExtractionStrategy::Regex => Arc::new(TrekExtractionStrategy), // Fallback to Trek for now
-        crate::strategies::ExtractionStrategy::Auto => Arc::new(TrekExtractionStrategy), // Fallback to Trek for now
+        crate::strategies::ExtractionStrategy::Trek => Arc::new(WasmExtractionStrategy),
+        crate::strategies::ExtractionStrategy::Css => Arc::new(WasmExtractionStrategy), // Fallback to WASM for now
+        crate::strategies::ExtractionStrategy::Regex => Arc::new(WasmExtractionStrategy), // Fallback to WASM for now
+        crate::strategies::ExtractionStrategy::Auto => Arc::new(WasmExtractionStrategy), // Fallback to WASM for now
     }
 }
 

@@ -8,7 +8,7 @@ use std::fs;
 
 #[derive(Serialize)]
 struct CrawlRequest {
-    url: String,
+    urls: Vec<String>,
     max_depth: u32,
     max_pages: u32,
     follow_external_links: bool,
@@ -45,7 +45,7 @@ pub async fn execute(client: RipTideClient, args: CrawlArgs, output_format: &str
     );
 
     let request = CrawlRequest {
-        url: args.url.clone(),
+        urls: vec![args.url.clone()],
         max_depth: args.depth,
         max_pages: args.max_pages,
         follow_external_links: args.follow_external,

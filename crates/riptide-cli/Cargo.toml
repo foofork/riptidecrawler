@@ -22,6 +22,7 @@ url.workspace = true
 
 # Local extraction support
 riptide-html = { path = "../riptide-html" }
+riptide-stealth = { path = "../riptide-stealth" }
 
 # CLI-specific
 colored = "2.1"
@@ -34,3 +35,6 @@ chrono.workspace = true
 humantime = "2.1"
 urlencoding = "2.1"
 env_logger.workspace = true
+scraper = "0.20"
+dirs = "5.0"
+serde_yaml = "0.9"
