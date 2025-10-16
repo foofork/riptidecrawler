@@ -218,7 +218,7 @@ cargo test --package riptide-api --test state_integration
 
 ---
 
-### 1.3 Refactor `crates/riptide-html/src/css_extraction.rs` (1,236 LOC)
+### 1.3 Refactor `crates/riptide-extraction/src/css_extraction.rs` (1,236 LOC)
 
 **Current Issues**:
 - 14 transformer implementations in one file
@@ -229,10 +229,10 @@ cargo test --package riptide-api --test state_integration
 
 #### Step 1: Create Module Structure
 ```bash
-mkdir -p crates/riptide-html/src/css_extraction/{transformers,selectors}
-touch crates/riptide-html/src/css_extraction/{mod.rs,core.rs,builder.rs}
-touch crates/riptide-html/src/css_extraction/transformers/{mod.rs,trim.rs,normalize.rs,number.rs,currency.rs,date.rs,url.rs,case.rs,text.rs,json.rs,html.rs}
-touch crates/riptide-html/src/css_extraction/selectors/{mod.rs,config.rs,defaults.rs}
+mkdir -p crates/riptide-extraction/src/css_extraction/{transformers,selectors}
+touch crates/riptide-extraction/src/css_extraction/{mod.rs,core.rs,builder.rs}
+touch crates/riptide-extraction/src/css_extraction/transformers/{mod.rs,trim.rs,normalize.rs,number.rs,currency.rs,date.rs,url.rs,case.rs,text.rs,json.rs,html.rs}
+touch crates/riptide-extraction/src/css_extraction/selectors/{mod.rs,config.rs,defaults.rs}
 ```
 
 **Todo Checklist**:
@@ -266,11 +266,11 @@ touch crates/riptide-html/src/css_extraction/selectors/{mod.rs,config.rs,default
 **Quality Gates**:
 ```bash
 # After each transformer extraction
-cargo test --package riptide-html --lib css_extraction::transformers
-cargo clippy --package riptide-html -- -D warnings
+cargo test --package riptide-extraction --lib css_extraction::transformers
+cargo clippy --package riptide-extraction -- -D warnings
 
 # Full suite
-cargo test --package riptide-html --all-features
+cargo test --package riptide-extraction --all-features
 ```
 
 **Acceptance Criteria**:

@@ -19,10 +19,10 @@ This audit identifies **78+ features and capabilities** across 14 RipTide crates
 
 ---
 
-## 1. HTML Processing & Extraction (riptide-html)
+## 1. HTML Processing & Extraction (riptide-extraction)
 
 ### 1.1 **Table Extraction** ✅ PARTIALLY EXPOSED
-**Location:** `/workspaces/eventmesh/crates/riptide-html/src/table_extraction/`
+**Location:** `/workspaces/eventmesh/crates/riptide-extraction/src/table_extraction/`
 
 #### Available Features:
 - **Advanced Table Parsing**
@@ -59,7 +59,7 @@ riptide export-table --table-id <ID> --format json --output tables.json
 ---
 
 ### 1.2 **Content Chunking Strategies** ❌ NOT EXPOSED
-**Location:** `/workspaces/eventmesh/crates/riptide-html/src/chunking/`
+**Location:** `/workspaces/eventmesh/crates/riptide-extraction/src/chunking/`
 
 #### 6 Chunking Strategies Available:
 
@@ -105,7 +105,7 @@ riptide chunk --url <URL> --strategy topic --extract-keywords --output chunks.js
 ---
 
 ### 1.3 **CSS Extraction Enhancements** ⚠️ PARTIALLY EXPOSED
-**Location:** `/workspaces/eventmesh/crates/riptide-html/src/css_extraction.rs`
+**Location:** `/workspaces/eventmesh/crates/riptide-extraction/src/css_extraction.rs`
 
 #### Advanced Features Not in CLI:
 
@@ -142,7 +142,7 @@ riptide chunk --url <URL> --strategy topic --extract-keywords --output chunks.js
 ---
 
 ### 1.4 **DOM Spider/Crawler** ❌ NOT EXPOSED
-**Location:** `/workspaces/eventmesh/crates/riptide-html/src/spider/`
+**Location:** `/workspaces/eventmesh/crates/riptide-extraction/src/spider/`
 
 #### Available Components:
 
@@ -779,10 +779,10 @@ riptide search --query "data science" --provider searxng --instance https://sear
 
 ---
 
-## 12. WASM Extraction (riptide-html/wasm_extraction)
+## 12. WASM Extraction (riptide-extraction/wasm_extraction)
 
 ### 12.1 **WebAssembly Runtime** ✅ WORKING
-**Location:** `/workspaces/eventmesh/crates/riptide-html/src/wasm_extraction.rs`
+**Location:** `/workspaces/eventmesh/crates/riptide-extraction/src/wasm_extraction.rs`
 
 #### Features:
 
@@ -975,7 +975,7 @@ riptide extract --url <URL> --strategy "fallback:wasm,css,regex" --min-confidenc
 ### Known Issues:
 
 1. **Spider Module Disabled**
-   - Location: `riptide-html/src/spider/`
+   - Location: `riptide-extraction/src/spider/`
    - Reason: Compilation errors noted in lib.rs
    - Fix: Resolve dependency issues, re-enable module
 
@@ -1000,7 +1000,7 @@ riptide extract --url <URL> --strategy "fallback:wasm,css,regex" --min-confidenc
 
 | Crate | Total Features | CLI Exposed | API Only | Hidden | Status |
 |-------|---------------|-------------|----------|--------|--------|
-| riptide-html | 15 | 3 | 2 | 10 | ⚠️ |
+| riptide-extraction | 15 | 3 | 2 | 10 | ⚠️ |
 | riptide-pdf | 8 | 0 | 2 | 6 | ❌ |
 | riptide-stealth | 12 | 0 | 4 | 8 | ❌ |
 | riptide-headless | 4 | 0 | 0 | 4 | ❌ |
@@ -1035,9 +1035,9 @@ RipTide is a **feature-rich, production-ready web extraction framework** with ex
 ## Appendix: File Locations Reference
 
 ### Core Extraction
-- HTML Processing: `/workspaces/eventmesh/crates/riptide-html/src/`
+- HTML Processing: `/workspaces/eventmesh/crates/riptide-extraction/src/`
 - PDF Processing: `/workspaces/eventmesh/crates/riptide-pdf/src/`
-- WASM Runtime: `/workspaces/eventmesh/crates/riptide-html/src/wasm_extraction.rs`
+- WASM Runtime: `/workspaces/eventmesh/crates/riptide-extraction/src/wasm_extraction.rs`
 
 ### Advanced Features
 - Stealth: `/workspaces/eventmesh/crates/riptide-stealth/src/`

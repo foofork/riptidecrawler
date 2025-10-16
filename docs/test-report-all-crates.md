@@ -13,7 +13,7 @@
 | riptide-api | ⏱️ TIMEOUT (2m+) | ❌ NOT TESTED | Build did not complete |
 | riptide-core | ✅ SUCCESS | ⚠️ PARTIAL | 15+ test failures, many timeouts |
 | riptide-headless | ✅ SUCCESS | ❌ FAILED | 15 failures: missing Chrome executable |
-| riptide-html | ✅ SUCCESS | ⏱️ TIMEOUT | 3 failures + performance test timeouts |
+| riptide-extraction | ✅ SUCCESS | ⏱️ TIMEOUT | 3 failures + performance test timeouts |
 | riptide-intelligence | ✅ SUCCESS | ⏱️ TIMEOUT | Tests running but not completed |
 | riptide-pdf | ✅ SUCCESS | ⚠️ PARTIAL | 2 failures: missing libpdfium.so |
 | riptide-performance | ✅ SUCCESS | ⏱️ NOT TESTED | Build succeeded, tests timeout |
@@ -120,7 +120,7 @@ Failed to build browser config: "Could not auto detect a chrome executable"
 
 ---
 
-### riptide-html (3 failures + 2 timeouts)
+### riptide-extraction (3 failures + 2 timeouts)
 
 **Failures:**
 1. `chunking::html_aware::tests::test_safe_split_points` - FAILED
@@ -134,7 +134,7 @@ Failed to build browser config: "Could not auto detect a chrome executable"
 **Warning:**
 ```
 warning: unexpected `cfg` condition name: `disabled_old_api`
-  --> crates/riptide-html/tests/html_extraction_tests.rs:10:7
+  --> crates/riptide-extraction/tests/html_extraction_tests.rs:10:7
 ```
 
 **Status:** 59/62 tests completed, 95.2% pass rate (excluding timeouts)
@@ -257,7 +257,7 @@ Compiling servo_arc v0.4.1
    - Types: BM25 scoring, circuit breaker, URL normalization
    - Need detailed investigation
 
-5. **riptide-html**: 3 chunking test failures + 2 performance timeouts
+5. **riptide-extraction**: 3 chunking test failures + 2 performance timeouts
    - Safe split points, boundary detection, regex chunking
 
 6. **riptide-search**: 1 circuit breaker test failure
@@ -268,7 +268,7 @@ Compiling servo_arc v0.4.1
 
 ### 🔵 Low Priority (Performance)
 8. **Multiple crates**: Performance test timeouts
-   - riptide-core, riptide-html, riptide-intelligence
+   - riptide-core, riptide-extraction, riptide-intelligence
    - May need longer timeout or optimization
 
 ### ℹ️ Information
@@ -310,7 +310,7 @@ Compiling servo_arc v0.4.1
 ### Medium-term Actions (Priority 3)
 5. **Fix Logic Issues**
    - Debug and fix 15+ riptide-core test failures
-   - Fix chunking issues in riptide-html
+   - Fix chunking issues in riptide-extraction
    - Fix circuit breaker logic in riptide-search
    - Fix metrics and scheduler in riptide-workers
 

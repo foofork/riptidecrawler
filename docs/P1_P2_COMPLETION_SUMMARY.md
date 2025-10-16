@@ -161,7 +161,7 @@ let value = parse_int(s)
 2. `crates/riptide-api/src/metrics.rs` - Safe defaults
 3. `crates/riptide-core/src/cache_key.rs` - Error context
 4. `crates/riptide-core/src/fetch.rs` - Timeout handling
-5. `crates/riptide-html/src/dom_utils.rs` - Option handling
+5. `crates/riptide-extraction/src/dom_utils.rs` - Option handling
 6. `crates/riptide-persistence/src/cache.rs` - Transaction errors
 7. `crates/riptide-persistence/src/metrics.rs` - Parsing errors
 8. Multiple test files (kept unwrap for test convenience)

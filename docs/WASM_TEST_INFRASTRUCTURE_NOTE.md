@@ -13,7 +13,7 @@ The WASM Component Model integration is **production-ready** with all critical f
 
 ## What's Working ✅
 
-### Production Code (`crates/riptide-html/src/wasm_extraction.rs`)
+### Production Code (`crates/riptide-extraction/src/wasm_extraction.rs`)
 - **WIT bindings enabled** with namespace separation (lines 14-20)
 - **Type conversions operational** (lines 113-182)
 - **Real WASM extraction calls** (lines 443-474)
@@ -28,7 +28,7 @@ The WASM Component Model integration is **production-ready** with all critical f
 
 ### Unit Tests
 ```bash
-cargo test -p riptide-html --lib wasm_extraction::tests
+cargo test -p riptide-extraction --lib wasm_extraction::tests
 # ✅ 4/4 tests passing
 ```
 
@@ -56,7 +56,7 @@ The integration test harness in `crates/riptide-core/tests/support/wasm_componen
 
 ### Why This Doesn't Affect Production
 
-The production code in `riptide-html` uses a different instantiation pattern that works correctly:
+The production code in `riptide-extraction` uses a different instantiation pattern that works correctly:
 
 ```rust
 // Production code (working)
@@ -106,7 +106,7 @@ Create minimal WASI stub implementations for testing.
 **Test execution**:
 ```bash
 # Run unit tests (working)
-cargo test -p riptide-html --lib wasm_extraction::tests
+cargo test -p riptide-extraction --lib wasm_extraction::tests
 
 # Skip integration tests that need WASI
 cargo test --workspace --lib

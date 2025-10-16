@@ -12,7 +12,7 @@ This document tracks the remaining TODOs and blockers for complete WASM Componen
 **Status**: ✅ **RESOLVED** - 2025-10-13
 **Priority**: P0 - BLOCKER (COMPLETED)
 **Effort**: Completed
-**Location**: `crates/riptide-html/src/wasm_extraction.rs:14-20`
+**Location**: `crates/riptide-extraction/src/wasm_extraction.rs:14-20`
 
 **Problem**: WIT bindings disabled due to type name collisions between host and guest types
 **Impact**: ~~WASM component completely unused~~ **NOW ACTIVE**
@@ -28,7 +28,7 @@ This document tracks the remaining TODOs and blockers for complete WASM Componen
 **Status**: ✅ **RESOLVED** - 2025-10-13
 **Priority**: P0 - BLOCKER (COMPLETED)
 **Effort**: Completed
-**Location**: `crates/riptide-html/src/wasm_extraction.rs:443-474`
+**Location**: `crates/riptide-extraction/src/wasm_extraction.rs:443-474`
 
 **Problem**: ~~Not calling actual WASM exported functions~~ **NOW USING REAL WASM CALLS**
 **Impact**: Full memory isolation, security boundaries, WASM benefits active
@@ -47,7 +47,7 @@ This document tracks the remaining TODOs and blockers for complete WASM Componen
 **Status**: ✅ **RESOLVED (Documented)** - 2025-10-13
 **Priority**: P1 - High (COMPLETED)
 **Effort**: Completed
-**Location**: `crates/riptide-html/src/wasm_extraction.rs:403-412`
+**Location**: `crates/riptide-extraction/src/wasm_extraction.rs:403-412`
 
 **Problem**: ~~AOT compilation caching disabled~~ **NOW USING BUILT-IN CACHING**
 **Impact**: Minimal - Wasmtime 34 has automatic internal caching per Engine instance
@@ -68,7 +68,7 @@ This document tracks the remaining TODOs and blockers for complete WASM Componen
 **Status**: 📝 Ready to create in GitHub
 **Priority**: P2 - Medium
 **Effort**: 2-3 days
-**Location**: `crates/riptide-html/src/table_extraction/extractor.rs:107-109`
+**Location**: `crates/riptide-extraction/src/table_extraction/extractor.rs:107-109`
 
 **Problem**: Table extraction doesn't support hierarchical headers with colspan/rowspan
 **Impact**: Data loss for complex financial/scientific tables
@@ -162,7 +162,7 @@ RipTide implements a sophisticated WebAssembly Component Model-based extraction 
   - Category extraction from JSON-LD, breadcrumbs, meta tags
 - **Grade: A (90/100)** - Production-quality implementation
 
-**3. Host Integration** (`crates/riptide-html/src/wasm_extraction.rs`)
+**3. Host Integration** (`crates/riptide-extraction/src/wasm_extraction.rs`)
 - Bridges Rust host and WASM guest
 - Manages Wasmtime engine and configuration
 - **🔴 CRITICAL**: WIT bindings currently disabled (lines 13-23)
@@ -200,18 +200,18 @@ RipTide implements a sophisticated WebAssembly Component Model-based extraction 
 #### ❌ Critical Issues
 
 1. **WIT Bindings Disabled** (Issue #3) - **CRITICAL**
-   - Location: `crates/riptide-html/src/wasm_extraction.rs:13-23`
+   - Location: `crates/riptide-extraction/src/wasm_extraction.rs:13-23`
    - Impact: WASM component completely unused, using fallback only
    - Cause: Type name conflicts (ExtractedDoc, ExtractionMode, etc.)
    - Solution: Namespace separation with explicit type boundary
 
 2. **Fallback Implementation Active** - **CRITICAL**
-   - Location: `crates/riptide-html/src/wasm_extraction.rs:441-482`
+   - Location: `crates/riptide-extraction/src/wasm_extraction.rs:441-482`
    - Impact: No WASM execution, no isolation, no security boundaries
    - Dependency: Blocked by Issue #3
 
 3. **AOT Caching Disabled** (Issue #4) - **HIGH**
-   - Location: `crates/riptide-html/src/wasm_extraction.rs:405-416`
+   - Location: `crates/riptide-extraction/src/wasm_extraction.rs:405-416`
    - Impact: 100-500ms cold start penalty
    - Cause: Wasmtime 34 API migration needed
 
@@ -338,7 +338,7 @@ The AOT (Ahead-of-Time) compilation caching is disabled because `cache_config_lo
 
 ### Location
 
-`crates/riptide-html/src/wasm_extraction.rs:405-416`
+`crates/riptide-extraction/src/wasm_extraction.rs:405-416`
 
 ### Technical Details
 
@@ -384,8 +384,8 @@ wasmtime-wasi = "34.0.0"
 
 ### Related Files
 
-- `crates/riptide-html/src/wasm_extraction.rs:405` - Cache configuration
-- `crates/riptide-html/Cargo.toml` - Wasmtime dependency
+- `crates/riptide-extraction/src/wasm_extraction.rs:405` - Cache configuration
+- `crates/riptide-extraction/Cargo.toml` - Wasmtime dependency
 
 ### Acceptance Criteria
 
@@ -411,7 +411,7 @@ The WASM Component Model integration is incomplete. We're not calling actual WAS
 
 ### Location
 
-`crates/riptide-html/src/wasm_extraction.rs:448-454`
+`crates/riptide-extraction/src/wasm_extraction.rs:448-454`
 
 ### Technical Details
 
@@ -495,7 +495,7 @@ Result/Error to Host
 
 ### Related Files
 
-- `crates/riptide-html/src/wasm_extraction.rs` - Host integration
+- `crates/riptide-extraction/src/wasm_extraction.rs` - Host integration
 - `wasm/riptide-extractor-wasm/src/lib.rs` - WASM component
 - `wasm/riptide-extractor-wasm/wit/extractor.wit` - Interface definition
 
@@ -526,7 +526,7 @@ Table extraction doesn't support multi-level hierarchical headers with `colspan`
 
 ### Location
 
-`crates/riptide-html/src/table_extraction/extractor.rs:107-109`
+`crates/riptide-extraction/src/table_extraction/extractor.rs:107-109`
 
 ### Technical Details
 
@@ -661,9 +661,9 @@ Common test cases:
 
 ### Related Files
 
-- `crates/riptide-html/src/table_extraction/extractor.rs` - Main extraction logic
-- `crates/riptide-html/src/table_extraction/mod.rs` - Module interface
-- `crates/riptide-html/tests/table_extraction_tests.rs` - Test suite
+- `crates/riptide-extraction/src/table_extraction/extractor.rs` - Main extraction logic
+- `crates/riptide-extraction/src/table_extraction/mod.rs` - Module interface
+- `crates/riptide-extraction/tests/table_extraction_tests.rs` - Test suite
 
 ### Acceptance Criteria
 
@@ -717,7 +717,7 @@ Common test cases:
 
 **Unit Tests: ✅ PASSING (4/4)**
 ```bash
-cargo test -p riptide-html --lib wasm_extraction::tests
+cargo test -p riptide-extraction --lib wasm_extraction::tests
 # All 4 tests passing
 ```
 

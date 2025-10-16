@@ -25,7 +25,7 @@
 | Crate | Status | Duration | Notes |
 |-------|--------|----------|-------|
 | `riptide-core` | ✅ PASS | 1m 38s | All dependencies compiled successfully |
-| `riptide-html` | ✅ PASS | 1m 16s | Clean compilation |
+| `riptide-extraction` | ✅ PASS | 1m 16s | Clean compilation |
 | `riptide-persistence` | ✅ PASS | 55s | All checks passed |
 | `riptide-intelligence` | ✅ PASS | 1m 31s | No issues found |
 | `riptide-headless` | ✅ PASS | 1m 49s | Clean build |
@@ -41,7 +41,7 @@
 | Crate | Status | Warnings | Errors |
 |-------|--------|----------|--------|
 | `riptide-core` | ✅ PASS | 0 | 0 |
-| `riptide-html` | ✅ PASS | 0 | 0 |
+| `riptide-extraction` | ✅ PASS | 0 | 0 |
 | `riptide-persistence` | ✅ PASS | 0 | 0 |
 | `riptide-intelligence` | ✅ PASS | 0 | 0 |
 | `riptide-headless` | ✅ PASS | 0 | 0 |
@@ -91,12 +91,12 @@
 
 | Test Suite | Status | Issues Fixed |
 |------------|--------|--------------|
-| `riptide-html` tests | ✅ PASS | 2 import errors fixed |
+| `riptide-extraction` tests | ✅ PASS | 2 import errors fixed |
 | `riptide-streaming` tests | ✅ PASS | 7 unused variable warnings fixed |
 | `riptide-core` tests | ✅ PASS | Compiles with warnings only |
 | All other test suites | ✅ PASS | Clean compilation |
 
-**Fixes Applied for riptide-html tests**:
+**Fixes Applied for riptide-extraction tests**:
 1. Fixed `default_selectors_simple()` call to use `default_selectors()` with correct constructor
 2. Corrected module imports to avoid unused import warnings
 3. Added `HashMap` import to test modules
@@ -114,12 +114,12 @@
 
 ### Critical Fixes (Blocking Compilation)
 1. **riptide-api metrics** - Added `#[allow(dead_code)]` attributes to reserved metrics fields and methods
-2. **riptide-html tests** - Fixed function call from `default_selectors_simple()` to `default_selectors()` with correct constructor
-3. **riptide-html tests** - Added missing `HashMap` import to test modules
+2. **riptide-extraction tests** - Fixed function call from `default_selectors_simple()` to `default_selectors()` with correct constructor
+3. **riptide-extraction tests** - Added missing `HashMap` import to test modules
 
 ### Quality Improvements (Warning Fixes)
 1. **riptide-streaming tests** - Fixed 7 unused variable warnings with `_` prefix or `#[allow(dead_code)]`
-2. **riptide-html tests** - Cleaned up unused imports
+2. **riptide-extraction tests** - Cleaned up unused imports
 
 ---
 
@@ -168,14 +168,14 @@ To verify the build yourself, run these commands in sequence:
 ```bash
 # Phase 1: Core Library Crates
 cargo check --package riptide-core --lib
-cargo check --package riptide-html --lib
+cargo check --package riptide-extraction --lib
 cargo check --package riptide-persistence --lib
 cargo check --package riptide-intelligence --lib
 cargo check --package riptide-headless --lib
 
 # Phase 2: Clippy on Libraries
 cargo clippy --package riptide-core --lib -- -D warnings
-cargo clippy --package riptide-html --lib -- -D warnings
+cargo clippy --package riptide-extraction --lib -- -D warnings
 cargo clippy --package riptide-persistence --lib -- -D warnings
 cargo clippy --package riptide-intelligence --lib -- -D warnings
 cargo clippy --package riptide-headless --lib -- -D warnings

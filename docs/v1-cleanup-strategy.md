@@ -503,12 +503,12 @@ cargo test --package riptide-intelligence -- --ignored
 #### Day 3: Feature Flags
 ```bash
 # 1. Enable table-extraction
-# Edit crates/riptide-html/Cargo.toml
+# Edit crates/riptide-extraction/Cargo.toml
 [features]
 default = ["css-extraction", "regex-extraction", "dom-utils", "chunking", "table-extraction"]
 
 # 2. Test feature
-cargo test --package riptide-html --features table-extraction
+cargo test --package riptide-extraction --features table-extraction
 
 # 3. Update documentation
 # Edit README.md feature matrix
@@ -1030,7 +1030,7 @@ wasm/riptide-extractor-wasm/tests/test_runner.rs # Uncomment test runners
 ```
 docs/provider-setup.md                             # CREATE
 docs/google-vertex-auth.md                         # UPDATE
-crates/riptide-html/Cargo.toml                    # Enable table-extraction
+crates/riptide-extraction/Cargo.toml                    # Enable table-extraction
 README.md                                          # Update feature matrix
 ```
 

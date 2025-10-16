@@ -18,7 +18,7 @@ HTML processing and extraction capabilities for the RipTide project, implementin
 ## 📁 Crate Structure
 
 ```
-crates/riptide-html/
+crates/riptide-extraction/
 ├── Cargo.toml              # Crate configuration with workspace dependencies
 ├── README.md               # This documentation
 ├── src/
@@ -140,21 +140,21 @@ let chunks = processor.chunk_content(
 
 ## 🔧 Migration from riptide-core
 
-The extraction code has been moved from `riptide-core` to `riptide-html` with full backward compatibility:
+The extraction code has been moved from `riptide-core` to `riptide-extraction` with full backward compatibility:
 
 ### Before (riptide-core)
 ```rust
 use riptide_core::strategies::{css_json, extraction_regex};
 ```
 
-### After (riptide-html)
+### After (riptide-extraction)
 ```rust
 use riptide_extraction::{css_extraction, regex_extraction};
 ```
 
 ### Backward Compatibility
 ```rust
-// Still works - re-exported from riptide-html
+// Still works - re-exported from riptide-extraction
 use riptide_core::strategies::{css_json, extraction_regex};
 ```
 
@@ -162,13 +162,13 @@ use riptide_core::strategies::{css_json, extraction_regex};
 
 ```bash
 # Run all tests
-cargo test -p riptide-html
+cargo test -p riptide-extraction
 
 # Run example
-cargo run --example basic_extraction -p riptide-html
+cargo run --example basic_extraction -p riptide-extraction
 
 # Check compilation
-cargo check -p riptide-html
+cargo check -p riptide-extraction
 ```
 
 ## 📦 Dependencies
@@ -189,7 +189,7 @@ Added to `/workspaces/eventmesh/Cargo.toml`:
 [workspace]
 members = [
   "crates/riptide-core",
-  "crates/riptide-html",  # ← New crate
+  "crates/riptide-extraction",  # ← New crate
   # ... other crates
 ]
 ```
@@ -199,12 +199,12 @@ members = [
 Updated `riptide-core/Cargo.toml`:
 ```toml
 [dependencies]
-riptide-html = { path = "../riptide-html" }
+riptide-extraction = { path = "../riptide-extraction" }
 ```
 
 Re-exports maintain compatibility in `riptide-core/src/strategies/mod.rs`:
 ```rust
-// Re-export from riptide-html for backward compatibility
+// Re-export from riptide-extraction for backward compatibility
 pub use riptide_extraction::{css_extraction as css_json, regex_extraction as extraction_regex};
 pub use riptide_extraction::{ExtractedContent, RegexPattern};
 ```

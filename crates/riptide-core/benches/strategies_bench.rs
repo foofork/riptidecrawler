@@ -1,6 +1,6 @@
 //! Benchmarks for core extraction strategies and performance
 //!
-//! Note: CSS/Regex extraction and chunking features have been moved to riptide-html crate.
+//! Note: CSS/Regex extraction and chunking features have been moved to riptide-extraction crate.
 //! This benchmark focuses on the core strategy manager and metadata extraction.
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};

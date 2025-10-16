@@ -1,0 +1,35 @@
+suite: 30_listings
+description: "Listing pages, hubs, and communities with pagination and high link density"
+targets:
+  - name: "Hacker News — front page"
+    url: "https://news.ycombinator.com/"
+    type: listing
+    expected:
+      - multiple_links: true
+      - titles_extracted: true
+      - points_visible: true
+      - comments_count: true
+  - name: "GitHub Topics — rust"
+    url: "https://github.com/topics/rust"
+    type: listing
+    expected:
+      - repositories_listed: true
+      - stars_extracted: true
+      - descriptions_present: true
+      - pagination_detected: true
+  - name: "Stack Overflow — newest 'rust' questions"
+    url: "https://stackoverflow.com/questions/tagged/rust"
+    type: listing
+    expected:
+      - questions_listed: true
+      - vote_counts: true
+      - tags_extracted: true
+      - answer_counts: true
+  - name: "Coolblue — Laptops category"
+    url: "https://www.coolblue.nl/en/laptops?redirect=laptops"
+    type: listing
+    expected:
+      - product_grid: true
+      - prices_visible: true
+      - filters_present: true
+      - pagination_available: true

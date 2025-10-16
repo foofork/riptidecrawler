@@ -24,7 +24,7 @@ The Wasmtime 37 upgrade has been completed with:
 
 ### 1. Production Code Fixes
 
-**File:** `/workspaces/eventmesh/crates/riptide-html/src/wasm_extraction.rs`
+**File:** `/workspaces/eventmesh/crates/riptide-extraction/src/wasm_extraction.rs`
 
 #### Issue Fixed:
 The coder's initial changes broke compilation with two critical errors:
@@ -116,7 +116,7 @@ let mut store = Store::new(&engine, host);
 ### ✅ Unit Tests: **PASSED (4/4)**
 
 ```bash
-$ cargo test -p riptide-html --lib wasm_extraction::tests
+$ cargo test -p riptide-extraction --lib wasm_extraction::tests
 
 running 4 tests
 test wasm_extraction::tests::test_extracted_doc_conversion ... ok
@@ -136,7 +136,7 @@ test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured
 ### ✅ Build Validation: **PASSED**
 
 ```bash
-$ cargo build -p riptide-html
+$ cargo build -p riptide-extraction
 Finished `dev` profile [unoptimized + debuginfo] target(s) in 5.30s
 
 $ cargo build -p riptide-core --tests
@@ -273,7 +273,7 @@ let mut store = Store::new(&engine, host);
 **Files with Compilation Errors (NOT Wasmtime-related):**
 - `crates/riptide-streaming/tests/report_generation_tests.rs` - Private method access
 - `crates/riptide-streaming/tests/deepsearch_stream_tests.rs` - Missing imports
-- `crates/riptide-html/tests/html_extraction_tests.rs` - Ambiguous imports
+- `crates/riptide-extraction/tests/html_extraction_tests.rs` - Ambiguous imports
 
 **Status:** These are pre-existing issues unrelated to Wasmtime 37 upgrade.
 
@@ -353,7 +353,7 @@ The Wasmtime 37 upgrade has been successfully completed with:
 
 ```
 modified:   Cargo.toml (wasmtime 34 → 37)
-modified:   crates/riptide-html/src/wasm_extraction.rs (bindgen! fix)
+modified:   crates/riptide-extraction/src/wasm_extraction.rs (bindgen! fix)
 modified:   crates/riptide-core/tests/support/wasm_component.rs (WASI API update)
 ```
 

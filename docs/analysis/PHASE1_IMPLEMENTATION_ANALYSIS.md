@@ -356,8 +356,8 @@ error: failed to build archive at target/debug/deps/libfutures_core-*.rlib
 
 ### Files Modified (3 files)
 
-1. `crates/riptide-html/src/wasm_extraction.rs` - Core implementation (+151, -122)
-2. `crates/riptide-html/tests/wasm_binding_tdd_tests.rs` - Unit tests (-2)
+1. `crates/riptide-extraction/src/wasm_extraction.rs` - Core implementation (+151, -122)
+2. `crates/riptide-extraction/tests/wasm_binding_tdd_tests.rs` - Unit tests (-2)
 3. `tests/webpage-extraction/test-urls.json` - Test data updates
 
 ---

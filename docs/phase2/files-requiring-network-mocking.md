@@ -47,10 +47,10 @@
 |-----------|---------------|----------|
 | `/workspaces/eventmesh/tests/golden_tests.rs` | 8 | example.com (inline HTML) |
 | `/workspaces/eventmesh/tests/html_extraction_tests.rs` | 2 | example.com |
-| `/workspaces/eventmesh/crates/riptide-html/tests/integration_tests.rs` | 4 | example.com |
-| `/workspaces/eventmesh/crates/riptide-html/tests/table_extraction_comprehensive_tests.rs` | 1 | example.com |
-| `/workspaces/eventmesh/crates/riptide-html/tests/css_merge_policy_performance_tests.rs` | 1 | example.com |
-| `/workspaces/eventmesh/crates/riptide-html/tests/css_has_text_tests.rs` | 1 | example.com |
+| `/workspaces/eventmesh/crates/riptide-extraction/tests/integration_tests.rs` | 4 | example.com |
+| `/workspaces/eventmesh/crates/riptide-extraction/tests/table_extraction_comprehensive_tests.rs` | 1 | example.com |
+| `/workspaces/eventmesh/crates/riptide-extraction/tests/css_merge_policy_performance_tests.rs` | 1 | example.com |
+| `/workspaces/eventmesh/crates/riptide-extraction/tests/css_has_text_tests.rs` | 1 | example.com |
 
 **Priority**: P1 (Week 2)
 **Effort**: 8 hours total
@@ -101,7 +101,7 @@
 | `/workspaces/eventmesh/tests/spider_query_aware_integration_test.rs` | 2 | httpbin.org |
 | `/workspaces/eventmesh/crates/riptide-core/src/spider/tests.rs` | 2 | httpbin.org |
 | `/workspaces/eventmesh/crates/riptide-core/src/spider/query_aware_tests.rs` | 1 | httpbin.org |
-| `/workspaces/eventmesh/crates/riptide-html/src/spider/tests.rs` | 2 | example.com |
+| `/workspaces/eventmesh/crates/riptide-extraction/src/spider/tests.rs` | 2 | example.com |
 | `/workspaces/eventmesh/tests/week3/spider_tests.rs` | 1 | httpbin.org |
 | `/workspaces/eventmesh/tests/week3/dom_spider_tests.rs` | 1 | example.com |
 

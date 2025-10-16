@@ -36,7 +36,7 @@ The RipTide WASM architecture implements a sophisticated Component Model-based e
 ```
 ┌────────────────────────────────────────────────────────────────────┐
 │                         Host Application                           │
-│  (Rust - riptide-api, riptide-html, riptide-core)                 │
+│  (Rust - riptide-api, riptide-extraction, riptide-core)                 │
 ├────────────────────────────────────────────────────────────────────┤
 │                                                                     │
 │  ┌─────────────────────────────────────────────────────────────┐  │
@@ -47,7 +47,7 @@ The RipTide WASM architecture implements a sophisticated Component Model-based e
 │  └─────────────────────────────────────────────────────────────┘  │
 │                              ▼                                     │
 │  ┌─────────────────────────────────────────────────────────────┐  │
-│  │  Host Integration (riptide-html/wasm_extraction.rs)         │  │
+│  │  Host Integration (riptide-extraction/wasm_extraction.rs)         │  │
 │  │  ┌───────────────────────────────────────────────────────┐  │  │
 │  │  │  CmExtractor                                          │  │  │
 │  │  │  ├─ engine: Engine                                    │  │  │
@@ -293,7 +293,7 @@ The RipTide WASM architecture implements a sophisticated Component Model-based e
 | **WIT Interface** | `wasm/riptide-extractor-wasm/wit/extractor.wit` | 145 | Component Model interface definition |
 | **Guest Component** | `wasm/riptide-extractor-wasm/src/lib.rs` | 490 | WASM guest implementation |
 | **Guest Extraction** | `wasm/riptide-extractor-wasm/src/extraction.rs` | 600+ | Links, media, language, category extraction |
-| **Host Integration** | `crates/riptide-html/src/wasm_extraction.rs` | 581 | Host-side WASM extractor wrapper |
+| **Host Integration** | `crates/riptide-extraction/src/wasm_extraction.rs` | 581 | Host-side WASM extractor wrapper |
 | **Instance Pool** | `crates/riptide-core/src/instance_pool/pool.rs` | 964 | Advanced pooling with circuit breaker |
 | **Pool Models** | `crates/riptide-core/src/instance_pool/models.rs` | 111 | PooledInstance and CircuitBreakerState |
 | **Component Types** | `crates/riptide-core/src/component.rs` | 169 | Host-side component configuration |
@@ -389,7 +389,7 @@ pub fn detect_language(html: &str) -> Option<String> {
 }
 ```
 
-### 2.3 Host Integration (`riptide-html/wasm_extraction.rs`)
+### 2.3 Host Integration (`riptide-extraction/wasm_extraction.rs`)
 
 **Purpose**: Bridge between Rust host and WASM guest
 
@@ -615,7 +615,7 @@ The guest component provides **production-quality extraction**:
 ### 3.2 Critical Architectural Issues
 
 #### 3.2.1 WIT Bindings Disabled (Priority: CRITICAL)
-**Location**: `crates/riptide-html/src/wasm_extraction.rs:13-23`
+**Location**: `crates/riptide-extraction/src/wasm_extraction.rs:13-23`
 
 **Issue**:
 ```rust
@@ -678,7 +678,7 @@ The guest component provides **production-quality extraction**:
 - Explicit conversion layer for type safety
 
 #### 3.2.2 Fallback Implementation Instead of WASM (Priority: CRITICAL)
-**Location**: `crates/riptide-html/src/wasm_extraction.rs:441-482`
+**Location**: `crates/riptide-extraction/src/wasm_extraction.rs:441-482`
 
 **Issue**:
 ```rust
@@ -758,7 +758,7 @@ async fn extract_with_instance(
 **Note**: The **correct implementation exists** in `instance_pool/pool.rs` but is not accessible from `wasm_extraction.rs` because bindgen is disabled.
 
 #### 3.2.3 AOT Caching Disabled (Priority: MEDIUM)
-**Location**: `crates/riptide-html/src/wasm_extraction.rs:405-416`
+**Location**: `crates/riptide-extraction/src/wasm_extraction.rs:405-416`
 
 **Issue**:
 ```rust
@@ -819,7 +819,7 @@ if let Ok(cache_dir) = std::env::var("WASMTIME_CACHE_DIR") {
 #### 3.3.1 Type Duplication Problem
 **Current State**: Two parallel type systems
 
-**Host Types** (`crates/riptide-html/src/wasm_extraction.rs`):
+**Host Types** (`crates/riptide-extraction/src/wasm_extraction.rs`):
 ```rust
 pub struct ExtractedDoc { /* 14 fields */ }
 pub enum HostExtractionMode { Article, Full, Metadata, Custom(Vec<String>) }
@@ -967,7 +967,7 @@ use riptide_wit_types::{WitExtractedContent, WitExtractionMode};
 **Action Plan**:
 1. **Namespace Separation** (Recommended approach):
    ```rust
-   // File: crates/riptide-html/src/wasm_extraction.rs
+   // File: crates/riptide-extraction/src/wasm_extraction.rs
 
    mod wit_bindings {
        wasmtime::component::bindgen!({
@@ -1078,7 +1078,7 @@ use riptide_wit_types::{WitExtractedContent, WitExtractionMode};
 
 **Implementation**:
 ```rust
-// File: crates/riptide-html/src/wasm_extraction.rs
+// File: crates/riptide-extraction/src/wasm_extraction.rs
 
 pub async fn with_config(wasm_path: &str, config: ExtractorConfig) -> Result<Self> {
     let mut wasmtime_config = Config::new();
@@ -1150,7 +1150,7 @@ fn bench_cold_start_with_cache(b: &mut Bencher) {
 4. Document type boundary in architecture guide
 
 ```rust
-// File: crates/riptide-html/src/wasm_extraction/conversions.rs
+// File: crates/riptide-extraction/src/wasm_extraction/conversions.rs
 
 //! Type conversions between host and WIT-generated guest types.
 //!

@@ -8,7 +8,7 @@ Comprehensive plan to fix all test compilation issues revealed by the test reorg
 
 ## Issue Categories
 
-### 1. riptide-html (P1 - High Impact)
+### 1. riptide-extraction (P1 - High Impact)
 **Status**: ✅ SKIPPED - Requires extensive refactoring
 **Impact**: Medium (tests are for old API)
 
@@ -72,7 +72,7 @@ Comprehensive plan to fix all test compilation issues revealed by the test reorg
 
 ## Implementation Order
 
-1. ✅ Skip riptide-html (mark tests as ignored)
+1. ✅ Skip riptide-extraction (mark tests as ignored)
 2. 🔄 Fix riptide-pdf (critical integration tests)
 3. Fix riptide-search (medium priority)
 4. Fix riptide-performance (lower priority)

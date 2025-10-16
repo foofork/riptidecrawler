@@ -263,7 +263,7 @@ When adding new tests:
 
 - [Week 3 Requirements](../../../docs/ROADMAP.md#week-3)
 - [Chunking Strategy Documentation](../../../crates/riptide-core/src/strategies/chunking/)
-- [HTML Processing Documentation](../../../crates/riptide-html/)
+- [HTML Processing Documentation](../../../crates/riptide-extraction/)
 - [Performance Benchmarking Guide](./benchmark_suite.rs)
 
 ---

@@ -15,7 +15,7 @@ Successfully upgraded the codebase from Wasmtime 34 to Wasmtime 37 with zero bre
 - `wasmtime = "37"` (line 62)
 - `wasmtime-wasi = "37"` (line 63)
 
-### 2. `/workspaces/eventmesh/crates/riptide-html/src/wasm_extraction.rs`
+### 2. `/workspaces/eventmesh/crates/riptide-extraction/src/wasm_extraction.rs`
 **Status:** ✅ Updated and compiling
 
 #### Changes Made:
@@ -117,7 +117,7 @@ Successfully upgraded the codebase from Wasmtime 34 to Wasmtime 37 with zero bre
 
 ### Compilation Status
 ```bash
-✅ cargo check -p riptide-html
+✅ cargo check -p riptide-extraction
    Finished `dev` profile in 3.82s
 
 ✅ cargo check -p riptide-core --tests
@@ -129,7 +129,7 @@ Successfully upgraded the codebase from Wasmtime 34 to Wasmtime 37 with zero bre
 
 ### Test Results
 ```bash
-✅ cargo test -p riptide-html --lib wasm_extraction::tests
+✅ cargo test -p riptide-extraction --lib wasm_extraction::tests
    running 4 tests
    test wasm_extraction::tests::test_extractor_config_default ... ok
    test wasm_extraction::tests::test_extracted_doc_conversion ... ok

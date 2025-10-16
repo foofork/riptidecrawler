@@ -1,7 +1,7 @@
 //! Component module for WASM extraction support
 //!
 //! This module provides minimal types needed for WASM component integration.
-//! The actual extraction logic has been moved to riptide-html.
+//! The actual extraction logic has been moved to riptide-extraction.
 
 use crate::reliability::WasmExtractor;
 use crate::types::ExtractedDoc;
@@ -146,14 +146,14 @@ impl CmExtractor {
     }
 
     pub async fn extract(&self, _content: &str) -> Result<String> {
-        // Placeholder - actual extraction logic in riptide-html
+        // Placeholder - actual extraction logic in riptide-extraction
         Ok(String::new())
     }
 }
 
 impl WasmExtractor for CmExtractor {
     fn extract(&self, html: &[u8], url: &str, _mode: &str) -> Result<ExtractedDoc> {
-        // Mock implementation - actual extraction logic in riptide-html
+        // Mock implementation - actual extraction logic in riptide-extraction
         let html_str = String::from_utf8_lossy(html);
         Ok(ExtractedDoc {
             url: url.to_string(),

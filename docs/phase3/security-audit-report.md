@@ -44,7 +44,7 @@ RipTide v1.0 has passed security audit with **zero critical vulnerabilities** an
 - **Status**: Tracked for v1.1 replacement
 - **Dependency Path**:
   - scraper 0.22.0 → selectors → fxhash 0.2.1
-  - Used by riptide-core, riptide-html, riptide-extractor-wasm
+  - Used by riptide-core, riptide-extraction, riptide-extractor-wasm
 - **Recommendation**: Replace with `rustc-hash` in v1.1
 - **Risk Assessment**: Low - fxhash is stable, no security issues
 

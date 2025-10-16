@@ -109,7 +109,7 @@ async fn test_basic_extraction() {
 **Applicable Files**:
 - `/workspaces/eventmesh/tests/api/complete_api_coverage_tests.rs` (9 instances)
 - `/workspaces/eventmesh/tests/golden_tests.rs` (8 instances)
-- `/workspaces/eventmesh/crates/riptide-html/tests/integration_tests.rs`
+- `/workspaces/eventmesh/crates/riptide-extraction/tests/integration_tests.rs`
 
 ---
 

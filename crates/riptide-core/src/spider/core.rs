@@ -591,11 +591,11 @@ impl Spider {
         self.basic_fetch(request, None).await
     }
 
-    /// Extract URLs from content using riptide-html DOM parser
+    /// Extract URLs from content using riptide-extraction DOM parser
     async fn extract_urls(&self, content: &str, base_url: &Url) -> Result<Vec<Url>> {
-        // Use riptide-html for proper DOM-based link extraction
+        // Use riptide-extraction for proper DOM-based link extraction
         // Basic link extraction using regex (simplified for core)
-        // Full DOM-based extraction is available in riptide-html crate
+        // Full DOM-based extraction is available in riptide-extraction crate
         let links = extract_links_basic(content, base_url)?;
 
         // Filter URLs using URL utils
@@ -603,10 +603,10 @@ impl Spider {
         Ok(filtered_urls)
     }
 
-    /// Extract text content from HTML using riptide-html DOM parser
+    /// Extract text content from HTML using riptide-extraction DOM parser
     async fn extract_text_content(&self, content: &str) -> Option<String> {
-        // Use riptide-html for proper DOM-based text extraction
-        // Simplified for core - full DOM extraction in riptide-html
+        // Use riptide-extraction for proper DOM-based text extraction
+        // Simplified for core - full DOM extraction in riptide-extraction
         // Basic text extraction (simplified for core)
         self.simple_text_extraction(content)
     }

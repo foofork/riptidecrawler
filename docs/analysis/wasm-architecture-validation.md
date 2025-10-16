@@ -33,7 +33,7 @@ The RipTide WASM architecture demonstrates **sophisticated engineering** with a 
 ┌───────────────────────────────────────────────────────────────┐
 │                    HOST DOMAIN                                 │
 │  ┌─────────────────────────────────────────────────────────┐  │
-│  │  Host Types (riptide-html/wasm_extraction.rs)           │  │
+│  │  Host Types (riptide-extraction/wasm_extraction.rs)           │  │
 │  │  • ExtractedDoc                                         │  │
 │  │  • HostExtractionMode                                   │  │
 │  │  • HostExtractionError                                  │  │
@@ -75,7 +75,7 @@ The "type conflict" (Issue #3) is **not an implementation bug** but an **intenti
 **Evidence from Source Code**:
 
 ```rust
-// File: crates/riptide-html/src/wasm_extraction.rs:13-23
+// File: crates/riptide-extraction/src/wasm_extraction.rs:13-23
 // TODO(wasm-integration): WIT bindings temporarily disabled
 // The bindgen creates type conflicts with host types. When ready to enable:
 // 1. Resolve the type name collisions (ExtractedContent, etc.)
@@ -192,7 +192,7 @@ impl From<wit::ExtractedContent> for ExtractedDoc {
 
 ### 2.2 WasmResourceTracker Implementation Analysis
 
-**File**: `crates/riptide-html/src/wasm_extraction.rs:232-286`
+**File**: `crates/riptide-extraction/src/wasm_extraction.rs:232-286`
 
 ```rust
 pub struct WasmResourceTracker {
@@ -464,7 +464,7 @@ fn bench_type_conversion_overhead(b: &mut Bencher) {
 **Action Required**: Research Wasmtime 34.0.2 caching API
 
 ```rust
-// File: crates/riptide-html/src/wasm_extraction.rs:405-416
+// File: crates/riptide-extraction/src/wasm_extraction.rs:405-416
 // TODO(wasmtime-34): The cache_config_load_default() method doesn't exist in v34
 
 // Possible solutions to investigate:
@@ -540,7 +540,7 @@ Performance Characteristics:
 
 **Implementation**:
 ```rust
-// File: crates/riptide-html/src/wasm_extraction.rs
+// File: crates/riptide-extraction/src/wasm_extraction.rs
 
 // Step 1: Add namespace wrapper (5 minutes)
 mod wit_bindings {
@@ -997,7 +997,7 @@ Day 3:
 |-----------|-----------|-----|--------|
 | **WIT Interface** | `wasm/riptide-extractor-wasm/wit/extractor.wit` | 145 | ✅ Complete |
 | **Guest Component** | `wasm/riptide-extractor-wasm/src/lib.rs` | 490 | ✅ Complete |
-| **Host Integration** | `crates/riptide-html/src/wasm_extraction.rs` | 581 | ⚠️ Bindings disabled |
+| **Host Integration** | `crates/riptide-extraction/src/wasm_extraction.rs` | 581 | ⚠️ Bindings disabled |
 | **Instance Pool** | `crates/riptide-core/src/instance_pool/pool.rs` | 964 | ✅ Complete |
 | **Pool Models** | `crates/riptide-core/src/instance_pool/models.rs` | 111 | ✅ Complete |
 

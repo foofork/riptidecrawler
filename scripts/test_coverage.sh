@@ -47,7 +47,7 @@ run_package_coverage() {
 # Test core packages
 PACKAGES=(
     "riptide-core"
-    "riptide-html"
+    "riptide-extraction"
     "riptide-search"
     "riptide-intelligence"
     "riptide-pdf"

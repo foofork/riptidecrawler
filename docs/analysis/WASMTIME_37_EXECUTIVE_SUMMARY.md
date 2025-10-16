@@ -42,7 +42,7 @@
 ## Test Results
 
 ```
-Unit Tests (riptide-html):     4/4 PASS ✅
+Unit Tests (riptide-extraction):     4/4 PASS ✅
 Build Status:                  SUCCESS ✅
 WASM Binary:                   3.3MB ✅
 Integration Tests:             PENDING ⏳ (needs WASM rebuild)

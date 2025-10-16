@@ -191,7 +191,7 @@ llm_capabilities.models.first().map(|model| CostInfo {
 ### ✅ Other Crates (Clean)
 - riptide-stealth
 - riptide-extractor-wasm
-- riptide-html
+- riptide-extraction
 - riptide-performance
 - riptide-protocols
 

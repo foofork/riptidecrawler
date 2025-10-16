@@ -146,7 +146,7 @@ riptide_pdf_memory_spikes_handled 12
 
 - **Metric Definition:** `crates/riptide-api/src/metrics.rs` (Lines 82-85)
 - **Recording Methods:** `crates/riptide-api/src/metrics.rs` (Lines 831-840)
-- **Config Location:** `crates/riptide-html/src/wasm_extraction.rs` (Line 308)
+- **Config Location:** `crates/riptide-extraction/src/wasm_extraction.rs` (Line 308)
 
 #### Potential Future Solutions
 

@@ -169,7 +169,7 @@ rustflags = [
 ### Best Practices
 
 #### 2.1 Memory Limiter Implementation
-From `/workspaces/eventmesh/crates/riptide-html/src/wasm_extraction.rs`:
+From `/workspaces/eventmesh/crates/riptide-extraction/src/wasm_extraction.rs`:
 
 ```rust
 /// WASM host context with memory tracking
@@ -931,7 +931,7 @@ async fn test_error_handling() {
 
 All code examples in this report are available in:
 - `/workspaces/eventmesh/crates/riptide-api/src/resource_manager/wasm_manager.rs`
-- `/workspaces/eventmesh/crates/riptide-html/src/wasm_extraction.rs`
+- `/workspaces/eventmesh/crates/riptide-extraction/src/wasm_extraction.rs`
 - `/workspaces/eventmesh/crates/riptide-api/tests/metrics_integration_tests.rs`
 
 ---

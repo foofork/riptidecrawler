@@ -425,7 +425,7 @@
    Compiling prost v0.13.5
    Compiling wiggle v37.0.2
    Compiling wasmtime-wasi-io v37.0.2
-   Compiling riptide-html v0.1.0 (/workspaces/eventmesh/crates/riptide-html)
+   Compiling riptide-extraction v0.1.0 (/workspaces/eventmesh/crates/riptide-extraction)
    Compiling tiff v0.10.3
    Compiling fancy-regex v0.12.0
    Compiling cap-net-ext v3.4.4

@@ -95,7 +95,7 @@ The file uses **OPTION 1 - Direct World Exports**:
 ## ✅ CORRECT Type Imports for Our Project
 
 ```rust
-// File: crates/riptide-html/src/wasm_extraction.rs
+// File: crates/riptide-extraction/src/wasm_extraction.rs
 
 mod wit_bindings {
     wasmtime::component::bindgen!({
@@ -316,10 +316,10 @@ export WASMTIME_DEBUG_BINDGEN=1
 # Clean and rebuild
 cd /workspaces/eventmesh
 cargo clean
-cargo build -p riptide-html
+cargo build -p riptide-extraction
 
 # Find generated code
-find target/debug/build/riptide-html-*/out -name "bindgen_*.rs" -exec cat {} \; | head -100
+find target/debug/build/riptide-extraction-*/out -name "bindgen_*.rs" -exec cat {} \; | head -100
 ```
 
 ### Verify Type Locations
@@ -363,10 +363,10 @@ mod tests {
 - [ ] **Update imports** - Remove any `exports::` prefixes
 - [ ] **Add type conversions** - `From` traits for WIT ↔ internal types
 - [ ] **Update instantiation** - Use `Extractor::instantiate()`
-- [ ] **Test compilation** - `cargo build -p riptide-html`
+- [ ] **Test compilation** - `cargo build -p riptide-extraction`
 - [ ] **Enable debug output** - `WASMTIME_DEBUG_BINDGEN=1`
 - [ ] **Verify generated code** - Check actual module structure
-- [ ] **Run tests** - `cargo test -p riptide-html wasm_binding`
+- [ ] **Run tests** - `cargo test -p riptide-extraction wasm_binding`
 - [ ] **Check integration** - End-to-end extraction test
 
 ---
@@ -378,7 +378,7 @@ mod tests {
 1. **Verify bindgen is running:**
 ```bash
 cargo clean
-WASMTIME_DEBUG_BINDGEN=1 cargo build -p riptide-html 2>&1 | grep bindgen
+WASMTIME_DEBUG_BINDGEN=1 cargo build -p riptide-extraction 2>&1 | grep bindgen
 ```
 
 2. **Examine generated code:**
@@ -415,7 +415,7 @@ wasm-tools component wit /workspaces/eventmesh/wasm/riptide-extractor-wasm/wit/e
 5. **Check relative path:**
 ```bash
 # Verify WIT file exists from build location
-cd /workspaces/eventmesh/crates/riptide-html
+cd /workspaces/eventmesh/crates/riptide-extraction
 ls -la ../../wasm/riptide-extractor-wasm/wit/extractor.wit
 ```
 

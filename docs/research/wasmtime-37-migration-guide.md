@@ -588,7 +588,7 @@ wasm-tools component wit path/to/world.wit
 ### Current Problem
 
 ```rust
-// File: crates/riptide-html/src/wasm_extraction.rs
+// File: crates/riptide-extraction/src/wasm_extraction.rs
 wasmtime::component::bindgen!({
     path: "wit/html_extraction.wit"
 });

@@ -93,7 +93,7 @@ fn test_tdd_green_phase_achieved() {
     println!("✅ GET/POST /api/v1/llm/config - LLM configuration management");
     println!("✅ Enhanced /crawl endpoint with chunking_config parameter");
     println!("✅ Topic and sliding window chunking modes implemented");
-    println!("✅ Integration with riptide-html table extraction");
+    println!("✅ Integration with riptide-extraction table extraction");
     println!("✅ Integration with riptide-intelligence LLM management");
     println!("\n🎯 All TDD requirements fulfilled!");
     println!("📈 Ready for production testing phase");

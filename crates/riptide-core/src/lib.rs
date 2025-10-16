@@ -19,9 +19,9 @@
 //! ## Feature Separation
 //!
 //! Specific implementations have been moved to dedicated crates:
-//! - **CSS/Regex extraction**: `riptide-html`
+//! - **CSS/Regex extraction**: `riptide-extraction`
 //! - **LLM extraction**: `riptide-intelligence`
-//! - **Content chunking**: `riptide-html`
+//! - **Content chunking**: `riptide-extraction`
 //! - **Search providers**: `riptide-search`
 
 // Core infrastructure modules

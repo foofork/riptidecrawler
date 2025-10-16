@@ -135,7 +135,7 @@ fn get_table_storage() -> Arc<tokio::sync::Mutex<HashMap<String, AdvancedTableDa
 /// Extract tables from HTML content
 ///
 /// This endpoint processes HTML content and extracts structured table data using
-/// riptide-html's advanced table extraction capabilities.
+/// riptide-extraction's advanced table extraction capabilities.
 ///
 /// ## Request
 /// - `html_content`: The HTML content to process

@@ -1,0 +1,38 @@
+suite: 00_static_docs
+description: "Static documentation pages with clean HTML and stable layout"
+targets:
+  - name: "MDN — JS Guide: Introduction"
+    url: "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Introduction"
+    type: article
+    expected:
+      - content_present: true
+      - title_extractable: true
+      - main_content_clean: true
+  - name: "Rust Book — Installation"
+    url: "https://doc.rust-lang.org/stable/book/ch01-01-installation.html"
+    type: docs
+    expected:
+      - content_present: true
+      - code_blocks_preserved: true
+      - navigation_removed: true
+  - name: "PostgreSQL Docs — What is PostgreSQL?"
+    url: "https://www.postgresql.org/docs/17/intro-whatis.html"
+    type: docs
+    expected:
+      - content_present: true
+      - headers_structured: true
+      - clean_text: true
+  - name: "Kubernetes — Get started (GKE learn path)"
+    url: "https://cloud.google.com/kubernetes-engine/docs/learn/get-started-with-kubernetes"
+    type: docs
+    expected:
+      - content_present: true
+      - tutorial_steps_clear: true
+      - code_examples_intact: true
+  - name: "Wikipedia — Web scraping"
+    url: "https://en.wikipedia.org/wiki/Web_scraping"
+    type: reference
+    expected:
+      - content_present: true
+      - citations_preserved: true
+      - infobox_extracted: true

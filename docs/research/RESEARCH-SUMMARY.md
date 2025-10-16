@@ -165,17 +165,17 @@ use wit_bindings::{
 2. **Enable debug output:**
 ```bash
 export WASMTIME_DEBUG_BINDGEN=1
-cargo build -p riptide-html
+cargo build -p riptide-extraction
 ```
 
 3. **Verify generated code:**
 ```bash
-find target/debug/build/riptide-html-*/out -name "bindgen_*.rs"
+find target/debug/build/riptide-extraction-*/out -name "bindgen_*.rs"
 ```
 
 4. **Run tests:**
 ```bash
-cargo test -p riptide-html wasm_binding
+cargo test -p riptide-extraction wasm_binding
 ```
 
 ---

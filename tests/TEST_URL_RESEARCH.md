@@ -42,7 +42,7 @@ Key requirements identified:
 **Analyzed components**:
 - WASM extractor in `/wasm/riptide-extractor-wasm/`
 - Golden test fixtures in `/crates/riptide-api/tests/golden/fixtures.rs`
-- HTML extraction in `/crates/riptide-html/`
+- HTML extraction in `/crates/riptide-extraction/`
 - Gate analysis in `/crates/riptide-core/`
 
 **Current extraction capabilities**:

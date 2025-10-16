@@ -14,7 +14,7 @@ The Wasmtime 37 upgrade has been **successfully completed**. The workspace now u
 ### Key Findings
 
 ✅ **Build Status**: SUCCESS
-✅ **Unit Tests**: 4/4 passing (riptide-html WASM tests)
+✅ **Unit Tests**: 4/4 passing (riptide-extraction WASM tests)
 ✅ **Code Quality**: Zero compilation errors
 ✅ **WASM Binary**: Builds successfully (3.3MB)
 ✅ **API Compatibility**: Zero breaking changes at runtime
@@ -117,7 +117,7 @@ The file `/workspaces/eventmesh/crates/riptide-core/tests/support/wasm_component
 ### Unit Tests: ✅ ALL PASSING (4/4)
 
 ```bash
-$ cargo test -p riptide-html --lib wasm_extraction::tests
+$ cargo test -p riptide-extraction --lib wasm_extraction::tests
 
 running 4 tests
 test wasm_extraction::tests::test_extractor_config_default ... ok
@@ -181,7 +181,7 @@ wasmtime 37.0.2
 
 ### Crates Using Wasmtime
 
-1. **riptide-html** (37) - Production code ✅
+1. **riptide-extraction** (37) - Production code ✅
 2. **riptide-core** (37) - Test support ✅
 3. **riptide-api** (37) - Integration ✅
 4. **riptide-extractor-wasm** - dev-dependencies still at 34

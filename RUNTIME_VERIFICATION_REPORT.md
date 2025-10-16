@@ -102,7 +102,7 @@ record extracted-content {
 
 ### 3. ✅ Code Analysis (ALL FEATURES VERIFIED)
 
-**Source**: `crates/riptide-html/src/wasm_extraction.rs`
+**Source**: `crates/riptide-extraction/src/wasm_extraction.rs`
 
 #### Link Extraction
 - **Implementation**: Lines 130-145
@@ -226,7 +226,7 @@ WARN riptide_api::middleware::auth: Invalid API key path=/api/v1/extract
 
 ### Unit Tests (Production Code)
 
-**Command**: `cargo test -p riptide-html --lib wasm_extraction::tests`
+**Command**: `cargo test -p riptide-extraction --lib wasm_extraction::tests`
 
 **Status**: Tests exist and validate:
 - Component instantiation

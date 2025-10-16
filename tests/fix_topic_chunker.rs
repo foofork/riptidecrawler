@@ -2,7 +2,7 @@
 use std::fs;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let file_path = "/workspaces/eventmesh/crates/riptide-html/src/chunking/topic.rs";
+    let file_path = "/workspaces/eventmesh/crates/riptide-extraction/src/chunking/topic.rs";
     let content = fs::read_to_string(file_path)?;
 
     // Find the trait impl block and move the helper methods out

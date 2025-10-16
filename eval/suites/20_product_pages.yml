@@ -1,0 +1,35 @@
+suite: 20_product_pages
+description: "E-commerce product pages with rich specs, prices, and schema.org data"
+targets:
+  - name: "Coolblue — Samsung OLED 55S95D (2024)"
+    url: "https://www.coolblue.nl/en/product/947062/samsung-oled-4k-55s95d-2024.html"
+    type: product
+    expected:
+      - product_name: true
+      - price_extracted: true
+      - specifications_table: true
+      - schema_org_present: true
+  - name: "Coolblue — Lenovo Yoga Slim 7 OLED 14IMH9"
+    url: "https://www.coolblue.nl/en/product/946460/lenovo-yoga-slim-7-oled-14imh9-83cv0054mh.html"
+    type: product
+    expected:
+      - product_name: true
+      - price_extracted: true
+      - specifications_detailed: true
+      - reviews_present: true
+  - name: "B&H — Canon EOS R5 C"
+    url: "https://www.bhphotovideo.com/c/product/1684244-REG/canon_5077c002_eos_r5_c_full_frame.html"
+    type: product
+    expected:
+      - product_name: true
+      - price_extracted: true
+      - detailed_specs: true
+      - availability_status: true
+  - name: "B&H — Canon EOS C80"
+    url: "https://www.bhphotovideo.com/c/product/1851537-REG/canon_eos_c80_cinema_camera.html"
+    type: product
+    expected:
+      - product_name: true
+      - price_extracted: true
+      - professional_specs: true
+      - accessories_listed: true

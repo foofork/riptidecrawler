@@ -118,7 +118,7 @@ eventmesh/
 ├── crates/
 │   ├── riptide-core           ✅ Production | Core infrastructure
 │   ├── riptide-api            ✅ Production | REST API (59 endpoints)
-│   ├── riptide-html           ✅ Production | HTML processing
+│   ├── riptide-extraction           ✅ Production | HTML processing
 │   ├── riptide-search         ✅ Production | Search provider abstraction
 │   ├── riptide-pdf            ✅ Production | PDF extraction
 │   ├── riptide-stealth        ✅ Production | Anti-detection
@@ -324,7 +324,7 @@ eventmesh/
 **All 13 Core Crates:**
 1. riptide-core - Core infrastructure
 2. riptide-api - REST API server
-3. riptide-html - HTML processing
+3. riptide-extraction - HTML processing
 4. riptide-search - Search abstraction
 5. riptide-pdf - PDF extraction
 6. riptide-stealth - Anti-detection

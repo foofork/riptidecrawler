@@ -22,7 +22,7 @@ The tests are distributed across multiple crates in the workspace:
 1. **riptide-core** - Core spider and crawling functionality
 2. **riptide-api** - API layer and resource management
 3. **riptide-headless** - Headless browser integration
-4. **riptide-html** - HTML processing and extraction
+4. **riptide-extraction** - HTML processing and extraction
 5. **riptide-streaming** - Streaming and buffer management
 6. **riptide-pdf** - PDF processing capabilities
 7. **riptide-extractor-wasm** - WASM extraction modules

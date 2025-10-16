@@ -23,7 +23,7 @@ This document categorizes all code suppressions, feature flags, and deferred wor
 1. **Streaming Infrastructure** - Marked as P2 priority, fully implemented but awaiting integration testing
 2. **PDF Processing** - Feature-gated, requires `pdfium-render` activation (licensing resolved)
 3. **Performance Profiling** - Multiple feature flags for memory/CPU/flamegraph analysis (CDDL license managed)
-4. **Strategy Implementations** - Circular dependency blocker in riptide-html (architectural issue)
+4. **Strategy Implementations** - Circular dependency blocker in riptide-extraction (architectural issue)
 5. **Test Infrastructure** - 15 ignored tests requiring AppState/API fixture updates
 
 ---
@@ -574,14 +574,14 @@ event_bus.publish(PageExtractedEvent { url, content }).await?;
 ### 1.9 WASM Extraction Components (P2 Priority)
 
 **Status:** ✅ Implementation exists, integration pending
-**Location:** `crates/riptide-html/src/wasm_extraction.rs`, `wasm/riptide-extractor-wasm/*`
+**Location:** `crates/riptide-extraction/src/wasm_extraction.rs`, `wasm/riptide-extractor-wasm/*`
 **Count:** 25+ suppressions
 
 #### WASM Infrastructure
 
 **WASM Runtime:**
 ```rust
-// crates/riptide-html/src/wasm_extraction.rs
+// crates/riptide-extraction/src/wasm_extraction.rs
 #[allow(dead_code)]
 pub struct WasmExtractor {
     engine: wasmtime::Engine,
@@ -754,7 +754,7 @@ pub struct CrawlBody {
 |-------|-----------|----------|-------|
 | riptide-core | 42 | High | Core functionality well-tested |
 | riptide-api | 38 | Medium | Missing integration tests for new features |
-| riptide-html | 12 | High | Extraction strategies covered |
+| riptide-extraction | 12 | High | Extraction strategies covered |
 | riptide-intelligence | 8 | Medium | Provider tests need credentials |
 | riptide-pdf | 6 | Medium | Feature-gated tests |
 | riptide-performance | 12 | Low | Profiling tests minimal |
@@ -887,18 +887,18 @@ cargo build --no-default-features
 ### 3.3 HTML Strategy Traits
 
 **Feature Flag:** `strategy-traits`
-**Crate:** `riptide-html`
+**Crate:** `riptide-extraction`
 **Status:** 🔴 Blocked by circular dependency
 
 ```toml
-# crates/riptide-html/Cargo.toml
+# crates/riptide-extraction/Cargo.toml
 [features]
 strategy-traits = []  # Enables ExtractionStrategy implementations
 ```
 
 **Gated Code:**
 ```rust
-// crates/riptide-html/src/strategy_implementations.rs
+// crates/riptide-extraction/src/strategy_implementations.rs
 #[cfg(feature = "strategy-traits")]
 pub use strategy_impls::*;
 
@@ -915,8 +915,8 @@ mod strategy_impls {
 
 **Blocker:** Circular dependency issue
 ```
-riptide-core -> riptide-html (HTML processing)
-riptide-html -> riptide-core (Strategy traits)
+riptide-core -> riptide-extraction (HTML processing)
+riptide-extraction -> riptide-core (Strategy traits)
 ```
 
 **Resolution Options:**
@@ -929,13 +929,13 @@ riptide-html -> riptide-core (Strategy traits)
      └── ExtractionResult
 
    riptide-core -> riptide-traits
-   riptide-html -> riptide-traits
+   riptide-extraction -> riptide-traits
    ```
    - **Effort:** 4-6 hours
    - **Priority:** P1
 
-2. **Move traits to riptide-html** (Alternative)
-   - Reverse dependency: `riptide-core -> riptide-html`
+2. **Move traits to riptide-extraction** (Alternative)
+   - Reverse dependency: `riptide-core -> riptide-extraction`
    - **Effort:** 8-10 hours (refactoring)
    - **Priority:** P2
 
@@ -952,7 +952,7 @@ riptide-html -> riptide-core (Strategy traits)
 ### 3.4 Chunking Strategies
 
 **Feature Flag:** `chunking`
-**Crate:** `riptide-html`
+**Crate:** `riptide-extraction`
 **Status:** ✅ Enabled by default
 
 ```toml
@@ -992,7 +992,7 @@ pub mod chunking::regex_chunker;  // Regex patterns
 ### 3.5 Spider Integration
 
 **Feature Flag:** `spider`
-**Crate:** `riptide-html`
+**Crate:** `riptide-extraction`
 **Status:** ⬜ Not enabled by default (optional integration)
 
 ```toml
@@ -1022,7 +1022,7 @@ pub mod spider;
 ### 3.6 Table Extraction
 
 **Feature Flag:** `table-extraction`
-**Crate:** `riptide-html`
+**Crate:** `riptide-extraction`
 **Status:** ⬜ Not enabled by default
 
 ```toml
@@ -1311,9 +1311,9 @@ All TODOs follow this format:
 **Strategy Implementations:**
 ```rust
 // crates/riptide-core/src/strategies/mod.rs
-// pub mod extraction;              // Moved to riptide-html
+// pub mod extraction;              // Moved to riptide-extraction
 // pub mod spider_implementations;  // Circular dependency blocker
-// pub use extraction::wasm;        // Moved to riptide-html
+// pub use extraction::wasm;        // Moved to riptide-extraction
 // pub use spider_implementations::*;
 ```
 
@@ -1326,7 +1326,7 @@ All TODOs follow this format:
 
 **HTML Strategy Traits:**
 ```rust
-// crates/riptide-html/src/lib.rs
+// crates/riptide-extraction/src/lib.rs
 // pub mod strategy_implementations;  // Circular dependency
 // pub use spider::{
 //     SpiderStrategy, SpiderProcessor, SpiderConfig
@@ -1821,10 +1821,10 @@ The EventMesh/RipTide codebase contains **500+ code suppressions** across 6 majo
 | `bottleneck-analysis` | riptide-performance | ⬜ No | Available | 4 hours |
 | `cache-optimization` | riptide-performance | ✅ Yes | Active | 0 hours |
 | `resource-limits` | riptide-performance | ✅ Yes | Active | 0 hours |
-| `strategy-traits` | riptide-html | ⬜ No | Blocked | 6 hours |
-| `table-extraction` | riptide-html | ⬜ No | Ready | 8 hours |
-| `chunking` | riptide-html | ✅ Yes | Active | 0 hours |
-| `spider` | riptide-html | ⬜ No | Optional | 4 hours |
+| `strategy-traits` | riptide-extraction | ⬜ No | Blocked | 6 hours |
+| `table-extraction` | riptide-extraction | ⬜ No | Ready | 8 hours |
+| `chunking` | riptide-extraction | ✅ Yes | Active | 0 hours |
+| `spider` | riptide-extraction | ⬜ No | Optional | 4 hours |
 
 ### B. Suppression Hotspots
 
@@ -1835,7 +1835,7 @@ The EventMesh/RipTide codebase contains **500+ code suppressions** across 6 majo
 | `crates/riptide-performance/src/profiling/` | 35+ | feature gates | P1/P2 | Feature enable |
 | `crates/riptide-intelligence/src/providers/` | 30+ | dead_code | P1 | API keys |
 | `crates/riptide-core/src/events/` | 18+ | dead_code | P1 | AppState wiring |
-| `crates/riptide-html/src/strategy_implementations.rs` | 8+ | feature gate | P1 | Circular dep |
+| `crates/riptide-extraction/src/strategy_implementations.rs` | 8+ | feature gate | P1 | Circular dep |
 | `crates/riptide-api/src/handlers/` | 12 | dead_code | P2 | Requirements |
 
 ### C. Ignored Test Summary

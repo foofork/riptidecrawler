@@ -1,5 +1,5 @@
 //! Demonstration of extraction strategies and chunking capabilities
-//! Note: Many features have been moved to separate crates (riptide-html, riptide-intelligence)
+//! Note: Many features have been moved to separate crates (riptide-extraction, riptide-intelligence)
 
 use anyhow::Result;
 use riptide_core::strategies::*;
@@ -98,9 +98,11 @@ async fn demo_core_extraction(_html: &str) -> Result<()> {
     println!("🔧 Core Extraction:");
     println!("  Note: Direct extraction APIs have been refactored\n");
 
-    println!("ℹ️  Note: CSS JSON and Regex extraction strategies have been moved to the riptide-html crate.\n");
+    println!("ℹ️  Note: CSS JSON and Regex extraction strategies have been moved to the riptide-extraction crate.\n");
     println!("ℹ️  Note: LLM-based extraction strategies have been moved to the riptide-intelligence crate.\n");
-    println!("ℹ️  Note: Content chunking features have been moved to the riptide-html crate.\n");
+    println!(
+        "ℹ️  Note: Content chunking features have been moved to the riptide-extraction crate.\n"
+    );
     println!("ℹ️  Note: Trek extraction is now handled through the WASM extractor component.\n");
 
     Ok(())
@@ -143,15 +145,15 @@ async fn demo_strategy_manager(_html: &str) -> Result<()> {
 
     println!("📊 Available Strategies:");
     println!("  • Trek: Fast baseline extraction (core)");
-    println!("  • CSS: Selector-based extraction (riptide-html)");
-    println!("  • Regex: Pattern matching (riptide-html)");
+    println!("  • CSS: Selector-based extraction (riptide-extraction)");
+    println!("  • Regex: Pattern matching (riptide-extraction)");
     println!("  • LLM: AI-powered extraction (riptide-intelligence)\n");
 
     println!("💡 Usage Recommendations:");
     println!("  • Use StrategyManager for automatic strategy selection");
     println!("  • Configure fallback strategies for reliability");
     println!("  • Monitor performance metrics for optimization");
-    println!("  • Leverage chunking for large content (riptide-html)");
+    println!("  • Leverage chunking for large content (riptide-extraction)");
     println!();
 
     // Show config info

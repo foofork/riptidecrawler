@@ -499,7 +499,7 @@ The tests are **already importing it correctly:**
        .build()?;
    ```
 
-3. **CSS Extraction Builder** - `/workspaces/eventmesh/crates/riptide-html/src/css_extraction.rs`
+3. **CSS Extraction Builder** - `/workspaces/eventmesh/crates/riptide-extraction/src/css_extraction.rs`
 4. **OpenAPI Builder** - `/workspaces/eventmesh/crates/riptide-streaming/src/openapi.rs`
 5. **NDJSON Builder** - `/workspaces/eventmesh/crates/riptide-streaming/src/ndjson.rs`
 

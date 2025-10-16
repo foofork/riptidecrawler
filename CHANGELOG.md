@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Core Infrastructure (13 Production-Ready Crates)
 - **riptide-core** - Core infrastructure with web crawling, extraction, and orchestration
 - **riptide-api** - REST API server with 59 fully documented endpoints
-- **riptide-html** - HTML processing with DOM parsing and metadata extraction
+- **riptide-extraction** - HTML processing with DOM parsing and metadata extraction
 - **riptide-search** - Pluggable search provider abstraction
 - **riptide-pdf** - PDF extraction with text and table processing
 - **riptide-stealth** - Anti-detection system with fingerprint randomization
@@ -170,7 +170,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Addressed CI environment resource constraints
 
 #### Test Organization & Compilation (Phase 3)
-- **riptide-html**: Disabled old extraction API tests (requires complete rewrite for new API)
+- **riptide-extraction**: Disabled old extraction API tests (requires complete rewrite for new API)
 - **riptide-pdf**: Fixed Arc/clone ownership patterns for PdfPipelineIntegration (6/7 tests compile)
   - Resolved temporary value lifetime issues in memory stability tests
   - Commented out test requiring missing `process_pdf_to_extracted_doc_with_progress` method
@@ -245,7 +245,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Test Reorganization (Phase 3)
 - Moved 25+ integration tests from workspace root `/tests` to respective crate directories
-  - riptide-html: 1 extraction test file
+  - riptide-extraction: 1 extraction test file
   - riptide-search: 11 search/relevance test files
   - riptide-stealth: 1 lifecycle integration test
   - riptide-pdf: 2 progress/memory test files

@@ -415,16 +415,16 @@ async fn run_single_extraction(
     // Simplified extraction for benchmarking
     match strategy {
         ExtractionStrategy::Wasm => {
-            // Trek extraction moved to riptide-html
+            // Trek extraction moved to riptide-extraction
             // Returning mock result for testing
             Ok(ExtractionResult { quality: 80.0 })
         }
         ExtractionStrategy::Css => {
-            // CSS extraction moved to riptide-html
+            // CSS extraction moved to riptide-extraction
             Ok(ExtractionResult { quality: 75.0 })
         }
         ExtractionStrategy::Regex => {
-            // Regex extraction moved to riptide-html
+            // Regex extraction moved to riptide-extraction
             Ok(ExtractionResult { quality: 70.0 })
         }
         ExtractionStrategy::Auto => {

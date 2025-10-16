@@ -1,7 +1,7 @@
 # Duplication Analysis Report
 
 ## Executive Summary
-After comprehensive analysis of the RipTide codebase following the refactoring of `riptide-html` to `riptide-extraction`, several instances of duplicated extraction logic have been identified. While the refactoring successfully consolidated many extraction functions, some duplication still exists across different crates and test files.
+After comprehensive analysis of the RipTide codebase following the refactoring of `riptide-extraction` to `riptide-extraction`, several instances of duplicated extraction logic have been identified. While the refactoring successfully consolidated many extraction functions, some duplication still exists across different crates and test files.
 
 ## Key Findings
 
@@ -183,7 +183,7 @@ After comprehensive analysis of the RipTide codebase following the refactoring o
 
 ## Conclusion
 
-The refactoring from `riptide-html` to `riptide-extraction` was successful in improving architecture and separation of concerns. However, significant duplication remains in extraction logic implementation. The recommended consolidation will:
+The refactoring from `riptide-extraction` to `riptide-extraction` was successful in improving architecture and separation of concerns. However, significant duplication remains in extraction logic implementation. The recommended consolidation will:
 
 - Reduce code duplication by ~40%
 - Improve maintainability
@@ -235,4 +235,4 @@ crates/riptide-core/src/strategies/regex_strategy.rs:39:RegexPatternStrategy::ne
 ---
 
 *Generated: 2025-10-16*
-*Analysis performed after riptide-html → riptide-extraction refactoring*
+*Analysis performed after riptide-extraction → riptide-extraction refactoring*

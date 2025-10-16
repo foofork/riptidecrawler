@@ -1,0 +1,39 @@
+suite: 10_news_articles
+description: "News article pages with bylines, dates, and article structure"
+targets:
+  - name: "Reuters Graphics — China war tech on parade"
+    url: "https://www.reuters.com/graphics/WW2-ANNIVERSARY/CHINA-PARADE/zdvxkgybypx/"
+    type: article
+    expected:
+      - content_present: true
+      - author_extracted: true
+      - date_extracted: true
+      - graphics_handled: true
+  - name: "Reuters Special Report — Meta AI rules & kids"
+    url: "https://www.reuters.com/investigates/special-report/meta-ai-chatbot-guidelines/"
+    type: article
+    expected:
+      - content_present: true
+      - special_report_format: true
+      - investigation_content: true
+  - name: "Reuters Graphics — Ukraine drones"
+    url: "https://www.reuters.com/graphics/UKRAINE-CRISIS/DRONES/dwpkeyjwkpm/"
+    type: article
+    expected:
+      - content_present: true
+      - interactive_content_handled: true
+      - text_extraction: true
+  - name: "NOS Tech — Tech news hub"
+    url: "https://nos.nl/nieuws/tech"
+    type: listing
+    expected:
+      - articles_listed: true
+      - dutch_language: true
+      - multiple_articles: true
+  - name: "NOS — Europa ontwaakt in de AI-race"
+    url: "https://nos.nl/nieuwsuur/artikel/2585550-europa-ontwaakt-in-de-ai-race-maar-druppel-op-gloeiende-plaat"
+    type: article
+    expected:
+      - content_present: true
+      - dutch_content: true
+      - article_structure: true

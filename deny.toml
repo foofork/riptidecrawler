@@ -44,8 +44,8 @@ skip = [
 
     # === HTML PARSING ECOSYSTEM FRAGMENTATION ===
     # Multiple scraper versions require different html5ever/cssparser/selectors
-    # scraper 0.20 (riptide-html), 0.22 (riptide-core)
-    # lol_html 1.2 (trek-rs), 2.7 (riptide-html)
+    # scraper 0.20 (riptide-extraction), 0.22 (riptide-core)
+    # lol_html 1.2 (trek-rs), 2.7 (riptide-extraction)
 
     { name = "cssparser", version = "=0.27.2" },  # lol_html 1.2, selectors 0.22
     { name = "cssparser", version = "=0.31.2" },  # scraper 0.20, selectors 0.25

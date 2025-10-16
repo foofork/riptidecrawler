@@ -1,4 +1,4 @@
-//! Strategy trait implementations for riptide-html
+//! Strategy trait implementations for riptide-extraction
 //!
 //! This module provides implementations of the riptide-core ExtractionStrategy trait
 //! for the HTML processing components in this crate.
@@ -27,7 +27,7 @@ mod strategy_impls {
     // pub use riptide_core::strategies::{PerformanceMetrics, ProcessedContent};
     pub use crate::ExtractedContent;
 
-/// CSS-based extraction strategy implementation for riptide-html
+/// CSS-based extraction strategy implementation for riptide-extraction
 #[derive(Debug, Clone)]
 pub struct HtmlCssExtractionStrategy {
     selectors: HashMap<String, String>,
@@ -74,7 +74,7 @@ impl ExtractionStrategy for HtmlCssExtractionStrategy {
         let mut metadata = HashMap::new();
         metadata.insert("extraction_time_ms".to_string(), duration.as_millis().to_string());
         metadata.insert("selectors_count".to_string(), self.selectors.len().to_string());
-        metadata.insert("processor".to_string(), "riptide-html-css".to_string());
+        metadata.insert("processor".to_string(), "riptide-extraction-css".to_string());
 
         Ok(ExtractionResult {
             content,
@@ -115,7 +115,7 @@ impl ExtractionStrategy for HtmlCssExtractionStrategy {
     }
 }
 
-/// Regex-based extraction strategy implementation for riptide-html
+/// Regex-based extraction strategy implementation for riptide-extraction
 #[derive(Debug, Clone)]
 pub struct HtmlRegexExtractionStrategy {
     patterns: Vec<RegexPattern>,
@@ -162,7 +162,7 @@ impl ExtractionStrategy for HtmlRegexExtractionStrategy {
         let mut metadata = HashMap::new();
         metadata.insert("extraction_time_ms".to_string(), duration.as_millis().to_string());
         metadata.insert("patterns_count".to_string(), self.patterns.len().to_string());
-        metadata.insert("processor".to_string(), "riptide-html-regex".to_string());
+        metadata.insert("processor".to_string(), "riptide-extraction-regex".to_string());
 
         Ok(ExtractionResult {
             content,
@@ -305,7 +305,7 @@ impl ExtractionStrategy for HtmlProcessorStrategy {
         let mut metadata = HashMap::new();
         metadata.insert("extraction_time_ms".to_string(), duration.as_millis().to_string());
         metadata.insert("method_used".to_string(), method_used.to_string());
-        metadata.insert("processor".to_string(), "riptide-html-unified".to_string());
+        metadata.insert("processor".to_string(), "riptide-extraction-unified".to_string());
 
         Ok(ExtractionResult {
             content,

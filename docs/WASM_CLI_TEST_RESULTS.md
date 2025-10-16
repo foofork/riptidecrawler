@@ -92,7 +92,7 @@ All required directories created:
   - URL resolution (relative → absolute)
   - Deduplication
 
-**Code Reference**: `crates/riptide-html/src/wasm_extraction.rs:130-145`
+**Code Reference**: `crates/riptide-extraction/src/wasm_extraction.rs:130-145`
 
 #### Media Extraction
 - **Status**: ✅ Implemented
@@ -103,7 +103,7 @@ All required directories created:
   - Open Graph images (`og:image`)
   - Media type classification
 
-**Code Reference**: `crates/riptide-html/src/wasm_extraction.rs:146-161`
+**Code Reference**: `crates/riptide-extraction/src/wasm_extraction.rs:146-161`
 
 #### Language Detection
 - **Status**: ✅ Implemented
@@ -114,7 +114,7 @@ All required directories created:
   4. Text analysis (lingua-rs)
   5. Default fallback
 
-**Code Reference**: `crates/riptide-html/src/wasm_extraction.rs:162-177`
+**Code Reference**: `crates/riptide-extraction/src/wasm_extraction.rs:162-177`
 
 #### Category Extraction
 - **Status**: ✅ Implemented
@@ -124,7 +124,7 @@ All required directories created:
   - Meta keywords
   - Topic extraction
 
-**Code Reference**: `crates/riptide-html/src/wasm_extraction.rs:162-177`
+**Code Reference**: `crates/riptide-extraction/src/wasm_extraction.rs:162-177`
 
 ---
 
@@ -142,7 +142,7 @@ All required directories created:
 - **Timeout**: 30 seconds hard limit
 - **Method**: Wasmtime epoch interrupts
 
-**Code Reference**: `crates/riptide-html/src/wasm_extraction.rs:443-474`
+**Code Reference**: `crates/riptide-extraction/src/wasm_extraction.rs:443-474`
 
 ---
 
@@ -161,7 +161,7 @@ All required directories created:
 - `Open` - Failing, fallback active
 - `HalfOpen` - Testing recovery
 
-**Code Reference**: `crates/riptide-html/src/wasm_extraction.rs` (CircuitBreakerConfig)
+**Code Reference**: `crates/riptide-extraction/src/wasm_extraction.rs` (CircuitBreakerConfig)
 
 ---
 
@@ -178,7 +178,7 @@ All required directories created:
 
 **Production Code Path**:
 ```rust
-// crates/riptide-html/src/wasm_extraction.rs:443-474
+// crates/riptide-extraction/src/wasm_extraction.rs:443-474
 pub fn extract(&self, html: &str, url: &str, mode: &str) -> Result<ExtractedDoc> {
     let mut store = Store::new(&self.engine, resource_tracker);
     store.set_fuel(1_000_000)?;
@@ -216,7 +216,7 @@ pub fn extract(&self, html: &str, url: &str, mode: &str) -> Result<ExtractedDoc>
 **Workaround Applied**:
 - ✅ Deployment verification (structure, config, binary validation)
 - ✅ Code analysis (all features implemented and documented)
-- ✅ Unit tests pass for production code (`cargo test -p riptide-html --lib`)
+- ✅ Unit tests pass for production code (`cargo test -p riptide-extraction --lib`)
 
 ---
 
@@ -265,7 +265,7 @@ To test the full extraction pipeline with real URLs:
 
 ```bash
 # Run existing unit tests (these work)
-cargo test -p riptide-html --lib wasm_extraction::tests
+cargo test -p riptide-extraction --lib wasm_extraction::tests
 ```
 
 ---

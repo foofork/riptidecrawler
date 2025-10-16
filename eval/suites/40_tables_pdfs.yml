@@ -1,0 +1,35 @@
+suite: 40_tables_pdfs
+description: "PDF documents with complex tables requiring robust table parsing"
+targets:
+  - name: "UK Autumn Budget 2024 (print)"
+    url: "https://assets.publishing.service.gov.uk/media/6722120210b0d582ee8c48c0/Autumn_Budget_2024__print_.pdf"
+    type: pdf
+    expected:
+      - pdf_readable: true
+      - tables_extracted: true
+      - financial_data: true
+      - page_count: true
+  - name: "UK Autumn Budget 2024 — Policy Costings"
+    url: "https://assets.publishing.service.gov.uk/media/6721d2c54da1c0d41942a8d2/Policy_Costing_Document_-_Autumn_Budget_2024.pdf"
+    type: pdf
+    expected:
+      - pdf_readable: true
+      - costing_tables: true
+      - numerical_data: true
+      - footnotes_preserved: true
+  - name: "OECD — Preliminary ODA levels in 2024"
+    url: "https://one.oecd.org/document/DCD%282025%296/en/pdf"
+    type: pdf
+    expected:
+      - pdf_readable: true
+      - statistical_tables: true
+      - country_data: true
+      - charts_handled: true
+  - name: "Hilversum — Vereiste info (begroting/dekking)"
+    url: "https://hilversum.nl/sites/default/files/documents/Vereiste%20informatie%20in%20activiteitenplan%2C%20begroting%20en%20dekkingsplan%20.pdf"
+    type: pdf
+    expected:
+      - pdf_readable: true
+      - dutch_content: true
+      - budget_info: true
+      - requirements_listed: true

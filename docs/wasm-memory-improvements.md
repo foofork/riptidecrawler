@@ -158,7 +158,7 @@ println!("Peak memory: {} KB", stats.peak_memory_usage / 1024);
 
 ## Files Modified
 
-- `/workspaces/eventmesh/crates/riptide-html/src/wasm_extraction.rs`
+- `/workspaces/eventmesh/crates/riptide-extraction/src/wasm_extraction.rs`
   - WasmResourceTracker: +80 lines (Drop, cleanup, reset, pressure monitoring)
   - ExtractorConfig: +2 fields (fuel_limit, enable_leak_detection)
   - CmExtractor::extract: +25 lines (leak detection, metrics)

@@ -1,0 +1,35 @@
+suite: 50_events_hilversum_music
+description: "Event listings from Hilversum music venues and aggregators"
+targets:
+  - name: "Live Hilversum — Uitagenda (NL)"
+    url: "https://www.livehilversum.com/nl/uitagenda"
+    type: events_listing
+    expected:
+      - events_listed: true
+      - dates_extracted: true
+      - venues_identified: true
+      - dutch_language: true
+  - name: "Live Hilversum — Events (EN)"
+    url: "https://www.livehilversum.com/en/events"
+    type: events_listing
+    expected:
+      - events_listed: true
+      - dates_extracted: true
+      - venues_identified: true
+      - english_language: true
+  - name: "De Vorstin — Agenda (Hilversum venue)"
+    url: "https://vorstin.nl/agenda/"
+    type: venue_listing
+    expected:
+      - upcoming_shows: true
+      - artist_names: true
+      - dates_and_times: true
+      - ticket_links: true
+  - name: "Songkick — Hilversum concerts 2025"
+    url: "https://www.songkick.com/metro-areas/31392-netherlands-hilversum/2025"
+    type: aggregator_listing
+    expected:
+      - concert_listings: true
+      - multiple_venues: true
+      - artist_info: true
+      - date_filtering: true

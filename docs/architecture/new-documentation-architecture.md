@@ -235,7 +235,7 @@ docs/
 │   │   ├── README.md                  # Workspace overview
 │   │   ├── riptide-api.md
 │   │   ├── riptide-core.md
-│   │   ├── riptide-html.md
+│   │   ├── riptide-extraction.md
 │   │   ├── riptide-search.md
 │   │   ├── riptide-headless.md
 │   │   ├── riptide-workers.md

@@ -296,7 +296,7 @@ Based on configuration and production code:
 **Issue**: Integration test harness needs Wasmtime 35+ upgrade
 **Impact**: Cannot run integration tests via `cargo test`
 **Workaround**:
-- Unit tests pass (`cargo test -p riptide-html --lib`)
+- Unit tests pass (`cargo test -p riptide-extraction --lib`)
 - Manual testing available via CLI/API
 - Deployment verification comprehensive
 

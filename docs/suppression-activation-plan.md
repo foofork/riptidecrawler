@@ -580,16 +580,16 @@ pdf = []
 
 ---
 
-### 13. Strategy Traits Implementation (riptide-html)
+### 13. Strategy Traits Implementation (riptide-extraction)
 
-**File:** `/workspaces/eventmesh/crates/riptide-html/src/strategy_implementations.rs`
+**File:** `/workspaces/eventmesh/crates/riptide-extraction/src/strategy_implementations.rs`
 
 **Status:**
 - ✅ Complete strategy implementation (100+ lines)
 - ⚠️ Feature-gated: `cfg(feature = "strategy-traits")`
 - ⚠️ Commented code due to circular dependency with riptide-core
 
-**Blocker:** Circular dependency between riptide-html and riptide-core
+**Blocker:** Circular dependency between riptide-extraction and riptide-core
 
 **Solutions:**
 
@@ -602,11 +602,11 @@ riptide-traits/
   │   └── lib.rs
 ```
 
-Both riptide-core and riptide-html depend on riptide-traits
+Both riptide-core and riptide-extraction depend on riptide-traits
 
 #### Option 2: Keep in riptide-core
 - Define traits in riptide-core
-- riptide-html implements traits (no circular dep)
+- riptide-extraction implements traits (no circular dep)
 - Current approach seems backward
 
 **Effort:** 6-8 hours

@@ -9,7 +9,7 @@ Successfully fixed test compilation issues for 3 critical crates after test reor
 
 ## Fixed Crates ✅
 
-### 1. riptide-html
+### 1. riptide-extraction
 **Status**: ✅ Compilation Fixed
 **Solution**: Disabled old API tests (requires complete rewrite)
 
@@ -77,7 +77,7 @@ Successfully fixed test compilation issues for 3 critical crates after test reor
 
 | Crate | Lib Tests | Integration Tests | Status |
 |-------|-----------|-------------------|--------|
-| riptide-html | ✅ Pass | ⚠️  Disabled | ✅ OK |
+| riptide-extraction | ✅ Pass | ⚠️  Disabled | ✅ OK |
 | riptide-pdf | ✅ Pass | ✅ Pass | ✅ OK |
 | riptide-stealth | ✅ Pass | ✅ Pass | ✅ OK |
 | riptide-search | ✅ Pass | ⚠️  Deferred | ⚠️  Partial |
@@ -94,8 +94,8 @@ cargo test --package riptide-stealth --no-run  # SUCCESS
 # riptide-pdf: 6 active tests compile ✅ (1 commented out)
 cargo test --package riptide-pdf --no-run  # SUCCESS
 
-# riptide-html: lib tests pass ✅
-cargo test --package riptide-html --lib --no-run  # SUCCESS
+# riptide-extraction: lib tests pass ✅
+cargo test --package riptide-extraction --lib --no-run  # SUCCESS
 ```
 
 ## Key Achievements
@@ -114,7 +114,7 @@ cargo test --package riptide-html --lib --no-run  # SUCCESS
 
 ### Short Term (Next Sprint)
 1. Implement `process_pdf_to_extracted_doc_with_progress` for full PDF progress testing
-2. Rewrite riptide-html extraction tests for new API
+2. Rewrite riptide-extraction extraction tests for new API
 3. Fix riptide-search integration test lifetimes
 
 ### Long Term (Future)

@@ -30,7 +30,7 @@ Successfully implemented and validated the complete WASM Component Model integra
 **Implementation**: Namespace separation with explicit type boundary
 
 **Changes Made**:
-1. **Enabled WIT bindings in namespace** (`crates/riptide-html/src/wasm_extraction.rs:13-20`):
+1. **Enabled WIT bindings in namespace** (`crates/riptide-extraction/src/wasm_extraction.rs:13-20`):
    ```rust
    mod wit_bindings {
        wasmtime::component::bindgen!({
@@ -140,7 +140,7 @@ if config.enable_aot_cache {
 
 #### Agent 2: Coder
 - **Role**: Implement WIT bindings and WASM integration
-- **Changes**: `crates/riptide-html/src/wasm_extraction.rs`
+- **Changes**: `crates/riptide-extraction/src/wasm_extraction.rs`
 - **Implementation**:
   - Namespace separation (mod wit_bindings)
   - Type conversion layer (From/Into traits)
@@ -191,7 +191,7 @@ if config.enable_aot_cache {
 
 ### Unit Tests
 ```bash
-cargo test -p riptide-html --lib wasm_extraction::tests
+cargo test -p riptide-extraction --lib wasm_extraction::tests
 running 4 tests
 test wasm_extraction::tests::test_extractor_config_default ... ok
 test wasm_extraction::tests::test_wasm_resource_tracker ... ok
@@ -203,14 +203,14 @@ test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured
 
 ### Build Validation
 ```bash
-cargo clippy -p riptide-html --all-features -- -D warnings
+cargo clippy -p riptide-extraction --all-features -- -D warnings
 Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.33s
 ✅ Zero warnings
 ```
 
 ### Release Build
 ```bash
-cargo build -p riptide-html --release
+cargo build -p riptide-extraction --release
 Finished `release` profile [optimized] target(s) in 1m 39s
 ✅ Build successful
 ```
@@ -293,7 +293,7 @@ Finished `release` profile [optimized] target(s) in 28.69s
 ## Files Created/Modified
 
 ### Primary Implementation
-- `crates/riptide-html/src/wasm_extraction.rs` - WIT bindings, conversions, WASM calls
+- `crates/riptide-extraction/src/wasm_extraction.rs` - WIT bindings, conversions, WASM calls
 
 ### Test Suites
 - `tests/wasm-integration/wit_bindings_integration.rs` - WIT bindings tests (20 tests)

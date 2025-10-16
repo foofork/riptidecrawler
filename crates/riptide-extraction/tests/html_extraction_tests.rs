@@ -1,7 +1,7 @@
 //! Comprehensive tests for HTML extraction functionality
 //! Tests CSS selectors, regex patterns, and DOM traversal utilities
 //!
-//! These tests have been updated to work with the current riptide-html API.
+//! These tests have been updated to work with the current riptide-extraction API.
 
 #[allow(unused_imports)]
 use riptide_extraction::{default_patterns, RegexExtractor, RegexPattern};

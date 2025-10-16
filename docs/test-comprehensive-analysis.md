@@ -227,7 +227,7 @@ done < tests/test-urls.txt
 | `riptide-core` | ✅ Likely passing | No errors seen |
 | `riptide-search` | ❌ 2 compilation errors | Blocking |
 | `riptide-streaming` | ⚠️ Warnings only | Compilable but noisy |
-| `riptide-html` | ✅ Likely passing | No errors seen |
+| `riptide-extraction` | ✅ Likely passing | No errors seen |
 | `riptide-api` | ⚠️ Unknown | Compiling during analysis |
 | `riptide-headless` | ⚠️ Unknown | Large changes recently |
 
@@ -496,7 +496,7 @@ cargo bench --workspace
 ### Working Tests (No errors):
 - ✅ `/tests/integration/health_tests.rs`
 - ✅ `/tests/integration/wireup_tests.rs`
-- ✅ `crates/riptide-html/tests/html_extraction_tests.rs` (warnings only)
+- ✅ `crates/riptide-extraction/tests/html_extraction_tests.rs` (warnings only)
 - ✅ `crates/riptide-streaming/tests/ndjson_stream_tests.rs` (warnings only)
 - ✅ `crates/riptide-streaming/tests/streaming_tests.rs` (warnings only)
 - ✅ `crates/riptide-streaming/tests/test_streaming.rs` (warnings only)

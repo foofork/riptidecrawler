@@ -117,7 +117,7 @@ pub enum ResourceTier {
     High,
 }
 
-// Chunking strategies have been moved to riptide-html crate
+// Chunking strategies have been moved to riptide-extraction crate
 
 /// Spider/crawler strategy trait
 ///
@@ -233,9 +233,9 @@ impl StrategyRegistry {
             .collect()
     }
 
-    /// List all available chunking strategies (moved to riptide-html)
+    /// List all available chunking strategies (moved to riptide-extraction)
     pub fn list_chunking_strategies(&self) -> Vec<String> {
-        vec![] // Empty - chunking moved to riptide-html crate
+        vec![] // Empty - chunking moved to riptide-extraction crate
     }
 
     /// List all available spider strategies

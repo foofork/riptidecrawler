@@ -41,7 +41,7 @@ mod conversions {
 }
 ```
 
-**Compilation**: ✅ `cargo check -p riptide-html` succeeds
+**Compilation**: ✅ `cargo check -p riptide-extraction` succeeds
 
 ---
 
@@ -110,7 +110,7 @@ store.set_fuel(1_000_000)?; // ✅ Fuel limit enforced
 
 **STATUS: DEFERRED (Not Blocking)**
 
-**Location**: `crates/riptide-html/src/table_extraction/extractor.rs:107-109`
+**Location**: `crates/riptide-extraction/src/table_extraction/extractor.rs:107-109`
 
 **Decision**: Feature enhancement, not required for production. Can be implemented in future iteration.
 
@@ -120,9 +120,9 @@ store.set_fuel(1_000_000)?; // ✅ Fuel limit enforced
 
 ### Compilation Status
 ```bash
-✅ cargo check -p riptide-html          # Passes
-✅ cargo clippy -p riptide-html         # Zero warnings
-✅ cargo test -p riptide-html --lib     # Unit tests pass (4/4)
+✅ cargo check -p riptide-extraction          # Passes
+✅ cargo clippy -p riptide-extraction         # Zero warnings
+✅ cargo test -p riptide-extraction --lib     # Unit tests pass (4/4)
 ```
 
 ### Architecture Grade

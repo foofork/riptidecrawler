@@ -270,7 +270,7 @@ For each domain:
 
 #### Integration Points
 
-**1. Quality Scoring** (`crates/riptide-html/src/quality.rs`)
+**1. Quality Scoring** (`crates/riptide-extraction/src/quality.rs`)
 ```rust
 pub fn calculate_quality_with_readability(
     text: &str,
@@ -447,7 +447,7 @@ pub fn calculate_readability(text: &str) -> Option<f32> {
    - Prototype: Integration with quality scoring
 
 2. **Integrate Readability Scorer**
-   - File: `crates/riptide-html/src/readability.rs`
+   - File: `crates/riptide-extraction/src/readability.rs`
    - Implement Flesch Reading Ease or Gunning Fog
    - Add to quality calculation pipeline
 
@@ -529,7 +529,7 @@ pub fn calculate_readability(text: &str) -> Option<f32> {
 | `crates/riptide-core/src/gate/tuning.rs` | Threshold tuning engine | 3 |
 | `crates/riptide-core/src/gate/mod.rs` (update) | Export tuning module | 3 |
 | `crates/riptide-cli/src/commands/tune.rs` | Tuning CLI commands | 3 |
-| `crates/riptide-html/src/readability.rs` (optional) | Readability scoring | 4 |
+| `crates/riptide-extraction/src/readability.rs` (optional) | Readability scoring | 4 |
 | `crates/riptide-api/src/metrics_exporter.rs` | Metrics export tool | 2 |
 | `deployment/grafana/extraction-metrics.json` | Grafana dashboard | 2 |
 | `deployment/grafana/threshold-tuning.json` | Tuning dashboard | 3 |
@@ -673,7 +673,7 @@ fn default_ab_traffic() -> f32 { 0.0 }
 statistical = "1.0"  # For optimization
 ndarray = "0.15"      # For matrix operations (optional, for advanced tuning)
 
-# Add to crates/riptide-html/Cargo.toml (if readability integration)
+# Add to crates/riptide-extraction/Cargo.toml (if readability integration)
 unicode-segmentation = "1.10"  # For text analysis
 ```
 

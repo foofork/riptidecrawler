@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 // Basic extraction types for core functionality
-// Full HTML processing types are in riptide-html crate
+// Full HTML processing types are in riptide-extraction crate
 
 /// Basic extracted document for core orchestration
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

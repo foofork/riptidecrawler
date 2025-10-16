@@ -1,13 +1,13 @@
 # Extraction Refactoring Summary
 
 ## Overview
-Successfully renamed `riptide-html` to `riptide-extraction` to better reflect its role as the main content extraction crate for the RipTide project.
+Successfully renamed `riptide-extraction` to `riptide-extraction` to better reflect its role as the main content extraction crate for the RipTide project.
 
 ## Changes Implemented
 
 ### 1. Crate Renaming
-- **Renamed**: `crates/riptide-html` → `crates/riptide-extraction`
-- **Updated**: Package name in Cargo.toml from `riptide-html` to `riptide-extraction`
+- **Renamed**: `crates/riptide-extraction` → `crates/riptide-extraction`
+- **Updated**: Package name in Cargo.toml from `riptide-extraction` to `riptide-extraction`
 
 ### 2. Code Consolidation
 - **Moved**: `enhanced_extractor.rs` from `riptide-core` to `riptide-extraction`

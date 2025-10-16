@@ -107,7 +107,7 @@ timeout: 120  # Was 60
 
 **Phase 1** (Immediate): Enable AOT caching
 ```rust
-// crates/riptide-html/src/wasm_extraction.rs:299
+// crates/riptide-extraction/src/wasm_extraction.rs:299
 wasmtime_config.cache_config_load_default()?;
 ```
 
@@ -119,7 +119,7 @@ wasmtime_config.cache_config_load_default()?;
 ## Related Files
 
 - `crates/riptide-api/src/state.rs:521` - WASM loading call
-- `crates/riptide-html/src/wasm_extraction.rs:292-316` - WASM initialization
+- `crates/riptide-extraction/src/wasm_extraction.rs:292-316` - WASM initialization
 - `.github/workflows/api-validation.yml` - Health check timeout
 
 ## Testing

@@ -168,7 +168,7 @@ impl ExtractionStrategy for WasmExtractionStrategy {
     }
 }
 
-// CSS and Regex extraction strategies have been moved to riptide-html crate
+// CSS and Regex extraction strategies have been moved to riptide-extraction crate
 
 /// Calculate content quality score based on various heuristics
 fn calculate_content_quality(content: &str) -> f64 {

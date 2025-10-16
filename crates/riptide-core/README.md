@@ -51,7 +51,7 @@ Core infrastructure for the RipTide framework providing essential components for
         ┌───────────────────┼───────────────────┐
         ▼                   ▼                   ▼
 ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
-│ riptide-html │   │ riptide-     │   │ riptide-     │
+│ riptide-extraction │   │ riptide-     │   │ riptide-     │
 │              │   │ intelligence │   │   search     │
 └──────────────┘   └──────────────┘   └──────────────┘
 ```
@@ -337,7 +337,7 @@ riptide-core = { version = "0.1", features = ["benchmarks", "api-integration"] }
 
 ## Integration with Other Crates
 
-### riptide-html
+### riptide-extraction
 Provides HTML parsing and CSS/Regex extraction capabilities that build on core pipeline infrastructure.
 
 ```rust
@@ -452,7 +452,7 @@ Integration tests are located in `tests/` and cover:
 
 ### Separation of Concerns
 - **Core**: Infrastructure primitives (this crate)
-- **HTML**: CSS/Regex extraction (`riptide-html`)
+- **HTML**: CSS/Regex extraction (`riptide-extraction`)
 - **Intelligence**: LLM functionality (`riptide-intelligence`)
 - **Search**: Search providers (`riptide-search`)
 - **PDF**: PDF processing (`riptide-pdf`)
@@ -484,7 +484,7 @@ See the root `LICENSE` file for license information.
 
 ## Related Crates
 
-- [`riptide-html`](../riptide-html): HTML parsing and extraction
+- [`riptide-extraction`](../riptide-extraction): HTML parsing and extraction
 - [`riptide-intelligence`](../riptide-intelligence): LLM integration
 - [`riptide-search`](../riptide-search): Search provider implementations
 - [`riptide-pdf`](../riptide-pdf): PDF processing

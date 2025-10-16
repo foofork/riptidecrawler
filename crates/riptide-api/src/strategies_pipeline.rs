@@ -301,7 +301,7 @@ impl StrategiesPipelineOrchestrator {
             }
         }
 
-        // Chunking is now handled separately by riptide-html
+        // Chunking is now handled separately by riptide-extraction
 
         config
     }

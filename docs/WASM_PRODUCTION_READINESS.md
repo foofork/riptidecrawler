@@ -31,7 +31,7 @@ cargo build --release --target wasm32-wasip2
 ### ✅ Unit Tests - ALL PASSING
 
 ```bash
-cargo test -p riptide-html --lib wasm_extraction::tests
+cargo test -p riptide-extraction --lib wasm_extraction::tests
 
 running 4 tests
 test wasm_extraction::tests::test_extractor_config_default ... ok
@@ -64,7 +64,7 @@ cargo test -p riptide-core --test wasm_component_tests::test_component_availabil
 - ✅ Resource limits enforced (64MB memory, 1M fuel, 30s timeout)
 - ✅ Circuit breaker operational
 
-**Note**: Integration test harness requires WASI linker updates (test infrastructure limitation, not production code issue). The production code in `crates/riptide-html/src/wasm_extraction.rs` has complete WASI integration.
+**Note**: Integration test harness requires WASI linker updates (test infrastructure limitation, not production code issue). The production code in `crates/riptide-extraction/src/wasm_extraction.rs` has complete WASI integration.
 
 ---
 
@@ -74,7 +74,7 @@ cargo test -p riptide-core --test wasm_component_tests::test_component_availabil
 
 **Status**: **RESOLVED** ✅
 
-**Implementation** (`crates/riptide-html/src/wasm_extraction.rs`):
+**Implementation** (`crates/riptide-extraction/src/wasm_extraction.rs`):
 
 **Lines 14-20**: WIT bindings with namespace separation
 ```rust
@@ -107,7 +107,7 @@ mod conversions {
 
 **Status**: **RESOLVED (Documented)** ✅
 
-**Solution** (`crates/riptide-html/src/wasm_extraction.rs:403-412`):
+**Solution** (`crates/riptide-extraction/src/wasm_extraction.rs:403-412`):
 
 ```rust
 // Note: Wasmtime 34 handles caching differently than newer versions.
@@ -130,7 +130,7 @@ if config.enable_aot_cache {
 
 **Status**: **RESOLVED** ✅
 
-**Implementation** (`crates/riptide-html/src/wasm_extraction.rs:443-474`):
+**Implementation** (`crates/riptide-extraction/src/wasm_extraction.rs:443-474`):
 
 **Component Instantiation** (Line 456):
 ```rust
@@ -172,7 +172,7 @@ store.set_fuel(1_000_000)?; // Fuel limit enforced
 
 **Status**: **DEFERRED** (Not blocking production)
 
-**Location**: `crates/riptide-html/src/table_extraction/extractor.rs:107-109`
+**Location**: `crates/riptide-extraction/src/table_extraction/extractor.rs:107-109`
 
 **TODO comment still present**: `// TODO(feature): Implement multi-level header extraction`
 
@@ -222,9 +222,9 @@ store.set_fuel(1_000_000)?; // Fuel limit enforced
 ### ✅ Compilation & Linting
 
 ```bash
-cargo check -p riptide-html        # ✅ PASSES
-cargo clippy -p riptide-html       # ✅ ZERO WARNINGS
-cargo test -p riptide-html --lib   # ✅ 4/4 PASSING
+cargo check -p riptide-extraction        # ✅ PASSES
+cargo clippy -p riptide-extraction       # ✅ ZERO WARNINGS
+cargo test -p riptide-extraction --lib   # ✅ 4/4 PASSING
 cargo build --release --target wasm32-wasip2  # ✅ SUCCESS
 ```
 

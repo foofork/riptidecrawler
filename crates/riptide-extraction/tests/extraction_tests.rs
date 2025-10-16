@@ -5,7 +5,7 @@ use riptide_extraction::*;
 #[cfg(test)]
 mod css_selector_tests {
     // Note: CSS selector tests have been removed because the `selectors` module
-    // does not exist in riptide-html. CSS extraction is available through the
+    // does not exist in riptide-extraction. CSS extraction is available through the
     // css_extraction module with different APIs.
 }
 
@@ -163,7 +163,7 @@ Line 2</td></tr>
 #[cfg(test)]
 mod chunking_tests {
     // Note: Chunking tests have been removed because FixedSizeChunker and TextTilingChunker
-    // don't exist in the current riptide-html::chunking module. The chunking API uses
+    // don't exist in the current riptide-extraction::chunking module. The chunking API uses
     // a different pattern with create_strategy() and ChunkingStrategy trait.
 }
 

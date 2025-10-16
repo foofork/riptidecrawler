@@ -132,7 +132,7 @@ RipTide v1.0 Workspace (13 Crates)
 │   ├── riptide-streaming    (Real-time streaming)
 │   ├── riptide-workers      (Background processing)
 │   ├── riptide-headless     (Browser automation)
-│   ├── riptide-html         (HTML parsing)
+│   ├── riptide-extraction         (HTML parsing)
 │   ├── riptide-pdf          (PDF extraction)
 │   ├── riptide-intelligence (Content analysis)
 │   ├── riptide-persistence  (Data storage)
@@ -152,7 +152,7 @@ RipTide v1.0 Workspace (13 Crates)
 | `riptide-streaming` | 66 | 100% | ~95% |
 | `riptide-workers` | 5 | 100% | ~80% |
 | `riptide-headless` | Pending | N/A | ~70% |
-| `riptide-html` | Pending | N/A | ~75% |
+| `riptide-extraction` | Pending | N/A | ~75% |
 | `riptide-pdf` | 12 (failing) | 0% | ~60% |
 | `riptide-intelligence` | Pending | N/A | ~70% |
 | `riptide-stealth` | 15 (ignored) | N/A | ~50% |

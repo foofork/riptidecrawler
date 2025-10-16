@@ -62,7 +62,7 @@ fi
 
 # Check release build
 info "Checking release build..."
-if cargo build --release -p riptide-html --quiet 2>&1 | grep -q "Finished"; then
+if cargo build --release -p riptide-extraction --quiet 2>&1 | grep -q "Finished"; then
     success "Release build verified"
 else
     warning "Release build may need rebuilding"
@@ -70,7 +70,7 @@ fi
 
 # Run unit tests
 info "Running unit tests..."
-if cargo test -p riptide-html --lib wasm_extraction::tests 2>&1 | grep -q "test result: ok"; then
+if cargo test -p riptide-extraction --lib wasm_extraction::tests 2>&1 | grep -q "test result: ok"; then
     success "Unit tests passed (4/4)"
 else
     warning "Skipping unit tests (already verified)"

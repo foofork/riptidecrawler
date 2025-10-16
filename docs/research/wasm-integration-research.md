@@ -29,7 +29,7 @@ This research addresses critical blockers for WASM Component Model integration i
 
 ### 1.1 Problem Statement
 
-**Location**: `/workspaces/eventmesh/crates/riptide-html/src/wasm_extraction.rs:405-416`
+**Location**: `/workspaces/eventmesh/crates/riptide-extraction/src/wasm_extraction.rs:405-416`
 
 **Issue**: The old Wasmtime API method `cache_config_load_default()` does not exist in version 34:
 
@@ -87,7 +87,7 @@ config.cache(Some(cache))?;
 
 ### 1.3 Recommended Solution for RipTide
 
-**Implementation Location**: `/workspaces/eventmesh/crates/riptide-html/src/wasm_extraction.rs:403-416`
+**Implementation Location**: `/workspaces/eventmesh/crates/riptide-extraction/src/wasm_extraction.rs:403-416`
 
 ```rust
 // Enable AOT cache if configured
@@ -202,7 +202,7 @@ mod cache_benchmarks {
 
 #### Conflicting Types
 
-**Host Types** (`/workspaces/eventmesh/crates/riptide-html/src/wasm_extraction.rs`):
+**Host Types** (`/workspaces/eventmesh/crates/riptide-extraction/src/wasm_extraction.rs`):
 ```rust
 pub struct ExtractedDoc { /* 14 fields */ }
 pub enum HostExtractionMode { Article, Full, Metadata, Custom(Vec<String>) }
@@ -340,7 +340,7 @@ mod wit_bindings {
 
 #### Remaining Work: Type Conversions
 
-**File**: `/workspaces/eventmesh/crates/riptide-html/src/wasm_extraction.rs`
+**File**: `/workspaces/eventmesh/crates/riptide-extraction/src/wasm_extraction.rs`
 
 ```rust
 // Add after wit_bindings module
@@ -1072,7 +1072,7 @@ pub fn extract(&self, html: &str, url: &str, mode: &str) -> Result<ExtractedDoc>
 
 | Component | File Path | Lines |
 |-----------|-----------|-------|
-| Host Integration | `/workspaces/eventmesh/crates/riptide-html/src/wasm_extraction.rs` | 580 |
+| Host Integration | `/workspaces/eventmesh/crates/riptide-extraction/src/wasm_extraction.rs` | 580 |
 | WIT Interface | `/workspaces/eventmesh/wasm/riptide-extractor-wasm/wit/extractor.wit` | 145 |
 | Guest Implementation | `/workspaces/eventmesh/wasm/riptide-extractor-wasm/src/lib.rs` | 490 |
 | Instance Pool | `/workspaces/eventmesh/crates/riptide-core/src/instance_pool/pool.rs` | 964 |

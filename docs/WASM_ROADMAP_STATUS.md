@@ -18,7 +18,7 @@ Based on comprehensive verification of the WASM Integration Roadmap, here is the
 **Status**: **RESOLVED ✅**
 
 **Evidence**:
-- Location: `crates/riptide-html/src/wasm_extraction.rs:14-20`
+- Location: `crates/riptide-extraction/src/wasm_extraction.rs:14-20`
 - WIT bindings enabled with namespace separation
 - Type conversion layer complete (lines 117-189)
 - Compiles without errors
@@ -35,7 +35,7 @@ Based on comprehensive verification of the WASM Integration Roadmap, here is the
 **Status**: **RESOLVED (Documented) ✅**
 
 **Evidence**:
-- Location: `crates/riptide-html/src/wasm_extraction.rs:417-420`
+- Location: `crates/riptide-extraction/src/wasm_extraction.rs:417-420`
 - Wasmtime 34 built-in caching documented and leveraged
 - Performance impact mitigated
 - Acceptance criteria:
@@ -54,7 +54,7 @@ Based on comprehensive verification of the WASM Integration Roadmap, here is the
 **Status**: **RESOLVED ✅**
 
 **Evidence**:
-- Location: `crates/riptide-html/src/wasm_extraction.rs:442-513`
+- Location: `crates/riptide-extraction/src/wasm_extraction.rs:442-513`
 - Real WASM calls implemented (not fallback)
 - Component instantiation wired up
 - Type conversion operational
@@ -78,7 +78,7 @@ Based on comprehensive verification of the WASM Integration Roadmap, here is the
 **Status**: **DEFERRED (Not Blocking Production)**
 
 **Evidence**:
-- Location: `crates/riptide-html/src/table_extraction/extractor.rs:107-109`
+- Location: `crates/riptide-extraction/src/table_extraction/extractor.rs:107-109`
 - TODO comment still present: `// TODO(feature): Implement multi-level header extraction`
 - Feature enhancement, not required for WASM integration
 - Decision: Deferred to future iteration
@@ -140,7 +140,7 @@ The roadmap states at line 696:
 > "Integration tests are passing ✅"
 
 **Verification**:
-- Unit tests in `crates/riptide-html`: ✅ Passing (4/4)
+- Unit tests in `crates/riptide-extraction`: ✅ Passing (4/4)
 - Integration tests exist: ✅ Files present
   - `tests/wasm-integration/wit_bindings_integration.rs`
   - `tests/wasm-integration/resource_limits.rs`
@@ -159,8 +159,8 @@ The roadmap states at line 696:
 ## Code Quality Checklist
 
 ### Compilation & Linting
-- [x] `cargo check -p riptide-html` passes
-- [x] `cargo clippy -p riptide-html` zero warnings
+- [x] `cargo check -p riptide-extraction` passes
+- [x] `cargo clippy -p riptide-extraction` zero warnings
 - [x] All unit tests pass
 
 ### Architecture
@@ -231,7 +231,7 @@ The roadmap states at line 696:
 
 **Completed Steps** ✅:
 1. ✅ Built WASM component: `cargo build --release --target wasm32-wasip2` (3.3MB binary)
-2. ✅ Unit tests passing: `cargo test -p riptide-html --lib wasm_extraction::tests` (4/4)
+2. ✅ Unit tests passing: `cargo test -p riptide-extraction --lib wasm_extraction::tests` (4/4)
 3. ✅ Production code verified and compiling with zero warnings
 4. ⚠️ Integration tests: Test harness needs Wasmtime 35+ upgrade (documented in `/docs/WASM_TEST_INFRASTRUCTURE_NOTE.md`)
 

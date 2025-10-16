@@ -6,7 +6,7 @@ This document maps how different extraction methods work together in the Riptide
 ## Extraction Methods Identified
 
 ### 1. **Wasm Extraction** (WASM-based, Primary)
-- **Location**: `riptide-html/src/extraction_strategies.rs`
+- **Location**: `riptide-extraction/src/extraction_strategies.rs`
 - **Type**: Core extraction strategy using WASM component
 - **Confidence Score**: 0.8-1.0 (highest baseline)
 - **Features**:
@@ -21,7 +21,7 @@ This document maps how different extraction methods work together in the Riptide
 - Connected to strategies pipeline via `StrategiesPipelineOrchestrator`
 
 ### 2. **CSS Selector Extraction** (Enhanced)
-- **Location**: `riptide-html/src/css_extraction.rs`
+- **Location**: `riptide-extraction/src/css_extraction.rs`
 - **Type**: Configurable CSS selector-based extraction
 - **Confidence Score**: 0.7-0.95 (context-dependent)
 - **Features**:
@@ -43,7 +43,7 @@ HTML → CSS Selectors → Text Extraction → :has-text() Filter → Transforme
 ```
 
 ### 3. **Regex Pattern Extraction**
-- **Location**: `riptide-html/src/regex_extraction.rs`
+- **Location**: `riptide-extraction/src/regex_extraction.rs`
 - **Type**: Pattern-based structured data extraction
 - **Confidence Score**: 0.5-0.95 (pattern-dependent)
 - **Features**:
@@ -59,7 +59,7 @@ HTML → CSS Selectors → Text Extraction → :has-text() Filter → Transforme
 - Independent confidence scoring
 
 ### 4. **WASM Component Extraction**
-- **Location**: `riptide-html/src/wasm_extraction.rs`
+- **Location**: `riptide-extraction/src/wasm_extraction.rs`
 - **Type**: WebAssembly component-based extraction with resource limits
 - **Confidence Score**: 0.8 (constant for prototype)
 - **Features**:

@@ -18,7 +18,7 @@ The WASM Component Model integration roadmap has been **successfully completed**
 
 ### ✅ Issue #3: WIT Bindings Type Conflicts (P0 - CRITICAL)
 **Status**: **RESOLVED** ✅
-**Implementation**: `crates/riptide-html/src/wasm_extraction.rs:14-20, 113-182`
+**Implementation**: `crates/riptide-extraction/src/wasm_extraction.rs:14-20, 113-182`
 
 **What was fixed**:
 - Namespace separation using `mod wit_bindings`
@@ -27,15 +27,15 @@ The WASM Component Model integration roadmap has been **successfully completed**
 
 **Verification**:
 ```bash
-cargo check -p riptide-html  # ✅ PASSES
-cargo clippy -p riptide-html  # ✅ ZERO WARNINGS
+cargo check -p riptide-extraction  # ✅ PASSES
+cargo clippy -p riptide-extraction  # ✅ ZERO WARNINGS
 ```
 
 ---
 
 ### ✅ Issue #4: Wasmtime 34 Caching API (P1 - HIGH)
 **Status**: **RESOLVED (Documented)** ✅
-**Implementation**: `crates/riptide-html/src/wasm_extraction.rs:403-412`
+**Implementation**: `crates/riptide-extraction/src/wasm_extraction.rs:403-412`
 
 **What was fixed**:
 - Documented Wasmtime 34 built-in caching behavior
@@ -50,7 +50,7 @@ cargo clippy -p riptide-html  # ✅ ZERO WARNINGS
 
 ### ✅ Issue #5: Complete Component Model Integration (P0 - CRITICAL)
 **Status**: **RESOLVED** ✅
-**Implementation**: `crates/riptide-html/src/wasm_extraction.rs:443-474`
+**Implementation**: `crates/riptide-extraction/src/wasm_extraction.rs:443-474`
 
 **What was fixed**:
 - Real WASM extraction calls (no fallback)
@@ -61,7 +61,7 @@ cargo clippy -p riptide-html  # ✅ ZERO WARNINGS
 
 **Verification**:
 ```bash
-cargo test -p riptide-html --lib wasm_extraction::tests
+cargo test -p riptide-extraction --lib wasm_extraction::tests
 # ✅ 4/4 tests passing
 ```
 
@@ -69,7 +69,7 @@ cargo test -p riptide-html --lib wasm_extraction::tests
 
 ### ⚠️ Issue #6: Table Multi-Level Header Extraction (P2 - MEDIUM)
 **Status**: **DEFERRED** (Not blocking production)
-**Location**: `crates/riptide-html/src/table_extraction/extractor.rs:107-109`
+**Location**: `crates/riptide-extraction/src/table_extraction/extractor.rs:107-109`
 
 **Decision**: Feature enhancement for future iteration
 **Estimated Effort**: 2-3 days when prioritized
@@ -132,7 +132,7 @@ cargo build --release --target wasm32-wasip2
 ### ✅ Unit Tests: ALL PASSING (4/4)
 
 ```bash
-cargo test -p riptide-html --lib wasm_extraction::tests
+cargo test -p riptide-extraction --lib wasm_extraction::tests
 
 running 4 tests
 test wasm_extraction::tests::test_extractor_config_default ... ok
@@ -166,9 +166,9 @@ test result: ok. 4/4 passed; 0 failed; 0 ignored; 0 measured
 ### ✅ Compilation & Linting
 
 ```bash
-cargo check -p riptide-html        # ✅ PASSES
-cargo clippy -p riptide-html       # ✅ ZERO WARNINGS
-cargo test -p riptide-html --lib   # ✅ 4/4 PASSING
+cargo check -p riptide-extraction        # ✅ PASSES
+cargo clippy -p riptide-extraction       # ✅ ZERO WARNINGS
+cargo test -p riptide-extraction --lib   # ✅ 4/4 PASSING
 cargo build --release --target wasm32-wasip2  # ✅ SUCCESS (3.3MB)
 ```
 

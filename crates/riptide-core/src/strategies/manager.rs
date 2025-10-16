@@ -163,7 +163,7 @@ impl EnhancedStrategyManager {
         // Extract metadata
         let metadata = crate::strategies::metadata::extract_metadata(html, url).await?;
 
-        // Note: Chunking has been moved to riptide-html crate
+        // Note: Chunking has been moved to riptide-extraction crate
 
         let processing_time = start.elapsed();
 

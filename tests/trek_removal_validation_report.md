@@ -93,7 +93,7 @@
 - `/workspaces/eventmesh/wasm/riptide-extractor-wasm/src/lib_clean.rs` - Multiple trek-rs references
 
 **Core Files:**
-- `/workspaces/eventmesh/crates/riptide-html/src/wasm_extraction.rs:200` - Error comment
+- `/workspaces/eventmesh/crates/riptide-extraction/src/wasm_extraction.rs:200` - Error comment
 - `/workspaces/eventmesh/crates/riptide-core/src/types.rs:47` - Version comment
 - `/workspaces/eventmesh/crates/riptide-core/src/confidence.rs:20,25,33` - Example comments
 - `/workspaces/eventmesh/crates/riptide-core/src/strategies/mod.rs:40,61` - Comments

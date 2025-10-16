@@ -8,7 +8,7 @@ Successfully implemented a comprehensive chunking system for RipTide HTML proces
 
 ### 1. Chunking Module Structure
 ```
-/crates/riptide-html/src/chunking/
+/crates/riptide-extraction/src/chunking/
 ├── mod.rs              # Main module with ChunkingStrategy trait
 ├── sliding.rs          # Sliding window chunker (1000 tokens, 100 overlap)
 ├── fixed.rs            # Fixed-size chunker (chars or tokens)

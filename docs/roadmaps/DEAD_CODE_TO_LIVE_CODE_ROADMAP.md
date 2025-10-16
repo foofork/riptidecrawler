@@ -316,7 +316,7 @@ This document provides a comprehensive analysis of the RipTide EventMesh codebas
 | **riptide-performance** | ⚠️ Partial | 🔥 High | 2 weeks | 🟠 P1 |
 | **riptide-streaming** | ⚠️ Partial | 🟠 Medium | 1.5 weeks | 🟡 P2 |
 | riptide-core | ✅ YES | - | - | - |
-| riptide-html | ✅ YES | - | - | - |
+| riptide-extraction | ✅ YES | - | - | - |
 | riptide-intelligence | ✅ YES | - | - | - |
 | riptide-workers | ✅ YES | - | - | - |
 | riptide-stealth | ✅ YES | - | - | - |
@@ -498,7 +498,7 @@ This document provides a comprehensive analysis of the RipTide EventMesh codebas
 |-------|-------------|-------|------|---------|
 | riptide-core | ✅ 100% | ✅ 90% | ✅ Good | ✅ |
 | riptide-api | ✅ 100% | ✅ 85% | ✅ Good | ✅ |
-| riptide-html | ✅ 100% | ✅ 80% | ✅ Good | ✅ |
+| riptide-extraction | ✅ 100% | ✅ 80% | ✅ Good | ✅ |
 | riptide-intelligence | ✅ 100% | ⚠️ 70% | ⚠️ Partial | ⚠️ |
 | riptide-workers | ✅ 100% | ✅ 85% | ✅ Good | ✅ |
 | riptide-stealth | ✅ 100% | ✅ 90% | ✅ Excellent | ✅ |

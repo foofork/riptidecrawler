@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-The WASM component implementation in `riptide-extractor-wasm` is **fully functional** and uses Wasm-rs for HTML extraction. However, the **host-side binding** in `crates/riptide-html/src/wasm_extraction.rs` returns **mock data** instead of invoking the actual WASM component.
+The WASM component implementation in `riptide-extractor-wasm` is **fully functional** and uses Wasm-rs for HTML extraction. However, the **host-side binding** in `crates/riptide-extraction/src/wasm_extraction.rs` returns **mock data** instead of invoking the actual WASM component.
 
 ## Mock Data Locations
 
@@ -34,7 +34,7 @@ Ok(ExtractedDoc {
 ## TDD Tests Created
 
 Comprehensive test suite created at:
-**`/workspaces/eventmesh/crates/riptide-html/tests/wasm_binding_tdd_tests.rs`**
+**`/workspaces/eventmesh/crates/riptide-extraction/tests/wasm_binding_tdd_tests.rs`**
 
 ### Test Coverage
 
@@ -62,7 +62,7 @@ Comprehensive test suite created at:
 
 ###  ❌ Incomplete (Host Side)
 
-**Location**: `/workspaces/eventmesh/crates/riptide-html/src/wasm_extraction.rs`
+**Location**: `/workspaces/eventmesh/crates/riptide-extraction/src/wasm_extraction.rs`
 
 **Missing Components:**
 
@@ -240,7 +240,7 @@ cargo build --package riptide-extractor-wasm --target wasm32-wasip2 --release
 ### 2. Run TDD Tests
 
 ```bash
-cargo test --package riptide-html --test wasm_binding_tdd_tests -- --nocapture
+cargo test --package riptide-extraction --test wasm_binding_tdd_tests -- --nocapture
 ```
 
 ### 3. Expected Test Results

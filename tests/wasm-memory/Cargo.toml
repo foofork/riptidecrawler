@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-# Will be linked to actual riptide-html when integrated
+# Will be linked to actual riptide-extraction when integrated
 
 [[test]]
 name = "memory_leak_tests"

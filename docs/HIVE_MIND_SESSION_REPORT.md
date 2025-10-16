@@ -183,16 +183,16 @@ The Hive Mind swarm successfully completed a comprehensive analysis and code qua
 
 **Key Modifications**:
 1. **Added Default implementations**:
-   - `crates/riptide-html/src/wasm_extraction.rs` - WasmHostContext
+   - `crates/riptide-extraction/src/wasm_extraction.rs` - WasmHostContext
    - `crates/riptide-streaming/src/server.rs` - ServerState
 
 2. **Fixed clippy warnings**:
    - `crates/riptide-api/src/metrics.rs` - Added `#[allow(clippy::too_many_arguments)]`
-   - `crates/riptide-html/tests/wasm_binding_tdd_tests.rs` - Removed useless comparison
+   - `crates/riptide-extraction/tests/wasm_binding_tdd_tests.rs` - Removed useless comparison
    - `wasm/riptide-extractor-wasm/tests/test_html_stripping.rs` - Fixed trim and vec issues
 
 3. **Fixed imports**:
-   - `crates/riptide-html/tests/html_extraction_tests.rs` - Added RegexExtractor import
+   - `crates/riptide-extraction/tests/html_extraction_tests.rs` - Added RegexExtractor import
 
 4. **Documentation added** (53 new files):
    - Complete Week 1 and Week 2 documentation

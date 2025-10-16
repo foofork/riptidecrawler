@@ -43,7 +43,7 @@ echo "-----------------------"
 # Check each crate for tests
 CRATES=(
     "riptide-core"
-    "riptide-html"
+    "riptide-extraction"
     "riptide-search"
     "riptide-intelligence"
     "riptide-pdf"
@@ -84,7 +84,7 @@ echo "--------------------------"
 
 # Check for specific test scenarios
 echo -n "✓ HTML Extraction Tests: "
-grep -l "test.*extract\|extract.*test" crates/riptide-html/tests/*.rs 2>/dev/null | wc -l
+grep -l "test.*extract\|extract.*test" crates/riptide-extraction/tests/*.rs 2>/dev/null | wc -l
 
 echo -n "✓ Query Spider Tests: "
 grep -l "bm25\|BM25\|query.*aware" crates/riptide-search/tests/*.rs crates/riptide-core/tests/*.rs 2>/dev/null | wc -l

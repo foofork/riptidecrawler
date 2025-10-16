@@ -78,7 +78,7 @@ Process a URL using configurable extraction strategies and chunking modes.
 | `css_selectors` | object | No | CSS selectors for CSS_JSON strategy |
 | `regex_patterns` | array | No | Regex patterns for REGEX strategy |
 | `llm_config` | object | No | LLM configuration for LLM strategy |
-| `chunking_config` | object | No | Chunking configuration (deprecated - handled by riptide-html) |
+| `chunking_config` | object | No | Chunking configuration (deprecated - handled by riptide-extraction) |
 
 ##### CSS Selectors Object
 
@@ -114,7 +114,7 @@ Process a URL using configurable extraction strategies and chunking modes.
 
 ##### Chunking Config Object (Deprecated)
 
-Chunking is now handled by the `riptide-html` crate. This configuration is preserved for backward compatibility but has no effect.
+Chunking is now handled by the `riptide-extraction` crate. This configuration is preserved for backward compatibility but has no effect.
 
 #### Response
 
@@ -553,9 +553,9 @@ curl -X POST "https://api.riptide.dev/strategies/crawl?strategy=auto" \
 
 ## Chunking Modes (Deprecated)
 
-**Note:** Chunking functionality has been moved to the `riptide-html` crate. The chunking configuration in these endpoints is preserved for backward compatibility but has no effect on processing.
+**Note:** Chunking functionality has been moved to the `riptide-extraction` crate. The chunking configuration in these endpoints is preserved for backward compatibility but has no effect on processing.
 
-For chunking capabilities, use the `riptide-html` library directly:
+For chunking capabilities, use the `riptide-extraction` library directly:
 
 ```rust
 use riptide_html::chunking::{ChunkingConfig, ChunkingMode};

@@ -802,7 +802,7 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](../../LICENSE) for
 
 - `riptide-core` - Core extraction functionality
 - `riptide-api` - HTTP API server
-- `riptide-html` - HTML parsing utilities
+- `riptide-extraction` - HTML parsing utilities
 
 ## Examples
 

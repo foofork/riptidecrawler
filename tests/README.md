@@ -33,7 +33,7 @@ tests/                         # Workspace-level integration tests
 └── Cargo.toml                 # Test dependencies
 
 crates/                        # Crate-specific tests
-├── riptide-html/tests/        # HTML extraction tests
+├── riptide-extraction/tests/        # HTML extraction tests
 ├── riptide-search/tests/      # Search provider tests
 ├── riptide-stealth/tests/     # Stealth mode tests
 ├── riptide-pdf/tests/         # PDF processing tests

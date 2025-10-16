@@ -211,7 +211,7 @@ clippy::unwrap_used = { level = "allow", reason = "acceptable in tests" }
 **Files to Audit:**
 - All files in `crates/riptide-api/src/`
 - All files in `crates/riptide-core/src/`
-- All files in `crates/riptide-html/src/`
+- All files in `crates/riptide-extraction/src/`
 - Exclude: `tests/`, `benches/`
 
 ---
@@ -733,8 +733,8 @@ mod tests {
 - Negative test: Catch ABI mismatches
 
 **Files to Create:**
-- `crates/riptide-html/src/wasm/wit_validator.rs`
-- `crates/riptide-html/tests/wit_validation_test.rs`
+- `crates/riptide-extraction/src/wasm/wit_validator.rs`
+- `crates/riptide-extraction/tests/wit_validation_test.rs`
 
 ---
 

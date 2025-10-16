@@ -404,7 +404,7 @@ pub struct PoolMetrics {
 
 ### Current State
 
-**Existing validation** (`/workspaces/eventmesh/crates/riptide-html/src/wasm_extraction.rs`):
+**Existing validation** (`/workspaces/eventmesh/crates/riptide-extraction/src/wasm_extraction.rs`):
 - ✅ Type conversions between host and WIT types
 - ✅ Error mapping from WIT to host errors
 - ⚠️ No schema validation at runtime

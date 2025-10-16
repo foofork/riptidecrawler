@@ -44,7 +44,7 @@ pub mod unit {
 // Note: Streaming tests moved to crates/riptide-streaming/tests/
 // Note: Search provider tests moved to crates/riptide-search/tests/
 // Note: PDF tests moved to crates/riptide-pdf/tests/
-// Note: HTML extraction tests moved to crates/riptide-html/tests/
+// Note: HTML extraction tests moved to crates/riptide-extraction/tests/
 
 // Note: Stealth tests are located in crates/riptide-stealth/tests/
 // and crates/riptide-stealth/src/tests.rs (not here in workspace tests/)

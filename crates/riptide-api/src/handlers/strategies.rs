@@ -24,7 +24,7 @@ pub struct StrategiesCrawlRequest {
     #[allow(dead_code)] // Reserved for future extraction strategies
     pub extraction_strategy: Option<String>,
 
-    /// Optional chunking configuration (future feature - moved to riptide-html)
+    /// Optional chunking configuration (future feature - moved to riptide-extraction)
     #[allow(dead_code)] // Reserved for future chunking feature
     pub chunking_config: Option<ChunkingConfigRequest>,
 
@@ -50,7 +50,7 @@ pub struct StrategiesCrawlRequest {
     pub llm_config: Option<LlmConfigRequest>,
 }
 
-/// Chunking configuration from request (future feature - chunking moved to riptide-html)
+/// Chunking configuration from request (future feature - chunking moved to riptide-extraction)
 #[allow(dead_code, unused)] // Serde-only type: deserialized but fields not yet read
 #[derive(Debug, Deserialize)]
 pub struct ChunkingConfigRequest {
@@ -168,7 +168,7 @@ pub async fn strategies_crawl(
         chunks_created: 1, // Core only produces one extraction result
         total_processing_time_ms: result.processing_time_ms,
         extraction_strategy_used: format!("{:?}", result.strategy_config.extraction),
-        chunking_mode_used: "None".to_string(), // Chunking moved to riptide-html
+        chunking_mode_used: "None".to_string(), // Chunking moved to riptide-extraction
         cache_hit: result.from_cache,
         quality_score: result.quality_score,
     };
@@ -317,7 +317,7 @@ fn build_strategy_config(
     })
 }
 
-// Chunking configuration functions removed since chunking is now handled by riptide-html
+// Chunking configuration functions removed since chunking is now handled by riptide-extraction
 
 // Default values for serde
 fn default_true() -> bool {

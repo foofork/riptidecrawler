@@ -33,7 +33,7 @@ RipTide v1.0 consists of **13 modular crates**, each providing specific function
 eventmesh/
 ├── riptide-core           ✅ Core infrastructure & orchestration
 ├── riptide-api            ✅ REST API server (59 endpoints)
-├── riptide-html           ✅ HTML processing & DOM manipulation
+├── riptide-extraction           ✅ HTML processing & DOM manipulation
 ├── riptide-search         ✅ Search provider abstraction
 ├── riptide-pdf            ✅ PDF text & table extraction
 ├── riptide-stealth        ✅ Anti-detection & fingerprinting

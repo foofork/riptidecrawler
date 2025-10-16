@@ -1,4 +1,4 @@
-//! Integration tests for riptide-html crate
+//! Integration tests for riptide-extraction crate
 
 use riptide_extraction::css_extraction::default_selectors_simple;
 use riptide_extraction::*;

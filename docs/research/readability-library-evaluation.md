@@ -75,7 +75,7 @@ url = "2"             # URL resolution
 - `detect_language()` - Multi-method language detection
 - `extract_categories()` - JSON-LD, breadcrumbs, meta tags
 
-### 2.2 Extraction Strategies (riptide-html)
+### 2.2 Extraction Strategies (riptide-extraction)
 
 **WasmExtractor** (WASM-based):
 - Base confidence: 0.8
@@ -418,7 +418,7 @@ Since I **strongly recommend** enhancing CSS extraction instead of adding readab
 
 ### 8.1 Enhanced Content Selectors
 
-**File**: `/workspaces/eventmesh/crates/riptide-html/src/extraction_strategies.rs`
+**File**: `/workspaces/eventmesh/crates/riptide-extraction/src/extraction_strategies.rs`
 
 **Add to `CssExtractorStrategy::new()`:**
 ```rust
@@ -529,7 +529,7 @@ if let Ok(selector) = Selector::parse("[itemtype*='Article']") {
 - **Docs.rs**: mozilla-readability API documentation (0% coverage)
 - **Current Codebase**:
   - `/workspaces/eventmesh/wasm/riptide-extractor-wasm/src/extraction.rs`
-  - `/workspaces/eventmesh/crates/riptide-html/src/extraction_strategies.rs`
+  - `/workspaces/eventmesh/crates/riptide-extraction/src/extraction_strategies.rs`
   - `/workspaces/eventmesh/wasm/riptide-extractor-wasm/Cargo.toml`
 
 ## Appendix B: Coordination Memory Keys

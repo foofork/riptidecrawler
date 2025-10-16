@@ -76,16 +76,16 @@ wasmtime_wasi::preview2 → wasmtime_wasi::p2
 ```bash
 # See generated code
 export WASMTIME_DEBUG_BINDGEN=1
-cargo build -p riptide-html
+cargo build -p riptide-extraction
 
 # Find generated file
-find target/debug/build/riptide-html-*/out -name "bindgen_*.rs" -exec cat {} \; | less
+find target/debug/build/riptide-extraction-*/out -name "bindgen_*.rs" -exec cat {} \; | less
 
 # Validate WIT
 wasm-tools component wit path/to/file.wit
 
 # Check relative paths
-cd crates/riptide-html
+cd crates/riptide-extraction
 ls -la ../../wasm/riptide-extractor-wasm/wit/extractor.wit
 ```
 
@@ -104,14 +104,14 @@ ls -la ../../wasm/riptide-extractor-wasm/wit/extractor.wit
 
 ## 📋 5-Minute Fix Checklist
 
-- [ ] Open `crates/riptide-html/src/wasm_extraction.rs`
+- [ ] Open `crates/riptide-extraction/src/wasm_extraction.rs`
 - [ ] Find `use wit_bindings::` or `use ExtractedContent`
 - [ ] Replace with: `use wit_bindings::{Extractor, ExtractionMode, ExtractedContent, ExtractionError}`
 - [ ] Remove any `exports::` prefixes
 - [ ] Set `export WASMTIME_DEBUG_BINDGEN=1`
-- [ ] Run `cargo build -p riptide-html`
+- [ ] Run `cargo build -p riptide-extraction`
 - [ ] Check build output for generated file location
-- [ ] Run `cargo test -p riptide-html`
+- [ ] Run `cargo test -p riptide-extraction`
 
 ---
 

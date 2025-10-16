@@ -225,7 +225,7 @@ $ rg "\.unwrap\(\)" crates/riptide-api/src/ --type rust --glob '!*test*.rs'
 $ rg "\.unwrap\(\)" crates/riptide-core/src/ --type rust --glob '!*test*.rs' -g '!tests/'
 # Count: 0 ✅
 
-$ rg "\.unwrap\(\)" crates/riptide-html/src/ --type rust --glob '!*test*.rs' -g '!tests/'
+$ rg "\.unwrap\(\)" crates/riptide-extraction/src/ --type rust --glob '!*test*.rs' -g '!tests/'
 # Count: 0 ✅
 
 $ rg "\.unwrap\(\)" crates/riptide-headless/src/ --type rust --glob '!*test*.rs' -g '!tests/'
@@ -249,7 +249,7 @@ $ rg "\.unwrap\(\)" crates/riptide-headless/src/ --type rust --glob '!*test*.rs'
 $ cargo build --workspace --lib
    Compiling riptide-core v0.1.0
    Compiling riptide-headless v0.1.0
-   Compiling riptide-html v0.1.0
+   Compiling riptide-extraction v0.1.0
    Compiling riptide-intelligence v0.1.0
    Compiling riptide-api v0.1.0
    ... (all crates)

@@ -4,7 +4,7 @@
 //! that provides better extensibility and composition than the old enum-based approach.
 //!
 //! Note: This demo focuses on the core extraction functionality in riptide-core.
-//! For chunking strategies, see examples in the riptide-html crate.
+//! For chunking strategies, see examples in the riptide-extraction crate.
 
 use riptide_core::strategies::{
     // Migration utilities
@@ -90,7 +90,7 @@ async fn main() -> anyhow::Result<()> {
         );
     }
 
-    println!("Note: Chunking strategies have been moved to riptide-html crate");
+    println!("Note: Chunking strategies have been moved to riptide-extraction crate");
 
     // Find best strategy
     if let Some(best_strategy) = registry.find_best_extraction(test_html) {
@@ -171,13 +171,13 @@ async fn main() -> anyhow::Result<()> {
         available_extractions.len()
     );
     println!("Total spider strategies: {}", available_spider.len());
-    println!("Note: Chunking strategies are now in riptide-html crate");
+    println!("Note: Chunking strategies are now in riptide-extraction crate");
 
     println!("\n✅ Trait-based strategy system demonstration complete!");
     println!("The system provides a clean, extensible architecture while maintaining");
     println!("backward compatibility with existing enum-based code.");
     println!("\nFor complete functionality including chunking and specialized extraction,");
-    println!("see examples in riptide-html and riptide-intelligence crates.");
+    println!("see examples in riptide-extraction and riptide-intelligence crates.");
 
     Ok(())
 }

@@ -75,7 +75,7 @@ crate_count=0
 
 CRATES=(
     "riptide-core"
-    "riptide-html"
+    "riptide-extraction"
     "riptide-search"
     "riptide-intelligence"
     "riptide-pdf"

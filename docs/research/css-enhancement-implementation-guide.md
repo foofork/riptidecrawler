@@ -22,7 +22,7 @@ This guide provides **concrete implementation steps** for enhancing CSS-based ex
 
 ### 1.1 Update `CssExtractorStrategy::new()`
 
-**File**: `/workspaces/eventmesh/crates/riptide-html/src/extraction_strategies.rs`
+**File**: `/workspaces/eventmesh/crates/riptide-extraction/src/extraction_strategies.rs`
 
 **Current Implementation** (Lines 177-194):
 ```rust
@@ -170,7 +170,7 @@ impl CssExtractorStrategy {
 
 **Testing**:
 ```bash
-cargo test --package riptide-html test_css_extractor_strategy
+cargo test --package riptide-extraction test_css_extractor_strategy
 ```
 
 **Expected Quality Gain**: +10-15%
@@ -461,7 +461,7 @@ async fn test_boilerplate_removal() {
 
 ### 3.1 Add CETD (Content Extraction via Text Density) Algorithm
 
-**Add new module**: `/workspaces/eventmesh/crates/riptide-html/src/text_density.rs`
+**Add new module**: `/workspaces/eventmesh/crates/riptide-extraction/src/text_density.rs`
 
 ```rust
 //! Content Extraction via Text Density (CETD) implementation
@@ -860,8 +860,8 @@ fn confidence_score(&self, html: &str) -> f64 {
 
 ### Unit Tests
 ```bash
-cargo test --package riptide-html extraction_strategies
-cargo test --package riptide-html text_density
+cargo test --package riptide-extraction extraction_strategies
+cargo test --package riptide-extraction text_density
 ```
 
 ### Integration Tests
@@ -870,12 +870,12 @@ cargo test --package riptide-html text_density
 mkdir -p tests/fixtures/golden
 # Add complex article HTML samples
 
-cargo test --package riptide-html --test extraction_tests
+cargo test --package riptide-extraction --test extraction_tests
 ```
 
 ### Benchmark Tests
 ```bash
-cargo bench --package riptide-html
+cargo bench --package riptide-extraction
 ```
 
 ### Expected Metrics
