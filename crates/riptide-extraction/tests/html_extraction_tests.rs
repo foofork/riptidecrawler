@@ -677,7 +677,9 @@ mod dom_traversal_tests {
 
 /// Performance and edge case tests
 mod performance_edge_case_tests {
-    use riptide_extraction::{css_extract_default as extract_default, default_patterns, RegexExtractor};
+    use riptide_extraction::{
+        css_extract_default as extract_default, default_patterns, RegexExtractor,
+    };
     use std::time::Instant;
 
     #[tokio::test]

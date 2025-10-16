@@ -43,7 +43,8 @@ async fn test_wasm_extractor_no_mock_data() -> Result<()> {
     }
 
     let extractor =
-        riptide_extraction::wasm_extraction::WasmExtractor::new(wasm_path.to_str().unwrap()).await?;
+        riptide_extraction::wasm_extraction::WasmExtractor::new(wasm_path.to_str().unwrap())
+            .await?;
 
     let result = extractor.extract(SAMPLE_HTML.as_bytes(), "https://example.com", "article")?;
 
@@ -159,7 +160,8 @@ async fn test_wasm_error_handling() -> Result<()> {
     }
 
     let extractor =
-        riptide_extraction::wasm_extraction::WasmExtractor::new(wasm_path.to_str().unwrap()).await?;
+        riptide_extraction::wasm_extraction::WasmExtractor::new(wasm_path.to_str().unwrap())
+            .await?;
 
     // Test with invalid inputs
     let test_cases = vec![
@@ -192,7 +194,8 @@ async fn test_extraction_quality() -> Result<()> {
     }
 
     let extractor =
-        riptide_extraction::wasm_extraction::WasmExtractor::new(wasm_path.to_str().unwrap()).await?;
+        riptide_extraction::wasm_extraction::WasmExtractor::new(wasm_path.to_str().unwrap())
+            .await?;
 
     let result = extractor.extract(SAMPLE_HTML.as_bytes(), "https://example.com", "article")?;
 
@@ -344,7 +347,8 @@ async fn test_multiple_extraction_modes() -> Result<()> {
     }
 
     let extractor =
-        riptide_extraction::wasm_extraction::WasmExtractor::new(wasm_path.to_str().unwrap()).await?;
+        riptide_extraction::wasm_extraction::WasmExtractor::new(wasm_path.to_str().unwrap())
+            .await?;
 
     let modes = vec!["article", "full", "metadata"];
 

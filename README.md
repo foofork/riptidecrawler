@@ -400,7 +400,7 @@ RipTide is organized as a Cargo workspace with 13 specialized crates:
 |-------|-------------|
 | **riptide-api** | REST API server with 59 endpoints across 13 categories |
 | **riptide-core** | Core crawling engine, orchestration, and shared utilities |
-| **riptide-html** | HTML parsing, content extraction, and markdown generation |
+| **riptide-extraction** | Content extraction, HTML parsing, and markdown generation |
 | **riptide-search** | Web search integration with circuit breaker and provider abstraction |
 | **riptide-headless** | Headless browser service with Chromiumoxide and stealth mode |
 | **riptide-workers** | Background job queue with Redis-backed persistence |

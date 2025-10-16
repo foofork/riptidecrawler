@@ -1,7 +1,9 @@
 //! Performance tests for chunking strategies
 //! Requirement: All chunking strategies must process 50KB of text in ≤200ms
 
-use riptide_extraction::chunking::{create_strategy, ChunkingConfig, ChunkingMode, ChunkingStrategy};
+use riptide_extraction::chunking::{
+    create_strategy, ChunkingConfig, ChunkingMode, ChunkingStrategy,
+};
 use std::time::Instant;
 
 /// Generate test content of specified size

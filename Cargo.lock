@@ -6383,6 +6383,7 @@ dependencies = [
  "futures",
  "humantime",
  "indicatif 0.17.11",
+ "num_cpus",
  "once_cell",
  "opentelemetry 0.24.0",
  "rand 0.8.5",
