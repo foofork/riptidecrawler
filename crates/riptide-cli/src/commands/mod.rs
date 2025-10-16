@@ -73,10 +73,10 @@ pub enum Commands {
     },
 
     /// Validate configuration
-    Validate,
+    Validate(validate::ValidateArgs),
 
     /// Perform comprehensive system check
-    SystemCheck,
+    SystemCheck(system_check::SystemCheckArgs),
 
     /// Extract tables from HTML content
     Tables(TablesArgs),

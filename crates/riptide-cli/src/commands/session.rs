@@ -1,6 +1,6 @@
 use crate::output;
-use crate::session::{Cookie, Session, SessionManager, SessionMetadata};
-use anyhow::{Context, Result};
+use crate::session::{Cookie, Session, SessionManager};
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::fs;
@@ -388,24 +388,14 @@ async fn create_session(
         .map(|t| t.split(',').map(|s| s.trim().to_string()).collect())
         .unwrap_or_default();
 
-    let session = Session {
-        name: name.clone(),
-        description,
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
-        last_used_at: None,
-        cookies,
-        headers,
-        tags: tags_vec,
-        user_agent,
-        timeout_minutes: timeout,
-        metadata: SessionMetadata {
-            requests_count: 0,
-            last_request_url: None,
-            success_count: 0,
-            error_count: 0,
-        },
-    };
+    let mut session = Session::new(name.clone());
+    session.description = description;
+    session.cookies = cookies;
+    session.headers = headers;
+    session.tags = tags_vec;
+    session.user_agent = user_agent;
+    session.timeout_minutes = timeout;
+    session.storage_state = None;
 
     manager.add_session(session)?;
     manager.save()?;
@@ -428,7 +418,7 @@ async fn list_sessions(
 ) -> Result<()> {
     let manager = SessionManager::load()?;
 
-    let mut sessions: Vec<&Session> = manager.sessions.values().collect();
+    let mut sessions: Vec<&Session> = manager.list_sessions();
 
     // Filter by tag if specified
     if let Some(filter_tag) = tag {
@@ -570,27 +560,11 @@ fn display_session_detailed(session: &Session, manager: &SessionManager) {
 async fn use_session(name: String, create: bool, output_format: &str) -> Result<()> {
     let mut manager = SessionManager::load()?;
 
-    if !manager.sessions.contains_key(&name) {
+    if !manager.contains_session(&name) {
         if create {
             // Create new session
-            let session = Session {
-                name: name.clone(),
-                description: None,
-                created_at: Utc::now(),
-                updated_at: Utc::now(),
-                last_used_at: Some(Utc::now()),
-                cookies: Vec::new(),
-                headers: HashMap::new(),
-                tags: Vec::new(),
-                user_agent: None,
-                timeout_minutes: 0,
-                metadata: SessionMetadata {
-                    requests_count: 0,
-                    last_request_url: None,
-                    success_count: 0,
-                    error_count: 0,
-                },
-            };
+            let mut session = Session::new(name.clone());
+            session.last_used_at = Some(Utc::now());
             manager.add_session(session)?;
         } else {
             return Err(anyhow!(
@@ -685,7 +659,7 @@ async fn remove_session(
 
     let sessions_to_remove: Vec<String> = if let Some(filter_tag) = tag {
         manager
-            .sessions
+            .sessions()
             .values()
             .filter(|s| s.tags.contains(&filter_tag))
             .map(|s| s.name.clone())
@@ -814,6 +788,7 @@ async fn add_cookies(
             secure,
             http_only,
             expires: expires_dt,
+            same_site: None,
         };
 
         // Remove existing cookie with same name if it exists
@@ -877,32 +852,22 @@ async fn clone_session(
     let mut manager = SessionManager::load()?;
     let source = manager.get_session(&from)?.clone();
 
-    let new_session = Session {
-        name: to.clone(),
-        description: source.description.clone(),
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
-        last_used_at: None,
-        cookies: if clone_cookies {
-            source.cookies.clone()
-        } else {
-            Vec::new()
-        },
-        headers: if clone_headers {
-            source.headers.clone()
-        } else {
-            HashMap::new()
-        },
-        tags: source.tags.clone(),
-        user_agent: source.user_agent.clone(),
-        timeout_minutes: source.timeout_minutes,
-        metadata: SessionMetadata {
-            requests_count: 0,
-            last_request_url: None,
-            success_count: 0,
-            error_count: 0,
-        },
+    let mut new_session = Session::new(to.clone());
+    new_session.description = source.description.clone();
+    new_session.cookies = if clone_cookies {
+        source.cookies.clone()
+    } else {
+        Vec::new()
     };
+    new_session.headers = if clone_headers {
+        source.headers.clone()
+    } else {
+        HashMap::new()
+    };
+    new_session.tags = source.tags.clone();
+    new_session.user_agent = source.user_agent.clone();
+    new_session.timeout_minutes = source.timeout_minutes;
+    new_session.storage_state = None;
 
     manager.add_session(new_session)?;
     manager.save()?;
@@ -979,14 +944,14 @@ async fn session_stats(name: Option<String>, output_format: &str) -> Result<()> 
         }
     } else {
         // Show stats for all sessions
-        let total_sessions = manager.sessions.len();
+        let total_sessions = manager.session_count();
         let total_requests: u64 = manager
-            .sessions
+            .sessions()
             .values()
             .map(|s| s.metadata.requests_count)
             .sum();
         let total_success: u64 = manager
-            .sessions
+            .sessions()
             .values()
             .map(|s| s.metadata.success_count)
             .sum();

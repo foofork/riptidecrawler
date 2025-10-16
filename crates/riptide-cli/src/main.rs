@@ -5,6 +5,7 @@ mod job;
 mod metrics;
 mod output;
 mod session;
+mod validation;
 
 use anyhow::Result;
 use clap::Parser;
@@ -78,8 +79,8 @@ async fn main() -> Result<()> {
                 metric,
             }) => commands::metrics::export(client, &format, output, metric).await,
         },
-        Commands::Validate => commands::validate::execute(client, &cli.output).await,
-        Commands::SystemCheck => commands::system_check::execute(client, &cli.output).await,
+        Commands::Validate(args) => commands::validate::execute(client, args).await,
+        Commands::SystemCheck(args) => commands::system_check::execute(client, args).await,
         Commands::Tables(args) => commands::tables::execute(client, args, &cli.output).await,
         Commands::Schema { command } => {
             commands::schema::execute(client, command, &cli.output).await

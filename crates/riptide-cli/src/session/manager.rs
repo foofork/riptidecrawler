@@ -119,6 +119,21 @@ impl SessionManager {
         self.sessions.values().collect()
     }
 
+    /// Get all sessions as a hashmap reference
+    pub fn sessions(&self) -> &HashMap<String, Session> {
+        &self.sessions
+    }
+
+    /// Get total session count
+    pub fn session_count(&self) -> usize {
+        self.sessions.len()
+    }
+
+    /// Check if a session exists
+    pub fn contains_session(&self, name: &str) -> bool {
+        self.sessions.contains_key(name)
+    }
+
     /// Export session to file
     pub fn export_session(&self, name: &str, path: &str, format: &str) -> Result<()> {
         let session = self.get_session(name)?;

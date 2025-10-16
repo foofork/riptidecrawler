@@ -8,8 +8,8 @@ use async_trait::async_trait;
 use scraper::{Html, Selector};
 use std::collections::HashMap;
 
-use crate::enhanced_extractor::StructuredExtractor;
 use crate::strategies::{traits::*, ExtractedContent, PerformanceMetrics};
+use riptide_extraction::enhanced_extractor::StructuredExtractor;
 
 /// CSS Selector strategy for targeted content extraction
 #[derive(Debug, Clone)]
