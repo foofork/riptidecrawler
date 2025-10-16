@@ -1,0 +1,27 @@
+Suite,Name,URL,Type,HTTP_Code,Status
+00_static_docs,MDN JS Guide Introduction,https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Introduction,article,200,SUCCESS
+00_static_docs,Rust Book Installation,https://doc.rust-lang.org/stable/book/ch01-01-installation.html,docs,200,SUCCESS
+00_static_docs,PostgreSQL Docs,https://www.postgresql.org/docs/17/intro-whatis.html,docs,200,SUCCESS
+00_static_docs,Kubernetes Get Started,https://cloud.google.com/kubernetes-engine/docs/learn/get-started-with-kubernetes,docs,200,SUCCESS
+00_static_docs,Wikipedia Web Scraping,https://en.wikipedia.org/wiki/Web_scraping,reference,200,SUCCESS
+10_news_articles,Reuters China War Tech,https://www.reuters.com/graphics/WW2-ANNIVERSARY/CHINA-PARADE/zdvxkgybypx/,article,200,SUCCESS
+10_news_articles,Reuters Meta AI,https://www.reuters.com/investigates/special-report/meta-ai-chatbot-guidelines/,article,0,FAILED
+10_news_articles,Reuters Ukraine Drones,https://www.reuters.com/graphics/UKRAINE-CRISIS/DRONES/dwpkeyjwkpm/,article,200,SUCCESS
+10_news_articles,NOS Tech News,https://nos.nl/nieuws/tech,listing,200,SUCCESS
+10_news_articles,NOS AI Race Europe,https://nos.nl/nieuwsuur/artikel/2585550-europa-ontwaakt-in-de-ai-race-maar-druppel-op-gloeiende-plaat,article,200,SUCCESS
+20_product_pages,Samsung OLED TV,https://www.coolblue.nl/en/product/947062/samsung-oled-4k-55s95d-2024.html,product,200,SUCCESS
+20_product_pages,Lenovo Yoga Laptop,https://www.coolblue.nl/en/product/946460/lenovo-yoga-slim-7-oled-14imh9-83cv0054mh.html,product,200,SUCCESS
+20_product_pages,Canon EOS R5 C,https://www.bhphotovideo.com/c/product/1684244-REG/canon_5077c002_eos_r5_c_full_frame.html,product,0,FAILED
+20_product_pages,Canon EOS C80,https://www.bhphotovideo.com/c/product/1851537-REG/canon_eos_c80_cinema_camera.html,product,0,FAILED
+30_listings,Hacker News,https://news.ycombinator.com/,listing,200,SUCCESS
+30_listings,GitHub Rust Topics,https://github.com/topics/rust,listing,200,SUCCESS
+30_listings,Stack Overflow Rust,https://stackoverflow.com/questions/tagged/rust,listing,200,SUCCESS
+30_listings,Coolblue Laptops,https://www.coolblue.nl/en/laptops,listing,200,SUCCESS
+40_tables_pdfs,UK Autumn Budget 2024,https://assets.publishing.service.gov.uk/media/6722120210b0d582ee8c48c0/Autumn_Budget_2024__print_.pdf,pdf,200,SUCCESS
+40_tables_pdfs,UK Budget Policy Costings,https://assets.publishing.service.gov.uk/media/6721d2c54da1c0d41942a8d2/Policy_Costing_Document_-_Autumn_Budget_2024.pdf,pdf,200,SUCCESS
+40_tables_pdfs,OECD ODA 2024,https://one.oecd.org/document/DCD%282025%296/en/pdf,pdf,0,FAILED
+40_tables_pdfs,Hilversum Budget Info,https://hilversum.nl/sites/default/files/documents/Vereiste%20informatie%20in%20activiteitenplan%2C%20begroting%20en%20dekkingsplan%20.pdf,pdf,200,SUCCESS
+50_events_hilversum_music,Live Hilversum NL,https://www.livehilversum.com/nl/uitagenda,events_listing,200,SUCCESS
+50_events_hilversum_music,Live Hilversum EN,https://www.livehilversum.com/en/events,events_listing,200,SUCCESS
+50_events_hilversum_music,De Vorstin Venue,https://vorstin.nl/agenda/,venue_listing,200,SUCCESS
+50_events_hilversum_music,Songkick Hilversum,https://www.songkick.com/metro-areas/31392-netherlands-hilversum/2025,aggregator_listing,200,SUCCESS

@@ -1,17 +1,17 @@
 suite: 00_static_docs
 targets:
-  - name: "MDN — JS Guide: Introduction"
+  - name: "MDN JS Guide Introduction"
     url: "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Introduction"
     type: article
-  - name: "Rust Book — Installation"
+  - name: "Rust Book Installation"
     url: "https://doc.rust-lang.org/stable/book/ch01-01-installation.html"
     type: docs
-  - name: "PostgreSQL Docs — What is PostgreSQL?"
+  - name: "PostgreSQL Docs"
     url: "https://www.postgresql.org/docs/17/intro-whatis.html"
     type: docs
-  - name: "Kubernetes — Get started (GKE learn path)"
+  - name: "Kubernetes Get Started"
     url: "https://cloud.google.com/kubernetes-engine/docs/learn/get-started-with-kubernetes"
     type: docs
-  - name: "Wikipedia — Web scraping"
+  - name: "Wikipedia Web Scraping"
     url: "https://en.wikipedia.org/wiki/Web_scraping"
     type: reference

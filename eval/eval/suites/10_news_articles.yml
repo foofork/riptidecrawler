@@ -1,17 +1,17 @@
 suite: 10_news_articles
 targets:
-  - name: "Reuters Graphics — China war tech on parade"
+  - name: "Reuters China War Tech"
     url: "https://www.reuters.com/graphics/WW2-ANNIVERSARY/CHINA-PARADE/zdvxkgybypx/"
     type: article
-  - name: "Reuters Special Report — Meta AI rules & kids"
+  - name: "Reuters Meta AI"
     url: "https://www.reuters.com/investigates/special-report/meta-ai-chatbot-guidelines/"
     type: article
-  - name: "Reuters Graphics — Ukraine drones"
+  - name: "Reuters Ukraine Drones"
     url: "https://www.reuters.com/graphics/UKRAINE-CRISIS/DRONES/dwpkeyjwkpm/"
     type: article
-  - name: "NOS Tech — Tech news hub"
+  - name: "NOS Tech News"
     url: "https://nos.nl/nieuws/tech"
     type: listing
-  - name: "NOS — Europa ontwaakt in de AI-race"
+  - name: "NOS AI Race Europe"
     url: "https://nos.nl/nieuwsuur/artikel/2585550-europa-ontwaakt-in-de-ai-race-maar-druppel-op-gloeiende-plaat"
     type: article

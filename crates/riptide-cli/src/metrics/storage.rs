@@ -52,7 +52,15 @@ impl MetricsStorage {
 
         // Try to load existing metrics
         if storage.storage_path.exists() {
-            storage.load()?;
+            if let Err(e) = storage.load() {
+                // If loading fails, log the error and start fresh
+                eprintln!(
+                    "Warning: Failed to load existing metrics: {}. Starting fresh.",
+                    e
+                );
+                // Delete the corrupted file
+                let _ = fs::remove_file(&storage.storage_path);
+            }
         }
 
         Ok(storage)

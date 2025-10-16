@@ -1,0 +1,14 @@
+suite: 30_listings
+targets:
+  - name: "Hacker News"
+    url: "https://news.ycombinator.com/"
+    type: listing
+  - name: "GitHub Rust Topics"
+    url: "https://github.com/topics/rust"
+    type: listing
+  - name: "Stack Overflow Rust"
+    url: "https://stackoverflow.com/questions/tagged/rust"
+    type: listing
+  - name: "Coolblue Laptops"
+    url: "https://www.coolblue.nl/en/laptops"
+    type: listing

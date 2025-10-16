@@ -1,14 +1,14 @@
 suite: 40_tables_pdfs
 targets:
-  - name: "UK Autumn Budget 2024 (print)"
+  - name: "UK Autumn Budget 2024"
     url: "https://assets.publishing.service.gov.uk/media/6722120210b0d582ee8c48c0/Autumn_Budget_2024__print_.pdf"
     type: pdf
-  - name: "UK Autumn Budget 2024 — Policy Costings"
+  - name: "UK Budget Policy Costings"
     url: "https://assets.publishing.service.gov.uk/media/6721d2c54da1c0d41942a8d2/Policy_Costing_Document_-_Autumn_Budget_2024.pdf"
     type: pdf
-  - name: "OECD — Preliminary ODA levels in 2024"
+  - name: "OECD ODA 2024"
     url: "https://one.oecd.org/document/DCD%282025%296/en/pdf"
     type: pdf
-  - name: "Hilversum — Vereiste info (begroting/dekking)"
+  - name: "Hilversum Budget Info"
     url: "https://hilversum.nl/sites/default/files/documents/Vereiste%20informatie%20in%20activiteitenplan%2C%20begroting%20en%20dekkingsplan%20.pdf"
     type: pdf

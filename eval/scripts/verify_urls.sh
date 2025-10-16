@@ -18,7 +18,7 @@ echo ""
 TOTAL=0
 SUCCESS=0
 FAILED=0
-SUITES_DIR="eval/suites"
+SUITES_DIR="suites"
 
 # Function to check URL
 check_url() {
@@ -40,16 +40,16 @@ check_url() {
     else
         echo -e "${RED}✗${NC} [$HTTP_CODE] - $url"
         FAILED=$((FAILED + 1))
-        echo "$suite,$name,$url,$HTTP_CODE,FAILED" >> eval/results/url_verification.csv
+        echo "$suite,$name,$url,$HTTP_CODE,FAILED" >> results/url_verification.csv
         return 1
     fi
 }
 
 # Create results directory
-mkdir -p eval/results
+mkdir -p results
 
 # Initialize CSV output
-echo "Suite,Name,URL,HTTP_Code,Status" > eval/results/url_verification.csv
+echo "Suite,Name,URL,HTTP_Code,Status" > results/url_verification.csv
 
 # Process all suite files
 for suite_file in $SUITES_DIR/*.yml; do
@@ -67,7 +67,7 @@ for suite_file in $SUITES_DIR/*.yml; do
                 current_url="${BASH_REMATCH[1]}"
                 if [ ! -z "${current_name:-}" ] && [ ! -z "${current_url:-}" ]; then
                     if check_url "$current_url" "$current_name" "$suite_name"; then
-                        echo "$suite_name,$current_name,$current_url,200,SUCCESS" >> eval/results/url_verification.csv
+                        echo "$suite_name,$current_name,$current_url,200,SUCCESS" >> results/url_verification.csv
                     fi
                     current_name=""
                     current_url=""
@@ -91,7 +91,7 @@ if [ $TOTAL -gt 0 ]; then
     SUCCESS_RATE=$((SUCCESS * 100 / TOTAL))
     echo "Success Rate: $SUCCESS_RATE%"
     echo ""
-    echo "Results saved to: eval/results/url_verification.csv"
+    echo "Results saved to: results/url_verification.csv"
 fi
 
 if [ $FAILED -gt 0 ]; then
