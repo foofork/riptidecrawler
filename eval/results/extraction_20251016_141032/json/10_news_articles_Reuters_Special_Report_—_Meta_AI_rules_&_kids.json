@@ -1,0 +1,28 @@
+Warning: Failed to load existing metrics: Failed to deserialize metrics. Starting fresh.
+ℹ Extracting content from: https://www.reuters.com/investigates/special-report/meta-ai-chatbot-guidelines/
+ℹ Engine mode: auto
+ℹ Fetching HTML content...
+ℹ Standard HTML detected - selecting Raw engine with WASM extraction
+ℹ Performing local WASM extraction...
+ℹ Using default WASM path: /opt/riptide/wasm/riptide_extractor_wasm.wasm
+ℹ Loading WASM module from: /opt/riptide/wasm/riptide_extractor_wasm.wasm
+ℹ Initialization timeout: 5000ms
+ℹ ✓ WASM module loaded successfully
+WASM Memory Growth Request:
+  Current: 0 bytes (0 pages)
+  Desired: 268435456 bytes (4096 pages)
+  Maximum: Some(536870912)
+  Our limit: 8192 pages (512 MB)
+  ALLOWED: Within limit
+Error: WASM runtime error: error while executing at wasm backtrace:
+    0: 0x14fc34 - riptide_extractor_wasm.wasm!memcmp
+    1:  0xfbc66 - riptide_extractor_wasm.wasm!<string_cache::atom::Atom<Static> as core::convert::From<alloc::borrow::Cow<str>>>::from::hdb6769e1fa3c1b00
+    2: 0x124a3e - riptide_extractor_wasm.wasm!html5ever::tokenizer::Tokenizer<Sink>::finish_attribute::h488fe7cafc7cb59c
+    3: 0x124799 - riptide_extractor_wasm.wasm!html5ever::tokenizer::Tokenizer<Sink>::create_attribute::hd799fa65ef74df7c
+    4: 0x12a621 - riptide_extractor_wasm.wasm!html5ever::tokenizer::Tokenizer<Sink>::step::h74c01dbc7d735f01
+    5: 0x117e13 - riptide_extractor_wasm.wasm!html5ever::tokenizer::Tokenizer<Sink>::run::h5cdb5b75ae15bba6
+    6: 0x114879 - riptide_extractor_wasm.wasm!tendril::stream::TendrilSink::one::hf555081a7bb34994
+    7: 0x13594d - riptide_extractor_wasm.wasm!scraper::html::Html::parse_document::h9727596eab78030b
+    8:  0x12816 - riptide_extractor_wasm.wasm!riptide_extractor_wasm::perform_enhanced_extraction::h81b9ae365105dda7
+    9:   0xd000 - riptide_extractor_wasm.wasm!riptide_extractor_wasm::Component::extract_internal::h6471d3659ebe6435
+   10:  0x16270 - riptide_extractor_wasm.wasm!extract

@@ -1,0 +1,23 @@
+Warning: Failed to load existing metrics: Failed to deserialize metrics. Starting fresh.
+ℹ Extracting content from: https://www.bhphotovideo.com/c/product/1684244-REG/canon_5077c002_eos_r5_c_full_frame.html
+ℹ Engine mode: auto
+ℹ Fetching HTML content...
+ℹ Standard HTML detected - selecting Raw engine with WASM extraction
+ℹ Performing local WASM extraction...
+ℹ Using default WASM path: /opt/riptide/wasm/riptide_extractor_wasm.wasm
+ℹ Loading WASM module from: /opt/riptide/wasm/riptide_extractor_wasm.wasm
+ℹ Initialization timeout: 5000ms
+ℹ ✓ WASM module loaded successfully
+WASM Memory Growth Request:
+  Current: 0 bytes (0 pages)
+  Desired: 268435456 bytes (4096 pages)
+  Maximum: Some(536870912)
+  Our limit: 8192 pages (512 MB)
+  ALLOWED: Within limit
+Error: WASM runtime error: error while executing at wasm backtrace:
+    0: 0x10d4ab - riptide_extractor_wasm.wasm!core::ptr::drop_in_place<cssparser::tokenizer::Token>::he9addb6eb01fa784
+    1: 0x1365b1 - riptide_extractor_wasm.wasm!scraper::selector::Selector::parse::h6becd14e39459c94
+    2:  0x15d63 - riptide_extractor_wasm.wasm!riptide_extractor_wasm::extract_full_content::hdf6f1c4a938e2aa3
+    3:   0xf176 - riptide_extractor_wasm.wasm!riptide_extractor_wasm::perform_enhanced_extraction::h81b9ae365105dda7
+    4:   0xd000 - riptide_extractor_wasm.wasm!riptide_extractor_wasm::Component::extract_internal::h6471d3659ebe6435
+    5:  0x16270 - riptide_extractor_wasm.wasm!extract

@@ -1,0 +1,718 @@
+Warning: Failed to load existing metrics: Failed to deserialize metrics. Starting fresh.
+ℹ Extracting content from: https://vorstin.nl/agenda/
+ℹ Engine mode: raw
+ℹ Fetching HTML content...
+ℹ Using Raw engine - basic HTTP fetch without extraction
+✓ Content extracted successfully (raw)
+
+Method: raw
+Extraction Time: 23ms
+
+Extracted Content
+<!DOCTYPE html>
+<html lang="nl-NL">
+<head>
+		<script>
+	window.dataLayer = window.dataLayer || [];
+	function gtag() {
+		dataLayer.push(arguments);
+	}
+	gtag('consent', 'default', {
+		'ad_storage': 'denied',
+		'ad_user_data': 'denied',
+		'ad_personalization': 'denied',
+		'analytics_storage': 'denied'
+	});
+	</script>
+	<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+	new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+	j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+	'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+	})(window,document,'script','dataLayer','GTM-53QJKCM');</script>
+		<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="profile" href="https://gmpg.org/xfn/11">
+	<script type="text/javascript">/* wpack.io publicPath */window.__wpackIovorstindist='https://vorstin.nl/content/themes/vorstin/dist/';</script><meta name='robots' content='index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1' />
+	<style>img:is([sizes="auto" i], [sizes^="auto," i]) { contain-intrinsic-size: 3000px 1500px }</style>
+	
+	<!-- This site is optimized with the Yoast SEO Premium plugin v26.0 (Yoast SEO v26.0) - https://yoast.com/wordpress/plugins/seo/ -->
+	<title>Agenda - Vorstin</title>
+	<link rel="canonical" href="https://vorstin.nl/agenda/" />
+	<link rel="next" href="https://vorstin.nl/agenda/page/2/" />
+	<meta property="og:locale" content="nl_NL" />
+	<meta property="og:type" content="website" />
+	<meta property="og:title" content="Evenementen Archive" />
+	<meta property="og:url" content="https://vorstin.nl/agenda/" />
+	<meta property="og:site_name" content="Vorstin" />
+	<meta name="twitter:card" content="summary_large_image" />
+	<script type="application/ld+json" class="yoast-schema-graph">{"@context":"https://schema.org","@graph":[{"@type":"CollectionPage","@id":"https://vorstin.nl/agenda/","url":"https://vorstin.nl/agenda/","name":"Agenda - Vorstin","isPartOf":{"@id":"https://vorstin.nl/#website"},"primaryImageOfPage":{"@id":"https://vorstin.nl/agenda/#primaryimage"},"image":{"@id":"https://vorstin.nl/agenda/#primaryimage"},"thumbnailUrl":"https://vorstin.nl/content/uploads/2025/06/Gloin-Press-Photo-1-Cherry-Ann-Hoe-Film-2.jpg","breadcrumb":{"@id":"https://vorstin.nl/agenda/#breadcrumb"},"inLanguage":"nl-NL"},{"@type":"ImageObject","inLanguage":"nl-NL","@id":"https://vorstin.nl/agenda/#primaryimage","url":"https://vorstin.nl/content/uploads/2025/06/Gloin-Press-Photo-1-Cherry-Ann-Hoe-Film-2.jpg","contentUrl":"https://vorstin.nl/content/uploads/2025/06/Gloin-Press-Photo-1-Cherry-Ann-Hoe-Film-2.jpg","width":3089,"height":2048,"caption":"Gloin in een industriële setting met donkerblauw licht"},{"@type":"BreadcrumbList","@id":"https://vorstin.nl/agenda/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://vorstin.nl/"},{"@type":"ListItem","position":2,"name":"Evenementen"}]},{"@type":"WebSite","@id":"https://vorstin.nl/#website","url":"https://vorstin.nl/","name":"Vorstin","description":"","publisher":{"@id":"https://vorstin.nl/#organization"},"potentialAction":[{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":"https://vorstin.nl/?s={search_term_string}"},"query-input":{"@type":"PropertyValueSpecification","valueRequired":true,"valueName":"search_term_string"}}],"inLanguage":"nl-NL"},{"@type":"Organization","@id":"https://vorstin.nl/#organization","name":"Vorstin","alternateName":"de Vorstin","url":"https://vorstin.nl/","logo":{"@type":"ImageObject","inLanguage":"nl-NL","@id":"https://vorstin.nl/#/schema/logo/image/","url":"https://vorstin.nl/content/uploads/2023/02/LOGO_Vorstin_rgb_ROOD.png","contentUrl":"https://vorstin.nl/content/uploads/2023/02/LOGO_Vorstin_rgb_ROOD.png","width":1017,"height":472,"caption":"Vorstin"},"image":{"@id":"https://vorstin.nl/#/schema/logo/image/"},"sameAs":["https://nl-nl.facebook.com/DeVorstinHilversum/","https://www.instagram.com/devorstin/","https://open.spotify.com/user/podiumdevorstin","https://www.linkedin.com/company/de-vorstin/","https://www.youtube.com/@DeVorstin035"]}]}</script>
+	<!-- / Yoast SEO Premium plugin. -->
+
+
+<link rel='stylesheet' id='wpackio_vorstinapp_app_main_c404b141_css_style-css' defer rel="preload"  as="style"  lazyload="1" href='https://vorstin.nl/content/themes/vorstin/dist/app/main-c404b141.css?ver=1.0.0' type='text/css' media='all' />
+<style id='eagerly-seo-handle-inline-css' type='text/css'>
+
+		.eagerly-seo-placeholder__container { position: relative; overflow: hidden; margin: 0; padding: 0; }
+		.eagerly-seo-placeholder__container::before,
+		.eagerly-seo-placeholder__container li::before,
+		.eagerly-seo-placeholder__container li::after { content: ''; display: block; width: var(--eagerly-seo-placeholder-width); height: var(--eagerly-seo-placeholder-margin); }
+		.eagerly-seo-placeholder__container li::before { position: absolute; content: ''; visibility: visible; border-radius: 0 0 var(--eagerly-seo-placeholder-radius) var(--eagerly-seo-placeholder-radius); height: 100%; top: calc(-1 * var(--eagerly-seo-placeholder-margin)); width:100%; }
+		.eagerly-seo-placeholder__container.hidden li { position: relative; border-radius: var(--eagerly-seo-placeholder-radius) var(--eagerly-seo-placeholder-radius) 0 0; pointer-events: none; overflow: hidden; }
+		.eagerly-seo-placeholder__container.hidden li a { pointer-events: none; overflow: hidden; white-space: nowrap; text-indent: -100%; }
+		.eagerly-seo-placeholder__container_item { display: block; min-height: var(--eagerly-seo-placeholder-height); }
+
+		@keyframes eagerlySEOPlaceholderLoader{
+			from {
+				background-position: 100% 0;
+			}
+			to {
+				background-position: -100% 0;
+			}
+		}
+
+		.animated-background li::before {
+			animation-duration: 1.5s;
+			animation-fill-mode: forwards;
+			animation-iteration-count: infinite;
+			animation-name: eagerlySEOPlaceholderLoader; /* Updated to use the new keyframes */
+			animation-timing-function: linear;
+			background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0) 100%);
+			background-size: 200% 100%; /* Adjusted to ensure the gradient covers during animation */
+		}
+	
+</style>
+<style id='classic-theme-styles-inline-css' type='text/css'>
+/*! This file is auto-generated */
+.wp-block-button__link{color:#fff;background-color:#32373c;border-radius:9999px;box-shadow:none;text-decoration:none;padding:calc(.667em + 2px) calc(1.333em + 2px);font-size:1.125em}.wp-block-file__button{background:#32373c;color:#fff;text-decoration:none}
+</style>
+<link rel='stylesheet' id='eagerly-tools-cookie-css-css' defer rel="preload"  as="style"  lazyload="1" href='https://vorstin.nl/content/plugins/eagerly-tools-cookie/default/../dist/index.css?ver=2.1.9' type='text/css' media='all' />
+<style id='eagerly-tools-cookie-css-inline-css' type='text/css'>
+
+				#eagerly-tools-cookie-btn,
+				#eagerly-tools-cookie-intro .cookie-fb-scroller .checkbox-group.checked,
+				#eagerly-tools-cookie .cookie-fb-scroller .checkbox-group.checked {
+					background: #315aff !important;
+				}
+				#eagerly-tools-cookie-intro .checkbox-group .fake-checkbox,
+				#eagerly-tools-cookie .checkbox-group .fake-checkbox {
+					border-color: #315aff !important;
+				}
+				#eagerly-tools-cookie-intro .checkbox-group.checked .fake-checkbox,
+				#eagerly-tools-cookie .checkbox-group.checked .fake-checkbox {
+					border-color: rgba(0,0,0,.5) !important;
+				}
+				#eagerly-tools-cookie-intro .cookie-fb-top a,
+				#eagerly-tools-cookie-intro .cookie-fb-bottom .checkbox-group .text,
+				#eagerly-tools-cookie-intro .checkbox-group:not(.checked) .total em,
+				#eagerly-tools-cookie .cookie-fb-top a,
+				#eagerly-tools-cookie .cookie-fb-bottom .checkbox-group .text,
+				#eagerly-tools-cookie .checkbox-group:not(.checked) .total em {
+					color: #315aff !important;
+				}
+				#eagerly-tools-cookie .cookie-fb-content-intro .cookie-checkbox-group.checked .cookie-item-content,
+				#eagerly-tools-cookie .cookie-fb-content .cookie-checkbox-group.checked .cookie-item-content {
+					background: #315aff!important;
+				}
+				.cookie-field.checked {
+					background: #315aff!important;
+				}
+				#eagerly-tools-cookie-intro .cookie-fb-bottom .checked {
+					background: #F7F7F7 !important;
+				}
+				#eagerly-tools-cookie-intro .cookie-fb-bottom .btn-ok-big,
+				#eagerly-tools-cookie-intro .cookie-fb-bottom .btn-change,
+				#eagerly-tools-cookie .cookie-fb-bottom .btn-ok {
+					background: #315aff!important
+				}
+				#eagerly-tools-cookie-intro .cookie-fb-bottom .cookie-checkbox-group .cookie-checkbox .cookie-text,
+				#eagerly-tools-cookie .cookie-fb-bottom .cookie-checkbox-group .cookie-checkbox .cookie-text {
+					color: #7F7F7F;
+				}
+				#eagerly-tools-cookie-intro .cookie-fb-bottom .btn-ok-big:hover,
+				#eagerly-tools-cookie-intro .cookie-fb-bottom .btn-chnage:hover,
+				#eagerly-tools-cookie .cookie-fb-bottom .btn-ok:hover {
+					color: #F7F7F7
+				}
+				#eagerly-tools-cookie-intro .cookie-fb-bottom .cookie-checkbox-group.checked .cookie-checkbox .cookie-text,
+				#eagerly-tools-cookie .cookie-fb-bottom .cookie-checkbox-group.checked .cookie-checkbox .cookie-text {
+					color: #fff;
+				}
+				#eagerly-tools-cookie-intro .cookie-fb-bottom .cookie-checkbox-group.checked .cookie-checkbox,
+				#eagerly-tools-cookie .cookie-fb-bottom .cookie-checkbox-group.checked .cookie-checkbox {
+					background: #315aff!important;
+				}
+				#eagerly-tools-cookie-intro .open-cookie-settings,
+				#eagerly-tools-cookie .open-cookie-settings {
+					background: #315aff!important;
+				}
+				#eagerly-tools-cookie-intro &gt; div &gt; div.cookie-fb-scroller &gt; div.cookie-field.cookie-checkbox-group.cookie-checkbox.active &gt; div,
+				#eagerly-tools-cookie &gt; div &gt; div.cookie-fb-scroller &gt; div.cookie-field.cookie-checkbox-group.cookie-checkbox.active &gt; div {
+					background: white!important;
+				}
+				#eagerly-tools-cookie-intro .btn-close .cookie-svg-icon svg path,
+				#eagerly-tools-cookie .btn-close .cookie-svg-icon svg path {
+					fill: #315aff !important;
+				}
+				#eagerly-tools-cookie-intro .btn-close:hover .cookie-svg-icon svg path,
+				#eagerly-tools-cookie .btn-close:hover .cookie-svg-icon svg path {
+					fill: #fff !important;
+				}
+				#eagerly-tools-cookie-intro .btn-close:hover,
+				#eagerly-tools-cookie .btn-close:hover {
+					background: #315aff !important; border-color: #315aff !important;
+				}
+				#eagerly-tools-cookie-intro .cookie-fb-content .cookie-checkbox-group .cookie-text .total em,
+				#eagerly-tools-cookie .cookie-fb-content .cookie-checkbox-group .cookie-text .total em {
+					color: #315aff;
+				}
+				#eagerly-tools-cookie .cookie-fb-bottom .cookie-btn {
+					border-color: #315aff;
+					color: #315aff;
+				}
+				#eagerly-tools-cookie .cookie-fb-bottom .cookie-btn.cookie-btn--primary {
+					background-color: #315aff;
+					color: #fff;
+				}
+			
+				.eagerly-tools-cookie-blocked::before {
+					background-image: url(data:image/svg+xml;base64,PHN2ZyB4PSIwcHgiIHk9IjBweCIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgdmlld0JveD0iNDEgNzkxIDI4IDI4IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogICAgICAgICAgPHBhdGggZD0iTTY3Ljc2ODM3NTIsODAyLjU5NDgyMSBDNjcuNzAyNDIzMyw4MDIuMjQ1NDQ4IDY3LjQxOTAwMTksODAxLjk4MDYyNSA2Ny4wNjY0NTQ4LDgwMS45Mzg0NzcgQzY2LjcxMjgyODYsODAxLjg5NjA3NSA2Ni4zNzU2NDI3LDgwMi4wODcwMTEgNjYuMjI5MzI5OSw4MDIuNDExMzc1IEM2NS45NzE5MzM3LDgwMi45ODAxMjIgNjUuNDA2MzYwMyw4MDMuMzc1NjQzIDY0Ljc1MDc3NzYsODAzLjM3NDg4MSBDNjQuMDIzNTMwMiw4MDMuMzc2NjU4IDYzLjQwOTMzMzksODAyLjg4NTkyMyA2My4yMDQ1NTk1LDgwMi4yMTIyNSBDNjMuMDgxMDM0OCw4MDEuODAxMTE0IDYyLjY1ODUzNjgsODAxLjU1NzM2NSA2Mi4yNDA5OSw4MDEuNjU0ODY1IEM2MS45ODQxMDE2LDgwMS43MTUxMDQgNjEuNzQxMTE0NSw4MDEuNzUwMDc5IDYxLjQ5OTg0MTMsODAxLjc1MDA3OSBDNTkuNzA5ODc0NSw4MDEuNzQ2NTg4IDU4LjI1MzE1NzksODAwLjI4OTg3MiA1OC4yNDk5MjA3LDc5OC40OTk4NDEgQzU4LjI0OTkyMDcsNzk4LjI1ODYzMiA1OC4yODQ4OTYxLDc5OC4wMTU2NDQgNTguMzQ0ODgxMSw3OTcuNzU5NzA4IEM1OC40NDMzMzI4LDc5Ny4zNDIxNjEgNTguMTk4ODIyMyw3OTYuOTE4OTAyIDU3Ljc4Nzc1MDEsNzk2Ljc5NTQ0IEM1Ny4xMTQwMTMxLDc5Ni41OTEzNjQgNTYuNjIzMzQxNyw3OTUuOTc3MTY4IDU2LjYyNDgwMTYsNzk1LjI0OTkyMSBDNTYuNjI0MTAzNCw3OTQuNTkzNTc2IDU3LjAxOTgxNDQsNzk0LjAyODc2NSA1Ny41ODg2MjUxLDc5My43NzExMTQgQzU3LjkxMjczNDgsNzkzLjYyNTExOSA1OC4xMDM2MDc5LDc5My4yODY4NTQgNTguMDYxNDU5Nyw3OTIuOTM0MzA3IEM1OC4wMTkwNTc1LDc5Mi41ODA5MzUgNTcuNzU0MjM0Niw3OTIuMjk3MzIzIDU3LjQwNDkyNDgsNzkyLjIzMTU2MSBDNTYuNjI5ODE2Myw3OTIuMDg2MDEgNTUuODI3MTU5LDc5MiA1NSw3OTIgQzQ3LjgyODg5NzMsNzkyLjAwMTcxNCA0Mi4wMDE3MTM5LDc5Ny44Mjg4OTcgNDIsODA1IEM0Mi4wMDE3MTM5LDgxMi4xNzEwMzkgNDcuODI4ODk3Myw4MTcuOTk4MjIzIDU1LDgxOCBDNjIuMTcxMDM5Miw4MTcuOTk4MjIzIDY3Ljk5ODIyMjcsODEyLjE3MTAzOSA2OCw4MDUgQzY4LDgwNC4xNzI4NDEgNjcuOTEzNjcyMyw4MDMuMzcwMTg0IDY3Ljc2ODM3NTIsODAyLjU5NDgyMSBaIE02My4wMzk2NDgyLDgxMy4wMzk2NDggQzYwLjk3NjY3LDgxNS4xMDA5MTMgNTguMTM3ODIxNiw4MTYuMzc0ODgxIDU1LDgxNi4zNzQ4ODEgQzUxLjg2MjExNDksODE2LjM3NDg4MSA0OS4wMjMzMyw4MTUuMTAwOTEzIDQ2Ljk2MDM1MTgsODEzLjAzOTY0OCBDNDQuODk5MDg3NCw4MTAuOTc2NjcgNDMuNjI1MTE5LDgwOC4xMzc4MjIgNDMuNjI1MTE5LDgwNSBDNDMuNjI1MTE5LDgwMS44NjIxMTUgNDQuODk5MDg3NCw3OTkuMDIzMzMgNDYuOTYwMzUxOCw3OTYuOTYwMzUyIEM0OS4wMjMzMyw3OTQuODk5MDg3IDUxLjg2MjExNDksNzkzLjYyNTExOSA1NSw3OTMuNjI1MTE5IEM1NS4xNDYyNDkzLDc5My42MjUxMTkgNTUuMjg5MDcwOSw3OTMuNjQwNDggNTUuNDM0NjIxOSw3OTMuNjQ2ODkxIEM1NS4xNjMxMzQsNzk0LjExOTc4OSA1NS4wMDA2OTgyLDc5NC42NjQyODkgNTUsNzk1LjI0OTkyMSBDNTUuMDAxNDYsNzk2LjQ2Mjk1MiA1NS42NzQ0MzUyLDc5Ny41MDMwNzQgNTYuNjU1MDc5OCw3OTguMDU3OTgzIEM1Ni42Mzk0NjQ3LDc5OC4yMDI1ODIgNTYuNjI0ODAxNiw3OTguMzQ3MTE3IDU2LjYyNDgwMTYsNzk4LjQ5OTg0MSBDNTYuNjI2NTc5LDgwMS4xOTAxNTUgNTguODA5NzgxMiw4MDMuMzczNDIxIDYxLjQ5OTg0MTMsODAzLjM3NDg4MSBDNjEuNjUyNTY1Miw4MDMuMzc0ODgxIDYxLjc5NzQxOCw4MDMuMzYwMjgxIDYxLjk0MTk1MzQsODAzLjM0NDkyIEM2Mi40OTY4NjI4LDgwNC4zMjQ4MDMgNjMuNTM2MDMyNSw4MDQuOTk4MjIzIDY0Ljc0OTc2Miw4MDUgQzY1LjMzNTcxMTMsODA0Ljk5OTIzOCA2NS44Nzk5NTY2LDgwNC44MzY2MTIgNjYuMzUzMDQ1Miw4MDQuNTY1MzE1IEM2Ni4zNTk1MTk3LDgwNC43MDk4NSA2Ni4zNzQ4ODEsODA0Ljg1MzY4NyA2Ni4zNzQ4ODEsODA1IEM2Ni4zNzQ4ODEsODA4LjEzNzgyMiA2NS4xMDA5MTI2LDgxMC45NzY2NyA2My4wMzk2NDgyLDgxMy4wMzk2NDggWiBNNTMuMzc0ODgxLDc5OC40OTk4NDEgQzUzLjM3NDg4MSw3OTkuMzk3NDU5IDUyLjY0NzM3OTcsODAwLjEyNDk2IDUxLjc1MDA3OTMsODAwLjEyNDk2IEM1MC44NTI0NjE3LDgwMC4xMjQ5NiA1MC4xMjQ5NjAzLDc5OS4zOTc0NTkgNTAuMTI0OTYwMyw3OTguNDk5ODQxIEM1MC4xMjQ5NjAzLDc5Ny42MDI1NDEgNTAuODUyNDYxNyw3OTYuODc1MDQgNTEuNzUwMDc5Myw3OTYuODc1MDQgQzUyLjY0NzM3OTcsNzk2Ljg3NTA0IDUzLjM3NDg4MSw3OTcuNjAyNTQxIDUzLjM3NDg4MSw3OTguNDk5ODQxIFogTTUwLjEyNDk2MDMsODA1IEM1MC4xMjQ5NjAzLDgwNS44OTczIDQ5LjM5NzQ1OSw4MDYuNjI0ODAyIDQ4LjQ5OTg0MTMsODA2LjYyNDgwMiBDNDcuNjAyNTQxLDgwNi42MjQ4MDIgNDYuODc1MDM5Nyw4MDUuODk3MyA0Ni44NzUwMzk3LDgwNSBDNDYuODc1MDM5Nyw4MDQuMTAyMzgyIDQ3LjYwMjU0MSw4MDMuMzc0ODgxIDQ4LjQ5OTg0MTMsODAzLjM3NDg4MSBDNDkuMzk3NDU5LDgwMy4zNzQ4ODEgNTAuMTI0OTYwMyw4MDQuMTAyMzgyIDUwLjEyNDk2MDMsODA1IFogTTU4LjI0OTkyMDcsODExLjQ5OTg0MSBDNTguMjQ5OTIwNyw4MTIuMzk3NDU5IDU3LjUyMjQxOTMsODEzLjEyNDk2IDU2LjYyNDgwMTYsODEzLjEyNDk2IEM1NS43Mjc1MDEzLDgxMy4xMjQ5NiA1NSw4MTIuMzk3NDU5IDU1LDgxMS40OTk4NDEgQzU1LDgxMC42MDI0NzggNTUuNzI3NTAxMyw4MDkuODc1MDQgNTYuNjI0ODAxNiw4MDkuODc1MDQgQzU3LjUyMjQxOTMsODA5Ljg3NTA0IDU4LjI0OTkyMDcsODEwLjYwMjQ3OCA1OC4yNDk5MjA3LDgxMS40OTk4NDEgWiBNNTYuNjI0ODAxNiw4MDUuODEyNTYgQzU2LjYyNDgwMTYsODA2LjI2MTA4MyA1Ni4yNjEwODI3LDgwNi42MjQ4MDIgNTUuODEyNTU5NSw4MDYuNjI0ODAyIEM1NS4zNjM3MTg5LDgwNi42MjQ4MDIgNTUsODA2LjI2MTA4MyA1NSw4MDUuODEyNTYgQzU1LDgwNS4zNjM3MTkgNTUuMzYzNzE4OSw4MDUgNTUuODEyNTU5NSw4MDUgQzU2LjI2MTA4MjcsODA1IDU2LjYyNDgwMTYsODA1LjM2MzcxOSA1Ni42MjQ4MDE2LDgwNS44MTI1NiBaIE02My4xMjQ5NjAzLDgwOS4wNjI0OCBDNjMuMTI0OTYwMyw4MDkuNTExMjU3IDYyLjc2MTE3NzksODA5Ljg3NTA0IDYyLjMxMjQwMDgsODA5Ljg3NTA0IEM2MS44NjM2MjM3LDgwOS44NzUwNCA2MS40OTk4NDEzLDgwOS41MTEyNTcgNjEuNDk5ODQxMyw4MDkuMDYyNDggQzYxLjQ5OTg0MTMsODA4LjYxMzY0IDYxLjg2MzYyMzcsODA4LjI0OTkyMSA2Mi4zMTI0MDA4LDgwOC4yNDk5MjEgQzYyLjc2MTE3NzksODA4LjI0OTkyMSA2My4xMjQ5NjAzLDgwOC42MTM2NCA2My4xMjQ5NjAzLDgwOS4wNjI0OCBaIE01MS43NTAwNzkzLDgxMC42ODcyODIgQzUxLjc1MDA3OTMsODExLjEzNjEyMiA1MS4zODYyOTY5LDgxMS40OTk4NDEgNTAuOTM3NTE5OCw4MTEuNDk5ODQxIEM1MC40ODg2NzkzLDgxMS40OTk4NDEgNTAuMTI0OTYwMyw4MTEuMTM2MTIyIDUwLjEyNDk2MDMsODEwLjY4NzI4MiBDNTAuMTI0OTYwMyw4MTAuMjM4NzU5IDUwLjQ4ODY3OTMsODA5Ljg3NTA0IDUwLjkzNzUxOTgsODA5Ljg3NTA0IEM1MS4zODYyOTY5LDgwOS44NzUwNCA1MS43NTAwNzkzLDgxMC4yMzg3NTkgNTEuNzUwMDc5Myw4MTAuNjg3MjgyIFoiIGlkPSJDb21iaW5lZC1TaGFwZSIgZmlsbD0iI2ZmZiI+PC9wYXRoPgogICAgICAgIDwvc3ZnPgogICAgICAgIA==);
+				}
+			
+</style>
+<script type="text/javascript" id="eagerly_branding_front_js-js-extra">
+/* <![CDATA[ */
+var eb_front = {"jobs":"https:\/\/eagerly.nl\/werkenbij"};
+/* ]]> */
+</script>
+<script type="text/javascript" defer src="https://vorstin.nl/content/plugins/eagerly-branding/eagerly-branding-front.js?ver=1.0.0" id="eagerly_branding_front_js-js"></script>
+<script type="text/javascript" id="esf-js-js-extra">
+/* <![CDATA[ */
+var esf = {"adminUrl":"https:\/\/vorstin.nl\/wp\/wp-admin\/admin-ajax.php","action":"esf_signup","nonce":"0a7e88258c"};
+/* ]]> */
+</script>
+<script type="text/javascript" defer src="https://vorstin.nl/content/plugins/eagerly-signup-form/js/eagerly-signup-form.js?ver=1.0" id="esf-js-js"></script>
+<script>document.documentElement.className += " js";</script>
+<!-- Matomo -->
+<script>
+  var _paq = window._paq = window._paq || [];
+  /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+  _paq.push(["setDomains", ["*.www.vorstin.nl","*.devorstin.stager.nl/web/tickets","*.vorstin.stager.co/web/tickets","*.vorstin.stager.nl/web/tickets","*.www.devorstin.nl"]]);
+  _paq.push(["enableCrossDomainLinking"]);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="https://vorstin.matomo.cloud/";
+    _paq.push(['setTrackerUrl', u+'matomo.php']);
+    _paq.push(['setSiteId', '1']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.async=true; g.src='https://cdn.matomo.cloud/vorstin.matomo.cloud/matomo.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<!-- End Matomo Code --></head>
+
+<body class="archive post-type-archive post-type-archive-event wp-theme-vorstin">
+<a href="#main" class="skip-link">Ga naar hoofdinhoud</a>
+<noscript>
+	<iframe src="https://www.googletagmanager.com/ns.html?id=GTM-53QJKCM"
+	height="0" width="0" style="display:none;visibility:hidden"></iframe>
+</noscript>
+
+<button aria-label="open cookie tool" tabindex="0" id="eagerly-tools-cookie-btn" class="js-cookie-btn btn-right btn-hide">
+	<i class="cookie-svg-icon icon-cookie" data-icon="icon-cookie" data-fill="#fff" data-sprite="https://vorstin.nl/content/plugins/eagerly-tools-cookie/img/output/cookie-sprite.svg"><svg x="0px" y="0px" width="100%" height="100%" viewBox="41 791 28 28" style="display: inline;"><g id="icon-cookie">
+          <path d="M67.7683752,802.594821 C67.7024233,802.245448 67.4190019,801.980625 67.0664548,801.938477 C66.7128286,801.896075 66.3756427,802.087011 66.2293299,802.411375 C65.9719337,802.980122 65.4063603,803.375643 64.7507776,803.374881 C64.0235302,803.376658 63.4093339,802.885923 63.2045595,802.21225 C63.0810348,801.801114 62.6585368,801.557365 62.24099,801.654865 C61.9841016,801.715104 61.7411145,801.750079 61.4998413,801.750079 C59.7098745,801.746588 58.2531579,800.289872 58.2499207,798.499841 C58.2499207,798.258632 58.2848961,798.015644 58.3448811,797.759708 C58.4433328,797.342161 58.1988223,796.918902 57.7877501,796.79544 C57.1140131,796.591364 56.6233417,795.977168 56.6248016,795.249921 C56.6241034,794.593576 57.0198144,794.028765 57.5886251,793.771114 C57.9127348,793.625119 58.1036079,793.286854 58.0614597,792.934307 C58.0190575,792.580935 57.7542346,792.297323 57.4049248,792.231561 C56.6298163,792.08601 55.827159,792 55,792 C47.8288973,792.001714 42.0017139,797.828897 42,805 C42.0017139,812.171039 47.8288973,817.998223 55,818 C62.1710392,817.998223 67.9982227,812.171039 68,805 C68,804.172841 67.9136723,803.370184 67.7683752,802.594821 Z M63.0396482,813.039648 C60.97667,815.100913 58.1378216,816.374881 55,816.374881 C51.8621149,816.374881 49.02333,815.100913 46.9603518,813.039648 C44.8990874,810.97667 43.625119,808.137822 43.625119,805 C43.625119,801.862115 44.8990874,799.02333 46.9603518,796.960352 C49.02333,794.899087 51.8621149,793.625119 55,793.625119 C55.1462493,793.625119 55.2890709,793.64048 55.4346219,793.646891 C55.163134,794.119789 55.0006982,794.664289 55,795.249921 C55.00146,796.462952 55.6744352,797.503074 56.6550798,798.057983 C56.6394647,798.202582 56.6248016,798.347117 56.6248016,798.499841 C56.626579,801.190155 58.8097812,803.373421 61.4998413,803.374881 C61.6525652,803.374881 61.797418,803.360281 61.9419534,803.34492 C62.4968628,804.324803 63.5360325,804.998223 64.749762,805 C65.3357113,804.999238 65.8799566,804.836612 66.3530452,804.565315 C66.3595197,804.70985 66.374881,804.853687 66.374881,805 C66.374881,808.137822 65.1009126,810.97667 63.0396482,813.039648 Z M53.374881,798.499841 C53.374881,799.397459 52.6473797,800.12496 51.7500793,800.12496 C50.8524617,800.12496 50.1249603,799.397459 50.1249603,798.499841 C50.1249603,797.602541 50.8524617,796.87504 51.7500793,796.87504 C52.6473797,796.87504 53.374881,797.602541 53.374881,798.499841 Z M50.1249603,805 C50.1249603,805.8973 49.397459,806.624802 48.4998413,806.624802 C47.602541,806.624802 46.8750397,805.8973 46.8750397,805 C46.8750397,804.102382 47.602541,803.374881 48.4998413,803.374881 C49.397459,803.374881 50.1249603,804.102382 50.1249603,805 Z M58.2499207,811.499841 C58.2499207,812.397459 57.5224193,813.12496 56.6248016,813.12496 C55.7275013,813.12496 55,812.397459 55,811.499841 C55,810.602478 55.7275013,809.87504 56.6248016,809.87504 C57.5224193,809.87504 58.2499207,810.602478 58.2499207,811.499841 Z M56.6248016,805.81256 C56.6248016,806.261083 56.2610827,806.624802 55.8125595,806.624802 C55.3637189,806.624802 55,806.261083 55,805.81256 C55,805.363719 55.3637189,805 55.8125595,805 C56.2610827,805 56.6248016,805.363719 56.6248016,805.81256 Z M63.1249603,809.06248 C63.1249603,809.511257 62.7611779,809.87504 62.3124008,809.87504 C61.8636237,809.87504 61.4998413,809.511257 61.4998413,809.06248 C61.4998413,808.61364 61.8636237,808.249921 62.3124008,808.249921 C62.7611779,808.249921 63.1249603,808.61364 63.1249603,809.06248 Z M51.7500793,810.687282 C51.7500793,811.136122 51.3862969,811.499841 50.9375198,811.499841 C50.4886793,811.499841 50.1249603,811.136122 50.1249603,810.687282 C50.1249603,810.238759 50.4886793,809.87504 50.9375198,809.87504 C51.3862969,809.87504 51.7500793,810.238759 51.7500793,810.687282 Z" id="Combined-Shape" fill="#fff"></path>
+        </g></svg>
+        </i></button>
+
+<div id="eagerly-tools-cookie-overlay"></div>
+<div id="eagerly-tools-cookie" class="feedback-right hide-mob">
+	<div class="cookie-fb-content">
+		<div class="cookie-fb-top js-cookie-fb-top">
+
+			<a role="button" aria-label="close" tabindex="0" class="btn-close js-close-cookie">
+				<i class="cookie-svg-icon icon-close" data-icon="icon-close" data-fill="#fff" data-sprite="https://vorstin.nl/content/plugins/eagerly-tools-cookie/img/output/cookie-sprite.svg"><svg x="0px" y="0px" width="100%" height="100%" viewBox="-1 -1 10.1 10.1" style="display: inline;"><g id="icon-close">
+          <path d="M1.00025,8.00025 C0.74425,8.00025 0.48825,7.90225 0.29325,7.70725 C-0.09775,7.31625 -0.09775,6.68425 0.29325,6.29325 L6.29325,0.29325 C6.68425,-0.09775 7.31625,-0.09775 7.70725,0.29325 C8.09825,0.68425 8.09825,1.31625 7.70725,1.70725 L1.70725,7.70725 C1.51225,7.90225 1.25625,8.00025 1.00025,8.00025" id="Fill-658" fill="#fff"></path>
+          <path d="M7.00025,8.00025 C6.74425,8.00025 6.48825,7.90225 6.29325,7.70725 L0.29325,1.70725 C-0.09775,1.31625 -0.09775,0.68425 0.29325,0.29325 C0.68425,-0.09775 1.31625,-0.09775 1.70725,0.29325 L7.70725,6.29325 C8.09825,6.68425 8.09825,7.31625 7.70725,7.70725 C7.51225,7.90225 7.25625,8.00025 7.00025,8.00025" id="Fill-659" fill="#fff"></path>
+      	</g></svg>
+        </i>			</a>
+
+			<span class="cookie-fb-title js-cookie-fb-title">Cookies & Privacy</span>
+							<p>Wij maken gebruik van cookies.<br/>Cookies worden gebruikt voor gepersonaliseerd adverteren.<br/>Lees meer hierover in onze <a id="privacy-link-intro" href="https://vorstin.nl/content/uploads/2023/02/Privacyverklaring-De-Vorstin-2023.pdf" title="privacy statement" target="_blank" class="privacy-link privacy-link-intro">privacy statement</a>.</p>
+					</div>
+		<div class="cookie-fb-scroller js-cookie-fb-scroller">
+			
+				<div class="cookie-field js-cookie-field cookie-checkbox-group js-cookie-checkbox-group cookie-checkbox js-cookie-checkbox checked disabled">
+					<label class="cookie-checkbox js-cookie-checkbox">
+						<input type="checkbox" name="checkbox-field" value="default" checked disabled>
+						<div class="cookie-check" role="button" tabindex="0">
+							<span class="cookie-fake-checkbox">
+								<i class="cookie-svg-icon icon-check" data-icon="icon-check" data-fill="#7ED321" data-sprite="https://vorstin.nl/content/plugins/eagerly-tools-cookie/img/output/cookie-sprite.svg"><svg x="0px" y="0px" width="100%" height="100%" viewBox="1126 526 12 9.2" style="display: inline; visibility: visible"><g id="icon-check">
+          <path d="M1131.81013,533.880734 C1131.62025,534.077326 1131.36709,534.142857 1131.11392,534.142857 C1130.86076,534.142857 1130.60759,534.077326 1130.41772,533.880734 L1127.25316,530.604194 C1127.06329,530.407602 1127,530.145478 1127,529.883355 C1127,529.621232 1127.12658,529.42464 1127.25316,529.228047 C1127.44304,529.031455 1127.63291,528.965924 1127.88608,528.965924 C1128.13924,528.965924 1128.39241,529.031455 1128.58228,529.228047 L1131.05063,531.783748 L1135.41772,527.262123 C1135.60759,527.065531 1135.86076,527 1136.11392,527 C1136.36709,527 1136.55696,527.131062 1136.74684,527.262123 C1136.93671,527.458716 1137,527.655308 1137,527.917431 C1137,528.179554 1136.93671,528.441678 1136.74684,528.63827 L1131.81013,533.880734 Z" id="Path" fill="#7ED321"></path>
+        </g></svg>
+        </i>							</span>
+							<div class="cookie-text">
+								Functioneel										<span class="total">(<em>3</em>)</span>
+																</div>
+						</div>
+					</label>
+					<button aria-label="open Functioneel cookies" class="open-cookie-item js-open-cookie-item">
+						<i class="cookie-svg-icon icon-arrow" data-icon="icon-arrow" data-fill="#999" data-offset="6" data-rotate="90" data-sprite="https://vorstin.nl/content/plugins/eagerly-tools-cookie/img/output/cookie-sprite.svg"><svg x="0px" y="0px" width="100%" height="100%" viewBox="-3 -3 14.1 20.1" style="display: inline;"><g id="icon-arrow" transform="rotate(90 4 7)">
+      		<path d="M1.00025,14.00025 C0.74425,14.00025 0.48825,13.90225 0.29325,13.70725 C-0.09775,13.31625 -0.09775,12.68425 0.29325,12.29325 L5.58625,7.00025 L0.29325,1.70725 C-0.09775,1.31625 -0.09775,0.68425 0.29325,0.29325 C0.68425,-0.09775 1.31625,-0.09775 1.70725,0.29325 L7.70725,6.29325 C8.09825,6.68425 8.09825,7.31625 7.70725,7.70725 L1.70725,13.70725 C1.51225,13.90225 1.25625,14.00025 1.00025,14.00025" fill="#999"></path>
+      	</g></svg>
+        </i>					</button>
+					<div class="cookie-item-content js-cookie-item-content">
+						<ul class="cookie-item-list">
+																<li class="cookie-item-list__item"><strong>Noodzakelijk</strong>
+										<p>Voor het functioneren van de website en het onthouden van voorkeuren worden functionele cookies geplaatst. Hierbij worden geen persoonsgegevens verzameld.</p>
+									</li>
+																		<li class="cookie-item-list__item"><strong>Matomo</strong>
+										<p>Bezoekersstatistieken en gebruik van de website worden anoniem gemeten en verzameld.</p>
+									</li>
+																		<li class="cookie-item-list__item"><strong>Google Analytics</strong>
+										<p>Bezoekersstatistieken, websitebezoek en gebruik wordt gemeten en gebruikersgegevens worden anoniem verzameld.</p>
+									</li>
+															</ul>
+					</div>
+				</div>
+
+				
+				<div class="cookie-field js-cookie-field cookie-checkbox-group js-cookie-checkbox-group cookie-checkbox js-cookie-checkbox ">
+					<label class="cookie-checkbox js-cookie-checkbox">
+						<input type="checkbox" name="checkbox-field" value="tracking" >
+						<div class="cookie-check" role="button" tabindex="0">
+							<span class="cookie-fake-checkbox">
+								<i class="cookie-svg-icon icon-check" data-icon="icon-check" data-fill="#7ED321" data-sprite="https://vorstin.nl/content/plugins/eagerly-tools-cookie/img/output/cookie-sprite.svg"><svg x="0px" y="0px" width="100%" height="100%" viewBox="1126 526 12 9.2" style="display: inline; visibility: visible"><g id="icon-check">
+          <path d="M1131.81013,533.880734 C1131.62025,534.077326 1131.36709,534.142857 1131.11392,534.142857 C1130.86076,534.142857 1130.60759,534.077326 1130.41772,533.880734 L1127.25316,530.604194 C1127.06329,530.407602 1127,530.145478 1127,529.883355 C1127,529.621232 1127.12658,529.42464 1127.25316,529.228047 C1127.44304,529.031455 1127.63291,528.965924 1127.88608,528.965924 C1128.13924,528.965924 1128.39241,529.031455 1128.58228,529.228047 L1131.05063,531.783748 L1135.41772,527.262123 C1135.60759,527.065531 1135.86076,527 1136.11392,527 C1136.36709,527 1136.55696,527.131062 1136.74684,527.262123 C1136.93671,527.458716 1137,527.655308 1137,527.917431 C1137,528.179554 1136.93671,528.441678 1136.74684,528.63827 L1131.81013,533.880734 Z" id="Path" fill="#7ED321"></path>
+        </g></svg>
+        </i>							</span>
+							<div class="cookie-text">
+								Marketing / tracking										<span class="total">(<em>5</em>)</span>
+																</div>
+						</div>
+					</label>
+					<button aria-label="open Marketing / tracking cookies" class="open-cookie-item js-open-cookie-item">
+						<i class="cookie-svg-icon icon-arrow" data-icon="icon-arrow" data-fill="#999" data-offset="6" data-rotate="90" data-sprite="https://vorstin.nl/content/plugins/eagerly-tools-cookie/img/output/cookie-sprite.svg"><svg x="0px" y="0px" width="100%" height="100%" viewBox="-3 -3 14.1 20.1" style="display: inline;"><g id="icon-arrow" transform="rotate(90 4 7)">
+      		<path d="M1.00025,14.00025 C0.74425,14.00025 0.48825,13.90225 0.29325,13.70725 C-0.09775,13.31625 -0.09775,12.68425 0.29325,12.29325 L5.58625,7.00025 L0.29325,1.70725 C-0.09775,1.31625 -0.09775,0.68425 0.29325,0.29325 C0.68425,-0.09775 1.31625,-0.09775 1.70725,0.29325 L7.70725,6.29325 C8.09825,6.68425 8.09825,7.31625 7.70725,7.70725 L1.70725,13.70725 C1.51225,13.90225 1.25625,14.00025 1.00025,14.00025" fill="#999"></path>
+      	</g></svg>
+        </i>					</button>
+					<div class="cookie-item-content js-cookie-item-content">
+						<ul class="cookie-item-list">
+																<li class="cookie-item-list__item"><strong>YouTube</strong>
+										<p>Registreert klikgedrag, bekeken video’s en aangepaste voorkeuren. Bezoekersinformatie en gebruikersgedrag wordt gebruikt voor advertenties.</p>
+									</li>
+																		<li class="cookie-item-list__item"><strong>Spotify</strong>
+										<p>Cookies moeten toegestaan worden om spotify playlists in de browser te kunnen afspelen. Registreert statistieken en bezoekersinformatie die gebruikt worden voor advertentiedoeleinden.</p>
+									</li>
+																		<li class="cookie-item-list__item"><strong>Facebook</strong>
+										<p>Registreert gegevens om een reeks advertentieproducten te leveren van externe adverteerders. Dit maakt delen en liken via social share buttons mogelijk.</p>
+									</li>
+																		<li class="cookie-item-list__item"><strong>Vimeo</strong>
+										<p>Registreert gegevens over de bezoeken van de gebruiker zoals welke pagina’s zijn gelezen.</p>
+									</li>
+																		<li class="cookie-item-list__item"><strong>Google AdWords</strong>
+										<p>Bij interactie met advertenties slaat Google gegevens op om conversies en klikgedrag bij te houden.</p>
+									</li>
+															</ul>
+					</div>
+				</div>
+
+				
+		</div>
+		<div class="js-cookie-fb-bottom cookie-fb-bottom">
+			<button id="cookie-accept" tabindex="0" class="cookie-btn cookie-btn--pill cookie-btn--primary js-btn-accept-all">
+				Accepteer alle cookies			</button>
+
+			<button tabindex="0" class="cookie-btn cookie-btn--pill js-btn-ok">
+				Accepteer selectie			</button>
+
+		</div>
+	</div>
+</div>
+
+<svg width="0" height="0" class="sr-only" aria-hidden="true" focusable="false">
+  <defs>
+	<symbol id="mainLogo" viewBox="0 0 130 60" fill="currentColor">
+		<path d="M5.00985 59.156L0 0H9.08384L10.6969 34.3104C10.8675 38.1403 11.0355 42.6763 11.2062 47.9156H12.2247C12.3953 43.5203 12.6486 38.987 12.9899 34.3104L15.1522 0H19.3542L14.515 59.156H5.00985Z" fill="currentColor"/>
+		<path d="M22.666 57.6775C21.0236 56.1274 20.2051 53.7626 20.2051 50.5776V23.4096C20.2051 20.2272 21.0263 17.8518 22.666 16.2911C24.3084 14.7278 26.7987 13.9448 30.1368 13.9448C33.4749 13.9448 36.0158 14.7278 37.6715 16.2911C39.3273 17.8544 40.1538 20.2272 40.1538 23.4096V50.5776C40.1538 53.7626 39.3246 56.1274 37.6715 57.6775C36.0158 59.2248 33.5042 59.9999 30.1368 59.9999C26.7693 59.9999 24.3084 59.2248 22.666 57.6775ZM31.4539 54.7605V19.2664C31.4539 17.8571 31.03 17.1537 30.1794 17.1537C29.3289 17.1537 28.905 17.8571 28.905 19.2664V54.7605C28.905 56.1115 29.3289 56.7883 30.1794 56.7883C31.03 56.7883 31.4539 56.1115 31.4539 54.7605Z" fill="currentColor"/>
+		<path d="M43.1719 59.1561V14.7891H51.3652C51.3919 15.9171 51.3572 17.1062 51.2585 18.359C51.1599 19.6117 50.9706 21.3369 50.6853 23.5346L51.3652 23.7044C51.9864 20.9733 52.5597 18.9588 53.0849 17.6636C53.6075 16.3683 54.1941 15.4819 54.8446 15.0014C55.4952 14.521 56.415 14.2264 57.6042 14.1123L58.5374 24.2114C56.4444 24.5485 54.9566 24.9519 54.0794 25.4164C53.2022 25.8809 52.6157 26.6214 52.3197 27.6353C52.0211 28.6492 51.8744 30.3266 51.8744 32.6622V59.1561H43.1719Z" fill="currentColor"/>
+		<path d="M62.1956 57.5503C60.6972 55.9154 59.9453 53.3806 59.9453 49.9435V45.2536L68.0533 44.452V53.6646C68.0533 54.9041 68.152 55.7482 68.3493 56.1994C68.5466 56.6506 68.8452 56.8762 69.2425 56.8762C69.7517 56.8762 70.1116 56.5391 70.3249 55.8623C70.5382 55.1855 70.6422 54.0867 70.6422 52.5658C70.6422 50.2567 70.3596 48.1864 69.7944 46.3551C69.2291 44.5237 68.224 42.5517 66.7815 40.4389L64.022 36.3834C62.6062 34.2999 61.5877 32.2986 60.9665 30.3823C60.3452 28.466 60.0333 26.5232 60.0333 24.5511C60.0333 20.8618 60.7825 18.1705 62.2836 16.4825C63.7847 14.7944 66.1896 13.9478 69.5011 13.9478C72.8125 13.9478 75.1881 14.8077 76.7159 16.5249C78.2436 18.2422 78.9929 20.9202 78.9662 24.5511L78.9235 27.4681L70.5196 28.2696V20.2832C70.5196 19.0437 70.4343 18.1918 70.2636 17.7273C70.093 17.2628 69.8237 17.0292 69.4558 17.0292C69.0025 17.0292 68.6852 17.3663 68.5012 18.0431C68.3173 18.7199 68.2266 19.832 68.2266 21.3821C68.2266 23.5797 68.4666 25.4376 68.9465 26.9585C69.4264 28.4793 70.3329 30.17 71.6634 32.0279L74.3803 35.8313C75.908 37.9732 77.0598 40.078 77.841 42.1482C78.6196 44.2185 79.0088 46.6603 79.0088 49.479C79.0088 53.1418 78.2303 55.8119 76.6732 57.4866C75.1162 59.1614 72.6419 60.0001 69.2451 60.0001C66.0456 60.0001 63.6967 59.1826 62.1983 57.5503H62.1956Z" fill="currentColor"/>
+		<path d="M84.5972 57.6538C83.424 56.3718 82.8375 54.4927 82.8375 52.0137V18.2527H79.6113V14.789H82.8375V11.3253L91.5374 1.98535V14.789H96.2486V18.2527H91.5374V51.9287C91.5374 53.224 92.1026 53.8716 93.2358 53.8716C94.3689 53.8716 95.3874 53.577 96.2913 52.9851L96.1633 55.8144C94.8622 58.3226 92.6972 59.5754 89.6683 59.5754C87.4607 59.5754 85.7703 58.9357 84.5945 57.6538H84.5972Z" fill="currentColor"/>
+		<path d="M107.042 11.3227H98.3398V2.91431H107.042V11.3227ZM107.042 59.1534H98.3398V14.789H107.042V59.156V59.1534Z" fill="currentColor"/>
+		<path d="M110.051 59.1559V14.789H118.031C118.143 15.8028 117.889 17.5785 117.266 20.1132L117.945 20.3229C118.455 18.3243 119.255 16.83 120.342 15.8453C121.433 14.8606 122.926 14.3669 124.822 14.3669C126.576 14.3669 127.877 14.8527 128.728 15.8241C129.576 16.7955 130.002 18.2818 130.002 20.2831V59.1559H121.302V20.4503C121.302 19.5771 121.062 19.1391 120.58 19.1391C120.014 19.1391 119.567 19.6885 119.241 20.7874C118.916 21.8862 118.753 23.4203 118.753 25.3923V59.1533H110.051V59.1559Z" fill="currentColor"/>
+	</symbol>
+  </defs>
+</svg>
+
+
+<header class="header grid">
+	<nav class="nav js-nav" aria-labelledby="nav-main">
+		<ul class="nav-links">
+	<li class="nav-links__item">
+		<button class="nav-links__link js-nav-btn" data-action="open" aria-controls="nav-main" aria-expanded="false" aria-label="Show site navigation">
+			<svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-menu" aria-hidden="true" ><rect x="25" y="17" width="19" height="3" rx="1.5" transform="rotate(-180 25 17)" fill="currentColor"/><rect x="25" y="11" width="19" height="3" rx="1.5" transform="rotate(-180 25 11)" fill="currentColor"/><rect x="25" y="23" width="19" height="3" rx="1.5" transform="rotate(-180 25 23)" fill="currentColor"/></svg>			Menu
+		</button>
+	</li>
+	<li class="nav-links__item ">
+		<a href="/?s" class="nav-links__link">
+			<svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-search" aria-hidden="true" ><path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 6a8.5 8.5 0 1 0 4.3 15.833 1.5 1.5 0 0 0 .26.349l3.536 3.536a1.5 1.5 0 1 0 2.122-2.122l-3.536-3.535a1.491 1.491 0 0 0-.145-.128A8.5 8.5 0 0 0 14.5 6Zm-5.95 8.5a5.95 5.95 0 1 1 11.9 0 5.95 5.95 0 0 1-11.9 0Z" fill="currentColor"/></svg>			Zoek
+		</a>
+	</li>
+	<li class="nav-links__item  nav-links__item--active">
+		<a href="/agenda" class="nav-links__link">
+			<svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-agenda" aria-hidden="true" ><path fill-rule="evenodd" clip-rule="evenodd" d="M13 6.5a1.5 1.5 0 0 0-3 0V8H9a4 4 0 0 0-4 4v11a4 4 0 0 0 4 4h13a4 4 0 0 0 4-4V12a4 4 0 0 0-4-4h-1V6.5a1.5 1.5 0 0 0-3 0V8h-5V6.5Zm5 5v-1h-5v1a1.5 1.5 0 0 1-3 0v-1H9A1.5 1.5 0 0 0 7.5 12v3h16v-3a1.5 1.5 0 0 0-1.5-1.5h-1v1a1.5 1.5 0 0 1-3 0Zm5.5 6h-16V23A1.5 1.5 0 0 0 9 24.5h13a1.5 1.5 0 0 0 1.5-1.5v-5.5Z" fill="currentColor"/></svg>			Agenda
+		</a>
+	</li>
+	<li class="nav-links__item ">
+		<a href="/je-bezoek" class="nav-links__link">
+			<svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-visit" aria-hidden="true" ><path fill-rule="evenodd" clip-rule="evenodd" d="M15.5 11c.828 0 1.5.56 1.5 1.25v2.5c0 .69-.672 1.25-1.5 1.25s-1.5-.56-1.5-1.25v-2.5c0-.69.672-1.25 1.5-1.25Z" fill="currentColor"/><path fill-rule="evenodd" clip-rule="evenodd" d="M19.55 16.453c.692-1.53.95-2.529.95-2.981 0-2.737-2.23-4.972-5-4.972s-5 2.235-5 4.972c0 .452.258 1.45.95 2.98.646 1.431 1.53 3.025 2.442 4.542.552.917 1.105 1.79 1.608 2.562a84.565 84.565 0 0 0 1.608-2.562c.913-1.517 1.796-3.111 2.442-4.541Zm-2.538 9.351C19.202 22.522 23 16.408 23 13.472 23 9.345 19.642 6 15.5 6 11.358 6 8 9.345 8 13.472c0 2.936 3.798 9.05 5.988 12.332" fill="currentColor"/></svg>			Je bezoek
+		</a>
+	</li>
+</ul>
+<a href="/" class="nav-logo js-hide-on-scroll" data-tolerance="48">
+	<svg width="130" height="60" role="img">
+		<use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#mainLogo"></use>
+	</svg>
+	<span class="sr-only">home</span>
+</a>
+
+<div class="nav-slide js-nav-slide">
+	<div>
+		<svg role="img" focusable="false" aria-hidden="true">
+			<use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#mainLogo"></use>
+		</svg>
+	</div>
+</div>
+		<div class="nav-main grid scrollable js-nav-main js-scrollable" id="nav-main" aria-label="Site Navigation" hidden>
+	<div class="nav-container js-nav-container">
+
+		<div class="nav-main__header">
+			<button class="btn btn--circle js-nav-btn" data-action="close" aria-controls="nav-main" aria-label="Hide site navigation">
+				<svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-close" aria-hidden="true" ><path d="M9.161 7.44A1.5 1.5 0 1 0 7.04 9.56l6.617 6.618-7.218 7.217a1.5 1.5 0 1 0 2.122 2.122l7.217-7.218 6.818 6.818a1.5 1.5 0 0 0 2.121-2.121L17.9 16.178l6.217-6.218a1.5 1.5 0 1 0-2.121-2.12l-6.218 6.216L9.161 7.44Z" fill="currentColor"/></svg>			</button>
+			<a href="/" class="nav-main__logo">
+				<svg width="130" height="60" role="img">
+					<use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#mainLogo"></use>
+				</svg>
+				<span class="sr-only">home</span>
+			</a>
+		</div>
+		<div class="nav-main__content columns">
+			<ul class="nav-list">										<li class="nav-list__item">
+						<a class="nav-list__link  h2 " href="https://vorstin.nl/agenda/">
+							<svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-arrow  eagerlyicon--270" aria-hidden="true" ><path d="M16.5 31 25 0H8l8.5 31Z" fill="currentColor"/></svg>							Agenda						</a>
+												</li>
+																		<li class="nav-list__item">
+						<a class="nav-list__link  h2 " href="https://vorstin.nl/je-bezoek/">
+							<svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-arrow  eagerlyicon--270" aria-hidden="true" ><path d="M16.5 31 25 0H8l8.5 31Z" fill="currentColor"/></svg>							Je Bezoek						</a>
+														<ul class="nav-list__sub-list link-list">
+																<li class="nav-list__sub-list-item">
+									<a href="https://vorstin.nl/je-bezoek/adres/" >Adres</a>
+								</li>
+																<li class="nav-list__sub-list-item">
+									<a href="https://vorstin.nl/je-bezoek/ov-en-parkeren/" >OV en parkeren</a>
+								</li>
+																<li class="nav-list__sub-list-item">
+									<a href="https://vorstin.nl/je-bezoek/huisregels/" >Huisregels</a>
+								</li>
+																<li class="nav-list__sub-list-item">
+									<a href="https://vorstin.nl/je-bezoek/met-een-beperking/" >Met een beperking</a>
+								</li>
+															</ul>
+											</li>
+																		<li class="nav-list__item">
+						<a class="nav-list__link  h2 " href="https://vorstin.nl/fotogalerij/">
+							<svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-arrow  eagerlyicon--270" aria-hidden="true" ><path d="M16.5 31 25 0H8l8.5 31Z" fill="currentColor"/></svg>							Fotogalerij						</a>
+												</li>
+																		<li class="nav-list__item">
+						<a class="nav-list__link  h2 " href="https://vorstin.nl/je-bezoek/faq/">
+							<svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-arrow  eagerlyicon--270" aria-hidden="true" ><path d="M16.5 31 25 0H8l8.5 31Z" fill="currentColor"/></svg>							FAQ						</a>
+												</li>
+												</ul><div class="columns"><div class="shrink-2">					<ul class="nav-list">					<li class="nav-list__item">
+						<a class="nav-list__link  h4 " href="https://vorstin.nl/zakelijk/">
+							<svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-arrow  eagerlyicon--270" aria-hidden="true" ><path d="M16.5 31 25 0H8l8.5 31Z" fill="currentColor"/></svg>							Zakelijk						</a>
+														<ul class="nav-list__sub-list link-list">
+																<li class="nav-list__sub-list-item">
+									<a href="https://vorstin.nl/zakelijk/evenementen/" >Evenementen</a>
+								</li>
+																<li class="nav-list__sub-list-item">
+									<a href="https://vorstin.nl/zakelijk/onze-zalen/" >Onze zalen</a>
+								</li>
+																<li class="nav-list__sub-list-item">
+									<a href="https://vorstin.nl/zakelijk/livestream/" >Livestream</a>
+								</li>
+																<li class="nav-list__sub-list-item">
+									<a href="https://vorstin.nl/zakelijk/techniek-productie/" >Techniek &#038; productie</a>
+								</li>
+															</ul>
+											</li>
+					</ul>								<ul class="nav-list">					<li class="nav-list__item">
+						<a class="nav-list__link  h4 " href="https://vorstin.nl/info/">
+							<svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-arrow  eagerlyicon--270" aria-hidden="true" ><path d="M16.5 31 25 0H8l8.5 31Z" fill="currentColor"/></svg>							Info						</a>
+														<ul class="nav-list__sub-list link-list">
+																<li class="nav-list__sub-list-item">
+									<a href="https://vorstin.nl/info/partner-worden/" >Partner worden</a>
+								</li>
+																<li class="nav-list__sub-list-item">
+									<a href="https://vorstin.nl/info/veiligheid-privacy/" >Veiligheid &#038; privacy</a>
+								</li>
+															</ul>
+											</li>
+					</ul>								<ul class="nav-list">					<li class="nav-list__item">
+						<a class="nav-list__link  h4 " href="https://vorstin.nl/over-ons/">
+							<svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-arrow  eagerlyicon--270" aria-hidden="true" ><path d="M16.5 31 25 0H8l8.5 31Z" fill="currentColor"/></svg>							Over ons						</a>
+														<ul class="nav-list__sub-list link-list">
+																<li class="nav-list__sub-list-item">
+									<a href="https://vorstin.nl/over-ons/over-de-vorstin/" >Over de Vorstin</a>
+								</li>
+																<li class="nav-list__sub-list-item">
+									<a href="https://vorstin.nl/over-ons/organisatie/" >Organisatie</a>
+								</li>
+																<li class="nav-list__sub-list-item">
+									<a href="https://vorstin.nl/over-ons/team/" >Team</a>
+								</li>
+																<li class="nav-list__sub-list-item">
+									<a href="https://vorstin.nl/over-ons/vacatures/" >Vacatures</a>
+								</li>
+																<li class="nav-list__sub-list-item">
+									<a href="https://vorstin.nl/over-ons/contact/" >Contact</a>
+								</li>
+															</ul>
+											</li>
+					</ul>							</div><div>					<ul class="nav-list">					<li class="nav-list__item">
+						<a class="nav-list__link  h4 " href="https://vorstin.nl/oefenruimtes/">
+							<svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-arrow  eagerlyicon--270" aria-hidden="true" ><path d="M16.5 31 25 0H8l8.5 31Z" fill="currentColor"/></svg>							Oefenruimtes						</a>
+														<ul class="nav-list__sub-list link-list">
+																<li class="nav-list__sub-list-item">
+									<a href="https://vorstin.nl/oefenruimtes/" >Over de oefenruimtes</a>
+								</li>
+															</ul>
+											</li>
+					</ul>								<ul class="nav-list">					<li class="nav-list__item">
+						<a class="nav-list__link  h4 " href="https://vorstin.nl/vrijwilligers/">
+							<svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-arrow  eagerlyicon--270" aria-hidden="true" ><path d="M16.5 31 25 0H8l8.5 31Z" fill="currentColor"/></svg>							Vrijwilliger bij De Vorstin						</a>
+												</li>
+					</ul>								<ul class="nav-list">					<li class="nav-list__item">
+						<a class="nav-list__link  h4 " href="https://vorstin.stager.nl/web/users/tickets">
+							<svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-arrow  eagerlyicon--270" aria-hidden="true" ><path d="M16.5 31 25 0H8l8.5 31Z" fill="currentColor"/></svg>							Naar je Vorstin-account						</a>
+												</li>
+					</ul>							</div></div>		</div>
+		<div class="nav-main__footer">
+			<div class="footer-bottom lane">
+	<ul class="footer-bottom__list">
+		<li>
+			Koninginneweg 44<br>
+			1211 AS Hilversum
+		</li>
+		<li>
+			<a href="mailto:info@vorstin.nl">info@vorstin.nl</a>
+		</li>
+	</ul>
+
+				<ul class="footer-bottom__list">
+								<li>
+						<a href="https://vorstin.nl/vrijwilligers/" >Vrijwilligers</a>
+					</li>
+										<li>
+						<a href="https://vorstin.nl/je-bezoek/faq/" >FAQ</a>
+					</li>
+								</ul>
+						<ul class="footer-bottom__list">
+								<li>
+						<a href="#" class="js-cookie-btn">Cookies</a>
+					</li>
+										<li>
+						<a href="https://vorstin.nl/content/uploads/2024/05/Privacyverklaring-update-8-mei-2024.pdf" >Privacy Policy</a>
+					</li>
+								</ul>
+			
+	<ul class="footer-bottom__socials">
+		<li class="footer-bottom__socials-item">
+			<a href="https://www.facebook.com/DeVorstinHilversum/"><svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-vorstin-facebook" aria-hidden="true" ><g clip-path="url(#clip0_835_2917)"><path d="M32 16.098C32 7.208 24.837 0 16 0S0 7.207 0 16.098C0 24.133 5.85 30.792 13.5 32V20.751H9.437v-4.653H13.5V12.55c0-4.034 2.389-6.263 6.043-6.263 1.75 0 3.582.315 3.582.315v3.961h-2.017c-1.988 0-2.608 1.241-2.608 2.515v3.019h4.438l-.71 4.653H18.5V32C26.15 30.792 32 24.133 32 16.098Z" fill="currentColor"/></g></svg><span class="sr-only">facebook</span></a>
+		</li>
+		<li class="footer-bottom__socials-item">
+			<a href="https://www.youtube.com/@DeVorstin035"><svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-vorstin-youtube" aria-hidden="true" ><path d="M31.681 9.963s-.312-2.255-1.275-3.245c-1.218-1.303-2.581-1.31-3.206-1.386C22.725 5 16.006 5 16.006 5h-.012S9.275 5 4.8 5.332c-.625.077-1.987.083-3.206 1.386C.63 7.708.325 9.963.325 9.963S0 12.613 0 15.258v2.478c0 2.644.319 5.295.319 5.295s.312 2.255 1.268 3.245c1.22 1.302 2.82 1.258 3.532 1.398C7.68 27.924 16 28 16 28s6.725-.013 11.2-.338c.625-.077 1.988-.084 3.206-1.386.963-.99 1.275-3.245 1.275-3.245S32 20.387 32 17.736v-2.478c0-2.645-.319-5.295-.319-5.295ZM12.694 20.744v-9.19l8.643 4.61-8.643 4.58Z" fill="currentColor"/></svg><span class="sr-only">youtube</span></a>
+		</li>
+		<li class="footer-bottom__socials-item">
+			<a href="https://www.linkedin.com/company/de-vorstin/"><svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-vorstin-linkedin" aria-hidden="true" ><path d="M29.631 1H2.363C1.056 1 0 1.999 0 3.234V29.76C0 30.995 1.056 32 2.362 32h27.27C30.936 32 32 30.995 32 29.766V3.234C32 2 30.937 1 29.631 1ZM9.494 27.417h-4.75V12.619h4.75v14.798ZM7.119 10.603c-1.525 0-2.756-1.193-2.756-2.664 0-1.472 1.23-2.664 2.756-2.664 1.518 0 2.75 1.192 2.75 2.664 0 1.465-1.232 2.664-2.75 2.664Zm20.15 16.814h-4.744v-7.193c0-1.714-.031-3.924-2.469-3.924-2.469 0-2.844 1.871-2.844 3.802v7.315h-4.737V12.619h4.55v2.022h.063c.63-1.162 2.18-2.391 4.487-2.391 4.806 0 5.694 3.063 5.694 7.047v8.12Z" fill="currentColor"/></svg><span class="sr-only">linkedin</span></a>
+		</li>
+		<li class="footer-bottom__socials-item">
+			<a href="https://www.instagram.com/devorstin/"><svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-vorstin-instagram" aria-hidden="true" ><g clip-path="url(#a)" fill="currentColor"><path d="M15.878 2.86c4.242 0 4.744.018 6.413.092 1.55.068 2.388.329 2.946.546a4.91 4.91 0 0 1 1.823 1.185c.559.558.9 1.085 1.185 1.823.217.558.477 1.402.546 2.946.074 1.675.093 2.177.093 6.413 0 4.243-.019 4.745-.093 6.413-.069 1.551-.329 2.388-.546 2.947a4.91 4.91 0 0 1-1.185 1.823 4.88 4.88 0 0 1-1.823 1.185c-.558.217-1.402.477-2.946.545-1.675.075-2.177.093-6.413.093-4.243 0-4.745-.018-6.413-.093-1.551-.068-2.388-.328-2.946-.545a4.91 4.91 0 0 1-1.824-1.185 4.884 4.884 0 0 1-1.185-1.823c-.217-.559-.477-1.402-.545-2.947-.075-1.674-.093-2.177-.093-6.413 0-4.242.018-4.744.093-6.413.068-1.55.328-2.388.545-2.946a4.91 4.91 0 0 1 1.185-1.823A4.884 4.884 0 0 1 6.52 3.498c.558-.217 1.401-.478 2.946-.546 1.668-.074 2.17-.093 6.413-.093Zm0-2.86c-4.31 0-4.85.019-6.544.093C7.647.167 6.488.44 5.483.831c-1.048.41-1.935.949-2.816 1.836-.887.88-1.427 1.768-1.836 2.81C.441 6.487.167 7.64.093 9.328c-.074 1.7-.093 2.24-.093 6.55s.019 4.85.093 6.543c.074 1.687.347 2.847.738 3.852.41 1.048.949 1.935 1.836 2.816a7.76 7.76 0 0 0 2.81 1.83c1.01.39 2.164.663 3.851.737 1.693.075 2.233.093 6.543.093 4.311 0 4.85-.018 6.544-.093 1.687-.074 2.847-.347 3.851-.738a7.762 7.762 0 0 0 2.81-1.83 7.762 7.762 0 0 0 1.83-2.81c.39-1.01.663-2.164.738-3.85.074-1.694.093-2.233.093-6.544 0-4.31-.019-4.85-.093-6.543-.075-1.687-.347-2.847-.738-3.852a7.436 7.436 0 0 0-1.817-2.822 7.763 7.763 0 0 0-2.81-1.83C25.268.447 24.114.174 22.427.1c-1.7-.08-2.239-.1-6.55-.1Z"/><path d="M15.878 7.722a8.158 8.158 0 0 0-8.156 8.156 8.158 8.158 0 0 0 8.156 8.156 8.158 8.158 0 0 0 8.155-8.156 8.158 8.158 0 0 0-8.155-8.156Zm0 13.446a5.291 5.291 0 1 1 .001-10.582 5.291 5.291 0 0 1-.001 10.582ZM26.26 7.4a1.904 1.904 0 1 1-3.809-.002 1.904 1.904 0 0 1 3.81.001Z"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h32v32H0z"/></clipPath></defs></svg><span class="sr-only">instagram</span></a>
+		</li>
+		<li class="footer-bottom__socials-item">
+			<a href="https://open.spotify.com/user/podiumdevorstin"><svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-vorstin-spotify" aria-hidden="true" ><g clip-path="url(#a)"><path d="M16 0C7.164 0 0 7.163 0 16s7.164 16 16 16 16-7.163 16-16S24.836 0 16 0Zm7.806 23.065a1.396 1.396 0 0 1-1.896.534 16.569 16.569 0 0 0-6.475-2.039 16.657 16.657 0 0 0-6.768.701 1.392 1.392 0 0 1-.846-2.65 19.37 19.37 0 0 1 7.895-.819 19.366 19.366 0 0 1 7.554 2.38 1.39 1.39 0 0 1 .536 1.893Zm1.915-4.86a1.39 1.39 0 0 1-1.876.591 21.748 21.748 0 0 0-7.889-2.353 21.683 21.683 0 0 0-8.254.735 1.39 1.39 0 0 1-.771-2.674 24.513 24.513 0 0 1 9.307-.83 24.538 24.538 0 0 1 8.894 2.655c.679.355.946 1.195.59 1.876Zm.694-4.043a1.4 1.4 0 0 1-.621-.146 26.882 26.882 0 0 0-9.319-2.69 26.825 26.825 0 0 0-9.687.766 1.391 1.391 0 0 1-.715-2.69 29.655 29.655 0 0 1 10.686-.844 29.625 29.625 0 0 1 10.276 2.967 1.392 1.392 0 0 1-.62 2.637Z" fill="currentColor"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h32v32H0z"/></clipPath></defs></svg><span class="sr-only">spotify</span></a>
+		</li>
+		<li class="site-by small">Site by <a href="https://eagerly.nl" title="Eagerly"
+				target="_blank">Eagerly</a></li>
+	</ul>
+</div>
+		</div>
+	</div>
+</div>
+	</nav>
+
+	
+</header>
+
+<main class="grid main js-main" id="main">
+
+	<div class="content">
+		<div class="js_react_filter lane lane--agenda" data-cinema="">
+			<div class="agenda__top-nav"><h2>Agenda</h2></div><ul style="--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:0px" class="eagerly-seo-placeholder__container   hidden  animated-background"><li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/frank-boeijen17-10-2025/">Frank Boeijen</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/patat-met-17102025/">Patat Met</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/pink-project-18-10-2025/">Pink Project</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/julian-sas-hmbt-19-10-2025/">Julian Sas</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/laundry-bigband-ft-scott-hamilton-20-10-25/">Laundry BigBand ft. Scott Hamilton</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/de-vorstin-x-hillyweird-present-the-empty-threats-gloin-apeshit/">De Vorstin x Hillyweird Present: The Empty Threats + Gloin + Apeshit</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/treasure-24-10-2025/">Treasure</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/40up-20-10-2025/">40UP</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/open-podium-26-10-2025/">Open Podium</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/enter-the-hills-30-10-2025/">Enter The Hills met Rens &#038; Jaïr</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/drukwerk-31102025/">Drukwerk</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/gooise-pride-party-2025/">Gooise Pride Party</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/zuco-103-01112025/">Zuco 103</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/laundry-bigband-ft-michael-varekamp/">Laundry BigBand ft. Michael Varekamp</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/vroegzat-presenteert-time-of-my-life-11-07-2025/">VroegZat presenteert: Time Of My Life</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/danny-nicolay/">Danny Nicolay</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/the-perfect-tool-8-11-2025/">The Perfect Tool</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/big-country-08-11-2025/">Big Country</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/jamsessie-9-11-2025/">Jamsessie</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/tony-hadley-09112025/">Tony Hadley (UK)</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/comedytunes-comedynight-13112025/">Comedytunes Comedynight</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/toontje-lager/">Toontje Lager</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/soul-food-14112025/">Soul Food</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/myles-sanko-15-11-2025/">Myles Sanko (UK)</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/lucas-hamming15-11-2025/">Lucas Hamming</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/patat-met-21112025/">Patat Met: Nienke Leone + Spijbelaar + Nevin</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/80s-verantwoord/">80’s Verantwoord</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/adrian-vandenberg-22-11-2025/">Adrian Vandenberg: My Whitesnake Years</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/sannie-friends/">SANN!E &#038; FR!ENDS</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/popronde-hilversum-23-11-2025/">Popronde Hilversum</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/the-smiths-presumably27-11-2025/">The Smiths Presumably</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/metalcafe-live-28-11-2025/">METALCAFE Live</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/kei-foute-party-28-11-2025/">Kei Foute Party</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/mell-vf/">Mell VF</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/open-podium-30-11-2025/">Open Podium</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/the-dutch-queen/">The Dutch Queen</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/plan-nine-12122025/">Plan Nine</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/daredevils-zing-nederlands-met-me-12-12-2025/">Daredevils: Zing Nederlands Met Me</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/hans-dulfer-13-12-25/">Hans Dulfer</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/vroegzat-131225/">VroegZat</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/shirma-rouse-18-12-2025/">Shirma Rouse</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/patat-met-19122025/">Patat Met: Grote Geelstaart + Loveth Besamoh + KRAM</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/top-2000-live-band-heroes22-12-2025/">Top 2000 Live Band – Heroes</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/thijsboontjes-09-01-2025/">Thijs Boontjes</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/songs-of-paul-mccartney/">Songs of Paul McCartney</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/emo-night-mainland17012026/">Emo Night Mainland</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/mothership-led-zeppelin-tribute25012026/">Mothership – Led Zeppelin Tribute</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/the-hillbilly-moonshiners-30-01-2026/">The Hillbilly Moonshiners</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/icons-of-wave-31-01-2026/">Icons of Wave</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/rilan-the-bombardiers/">Rilan &#038; The Bombardiers</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/legends-of-rock-monsters-of-rock-06-02-26/">LEGENDS of ROCK – MONSTERS of ROCK</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/the-zac-schulze-gang-07-02-2026/">The Zac Schulze Gang (UK)</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/housequake13-02-2026/">Housequake</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/the-dirty-daddies-20-02-2026/">The Dirty Daddies</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/radio-clash-50-years-the-clash-21-02-2026/">Radio Clash – 50 Years The Clash</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/glen-matlock-26022026/">Glen Matlock (Sex Pistols, UK)</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/child-of-destiny-27-02-2026/">Child of Destiny</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/light-by-the-sea-plays-the-cranberries-07032025/">Light By The Sea plays The Cranberries</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/comedytunes-comedynight-12032026/">Comedytunes Comedynight</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/anouk-wolf/">Anouk Wolf</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/edwin-evers-band-21032026/">Edwin Evers Band</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/amsterdam-klezmer-band/">Amsterdam Klezmer Band</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/sjako-04042026/">Sjako!</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/the-clarks-ft-rinus-gerritsen-cesar-zuiderwijk/">The Clarks ft. Rinus Gerritsen &#038; Cesar Zuiderwijk</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/mr-jones-just-in-case-22-05-2026/">Mr. Jones &#038; Just In Case | Tom Jones Tribute</a></li>
+<li style="--eagerly-seo-placeholder-height:25vh;--eagerly-seo-placeholder-width:100%;--eagerly-seo-placeholder-margin:32px;--eagerly-seo-placeholder-radius:0px" class=""><a class="eagerly-seo-placeholder__container_item " href="https://vorstin.nl/event/the-fortunate-sons-09012027/">The Fortunate Sons</a></li></ul>		</div>
+	</div>
+
+</main>
+
+<footer class="grid footer js-footer">
+	<div class="clients lane">
+		<h3 class="p clients__title">Partners</h3>
+		<ul class="clients__container">
+			<li><img class="clients__item" src="https://vorstin.nl/content/themes/vorstin/public/img/clients/HilversumMarketing.png" alt="Hilversum Marketing"></li>
+			<li><img class="clients__item" src="https://vorstin.nl/content/themes/vorstin/public/img/clients/AvroTros.png" alt="Avro Tros"></li>
+			<li><img class="clients__item" src="https://vorstin.nl/content/themes/vorstin/public/img/clients/CompleetSecurity.png" alt="Compleet Security"></li>
+			<li><img class="clients__item" src="https://vorstin.nl/content/themes/vorstin/public/img/clients/Swinkels.png" alt="Royal Swinkels family brewers"></li>
+			<li><img class="clients__item" src="https://vorstin.nl/content/themes/vorstin/public/img/clients/Vrumona.png" alt="Vrumona"></li>
+			<li><img class="clients__item" src="https://vorstin.nl/content/themes/vorstin/public/img/clients/Compatible.png" alt="Compatible"></li>
+			<li><img class="clients__item" src="https://vorstin.nl/content/themes/vorstin/public/img/clients/Logo-ROC-van-Hilversum.png" alt="MBO College Hilversum"></li>
+			<li><img class="clients__item" src="https://vorstin.nl/content/themes/vorstin/public/img/clients/platformcultuur.png" alt="Platform Cultuur Locaties"></li>
+			<li><img class="clients__item" src="https://vorstin.nl/content/themes/vorstin/public/img/clients/Gooi-Meetings.png" alt="Gooi Meetings"></li>
+			<li><img class="clients__item" src="https://vorstin.nl/content/themes/vorstin/public/img/clients/Wisseloord.png" alt="Wisseloord"></li>
+
+		</ul>
+		<a href="https://vorstin.nl/info/partner-worden/" class="btn btn--white">Partner worden</a>
+	</div>
+	<div class="footer-bottom lane">
+	<ul class="footer-bottom__list">
+		<li>
+			Koninginneweg 44<br>
+			1211 AS Hilversum
+		</li>
+		<li>
+			<a href="mailto:info@vorstin.nl">info@vorstin.nl</a>
+		</li>
+	</ul>
+
+				<ul class="footer-bottom__list">
+								<li>
+						<a href="https://vorstin.nl/vrijwilligers/" >Vrijwilligers</a>
+					</li>
+										<li>
+						<a href="https://vorstin.nl/je-bezoek/faq/" >FAQ</a>
+					</li>
+								</ul>
+						<ul class="footer-bottom__list">
+								<li>
+						<a href="#" class="js-cookie-btn">Cookies</a>
+					</li>
+										<li>
+						<a href="https://vorstin.nl/content/uploads/2024/05/Privacyverklaring-update-8-mei-2024.pdf" >Privacy Policy</a>
+					</li>
+								</ul>
+			
+	<ul class="footer-bottom__socials">
+		<li class="footer-bottom__socials-item">
+			<a href="https://www.facebook.com/DeVorstinHilversum/"><svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-vorstin-facebook" aria-hidden="true" ><g clip-path="url(#clip0_835_2917)"><path d="M32 16.098C32 7.208 24.837 0 16 0S0 7.207 0 16.098C0 24.133 5.85 30.792 13.5 32V20.751H9.437v-4.653H13.5V12.55c0-4.034 2.389-6.263 6.043-6.263 1.75 0 3.582.315 3.582.315v3.961h-2.017c-1.988 0-2.608 1.241-2.608 2.515v3.019h4.438l-.71 4.653H18.5V32C26.15 30.792 32 24.133 32 16.098Z" fill="currentColor"/></g></svg><span class="sr-only">facebook</span></a>
+		</li>
+		<li class="footer-bottom__socials-item">
+			<a href="https://www.youtube.com/@DeVorstin035"><svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-vorstin-youtube" aria-hidden="true" ><path d="M31.681 9.963s-.312-2.255-1.275-3.245c-1.218-1.303-2.581-1.31-3.206-1.386C22.725 5 16.006 5 16.006 5h-.012S9.275 5 4.8 5.332c-.625.077-1.987.083-3.206 1.386C.63 7.708.325 9.963.325 9.963S0 12.613 0 15.258v2.478c0 2.644.319 5.295.319 5.295s.312 2.255 1.268 3.245c1.22 1.302 2.82 1.258 3.532 1.398C7.68 27.924 16 28 16 28s6.725-.013 11.2-.338c.625-.077 1.988-.084 3.206-1.386.963-.99 1.275-3.245 1.275-3.245S32 20.387 32 17.736v-2.478c0-2.645-.319-5.295-.319-5.295ZM12.694 20.744v-9.19l8.643 4.61-8.643 4.58Z" fill="currentColor"/></svg><span class="sr-only">youtube</span></a>
+		</li>
+		<li class="footer-bottom__socials-item">
+			<a href="https://www.linkedin.com/company/de-vorstin/"><svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-vorstin-linkedin" aria-hidden="true" ><path d="M29.631 1H2.363C1.056 1 0 1.999 0 3.234V29.76C0 30.995 1.056 32 2.362 32h27.27C30.936 32 32 30.995 32 29.766V3.234C32 2 30.937 1 29.631 1ZM9.494 27.417h-4.75V12.619h4.75v14.798ZM7.119 10.603c-1.525 0-2.756-1.193-2.756-2.664 0-1.472 1.23-2.664 2.756-2.664 1.518 0 2.75 1.192 2.75 2.664 0 1.465-1.232 2.664-2.75 2.664Zm20.15 16.814h-4.744v-7.193c0-1.714-.031-3.924-2.469-3.924-2.469 0-2.844 1.871-2.844 3.802v7.315h-4.737V12.619h4.55v2.022h.063c.63-1.162 2.18-2.391 4.487-2.391 4.806 0 5.694 3.063 5.694 7.047v8.12Z" fill="currentColor"/></svg><span class="sr-only">linkedin</span></a>
+		</li>
+		<li class="footer-bottom__socials-item">
+			<a href="https://www.instagram.com/devorstin/"><svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-vorstin-instagram" aria-hidden="true" ><g clip-path="url(#a)" fill="currentColor"><path d="M15.878 2.86c4.242 0 4.744.018 6.413.092 1.55.068 2.388.329 2.946.546a4.91 4.91 0 0 1 1.823 1.185c.559.558.9 1.085 1.185 1.823.217.558.477 1.402.546 2.946.074 1.675.093 2.177.093 6.413 0 4.243-.019 4.745-.093 6.413-.069 1.551-.329 2.388-.546 2.947a4.91 4.91 0 0 1-1.185 1.823 4.88 4.88 0 0 1-1.823 1.185c-.558.217-1.402.477-2.946.545-1.675.075-2.177.093-6.413.093-4.243 0-4.745-.018-6.413-.093-1.551-.068-2.388-.328-2.946-.545a4.91 4.91 0 0 1-1.824-1.185 4.884 4.884 0 0 1-1.185-1.823c-.217-.559-.477-1.402-.545-2.947-.075-1.674-.093-2.177-.093-6.413 0-4.242.018-4.744.093-6.413.068-1.55.328-2.388.545-2.946a4.91 4.91 0 0 1 1.185-1.823A4.884 4.884 0 0 1 6.52 3.498c.558-.217 1.401-.478 2.946-.546 1.668-.074 2.17-.093 6.413-.093Zm0-2.86c-4.31 0-4.85.019-6.544.093C7.647.167 6.488.44 5.483.831c-1.048.41-1.935.949-2.816 1.836-.887.88-1.427 1.768-1.836 2.81C.441 6.487.167 7.64.093 9.328c-.074 1.7-.093 2.24-.093 6.55s.019 4.85.093 6.543c.074 1.687.347 2.847.738 3.852.41 1.048.949 1.935 1.836 2.816a7.76 7.76 0 0 0 2.81 1.83c1.01.39 2.164.663 3.851.737 1.693.075 2.233.093 6.543.093 4.311 0 4.85-.018 6.544-.093 1.687-.074 2.847-.347 3.851-.738a7.762 7.762 0 0 0 2.81-1.83 7.762 7.762 0 0 0 1.83-2.81c.39-1.01.663-2.164.738-3.85.074-1.694.093-2.233.093-6.544 0-4.31-.019-4.85-.093-6.543-.075-1.687-.347-2.847-.738-3.852a7.436 7.436 0 0 0-1.817-2.822 7.763 7.763 0 0 0-2.81-1.83C25.268.447 24.114.174 22.427.1c-1.7-.08-2.239-.1-6.55-.1Z"/><path d="M15.878 7.722a8.158 8.158 0 0 0-8.156 8.156 8.158 8.158 0 0 0 8.156 8.156 8.158 8.158 0 0 0 8.155-8.156 8.158 8.158 0 0 0-8.155-8.156Zm0 13.446a5.291 5.291 0 1 1 .001-10.582 5.291 5.291 0 0 1-.001 10.582ZM26.26 7.4a1.904 1.904 0 1 1-3.809-.002 1.904 1.904 0 0 1 3.81.001Z"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h32v32H0z"/></clipPath></defs></svg><span class="sr-only">instagram</span></a>
+		</li>
+		<li class="footer-bottom__socials-item">
+			<a href="https://open.spotify.com/user/podiumdevorstin"><svg version="1.1" focusable="false" viewBox="0 0 32 32" class="eagerlyicon  eagerlyicon-vorstin-spotify" aria-hidden="true" ><g clip-path="url(#a)"><path d="M16 0C7.164 0 0 7.163 0 16s7.164 16 16 16 16-7.163 16-16S24.836 0 16 0Zm7.806 23.065a1.396 1.396 0 0 1-1.896.534 16.569 16.569 0 0 0-6.475-2.039 16.657 16.657 0 0 0-6.768.701 1.392 1.392 0 0 1-.846-2.65 19.37 19.37 0 0 1 7.895-.819 19.366 19.366 0 0 1 7.554 2.38 1.39 1.39 0 0 1 .536 1.893Zm1.915-4.86a1.39 1.39 0 0 1-1.876.591 21.748 21.748 0 0 0-7.889-2.353 21.683 21.683 0 0 0-8.254.735 1.39 1.39 0 0 1-.771-2.674 24.513 24.513 0 0 1 9.307-.83 24.538 24.538 0 0 1 8.894 2.655c.679.355.946 1.195.59 1.876Zm.694-4.043a1.4 1.4 0 0 1-.621-.146 26.882 26.882 0 0 0-9.319-2.69 26.825 26.825 0 0 0-9.687.766 1.391 1.391 0 0 1-.715-2.69 29.655 29.655 0 0 1 10.686-.844 29.625 29.625 0 0 1 10.276 2.967 1.392 1.392 0 0 1-.62 2.637Z" fill="currentColor"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h32v32H0z"/></clipPath></defs></svg><span class="sr-only">spotify</span></a>
+		</li>
+		<li class="site-by small">Site by <a href="https://eagerly.nl" title="Eagerly"
+				target="_blank">Eagerly</a></li>
+	</ul>
+</div>
+</footer>
+
+<script type="speculationrules">
+{"prefetch":[{"source":"document","where":{"and":[{"href_matches":"\/*"},{"not":{"href_matches":["\/wp\/wp-*.php","\/wp\/wp-admin\/*","\/content\/uploads\/*","\/content\/*","\/content\/plugins\/*","\/content\/themes\/vorstin\/*","\/*\\?(.+)"]}},{"not":{"selector_matches":"a[rel~=\"nofollow\"]"}},{"not":{"selector_matches":".no-prefetch, .no-prefetch a"}}]},"eagerness":"conservative"}]}
+</script>
+                    <noscript><p><img src="https://vorstin.matomo.cloud/matomo.php?idsite=1&rec=1" style="border:0;" alt="" /></p></noscript>                
+<script type="text/javascript" defer src="https://vorstin.nl/content/themes/vorstin/dist/app/runtime-f16a67b3.js?ver=1.0.0" id="wpackio_vorstinapp_app_runtime_f16a67b3_js_script-js"></script>
+<script type="text/javascript" defer src="https://vorstin.nl/content/themes/vorstin/dist/app/vendors~main-6c76a96b.js?ver=1.0.0" id="wpackio_vorstinapp_app_vendors_main_6c76a96b_js_script-js"></script>
+<script type="text/javascript" id="wpackio_vorstinapp_app_main_dc2d728c_js_script-js-extra">
+/* <![CDATA[ */
+var customData = {"example":"example value"};
+/* ]]> */
+</script>
+<script type="text/javascript" defer src="https://vorstin.nl/content/themes/vorstin/dist/app/main-dc2d728c.js?ver=1.0.0" id="wpackio_vorstinapp_app_main_dc2d728c_js_script-js"></script>
+<script type="text/javascript" id="eagerly-tools-cookie-js-js-extra">
+/* <![CDATA[ */
+var cookieData = {"ajaxURL":"https:\/\/vorstin.nl\/wp\/wp-admin\/admin-ajax.php","siteURL":"https:\/\/vorstin.nl","ajaxAction":{"shares":"load_shares"},"themePath":"https:\/\/vorstin.nl\/content\/themes\/vorstin","pluginPath":"https:\/\/vorstin.nl\/content\/plugins\/eagerly-tools-cookie\/","currentID":"9173","forceReload":"1","initialSettings":["default"]};
+/* ]]> */
+</script>
+<script type="text/javascript" defer src="https://vorstin.nl/content/plugins/eagerly-tools-cookie/default/../dist/index.js?ver=2.1.9" id="eagerly-tools-cookie-js-js"></script>
+<script type="text/javascript" defer src="https://vorstin.nl/content/mu-plugins/eagerly-tools-cookie/client/custom-js/custom-cookie.js?ver=1.0" id="eagerly-tools-cookie-custom-js-js"></script>
+
+</body>
+</html>
+
