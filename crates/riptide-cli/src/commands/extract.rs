@@ -8,6 +8,10 @@ use std::fs;
 // Local extraction support
 use riptide_extraction::wasm_extraction::WasmExtractor;
 
+// Headless browser support
+use riptide_headless::launcher::{HeadlessLauncher, LauncherConfig};
+use riptide_headless::pool::BrowserPoolConfig;
+
 /// Extraction engine selection
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Engine {
@@ -600,9 +604,10 @@ async fn execute_local_extraction(
             return output_extraction_result(extract_result, &args, output_format, url);
         }
         Engine::Headless => {
-            output::print_warning("Headless engine not yet implemented - falling back to WASM");
-            // TODO: Implement headless browser extraction
-            // For now, fall through to WASM
+            output::print_info(
+                "Using Headless engine - launching browser for JavaScript-heavy content",
+            );
+            return execute_headless_extraction(&args, url, output_format).await;
         }
         Engine::Wasm | Engine::Auto => {
             // Continue with WASM extraction below
@@ -710,6 +715,167 @@ async fn execute_local_extraction(
     };
 
     output_extraction_result(extract_result, &args, output_format, url)
+}
+
+/// Execute headless browser extraction for JavaScript-heavy sites
+async fn execute_headless_extraction(
+    args: &ExtractArgs,
+    url: &str,
+    output_format: &str,
+) -> Result<()> {
+    use riptide_stealth::StealthPreset;
+    use std::time::Instant;
+
+    output::print_info("Initializing headless browser...");
+    let extraction_start = Instant::now();
+
+    // Determine stealth preset from CLI args
+    let stealth_preset = if let Some(ref level) = args.stealth_level {
+        match level.as_str() {
+            "none" => StealthPreset::None,
+            "low" => StealthPreset::Low,
+            "medium" => StealthPreset::Medium,
+            "high" => StealthPreset::High,
+            _ => StealthPreset::Medium,
+        }
+    } else {
+        StealthPreset::None
+    };
+
+    // Configure headless launcher with stealth and timeout settings
+    let launcher_config = LauncherConfig {
+        pool_config: BrowserPoolConfig {
+            initial_pool_size: 1,
+            min_pool_size: 1,
+            max_pool_size: 3,
+            idle_timeout: std::time::Duration::from_secs(30),
+            ..Default::default()
+        },
+        default_stealth_preset: stealth_preset.clone(),
+        enable_stealth: args.stealth_level.is_some() && stealth_preset != StealthPreset::None,
+        page_timeout: std::time::Duration::from_millis(args.headless_timeout.unwrap_or(30000)),
+        enable_monitoring: false,
+    };
+
+    // Initialize launcher
+    let launcher = HeadlessLauncher::with_config(launcher_config).await?;
+
+    // Launch browser page with stealth if configured
+    output::print_info(&format!("Navigating to: {}", url));
+    let session = launcher
+        .launch_page(url, Some(stealth_preset))
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to launch browser page: {}", e))?;
+
+    let page = session.page();
+
+    // Wait for page to fully load with timeout
+    let wait_timeout = std::time::Duration::from_millis(5000);
+    tokio::time::timeout(wait_timeout, page.wait_for_navigation())
+        .await
+        .ok(); // Ignore timeout, proceed with current state
+
+    // Additional wait for dynamic content if behavior simulation is enabled
+    if args.simulate_behavior {
+        output::print_info("Simulating user behavior...");
+
+        // Scroll down the page to trigger lazy-loaded content
+        let scroll_script = r#"
+            window.scrollTo(0, document.body.scrollHeight / 2);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            window.scrollTo(0, document.body.scrollHeight);
+        "#;
+
+        if let Err(e) = page.evaluate(scroll_script).await {
+            output::print_warning(&format!("Scroll simulation failed: {}", e));
+        }
+
+        // Wait for content to settle
+        tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+    }
+
+    // Extract HTML content
+    output::print_info("Extracting rendered HTML...");
+    let html = tokio::time::timeout(std::time::Duration::from_millis(5000), page.content())
+        .await
+        .map_err(|_| anyhow::anyhow!("HTML content extraction timed out"))?
+        .map_err(|e| anyhow::anyhow!("Failed to extract HTML content: {}", e))?;
+
+    // Get final URL after redirects
+    let final_url = page
+        .url()
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or_else(|| url.to_string());
+
+    // Shutdown launcher to clean up resources
+    launcher.shutdown().await?;
+
+    let extraction_time = extraction_start.elapsed();
+
+    // Now use WASM extractor to parse the rendered HTML
+    output::print_info("Parsing rendered content with WASM extractor...");
+
+    let wasm_path = resolve_wasm_path(args);
+    if !std::path::Path::new(&wasm_path).exists() {
+        anyhow::bail!(
+            "WASM module not found at '{}'. Headless extraction requires WASM for content parsing.",
+            wasm_path
+        );
+    }
+
+    let timeout_duration = std::time::Duration::from_millis(args.init_timeout_ms);
+    let extractor_result =
+        tokio::time::timeout(timeout_duration, WasmExtractor::new(&wasm_path)).await;
+
+    let extractor = match extractor_result {
+        Ok(Ok(ext)) => ext,
+        Ok(Err(e)) => anyhow::bail!("Failed to initialize WASM module: {}", e),
+        Err(_) => anyhow::bail!("WASM module initialization timed out"),
+    };
+
+    let mode = if args.metadata {
+        "metadata"
+    } else if args.method == "full" {
+        "full"
+    } else {
+        "article"
+    };
+
+    let result = extractor.extract(html.as_bytes(), &final_url, mode)?;
+
+    // Calculate metrics
+    let word_count = result.text.split_whitespace().count();
+    let confidence = result.quality_score.unwrap_or(0) as f64 / 100.0;
+
+    // Create response
+    let extract_result = ExtractResponse {
+        content: result.text.clone(),
+        confidence: Some(confidence),
+        method_used: Some("headless".to_string()),
+        extraction_time_ms: Some(extraction_time.as_millis() as u64),
+        metadata: Some(serde_json::json!({
+            "engine": "headless",
+            "title": result.title,
+            "byline": result.byline,
+            "published": result.published_iso,
+            "site_name": result.site_name,
+            "description": result.description,
+            "word_count": word_count,
+            "reading_time": result.reading_time,
+            "quality_score": result.quality_score,
+            "links_count": result.links.len(),
+            "media_count": result.media.len(),
+            "language": result.language,
+            "categories": result.categories,
+            "final_url": final_url,
+            "stealth_enabled": args.stealth_level.is_some(),
+            "stealth_level": args.stealth_level.as_ref().unwrap_or(&"none".to_string()),
+        })),
+    };
+
+    output_extraction_result(extract_result, args, output_format, url)
 }
 
 /// Output extraction results in the specified format

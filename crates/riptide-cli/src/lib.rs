@@ -10,3 +10,7 @@ pub mod metrics;
 pub mod output;
 pub mod session;
 pub mod validation;
+
+// PDF implementation module
+#[cfg(feature = "pdf")]
+pub mod pdf_impl;

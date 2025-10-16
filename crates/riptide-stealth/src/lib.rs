@@ -56,6 +56,9 @@ pub mod enhancements;
 pub mod behavior;
 pub mod rate_limiter;
 
+// Detection evasion and CAPTCHA detection
+pub mod detection;
+
 // Re-export main types for easy access
 pub use config::{
     load_user_agents_from_file, DomainTiming, HeaderRandomization, LocaleRandomization,
@@ -67,8 +70,8 @@ pub use config::{
 pub use evasion::StealthController;
 
 pub use fingerprint::{
-    AudioConfig, CanvasConfig, CdpStealthConfig, FingerprintingConfig, FontConfig, HardwareConfig,
-    PluginConfig, WebGlConfig, WebRtcConfig,
+    AudioConfig, BrowserFingerprint, CanvasConfig, CdpStealthConfig, FingerprintGenerator,
+    FingerprintingConfig, FontConfig, HardwareConfig, PluginConfig, WebGlConfig, WebRtcConfig,
 };
 
 pub use javascript::JavaScriptInjector;
@@ -84,6 +87,11 @@ pub use enhancements::{
 // Re-export advanced anti-detection features
 pub use behavior::{BehaviorSimulator, MousePath, Point, ScrollAction};
 pub use rate_limiter::{DomainStats, RateLimiter};
+
+// Re-export detection evasion features
+pub use detection::{
+    CaptchaDetection, CaptchaDetector, CaptchaType, DetectionEvasion, DetectionScore, RiskLevel,
+};
 
 // Tests module
 #[cfg(test)]

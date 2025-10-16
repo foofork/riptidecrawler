@@ -245,7 +245,7 @@ impl Component {
 }
 
 impl Guest for Component {
-    /// Primary extraction function with enhanced error handling and trek-rs integration
+    /// Primary extraction function with enhanced error handling and scraper integration
     fn extract(
         html: String,
         url: String,

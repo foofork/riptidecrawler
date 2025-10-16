@@ -291,3 +291,235 @@ impl Default for FontConfig {
         }
     }
 }
+
+/// Comprehensive browser fingerprint
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BrowserFingerprint {
+    /// User agent string
+    pub user_agent: String,
+
+    /// Screen resolution (width, height)
+    pub screen_resolution: (u32, u32),
+
+    /// Screen color depth
+    pub color_depth: u8,
+
+    /// Timezone offset in minutes
+    pub timezone_offset: i32,
+
+    /// Timezone name (e.g., "America/New_York")
+    pub timezone_name: String,
+
+    /// WebGL vendor
+    pub webgl_vendor: String,
+
+    /// WebGL renderer
+    pub webgl_renderer: String,
+
+    /// Platform (e.g., "Win32", "MacIntel")
+    pub platform: String,
+
+    /// Language
+    pub language: String,
+
+    /// CPU cores
+    pub hardware_concurrency: u32,
+
+    /// Device memory in GB
+    pub device_memory: u32,
+
+    /// Plugin list
+    pub plugins: Vec<String>,
+
+    /// Canvas fingerprint (hash or identifier)
+    pub canvas_hash: Option<String>,
+
+    /// Audio fingerprint (hash or identifier)
+    pub audio_hash: Option<String>,
+}
+
+impl BrowserFingerprint {
+    /// Create a new browser fingerprint with random values
+    pub fn new() -> Self {
+        FingerprintGenerator::generate()
+    }
+
+    /// Create with custom user agent
+    pub fn with_user_agent(user_agent: String) -> Self {
+        let mut fp = Self::new();
+        fp.user_agent = user_agent;
+        fp
+    }
+}
+
+impl Default for BrowserFingerprint {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Generator for realistic browser fingerprints
+pub struct FingerprintGenerator;
+
+impl FingerprintGenerator {
+    /// Generate a complete, realistic browser fingerprint
+    pub fn generate() -> BrowserFingerprint {
+        use rand::Rng;
+        let mut rng = rand::thread_rng();
+
+        // Realistic screen resolutions
+        let screen_resolutions = [
+            (1920, 1080), // Full HD
+            (1366, 768),  // Common laptop
+            (1536, 864),  // 1080p scaled
+            (2560, 1440), // 2K
+            (1440, 900),  // MacBook Air
+            (1680, 1050), // WSXGA+
+            (3840, 2160), // 4K (rare)
+        ];
+        let screen_resolution = screen_resolutions[rng.gen_range(0..screen_resolutions.len())];
+
+        // Realistic color depths
+        let color_depth = if rng.gen_bool(0.95) { 24 } else { 32 };
+
+        // Realistic timezones
+        let timezones = [
+            ("America/New_York", -300),
+            ("America/Los_Angeles", -480),
+            ("America/Chicago", -360),
+            ("Europe/London", 0),
+            ("Europe/Paris", 60),
+            ("Asia/Tokyo", 540),
+            ("Australia/Sydney", 660),
+            ("America/Denver", -420),
+        ];
+        let (timezone_name, timezone_offset) = timezones[rng.gen_range(0..timezones.len())];
+
+        // Generate realistic WebGL vendor/renderer pairs
+        let webgl_configs = WebGlConfig::default();
+        let (webgl_vendor, webgl_renderer) = webgl_configs.get_random_webgl_specs();
+
+        // Determine platform from user agent
+        let platform = if rng.gen_bool(0.6) {
+            "Win32".to_string()
+        } else if rng.gen_bool(0.7) {
+            "MacIntel".to_string()
+        } else {
+            "Linux x86_64".to_string()
+        };
+
+        // Realistic languages
+        let languages = ["en-US", "en-GB", "de-DE", "fr-FR", "es-ES", "ja-JP"];
+        let language = languages[rng.gen_range(0..languages.len())].to_string();
+
+        // Realistic hardware specs
+        let hardware_config = HardwareConfig::default();
+        let (hardware_concurrency, device_memory) = hardware_config.get_random_hardware_specs();
+
+        // Realistic plugins for Chrome
+        let plugins = PluginConfig::default().plugin_list;
+
+        // Generate a realistic user agent
+        let user_agent = Self::generate_realistic_user_agent(&platform);
+
+        BrowserFingerprint {
+            user_agent,
+            screen_resolution,
+            color_depth,
+            timezone_offset,
+            timezone_name: timezone_name.to_string(),
+            webgl_vendor,
+            webgl_renderer,
+            platform,
+            language,
+            hardware_concurrency,
+            device_memory,
+            plugins,
+            canvas_hash: None, // Optional: can be computed from canvas rendering
+            audio_hash: None,  // Optional: can be computed from audio context
+        }
+    }
+
+    /// Generate consistent headers based on fingerprint
+    pub fn generate_consistent_headers(
+        fingerprint: &BrowserFingerprint,
+    ) -> std::collections::HashMap<String, String> {
+        use crate::enhancements::HeaderConsistencyManager;
+
+        let mut headers =
+            HeaderConsistencyManager::generate_consistent_headers(&fingerprint.user_agent);
+
+        // Add locale-specific headers
+        HeaderConsistencyManager::add_locale_headers(
+            &mut headers,
+            &fingerprint.language,
+            &vec![fingerprint.language.clone()],
+        );
+
+        headers
+    }
+
+    /// Generate a realistic user agent for the platform
+    fn generate_realistic_user_agent(platform: &str) -> String {
+        use rand::Rng;
+        let mut rng = rand::thread_rng();
+
+        if platform.contains("Win") {
+            // Windows Chrome
+            let versions = ["120.0.0.0", "121.0.0.0", "119.0.0.0"];
+            let version = versions[rng.gen_range(0..versions.len())];
+            format!(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{} Safari/537.36",
+                version
+            )
+        } else if platform.contains("Mac") {
+            // macOS Chrome
+            let versions = ["120.0.0.0", "121.0.0.0", "119.0.0.0"];
+            let version = versions[rng.gen_range(0..versions.len())];
+            format!(
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{} Safari/537.36",
+                version
+            )
+        } else {
+            // Linux Chrome
+            let versions = ["120.0.0.0", "121.0.0.0", "119.0.0.0"];
+            let version = versions[rng.gen_range(0..versions.len())];
+            format!(
+                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{} Safari/537.36",
+                version
+            )
+        }
+    }
+
+    /// Generate a persistent fingerprint (consistent core attributes, varying details)
+    pub fn generate_persistent(seed: u64) -> BrowserFingerprint {
+        use rand::rngs::StdRng;
+        use rand::Rng;
+        use rand::SeedableRng;
+
+        let mut rng = StdRng::seed_from_u64(seed);
+
+        // Core attributes remain constant with the same seed
+        let screen_resolutions = [(1920, 1080), (1366, 768), (2560, 1440)];
+        let screen_resolution = screen_resolutions[rng.gen_range(0..screen_resolutions.len())];
+
+        let platform = if rng.gen_bool(0.6) {
+            "Win32".to_string()
+        } else {
+            "MacIntel".to_string()
+        };
+
+        let hardware_concurrency = [4, 8, 16][rng.gen_range(0..3)];
+        let device_memory = [8, 16][rng.gen_range(0..2)];
+
+        // Generate other attributes
+        let mut fp = Self::generate();
+        fp.screen_resolution = screen_resolution;
+        fp.platform = platform.clone();
+        fp.hardware_concurrency = hardware_concurrency;
+        fp.device_memory = device_memory;
+        fp.user_agent = Self::generate_realistic_user_agent(&platform);
+
+        fp
+    }
+}

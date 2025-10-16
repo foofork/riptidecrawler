@@ -309,15 +309,21 @@ impl AppConfig {
             .unwrap_or(false);
 
         if !spider_enabled {
+            tracing::debug!("Spider engine disabled (SPIDER_ENABLE=false)");
             return None;
         }
+
+        tracing::info!("Initializing Spider engine (SPIDER_ENABLE=true)");
 
         // Create default spider config
         let base_url =
             std::env::var("SPIDER_BASE_URL").unwrap_or_else(|_| "https://example.com".to_string());
 
         let base_url = match url::Url::parse(&base_url) {
-            Ok(url) => url,
+            Ok(url) => {
+                tracing::debug!("Spider base URL: {}", url);
+                url
+            }
             Err(e) => {
                 tracing::warn!(
                     "Invalid SPIDER_BASE_URL '{}': {}, using default",
@@ -332,46 +338,68 @@ impl AppConfig {
 
         // Override with environment variables
         if let Ok(user_agent) = std::env::var("SPIDER_USER_AGENT") {
+            tracing::debug!("Spider user agent: {}", user_agent);
             config.user_agent = user_agent;
         }
 
         if let Ok(timeout_str) = std::env::var("SPIDER_TIMEOUT_SECONDS") {
             if let Ok(timeout_secs) = timeout_str.parse::<u64>() {
+                tracing::debug!("Spider timeout: {}s", timeout_secs);
                 config.timeout = Duration::from_secs(timeout_secs);
             }
         }
 
         if let Ok(delay_str) = std::env::var("SPIDER_DELAY_MS") {
             if let Ok(delay_ms) = delay_str.parse::<u64>() {
+                tracing::debug!("Spider delay: {}ms", delay_ms);
                 config.delay = Duration::from_millis(delay_ms);
             }
         }
 
         if let Ok(concurrency_str) = std::env::var("SPIDER_CONCURRENCY") {
             if let Ok(concurrency) = concurrency_str.parse::<usize>() {
+                tracing::debug!("Spider concurrency: {}", concurrency);
                 config.concurrency = concurrency;
             }
         }
 
         if let Ok(max_depth_str) = std::env::var("SPIDER_MAX_DEPTH") {
             if let Ok(max_depth) = max_depth_str.parse::<usize>() {
+                tracing::debug!("Spider max depth: {}", max_depth);
                 config.max_depth = Some(max_depth);
             }
         }
 
         if let Ok(max_pages_str) = std::env::var("SPIDER_MAX_PAGES") {
             if let Ok(max_pages) = max_pages_str.parse::<usize>() {
+                tracing::debug!("Spider max pages: {}", max_pages);
                 config.max_pages = Some(max_pages);
             }
         }
 
         if let Ok(respect_robots_str) = std::env::var("SPIDER_RESPECT_ROBOTS") {
             if let Ok(respect_robots) = respect_robots_str.parse::<bool>() {
+                tracing::debug!("Spider respect robots.txt: {}", respect_robots);
                 config.respect_robots = respect_robots;
             }
         }
 
-        tracing::info!("Spider configuration initialized from environment variables");
+        // Validate configuration before returning
+        if let Err(e) = config.validate() {
+            tracing::error!("Invalid Spider configuration: {}", e);
+            return None;
+        }
+
+        tracing::info!(
+            max_depth = ?config.max_depth,
+            max_pages = ?config.max_pages,
+            concurrency = config.concurrency,
+            timeout_secs = config.timeout.as_secs(),
+            delay_ms = config.delay.as_millis(),
+            respect_robots = config.respect_robots,
+            "Spider configuration initialized successfully from environment variables"
+        );
+
         Some(config)
     }
 

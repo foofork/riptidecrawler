@@ -211,6 +211,10 @@ pub struct ExtractArgs {
     /// WASM initialization timeout in milliseconds
     #[arg(long, default_value = "5000")]
     pub init_timeout_ms: u64,
+
+    /// Headless browser operation timeout in milliseconds
+    #[arg(long, default_value = "30000")]
+    pub headless_timeout: Option<u64>,
 }
 
 #[derive(clap::Args)]

@@ -1,0 +1,343 @@
+# HELP riptide_active_connections Number of active connections
+# TYPE riptide_active_connections gauge
+riptide_active_connections{service="riptide-api"} 0
+# HELP riptide_cache_hit_rate Cache hit rate (0.0 to 1.0)
+# TYPE riptide_cache_hit_rate gauge
+riptide_cache_hit_rate{service="riptide-api"} 0
+# HELP riptide_errors_total Total errors
+# TYPE riptide_errors_total counter
+riptide_errors_total{service="riptide-api"} 0
+# HELP riptide_fetch_phase_duration_seconds Fetch phase duration
+# TYPE riptide_fetch_phase_duration_seconds histogram
+riptide_fetch_phase_duration_seconds_bucket{service="riptide-api",le="0.01"} 0
+riptide_fetch_phase_duration_seconds_bucket{service="riptide-api",le="0.05"} 0
+riptide_fetch_phase_duration_seconds_bucket{service="riptide-api",le="0.1"} 0
+riptide_fetch_phase_duration_seconds_bucket{service="riptide-api",le="0.25"} 0
+riptide_fetch_phase_duration_seconds_bucket{service="riptide-api",le="0.5"} 0
+riptide_fetch_phase_duration_seconds_bucket{service="riptide-api",le="1"} 0
+riptide_fetch_phase_duration_seconds_bucket{service="riptide-api",le="2"} 0
+riptide_fetch_phase_duration_seconds_bucket{service="riptide-api",le="5"} 0
+riptide_fetch_phase_duration_seconds_bucket{service="riptide-api",le="+Inf"} 0
+riptide_fetch_phase_duration_seconds_sum{service="riptide-api"} 0
+riptide_fetch_phase_duration_seconds_count{service="riptide-api"} 0
+# HELP riptide_gate_decision_duration_milliseconds Gate decision latency in milliseconds
+# TYPE riptide_gate_decision_duration_milliseconds histogram
+riptide_gate_decision_duration_milliseconds_bucket{service="riptide-api",le="0.1"} 0
+riptide_gate_decision_duration_milliseconds_bucket{service="riptide-api",le="0.5"} 0
+riptide_gate_decision_duration_milliseconds_bucket{service="riptide-api",le="1"} 0
+riptide_gate_decision_duration_milliseconds_bucket{service="riptide-api",le="2"} 0
+riptide_gate_decision_duration_milliseconds_bucket{service="riptide-api",le="5"} 0
+riptide_gate_decision_duration_milliseconds_bucket{service="riptide-api",le="10"} 0
+riptide_gate_decision_duration_milliseconds_bucket{service="riptide-api",le="25"} 0
+riptide_gate_decision_duration_milliseconds_bucket{service="riptide-api",le="50"} 0
+riptide_gate_decision_duration_milliseconds_bucket{service="riptide-api",le="100"} 0
+riptide_gate_decision_duration_milliseconds_bucket{service="riptide-api",le="+Inf"} 0
+riptide_gate_decision_duration_milliseconds_sum{service="riptide-api"} 0
+riptide_gate_decision_duration_milliseconds_count{service="riptide-api"} 0
+# HELP riptide_gate_decisions_cached_total Cached gate decisions
+# TYPE riptide_gate_decisions_cached_total counter
+riptide_gate_decisions_cached_total{service="riptide-api"} 0
+# HELP riptide_gate_decisions_headless_total Headless gate decisions
+# TYPE riptide_gate_decisions_headless_total counter
+riptide_gate_decisions_headless_total{service="riptide-api"} 0
+# HELP riptide_gate_decisions_probes_first_total Probes first gate decisions
+# TYPE riptide_gate_decisions_probes_first_total counter
+riptide_gate_decisions_probes_first_total{service="riptide-api"} 0
+# HELP riptide_gate_decisions_raw_total Raw gate decisions
+# TYPE riptide_gate_decisions_raw_total counter
+riptide_gate_decisions_raw_total{service="riptide-api"} 0
+# HELP riptide_gate_feature_script_density JavaScript to HTML size ratio
+# TYPE riptide_gate_feature_script_density histogram
+riptide_gate_feature_script_density_bucket{service="riptide-api",le="0"} 0
+riptide_gate_feature_script_density_bucket{service="riptide-api",le="0.05"} 0
+riptide_gate_feature_script_density_bucket{service="riptide-api",le="0.1"} 0
+riptide_gate_feature_script_density_bucket{service="riptide-api",le="0.2"} 0
+riptide_gate_feature_script_density_bucket{service="riptide-api",le="0.3"} 0
+riptide_gate_feature_script_density_bucket{service="riptide-api",le="0.4"} 0
+riptide_gate_feature_script_density_bucket{service="riptide-api",le="0.5"} 0
+riptide_gate_feature_script_density_bucket{service="riptide-api",le="0.75"} 0
+riptide_gate_feature_script_density_bucket{service="riptide-api",le="1"} 0
+riptide_gate_feature_script_density_bucket{service="riptide-api",le="+Inf"} 0
+riptide_gate_feature_script_density_sum{service="riptide-api"} 0
+riptide_gate_feature_script_density_count{service="riptide-api"} 0
+# HELP riptide_gate_feature_text_ratio Text to HTML size ratio
+# TYPE riptide_gate_feature_text_ratio histogram
+riptide_gate_feature_text_ratio_bucket{service="riptide-api",le="0"} 0
+riptide_gate_feature_text_ratio_bucket{service="riptide-api",le="0.05"} 0
+riptide_gate_feature_text_ratio_bucket{service="riptide-api",le="0.1"} 0
+riptide_gate_feature_text_ratio_bucket{service="riptide-api",le="0.15"} 0
+riptide_gate_feature_text_ratio_bucket{service="riptide-api",le="0.2"} 0
+riptide_gate_feature_text_ratio_bucket{service="riptide-api",le="0.3"} 0
+riptide_gate_feature_text_ratio_bucket{service="riptide-api",le="0.4"} 0
+riptide_gate_feature_text_ratio_bucket{service="riptide-api",le="0.5"} 0
+riptide_gate_feature_text_ratio_bucket{service="riptide-api",le="0.75"} 0
+riptide_gate_feature_text_ratio_bucket{service="riptide-api",le="1"} 0
+riptide_gate_feature_text_ratio_bucket{service="riptide-api",le="+Inf"} 0
+riptide_gate_feature_text_ratio_sum{service="riptide-api"} 0
+riptide_gate_feature_text_ratio_count{service="riptide-api"} 0
+# HELP riptide_gate_phase_duration_seconds Gate analysis phase duration
+# TYPE riptide_gate_phase_duration_seconds histogram
+riptide_gate_phase_duration_seconds_bucket{service="riptide-api",le="0.001"} 0
+riptide_gate_phase_duration_seconds_bucket{service="riptide-api",le="0.005"} 0
+riptide_gate_phase_duration_seconds_bucket{service="riptide-api",le="0.01"} 0
+riptide_gate_phase_duration_seconds_bucket{service="riptide-api",le="0.025"} 0
+riptide_gate_phase_duration_seconds_bucket{service="riptide-api",le="0.05"} 0
+riptide_gate_phase_duration_seconds_bucket{service="riptide-api",le="0.1"} 0
+riptide_gate_phase_duration_seconds_bucket{service="riptide-api",le="0.25"} 0
+riptide_gate_phase_duration_seconds_bucket{service="riptide-api",le="0.5"} 0
+riptide_gate_phase_duration_seconds_bucket{service="riptide-api",le="+Inf"} 0
+riptide_gate_phase_duration_seconds_sum{service="riptide-api"} 0
+riptide_gate_phase_duration_seconds_count{service="riptide-api"} 0
+# HELP riptide_gate_score Gate score distribution (0.0-1.0)
+# TYPE riptide_gate_score histogram
+riptide_gate_score_bucket{service="riptide-api",le="0"} 0
+riptide_gate_score_bucket{service="riptide-api",le="0.1"} 0
+riptide_gate_score_bucket{service="riptide-api",le="0.2"} 0
+riptide_gate_score_bucket{service="riptide-api",le="0.3"} 0
+riptide_gate_score_bucket{service="riptide-api",le="0.4"} 0
+riptide_gate_score_bucket{service="riptide-api",le="0.5"} 0
+riptide_gate_score_bucket{service="riptide-api",le="0.6"} 0
+riptide_gate_score_bucket{service="riptide-api",le="0.7"} 0
+riptide_gate_score_bucket{service="riptide-api",le="0.8"} 0
+riptide_gate_score_bucket{service="riptide-api",le="0.9"} 0
+riptide_gate_score_bucket{service="riptide-api",le="1"} 0
+riptide_gate_score_bucket{service="riptide-api",le="+Inf"} 0
+riptide_gate_score_sum{service="riptide-api"} 0
+riptide_gate_score_count{service="riptide-api"} 0
+# HELP riptide_http_errors_total HTTP errors
+# TYPE riptide_http_errors_total counter
+riptide_http_errors_total{service="riptide-api"} 0
+# HELP riptide_http_request_duration_seconds HTTP request duration
+# TYPE riptide_http_request_duration_seconds histogram
+riptide_http_request_duration_seconds_bucket{service="riptide-api",le="0.001"} 0
+riptide_http_request_duration_seconds_bucket{service="riptide-api",le="0.005"} 0
+riptide_http_request_duration_seconds_bucket{service="riptide-api",le="0.01"} 0
+riptide_http_request_duration_seconds_bucket{service="riptide-api",le="0.025"} 0
+riptide_http_request_duration_seconds_bucket{service="riptide-api",le="0.05"} 0
+riptide_http_request_duration_seconds_bucket{service="riptide-api",le="0.1"} 0
+riptide_http_request_duration_seconds_bucket{service="riptide-api",le="0.25"} 0
+riptide_http_request_duration_seconds_bucket{service="riptide-api",le="0.5"} 0
+riptide_http_request_duration_seconds_bucket{service="riptide-api",le="1"} 0
+riptide_http_request_duration_seconds_bucket{service="riptide-api",le="2.5"} 0
+riptide_http_request_duration_seconds_bucket{service="riptide-api",le="5"} 0
+riptide_http_request_duration_seconds_bucket{service="riptide-api",le="10"} 0
+riptide_http_request_duration_seconds_bucket{service="riptide-api",le="+Inf"} 0
+riptide_http_request_duration_seconds_sum{service="riptide-api"} 0
+riptide_http_request_duration_seconds_count{service="riptide-api"} 0
+# HELP riptide_http_requests_total Total number of HTTP requests
+# TYPE riptide_http_requests_total counter
+riptide_http_requests_total{service="riptide-api"} 0
+# HELP riptide_pdf_cleanup_operations Number of PDF memory cleanup operations performed
+# TYPE riptide_pdf_cleanup_operations counter
+riptide_pdf_cleanup_operations{service="riptide-api"} 0
+# HELP riptide_pdf_memory_limit_failures PDF processing failures due to memory limits
+# TYPE riptide_pdf_memory_limit_failures counter
+riptide_pdf_memory_limit_failures{service="riptide-api"} 0
+# HELP riptide_pdf_memory_spikes_handled Number of PDF memory spikes handled
+# TYPE riptide_pdf_memory_spikes_handled counter
+riptide_pdf_memory_spikes_handled{service="riptide-api"} 0
+# HELP riptide_pdf_pages_per_pdf Average pages per PDF processed
+# TYPE riptide_pdf_pages_per_pdf gauge
+riptide_pdf_pages_per_pdf{service="riptide-api"} 0
+# HELP riptide_pdf_peak_memory_mb PDF processing peak memory usage in MB
+# TYPE riptide_pdf_peak_memory_mb gauge
+riptide_pdf_peak_memory_mb{service="riptide-api"} 0
+# HELP riptide_pdf_processing_time_seconds PDF processing time in seconds
+# TYPE riptide_pdf_processing_time_seconds histogram
+riptide_pdf_processing_time_seconds_bucket{service="riptide-api",le="0.1"} 0
+riptide_pdf_processing_time_seconds_bucket{service="riptide-api",le="0.5"} 0
+riptide_pdf_processing_time_seconds_bucket{service="riptide-api",le="1"} 0
+riptide_pdf_processing_time_seconds_bucket{service="riptide-api",le="2"} 0
+riptide_pdf_processing_time_seconds_bucket{service="riptide-api",le="5"} 0
+riptide_pdf_processing_time_seconds_bucket{service="riptide-api",le="10"} 0
+riptide_pdf_processing_time_seconds_bucket{service="riptide-api",le="30"} 0
+riptide_pdf_processing_time_seconds_bucket{service="riptide-api",le="60"} 0
+riptide_pdf_processing_time_seconds_bucket{service="riptide-api",le="120"} 0
+riptide_pdf_processing_time_seconds_bucket{service="riptide-api",le="+Inf"} 0
+riptide_pdf_processing_time_seconds_sum{service="riptide-api"} 0
+riptide_pdf_processing_time_seconds_count{service="riptide-api"} 0
+# HELP riptide_pdf_total_failed Total PDF processing failures
+# TYPE riptide_pdf_total_failed counter
+riptide_pdf_total_failed{service="riptide-api"} 0
+# HELP riptide_pdf_total_processed Total PDF documents processed
+# TYPE riptide_pdf_total_processed counter
+riptide_pdf_total_processed{service="riptide-api"} 0
+# HELP riptide_pipeline_phase_extraction_milliseconds Extraction phase duration
+# TYPE riptide_pipeline_phase_extraction_milliseconds histogram
+riptide_pipeline_phase_extraction_milliseconds_bucket{service="riptide-api",le="10"} 0
+riptide_pipeline_phase_extraction_milliseconds_bucket{service="riptide-api",le="50"} 0
+riptide_pipeline_phase_extraction_milliseconds_bucket{service="riptide-api",le="100"} 0
+riptide_pipeline_phase_extraction_milliseconds_bucket{service="riptide-api",le="250"} 0
+riptide_pipeline_phase_extraction_milliseconds_bucket{service="riptide-api",le="500"} 0
+riptide_pipeline_phase_extraction_milliseconds_bucket{service="riptide-api",le="1000"} 0
+riptide_pipeline_phase_extraction_milliseconds_bucket{service="riptide-api",le="2500"} 0
+riptide_pipeline_phase_extraction_milliseconds_bucket{service="riptide-api",le="5000"} 0
+riptide_pipeline_phase_extraction_milliseconds_bucket{service="riptide-api",le="10000"} 0
+riptide_pipeline_phase_extraction_milliseconds_bucket{service="riptide-api",le="+Inf"} 0
+riptide_pipeline_phase_extraction_milliseconds_sum{service="riptide-api"} 0
+riptide_pipeline_phase_extraction_milliseconds_count{service="riptide-api"} 0
+# HELP riptide_pipeline_phase_gate_analysis_milliseconds Gate analysis phase duration
+# TYPE riptide_pipeline_phase_gate_analysis_milliseconds histogram
+riptide_pipeline_phase_gate_analysis_milliseconds_bucket{service="riptide-api",le="0.1"} 0
+riptide_pipeline_phase_gate_analysis_milliseconds_bucket{service="riptide-api",le="0.5"} 0
+riptide_pipeline_phase_gate_analysis_milliseconds_bucket{service="riptide-api",le="1"} 0
+riptide_pipeline_phase_gate_analysis_milliseconds_bucket{service="riptide-api",le="2"} 0
+riptide_pipeline_phase_gate_analysis_milliseconds_bucket{service="riptide-api",le="5"} 0
+riptide_pipeline_phase_gate_analysis_milliseconds_bucket{service="riptide-api",le="10"} 0
+riptide_pipeline_phase_gate_analysis_milliseconds_bucket{service="riptide-api",le="25"} 0
+riptide_pipeline_phase_gate_analysis_milliseconds_bucket{service="riptide-api",le="50"} 0
+riptide_pipeline_phase_gate_analysis_milliseconds_bucket{service="riptide-api",le="100"} 0
+riptide_pipeline_phase_gate_analysis_milliseconds_bucket{service="riptide-api",le="+Inf"} 0
+riptide_pipeline_phase_gate_analysis_milliseconds_sum{service="riptide-api"} 0
+riptide_pipeline_phase_gate_analysis_milliseconds_count{service="riptide-api"} 0
+# HELP riptide_redis_errors_total Redis errors
+# TYPE riptide_redis_errors_total counter
+riptide_redis_errors_total{service="riptide-api"} 0
+# HELP riptide_render_phase_duration_seconds Render phase duration
+# TYPE riptide_render_phase_duration_seconds histogram
+riptide_render_phase_duration_seconds_bucket{service="riptide-api",le="0.1"} 0
+riptide_render_phase_duration_seconds_bucket{service="riptide-api",le="0.5"} 0
+riptide_render_phase_duration_seconds_bucket{service="riptide-api",le="1"} 0
+riptide_render_phase_duration_seconds_bucket{service="riptide-api",le="2"} 0
+riptide_render_phase_duration_seconds_bucket{service="riptide-api",le="5"} 0
+riptide_render_phase_duration_seconds_bucket{service="riptide-api",le="10"} 0
+riptide_render_phase_duration_seconds_bucket{service="riptide-api",le="30"} 0
+riptide_render_phase_duration_seconds_bucket{service="riptide-api",le="60"} 0
+riptide_render_phase_duration_seconds_bucket{service="riptide-api",le="+Inf"} 0
+riptide_render_phase_duration_seconds_sum{service="riptide-api"} 0
+riptide_render_phase_duration_seconds_count{service="riptide-api"} 0
+# HELP riptide_spider_active_crawls Number of active spider crawls
+# TYPE riptide_spider_active_crawls gauge
+riptide_spider_active_crawls{service="riptide-api"} 0
+# HELP riptide_spider_crawl_duration_seconds Spider crawl operation duration
+# TYPE riptide_spider_crawl_duration_seconds histogram
+riptide_spider_crawl_duration_seconds_bucket{service="riptide-api",le="0.1"} 0
+riptide_spider_crawl_duration_seconds_bucket{service="riptide-api",le="1"} 0
+riptide_spider_crawl_duration_seconds_bucket{service="riptide-api",le="5"} 0
+riptide_spider_crawl_duration_seconds_bucket{service="riptide-api",le="15"} 0
+riptide_spider_crawl_duration_seconds_bucket{service="riptide-api",le="30"} 0
+riptide_spider_crawl_duration_seconds_bucket{service="riptide-api",le="60"} 0
+riptide_spider_crawl_duration_seconds_bucket{service="riptide-api",le="300"} 0
+riptide_spider_crawl_duration_seconds_bucket{service="riptide-api",le="900"} 0
+riptide_spider_crawl_duration_seconds_bucket{service="riptide-api",le="1800"} 0
+riptide_spider_crawl_duration_seconds_bucket{service="riptide-api",le="+Inf"} 0
+riptide_spider_crawl_duration_seconds_sum{service="riptide-api"} 0
+riptide_spider_crawl_duration_seconds_count{service="riptide-api"} 0
+# HELP riptide_spider_crawls_total Total spider crawl operations
+# TYPE riptide_spider_crawls_total counter
+riptide_spider_crawls_total{service="riptide-api"} 0
+# HELP riptide_spider_frontier_size Current spider frontier queue size
+# TYPE riptide_spider_frontier_size gauge
+riptide_spider_frontier_size{service="riptide-api"} 0
+# HELP riptide_spider_pages_crawled_total Total pages crawled by spider
+# TYPE riptide_spider_pages_crawled_total counter
+riptide_spider_pages_crawled_total{service="riptide-api"} 0
+# HELP riptide_spider_pages_failed_total Total pages failed by spider
+# TYPE riptide_spider_pages_failed_total counter
+riptide_spider_pages_failed_total{service="riptide-api"} 0
+# HELP riptide_spider_pages_per_second Spider crawl rate in pages per second
+# TYPE riptide_spider_pages_per_second gauge
+riptide_spider_pages_per_second{service="riptide-api"} 0
+# HELP riptide_streaming_active_connections Active streaming connections
+# TYPE riptide_streaming_active_connections gauge
+riptide_streaming_active_connections{service="riptide-api"} 0
+# HELP riptide_streaming_connection_duration_seconds Streaming connection duration
+# TYPE riptide_streaming_connection_duration_seconds histogram
+riptide_streaming_connection_duration_seconds_bucket{service="riptide-api",le="0.01"} 0
+riptide_streaming_connection_duration_seconds_bucket{service="riptide-api",le="0.05"} 0
+riptide_streaming_connection_duration_seconds_bucket{service="riptide-api",le="0.1"} 0
+riptide_streaming_connection_duration_seconds_bucket{service="riptide-api",le="0.25"} 0
+riptide_streaming_connection_duration_seconds_bucket{service="riptide-api",le="0.5"} 0
+riptide_streaming_connection_duration_seconds_bucket{service="riptide-api",le="1"} 0
+riptide_streaming_connection_duration_seconds_bucket{service="riptide-api",le="5"} 0
+riptide_streaming_connection_duration_seconds_bucket{service="riptide-api",le="10"} 0
+riptide_streaming_connection_duration_seconds_bucket{service="riptide-api",le="30"} 0
+riptide_streaming_connection_duration_seconds_bucket{service="riptide-api",le="60"} 0
+riptide_streaming_connection_duration_seconds_bucket{service="riptide-api",le="300"} 0
+riptide_streaming_connection_duration_seconds_bucket{service="riptide-api",le="+Inf"} 0
+riptide_streaming_connection_duration_seconds_sum{service="riptide-api"} 0
+riptide_streaming_connection_duration_seconds_count{service="riptide-api"} 0
+# HELP riptide_streaming_error_rate Streaming error rate (0.0 to 1.0)
+# TYPE riptide_streaming_error_rate gauge
+riptide_streaming_error_rate{service="riptide-api"} 0
+# HELP riptide_streaming_memory_usage_bytes Streaming memory usage in bytes
+# TYPE riptide_streaming_memory_usage_bytes gauge
+riptide_streaming_memory_usage_bytes{service="riptide-api"} 0
+# HELP riptide_streaming_messages_dropped_total Total streaming messages dropped
+# TYPE riptide_streaming_messages_dropped_total counter
+riptide_streaming_messages_dropped_total{service="riptide-api"} 0
+# HELP riptide_streaming_messages_sent_total Total streaming messages sent
+# TYPE riptide_streaming_messages_sent_total counter
+riptide_streaming_messages_sent_total{service="riptide-api"} 0
+# HELP riptide_streaming_total_connections Total streaming connections created
+# TYPE riptide_streaming_total_connections gauge
+riptide_streaming_total_connections{service="riptide-api"} 0
+# HELP riptide_wasm_aot_cache_hits_total WASM AOT cache hits
+# TYPE riptide_wasm_aot_cache_hits_total counter
+riptide_wasm_aot_cache_hits_total{service="riptide-api"} 0
+# HELP riptide_wasm_aot_cache_misses_total WASM AOT cache misses
+# TYPE riptide_wasm_aot_cache_misses_total counter
+riptide_wasm_aot_cache_misses_total{service="riptide-api"} 0
+# HELP riptide_wasm_cold_start_time_ms WASM cold start time in milliseconds
+# TYPE riptide_wasm_cold_start_time_ms gauge
+riptide_wasm_cold_start_time_ms{service="riptide-api"} 0
+# HELP riptide_wasm_errors_total WASM errors
+# TYPE riptide_wasm_errors_total counter
+riptide_wasm_errors_total{service="riptide-api"} 0
+# HELP riptide_wasm_grow_failed_total Total WASM memory growth failures
+# TYPE riptide_wasm_grow_failed_total counter
+riptide_wasm_grow_failed_total{service="riptide-api"} 0
+# HELP riptide_wasm_memory_pages Current WASM memory usage in pages (64KB each)
+# TYPE riptide_wasm_memory_pages gauge
+riptide_wasm_memory_pages{service="riptide-api"} 0
+# HELP riptide_wasm_peak_memory_pages Peak WASM memory usage in pages
+# TYPE riptide_wasm_peak_memory_pages gauge
+riptide_wasm_peak_memory_pages{service="riptide-api"} 0
+# HELP riptide_wasm_phase_duration_seconds WASM extraction phase duration
+# TYPE riptide_wasm_phase_duration_seconds histogram
+riptide_wasm_phase_duration_seconds_bucket{service="riptide-api",le="0.01"} 0
+riptide_wasm_phase_duration_seconds_bucket{service="riptide-api",le="0.05"} 0
+riptide_wasm_phase_duration_seconds_bucket{service="riptide-api",le="0.1"} 0
+riptide_wasm_phase_duration_seconds_bucket{service="riptide-api",le="0.25"} 0
+riptide_wasm_phase_duration_seconds_bucket{service="riptide-api",le="0.5"} 0
+riptide_wasm_phase_duration_seconds_bucket{service="riptide-api",le="1"} 0
+riptide_wasm_phase_duration_seconds_bucket{service="riptide-api",le="2"} 0
+riptide_wasm_phase_duration_seconds_bucket{service="riptide-api",le="5"} 0
+riptide_wasm_phase_duration_seconds_bucket{service="riptide-api",le="+Inf"} 0
+riptide_wasm_phase_duration_seconds_sum{service="riptide-api"} 0
+riptide_wasm_phase_duration_seconds_count{service="riptide-api"} 0
+# HELP riptide_worker_jobs_completed_total Total number of jobs completed by workers
+# TYPE riptide_worker_jobs_completed_total counter
+riptide_worker_jobs_completed_total{service="riptide-api"} 0
+# HELP riptide_worker_jobs_failed_total Total number of failed worker jobs
+# TYPE riptide_worker_jobs_failed_total counter
+riptide_worker_jobs_failed_total{service="riptide-api"} 0
+# HELP riptide_worker_jobs_retried_total Total number of retried worker jobs
+# TYPE riptide_worker_jobs_retried_total counter
+riptide_worker_jobs_retried_total{service="riptide-api"} 0
+# HELP riptide_worker_jobs_submitted_total Total number of jobs submitted to workers
+# TYPE riptide_worker_jobs_submitted_total counter
+riptide_worker_jobs_submitted_total{service="riptide-api"} 0
+# HELP riptide_worker_pool_healthy Number of healthy workers in pool
+# TYPE riptide_worker_pool_healthy gauge
+riptide_worker_pool_healthy{service="riptide-api"} 0
+# HELP riptide_worker_pool_size Total number of workers in pool
+# TYPE riptide_worker_pool_size gauge
+riptide_worker_pool_size{service="riptide-api"} 0
+# HELP riptide_worker_processing_time_seconds Worker job processing time in seconds
+# TYPE riptide_worker_processing_time_seconds histogram
+riptide_worker_processing_time_seconds_bucket{service="riptide-api",le="0.1"} 0
+riptide_worker_processing_time_seconds_bucket{service="riptide-api",le="0.5"} 0
+riptide_worker_processing_time_seconds_bucket{service="riptide-api",le="1"} 0
+riptide_worker_processing_time_seconds_bucket{service="riptide-api",le="2"} 0
+riptide_worker_processing_time_seconds_bucket{service="riptide-api",le="5"} 0
+riptide_worker_processing_time_seconds_bucket{service="riptide-api",le="10"} 0
+riptide_worker_processing_time_seconds_bucket{service="riptide-api",le="30"} 0
+riptide_worker_processing_time_seconds_bucket{service="riptide-api",le="60"} 0
+riptide_worker_processing_time_seconds_bucket{service="riptide-api",le="120"} 0
+riptide_worker_processing_time_seconds_bucket{service="riptide-api",le="+Inf"} 0
+riptide_worker_processing_time_seconds_sum{service="riptide-api"} 0
+riptide_worker_processing_time_seconds_count{service="riptide-api"} 0
+# HELP riptide_worker_queue_depth Total number of jobs in worker queues
+# TYPE riptide_worker_queue_depth gauge
+riptide_worker_queue_depth{service="riptide-api"} 0

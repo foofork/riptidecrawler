@@ -26,6 +26,7 @@ uuid = { workspace = true }
 
 # PDF processing
 pdfium-render = { workspace = true, optional = true }
+lopdf = { version = "0.34", optional = true }
 
 # Performance and monitoring
 sysinfo = { workspace = true }
@@ -46,6 +47,6 @@ tokio-stream = { version = "0.1", features = ["sync"] }
 
 [features]
 default = ["pdf"]
-pdf = ["pdfium-render"]
+pdf = ["pdfium-render", "lopdf"]
 benchmarks = []
 

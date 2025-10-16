@@ -16,10 +16,30 @@ struct CrawlRequest {
 
 #[derive(Deserialize, Serialize)]
 struct CrawlResponse {
-    pages_crawled: u32,
+    #[serde(default)]
+    pages_crawled: Option<u64>,
+    #[serde(default)]
+    total_urls: Option<usize>,
+    #[serde(default)]
+    successful: Option<usize>,
+    #[serde(default)]
+    failed: Option<usize>,
+    #[serde(default)]
     total_time_ms: u64,
     #[serde(default)]
     pages: Vec<PageResult>,
+    #[serde(default)]
+    results: Vec<CrawlResultItem>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct CrawlResultItem {
+    url: String,
+    status: u16,
+    #[serde(default)]
+    from_cache: bool,
+    #[serde(default)]
+    gate_decision: String,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -66,17 +86,23 @@ pub async fn execute(client: RipTideClient, args: CrawlArgs, output_format: &str
 
     pb.finish_with_message("Crawl completed");
 
+    // Determine the actual number of pages crawled (supports both API formats)
+    let pages_count = result
+        .pages_crawled
+        .or(result.successful.map(|s| s as u64))
+        .unwrap_or(result.pages.len() as u64 + result.results.len() as u64);
+
     // Record metrics
     let total_bytes: u64 = result.pages.iter().map(|p| p.content_length as u64).sum();
     metrics_manager
-        .record_progress(&tracking_id, result.pages_crawled as u64, total_bytes, 0, 1)
+        .record_progress(&tracking_id, pages_count, total_bytes, 0, 1)
         .await?;
     metrics_manager
         .collector()
         .record_metric("crawl.api.latency_ms", api_latency.as_millis() as f64)?;
     metrics_manager
         .collector()
-        .record_metric("crawl.pages", result.pages_crawled as f64)?;
+        .record_metric("crawl.pages", pages_count as f64)?;
     metrics_manager
         .collector()
         .record_metric("crawl.duration_ms", result.total_time_ms as f64)?;
@@ -86,9 +112,10 @@ pub async fn execute(client: RipTideClient, args: CrawlArgs, output_format: &str
         "table" => {
             output::print_success(&format!(
                 "Crawled {} pages in {}ms",
-                result.pages_crawled, result.total_time_ms
+                pages_count, result.total_time_ms
             ));
 
+            // Display results from either format
             if !result.pages.is_empty() {
                 let mut table = output::create_table(vec!["URL", "Status", "Size"]);
                 for page in &result.pages {
@@ -99,23 +126,44 @@ pub async fn execute(client: RipTideClient, args: CrawlArgs, output_format: &str
                     ]);
                 }
                 println!("{table}");
+            } else if !result.results.is_empty() {
+                let mut table =
+                    output::create_table(vec!["URL", "Status", "From Cache", "Decision"]);
+                for item in &result.results {
+                    table.add_row(vec![
+                        &item.url,
+                        &item.status.to_string(),
+                        if item.from_cache { "Yes" } else { "No" },
+                        &item.gate_decision,
+                    ]);
+                }
+                println!("{table}");
             }
         }
         _ => {
             output::print_success(&format!(
                 "Crawled {} pages in {}ms",
-                result.pages_crawled, result.total_time_ms
+                pages_count, result.total_time_ms
             ));
 
             if let Some(output_dir) = args.output_dir {
                 fs::create_dir_all(&output_dir)?;
                 output::print_info(&format!("Saving results to: {}", output_dir));
-                // Save crawl results to files
-                for (idx, page) in result.pages.iter().enumerate() {
-                    let filename = format!("{}/page_{}.txt", output_dir, idx + 1);
-                    fs::write(&filename, &page.url)?;
+
+                // Save crawl results to files (support both formats)
+                if !result.pages.is_empty() {
+                    for (idx, page) in result.pages.iter().enumerate() {
+                        let filename = format!("{}/page_{}.txt", output_dir, idx + 1);
+                        fs::write(&filename, &page.url)?;
+                    }
+                    output::print_success(&format!("Saved {} pages", result.pages.len()));
+                } else if !result.results.is_empty() {
+                    for (idx, item) in result.results.iter().enumerate() {
+                        let filename = format!("{}/page_{}.txt", output_dir, idx + 1);
+                        fs::write(&filename, &item.url)?;
+                    }
+                    output::print_success(&format!("Saved {} pages", result.results.len()));
                 }
-                output::print_success(&format!("Saved {} pages", result.pages.len()));
             }
         }
     }

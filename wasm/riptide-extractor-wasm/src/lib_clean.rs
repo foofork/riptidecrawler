@@ -111,7 +111,7 @@ fn get_git_commit() -> &'static str {
 struct Component;
 
 impl Guest for Component {
-    /// Primary extraction function with enhanced error handling and trek-rs integration
+    /// Primary extraction function with enhanced error handling and extractor integration
     fn extract(
         html: String,
         url: String,
@@ -137,7 +137,7 @@ impl Guest for Component {
             ));
         }
 
-        // Perform extraction with trek-rs
+        // Perform extraction with extractor engine
         perform_extraction_with_trek(&html, &url, &mode)
     }
 
@@ -212,7 +212,7 @@ impl Guest for Component {
                 "full-page-extraction".to_string(),
                 "metadata-extraction".to_string(),
                 "custom-selectors".to_string(),
-                "trek-rs-integration".to_string(),
+                "extractor-integration".to_string(),
             ],
             supported_modes: get_supported_modes(),
             build_timestamp: Some(get_build_timestamp().to_string()),
@@ -243,7 +243,7 @@ impl Guest for Component {
     }
 }
 
-/// Perform content extraction with trek-rs integration
+/// Perform content extraction with extractor engine integration
 fn perform_extraction_with_trek(
     html: &str,
     url: &str,
@@ -261,7 +261,7 @@ fn perform_extraction_with_trek(
         }
     };
 
-    // Perform extraction using trek-rs
+    // Perform extraction using extractor engine
     let response = match extractor.parse(html) {
         Ok(response) => response,
         Err(trek_error) => {
@@ -271,11 +271,11 @@ fn perform_extraction_with_trek(
         }
     };
 
-    // Convert trek-rs result to Component Model format
+    // Convert extractor result to Component Model format
     convert_response_to_content(response, url, html, mode)
 }
 
-/// Convert trek-rs TrekResponse to Component Model ExtractedContent
+/// Convert TrekResponse to Component Model ExtractedContent
 fn convert_response_to_content(
     response: TrekResponse,
     url: &str,

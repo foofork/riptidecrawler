@@ -30,12 +30,12 @@ fn test_stealth_controller_api() {
     assert!(!ua3.is_empty());
     assert!(!ua4.is_empty());
 
-    // Test header generation
+    // Test header generation (HeaderConsistencyManager uses lowercase)
     let headers = high_stealth.generate_headers();
     assert!(headers.len() >= 3);
-    assert!(headers.contains_key("Accept"));
-    assert!(headers.contains_key("Accept-Language"));
-    assert!(headers.contains_key("Accept-Encoding"));
+    assert!(headers.contains_key("accept") || headers.contains_key("Accept"));
+    assert!(headers.contains_key("accept-language") || headers.contains_key("Accept-Language"));
+    assert!(headers.contains_key("accept-encoding") || headers.contains_key("Accept-Encoding"));
 
     // Test JavaScript generation
     let js_code = high_stealth.get_stealth_js();

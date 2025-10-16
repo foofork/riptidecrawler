@@ -1,5 +1,5 @@
 /// Calculate basic content quality score (0-100)
-/// This is a simplified version without trek-rs dependency
+/// This is a scraper-based implementation
 pub fn calculate_basic_quality_score(
     title_len: usize,
     content_len: usize,
@@ -64,7 +64,7 @@ pub fn count_words(text: &str) -> u32 {
     text.split_whitespace().count() as u32
 }
 
-/// Get extractor version (scraper-based, not trek-rs)
+/// Get extractor version (scraper-based extraction engine)
 pub fn get_extractor_version() -> String {
     "scraper-0.20".to_string()
 }

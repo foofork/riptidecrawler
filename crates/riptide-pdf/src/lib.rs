@@ -46,6 +46,10 @@ pub mod processor;
 pub mod types;
 pub mod utils;
 
+// PDF extraction module
+#[cfg(feature = "pdf")]
+pub mod pdf_extraction;
+
 // Conditional modules
 #[cfg(test)]
 pub mod tests;
@@ -67,6 +71,12 @@ pub use types::{
     StructuredContent,
 };
 pub use utils::{detect_pdf_by_extension, detect_pdf_by_magic_bytes, detect_pdf_content};
+
+// Re-export PDF extraction types
+#[cfg(feature = "pdf")]
+pub use pdf_extraction::{
+    ExtractedTable, PageContent, PdfContent, PdfDocMetadata, PdfExtractor, TablePosition,
+};
 
 // Conditionally export processor implementations
 #[cfg(feature = "pdf")]

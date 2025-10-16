@@ -35,11 +35,11 @@ async fn test_stealth_controller_complete_lifecycle() {
     let headers1 = controller.generate_headers();
     let headers2 = controller.generate_headers();
 
-    // Should always have basic headers
-    assert!(headers1.contains_key("Accept"));
-    assert!(headers1.contains_key("Accept-Language"));
-    assert!(headers1.contains_key("Accept-Encoding"));
-    assert!(headers2.contains_key("Accept"));
+    // Should always have basic headers (HeaderConsistencyManager uses lowercase)
+    assert!(headers1.contains_key("accept") || headers1.contains_key("Accept"));
+    assert!(headers1.contains_key("accept-language") || headers1.contains_key("Accept-Language"));
+    assert!(headers1.contains_key("accept-encoding") || headers1.contains_key("Accept-Encoding"));
+    assert!(headers2.contains_key("accept") || headers2.contains_key("Accept"));
 
     // Test viewport generation
     let mut viewports = HashSet::new();

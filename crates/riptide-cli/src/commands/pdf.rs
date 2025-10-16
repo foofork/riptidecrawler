@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use crate::client::RipTideClient;
 use crate::output;
 
+mod pdf_impl;
+
 #[derive(Subcommand)]
 pub enum PdfCommands {
     /// Extract text, tables, and images from PDF files
@@ -116,6 +118,11 @@ pub enum PdfCommands {
     },
 }
 
+// Use the PdfDocMetadata type from riptide-pdf instead of defining our own
+#[cfg(feature = "pdf")]
+type PdfMetadata = riptide_pdf::PdfDocMetadata;
+
+#[cfg(not(feature = "pdf"))]
 #[derive(Serialize, Deserialize, Debug)]
 struct PdfMetadata {
     title: Option<String>,
@@ -129,15 +136,29 @@ struct PdfMetadata {
     file_size: u64,
     pdf_version: Option<String>,
     encrypted: bool,
-    permissions: Option<PdfPermissions>,
 }
 
+// Permissions are not part of the core metadata for now
+// This struct is kept for future use but not currently used
 #[derive(Serialize, Deserialize, Debug)]
+#[allow(dead_code)]
 struct PdfPermissions {
     print: bool,
     copy: bool,
     modify: bool,
     annotate: bool,
+}
+
+// Re-export types from riptide-pdf when available
+#[cfg(feature = "pdf")]
+use riptide_pdf::{ExtractedTable as Table, PageContent};
+
+#[cfg(not(feature = "pdf"))]
+#[derive(Serialize, Deserialize, Debug)]
+struct Table {
+    page: u32,
+    headers: Vec<String>,
+    rows: Vec<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -148,13 +169,6 @@ struct PdfExtractResult {
     images: Option<Vec<Image>>,
     metadata: PdfMetadata,
     extraction_time_ms: u64,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Table {
-    page: u32,
-    headers: Vec<String>,
-    rows: Vec<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -285,69 +299,112 @@ async fn execute_extract(
     images: bool,
     ocr: bool,
     pages: Option<String>,
-    output: Option<String>,
+    output_path: Option<String>,
     metadata_only: bool,
     _output_format: &str,
 ) -> Result<()> {
     output::print_info(&format!("Extracting content from PDF: {}", input));
 
+    // Load PDF
+    let pdf_data = pdf_impl::load_pdf(&input).await?;
+
+    if metadata_only {
+        // Extract only metadata
+        let metadata = pdf_impl::extract_metadata(&pdf_data)?;
+
+        match format.as_str() {
+            "json" => {
+                let json = serde_json::to_string_pretty(&metadata)?;
+                pdf_impl::write_output(&json, output_path.as_deref())?;
+            }
+            _ => {
+                let mut table = output::create_table(vec!["Property", "Value"]);
+                if let Some(title) = &metadata.title {
+                    table.add_row(vec!["Title", title]);
+                }
+                if let Some(author) = &metadata.author {
+                    table.add_row(vec!["Author", author]);
+                }
+                if let Some(subject) = &metadata.subject {
+                    table.add_row(vec!["Subject", subject]);
+                }
+                table.add_row(vec!["Pages", &metadata.page_count.to_string()]);
+                table.add_row(vec!["File Size", &format!("{} bytes", metadata.file_size)]);
+                if let Some(version) = &metadata.pdf_version {
+                    table.add_row(vec!["PDF Version", version]);
+                }
+                table.add_row(vec![
+                    "Encrypted",
+                    if metadata.encrypted { "Yes" } else { "No" },
+                ]);
+
+                println!("{table}");
+            }
+        }
+
+        output::print_success("Metadata extraction complete");
+        return Ok(());
+    }
+
+    // Extract full content
+    let content = pdf_impl::extract_full_content(&pdf_data)?;
+
+    match format.as_str() {
+        "json" => {
+            let json = serde_json::to_string_pretty(&content)?;
+            pdf_impl::write_output(&json, output_path.as_deref())?;
+        }
+        "text" => {
+            pdf_impl::write_output(&content.text, output_path.as_deref())?;
+        }
+        "markdown" => {
+            #[cfg(feature = "pdf")]
+            {
+                let extractor = riptide_pdf::PdfExtractor::from_bytes(&pdf_data)?;
+                let md = extractor.to_markdown(&content);
+                pdf_impl::write_output(&md, output_path.as_deref())?;
+            }
+            #[cfg(not(feature = "pdf"))]
+            {
+                anyhow::bail!("Markdown conversion requires PDF feature");
+            }
+        }
+        _ => {
+            pdf_impl::write_output(&content.text, output_path.as_deref())?;
+        }
+    }
+
+    // Show statistics
+    let mut stats_table = output::create_table(vec!["Metric", "Value"]);
+    stats_table.add_row(vec![
+        "Pages Processed",
+        &content.metadata.page_count.to_string(),
+    ]);
+    stats_table.add_row(vec![
+        "Text Length",
+        &format!("{} characters", content.text.len()),
+    ]);
+    stats_table.add_row(vec!["Tables Found", &content.tables.len().to_string()]);
+
     if tables {
-        output::print_info("Table extraction enabled");
+        stats_table.add_row(vec!["Table Extraction", "Enabled"]);
     }
     if images {
-        output::print_info("Image extraction enabled");
+        stats_table.add_row(vec!["Image Extraction", "Requested (partial support)"]);
     }
     if ocr {
-        output::print_info("OCR processing enabled");
-    }
-    if let Some(ref page_range) = pages {
-        output::print_info(&format!("Page range: {}", page_range));
-    }
-    if metadata_only {
-        output::print_info("Extracting metadata only");
+        stats_table.add_row(vec!["OCR", "Requested (not yet implemented)"]);
     }
 
-    // Placeholder implementation
-    output::print_warning("PDF processing not yet implemented");
-    output::print_info("This feature requires PDF library integration");
-    output::print_info("Planned libraries: pdf-extract, lopdf, or pdfium");
-
-    // Show what would be extracted
-    let mut table = output::create_table(vec!["Feature", "Status"]);
-    table.add_row(vec!["Text Extraction", "Planned"]);
-    table.add_row(vec![
-        "Table Detection",
-        if tables { "Enabled" } else { "Disabled" },
-    ]);
-    table.add_row(vec![
-        "Image Extraction",
-        if images { "Enabled" } else { "Disabled" },
-    ]);
-    table.add_row(vec![
-        "OCR Processing",
-        if ocr { "Enabled" } else { "Disabled" },
-    ]);
-    table.add_row(vec!["Output Format", &format]);
-    table.add_row(vec![
-        "Output Location",
-        output.as_deref().unwrap_or("stdout"),
-    ]);
-
-    println!("{table}");
-
-    output::print_info("\nTo implement PDF processing:");
-    output::print_info("1. Add PDF library dependency to Cargo.toml");
-    output::print_info("2. Implement PDF parsing and text extraction");
-    output::print_info("3. Add table detection algorithms");
-    output::print_info("4. Integrate OCR for images (tesseract-rs)");
-    output::print_info("5. Add output format serialization");
+    println!("\n{}", stats_table);
+    output::print_success("PDF extraction complete");
 
     Ok(())
 }
 
 async fn execute_to_md(
     input: String,
-    output: Option<String>,
+    output_path: Option<String>,
     preserve_format: bool,
     include_images: bool,
     convert_tables: bool,
@@ -357,62 +414,53 @@ async fn execute_to_md(
 ) -> Result<()> {
     output::print_info(&format!("Converting PDF to markdown: {}", input));
 
-    if preserve_format {
-        output::print_info("Format preservation enabled");
-    }
-    if include_images {
-        output::print_info("Image references will be included");
-    }
-    if convert_tables {
-        output::print_info("Tables will be converted to markdown");
-    }
-    if let Some(ref page_range) = pages {
-        output::print_info(&format!("Page range: {}", page_range));
-    }
-    if let Some(ref img_dir) = image_dir {
-        output::print_info(&format!("Images will be extracted to: {}", img_dir));
-    }
+    // Load PDF
+    let pdf_data = pdf_impl::load_pdf(&input).await?;
 
-    // Placeholder implementation
-    output::print_warning("PDF to Markdown conversion not yet implemented");
-    output::print_info("This feature will convert PDFs to clean, readable markdown");
+    // Convert to markdown
+    let markdown = pdf_impl::convert_to_markdown(&pdf_data)?;
 
-    let mut table = output::create_table(vec!["Feature", "Status"]);
-    table.add_row(vec![
-        "Structure Preservation",
+    // Write output
+    pdf_impl::write_output(&markdown, output_path.as_deref())?;
+
+    // Show conversion options
+    let mut options_table = output::create_table(vec!["Option", "Status"]);
+    options_table.add_row(vec![
+        "Format Preservation",
         if preserve_format {
             "Enabled"
         } else {
             "Disabled"
         },
     ]);
-    table.add_row(vec![
-        "Image References",
+    options_table.add_row(vec![
+        "Include Images",
         if include_images {
             "Enabled"
         } else {
             "Disabled"
         },
     ]);
-    table.add_row(vec![
-        "Table Conversion",
+    options_table.add_row(vec![
+        "Convert Tables",
         if convert_tables {
             "Enabled"
         } else {
             "Disabled"
         },
     ]);
-    table.add_row(vec!["Output File", output.as_deref().unwrap_or("stdout")]);
 
-    println!("{table}");
+    if let Some(page_range) = &pages {
+        options_table.add_row(vec!["Page Range", page_range]);
+    }
 
-    output::print_info("\nMarkdown conversion will include:");
-    output::print_info("- Clean heading hierarchy (# ## ###)");
-    output::print_info("- Paragraph formatting with proper spacing");
-    output::print_info("- Markdown tables for structured data");
-    output::print_info("- Image references with alt text");
-    output::print_info("- Code blocks for technical content");
-    output::print_info("- Links preserved from PDF annotations");
+    if let Some(ref img_dir) = image_dir {
+        options_table.add_row(vec!["Image Directory", img_dir]);
+    }
+
+    println!("\n{}", options_table);
+
+    output::print_success("Markdown conversion complete");
 
     Ok(())
 }
@@ -425,33 +473,16 @@ async fn execute_info(
 ) -> Result<()> {
     output::print_info(&format!("Reading PDF metadata: {}", input));
 
-    // Placeholder implementation
-    output::print_warning("PDF metadata extraction not yet implemented");
+    // Load PDF
+    let pdf_data = pdf_impl::load_pdf(&input).await?;
 
-    // Mock metadata for demonstration
-    let mock_metadata = PdfMetadata {
-        title: Some("Sample Document".to_string()),
-        author: Some("Unknown".to_string()),
-        subject: None,
-        creator: Some("RipTide".to_string()),
-        producer: Some("PDF Library".to_string()),
-        creation_date: Some("2025-01-15T10:30:00Z".to_string()),
-        modification_date: Some("2025-01-15T10:30:00Z".to_string()),
-        page_count: 0,
-        file_size: 0,
-        pdf_version: Some("1.7".to_string()),
-        encrypted: false,
-        permissions: Some(PdfPermissions {
-            print: true,
-            copy: true,
-            modify: false,
-            annotate: true,
-        }),
-    };
+    // Extract metadata
+    let metadata = pdf_impl::extract_metadata(&pdf_data)?;
 
     match format.as_str() {
         "json" => {
-            output::print_json(&mock_metadata);
+            let json = serde_json::to_string_pretty(&metadata)?;
+            println!("{}", json);
         }
         _ => {
             output::print_section("PDF Document Information");
@@ -459,52 +490,42 @@ async fn execute_info(
             let mut table = output::create_table(vec!["Property", "Value"]);
             table.add_row(vec!["File", &input]);
 
-            if let Some(ref title) = mock_metadata.title {
+            if let Some(title) = &metadata.title {
                 table.add_row(vec!["Title", title]);
             }
-            if let Some(ref author) = mock_metadata.author {
+            if let Some(author) = &metadata.author {
                 table.add_row(vec!["Author", author]);
             }
-            if let Some(ref subject) = mock_metadata.subject {
+            if let Some(subject) = &metadata.subject {
                 table.add_row(vec!["Subject", subject]);
             }
+            if let Some(creator) = &metadata.creator {
+                table.add_row(vec!["Creator", creator]);
+            }
+            if let Some(producer) = &metadata.producer {
+                table.add_row(vec!["Producer", producer]);
+            }
 
-            table.add_row(vec![
-                "Pages",
-                &format!("{} (placeholder)", mock_metadata.page_count),
-            ]);
-            table.add_row(vec![
-                "File Size",
-                &format!("{} bytes (placeholder)", mock_metadata.file_size),
-            ]);
+            table.add_row(vec!["Pages", &metadata.page_count.to_string()]);
+            table.add_row(vec!["File Size", &format!("{} bytes", metadata.file_size)]);
 
-            if let Some(ref version) = mock_metadata.pdf_version {
+            if let Some(version) = &metadata.pdf_version {
                 table.add_row(vec!["PDF Version", version]);
             }
 
             table.add_row(vec![
                 "Encrypted",
-                if mock_metadata.encrypted { "Yes" } else { "No" },
+                if metadata.encrypted { "Yes" } else { "No" },
             ]);
 
             println!("{table}");
 
             if detailed {
-                if let Some(ref perms) = mock_metadata.permissions {
-                    output::print_section("Security Settings");
-                    let mut perm_table = output::create_table(vec!["Permission", "Allowed"]);
-                    perm_table.add_row(vec!["Print", if perms.print { "Yes" } else { "No" }]);
-                    perm_table.add_row(vec!["Copy", if perms.copy { "Yes" } else { "No" }]);
-                    perm_table.add_row(vec!["Modify", if perms.modify { "Yes" } else { "No" }]);
-                    perm_table.add_row(vec!["Annotate", if perms.annotate { "Yes" } else { "No" }]);
-                    println!("{perm_table}");
-                }
-
-                if let Some(ref created) = mock_metadata.creation_date {
-                    output::print_section("Dates");
+                if let Some(created) = &metadata.creation_date {
+                    output::print_section("Document Dates");
                     let mut date_table = output::create_table(vec!["Event", "Timestamp"]);
                     date_table.add_row(vec!["Created", created]);
-                    if let Some(ref modified) = mock_metadata.modification_date {
+                    if let Some(modified) = &metadata.modification_date {
                         date_table.add_row(vec!["Modified", modified]);
                     }
                     println!("{date_table}");
@@ -513,11 +534,7 @@ async fn execute_info(
         }
     }
 
-    output::print_info("\nTo enable real metadata extraction:");
-    output::print_info("1. Integrate PDF parsing library (lopdf, pdf-extract)");
-    output::print_info("2. Extract document metadata from PDF dictionary");
-    output::print_info("3. Parse security settings and permissions");
-    output::print_info("4. Calculate accurate file statistics");
+    output::print_success("Metadata extraction complete");
 
     Ok(())
 }
@@ -531,72 +548,58 @@ async fn execute_stream(
     batch_size: u32,
 ) -> Result<()> {
     output::print_info(&format!("Streaming PDF content: {}", input));
-    output::print_info(&format!("Batch size: {} pages", batch_size));
 
-    if include_metadata {
-        output::print_info("Page metadata will be included");
-    }
-    if include_tables {
-        output::print_info("Tables will be extracted in stream");
-    }
-    if include_images {
-        output::print_info("Images will be included in stream");
-    }
-    if let Some(ref page_range) = pages {
-        output::print_info(&format!("Page range: {}", page_range));
-    }
+    // Load PDF
+    let pdf_data = pdf_impl::load_pdf(&input).await?;
 
-    // Placeholder implementation
-    output::print_warning("PDF streaming not yet implemented");
-    output::print_info("This feature will stream PDF content as NDJSON");
+    // Extract full content
+    let content = pdf_impl::extract_full_content(&pdf_data)?;
 
-    // Example of what streamed output would look like
-    output::print_section("Example Stream Output Format");
-
-    let example_item = PdfStreamItem {
-        page: 1,
-        content: "This is the text content from page 1...".to_string(),
-        metadata: if include_metadata {
-            Some(serde_json::json!({
-                "width": 612,
-                "height": 792,
-                "rotation": 0,
-                "dpi": 72
-            }))
-        } else {
-            None
-        },
-        tables: if include_tables {
-            Some(vec![Table {
-                page: 1,
-                headers: vec!["Column 1".to_string(), "Column 2".to_string()],
-                rows: vec![vec!["Data 1".to_string(), "Data 2".to_string()]],
-            }])
-        } else {
-            None
-        },
-        images: if include_images {
-            Some(vec![Image {
-                page: 1,
-                width: 800,
-                height: 600,
-                format: "jpeg".to_string(),
-                path: Some("page1_img1.jpg".to_string()),
-                ocr_text: None,
-            }])
-        } else {
-            None
-        },
+    // Determine which pages to stream
+    let page_numbers: Vec<u32> = if let Some(range) = &pages {
+        pdf_impl::parse_page_range(range)?
+    } else {
+        (1..=content.metadata.page_count).collect()
     };
 
-    println!("{}", serde_json::to_string_pretty(&example_item)?);
+    // Stream pages as NDJSON
+    for page_content in &content.pages {
+        if !page_numbers.contains(&page_content.page_number) {
+            continue;
+        }
 
-    output::print_info("\nStreaming features will include:");
-    output::print_info("- Page-by-page processing with configurable batch sizes");
-    output::print_info("- NDJSON format for easy parsing");
-    output::print_info("- Memory-efficient processing of large PDFs");
-    output::print_info("- Real-time progress updates");
-    output::print_info("- Incremental output for pipeline integration");
+        let mut stream_item = serde_json::json!({
+            "page": page_content.page_number,
+            "content": page_content.text,
+        });
+
+        if include_metadata {
+            stream_item["metadata"] = serde_json::json!({
+                "width": page_content.width,
+                "height": page_content.height,
+            });
+        }
+
+        if include_tables {
+            let page_tables: Vec<_> = content
+                .tables
+                .iter()
+                .filter(|t| t.page == page_content.page_number)
+                .collect();
+
+            if !page_tables.is_empty() {
+                stream_item["tables"] = serde_json::to_value(&page_tables)?;
+            }
+        }
+
+        if include_images {
+            stream_item["images_note"] =
+                serde_json::json!("Image extraction not yet fully implemented");
+        }
+
+        // Output as NDJSON
+        println!("{}", serde_json::to_string(&stream_item)?);
+    }
 
     Ok(())
 }

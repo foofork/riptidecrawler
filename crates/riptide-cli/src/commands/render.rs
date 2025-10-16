@@ -5,6 +5,10 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 
+// Headless browser support
+use riptide_headless::launcher::{HeadlessLauncher, LauncherConfig};
+use riptide_headless::pool::BrowserPoolConfig;
+
 /// Wait condition for page loading
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WaitCondition {
@@ -319,9 +323,9 @@ pub async fn execute(args: RenderArgs, output_format: &str) -> Result<()> {
 
 /// Check if headless browser rendering is available
 fn is_headless_available() -> bool {
-    // TODO: Implement actual headless browser detection
-    // For now, return false to use fallback
-    false
+    // Headless browser is always available via riptide-headless crate
+    // We only fall back if there's an error during initialization
+    true
 }
 
 /// Result of rendering operation
@@ -335,18 +339,291 @@ struct RenderOutput {
 /// Execute rendering with headless browser
 async fn execute_headless_render(
     args: &RenderArgs,
-    _wait_condition: &WaitCondition,
-    _screenshot_mode: ScreenshotMode,
-    _stealth_preset: StealthPreset,
+    wait_condition: &WaitCondition,
+    screenshot_mode: ScreenshotMode,
+    stealth_preset: StealthPreset,
     file_prefix: &str,
 ) -> Result<RenderOutput> {
-    // TODO: Implement headless browser rendering
-    // This would use chromiumoxide or similar for browser automation
+    use std::time::Instant;
 
-    output::print_warning("Headless browser rendering not yet implemented");
-    output::print_info("Falling back to HTTP-based rendering");
+    let start_time = Instant::now();
+    let mut files_saved = Vec::new();
 
-    execute_fallback_render(args, file_prefix).await
+    output::print_info("Initializing headless browser launcher...");
+
+    // Configure headless launcher with stealth and timeout settings
+    let launcher_config = LauncherConfig {
+        pool_config: BrowserPoolConfig {
+            initial_pool_size: 1,
+            min_pool_size: 1,
+            max_pool_size: 3,
+            idle_timeout: std::time::Duration::from_secs(30),
+            ..Default::default()
+        },
+        default_stealth_preset: stealth_preset.clone(),
+        enable_stealth: stealth_preset != StealthPreset::None,
+        page_timeout: std::time::Duration::from_secs(30),
+        enable_monitoring: false,
+    };
+
+    // Initialize launcher
+    let launcher = HeadlessLauncher::with_config(launcher_config)
+        .await
+        .context("Failed to initialize headless launcher")?;
+
+    // Launch browser page with stealth if configured
+    output::print_info(&format!("Launching browser for: {}", args.url));
+    let session = launcher
+        .launch_page(&args.url, Some(stealth_preset))
+        .await
+        .context("Failed to launch browser page")?;
+
+    let page = session.page();
+
+    // Apply wait condition
+    output::print_info(&format!("Waiting for: {}", wait_condition.description()));
+    match wait_condition {
+        WaitCondition::Load => {
+            // Wait for page load event
+            if let Err(e) = tokio::time::timeout(
+                std::time::Duration::from_secs(10),
+                page.wait_for_navigation(),
+            )
+            .await
+            {
+                output::print_warning(&format!("Page load timeout: {:?}", e));
+            }
+        }
+        WaitCondition::NetworkIdle => {
+            // Wait for page load then additional idle time
+            let _ = tokio::time::timeout(
+                std::time::Duration::from_secs(5),
+                page.wait_for_navigation(),
+            )
+            .await;
+
+            // Additional idle wait
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+        }
+        WaitCondition::Selector(selector) => {
+            // Wait for specific selector
+            if let Err(e) = tokio::time::timeout(
+                std::time::Duration::from_secs(10),
+                page.find_element(selector),
+            )
+            .await
+            {
+                output::print_warning(&format!("Selector wait timeout: {:?}", e));
+            }
+        }
+        WaitCondition::Timeout(ms) => {
+            // Simple timeout wait
+            tokio::time::sleep(std::time::Duration::from_millis(*ms)).await;
+        }
+    }
+
+    // Apply extra timeout if specified
+    if args.extra_timeout > 0 {
+        output::print_info(&format!("Applying extra timeout: {}s", args.extra_timeout));
+        tokio::time::sleep(std::time::Duration::from_secs(args.extra_timeout)).await;
+    }
+
+    // Capture screenshot if requested
+    if screenshot_mode != ScreenshotMode::None {
+        output::print_info(&format!("Capturing screenshot: {}", screenshot_mode.name()));
+
+        let screenshot_params = chromiumoxide::page::ScreenshotParams::builder()
+            .full_page(screenshot_mode == ScreenshotMode::Full)
+            .build();
+
+        match tokio::time::timeout(
+            std::time::Duration::from_secs(10),
+            page.screenshot(screenshot_params),
+        )
+        .await
+        {
+            Ok(Ok(screenshot_bytes)) => {
+                let screenshot_path =
+                    Path::new(&args.output_dir).join(format!("{}.png", file_prefix));
+
+                fs::write(&screenshot_path, &screenshot_bytes)
+                    .context("Failed to write screenshot file")?;
+
+                let size = screenshot_bytes.len() as u64;
+                files_saved.push(SavedFile {
+                    file_type: "screenshot".to_string(),
+                    path: screenshot_path.to_string_lossy().to_string(),
+                    size_bytes: size,
+                });
+
+                output::print_success(&format!(
+                    "Screenshot saved to: {}",
+                    screenshot_path.display()
+                ));
+            }
+            Ok(Err(e)) => {
+                output::print_warning(&format!("Screenshot capture failed: {}", e));
+            }
+            Err(_) => {
+                output::print_warning("Screenshot capture timed out");
+            }
+        }
+    }
+
+    // Extract HTML content if requested
+    if args.html {
+        output::print_info("Extracting rendered HTML...");
+
+        match tokio::time::timeout(std::time::Duration::from_secs(5), page.content()).await {
+            Ok(Ok(html)) => {
+                let html_path = Path::new(&args.output_dir).join(format!("{}.html", file_prefix));
+
+                fs::write(&html_path, &html).context("Failed to write HTML file")?;
+
+                let size = html.len() as u64;
+                files_saved.push(SavedFile {
+                    file_type: "html".to_string(),
+                    path: html_path.to_string_lossy().to_string(),
+                    size_bytes: size,
+                });
+
+                output::print_success(&format!("HTML saved to: {}", html_path.display()));
+            }
+            Ok(Err(e)) => {
+                output::print_warning(&format!("HTML extraction failed: {}", e));
+            }
+            Err(_) => {
+                output::print_warning("HTML extraction timed out");
+            }
+        }
+    }
+
+    // Extract DOM tree if requested
+    if args.dom {
+        output::print_info("Extracting DOM tree...");
+
+        // Use JavaScript to extract simplified DOM structure
+        let dom_script = r#"
+            JSON.stringify({
+                type: 'document',
+                title: document.title,
+                url: window.location.href,
+                html_length: document.documentElement.outerHTML.length,
+                links_count: document.links.length,
+                images_count: document.images.length,
+                scripts_count: document.scripts.length,
+                stylesheets_count: document.styleSheets.length,
+                meta_tags: Array.from(document.querySelectorAll('meta')).map(m => ({
+                    name: m.getAttribute('name'),
+                    property: m.getAttribute('property'),
+                    content: m.getAttribute('content')
+                }))
+            }, null, 2)
+        "#;
+
+        match tokio::time::timeout(std::time::Duration::from_secs(5), page.evaluate(dom_script))
+            .await
+        {
+            Ok(Ok(result)) => {
+                if let Ok(dom_json) = result.into_value::<String>() {
+                    let dom_path =
+                        Path::new(&args.output_dir).join(format!("{}.dom.json", file_prefix));
+
+                    fs::write(&dom_path, &dom_json).context("Failed to write DOM file")?;
+
+                    let size = dom_json.len() as u64;
+                    files_saved.push(SavedFile {
+                        file_type: "dom".to_string(),
+                        path: dom_path.to_string_lossy().to_string(),
+                        size_bytes: size,
+                    });
+
+                    output::print_success(&format!("DOM saved to: {}", dom_path.display()));
+                }
+            }
+            Ok(Err(e)) => {
+                output::print_warning(&format!("DOM extraction failed: {}", e));
+            }
+            Err(_) => {
+                output::print_warning("DOM extraction timed out");
+            }
+        }
+    }
+
+    // Generate PDF if requested
+    if args.pdf {
+        output::print_info("Generating PDF...");
+
+        let pdf_params = chromiumoxide::page::PrintToPdfParams::default();
+
+        match tokio::time::timeout(std::time::Duration::from_secs(15), page.pdf(pdf_params)).await {
+            Ok(Ok(pdf_bytes)) => {
+                let pdf_path = Path::new(&args.output_dir).join(format!("{}.pdf", file_prefix));
+
+                fs::write(&pdf_path, &pdf_bytes).context("Failed to write PDF file")?;
+
+                let size = pdf_bytes.len() as u64;
+                files_saved.push(SavedFile {
+                    file_type: "pdf".to_string(),
+                    path: pdf_path.to_string_lossy().to_string(),
+                    size_bytes: size,
+                });
+
+                output::print_success(&format!("PDF saved to: {}", pdf_path.display()));
+            }
+            Ok(Err(e)) => {
+                output::print_warning(&format!("PDF generation failed: {}", e));
+            }
+            Err(_) => {
+                output::print_warning("PDF generation timed out");
+            }
+        }
+    }
+
+    // HAR archive generation (if requested)
+    if args.har {
+        output::print_info("Generating HAR archive...");
+        // Note: HAR generation requires CDP protocol access
+        // This is a placeholder for now - full implementation would need CDP command access
+        output::print_warning("HAR archive generation requires additional CDP protocol support (not yet fully implemented)");
+    }
+
+    // Get page title and final URL
+    let title = page
+        .evaluate("document.title")
+        .await
+        .ok()
+        .and_then(|r| r.into_value::<String>().ok());
+
+    let final_url = page.url().await.ok().flatten();
+
+    // Shutdown launcher to clean up resources
+    launcher
+        .shutdown()
+        .await
+        .context("Failed to shutdown launcher")?;
+
+    let duration = start_time.elapsed();
+    output::print_success(&format!(
+        "Rendering completed in {:.2}s",
+        duration.as_secs_f64()
+    ));
+
+    // Extract metadata
+    let metadata = Some(RenderMetadata {
+        title,
+        final_url,
+        resources_loaded: None, // Would need CDP for accurate count
+        cookies_set: None,      // Would need CDP for cookie tracking
+        storage_items: None,    // Would need CDP for storage inspection
+    });
+
+    Ok(RenderOutput {
+        files_saved,
+        success: true,
+        error: None,
+        metadata,
+    })
 }
 
 /// Execute fallback HTTP-based rendering

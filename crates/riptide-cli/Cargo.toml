@@ -27,12 +27,14 @@ url.workspace = true
 # Local extraction support
 riptide-extraction = { path = "../riptide-extraction" }
 riptide-stealth = { path = "../riptide-stealth" }
+riptide-pdf = { path = "../riptide-pdf" }
 
 # CLI-specific
 colored = "2.1"
 indicatif = "0.17"
 comfy-table = "7.1"
 dialoguer = "0.11"
+csv = "1.3"
 
 # Utilities
 chrono.workspace = true
@@ -59,3 +61,7 @@ riptide-core = { path = "../riptide-core" }
 
 [dev-dependencies]
 tempfile = "3.13"
+
+[features]
+default = ["pdf"]
+pdf = ["riptide-pdf/pdf"]
