@@ -101,7 +101,7 @@ mod strategies_pipeline_tests {
                     }
                 }
                 s if s.contains("wikipedia.org") => {
-                    if let ExtractionStrategy::Trek = orchestrator.strategy_config.extraction {
+                    if let ExtractionStrategy::Wasm = orchestrator.strategy_config.extraction {
                         // Expected
                     } else {
                         panic!("Wikipedia URLs should use Trek strategy: {}", description);
@@ -147,7 +147,7 @@ mod strategies_pipeline_tests {
         let config = StrategyConfig::default();
 
         // Should have reasonable defaults
-        assert!(matches!(config.extraction, ExtractionStrategy::Trek));
+        assert!(matches!(config.extraction, ExtractionStrategy::Wasm));
         assert!(config.chunking.token_max > 0);
         assert!(config.chunking.overlap >= 0);
         assert!(config.chunking.preserve_sentences);
@@ -449,7 +449,7 @@ mod strategies_pipeline_tests {
     #[test]
     fn test_extraction_strategy_variants() {
         let strategies = vec![
-            ExtractionStrategy::Trek,
+            ExtractionStrategy::Wasm,
             ExtractionStrategy::CssJson {
                 selectors: HashMap::from([
                     ("title".to_string(), "h1".to_string()),
@@ -477,7 +477,7 @@ mod strategies_pipeline_tests {
 
             // Test strategy matching
             match strategy {
-                ExtractionStrategy::Trek => {
+                ExtractionStrategy::Wasm => {
                     // Trek strategy
                 }
                 ExtractionStrategy::CssJson { selectors } => {
@@ -503,7 +503,7 @@ mod strategy_config_tests {
     #[test]
     fn test_strategy_config_serialization() {
         let config = StrategyConfig {
-            extraction: ExtractionStrategy::Trek,
+            extraction: ExtractionStrategy::Wasm,
             chunking: ChunkingConfig {
                 mode: ChunkingMode::Sliding,
                 token_max: 1500,

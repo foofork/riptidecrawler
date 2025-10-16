@@ -1,4 +1,4 @@
-use riptide_core::enhanced_extractor::StructuredExtractor;
+use riptide_extraction::enhanced_extractor::StructuredExtractor;
 
 fn main() {
     let html = r#"<!DOCTYPE html>

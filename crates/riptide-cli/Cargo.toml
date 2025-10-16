@@ -6,6 +6,10 @@ license.workspace = true
 authors.workspace = true
 description = "Command-line interface for RipTide web crawler and content extraction"
 
+[lib]
+name = "riptide_cli"
+path = "src/lib.rs"
+
 [[bin]]
 name = "riptide"
 path = "src/main.rs"

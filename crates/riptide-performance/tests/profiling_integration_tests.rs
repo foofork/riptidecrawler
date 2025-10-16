@@ -87,7 +87,7 @@ async fn test_complete_profiling_workflow() {
         .expect("Failed to analyze leaks");
 
     assert!(
-        leak_analysis.potential_leaks.len() > 0,
+        !leak_analysis.potential_leaks.is_empty(),
         "Should detect potential leaks from test allocations"
     );
 
@@ -97,7 +97,10 @@ async fn test_complete_profiling_workflow() {
         .await
         .expect("Failed to get top allocators");
 
-    assert!(top_allocators.len() > 0, "Should have top allocators data");
+    assert!(
+        !top_allocators.is_empty(),
+        "Should have top allocators data"
+    );
     assert!(
         top_allocators.len() <= 5,
         "Should have at most 5 components"
@@ -109,7 +112,7 @@ async fn test_complete_profiling_workflow() {
         .expect("Failed to analyze patterns");
 
     assert!(
-        recommendations.len() > 0,
+        !recommendations.is_empty(),
         "Should generate optimization recommendations"
     );
 
@@ -284,10 +287,8 @@ async fn test_http_endpoints() {
         .await
         .expect("Failed to get leaks");
 
-    assert!(
-        leaks_response.potential_leak_count >= 0,
-        "Should return leak count"
-    );
+    // Since potential_leak_count is usize, it's always >= 0, just verify it exists
+    let _ = leaks_response.potential_leak_count; // Use the field to verify it exists
 }
 
 // ============================================================================
@@ -301,7 +302,7 @@ async fn test_memory_leak_alert() {
     let mut leak_detector = LeakDetector::new().expect("Failed to create leak detector");
 
     // Simulate a memory leak pattern: many allocations without deallocations
-    for i in 0..200 {
+    for _i in 0..200 {
         let allocation = create_test_allocation(
             "leaking_component".to_string(),
             "leak_operation".to_string(),
@@ -322,7 +323,7 @@ async fn test_memory_leak_alert() {
 
     // Verify leak detection
     assert!(
-        leak_analysis.potential_leaks.len() > 0,
+        !leak_analysis.potential_leaks.is_empty(),
         "Should detect leaking component"
     );
 
@@ -351,7 +352,7 @@ async fn test_memory_leak_alert() {
     // Test alert triggering logic
     let alerts = generate_leak_alerts(&leak_analysis);
 
-    assert!(alerts.len() > 0, "Should generate leak alerts");
+    assert!(!alerts.is_empty(), "Should generate leak alerts");
 
     let critical_alerts: Vec<_> = alerts
         .iter()
@@ -359,7 +360,7 @@ async fn test_memory_leak_alert() {
         .collect();
 
     assert!(
-        critical_alerts.len() > 0,
+        !critical_alerts.is_empty(),
         "Should generate critical alert for large leak"
     );
 }
@@ -520,7 +521,7 @@ async fn test_leak_detection_patterns() {
     }
 
     // Pattern 2: Many small allocations
-    for i in 0..2000 {
+    for _i in 0..2000 {
         let allocation = create_test_allocation(
             "small_alloc_component".to_string(),
             "small_operation".to_string(),
@@ -534,7 +535,7 @@ async fn test_leak_detection_patterns() {
     }
 
     // Pattern 3: Regular large allocations
-    for i in 0..10 {
+    for _i in 0..10 {
         let allocation = create_test_allocation(
             "large_alloc_component".to_string(),
             "large_operation".to_string(),
@@ -559,7 +560,7 @@ async fn test_leak_detection_patterns() {
         "Should detect multiple leak patterns"
     );
     assert!(
-        analysis.suspicious_patterns.len() > 0,
+        !analysis.suspicious_patterns.is_empty(),
         "Should detect suspicious patterns"
     );
 
@@ -676,7 +677,7 @@ async fn test_allocation_analysis() {
         .await
         .expect("Failed to get top operations");
 
-    assert!(top_operations.len() > 0, "Should have top operations");
+    assert!(!top_operations.is_empty(), "Should have top operations");
 
     // Test size distribution
     let distribution = analyzer
@@ -696,7 +697,10 @@ async fn test_allocation_analysis() {
         .await
         .expect("Failed to analyze patterns");
 
-    assert!(recommendations.len() > 0, "Should generate recommendations");
+    assert!(
+        !recommendations.is_empty(),
+        "Should generate recommendations"
+    );
 
     // Verify specific recommendations for our test patterns
     let has_pool_recommendation = recommendations
@@ -714,7 +718,10 @@ async fn test_allocation_analysis() {
         .await
         .expect("Failed to analyze fragmentation");
 
-    assert!(fragmentation.len() > 0, "Should have fragmentation metrics");
+    assert!(
+        !fragmentation.is_empty(),
+        "Should have fragmentation metrics"
+    );
 
     // Test efficiency score
     let efficiency = analyzer
@@ -815,7 +822,7 @@ async fn test_concurrent_profiling() {
     let analysis = detector.analyze_leaks().await.expect("Failed to analyze");
 
     assert!(
-        analysis.potential_leaks.len() > 0,
+        !analysis.potential_leaks.is_empty(),
         "Should detect leaks from concurrent tasks"
     );
 

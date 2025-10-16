@@ -153,7 +153,7 @@ fn bench_performance_metrics(c: &mut Criterion) {
     let mut metrics = PerformanceMetrics::new();
     for i in 0..1000 {
         metrics.record_extraction(
-            &ExtractionStrategy::Trek,
+            &ExtractionStrategy::Wasm,
             std::time::Duration::from_millis(10 + (i % 20)),
             (1000 + (i * 10)) as usize,
             (5 + (i % 10)) as usize,
@@ -167,7 +167,7 @@ fn bench_performance_metrics(c: &mut Criterion) {
     group.bench_function("record_extraction", |b| {
         b.iter(|| {
             metrics.record_extraction(
-                &ExtractionStrategy::Trek,
+                &ExtractionStrategy::Wasm,
                 std::time::Duration::from_millis(15),
                 2000,
                 8,

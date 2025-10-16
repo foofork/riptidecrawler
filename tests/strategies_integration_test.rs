@@ -48,7 +48,7 @@ async fn test_trek_extraction_strategy() {
     println!("🧪 Testing Trek extraction strategy integration");
 
     let config = StrategyConfig {
-        extraction: ExtractionStrategy::Trek,
+        extraction: ExtractionStrategy::Wasm,
         chunking: ChunkingConfig::default(),
         enable_metrics: true,
         validate_schema: true,
@@ -175,7 +175,7 @@ async fn test_sliding_window_chunking() {
     println!("🧪 Testing Sliding Window chunking mode integration");
 
     let config = StrategyConfig {
-        extraction: ExtractionStrategy::Trek,
+        extraction: ExtractionStrategy::Wasm,
         chunking: ChunkingConfig {
             mode: ChunkingMode::Sliding,
             token_max: 300, // Small chunks for testing
@@ -216,7 +216,7 @@ async fn test_topic_based_chunking() {
     println!("🧪 Testing Topic-based chunking mode integration");
 
     let config = StrategyConfig {
-        extraction: ExtractionStrategy::Trek,
+        extraction: ExtractionStrategy::Wasm,
         chunking: ChunkingConfig {
             mode: ChunkingMode::Topic { similarity_threshold: 0.7 },
             token_max: 1000,
@@ -251,7 +251,7 @@ async fn test_regex_chunking() {
     println!("🧪 Testing Regex chunking mode integration");
 
     let config = StrategyConfig {
-        extraction: ExtractionStrategy::Trek,
+        extraction: ExtractionStrategy::Wasm,
         chunking: ChunkingConfig {
             mode: ChunkingMode::Regex {
                 pattern: r"\.".to_string(), // Split on sentences
@@ -284,7 +284,7 @@ async fn test_performance_metrics_collection() {
     println!("🧪 Testing performance metrics collection integration");
 
     let config = StrategyConfig {
-        extraction: ExtractionStrategy::Trek,
+        extraction: ExtractionStrategy::Wasm,
         chunking: ChunkingConfig::default(),
         enable_metrics: true,
         validate_schema: true,
@@ -315,7 +315,7 @@ async fn test_metadata_extraction_integration() {
     println!("🧪 Testing metadata extraction integration");
 
     let config = StrategyConfig {
-        extraction: ExtractionStrategy::Trek,
+        extraction: ExtractionStrategy::Wasm,
         chunking: ChunkingConfig::default(),
         enable_metrics: true,
         validate_schema: true,
@@ -354,7 +354,7 @@ async fn test_all_chunking_modes_available() {
 
     for (mode_name, mode) in chunking_modes {
         let config = StrategyConfig {
-            extraction: ExtractionStrategy::Trek,
+            extraction: ExtractionStrategy::Wasm,
             chunking: ChunkingConfig {
                 mode,
                 token_max: 800,
@@ -384,7 +384,7 @@ async fn test_all_extraction_strategies_available() {
 
     // Trek strategy
     let trek_config = StrategyConfig {
-        extraction: ExtractionStrategy::Trek,
+        extraction: ExtractionStrategy::Wasm,
         chunking: ChunkingConfig::default(),
         enable_metrics: false,
         validate_schema: true,
@@ -460,7 +460,7 @@ async fn test_strategies_integration_summary() {
 
     // Test configuration for comprehensive validation
     let config = StrategyConfig {
-        extraction: ExtractionStrategy::Trek,
+        extraction: ExtractionStrategy::Wasm,
         chunking: ChunkingConfig {
             mode: ChunkingMode::Sliding,
             token_max: 600,

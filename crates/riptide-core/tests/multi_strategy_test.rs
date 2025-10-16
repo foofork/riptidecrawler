@@ -3,7 +3,7 @@
 use anyhow::Result;
 use riptide_core::strategies::traits::ExtractionStrategy;
 use riptide_core::strategies::{
-    CssSelectorStrategy, RegexPatternStrategy, StrategyRegistry, StrategyRegistryBuilder,
+    CssSelectorStrategy, RegexPatternStrategy, StrategyRegistryBuilder,
 };
 use std::sync::Arc;
 

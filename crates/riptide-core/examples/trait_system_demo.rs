@@ -18,7 +18,7 @@ use riptide_core::strategies::{
     StrategyManagerConfig,
     StrategyRegistry,
     // Implementations
-    TrekExtractionStrategy,
+    WasmExtractionStrategy,
 };
 use std::sync::Arc;
 
@@ -58,15 +58,15 @@ async fn main() -> anyhow::Result<()> {
     println!("1. Basic Trait Usage");
     println!("-------------------");
 
-    let trek_strategy = TrekExtractionStrategy;
-    println!("Strategy: {}", trek_strategy.name());
-    println!("Capabilities: {:?}", trek_strategy.capabilities());
+    let wasm_strategy = WasmExtractionStrategy;
+    println!("Strategy: {}", wasm_strategy.name());
+    println!("Capabilities: {:?}", wasm_strategy.capabilities());
     println!(
         "Confidence: {:.2}",
-        trek_strategy.confidence_score(test_html)
+        wasm_strategy.confidence_score(test_html)
     );
 
-    let result = trek_strategy.extract(test_html, test_url).await?;
+    let result = wasm_strategy.extract(test_html, test_url).await?;
     println!("Extracted title: {}", result.content.title);
     println!("Content length: {} chars", result.content.content.len());
     println!("Quality score: {:.2}\n", result.quality.overall_score());
@@ -78,7 +78,7 @@ async fn main() -> anyhow::Result<()> {
     let mut registry = StrategyRegistry::new();
 
     // Register core extraction strategies
-    registry.register_extraction(Arc::new(TrekExtractionStrategy));
+    registry.register_extraction(Arc::new(WasmExtractionStrategy));
 
     // List available strategies
     let extraction_strategies = registry.list_extraction_strategies();
@@ -110,11 +110,11 @@ async fn main() -> anyhow::Result<()> {
 
     // Create manager with pre-populated registry
     let mut test_registry = StrategyRegistry::new();
-    test_registry.register_extraction(Arc::new(TrekExtractionStrategy));
+    test_registry.register_extraction(Arc::new(WasmExtractionStrategy));
 
     let manager = EnhancedStrategyManager::with_registry(config, test_registry).await;
     let processed = manager
-        .extract_and_process_with_strategy(test_html, test_url, "trek")
+        .extract_and_process_with_strategy(test_html, test_url, "wasm")
         .await?;
 
     println!("Strategy used: {}", processed.strategy_used);
@@ -130,7 +130,7 @@ async fn main() -> anyhow::Result<()> {
     println!("-------------------------");
 
     let legacy_config = LegacyStrategyConfig {
-        extraction: riptide_core::strategies::ExtractionStrategy::Trek,
+        extraction: riptide_core::strategies::ExtractionStrategy::Wasm,
         enable_metrics: true,
         validate_schema: true,
     };
@@ -149,7 +149,7 @@ async fn main() -> anyhow::Result<()> {
     println!("5. Migration from Enum to Traits");
     println!("--------------------------------");
 
-    let old_strategy = riptide_core::strategies::ExtractionStrategy::Trek;
+    let old_strategy = riptide_core::strategies::ExtractionStrategy::Wasm;
     let new_strategy = migrate_extraction_strategy(&old_strategy);
     println!("Migrated strategy name: {}", new_strategy.name());
     println!(
