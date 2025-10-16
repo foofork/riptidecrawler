@@ -793,7 +793,7 @@ riptide search --query "data science" --provider searxng --instance https://sear
   - Health monitoring
 
 - **Content Extraction**
-  - Trek extractor (Node.js port)
+  - Wasm extractor (Node.js port)
   - Custom WASM extractors
   - Host/WASM mode switching
   - Performance comparison
@@ -841,7 +841,7 @@ riptide wasm-benchmark --url <URL> --compare host
 ```bash
 riptide extract --url <URL> --strategy "chain:css,regex,llm" --aggregate best
 riptide extract --url <URL> --strategy "parallel:all" --timeout 10s --fastest-wins
-riptide extract --url <URL> --strategy "fallback:trek,css,regex" --min-confidence 0.8
+riptide extract --url <URL> --strategy "fallback:wasm,css,regex" --min-confidence 0.8
 ```
 
 ---

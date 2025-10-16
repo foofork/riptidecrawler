@@ -5,7 +5,7 @@
 
 The RipTide system leverages WebAssembly Component Model architecture for secure, high-performance content extraction. This comprehensive guide consolidates all WASM-related information from analysis, implementation, architecture, and enhancement documentation into a single authoritative reference.
 
-**Architecture**: WASM Component Model with WASI-P2, Trek-rs extraction engine, instance pooling
+**Architecture**: WASM Component Model with WASI-P2, Wasm-rs extraction engine, instance pooling
 **Performance**: 10-25% CPU improvements with SIMD, <15ms cold start with AOT caching
 **Status**: Production-ready with comprehensive monitoring and fallback mechanisms
 
@@ -47,7 +47,7 @@ graph TB
     end
 
     subgraph "Guest Environment (wasip2)"
-        K[Trek-rs Extractor] --> L[Content Analysis]
+        K[Wasm-rs Extractor] --> L[Content Analysis]
         L --> M[Readability Engine]
         M --> N[Quality Scoring]
     end
@@ -217,7 +217,7 @@ impl CmExtractor {
 
 ### Guest-Side Implementation
 
-**Trek-rs Integration** (`/wasm/riptide-extractor-wasm/src/lib.rs`):
+**Wasm-rs Integration** (`/wasm/riptide-extractor-wasm/src/lib.rs`):
 
 ```rust
 // Generate bindings from enhanced WIT file
@@ -234,7 +234,7 @@ static EXTRACTION_COUNT: Lazy<AtomicU64> = Lazy::new(|| AtomicU64::new(0));
 struct Component;
 
 impl Guest for Component {
-    /// Primary extraction function with trek-rs integration
+    /// Primary extraction function with wasm-rs integration
     fn extract(html: String, url: String, mode: ExtractionMode) -> Result<ExtractedContent, ExtractionError> {
         EXTRACTION_COUNT.fetch_add(1, Ordering::Relaxed);
 
@@ -247,8 +247,8 @@ impl Guest for Component {
             return Err(ExtractionError::InvalidHtml("Invalid URL format".to_string()));
         }
 
-        // Perform extraction with trek-rs
-        perform_extraction_with_trek(&html, &url, &mode)
+        // Perform extraction with wasm-rs
+        perform_extraction_with_wasm(&html, &url, &mode)
     }
 
     fn extract_with_stats(html: String, url: String, mode: ExtractionMode)
@@ -277,7 +277,7 @@ impl Guest for Component {
         HealthStatus {
             status: "healthy".to_string(),
             version: COMPONENT_VERSION.to_string(),
-            trek_version: get_trek_version(),
+            wasm_version: get_wasm_version(),
             capabilities: get_supported_modes(),
             memory_usage: Some(get_memory_usage()),
             extraction_count: Some(EXTRACTION_COUNT.load(Ordering::Relaxed)),
@@ -383,7 +383,7 @@ pub fn extract_typed(&self, html: &str, url: &str, mode: ExtractionMode) -> Resu
                 exports::riptide::extractor::extract::ExtractionError::InvalidHtml(msg) =>
                     format!("Invalid HTML: {}", msg),
                 exports::riptide::extractor::extract::ExtractionError::ExtractorError(msg) =>
-                    format!("Trek-rs extractor error: {}", msg),
+                    format!("Wasm-rs extractor error: {}", msg),
                 // ... handle other error types
             };
             Err(anyhow::anyhow!(error_msg))
@@ -1097,7 +1097,7 @@ pub fn export_wasm_metrics(metrics: &HashMap<String, f64>) -> String {
     "wasm_extractor": {
       "status": "healthy",
       "version": "0.2.0",
-      "trek_version": "0.1.1",
+      "wasm_version": "0.1.1",
       "memory_usage_mb": 45,
       "extraction_count": 1250,
       "pool_size": 8,
@@ -1150,7 +1150,7 @@ groups:
 ### From WASI Command to Component Model
 
 #### 1. Pre-Migration Checklist
-- [ ] Verify trek-rs compatibility with Component Model
+- [ ] Verify wasm-rs compatibility with Component Model
 - [ ] Update build pipeline for wasip2 target
 - [ ] Prepare WIT interface definitions
 - [ ] Plan host-side integration changes
@@ -1172,7 +1172,7 @@ crate-type = ["cdylib"]
 wit-bindgen = "0.30"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-trek-rs = "0.2.1"        # ✅ Re-enabled with proper version
+wasm-rs = "0.2.1"        # ✅ Re-enabled with proper version
 whatlang = "0.16"        # ✅ Language detection
 scraper = "0.18"         # ✅ HTML parsing for enhanced extraction
 url = "2.3"              # ✅ URL manipulation
@@ -1359,7 +1359,7 @@ async fn monitor_performance(extractor: &CmExtractor) -> Result<()> {
 **Symptoms**:
 - WASM module fails to load
 - Component instantiation errors
-- Missing trek-rs functionality
+- Missing wasm-rs functionality
 
 **Diagnosis**:
 ```bash
@@ -1376,7 +1376,7 @@ cargo tree --target wasm32-wasip2
 **Solutions**:
 1. Clean rebuild: `cargo clean && cargo build --release --target wasm32-wasip2`
 2. Update toolchain: `rustup update && rustup target add wasm32-wasip2`
-3. Check trek-rs version: Use exactly `trek-rs = "0.2.1"`
+3. Check wasm-rs version: Use exactly `wasm-rs = "0.2.1"`
 4. Verify WIT compatibility: Ensure bindings are up-to-date
 
 ### Debug Commands

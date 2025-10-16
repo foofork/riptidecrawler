@@ -271,7 +271,7 @@ impl Default for BenchmarkConfig {
             iterations: 100,
             warmup_iterations: 10,
             test_content_sizes: vec![1024, 10240, 102400, 1048576], // 1KB to 1MB
-            strategies_to_test: vec![ExtractionStrategy::Trek],
+            strategies_to_test: vec![ExtractionStrategy::Wasm],
             measure_memory: true,
             detailed_timing: true,
         }
@@ -414,7 +414,7 @@ async fn run_single_extraction(
 ) -> Result<ExtractionResult> {
     // Simplified extraction for benchmarking
     match strategy {
-        ExtractionStrategy::Trek => {
+        ExtractionStrategy::Wasm => {
             // Trek extraction moved to riptide-html
             // Returning mock result for testing
             Ok(ExtractionResult { quality: 80.0 })
@@ -499,7 +499,7 @@ fn get_memory_usage_mb() -> f64 {
 /// Get strategy name for metrics
 fn strategy_name(strategy: &ExtractionStrategy) -> String {
     match strategy {
-        ExtractionStrategy::Trek => "trek".to_string(),
+        ExtractionStrategy::Wasm => "wasm".to_string(),
         ExtractionStrategy::Css => "css".to_string(),
         ExtractionStrategy::Regex => "regex".to_string(),
         ExtractionStrategy::Auto => "auto".to_string(),

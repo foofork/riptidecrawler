@@ -3,7 +3,7 @@
 //! This module provides compatibility shims and adapters to ensure that existing
 //! code using the enum-based strategy system continues to work with the new trait-based approach.
 //!
-//! NOTE: Chunking functionality has been moved to riptide-html crate.
+//! NOTE: Chunking functionality has been moved to riptide-extraction crate.
 
 use anyhow::Result;
 use std::sync::Arc;
@@ -29,7 +29,7 @@ pub struct LegacyStrategyConfig {
 impl Default for LegacyStrategyConfig {
     fn default() -> Self {
         Self {
-            extraction: crate::strategies::ExtractionStrategy::Trek,
+            extraction: crate::strategies::ExtractionStrategy::Wasm,
             enable_metrics: true,
             validate_schema: true,
         }
@@ -63,8 +63,8 @@ impl CompatibleStrategyManager {
         html: &str,
         url: &str,
     ) -> Result<LegacyProcessedContent> {
-        // Default to trek strategy for compatibility
-        let strategy_name = "trek";
+        // Default to wasm strategy for compatibility
+        let strategy_name = "wasm";
 
         // Use the enhanced manager for extraction
         let result = self
@@ -101,7 +101,7 @@ pub fn create_default_strategies() -> StrategyRegistry {
     registry.register_extraction(Arc::new(WasmExtractionStrategy));
 
     // NOTE: CSS, Regex, and LLM strategies have been moved to other crates:
-    // - CSS/Regex: riptide-html
+    // - CSS/Regex: riptide-extraction
     // - LLM: riptide-intelligence
 
     registry
@@ -112,7 +112,7 @@ pub fn migrate_extraction_strategy(
     strategy: &crate::strategies::ExtractionStrategy,
 ) -> Arc<dyn ExtractionStrategy> {
     match strategy {
-        crate::strategies::ExtractionStrategy::Trek => Arc::new(WasmExtractionStrategy),
+        crate::strategies::ExtractionStrategy::Wasm => Arc::new(WasmExtractionStrategy),
         crate::strategies::ExtractionStrategy::Css => Arc::new(WasmExtractionStrategy), // Fallback to WASM for now
         crate::strategies::ExtractionStrategy::Regex => Arc::new(WasmExtractionStrategy), // Fallback to WASM for now
         crate::strategies::ExtractionStrategy::Auto => Arc::new(WasmExtractionStrategy), // Fallback to WASM for now
@@ -122,26 +122,26 @@ pub fn migrate_extraction_strategy(
 /// Provide migration guidance for deprecated features
 pub mod migration {
     /// Migration guidance for features moved to other crates
-    /// CSS extraction has moved to riptide-html
+    /// CSS extraction has moved to riptide-extraction
     pub const CSS_EXTRACTION_MIGRATION: &str = r#"
-CSS extraction has been moved to the riptide-html crate.
+CSS extraction has been moved to the riptide-extraction crate.
 
 Old:
 use riptide_core::strategies::ExtractionStrategy::CssJson;
 
 New:
-use riptide_html::CssExtractor;
+use riptide_extraction::CssExtractor;
 "#;
 
-    /// Regex extraction has moved to riptide-html
+    /// Regex extraction has moved to riptide-extraction
     pub const REGEX_EXTRACTION_MIGRATION: &str = r#"
-Regex extraction has been moved to the riptide-html crate.
+Regex extraction has been moved to the riptide-extraction crate.
 
 Old:
 use riptide_core::strategies::ExtractionStrategy::Regex;
 
 New:
-use riptide_html::RegexExtractor;
+use riptide_extraction::RegexExtractor;
 "#;
 
     /// LLM extraction has moved to riptide-intelligence
@@ -155,15 +155,15 @@ New:
 use riptide_intelligence::LlmExtractor;
 "#;
 
-    /// Chunking has moved to riptide-html
+    /// Chunking has moved to riptide-extraction
     pub const CHUNKING_MIGRATION: &str = r#"
-Content chunking has been moved to the riptide-html crate.
+Content chunking has been moved to the riptide-extraction crate.
 
 Old:
 use riptide_core::strategies::chunking::*;
 
 New:
-use riptide_html::chunking::*;
+use riptide_extraction::chunking::*;
 "#;
 }
 
@@ -188,15 +188,15 @@ mod tests {
     fn test_strategy_registry_creation() {
         let registry = create_default_strategies();
 
-        // Should have trek strategy registered
-        assert!(registry.get_extraction("trek").is_some());
+        // Should have wasm strategy registered
+        assert!(registry.get_extraction("wasm").is_some());
     }
 
     #[test]
     fn test_migration_strategy() {
-        let strategy = crate::strategies::ExtractionStrategy::Trek;
+        let strategy = crate::strategies::ExtractionStrategy::Wasm;
         let trait_strategy = migrate_extraction_strategy(&strategy);
 
-        assert_eq!(trait_strategy.name(), "trek");
+        assert_eq!(trait_strategy.name(), "wasm");
     }
 }

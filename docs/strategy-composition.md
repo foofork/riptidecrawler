@@ -20,7 +20,7 @@ Executes strategies sequentially until one succeeds:
 use riptide_core::strategy_composition::{CompositionMode, StrategyComposer};
 
 let composer = StrategyComposer::new(CompositionMode::Chain)
-    .add_strategy(trek_strategy)
+    .add_strategy(wasm_strategy)
     .add_strategy(css_strategy)
     .add_strategy(fallback_strategy)
     .with_timeout(5000);
@@ -44,7 +44,7 @@ Runs all strategies concurrently and merges results:
 
 ```rust
 let composer = StrategyComposer::new(CompositionMode::Parallel)
-    .with_strategies(vec![trek, css, llm])
+    .with_strategies(vec![wasm, css, llm])
     .with_merger(Box::new(BestContentMerger::default()))
     .with_timeout(5000);
 
@@ -228,7 +228,7 @@ use riptide_core::strategy_composition::{CompositionMode, StrategyComposer};
 
 // Create composer with multiple strategies
 let composer = StrategyComposer::new(CompositionMode::Chain)
-    .with_strategies(vec![trek_strategy, css_strategy]);
+    .with_strategies(vec![wasm_strategy, css_strategy]);
 
 // Use in pipeline
 let html = fetch_content(url).await?;

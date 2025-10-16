@@ -430,7 +430,7 @@ async fn test_suite_wikipedia_article() {
     let harness = TestHarness::new(...);
     let urls = harness.load_test_urls(...).await?;
 
-    let session = harness.run_test_suite(&urls, &["trek", "css"]).await?;
+    let session = harness.run_test_suite(&urls, &["wasm", "css"]).await?;
 
     // Validate results
     assert!(session.successful_tests >= 8); // 80% success rate

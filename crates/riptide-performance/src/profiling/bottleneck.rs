@@ -178,8 +178,8 @@ impl BottleneckAnalyzer {
                 impact_score: 0.85,
             },
             PerformanceHotspot {
-                function_name: "riptide_html::parse_document".to_string(),
-                file_location: "crates/riptide-html/src/parser.rs".to_string(),
+                function_name: "riptide_extraction::parse_document".to_string(),
+                file_location: "crates/riptide-extraction/src/parser.rs".to_string(),
                 line_number: 123,
                 cpu_time_percent: 18.7,
                 wall_time_percent: 15.2,

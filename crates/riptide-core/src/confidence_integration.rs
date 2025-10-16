@@ -8,21 +8,21 @@ pub struct ExtractedContent {
     pub extraction_confidence: f64,
 }
 
-/// Trek extractor confidence scorer
-pub struct TrekConfidenceScorer {
+/// WASM extractor confidence scorer
+pub struct WasmConfidenceScorer {
     base_confidence: f64,
 }
 
-impl TrekConfidenceScorer {
+impl WasmConfidenceScorer {
     pub fn new() -> Self {
         Self {
-            base_confidence: 0.8, // Trek is our primary, high-quality extractor
+            base_confidence: 0.8, // WASM is our primary, high-quality extractor
         }
     }
 
     /// Compute confidence from HTML content analysis
     pub fn analyze_html(&self, html: &str) -> ConfidenceScore {
-        let mut score = ConfidenceScore::new(self.base_confidence, "trek");
+        let mut score = ConfidenceScore::new(self.base_confidence, "wasm");
 
         // Component: Structured content detection
         let structure_score = self.detect_structure(html);
@@ -123,16 +123,16 @@ impl TrekConfidenceScorer {
     }
 }
 
-impl Default for TrekConfidenceScorer {
+impl Default for WasmConfidenceScorer {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl ConfidenceScorer for TrekConfidenceScorer {
+impl ConfidenceScorer for WasmConfidenceScorer {
     fn compute_confidence<T>(&self, _doc: &T) -> ConfidenceScore {
         // Generic implementation - would need HTML access for real analysis
-        ConfidenceScore::new(self.base_confidence, "trek")
+        ConfidenceScore::new(self.base_confidence, "wasm")
     }
 }
 
@@ -282,7 +282,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_trek_confidence_scoring() {
+    fn test_wasm_confidence_scoring() {
         let html = r#"
             <html>
                 <head>
@@ -302,7 +302,7 @@ mod tests {
             </html>
         "#;
 
-        let scorer = TrekConfidenceScorer::new();
+        let scorer = WasmConfidenceScorer::new();
         let score = scorer.analyze_html(html);
 
         // With good structure, metadata, and semantic tags, score should be decent
@@ -317,7 +317,7 @@ mod tests {
             "Expected score <= 0.6, got {}",
             score.value()
         );
-        assert_eq!(score.method(), "trek");
+        assert_eq!(score.method(), "wasm");
         assert_eq!(score.components().len(), 4);
     }
 

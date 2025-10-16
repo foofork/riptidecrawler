@@ -13,7 +13,7 @@ After comprehensive research of Rust readability libraries, I **recommend DEFERR
 ### Key Findings
 
 1. **Library Maturity**: Most Rust readability ports are minimally maintained with limited WASI Preview 2 compatibility
-2. **WASM Risk**: High risk of reintroducing browser API dependencies (similar to trek-rs issue)
+2. **WASM Risk**: High risk of reintroducing browser API dependencies (similar to wasm-rs issue)
 3. **Current Capability**: Existing scraper + CSS extraction already achieves 60-85% confidence scores
 4. **Trade-off Analysis**: Integration costs (binary size, complexity, risk) outweigh marginal quality gains
 
@@ -77,7 +77,7 @@ url = "2"             # URL resolution
 
 ### 2.2 Extraction Strategies (riptide-html)
 
-**TrekExtractor** (WASM-based):
+**WasmExtractor** (WASM-based):
 - Base confidence: 0.8
 - Adjusts for: `<article>`, `.content`, `.post`, content length
 - Fallback to CSS selectors if WASM unavailable
@@ -89,7 +89,7 @@ url = "2"             # URL resolution
 
 **Confidence Scoring:**
 ```rust
-// TrekExtractor
+// WasmExtractor
 fn confidence_score(&self, html: &str) -> f64 {
     let mut score = 0.8_f64;
     if html.contains("<article") { score += 0.1; }
@@ -122,7 +122,7 @@ fn confidence_score(&self, html: &str) -> f64 {
 - No wasm-bindgen browser dependencies
 - Must use component model (`wit-bindgen = "0.34"`)
 
-**Previous trek-rs Issue:**
+**Previous wasm-rs Issue:**
 ```
 Removed browser API dependencies that caused:
 - Compilation failures on wasm32-wasip2
@@ -140,7 +140,7 @@ Removed browser API dependencies that caused:
 | Maintenance | Active ✅ | **Stale** ❌ | Active ✅ | Active ✅ |
 | Documentation | Minimal ⚠️ | **None** ❌ | Good ✅ | Fair ⚠️ |
 
-**Key Concern**: Without explicit WASI Preview 2 testing, we risk repeating the trek-rs integration disaster.
+**Key Concern**: Without explicit WASI Preview 2 testing, we risk repeating the wasm-rs integration disaster.
 
 ---
 
@@ -165,7 +165,7 @@ Removed browser API dependencies that caused:
 4. **Maintenance Burden**: Track upstream changes, security patches
 
 **Integration Risks:**
-1. **Browser API Reintroduction**: 70% probability (based on trek-rs experience)
+1. **Browser API Reintroduction**: 70% probability (based on wasm-rs experience)
 2. **WASI Incompatibility**: 50% probability (untested crates)
 3. **Build Breakage**: 40% probability (dependency version conflicts)
 4. **Performance Regression**: 20% probability (slower than scraper)
@@ -331,7 +331,7 @@ pub struct ExtractionMetrics {
 
 **Comparison Matrix:**
 ```
-| Fixture         | Scraper | Scraper+Readability | Trek-rs (baseline) |
+| Fixture         | Scraper | Scraper+Readability | Wasm-rs (baseline) |
 |-----------------|---------|---------------------|-------------------|
 | article_simple  | 85%     | ?                   | 90%               |
 | article_complex | 60%     | ?                   | 75%               |

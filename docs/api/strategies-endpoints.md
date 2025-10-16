@@ -6,7 +6,7 @@ The Strategy Endpoints provide advanced content extraction capabilities with mul
 
 ## Features
 
-- **Multiple Extraction Strategies**: Trek (WASM), CSS/JSON selectors, Regex patterns, LLM-based extraction
+- **Multiple Extraction Strategies**: Wasm (WASM), CSS/JSON selectors, Regex patterns, LLM-based extraction
 - **Flexible Chunking**: Sliding windows, fixed sizes, sentence boundaries, topic-based, regex splits
 - **Auto-Detection**: Automatic strategy selection based on content analysis
 - **Performance Metrics**: Detailed processing statistics and quality scores
@@ -25,7 +25,7 @@ Process a URL using configurable extraction strategies and chunking modes.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `strategy` | string | `"auto"` | Extraction strategy: `"auto"`, `"trek"`, `"css_json"`, `"regex"`, `"llm"` |
+| `strategy` | string | `"auto"` | Extraction strategy: `"auto"`, `"wasm"`, `"css_json"`, `"regex"`, `"llm"` |
 | `chunking` | string | `"sliding"` | Chunking mode: `"sliding"`, `"fixed"`, `"sentence"`, `"topic"`, `"regex"` |
 
 #### Request Body
@@ -33,7 +33,7 @@ Process a URL using configurable extraction strategies and chunking modes.
 ```json
 {
   "url": "https://example.com/article",
-  "extraction_strategy": "trek",
+  "extraction_strategy": "wasm",
   "enable_metrics": true,
   "validate_schema": true,
   "cache_mode": "read_write",
@@ -139,7 +139,7 @@ Chunking is now handled by the `riptide-html` crate. This configuration is prese
     "cache_key": "riptide:strategies:v1:read_write:a7f3c2d1",
     "http_status": 200,
     "strategy_config": {
-      "extraction": "Trek",
+      "extraction": "Wasm",
       "enable_metrics": true,
       "validate_schema": true
     },
@@ -153,7 +153,7 @@ Chunking is now handled by the `riptide-html` crate. This configuration is prese
   "stats": {
     "chunks_created": 1,
     "total_processing_time_ms": 1250,
-    "extraction_strategy_used": "Trek",
+    "extraction_strategy_used": "Wasm",
     "chunking_mode_used": "None",
     "cache_hit": false,
     "quality_score": 0.85
@@ -236,7 +236,7 @@ curl -X GET https://api.riptide.dev/strategies/info
 {
   "extraction_strategies": [
     {
-      "name": "trek",
+      "name": "wasm",
       "description": "Default WASM-based extraction (fastest)",
       "parameters": []
     },
@@ -323,9 +323,9 @@ curl -X GET https://api.riptide.dev/strategies/info
 
 ## Extraction Strategies
 
-### Trek Strategy (Default)
+### Wasm Strategy (Default)
 
-High-performance WASM-based extraction using the Trek engine.
+High-performance WASM-based extraction using the Wasm engine.
 
 **Characteristics:**
 - Fastest extraction method
@@ -335,7 +335,7 @@ High-performance WASM-based extraction using the Trek engine.
 
 **Usage:**
 ```bash
-curl -X POST "https://api.riptide.dev/strategies/crawl?strategy=trek" \
+curl -X POST "https://api.riptide.dev/strategies/crawl?strategy=wasm" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://example.com/article",
@@ -359,7 +359,7 @@ curl -X POST "https://api.riptide.dev/strategies/crawl?strategy=trek" \
     "processing_time_ms": 850
   },
   "stats": {
-    "extraction_strategy_used": "Trek",
+    "extraction_strategy_used": "Wasm",
     "quality_score": 0.92
   }
 }
@@ -543,11 +543,11 @@ curl -X POST "https://api.riptide.dev/strategies/crawl?strategy=auto" \
 ```
 
 **Auto-Detection Logic:**
-- GitHub domains → Trek with GitHub selectors
-- Blog domains → Trek with blog selectors
+- GitHub domains → Wasm with GitHub selectors
+- Blog domains → Wasm with blog selectors
 - PDF content → PDF extraction pipeline
 - SPA detection → Headless rendering
-- Default → Trek extraction
+- Default → Wasm extraction
 
 ---
 
@@ -574,10 +574,10 @@ let config = ChunkingConfig {
 
 ## Complete Examples
 
-### Example 1: Simple Article Extraction (Trek)
+### Example 1: Simple Article Extraction (Wasm)
 
 ```bash
-curl -X POST "https://api.riptide.dev/strategies/crawl?strategy=trek" \
+curl -X POST "https://api.riptide.dev/strategies/crawl?strategy=wasm" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://blog.example.com/web-scraping-guide",
@@ -670,7 +670,7 @@ curl -X POST "https://api.riptide.dev/strategies/crawl?strategy=auto" \
   "stats": {
     "chunks_created": 1,
     "total_processing_time_ms": 1150,
-    "extraction_strategy_used": "Trek",
+    "extraction_strategy_used": "Wasm",
     "chunking_mode_used": "None",
     "cache_hit": false,
     "quality_score": 0.94
@@ -700,7 +700,7 @@ Cache keys include:
 
 | Strategy | Avg Time | Use Case | Quality |
 |----------|----------|----------|---------|
-| Trek | ~850ms | Articles, general content | High |
+| Wasm | ~850ms | Articles, general content | High |
 | CSS/JSON | ~950ms | Structured data, specific fields | Very High |
 | Regex | ~780ms | Pattern matching, data extraction | Medium |
 | LLM | ~3500ms | Complex understanding, reasoning | Very High |
@@ -708,7 +708,7 @@ Cache keys include:
 
 ### Optimization Tips
 
-1. **Use Trek for articles**: Fastest and most reliable for article content
+1. **Use Wasm for articles**: Fastest and most reliable for article content
 2. **Cache aggressively**: Enable caching for repeated URLs
 3. **Pre-warm cache**: Use background jobs to cache frequently accessed content
 4. **Batch requests**: Process multiple URLs in parallel
@@ -763,7 +763,7 @@ X-RateLimit-Reset: 1705320000
 
 ### 1. Choose the Right Strategy
 
-- **Trek**: General web content, articles, blogs
+- **Wasm**: General web content, articles, blogs
 - **CSS/JSON**: E-commerce, structured data, specific fields
 - **Regex**: Contacts, dates, numbers, patterns
 - **Auto**: Unknown content types, mixed sources
@@ -845,7 +845,7 @@ async function extractWithStrategies(url, strategy = 'auto') {
 }
 
 // Usage
-extractWithStrategies('https://example.com/article', 'trek')
+extractWithStrategies('https://example.com/article', 'wasm')
   .then(content => console.log(content))
   .catch(err => console.error(err));
 ```
@@ -873,7 +873,7 @@ def extract_with_strategies(url, strategy='auto'):
         raise Exception(data['error']['message'])
 
 # Usage
-content = extract_with_strategies('https://example.com/article', 'trek')
+content = extract_with_strategies('https://example.com/article', 'wasm')
 print(content)
 ```
 
@@ -883,7 +883,7 @@ print(content)
 #!/bin/bash
 
 URL="https://example.com/article"
-STRATEGY="trek"
+STRATEGY="wasm"
 
 curl -X POST "https://api.riptide.dev/strategies/crawl?strategy=${STRATEGY}" \
   -H "Content-Type: application/json" \

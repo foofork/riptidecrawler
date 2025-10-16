@@ -131,7 +131,7 @@ pub async fn extract(
         "css" => riptide_core::strategies::ExtractionStrategy::Css,
         "regex" => riptide_core::strategies::ExtractionStrategy::Regex,
         "auto" => riptide_core::strategies::ExtractionStrategy::Auto,
-        "trek" => riptide_core::strategies::ExtractionStrategy::Trek,
+        "wasm" => riptide_core::strategies::ExtractionStrategy::Wasm,
         "multi" => riptide_core::strategies::ExtractionStrategy::Auto, // Map multi to auto
         _ => {
             tracing::warn!(

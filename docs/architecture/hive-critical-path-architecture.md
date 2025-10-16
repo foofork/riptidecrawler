@@ -64,10 +64,10 @@ pub struct WasmExtractorEngine {
     metrics: WasmMetrics,
 }
 
-// Trek-rs output mapping to ExtractedDoc
+// Wasm-rs output mapping to ExtractedDoc
 pub struct ExtractedDocMapper {
-    // Direct mapping from Trek-rs structured output
-    trek_output: TrekExtractionResult,
+    // Direct mapping from Wasm-rs structured output
+    wasm_output: WasmExtractionResult,
     // Enhanced metadata enrichment
     metadata_enricher: MetadataEnricher,
     // Quality scoring algorithm
@@ -92,17 +92,17 @@ pub struct ComponentPool<T> {
 The WASM extractor produces structured output that maps to our ExtractedDoc format:
 
 ```rust
-// Enhanced ExtractedDoc with Trek-rs integration
+// Enhanced ExtractedDoc with Wasm-rs integration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtractedDoc {
-    // Core content from Trek-rs
+    // Core content from Wasm-rs
     pub url: String,
     pub title: Option<String>,
     pub byline: Option<String>,
     pub published_iso: Option<String>,
 
     // Content in multiple formats
-    pub markdown: String,           // Trek-rs markdown output
+    pub markdown: String,           // Wasm-rs markdown output
     pub text: String,              // Plain text extraction
     pub html: Option<String>,      // Cleaned HTML
 
@@ -893,7 +893,7 @@ pub enum TestScenario {
 ## 10. Implementation Roadmap
 
 ### Phase 1: Core Infrastructure (Weeks 1-2)
-1. WASM extractor integration with Trek-rs mapping
+1. WASM extractor integration with Wasm-rs mapping
 2. Basic error handling with thiserror
 3. Prometheus metrics foundation
 4. Resource controller implementation

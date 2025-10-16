@@ -103,7 +103,7 @@
 - Regex pattern matching
 - Strategy composition
 - Confidence scoring
-- Trek navigation
+- Wasm navigation
 
 ##### Memory Management (8 tests) ✅
 - Memory pool operations

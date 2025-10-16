@@ -1,7 +1,7 @@
 [workspace]
 members = [
   "crates/riptide-core",
-  "crates/riptide-html",
+  "crates/riptide-extraction",
   "crates/riptide-search",
   "crates/riptide-api",
   "crates/riptide-cli",
@@ -129,6 +129,5 @@ ignored = ["vergen"]  # Keep build dependencies
 
 # Integration tests configuration
 
-# Optional safety switch (leave commented by default):
-# trek-rs = { git = "https://github.com/officialunofficial/trek.git", rev = "PUT_A_PINNED_COMMIT" }
+# Legacy dependency removed - using scraper-based approach for WASM compatibility
 

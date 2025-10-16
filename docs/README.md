@@ -372,7 +372,7 @@ Apache-2.0 License - see [LICENSE](../LICENSE) file for details.
 
 ### v0.1.0 (Current - Production Ready)
 - REST API with /health, /crawl, and /deepsearch endpoints
-- WASM Component Model content extraction with trek-rs integration
+- WASM Component Model content extraction with wasm-rs integration
 - Error handling and performance monitoring
 - Instance pooling and circuit breaker patterns
 - Test suite with golden tests and benchmarks

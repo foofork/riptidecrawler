@@ -317,8 +317,8 @@ pub async fn get_bottleneck_analysis(
             impact_score: 0.85,
         },
         HotspotInfo {
-            function_name: "riptide_html::parse_document".to_string(),
-            file_location: "crates/riptide-html/src/parser.rs".to_string(),
+            function_name: "riptide_extraction::parse_document".to_string(),
+            file_location: "crates/riptide-extraction/src/parser.rs".to_string(),
             line_number: 123,
             cpu_time_percent: 18.7,
             wall_time_percent: 15.2,
@@ -331,7 +331,7 @@ pub async fn get_bottleneck_analysis(
     let recommendations = vec![
         "Critical: Optimize riptide_core::spider::crawl (25.3% CPU time, impact score: 0.85)"
             .to_string(),
-        "Consider optimizing riptide_html::parse_document (18.7% CPU time)".to_string(),
+        "Consider optimizing riptide_extraction::parse_document (18.7% CPU time)".to_string(),
         "Enable 'profiling-full' feature for detailed bottleneck analysis with flamegraphs"
             .to_string(),
     ];
@@ -394,7 +394,10 @@ pub async fn get_allocation_metrics(
 
     // Top allocators from known hot paths
     let top_allocators = vec![
-        ("riptide_html::parse_document".to_string(), 45_678_912u64),
+        (
+            "riptide_extraction::parse_document".to_string(),
+            45_678_912u64,
+        ),
         ("tokio::task::spawn".to_string(), 23_456_789u64),
         ("riptide_core::cache::insert".to_string(), 12_345_678u64),
     ];

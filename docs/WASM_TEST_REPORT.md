@@ -194,7 +194,7 @@ enum ExtractionError {
     NetworkError(String),   // Invalid URLs
     ParseError(String),     // HTML parsing failures
     ResourceLimit(String),  // Memory/time exceeded
-    ExtractorError(String), // Trek-rs failures
+    ExtractorError(String), // Wasm-rs failures
     InternalError(String),  // Component panics
     UnsupportedMode(String) // Invalid extraction mode
 }
@@ -205,7 +205,7 @@ enum ExtractionError {
 - ✅ Malformed HTML → ParseError
 - ✅ > 10MB HTML → ResourceLimit
 - ✅ Invalid URL scheme → NetworkError
-- ✅ Trek-rs failure → ExtractorError
+- ✅ Wasm-rs failure → ExtractorError
 - ✅ Component panic → InternalError
 - ✅ Unknown mode → UnsupportedMode
 

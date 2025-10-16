@@ -53,7 +53,7 @@ crawl:
 # Content extraction settings
 extraction:
   wasm_module_path: "./wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm"
-  version_tag: "trek:0.1"
+  version_tag: "wasm:0.1"
   mode: "article"
   produce_markdown: true
   produce_json: true
@@ -260,7 +260,7 @@ extraction:
   wasm_module_path: "./wasm/riptide-extractor-wasm/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm"
 
   # WASM module version/tag for cache invalidation
-  version_tag: "trek:0.1"
+  version_tag: "wasm:0.1"
 
   # Extraction mode: 'article', 'full', 'metadata'
   mode: "article"

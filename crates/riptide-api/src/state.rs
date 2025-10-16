@@ -22,8 +22,8 @@ use riptide_core::{
     spider::{Spider, SpiderConfig},
     telemetry::TelemetrySystem,
 };
+use riptide_extraction::wasm_extraction::WasmExtractor;
 use riptide_headless::launcher::HeadlessLauncher;
-use riptide_html::wasm_extraction::WasmExtractor;
 use riptide_performance::PerformanceManager;
 use riptide_workers::{WorkerService, WorkerServiceConfig};
 use std::sync::Arc;

@@ -305,7 +305,7 @@ done < tests/test-urls.txt
 **Evidence**:
 - WASM memory limit changes
 - Browser pool refactoring
-- Migration from trek-rs to scraper
+- Migration from wasm-rs to scraper
 
 **Impact**: Medium - tests may not reflect production environment
 

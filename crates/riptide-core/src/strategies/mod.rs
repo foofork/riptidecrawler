@@ -2,9 +2,9 @@
 //!
 //! This module provides core extraction infrastructure and trait definitions.
 //! Specific extraction implementations are in dedicated crates:
-//! - CSS/Regex extraction: riptide-html
+//! - CSS/Regex extraction: riptide-extraction
 //! - LLM extraction: riptide-intelligence
-//! - Content chunking: riptide-html
+//! - Content chunking: riptide-extraction
 //!
 //! ## Strategy Composition
 //!
@@ -15,7 +15,7 @@
 //! - Fallback: Primary with secondary backup
 //! - Best: Run all and pick highest confidence
 
-// Extraction module moved to riptide-html
+// Extraction module moved to riptide-extraction
 // pub mod extraction;
 pub mod implementations;
 pub mod metadata;
@@ -37,7 +37,7 @@ pub use crate::strategy_composition as composition;
 mod tests;
 
 // Re-export core extraction functionality
-// pub use extraction::trek; // Moved to riptide-html
+// pub use extraction::trek; // Moved to riptide-extraction
 pub use implementations::*;
 pub use metadata::*;
 pub use performance::*;
@@ -69,7 +69,7 @@ pub struct StrategyConfig {
 impl Default for StrategyConfig {
     fn default() -> Self {
         Self {
-            extraction: ExtractionStrategy::Trek,
+            extraction: ExtractionStrategy::Wasm,
             enable_metrics: true,
             validate_schema: true,
         }
@@ -80,7 +80,7 @@ impl Default for StrategyConfig {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub enum ExtractionStrategy {
     /// Default WASM-based extraction (fastest, core implementation)
-    Trek,
+    Wasm,
     /// CSS selector-based extraction
     Css,
     /// Regular expression-based extraction
@@ -134,16 +134,16 @@ impl StrategyManager {
     }
 
     async fn perform_extraction(&self, html: &str, url: &str) -> Result<ExtractedContent> {
-        use riptide_html::{ContentExtractor, CssExtractorStrategy, TrekExtractor};
+        use riptide_extraction::{ContentExtractor, CssExtractorStrategy, StrategyWasmExtractor};
 
         match &self.config.extraction {
-            ExtractionStrategy::Trek => {
-                // Use real Trek extractor from riptide-html
-                let extractor = TrekExtractor::new(None).await?;
+            ExtractionStrategy::Wasm => {
+                // Use real WASM extractor from riptide-extraction
+                let extractor = StrategyWasmExtractor::new(None).await?;
                 let html_result = extractor.extract(html, url).await?;
                 let confidence = extractor.confidence_score(html);
 
-                // Convert riptide_html::ExtractedContent to riptide_core::ExtractedContent
+                // Convert riptide_extraction::ExtractedContent to riptide_core::ExtractedContent
                 Ok(ExtractedContent {
                     title: html_result.title,
                     content: html_result.content,
@@ -154,12 +154,12 @@ impl StrategyManager {
                 })
             }
             ExtractionStrategy::Css => {
-                // Use real CSS extraction strategy from riptide-html
+                // Use real CSS extraction strategy from riptide-extraction
                 let extractor = CssExtractorStrategy::new();
                 let html_result = extractor.extract(html, url).await?;
                 let confidence = extractor.confidence_score(html);
 
-                // Convert riptide_html::ExtractedContent to riptide_core::ExtractedContent
+                // Convert riptide_extraction::ExtractedContent to riptide_core::ExtractedContent
                 Ok(ExtractedContent {
                     title: html_result.title,
                     content: html_result.content,
@@ -170,11 +170,11 @@ impl StrategyManager {
                 })
             }
             ExtractionStrategy::Regex => {
-                // Use regex extraction from riptide-html
-                let patterns = riptide_html::default_patterns();
-                let html_result = riptide_html::regex_extract(html, url, &patterns).await?;
+                // Use regex extraction from riptide-extraction
+                let patterns = riptide_extraction::default_patterns();
+                let html_result = riptide_extraction::regex_extract(html, url, &patterns).await?;
 
-                // Convert riptide_html::ExtractedContent to riptide_core::ExtractedContent
+                // Convert riptide_extraction::ExtractedContent to riptide_core::ExtractedContent
                 Ok(ExtractedContent {
                     title: html_result.title,
                     content: html_result.content,
@@ -186,7 +186,7 @@ impl StrategyManager {
             }
             ExtractionStrategy::Auto => {
                 // Auto-detect best strategy based on content structure
-                // Priority: CSS (if article tags) > Trek (fallback) > Regex (last resort)
+                // Priority: CSS (if article tags) > WASM (fallback) > Regex (last resort)
 
                 // Check for semantic HTML structure
                 let has_article = html.contains("<article");
@@ -211,18 +211,18 @@ impl StrategyManager {
                         extraction_confidence: confidence,
                     })
                 } else {
-                    // Fallback to Trek extraction
-                    let extractor = TrekExtractor::new(None).await?;
+                    // Fallback to WASM extraction
+                    let extractor = StrategyWasmExtractor::new(None).await?;
                     let html_result = extractor.extract(html, url).await?;
                     let confidence = extractor.confidence_score(html);
 
-                    // Convert and set auto:trek strategy
+                    // Convert and set auto:wasm strategy
                     Ok(ExtractedContent {
                         title: html_result.title,
                         content: html_result.content,
                         summary: html_result.summary,
                         url: html_result.url,
-                        strategy_used: "auto:trek".to_string(),
+                        strategy_used: "auto:wasm".to_string(),
                         extraction_confidence: confidence,
                     })
                 }

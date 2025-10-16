@@ -341,7 +341,7 @@ These files have historical/internal value but should not be in primary user-fac
 - Browser pool management
 
 **4.5 Content Extraction Strategies**
-- TREK extraction
+- WASM extraction
 - CSS selectors
 - LLM-powered extraction
 - Strategy composition

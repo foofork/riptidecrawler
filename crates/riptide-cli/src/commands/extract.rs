@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 
 // Local extraction support
-use riptide_html::wasm_extraction::WasmExtractor;
+use riptide_extraction::wasm_extraction::WasmExtractor;
 
 /// Extraction engine selection
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -125,6 +125,14 @@ struct ExtractResponse {
 }
 
 pub async fn execute(client: RipTideClient, args: ExtractArgs, output_format: &str) -> Result<()> {
+    use crate::metrics::MetricsManager;
+    use std::time::Instant;
+
+    // Start metrics tracking
+    let metrics_manager = MetricsManager::global();
+    let tracking_id = metrics_manager.start_command("extract").await?;
+    let overall_start = Instant::now();
+
     // Determine input source with priority: stdin > file > url
     let (html_content, source_url) = if args.stdin {
         output::print_info("Reading HTML from stdin...");
@@ -147,15 +155,56 @@ pub async fn execute(client: RipTideClient, args: ExtractArgs, output_format: &s
     let engine = Engine::from_str(&args.engine)?;
     output::print_info(&format!("Engine mode: {}", engine.name()));
 
+    // Record engine selection in metadata
+    let _ = metrics_manager
+        .collector()
+        .record_metric(&format!("extract.engine.{}", engine.name()), 1.0);
+
     // If we have HTML content directly (from file or stdin), use local extraction
     if let Some(html) = html_content {
-        return execute_direct_extraction(html, source_url, args, output_format, engine).await;
+        let result = execute_direct_extraction(html, source_url, args, output_format, engine).await;
+
+        // Complete metrics tracking
+        match &result {
+            Ok(_) => {
+                let duration = overall_start.elapsed();
+                metrics_manager
+                    .collector()
+                    .record_metric("extract.duration_ms", duration.as_millis() as f64)?;
+                metrics_manager.complete_command(&tracking_id).await?;
+            }
+            Err(e) => {
+                metrics_manager
+                    .fail_command(&tracking_id, e.to_string())
+                    .await?;
+            }
+        }
+
+        return result;
     }
 
     // URL-based extraction follows
     // Use local extraction if --local flag is set
     if args.local {
-        return execute_local_extraction(args, output_format, engine).await;
+        let result = execute_local_extraction(args, output_format, engine).await;
+
+        // Complete metrics tracking
+        match &result {
+            Ok(_) => {
+                let duration = overall_start.elapsed();
+                metrics_manager
+                    .collector()
+                    .record_metric("extract.duration_ms", duration.as_millis() as f64)?;
+                metrics_manager.complete_command(&tracking_id).await?;
+            }
+            Err(e) => {
+                metrics_manager
+                    .fail_command(&tracking_id, e.to_string())
+                    .await?;
+            }
+        }
+
+        return result;
     }
 
     // API server extraction
@@ -169,8 +218,25 @@ pub async fn execute(client: RipTideClient, args: ExtractArgs, output_format: &s
         include_confidence: args.show_confidence,
     };
 
+    let api_start = Instant::now();
     let response = client.post("/api/v1/extract", &request).await?;
+    let api_latency = api_start.elapsed();
+
+    // Record API call metrics
+    metrics_manager
+        .record_progress(&tracking_id, 0, 0, 0, 1)
+        .await?;
+    metrics_manager
+        .collector()
+        .record_metric("extract.api.latency_ms", api_latency.as_millis() as f64)?;
+
     let extract_result: ExtractResponse = response.json().await?;
+
+    // Record response size
+    let response_size = extract_result.content.len() as u64;
+    metrics_manager
+        .record_progress(&tracking_id, 1, response_size, 0, 1)
+        .await?;
 
     match output_format {
         "json" => {
@@ -238,6 +304,13 @@ pub async fn execute(client: RipTideClient, args: ExtractArgs, output_format: &s
             output::print_json(&extract_result);
         }
     }
+
+    // Complete metrics tracking successfully
+    let total_duration = overall_start.elapsed();
+    metrics_manager
+        .collector()
+        .record_metric("extract.duration_ms", total_duration.as_millis() as f64)?;
+    metrics_manager.complete_command(&tracking_id).await?;
 
     Ok(())
 }

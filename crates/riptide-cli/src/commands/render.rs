@@ -117,6 +117,10 @@ pub struct RenderArgs {
     #[arg(long)]
     pub har: bool,
 
+    /// Use session for cookies, headers, and authentication
+    #[arg(long)]
+    pub session: Option<String>,
+
     /// Cookie jar file to load cookies from
     #[arg(long)]
     pub cookie_jar: Option<String>,
@@ -203,7 +207,13 @@ pub struct RenderMetadata {
 
 /// Execute the render command
 pub async fn execute(args: RenderArgs, output_format: &str) -> Result<()> {
+    use crate::metrics::MetricsManager;
     use std::time::Instant;
+
+    // Start metrics tracking
+    let metrics_manager = MetricsManager::global();
+    let tracking_id = metrics_manager.start_command("render").await?;
+    let overall_start = Instant::now();
 
     output::print_info(&format!("Rendering page: {}", args.url));
 
@@ -273,6 +283,36 @@ pub async fn execute(args: RenderArgs, output_format: &str) -> Result<()> {
 
     // Output results
     output_render_result(&render_result, output_format)?;
+
+    // Complete metrics tracking
+    if render_result.success {
+        let bytes = render_result
+            .files_saved
+            .iter()
+            .map(|f| f.size_bytes)
+            .sum::<u64>();
+        metrics_manager
+            .record_progress(
+                &tracking_id,
+                render_result.files_saved.len() as u64,
+                bytes,
+                0,
+                0,
+            )
+            .await?;
+        metrics_manager
+            .collector()
+            .record_metric("render.duration_ms", render_result.render_time_ms as f64)?;
+        metrics_manager
+            .collector()
+            .record_metric(&format!("render.wait.{}", args.wait), 1.0)?;
+        metrics_manager.complete_command(&tracking_id).await?;
+    } else {
+        let error_msg = render_result.error.as_deref().unwrap_or("Unknown error");
+        metrics_manager
+            .fail_command(&tracking_id, error_msg)
+            .await?;
+    }
 
     Ok(())
 }

@@ -5,7 +5,7 @@ This document maps how different extraction methods work together in the Riptide
 
 ## Extraction Methods Identified
 
-### 1. **Trek Extraction** (WASM-based, Primary)
+### 1. **Wasm Extraction** (WASM-based, Primary)
 - **Location**: `riptide-html/src/extraction_strategies.rs`
 - **Type**: Core extraction strategy using WASM component
 - **Confidence Score**: 0.8-1.0 (highest baseline)
@@ -32,7 +32,7 @@ This document maps how different extraction methods work together in the Riptide
   - Pre-built selector sets (news, blog, product, default)
 
 **Integration Points**:
-- Alternative strategy to Trek
+- Alternative strategy to Wasm
 - Can merge results with other methods using `MergePolicy`
 - Provides specialized extractors for content types
 - Uses `CssSelectorConfig` for enhanced configuration
@@ -71,7 +71,7 @@ HTML → CSS Selectors → Text Extraction → :has-text() Filter → Transforme
   - SIMD optimizations
 
 **Integration Points**:
-- Used by Trek extractor as implementation
+- Used by Wasm extractor as implementation
 - Provides `ExtractedDoc` → `ExtractedContent` conversion
 - Tracks extraction statistics
 - Memory-safe execution environment
@@ -113,11 +113,11 @@ HTML → WASM Engine (with fuel limits) → Component Execution → ExtractedDoc
 │  │          StrategyManager                      │         │
 │  │  ┌────────────────────────────────────────┐  │         │
 │  │  │  Strategy Selection                    │  │         │
-│  │  │  (Trek / CSS / Regex / Multi)         │  │         │
+│  │  │  (Wasm / CSS / Regex / Multi)         │  │         │
 │  │  └────────┬──────────────────────────────┘  │         │
 │  │           ↓                                  │         │
 │  │  ┌────────────────┐  ┌────────────────┐    │         │
-│  │  │ Trek Extractor │  │ CSS Extractor  │    │         │
+│  │  │ Wasm Extractor │  │ CSS Extractor  │    │         │
 │  │  │  (WASM-based)  │  │ (Selector)     │    │         │
 │  │  └────────┬───────┘  └────────┬───────┘    │         │
 │  │           │                    │             │         │
@@ -143,9 +143,9 @@ Supporting Systems:
 
 ## Transformation Pipelines
 
-### Pipeline 1: Trek Strategy (Default)
+### Pipeline 1: Wasm Strategy (Default)
 ```
-URL → Fetch → HTML → Gate Analysis → Trek Extractor
+URL → Fetch → HTML → Gate Analysis → Wasm Extractor
                                           ↓
                                     WASM Component
                                           ↓
@@ -168,7 +168,7 @@ URL → Fetch → HTML → Gate Analysis → CSS Extractor
                                           ↓
                                     ExtractedContent
                                           ↓
-                                    Merge with Trek (optional)
+                                    Merge with Wasm (optional)
                                           ↓
                                     ProcessedContent → Cache
 ```
@@ -179,7 +179,7 @@ URL → Fetch → HTML → Gate Analysis → Multi-Strategy
                                           ↓
                             ┌─────────────┴─────────────┐
                             ↓                           ↓
-                     Trek Extractor              CSS Extractor
+                     Wasm Extractor              CSS Extractor
                             ↓                           ↓
                        Confidence                  Confidence
                        Score: 0.8                  Score: 0.7
@@ -200,7 +200,7 @@ URL → Fetch → HTML → Gate Analysis → Headless Decision
                                           ↓
                                    Rendered HTML
                                           ↓
-                               Strategy Processing (Trek)
+                               Strategy Processing (Wasm)
                                           ↓
                                ProcessedContent → Cache
 ```
@@ -208,8 +208,8 @@ URL → Fetch → HTML → Gate Analysis → Headless Decision
 ## Dependencies Between Methods
 
 ### Direct Dependencies
-1. **Trek → WASM Extraction**
-   - Trek uses `CmExtractor` from `wasm_extraction.rs`
+1. **Wasm → WASM Extraction**
+   - Wasm uses `CmExtractor` from `wasm_extraction.rs`
    - Falls back to `fallback_extract()` if WASM unavailable
 
 2. **StrategyManager → All Extractors**
@@ -237,20 +237,20 @@ URL → Fetch → HTML → Gate Analysis → Headless Decision
 
 ### Identified Conflicts
 1. **Multiple Extraction Results**
-   - Both Trek and CSS can extract same content
+   - Both Wasm and CSS can extract same content
    - Resolution: `MergePolicy` (CssWins, OtherWins, Merge, FirstValid)
    - Current default: `CssWins`
 
 2. **Confidence Score Calculation**
    - Each extractor calculates confidence differently
-   - Trek: 0.8 baseline + content indicators
+   - Wasm: 0.8 baseline + content indicators
    - CSS: selector match ratio + quality score
    - Regex: required pattern matches
    - No unified confidence scoring
 
 3. **Content Transformation Duplication**
    - CSS extractors have transformers
-   - Trek/WASM may apply their own transformations
+   - Wasm/WASM may apply their own transformations
    - Potential for double-transformation
 
 ### Redundancies
@@ -262,7 +262,7 @@ URL → Fetch → HTML → Gate Analysis → Headless Decision
 2. **HTML Cleaning**
    - Regex extractor strips HTML tags
    - CSS extractor processes raw HTML
-   - Trek/WASM handles HTML parsing
+   - Wasm/WASM handles HTML parsing
    - Redundant parsing overhead
 
 3. **Metadata Extraction**
@@ -319,7 +319,7 @@ URL → Fetch → HTML → Gate Analysis → Headless Decision
    - Feed scores into strategy selection
 
 2. **Complete WASM Component Binding**
-   - Implement WIT interface for Trek extraction
+   - Implement WIT interface for Wasm extraction
    - Enable actual WASM execution
    - Remove mock data fallback
 

@@ -69,7 +69,7 @@ riptide system-check # Comprehensive system check
 --local                  # Use local WASM (no API needed)
 --show-confidence        # Show confidence scores
 --strategy <STRATEGY>    # chain, parallel, fallback
---method <METHOD>        # trek, css, llm, regex, auto
+--method <METHOD>        # wasm, css, llm, regex, auto
 --selector <SELECTOR>    # CSS selector
 --pattern <PATTERN>      # Regex pattern
 --file <FILE>            # Output file

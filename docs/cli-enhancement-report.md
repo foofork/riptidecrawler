@@ -28,7 +28,7 @@ Successfully implemented enhanced content extraction that captures significantly
 - **Element Handling**: Properly processes tables, lists, code blocks, images
 
 ### 2. Updated Strategy Implementations
-- **Trek Strategy**: Now uses `StructuredExtractor` for better content preservation
+- **Wasm Strategy**: Now uses `StructuredExtractor` for better content preservation
 - **CSS Strategy**: Enhanced to use structured extraction
 - **Metadata**: Improved quality scoring and word count tracking
 
@@ -63,13 +63,13 @@ StructuredExtractor::extract_structured_content(html, base_url)
 - **Extraction Time**: 775ms average
 - **Quality Score**: 0.85 average
 - **Cache Performance**: 0ms for cached requests
-- **Strategy Used**: auto:trek (enhanced)
+- **Strategy Used**: auto:wasm (enhanced)
 
 ## Files Modified
 
 1. `/workspaces/eventmesh/crates/riptide-core/src/enhanced_extractor.rs` (new)
 2. `/workspaces/eventmesh/crates/riptide-core/src/lib.rs` (added module)
-3. `/workspaces/eventmesh/crates/riptide-core/src/strategies/implementations.rs` (updated Trek)
+3. `/workspaces/eventmesh/crates/riptide-core/src/strategies/implementations.rs` (updated Wasm)
 4. `/workspaces/eventmesh/crates/riptide-core/src/strategies/css_strategy.rs` (updated CSS)
 
 ## Remaining Work

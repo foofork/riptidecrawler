@@ -13,7 +13,7 @@ The RipTide CLI and extraction pipeline have been successfully validated with **
 - **8/8 URLs tested successfully** (100% pass rate)
 - **Average quality score**: 0.87
 - **Response time**: <1s for all tests (using cache)
-- **Strategies used**: auto:trek, auto:css
+- **Strategies used**: auto:wasm, auto:css
 
 ### URLs Successfully Tested:
 1. ✅ example.com - Simple static HTML
@@ -38,7 +38,7 @@ The RipTide CLI and extraction pipeline have been successfully validated with **
 - Content extraction: **Working**
 - Metadata extraction: **Working**
 - Quality scoring: **Working**
-- Strategy selection: **Working** (auto:trek, auto:css)
+- Strategy selection: **Working** (auto:wasm, auto:css)
 - Caching: **Working** (0ms for cached requests)
 - Word count: **Accurate**
 
@@ -55,10 +55,10 @@ riptide wasm       # ✅ WASM info
 
 | URL | Quality Score | Extraction Time | Word Count | Strategy |
 |-----|--------------|----------------|------------|----------|
-| example.com | 0.80 | 684ms (first) | 19 | auto:trek |
+| example.com | 0.80 | 684ms (first) | 19 | auto:wasm |
 | rust-lang.org | 0.90 | 0ms (cached) | 415 | auto:css |
 | Wikipedia | 0.85 | 0ms (cached) | 7,993 | auto:css |
-| Hacker News | 0.85 | 0ms (cached) | 756 | auto:trek |
+| Hacker News | 0.85 | 0ms (cached) | 756 | auto:wasm |
 | GitHub | 0.90 | 0ms (cached) | 18 | auto:css |
 | BBC News | 0.90 | 0ms (cached) | 1,653 | auto:css |
 | Rust Book | 1.00 | 0ms (cached) | 132 | auto:css |

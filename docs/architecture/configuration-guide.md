@@ -37,7 +37,7 @@ crawl:
 # Content Extraction Configuration
 extraction:
   wasm_module_path: "/opt/riptide/extractor/extractor.wasm"  # Path to WASM extractor
-  version_tag: "trek:0.1"            # Extractor version identifier
+  version_tag: "wasm:0.1"            # Extractor version identifier
   mode: "article"                    # Extraction mode: "article" | "full" | "minimal"
   produce_markdown: true             # Generate markdown output
   produce_json: true                 # Generate JSON output
@@ -202,7 +202,7 @@ Controls content extraction and processing:
 ```yaml
 extraction:
   wasm_module_path: "/opt/riptide/extractor/extractor.wasm"
-  version_tag: "trek:0.1"       # Extractor version
+  version_tag: "wasm:0.1"       # Extractor version
   mode: "article"               # Extraction strategy
   produce_markdown: true        # Output formats
   produce_json: true

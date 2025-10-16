@@ -7,15 +7,15 @@
 - **Actual content**: Missing 99% of the page content
 - **Only extracting**: Basic title and minimal text
 
-### 2. Trek Strategy Issues
-- Trek is the default WASM-based extraction
+### 2. Wasm Strategy Issues
+- Wasm is the default WASM-based extraction
 - Falls back to very basic HTML parsing when WASM fails
 - The fallback is clearly inadequate
 
 ### 3. Available Methods (from code analysis)
 
 #### Documented in CLI:
-- `trek` - WASM-based extraction (default)
+- `wasm` - WASM-based extraction (default)
 - `css` - CSS selector extraction
 - `regex` - Pattern-based extraction
 - `llm` - LLM-based extraction (mentioned but likely not implemented)
@@ -106,7 +106,7 @@ riptide wasm health
 ### Phase 1: Test All Methods
 ```bash
 # Test each extraction method
-for method in trek css regex auto; do
+for method in wasm css regex auto; do
   echo "Testing $method"
   riptide extract --url https://example.com --method $method
 done

@@ -1,8 +1,8 @@
 use once_cell::sync::Lazy;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-mod trek_helpers;
-use trek_helpers::*;
+mod extraction_helpers;
+use extraction_helpers::*;
 
 mod common_validation;
 use common_validation::*;
@@ -185,7 +185,7 @@ impl Component {
         HealthStatus {
             status: "healthy".to_string(),
             version: COMPONENT_VERSION.to_string(),
-            trek_version: get_extractor_version(),
+            extractor_version: get_extractor_version(),
             capabilities: get_supported_modes(),
             memory_usage: Some(get_memory_usage()),
             extraction_count: Some(EXTRACTION_COUNT.load(Ordering::Relaxed)),

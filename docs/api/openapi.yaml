@@ -25,7 +25,7 @@ info:
 
     ## Phase 2: Advanced Extraction (14 endpoints)
 
-    - `/strategies/*` - Multi-strategy extraction (CSS, TREK, LLM, Regex)
+    - `/strategies/*` - Multi-strategy extraction (CSS, WASM, LLM, Regex)
 
     - `/pdf/*` - PDF processing with progress streaming
 

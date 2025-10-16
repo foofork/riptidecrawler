@@ -181,7 +181,19 @@ pub async fn execute(
     command: PdfCommands,
     output_format: &str,
 ) -> Result<()> {
-    match command {
+    use crate::metrics::MetricsManager;
+
+    // Start metrics tracking
+    let metrics_manager = MetricsManager::global();
+    let command_name = match &command {
+        PdfCommands::Extract { .. } => "pdf_extract",
+        PdfCommands::ToMd { .. } => "pdf_to_md",
+        PdfCommands::Info { .. } => "pdf_info",
+        PdfCommands::Stream { .. } => "pdf_stream",
+    };
+    let tracking_id = metrics_manager.start_command(command_name).await?;
+
+    let result = match command {
         PdfCommands::Extract {
             input,
             format,
@@ -249,7 +261,21 @@ pub async fn execute(
             )
             .await
         }
+    };
+
+    // Complete metrics tracking
+    match &result {
+        Ok(_) => {
+            metrics_manager.complete_command(&tracking_id).await?;
+        }
+        Err(e) => {
+            metrics_manager
+                .fail_command(&tracking_id, e.to_string())
+                .await?;
+        }
     }
+
+    result
 }
 
 async fn execute_extract(

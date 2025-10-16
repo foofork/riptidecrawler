@@ -570,4 +570,122 @@ mod tests {
         assert_eq!(snapshot.total_processed, 1);
         assert!(snapshot.avg_processing_time_ms > 0.0);
     }
+
+    #[test]
+    fn test_concurrent_updates() {
+        use std::thread;
+
+        let collector = Arc::new(PdfMetricsCollector::new());
+        let mut handles = vec![];
+
+        // Spawn 5 threads, each recording 100 operations
+        for _ in 0..5 {
+            let c = Arc::clone(&collector);
+            let handle = thread::spawn(move || {
+                for _ in 0..100 {
+                    c.record_processing_success(Duration::from_millis(100), 10, 50 * 1024 * 1024);
+                }
+            });
+            handles.push(handle);
+        }
+
+        for handle in handles {
+            handle.join().unwrap();
+        }
+
+        let snapshot = collector.get_snapshot();
+        assert_eq!(snapshot.total_processed, 500); // 5 * 100
+    }
+
+    #[test]
+    fn test_new_performance_metrics() {
+        let collector = PdfMetricsCollector::new();
+
+        collector.record_pages_per_second(10.5);
+        collector.record_pages_per_second(15.3);
+        collector.record_progress_overhead(100);
+        collector.record_progress_overhead(200);
+        collector.record_page_processing_time(50);
+        collector.record_page_processing_time(70);
+
+        let snapshot = collector.get_snapshot();
+
+        // Average pages per second
+        assert!((snapshot.average_pages_per_second - 12.9).abs() < 0.1);
+
+        // Average progress overhead
+        assert_eq!(snapshot.average_progress_overhead_us, 150.0);
+
+        // Average page processing time
+        assert_eq!(snapshot.average_page_processing_time_ms, 60.0);
+    }
+
+    #[test]
+    fn test_memory_efficiency() {
+        let collector = PdfMetricsCollector::new();
+
+        // 100 pages with 50MB memory = 2.0 pages per MB
+        collector.record_processing_success(Duration::from_millis(1000), 100, 50 * 1024 * 1024);
+
+        let snapshot = collector.get_snapshot();
+        assert_eq!(snapshot.memory_efficiency, 2.0);
+    }
+
+    #[test]
+    fn test_edge_case_zero_memory() {
+        let collector = PdfMetricsCollector::new();
+
+        collector.record_processing_success(Duration::from_millis(100), 10, 0);
+
+        let snapshot = collector.get_snapshot();
+        // Should not panic
+        assert!(snapshot.memory_efficiency.is_infinite() || snapshot.memory_efficiency == 0.0);
+    }
+
+    #[test]
+    fn test_edge_case_all_failures() {
+        let collector = PdfMetricsCollector::new();
+
+        for _ in 0..10 {
+            collector.record_processing_failure(false);
+        }
+
+        let snapshot = collector.get_snapshot();
+        assert_eq!(snapshot.total_failed, 10);
+        assert_eq!(snapshot.success_rate, 0.0);
+    }
+
+    #[test]
+    fn test_prometheus_export_all_keys() {
+        let collector = PdfMetricsCollector::new();
+
+        collector.record_processing_success(Duration::from_millis(100), 10, 50 * 1024 * 1024);
+        collector.record_pages_per_second(12.5);
+        collector.record_progress_overhead(100);
+        collector.record_page_processing_time(50);
+
+        let metrics = collector.export_for_prometheus();
+
+        // Verify all metric keys exist
+        assert!(metrics.contains_key("pdf_total_processed"));
+        assert!(metrics.contains_key("pdf_total_failed"));
+        assert!(metrics.contains_key("pdf_memory_limit_failures"));
+        assert!(metrics.contains_key("pdf_avg_processing_time_ms"));
+        assert!(metrics.contains_key("pdf_peak_memory_mb"));
+        assert!(metrics.contains_key("pdf_avg_pages_per_pdf"));
+        assert!(metrics.contains_key("pdf_max_concurrent_ops"));
+        assert!(metrics.contains_key("pdf_avg_queue_wait_ms"));
+        assert!(metrics.contains_key("pdf_success_rate"));
+        assert!(metrics.contains_key("pdf_memory_spikes_handled"));
+        assert!(metrics.contains_key("pdf_cleanup_operations"));
+        assert!(metrics.contains_key("pdf_memory_efficiency_pages_per_mb"));
+        assert!(metrics.contains_key("pdf_average_pages_per_second"));
+        assert!(metrics.contains_key("pdf_average_progress_overhead_us"));
+        assert!(metrics.contains_key("pdf_average_page_processing_time_ms"));
+
+        // All values should be finite
+        for (_key, value) in metrics.iter() {
+            assert!(value.is_finite());
+        }
+    }
 }

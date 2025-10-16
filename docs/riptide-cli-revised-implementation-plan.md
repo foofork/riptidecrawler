@@ -10,7 +10,7 @@ Implement a production-grade CLI following the **Raw → WASM → Headless** pro
 
 # Core Architecture Changes
 
-## Engine Pipeline (NOT Trek)
+## Engine Pipeline (NOT Wasm)
 * **Raw:** Clean HTML, no JavaScript needed
 * **WASM:** Unclean/static content with scripts
 * **Headless:** SPA/JS-heavy sites requiring browser execution
@@ -492,4 +492,4 @@ riptide bench urls --file tests/bench.txt --iterations 5
 
 ---
 
-This revised plan aligns with the comprehensive CLI specification, focusing on the Raw → WASM → Headless pipeline and removing all references to Trek strategy.
+This revised plan aligns with the comprehensive CLI specification, focusing on the Raw → WASM → Headless pipeline and removing all references to Wasm strategy.

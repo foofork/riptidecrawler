@@ -320,7 +320,7 @@ pub fn normalize_url(url: &str) -> Cow<str> {
 //! from web pages using multiple strategies:
 //!
 //! - Fast path: Direct HTML parsing with lol-html
-//! - WASM path: WebAssembly-based extraction using Trek
+//! - WASM path: WebAssembly-based extraction using Wasm
 //! - Fallback path: Chrome DevTools Protocol rendering
 //!
 //! # Examples

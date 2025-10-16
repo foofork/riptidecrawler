@@ -219,7 +219,7 @@ mod tests {
     fn test_builder_basic() {
         let key = CacheKeyBuilder::new()
             .url("https://example.com")
-            .method("trek")
+            .method("wasm")
             .build()
             .expect("Failed to build cache key");
 
@@ -231,7 +231,7 @@ mod tests {
     fn test_builder_with_options() {
         let key = CacheKeyBuilder::new()
             .url("https://example.com")
-            .method("trek")
+            .method("wasm")
             .option("chunking", "sentence")
             .option("language", "en")
             .build()
@@ -244,7 +244,7 @@ mod tests {
     fn test_builder_with_namespace() {
         let key = CacheKeyBuilder::new()
             .url("https://example.com")
-            .method("trek")
+            .method("wasm")
             .namespace("strategies")
             .build()
             .expect("Failed to build cache key");
@@ -271,7 +271,7 @@ mod tests {
 
     #[test]
     fn test_helper_strategies() {
-        let key = generate_strategies_cache_key("https://example.com", "trek", "write", "v1.0.0")
+        let key = generate_strategies_cache_key("https://example.com", "wasm", "write", "v1.0.0")
             .expect("Failed to generate strategies cache key");
 
         assert!(key.starts_with("riptide:strategies:v1.0.0:"));
@@ -300,13 +300,13 @@ mod tests {
     fn test_params_conversion() {
         let builder = CacheKeyBuilder::new()
             .url("https://example.com")
-            .method("trek")
+            .method("wasm")
             .version("v1.0.0")
             .option("test", "value");
 
         let params = builder.to_params().unwrap();
         assert_eq!(params.url, "https://example.com");
-        assert_eq!(params.method, "trek");
+        assert_eq!(params.method, "wasm");
         assert_eq!(params.version, "v1.0.0");
         assert_eq!(params.options.get("test").unwrap(), "value");
     }

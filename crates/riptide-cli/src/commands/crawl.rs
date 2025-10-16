@@ -30,6 +30,14 @@ struct PageResult {
 }
 
 pub async fn execute(client: RipTideClient, args: CrawlArgs, output_format: &str) -> Result<()> {
+    use crate::metrics::MetricsManager;
+    use std::time::Instant;
+
+    // Start metrics tracking
+    let metrics_manager = MetricsManager::global();
+    let tracking_id = metrics_manager.start_command("crawl").await?;
+    let overall_start = Instant::now();
+
     output::print_info(&format!("Starting crawl of: {}", args.url));
     output::print_info(&format!(
         "Max depth: {}, Max pages: {}",
@@ -51,10 +59,27 @@ pub async fn execute(client: RipTideClient, args: CrawlArgs, output_format: &str
         follow_external_links: args.follow_external,
     };
 
+    let api_start = Instant::now();
     let response = client.post("/api/v1/crawl", &request).await?;
     let result: CrawlResponse = response.json().await?;
+    let api_latency = api_start.elapsed();
 
     pb.finish_with_message("Crawl completed");
+
+    // Record metrics
+    let total_bytes: u64 = result.pages.iter().map(|p| p.content_length as u64).sum();
+    metrics_manager
+        .record_progress(&tracking_id, result.pages_crawled as u64, total_bytes, 0, 1)
+        .await?;
+    metrics_manager
+        .collector()
+        .record_metric("crawl.api.latency_ms", api_latency.as_millis() as f64)?;
+    metrics_manager
+        .collector()
+        .record_metric("crawl.pages", result.pages_crawled as f64)?;
+    metrics_manager
+        .collector()
+        .record_metric("crawl.duration_ms", result.total_time_ms as f64)?;
 
     match output_format {
         "json" => output::print_json(&result),
@@ -94,6 +119,9 @@ pub async fn execute(client: RipTideClient, args: CrawlArgs, output_format: &str
             }
         }
     }
+
+    // Complete metrics tracking
+    metrics_manager.complete_command(&tracking_id).await?;
 
     Ok(())
 }

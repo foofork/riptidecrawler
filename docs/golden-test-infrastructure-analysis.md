@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-The golden test infrastructure is currently **failing due to a migration from trek-rs to scraper-based extraction**. Tests show 37-64% content similarity against a 95% threshold. The core issue is that the new scraper extracts raw HTML markup in text fields, while baselines expect clean text. Additionally, the system lacks integration with the gate analysis system for full-pipeline testing.
+The golden test infrastructure is currently **failing due to a migration from wasm-rs to scraper-based extraction**. Tests show 37-64% content similarity against a 95% threshold. The core issue is that the new scraper extracts raw HTML markup in text fields, while baselines expect clean text. Additionally, the system lacks integration with the gate analysis system for full-pipeline testing.
 
 **Critical Findings:**
 - ❌ 5/5 golden tests failing (100% failure rate)
@@ -112,12 +112,12 @@ Snapshots are JSON files with **metadata comments**:
 
 ## 2. Root Cause Analysis of Test Failures
 
-### 2.1 Migration Impact: trek-rs → scraper
+### 2.1 Migration Impact: wasm-rs → scraper
 
 **The Problem:**
-The original baselines were generated using **trek-rs** (now removed for WASI compatibility). The new **scraper-based extraction** produces different output:
+The original baselines were generated using **wasm-rs** (now removed for WASI compatibility). The new **scraper-based extraction** produces different output:
 
-| Aspect | trek-rs (baseline) | scraper (current) | Impact |
+| Aspect | wasm-rs (baseline) | scraper (current) | Impact |
 |--------|-------------------|-------------------|---------|
 | Text extraction | Clean text only | Includes HTML markup | 37-64% similarity |
 | Content selection | Article heuristics | Simple selectors | Missing content |
@@ -126,7 +126,7 @@ The original baselines were generated using **trek-rs** (now removed for WASI co
 
 **Example Difference:**
 
-**Expected (trek-rs baseline):**
+**Expected (wasm-rs baseline):**
 ```
 SILICON VALLEY, CA - In a groundbreaking announcement today, TechCorp revealed their latest artificial intelligence system...
 ```
@@ -470,7 +470,7 @@ git diff tests/golden/snapshots/ | less
 git add tests/golden/snapshots/
 git commit -m "chore(tests): regenerate golden baselines after scraper migration
 
-Migration from trek-rs to scraper changes extraction output:
+Migration from wasm-rs to scraper changes extraction output:
 - Text fields now contain clean text (previously had HTML)
 - Link extraction more comprehensive
 - Media extraction includes srcset URLs
@@ -572,7 +572,7 @@ jobs:
 
 3. **Document migration artifacts** in baseline comments:
    ```json
-   // MIGRATION NOTE: trek-rs → scraper
+   // MIGRATION NOTE: wasm-rs → scraper
    // Expected differences:
    // - Link extraction more comprehensive (+30% links)
    // - Media includes srcset URLs

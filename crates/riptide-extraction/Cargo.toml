@@ -1,0 +1,63 @@
+[package]
+name = "riptide-extraction"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "HTML processing and extraction capabilities for riptide-extraction"
+keywords = ["html", "extraction", "css", "regex", "dom"]
+categories = ["text-processing", "web-programming"]
+
+[dependencies]
+# Core dependencies removed to avoid circular dependency
+# riptide-core = { path = "../riptide-core" }
+anyhow.workspace = true
+async-trait.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+# HTML processing
+scraper = "0.20"
+lol_html.workspace = true
+regex.workspace = true
+url.workspace = true
+
+# Chunking dependencies
+tiktoken-rs = "0.5"
+uuid = { version = "1.0", features = ["v4"] }
+
+# Optional features
+futures.workspace = true
+
+# WASM extraction dependencies (moved from riptide-core)
+wasmtime = { workspace = true }
+wasmtime-wasi = { workspace = true }
+
+# Table extraction dependencies
+chrono = { workspace = true, features = ["serde"] }
+
+[build-dependencies]
+wit-bindgen = "0.16"
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile.workspace = true
+riptide-core = { path = "../riptide-core" }
+futures.workspace = true
+
+[features]
+default = ["css-extraction", "regex-extraction", "dom-utils", "chunking"]
+css-extraction = []
+regex-extraction = []
+dom-utils = []
+table-extraction = []
+chunking = []
+spider = []
+strategy-traits = []
+
+[[example]]
+name = "basic_extraction"
+required-features = ["css-extraction", "regex-extraction"]
+

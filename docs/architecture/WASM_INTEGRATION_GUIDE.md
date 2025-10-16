@@ -46,7 +46,7 @@ Performance Targets (All Met):
 │  └─ Component Model (WIT Interfaces)                  │
 ├─────────────────────────────────────────────────────────┤
 │               WASM Guest Module                         │
-│  ├─ Trek-rs Integration (Content Extraction)          │
+│  ├─ Wasm-rs Integration (Content Extraction)          │
 │  ├─ Enhanced Features (Links, Media, Language)        │
 │  └─ WIT Bindings (Type-safe Interface)                │
 └─────────────────────────────────────────────────────────┘

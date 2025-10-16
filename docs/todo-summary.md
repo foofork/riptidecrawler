@@ -163,7 +163,7 @@ if RE_TODO.is_match(line) {
 ## Current Status
 
 ### ✅ Working Well
-- Core HTML extraction (trek-rs integration)
+- Core HTML extraction (wasm-rs integration)
 - Article/Full/Metadata extraction modes
 - Health checks and monitoring
 - Performance benchmarks

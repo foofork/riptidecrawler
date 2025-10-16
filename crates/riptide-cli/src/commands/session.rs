@@ -1,10 +1,9 @@
 use crate::output;
-use anyhow::{anyhow, Context, Result};
+use crate::session::{Cookie, Session, SessionManager, SessionMetadata};
+use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use std::path::PathBuf;
 
 #[derive(clap::Subcommand)]
 pub enum SessionCommands {
@@ -20,7 +19,7 @@ pub enum SessionCommands {
 
         /// Initialize with cookies from JSON file
         #[arg(long)]
-        cookies: Option<String>,
+        cookie_jar: Option<String>,
 
         /// Initialize with headers from JSON file
         #[arg(long)]
@@ -79,8 +78,8 @@ pub enum SessionCommands {
         name: String,
 
         /// Output file path
-        #[arg(long, short = 'o')]
-        output: String,
+        #[arg(long)]
+        out: String,
 
         /// Export format (json, yaml)
         #[arg(long, default_value = "json")]
@@ -99,7 +98,7 @@ pub enum SessionCommands {
     Import {
         /// Input file path
         #[arg(long)]
-        input: String,
+        from: String,
 
         /// Override session name
         #[arg(long)]
@@ -110,8 +109,8 @@ pub enum SessionCommands {
         overwrite: bool,
     },
 
-    /// Remove a session
-    Rm {
+    /// Delete a session
+    Delete {
         /// Session name to remove
         #[arg(long)]
         name: String,
@@ -248,134 +247,12 @@ pub enum SessionCommands {
     },
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Session {
-    pub name: String,
-    pub description: Option<String>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub last_used_at: Option<DateTime<Utc>>,
-    pub cookies: Vec<Cookie>,
-    pub headers: HashMap<String, String>,
-    pub tags: Vec<String>,
-    pub user_agent: Option<String>,
-    pub timeout_minutes: u64,
-    pub metadata: SessionMetadata,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Cookie {
-    pub name: String,
-    pub value: String,
-    pub domain: Option<String>,
-    pub path: String,
-    pub secure: bool,
-    pub http_only: bool,
-    pub expires: Option<DateTime<Utc>>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SessionMetadata {
-    pub requests_count: u64,
-    pub last_request_url: Option<String>,
-    pub success_count: u64,
-    pub error_count: u64,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct SessionManager {
-    current_session: Option<String>,
-    sessions: HashMap<String, Session>,
-}
-
-impl SessionManager {
-    fn new() -> Self {
-        Self {
-            current_session: None,
-            sessions: HashMap::new(),
-        }
-    }
-
-    fn load() -> Result<Self> {
-        let path = Self::storage_path()?;
-        if !path.exists() {
-            return Ok(Self::new());
-        }
-
-        let content = fs::read_to_string(&path)
-            .context(format!("Failed to read session file: {}", path.display()))?;
-        let manager: SessionManager =
-            serde_json::from_str(&content).context("Failed to parse session data")?;
-
-        Ok(manager)
-    }
-
-    fn save(&self) -> Result<()> {
-        let path = Self::storage_path()?;
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-
-        let content = serde_json::to_string_pretty(self)?;
-        fs::write(&path, content)?;
-
-        Ok(())
-    }
-
-    fn storage_path() -> Result<PathBuf> {
-        let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
-        Ok(home.join(".riptide").join("sessions.json"))
-    }
-
-    fn add_session(&mut self, session: Session) -> Result<()> {
-        if self.sessions.contains_key(&session.name) {
-            return Err(anyhow!("Session '{}' already exists", session.name));
-        }
-
-        self.sessions.insert(session.name.clone(), session);
-        Ok(())
-    }
-
-    fn get_session(&self, name: &str) -> Result<&Session> {
-        self.sessions
-            .get(name)
-            .ok_or_else(|| anyhow!("Session '{}' not found", name))
-    }
-
-    fn get_session_mut(&mut self, name: &str) -> Result<&mut Session> {
-        self.sessions
-            .get_mut(name)
-            .ok_or_else(|| anyhow!("Session '{}' not found", name))
-    }
-
-    fn remove_session(&mut self, name: &str) -> Result<Session> {
-        self.sessions
-            .remove(name)
-            .ok_or_else(|| anyhow!("Session '{}' not found", name))
-    }
-
-    fn set_current(&mut self, name: String) -> Result<()> {
-        if !self.sessions.contains_key(&name) {
-            return Err(anyhow!("Session '{}' does not exist", name));
-        }
-
-        self.current_session = Some(name);
-        Ok(())
-    }
-
-    fn get_current(&self) -> Option<&Session> {
-        self.current_session
-            .as_ref()
-            .and_then(|name| self.sessions.get(name))
-    }
-}
-
 pub async fn execute(command: SessionCommands, output_format: &str) -> Result<()> {
     match command {
         SessionCommands::New {
             name,
             description,
-            cookies,
+            cookie_jar,
             headers,
             tags,
             user_agent,
@@ -384,7 +261,7 @@ pub async fn execute(command: SessionCommands, output_format: &str) -> Result<()
             create_session(
                 name,
                 description,
-                cookies,
+                cookie_jar,
                 headers,
                 tags,
                 user_agent,
@@ -402,17 +279,17 @@ pub async fn execute(command: SessionCommands, output_format: &str) -> Result<()
         SessionCommands::Current { detailed } => current_session(detailed, output_format).await,
         SessionCommands::Export {
             name,
-            output,
+            out,
             format,
             include_cookies,
             include_headers,
-        } => export_session(name, output, format, include_cookies, include_headers).await,
+        } => export_session(name, out, format, include_cookies, include_headers).await,
         SessionCommands::Import {
-            input,
+            from,
             name,
             overwrite,
-        } => import_session(input, name, overwrite, output_format).await,
-        SessionCommands::Rm { name, force, tag } => {
+        } => import_session(from, name, overwrite, output_format).await,
+        SessionCommands::Delete { name, force, tag } => {
             remove_session(name, force, tag, output_format).await
         }
         SessionCommands::Update {
@@ -600,7 +477,7 @@ async fn list_sessions(
                 ]);
 
                 for session in sessions {
-                    let is_current = manager.current_session.as_ref() == Some(&session.name);
+                    let is_current = manager.current_session_name() == Some(&session.name);
                     let name = if is_current {
                         format!("{} *", session.name)
                     } else {
@@ -623,7 +500,7 @@ async fn list_sessions(
                 }
                 println!("{table}");
 
-                if let Some(current) = &manager.current_session {
+                if let Some(current) = manager.current_session_name() {
                     output::print_info(&format!("\n* Current session: {}", current));
                 }
             }
@@ -634,7 +511,7 @@ async fn list_sessions(
 }
 
 fn display_session_detailed(session: &Session, manager: &SessionManager) {
-    let is_current = manager.current_session.as_ref() == Some(&session.name);
+    let is_current = manager.current_session_name() == Some(&session.name);
     println!(
         "Name: {}{}",
         session.name,
@@ -768,25 +645,11 @@ async fn export_session(
     name: String,
     output_path: String,
     format: String,
-    include_cookies: bool,
-    include_headers: bool,
+    _include_cookies: bool,
+    _include_headers: bool,
 ) -> Result<()> {
     let manager = SessionManager::load()?;
-    let mut session = manager.get_session(&name)?.clone();
-
-    if !include_cookies {
-        session.cookies.clear();
-    }
-    if !include_headers {
-        session.headers.clear();
-    }
-
-    let content = match format.as_str() {
-        "yaml" => serde_yaml::to_string(&session)?,
-        _ => serde_json::to_string_pretty(&session)?,
-    };
-
-    fs::write(&output_path, content)?;
+    manager.export_session(&name, &output_path, &format)?;
     output::print_success(&format!("Session exported to: {}", output_path));
 
     Ok(())
@@ -798,34 +661,8 @@ async fn import_session(
     overwrite: bool,
     output_format: &str,
 ) -> Result<()> {
-    let content = fs::read_to_string(&input_path)?;
-
-    let mut session: Session = if input_path.ends_with(".yaml") || input_path.ends_with(".yml") {
-        serde_yaml::from_str(&content)?
-    } else {
-        serde_json::from_str(&content)?
-    };
-
-    if let Some(new_name) = name_override {
-        session.name = new_name;
-    }
-
     let mut manager = SessionManager::load()?;
-
-    if manager.sessions.contains_key(&session.name) {
-        if !overwrite {
-            return Err(anyhow!(
-                "Session '{}' already exists. Use --overwrite to replace it.",
-                session.name
-            ));
-        }
-        manager.remove_session(&session.name)?;
-    }
-
-    session.updated_at = Utc::now();
-
-    let session_name = session.name.clone();
-    manager.add_session(session)?;
+    let session_name = manager.import_session(&input_path, name_override, overwrite)?;
     manager.save()?;
 
     match output_format {

@@ -25,7 +25,7 @@
 ❌ **High WASI Incompatibility Risk** (70% probability)
 ❌ **Minimal Documentation** (0-20% coverage)
 ❌ **Maintenance Concerns** (most crates stale/abandoned)
-❌ **Browser API Dependencies** (repeat of trek-rs disaster)
+❌ **Browser API Dependencies** (repeat of wasm-rs disaster)
 ❌ **Binary Size Bloat** (+200-500KB)
 
 ---
@@ -35,7 +35,7 @@
 ### What We Have
 - ✅ `scraper` crate (WASI-compatible, proven stable)
 - ✅ CSS selector extraction (70-85% confidence)
-- ✅ Fallback strategies (trek → CSS → basic)
+- ✅ Fallback strategies (wasm → CSS → basic)
 - ✅ Gate system (routes complex pages to headless)
 
 ### What We Need

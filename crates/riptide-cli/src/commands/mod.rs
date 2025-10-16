@@ -4,6 +4,7 @@ pub mod domain;
 pub mod extract;
 pub mod health;
 pub mod job;
+pub mod job_local;
 pub mod metrics;
 pub mod pdf;
 pub mod render;
@@ -19,6 +20,7 @@ pub mod wasm;
 use clap::Subcommand;
 use domain::DomainCommands;
 use job::JobCommands;
+use job_local::JobLocalCommands;
 use pdf::PdfCommands;
 use schema::SchemaCommands;
 use session::SessionCommands;
@@ -91,10 +93,16 @@ pub enum Commands {
         command: PdfCommands,
     },
 
-    /// Job management commands
+    /// Job management commands (API-based)
     Job {
         #[command(subcommand)]
         command: JobCommands,
+    },
+
+    /// Local job management (no API server required)
+    JobLocal {
+        #[command(subcommand)]
+        command: JobLocalCommands,
     },
 
     /// Session management commands
@@ -161,6 +169,10 @@ pub struct ExtractArgs {
     /// Include metadata in output
     #[arg(long)]
     pub metadata: bool,
+
+    /// Use session for cookies, headers, and authentication
+    #[arg(long)]
+    pub session: Option<String>,
 
     // Stealth Options
     /// Stealth level for anti-detection (none, low, medium, high)
@@ -245,20 +257,27 @@ pub struct SearchArgs {
 
 #[derive(Subcommand)]
 pub enum CacheCommands {
-    /// Show cache status
+    /// Show cache status and statistics
     Status,
 
-    /// Clear cache
+    /// Clear cache entries
     Clear {
-        /// Clear cache for specific method only
+        /// Clear cache for specific domain only
         #[arg(long)]
-        method: Option<String>,
+        domain: Option<String>,
     },
 
-    /// Validate cache integrity
+    /// Warm cache by preloading URLs from a file
+    Warm {
+        /// Path to file containing URLs (one per line)
+        #[arg(long)]
+        url_file: String,
+    },
+
+    /// Validate cache integrity and remove expired entries
     Validate,
 
-    /// Show cache statistics
+    /// Show detailed cache statistics
     Stats,
 }
 
@@ -354,8 +373,19 @@ pub struct TablesArgs {
 
 #[derive(Subcommand)]
 pub enum MetricsCommands {
-    /// View current metrics
+    /// View current metrics summary
     Show,
+
+    /// Live metrics monitoring with real-time updates
+    Tail {
+        /// Update interval (e.g., 1s, 500ms, 2s)
+        #[arg(long, default_value = "2s")]
+        interval: String,
+
+        /// Number of recent commands to show
+        #[arg(long, default_value = "10")]
+        limit: usize,
+    },
 
     /// Export metrics to file
     Export {

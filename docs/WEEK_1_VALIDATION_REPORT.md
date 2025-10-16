@@ -22,7 +22,7 @@ Week 1 Phase 1A and 1B implementations have been successfully validated:
 **Objective**: Fix golden test failures and establish baseline management system
 
 **Achievements**:
-1. ✅ Identified root cause: Baselines were from trek-rs extraction, not scraper
+1. ✅ Identified root cause: Baselines were from wasm-rs extraction, not scraper
 2. ✅ Implemented `UPDATE_BASELINES=1` environment variable support
 3. ✅ Created `/workspaces/eventmesh/scripts/update-golden-baselines.sh` helper script
 4. ✅ Regenerated all 5 golden test baselines with clean HTML-stripped text
@@ -101,7 +101,7 @@ test result: ok. 7 passed; 0 failed; 0 ignored
 
 **Problem**: All golden tests failing with 0-63% similarity scores
 
-**Root Cause**: Baseline snapshots contained trek-rs extraction output, but project now uses scraper
+**Root Cause**: Baseline snapshots contained wasm-rs extraction output, but project now uses scraper
 
 **Solution**:
 - Regenerated all 5 baselines with `UPDATE_BASELINES=1 cargo test`

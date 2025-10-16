@@ -38,7 +38,7 @@ pub mod conditional;
 pub mod confidence;
 pub mod confidence_integration;
 pub mod dynamic;
-pub mod enhanced_extractor;
+// pub mod enhanced_extractor; // Temporarily disabled
 pub mod error;
 pub mod events;
 pub mod fetch;

@@ -10,7 +10,7 @@
 ```
 wasm/riptide-extractor-wasm/src/
 ├── lib_clean.rs          # Main component (update convert_response_to_content)
-├── trek_helpers.rs       # Add new helper functions here
+├── wasm_helpers.rs       # Add new helper functions here
 ├── extraction.rs         # Alternative location for extraction utilities
 └── common_validation.rs  # Existing validation helpers
 ```
@@ -19,7 +19,7 @@ wasm/riptide-extractor-wasm/src/
 
 ## Feature 1: Link Extraction
 
-### Add to `src/trek_helpers.rs`
+### Add to `src/wasm_helpers.rs`
 
 ```rust
 use scraper::{Html, Selector};
@@ -166,7 +166,7 @@ mod link_extraction_tests {
 
 ## Feature 2: Media Extraction
 
-### Add to `src/trek_helpers.rs`
+### Add to `src/wasm_helpers.rs`
 
 ```rust
 /// Extract all media (images, videos, audio) from HTML content
@@ -550,7 +550,7 @@ mod language_detection_tests {
 
 ## Feature 4: Category Extraction
 
-### Add to `src/trek_helpers.rs`
+### Add to `src/wasm_helpers.rs`
 
 ```rust
 /// Extract categories/tags from HTML metadata and content
@@ -754,9 +754,9 @@ mod category_extraction_tests {
 ### Update `convert_response_to_content()` function (lines 275-302)
 
 ```rust
-/// Convert trek-rs TrekResponse to Component Model ExtractedContent
+/// Convert wasm-rs WasmResponse to Component Model ExtractedContent
 fn convert_response_to_content(
-    response: TrekResponse,
+    response: WasmResponse,
     url: &str,
     _mode: &ExtractionMode,
 ) -> Result<ExtractedContent, ExtractionError> {
@@ -794,8 +794,8 @@ fn convert_response_to_content(
 ### Add imports to top of `src/lib_clean.rs`
 
 ```rust
-mod trek_helpers;
-use trek_helpers::{
+mod wasm_helpers;
+use wasm_helpers::{
     extract_links,
     extract_media,
     extract_language,
@@ -923,7 +923,7 @@ cd /workspaces/eventmesh/wasm/riptide-extractor-wasm
 cargo build --release
 
 # 2. Run unit tests
-cargo test --lib trek_helpers
+cargo test --lib wasm_helpers
 
 # 3. Run integration tests
 cargo test --test test_runner test_enhanced_content_extraction_features

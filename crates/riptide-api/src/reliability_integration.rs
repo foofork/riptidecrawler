@@ -1,18 +1,18 @@
 //! Reliability integration module for RipTide API
 //!
 //! This module provides the integration between riptide-core's ReliableExtractor
-//! and riptide-html's WasmExtractor, implementing the trait adapter pattern.
+//! and riptide-extraction's WasmExtractor, implementing the trait adapter pattern.
 
 use anyhow::Result;
 use riptide_core::{
     reliability::{ReliabilityMetricsRecorder, WasmExtractor as WasmExtractorTrait},
     types::ExtractedDoc,
 };
-use riptide_html::wasm_extraction::WasmExtractor as ConcreteWasmExtractor;
+use riptide_extraction::wasm_extraction::WasmExtractor as ConcreteWasmExtractor;
 use std::sync::Arc;
 use std::time::Instant;
 
-/// Adapter to make riptide_html::WasmExtractor compatible with the reliability trait
+/// Adapter to make riptide_extraction::WasmExtractor compatible with the reliability trait
 pub struct WasmExtractorAdapter {
     extractor: Arc<ConcreteWasmExtractor>,
     metrics: Option<Arc<crate::metrics::RipTideMetrics>>,
@@ -63,7 +63,7 @@ impl WasmExtractorTrait for WasmExtractorAdapter {
             );
         }
 
-        // Convert riptide_html::ExtractedDoc to riptide_core::ExtractedDoc
+        // Convert riptide_extraction::ExtractedDoc to riptide_core::ExtractedDoc
         Ok(ExtractedDoc {
             url: doc.url,
             title: doc.title,

@@ -138,7 +138,7 @@ RipTide implements a sophisticated WebAssembly Component Model-based extraction 
 │  └─ Health Monitoring                │
 ├─────────────────────────────────────┤
 │  WASM Guest (riptide-extractor)     │
-│  ├─ Trek-rs Integration             │
+│  ├─ Wasm-rs Integration             │
 │  └─ Enhanced Features                │
 └─────────────────────────────────────┘
 ```
@@ -154,7 +154,7 @@ RipTide implements a sophisticated WebAssembly Component Model-based extraction 
 
 **2. WASM Guest Component** (`wasm/riptide-extractor-wasm/`)
 - Implements extraction logic in isolated sandbox
-- Trek-rs integration for core content extraction
+- Wasm-rs integration for core content extraction
 - Enhanced features:
   - Link extraction with rel attributes, canonical links, area elements
   - Media extraction (images, videos, audio) with srcset and Open Graph
@@ -238,7 +238,7 @@ API Request → AdvancedInstancePool::extract()
   ├─ Call WASM extract function
   │   └─ [WASM Boundary]
   │       ├─ Validate input
-  │       ├─ Trek-rs extraction
+  │       ├─ Wasm-rs extraction
   │       ├─ Extract links, media, language
   │       └─ Return ExtractedContent
   ├─ Convert WIT result to host types

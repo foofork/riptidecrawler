@@ -98,7 +98,7 @@ docs/
 │   │   ├── search-integration.md      # Search functionality
 │   │   └── advanced-options.md        # Depth, filters, etc.
 │   ├── Extraction/                     # Content extraction
-│   │   ├── strategies.md              # CSS, TREK, LLM, Regex
+│   │   ├── strategies.md              # CSS, WASM, LLM, Regex
 │   │   ├── confidence-scoring.md      # Quality metrics
 │   │   ├── strategy-composition.md    # Chaining strategies
 │   │   ├── pdf-processing.md          # PDF extraction

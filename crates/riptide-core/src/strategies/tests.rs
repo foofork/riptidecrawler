@@ -4,7 +4,7 @@
 #[allow(clippy::module_inception)]
 mod tests {
     use crate::strategies::{
-        traits::ExtractionStrategy, PerformanceTier, StrategyRegistry, TrekExtractionStrategy,
+        traits::ExtractionStrategy, PerformanceTier, StrategyRegistry, WasmExtractionStrategy,
     };
     use std::sync::Arc;
 
@@ -34,25 +34,25 @@ mod tests {
 
     #[tokio::test]
     async fn test_trait_extraction_strategies() {
-        // Test Trek strategy
-        let trek_strategy = TrekExtractionStrategy;
-        let result = trek_strategy.extract(TEST_HTML, TEST_URL).await;
+        // Test WASM strategy
+        let wasm_strategy = WasmExtractionStrategy;
+        let result = wasm_strategy.extract(TEST_HTML, TEST_URL).await;
         assert!(result.is_ok());
         let extraction_result = result.unwrap();
         assert!(!extraction_result.content.title.is_empty());
         assert!(!extraction_result.content.content.is_empty());
-        assert_eq!(trek_strategy.name(), "trek");
+        assert_eq!(wasm_strategy.name(), "wasm");
     }
 
     #[tokio::test]
     async fn test_strategy_registry_basic() {
         let mut registry = StrategyRegistry::new();
 
-        // Register Trek strategy
-        registry.register_extraction(Arc::new(TrekExtractionStrategy));
+        // Register WASM strategy
+        registry.register_extraction(Arc::new(WasmExtractionStrategy));
 
         // Test retrieval
-        let extraction_strategy = registry.get_extraction("trek");
+        let extraction_strategy = registry.get_extraction("wasm");
         assert!(extraction_strategy.is_some());
 
         // Test listing
@@ -63,17 +63,17 @@ mod tests {
     #[tokio::test]
     async fn test_strategy_registry_find_best() {
         let mut registry = StrategyRegistry::new();
-        registry.register_extraction(Arc::new(TrekExtractionStrategy));
+        registry.register_extraction(Arc::new(WasmExtractionStrategy));
 
         // Test finding best strategy
         let best_strategy = registry.find_best_extraction(TEST_HTML);
         assert!(best_strategy.is_some());
-        assert_eq!(best_strategy.unwrap().name(), "trek");
+        assert_eq!(best_strategy.unwrap().name(), "wasm");
     }
 
     #[tokio::test]
     async fn test_strategy_capabilities() {
-        let strategy = TrekExtractionStrategy;
+        let strategy = WasmExtractionStrategy;
         let capabilities = strategy.capabilities();
 
         assert_eq!(capabilities.strategy_type, "wasm_extraction");
@@ -86,7 +86,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_confidence_scoring() {
-        let strategy = TrekExtractionStrategy;
+        let strategy = WasmExtractionStrategy;
 
         // Test with valid HTML
         let valid_html = "<html><head><title>Test</title></head><body><p>Content</p></body></html>";

@@ -14,8 +14,8 @@ use tokio::time::timeout;
 use tracing::{debug, error, info, warn};
 use url::Url;
 
-/// Convert from riptide_html ExtractedDoc to riptide_core ExtractedDoc
-fn convert_html_doc(doc: riptide_html::wasm_extraction::ExtractedDoc) -> ExtractedDoc {
+/// Convert from riptide_extraction ExtractedDoc to riptide_core ExtractedDoc
+fn convert_html_doc(doc: riptide_extraction::wasm_extraction::ExtractedDoc) -> ExtractedDoc {
     ExtractedDoc {
         url: doc.url,
         title: doc.title,

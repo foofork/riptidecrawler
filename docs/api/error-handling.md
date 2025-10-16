@@ -226,7 +226,7 @@ WASM component or content extraction failures.
 {
   "error": {
     "type": "extraction_error",
-    "message": "Content extraction failed: Trek extraction failed: Invalid HTML structure",
+    "message": "Content extraction failed: Wasm extraction failed: Invalid HTML structure",
     "retryable": true,
     "status": 500
   }

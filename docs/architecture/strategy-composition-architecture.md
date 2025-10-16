@@ -21,7 +21,7 @@ The Strategy Composition framework provides a flexible, high-performance system 
                             ▼              ▼              ▼
                     ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
                     │  Strategy 1  │ │  Strategy 2  │ │  Strategy 3  │
-                    │   (Trek)     │ │    (CSS)     │ │    (LLM)     │
+                    │   (Wasm)     │ │    (CSS)     │ │    (LLM)     │
                     └──────────────┘ └──────────────┘ └──────────────┘
                             │              │              │
                             └──────────────┴──────────────┘

@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-The WASM component implementation in `riptide-extractor-wasm` is **fully functional** and uses Trek-rs for HTML extraction. However, the **host-side binding** in `crates/riptide-html/src/wasm_extraction.rs` returns **mock data** instead of invoking the actual WASM component.
+The WASM component implementation in `riptide-extractor-wasm` is **fully functional** and uses Wasm-rs for HTML extraction. However, the **host-side binding** in `crates/riptide-html/src/wasm_extraction.rs` returns **mock data** instead of invoking the actual WASM component.
 
 ## Mock Data Locations
 
@@ -56,7 +56,7 @@ Comprehensive test suite created at:
 **Location**: `/workspaces/eventmesh/wasm/riptide-extractor-wasm/`
 
 - **WIT Interface**: `wit/extractor.wit` - Complete interface definition
-- **Implementation**: `src/lib.rs` - Trek-rs integration complete
+- **Implementation**: `src/lib.rs` - Wasm-rs integration complete
 - **Build Status**: ✅ Builds successfully to WASM
 - **Binary**: `/workspaces/eventmesh/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm` (3.2MB)
 
@@ -254,7 +254,7 @@ cargo test --package riptide-html --test wasm_binding_tdd_tests -- --nocapture
 **AFTER Fix:**
 - ✅ All tests PASS
 - ✅ No mock data detected
-- ✅ Real extraction with Trek-rs
+- ✅ Real extraction with Wasm-rs
 - ✅ Links and media extracted
 - ✅ Quality scores are dynamic
 - ✅ Resource limits enforced
@@ -262,7 +262,7 @@ cargo test --package riptide-html --test wasm_binding_tdd_tests -- --nocapture
 ## Benefits of Completion
 
 ### 1. Real HTML Extraction
-- Trek-rs provides industry-standard readability extraction
+- Wasm-rs provides industry-standard readability extraction
 - Proper article content vs boilerplate separation
 - Metadata extraction (title, author, date, etc.)
 
@@ -331,7 +331,7 @@ cargo test --package riptide-html --test wasm_binding_tdd_tests -- --nocapture
 - Functionality: None (fake data)
 
 ### After Fix (Real Extraction)
-- Extraction time: 10-50ms (Trek-rs + DOM parsing)
+- Extraction time: 10-50ms (Wasm-rs + DOM parsing)
 - Memory usage: 2-10MB per extraction
 - Functionality: Full article extraction with metadata
 

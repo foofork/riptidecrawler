@@ -224,7 +224,7 @@ test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured
 
 ### Compilation Warnings
 
-Minor dead code warnings in `trek_helpers.rs` - these functions are used by the extraction module and can be ignored.
+Minor dead code warnings in `wasm_helpers.rs` - these functions are used by the extraction module and can be ignored.
 
 ## Conclusion
 

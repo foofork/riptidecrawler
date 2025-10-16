@@ -33,7 +33,7 @@ The EventMesh/RipTide codebase is **85% production-ready** with a solid foundati
 **Critical Findings:**
 
 1. **Production-Ready Components (Keep & Polish):**
-   - Core HTML extraction with trek-rs
+   - Core HTML extraction with wasm-rs
    - PDF processing (pdfium-render)
    - Local LLM providers (Ollama, LocalAI)
    - Performance profiling (memory, cache, resource limits)
@@ -367,7 +367,7 @@ crates/riptide-api/src/streaming/pipeline.rs
 ### Core Features (MUST HAVE for v1.0)
 
 #### ✅ Extraction Engine
-- [x] HTML extraction (trek-rs)
+- [x] HTML extraction (wasm-rs)
 - [x] PDF extraction (pdfium-render)
 - [x] Multiple extraction strategies (CSS, Regex, DOM)
 - [x] Chunking support (fixed, sliding, sentence, HTML-aware)

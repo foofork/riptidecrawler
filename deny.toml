@@ -63,7 +63,7 @@ skip = [
 
     { name = "ego-tree", version = "=0.6.3" },  # scraper 0.20
 
-    { name = "lol_html", version = "=1.2.1" },  # trek-rs dependency
+    { name = "lol_html", version = "=1.2.1" },  # legacy HTML parsing version
 
     # === ASYNC ECOSYSTEM (async-std vs tokio) ===
     # async-channel: v1.x (async-std) vs v2.x (blocking crate)

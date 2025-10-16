@@ -1,6 +1,8 @@
 use crate::errors::ApiResult;
 use riptide_core::types::{ChunkingConfig, ExtractedDoc};
-use riptide_html::chunking::{create_strategy, ChunkingConfig as HtmlChunkingConfig, ChunkingMode};
+use riptide_extraction::chunking::{
+    create_strategy, ChunkingConfig as HtmlChunkingConfig, ChunkingMode,
+};
 use tracing::{debug, info, warn};
 
 /// Apply content chunking to extracted document based on configuration.
@@ -34,7 +36,7 @@ pub(super) async fn apply_content_chunking(
         "Applying content chunking"
     );
 
-    // Convert ChunkingConfig to the format expected by riptide-html
+    // Convert ChunkingConfig to the format expected by riptide-extraction
     let html_config = HtmlChunkingConfig {
         max_tokens: chunking_config.chunk_size,
         overlap_tokens: chunking_config.overlap_size,

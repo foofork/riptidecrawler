@@ -6,7 +6,7 @@ license = "Apache-2.0"
 
 [dependencies]
 # Other riptide crates
-riptide-html = { path = "../riptide-html" }
+riptide-extraction = { path = "../riptide-extraction" }
 riptide-search = { path = "../riptide-search" }
 riptide-stealth = { path = "../riptide-stealth" }
 riptide-pdf = { path = "../riptide-pdf", optional = true }

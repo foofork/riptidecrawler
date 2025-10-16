@@ -75,7 +75,7 @@ Commands:
 
 **Options**:
 - `--url <URL>` - URL to extract content from (required)
-- `--method <METHOD>` - Extraction method: auto, wasm, trek, css, llm, regex (default: auto)
+- `--method <METHOD>` - Extraction method: auto, wasm, wasm, css, llm, regex (default: auto)
 - `--strategy <STRATEGY>` - Strategy composition: chain, parallel, fallback
 - `--selector <SELECTOR>` - Custom CSS selector
 - `--pattern <PATTERN>` - Custom regex pattern
@@ -480,7 +480,7 @@ riptide extract --url https://example.com
 | Method | Typical Time | Status |
 |--------|-------------|--------|
 | WASM | 10-50ms | ✅ Fastest |
-| Trek | 50-200ms | ✅ Fast |
+| Wasm | 50-200ms | ✅ Fast |
 | CSS | 100-300ms | ✅ Good |
 | Auto | Varies | ✅ Adaptive |
 

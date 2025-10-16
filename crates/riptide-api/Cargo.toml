@@ -47,7 +47,7 @@ tracing-subscriber = { workspace = true }
 riptide-core = { path = "../riptide-core", features = ["api-integration"] }
 riptide-pdf = { path = "../riptide-pdf", features = ["pdf"] }
 riptide-stealth = { path = "../riptide-stealth", features = ["stealth"] }
-riptide-html = { path = "../riptide-html" }
+riptide-extraction = { path = "../riptide-extraction" }
 riptide-intelligence = { path = "../riptide-intelligence" }
 riptide-workers = { path = "../riptide-workers" }
 riptide-headless = { path = "../riptide-headless" }

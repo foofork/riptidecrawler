@@ -513,7 +513,7 @@ async fn demonstrate_riptide_integration(
     // Simulate integration with existing RipTide core components
     println!("    📄 Simulating HTML extraction with caching...");
 
-    // This would typically come from riptide-html or riptide-core
+    // This would typically come from riptide-extraction or riptide-core
     let extraction_request = serde_json::json!({
         "url": "https://example.com/news/article",
         "extractor_type": "html",
@@ -575,7 +575,7 @@ async fn demonstrate_riptide_integration(
                     Some(riptide_persistence::cache::CacheMetadata {
                         version: "1.0.0".to_string(),
                         content_type: Some("application/json".to_string()),
-                        source: Some("riptide_html_extractor".to_string()),
+                        source: Some("riptide_extraction_extractor".to_string()),
                         tags: vec![
                             "html".to_string(),
                             "extraction".to_string(),

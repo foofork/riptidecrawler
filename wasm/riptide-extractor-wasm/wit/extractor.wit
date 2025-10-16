@@ -58,7 +58,7 @@ world extractor {
         parse-error(string),
         /// Resource limits exceeded (memory, time, etc.)
         resource-limit(string),
-        /// Trek-rs library errors
+        /// Extractor library errors
         extractor-error(string),
         /// Component internal processing errors
         internal-error(string),
@@ -72,8 +72,8 @@ world extractor {
         status: string,
         /// Component version
         version: string,
-        /// Trek-rs library version
-        trek-version: string,
+        /// Extractor library version
+        extractor-version: string,
         /// Supported extraction modes
         capabilities: list<string>,
         /// Memory usage in bytes

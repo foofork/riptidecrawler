@@ -520,7 +520,7 @@ Performance Characteristics:
 │  ✅ PASS: Overhead acceptable for isolation benefits        │
 ├─────────────────────────────────────────────────────────────┤
 │  Fallback Extraction (Native Rust)                          │
-│  ├─ Direct Trek-rs call: ~5-30ms                            │
+│  ├─ Direct Wasm-rs call: ~5-30ms                            │
 │  ├─ No isolation overhead                                   │
 │  ├─ No resource limits                                      │
 │  └─ Used only when circuit breaker opens                    │

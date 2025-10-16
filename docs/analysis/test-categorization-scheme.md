@@ -36,7 +36,7 @@ Which extraction methods should excel for each category.
 - Ghost blog posts
 
 **Expected Performance:**
-- **Trek (WASM)**: ⭐⭐⭐⭐⭐ (95% confidence)
+- **Wasm (WASM)**: ⭐⭐⭐⭐⭐ (95% confidence)
 - **CSS Extraction**: ⭐⭐⭐⭐⭐ (90% confidence)
 - **Regex Extraction**: ⭐⭐⭐ (60% confidence)
 - **Headless**: ⭐⭐⭐ (unnecessary overhead)
@@ -70,7 +70,7 @@ Which extraction methods should excel for each category.
 - Tech news (TechCrunch, Ars Technica)
 
 **Expected Performance:**
-- **Trek (WASM)**: ⭐⭐⭐⭐ (85% confidence)
+- **Wasm (WASM)**: ⭐⭐⭐⭐ (85% confidence)
 - **CSS Extraction**: ⭐⭐⭐⭐⭐ (95% confidence, with news selectors)
 - **Regex Extraction**: ⭐⭐⭐⭐ (80% confidence for quotes, dates)
 - **Headless**: ⭐⭐⭐ (for paywall bypass)
@@ -106,7 +106,7 @@ Which extraction methods should excel for each category.
 - AWS documentation
 
 **Expected Performance:**
-- **Trek (WASM)**: ⭐⭐⭐⭐ (85% confidence)
+- **Wasm (WASM)**: ⭐⭐⭐⭐ (85% confidence)
 - **CSS Extraction**: ⭐⭐⭐⭐⭐ (95% confidence, with doc selectors)
 - **Regex Extraction**: ⭐⭐⭐ (65% confidence)
 - **Headless**: ⭐⭐ (unnecessary)
@@ -142,7 +142,7 @@ Which extraction methods should excel for each category.
 - React-based blogs
 
 **Expected Performance:**
-- **Trek (WASM)**: ⭐⭐ (40% confidence, pre-render)
+- **Wasm (WASM)**: ⭐⭐ (40% confidence, pre-render)
 - **CSS Extraction**: ⭐⭐ (45% confidence, server-rendered)
 - **Regex Extraction**: ⭐ (20% confidence)
 - **Headless**: ⭐⭐⭐⭐⭐ (95% confidence)
@@ -174,7 +174,7 @@ Which extraction methods should excel for each category.
 - Vue e-commerce implementations
 
 **Expected Performance:**
-- **Trek (WASM)**: ⭐⭐ (45% confidence)
+- **Wasm (WASM)**: ⭐⭐ (45% confidence)
 - **CSS Extraction**: ⭐⭐⭐ (60% confidence)
 - **Regex Extraction**: ⭐⭐ (30% confidence)
 - **Headless**: ⭐⭐⭐⭐⭐ (95% confidence)
@@ -192,7 +192,7 @@ Which extraction methods should excel for each category.
 - Angular showcase apps
 
 **Expected Performance:**
-- **Trek (WASM)**: ⭐ (30% confidence)
+- **Wasm (WASM)**: ⭐ (30% confidence)
 - **CSS Extraction**: ⭐⭐ (40% confidence)
 - **Regex Extraction**: ⭐ (25% confidence)
 - **Headless**: ⭐⭐⭐⭐⭐ (90% confidence)
@@ -216,7 +216,7 @@ Which extraction methods should excel for each category.
 - eBay auctions
 
 **Expected Performance:**
-- **Trek (WASM)**: ⭐⭐⭐ (70% confidence)
+- **Wasm (WASM)**: ⭐⭐⭐ (70% confidence)
 - **CSS Extraction**: ⭐⭐⭐⭐⭐ (95% confidence, with product selectors)
 - **Regex Extraction**: ⭐⭐⭐⭐ (85% confidence for prices, SKUs)
 - **Headless**: ⭐⭐⭐⭐ (80% confidence, for dynamic pricing)
@@ -255,7 +255,7 @@ Which extraction methods should excel for each category.
 - SaaS company pricing pages
 
 **Expected Performance:**
-- **Trek (WASM)**: ⭐⭐⭐ (65% confidence)
+- **Wasm (WASM)**: ⭐⭐⭐ (65% confidence)
 - **CSS Extraction**: ⭐⭐⭐⭐⭐ (90% confidence)
 - **Regex Extraction**: ⭐⭐⭐⭐ (80% confidence for prices)
 - **Headless**: ⭐⭐⭐ (60% confidence)
@@ -284,7 +284,7 @@ Which extraction methods should excel for each category.
 - Facebook posts (public pages)
 
 **Expected Performance:**
-- **Trek (WASM)**: ⭐ (20% confidence)
+- **Wasm (WASM)**: ⭐ (20% confidence)
 - **CSS Extraction**: ⭐⭐ (35% confidence)
 - **Regex Extraction**: ⭐⭐ (40% confidence for @mentions, #hashtags)
 - **Headless**: ⭐⭐⭐⭐ (85% confidence)
@@ -321,7 +321,7 @@ Which extraction methods should excel for each category.
 - E-commerce site search
 
 **Expected Performance:**
-- **Trek (WASM)**: ⭐⭐ (45% confidence)
+- **Wasm (WASM)**: ⭐⭐ (45% confidence)
 - **CSS Extraction**: ⭐⭐⭐⭐ (85% confidence)
 - **Regex Extraction**: ⭐⭐⭐ (60% confidence)
 - **Headless**: ⭐⭐⭐⭐ (80% confidence)
@@ -343,7 +343,7 @@ Which extraction methods should excel for each category.
 - Local news sites
 
 **Expected Performance:**
-- **Trek (WASM)**: ⭐⭐ (40% confidence, preview only)
+- **Wasm (WASM)**: ⭐⭐ (40% confidence, preview only)
 - **CSS Extraction**: ⭐⭐⭐ (60% confidence, preview only)
 - **Regex Extraction**: ⭐⭐ (35% confidence)
 - **Headless**: ⭐⭐⭐⭐ (75% confidence, with techniques)
@@ -368,7 +368,7 @@ Which extraction methods should excel for each category.
 - Subscription services
 
 **Expected Performance:**
-- **Trek (WASM)**: ⭐ (10% confidence, metadata only)
+- **Wasm (WASM)**: ⭐ (10% confidence, metadata only)
 - **CSS Extraction**: ⭐ (15% confidence, metadata only)
 - **Regex Extraction**: ⭐ (10% confidence)
 - **Headless**: ⭐ (20% confidence, without credentials)
@@ -401,7 +401,7 @@ Which extraction methods should excel for each category.
 - reCAPTCHA v3 sites
 
 **Expected Performance:**
-- **Trek (WASM)**: ⭐ (blocked)
+- **Wasm (WASM)**: ⭐ (blocked)
 - **CSS Extraction**: ⭐ (blocked)
 - **Regex Extraction**: ⭐ (blocked)
 - **Headless**: ⭐⭐⭐ (65% confidence, with proper headers)
@@ -434,7 +434,7 @@ Which extraction methods should excel for each category.
 - Twitch streams
 
 **Expected Performance:**
-- **Trek (WASM)**: ⭐⭐ (metadata only)
+- **Wasm (WASM)**: ⭐⭐ (metadata only)
 - **CSS Extraction**: ⭐⭐⭐⭐ (metadata + transcripts)
 - **Regex Extraction**: ⭐⭐⭐ (URLs, IDs)
 - **Headless**: ⭐⭐⭐⭐ (dynamic content)
@@ -674,13 +674,13 @@ For each test URL:
 ## Success Criteria by Category
 
 ### Static HTML (Categories 1.1-1.3)
-- Trek: >90% accuracy, <500ms
+- Wasm: >90% accuracy, <500ms
 - CSS: >95% accuracy, <300ms
 - Regex: >60% accuracy, <200ms
 
 ### SPA Content (Categories 2.1-2.3)
 - Headless: >90% accuracy, <3s
-- Trek: >40% accuracy (SSR only)
+- Wasm: >40% accuracy (SSR only)
 - CSS: >50% accuracy (SSR only)
 
 ### E-commerce (Categories 3.1-3.2)

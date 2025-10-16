@@ -115,7 +115,7 @@ pub struct ProcessingStats {
 /// Query parameters for strategies crawling
 #[derive(Debug, Deserialize)]
 pub struct StrategiesQueryParams {
-    /// Strategy mode: "auto", "trek", "css_json", "regex", "llm"
+    /// Strategy mode: "auto", "wasm", "css_json", "regex", "llm"
     #[serde(default = "default_auto")]
     pub strategy: String,
 
@@ -193,7 +193,7 @@ pub async fn get_strategies_info() -> ApiResult<Json<StrategiesInfo>> {
     let info = StrategiesInfo {
         extraction_strategies: vec![
             StrategyInfo {
-                name: "trek".to_string(),
+                name: "wasm".to_string(),
                 description: "Default WASM-based extraction (fastest)".to_string(),
                 parameters: vec![],
             },
@@ -300,8 +300,8 @@ fn build_strategy_config(
     request: &StrategiesCrawlRequest,
     _params: &StrategiesQueryParams,
 ) -> ApiResult<StrategyConfig> {
-    // Core only supports Trek extraction strategy
-    let extraction = ExtractionStrategy::Trek;
+    // Core only supports WASM extraction strategy
+    let extraction = ExtractionStrategy::Wasm;
 
     // TODO: Use css_selectors, regex_patterns, llm_config when those strategies are implemented
     let _ = (

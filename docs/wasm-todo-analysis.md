@@ -39,11 +39,11 @@ categories: vec![], // TODO: Category extraction
 
 ### 1.1 Link Extraction (Line 292)
 
-**Current Blocker:** Not extracting link data from trek-rs response
+**Current Blocker:** Not extracting link data from wasm-rs response
 
 **Implementation Approach:**
 ```rust
-// Add to trek_helpers.rs or extraction.rs
+// Add to wasm_helpers.rs or extraction.rs
 pub fn extract_links(html: &str, base_url: &str) -> Vec<Link> {
     use scraper::{Html, Selector};
 
@@ -82,7 +82,7 @@ pub fn extract_links(html: &str, base_url: &str) -> Vec<Link> {
 
 **Implementation Approach:**
 ```rust
-// Add to trek_helpers.rs
+// Add to wasm_helpers.rs
 pub fn extract_media(html: &str, base_url: &str) -> Vec<MediaItem> {
     use scraper::{Html, Selector};
 
@@ -215,7 +215,7 @@ pub fn get_language(html: &str, text: &str) -> Option<String> {
 
 **Implementation Approach:**
 ```rust
-// Add to trek_helpers.rs
+// Add to wasm_helpers.rs
 pub fn extract_categories(html: &str) -> Vec<String> {
     use scraper::{Html, Selector};
 
@@ -533,7 +533,7 @@ useEffect(() => {
 
 ### Phase 2: Core Content Features (1-2 days)
 1. **Link Extraction** (2-3 hours)
-   - Implement `extract_links()` in `trek_helpers.rs`
+   - Implement `extract_links()` in `wasm_helpers.rs`
    - Add URL resolution helper
    - Update `convert_response_to_content()`
    - Add unit tests
@@ -746,7 +746,7 @@ whatlang = "0.16"
 
 ### Implementation Files
 - `/workspaces/eventmesh/wasm/riptide-extractor-wasm/src/lib_clean.rs` - Main component
-- `/workspaces/eventmesh/wasm/riptide-extractor-wasm/src/trek_helpers.rs` - Helper functions
+- `/workspaces/eventmesh/wasm/riptide-extractor-wasm/src/wasm_helpers.rs` - Helper functions
 - `/workspaces/eventmesh/wasm/riptide-extractor-wasm/src/extraction.rs` - Extraction utilities
 
 ### Test Files

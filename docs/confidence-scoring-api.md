@@ -20,9 +20,9 @@ The main struct representing a confidence score:
 use riptide_core::confidence::ConfidenceScore;
 
 // Create a simple confidence score
-let score = ConfidenceScore::new(0.85, "trek");
+let score = ConfidenceScore::new(0.85, "wasm");
 assert_eq!(score.value(), 0.85);
-assert_eq!(score.method(), "trek");
+assert_eq!(score.method(), "wasm");
 assert_eq!(score.quality_tier(), "high");
 
 // Scores are automatically clamped to [0.0, 1.0]
@@ -36,7 +36,7 @@ Build confidence from individual components:
 
 ```rust
 let mut score = ConfidenceScore::builder()
-    .method("trek")
+    .method("wasm")
     .add_component("title_quality", 0.9)
     .add_component("content_quality", 0.8)
     .add_component("structure_score", 0.85)
@@ -52,9 +52,9 @@ assert_eq!(score.value(), 0.8125); // (0.9 + 0.8 + 0.85 + 0.7) / 4
 Convert from different scoring systems:
 
 ```rust
-// From raw score (e.g., Trek's 0-10 scale)
-let trek_score = ConfidenceScore::from_raw_score(8.0, 10.0, "trek");
-assert_eq!(trek_score.value(), 0.8);
+// From raw score (e.g., Wasm's 0-10 scale)
+let wasm_score = ConfidenceScore::from_raw_score(8.0, 10.0, "wasm");
+assert_eq!(wasm_score.value(), 0.8);
 
 // From percentage
 let percent_score = ConfidenceScore::from_percentage(75.0, "css");
@@ -75,12 +75,12 @@ Combine multiple extraction results:
 use riptide_core::confidence::AggregationStrategy;
 
 let scores = vec![
-    ConfidenceScore::new(0.8, "trek"),
+    ConfidenceScore::new(0.8, "wasm"),
     ConfidenceScore::new(0.75, "css"),
     ConfidenceScore::new(0.9, "regex"),
 ];
 
-// Trek gets 50% weight, CSS 30%, Regex 20%
+// Wasm gets 50% weight, CSS 30%, Regex 20%
 let weights = vec![0.5, 0.3, 0.2];
 let aggregated = ConfidenceScore::aggregate_weighted(&scores, &weights);
 assert_eq!(aggregated.value(), 0.805); // 0.8*0.5 + 0.75*0.3 + 0.9*0.2
@@ -110,15 +110,15 @@ let harmonic = AggregationStrategy::HarmonicMean.aggregate(&scores, None);
 
 ## Integration with Extractors
 
-### Trek Extractor
+### Wasm Extractor
 
 ```rust
-use riptide_core::confidence_integration::TrekConfidenceScorer;
+use riptide_core::confidence_integration::WasmConfidenceScorer;
 
-let scorer = TrekConfidenceScorer::new();
+let scorer = WasmConfidenceScorer::new();
 let score = scorer.analyze_html(html);
 
-// Trek analyzer checks:
+// Wasm analyzer checks:
 // - Document structure (article, main, sections)
 // - Content quality (length, paragraph density)
 // - Semantic HTML5 tags
@@ -158,7 +158,7 @@ assert_eq!(quality.value(), 0.7);
 Confidence scores are classified into quality tiers:
 
 ```rust
-let score = ConfidenceScore::new(0.85, "trek");
+let score = ConfidenceScore::new(0.85, "wasm");
 
 // Get tier classification
 assert_eq!(score.quality_tier(), "high");
@@ -173,7 +173,7 @@ assert!(score.is_acceptable()); // >= 0.5
 Dynamically adjust confidence based on content indicators:
 
 ```rust
-let mut score = ConfidenceScore::new(0.7, "trek");
+let mut score = ConfidenceScore::new(0.7, "wasm");
 
 // Boost for positive indicators
 score.boost_for_indicator("has_article_tag", 0.1);
@@ -191,7 +191,7 @@ Store additional context with confidence scores:
 ```rust
 use serde_json::json;
 
-let mut score = ConfidenceScore::new(0.8, "trek");
+let mut score = ConfidenceScore::new(0.8, "wasm");
 score.set_metadata(json!({
     "extraction_time_ms": 125,
     "word_count": 1500,
@@ -209,7 +209,7 @@ assert_eq!(metadata["word_count"], 1500);
 Adjust confidence for cached results:
 
 ```rust
-let mut score = ConfidenceScore::new(0.9, "trek");
+let mut score = ConfidenceScore::new(0.9, "wasm");
 score.set_timestamp(std::time::SystemTime::now());
 
 // Fresh content maintains confidence
@@ -226,13 +226,13 @@ assert!(old < 0.9);
 Confidence scores are fully serializable:
 
 ```rust
-let score = ConfidenceScore::new(0.85, "trek");
+let score = ConfidenceScore::new(0.85, "wasm");
 let json = serde_json::to_string(&score)?;
 
 // JSON output:
 // {
 //   "value": 0.85,
-//   "method": "trek",
+//   "method": "wasm",
 //   "components": {},
 //   "timestamp": "2025-10-11T..."
 // }
@@ -275,14 +275,14 @@ let raw = 75.0; // Ambiguous - 75% or 0.75?
 ```rust
 // ✅ Good: Transparent scoring
 let score = ConfidenceScore::builder()
-    .method("trek")
+    .method("wasm")
     .add_component("title", 0.9)
     .add_component("content", 0.8)
     .add_component("structure", 0.85)
     .build();
 
 // ❌ Bad: Opaque magic number
-let score = ConfidenceScore::new(0.817, "trek");
+let score = ConfidenceScore::new(0.817, "wasm");
 ```
 
 ### 3. Choose Appropriate Aggregation
@@ -305,12 +305,12 @@ let best_effort = AggregationStrategy::Maximum
 
 ```rust
 // ✅ Good: Clear criteria
-/// Trek confidence scoring:
+/// Wasm confidence scoring:
 /// - Base: 0.8 (high-quality extractor)
 /// - +0.1 for article tag
 /// - +0.05 for good structure
 /// - +0.05 for metadata
-fn compute_trek_confidence(html: &str) -> ConfidenceScore {
+fn compute_wasm_confidence(html: &str) -> ConfidenceScore {
     // Implementation...
 }
 ```
@@ -368,7 +368,7 @@ See `/tests/confidence-scoring/` for comprehensive examples.
         ┌───────────┴───────────┐
         │                       │
 ┌───────▼────────┐    ┌────────▼────────┐
-│   Trek Scorer  │    │   CSS Scorer    │
+│   Wasm Scorer  │    │   CSS Scorer    │
 │   (0.8 base)   │    │   (0.7 base)    │
 └────────────────┘    └─────────────────┘
         │                       │

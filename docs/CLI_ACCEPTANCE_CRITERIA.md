@@ -129,7 +129,7 @@ riptide extract --url https://example.com --method wasm
 
 # Chain multiple strategies
 riptide extract --url https://example.com \
-  --strategy chain:trek,css,regex
+  --strategy chain:wasm,css,regex
 
 # Parallel extraction with all methods
 riptide extract --url https://example.com \
@@ -199,7 +199,7 @@ riptide extract --wizard
 # 2. Select extraction method:
 #    › Auto (recommended)
 #      WASM
-#      Trek
+#      Wasm
 #      CSS
 #      LLM
 # 3. Output format:
@@ -567,7 +567,7 @@ riptide extract --help
 riptide extract \
   --url https://example.com \
   --method wasm \
-  --strategy chain:trek,css,regex \
+  --strategy chain:wasm,css,regex \
   --show-confidence \
   --metadata \
   -o json \

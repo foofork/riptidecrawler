@@ -108,7 +108,7 @@ RipTide is a **comprehensive, production-ready web crawling and content extracti
 - **Browser:** Chromiumoxide (CDP protocol)
 - **WASM:** Wasmtime + Component Model
 - **Storage:** Redis/DragonflyDB
-- **Extraction:** TREK, CSS selectors, LLM-enhanced
+- **Extraction:** WASM, CSS selectors, LLM-enhanced
 - **Monitoring:** OpenTelemetry, Prometheus
 
 **Crate Structure (13 Crates):**
@@ -146,7 +146,7 @@ eventmesh/
 
 **2. Content Extraction**
 - CSS selector-based extraction
-- WASM-powered TREK extraction (~45ms avg)
+- WASM-powered WASM extraction (~45ms avg)
 - LLM-enhanced extraction for complex content
 - Regex pattern extraction
 - Multi-strategy with automatic fallback

@@ -133,10 +133,10 @@ The RipTide WASM architecture implements a sophisticated Component Model-based e
 │  │  ┌──────────────────────────────────────────────────────┐  │   │
 │  │  │  Component Implementation (lib.rs)                   │  │   │
 │  │  │  ├─ Component struct (Guest trait impl)             │  │   │
-│  │  │  ├─ Trek-rs integration (content extraction)        │  │   │
+│  │  │  ├─ Wasm-rs integration (content extraction)        │  │   │
 │  │  │  ├─ extraction.rs (links, media, language)          │  │   │
 │  │  │  ├─ common_validation.rs (input validation)         │  │   │
-│  │  │  └─ trek_helpers.rs (Trek-rs adapters)              │  │   │
+│  │  │  └─ wasm_helpers.rs (Wasm-rs adapters)              │  │   │
 │  │  └──────────────────────────────────────────────────────┘  │   │
 │  └────────────────────────────────────────────────────────────┘   │
 └────────────────────────────────────────────────────────────────────┘
@@ -228,7 +228,7 @@ The RipTide WASM architecture implements a sophisticated Component Model-based e
 │  ┌────────────────────────────────────────────────────┐  │
 │  │  Guest::extract() in WASM                          │  │
 │  │  ├─ Validate input (common_validation)             │  │
-│  │  ├─ Perform Trek-rs extraction                     │  │
+│  │  ├─ Perform Wasm-rs extraction                     │  │
 │  │  ├─ Extract links (extraction::extract_links)      │  │
 │  │  ├─ Extract media (extraction::extract_media)      │  │
 │  │  ├─ Detect language (extraction::detect_language)  │  │
@@ -350,7 +350,7 @@ variant extraction-error {
 
 **Responsibilities**:
 - ✅ Implement WIT `Guest` trait for all exported functions
-- ✅ Integrate Trek-rs for core content extraction
+- ✅ Integrate Wasm-rs for core content extraction
 - ✅ Provide enhanced extraction features:
   - ✅ Links with rel attributes (JSON-formatted strings)
   - ✅ Media URLs (images, videos, audio) with metadata
@@ -363,7 +363,7 @@ variant extraction-error {
 **Design Quality**: **A (90/100)**
 
 **Strengths**:
-- Clean separation of concerns (extraction.rs, common_validation.rs, trek_helpers.rs)
+- Clean separation of concerns (extraction.rs, common_validation.rs, wasm_helpers.rs)
 - Comprehensive feature implementation
 - Well-tested with golden test suite
 - Production-ready extraction logic
@@ -711,7 +711,7 @@ pub fn extract(&self, html: &str, url: &str, mode: &str) -> Result<ExtractedDoc>
 
 **Impact**:
 - ❌ **WASM component completely bypassed**
-- ❌ Trek-rs extraction unused
+- ❌ Wasm-rs extraction unused
 - ❌ Enhanced features (links, media, language) unused
 - ❌ Quality score is hardcoded (75)
 - ❌ No actual content analysis

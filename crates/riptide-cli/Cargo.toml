@@ -21,7 +21,7 @@ reqwest.workspace = true
 url.workspace = true
 
 # Local extraction support
-riptide-html = { path = "../riptide-html" }
+riptide-extraction = { path = "../riptide-extraction" }
 riptide-stealth = { path = "../riptide-stealth" }
 
 # CLI-specific
@@ -38,3 +38,17 @@ env_logger.workspace = true
 scraper = "0.20"
 dirs = "5.0"
 serde_yaml = "0.9"
+ctrlc = "3.4"
+rand = "0.8"
+futures.workspace = true
+
+# Metrics and observability
+once_cell = "1.19"
+opentelemetry = "0.24"
+tracing.workspace = true
+
+# Core integration for telemetry
+riptide-core = { path = "../riptide-core" }
+
+[dev-dependencies]
+tempfile = "3.13"

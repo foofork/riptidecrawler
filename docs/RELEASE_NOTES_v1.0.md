@@ -15,7 +15,7 @@ We're thrilled to announce the **v1.0 release of RipTide** (formerly EventMesh),
 RipTide is an enterprise-grade web crawling and content extraction framework that provides:
 - **13 modular production-ready crates** for flexible integration
 - **59 fully documented REST API endpoints** for easy adoption
-- **Multi-strategy content extraction** (CSS, WASM/TREK, LLM-enhanced)
+- **Multi-strategy content extraction** (CSS, WASM/WASM, LLM-enhanced)
 - **Stealth anti-detection** capabilities for reliable crawling
 - **Real-time streaming** protocols (NDJSON, SSE, WebSocket)
 - **Background job queue** with scheduling and retry logic
@@ -43,7 +43,7 @@ eventmesh/
 ├── riptide-workers        ✅ Background job queue
 ├── riptide-headless       ✅ Headless browser integration
 ├── riptide-performance    ✅ Performance profiling (optional)
-└── riptide-extractor-wasm ✅ WebAssembly TREK extraction
+└── riptide-extractor-wasm ✅ WebAssembly WASM extraction
 ```
 
 ### 📊 Quality Metrics
@@ -80,7 +80,7 @@ RipTide provides three extraction strategies with automatic fallback:
 - jQuery-like selector syntax
 - Reliable for structured content
 
-**WASM-Powered TREK** (~45ms avg):
+**WASM-Powered WASM** (~45ms avg):
 - WebAssembly-accelerated extraction
 - Optimized for performance
 - Automatic AOT caching
@@ -158,7 +158,7 @@ Built-in observability:
 - Multi-tenancy support
 
 **Extraction:**
-- TREK (WebAssembly)
+- WASM (WebAssembly)
 - CSS selectors (scraper)
 - LLM integration (OpenAI/Anthropic)
 
@@ -276,7 +276,7 @@ curl -N http://localhost:3000/v1/crawl/stream \
 
 **Extraction:**
 - `POST /v1/extract/css` - CSS selector extraction
-- `POST /v1/extract/wasm` - WASM TREK extraction
+- `POST /v1/extract/wasm` - WASM WASM extraction
 - `POST /v1/extract/llm` - LLM-enhanced extraction
 
 **PDF Processing:**
@@ -310,7 +310,7 @@ See [API Documentation](README.md#api-documentation) for complete endpoint refer
 | Strategy | Avg Latency | Use Case |
 |----------|-------------|----------|
 | **CSS Selector** | ~500ms | Simple structured content |
-| **WASM TREK** | ~45ms | High-performance extraction |
+| **WASM WASM** | ~45ms | High-performance extraction |
 | **LLM-Enhanced** | ~2-3s | Complex layouts |
 | **Cache Hit** | <50ms | Repeated requests |
 

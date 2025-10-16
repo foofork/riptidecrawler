@@ -72,7 +72,7 @@
 │   WASM       │              │    Redis     │         │   Headless   │
 │  Extractor   │              │    Cache     │         │   Service    │
 ├──────────────┤              ├──────────────┤         ├──────────────┤
-│ • TREK       │              │ • KV Store   │         │ • Chrome     │
+│ • WASM       │              │ • KV Store   │         │ • Chrome     │
 │ • Component  │              │ • TTL        │         │ • Stealth    │
 │ • SIMD Opt   │              │ • Pub/Sub    │         │ • JS Exec    │
 └──────────────┘              └──────────────┘         └──────────────┘
@@ -142,7 +142,7 @@
 3. **EXTRACT Engine**
    - Multi-strategy:
      - CSS selectors
-     - WASM/TREK
+     - WASM/WASM
      - LLM-powered
      - Regex patterns
      - Auto-detection
@@ -206,7 +206,7 @@ User Request
                  ▼           ▼           ▼
             ┌────────┐  ┌────────┐  ┌────────┐
             │  CSS   │  │  WASM  │  │ Chrome │
-            │Extract │  │ TREK   │  │ Render │
+            │Extract │  │ WASM   │  │ Render │
             └───┬────┘  └───┬────┘  └───┬────┘
                 │           │           │
                 └───────────┼───────────┘

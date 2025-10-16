@@ -746,4 +746,222 @@ mod tests {
         assert_eq!(metrics.success_count, 1);
         assert_eq!(metrics.total_tokens, 30);
     }
+
+    #[tokio::test]
+    async fn test_request_error_lifecycle() {
+        let collector = MetricsCollector::new(30);
+
+        let request = CompletionRequest::new("gpt-4".to_string(), vec![Message::user("test")]);
+        let request_id = collector
+            .start_request(&request, "openai", Some("tenant1".to_string()))
+            .await;
+
+        collector
+            .complete_request_error(request_id, "RateLimitError", "Rate limit exceeded")
+            .await;
+
+        let metrics = collector.get_aggregated_metrics(TimeWindow::LastHour).await;
+        assert_eq!(metrics.request_count, 1);
+        assert_eq!(metrics.error_count, 1);
+        assert_eq!(metrics.success_rate, 0.0);
+    }
+
+    #[tokio::test]
+    async fn test_provider_breakdown() {
+        let collector = MetricsCollector::new(30);
+
+        // OpenAI requests
+        for _ in 0..3 {
+            let request = CompletionRequest::new("gpt-4".to_string(), vec![Message::user("test")]);
+            let request_id = collector
+                .start_request(&request, "openai", Some("tenant1".to_string()))
+                .await;
+
+            let response = CompletionResponse::new(
+                request.id,
+                "response",
+                "gpt-4",
+                Usage {
+                    prompt_tokens: 10,
+                    completion_tokens: 20,
+                    total_tokens: 30,
+                },
+            );
+
+            collector
+                .complete_request_success(request_id, &response, None)
+                .await;
+        }
+
+        // Anthropic requests
+        for _ in 0..2 {
+            let request =
+                CompletionRequest::new("claude-3".to_string(), vec![Message::user("test")]);
+            let request_id = collector
+                .start_request(&request, "anthropic", Some("tenant1".to_string()))
+                .await;
+
+            let response = CompletionResponse::new(
+                request.id,
+                "response",
+                "claude-3",
+                Usage {
+                    prompt_tokens: 15,
+                    completion_tokens: 25,
+                    total_tokens: 40,
+                },
+            );
+
+            collector
+                .complete_request_success(request_id, &response, None)
+                .await;
+        }
+
+        let provider_metrics = collector.get_provider_metrics(TimeWindow::LastHour).await;
+        assert_eq!(provider_metrics.len(), 2);
+
+        let openai = provider_metrics
+            .iter()
+            .find(|p| p.provider_name == "openai")
+            .unwrap();
+        assert_eq!(openai.metrics.request_count, 3);
+    }
+
+    #[tokio::test]
+    async fn test_error_breakdown() {
+        let collector = MetricsCollector::new(30);
+
+        // Different error types
+        for _ in 0..3 {
+            let request = CompletionRequest::new("gpt-4".to_string(), vec![Message::user("test")]);
+            let request_id = collector
+                .start_request(&request, "openai", Some("tenant1".to_string()))
+                .await;
+            collector
+                .complete_request_error(request_id, "RateLimitError", "Rate limit")
+                .await;
+        }
+
+        for _ in 0..2 {
+            let request = CompletionRequest::new("gpt-4".to_string(), vec![Message::user("test")]);
+            let request_id = collector
+                .start_request(&request, "openai", Some("tenant1".to_string()))
+                .await;
+            collector
+                .complete_request_error(request_id, "APIError", "API error")
+                .await;
+        }
+
+        let error_breakdown = collector.get_error_breakdown(TimeWindow::LastHour).await;
+        assert_eq!(error_breakdown.len(), 2);
+        assert_eq!(error_breakdown[0].count, 3); // Sorted by count
+    }
+
+    #[tokio::test]
+    async fn test_cost_breakdown() {
+        let collector = MetricsCollector::new(30);
+
+        for _ in 0..5 {
+            let request = CompletionRequest::new("gpt-4".to_string(), vec![Message::user("test")]);
+            let request_id = collector
+                .start_request(&request, "openai", Some("tenant1".to_string()))
+                .await;
+
+            let response = CompletionResponse::new(
+                request.id,
+                "response",
+                "gpt-4",
+                Usage {
+                    prompt_tokens: 10,
+                    completion_tokens: 20,
+                    total_tokens: 30,
+                },
+            );
+
+            collector
+                .complete_request_success(request_id, &response, Some(Cost::new(0.01, 0.02, "USD")))
+                .await;
+        }
+
+        let cost_breakdown = collector.get_cost_breakdown(TimeWindow::LastHour).await;
+        assert_eq!(cost_breakdown.total_cost, 0.15); // 5 * 0.03
+        assert_eq!(cost_breakdown.currency, "USD");
+    }
+
+    #[tokio::test]
+    async fn test_concurrent_requests() {
+        use std::sync::Arc;
+
+        let collector = Arc::new(MetricsCollector::new(30));
+        let mut handles = vec![];
+
+        for _ in 0..5 {
+            let c = Arc::clone(&collector);
+            let handle = tokio::spawn(async move {
+                for _ in 0..20 {
+                    let request =
+                        CompletionRequest::new("gpt-4".to_string(), vec![Message::user("test")]);
+                    let request_id = c
+                        .start_request(&request, "openai", Some("tenant1".to_string()))
+                        .await;
+
+                    let response = CompletionResponse::new(
+                        request.id,
+                        "response",
+                        "gpt-4",
+                        Usage {
+                            prompt_tokens: 10,
+                            completion_tokens: 20,
+                            total_tokens: 30,
+                        },
+                    );
+
+                    c.complete_request_success(request_id, &response, None)
+                        .await;
+                }
+            });
+            handles.push(handle);
+        }
+
+        for handle in handles {
+            handle.await.unwrap();
+        }
+
+        let metrics = collector.get_aggregated_metrics(TimeWindow::LastHour).await;
+        assert_eq!(metrics.request_count, 100); // 5 * 20
+    }
+
+    #[tokio::test]
+    async fn test_time_window_filtering() {
+        let collector = MetricsCollector::new(30);
+
+        let request = CompletionRequest::new("gpt-4".to_string(), vec![Message::user("test")]);
+        let request_id = collector
+            .start_request(&request, "openai", Some("tenant1".to_string()))
+            .await;
+
+        let response = CompletionResponse::new(
+            request.id,
+            "response",
+            "gpt-4",
+            Usage {
+                prompt_tokens: 10,
+                completion_tokens: 20,
+                total_tokens: 30,
+            },
+        );
+
+        collector
+            .complete_request_success(request_id, &response, None)
+            .await;
+
+        // Should be visible in different time windows
+        let metrics_hour = collector.get_aggregated_metrics(TimeWindow::LastHour).await;
+        assert_eq!(metrics_hour.request_count, 1);
+
+        let metrics_day = collector
+            .get_aggregated_metrics(TimeWindow::Last24Hours)
+            .await;
+        assert_eq!(metrics_day.request_count, 1);
+    }
 }

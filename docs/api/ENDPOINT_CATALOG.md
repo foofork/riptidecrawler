@@ -253,10 +253,10 @@ Controls running spider (stop, reset, pause, resume).
 ### 14. POST `/strategies/crawl` - Advanced Extraction Strategies
 **Category**: Strategies | **Phase**: 2
 
-Crawls with multi-strategy extraction (CSS, TREK, LLM, Regex, Auto).
+Crawls with multi-strategy extraction (CSS, WASM, LLM, Regex, Auto).
 
 **Query Parameters**:
-- `strategy`: auto, trek, css_json, regex, llm
+- `strategy`: auto, wasm, css_json, regex, llm
 - `chunking`: sliding, fixed, sentence, topic, regex
 
 **Request**:

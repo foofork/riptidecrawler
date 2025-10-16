@@ -171,7 +171,7 @@ Phase 1 implementation is **COMPLETE** and **PRODUCTION-READY**. The team succes
 2. `NetworkError` - Invalid URL schemes
 3. `ParseError` - Missing HTML tags
 4. `ResourceLimit` - Size/memory exceeded
-5. `ExtractorError` - Trek-rs failures
+5. `ExtractorError` - Wasm-rs failures
 6. `InternalError` - Component panics
 7. `UnsupportedMode` - Unknown extraction modes
 

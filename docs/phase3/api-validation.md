@@ -50,7 +50,7 @@ All 59 endpoints are properly documented across 12 functional categories with co
 ### Phase 2: Advanced Extraction (14 endpoints)
 
 #### Strategies (2 endpoints)
-12. `POST /strategies/crawl` - Multi-strategy extraction (CSS, TREK, LLM, Regex)
+12. `POST /strategies/crawl` - Multi-strategy extraction (CSS, WASM, LLM, Regex)
 13. `GET /strategies/info` - Available extraction strategies info
 
 **Status**: ✅ Advanced content extraction

@@ -30,7 +30,7 @@ graph TD
     C --> K[Redis Cache]
     D --> L[HTTP Client]
     E --> M[Gate Features]
-    F --> N[Trek-rs WASM]
+    F --> N[Wasm-rs WASM]
     G --> O[Browser Pool]
     H --> P[PDF Pipeline]
     I --> Q[Session Storage]

@@ -2,7 +2,7 @@
 
 ## Extraction Methods At-a-Glance
 
-### Trek (WASM) Extraction
+### Wasm (WASM) Extraction
 ```
 Best For: Static HTML, clean content
 Speed:    ⚡⚡⚡⚡⚡ <500ms
@@ -36,7 +36,7 @@ Cost:     💰💰💰 High resource usage
 
 ## When to Use Which Method
 
-### Use Trek (WASM)
+### Use Wasm (WASM)
 - ✅ Static HTML blogs
 - ✅ News articles
 - ✅ Documentation sites
@@ -76,19 +76,19 @@ Cost:     💰💰💰 High resource usage
 ```
 Category 1.1: Simple Blog Posts
   URLs:     Personal blogs, Medium, DEV.to
-  Methods:  Trek ⭐⭐⭐⭐⭐, CSS ⭐⭐⭐⭐⭐
+  Methods:  Wasm ⭐⭐⭐⭐⭐, CSS ⭐⭐⭐⭐⭐
   Tests:    Title, content, metadata extraction
   Expected: >90% accuracy, <500ms
 
 Category 1.2: News Articles
   URLs:     BBC, Guardian, Reuters
-  Methods:  CSS ⭐⭐⭐⭐⭐, Trek ⭐⭐⭐⭐
+  Methods:  CSS ⭐⭐⭐⭐⭐, Wasm ⭐⭐⭐⭐
   Tests:    Byline, dateline, quotes
   Expected: >90% accuracy, <500ms
 
 Category 1.3: Documentation
   URLs:     docs.rs, MDN, React docs
-  Methods:  CSS ⭐⭐⭐⭐⭐, Trek ⭐⭐⭐⭐
+  Methods:  CSS ⭐⭐⭐⭐⭐, Wasm ⭐⭐⭐⭐
   Tests:    Code blocks, sections, TOC
   Expected: >85% accuracy, <800ms
 ```
@@ -112,7 +112,7 @@ Category 3.2: SaaS Pricing
 ```
 Category 2.1: React/Next.js
   URLs:     Modern SaaS, e-commerce
-  Methods:  Headless ⭐⭐⭐⭐⭐, Trek ⭐⭐
+  Methods:  Headless ⭐⭐⭐⭐⭐, Wasm ⭐⭐
   Tests:    Hydrated content, dynamic data
   Expected: >90% accuracy, <3s
 
@@ -192,13 +192,13 @@ Category 8.3: Huge Pages
                    ↓
     ┌──────────────┴──────────────┐
     │  Strategy Selection         │
-    │  (Trek/CSS/Regex/Multi)    │
+    │  (Wasm/CSS/Regex/Multi)    │
     └──────────────┬──────────────┘
                    ↓
          ┌─────────┴─────────┐
          │    Extractors     │
          ├───────────────────┤
-         │ Trek    │ CSS     │
+         │ Wasm    │ CSS     │
          │ Regex   │ Multi   │
          └─────────┬─────────┘
                    ↓
@@ -237,7 +237,7 @@ Category 8.3: Huge Pages
 ### Week 1: Foundation Tests
 1. Static HTML extraction (Categories 1.1-1.3)
 2. Basic CSS selector tests
-3. Trek fallback chain validation
+3. Wasm fallback chain validation
 4. Error handling tests
 
 ### Week 2: Core Functionality

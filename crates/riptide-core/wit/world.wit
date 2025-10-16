@@ -43,7 +43,7 @@ interface extract {
     record health-status {
         status: string,
         version: string,
-        trek-version: string,
+        extractor-version: string,
         capabilities: list<string>,
         memory-usage: option<u64>,
         extraction-count: option<u64>,

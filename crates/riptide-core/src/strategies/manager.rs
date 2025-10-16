@@ -81,7 +81,7 @@ impl EnhancedStrategyManager {
 
         Self {
             registry,
-            default_extraction: "trek".to_string(),
+            default_extraction: "wasm".to_string(),
             default_spider: "breadth_first".to_string(),
             metrics: Arc::new(RwLock::new(PerformanceMetrics::new())),
             config,
@@ -94,7 +94,7 @@ impl EnhancedStrategyManager {
 
         Self {
             registry,
-            default_extraction: "trek".to_string(),
+            default_extraction: "wasm".to_string(),
             default_spider: "breadth_first".to_string(),
             metrics: Arc::new(RwLock::new(PerformanceMetrics::new())),
             config,
@@ -171,7 +171,7 @@ impl EnhancedStrategyManager {
         let metrics = if self.config.enable_metrics {
             let mut metrics = self.metrics.write().await;
             metrics.record_extraction(
-                &crate::strategies::ExtractionStrategy::Trek, // Convert to enum for compatibility
+                &crate::strategies::ExtractionStrategy::Wasm, // Convert to enum for compatibility
                 processing_time,
                 extraction_result.content.content.len(),
                 0, // No chunks in core

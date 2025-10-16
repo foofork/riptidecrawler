@@ -196,11 +196,11 @@ Correctly implemented:
 
 ---
 
-## Trek → WASM Migration ✅
+## Wasm → WASM Migration ✅
 
-Successfully migrated all Trek references to WASM:
-- `TrekExtractionStrategy` → `WasmExtractionStrategy` ✅
-- Config file updated (`trek:0.1` → `riptide:1.0`) ✅
+Successfully migrated all Wasm references to WASM:
+- `WasmExtractionStrategy` → `WasmExtractionStrategy` ✅
+- Config file updated (`wasm:0.1` → `riptide:1.0`) ✅
 - CLI help text updated ✅
 - Backward compatibility maintained via type alias ✅
 
@@ -250,7 +250,7 @@ Successfully migrated all Trek references to WASM:
 ## Key Achievements
 
 1. **Engine System**: Fully implemented Raw/WASM/Headless engine architecture
-2. **Trek Migration**: Successfully removed all Trek references
+2. **Wasm Migration**: Successfully removed all Wasm references
 3. **Production Testing**: Validated with real-world URLs across all categories
 4. **Performance**: Meets all specified latency targets
 5. **Stealth Integration**: Anti-detection features fully integrated

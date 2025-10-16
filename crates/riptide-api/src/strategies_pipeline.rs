@@ -297,7 +297,7 @@ impl StrategiesPipelineOrchestrator {
         if let Ok(parsed_url) = Url::parse(url) {
             if let Some(_host) = parsed_url.host_str() {
                 // Website-specific strategy optimization
-                config.extraction = ExtractionStrategy::Trek;
+                config.extraction = ExtractionStrategy::Wasm;
             }
         }
 

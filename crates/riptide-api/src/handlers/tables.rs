@@ -1,6 +1,6 @@
 //! Table extraction API handlers
 //!
-//! This module implements table extraction endpoints that utilize riptide-html's
+//! This module implements table extraction endpoints that utilize riptide-extraction's
 //! advanced table extraction capabilities to extract structured data from HTML content.
 
 use crate::errors::ApiError;
@@ -11,7 +11,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use riptide_html::table_extraction::{
+use riptide_extraction::table_extraction::{
     extract_tables_advanced, AdvancedTableData, TableExtractionConfig,
 };
 use serde::{Deserialize, Serialize};
@@ -187,7 +187,7 @@ pub async fn extract_tables(
         "Using table extraction configuration"
     );
 
-    // Extract tables using riptide-html
+    // Extract tables using riptide-extraction
     let tables = extract_tables_advanced(&request.html_content, Some(config))
         .await
         .map_err(|e| {

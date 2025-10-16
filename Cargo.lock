@@ -1877,6 +1877,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctrlc"
+version = "3.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "881c5d0a13b2f1498e2306e82cbada78390e152d4b1378fb28a84f4dcd0dc4f3"
+dependencies = [
+ "dispatch",
+ "nix 0.30.1",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "darling"
 version = "0.20.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2192,6 +2203,12 @@ dependencies = [
  "redox_users 0.4.6",
  "winapi",
 ]
+
+[[package]]
+name = "dispatch"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd0c93bb4b0c6d9b77f4435b0ae98c24d17f1c45b2ff844c6151a07256ca923b"
 
 [[package]]
 name = "displaydoc"
@@ -4514,6 +4531,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "nix"
+version = "0.30.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74523f3a35e05aba87a1d978330aef40f67b0304ac79c1c00b294c9830543db6"
+dependencies = [
+ "bitflags 2.9.4",
+ "cfg-if",
+ "cfg_aliases",
+ "libc",
+]
+
+[[package]]
 name = "no-std-compat"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4803,6 +4832,20 @@ dependencies = [
 
 [[package]]
 name = "opentelemetry"
+version = "0.24.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4c365a63eec4f55b7efeceb724f1336f26a9cf3427b70e59e2cd2a5b947fba96"
+dependencies = [
+ "futures-core",
+ "futures-sink",
+ "js-sys",
+ "once_cell",
+ "pin-project-lite",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "opentelemetry"
 version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "570074cc999d1a58184080966e5bd3bf3a9a4af650c3b05047c2621e7405cd17"
@@ -4824,7 +4867,7 @@ dependencies = [
  "async-trait",
  "futures-core",
  "http 1.3.1",
- "opentelemetry",
+ "opentelemetry 0.26.0",
  "opentelemetry-proto",
  "opentelemetry_sdk",
  "prost",
@@ -4839,7 +4882,7 @@ version = "0.26.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c9d3968ce3aefdcca5c27e3c4ea4391b37547726a70893aab52d3de95d5f8b34"
 dependencies = [
- "opentelemetry",
+ "opentelemetry 0.26.0",
  "opentelemetry_sdk",
  "prost",
  "tonic",
@@ -4863,7 +4906,7 @@ dependencies = [
  "futures-util",
  "glob",
  "once_cell",
- "opentelemetry",
+ "opentelemetry 0.26.0",
  "percent-encoding",
  "rand 0.8.5",
  "serde_json",
@@ -6279,7 +6322,7 @@ dependencies = [
  "http-body-util",
  "mockall 0.13.1",
  "once_cell",
- "opentelemetry",
+ "opentelemetry 0.26.0",
  "opentelemetry-otlp",
  "opentelemetry-semantic-conventions",
  "opentelemetry_sdk",
@@ -6291,8 +6334,8 @@ dependencies = [
  "regex",
  "reqwest 0.12.23",
  "riptide-core",
+ "riptide-extraction",
  "riptide-headless",
- "riptide-html",
  "riptide-intelligence",
  "riptide-pdf",
  "riptide-performance",
@@ -6333,19 +6376,27 @@ dependencies = [
  "clap",
  "colored",
  "comfy-table",
+ "ctrlc",
  "dialoguer",
  "dirs 5.0.1",
  "env_logger",
+ "futures",
  "humantime",
  "indicatif 0.17.11",
+ "once_cell",
+ "opentelemetry 0.24.0",
+ "rand 0.8.5",
  "reqwest 0.12.23",
- "riptide-html",
+ "riptide-core",
+ "riptide-extraction",
  "riptide-stealth",
  "scraper 0.20.0",
  "serde",
  "serde_json",
  "serde_yaml",
+ "tempfile",
  "tokio",
+ "tracing",
  "url",
  "urlencoding",
 ]
@@ -6367,7 +6418,7 @@ dependencies = [
  "libc",
  "nanoid",
  "once_cell",
- "opentelemetry",
+ "opentelemetry 0.26.0",
  "opentelemetry-otlp",
  "opentelemetry-semantic-conventions",
  "opentelemetry_sdk",
@@ -6376,7 +6427,7 @@ dependencies = [
  "redis",
  "regex",
  "reqwest 0.12.23",
- "riptide-html",
+ "riptide-extraction",
  "riptide-pdf",
  "riptide-search",
  "riptide-stealth",
@@ -6399,6 +6450,32 @@ dependencies = [
  "wasmtime 37.0.2",
  "wasmtime-wasi",
  "xml",
+]
+
+[[package]]
+name = "riptide-extraction"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "futures",
+ "lol_html",
+ "regex",
+ "riptide-core",
+ "scraper 0.20.0",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tiktoken-rs",
+ "tokio",
+ "tokio-test",
+ "url",
+ "uuid",
+ "wasmtime 37.0.2",
+ "wasmtime-wasi",
+ "wit-bindgen 0.16.0",
 ]
 
 [[package]]
@@ -6443,32 +6520,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
-]
-
-[[package]]
-name = "riptide-html"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "chrono",
- "futures",
- "lol_html",
- "regex",
- "riptide-core",
- "scraper 0.20.0",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 1.0.69",
- "tiktoken-rs",
- "tokio",
- "tokio-test",
- "url",
- "uuid",
- "wasmtime 37.0.2",
- "wasmtime-wasi",
- "wit-bindgen 0.16.0",
 ]
 
 [[package]]
@@ -6545,7 +6596,7 @@ dependencies = [
  "iai",
  "memory-stats",
  "moka",
- "opentelemetry",
+ "opentelemetry 0.26.0",
  "opentelemetry-otlp",
  "opentelemetry-semantic-conventions",
  "opentelemetry_sdk",
@@ -6675,7 +6726,7 @@ dependencies = [
  "rand 0.8.5",
  "reqwest 0.12.23",
  "riptide-core",
- "riptide-html",
+ "riptide-extraction",
  "rstest",
  "serde",
  "serde_json",
@@ -8503,7 +8554,7 @@ checksum = "dc58af5d3f6c5811462cabb3289aec0093f7338e367e5a33d28c0433b3c7360b"
 dependencies = [
  "js-sys",
  "once_cell",
- "opentelemetry",
+ "opentelemetry 0.26.0",
  "opentelemetry_sdk",
  "smallvec",
  "tracing",

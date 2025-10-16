@@ -7,8 +7,8 @@
 [![Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen.svg)](docs/development/testing.md)
 [![Safety Audit](https://img.shields.io/badge/safety-audited-success.svg)](.github/workflows/safety-audit.yml)
 
-Something along these lines will be released.  This is a placeholder:
 
+IN DEVELOPMENT: 90%+ COMPLETE
 
 **High-performance web crawler and content extraction API built in Rust with WebAssembly optimization.**
 

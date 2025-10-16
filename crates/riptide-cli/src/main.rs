@@ -1,6 +1,10 @@
+mod cache;
 mod client;
 mod commands;
+mod job;
+mod metrics;
 mod output;
+mod session;
 
 use anyhow::Result;
 use clap::Parser;
@@ -65,6 +69,9 @@ async fn main() -> Result<()> {
             Some(commands::MetricsCommands::Show) | None => {
                 commands::metrics::execute(client, &cli.output).await
             }
+            Some(commands::MetricsCommands::Tail { interval, limit }) => {
+                commands::metrics::tail(client, &interval, limit, &cli.output).await
+            }
             Some(commands::MetricsCommands::Export {
                 format,
                 output,
@@ -79,6 +86,7 @@ async fn main() -> Result<()> {
         }
         Commands::Pdf { command } => commands::pdf::execute(client, command, &cli.output).await,
         Commands::Job { command } => commands::job::execute(client, command, &cli.output).await,
+        Commands::JobLocal { command } => commands::job_local::execute(command, &cli.output).await,
         Commands::Session { command } => commands::session::execute(command, &cli.output).await,
     }
 }

@@ -10,14 +10,14 @@
 
 **Key Findings**:
 - **5 Primary Extraction Methods Identified**:
-  1. Trek Extraction (WASM-based, primary strategy)
+  1. Wasm Extraction (WASM-based, primary strategy)
   2. CSS Selector Extraction (enhanced with 12 transformers)
   3. Regex Pattern Extraction (structured data)
   4. WASM Component Extraction (resource-limited)
   5. Strategies Pipeline Orchestrator (coordination layer)
 
 - **4 Main Integration Pipelines Documented**:
-  1. Trek Strategy (default path)
+  1. Wasm Strategy (default path)
   2. CSS Strategy (selector-based)
   3. Multi-Strategy (cascading with merge)
   4. Headless Strategy (browser-rendered)
@@ -49,11 +49,11 @@
 **Major Test Categories**:
 1. **Static HTML Sites** (3 subcategories)
    - Simple blogs, news articles, documentation
-   - Trek: ⭐⭐⭐⭐⭐, CSS: ⭐⭐⭐⭐⭐
+   - Wasm: ⭐⭐⭐⭐⭐, CSS: ⭐⭐⭐⭐⭐
 
 2. **JavaScript-Heavy SPAs** (3 subcategories)
    - React/Next.js, Vue/Nuxt, Angular
-   - Headless: ⭐⭐⭐⭐⭐, Trek: ⭐⭐
+   - Headless: ⭐⭐⭐⭐⭐, Wasm: ⭐⭐
 
 3. **E-commerce Product Pages** (2 subcategories)
    - Standard products, SaaS pricing
@@ -102,7 +102,7 @@ Selected Extractor(s) → ProcessedContent → Cache Storage
 
 #### Dependency Map
 **Direct Dependencies**:
-- Trek → WASM Extraction
+- Wasm → WASM Extraction
 - StrategyManager → All Extractors
 - Pipeline → StrategyManager
 
@@ -112,7 +112,7 @@ Selected Extractor(s) → ProcessedContent → Cache Storage
 - Merge Policy → Multiple Extractors
 
 #### Transformation Pipelines
-**Trek Strategy**: URL → Fetch → HTML → Gate → Trek → WASM → ExtractedDoc → Metadata → ProcessedContent → Cache
+**Wasm Strategy**: URL → Fetch → HTML → Gate → Wasm → WASM → ExtractedDoc → Metadata → ProcessedContent → Cache
 
 **CSS Strategy**: URL → Fetch → HTML → Gate → CSS → Selectors → :has-text() → Transformers → ExtractedContent → Merge → ProcessedContent → Cache
 
@@ -125,7 +125,7 @@ Selected Extractor(s) → ProcessedContent → Cache Storage
 #### Performance Expectations by Content Type
 | Content Type | Best Method | Expected Speed | Expected Accuracy |
 |--------------|-------------|----------------|-------------------|
-| Static HTML | Trek/CSS | <500ms | >90% |
+| Static HTML | Wasm/CSS | <500ms | >90% |
 | SPA (React/Vue) | Headless | <3s | >90% |
 | E-commerce | CSS + Regex | <1s | >95% |
 | News Articles | CSS (news selectors) | <500ms | >95% |
@@ -135,7 +135,7 @@ Selected Extractor(s) → ProcessedContent → Cache Storage
 
 #### Critical Test Scenarios
 1. **Method Comparison Tests**: Run all 4 methods on same URLs
-2. **Fallback Chain Tests**: Verify Trek → fallback → CSS cascading
+2. **Fallback Chain Tests**: Verify Wasm → fallback → CSS cascading
 3. **Merge Policy Tests**: Test conflict resolution with CSS-wins
 4. **Confidence Score Tests**: Compare scoring across methods
 5. **Performance Stress Tests**: Large HTML, deep nesting, many elements
@@ -157,7 +157,7 @@ Selected Extractor(s) → ProcessedContent → Cache Storage
 
 #### High Priority Implementation Needs
 1. **Complete WASM Component Binding**
-   - Implement WIT interface for Trek extraction
+   - Implement WIT interface for Wasm extraction
    - Replace mock data with actual extraction
    - Enable resource-limited execution
 
@@ -219,7 +219,7 @@ Selected Extractor(s) → ProcessedContent → Cache Storage
 3. **Confidence Inconsistency**: Cannot reliably compare method quality
 
 #### Medium Risk
-4. **Double Transformation**: CSS transformers + Trek transformers
+4. **Double Transformation**: CSS transformers + Wasm transformers
 5. **Memory Leaks**: WASM resource tracking not active
 6. **Fallback Failures**: Chain may not be tested end-to-end
 

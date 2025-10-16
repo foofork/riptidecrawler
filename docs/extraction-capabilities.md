@@ -12,7 +12,7 @@
 - Can be customized with `--pattern` parameter
 - Good for extracting specific data formats (emails, URLs, numbers)
 
-### 3. **Trek Strategy** (`--method trek`)
+### 3. **Wasm Strategy** (`--method wasm`)
 - WASM-based extraction (may not be fully functional)
 - Was designed for fast, lightweight extraction
 - Current status: Unclear if working properly
@@ -61,8 +61,8 @@ riptide extract --url "URL" --strategy "fallback:css,regex,auto"
 - System should use intelligent strategies instead
 - CSS selectors should adapt to common patterns
 
-### 3. **Trek/WASM Issues**
-- Trek strategy references WASM module that may not be properly configured
+### 3. **Wasm/WASM Issues**
+- Wasm strategy references WASM module that may not be properly configured
 - WASM file path issues prevent proper execution
 
 ### 4. **Missing Capabilities**

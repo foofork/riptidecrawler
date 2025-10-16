@@ -1313,7 +1313,7 @@ All TODOs follow this format:
 // crates/riptide-core/src/strategies/mod.rs
 // pub mod extraction;              // Moved to riptide-html
 // pub mod spider_implementations;  // Circular dependency blocker
-// pub use extraction::trek;        // Moved to riptide-html
+// pub use extraction::wasm;        // Moved to riptide-html
 // pub use spider_implementations::*;
 ```
 
