@@ -1,0 +1,28 @@
+Warning: Failed to load existing metrics: Failed to deserialize metrics. Starting fresh.
+ℹ Extracting content from PDF: https://assets.publishing.service.gov.uk/media/6722120210b0d582ee8c48c0/Autumn_Budget_2024__print_.pdf
+ℹ Table extraction enabled
+⚠ PDF processing not yet implemented
+ℹ This feature requires PDF library integration
+ℹ Planned libraries: pdf-extract, lopdf, or pdfium
+┌──────────────────┬─────────────────────────────────────────────┐
+│      Feature     ┆                    Status                   │
+╞══════════════════╪═════════════════════════════════════════════╡
+│ Text Extraction  ┆ Planned                                     │
+├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+│ Table Detection  ┆ Enabled                                     │
+├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+│ Image Extraction ┆ Disabled                                    │
+├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+│ OCR Processing   ┆ Disabled                                    │
+├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+│ Output Format    ┆ json                                        │
+├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+│ Output Location  ┆ /workspaces/eventmesh/eval/results/pdf_temp │
+└──────────────────┴─────────────────────────────────────────────┘
+ℹ 
+To implement PDF processing:
+ℹ 1. Add PDF library dependency to Cargo.toml
+ℹ 2. Implement PDF parsing and text extraction
+ℹ 3. Add table detection algorithms
+ℹ 4. Integrate OCR for images (tesseract-rs)
+ℹ 5. Add output format serialization

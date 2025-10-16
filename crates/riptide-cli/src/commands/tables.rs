@@ -13,8 +13,11 @@ struct TableExtractRequest {
 
 #[derive(Deserialize, Serialize)]
 struct Table {
+    id: String,
+    rows: usize,
+    columns: usize,
     headers: Vec<String>,
-    rows: Vec<Vec<String>>,
+    data: Vec<Vec<String>>,
     #[serde(default)]
     caption: Option<String>,
 }
@@ -81,8 +84,8 @@ pub async fn execute(client: RipTideClient, args: TablesArgs, output_format: &st
         for (idx, table) in extract_result.tables.iter().enumerate() {
             summary_table.add_row(vec![
                 &(idx + 1).to_string(),
-                &table.rows.len().to_string(),
-                &table.headers.len().to_string(),
+                &table.rows.to_string(),
+                &table.columns.to_string(),
                 table.caption.as_deref().unwrap_or("N/A"),
             ]);
         }
@@ -135,7 +138,7 @@ fn format_as_markdown(tables: &[Table]) -> String {
         }
 
         // Add rows
-        for row in &table.rows {
+        for row in &table.data {
             output.push_str("| ");
             output.push_str(&row.join(" | "));
             output.push_str(" |\n");
@@ -170,7 +173,7 @@ fn format_as_csv(tables: &[Table]) -> Result<String> {
         }
 
         // Add rows
-        for row in &table.rows {
+        for row in &table.data {
             output.push_str(&escape_csv_row(row));
             output.push('\n');
         }

@@ -1,0 +1,10 @@
+Warning: Failed to load existing metrics: Failed to deserialize metrics. Starting fresh.
+ℹ Extracting content from: https://www.coolblue.nl/en/product/947062/samsung-oled-4k-55s95d-2024.html
+ℹ Engine mode: raw
+Error: Failed to send request to http://localhost:8080/api/v1/extract
+
+Caused by:
+    0: error sending request for url (http://localhost:8080/api/v1/extract)
+    1: client error (Connect)
+    2: tcp connect error
+    3: Connection refused (os error 111)

@@ -25,7 +25,7 @@ pub async fn execute(client: RipTideClient, args: SearchArgs, output_format: &st
     output::print_info(&format!("Searching for: {}", args.query));
 
     let mut url = format!(
-        "/api/v1/search?query={}&limit={}",
+        "/api/v1/search?q={}&limit={}",
         urlencoding::encode(&args.query),
         args.limit
     );

@@ -1,0 +1,69 @@
+Test ID,Test Name,URL/Source,Format,Status,Error Type,Details,Notes
+1,Help Command,N/A,N/A,PASS,None,Successfully displayed help with options: --url --file --format --stdin -o,Command shows all available options including markdown/csv/json formats
+2,Wikipedia Population JSON,https://en.wikipedia.org/wiki/List_of_countries_by_population,json,FAIL,Deserialization,API response structure mismatch - API returns TableExtractionResponse but CLI expects TableExtractResponse,CLI expects {tables: [{headers: [], rows: [[]]}]} but API returns {tables: [{id: str rows: int columns: int headers: [] data: [[]]}]}
+3,Wikipedia Population Markdown,https://en.wikipedia.org/wiki/List_of_countries_by_population,markdown,FAIL,Deserialization,Same deserialization error - invalid type: integer at line 1 column 66,Error occurs before format conversion during API response parsing
+4,Wikipedia Population CSV,https://en.wikipedia.org/wiki/List_of_countries_by_population,csv,FAIL,Deserialization,Same deserialization error - invalid type: integer at line 1 column 66,Format parameter doesn't affect error as it occurs during response parsing
+5,Simple HTML Table File,/tmp/simple_table.html,markdown,FAIL,Deserialization,Same deserialization error - invalid type: integer at line 1 column 64,Even simple 3x3 table fails due to API/CLI schema mismatch
+6,API Health Check,http://localhost:8080/health,N/A,PASS,None,API server running and healthy - all dependencies operational,Server status: degraded due to worker service but core extraction working
+7,WASM Module Build,N/A,N/A,PASS,None,Successfully built riptide_extractor_wasm.wasm (2.6MB),Located at target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
+8,API Server Startup,N/A,N/A,PASS,None,Server started on 0.0.0.0:8080 with all features initialized,Redis connected performance monitoring enabled browser pool initialized
+
+ROOT CAUSE ANALYSIS:
+The tables command has a critical API/CLI contract mismatch:
+
+API Response Schema (riptide-api/src/handlers/tables.rs):
+{
+  "tables": [
+    {
+      "id": "uuid-string"
+      "rows": 243 (integer - row count)
+      "columns": 5 (integer - column count)
+      "headers": ["header1" "header2"]
+      "data": [["cell1" "cell2"]] (sample data only - first 3 rows)
+      "metadata": { ... }
+    }
+  ]
+  "extraction_time_ms": 100
+  "total_tables": 1
+}
+
+CLI Expected Schema (riptide-cli/src/commands/tables.rs):
+{
+  "tables": [
+    {
+      "headers": ["header1" "header2"]
+      "rows": [["cell1" "cell2"] ["cell3" "cell4"]] (array of all row arrays)
+      "caption": "optional string"
+    }
+  ]
+  "count": 1
+}
+
+INCOMPATIBILITY DETAILS:
+1. API returns 'rows' as INTEGER (row count) but CLI expects 'rows' as ARRAY OF ARRAYS (actual data)
+2. API returns 'columns' as INTEGER but CLI doesn't expect this field
+3. API returns 'data' field with sample rows but CLI expects all data in 'rows' field
+4. API includes 'id' and 'metadata' fields that CLI doesn't expect
+5. CLI expects optional 'caption' at table level but API has it in metadata
+
+DESERIALIZATION ERROR:
+"invalid type: integer `243` expected a sequence at line 1 column 66"
+This occurs when serde tries to deserialize the integer 'rows' value into Vec<Vec<String>>
+
+RECOMMENDATIONS:
+1. Update CLI TableExtractResponse schema to match API or create adapter
+2. Modify API to return simplified schema matching CLI expectations
+3. Add version negotiation or separate endpoints for different response formats
+4. Consider returning full row data instead of just samples in API response
+5. Add integration tests to catch schema mismatches between API and CLI
+
+TESTING LIMITATIONS:
+- Cannot test actual table extraction functionality due to schema mismatch
+- Cannot verify table structure preservation
+- Cannot test different output formats (JSON CSV Markdown)
+- Cannot validate parsing of complex tables Wikipedia pages etc.
+
+WORKAROUND:
+Use API export endpoint directly:
+1. POST to /api/v1/tables/extract to get table IDs
+2. GET /api/v1/tables/{id}/export?format=csv|markdown to download formatted tables

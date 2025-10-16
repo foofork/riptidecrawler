@@ -339,17 +339,30 @@ impl WasmResourceTracker {
 impl ResourceLimiter for WasmResourceTracker {
     fn memory_growing(
         &mut self,
-        _current: usize,
+        current: usize,
         desired: usize,
-        _maximum: Option<usize>,
+        maximum: Option<usize>,
     ) -> Result<bool, anyhow::Error> {
         const WASM_PAGE_SIZE: usize = 65536; // 64KB per page
 
         // Convert bytes to pages - desired is the NEW total memory size
         let desired_pages = desired / WASM_PAGE_SIZE;
+        let current_pages = current / WASM_PAGE_SIZE;
+
+        // Debug logging to understand memory growth patterns
+        eprintln!("WASM Memory Growth Request:");
+        eprintln!("  Current: {} bytes ({} pages)", current, current_pages);
+        eprintln!("  Desired: {} bytes ({} pages)", desired, desired_pages);
+        eprintln!("  Maximum: {:?}", maximum);
+        eprintln!(
+            "  Our limit: {} pages ({} MB)",
+            self.max_pages,
+            self.max_pages * 64 / 1024
+        );
 
         if desired_pages > self.max_pages {
             self.grow_failed_count.fetch_add(1, Ordering::Relaxed);
+            eprintln!("  DENIED: Exceeds limit!");
             Ok(false)
         } else {
             // Store the new total (not a delta)
@@ -368,6 +381,7 @@ impl ResourceLimiter for WasmResourceTracker {
                     Err(x) => peak = x,
                 }
             }
+            eprintln!("  ALLOWED: Within limit");
             Ok(true)
         }
     }
@@ -411,7 +425,7 @@ pub struct ExtractorConfig {
 impl Default for ExtractorConfig {
     fn default() -> Self {
         Self {
-            max_memory_pages: 1024, // 64MB default
+            max_memory_pages: 8192, // 512MB default (increased to handle HTML parsing with all dependencies)
             extraction_timeout: Duration::from_secs(30),
             enable_simd: true,
             enable_aot_cache: true,
@@ -426,7 +440,7 @@ impl Default for ExtractorConfig {
 pub struct CmExtractor {
     engine: Engine,
     component: Component,
-    linker: Linker<WasmHostContext>,
+    linker: Linker<WasmResourceTracker>,
     config: ExtractorConfig,
     stats: Arc<Mutex<HostExtractionStats>>,
 }
@@ -445,6 +459,21 @@ impl CmExtractor {
 
         // Enable fuel consumption for execution limits
         wasmtime_config.consume_fuel(true);
+
+        // Configure memory limits - convert pages to bytes (64KB per page)
+        // This prevents "error while executing at wasm backtrace" memory allocation failures
+        let max_memory_bytes = config.max_memory_pages * 65536; // 64KB per page
+        wasmtime_config.max_wasm_stack(2 * 1024 * 1024); // 2MB stack
+
+        // CRITICAL: Reserve virtual address space for linear memory growth
+        // This allows WASM linear memory to grow dynamically during execution
+        wasmtime_config.memory_reservation_for_growth(max_memory_bytes as u64);
+
+        // Set memory guard size for bounds checking (prevents buffer overruns)
+        wasmtime_config.memory_guard_size(2 * 1024 * 1024); // 2MB guard
+
+        // Memory init COW (copy-on-write) can help with memory initialization
+        wasmtime_config.memory_init_cow(true);
 
         // Enable SIMD if configured
         if config.enable_simd {
@@ -495,10 +524,15 @@ impl CmExtractor {
         use wit_bindings::Extractor;
 
         let start_time = Instant::now();
-        let host_context = WasmHostContext::new();
 
-        let mut store = Store::new(&self.engine, host_context);
+        // Use WasmResourceTracker which implements ResourceLimiter for memory control
+        let resource_tracker = WasmResourceTracker::new(self.config.max_memory_pages);
+
+        let mut store = Store::new(&self.engine, resource_tracker);
         store.set_fuel(1_000_000)?; // Set fuel limit for execution
+
+        // CRITICAL: Set the resource limiter on the store to enable memory growth control
+        store.limiter(|state| state);
 
         // Parse mode and convert to WIT type
         let host_mode = HostExtractionMode::parse_mode(mode);
@@ -623,7 +657,7 @@ mod tests {
     #[test]
     fn test_extractor_config_default() {
         let config = ExtractorConfig::default();
-        assert_eq!(config.max_memory_pages, 1024);
+        assert_eq!(config.max_memory_pages, 8192); // Updated: 512MB = 8192 pages
         assert!(config.enable_simd);
         assert!(config.enable_aot_cache);
         assert_eq!(config.instance_pool_size, 4);

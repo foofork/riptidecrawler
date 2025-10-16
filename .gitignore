@@ -274,3 +274,58 @@ coordination/orchestration/*
 claude-flow
 # Removed Windows wrapper files per user request
 hive-mind-prompt-*.txt
+eval/results/temp_extract/error_auto__0b31220e0f254cd0b385c7c8586262fc.txt
+eval/results/temp_extract/error_auto__accd9547a71463f530ae12a8dd0d7696.txt
+eval/results/temp_extract/error_auto_0b31220e0f254cd0b385c7c8586262fc.txt
+eval/results/temp_extract/error_auto_auto_accd9547a71463f530ae12a8dd0d7696.txt
+eval/results/temp_extract/error_auto_css_accd9547a71463f530ae12a8dd0d7696.txt
+eval/results/temp_extract/error_auto_llm_accd9547a71463f530ae12a8dd0d7696.txt
+eval/results/temp_extract/error_auto_regex_accd9547a71463f530ae12a8dd0d7696.txt
+eval/results/temp_extract/error_auto_wasm_23bcf57c78b0025c3c0dd4d6f31b9bcb.txt
+eval/results/temp_extract/error_auto_wasm_accd9547a71463f530ae12a8dd0d7696.txt
+eval/results/temp_extract/error_headless__accd9547a71463f530ae12a8dd0d7696.txt
+eval/results/temp_extract/error_raw__0b31220e0f254cd0b385c7c8586262fc.txt
+eval/results/temp_extract/error_raw__3bbbe7b77aef911034a43220980328de.txt
+eval/results/temp_extract/error_raw__23bcf57c78b0025c3c0dd4d6f31b9bcb.txt
+eval/results/temp_extract/error_raw__accd9547a71463f530ae12a8dd0d7696.txt
+eval/results/temp_extract/error_raw_3bbbe7b77aef911034a43220980328de.txt
+eval/results/temp_extract/error_raw_23bcf57c78b0025c3c0dd4d6f31b9bcb.txt
+eval/results/temp_extract/error_raw_accd9547a71463f530ae12a8dd0d7696.txt
+eval/results/temp_extract/error_readability_23bcf57c78b0025c3c0dd4d6f31b9bcb.txt
+eval/results/temp_extract/error_trafilatura_0b31220e0f254cd0b385c7c8586262fc.txt
+eval/results/temp_extract/error_wasm__0b31220e0f254cd0b385c7c8586262fc.txt
+eval/results/temp_extract/error_wasm__23bcf57c78b0025c3c0dd4d6f31b9bcb.txt
+eval/results/temp_extract/error_wasm__accd9547a71463f530ae12a8dd0d7696.txt
+eval/results/temp_extract/output_auto__0b31220e0f254cd0b385c7c8586262fc.txt
+eval/results/temp_extract/output_auto__accd9547a71463f530ae12a8dd0d7696.txt
+eval/results/temp_extract/output_auto_0b31220e0f254cd0b385c7c8586262fc.txt
+eval/results/temp_extract/output_auto_auto_accd9547a71463f530ae12a8dd0d7696.txt
+eval/results/temp_extract/output_auto_css_accd9547a71463f530ae12a8dd0d7696.txt
+eval/results/temp_extract/output_auto_llm_accd9547a71463f530ae12a8dd0d7696.txt
+eval/results/temp_extract/output_auto_regex_accd9547a71463f530ae12a8dd0d7696.txt
+eval/results/temp_extract/output_auto_wasm_23bcf57c78b0025c3c0dd4d6f31b9bcb.txt
+eval/results/temp_extract/output_auto_wasm_accd9547a71463f530ae12a8dd0d7696.txt
+eval/results/temp_extract/output_headless__accd9547a71463f530ae12a8dd0d7696.txt
+eval/results/temp_extract/output_raw__0b31220e0f254cd0b385c7c8586262fc.txt
+eval/results/temp_extract/output_raw__3bbbe7b77aef911034a43220980328de.txt
+eval/results/temp_extract/output_raw__23bcf57c78b0025c3c0dd4d6f31b9bcb.txt
+eval/results/temp_extract/output_raw__accd9547a71463f530ae12a8dd0d7696.txt
+eval/results/temp_extract/output_raw_3bbbe7b77aef911034a43220980328de.txt
+eval/results/temp_extract/output_raw_23bcf57c78b0025c3c0dd4d6f31b9bcb.txt
+eval/results/temp_extract/output_raw_accd9547a71463f530ae12a8dd0d7696.txt
+eval/results/temp_extract/output_readability_23bcf57c78b0025c3c0dd4d6f31b9bcb.txt
+eval/results/temp_extract/output_trafilatura_0b31220e0f254cd0b385c7c8586262fc.txt
+eval/results/temp_extract/output_wasm__0b31220e0f254cd0b385c7c8586262fc.txt
+eval/results/temp_extract/output_wasm__23bcf57c78b0025c3c0dd4d6f31b9bcb.txt
+eval/results/temp_extract/output_wasm__accd9547a71463f530ae12a8dd0d7696.txt
+
+# ===========================================
+# Pdfium Library Installation
+# ===========================================
+# Local environment configuration
+.env.pdfium.local
+
+# Temporary installation files
+/tmp/pdfium/
+pdfium-*.tgz
+pdfium-*.tar.gz

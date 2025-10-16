@@ -3,8 +3,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::collections::HashMap;
 use trek_rs::{Trek, TrekOptions, TrekResponse};
 
-mod trek_helpers;
-use trek_helpers::*;
+mod extraction_helpers;
+use extraction_helpers::*;
 
 mod extraction;
 
@@ -194,7 +194,7 @@ impl Guest for Component {
         HealthStatus {
             status: "healthy".to_string(),
             version: COMPONENT_VERSION.to_string(),
-            trek_version: get_trek_version(),
+            extractor_version: get_extractor_version(),
             capabilities: get_supported_modes(),
             memory_usage: Some(get_memory_usage()),
             extraction_count: Some(EXTRACTION_COUNT.load(Ordering::Relaxed)),

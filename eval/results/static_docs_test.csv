@@ -1,0 +1,6 @@
+URL,Success,Content_Length,Title_Present,Time_ms,Error
+"https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Introduction",true,192343,false,137,""
+"https://doc.rust-lang.org/stable/book/ch01-01-installation.html",true,19112,false,130,""
+"https://www.postgresql.org/docs/17/intro-whatis.html",true,15795,false,187,""
+"https://cloud.google.com/kubernetes-engine/docs/learn/get-started-with-kubernetes",true,374708,false,532,""
+"https://en.wikipedia.org/wiki/Web_scraping",true,158374,false,126,""

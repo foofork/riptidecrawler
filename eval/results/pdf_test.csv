@@ -1,0 +1,4 @@
+url,name,status,tables_extracted,text_length,error_message,extraction_time
+"https://assets.publishing.service.gov.uk/media/6722120210b0d582ee8c48c0/Autumn_Budget_2024__print_.pdf","UK Autumn Budget 2024 (print)","SUCCESS",0,2754,"",0
+"https://assets.publishing.service.gov.uk/media/6721d2c54da1c0d41942a8d2/Policy_Costing_Document_-_Autumn_Budget_2024.pdf","UK Autumn Budget 2024 — Policy Costings","SUCCESS",0,2772,"",0
+"https://hilversum.nl/sites/default/files/documents/Vereiste%20informatie%20in%20activiteitenplan%2C%20begroting%20en%20dekkingsplan%20.pdf","Hilversum — Vereiste info","SUCCESS",0,2790,"",1

@@ -72,7 +72,7 @@ world extractor {
         status: string,
         /// Component version
         version: string,
-        /// Extractor library version
+        /// Extractor library version (trek-rs)
         extractor-version: string,
         /// Supported extraction modes
         capabilities: list<string>,
