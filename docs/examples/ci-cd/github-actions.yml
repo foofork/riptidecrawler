@@ -1,0 +1,328 @@
+name: RipTide Content Extraction Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'URL to extract content from'
+        required: true
+        type: string
+      mode:
+        description: 'CLI operation mode'
+        required: false
+        default: 'api-first'
+        type: choice
+        options:
+          - api-first
+          - direct
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+env:
+  RIPTIDE_API_URL: http://localhost:8080
+  RIPTIDE_OUTPUT_DIR: ${{ github.workspace }}/output
+  RIPTIDE_CACHE_DIR: ${{ github.workspace }}/cache
+  NODE_VERSION: '18'
+
+jobs:
+  # ===========================
+  # Job 1: Setup and Validation
+  # ===========================
+  setup:
+    name: Setup Environment
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.cache-key.outputs.key }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate cache key
+        id: cache-key
+        run: |
+          echo "key=riptide-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
+
+      - name: Validate configuration
+        run: |
+          echo "Validating RipTide configuration..."
+          echo "API URL: $RIPTIDE_API_URL"
+          echo "Output Dir: $RIPTIDE_OUTPUT_DIR"
+          echo "Cache Dir: $RIPTIDE_CACHE_DIR"
+
+  # ===========================
+  # Job 2: API-First Mode Extraction
+  # ===========================
+  extract-api-mode:
+    name: Extract Content (API-First)
+    runs-on: ubuntu-latest
+    needs: setup
+    if: ${{ inputs.mode == 'api-first' || inputs.mode == '' }}
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-wasip2
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build WASM component
+        run: |
+          cd wasm/riptide-extractor-wasm
+          cargo build --target wasm32-wasip2 --release
+
+      - name: Build RipTide API
+        run: |
+          cargo build --release -p riptide-api
+
+      - name: Start API server
+        run: |
+          ./target/release/riptide-api --config configs/riptide.yml &
+          sleep 5
+        env:
+          REDIS_URL: redis://localhost:6379/0
+          SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+
+      - name: Wait for API server
+        run: |
+          timeout 30 bash -c 'until curl -sf http://localhost:8080/healthz; do sleep 1; done'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install CLI
+        run: |
+          cd cli
+          npm ci
+          npm link
+
+      - name: Extract content
+        run: |
+          riptide extract \
+            --url "${{ inputs.url }}" \
+            --output-dir "$RIPTIDE_OUTPUT_DIR" \
+            -f result.md \
+            --metadata \
+            --show-confidence
+
+      - name: Validate extraction
+        run: |
+          if [ ! -f "$RIPTIDE_OUTPUT_DIR/extractions/result.md" ]; then
+            echo "Error: Extraction failed - output file not found"
+            exit 1
+          fi
+
+          echo "Extraction successful!"
+          echo "File size: $(wc -c < "$RIPTIDE_OUTPUT_DIR/extractions/result.md") bytes"
+          echo "Word count: $(wc -w < "$RIPTIDE_OUTPUT_DIR/extractions/result.md") words"
+
+      - name: Upload extraction results
+        uses: actions/upload-artifact@v3
+        with:
+          name: extraction-results-api-mode
+          path: ${{ env.RIPTIDE_OUTPUT_DIR }}/extractions/
+          retention-days: 7
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: api-server-logs
+          path: ${{ env.RIPTIDE_OUTPUT_DIR }}/logs/
+          retention-days: 7
+
+  # ===========================
+  # Job 3: Direct Mode Extraction
+  # ===========================
+  extract-direct-mode:
+    name: Extract Content (Direct)
+    runs-on: ubuntu-latest
+    needs: setup
+    if: ${{ inputs.mode == 'direct' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-wasip2
+
+      - name: Build WASM component
+        run: |
+          cd wasm/riptide-extractor-wasm
+          cargo build --target wasm32-wasip2 --release
+
+      - name: Build CLI (Rust)
+        run: |
+          cargo build --release -p riptide-cli
+
+      - name: Extract content (Direct mode)
+        run: |
+          ./target/release/riptide extract \
+            --url "${{ inputs.url }}" \
+            --direct \
+            --output-dir "$RIPTIDE_OUTPUT_DIR" \
+            -f result.md \
+            --metadata
+
+      - name: Validate extraction
+        run: |
+          if [ ! -f "$RIPTIDE_OUTPUT_DIR/extractions/result.md" ]; then
+            echo "Error: Extraction failed - output file not found"
+            exit 1
+          fi
+
+          echo "Extraction successful!"
+          cat "$RIPTIDE_OUTPUT_DIR/extractions/result.md"
+
+      - name: Upload extraction results
+        uses: actions/upload-artifact@v3
+        with:
+          name: extraction-results-direct-mode
+          path: ${{ env.RIPTIDE_OUTPUT_DIR }}/extractions/
+          retention-days: 7
+
+  # ===========================
+  # Job 4: Batch Extraction
+  # ===========================
+  batch-extract:
+    name: Batch Content Extraction
+    runs-on: ubuntu-latest
+    needs: setup
+    if: github.event_name == 'schedule'
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    strategy:
+      matrix:
+        batch: [1, 2, 3]
+      max-parallel: 3
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        run: |
+          # Create URLs file for this batch
+          mkdir -p ${{ github.workspace }}/batches
+
+          # Example: Split URLs into batches
+          # In real scenario, read from a file or database
+          cat > ${{ github.workspace }}/batches/batch-${{ matrix.batch }}.txt << 'EOF'
+          https://example.com/page${{ matrix.batch }}-1
+          https://example.com/page${{ matrix.batch }}-2
+          https://example.com/page${{ matrix.batch }}-3
+          EOF
+
+      - name: Build and start services
+        run: |
+          cargo build --release
+          ./target/release/riptide-api --config configs/riptide.yml &
+          sleep 5
+        env:
+          REDIS_URL: redis://localhost:6379/0
+
+      - name: Run batch extraction
+        run: |
+          chmod +x docs/examples/scripts/extract-pipeline.sh
+          docs/examples/scripts/extract-pipeline.sh ${{ github.workspace }}/batches/batch-${{ matrix.batch }}.txt
+
+      - name: Upload batch results
+        uses: actions/upload-artifact@v3
+        with:
+          name: batch-${{ matrix.batch }}-results
+          path: ./pipeline-output/processed/
+          retention-days: 30
+
+  # ===========================
+  # Job 5: Performance Testing
+  # ===========================
+  performance-test:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    needs: [extract-api-mode, extract-direct-mode]
+    if: always()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download API mode results
+        uses: actions/download-artifact@v3
+        with:
+          name: extraction-results-api-mode
+          path: ./results/api-mode
+        continue-on-error: true
+
+      - name: Download Direct mode results
+        uses: actions/download-artifact@v3
+        with:
+          name: extraction-results-direct-mode
+          path: ./results/direct-mode
+        continue-on-error: true
+
+      - name: Compare performance
+        run: |
+          echo "## Performance Comparison" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -d "./results/api-mode" ]; then
+            echo "### API-First Mode" >> $GITHUB_STEP_SUMMARY
+            echo "- Files: $(find ./results/api-mode -type f | wc -l)" >> $GITHUB_STEP_SUMMARY
+            echo "- Total size: $(du -sh ./results/api-mode | cut -f1)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ -d "./results/direct-mode" ]; then
+            echo "### Direct Mode" >> $GITHUB_STEP_SUMMARY
+            echo "- Files: $(find ./results/direct-mode -type f | wc -l)" >> $GITHUB_STEP_SUMMARY
+            echo "- Total size: $(du -sh ./results/direct-mode | cut -f1)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ===========================
+  # Job 6: Cleanup
+  # ===========================
+  cleanup:
+    name: Cleanup Resources
+    runs-on: ubuntu-latest
+    needs: [extract-api-mode, extract-direct-mode, batch-extract]
+    if: always()
+
+    steps:
+      - name: Clear cache (if needed)
+        run: |
+          echo "Cleanup completed"
+          # Add cache clearing logic if needed
