@@ -1,13 +1,13 @@
 openapi: 3.0.0
 info:
   title: RipTide API - Comprehensive Specification
-  version: 1.0.0
-  x-last-validated: "2025-10-10T07:44:00Z"
+  version: 1.1.0
+  x-last-validated: "2025-10-17T07:50:00Z"
   description: '# RipTide Crawler API
 
 
-    A high-performance web scraping and content extraction API with 59 endpoints across
-    12 categories.
+    A high-performance web scraping and content extraction API with 95+ endpoints across
+    15 categories.
 
 
     ## Phase 1: Core Crawling & Event System (11 endpoints)
@@ -58,7 +58,7 @@ info:
     - **Adaptive Gate**: Smart routing (raw/probes/headless/cached)
 
 
-    **Total: 59 endpoints documented**
+    **Total: 95+ endpoints documented**
 
     '
   contact:
@@ -76,8 +76,10 @@ servers:
 tags:
 - name: Crawling
   description: Core crawling endpoints (5)
+- name: Extraction
+  description: Content extraction endpoints (2)
 - name: Search
-  description: Deep search endpoints (2)
+  description: Web search endpoints (4)
 - name: Spider
   description: Deep crawling (3)
 - name: Streaming
@@ -95,21 +97,85 @@ tags:
 - name: Sessions
   description: Session management (12)
 - name: Workers
-  description: Job queue (9)
+  description: Job queue (11)
+- name: Browser
+  description: Browser session management (4)
+- name: Resources
+  description: Resource monitoring (7)
 - name: Monitoring
   description: Metrics & alerts (6)
 - name: Health
-  description: Health checks (2)
+  description: Health checks (6)
+- name: Admin
+  description: Admin endpoints (13)
 paths:
   /healthz:
     get:
       operationId: health_check
       tags:
       - Health
-      summary: System health check
+      summary: System health check (basic)
+      description: Basic health check for load balancers and Kubernetes probes
       responses:
         '200':
-          description: Success
+          description: Service healthy or degraded
+        '503':
+          description: Service unhealthy
+  /api/v1/health:
+    get:
+      operationId: health_check_v1
+      tags:
+      - Health
+      summary: Versioned health check (alias for /healthz)
+      responses:
+        '200':
+          description: Service healthy or degraded
+        '503':
+          description: Service unhealthy
+  /api/health/detailed:
+    get:
+      operationId: health_detailed
+      tags:
+      - Health
+      summary: Detailed health diagnostics
+      description: Comprehensive health check with all dependency status, system metrics, and build information
+      responses:
+        '200':
+          description: Detailed health information
+        '503':
+          description: Service unhealthy
+  /health/{component}:
+    get:
+      operationId: health_component
+      tags:
+      - Health
+      summary: Component-specific health check
+      description: Check health of specific component (redis, extractor, http_client, headless, spider, etc.)
+      parameters:
+      - name: component
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [redis, extractor, http_client, headless, spider, resource_manager, streaming, worker_service, circuit_breaker]
+        description: Component name to check
+      responses:
+        '200':
+          description: Component healthy
+        '404':
+          description: Component not found
+        '503':
+          description: Component unhealthy
+  /health/metrics:
+    get:
+      operationId: health_metrics_only
+      tags:
+      - Health
+      summary: Health metrics endpoint
+      description: System metrics only (CPU, memory, disk, etc.) without dependency checks
+      responses:
+        '200':
+          description: System metrics
   /metrics:
     get:
       operationId: metrics_prometheus
@@ -119,12 +185,30 @@ paths:
       responses:
         '200':
           description: Success
+  /api/v1/metrics:
+    get:
+      operationId: metrics_prometheus_v1
+      tags:
+      - Health
+      summary: Versioned Prometheus metrics (alias)
+      responses:
+        '200':
+          description: Success
   /crawl:
     post:
       operationId: crawl_batch
       tags:
       - Crawling
       summary: Batch crawl URLs
+      responses:
+        '200':
+          description: Success
+  /api/v1/crawl:
+    post:
+      operationId: crawl_batch_v1
+      tags:
+      - Crawling
+      summary: Versioned batch crawl (alias)
       responses:
         '200':
           description: Success
@@ -182,6 +266,59 @@ paths:
         '200':
           description: Success
       operationId: render_post
+  /api/v1/render:
+    post:
+      tags:
+      - Crawling
+      summary: Versioned headless rendering (alias)
+      responses:
+        '200':
+          description: Success
+      operationId: render_post_v1
+  /extract:
+    post:
+      operationId: extract
+      tags:
+      - Extraction
+      summary: Content extraction endpoint
+      description: NEW v1.1 - Direct content extraction without crawling
+      responses:
+        '200':
+          description: Extracted content
+      operationId: extract_post
+  /api/v1/extract:
+    post:
+      operationId: extract_v1
+      tags:
+      - Extraction
+      summary: Versioned content extraction
+      description: Primary extraction endpoint for v1.1
+      responses:
+        '200':
+          description: Extracted content
+      operationId: extract_post_v1
+  /search:
+    get:
+      operationId: search
+      tags:
+      - Search
+      summary: Web search endpoint
+      description: NEW v1.1 - Web search functionality
+      responses:
+        '200':
+          description: Search results
+      operationId: search_get
+  /api/v1/search:
+    get:
+      operationId: search_v1
+      tags:
+      - Search
+      summary: Versioned web search
+      description: Primary search endpoint for v1.1
+      responses:
+        '200':
+          description: Search results
+      operationId: search_get_v1
   /spider/crawl:
     post:
       tags:
@@ -549,6 +686,15 @@ paths:
         '200':
           description: Success
       operationId: workers_jobs_post
+    get:
+      tags:
+      - Workers
+      summary: List all jobs
+      description: Get list of all worker jobs with optional filtering
+      responses:
+        '200':
+          description: Success
+      operationId: workers_jobs_get
   /workers/jobs/{job_id}:
     get:
       tags:
@@ -695,3 +841,215 @@ paths:
         '200':
           description: Success
       operationId: pipeline_phases_get
+  /api/v1/browser/session:
+    post:
+      tags:
+      - Browser
+      summary: Create browser session
+      description: Create a new browser session with optional stealth configuration
+      responses:
+        '200':
+          description: Browser session created
+      operationId: browser_session_post
+  /api/v1/browser/action:
+    post:
+      tags:
+      - Browser
+      summary: Execute browser action
+      description: Execute an action on a browser session (navigate, screenshot, execute script, etc.)
+      responses:
+        '200':
+          description: Action executed
+      operationId: browser_action_post
+  /api/v1/browser/pool/status:
+    get:
+      tags:
+      - Browser
+      summary: Get browser pool status
+      description: Get current browser pool capacity and active sessions
+      responses:
+        '200':
+          description: Browser pool status
+      operationId: browser_pool_status_get
+  /api/v1/browser/session/{id}:
+    delete:
+      tags:
+      - Browser
+      summary: Close browser session
+      description: Close and cleanup a browser session
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Browser session ID
+      responses:
+        '200':
+          description: Session closed
+      operationId: browser_session_delete
+  /resources/status:
+    get:
+      tags:
+      - Resources
+      summary: Get resource status
+      description: Overall resource usage and availability
+      responses:
+        '200':
+          description: Resource status
+      operationId: resources_status_get
+  /resources/browser-pool:
+    get:
+      tags:
+      - Resources
+      summary: Browser pool resources
+      description: Browser pool resource metrics and availability
+      responses:
+        '200':
+          description: Browser pool resources
+      operationId: resources_browser_pool_get
+  /resources/rate-limiter:
+    get:
+      tags:
+      - Resources
+      summary: Rate limiter status
+      description: Current rate limiting status and quotas
+      responses:
+        '200':
+          description: Rate limiter status
+      operationId: resources_rate_limiter_get
+  /resources/memory:
+    get:
+      tags:
+      - Resources
+      summary: Memory usage status
+      description: System memory usage and availability
+      responses:
+        '200':
+          description: Memory status
+      operationId: resources_memory_get
+  /resources/performance:
+    get:
+      tags:
+      - Resources
+      summary: Performance metrics
+      description: System performance metrics (CPU, latency, throughput)
+      responses:
+        '200':
+          description: Performance metrics
+      operationId: resources_performance_get
+  /resources/pdf/semaphore:
+    get:
+      tags:
+      - Resources
+      summary: PDF processing semaphore
+      description: PDF processing resource availability
+      responses:
+        '200':
+          description: PDF semaphore status
+      operationId: resources_pdf_semaphore_get
+  /fetch/metrics:
+    get:
+      tags:
+      - Resources
+      summary: Fetch engine metrics
+      description: HTTP fetch engine performance metrics
+      responses:
+        '200':
+          description: Fetch metrics
+      operationId: fetch_metrics_get
+  /admin/tenants:
+    post:
+      tags:
+      - Admin
+      summary: Create tenant
+      description: Create a new tenant (requires persistence feature)
+      responses:
+        '200':
+          description: Tenant created
+      operationId: admin_tenants_post
+    get:
+      tags:
+      - Admin
+      summary: List tenants
+      description: List all tenants
+      responses:
+        '200':
+          description: Tenant list
+      operationId: admin_tenants_get
+  /admin/tenants/{id}:
+    get:
+      tags:
+      - Admin
+      summary: Get tenant details
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Tenant ID
+      responses:
+        '200':
+          description: Tenant details
+      operationId: admin_tenants_id_get
+    put:
+      tags:
+      - Admin
+      summary: Update tenant
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Tenant ID
+      responses:
+        '200':
+          description: Tenant updated
+      operationId: admin_tenants_id_put
+    delete:
+      tags:
+      - Admin
+      summary: Delete tenant
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Tenant ID
+      responses:
+        '200':
+          description: Tenant deleted
+      operationId: admin_tenants_id_delete
+  /admin/cache/warm:
+    post:
+      tags:
+      - Admin
+      summary: Warm cache
+      description: Preload cache with common data
+      responses:
+        '200':
+          description: Cache warmed
+      operationId: admin_cache_warm_post
+  /admin/cache/stats:
+    get:
+      tags:
+      - Admin
+      summary: Cache statistics
+      description: Get cache hit rates and statistics
+      responses:
+        '200':
+          description: Cache stats
+      operationId: admin_cache_stats_get
+  /admin/state/reload:
+    post:
+      tags:
+      - Admin
+      summary: Reload state
+      description: Reload application state from storage
+      responses:
+        '200':
+          description: State reloaded
+      operationId: admin_state_reload_post

@@ -1,12 +1,16 @@
 pub mod cache;
 pub mod crawl;
 pub mod domain;
+pub mod engine_cache;
+pub mod engine_fallback;
 pub mod extract;
+pub mod extract_enhanced;
 pub mod health;
 pub mod job;
 pub mod job_local;
 pub mod metrics;
 pub mod pdf;
+pub mod performance_monitor;
 pub mod render;
 pub mod schema;
 pub mod search;
@@ -16,6 +20,15 @@ pub mod system_check;
 pub mod tables;
 pub mod validate;
 pub mod wasm;
+pub mod wasm_cache;
+
+// Phase 4 P0 Optimization Modules
+pub mod adaptive_timeout;
+pub mod browser_pool_manager;
+pub mod wasm_aot_cache;
+
+// Phase 5 Integration
+pub mod optimized_executor;
 
 use clap::Subcommand;
 use domain::DomainCommands;

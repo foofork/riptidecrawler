@@ -1,12 +1,21 @@
 /// Phase 3 implementation tests for advanced features
 ///
 /// This module contains comprehensive tests for the new dynamic content handling,
-/// stealth features, and PDF processing capabilities introduced in Phase 3.
+/// stealth features, PDF processing capabilities, and direct execution enhancements
+/// introduced in Phase 3.
 
+// Existing Phase 3 tests
 pub mod dynamic_tests;
 pub mod stealth_tests;
 pub mod pdf_tests;
 pub mod integration_tests;
+
+// New Phase 3 direct execution tests
+pub mod direct_execution_tests;
+pub mod engine_selection_tests;
+pub mod wasm_caching_tests;
+pub mod browser_pool_tests;
+pub mod performance_benchmarks;
 
 // Re-export test utilities
 pub use dynamic_tests::*;

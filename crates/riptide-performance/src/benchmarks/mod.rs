@@ -3,12 +3,20 @@
 //! This module provides comprehensive benchmarking capabilities for the RipTide system,
 //! including automated performance tests, regression detection, and comparative analysis.
 
+pub mod extraction_benchmark;
+
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use tracing::info;
 use uuid::Uuid;
+
+// Re-export extraction benchmark types
+pub use extraction_benchmark::{
+    BenchmarkStatistics, ComparativeBenchmarkReport, ExtractionBenchmark,
+    ExtractionBenchmarkRunner, ExtractionEngine,
+};
 
 /// Benchmark configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]

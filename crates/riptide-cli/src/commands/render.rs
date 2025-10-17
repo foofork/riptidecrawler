@@ -408,8 +408,7 @@ pub async fn execute(args: RenderArgs, output_format: &str) -> Result<()> {
 }
 
 /// Try to create API client from environment
-fn try_create_api_client() -> Result<Option<RiptideApiClient>> {
-    use crate::api_client::RiptideApiClient;
+fn try_create_api_client() -> Result<Option<crate::api_client::RiptideApiClient>> {
     use std::env;
 
     // Try to get API URL from environment
@@ -417,7 +416,7 @@ fn try_create_api_client() -> Result<Option<RiptideApiClient>> {
     let api_key = env::var("RIPTIDE_API_KEY").ok();
 
     if let Some(url) = api_url {
-        let client = RiptideApiClient::new(url, api_key)?;
+        let client = crate::api_client::RiptideApiClient::new(url, api_key)?;
         Ok(Some(client))
     } else {
         Ok(None)
@@ -426,7 +425,7 @@ fn try_create_api_client() -> Result<Option<RiptideApiClient>> {
 
 /// Execute rendering via API
 async fn execute_api_render(
-    api_client: &RiptideApiClient,
+    api_client: &crate::api_client::RiptideApiClient,
     args: &RenderArgs,
     wait_condition: &WaitCondition,
     screenshot_mode: ScreenshotMode,

@@ -9,7 +9,6 @@
 /// - Performance metrics tracking
 /// - Comprehensive logging of decision-making process
 /// - Memory coordination for distributed agents
-
 use crate::commands::extract::{ExtractArgs, ExtractResponse};
 use crate::output;
 use anyhow::Result;
@@ -84,9 +83,7 @@ pub fn analyze_content_for_engine(html: &str, url: &str) -> ContentAnalysis {
         || html.contains("_reactRoot")
         || html.contains("__webpack_require__");
 
-    let has_vue = html.contains("v-app")
-        || html.contains("vue")
-        || html.contains("createApp");
+    let has_vue = html.contains("v-app") || html.contains("vue") || html.contains("createApp");
 
     let has_angular = html.contains("ng-app")
         || html.contains("ng-version")
@@ -253,7 +250,11 @@ pub fn format_attempt_summary(attempts: &[EngineAttempt]) -> String {
             "\n  {}. {} - {} ({}ms)",
             i + 1,
             attempt.engine.name(),
-            if attempt.success { "✅ Success" } else { "❌ Failed" },
+            if attempt.success {
+                "✅ Success"
+            } else {
+                "❌ Failed"
+            },
             attempt.duration_ms
         ));
 
@@ -284,7 +285,7 @@ pub async fn store_extraction_decision(url: &str, decision: &str) -> Result<()> 
         "timestamp": chrono::Utc::now().to_rfc3339(),
     });
 
-    let _  = Command::new("npx")
+    let _ = Command::new("npx")
         .args(&[
             "claude-flow@alpha",
             "hooks",
@@ -342,7 +343,11 @@ pub async fn store_extraction_metrics(
             "hooks",
             "notify",
             "--message",
-            &format!("Extraction completed with {} engine in {}ms", final_engine, total_duration.as_millis()),
+            &format!(
+                "Extraction completed with {} engine in {}ms",
+                final_engine,
+                total_duration.as_millis()
+            ),
         ])
         .output();
 
@@ -423,7 +428,8 @@ mod tests {
     #[test]
     fn test_extraction_quality_validation() {
         let good_result = ExtractResponse {
-            content: "This is a good extraction with sufficient content length and quality".to_string(),
+            content: "This is a good extraction with sufficient content length and quality"
+                .to_string(),
             confidence: Some(0.8),
             method_used: Some("wasm".to_string()),
             extraction_time_ms: Some(100),

@@ -24,6 +24,11 @@ pub mod monitoring;
 pub mod optimization;
 pub mod profiling;
 
+// Phase 4 performance validation module
+pub mod phase4_validation {
+    pub mod benchmarks;
+}
+
 use thiserror::Error;
 
 /// Performance-related errors

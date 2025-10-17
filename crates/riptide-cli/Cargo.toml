@@ -60,6 +60,11 @@ num_cpus = "1.16"
 # Core integration for telemetry
 riptide-core = { path = "../riptide-core" }
 
+# Phase 4 P0 Optimizations
+sha2 = "0.10"
+uuid.workspace = true
+# Note: chromiumoxide types come from riptide-headless's dependency
+
 [dev-dependencies]
 tempfile = "3.13"
 
