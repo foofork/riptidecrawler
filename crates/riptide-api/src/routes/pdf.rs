@@ -21,7 +21,7 @@ pub fn pdf_routes() -> Router<AppState> {
         // Streaming PDF processing with NDJSON progress updates
         .route("/process-stream", post(pdf::process_pdf_stream))
         // Health check for PDF processing capabilities
-        .route("/health", get(pdf_health_check))
+        .route("/healthz", get(pdf_health_check))
 }
 
 /// PDF processing health check endpoint

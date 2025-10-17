@@ -36,7 +36,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Build router with state
     let app = Router::new()
-        .route("/health", get(health_check))
+        .route("/healthz", get(health_check))
         .route("/render", post(cdp::render))
         .with_state(state)
         .layer(CorsLayer::permissive())

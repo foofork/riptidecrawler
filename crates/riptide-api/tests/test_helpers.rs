@@ -55,9 +55,8 @@ pub fn create_test_router(state: AppState) -> Router {
     use riptide_api::streaming;
 
     Router::new()
-        // Health endpoints - both root and v1 paths
+        // Health endpoint - standardized on /healthz
         .route("/healthz", get(handlers::health))
-        .route("/api/v1/healthz", get(handlers::health))
         // Metrics - both root and v1 paths
         .route("/metrics", get(handlers::metrics))
         .route("/api/v1/metrics", get(handlers::metrics))
@@ -88,9 +87,8 @@ pub fn create_minimal_test_app() -> Router {
     use axum::Json;
 
     Router::new()
-        // Health endpoint - primary /api/v1 path
-        .route("/api/v1/healthz", get(|| async { "OK" }))
-        .route("/healthz", get(|| async { "OK" })) // Alias for backward compatibility
+        // Health endpoint - standardized on /healthz
+        .route("/healthz", get(|| async { "OK" }))
         // Metrics endpoint - primary /api/v1 path
         .route("/api/v1/metrics", get(|| async { "# No metrics" }))
         .route("/metrics", get(|| async { "# No metrics" })) // Alias for backward compatibility

@@ -97,7 +97,7 @@ pub fn create_server(state: ServerState) -> Router {
     Router::new()
         .route("/crawl/stream", post(handle_crawl_stream))
         .route("/deepsearch/stream", post(handle_deepsearch_stream))
-        .route("/health", axum::routing::get(health_check))
+        .route("/healthz", axum::routing::get(health_check))
         .with_state(state)
         .layer(TraceLayer::new_for_http())
 }

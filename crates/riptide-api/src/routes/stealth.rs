@@ -24,7 +24,7 @@ pub fn stealth_routes() -> Router<AppState> {
         // Stealth capabilities endpoint
         .route("/capabilities", get(stealth::get_stealth_capabilities))
         // Health check for stealth features
-        .route("/health", get(stealth_health_check))
+        .route("/healthz", get(stealth_health_check))
 }
 
 /// Stealth features health check endpoint

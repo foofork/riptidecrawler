@@ -158,9 +158,8 @@ async fn main() -> anyhow::Result<()> {
 
     // Build the application router with middleware stack
     let app = Router::new()
-        // Health endpoints - both root and v1 paths
+        // Health endpoints - standardized on /healthz
         .route("/healthz", get(handlers::health))
-        .route("/api/v1/health", get(handlers::health)) // v1 alias
         .route("/api/health/detailed", get(handlers::health_detailed))
         .route(
             "/health/:component",
