@@ -63,7 +63,7 @@ async fn start_test_api_server() -> Result<(String, tokio::process::Child), Stri
     // Wait for server to be ready
     for _ in 0..30 {
         sleep(Duration::from_secs(1)).await;
-        if let Ok(response) = reqwest::get(&format!("{}/health", base_url)).await {
+        if let Ok(response) = reqwest::get(&format!("{}/healthz", base_url)).await {
             if response.status().is_success() {
                 return Ok((base_url, child));
             }
@@ -87,7 +87,7 @@ async fn test_health_check_endpoint() {
     let result = with_timeout(TestConfig::SHORT_TIMEOUT, async {
         let client = reqwest::Client::new();
         let response = client
-            .get(&format!("{}/health", base_url))
+            .get(&format!("{}/healthz", base_url))
             .send()
             .await
             .map_err(|e| format!("Health check request failed: {}", e))?;
@@ -627,7 +627,7 @@ async fn test_no_crashes_or_panics() {
 
     // Check that server is still responsive
     let health_response = client
-        .get(&format!("{}/health", base_url))
+        .get(&format!("{}/healthz", base_url))
         .send()
         .await
         .expect("Server should still be responsive after edge cases");

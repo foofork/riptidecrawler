@@ -28,6 +28,9 @@ pub mod integration {
     pub mod gap_fixes_integration;
 }
 
+// CLI Integration Tests
+pub mod cli;
+
 // Gap fixes integration tests
 #[cfg(test)]
 pub mod confidence_scoring;

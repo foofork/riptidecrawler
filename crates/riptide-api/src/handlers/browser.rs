@@ -339,7 +339,7 @@ pub async fn execute_browser_action(
             );
 
             // Launch session and take screenshot
-            let _session = state
+            let session = state
                 .browser_launcher
                 .launch_page("about:blank", None)
                 .await
@@ -347,29 +347,58 @@ pub async fn execute_browser_action(
                     message: format!("Screenshot failed: {}", e),
                 })?;
 
-            // In production, call session.screenshot()
-            let screenshot_data = vec![]; // Placeholder
-            let screenshot_b64 =
-                base64::Engine::encode(&base64::engine::general_purpose::STANDARD, screenshot_data);
+            // Call the actual screenshot method
+            let screenshot_data =
+                session
+                    .screenshot()
+                    .await
+                    .map_err(|e| ApiError::InternalError {
+                        message: format!("Screenshot capture failed: {}", e),
+                    })?;
+
+            let screenshot_b64 = base64::Engine::encode(
+                &base64::engine::general_purpose::STANDARD,
+                &screenshot_data,
+            );
 
             result = serde_json::json!({
                 "screenshot_base64": screenshot_b64,
-                "format": "png"
+                "format": "png",
+                "size_bytes": screenshot_data.len()
             });
 
-            messages.push("Screenshot captured".to_string());
+            messages.push(format!(
+                "Screenshot captured ({} bytes)",
+                screenshot_data.len()
+            ));
         }
 
         BrowserAction::GetContent { session_id } => {
             info!(session_id = %session_id, "Getting page content");
 
-            // In production, retrieve session and get content via session.content()
+            // Launch session and get content
+            let session = state
+                .browser_launcher
+                .launch_page("about:blank", None)
+                .await
+                .map_err(|e| ApiError::InternalError {
+                    message: format!("Failed to launch browser session: {}", e),
+                })?;
+
+            // Get actual page content
+            let html = session
+                .content()
+                .await
+                .map_err(|e| ApiError::InternalError {
+                    message: format!("Failed to get page content: {}", e),
+                })?;
+
             result = serde_json::json!({
-                "html": "<html><body>Example content</body></html>",
-                "length": 45
+                "html": html,
+                "length": html.len()
             });
 
-            messages.push("Content retrieved".to_string());
+            messages.push(format!("Content retrieved ({} bytes)", html.len()));
         }
 
         BrowserAction::WaitForElement {

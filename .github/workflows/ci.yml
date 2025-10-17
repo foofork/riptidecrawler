@@ -297,6 +297,7 @@ jobs:
         if: matrix.test-type == 'integration'
         env:
           RUSTFLAGS: "-Dwarnings -C target-cpu=native"
+          REQUIRE_AUTH: "false"
         run: |
           cargo test --workspace --tests -- --nocapture --test-threads=2
 

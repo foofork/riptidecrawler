@@ -27,7 +27,7 @@ pub fn init_startup_time() {
     skip(state),
     fields(
         http.method = "GET",
-        http.route = "/health",
+        http.route = "/healthz",
         otel.status_code
     )
 )]
@@ -245,7 +245,7 @@ pub(super) fn get_network_metrics() -> (u32, u64, f64) {
     skip(state),
     fields(
         http.method = "GET",
-        http.route = "/health/detailed",
+        http.route = "/api/health/detailed",
         otel.status_code
     )
 )]

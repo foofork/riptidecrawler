@@ -6448,6 +6448,7 @@ dependencies = [
  "reqwest 0.12.23",
  "riptide-core",
  "riptide-extraction",
+ "riptide-headless",
  "riptide-pdf",
  "riptide-stealth",
  "scraper 0.20.0",

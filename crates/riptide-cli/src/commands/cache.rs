@@ -1,9 +1,8 @@
-use crate::cache::{Cache, CacheConfig, WarmOptions};
+use crate::cache::{Cache, WarmOptions};
 use crate::client::RipTideClient;
 use crate::commands::CacheCommands;
 use crate::output;
 use anyhow::{Context, Result};
-use std::path::Path;
 use tokio::fs;
 
 pub async fn execute(

@@ -293,7 +293,7 @@ mod edge_cases_tests {
         }
 
         // System should remain stable after conflicting operations
-        let status_response = server.get("/health").await;
+        let status_response = server.get("/healthz").await;
         assert_eq!(status_response.status_code(), StatusCode::OK);
     }
 
@@ -372,7 +372,7 @@ mod edge_cases_tests {
         }
 
         // Health check should still work
-        let health_response = server.get("/health").await;
+        let health_response = server.get("/healthz").await;
         assert_eq!(health_response.status_code(), StatusCode::OK);
     }
 
@@ -487,7 +487,7 @@ mod edge_cases_tests {
                "Some requests should complete or be rate limited");
 
         // System should still be responsive
-        let health_response = server.get("/health").await;
+        let health_response = server.get("/healthz").await;
         assert_eq!(health_response.status_code(), StatusCode::OK);
     }
 

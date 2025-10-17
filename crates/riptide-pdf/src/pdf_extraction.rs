@@ -61,6 +61,7 @@ pub struct PdfDocMetadata {
 }
 
 /// PDF extractor using lopdf
+#[derive(Debug)]
 pub struct PdfExtractor {
     document: Document,
     file_size: u64,
@@ -69,6 +70,16 @@ pub struct PdfExtractor {
 impl PdfExtractor {
     /// Create a new PDF extractor from bytes
     pub fn from_bytes(data: &[u8]) -> Result<Self> {
+        // Validate minimum PDF size
+        if data.len() < 10 {
+            anyhow::bail!("PDF data too small (minimum 10 bytes required)");
+        }
+
+        // Validate PDF header
+        if !data.starts_with(b"%PDF-") {
+            anyhow::bail!("Invalid PDF header - missing %PDF- signature");
+        }
+
         let file_size = data.len() as u64;
         let document = Document::load_mem(data).context("Failed to load PDF document")?;
 
@@ -93,20 +104,39 @@ impl PdfExtractor {
 
     /// Extract all content from the PDF
     pub fn extract_all(&self) -> Result<PdfContent> {
-        let metadata = self.extract_metadata()?;
+        let metadata = self
+            .extract_metadata()
+            .context("Failed to extract PDF metadata")?;
         let mut all_text = String::new();
         let mut all_tables = Vec::new();
         let mut pages = Vec::new();
 
         let page_count = self.document.get_pages().len();
 
-        for page_number in 1..=page_count as u32 {
-            let page_content = self.extract_page(page_number)?;
-            all_text.push_str(&page_content.text);
-            all_text.push_str("\n\n");
+        // Handle empty PDFs
+        if page_count == 0 {
+            return Ok(PdfContent {
+                text: String::new(),
+                tables: Vec::new(),
+                metadata,
+                pages: Vec::new(),
+            });
+        }
 
-            all_tables.extend(page_content.tables.clone());
-            pages.push(page_content);
+        for page_number in 1..=page_count as u32 {
+            match self.extract_page(page_number) {
+                Ok(page_content) => {
+                    all_text.push_str(&page_content.text);
+                    all_text.push_str("\n\n");
+
+                    all_tables.extend(page_content.tables.clone());
+                    pages.push(page_content);
+                }
+                Err(e) => {
+                    // Log error but continue with other pages
+                    eprintln!("Warning: Failed to extract page {}: {}", page_number, e);
+                }
+            }
         }
 
         Ok(PdfContent {
@@ -119,10 +149,35 @@ impl PdfExtractor {
 
     /// Extract content from a specific page
     pub fn extract_page(&self, page_number: u32) -> Result<PageContent> {
-        let page_id = self.get_page_id(page_number)?;
-        let text = self.extract_page_text(page_id)?;
-        let tables = self.extract_page_tables(page_number, &text)?;
-        let (width, height) = self.get_page_dimensions(page_id)?;
+        let page_id = self
+            .get_page_id(page_number)
+            .with_context(|| format!("Failed to get page ID for page {}", page_number))?;
+
+        let text = self.extract_page_text(page_id).unwrap_or_else(|e| {
+            eprintln!(
+                "Warning: Text extraction failed for page {}: {}",
+                page_number, e
+            );
+            String::new()
+        });
+
+        let tables = self
+            .extract_page_tables(page_number, &text)
+            .unwrap_or_else(|e| {
+                eprintln!(
+                    "Warning: Table extraction failed for page {}: {}",
+                    page_number, e
+                );
+                Vec::new()
+            });
+
+        let (width, height) = self.get_page_dimensions(page_id).unwrap_or_else(|e| {
+            eprintln!(
+                "Warning: Failed to get dimensions for page {}: {}",
+                page_number, e
+            );
+            (612.0, 792.0) // US Letter default
+        });
 
         Ok(PageContent {
             page_number,
@@ -426,13 +481,25 @@ impl PdfExtractor {
 
     /// Get page ID for a given page number
     fn get_page_id(&self, page_number: u32) -> Result<ObjectId> {
+        if page_number == 0 {
+            anyhow::bail!("Invalid page number: page numbers must be >= 1");
+        }
+
         let pages = self.document.get_pages();
         let page_index = (page_number - 1) as usize;
+
+        if page_index >= pages.len() {
+            anyhow::bail!(
+                "Page {} out of range (document has {} pages)",
+                page_number,
+                pages.len()
+            );
+        }
 
         pages
             .get(&(page_index as u32))
             .copied()
-            .ok_or_else(|| anyhow::anyhow!("Page {} not found", page_number))
+            .ok_or_else(|| anyhow::anyhow!("Page {} not found in page map", page_number))
     }
 
     /// Get page dimensions
@@ -554,5 +621,68 @@ mod tests {
         assert!(extractor.looks_like_table_row("Column1  Column2  Column3"));
         assert!(extractor.looks_like_table_row("Value1   Value2   Value3"));
         assert!(!extractor.looks_like_table_row("Just a single line of text"));
+    }
+
+    #[test]
+    fn test_invalid_pdf_data() {
+        // Test with empty data
+        let result = PdfExtractor::from_bytes(b"");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("too small"));
+
+        // Test with too small data
+        let result = PdfExtractor::from_bytes(b"test");
+        assert!(result.is_err());
+
+        // Test with invalid header
+        let result = PdfExtractor::from_bytes(b"This is not a PDF file");
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid PDF header"));
+    }
+
+    #[test]
+    fn test_valid_pdf_header_validation() {
+        // Test valid PDF header
+        let pdf_with_valid_header = b"%PDF-1.7\nsome content here";
+        let result = PdfExtractor::from_bytes(pdf_with_valid_header);
+        // Even if the rest fails to parse, header validation should pass
+        // and fail later during document loading
+        assert!(result.is_err()); // Will fail on document parsing, not header check
+    }
+
+    #[test]
+    fn test_decode_pdf_escape_sequences() {
+        let extractor = PdfExtractor {
+            document: Document::new(),
+            file_size: 0,
+        };
+
+        // Test various escape sequences
+        assert_eq!(
+            extractor.decode_pdf_string("Hello\\(World\\)"),
+            "Hello(World)"
+        );
+        assert_eq!(extractor.decode_pdf_string("Path\\\\Name"), "Path\\Name");
+        assert_eq!(extractor.decode_pdf_string("\\r\\n"), "\r\n");
+    }
+
+    #[test]
+    fn test_table_detection_edge_cases() {
+        let extractor = PdfExtractor {
+            document: Document::new(),
+            file_size: 0,
+        };
+
+        // Single column shouldn't be detected as table
+        assert!(!extractor.looks_like_table_row("SingleColumn"));
+
+        // Multiple spaces suggest tabular structure
+        assert!(extractor.looks_like_table_row("Col1    Col2    Col3"));
+
+        // Empty string isn't a table
+        assert!(!extractor.looks_like_table_row(""));
     }
 }

@@ -399,21 +399,57 @@ pub fn get_config_file_path() -> PathBuf {
     }
 }
 
-/// Get the default output directory
+/// Get the default output directory for reports
+///
+/// Priority order:
+/// 1. RIPTIDE_REPORTS_DIR environment variable
+/// 2. RIPTIDE_OUTPUT_DIR/reports environment variable
+/// 3. Platform-specific data directory
+/// 4. Fallback to ./riptide-output/reports
 pub fn get_default_output_directory() -> PathBuf {
-    if let Some(proj_dirs) = ProjectDirs::from("com", "riptide", "riptide") {
-        proj_dirs.data_dir().join("reports")
+    // First check for specific reports directory
+    if let Ok(dir) = std::env::var("RIPTIDE_REPORTS_DIR") {
+        return PathBuf::from(dir);
+    }
+
+    // Then check for general output directory
+    if let Ok(dir) = std::env::var("RIPTIDE_OUTPUT_DIR") {
+        return PathBuf::from(dir).join("reports");
+    }
+
+    // Fall back to platform-specific directory
+    if let Some(data_dir) = directories::BaseDirs::new() {
+        data_dir
+            .data_dir()
+            .join("riptide")
+            .join("output")
+            .join("reports")
+    } else if let Some(proj_dirs) = ProjectDirs::from("com", "riptide", "riptide") {
+        proj_dirs.data_dir().join("output").join("reports")
     } else {
-        PathBuf::from("reports")
+        PathBuf::from("./riptide-output/reports")
     }
 }
 
 /// Get the default log directory
+///
+/// Priority order:
+/// 1. RIPTIDE_LOGS_DIR environment variable
+/// 2. Platform-specific data directory
+/// 3. Fallback to ./riptide-logs
 pub fn get_default_log_directory() -> PathBuf {
-    if let Some(proj_dirs) = ProjectDirs::from("com", "riptide", "riptide") {
+    // First check for specific logs directory
+    if let Ok(dir) = std::env::var("RIPTIDE_LOGS_DIR") {
+        return PathBuf::from(dir);
+    }
+
+    // Fall back to platform-specific directory
+    if let Some(data_dir) = directories::BaseDirs::new() {
+        data_dir.data_dir().join("riptide").join("logs")
+    } else if let Some(proj_dirs) = ProjectDirs::from("com", "riptide", "riptide") {
         proj_dirs.data_dir().join("logs")
     } else {
-        PathBuf::from("logs")
+        PathBuf::from("./riptide-logs")
     }
 }
 

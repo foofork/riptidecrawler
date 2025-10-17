@@ -5,7 +5,38 @@ use serde::{Deserialize, Serialize};
 use crate::client::RipTideClient;
 use crate::output;
 
-mod pdf_impl;
+// Use crate's pdf_impl when feature is enabled, or local stub when disabled
+#[cfg(feature = "pdf")]
+use crate::pdf_impl;
+
+#[cfg(not(feature = "pdf"))]
+mod pdf_impl {
+    use anyhow::Result;
+
+    pub async fn load_pdf(_input: &str) -> Result<Vec<u8>> {
+        anyhow::bail!("PDF support not enabled. Rebuild with --features pdf")
+    }
+
+    pub fn extract_metadata(_data: &[u8]) -> Result<serde_json::Value> {
+        anyhow::bail!("PDF support not enabled. Rebuild with --features pdf")
+    }
+
+    pub fn extract_full_content(_data: &[u8]) -> Result<serde_json::Value> {
+        anyhow::bail!("PDF support not enabled. Rebuild with --features pdf")
+    }
+
+    pub fn convert_to_markdown(_data: &[u8]) -> Result<String> {
+        anyhow::bail!("PDF support not enabled. Rebuild with --features pdf")
+    }
+
+    pub fn write_output(_content: &str, _path: Option<&str>) -> Result<()> {
+        anyhow::bail!("PDF support not enabled. Rebuild with --features pdf")
+    }
+
+    pub fn parse_page_range(_range: &str) -> Result<Vec<u32>> {
+        anyhow::bail!("PDF support not enabled. Rebuild with --features pdf")
+    }
+}
 
 #[derive(Subcommand)]
 pub enum PdfCommands {
@@ -151,7 +182,7 @@ struct PdfPermissions {
 
 // Re-export types from riptide-pdf when available
 #[cfg(feature = "pdf")]
-use riptide_pdf::{ExtractedTable as Table, PageContent};
+use riptide_pdf::ExtractedTable as Table;
 
 #[cfg(not(feature = "pdf"))]
 #[derive(Serialize, Deserialize, Debug)]
@@ -298,7 +329,7 @@ async fn execute_extract(
     tables: bool,
     images: bool,
     ocr: bool,
-    pages: Option<String>,
+    _pages: Option<String>,
     output_path: Option<String>,
     metadata_only: bool,
     _output_format: &str,
@@ -306,7 +337,7 @@ async fn execute_extract(
     output::print_info(&format!("Extracting content from PDF: {}", input));
 
     // Load PDF
-    let pdf_data = pdf_impl::load_pdf(&input).await?;
+    let pdf_data: Vec<u8> = pdf_impl::load_pdf(&input).await?;
 
     if metadata_only {
         // Extract only metadata
@@ -415,7 +446,7 @@ async fn execute_to_md(
     output::print_info(&format!("Converting PDF to markdown: {}", input));
 
     // Load PDF
-    let pdf_data = pdf_impl::load_pdf(&input).await?;
+    let pdf_data: Vec<u8> = pdf_impl::load_pdf(&input).await?;
 
     // Convert to markdown
     let markdown = pdf_impl::convert_to_markdown(&pdf_data)?;
@@ -474,7 +505,7 @@ async fn execute_info(
     output::print_info(&format!("Reading PDF metadata: {}", input));
 
     // Load PDF
-    let pdf_data = pdf_impl::load_pdf(&input).await?;
+    let pdf_data: Vec<u8> = pdf_impl::load_pdf(&input).await?;
 
     // Extract metadata
     let metadata = pdf_impl::extract_metadata(&pdf_data)?;
@@ -544,19 +575,19 @@ async fn execute_stream(
     include_metadata: bool,
     include_tables: bool,
     include_images: bool,
-    pages: Option<String>,
-    batch_size: u32,
+    _pages: Option<String>,
+    _batch_size: u32,
 ) -> Result<()> {
     output::print_info(&format!("Streaming PDF content: {}", input));
 
     // Load PDF
-    let pdf_data = pdf_impl::load_pdf(&input).await?;
+    let pdf_data: Vec<u8> = pdf_impl::load_pdf(&input).await?;
 
     // Extract full content
     let content = pdf_impl::extract_full_content(&pdf_data)?;
 
     // Determine which pages to stream
-    let page_numbers: Vec<u32> = if let Some(range) = &pages {
+    let page_numbers: Vec<u32> = if let Some(range) = &_pages {
         pdf_impl::parse_page_range(range)?
     } else {
         (1..=content.metadata.page_count).collect()

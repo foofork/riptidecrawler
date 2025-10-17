@@ -50,13 +50,14 @@ struct PageResult {
 }
 
 pub async fn execute(client: RipTideClient, args: CrawlArgs, output_format: &str) -> Result<()> {
+    use crate::config;
     use crate::metrics::MetricsManager;
     use std::time::Instant;
 
     // Start metrics tracking
     let metrics_manager = MetricsManager::global();
     let tracking_id = metrics_manager.start_command("crawl").await?;
-    let overall_start = Instant::now();
+    let _overall_start = Instant::now();
 
     output::print_info(&format!("Starting crawl of: {}", args.url));
     output::print_info(&format!(
@@ -133,7 +134,11 @@ pub async fn execute(client: RipTideClient, args: CrawlArgs, output_format: &str
                     table.add_row(vec![
                         &item.url,
                         &item.status.to_string(),
-                        if item.from_cache { "Yes" } else { "No" },
+                        &(if item.from_cache {
+                            "Yes".to_string()
+                        } else {
+                            "No".to_string()
+                        }),
                         &item.gate_decision,
                     ]);
                 }
@@ -146,7 +151,8 @@ pub async fn execute(client: RipTideClient, args: CrawlArgs, output_format: &str
                 pages_count, result.total_time_ms
             ));
 
-            if let Some(output_dir) = args.output_dir {
+            if let Some(ref output_dir_arg) = args.output_dir {
+                let output_dir = output_dir_arg;
                 fs::create_dir_all(&output_dir)?;
                 output::print_info(&format!("Saving results to: {}", output_dir));
 

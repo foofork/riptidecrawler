@@ -42,6 +42,7 @@ import { spiderCommand } from '../src/commands/spider.js';
 import { profilingCommand } from '../src/commands/profiling.js';
 import { resourcesCommand } from '../src/commands/resources.js';
 import { llmCommand } from '../src/commands/llm.js';
+import { renderCommand } from '../src/commands/render.js';
 
 // Configure CLI
 program
@@ -92,6 +93,15 @@ program
   .option('-o, --output <file>', 'Output file (JSON)')
   .option('-f, --format <type>', 'Output format (json|markdown|text)', 'text')
   .action(searchCommand);
+
+// Render command
+program
+  .command('render')
+  .description('Render URL with headless browser')
+  .argument('<url>', 'URL to render')
+  .option('-w, --wait-time <ms>', 'Wait time in milliseconds', '2000')
+  .option('--screenshot', 'Capture screenshot')
+  .action(renderCommand);
 
 // Health command
 program

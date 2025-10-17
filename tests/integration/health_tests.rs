@@ -27,7 +27,7 @@ mod health_tests {
 
         let client = reqwest::Client::new();
         let response = client
-            .get("http://localhost:8080/health")
+            .get("http://localhost:8080/healthz")
             .timeout(Duration::from_secs(5))
             .send()
             .await;
@@ -58,7 +58,7 @@ mod health_tests {
         let start = std::time::Instant::now();
 
         let response = client
-            .get("http://localhost:8080/health")
+            .get("http://localhost:8080/healthz")
             .send()
             .await;
 
@@ -190,7 +190,7 @@ mod health_tests {
             let client = client.clone();
             let handle = tokio::spawn(async move {
                 client
-                    .get("http://localhost:8080/health")
+                    .get("http://localhost:8080/healthz")
                     .timeout(Duration::from_secs(5))
                     .send()
                     .await

@@ -6,8 +6,15 @@ use wiremock::{
     Mock, MockServer, ResponseTemplate,
 };
 
+/// Setup function to disable authentication for integration tests
+fn setup_test_environment() {
+    // Disable authentication for integration tests
+    env::set_var("REQUIRE_AUTH", "false");
+}
+
 #[tokio::test]
 async fn test_cli_help_displays() {
+    setup_test_environment();
     let mut cmd = Command::cargo_bin("riptide").unwrap();
     cmd.arg("--help")
         .assert()
@@ -17,6 +24,7 @@ async fn test_cli_help_displays() {
 
 #[tokio::test]
 async fn test_cli_version_displays() {
+    setup_test_environment();
     let mut cmd = Command::cargo_bin("riptide").unwrap();
     cmd.arg("--version")
         .assert()
@@ -26,6 +34,7 @@ async fn test_cli_version_displays() {
 
 #[tokio::test]
 async fn test_extract_command_basic() {
+    setup_test_environment();
     let mock_server = MockServer::start().await;
 
     Mock::given(method("POST"))
@@ -50,6 +59,7 @@ async fn test_extract_command_basic() {
 
 #[tokio::test]
 async fn test_extract_with_confidence_scoring() {
+    setup_test_environment();
     let mock_server = MockServer::start().await;
 
     Mock::given(method("POST"))
@@ -77,6 +87,7 @@ async fn test_extract_with_confidence_scoring() {
 
 #[tokio::test]
 async fn test_extract_with_strategy_chain() {
+    setup_test_environment();
     let mock_server = MockServer::start().await;
 
     Mock::given(method("POST"))
@@ -103,6 +114,7 @@ async fn test_extract_with_strategy_chain() {
 
 #[tokio::test]
 async fn test_cache_status_command() {
+    setup_test_environment();
     let mock_server = MockServer::start().await;
 
     Mock::given(method("GET"))
@@ -127,6 +139,7 @@ async fn test_cache_status_command() {
 
 #[tokio::test]
 async fn test_wasm_info_command() {
+    setup_test_environment();
     let mock_server = MockServer::start().await;
 
     Mock::given(method("GET"))
@@ -152,6 +165,7 @@ async fn test_wasm_info_command() {
 
 #[tokio::test]
 async fn test_health_command() {
+    setup_test_environment();
     let mock_server = MockServer::start().await;
 
     Mock::given(method("GET"))
@@ -179,6 +193,7 @@ async fn test_health_command() {
 
 #[tokio::test]
 async fn test_validate_command_success() {
+    setup_test_environment();
     let mock_server = MockServer::start().await;
 
     // Mock health check
@@ -219,6 +234,7 @@ async fn test_validate_command_success() {
 
 #[tokio::test]
 async fn test_output_formats() {
+    setup_test_environment();
     let mock_server = MockServer::start().await;
 
     Mock::given(method("GET"))
@@ -258,6 +274,7 @@ async fn test_output_formats() {
 
 #[tokio::test]
 async fn test_api_key_authentication() {
+    setup_test_environment();
     let mock_server = MockServer::start().await;
 
     Mock::given(method("GET"))
@@ -278,6 +295,7 @@ async fn test_api_key_authentication() {
 
 #[tokio::test]
 async fn test_error_handling() {
+    setup_test_environment();
     let mock_server = MockServer::start().await;
 
     Mock::given(method("POST"))

@@ -1,7 +1,7 @@
 /// Local job management commands (no API server required)
 use crate::job::{JobManager, JobPriority, JobStatus, LogLevel};
 use crate::output;
-use anyhow::{Context, Result};
+use anyhow::Result;
 use clap::Subcommand;
 use std::time::Duration;
 use tokio::time::sleep;

@@ -249,7 +249,6 @@ macro_rules! track_command {
 /// Integration helper for OpenTelemetry
 pub mod telemetry_integration {
     use super::*;
-    use std::time::Duration;
 
     /// Record command metrics to OpenTelemetry if available
     pub async fn record_to_telemetry(

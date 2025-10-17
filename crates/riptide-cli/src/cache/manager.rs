@@ -7,7 +7,7 @@
 //! - Thread-safe operations
 
 use super::types::{CacheConfig, CacheEntry, CacheStats};
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;

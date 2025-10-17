@@ -202,7 +202,7 @@ impl ContractDefinitions {
             version: "1.0.0".to_string(),
             endpoints: vec![
                 EndpointContract {
-                    path: "/health".to_string(),
+                    path: "/healthz".to_string(),
                     method: HttpMethod::GET,
                     request: RequestContract {
                         headers: HashMap::new(),

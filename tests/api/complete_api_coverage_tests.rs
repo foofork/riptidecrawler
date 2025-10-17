@@ -43,7 +43,7 @@ mod complete_api_coverage_tests {
     async fn test_health_endpoint() {
         let server = setup_comprehensive_server().await;
 
-        let response = server.get("/health").await;
+        let response = server.get("/healthz").await;
         assert_eq!(response.status_code(), StatusCode::OK);
 
         let body: Value = response.json();
@@ -346,7 +346,7 @@ mod complete_api_coverage_tests {
         let server = setup_comprehensive_server().await;
 
         // Test GET endpoints
-        let get_endpoints = vec!["/health", "/comprehensive_health"];
+        let get_endpoints = vec!["/healthz", "/comprehensive_health"];
 
         for endpoint in get_endpoints {
             let response = server.get(endpoint).await;
@@ -374,13 +374,13 @@ mod complete_api_coverage_tests {
         let server = setup_comprehensive_server().await;
 
         // Test if API supports versioning
-        let response = server.get("/v1/health").await;
+        let response = server.get("/api/v1/health").await;
 
         // May or may not be implemented - just ensure it doesn't crash
-        println!("API versioning test (/v1/health): {}", response.status_code());
+        println!("API versioning test (/api/v1/health): {}", response.status_code());
 
         // Test without version prefix
-        let response = server.get("/health").await;
+        let response = server.get("/healthz").await;
         assert_eq!(response.status_code(), StatusCode::OK);
     }
 
@@ -390,7 +390,7 @@ mod complete_api_coverage_tests {
 
         // Test with custom request ID header
         let response = server
-            .get("/health")
+            .get("/healthz")
             .header("X-Request-ID", "test-request-123")
             .await;
 
@@ -406,7 +406,7 @@ mod complete_api_coverage_tests {
 
         // Test with compression headers
         let response = server
-            .get("/health")
+            .get("/healthz")
             .header("Accept-Encoding", "gzip, deflate")
             .await;
 
@@ -427,7 +427,7 @@ mod complete_api_coverage_tests {
         for i in 0..5 {
             let server_clone = server.clone();
             let handle = tokio::spawn(async move {
-                let response = server_clone.get("/health").await;
+                let response = server_clone.get("/healthz").await;
                 (i, response.status_code())
             });
             handles.push(handle);

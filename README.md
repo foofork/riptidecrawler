@@ -133,7 +133,30 @@ curl -X POST http://localhost:8080/deepsearch \
 
 ## CLI Usage
 
-RipTide includes a powerful command-line interface for all operations.
+RipTide includes a powerful command-line interface with **two operation modes**:
+
+### 🔄 CLI Operation Modes
+
+**1. API-First Mode (Recommended - Default)**
+- All commands route through the REST API
+- Requires running API server (`./target/release/riptide-api`)
+- Centralized processing, caching, and monitoring
+- Consistent behavior with web/SDK clients
+- Production-ready with load balancing support
+
+**2. Direct Mode**
+- Direct execution without API server
+- Useful for local development and testing
+- Bypasses API layer for quick operations
+- Enable with `--direct` flag
+
+```bash
+# API-First Mode (default)
+riptide extract --url "https://example.com"
+
+# Direct Mode
+riptide extract --url "https://example.com" --direct
+```
 
 ### Installation
 
@@ -147,6 +170,32 @@ sudo cp target/release/riptide /usr/local/bin/
 # Or run directly
 ./target/release/riptide --help
 ```
+
+### 📁 Output Directory Configuration
+
+Configure where CLI saves output files:
+
+```bash
+# Environment Variables
+export RIPTIDE_OUTPUT_DIR="/path/to/output"          # Base output directory
+export RIPTIDE_EXTRACT_DIR="/path/to/extractions"    # Extraction-specific
+export RIPTIDE_CRAWL_DIR="/path/to/crawl-results"    # Crawl-specific
+export RIPTIDE_SEARCH_DIR="/path/to/search-results"  # Search-specific
+
+# Command-line flags (override env vars)
+riptide extract --url "https://example.com" --output-dir ./custom-output
+riptide crawl --url "https://example.com" --output-dir ./crawl-data
+
+# Default Structure (if not configured)
+./riptide-output/
+  ├── extractions/       # Content extraction results
+  ├── crawls/           # Crawl results
+  ├── searches/         # Search results
+  ├── cache/            # Local cache data
+  └── logs/             # Operation logs
+```
+
+See [Output Directory Configuration Guide](docs/configuration/OUTPUT_DIRECTORIES.md) for advanced customization.
 
 ### Content Extraction
 
@@ -315,6 +364,34 @@ riptide wasm benchmark --iterations 1000 -o table
 ---
 
 ## Architecture
+
+### 🏗️ Architecture Overview
+
+RipTide employs a **layered architecture** with clear separation of concerns:
+
+**Layer 1: API Server** (`riptide-api`)
+- REST API with 59 endpoints
+- Request routing and validation
+- Authentication and rate limiting
+- Response formatting and streaming
+
+**Layer 2: Core Services** (`riptide-core`, `riptide-extraction`, etc.)
+- Business logic and orchestration
+- Content extraction and processing
+- Headless browser management
+- Cache and session management
+
+**Layer 3: External Integrations**
+- Redis for caching and persistence
+- Chromium for browser automation
+- WASM runtime for high-performance extraction
+- LLM providers for intelligent extraction
+
+**CLI Integration:**
+- **API-First Mode**: CLI → REST API → Core Services → Output
+- **Direct Mode**: CLI → Core Services → Output (bypasses API)
+
+For complete architecture details, see [System Design Documentation](docs/architecture/SYSTEM_DESIGN.md).
 
 ### System Overview
 

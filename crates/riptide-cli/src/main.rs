@@ -1,9 +1,14 @@
+mod api_client;
 mod cache;
 mod client;
 mod commands;
+mod config;
+mod execution_mode;
 mod job;
 mod metrics;
 mod output;
+#[cfg(feature = "pdf")]
+mod pdf_impl;
 mod session;
 mod validation;
 

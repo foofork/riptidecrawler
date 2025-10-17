@@ -18,7 +18,7 @@ mod api_endpoint_tests {
         let response = app
             .oneshot(
                 Request::builder()
-                    .uri("/health")
+                    .uri("/healthz")
                     .body(Body::empty())
                     .unwrap(),
             )

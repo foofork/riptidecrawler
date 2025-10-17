@@ -15,9 +15,8 @@ pub use manager::CacheManager;
 pub use storage::CacheStorage;
 pub use types::{CacheConfig, CacheEntry, CacheStats, WarmOptions};
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::sync::Arc;
-use tokio::sync::RwLock;
 
 /// Unified cache system combining manager and storage
 pub struct Cache {
