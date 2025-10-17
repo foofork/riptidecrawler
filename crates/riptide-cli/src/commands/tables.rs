@@ -118,7 +118,7 @@ pub async fn execute(client: RipTideClient, args: TablesArgs, output_format: &st
         ));
 
         // Fetch full data from export endpoint
-        match fetch_full_table_data(&client, &table_summary, &args.format).await {
+        match fetch_full_table_data(&client, table_summary, &args.format).await {
             Ok(table_data) => {
                 full_tables.push(table_data);
             }
@@ -360,11 +360,11 @@ fn format_as_markdown(tables: &[TableData]) -> String {
             output.push_str(" |\n");
 
             // Add separator
-            output.push_str("|");
+            output.push('|');
             for _ in &table.headers {
                 output.push_str(" --- |");
             }
-            output.push_str("\n");
+            output.push('\n');
         }
 
         // Add rows

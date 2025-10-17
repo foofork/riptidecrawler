@@ -212,6 +212,8 @@ struct Image {
     ocr_text: Option<String>,
 }
 
+// Future use: Streaming PDF processing
+#[allow(dead_code)]
 #[derive(Serialize, Deserialize, Debug)]
 struct PdfStreamItem {
     page: u32,

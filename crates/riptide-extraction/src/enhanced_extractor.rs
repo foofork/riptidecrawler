@@ -56,7 +56,7 @@ impl StructuredExtractor {
     /// Recursively extract content from an element preserving structure
     fn extract_element_content(
         element: ElementRef,
-        depth: usize,
+        _depth: usize,
         base_url: Option<&str>,
     ) -> String {
         let mut content = Vec::new();
@@ -203,7 +203,7 @@ impl StructuredExtractor {
                         // Articles and sections - recurse
                         "article" | "section" | "div" | "main" => {
                             let nested =
-                                Self::extract_element_content(child_elem, depth + 1, base_url);
+                                Self::extract_element_content(child_elem, _depth + 1, base_url);
                             if !nested.trim().is_empty() {
                                 content.push(nested);
                             }
@@ -231,6 +231,7 @@ impl StructuredExtractor {
     }
 
     /// Extract list items
+    #[allow(dead_code)]
     fn extract_list_items(element: ElementRef, ordered: bool) -> String {
         Self::extract_list_items_with_base(element, ordered, None)
     }
@@ -322,6 +323,7 @@ impl StructuredExtractor {
     }
 
     /// Extract content with inline markdown formatting (bold, italic, code, links)
+    #[allow(dead_code)]
     fn extract_inline_content(element: ElementRef) -> String {
         Self::extract_inline_content_with_base(element, None)
     }

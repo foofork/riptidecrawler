@@ -245,7 +245,7 @@ impl MetricsStorage {
     /// Get recent command history (last N commands)
     pub fn get_recent_commands(&self, limit: usize) -> Vec<CommandMetrics> {
         let len = self.command_history.len();
-        let start = if len > limit { len - limit } else { 0 };
+        let start = len.saturating_sub(limit);
         self.command_history[start..].to_vec()
     }
 

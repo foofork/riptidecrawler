@@ -10,9 +10,9 @@
 use anyhow::{anyhow, Result};
 use riptide_headless::pool::{BrowserCheckout as HeadlessCheckout, BrowserPool, BrowserPoolConfig};
 
-// Re-use types from chromiumoxide via spider_chrome to avoid version conflicts
-use chromiumoxide::BrowserConfig;
-use chromiumoxide::Page;
+// Re-use types from spider_chrome (chromiumoxide replacement)
+use spider_chrome::Browser;
+// Note: BrowserConfig and Page types are re-exported through riptide_headless
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{Mutex, RwLock};

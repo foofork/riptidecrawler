@@ -1,0 +1,30 @@
+[package]
+name = "riptide-browser-abstraction"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Core dependencies
+async-trait = "0.1"
+anyhow = "1.0"
+thiserror = "1.0"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Browser engines
+chromiumoxide = { workspace = true }
+# spider_chrome = { workspace = true, optional = true }
+# NOTE: spider_chrome disabled due to chromiumoxide version conflict
+# This is the exact incompatibility we're documenting in ADR-006
+
+# Internal dependencies
+riptide-types = { path = "../riptide-types" }
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[features]
+default = []
+# spider = ["spider_chrome"]  # Disabled - see ADR-006

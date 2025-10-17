@@ -1,7 +1,18 @@
 //! Common configuration builder patterns and utilities.
 //!
+//! **DEPRECATED**: This module has been migrated to `riptide-config` crate.
+//! Please use `riptide_config::builder` instead.
+//!
+//! This file is kept for backward compatibility and will be removed in a future version.
+//! All imports are re-exported through `common::mod.rs`.
+//!
 //! This module provides reusable configuration building patterns to reduce
 //! duplicate builder implementations across the codebase.
+
+#![deprecated(
+    since = "0.2.0",
+    note = "Use riptide_config::builder instead. This module will be removed in 0.3.0"
+)]
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

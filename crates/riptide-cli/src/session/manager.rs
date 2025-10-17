@@ -55,11 +55,8 @@ impl SessionManager {
         Ok(home.join(".riptide").join("sessions").join("sessions.json"))
     }
 
-    /// Get the directory for individual session files
-    pub fn sessions_dir() -> Result<PathBuf> {
-        let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
-        Ok(home.join(".riptide").join("sessions"))
-    }
+    // Note: sessions_dir() was removed as it was not being used.
+    // Session storage uses storage_path() which points to sessions.json
 
     /// Add a new session
     pub fn add_session(&mut self, session: Session) -> Result<()> {

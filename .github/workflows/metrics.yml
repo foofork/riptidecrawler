@@ -1,0 +1,196 @@
+name: CI/CD Metrics Collection
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Allow only one metrics collection at a time
+concurrency:
+  group: metrics-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  collect-metrics:
+    name: Build & Test Metrics
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config bc
+
+      - name: Setup metrics directory
+        run: mkdir -p metrics
+
+      - name: Restore Cargo cache
+        uses: Swatinem/rust-cache@v2
+        id: cache
+        with:
+          shared-key: "metrics-cache"
+
+      - name: Record cache status
+        run: |
+          echo "$(date -Iseconds),${{ steps.cache.outputs.cache-hit }}" >> metrics/cache_hits.csv
+          echo "Cache hit: ${{ steps.cache.outputs.cache-hit }}"
+
+      - name: Track build time
+        id: build
+        run: |
+          echo "Starting build at $(date -Iseconds)"
+          START_TIME=$(date +%s)
+
+          # Build with timing
+          if cargo build --all --release 2>&1 | tee build.log; then
+            BUILD_STATUS="success"
+          else
+            BUILD_STATUS="failed"
+          fi
+
+          END_TIME=$(date +%s)
+          BUILD_TIME=$((END_TIME - START_TIME))
+
+          echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_ENV
+          echo "BUILD_STATUS=$BUILD_STATUS" >> $GITHUB_ENV
+          echo "Build took $BUILD_TIME seconds (status: $BUILD_STATUS)"
+
+          # Save to metrics
+          echo "$(date -Iseconds),$BUILD_TIME,$BUILD_STATUS,full" >> metrics/build_metrics.csv
+
+      - name: Track WASM build time
+        if: env.BUILD_STATUS == 'success'
+        run: |
+          rustup target add wasm32-wasip2
+          START_TIME=$(date +%s)
+
+          if cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm; then
+            WASM_STATUS="success"
+          else
+            WASM_STATUS="failed"
+          fi
+
+          END_TIME=$(date +%s)
+          WASM_TIME=$((END_TIME - START_TIME))
+
+          echo "WASM_TIME=$WASM_TIME" >> $GITHUB_ENV
+          echo "WASM build took $WASM_TIME seconds (status: $WASM_STATUS)"
+          echo "$(date -Iseconds),$WASM_TIME,$WASM_STATUS,wasm" >> metrics/build_metrics.csv
+
+      - name: Track test time (unit)
+        if: env.BUILD_STATUS == 'success'
+        run: |
+          START_TIME=$(date +%s)
+
+          if cargo test --workspace --lib --bins -- --nocapture --test-threads=4 2>&1 | tee test_unit.log; then
+            TEST_STATUS="success"
+          else
+            TEST_STATUS="failed"
+          fi
+
+          END_TIME=$(date +%s)
+          TEST_TIME=$((END_TIME - START_TIME))
+
+          echo "Unit tests took $TEST_TIME seconds (status: $TEST_STATUS)"
+          echo "$(date -Iseconds),$TEST_TIME,$TEST_STATUS,unit" >> metrics/test_metrics.csv
+
+      - name: Track test time (integration)
+        if: env.BUILD_STATUS == 'success'
+        run: |
+          START_TIME=$(date +%s)
+
+          if cargo test --workspace --tests -- --nocapture --test-threads=2 2>&1 | tee test_integration.log; then
+            TEST_STATUS="success"
+          else
+            TEST_STATUS="failed"
+          fi
+
+          END_TIME=$(date +%s)
+          TEST_TIME=$((END_TIME - START_TIME))
+
+          echo "Integration tests took $TEST_TIME seconds (status: $TEST_STATUS)"
+          echo "$(date -Iseconds),$TEST_TIME,$TEST_STATUS,integration" >> metrics/test_metrics.csv
+
+      - name: Collect resource metrics
+        if: always()
+        run: |
+          echo "=== Resource Usage Summary ===" | tee metrics/resource_usage.log
+          echo "" | tee -a metrics/resource_usage.log
+          echo "Timestamp: $(date -Iseconds)" | tee -a metrics/resource_usage.log
+          echo "" | tee -a metrics/resource_usage.log
+          echo "Memory:" | tee -a metrics/resource_usage.log
+          free -h | tee -a metrics/resource_usage.log
+          echo "" | tee -a metrics/resource_usage.log
+          echo "Disk:" | tee -a metrics/resource_usage.log
+          df -h | grep -E "(Filesystem|/dev/root)" | tee -a metrics/resource_usage.log
+          echo "" | tee -a metrics/resource_usage.log
+          echo "Target directory size:" | tee -a metrics/resource_usage.log
+          du -sh target/ 2>/dev/null || echo "N/A" | tee -a metrics/resource_usage.log
+
+      - name: Generate metrics summary
+        if: always()
+        run: |
+          echo "# CI/CD Metrics Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Generated:** $(date -Iseconds)" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Build Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -n "$BUILD_TIME" ]; then
+            BUILD_MIN=$((BUILD_TIME / 60))
+            BUILD_SEC=$((BUILD_TIME % 60))
+            echo "- **Full Build:** ${BUILD_MIN}m ${BUILD_SEC}s (${BUILD_STATUS})" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ -n "$WASM_TIME" ]; then
+            WASM_MIN=$((WASM_TIME / 60))
+            WASM_SEC=$((WASM_TIME % 60))
+            echo "- **WASM Build:** ${WASM_MIN}m ${WASM_SEC}s" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "- **Cache Hit:** ${{ steps.cache.outputs.cache-hit }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Performance Trends" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Recent Build Times" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "Timestamp,Duration(s),Status,Type" >> $GITHUB_STEP_SUMMARY
+          if [ -f metrics/build_metrics.csv ]; then
+            tail -5 metrics/build_metrics.csv >> $GITHUB_STEP_SUMMARY
+          fi
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Store metrics artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-metrics-${{ github.sha }}
+          path: |
+            metrics/
+            build.log
+            test_*.log
+          retention-days: 30
+
+      - name: Commit metrics to repository
+        if: github.ref == 'refs/heads/main' && always()
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add metrics/ || true
+          git commit -m "chore: update CI/CD metrics [skip ci]" || echo "No changes to commit"
+          git push || echo "No changes to push"

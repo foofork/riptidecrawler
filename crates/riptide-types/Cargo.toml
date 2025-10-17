@@ -1,0 +1,28 @@
+[package]
+name = "riptide-types"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Shared types and traits for RipTide extraction system"
+keywords = ["extraction", "types", "traits", "shared"]
+categories = ["data-structures", "web-programming"]
+
+[dependencies]
+# Core dependencies for type definitions
+anyhow.workspace = true
+async-trait.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+thiserror.workspace = true
+url.workspace = true
+
+# For trait definitions that need these
+chrono = { workspace = true, features = ["serde"] }
+regex.workspace = true
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[features]
+default = []

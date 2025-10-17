@@ -9,6 +9,8 @@ keywords = ["html", "extraction", "css", "regex", "dom"]
 categories = ["text-processing", "web-programming"]
 
 [dependencies]
+# Shared types to break circular dependency
+riptide-types = { path = "../riptide-types" }
 # Core dependencies removed to avoid circular dependency
 # riptide-core = { path = "../riptide-core" }
 anyhow.workspace = true

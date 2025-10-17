@@ -397,7 +397,7 @@ impl PdfExtractor {
 
         // Check if line has consistent spacing (suggests tabular data)
         let spaces: Vec<_> = line.match_indices("  ").collect();
-        spaces.len() >= 1 && parts.len() >= 2
+        !spaces.is_empty() && parts.len() >= 2
     }
 
     /// Parse table from lines
@@ -452,19 +452,15 @@ impl PdfExtractor {
         };
 
         // Extract document info
-        if let Ok(info_id) = self.document.trailer.get(b"Info") {
-            if let Object::Reference(id) = info_id {
-                if let Ok(info_dict) = self.document.get_object(*id) {
-                    if let Object::Dictionary(dict) = info_dict {
-                        metadata.title = self.get_dict_string(dict, b"Title");
-                        metadata.author = self.get_dict_string(dict, b"Author");
-                        metadata.subject = self.get_dict_string(dict, b"Subject");
-                        metadata.creator = self.get_dict_string(dict, b"Creator");
-                        metadata.producer = self.get_dict_string(dict, b"Producer");
-                        metadata.creation_date = self.get_dict_string(dict, b"CreationDate");
-                        metadata.modification_date = self.get_dict_string(dict, b"ModDate");
-                    }
-                }
+        if let Ok(Object::Reference(id)) = self.document.trailer.get(b"Info") {
+            if let Ok(Object::Dictionary(dict)) = self.document.get_object(*id) {
+                metadata.title = self.get_dict_string(dict, b"Title");
+                metadata.author = self.get_dict_string(dict, b"Author");
+                metadata.subject = self.get_dict_string(dict, b"Subject");
+                metadata.creator = self.get_dict_string(dict, b"Creator");
+                metadata.producer = self.get_dict_string(dict, b"Producer");
+                metadata.creation_date = self.get_dict_string(dict, b"CreationDate");
+                metadata.modification_date = self.get_dict_string(dict, b"ModDate");
             }
         }
 
@@ -575,11 +571,11 @@ impl PdfExtractor {
         md.push_str(" |\n");
 
         // Separator
-        md.push_str("|");
+        md.push('|');
         for _ in &table.headers {
             md.push_str(" --- |");
         }
-        md.push_str("\n");
+        md.push('\n');
 
         // Rows
         for row in &table.rows {

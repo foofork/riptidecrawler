@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use regex::Regex;
 use std::collections::HashMap;
 
-use crate::strategies::{traits::*, ExtractedContent, PerformanceMetrics};
+use crate::strategies::{traits::*, ExtractedContent};
 
 /// Regex pattern configuration
 #[derive(Debug, Clone)]
@@ -287,9 +287,13 @@ impl ExtractionStrategy for RegexPatternStrategy {
         }
 
         Ok(ExtractionResult {
-            content: extracted,
+            content: extracted.clone(),
             quality,
-            performance: Some(PerformanceMetrics::new()),
+            performance: Some(riptide_types::traits::PerformanceMetrics {
+                extraction_time_ms: 0,
+                content_length: extracted.content.len(),
+                memory_used_bytes: None,
+            }),
             metadata,
         })
     }

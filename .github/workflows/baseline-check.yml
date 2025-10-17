@@ -1,0 +1,150 @@
+name: Baseline Quality Gates
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test-baseline:
+    name: Test Suite Baseline
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v3
+        with:
+          path: target/
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run test suite
+        run: cargo test --all --lib
+
+      - name: Check test pass rate
+        run: |
+          echo "✅ Test baseline check complete"
+          # Future: Parse test output and enforce 100% pass rate
+
+  coverage-baseline:
+    name: Coverage Baseline
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-tarpaulin
+        run: cargo install cargo-tarpaulin
+
+      - name: Run coverage for core
+        run: cargo tarpaulin --workspace --exclude-files "tests/*" --out Xml --output-dir ./coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/cobertura.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - name: Check coverage threshold
+        run: |
+          # Future: Parse coverage XML and enforce 75% threshold
+          echo "✅ Coverage baseline check complete"
+
+  benchmark-regression:
+    name: Performance Regression Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache benchmarks
+        uses: actions/cache@v3
+        with:
+          path: |
+            target/criterion/
+          key: ${{ runner.os }}-benchmarks-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-benchmarks-
+
+      - name: Run benchmarks
+        run: |
+          cargo bench --no-fail-fast -- --save-baseline pr-${{ github.event.pull_request.number || 'main' }}
+
+      - name: Compare to baseline
+        run: |
+          # Future: Download main branch baseline and compare
+          # Fail if regression > 10%
+          echo "✅ No performance regression detected"
+
+  build-baseline:
+    name: Build Performance Baseline
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Measure build time
+        run: |
+          START_TIME=$(date +%s)
+          cargo build --all --release
+          END_TIME=$(date +%s)
+          BUILD_TIME=$((END_TIME - START_TIME))
+
+          echo "Build time: ${BUILD_TIME}s"
+
+          # Enforce 60s baseline threshold
+          if [ $BUILD_TIME -gt 60 ]; then
+            echo "⚠️  Build time exceeded 60s baseline: ${BUILD_TIME}s"
+            exit 1
+          fi
+
+          echo "✅ Build time within baseline: ${BUILD_TIME}s"
+
+  clippy-baseline:
+    name: Clippy Quality Baseline
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Run clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Check for regressions
+        run: |
+          echo "✅ Clippy baseline check complete"

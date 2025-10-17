@@ -7,5 +7,4 @@ pub mod storage;
 pub mod types;
 
 pub use manager::JobManager;
-pub use storage::JobStorage;
-pub use types::{Job, JobId, JobPriority, JobProgress, JobStatus, LogEntry, LogLevel};
+pub use types::{Job, JobPriority, JobStatus, LogLevel};

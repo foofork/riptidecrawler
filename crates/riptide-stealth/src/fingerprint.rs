@@ -453,7 +453,7 @@ impl FingerprintGenerator {
         HeaderConsistencyManager::add_locale_headers(
             &mut headers,
             &fingerprint.language,
-            &vec![fingerprint.language.clone()],
+            std::slice::from_ref(&fingerprint.language),
         );
 
         headers

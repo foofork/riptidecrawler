@@ -7,10 +7,9 @@
 /// - Enhanced error diagnostics
 use crate::client::RipTideClient;
 use crate::commands::engine_cache::EngineSelectionCache;
-use crate::commands::engine_fallback::EngineType;
-use crate::commands::extract::ExtractArgs;
 use crate::commands::performance_monitor::{ExtractionMetrics, PerformanceMonitor, StageTimer};
 use crate::commands::wasm_cache::WasmModuleCache;
+use crate::commands::ExtractArgs;
 use crate::output;
 use anyhow::Result;
 use std::time::Duration;
@@ -52,7 +51,7 @@ impl EnhancedExtractExecutor {
             .map(|u| EngineSelectionCache::extract_domain(u));
 
         // Check cache for engine selection
-        let cached_engine = if let Some(ref domain) = domain {
+        let cached_engine = if let Some(domain) = &domain {
             self.engine_cache.get(domain).await
         } else {
             None
@@ -97,7 +96,7 @@ impl EnhancedExtractExecutor {
         self.perf_monitor.record(metrics).await?;
 
         // Update cache feedback
-        if let Some(ref domain) = domain {
+        if let Some(domain) = &domain {
             self.engine_cache
                 .update_feedback(domain, result.is_ok())
                 .await?;
@@ -171,8 +170,8 @@ impl Default for EnhancedExtractExecutor {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_enhanced_executor_creation() {
+    #[tokio::test]
+    async fn test_enhanced_executor_creation() {
         let executor = EnhancedExtractExecutor::new();
         assert!(executor.engine_cache.stats().await.entries == 0);
     }

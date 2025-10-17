@@ -65,47 +65,9 @@ pub struct RenderMetadata {
     pub cookies_set: u32,
 }
 
-/// Request for screenshot capture
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ScreenshotRequest {
-    pub url: String,
-    pub viewport: ViewportConfig,
-    pub full_page: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub wait_condition: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub selector: Option<String>,
-}
-
-/// Request for content extraction
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExtractRequest {
-    pub url: String,
-    pub selectors: Vec<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub schema: Option<serde_json::Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub wasm_module: Option<String>,
-}
-
-/// Result from extraction operation
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExtractionResult {
-    pub success: bool,
-    pub data: serde_json::Value,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub metadata: Option<ExtractionMetadata>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub error: Option<String>,
-}
-
-/// Metadata from extraction operation
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExtractionMetadata {
-    pub url: String,
-    pub extracted_fields: u32,
-    pub extraction_time_ms: u64,
-}
+// Note: Screenshot and extraction functionality has been moved to dedicated modules
+// ScreenshotRequest, ExtractRequest, ExtractionResult, and ExtractionMetadata were removed
+// as they were not being used. The functionality is now in the extraction and render modules.
 
 impl RiptideApiClient {
     /// Create a new API client
@@ -177,78 +139,9 @@ impl RiptideApiClient {
         Ok(render_response)
     }
 
-    /// Capture screenshot via API
-    pub async fn screenshot(&self, request: ScreenshotRequest) -> Result<Vec<u8>> {
-        let url = format!("{}/api/v1/screenshot", self.base_url);
-
-        let mut req = self.client.post(&url).json(&request);
-
-        if let Some(api_key) = &self.api_key {
-            req = req.header("X-API-Key", api_key);
-        }
-
-        let response = req
-            .send()
-            .await
-            .context("Failed to send screenshot request to API")?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let error_body = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unable to read error response".to_string());
-            anyhow::bail!(
-                "Screenshot API request failed with status {}: {}",
-                status,
-                error_body
-            );
-        }
-
-        let screenshot_bytes = response
-            .bytes()
-            .await
-            .context("Failed to read screenshot bytes")?
-            .to_vec();
-
-        Ok(screenshot_bytes)
-    }
-
-    /// Extract content via API
-    pub async fn extract(&self, request: ExtractRequest) -> Result<ExtractionResult> {
-        let url = format!("{}/api/v1/extract", self.base_url);
-
-        let mut req = self.client.post(&url).json(&request);
-
-        if let Some(api_key) = &self.api_key {
-            req = req.header("X-API-Key", api_key);
-        }
-
-        let response = req
-            .send()
-            .await
-            .context("Failed to send extraction request to API")?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let error_body = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unable to read error response".to_string());
-            anyhow::bail!(
-                "Extract API request failed with status {}: {}",
-                status,
-                error_body
-            );
-        }
-
-        let extraction_result = response
-            .json::<ExtractionResult>()
-            .await
-            .context("Failed to parse extraction response")?;
-
-        Ok(extraction_result)
-    }
+    // Note: screenshot() and extract() methods were removed as they were not being used.
+    // Screenshot functionality is available through the render() method with screenshot_mode.
+    // Extraction functionality is available through dedicated extraction modules.
 
     /// Get base URL
     pub fn base_url(&self) -> &str {

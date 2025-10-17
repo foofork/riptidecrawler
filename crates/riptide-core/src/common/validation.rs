@@ -1,11 +1,22 @@
 //! Common validation utilities shared across RipTide modules.
 //!
+//! **DEPRECATED**: This module has been migrated to `riptide-config` crate.
+//! Please use `riptide_config::validation` instead.
+//!
+//! This file is kept for backward compatibility and will be removed in a future version.
+//! All imports are re-exported through `common::mod.rs`.
+//!
 //! This module consolidates duplicate validation logic found in multiple
 //! places throughout the codebase, providing a unified approach to:
 //! - URL validation with security checks
 //! - Content-type validation
 //! - Size limit validation
 //! - Parameter validation
+
+#![deprecated(
+    since = "0.2.0",
+    note = "Use riptide_config::validation instead. This module will be removed in 0.3.0"
+)]
 
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};

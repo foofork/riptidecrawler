@@ -10,7 +10,7 @@ authors.workspace = true
 tokio = { workspace = true, features = ["full"] }
 tokio-metrics = "0.3"
 tokio-stream = { workspace = true }
-futures = { workspace = true }
+futures.workspace = true
 
 # Error handling and serialization
 anyhow = { workspace = true }
@@ -78,6 +78,8 @@ riptide-core = { path = "../riptide-core" }
 rand = "0.8"
 
 [dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+tokio = { version = "1.47", features = ["full", "test-util"] }
 tempfile = { workspace = true }
 tokio-test = "0.4"
 
@@ -106,7 +108,12 @@ development = ["jemalloc", "memory-profiling", "bottleneck-analysis-full", "cach
 name = "riptide_performance"
 path = "src/lib.rs"
 
-# Benchmarks commented out until benchmark files are created
+# P1-B1: Pool performance benchmarks
+[[bench]]
+name = "pool_benchmark"
+harness = false
+
+# Benchmarks to be created in future phases
 # [[bench]]
 # name = "memory_benchmark"
 # harness = false

@@ -1,0 +1,35 @@
+[package]
+name = "riptide-headless-hybrid"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Hybrid headless browser launcher using spider-chrome with EventMesh stealth features"
+authors = ["RipTide Team"]
+
+[lib]
+name = "riptide_headless_hybrid"
+path = "src/lib.rs"
+
+[dependencies]
+# Core dependencies
+anyhow = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+futures = { workspace = true }
+async-trait = { workspace = true }
+
+# Spider chrome for browser automation (exports as chromiumoxide library)
+spider_chrome = { workspace = true }
+
+# EventMesh stealth features
+riptide-stealth = { path = "../riptide-stealth" }
+riptide-core = { path = "../riptide-core" }
+
+# For maintaining compatibility
+uuid = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util", "macros", "rt-multi-thread"] }
+tempfile = { workspace = true }

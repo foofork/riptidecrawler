@@ -219,11 +219,9 @@ pub struct RenderMetadata {
 
 /// Execute the render command
 pub async fn execute(args: RenderArgs, output_format: &str) -> Result<()> {
-    use crate::api_client::{RenderRequest, RiptideApiClient, ViewportConfig};
     use crate::config;
     use crate::execution_mode::{get_execution_mode, ExecutionMode};
     use crate::metrics::MetricsManager;
-    use std::env;
     use std::time::Instant;
 
     // Start metrics tracking
@@ -409,11 +407,9 @@ pub async fn execute(args: RenderArgs, output_format: &str) -> Result<()> {
 
 /// Try to create API client from environment
 fn try_create_api_client() -> Result<Option<crate::api_client::RiptideApiClient>> {
-    use std::env;
-
     // Try to get API URL from environment
-    let api_url = env::var("RIPTIDE_API_URL").ok();
-    let api_key = env::var("RIPTIDE_API_KEY").ok();
+    let api_url = std::env::var("RIPTIDE_API_URL").ok();
+    let api_key = std::env::var("RIPTIDE_API_KEY").ok();
 
     if let Some(url) = api_url {
         let client = crate::api_client::RiptideApiClient::new(url, api_key)?;
@@ -817,121 +813,20 @@ async fn execute_headless_render(
     })
 }
 
-/// Execute fallback HTTP-based rendering
-async fn execute_fallback_render(
-    args: &RenderArgs,
-    file_prefix: &str,
-    output_dir: &str,
-) -> Result<RenderOutput> {
-    use std::time::Duration;
-
-    let mut files_saved = Vec::new();
-
-    // Configure HTTP client
-    let mut client_builder = reqwest::Client::builder().timeout(Duration::from_secs(30));
-
-    // Apply user agent
-    if let Some(ref ua) = args.user_agent {
-        client_builder = client_builder.user_agent(ua);
-    } else {
-        client_builder = client_builder.user_agent("RipTide-Renderer/1.0");
-    }
-
-    // Apply proxy
-    if let Some(ref proxy_url) = args.proxy {
-        let proxy = reqwest::Proxy::all(proxy_url)?;
-        client_builder = client_builder.proxy(proxy);
-    }
-
-    let client = client_builder.build()?;
-
-    // Fetch HTML content
-    output::print_info("Fetching page content...");
-    let response = client.get(&args.url).send().await?;
-
-    let status = response.status();
-    let final_url = response.url().to_string();
-    let html = response.text().await?;
-
-    output::print_info(&format!("Received {} bytes (HTTP {})", html.len(), status));
-
-    // Save HTML if requested
-    if args.html {
-        let html_path = Path::new(output_dir).join(format!("{}.html", file_prefix));
-
-        fs::write(&html_path, &html).context("Failed to write HTML file")?;
-
-        let size = html.len() as u64;
-        files_saved.push(SavedFile {
-            file_type: "html".to_string(),
-            path: html_path.to_string_lossy().to_string(),
-            size_bytes: size,
-        });
-
-        output::print_success(&format!("Saved HTML to: {}", html_path.display()));
-    }
-
-    // Save DOM tree if requested
-    if args.dom {
-        let dom_json = extract_dom_tree(&html)?;
-        let dom_path = Path::new(output_dir).join(format!("{}.dom.json", file_prefix));
-
-        fs::write(&dom_path, &dom_json).context("Failed to write DOM file")?;
-
-        let size = dom_json.len() as u64;
-        files_saved.push(SavedFile {
-            file_type: "dom".to_string(),
-            path: dom_path.to_string_lossy().to_string(),
-            size_bytes: size,
-        });
-
-        output::print_success(&format!("Saved DOM to: {}", dom_path.display()));
-    }
-
-    // Extract metadata
-    let metadata = Some(RenderMetadata {
-        title: extract_title(&html),
-        final_url: Some(final_url),
-        resources_loaded: None, // Not available in fallback mode
-        cookies_set: None,
-        storage_items: None,
-    });
-
-    Ok(RenderOutput {
-        files_saved,
-        success: true,
-        error: None,
-        metadata,
-    })
-}
-
-/// Extract page title from HTML
-fn extract_title(html: &str) -> Option<String> {
-    use scraper::{Html, Selector};
-
-    let document = Html::parse_document(html);
-    let title_selector = Selector::parse("title").ok()?;
-
-    document
-        .select(&title_selector)
-        .next()
-        .map(|element| element.inner_html().trim().to_string())
-}
-
-/// Extract DOM tree as JSON
-fn extract_dom_tree(html: &str) -> Result<String> {
-    use serde_json::json;
-
-    // Create simplified DOM representation
-    // Full DOM tree extraction requires headless browser support
-    let dom = json!({
-        "type": "document",
-        "html_length": html.len(),
-        "note": "Full DOM tree extraction requires headless browser support"
-    });
-
-    serde_json::to_string_pretty(&dom).context("Failed to serialize DOM tree")
-}
+// Legacy HTTP-based fallback functions removed (superseded by spider-chrome)
+// These functions were part of the old HTTP-only rendering path:
+// - execute_fallback_render() - Basic HTTP fetch without JS support
+// - extract_title() - Simple HTML title extraction via scraper crate
+// - extract_dom_tree() - Simplified DOM representation
+//
+// Modern path uses spider-chrome for full browser automation with:
+// - JavaScript execution
+// - Dynamic content rendering
+// - Full DOM access via CDP
+// - Network interception and control
+//
+// If HTTP-only fallback is needed, use spider-chrome in HTTP-first mode
+// or implement via the extraction engine with EngineType::Raw
 
 /// Generate file prefix from URL
 fn generate_file_prefix(url: &str) -> String {

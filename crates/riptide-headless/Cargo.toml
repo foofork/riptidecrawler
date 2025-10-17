@@ -18,7 +18,12 @@ axum = { workspace = true }
 base64 = "0.22"
 spider_chrome = { workspace = true }
 futures = { workspace = true }
+
+# Internal crate dependencies
+riptide-engine = { path = "../riptide-engine" }
+riptide-stealth = { path = "../riptide-stealth" }
 riptide-core = { path = "../riptide-core" }
+# riptide-headless-hybrid = { path = "../riptide-headless-hybrid", optional = true }  # Temporarily disabled for baseline
 serde = { workspace = true }
 serde_json = { workspace = true }
 tempfile = { workspace = true }
@@ -35,4 +40,4 @@ tokio = { workspace = true, features = ["test-util", "macros"] }
 [features]
 default = []
 # WIP: Full headless browser automation (scaffolding not yet fully wired)
-headless = []
+# headless = ["riptide-headless-hybrid"]  # Temporarily disabled for baseline

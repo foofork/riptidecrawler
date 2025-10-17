@@ -50,7 +50,6 @@ struct PageResult {
 }
 
 pub async fn execute(client: RipTideClient, args: CrawlArgs, output_format: &str) -> Result<()> {
-    use crate::config;
     use crate::metrics::MetricsManager;
     use std::time::Instant;
 
@@ -153,7 +152,7 @@ pub async fn execute(client: RipTideClient, args: CrawlArgs, output_format: &str
 
             if let Some(ref output_dir_arg) = args.output_dir {
                 let output_dir = output_dir_arg;
-                fs::create_dir_all(&output_dir)?;
+                fs::create_dir_all(output_dir)?;
                 output::print_info(&format!("Saving results to: {}", output_dir));
 
                 // Save crawl results to files (support both formats)

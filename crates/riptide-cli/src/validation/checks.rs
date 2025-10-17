@@ -14,7 +14,7 @@ pub async fn check_wasm(wasm_path: Option<&str>) -> CheckResult {
         PathBuf::from(path)
     } else {
         // Check common locations
-        let common_paths = vec![
+        let common_paths = [
             "wasm/riptide-extractor-wasm/pkg/riptide_extractor_wasm_bg.wasm",
             "../wasm/riptide-extractor-wasm/pkg/riptide_extractor_wasm_bg.wasm",
             "./riptide_extractor_wasm_bg.wasm",

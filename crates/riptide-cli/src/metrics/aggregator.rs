@@ -120,8 +120,8 @@ impl MetricsAggregator {
         }
 
         // Recalculate percentiles every 10 entries or every 60 seconds
-        let should_recalc =
-            cache.durations.len() % 10 == 0 || cache.last_updated.elapsed().as_secs() >= 60;
+        let should_recalc = cache.durations.len().is_multiple_of(10)
+            || cache.last_updated.elapsed().as_secs() >= 60;
 
         if should_recalc {
             let (p50, p95, p99) = calculate_percentiles(&cache.durations);
@@ -228,10 +228,7 @@ impl MetricsAggregator {
                 .unwrap_or(metric.started_at)
                 .to_rfc3339();
 
-            buckets
-                .entry(bucket_key)
-                .or_insert_with(Vec::new)
-                .push(metric.clone());
+            buckets.entry(bucket_key).or_default().push(metric.clone());
         }
 
         buckets

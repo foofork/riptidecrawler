@@ -1,0 +1,48 @@
+[package]
+name = "riptide-cache"
+version = "0.1.0"
+edition = "2021"
+authors = ["RipTide Team"]
+description = "Cache management system for RipTide extraction framework"
+license = "MIT"
+
+[dependencies]
+# Core dependencies
+riptide-types = { path = "../riptide-types" }
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Redis for distributed caching
+redis = { version = "0.24", features = ["tokio-comp", "connection-manager"] }
+
+# Cryptography for cache keys
+sha2 = "0.10"
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# HTTP client for conditional caching
+reqwest = { version = "0.11", features = ["json"] }
+
+# Logging
+tracing = "0.1"
+
+# Collections
+dashmap = "6.0"
+
+[dev-dependencies]
+tokio-test = "0.4"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+mockito = "1.0"
+
+[features]
+default = []
+distributed = []
+warming = []

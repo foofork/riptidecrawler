@@ -213,6 +213,8 @@ impl RipTideClient {
             .await
     }
 
+    // Utility method for raw requests with optional body
+    #[allow(dead_code)]
     async fn request_raw(
         &self,
         method: Method,

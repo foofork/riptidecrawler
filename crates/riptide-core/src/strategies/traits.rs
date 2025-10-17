@@ -3,190 +3,20 @@
 //! This module provides trait-based strategy management to replace the existing enum-based
 //! approach, enabling better extensibility and composition of strategies.
 
-use anyhow::Result;
-use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::strategies::{performance::PerformanceMetrics, ExtractedContent};
+// Re-export traits and types from riptide-types
+pub use riptide_types::{
+    CrawlRequest, CrawlResult, ExtractionResult, ExtractionStrategy, PerformanceTier, Priority,
+    ResourceRequirements, ResourceTier, SpiderStrategy, StrategyCapabilities,
+};
 
-/// Core extraction strategy trait
-///
-/// All extraction strategies must implement this trait to be managed by the StrategyRegistry.
-/// This replaces the ExtractionStrategy enum with a more flexible trait-based approach.
-#[async_trait]
-pub trait ExtractionStrategy: Send + Sync {
-    /// Extract content from HTML
-    async fn extract(&self, html: &str, url: &str) -> Result<ExtractionResult>;
+// All trait definitions and supporting types are now in riptide-types
+// This module serves as a re-export point for backward compatibility
 
-    /// Get the strategy name for identification
-    fn name(&self) -> &str;
-
-    /// Get strategy capabilities and metadata
-    fn capabilities(&self) -> StrategyCapabilities;
-
-    /// Calculate confidence score for given content (0.0 - 1.0)
-    fn confidence_score(&self, html: &str) -> f64;
-
-    /// Check if strategy is available (e.g., external dependencies)
-    fn is_available(&self) -> bool {
-        true
-    }
-}
-
-/// Result type for extraction operations
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExtractionResult {
-    /// The extracted content
-    pub content: ExtractedContent,
-    /// Extraction quality metrics
-    pub quality: ExtractionQuality,
-    /// Performance metrics
-    pub performance: Option<PerformanceMetrics>,
-    /// Strategy-specific metadata
-    pub metadata: HashMap<String, String>,
-}
-
-/// Extraction quality assessment
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExtractionQuality {
-    pub content_length: usize,
-    pub title_quality: f64,
-    pub content_quality: f64,
-    pub structure_score: f64,
-    pub metadata_completeness: f64,
-}
-
-impl ExtractionQuality {
-    pub fn overall_score(&self) -> f64 {
-        (self.title_quality
-            + self.content_quality
-            + self.structure_score
-            + self.metadata_completeness)
-            / 4.0
-    }
-}
-
-/// Strategy capabilities descriptor
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct StrategyCapabilities {
-    /// Strategy type identifier
-    pub strategy_type: String,
-    /// Supported content types
-    pub supported_content_types: Vec<String>,
-    /// Performance characteristics
-    pub performance_tier: PerformanceTier,
-    /// Resource requirements
-    pub resource_requirements: ResourceRequirements,
-    /// Feature flags
-    pub features: Vec<String>,
-}
-
-/// Performance tier classification
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum PerformanceTier {
-    /// Ultra-fast, minimal processing
-    Fast,
-    /// Balanced speed and quality
-    Balanced,
-    /// High-quality, slower processing
-    Thorough,
-    /// AI-powered, variable performance
-    Intelligent,
-}
-
-/// Resource requirements for strategies
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ResourceRequirements {
-    /// Memory usage tier
-    pub memory_tier: ResourceTier,
-    /// CPU usage tier
-    pub cpu_tier: ResourceTier,
-    /// Requires network access
-    pub requires_network: bool,
-    /// Requires external dependencies
-    pub external_dependencies: Vec<String>,
-}
-
-/// Resource usage tiers
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ResourceTier {
-    Low,
-    Medium,
-    High,
-}
-
-// Chunking strategies have been moved to riptide-extraction crate
-
-/// Spider/crawler strategy trait
-///
-/// Abstracts crawling behavior for different spider strategies.
-#[async_trait]
-pub trait SpiderStrategy: Send + Sync {
-    /// Process a batch of crawl requests according to strategy
-    async fn process_requests(&self, requests: Vec<CrawlRequest>) -> Result<Vec<CrawlRequest>>;
-
-    /// Get strategy name
-    fn name(&self) -> &str;
-
-    /// Calculate priority for a request
-    async fn calculate_priority(&self, request: &CrawlRequest) -> Priority;
-
-    /// Update strategy context with crawl results
-    async fn update_context(&mut self, results: &[CrawlResult]);
-
-    /// Check if strategy should adapt based on current context
-    async fn should_adapt(&self) -> bool;
-}
-
-/// Crawl request (re-exported from spider module)
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CrawlRequest {
-    pub url: url::Url,
-    pub depth: u32,
-    pub priority: Option<f64>,
-    pub score: Option<f64>,
-    pub metadata: HashMap<String, String>,
-    pub created_at: std::time::SystemTime,
-}
-
-impl CrawlRequest {
-    pub fn new(url: url::Url) -> Self {
-        Self {
-            url,
-            depth: 0,
-            priority: None,
-            score: None,
-            metadata: HashMap::new(),
-            created_at: std::time::SystemTime::now(),
-        }
-    }
-
-    pub fn with_depth(mut self, depth: u32) -> Self {
-        self.depth = depth;
-        self
-    }
-}
-
-/// Crawl result for strategy analysis
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CrawlResult {
-    pub request: CrawlRequest,
-    pub success: bool,
-    pub response_time: std::time::Duration,
-    pub content_length: Option<usize>,
-    pub error: Option<String>,
-}
-
-/// Request priority levels
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Priority {
-    Low = 1,
-    Medium = 2,
-    High = 3,
-    Critical = 4,
-}
+// Re-export ExtractionQuality for local use
+pub use riptide_types::ExtractionQuality;
 
 /// Strategy registry for managing all strategy implementations
 pub struct StrategyRegistry {

@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use scraper::{Html, Selector};
 use std::collections::HashMap;
 
-use crate::strategies::{traits::*, ExtractedContent, PerformanceMetrics};
+use crate::strategies::{traits::*, ExtractedContent};
 use riptide_extraction::enhanced_extractor::StructuredExtractor;
 
 /// CSS Selector strategy for targeted content extraction
@@ -233,7 +233,7 @@ impl ExtractionStrategy for CssSelectorStrategy {
         Ok(ExtractionResult {
             content: extracted,
             quality,
-            performance: Some(PerformanceMetrics::new()),
+            performance: Some(riptide_types::traits::PerformanceMetrics::new()),
             metadata,
         })
     }

@@ -6,7 +6,7 @@
 //! 3. Adaptive timeout (30-50% waste reduction)
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+
 use std::time::{Duration, Instant};
 
 /// Statistical benchmark results
@@ -238,7 +238,7 @@ impl Phase4BenchmarkSuite {
         let mut adaptive_waste = Vec::new();
 
         // Simulate various response times
-        let response_times = vec![100, 200, 500, 1000, 2000, 3000];
+        let response_times = [100, 200, 500, 1000, 2000, 3000];
 
         for i in 0..self.iterations {
             let response_time = response_times[i % response_times.len()];
@@ -413,22 +413,14 @@ impl Phase4BenchmarkSuite {
     }
 
     fn simulate_fixed_timeout(&self, response_time: u64) -> u64 {
-        let fixed_timeout = 5000;
-        if response_time < fixed_timeout {
-            fixed_timeout - response_time // Wasted time
-        } else {
-            0
-        }
+        let fixed_timeout: u64 = 5000;
+        fixed_timeout.saturating_sub(response_time) // Wasted time
     }
 
     fn simulate_adaptive_timeout(&self, response_time: u64) -> u64 {
         // Adaptive timeout adjusts to response patterns
         let adaptive_timeout = response_time + 500; // Small buffer
-        if response_time < adaptive_timeout {
-            adaptive_timeout - response_time // Minimal waste
-        } else {
-            0
-        }
+        adaptive_timeout.saturating_sub(response_time) // Minimal waste
     }
 
     async fn simulate_extraction_baseline(&self) {

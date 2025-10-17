@@ -354,7 +354,7 @@ fn format_markdown_report(report: &ComparativeBenchmarkReport) -> String {
     for (i, (engine, score)) in report.performance_ranking.iter().enumerate() {
         md.push_str(&format!("{}. {} (Score: {:.2})\n", i + 1, engine, score));
     }
-    md.push_str("\n");
+    md.push('\n');
 
     // Detailed statistics table
     md.push_str("## Detailed Statistics\n\n");
@@ -362,11 +362,12 @@ fn format_markdown_report(report: &ComparativeBenchmarkReport) -> String {
     for engine in &report.engines_tested {
         md.push_str(&format!("{} | ", engine));
     }
-    md.push_str("\n|--------|");
+    md.push('\n');
+    md.push_str("|--------|");
     for _ in &report.engines_tested {
         md.push_str("------|");
     }
-    md.push_str("\n");
+    md.push('\n');
 
     // Success rate
     md.push_str("| Success Rate | ");
@@ -377,7 +378,7 @@ fn format_markdown_report(report: &ComparativeBenchmarkReport) -> String {
             md.push_str("N/A | ");
         }
     }
-    md.push_str("\n");
+    md.push('\n');
 
     // Average duration
     md.push_str("| Avg Duration (ms) | ");
@@ -388,7 +389,7 @@ fn format_markdown_report(report: &ComparativeBenchmarkReport) -> String {
             md.push_str("N/A | ");
         }
     }
-    md.push_str("\n");
+    md.push('\n');
 
     // P95 duration
     md.push_str("| P95 Duration (ms) | ");
@@ -399,7 +400,7 @@ fn format_markdown_report(report: &ComparativeBenchmarkReport) -> String {
             md.push_str("N/A | ");
         }
     }
-    md.push_str("\n");
+    md.push('\n');
 
     // Memory peak
     md.push_str("| Peak Memory (MB) | ");
@@ -410,7 +411,7 @@ fn format_markdown_report(report: &ComparativeBenchmarkReport) -> String {
             md.push_str("N/A | ");
         }
     }
-    md.push_str("\n");
+    md.push('\n');
 
     // CPU usage
     md.push_str("| Avg CPU (%) | ");
@@ -421,7 +422,7 @@ fn format_markdown_report(report: &ComparativeBenchmarkReport) -> String {
             md.push_str("N/A | ");
         }
     }
-    md.push_str("\n");
+    md.push('\n');
 
     // Throughput
     md.push_str("| Throughput (pages/s) | ");

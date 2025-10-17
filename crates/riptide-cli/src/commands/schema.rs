@@ -812,7 +812,7 @@ async fn execute_list(
                 let public_str = if schema.is_public { "Yes" } else { "No" };
                 let success_str = schema
                     .success_rate
-                    .map(|r| output::format_confidence(r))
+                    .map(output::format_confidence)
                     .unwrap_or_else(|| "N/A".to_string());
 
                 table.add_row(vec![

@@ -93,14 +93,18 @@ pub mod stealth {
 #[cfg(feature = "benchmarks")]
 pub mod benchmarks;
 
+// Re-export from riptide-config and common
 pub use common::{
-    config_builder::{ConfigBuilder, ConfigValue, DefaultConfigBuilder, ValidationPatterns},
-    error_conversions::{CoreErrorConverter, ErrorPatterns, IntoCore, WithErrorContext},
-    validation::{
-        CommonValidator, ContentTypeValidator, ParameterValidator, SizeValidator, UrlValidator,
-        ValidationConfig,
-    },
+    // Config and validation are now from riptide-config (re-exported through common)
+    BuilderError, BuilderResult, CommonValidator, ConfigBuilder, ConfigValidator,
+    ContentTypeValidator, DefaultConfigBuilder, ParameterValidator, SizeValidator,
+    UrlValidator, ValidationConfig, ValidationResult,
+    // Error conversions remain in common
+    CoreErrorConverter, ErrorPatterns, IntoCore, WithErrorContext,
 };
+
+// Alias for backward compatibility
+pub use riptide_config::ConfigValue;
 pub use types::*;
 
 // Re-export core functionality

@@ -194,6 +194,7 @@ impl ResourceManager {
             max_retries: config.headless.max_retries,
             profile_base_dir: None, // Use system temp directory by default
             cleanup_timeout: Duration::from_secs(5),
+            ..Default::default()
         };
 
         // DEPENDENCY NOTE: chromiumoxide uses async-std internally (RUSTSEC-2025-0052)

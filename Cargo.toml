@@ -1,11 +1,13 @@
 [workspace]
 members = [
+  "crates/riptide-types",
   "crates/riptide-core",
   "crates/riptide-extraction",
   "crates/riptide-search",
   "crates/riptide-api",
   "crates/riptide-cli",
   "crates/riptide-headless",
+  # "crates/riptide-headless-hybrid",  # Phase 1 Week 2 - Temporarily excluded for baseline (needs fixes)
   "crates/riptide-workers",
   "crates/riptide-intelligence",
   "crates/riptide-persistence",
@@ -13,10 +15,12 @@ members = [
   "crates/riptide-stealth",
   "crates/riptide-pdf",
   "crates/riptide-performance",
-  "wasm/riptide-extractor-wasm",
+  "crates/riptide-browser-abstraction",  # Phase 1 Week 3 - Browser abstraction layer
+  "wasm/riptide-extractor-wasm", "crates/riptide-test-utils", "crates/riptide-config", "crates/riptide-engine", "crates/riptide-cache",
 ]
 # xtask excluded to avoid Docker build failures (dev tool only)
-exclude = ["xtask"]
+# riptide-headless-hybrid excluded temporarily for baseline (API incompatibilities with chromiumoxide)
+exclude = ["xtask", "crates/riptide-headless-hybrid"]
 resolver = "2"
 
 [workspace.package]
@@ -63,6 +67,7 @@ wasmtime = { version = "37", features = ["cache", "component-model"] }  # Upgrad
 wasmtime-wasi = "37"
 spider_chrome = "2.37.128"  # High-concurrency CDP (replaces chromiumoxide)
 spider = "2"
+chromiumoxide = "0.7"  # For headless-hybrid backward compatibility
 pdfium-render = { version = "0.8", features = ["sync", "thread_safe"] }
 env_logger = { version = "0.10" }
 tempfile = { version = "3" }

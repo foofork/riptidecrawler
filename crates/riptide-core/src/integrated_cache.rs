@@ -12,7 +12,7 @@ use tracing::{debug, info};
 
 use crate::{
     cache::{CacheConfig, CacheEntry, CacheManager, CacheMetadata, ConditionalResult},
-    common::validation::{CommonValidator, ValidationConfig},
+    common::{CommonValidator, ValidationConfig},
     conditional::{extract_conditional_info, generate_etag, ConditionalRequest},
     security::{SecurityConfig, SecurityMiddleware},
 };

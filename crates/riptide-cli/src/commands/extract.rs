@@ -116,16 +116,16 @@ struct ExtractRequest {
 }
 
 #[derive(Deserialize, Serialize)]
-struct ExtractResponse {
-    content: String,
+pub struct ExtractResponse {
+    pub content: String,
     #[serde(default)]
-    confidence: Option<f64>,
+    pub confidence: Option<f64>,
     #[serde(default)]
-    method_used: Option<String>,
+    pub method_used: Option<String>,
     #[serde(default)]
-    extraction_time_ms: Option<u64>,
+    pub extraction_time_ms: Option<u64>,
     #[serde(default)]
-    metadata: Option<serde_json::Value>,
+    pub metadata: Option<serde_json::Value>,
 }
 
 pub async fn execute(client: RipTideClient, args: ExtractArgs, output_format: &str) -> Result<()> {

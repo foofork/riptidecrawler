@@ -9,15 +9,15 @@
 /// - Performance metrics tracking
 /// - Comprehensive logging of decision-making process
 /// - Memory coordination for distributed agents
-use crate::commands::extract::{ExtractArgs, ExtractResponse};
+use crate::commands::extract::ExtractResponse;
 use crate::output;
 use anyhow::Result;
 use serde::Serialize;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 // Fallback chain configuration
-const MAX_RETRIES: u32 = 3;
-const INITIAL_BACKOFF_MS: u64 = 1000;
+// const MAX_RETRIES: u32 = 3;  // Unused - keeping for future use
+// const INITIAL_BACKOFF_MS: u64 = 1000;  // Unused - keeping for future use
 const MIN_CONTENT_LENGTH: usize = 100;
 const MIN_TEXT_RATIO: f64 = 0.05;
 const MIN_CONFIDENCE: f64 = 0.5;
@@ -286,7 +286,7 @@ pub async fn store_extraction_decision(url: &str, decision: &str) -> Result<()> 
     });
 
     let _ = Command::new("npx")
-        .args(&[
+        .args([
             "claude-flow@alpha",
             "hooks",
             "memory-store",
@@ -325,7 +325,7 @@ pub async fn store_extraction_metrics(
     });
 
     let _ = Command::new("npx")
-        .args(&[
+        .args([
             "claude-flow@alpha",
             "hooks",
             "memory-store",
@@ -338,7 +338,7 @@ pub async fn store_extraction_metrics(
 
     // Also notify other agents about the metrics
     let _ = Command::new("npx")
-        .args(&[
+        .args([
             "claude-flow@alpha",
             "hooks",
             "notify",

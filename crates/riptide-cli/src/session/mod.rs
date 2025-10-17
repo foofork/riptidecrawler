@@ -2,7 +2,7 @@ pub mod manager;
 pub mod types;
 
 pub use manager::SessionManager;
-pub use types::{BrowserStorageState, Cookie, Session, SessionMetadata};
+pub use types::{Cookie, Session};
 
 use anyhow::Result;
 

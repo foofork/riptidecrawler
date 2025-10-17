@@ -35,7 +35,7 @@ pub struct Cookie {
 }
 
 /// Session metadata for tracking usage statistics
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct SessionMetadata {
     pub requests_count: u64,
     pub last_request_url: Option<String>,
@@ -94,46 +94,14 @@ impl Session {
         }
     }
 
-    /// Check if session is expired based on timeout
-    pub fn is_expired(&self) -> bool {
-        if self.timeout_minutes == 0 {
-            return false;
-        }
-
-        if let Some(last_used) = self.last_used_at {
-            let elapsed = Utc::now().signed_duration_since(last_used);
-            elapsed.num_minutes() >= self.timeout_minutes as i64
-        } else {
-            false
-        }
-    }
-
     /// Update last used timestamp
     pub fn mark_used(&mut self) {
         self.last_used_at = Some(Utc::now());
         self.updated_at = Utc::now();
     }
 
-    /// Convert cookies to browser-compatible format
-    pub fn to_cookie_jar(&self) -> Vec<Cookie> {
-        self.cookies.clone()
-    }
-
-    /// Import cookies from browser cookie jar format
-    pub fn from_cookie_jar(name: String, cookies: Vec<Cookie>) -> Self {
-        let mut session = Self::new(name);
-        session.cookies = cookies;
-        session
-    }
-}
-
-impl Default for SessionMetadata {
-    fn default() -> Self {
-        Self {
-            requests_count: 0,
-            last_request_url: None,
-            success_count: 0,
-            error_count: 0,
-        }
-    }
+    // Note: Removed unused methods:
+    // - is_expired(): Session timeout is not currently enforced
+    // - to_cookie_jar(): Cookie conversion is handled directly through the cookies field
+    // - from_cookie_jar(): Session creation is handled through Session::new()
 }

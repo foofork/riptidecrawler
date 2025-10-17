@@ -17,7 +17,8 @@ use clap::Parser;
 use commands::Commands;
 
 // Import optimized executor for Phase 5 integration
-use commands::optimized_executor::OptimizedExecutor;
+// TODO(chromiumoxide-migration): Re-enable after migration complete
+// use commands::optimized_executor::OptimizedExecutor;
 
 #[derive(Parser)]
 #[command(name = "riptide")]
@@ -67,16 +68,18 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     // Phase 5: Initialize global optimization manager (feature-gated for gradual rollout)
-    let optimized_executor = if std::env::var("RIPTIDE_ENABLE_OPTIMIZATIONS")
-        .unwrap_or_else(|_| "false".to_string())
-        == "true"
-    {
-        tracing::info!("🚀 Optimizations enabled - initializing optimized executor");
-        Some(OptimizedExecutor::new().await?)
-    } else {
-        tracing::debug!("Optimizations disabled - using standard execution path");
-        None
-    };
+    // TODO(chromiumoxide-migration): Re-enable after migration complete
+    let optimized_executor: Option<()> = None; // Placeholder
+                                               // let optimized_executor = if std::env::var("RIPTIDE_ENABLE_OPTIMIZATIONS")
+                                               //     .unwrap_or_else(|_| "false".to_string())
+                                               //     == "true"
+                                               // {
+                                               //     tracing::info!("🚀 Optimizations enabled - initializing optimized executor");
+                                               //     Some(OptimizedExecutor::new().await?)
+                                               // } else {
+                                               //     tracing::debug!("Optimizations disabled - using standard execution path");
+                                               //     None
+                                               // };
 
     // Determine execution mode based on flags and environment
     let execution_mode = execution_mode::get_execution_mode(cli.direct, cli.api_only);
@@ -122,7 +125,7 @@ async fn main() -> Result<()> {
     let result = match cli.command {
         Commands::Extract(args) => {
             // Use optimized executor if available
-            if let Some(ref executor) = optimized_executor {
+            if let Some(ref _executor) = optimized_executor {
                 tracing::info!("Using optimized extraction pipeline");
                 // Note: This requires refactoring extract command to use executor
                 // For now, fall back to standard path
@@ -167,12 +170,13 @@ async fn main() -> Result<()> {
     };
 
     // Phase 5: Graceful shutdown of optimizations
-    if let Some(executor) = optimized_executor {
-        tracing::info!("Shutting down optimization modules");
-        if let Err(e) = executor.shutdown().await {
-            tracing::error!("Failed to shutdown optimizations cleanly: {}", e);
-        }
-    }
+    // TODO(chromiumoxide-migration): Re-enable after migration complete
+    // if let Some(executor) = optimized_executor {
+    //     tracing::info!("Shutting down optimization modules");
+    //     if let Err(e) = executor.shutdown().await {
+    //         tracing::error!("Failed to shutdown optimizations cleanly: {}", e);
+    //     }
+    // }
 
     result
 }

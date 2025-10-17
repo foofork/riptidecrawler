@@ -9,7 +9,7 @@
 /// - Hash-based cache invalidation
 /// - Atomic cache updates
 /// - Parallel compilation support
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};

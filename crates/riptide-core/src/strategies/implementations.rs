@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use std::collections::HashMap;
 
 use crate::html_parser::{EnhancedHtmlExtractor, Metadata as HtmlMetadata};
-use crate::strategies::{traits::*, ExtractedContent, PerformanceMetrics};
+use crate::strategies::{traits::*, ExtractedContent};
 use riptide_extraction::enhanced_extractor::StructuredExtractor;
 
 // ============================================================================
@@ -125,7 +125,7 @@ impl ExtractionStrategy for WasmExtractionStrategy {
         Ok(ExtractionResult {
             content,
             quality,
-            performance: Some(PerformanceMetrics::new()),
+            performance: Some(riptide_types::traits::PerformanceMetrics::new()),
             metadata,
         })
     }

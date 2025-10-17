@@ -1,0 +1,55 @@
+[package]
+name = "riptide-engine"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Internal dependencies
+riptide-types = { path = "../riptide-types" }
+riptide-config = { path = "../riptide-config" }
+riptide-browser-abstraction = { path = "../riptide-browser-abstraction" }
+
+# Browser automation
+# Use chromiumoxide from workspace
+chromiumoxide = { workspace = true }
+# Note: spider_chrome temporarily disabled to avoid chromiumoxide version conflicts
+# TODO: Re-enable with proper version resolution or feature flags
+# spider_chrome = { workspace = true }
+
+# Stealth integration
+riptide-stealth = { path = "../riptide-stealth" }
+
+# Async runtime
+tokio = { workspace = true }
+futures = { workspace = true }
+async-trait = { workspace = true }
+
+# Web/HTTP (for CDP API)
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+base64 = "0.22"
+
+# Utilities
+tracing = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+dashmap = { workspace = true }
+sysinfo = { workspace = true }
+psutil = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+tempfile = { workspace = true }
+bytes = { workspace = true }
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = { workspace = true }
+
+[features]
+default = []
+headless = []

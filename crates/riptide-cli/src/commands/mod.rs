@@ -24,11 +24,14 @@ pub mod wasm_cache;
 
 // Phase 4 P0 Optimization Modules
 pub mod adaptive_timeout;
-pub mod browser_pool_manager;
+// TODO(chromiumoxide-migration): Re-enable after completing chromiumoxide → spider_chrome migration
+// See: /docs/hive-mind-todos.md#c3-browser-pool-critical-issues
+// pub mod browser_pool_manager;
 pub mod wasm_aot_cache;
 
 // Phase 5 Integration
-pub mod optimized_executor;
+// TODO(chromiumoxide-migration): Depends on browser_pool_manager - re-enable after migration
+// pub mod optimized_executor;
 
 use clap::Subcommand;
 use domain::DomainCommands;

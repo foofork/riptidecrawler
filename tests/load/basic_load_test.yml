@@ -1,0 +1,87 @@
+# Basic Load Test Configuration for EventMesh/RipTide
+# Using drill for HTTP load testing
+# Install: cargo install drill
+
+concurrency: 10
+base: 'http://localhost:8080'
+iterations: 100
+rampup: 5
+
+# Test plan
+plan:
+  # Health check endpoint
+  - name: Health check
+    request:
+      url: /health
+      method: GET
+    assign:
+      status: status
+
+  # API health endpoint
+  - name: API health check
+    request:
+      url: /api/v1/health
+      method: GET
+
+  # Simple render operation
+  - name: Simple page render
+    request:
+      url: /api/v1/render
+      method: POST
+      body: |
+        {
+          "url": "https://example.com",
+          "wait_condition": "load",
+          "screenshot_mode": "none",
+          "viewport": {
+            "width": 1920,
+            "height": 1080
+          },
+          "stealth_level": "medium",
+          "javascript_enabled": true,
+          "extra_timeout": 5000
+        }
+      headers:
+        Content-Type: 'application/json'
+        Accept: 'application/json'
+
+  # Render with screenshot
+  - name: Render with screenshot
+    request:
+      url: /api/v1/render
+      method: POST
+      body: |
+        {
+          "url": "https://example.com",
+          "wait_condition": "networkidle",
+          "screenshot_mode": "full",
+          "viewport": {
+            "width": 1920,
+            "height": 1080
+          },
+          "stealth_level": "high",
+          "javascript_enabled": true,
+          "extra_timeout": 10000
+        }
+      headers:
+        Content-Type: 'application/json'
+
+  # Simple extraction
+  - name: Content extraction
+    request:
+      url: /api/v1/extract
+      method: POST
+      body: |
+        {
+          "url": "https://example.com",
+          "mode": "css",
+          "selectors": ["h1", "p"],
+          "wait_condition": "load"
+        }
+      headers:
+        Content-Type: 'application/json'
+
+# Response validation
+assertions:
+  - 'status == 200'
+  - 'response_time < 5000'

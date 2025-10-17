@@ -131,10 +131,7 @@ fn print_system_check_report(report: &validation::ValidationReport, production_m
             _ => "Other",
         };
 
-        categories
-            .entry(category)
-            .or_insert_with(Vec::new)
-            .push(check);
+        categories.entry(category).or_default().push(check);
     }
 
     // Print checks grouped by category

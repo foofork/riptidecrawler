@@ -80,7 +80,8 @@ pub struct MetricsManager {
     /// Metrics aggregator
     aggregator: Arc<RwLock<MetricsAggregator>>,
 
-    /// Configuration
+    /// Configuration (stored for potential future use)
+    #[allow(dead_code)]
     config: MetricsStorageConfig,
 }
 

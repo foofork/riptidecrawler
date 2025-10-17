@@ -247,13 +247,5 @@ pub struct ProcessedContent {
     pub metrics: Option<PerformanceMetrics>,
 }
 
-/// Core extracted content structure
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExtractedContent {
-    pub title: String,
-    pub content: String,
-    pub summary: Option<String>,
-    pub url: String,
-    pub strategy_used: String,
-    pub extraction_confidence: f64,
-}
+// Re-export ExtractedContent from riptide-types
+pub use riptide_types::ExtractedContent;
