@@ -6582,6 +6582,7 @@ dependencies = [
  "riptide-types",
  "serde",
  "serde_json",
+ "spider_chrome",
  "thiserror 1.0.69",
  "tokio",
  "tokio-test",

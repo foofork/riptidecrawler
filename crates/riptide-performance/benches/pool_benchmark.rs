@@ -68,7 +68,6 @@ fn benchmark_throughput_by_pool_size(c: &mut Criterion) {
             BenchmarkId::new("concurrent_requests", pool_size),
             pool_size,
             |b, &size| {
-
                 b.iter(|| async {
                     let pool = std::sync::Arc::new(MockBrowserPool::new(size));
 
@@ -154,7 +153,6 @@ fn benchmark_response_time(c: &mut Criterion) {
             BenchmarkId::new("p50_latency", pool_size),
             pool_size,
             |b, &size| {
-                
                 b.iter(|| async {
                     let pool = MockBrowserPool::new(size);
                     let start = std::time::Instant::now();

@@ -285,17 +285,15 @@ impl CdpConnectionPool {
     }
 
     /// Batch a CDP command
-    pub async fn batch_command(
-        &self,
-        browser_id: &str,
-        command: CdpCommand,
-    ) -> Result<()> {
+    pub async fn batch_command(&self, browser_id: &str, command: CdpCommand) -> Result<()> {
         if !self.config.enable_batching {
             return Ok(());
         }
 
         let mut queues = self.batch_queues.lock().await;
-        let queue = queues.entry(browser_id.to_string()).or_insert_with(Vec::new);
+        let queue = queues
+            .entry(browser_id.to_string())
+            .or_insert_with(Vec::new);
         queue.push(command);
 
         // Check if batch is ready to send

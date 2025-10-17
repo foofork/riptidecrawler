@@ -12,7 +12,7 @@ use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
 
 // Use browser abstraction layer
-use riptide_browser_abstraction::{BrowserEngine, PageHandle, NavigateParams};
+use riptide_browser_abstraction::{BrowserEngine, NavigateParams, PageHandle};
 
 /// Fallback metrics for monitoring spider-chrome adoption
 #[derive(Debug, Clone, Default)]
@@ -232,10 +232,7 @@ impl HybridBrowserFallback {
             .context("Navigation timeout")?;
 
         // Get HTML content
-        let html = page
-            .content()
-            .await
-            .context("Failed to get page content")?;
+        let html = page.content().await.context("Failed to get page content")?;
 
         // Update metrics
         {

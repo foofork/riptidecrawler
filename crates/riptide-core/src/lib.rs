@@ -96,11 +96,23 @@ pub mod benchmarks;
 // Re-export from riptide-config and common
 pub use common::{
     // Config and validation are now from riptide-config (re-exported through common)
-    BuilderError, BuilderResult, CommonValidator, ConfigBuilder, ConfigValidator,
-    ContentTypeValidator, DefaultConfigBuilder, ParameterValidator, SizeValidator,
-    UrlValidator, ValidationConfig, ValidationResult,
+    BuilderError,
+    BuilderResult,
+    CommonValidator,
+    ConfigBuilder,
+    ConfigValidator,
+    ContentTypeValidator,
     // Error conversions remain in common
-    CoreErrorConverter, ErrorPatterns, IntoCore, WithErrorContext,
+    CoreErrorConverter,
+    DefaultConfigBuilder,
+    ErrorPatterns,
+    IntoCore,
+    ParameterValidator,
+    SizeValidator,
+    UrlValidator,
+    ValidationConfig,
+    ValidationResult,
+    WithErrorContext,
 };
 
 // Alias for backward compatibility

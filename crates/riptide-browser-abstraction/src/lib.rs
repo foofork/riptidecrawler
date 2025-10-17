@@ -26,19 +26,35 @@
 //! # }
 //! ```
 
-mod chromiumoxide_impl;
+// Modules
 mod traits;
-// #[cfg(feature = "spider")]
-// mod spider_impl;  // Disabled - see ADR-006 for incompatibility details
 mod error;
-mod factory;
 mod params;
 
-pub use chromiumoxide_impl::{ChromiumoxideEngine, ChromiumoxidePage};
+// Conditional compilation to avoid chromiumoxide name collision
+// spider_chrome exports its library as "chromiumoxide", which conflicts with standard chromiumoxide
+// Solution: Only compile one implementation at a time
+#[cfg(not(feature = "spider"))]
+mod chromiumoxide_impl;
+#[cfg(not(feature = "spider"))]
+mod factory;
+
+#[cfg(feature = "spider")]
+mod spider_impl;
+
+// Public exports
 pub use error::{AbstractionError, AbstractionResult};
-pub use factory::create_engine;
 pub use params::{NavigateParams, PdfParams, ScreenshotFormat, ScreenshotParams, WaitUntil};
 pub use traits::{BrowserEngine, EngineType, PageHandle};
+
+// Engine-specific exports
+#[cfg(not(feature = "spider"))]
+pub use chromiumoxide_impl::{ChromiumoxideEngine, ChromiumoxidePage};
+#[cfg(not(feature = "spider"))]
+pub use factory::create_engine;
+
+#[cfg(feature = "spider")]
+pub use spider_impl::{SpiderChromeEngine, SpiderChromePage};
 
 #[cfg(test)]
 mod tests;

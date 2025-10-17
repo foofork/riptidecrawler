@@ -33,62 +33,62 @@ fn test_pdf_params_default() {
     assert_eq!(params.paper_height, Some(11.0));
 }
 
-    #[test]
-    fn test_navigate_params_default() {
-        let params = NavigateParams::default();
-        assert_eq!(params.timeout_ms, 30000);
-        assert!(params.referer.is_none());
-    }
+#[test]
+fn test_navigate_params_default() {
+    let params = NavigateParams::default();
+    assert_eq!(params.timeout_ms, 30000);
+    assert!(params.referer.is_none());
+}
 
-    #[test]
-    fn test_screenshot_format_variants() {
-        let png = ScreenshotFormat::Png;
-        let jpeg = ScreenshotFormat::Jpeg;
+#[test]
+fn test_screenshot_format_variants() {
+    let png = ScreenshotFormat::Png;
+    let jpeg = ScreenshotFormat::Jpeg;
 
-        assert_eq!(format!("{:?}", png), "Png");
-        assert_eq!(format!("{:?}", jpeg), "Jpeg");
-    }
+    assert_eq!(format!("{:?}", png), "Png");
+    assert_eq!(format!("{:?}", jpeg), "Jpeg");
+}
 
-    #[test]
-    fn test_wait_until_variants() {
-        use crate::params::WaitUntil;
+#[test]
+fn test_wait_until_variants() {
+    use crate::params::WaitUntil;
 
-        let load = WaitUntil::Load;
-        let dom = WaitUntil::DOMContentLoaded;
-        let idle = WaitUntil::NetworkIdle;
+    let load = WaitUntil::Load;
+    let dom = WaitUntil::DOMContentLoaded;
+    let idle = WaitUntil::NetworkIdle;
 
-        assert_eq!(format!("{:?}", load), "Load");
-        assert_eq!(format!("{:?}", dom), "DOMContentLoaded");
-        assert_eq!(format!("{:?}", idle), "NetworkIdle");
-    }
+    assert_eq!(format!("{:?}", load), "Load");
+    assert_eq!(format!("{:?}", dom), "DOMContentLoaded");
+    assert_eq!(format!("{:?}", idle), "NetworkIdle");
+}
 
-    #[test]
-    fn test_error_types() {
-        let err = AbstractionError::PageCreation("test".to_string());
-        assert_eq!(err.to_string(), "Failed to create page: test");
+#[test]
+fn test_error_types() {
+    let err = AbstractionError::PageCreation("test".to_string());
+    assert_eq!(err.to_string(), "Failed to create page: test");
 
-        let err = AbstractionError::Navigation("test".to_string());
-        assert_eq!(err.to_string(), "Failed to navigate: test");
+    let err = AbstractionError::Navigation("test".to_string());
+    assert_eq!(err.to_string(), "Failed to navigate: test");
 
-        let err = AbstractionError::Unsupported("test".to_string());
-        assert_eq!(err.to_string(), "Operation not supported: test");
-    }
+    let err = AbstractionError::Unsupported("test".to_string());
+    assert_eq!(err.to_string(), "Operation not supported: test");
+}
 
-    #[test]
-    fn test_custom_screenshot_params() {
-        let params = ScreenshotParams {
-            full_page: true,
-            format: ScreenshotFormat::Jpeg,
-            quality: Some(90),
-            viewport_only: true,
-        };
+#[test]
+fn test_custom_screenshot_params() {
+    let params = ScreenshotParams {
+        full_page: true,
+        format: ScreenshotFormat::Jpeg,
+        quality: Some(90),
+        viewport_only: true,
+    };
 
-        assert!(params.full_page);
-        assert_eq!(params.quality, Some(90));
-        assert!(params.viewport_only);
-    }
+    assert!(params.full_page);
+    assert_eq!(params.quality, Some(90));
+    assert!(params.viewport_only);
+}
 
-    #[test]
+#[test]
 fn test_custom_pdf_params() {
     let params = PdfParams {
         print_background: false,

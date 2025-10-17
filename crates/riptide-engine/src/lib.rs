@@ -69,18 +69,15 @@ pub mod hybrid_fallback;
 
 // Re-export browser abstraction types
 pub use riptide_browser_abstraction::{
-    BrowserEngine as AbstractBrowserEngine,
-    PageHandle,
-    NavigateParams,
-    EngineType
+    BrowserEngine as AbstractBrowserEngine, EngineType, NavigateParams, PageHandle,
 };
 
 // Factory functions for wrapping chromiumoxide instances
 #[cfg(feature = "headless")]
 pub mod factory {
     use chromiumoxide::{Browser, Page};
-    use riptide_browser_abstraction::{BrowserEngine, PageHandle};
     use riptide_browser_abstraction::chromiumoxide_impl::{ChromiumoxideEngine, ChromiumoxidePage};
+    use riptide_browser_abstraction::{BrowserEngine, PageHandle};
 
     /// Wrap a chromiumoxide Browser in the BrowserEngine trait
     pub fn wrap_browser(browser: Browser) -> Box<dyn BrowserEngine> {
@@ -94,14 +91,14 @@ pub mod factory {
 }
 
 // Re-export main public API
-pub use pool::{BrowserCheckout, BrowserPool, BrowserPoolConfig, PoolStats, PoolEvent};
-pub use cdp_pool::{CdpConnectionPool, CdpPoolConfig, ConnectionStats, ConnectionHealth, PooledConnection, CdpCommand};
+pub use cdp_pool::{
+    CdpCommand, CdpConnectionPool, CdpPoolConfig, ConnectionHealth, ConnectionStats,
+    PooledConnection,
+};
 pub use launcher::{HeadlessLauncher, LaunchSession, LauncherConfig, LauncherStats};
+pub use pool::{BrowserCheckout, BrowserPool, BrowserPoolConfig, PoolEvent, PoolStats};
 
 #[cfg(feature = "headless")]
 pub use hybrid_fallback::{
-    BrowserEngine as FallbackBrowserEngine,
-    BrowserResponse,
-    FallbackMetrics,
-    HybridBrowserFallback,
+    BrowserEngine as FallbackBrowserEngine, BrowserResponse, FallbackMetrics, HybridBrowserFallback,
 };

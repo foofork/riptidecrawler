@@ -13,11 +13,10 @@ tracing = "0.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
-# Browser engines
-chromiumoxide = { workspace = true }
-# spider_chrome = { workspace = true, optional = true }
-# NOTE: spider_chrome disabled due to chromiumoxide version conflict
-# This is the exact incompatibility we're documenting in ADR-006
+# Browser engines - mutually exclusive to avoid name collision
+# spider_chrome exports its library as "chromiumoxide", which conflicts with standard chromiumoxide
+chromiumoxide = { workspace = true, optional = true }
+spider_chrome = { workspace = true, optional = true }
 
 # Internal dependencies
 riptide-types = { path = "../riptide-types" }
@@ -26,5 +25,5 @@ riptide-types = { path = "../riptide-types" }
 tokio-test = "0.4"
 
 [features]
-default = []
-# spider = ["spider_chrome"]  # Disabled - see ADR-006
+default = ["chromiumoxide"]  # Use standard chromiumoxide by default
+spider = ["spider_chrome"]    # Use spider-chrome (exports as chromiumoxide)

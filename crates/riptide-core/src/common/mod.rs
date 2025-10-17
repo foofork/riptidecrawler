@@ -13,8 +13,8 @@ pub mod error_conversions;
 // Re-export from riptide-config for backward compatibility
 pub use riptide_config::{
     BuilderError, BuilderResult, CommonValidator, ConfigBuilder, ConfigValidator,
-    ContentTypeValidator, DefaultConfigBuilder, ParameterValidator, SizeValidator,
-    UrlValidator, ValidationConfig, ValidationResult,
+    ContentTypeValidator, DefaultConfigBuilder, ParameterValidator, SizeValidator, UrlValidator,
+    ValidationConfig, ValidationResult,
 };
 
 // Re-export error conversion utilities

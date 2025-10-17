@@ -33,15 +33,13 @@ mod validation;
 
 // Re-export main types
 pub use builder::{
-    BuilderError, BuilderResult, ConfigBuilder, ConfigValidator, ConfigValue,
-    DefaultConfigBuilder, ValidationPatterns,
+    BuilderError, BuilderResult, ConfigBuilder, ConfigValidator, ConfigValue, DefaultConfigBuilder,
+    ValidationPatterns,
 };
 
 pub use env::{load_from_env, EnvConfigLoader, EnvError};
 
-pub use spider::{
-    PerformanceConfig, SpiderConfig, SpiderPresets, UrlProcessingConfig,
-};
+pub use spider::{PerformanceConfig, SpiderConfig, SpiderPresets, UrlProcessingConfig};
 
 pub use validation::{
     CommonValidator, ContentTypeValidator, ParameterValidator, SizeValidator, UrlValidator,

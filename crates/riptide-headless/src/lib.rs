@@ -35,14 +35,24 @@
 
 // Re-export core engine components from riptide-engine
 pub use riptide_engine::{
-    // Browser pool
-    BrowserPool, BrowserPoolConfig, BrowserCheckout, PoolStats, PoolEvent,
-    // CDP connection pool
-    CdpConnectionPool, CdpPoolConfig, ConnectionStats, ConnectionHealth,
-    // Launcher
-    HeadlessLauncher, LaunchSession, LauncherConfig, LauncherStats,
     // Models
     models,
+    BrowserCheckout,
+    // Browser pool
+    BrowserPool,
+    BrowserPoolConfig,
+    // CDP connection pool
+    CdpConnectionPool,
+    CdpPoolConfig,
+    ConnectionHealth,
+    ConnectionStats,
+    // Launcher
+    HeadlessLauncher,
+    LaunchSession,
+    LauncherConfig,
+    LauncherStats,
+    PoolEvent,
+    PoolStats,
 };
 
 #[cfg(feature = "headless")]
@@ -59,14 +69,19 @@ pub mod pool {
     //! Browser pool module - MOVED to riptide-engine
     //!
     //! This module re-exports types from `riptide-engine` for backward compatibility.
-    pub use riptide_engine::{BrowserPool, BrowserPoolConfig, BrowserCheckout, PoolStats, PoolEvent};
+    pub use riptide_engine::{
+        BrowserCheckout, BrowserPool, BrowserPoolConfig, PoolEvent, PoolStats,
+    };
 }
 
 pub mod cdp_pool {
     //! CDP connection pool module - MOVED to riptide-engine
     //!
     //! This module re-exports types from `riptide-engine` for backward compatibility.
-    pub use riptide_engine::{CdpConnectionPool, CdpPoolConfig, ConnectionStats, ConnectionHealth, PooledConnection, CdpCommand};
+    pub use riptide_engine::{
+        CdpCommand, CdpConnectionPool, CdpPoolConfig, ConnectionHealth, ConnectionStats,
+        PooledConnection,
+    };
 }
 
 pub mod launcher {
@@ -85,5 +100,7 @@ pub mod hybrid_fallback {
     //! Hybrid engine fallback module - MOVED to riptide-engine
     //!
     //! This module re-exports types from `riptide-engine` for backward compatibility.
-    pub use riptide_engine::hybrid_fallback::{BrowserEngine, BrowserResponse, FallbackMetrics, HybridBrowserFallback};
+    pub use riptide_engine::hybrid_fallback::{
+        BrowserEngine, BrowserResponse, FallbackMetrics, HybridBrowserFallback,
+    };
 }

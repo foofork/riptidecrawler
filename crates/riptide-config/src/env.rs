@@ -61,22 +61,23 @@ impl EnvConfigLoader {
     pub fn get(&self, var: &str) -> Result<String, EnvError> {
         let full_var = self.make_var_name(var);
 
-        env::var(&full_var)
-            .or_else(|_| {
-                // Check default
-                self.defaults
-                    .get(var)
-                    .cloned()
-                    .ok_or_else(|| EnvError::NotFound {
-                        var: full_var.clone(),
-                    })
-            })
+        env::var(&full_var).or_else(|_| {
+            // Check default
+            self.defaults
+                .get(var)
+                .cloned()
+                .ok_or_else(|| EnvError::NotFound {
+                    var: full_var.clone(),
+                })
+        })
     }
 
     /// Get optional environment variable
     pub fn get_optional(&self, var: &str) -> Option<String> {
         let full_var = self.make_var_name(var);
-        env::var(&full_var).ok().or_else(|| self.defaults.get(var).cloned())
+        env::var(&full_var)
+            .ok()
+            .or_else(|| self.defaults.get(var).cloned())
     }
 
     /// Get environment variable as integer
@@ -231,10 +232,7 @@ where
 }
 
 /// Load specific environment variables into a builder
-pub fn load_vars_into_builder<T>(
-    builder: &mut T,
-    vars: &[(&str, &str)],
-) -> Result<(), EnvError>
+pub fn load_vars_into_builder<T>(builder: &mut T, vars: &[(&str, &str)]) -> Result<(), EnvError>
 where
     T: crate::builder::ConfigBuilder<T>,
 {
@@ -260,7 +258,10 @@ mod tests {
         assert_eq!(loader.get("VALUE").unwrap(), "123");
         assert_eq!(loader.get_int("VALUE").unwrap(), 123);
         assert!(loader.get_bool("BOOL").unwrap());
-        assert_eq!(loader.get_duration("DURATION").unwrap(), Duration::from_secs(30));
+        assert_eq!(
+            loader.get_duration("DURATION").unwrap(),
+            Duration::from_secs(30)
+        );
 
         env::remove_var("TEST_VALUE");
         env::remove_var("TEST_BOOL");

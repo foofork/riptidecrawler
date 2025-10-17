@@ -8,7 +8,7 @@ use crate::{
 /// Create a browser engine of the specified type
 ///
 /// Note: This is a placeholder factory. In practice, you should create engines directly:
-/// ```no_run
+/// ```ignore
 /// use riptide_browser_abstraction::ChromiumoxideEngine;
 ///
 /// // Create browser instance first

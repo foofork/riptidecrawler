@@ -9,10 +9,9 @@ use serde::{Deserialize, Serialize};
 pub enum EngineType {
     /// Standard chromiumoxide engine
     Chromiumoxide,
-    // Spider-chrome engine with enhanced stealth (not yet implemented due to type conflicts)
-    // See ADR-006 for details on the incompatibility
-    // #[cfg(feature = "spider")]
-    // SpiderChrome,
+    /// Spider-chrome engine with enhanced stealth
+    #[cfg(feature = "spider")]
+    SpiderChrome,
 }
 
 /// Unified browser engine interface
