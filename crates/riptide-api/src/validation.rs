@@ -1,6 +1,6 @@
 use crate::errors::{ApiError, ApiResult};
 use crate::models::{CrawlBody, DeepSearchBody};
-use riptide_core::common::validation::CommonValidator;
+use riptide_core::common::CommonValidator;
 
 /// Maximum number of URLs allowed in a single crawl request
 const MAX_URLS_PER_REQUEST: usize = 100;

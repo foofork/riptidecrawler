@@ -209,6 +209,7 @@ impl ResourceManager {
         //   - Sidecar process: Over-engineering for current scale
         // MITIGATION: Feature-gate for optional headless support if needed
         // MONITORING: Track chromiumoxide updates for Tokio migration
+        // Using chromiumoxide v0.7 directly to match riptide-engine/pool
         let browser_config = chromiumoxide::BrowserConfig::builder()
             .with_head()
             .no_sandbox()

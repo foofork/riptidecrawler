@@ -8,10 +8,6 @@ license = "Apache-2.0"
 name = "riptide_headless"
 path = "src/lib.rs"
 
-[[bin]]
-name = "riptide-headless"
-path = "src/main.rs"
-
 [dependencies]
 anyhow = { workspace = true }
 axum = { workspace = true }

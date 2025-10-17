@@ -1,5 +1,10 @@
 /**
- * Health command implementation
+ * Health command implementation with tiered health checks (QW-2)
+ *
+ * Implements three tiers of health checks:
+ * - Fast check (2s): Liveness check for basic availability
+ * - Full check (15s): Detailed health diagnostics with all components
+ * - On-error check (500ms): Immediate verification after errors
  */
 
 import chalk from 'chalk';
@@ -14,7 +19,10 @@ export async function healthCommand(options, command) {
     return watchHealth(globalOpts, options);
   }
 
-  const spinner = ora('Checking health...').start();
+  // QW-2: Determine health check mode
+  const mode = options.mode || 'fast';
+  const timeoutMs = getTimeoutForMode(mode);
+  const spinner = ora(`Checking health (${mode} mode, ${timeoutMs}ms)...`).start();
 
   try {
     const client = new RipTideClient({
@@ -22,7 +30,7 @@ export async function healthCommand(options, command) {
       apiKey: globalOpts.apiKey
     });
 
-    const health = await client.health();
+    const health = await performHealthCheck(client, mode, timeoutMs);
 
     spinner.stop();
 
@@ -30,6 +38,7 @@ export async function healthCommand(options, command) {
       console.log(formatJSON(health));
     } else {
       console.log(formatHealth(health));
+      console.log(chalk.gray(`\nHealth check mode: ${mode} (${timeoutMs}ms timeout)`));
     }
 
     // Exit code based on health
@@ -40,6 +49,51 @@ export async function healthCommand(options, command) {
   } catch (error) {
     spinner.fail(chalk.red('Health check failed'));
     throw error;
+  }
+}
+
+/**
+ * QW-2: Get timeout for health check mode
+ */
+function getTimeoutForMode(mode) {
+  switch (mode) {
+    case 'fast':
+      return 2000; // 2s for liveness check
+    case 'full':
+      return 15000; // 15s for detailed diagnostics
+    case 'on-error':
+      return 500; // 500ms for immediate verification
+    default:
+      return 2000; // Default to fast mode
+  }
+}
+
+/**
+ * QW-2: Perform health check based on mode
+ */
+async function performHealthCheck(client, mode, timeoutMs) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    switch (mode) {
+      case 'fast':
+        // Fast liveness check - just verify endpoint is responsive
+        return await client.health({ signal: controller.signal, minimal: true });
+
+      case 'full':
+        // Full detailed health check with all components
+        return await client.health({ signal: controller.signal, detailed: true });
+
+      case 'on-error':
+        // On-error verification - quick check of critical components only
+        return await client.health({ signal: controller.signal, critical: true });
+
+      default:
+        return await client.health({ signal: controller.signal });
+    }
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

@@ -91,6 +91,10 @@ pub struct MemoryConfig {
     pub max_memory_per_request_mb: usize,
     /// Global memory limit (MB)
     pub global_memory_limit_mb: usize,
+    /// Memory soft limit - trigger warnings (MB) (QW-3)
+    pub memory_soft_limit_mb: usize,
+    /// Memory hard limit - reject requests (MB) (QW-3)
+    pub memory_hard_limit_mb: usize,
     /// Memory pressure detection threshold (0.0-1.0)
     pub pressure_threshold: f64,
     /// Enable automatic garbage collection
@@ -101,12 +105,14 @@ pub struct MemoryConfig {
     pub monitoring_interval_secs: u64,
     /// Enable memory leak detection
     pub enable_leak_detection: bool,
+    /// Enable proactive memory monitoring (QW-3)
+    pub enable_proactive_monitoring: bool,
 }
 
 /// Headless browser configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HeadlessConfig {
-    /// Maximum browser pool size (3 cap requirement)
+    /// Maximum browser pool size (QW-1: increased to 20 for better scaling)
     pub max_pool_size: usize,
     /// Minimum browser pool size
     pub min_pool_size: usize,
@@ -226,11 +232,14 @@ impl Default for MemoryConfig {
         Self {
             max_memory_per_request_mb: 256,
             global_memory_limit_mb: 2048,
+            memory_soft_limit_mb: 400,  // QW-3: Trigger warnings at 400MB
+            memory_hard_limit_mb: 500,  // QW-3: Reject requests at 500MB
             pressure_threshold: 0.85, // 85% memory usage
             auto_gc: true,
             gc_trigger_threshold_mb: 1024,
             monitoring_interval_secs: 30,
             enable_leak_detection: true,
+            enable_proactive_monitoring: true, // QW-3: Enable proactive monitoring
         }
     }
 }
@@ -238,7 +247,7 @@ impl Default for MemoryConfig {
 impl Default for HeadlessConfig {
     fn default() -> Self {
         Self {
-            max_pool_size: 3, // Requirement: pool cap = 3
+            max_pool_size: 20, // QW-1: Increased from 3 to 20 for better scaling and performance
             min_pool_size: 1,
             idle_timeout_secs: 300, // 5 minutes
             health_check_interval_secs: 60,

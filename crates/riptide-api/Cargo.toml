@@ -50,10 +50,12 @@ riptide-stealth = { path = "../riptide-stealth", features = ["stealth"] }
 riptide-extraction = { path = "../riptide-extraction" }
 riptide-intelligence = { path = "../riptide-intelligence" }
 riptide-workers = { path = "../riptide-workers" }
+riptide-engine = { path = "../riptide-engine" }
 riptide-headless = { path = "../riptide-headless" }
 riptide-search = { path = "../riptide-search" }
 riptide-performance = { path = "../riptide-performance" }
 riptide-persistence = { path = "../riptide-persistence" }
+chromiumoxide = "0.7"  # Must match version used by riptide-engine/pool
 spider_chrome = { workspace = true }
 wasmtime = { workspace = true }
 axum-prometheus = "0.7"

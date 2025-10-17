@@ -5,8 +5,8 @@
 # Minimum number of browsers to keep in pool
 min_pool_size = 2
 
-# Maximum number of browsers in pool
-max_pool_size = 5
+# Maximum number of browsers in pool (QW-1: increased from 5 to 20 for better scaling)
+max_pool_size = 20
 
 # Initial pool size on startup
 initial_pool_size = 3
