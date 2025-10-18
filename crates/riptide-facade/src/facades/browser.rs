@@ -8,10 +8,11 @@
 //! - JavaScript execution
 //! - Browser actions (click, type, wait, scroll)
 //! - Cookie and storage management
-//! - Stealth features for anti-detection
+//! - Stealth features for anti-detection via HybridHeadlessLauncher
 
 use crate::{config::RiptideConfig, error::RiptideResult, RiptideError};
-use riptide_engine::{HeadlessLauncher, LaunchSession};
+use riptide_headless_hybrid::{HybridHeadlessLauncher, LaunchSession, LauncherConfig};
+use riptide_stealth::StealthPreset;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use url::Url;
@@ -19,9 +20,10 @@ use url::Url;
 /// Browser facade providing simplified headless browser automation.
 ///
 /// This facade integrates multiple Riptide components:
+/// - `riptide-headless-hybrid`: Hybrid launcher with spider-chrome and stealth
 /// - `riptide-engine`: CDP protocol and browser pool management
 /// - `riptide-headless`: Browser lifecycle and session management
-/// - `riptide-stealth`: Anti-detection features (optional)
+/// - `riptide-stealth`: Anti-detection features (enabled by default)
 ///
 /// # Example
 ///
@@ -48,7 +50,7 @@ use url::Url;
 #[derive(Clone)]
 pub struct BrowserFacade {
     config: Arc<RiptideConfig>,
-    launcher: Arc<HeadlessLauncher>,
+    launcher: Arc<HybridHeadlessLauncher>,
 }
 
 /// A managed browser session with automatic resource cleanup.
@@ -210,10 +212,29 @@ impl BrowserFacade {
     /// # }
     /// ```
     pub async fn new(config: RiptideConfig) -> RiptideResult<Self> {
-        // Initialize the headless launcher with browser pool
-        let launcher = HeadlessLauncher::new().await.map_err(|e| {
-            RiptideError::config(format!("Failed to initialize browser launcher: {}", e))
-        })?;
+        // Parse stealth preset from config
+        let stealth_preset = match config.stealth_preset.to_lowercase().as_str() {
+            "none" => StealthPreset::None,
+            "low" => StealthPreset::Low,
+            "medium" => StealthPreset::Medium,
+            "high" => StealthPreset::High,
+            _ => StealthPreset::Medium, // Default to Medium
+        };
+
+        // Build launcher config from RiptideConfig
+        let launcher_config = LauncherConfig {
+            enable_stealth: config.stealth_enabled,
+            default_stealth_preset: stealth_preset,
+            page_timeout: config.timeout,
+            ..Default::default()
+        };
+
+        // Initialize the hybrid headless launcher
+        let launcher = HybridHeadlessLauncher::with_config(launcher_config)
+            .await
+            .map_err(|e| {
+                RiptideError::config(format!("Failed to initialize hybrid launcher: {}", e))
+            })?;
 
         Ok(Self {
             config: Arc::new(config),
@@ -244,9 +265,22 @@ impl BrowserFacade {
     /// # }
     /// ```
     pub async fn launch(&self) -> RiptideResult<BrowserSession<'_>> {
+        // Determine stealth preset from config
+        let stealth_preset = if self.config.stealth_enabled {
+            Some(match self.config.stealth_preset.to_lowercase().as_str() {
+                "none" => StealthPreset::None,
+                "low" => StealthPreset::Low,
+                "medium" => StealthPreset::Medium,
+                "high" => StealthPreset::High,
+                _ => StealthPreset::Medium,
+            })
+        } else {
+            Some(StealthPreset::None)
+        };
+
         let session = self
             .launcher
-            .launch_page("about:blank", None)
+            .launch_page("about:blank", stealth_preset)
             .await
             .map_err(|e| RiptideError::config(format!("Failed to launch browser: {}", e)))?;
 
@@ -281,7 +315,7 @@ impl BrowserFacade {
 
         session
             .session
-            .page()
+            .page
             .goto(url)
             .await
             .map_err(|e| RiptideError::Fetch(format!("Navigation failed: {}", e)))?;
@@ -327,7 +361,7 @@ impl BrowserFacade {
             CaptureScreenshotFormat, CaptureScreenshotParams,
         };
 
-        let page = session.session.page();
+        let page = &session.session.page;
 
         // Build screenshot parameters
         let params = CaptureScreenshotParams {
@@ -381,7 +415,7 @@ impl BrowserFacade {
         session: &BrowserSession<'_>,
         script: &str,
     ) -> RiptideResult<serde_json::Value> {
-        let page = session.session.page();
+        let page = &session.session.page;
 
         let result = page
             .evaluate(script)
@@ -423,7 +457,7 @@ impl BrowserFacade {
     /// # }
     /// ```
     pub async fn get_content(&self, session: &BrowserSession<'_>) -> RiptideResult<String> {
-        let page = session.session.page();
+        let page = &session.session.page;
 
         page.content()
             .await
@@ -489,7 +523,7 @@ impl BrowserFacade {
         session: &BrowserSession<'_>,
         actions: &[BrowserAction],
     ) -> RiptideResult<()> {
-        let page = session.session.page();
+        let page = &session.session.page;
 
         for action in actions {
             match action {
@@ -571,7 +605,7 @@ impl BrowserFacade {
     ///
     /// Returns an error if cookie retrieval fails.
     pub async fn get_cookies(&self, session: &BrowserSession<'_>) -> RiptideResult<Vec<Cookie>> {
-        let page = session.session.page();
+        let page = &session.session.page;
 
         let cookies = page
             .get_cookies()
@@ -610,7 +644,7 @@ impl BrowserFacade {
     ) -> RiptideResult<()> {
         use chromiumoxide_cdp::cdp::browser_protocol::network::{CookieParam, SetCookiesParams};
 
-        let page = session.session.page();
+        let page = &session.session.page;
 
         let cookie_params: Vec<CookieParam> = cookies
             .iter()
@@ -842,5 +876,104 @@ mod tests {
         assert!(content.contains("<html"));
 
         facade.close(session).await.unwrap();
+    }
+
+    // P1-C1 Week 2: Test stealth enabled by default
+    #[tokio::test]
+    async fn test_browser_stealth_enabled() {
+        let config = RiptideConfig::default();
+        assert!(
+            config.stealth_enabled,
+            "Stealth should be enabled by default"
+        );
+        assert_eq!(
+            config.stealth_preset, "Medium",
+            "Default preset should be Medium"
+        );
+
+        let facade = BrowserFacade::new(config).await.unwrap();
+        assert!(facade.config().stealth_enabled);
+    }
+
+    // P1-C1 Week 2: Test stealth configuration options
+    #[tokio::test]
+    async fn test_browser_stealth_config() {
+        let config = RiptideConfig::default()
+            .with_stealth_enabled(false)
+            .with_stealth_preset("High");
+
+        let facade = BrowserFacade::new(config).await.unwrap();
+        assert!(!facade.config().stealth_enabled);
+        assert_eq!(facade.config().stealth_preset, "High");
+    }
+
+    // P1-C1 Week 2: Test hybrid launcher stats access
+    #[tokio::test]
+    async fn test_browser_hybrid_launcher_stats() {
+        let config = RiptideConfig::default().with_stealth_enabled(false);
+        let facade = BrowserFacade::new(config).await.unwrap();
+
+        let stats = facade.stats().await.unwrap();
+        assert!(!stats.is_empty());
+        // Stats should contain launcher statistics
+        assert!(stats.contains("total_requests") || stats.contains("LauncherStats"));
+    }
+
+    // P1-C1 Week 2: Test multi-session support
+    #[tokio::test]
+    #[ignore]
+    async fn test_browser_multi_session() {
+        let config = RiptideConfig::default().with_stealth_preset("Low");
+        let facade = BrowserFacade::new(config).await.unwrap();
+
+        // Launch multiple sessions concurrently
+        let session1 = facade.launch().await.unwrap();
+        let session2 = facade.launch().await.unwrap();
+
+        // Both sessions should be independent
+        facade
+            .navigate(&session1, "https://example.com")
+            .await
+            .unwrap();
+        facade
+            .navigate(&session2, "https://example.org")
+            .await
+            .unwrap();
+
+        let content1 = facade.get_content(&session1).await.unwrap();
+        let content2 = facade.get_content(&session2).await.unwrap();
+
+        assert!(!content1.is_empty());
+        assert!(!content2.is_empty());
+
+        // Different pages should have different content
+        assert_ne!(content1, content2);
+
+        facade.close(session1).await.unwrap();
+        facade.close(session2).await.unwrap();
+    }
+
+    // P1-C1 Week 2: Test backward compatibility
+    #[tokio::test]
+    async fn test_browser_backward_compatibility() {
+        // Old code without stealth config should still work
+        let config = RiptideConfig::default();
+        let facade = BrowserFacade::new(config).await;
+        assert!(
+            facade.is_ok(),
+            "BrowserFacade creation should remain backward compatible"
+        );
+    }
+
+    // P1-C1 Week 2: Test stealth presets
+    #[tokio::test]
+    async fn test_browser_stealth_presets() {
+        let presets = vec!["None", "Low", "Medium", "High"];
+
+        for preset in presets {
+            let config = RiptideConfig::default().with_stealth_preset(preset);
+            let facade = BrowserFacade::new(config).await;
+            assert!(facade.is_ok(), "Facade should accept {} preset", preset);
+        }
     }
 }

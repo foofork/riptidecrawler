@@ -23,6 +23,18 @@ pub struct RiptideConfig {
 
     /// Maximum response body size in bytes
     pub max_body_size: usize,
+
+    /// Enable stealth features (default: true)
+    #[serde(default = "default_stealth_enabled")]
+    pub stealth_enabled: bool,
+
+    /// Stealth preset level (None, Low, Medium, High)
+    #[serde(default)]
+    pub stealth_preset: String,
+}
+
+fn default_stealth_enabled() -> bool {
+    true
 }
 
 impl Default for RiptideConfig {
@@ -34,6 +46,8 @@ impl Default for RiptideConfig {
             verify_ssl: true,
             headers: Vec::new(),
             max_body_size: 10 * 1024 * 1024, // 10 MB
+            stealth_enabled: true,
+            stealth_preset: "Medium".to_string(),
         }
     }
 }
@@ -77,6 +91,18 @@ impl RiptideConfig {
     /// Set the maximum response body size.
     pub fn with_max_body_size(mut self, max_body_size: usize) -> Self {
         self.max_body_size = max_body_size;
+        self
+    }
+
+    /// Set whether to enable stealth features.
+    pub fn with_stealth_enabled(mut self, enabled: bool) -> Self {
+        self.stealth_enabled = enabled;
+        self
+    }
+
+    /// Set the stealth preset level.
+    pub fn with_stealth_preset(mut self, preset: impl Into<String>) -> Self {
+        self.stealth_preset = preset.into();
         self
     }
 

@@ -14,7 +14,8 @@ riptide-pdf = { path = "../riptide-pdf" }
 riptide-cache = { path = "../riptide-cache" }
 riptide-headless = { path = "../riptide-headless" }
 riptide-engine = { path = "../riptide-engine" }
-riptide-stealth = { path = "../riptide-stealth", optional = true }
+riptide-headless-hybrid = { path = "../riptide-headless-hybrid" }
+riptide-stealth = { path = "../riptide-stealth" }
 riptide-monitoring = { path = "../riptide-monitoring", optional = true }
 
 # Error handling
