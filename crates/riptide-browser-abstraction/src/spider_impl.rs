@@ -4,7 +4,7 @@
 use async_trait::async_trait;
 #[cfg(feature = "spider")]
 // Spider exports chromiumoxide types - use spider_chromiumoxide_cdp for consistency
-use spider_chromiumoxide_cdp::{Browser as SpiderBrowser, Page as SpiderPage};
+use chromiumoxide_cdp::{Browser as SpiderBrowser, Page as SpiderPage};
 #[cfg(feature = "spider")]
 use std::sync::Arc;
 #[cfg(feature = "spider")]

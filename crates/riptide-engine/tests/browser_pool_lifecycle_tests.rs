@@ -12,7 +12,7 @@
 //! - Error handling
 
 use anyhow::Result;
-use chromiumoxide::BrowserConfig;
+use chromiumoxide_cdp::BrowserConfig;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;

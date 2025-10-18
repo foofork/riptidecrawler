@@ -1,4 +1,4 @@
-use chromiumoxide::BrowserConfig;
+use chromiumoxide_cdp::BrowserConfig;
 use riptide_core::stealth::StealthPreset;
 use riptide_headless::{
     launcher::{HeadlessLauncher, LauncherConfig},

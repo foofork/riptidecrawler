@@ -9,8 +9,8 @@
 //! Target: 30% latency reduction through connection multiplexing
 
 use anyhow::{anyhow, Result};
-use spider_chromiumoxide_cdp::cdp::browser_protocol::target::SessionId;
-use spider_chromiumoxide_cdp::{Browser, Page};
+use chromiumoxide_cdp::cdp::browser_protocol::target::SessionId;
+use chromiumoxide_cdp::{Browser, Page};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};

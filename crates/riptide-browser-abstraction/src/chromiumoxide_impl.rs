@@ -1,7 +1,7 @@
 //! Chromiumoxide engine implementation (using spider_chromiumoxide_cdp)
 
 use async_trait::async_trait;
-use spider_chromiumoxide_cdp::{Browser, Page};
+use chromiumoxide_cdp::{Browser, Page};
 use std::sync::Arc;
 use tracing::{debug, warn};
 
@@ -128,10 +128,10 @@ impl PageHandle for ChromiumoxidePage {
     async fn screenshot(&self, _params: ScreenshotParams) -> AbstractionResult<Vec<u8>> {
         debug!("Taking screenshot with chromiumoxide");
 
-        // chromiumoxide 0.7.0 has limited screenshot parameter support
+        // chromiumoxide_cdp 0.7.4 has limited screenshot parameter support
         // The builder methods are private, so we use defaults
         self.page
-            .screenshot(chromiumoxide::page::ScreenshotParams::default())
+            .screenshot(chromiumoxide_cdp::page::ScreenshotParams::default())
             .await
             .map_err(|e| AbstractionError::Screenshot(e.to_string()))
     }

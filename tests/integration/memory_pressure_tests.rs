@@ -11,7 +11,7 @@
 #![cfg(feature = "headless")]
 
 use anyhow::Result;
-use chromiumoxide::BrowserConfig;
+use chromiumoxide_cdp::BrowserConfig;
 use riptide_headless::pool::{BrowserHealth, BrowserPool, BrowserPoolConfig};
 use std::sync::Arc;
 use std::time::Duration;
