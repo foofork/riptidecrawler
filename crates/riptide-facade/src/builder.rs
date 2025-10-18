@@ -175,6 +175,34 @@ impl RiptideBuilder {
         ScraperFacade::new(self.config).await
     }
 
+    /// Build a browser facade instance.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configuration is invalid or if browser initialization fails.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use riptide_facade::RiptideBuilder;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let browser = RiptideBuilder::new()
+    ///     .user_agent("MyBot/1.0")
+    ///     .build_browser()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn build_browser(self) -> RiptideResult<crate::facades::BrowserFacade> {
+        // Validate configuration
+        self.config.validate().map_err(RiptideError::config)?;
+
+        // Build the browser facade
+        crate::facades::BrowserFacade::new(self.config).await
+    }
+
     /// Get a reference to the current configuration.
     pub fn get_config(&self) -> &RiptideConfig {
         &self.config

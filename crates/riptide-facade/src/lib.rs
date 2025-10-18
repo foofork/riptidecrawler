@@ -40,7 +40,10 @@ pub mod prelude;
 pub use builder::RiptideBuilder;
 pub use config::RiptideConfig;
 pub use error::{RiptideError, RiptideResult};
-pub use facades::ScraperFacade;
+pub use facades::{
+    BrowserAction, BrowserFacade, BrowserSession, Cookie, ImageFormat, PipelineFacade,
+    ScraperFacade, ScreenshotOptions,
+};
 
 /// Main entry point for the Riptide facade API.
 pub struct Riptide;

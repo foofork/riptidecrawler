@@ -6820,9 +6820,18 @@ name = "riptide-facade"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "chromiumoxide",
+ "futures",
+ "riptide-cache",
+ "riptide-engine",
  "riptide-extraction",
  "riptide-fetch",
+ "riptide-headless",
+ "riptide-monitoring",
+ "riptide-pdf",
+ "riptide-stealth",
  "riptide-types",
+ "scraper 0.20.0",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
