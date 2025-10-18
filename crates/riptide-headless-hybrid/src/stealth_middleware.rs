@@ -4,16 +4,15 @@ use anyhow::{Context, Result};
 use riptide_stealth::{FingerprintGenerator, StealthController};
 use tracing::debug;
 
-// Import spider's chromiumoxide fork Page type (what spider_chrome uses internally)
-// The package is spider_chromiumoxide_cdp but it's imported as chromiumoxide_cdp
-use chromiumoxide_cdp::Page;
+// Import chromiumoxide Page type (aligned with riptide-engine pattern)
+use chromiumoxide::Page;
 
 /// Stealth middleware for applying anti-detection measures
 pub struct StealthMiddleware;
 
 impl StealthMiddleware {
     /// Apply all stealth measures to a page
-    pub async fn apply_all(page: &Page, controller: &StealthController) -> Result<()> {
+    pub async fn apply_all(page: &Page, controller: &mut StealthController) -> Result<()> {
         // Inject stealth JavaScript
         Self::inject_stealth_js(page, controller).await?;
 
@@ -31,10 +30,10 @@ impl StealthMiddleware {
     }
 
     /// Inject stealth JavaScript from controller
-    async fn inject_stealth_js(page: &Page, controller: &StealthController) -> Result<()> {
+    async fn inject_stealth_js(page: &Page, controller: &mut StealthController) -> Result<()> {
         let stealth_js = controller.get_stealth_js();
 
-        page.evaluate(&stealth_js)
+        page.evaluate(stealth_js.as_str())
             .await
             .context("Failed to inject stealth JavaScript")?;
 
@@ -131,7 +130,7 @@ impl StealthMiddleware {
     /// Apply fingerprinting protection measures
     async fn apply_fingerprinting_protection(
         page: &Page,
-        controller: &StealthController,
+        _controller: &StealthController,
     ) -> Result<()> {
         // Generate realistic fingerprint
         let fingerprint = FingerprintGenerator::generate();
@@ -212,7 +211,7 @@ impl StealthMiddleware {
             fingerprint.color_depth,
         );
 
-        page.evaluate(&fingerprint_script)
+        page.evaluate(fingerprint_script.as_str())
             .await
             .context("Failed to apply fingerprinting protection")?;
 
@@ -222,7 +221,7 @@ impl StealthMiddleware {
 }
 
 /// Convenience function to apply stealth to a page
-pub async fn apply_stealth(page: &Page, controller: &StealthController) -> Result<()> {
+pub async fn apply_stealth(page: &Page, controller: &mut StealthController) -> Result<()> {
     StealthMiddleware::apply_all(page, controller)
         .await
         .context("Failed to apply stealth measures")?;
@@ -236,7 +235,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_stealth_middleware_creation() {
-        let controller = StealthController::from_preset(StealthPreset::Medium);
+        let mut controller = StealthController::from_preset(StealthPreset::Medium);
         assert!(controller.get_stealth_js().len() > 0);
     }
 }

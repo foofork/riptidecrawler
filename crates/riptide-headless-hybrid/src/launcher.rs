@@ -9,9 +9,9 @@ use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
 
-// Import spider's chromiumoxide fork types (what spider_chrome uses internally)
-// The package is spider_chromiumoxide_cdp but it's imported as chromiumoxide_cdp
-use chromiumoxide_cdp::{Browser, LaunchOptions, Page};
+// Import chromiumoxide types (aligned with riptide-engine pattern)
+use chromiumoxide::{Browser, BrowserConfig, Page};
+use futures::StreamExt;
 
 /// Configuration for the hybrid headless launcher
 #[derive(Clone, Debug)]
@@ -56,7 +56,7 @@ pub struct HybridHeadlessLauncher {
     config: LauncherConfig,
     stealth_controller: Arc<RwLock<StealthController>>,
     stats: Arc<RwLock<LauncherStats>>,
-    browser: Arc<RwLock<Option<Browser>>>,
+    browser: Arc<RwLock<Option<Arc<Browser>>>>,
 }
 
 impl HybridHeadlessLauncher {
@@ -126,8 +126,8 @@ impl HybridHeadlessLauncher {
 
         // Apply stealth configurations if enabled
         if self.config.enable_stealth && stealth_preset != Some(StealthPreset::None) {
-            let stealth_controller = self.stealth_controller.read().await;
-            if let Err(e) = apply_stealth(&page, &*stealth_controller).await {
+            let mut stealth_controller = self.stealth_controller.write().await;
+            if let Err(e) = apply_stealth(&page, &mut *stealth_controller).await {
                 warn!(
                     session_id = %session_id,
                     error = %e,
@@ -137,11 +137,8 @@ impl HybridHeadlessLauncher {
         }
 
         // Wait for page to load
-        if let Err(e) = tokio::time::timeout(
-            self.config.page_timeout,
-            page.wait_for_navigation(),
-        )
-        .await
+        if let Err(e) =
+            tokio::time::timeout(self.config.page_timeout, page.wait_for_navigation()).await
         {
             warn!(
                 session_id = %session_id,
@@ -206,39 +203,52 @@ impl HybridHeadlessLauncher {
     }
 
     /// Get or create browser instance
-    async fn get_or_create_browser(&self) -> Result<Browser> {
+    async fn get_or_create_browser(&self) -> Result<Arc<Browser>> {
         let mut browser_guard = self.browser.write().await;
 
         if browser_guard.is_none() {
             debug!("Creating new browser instance");
 
-            // Build launch options
-            let mut launch_options = LaunchOptions::default_builder()
-                .headless(true)
-                .build()
-                .context("Failed to build launch options")?;
+            // Build browser config
+            let mut browser_config = BrowserConfig::builder().window_size(1920, 1080);
 
             // Apply stealth flags if enabled
             if self.config.enable_stealth {
-                let stealth_controller = self.stealth_controller.read().await;
+                let mut stealth_controller = self.stealth_controller.write().await;
                 let stealth_flags = stealth_controller.get_cdp_flags();
 
                 // Add stealth flags to chrome args
                 for flag in stealth_flags {
-                    launch_options.args.push(flag);
+                    browser_config = browser_config.arg(flag);
                 }
 
                 // Add user agent
                 let user_agent = stealth_controller.next_user_agent();
-                launch_options.args.push(format!("--user-agent={}", user_agent));
+                browser_config = browser_config.arg(format!("--user-agent={}", user_agent));
             }
 
-            let browser = Browser::launch(launch_options)
+            let browser_config = browser_config
+                .build()
+                .map_err(|e| anyhow::anyhow!("Failed to build browser config: {}", e))?;
+
+            let (browser, mut handler) = Browser::launch(browser_config)
                 .await
                 .context("Failed to launch browser")?;
 
-            *browser_guard = Some(browser.clone());
-            Ok(browser)
+            // Spawn handler task to manage browser events
+            tokio::spawn(async move {
+                debug!("Browser event handler started");
+                while let Some(event) = handler.next().await {
+                    if let Err(e) = event {
+                        warn!(error = %e, "Browser event error");
+                    }
+                }
+                debug!("Browser event handler ended");
+            });
+
+            let arc_browser = Arc::new(browser);
+            *browser_guard = Some(arc_browser.clone());
+            Ok(arc_browser)
         } else {
             Ok(browser_guard.as_ref().unwrap().clone())
         }
@@ -323,7 +333,7 @@ impl<'a> LaunchSession<'a> {
 
         tokio::time::timeout(timeout_duration, async {
             self.page
-                .wait_for_selector(selector)
+                .find_element(selector)
                 .await
                 .context("Element not found")
         })
@@ -353,12 +363,16 @@ impl<'a> LaunchSession<'a> {
             .await
             .context("Failed to execute script")?;
 
+        let value = result
+            .into_value()
+            .context("Failed to convert evaluation result to value")?;
+
         debug!(
             session_id = %self.session_id,
             "JavaScript executed successfully"
         );
 
-        Ok(result)
+        Ok(value)
     }
 
     /// Take a screenshot (full page)
@@ -368,9 +382,11 @@ impl<'a> LaunchSession<'a> {
             "Taking full page screenshot"
         );
 
+        use chromiumoxide::page::ScreenshotParams;
+
         let screenshot = self
             .page
-            .screenshot()
+            .screenshot(ScreenshotParams::default())
             .await
             .context("Failed to take screenshot")?;
 
@@ -412,9 +428,11 @@ impl<'a> LaunchSession<'a> {
             "Generating PDF"
         );
 
+        use chromiumoxide_cdp::cdp::browser_protocol::page::PrintToPdfParams;
+
         let pdf_data = self
             .page
-            .pdf()
+            .pdf(PrintToPdfParams::default())
             .await
             .context("Failed to generate PDF")?;
 
@@ -479,10 +497,8 @@ impl<'a> LaunchSession<'a> {
             "Closing launch session"
         );
 
-        self.page
-            .close()
-            .await
-            .context("Failed to close page")?;
+        // Note: Page close is handled by the browser when the page is dropped
+        // We don't need to explicitly call close() as it's managed by chromiumoxide
 
         Ok(())
     }
