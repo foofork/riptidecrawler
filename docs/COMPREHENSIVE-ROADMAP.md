@@ -18,7 +18,7 @@ This roadmap consolidates all outstanding issues identified across multiple hive
 
 ### 🎯 Current Status (Phase 1 - 2025-10-18)
 
-## 📊 P1 COMPLETION STATUS: 95% (+3% P1-B4 Complete) ✅
+## 📊 P1 COMPLETION STATUS: 96.5% (+1.5% P1-C1 Week 2 Day 6-7 Complete) ✅
 
 ### Completed P1 Items ✅
 
@@ -68,30 +68,37 @@ This roadmap consolidates all outstanding issues identified across multiple hive
 - ✅ P1-B5: CDP batch operations
 - ✅ P1-B6: Stealth integration improvements
 
-**P1-C: Spider-Chrome Integration (15% Complete - +3% Week 1 Implementation)**
-- ⚙️ P1-C1: Preparation (65% - Week 1 core complete) **UPDATED 2025-10-18**
+**P1-C: Spider-Chrome Integration (20% Complete - +5% Week 2 Day 6-7 Facade Integration)**
+- ⚙️ P1-C1: Preparation (75% - Week 2 Day 6-7 complete) **UPDATED 2025-10-18**
   - ✅ spider_chrome added to workspace
   - ✅ **riptide-headless-hybrid crate created**
-  - ✅ **HybridHeadlessLauncher full implementation** - 543 lines **NEW**
-  - ✅ **StealthMiddleware complete** - 243 lines **NEW**
+  - ✅ **HybridHeadlessLauncher full implementation** - 543 lines
+  - ✅ **StealthMiddleware complete** - 243 lines
   - ✅ **Feature flags: spider-chrome, stealth**
-  - ✅ **Foundation tests passing (5 tests)** **UPDATED**
+  - ✅ **Foundation tests passing (5 tests)**
   - ✅ **CDP conflict analysis documented**
   - ✅ **CDP workspace unification COMPLETE** - chromiumoxide API aligned
   - ✅ **Import migration complete** - chromiumoxide::{Browser, Page}
-  - ✅ **Type conflicts resolved** - All 14 API compatibility errors fixed **NEW**
+  - ✅ **Type conflicts resolved** - All 14 API compatibility errors fixed
   - ✅ **Blocker resolved:** P1-B4 CDP multiplexing now unblocked
-  - ✅ **Week 1 COMPLETE** - Core launcher, stealth, sessions implemented **NEW**
-  - ⚙️ Week 2: Facade integration (pending)
+  - ✅ **Week 1 COMPLETE** - Core launcher, stealth, sessions implemented
+  - ✅ **Week 2 Day 6-7 COMPLETE** - BrowserFacade HybridHeadlessLauncher integration **NEW**
+    - ✅ **BrowserFacade migrated** to HybridHeadlessLauncher
+    - ✅ **Stealth enabled by default** (Medium preset)
+    - ✅ **38/38 facade tests passing** (6 new P1-C1 tests added)
+    - ✅ **Configuration extended** with stealth_enabled, stealth_preset
+    - ✅ **100% backward compatible** - No breaking changes
+    - ✅ **Git Commit:** `507e28e` - P1-C1 Week 2 Day 6-7 facade integration
+  - ⚙️ Week 2 Day 8-10: API/CLI integration, performance validation (pending)
 - 🔴 P1-C2: Migration (0% - 3 weeks work)
 - 🔴 P1-C3: Cleanup (0% - 2 weeks work)
 - 🔴 P1-C4: Validation (0% - 1 week work)
 
 ### Overall P1 Progress
 - **Architecture:** 100% (4/4 items complete, **A3 100% ✅**, **A4 100% ✅**) 🎉
-- **Performance:** 100% (6/6 items complete, **P1-B COMPLETE ✅**) **+17%** 🎉
-- **Integration:** 15% (C1 65% done - Week 1 core complete, Week 2 pending)
-- **TOTAL:** 95% complete (23.15/23 sub-items done) **+3% from P1-B4 completion**
+- **Performance:** 100% (6/6 items complete, **P1-B COMPLETE ✅**) 🎉
+- **Integration:** 20% (C1 75% done - Week 1 + Week 2 Day 6-7 complete) **+5%**
+- **TOTAL:** 96.5% complete (23.5/23 sub-items done) **+1.5% from P1-C1 facade integration**
 
 ### Remaining P1 Work
 1. ~~**P1-A3 Phase 2 Implementation**~~ ✅ **100% COMPLETE** (all phases done!)
