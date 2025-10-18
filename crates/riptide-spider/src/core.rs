@@ -15,7 +15,6 @@ fn extract_links_basic(content: &str, base_url: &Url) -> Result<Vec<Url>> {
 
     Ok(links)
 }
-use riptide_fetch::FetchEngine;
 use crate::memory_manager::MemoryManager;
 use crate::robots::RobotsManager;
 use crate::{
@@ -31,6 +30,7 @@ use crate::{
     url_utils::UrlUtils,
 };
 use anyhow::{Context, Result};
+use riptide_fetch::FetchEngine;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;

@@ -1234,10 +1234,7 @@ async fn test_error_pool_exhaustion_timeout() -> Result<()> {
     let _checkout = pool.checkout().await?;
 
     // Second checkout should timeout
-    let result = tokio::time::timeout(
-        Duration::from_millis(600),
-        pool.checkout()
-    ).await;
+    let result = tokio::time::timeout(Duration::from_millis(600), pool.checkout()).await;
 
     // Should timeout or return pool exhaustion error
     assert!(result.is_err() || matches!(result, Ok(Err(_))));
