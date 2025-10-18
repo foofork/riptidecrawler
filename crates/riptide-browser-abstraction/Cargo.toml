@@ -27,3 +27,9 @@ tokio-test = "0.4"
 [features]
 default = ["chromiumoxide"]  # Use standard chromiumoxide by default
 spider = ["spider_chrome"]    # Use spider-chrome (exports as chromiumoxide)
+
+# WARNING: chromiumoxide and spider features are MUTUALLY EXCLUSIVE
+# spider_chrome exports itself as "chromiumoxide", causing a name collision.
+# Never use --all-features on this crate. Only enable one feature at a time:
+#   cargo build -p riptide-browser-abstraction --features chromiumoxide
+#   cargo build -p riptide-browser-abstraction --features spider

@@ -41,13 +41,13 @@ pub mod dynamic;
 // pub mod enhanced_extractor; // Temporarily disabled
 pub mod error;
 // pub mod events;  // P1-A3 Phase 2A: Moved to riptide-events crate
-pub mod events_pool_integration; // Events integration with instance pool
-                                 // pub mod fetch;  // P1-C2: Moved to riptide-fetch crate
+// pub mod events_pool_integration;  // P1-A3 Phase 2D: Moved to riptide-pool crate
+// pub mod fetch;  // P1-C2: Moved to riptide-fetch crate
 pub mod gate;
 // pub mod html_parser;  // P1-C2: Moved to riptide-extraction crate
 // pub mod instance_pool;  // P1-A3 Phase 2B: Moved to riptide-pool crate
 // pub mod integrated_cache;  // P1-A3 Phase 2C: Moved to riptide-cache crate
-pub mod memory_manager;
+// pub mod memory_manager;  // P1-A3 Phase 2D: Moved to riptide-pool crate
 // pub mod monitoring;  // P1-A3: Moved to riptide-monitoring crate
 pub mod wasm_validation;
 
@@ -55,7 +55,7 @@ pub mod wasm_validation;
 #[cfg(feature = "pdf")]
 pub use riptide_pdf as pdf;
 
-pub mod pool_health;
+// pub mod pool_health;  // P1-A3 Phase 2B: Moved to riptide-pool crate
 pub mod reliability;
 pub mod robots;
 // pub mod security;  // P1-A3: Moved to riptide-security crate
@@ -219,6 +219,42 @@ pub mod integrated_cache {
     //! For now, use the individual cache modules directly from riptide-cache.
 }
 
+pub mod memory_manager {
+    //! Memory manager module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-pool` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The memory management functionality has been extracted to its own crate.
+    //! Please migrate to using `riptide-pool` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::memory_manager::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_pool::memory_manager::*;
+    //! ```
+    pub use riptide_pool::memory_manager::*;
+}
+
+pub mod events_pool_integration {
+    //! Events pool integration module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-pool` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The events integration functionality has been extracted to its own crate.
+    //! Please migrate to using `riptide-pool` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::events_pool_integration::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_pool::events_integration::*;
+    //! ```
+    pub use riptide_pool::events_integration::*;
+}
+
 pub mod security {
     //! Security module - MOVED
     //!
@@ -307,6 +343,27 @@ pub mod instance_pool {
     //! use riptide_pool::*;
     //! ```
     pub use riptide_pool::*;
+}
+
+pub mod pool_health {
+    //! Pool health module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-pool` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The pool health functionality has been extracted to its own crate.
+    //! Please migrate to using `riptide-pool` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::pool_health::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_pool::{PoolHealthMonitor, PoolHealthStatus, HealthLevel};
+    //! ```
+    pub use riptide_pool::{
+        HealthLevel, HealthTrend, MemoryHealthStats, MemoryPressureLevel, PoolHealthMonitor,
+        PoolHealthStatus,
+    };
 }
 
 #[cfg(test)]

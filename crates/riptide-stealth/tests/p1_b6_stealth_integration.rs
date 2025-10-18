@@ -57,8 +57,12 @@ fn test_fingerprint_session_isolation() {
     let fp1 = generator.generate_contextual(ua, Some("session1"));
     let fp2 = generator.generate_contextual(ua, Some("session2"));
 
-    // May differ in random components
-    assert!(fp1.webgl_vendor == fp2.webgl_vendor || fp1.webgl_vendor != fp2.webgl_vendor);
+    // Different sessions should produce different WebGL vendors (randomized per session)
+    // This validates that session isolation works correctly
+    assert_ne!(
+        fp1.webgl_vendor, fp2.webgl_vendor,
+        "Different sessions should have different WebGL vendors for proper isolation"
+    );
 }
 
 #[test]

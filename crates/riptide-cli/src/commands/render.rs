@@ -4,6 +4,7 @@ use riptide_stealth::StealthPreset;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
+use std::str::FromStr;
 
 // Headless browser support
 use riptide_headless::launcher::{HeadlessLauncher, LauncherConfig};
@@ -22,9 +23,11 @@ pub enum WaitCondition {
     Timeout(u64),
 }
 
-impl WaitCondition {
+impl std::str::FromStr for WaitCondition {
+    type Err = anyhow::Error;
+
     /// Parse wait condition from string
-    pub fn from_str(s: &str) -> Result<Self> {
+    fn from_str(s: &str) -> Result<Self> {
         if s == "load" {
             Ok(WaitCondition::Load)
         } else if s == "network-idle" {
@@ -43,7 +46,9 @@ impl WaitCondition {
             )
         }
     }
+}
 
+impl WaitCondition {
     /// Get human-readable description
     pub fn description(&self) -> String {
         match self {
@@ -66,9 +71,11 @@ pub enum ScreenshotMode {
     Full,
 }
 
-impl ScreenshotMode {
+impl std::str::FromStr for ScreenshotMode {
+    type Err = anyhow::Error;
+
     /// Parse screenshot mode from string
-    pub fn from_str(s: &str) -> Result<Self> {
+    fn from_str(s: &str) -> Result<Self> {
         match s.to_lowercase().as_str() {
             "none" => Ok(ScreenshotMode::None),
             "viewport" => Ok(ScreenshotMode::Viewport),
@@ -79,7 +86,9 @@ impl ScreenshotMode {
             ),
         }
     }
+}
 
+impl ScreenshotMode {
     /// Get human-readable name
     pub fn name(&self) -> &'static str {
         match self {

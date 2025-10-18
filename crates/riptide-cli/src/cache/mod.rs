@@ -144,8 +144,10 @@ impl Cache {
             .timeout(std::time::Duration::from_secs(options.timeout_seconds))
             .build()?;
 
-        let mut result = WarmResult::default();
-        result.total_urls = options.urls.len();
+        let mut result = WarmResult {
+            total_urls: options.urls.len(),
+            ..Default::default()
+        };
 
         let results: Vec<_> = stream::iter(options.urls)
             .map(|url| {

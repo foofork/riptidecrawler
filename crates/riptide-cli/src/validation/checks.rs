@@ -208,7 +208,7 @@ pub async fn check_network() -> CheckResult {
             .timeout(std::time::Duration::from_secs(5))
             .build()
         {
-            if let Ok(_) = client.head(url).send().await {
+            if client.head(url).send().await.is_ok() {
                 return CheckResult::pass("Network Connectivity", "Internet connection available");
             }
         }
@@ -366,7 +366,7 @@ pub async fn run_performance_baseline(client: &RipTideClient) -> Result<serde_js
     let start = std::time::Instant::now();
 
     // Simple API response time test
-    let api_latency = if let Ok(_) = client.get("/healthz").await {
+    let api_latency = if client.get("/healthz").await.is_ok() {
         start.elapsed().as_millis()
     } else {
         0

@@ -13,7 +13,7 @@ members = [
   "crates/riptide-api",
   "crates/riptide-cli",
   "crates/riptide-headless",
-  "crates/riptide-headless-hybrid",  # P1-C1: Spider-chrome integration (re-enabled with fixes)
+  # "crates/riptide-headless-hybrid",  # P1-C1: Spider-chrome integration (TEMPORARILY DISABLED due to chromiumoxide conflict)
   "crates/riptide-workers",
   "crates/riptide-intelligence",
   "crates/riptide-persistence",

@@ -20,8 +20,8 @@ use tokio::time::{interval, sleep};
 use tracing::{debug, error, info, warn};
 
 use riptide_events::{BaseEvent, Event, EventBus, EventSeverity};
-use riptide_types::ExtractionMode;
 use riptide_pool::{AdvancedInstancePool, PooledInstance};
+use riptide_types::ExtractionMode;
 
 /// Configuration for cache warming strategies
 #[derive(Clone, Debug, Serialize, Deserialize)]

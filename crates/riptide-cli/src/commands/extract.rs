@@ -4,6 +4,7 @@ use crate::output;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::str::FromStr;
 
 // Local extraction support
 use riptide_extraction::wasm_extraction::WasmExtractor;
@@ -25,9 +26,11 @@ pub enum Engine {
     Headless,
 }
 
-impl Engine {
+impl std::str::FromStr for Engine {
+    type Err = anyhow::Error;
+
     /// Parse engine from string
-    pub fn from_str(s: &str) -> Result<Self> {
+    fn from_str(s: &str) -> Result<Self> {
         match s.to_lowercase().as_str() {
             "auto" => Ok(Engine::Auto),
             "raw" => Ok(Engine::Raw),
@@ -39,7 +42,9 @@ impl Engine {
             ),
         }
     }
+}
 
+impl Engine {
     /// Automatically decide engine based on content characteristics
     pub fn gate_decision(html: &str, url: &str) -> Self {
         // Check for heavy JavaScript frameworks

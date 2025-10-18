@@ -6877,26 +6877,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "riptide-headless-hybrid"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "futures",
- "riptide-engine",
- "riptide-stealth",
- "riptide-types",
- "serde",
- "serde_json",
- "spider_chrome",
- "spider_chromiumoxide_cdp",
- "tempfile",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
 name = "riptide-intelligence"
 version = "0.1.0"
 dependencies = [

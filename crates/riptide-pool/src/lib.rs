@@ -26,12 +26,23 @@
 //! ```
 
 pub mod config;
+pub mod events_integration;
 pub mod health;
+pub mod health_monitor;
 pub mod memory;
+pub mod memory_manager;
 pub mod models;
 pub mod pool;
 
 // Re-export main public API
 pub use config::{ExtractorConfig, PerformanceMetrics, WasmResourceTracker};
+pub use events_integration::{EventAwareInstancePool, PoolEventEmitter, PoolMetrics};
+pub use health_monitor::{
+    HealthLevel, HealthTrend, MemoryHealthStats, MemoryPressureLevel, PoolHealthMonitor,
+    PoolHealthStatus,
+};
+pub use memory_manager::{
+    MemoryEvent, MemoryManagerConfig, MemoryStats, TrackedWasmInstance, WasmMemoryManager,
+};
 pub use models::{CircuitBreakerState, PooledInstance};
 pub use pool::{create_event_aware_pool, get_instances_per_worker, AdvancedInstancePool};
