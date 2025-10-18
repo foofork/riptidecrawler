@@ -313,7 +313,7 @@ This roadmap consolidates all outstanding issues identified across multiple hive
 | | - 🔴 Update documentation | 🔴 | 2 days | | |
 | | - 🔴 Performance benchmarking | 🔴 | 3 days | | |
 | **P1-C4** | **Phase 4: Validation** | 🔴 TODO | 1 week | P1-C3 | Week 10 |
-| | - 🔴 Load testing (10k+ concurrent sessions) | 🔴 | 2 days | | |
+| | - 🔴 Load testing (10k+ (TBD) concurrent sessions) | 🔴 | 2 days | | |
 | | - 🔴 Memory profiling | 🔴 | 1 day | | |
 | | - 🔴 Latency benchmarking | 🔴 | 1 day | | |
 | | - 🔴 Integration testing with all strategies | 🔴 | 2 days | | |
