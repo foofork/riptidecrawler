@@ -10,9 +10,9 @@ use uuid::Uuid;
 use wasmtime::{component::*, Engine};
 
 use crate::config::{ExtractorConfig, PerformanceMetrics, WasmResourceTracker};
+use async_trait::async_trait;
 use riptide_events::{Event, EventBus, EventEmitter, PoolEvent, PoolMetrics, PoolOperation};
 use riptide_types::{ExtractedDoc, ExtractionMode};
-use async_trait::async_trait;
 
 use super::models::{CircuitBreakerState, PooledInstance};
 
