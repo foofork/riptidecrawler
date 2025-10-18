@@ -69,7 +69,7 @@ impl WasmExtractorTrait for WasmExtractorAdapter {
             title: doc.title,
             byline: doc.byline,
             published_iso: doc.published_iso,
-            markdown: Some(doc.markdown),
+            markdown: doc.markdown,
             text: doc.text,
             links: doc.links,
             media: doc.media,

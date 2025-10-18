@@ -7,9 +7,10 @@ use anyhow::Result;
 use async_trait::async_trait;
 use std::collections::HashMap;
 
+use crate::enhanced_extractor::StructuredExtractor;
 use crate::html_parser::{EnhancedHtmlExtractor, Metadata as HtmlMetadata};
-use crate::strategies::{traits::*, ExtractedContent};
-use riptide_extraction::enhanced_extractor::StructuredExtractor;
+use crate::strategies::traits::*;
+use riptide_types::ExtractedContent;
 
 // ============================================================================
 // EXTRACTION STRATEGY IMPLEMENTATIONS

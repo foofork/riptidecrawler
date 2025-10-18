@@ -23,18 +23,8 @@ mod wit_bindings {
     });
 }
 
-impl From<ExtractedDoc> for crate::ExtractedContent {
-    fn from(doc: ExtractedDoc) -> Self {
-        Self {
-            title: doc.title.unwrap_or_else(|| "Untitled".to_string()),
-            content: doc.text,
-            summary: doc.description,
-            url: doc.url,
-            strategy_used: "wasm_extraction".to_string(),
-            extraction_confidence: doc.quality_score.map(|q| q as f64 / 100.0).unwrap_or(0.8),
-        }
-    }
-}
+// Removed orphan From implementation - ExtractedContent doesn't exist in this crate
+// If needed, this should be implemented in the crate that defines ExtractedContent
 
 /// Content extraction modes with specific behaviors (host-side)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -92,7 +82,7 @@ mod conversions {
                 title: wit.title,
                 byline: wit.byline,
                 published_iso: wit.published_iso,
-                markdown: wit.markdown,
+                markdown: Some(wit.markdown),
                 text: wit.text,
                 links: wit.links,
                 media: wit.media,

@@ -606,8 +606,9 @@ impl AppState {
                             let engine = wasmtime::Engine::new(&wasmtime_config).map_err(|e| {
                                 anyhow::anyhow!("Failed to create wasmtime engine: {}", e)
                             })?;
-                            riptide_core::memory_manager::MemoryManager::new(
-                                riptide_core::memory_manager::MemoryManagerConfig::default(),
+                            riptide_core::spider::memory_manager::MemoryManager::new(
+                                riptide_core::spider::memory_manager::MemoryManagerConfig::default(
+                                ),
                                 engine,
                             )
                             .await?

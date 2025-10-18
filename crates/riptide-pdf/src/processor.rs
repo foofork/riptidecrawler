@@ -722,7 +722,7 @@ impl PdfiumProcessor {
                 title: metadata.get("title").cloned(),
                 byline: metadata.get("author").cloned(),
                 published_iso: None,
-                markdown: text.clone(),
+                markdown: Some(text.clone()),
                 text: text.clone(),
                 links,
                 media,

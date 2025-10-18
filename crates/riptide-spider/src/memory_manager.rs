@@ -1,6 +1,4 @@
-use crate::error::CoreError;
-use crate::report_error;
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use std::collections::{HashMap, VecDeque};
 use std::sync::{
     atomic::{AtomicU64, AtomicUsize, Ordering},
@@ -728,10 +726,11 @@ impl MemoryManager {
         let store = Store::new(&self.engine, ());
 
         // Create component with recovery strategy
-        let component = Component::from_file(&self.engine, component_path).map_err(|e| {
-            let error = CoreError::from(e); // Use From trait conversion
-            report_error!(&error, "create_wasm_instance", "component_path" => component_path);
-            error
+        let component = Component::from_file(&self.engine, component_path).with_context(|| {
+            format!(
+                "Failed to create WASM component from file: {}",
+                component_path
+            )
         })?;
 
         // P2-2: WIT validation before instantiation
@@ -747,12 +746,11 @@ impl MemoryManager {
                     "WIT validation failed for WASM instance"
                 );
                 // Return error to prevent instantiation of incompatible components
-                let error = CoreError::WasmError {
-                    message: format!("WIT validation failed: {}", e),
-                    source: None,
-                };
-                report_error!(&error, "wit_validation", "component_path" => component_path);
-                return Err(error.into());
+                return Err(anyhow!(
+                    "WIT validation failed for component at {}: {}",
+                    component_path,
+                    e
+                ));
             }
 
             debug!(instance_id = %id, "WIT validation passed");

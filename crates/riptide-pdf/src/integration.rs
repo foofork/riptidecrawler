@@ -166,7 +166,7 @@ impl PdfPipelineIntegration {
             title: metadata_obj.title.clone(),
             byline: metadata_obj.author.clone(),
             published_iso: metadata_obj.creation_date.clone(),
-            markdown: text_content.clone(),
+            markdown: Some(text_content.clone()),
             text: text_content,
             links: Vec::new(), // PDFs typically don't have external links in our extraction
             media,

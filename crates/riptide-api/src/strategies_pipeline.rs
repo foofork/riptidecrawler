@@ -254,7 +254,11 @@ impl StrategiesPipelineOrchestrator {
         let pdf_html = format!(
             "<html><head><title>{}</title></head><body><article>{}</article></body></html>",
             extracted_doc.title.as_deref().unwrap_or("PDF Document"),
-            extracted_doc.markdown.replace('\n', "<br>")
+            extracted_doc
+                .markdown
+                .as_deref()
+                .unwrap_or("")
+                .replace('\n', "<br>")
         );
 
         // Process through strategies

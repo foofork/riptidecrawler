@@ -72,15 +72,16 @@ pub use processor::{
 };
 pub use regex_extraction::{default_patterns, extract as regex_extract, RegexExtractor};
 pub use wasm_extraction::{
-    CmExtractor, ExtractedDoc, ExtractorConfig, HostExtractionMode, WasmExtractor,
-    WasmResourceTracker,
+    CmExtractor, ExtractorConfig, HostExtractionMode, WasmExtractor, WasmResourceTracker,
 };
+// Re-export ExtractedDoc from riptide-types
+pub use riptide_types::ExtractedDoc;
 
-// Re-export HTML parser (moved from riptide-core)
-pub use html_parser::{HtmlParser, ParsedHtml};
+// Re-export HTML parser types (moved from riptide-core)
+pub use html_parser::{Link, Media, MediaType, Metadata};
 
 // Re-export strategies (moved from riptide-core)
-pub use strategies::{ExtractionStrategy, StrategyManager, StrategyMetadata, StrategyPerformance};
+pub use strategies::{ExtractionStrategy, PerformanceMetrics, StrategyManager};
 
 // // Re-export spider functionality
 // pub use spider::{

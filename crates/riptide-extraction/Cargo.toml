@@ -39,6 +39,7 @@ wasmtime-wasi = { workspace = true }
 
 # Table extraction dependencies
 chrono = { workspace = true, features = ["serde"] }
+schemars = { workspace = true }
 
 [build-dependencies]
 wit-bindgen = "0.16"

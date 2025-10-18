@@ -63,6 +63,23 @@ impl ExtractionQuality {
     }
 }
 
+/// Conversion from BasicExtractedDoc/ExtractedDoc to ExtractedContent
+impl From<BasicExtractedDoc> for ExtractedContent {
+    fn from(doc: BasicExtractedDoc) -> Self {
+        Self {
+            title: doc.title.unwrap_or_else(|| "Untitled".to_string()),
+            content: doc.text,
+            summary: doc.description,
+            url: doc.url,
+            strategy_used: "wasm".to_string(),
+            extraction_confidence: doc
+                .quality_score
+                .map(|score| score as f64 / 100.0)
+                .unwrap_or(0.8),
+        }
+    }
+}
+
 /// Component health status
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HealthStatus {

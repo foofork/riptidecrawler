@@ -214,7 +214,7 @@ pub fn convert_pdf_extracted_doc(doc: riptide_pdf::types::ExtractedDoc) -> Extra
         links: doc.links,
         byline: doc.byline,
         published_iso: doc.published_iso,
-        markdown: Some(doc.markdown),
+        markdown: doc.markdown,
         media: doc.media,
         language: doc.language,
         reading_time: doc.reading_time,

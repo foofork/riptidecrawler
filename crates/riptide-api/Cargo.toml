@@ -48,6 +48,7 @@ riptide-core = { path = "../riptide-core", features = ["api-integration"] }
 riptide-pdf = { path = "../riptide-pdf", features = ["pdf"] }
 riptide-stealth = { path = "../riptide-stealth", features = ["stealth"] }
 riptide-extraction = { path = "../riptide-extraction" }
+riptide-types = { path = "../riptide-types" }
 riptide-intelligence = { path = "../riptide-intelligence" }
 riptide-workers = { path = "../riptide-workers" }
 riptide-engine = { path = "../riptide-engine" }

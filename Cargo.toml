@@ -75,6 +75,7 @@ env_logger = { version = "0.10" }
 tempfile = { version = "3" }
 dashmap = "6.1"
 wiremock = "0.6"
+schemars = { version = "0.8", features = ["chrono"] }
 
 # Performance optimization settings
 [profile.release]

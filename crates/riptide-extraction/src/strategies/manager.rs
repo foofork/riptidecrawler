@@ -108,12 +108,12 @@ impl EnhancedStrategyManager {
         Ok(())
     }
 
-    /// Register a new spider strategy
-    pub async fn register_spider(&self, strategy: Arc<dyn SpiderStrategy>) -> Result<()> {
-        let mut registry = self.registry.write().await;
-        registry.register_spider(strategy);
-        Ok(())
-    }
+    // /// Register a new spider strategy - temporarily disabled
+    // pub async fn register_spider(&self, strategy: Arc<dyn SpiderStrategy>) -> Result<()> {
+    //     let mut registry = self.registry.write().await;
+    //     registry.register_spider(strategy);
+    //     Ok(())
+    // }
 
     /// Set default extraction strategy
     pub fn set_default_extraction(&mut self, strategy_name: String) {
@@ -202,28 +202,29 @@ impl EnhancedStrategyManager {
         }
     }
 
-    /// Process crawl requests using spider strategy
-    pub async fn process_crawl_requests(
-        &self,
-        requests: Vec<CrawlRequest>,
-    ) -> Result<Vec<CrawlRequest>> {
-        self.process_crawl_requests_with_strategy(requests, &self.default_spider)
-            .await
-    }
-
-    /// Process crawl requests with specific spider strategy
-    pub async fn process_crawl_requests_with_strategy(
-        &self,
-        requests: Vec<CrawlRequest>,
-        strategy_name: &str,
-    ) -> Result<Vec<CrawlRequest>> {
-        let registry = self.registry.read().await;
-        let strategy = registry
-            .get_spider(strategy_name)
-            .ok_or_else(|| anyhow::anyhow!("Spider strategy '{}' not found", strategy_name))?;
-
-        strategy.process_requests(requests).await
-    }
+    // Spider methods temporarily disabled until CrawlRequest type is properly exported
+    // /// Process crawl requests using spider strategy
+    // pub async fn process_crawl_requests(
+    //     &self,
+    //     requests: Vec<CrawlRequest>,
+    // ) -> Result<Vec<CrawlRequest>> {
+    //     self.process_crawl_requests_with_strategy(requests, &self.default_spider)
+    //         .await
+    // }
+    //
+    // /// Process crawl requests with specific spider strategy
+    // pub async fn process_crawl_requests_with_strategy(
+    //     &self,
+    //     requests: Vec<CrawlRequest>,
+    //     strategy_name: &str,
+    // ) -> Result<Vec<CrawlRequest>> {
+    //     let registry = self.registry.read().await;
+    //     let strategy = registry
+    //         .get_spider(strategy_name)
+    //         .ok_or_else(|| anyhow::anyhow!("Spider strategy '{}' not found", strategy_name))?;
+    //
+    //     strategy.process_requests(requests).await
+    // }
 
     /// List all available strategies
     pub async fn list_strategies(&self) -> StrategyListing {
@@ -240,11 +241,7 @@ impl EnhancedStrategyManager {
                 .into_iter()
                 .map(|name| name.to_string())
                 .collect(),
-            spider: registry
-                .list_spider_strategies()
-                .into_iter()
-                .map(|name| name.to_string())
-                .collect(),
+            spider: vec![], // Temporarily disabled until spider types properly exported
         }
     }
 

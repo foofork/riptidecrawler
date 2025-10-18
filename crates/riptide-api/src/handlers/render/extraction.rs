@@ -4,14 +4,13 @@ use riptide_core::types::{
     ExtractedDoc as CoreExtractedDoc, ExtractionMode, ExtractionStats, OutputFormat,
 };
 use riptide_extraction::wasm_extraction::WasmExtractor;
+use riptide_types::ExtractedDoc;
 use std::sync::Arc;
 use std::time::Instant;
 use tracing::{debug, info, warn};
 
-/// Convert from riptide_extraction ExtractedDoc to riptide_core ExtractedDoc
-fn convert_extracted_doc(
-    doc: riptide_extraction::wasm_extraction::ExtractedDoc,
-) -> CoreExtractedDoc {
+/// Convert from riptide_types ExtractedDoc to riptide_core ExtractedDoc
+fn convert_extracted_doc(doc: ExtractedDoc) -> CoreExtractedDoc {
     CoreExtractedDoc {
         url: doc.url,
         title: doc.title,
@@ -20,7 +19,7 @@ fn convert_extracted_doc(
         links: doc.links,
         byline: doc.byline,
         published_iso: doc.published_iso,
-        markdown: Some(doc.markdown),
+        markdown: doc.markdown,
         media: doc.media,
         language: doc.language,
         reading_time: doc.reading_time,
