@@ -1,173 +1,14 @@
-//! Builder pattern for configuring Riptide facade.
+//! Builder pattern implementation for Riptide facade.
 
-use crate::config::*;
-use crate::error::{Result, RiptideError};
-use crate::runtime::RiptideRuntime;
-use crate::Riptide;
-use std::sync::Arc;
+use crate::{config::RiptideConfig, error::RiptideResult, facades::ScraperFacade, RiptideError};
+use std::time::Duration;
 
-/// Builder for configuring and creating a Riptide instance.
+/// Builder for creating Riptide facade instances.
 ///
-/// # Example
-///
-/// ```no_run
-/// use riptide_facade::Riptide;
-/// use std::time::Duration;
-///
-/// # async fn example() -> anyhow::Result<()> {
-/// let riptide = Riptide::builder()
-///     .with_default_config()
-///     .build()?;
-/// # Ok(())
-/// # }
-/// ```
+/// Provides a fluent API for configuring and building different types of facades.
+#[derive(Debug, Clone)]
 pub struct RiptideBuilder {
     config: RiptideConfig,
-}
-
-impl RiptideBuilder {
-    /// Create a new builder with empty configuration.
-    pub fn new() -> Self {
-        Self {
-            config: RiptideConfig::default(),
-        }
-    }
-
-    /// Use default configuration for all features.
-    pub fn with_default_config(mut self) -> Self {
-        self.config = RiptideConfig::default();
-        self
-    }
-
-    // ========================================================================
-    // Fetch Configuration
-    // ========================================================================
-
-    /// Configure fetch settings.
-    #[cfg(feature = "scraper")]
-    pub fn with_fetch<F>(mut self, configurator: F) -> Self
-    where
-        F: FnOnce(FetchConfigBuilder) -> FetchConfigBuilder,
-    {
-        let builder = FetchConfigBuilder::new(self.config.fetch);
-        self.config.fetch = configurator(builder).build();
-        self
-    }
-
-    // ========================================================================
-    // Spider Configuration
-    // ========================================================================
-
-    /// Configure spider settings.
-    #[cfg(feature = "spider")]
-    pub fn with_spider<F>(mut self, configurator: F) -> Self
-    where
-        F: FnOnce(SpiderConfigBuilder) -> SpiderConfigBuilder,
-    {
-        let builder = SpiderConfigBuilder::new(self.config.spider);
-        self.config.spider = configurator(builder).build();
-        self
-    }
-
-    // ========================================================================
-    // Browser Configuration
-    // ========================================================================
-
-    /// Configure browser settings.
-    #[cfg(feature = "browser")]
-    pub fn with_browser<F>(mut self, configurator: F) -> Self
-    where
-        F: FnOnce(BrowserConfigBuilder) -> BrowserConfigBuilder,
-    {
-        let builder = BrowserConfigBuilder::new(self.config.browser);
-        self.config.browser = configurator(builder).build();
-        self
-    }
-
-    // ========================================================================
-    // Intelligence Configuration
-    // ========================================================================
-
-    /// Configure intelligence settings.
-    #[cfg(feature = "intelligence")]
-    pub fn with_intelligence<F>(mut self, configurator: F) -> Self
-    where
-        F: FnOnce(IntelligenceConfigBuilder) -> IntelligenceConfigBuilder,
-    {
-        let builder = IntelligenceConfigBuilder::new(self.config.intelligence);
-        self.config.intelligence = configurator(builder).build();
-        self
-    }
-
-    // ========================================================================
-    // Security Configuration
-    // ========================================================================
-
-    /// Configure security settings.
-    #[cfg(feature = "security")]
-    pub fn with_security<F>(mut self, configurator: F) -> Self
-    where
-        F: FnOnce(SecurityConfigBuilder) -> SecurityConfigBuilder,
-    {
-        let builder = SecurityConfigBuilder::new(self.config.security);
-        self.config.security = configurator(builder).build();
-        self
-    }
-
-    // ========================================================================
-    // Monitoring Configuration
-    // ========================================================================
-
-    /// Configure monitoring settings.
-    #[cfg(feature = "monitoring")]
-    pub fn with_monitoring<F>(mut self, configurator: F) -> Self
-    where
-        F: FnOnce(MonitoringConfigBuilder) -> MonitoringConfigBuilder,
-    {
-        let builder = MonitoringConfigBuilder::new(self.config.monitoring);
-        self.config.monitoring = configurator(builder).build();
-        self
-    }
-
-    // ========================================================================
-    // Cache Configuration
-    // ========================================================================
-
-    /// Configure cache settings.
-    #[cfg(feature = "cache")]
-    pub fn with_cache<F>(mut self, configurator: F) -> Self
-    where
-        F: FnOnce(CacheConfigBuilder) -> CacheConfigBuilder,
-    {
-        let builder = CacheConfigBuilder::new(self.config.cache);
-        self.config.cache = configurator(builder).build();
-        self
-    }
-
-    // ========================================================================
-    // Build
-    // ========================================================================
-
-    /// Build the Riptide instance.
-    ///
-    /// Validates configuration and initializes the runtime.
-    pub fn build(self) -> Result<Riptide> {
-        // Validate configuration
-        self.validate_config()?;
-
-        // Create runtime
-        let runtime = RiptideRuntime::new(self.config.clone())?;
-
-        Ok(Riptide {
-            config: self.config,
-            runtime: Arc::new(runtime),
-        })
-    }
-
-    fn validate_config(&self) -> Result<()> {
-        // Add configuration validation logic
-        Ok(())
-    }
 }
 
 impl Default for RiptideBuilder {
@@ -176,229 +17,237 @@ impl Default for RiptideBuilder {
     }
 }
 
-// ============================================================================
-// Feature-Specific Config Builders
-// ============================================================================
-
-#[cfg(feature = "scraper")]
-pub struct FetchConfigBuilder(FetchConfig);
-
-#[cfg(feature = "scraper")]
-impl FetchConfigBuilder {
-    pub fn new(config: FetchConfig) -> Self {
-        Self(config)
+impl RiptideBuilder {
+    /// Create a new builder with default configuration.
+    pub fn new() -> Self {
+        Self {
+            config: RiptideConfig::default(),
+        }
     }
 
-    pub fn max_retries(mut self, retries: u32) -> Self {
-        self.0.max_retries = retries;
+    /// Set the user agent string.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use riptide_facade::RiptideBuilder;
+    ///
+    /// let builder = RiptideBuilder::new()
+    ///     .user_agent("MyBot/1.0");
+    /// ```
+    pub fn user_agent(mut self, user_agent: impl Into<String>) -> Self {
+        self.config.user_agent = user_agent.into();
         self
     }
 
-    pub fn timeout(mut self, secs: u64) -> Self {
-        self.0.timeout_secs = secs;
+    /// Set the request timeout in seconds.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use riptide_facade::RiptideBuilder;
+    ///
+    /// let builder = RiptideBuilder::new()
+    ///     .timeout_secs(60);
+    /// ```
+    pub fn timeout_secs(mut self, secs: u64) -> Self {
+        self.config.timeout = Duration::from_secs(secs);
         self
     }
 
-    pub fn user_agent(mut self, ua: impl Into<String>) -> Self {
-        self.0.user_agent = ua.into();
+    /// Set the request timeout duration.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use riptide_facade::RiptideBuilder;
+    /// use std::time::Duration;
+    ///
+    /// let builder = RiptideBuilder::new()
+    ///     .timeout(Duration::from_secs(60));
+    /// ```
+    pub fn timeout(mut self, timeout: Duration) -> Self {
+        self.config.timeout = timeout;
         self
     }
 
-    pub fn follow_redirects(mut self, follow: bool) -> Self {
-        self.0.follow_redirects = follow;
+    /// Set the maximum number of redirects to follow.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use riptide_facade::RiptideBuilder;
+    ///
+    /// let builder = RiptideBuilder::new()
+    ///     .max_redirects(10);
+    /// ```
+    pub fn max_redirects(mut self, max_redirects: u32) -> Self {
+        self.config.max_redirects = max_redirects;
         self
     }
 
-    pub fn build(self) -> FetchConfig {
-        self.0
+    /// Set whether to verify SSL certificates.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use riptide_facade::RiptideBuilder;
+    ///
+    /// let builder = RiptideBuilder::new()
+    ///     .verify_ssl(false);
+    /// ```
+    pub fn verify_ssl(mut self, verify: bool) -> Self {
+        self.config.verify_ssl = verify;
+        self
+    }
+
+    /// Add a custom header to all requests.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use riptide_facade::RiptideBuilder;
+    ///
+    /// let builder = RiptideBuilder::new()
+    ///     .header("X-API-Key", "secret");
+    /// ```
+    pub fn header(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.config.headers.push((key.into(), value.into()));
+        self
+    }
+
+    /// Set the maximum response body size in bytes.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use riptide_facade::RiptideBuilder;
+    ///
+    /// let builder = RiptideBuilder::new()
+    ///     .max_body_size(5 * 1024 * 1024); // 5 MB
+    /// ```
+    pub fn max_body_size(mut self, size: usize) -> Self {
+        self.config.max_body_size = size;
+        self
+    }
+
+    /// Set the complete configuration.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use riptide_facade::{RiptideBuilder, RiptideConfig};
+    ///
+    /// let config = RiptideConfig::default();
+    /// let builder = RiptideBuilder::new()
+    ///     .config(config);
+    /// ```
+    pub fn config(mut self, config: RiptideConfig) -> Self {
+        self.config = config;
+        self
+    }
+
+    /// Build a scraper facade instance.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configuration is invalid or if initialization fails.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use riptide_facade::RiptideBuilder;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let scraper = RiptideBuilder::new()
+    ///     .user_agent("MyBot/1.0")
+    ///     .build_scraper()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn build_scraper(self) -> RiptideResult<ScraperFacade> {
+        // Validate configuration
+        self.config.validate().map_err(RiptideError::config)?;
+
+        // Build the scraper facade
+        ScraperFacade::new(self.config).await
+    }
+
+    /// Get a reference to the current configuration.
+    pub fn get_config(&self) -> &RiptideConfig {
+        &self.config
     }
 }
 
-#[cfg(feature = "spider")]
-pub struct SpiderConfigBuilder(SpiderConfig);
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[cfg(feature = "spider")]
-impl SpiderConfigBuilder {
-    pub fn new(config: SpiderConfig) -> Self {
-        Self(config)
+    #[test]
+    fn test_builder_defaults() {
+        let builder = RiptideBuilder::new();
+        let config = builder.get_config();
+        assert_eq!(config.user_agent, "RiptideFacade/0.1.0");
+        assert_eq!(config.timeout, Duration::from_secs(30));
     }
 
-    pub fn max_depth(mut self, depth: u32) -> Self {
-        self.0.max_depth = depth;
-        self
+    #[test]
+    fn test_builder_user_agent() {
+        let builder = RiptideBuilder::new().user_agent("TestBot/2.0");
+        assert_eq!(builder.get_config().user_agent, "TestBot/2.0");
     }
 
-    pub fn max_pages(mut self, pages: u32) -> Self {
-        self.0.max_pages = pages;
-        self
+    #[test]
+    fn test_builder_timeout() {
+        let builder = RiptideBuilder::new().timeout_secs(60);
+        assert_eq!(builder.get_config().timeout, Duration::from_secs(60));
     }
 
-    pub fn crawl_delay_ms(mut self, delay: u64) -> Self {
-        self.0.crawl_delay_ms = delay;
-        self
+    #[test]
+    fn test_builder_timeout_duration() {
+        let duration = Duration::from_millis(500);
+        let builder = RiptideBuilder::new().timeout(duration);
+        assert_eq!(builder.get_config().timeout, duration);
     }
 
-    pub fn respect_robots_txt(mut self, respect: bool) -> Self {
-        self.0.respect_robots_txt = respect;
-        self
+    #[test]
+    fn test_builder_max_redirects() {
+        let builder = RiptideBuilder::new().max_redirects(10);
+        assert_eq!(builder.get_config().max_redirects, 10);
     }
 
-    pub fn build(self) -> SpiderConfig {
-        self.0
-    }
-}
-
-#[cfg(feature = "browser")]
-pub struct BrowserConfigBuilder(BrowserConfig);
-
-#[cfg(feature = "browser")]
-impl BrowserConfigBuilder {
-    pub fn new(config: BrowserConfig) -> Self {
-        Self(config)
+    #[test]
+    fn test_builder_verify_ssl() {
+        let builder = RiptideBuilder::new().verify_ssl(false);
+        assert!(!builder.get_config().verify_ssl);
     }
 
-    pub fn headless(mut self, headless: bool) -> Self {
-        self.0.headless = headless;
-        self
+    #[test]
+    fn test_builder_header() {
+        let builder = RiptideBuilder::new().header("X-Custom", "value");
+        let headers = &builder.get_config().headers;
+        assert_eq!(headers.len(), 1);
+        assert_eq!(headers[0], ("X-Custom".to_string(), "value".to_string()));
     }
 
-    pub fn pool_size(mut self, size: usize) -> Self {
-        self.0.pool_size = size;
-        self
-    }
+    #[test]
+    fn test_builder_chaining() {
+        let builder = RiptideBuilder::new()
+            .user_agent("ChainBot/1.0")
+            .timeout_secs(45)
+            .max_redirects(7)
+            .verify_ssl(false)
+            .header("X-Test", "test")
+            .max_body_size(2048);
 
-    pub fn enable_stealth(mut self) -> Self {
-        self.0.enable_stealth = true;
-        self
-    }
-
-    pub fn build(self) -> BrowserConfig {
-        self.0
-    }
-}
-
-#[cfg(feature = "intelligence")]
-pub struct IntelligenceConfigBuilder(IntelligenceConfig);
-
-#[cfg(feature = "intelligence")]
-impl IntelligenceConfigBuilder {
-    pub fn new(config: IntelligenceConfig) -> Self {
-        Self(config)
-    }
-
-    pub fn default_provider(mut self, provider: impl Into<String>) -> Self {
-        self.0.default_provider = provider.into();
-        self
-    }
-
-    pub fn enable_fallback(mut self) -> Self {
-        self.0.enable_fallback = true;
-        self
-    }
-
-    pub fn timeout(mut self, secs: u64) -> Self {
-        self.0.timeout_secs = secs;
-        self
-    }
-
-    pub fn build(self) -> IntelligenceConfig {
-        self.0
-    }
-}
-
-#[cfg(feature = "security")]
-pub struct SecurityConfigBuilder(SecurityConfig);
-
-#[cfg(feature = "security")]
-impl SecurityConfigBuilder {
-    pub fn new(config: SecurityConfig) -> Self {
-        Self(config)
-    }
-
-    pub fn enable_rate_limiting(mut self) -> Self {
-        self.0.enable_rate_limiting = true;
-        self
-    }
-
-    pub fn rate_limit_rpm(mut self, rpm: u32) -> Self {
-        self.0.rate_limit_rpm = rpm;
-        self
-    }
-
-    pub fn enable_pii_redaction(mut self) -> Self {
-        self.0.enable_pii_redaction = true;
-        self
-    }
-
-    pub fn api_key_required(mut self, required: bool) -> Self {
-        self.0.api_key_required = required;
-        self
-    }
-
-    pub fn build(self) -> SecurityConfig {
-        self.0
-    }
-}
-
-#[cfg(feature = "monitoring")]
-pub struct MonitoringConfigBuilder(MonitoringConfig);
-
-#[cfg(feature = "monitoring")]
-impl MonitoringConfigBuilder {
-    pub fn new(config: MonitoringConfig) -> Self {
-        Self(config)
-    }
-
-    pub fn enable_telemetry(mut self) -> Self {
-        self.0.enable_telemetry = true;
-        self
-    }
-
-    pub fn enable_metrics(mut self) -> Self {
-        self.0.enable_metrics = true;
-        self
-    }
-
-    pub fn otlp_endpoint(mut self, endpoint: impl Into<String>) -> Self {
-        self.0.otlp_endpoint = Some(endpoint.into());
-        self
-    }
-
-    pub fn build(self) -> MonitoringConfig {
-        self.0
-    }
-}
-
-#[cfg(feature = "cache")]
-pub struct CacheConfigBuilder(CacheConfig);
-
-#[cfg(feature = "cache")]
-impl CacheConfigBuilder {
-    pub fn new(config: CacheConfig) -> Self {
-        Self(config)
-    }
-
-    pub fn enable_memory_cache(mut self) -> Self {
-        self.0.enable_memory_cache = true;
-        self
-    }
-
-    pub fn memory_cache_size_mb(mut self, size: usize) -> Self {
-        self.0.memory_cache_size_mb = size;
-        self
-    }
-
-    pub fn enable_redis(mut self) -> Self {
-        self.0.enable_redis = true;
-        self
-    }
-
-    pub fn redis_url(mut self, url: impl Into<String>) -> Self {
-        self.0.redis_url = Some(url.into());
-        self
-    }
-
-    pub fn build(self) -> CacheConfig {
-        self.0
+        let config = builder.get_config();
+        assert_eq!(config.user_agent, "ChainBot/1.0");
+        assert_eq!(config.timeout, Duration::from_secs(45));
+        assert_eq!(config.max_redirects, 7);
+        assert!(!config.verify_ssl);
+        assert_eq!(config.headers.len(), 1);
+        assert_eq!(config.max_body_size, 2048);
     }
 }

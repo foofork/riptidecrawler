@@ -22,6 +22,7 @@ members = [
   "crates/riptide-pdf",
   "crates/riptide-performance",
   "crates/riptide-browser-abstraction",  # Phase 1 Week 3 - Browser abstraction layer
+  "crates/riptide-facade",  # P1-C3: High-level facade API
   "wasm/riptide-extractor-wasm", "crates/riptide-test-utils", "crates/riptide-config", "crates/riptide-engine", "crates/riptide-cache",
 ]
 # xtask excluded to avoid Docker build failures (dev tool only)

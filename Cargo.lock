@@ -6816,6 +6816,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "riptide-facade"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "riptide-extraction",
+ "riptide-fetch",
+ "riptide-types",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+ "url",
+ "wiremock",
+]
+
+[[package]]
 name = "riptide-fetch"
 version = "0.1.0"
 dependencies = [

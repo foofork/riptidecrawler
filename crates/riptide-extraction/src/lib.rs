@@ -33,9 +33,13 @@
 //! # }
 //! ```
 
-// NOTE: confidence_integration requires riptide-core dependency which causes circular dependency
-// This module should be moved to riptide-core or a shared crate
+// P1-A3 Phase 2D: Extraction domain modules moved from riptide-core
+// TODO: Re-enable after resolving type mismatches between strategies and composition
+// pub mod composition;
+pub mod confidence;
+// TODO: Re-enable after fixing ExtractedContent type conflicts
 // pub mod confidence_integration;
+
 pub mod css_extraction;
 pub mod dom_utils;
 pub mod processor;
@@ -82,6 +86,12 @@ pub use html_parser::{Link, Media, MediaType, Metadata};
 
 // Re-export strategies (moved from riptide-core)
 pub use strategies::{ExtractionStrategy, PerformanceMetrics, StrategyManager};
+
+// Re-export confidence (Phase 2D)
+pub use confidence::{AggregationStrategy, ConfidenceScore, ConfidenceScorer};
+// TODO: Re-enable these after resolving type conflicts
+// pub use composition::{CompositionMode, StrategyComposer};
+// pub use confidence_integration::{CssConfidenceScorer, ExtractedContent, WasmConfidenceScorer};
 
 // // Re-export spider functionality
 // pub use spider::{

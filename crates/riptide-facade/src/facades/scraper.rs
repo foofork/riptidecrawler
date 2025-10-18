@@ -1,72 +1,144 @@
-//! Scraper facade for unified web scraping operations.
+//! Basic web scraper facade implementation.
 
-use crate::config::RiptideConfig;
-use crate::error::Result;
-use crate::runtime::RiptideRuntime;
-use riptide_types::ExtractedDoc;
+use crate::{config::RiptideConfig, error::RiptideResult, RiptideError};
+use riptide_fetch::FetchEngine;
 use std::sync::Arc;
+use url::Url;
 
-/// Facade for web page scraping operations.
+/// A simplified facade for web scraping operations.
 ///
-/// Provides a simplified API for fetching and extracting content from web pages.
+/// Provides high-level methods for common scraping tasks while hiding
+/// the complexity of the underlying fetch and extraction layers.
+#[derive(Clone)]
 pub struct ScraperFacade {
-    config: RiptideConfig,
-    runtime: Arc<RiptideRuntime>,
+    config: Arc<RiptideConfig>,
+    client: Arc<FetchEngine>,
 }
 
 impl ScraperFacade {
-    pub(crate) fn new(config: RiptideConfig, runtime: Arc<RiptideRuntime>) -> Self {
-        Self { config, runtime }
+    /// Create a new scraper facade with the given configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the fetch client cannot be initialized.
+    pub async fn new(config: RiptideConfig) -> RiptideResult<Self> {
+        let client = FetchEngine::new()
+            .map_err(|e| RiptideError::config(format!("Failed to create fetch engine: {}", e)))?;
+
+        Ok(Self {
+            config: Arc::new(config),
+            client: Arc::new(client),
+        })
     }
 
-    /// Fetch and extract content from a URL.
+    /// Fetch HTML content from a URL.
+    ///
+    /// # Arguments
+    ///
+    /// * `url` - The URL to fetch
+    ///
+    /// # Returns
+    ///
+    /// Returns the HTML content as a string.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The URL is invalid
+    /// - The request fails
+    /// - The response is not valid UTF-8
     ///
     /// # Example
     ///
     /// ```no_run
-    /// # use riptide_facade::Riptide;
-    /// # async fn example() -> anyhow::Result<()> {
-    /// let riptide = Riptide::with_defaults()?;
-    /// let doc = riptide.scraper().fetch("https://example.com").await?;
-    /// println!("Title: {}", doc.title);
+    /// use riptide_facade::ScraperFacade;
+    /// use riptide_facade::RiptideConfig;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let config = RiptideConfig::default();
+    /// let scraper = ScraperFacade::new(config).await?;
+    /// let html = scraper.fetch_html("https://example.com").await?;
+    /// println!("Fetched {} bytes", html.len());
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn fetch(&self, url: &str) -> Result<ExtractedDoc> {
-        // TODO: Implement actual scraping logic
-        // Use riptide-fetch and riptide-extraction
-        unimplemented!("Scraper facade not yet implemented")
+    pub async fn fetch_html(&self, url: impl AsRef<str>) -> RiptideResult<String> {
+        let url_str = url.as_ref();
+
+        // Validate URL
+        let _ = Url::parse(url_str)?;
+
+        // Fetch as text
+        self.client
+            .fetch_text(url_str)
+            .await
+            .map_err(|e| RiptideError::extraction(format!("Failed to fetch HTML: {}", e)))
     }
 
-    /// Fetch with custom options.
-    pub async fn fetch_with_options(
-        &self,
-        url: &str,
-        options: ScrapeOptions,
-    ) -> Result<ExtractedDoc> {
-        // TODO: Implement
-        unimplemented!("Scraper facade not yet implemented")
+    /// Fetch raw bytes from a URL.
+    ///
+    /// # Arguments
+    ///
+    /// * `url` - The URL to fetch
+    ///
+    /// # Returns
+    ///
+    /// Returns the response body as bytes.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the URL is invalid or the request fails.
+    pub async fn fetch_bytes(&self, url: impl AsRef<str>) -> RiptideResult<Vec<u8>> {
+        let url_str = url.as_ref();
+
+        // Validate URL
+        let _ = Url::parse(url_str)?;
+
+        // Fetch as bytes
+        self.client
+            .fetch_bytes(url_str)
+            .await
+            .map_err(|e| RiptideError::extraction(format!("Failed to fetch bytes: {}", e)))
     }
 
-    /// Batch fetch multiple URLs.
-    pub async fn fetch_batch(&self, urls: &[&str]) -> Result<Vec<ExtractedDoc>> {
-        // TODO: Implement parallel fetching
-        unimplemented!("Scraper facade not yet implemented")
+    /// Get the current configuration.
+    pub fn config(&self) -> &RiptideConfig {
+        &self.config
+    }
+
+    /// Get a reference to the fetch engine.
+    pub fn client(&self) -> &FetchEngine {
+        &self.client
     }
 }
 
-/// Options for scraping operations.
-#[derive(Debug, Clone, Default)]
-pub struct ScrapeOptions {
-    /// Enable caching
-    pub use_cache: bool,
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    /// Enable JavaScript rendering
-    pub render_js: bool,
+    #[tokio::test]
+    async fn test_scraper_creation() {
+        let config = RiptideConfig::default();
+        let scraper = ScraperFacade::new(config).await;
+        assert!(scraper.is_ok());
+    }
 
-    /// Maximum wait time for dynamic content (ms)
-    pub wait_for_ms: Option<u64>,
+    #[tokio::test]
+    async fn test_scraper_config_access() {
+        let config = RiptideConfig::default().with_user_agent("TestBot/1.0");
+        let scraper = ScraperFacade::new(config).await.unwrap();
+        assert_eq!(scraper.config().user_agent, "TestBot/1.0");
+    }
 
-    /// Custom headers
-    pub headers: Vec<(String, String)>,
+    #[test]
+    fn test_invalid_url() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let config = RiptideConfig::default();
+            let scraper = ScraperFacade::new(config).await.unwrap();
+            let result = scraper.fetch_html("not a valid url").await;
+            assert!(result.is_err());
+        });
+    }
 }

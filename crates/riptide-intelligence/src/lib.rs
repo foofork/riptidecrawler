@@ -6,6 +6,9 @@
 use std::sync::Arc;
 use thiserror::Error;
 
+// P1-A3 Phase 2D: Background processor moved from riptide-core
+pub mod background_processor;
+
 pub mod circuit_breaker;
 pub mod config;
 pub mod dashboard;
@@ -26,6 +29,9 @@ pub mod timeout;
 pub mod mock_provider;
 
 // Re-export core types
+pub use background_processor::{
+    AiProcessor, EnhancementResult, EnhancementTask, ProcessorConfig, TaskPriority,
+};
 pub use circuit_breaker::{
     with_circuit_breaker, with_custom_circuit_breaker, CircuitBreaker, CircuitBreakerConfig,
     CircuitState,

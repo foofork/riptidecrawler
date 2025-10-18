@@ -19,7 +19,8 @@ use tokio::task::JoinHandle;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
-use crate::events::{CrawlEvent, CrawlOperation, EventBus, EventEmitter, ExtractionMode};
+use riptide_events::{CrawlEvent, CrawlOperation, EventBus, EventEmitter};
+use riptide_types::ExtractionMode;
 
 /// Priority levels for AI enhancement tasks
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

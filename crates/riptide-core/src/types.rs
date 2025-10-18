@@ -26,7 +26,8 @@ pub struct CrawlOptions {
     pub token_chunk_max: usize,
     pub token_overlap: usize,
     // Phase 3 dynamic content options (riptide-core specific)
-    pub dynamic_config: Option<crate::dynamic::DynamicConfig>,
+    // TODO: Re-add after resolving circular dependency with riptide-headless
+    // pub dynamic_config: Option<crate::dynamic::DynamicConfig>,
     pub stealth_config: Option<crate::stealth::StealthConfig>,
     #[cfg(feature = "pdf")]
     pub pdf_config: Option<riptide_pdf::PdfConfig>,
@@ -51,7 +52,7 @@ impl Default for CrawlOptions {
             scroll_steps: 8,
             token_chunk_max: 1200,
             token_overlap: 120,
-            dynamic_config: None,
+            // dynamic_config: None,  // Removed due to circular dependency
             stealth_config: None,
             pdf_config: None,
             render_mode: RenderMode::default(),

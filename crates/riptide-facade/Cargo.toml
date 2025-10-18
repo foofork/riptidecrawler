@@ -1,214 +1,33 @@
 [package]
 name = "riptide-facade"
 version = "0.1.0"
-edition = "2021"
-license = "Apache-2.0"
-description = "Unified facade and composition layer for the Riptide web scraping framework"
-repository = "https://github.com/your-org/eventmesh"
-keywords = ["facade", "composition", "scraping", "abstraction"]
-categories = ["web-programming", "asynchronous"]
-
-[lib]
-name = "riptide_facade"
-path = "src/lib.rs"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
 
 [dependencies]
-# Async runtime
-tokio = { workspace = true }
-futures = { workspace = true }
-async-trait = "0.1"
-
-# Core utilities
-anyhow = { workspace = true }
-thiserror = { workspace = true }
-tracing = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-
-# Core Riptide crates (always included)
+# Internal dependencies
 riptide-types = { path = "../riptide-types" }
-riptide-core = { path = "../riptide-core" }
+riptide-fetch = { path = "../riptide-fetch" }
+riptide-extraction = { path = "../riptide-extraction" }
 
-# Scraping and crawling (core features)
-riptide-fetch = { path = "../riptide-fetch", optional = true }
-riptide-spider = { path = "../riptide-spider", optional = true }
-riptide-extraction = { path = "../riptide-extraction", optional = true }
+# Error handling
+anyhow.workspace = true
+thiserror.workspace = true
 
-# Browser automation
-riptide-engine = { path = "../riptide-engine", optional = true }
-riptide-browser-abstraction = { path = "../riptide-browser-abstraction", optional = true }
-riptide-headless = { path = "../riptide-headless", optional = true }
+# Async runtime
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
-# Intelligence and AI
-riptide-intelligence = { path = "../riptide-intelligence", optional = true }
+# Serialization
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
 
-# Security and middleware
-riptide-security = { path = "../riptide-security", optional = true }
-
-# Monitoring and telemetry
-riptide-monitoring = { path = "../riptide-monitoring", optional = true }
-
-# Specialized features
-riptide-cache = { path = "../riptide-cache", optional = true }
-riptide-config = { path = "../riptide-config", optional = true }
-riptide-pdf = { path = "../riptide-pdf", optional = true }
-riptide-stealth = { path = "../riptide-stealth", optional = true }
-riptide-search = { path = "../riptide-search", optional = true }
-riptide-persistence = { path = "../riptide-persistence", optional = true }
-riptide-workers = { path = "../riptide-workers", optional = true }
-riptide-performance = { path = "../riptide-performance", optional = true }
-
-# Additional utilities
-chrono = { workspace = true }
-url = { workspace = true }
-regex = { workspace = true }
-dashmap = { workspace = true }
+# URL handling
+url.workspace = true
 
 [dev-dependencies]
-tokio-test = "0.4"
-mockall = "0.13"
-proptest = "1.4"
-criterion = { version = "0.5", features = ["html_reports"] }
-rstest = "0.22"
-tempfile = "3.8"
+tokio = { workspace = true, features = ["test-util"] }
+wiremock.workspace = true
 
-[features]
-# Default features - minimal but functional
-default = ["scraper", "spider"]
-
-# Core feature groups
-scraper = [
-    "riptide-fetch",
-    "riptide-extraction",
-]
-
-spider = [
-    "riptide-spider",
-    "riptide-fetch",
-]
-
-browser = [
-    "riptide-engine",
-    "riptide-browser-abstraction",
-    "riptide-headless",
-]
-
-extractor = [
-    "riptide-extraction",
-]
-
-intelligence = [
-    "riptide-intelligence",
-]
-
-security = [
-    "riptide-security",
-]
-
-monitoring = [
-    "riptide-monitoring",
-]
-
-# Infrastructure features
-cache = [
-    "riptide-cache",
-]
-
-persistence = [
-    "riptide-persistence",
-    "cache",
-]
-
-# Specialized features
-pdf = [
-    "riptide-pdf",
-    "extractor",
-]
-
-stealth = [
-    "riptide-stealth",
-    "browser",
-]
-
-search = [
-    "riptide-search",
-]
-
-workers = [
-    "riptide-workers",
-]
-
-performance = [
-    "riptide-performance",
-]
-
-# Composite features
-web-scraping = [
-    "scraper",
-    "spider",
-    "extractor",
-    "cache",
-]
-
-browser-automation = [
-    "browser",
-    "stealth",
-    "scraper",
-]
-
-ai-extraction = [
-    "intelligence",
-    "extractor",
-    "scraper",
-]
-
-production = [
-    "scraper",
-    "spider",
-    "browser",
-    "extractor",
-    "intelligence",
-    "security",
-    "monitoring",
-    "cache",
-    "persistence",
-]
-
-# Full feature set (everything)
-full = [
-    "scraper",
-    "spider",
-    "browser",
-    "extractor",
-    "intelligence",
-    "security",
-    "monitoring",
-    "cache",
-    "persistence",
-    "pdf",
-    "stealth",
-    "search",
-    "workers",
-    "performance",
-]
-
-[[bench]]
-name = "facade_overhead"
-harness = false
-required-features = ["scraper"]
-
-[[example]]
-name = "simple_scraping"
-required-features = ["scraper"]
-
-[[example]]
-name = "advanced_crawling"
-required-features = ["spider"]
-
-[[example]]
-name = "browser_automation"
-required-features = ["browser"]
-
-[[example]]
-name = "workflow_composition"
-required-features = ["scraper", "spider", "extractor"]
+[lib]
+path = "src/lib.rs"

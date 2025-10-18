@@ -25,7 +25,7 @@
 //! - **Search providers**: `riptide-search`
 
 // Core infrastructure modules
-pub mod ai_processor;
+// pub mod ai_processor;  // P1-A3 Phase 2D: Moved to riptide-intelligence crate
 // pub mod cache;  // P1-A3 Phase 2C: Moved to riptide-cache crate
 // pub mod cache_key;  // P1-A3 Phase 2C: Moved to riptide-cache crate
 // pub mod cache_warming;  // P1-A3 Phase 2C: Moved to riptide-cache crate
@@ -35,9 +35,9 @@ pub mod circuit_breaker;
 pub mod common;
 pub mod component;
 pub mod conditional;
-pub mod confidence;
-pub mod confidence_integration;
-pub mod dynamic;
+// pub mod confidence;  // P1-A3 Phase 2D: Moved to riptide-extraction crate
+// pub mod confidence_integration;  // P1-A3 Phase 2D: Moved to riptide-extraction crate
+// pub mod dynamic;  // P1-A3 Phase 2D: Moved to riptide-headless crate
 // pub mod enhanced_extractor; // Temporarily disabled
 pub mod error;
 // pub mod events;  // P1-A3 Phase 2A: Moved to riptide-events crate
@@ -57,11 +57,11 @@ pub use riptide_pdf as pdf;
 
 // pub mod pool_health;  // P1-A3 Phase 2B: Moved to riptide-pool crate
 pub mod reliability;
-pub mod robots;
+// pub mod robots;  // P1-A3 Phase 2D: Already moved to riptide-fetch crate (duplicate)
 // pub mod security;  // P1-A3: Moved to riptide-security crate
 // pub mod spider;  // P1-C2: Moved to riptide-spider crate
 // pub mod strategies;  // P1-C2: Moved to riptide-extraction crate
-pub mod strategy_composition;
+// pub mod strategy_composition;  // P1-A3 Phase 2D: Moved to riptide-extraction crate
 // pub mod telemetry;  // P1-A3: Moved to riptide-monitoring crate
 pub mod types;
 
@@ -253,6 +253,66 @@ pub mod events_pool_integration {
     //! use riptide_pool::events_integration::*;
     //! ```
     pub use riptide_pool::events_integration::*;
+}
+
+pub mod confidence {
+    //! Confidence scoring module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-extraction` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The confidence scoring functionality has been extracted to its own crate.
+    //! Please migrate to using `riptide-extraction` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::confidence::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_extraction::confidence::*;
+    //! ```
+    pub use riptide_extraction::confidence::*;
+}
+
+// TODO: Re-enable after fixing type conflicts in riptide-extraction
+// pub mod confidence_integration {
+//     pub use riptide_extraction::confidence_integration::*;
+// }
+
+// TODO: Re-enable after fixing type conflicts in riptide-extraction
+// pub mod strategy_composition {
+//     pub use riptide_extraction::composition::*;
+// }
+
+// TODO: Re-enable after resolving circular dependencies
+// pub mod ai_processor {
+//     //! AI background processor module - MOVED to riptide-intelligence
+//     //! Circular dependency prevents re-export. Use riptide-intelligence directly.
+//     pub use riptide_intelligence::background_processor::*;
+// }
+
+// TODO: Re-enable after resolving circular dependencies
+// pub mod dynamic {
+//     //! Dynamic content handling module - MOVED to riptide-headless
+//     //! Circular dependency prevents re-export. Use riptide-headless directly.
+//     pub use riptide_headless::dynamic::*;
+// }
+
+pub mod robots {
+    //! Robots.txt handling module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-fetch` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The robots.txt functionality has been extracted to its own crate.
+    //! Please migrate to using `riptide-fetch` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::robots::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_fetch::robots::*;
+    //! ```
+    pub use riptide_fetch::robots::*;
 }
 
 pub mod security {

@@ -25,6 +25,9 @@ riptide-events = { path = "../riptide-events" }
 riptide-pool = { path = "../riptide-pool" }
 # P1-A3 Phase 2C: Cache system extracted from core
 riptide-cache = { path = "../riptide-cache" }
+# P1-A3 Phase 2D: Additional extracted modules - TODO: Re-add after resolving circular deps
+# riptide-headless = { path = "../riptide-headless" }  # Circular dependency
+# riptide-intelligence = { path = "../riptide-intelligence" }  # Depends on riptide-events which is fine
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 bytes = { workspace = true }

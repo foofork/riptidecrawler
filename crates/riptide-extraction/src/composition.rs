@@ -9,7 +9,7 @@
 //! ## Example
 //!
 //! ```rust,no_run
-//! use riptide_core::strategy_composition::{StrategyComposer, CompositionMode};
+//! use riptide_extraction::composition::{StrategyComposer, CompositionMode};
 //!
 //! let composer = StrategyComposer::new(CompositionMode::Chain)
 //!     .with_timeout(5000)
@@ -18,10 +18,9 @@
 //! let result = composer.execute(html, url).await?;
 //! ```
 
-use crate::strategies::{
-    traits::{ExtractionResult, ExtractionStrategy},
-    ExtractedContent, PerformanceMetrics,
-};
+use crate::strategies::traits::{ExtractionResult, ExtractionStrategy};
+use crate::strategies::PerformanceMetrics;
+use riptide_types::ExtractedDoc as ExtractedContent;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};

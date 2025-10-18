@@ -64,6 +64,12 @@ pub use riptide_engine::hybrid_fallback::{
 // Temporarily disabled due to chromiumoxide version conflict (Phase 2 resolution)
 // pub mod cdp;
 
+// P1-A3 Phase 2D: Dynamic content handling moved from riptide-core
+pub mod dynamic;
+
+// Re-export dynamic types
+pub use dynamic::{DynamicConfig, PageAction, ScrollConfig, ViewportConfig, WaitCondition};
+
 // Backward compatibility re-exports
 pub mod pool {
     //! Browser pool module - MOVED to riptide-engine

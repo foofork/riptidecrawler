@@ -1,316 +1,139 @@
-//! Configuration types for the Riptide facade.
+//! Configuration types for Riptide facade.
 
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-/// Main configuration for Riptide facade.
-///
-/// Unifies configuration from all underlying crates.
+/// Configuration for Riptide facade components.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RiptideConfig {
-    /// Fetch configuration
-    #[cfg(feature = "scraper")]
-    pub fetch: FetchConfig,
+    /// User agent string for HTTP requests
+    pub user_agent: String,
 
-    /// Spider configuration
-    #[cfg(feature = "spider")]
-    pub spider: SpiderConfig,
+    /// Request timeout duration
+    pub timeout: Duration,
 
-    /// Browser configuration
-    #[cfg(feature = "browser")]
-    pub browser: BrowserConfig,
+    /// Maximum number of redirects to follow
+    pub max_redirects: u32,
 
-    /// Intelligence configuration
-    #[cfg(feature = "intelligence")]
-    pub intelligence: IntelligenceConfig,
+    /// Whether to verify SSL certificates
+    pub verify_ssl: bool,
 
-    /// Security configuration
-    #[cfg(feature = "security")]
-    pub security: SecurityConfig,
+    /// Additional headers to include in requests
+    pub headers: Vec<(String, String)>,
 
-    /// Monitoring configuration
-    #[cfg(feature = "monitoring")]
-    pub monitoring: MonitoringConfig,
-
-    /// Cache configuration
-    #[cfg(feature = "cache")]
-    pub cache: CacheConfig,
+    /// Maximum response body size in bytes
+    pub max_body_size: usize,
 }
 
 impl Default for RiptideConfig {
     fn default() -> Self {
         Self {
-            #[cfg(feature = "scraper")]
-            fetch: FetchConfig::default(),
-
-            #[cfg(feature = "spider")]
-            spider: SpiderConfig::default(),
-
-            #[cfg(feature = "browser")]
-            browser: BrowserConfig::default(),
-
-            #[cfg(feature = "intelligence")]
-            intelligence: IntelligenceConfig::default(),
-
-            #[cfg(feature = "security")]
-            security: SecurityConfig::default(),
-
-            #[cfg(feature = "monitoring")]
-            monitoring: MonitoringConfig::default(),
-
-            #[cfg(feature = "cache")]
-            cache: CacheConfig::default(),
+            user_agent: "RiptideFacade/0.1.0".to_string(),
+            timeout: Duration::from_secs(30),
+            max_redirects: 5,
+            verify_ssl: true,
+            headers: Vec::new(),
+            max_body_size: 10 * 1024 * 1024, // 10 MB
         }
     }
 }
 
-// ============================================================================
-// Fetch Configuration
-// ============================================================================
+impl RiptideConfig {
+    /// Create a new configuration with default values.
+    pub fn new() -> Self {
+        Self::default()
+    }
 
-/// Configuration for HTTP fetching operations.
-#[cfg(feature = "scraper")]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FetchConfig {
-    /// Maximum number of retries
-    pub max_retries: u32,
+    /// Set the user agent string.
+    pub fn with_user_agent(mut self, user_agent: impl Into<String>) -> Self {
+        self.user_agent = user_agent.into();
+        self
+    }
 
-    /// Request timeout in seconds
-    pub timeout_secs: u64,
+    /// Set the request timeout.
+    pub fn with_timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = timeout;
+        self
+    }
 
-    /// User agent string
-    pub user_agent: String,
+    /// Set the maximum number of redirects.
+    pub fn with_max_redirects(mut self, max_redirects: u32) -> Self {
+        self.max_redirects = max_redirects;
+        self
+    }
 
-    /// Follow redirects
-    pub follow_redirects: bool,
+    /// Set whether to verify SSL certificates.
+    pub fn with_verify_ssl(mut self, verify_ssl: bool) -> Self {
+        self.verify_ssl = verify_ssl;
+        self
+    }
 
-    /// Maximum redirects to follow
-    pub max_redirects: u32,
+    /// Add a custom header.
+    pub fn add_header(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.headers.push((key.into(), value.into()));
+        self
+    }
 
-    /// Enable gzip compression
-    pub enable_gzip: bool,
-}
+    /// Set the maximum response body size.
+    pub fn with_max_body_size(mut self, max_body_size: usize) -> Self {
+        self.max_body_size = max_body_size;
+        self
+    }
 
-#[cfg(feature = "scraper")]
-impl Default for FetchConfig {
-    fn default() -> Self {
-        Self {
-            max_retries: 3,
-            timeout_secs: 30,
-            user_agent: "RiptideBot/1.0".to_string(),
-            follow_redirects: true,
-            max_redirects: 10,
-            enable_gzip: true,
+    /// Validate the configuration.
+    pub fn validate(&self) -> Result<(), String> {
+        if self.user_agent.is_empty() {
+            return Err("User agent cannot be empty".to_string());
         }
+        if self.timeout.as_secs() == 0 {
+            return Err("Timeout must be greater than zero".to_string());
+        }
+        if self.max_body_size == 0 {
+            return Err("Max body size must be greater than zero".to_string());
+        }
+        Ok(())
     }
 }
 
-// ============================================================================
-// Spider Configuration
-// ============================================================================
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-/// Configuration for web crawling operations.
-#[cfg(feature = "spider")]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SpiderConfig {
-    /// Maximum crawl depth
-    pub max_depth: u32,
-
-    /// Maximum pages to crawl
-    pub max_pages: u32,
-
-    /// Delay between requests in milliseconds
-    pub crawl_delay_ms: u64,
-
-    /// Respect robots.txt
-    pub respect_robots_txt: bool,
-
-    /// Enable query-aware crawling
-    pub query_aware: bool,
-}
-
-#[cfg(feature = "spider")]
-impl Default for SpiderConfig {
-    fn default() -> Self {
-        Self {
-            max_depth: 5,
-            max_pages: 1000,
-            crawl_delay_ms: 200,
-            respect_robots_txt: true,
-            query_aware: false,
-        }
+    #[test]
+    fn test_default_config() {
+        let config = RiptideConfig::default();
+        assert_eq!(config.user_agent, "RiptideFacade/0.1.0");
+        assert_eq!(config.timeout, Duration::from_secs(30));
+        assert_eq!(config.max_redirects, 5);
+        assert!(config.verify_ssl);
+        assert!(config.headers.is_empty());
     }
-}
 
-// ============================================================================
-// Browser Configuration
-// ============================================================================
+    #[test]
+    fn test_config_builder() {
+        let config = RiptideConfig::new()
+            .with_user_agent("TestBot/1.0")
+            .with_timeout(Duration::from_secs(60))
+            .with_max_redirects(10)
+            .with_verify_ssl(false)
+            .add_header("X-Custom", "value");
 
-/// Configuration for browser automation.
-#[cfg(feature = "browser")]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BrowserConfig {
-    /// Run browser in headless mode
-    pub headless: bool,
-
-    /// Browser pool size
-    pub pool_size: usize,
-
-    /// Enable stealth mode
-    pub enable_stealth: bool,
-
-    /// Browser launch timeout in seconds
-    pub launch_timeout_secs: u64,
-
-    /// Page load timeout in seconds
-    pub page_load_timeout_secs: u64,
-}
-
-#[cfg(feature = "browser")]
-impl Default for BrowserConfig {
-    fn default() -> Self {
-        Self {
-            headless: true,
-            pool_size: 5,
-            enable_stealth: false,
-            launch_timeout_secs: 30,
-            page_load_timeout_secs: 30,
-        }
+        assert_eq!(config.user_agent, "TestBot/1.0");
+        assert_eq!(config.timeout, Duration::from_secs(60));
+        assert_eq!(config.max_redirects, 10);
+        assert!(!config.verify_ssl);
+        assert_eq!(config.headers.len(), 1);
     }
-}
 
-// ============================================================================
-// Intelligence Configuration
-// ============================================================================
+    #[test]
+    fn test_config_validation() {
+        let config = RiptideConfig::default();
+        assert!(config.validate().is_ok());
 
-/// Configuration for LLM operations.
-#[cfg(feature = "intelligence")]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct IntelligenceConfig {
-    /// Default LLM provider
-    pub default_provider: String,
-
-    /// Enable fallback to alternative providers
-    pub enable_fallback: bool,
-
-    /// LLM request timeout in seconds
-    pub timeout_secs: u64,
-
-    /// Maximum tokens per request
-    pub max_tokens: usize,
-}
-
-#[cfg(feature = "intelligence")]
-impl Default for IntelligenceConfig {
-    fn default() -> Self {
-        Self {
-            default_provider: "openai".to_string(),
-            enable_fallback: true,
-            timeout_secs: 60,
-            max_tokens: 4096,
-        }
-    }
-}
-
-// ============================================================================
-// Security Configuration
-// ============================================================================
-
-/// Configuration for security features.
-#[cfg(feature = "security")]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SecurityConfig {
-    /// Enable rate limiting
-    pub enable_rate_limiting: bool,
-
-    /// Requests per minute
-    pub rate_limit_rpm: u32,
-
-    /// Enable PII redaction
-    pub enable_pii_redaction: bool,
-
-    /// Require API key authentication
-    pub api_key_required: bool,
-}
-
-#[cfg(feature = "security")]
-impl Default for SecurityConfig {
-    fn default() -> Self {
-        Self {
-            enable_rate_limiting: true,
-            rate_limit_rpm: 100,
-            enable_pii_redaction: false,
-            api_key_required: false,
-        }
-    }
-}
-
-// ============================================================================
-// Monitoring Configuration
-// ============================================================================
-
-/// Configuration for monitoring and telemetry.
-#[cfg(feature = "monitoring")]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MonitoringConfig {
-    /// Enable telemetry collection
-    pub enable_telemetry: bool,
-
-    /// Enable metrics collection
-    pub enable_metrics: bool,
-
-    /// OpenTelemetry endpoint
-    pub otlp_endpoint: Option<String>,
-
-    /// Metrics export interval in seconds
-    pub metrics_interval_secs: u64,
-}
-
-#[cfg(feature = "monitoring")]
-impl Default for MonitoringConfig {
-    fn default() -> Self {
-        Self {
-            enable_telemetry: false,
-            enable_metrics: true,
-            otlp_endpoint: None,
-            metrics_interval_secs: 60,
-        }
-    }
-}
-
-// ============================================================================
-// Cache Configuration
-// ============================================================================
-
-/// Configuration for caching.
-#[cfg(feature = "cache")]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CacheConfig {
-    /// Enable memory cache
-    pub enable_memory_cache: bool,
-
-    /// Memory cache size in MB
-    pub memory_cache_size_mb: usize,
-
-    /// Enable Redis cache
-    pub enable_redis: bool,
-
-    /// Redis URL
-    pub redis_url: Option<String>,
-
-    /// Default TTL in seconds
-    pub default_ttl_secs: u64,
-}
-
-#[cfg(feature = "cache")]
-impl Default for CacheConfig {
-    fn default() -> Self {
-        Self {
-            enable_memory_cache: true,
-            memory_cache_size_mb: 100,
-            enable_redis: false,
-            redis_url: None,
-            default_ttl_secs: 3600,
-        }
+        let invalid_config = RiptideConfig {
+            user_agent: String::new(),
+            ..Default::default()
+        };
+        assert!(invalid_config.validate().is_err());
     }
 }

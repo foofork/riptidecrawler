@@ -8,7 +8,9 @@
 [![Safety Audit](https://img.shields.io/badge/safety-audited-success.svg)](.github/workflows/safety-audit.yml)
 
 
-IN DEVELOPMENT: 90%+ COMPLETE
+IN DEVELOPMENT: 90%+ COMPLETE,
+
+ HEAVY REFACTORING UNDERWAY
 
 **High-performance web crawler and content extraction API built in Rust with WebAssembly optimization.**
 
