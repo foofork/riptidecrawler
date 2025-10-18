@@ -12,6 +12,7 @@ categories = ["text-processing", "parsing", "web-programming"]
 [dependencies]
 # Core dependencies from workspace
 # Note: riptide-core dependency removed to avoid circular dependency
+riptide-types = { path = "../riptide-types" }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 bytes = { workspace = true }

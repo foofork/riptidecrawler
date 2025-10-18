@@ -11,6 +11,9 @@ use std::time::{Duration, Instant};
 use wasmtime::{component::*, Config, Engine, ResourceLimiter, Store};
 use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView};
 
+// Import ExtractedDoc from riptide-types instead of duplicating
+use riptide_types::ExtractedDoc;
+
 // WIT bindings - Wasmtime 37 bindgen! macro
 // Generate bindings in a module to avoid namespace pollution
 mod wit_bindings {
@@ -18,55 +21,6 @@ mod wit_bindings {
         world: "extractor",
         path: "../../wasm/riptide-extractor-wasm/wit/extractor.wit",
     });
-}
-
-/// Enhanced extraction result with comprehensive metadata
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct ExtractedDoc {
-    /// Source URL for context and link resolution
-    pub url: String,
-
-    /// Extracted page title
-    pub title: Option<String>,
-
-    /// Author/byline information
-    pub byline: Option<String>,
-
-    /// Publication date in ISO 8601 format
-    pub published_iso: Option<String>,
-
-    /// Content formatted as Markdown
-    pub markdown: String,
-
-    /// Plain text content with HTML tags removed
-    pub text: String,
-
-    /// List of extracted hyperlinks
-    pub links: Vec<String>,
-
-    /// List of media URLs (images, videos, audio)
-    pub media: Vec<String>,
-
-    /// Detected content language (ISO 639-1 code)
-    pub language: Option<String>,
-
-    /// Estimated reading time in minutes
-    pub reading_time: Option<u32>,
-
-    /// Content quality score (0-100, higher = better)
-    pub quality_score: Option<u8>,
-
-    /// Word count of extracted text
-    pub word_count: Option<u32>,
-
-    /// Content categories/tags if detected
-    pub categories: Vec<String>,
-
-    /// Site name/publisher if available
-    pub site_name: Option<String>,
-
-    /// Meta description from page
-    pub description: Option<String>,
 }
 
 impl From<ExtractedDoc> for crate::ExtractedContent {
