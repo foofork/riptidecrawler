@@ -38,12 +38,16 @@ This roadmap consolidates all outstanding issues identified across multiple hive
   - ✅ **All Phase 2 work complete** (2A: events, 2B: pool, 2C: cache, 2D: final)
   - ✅ **9/9 pool tests passing** (modernized test suite)
   - ✅ **6 clippy warnings resolved** in pool extraction
-- ⚙️ P1-A4: riptide-facade composition layer (50% - architecture complete) **NEW**
-  - ✅ **Comprehensive design document** (15 sections) **NEW**
-  - ✅ **Complete crate structure** (21 files, 3,118 lines) **NEW**
-  - ✅ **8 domain facades designed** (Scraper, Spider, Browser, etc.) **NEW**
-  - ✅ **Builder pattern, traits, error handling** **NEW**
-  - ⚙️ Phase 1 implementation: Foundation + basic facades (2 weeks) **READY**
+- ⚙️ P1-A4: riptide-facade composition layer (75% - Phase 1 complete) ✅
+  - ✅ **Comprehensive design document** (15 sections)
+  - ✅ **Phase 1 implementation complete** (foundation + ScraperFacade)
+  - ✅ **Builder pattern with fluent API** (8 tests passing)
+  - ✅ **Configuration system** (3 tests passing)
+  - ✅ **Error handling** (20+ error variants)
+  - ✅ **ScraperFacade** (3 tests + 10 integration tests)
+  - ✅ **24 total tests passing** (14 unit + 10 integration)
+  - ✅ **Clippy clean** (0 warnings)
+  - ⚙️ Phase 2: Additional facades (Browser, Extraction, Pipeline) **READY**
 
 **P1-B: Performance Optimization (83% Complete)**
 - ✅ P1-B1: Browser pool scaling (max 5→20, +300% capacity)
@@ -67,17 +71,18 @@ This roadmap consolidates all outstanding issues identified across multiple hive
 - 🔴 P1-C4: Validation (0% - 1 week work)
 
 ### Overall P1 Progress
-- **Architecture:** 95% (3/4 items complete, **A3 100% done ✅**, A4 50% done) **+10%**
+- **Architecture:** 97% (3/4 items complete, **A3 100% done ✅**, A4 75% done) **+12%**
 - **Performance:** 83% (5/6 items complete, B4 blocked by C1)
 - **Integration:** 10% (C1 40% done - foundation complete)
-- **TOTAL:** 80% complete (19/23 sub-items done) **+7% P1-A3 finalized**
+- **TOTAL:** 82% complete (19.75/23 sub-items done) **+9% P1-A3 & A4 progress**
 
 ### Remaining P1 Work
 1. ~~**P1-A3 Phase 2 Implementation**~~ ✅ **100% COMPLETE** (all phases done!)
-2. **P1-A4 Phase 1 Implementation:** Build foundation facades → 2 weeks **READY**
-3. **P1-C1 Completion:** Resolve CDP conflicts + full hybrid launcher → 1 week
-4. **P1-C2-C4 Spider-Chrome:** Full integration migration → 6 weeks
-5. **P1-B4 CDP Multiplexing:** Enable after P1-C1 → 3 days
+2. ~~**P1-A4 Phase 1 Implementation**~~ ✅ **COMPLETE** (foundation + ScraperFacade done!)
+3. **P1-A4 Phase 2 Implementation:** Additional facades (Browser, Extraction) → 1 week **IN PROGRESS**
+4. **P1-C1 Completion:** Resolve CDP conflicts + full hybrid launcher → 1 week **BLOCKED**
+5. **P1-C2-C4 Spider-Chrome:** Full integration migration → 6 weeks **BLOCKED**
+6. **P1-B4 CDP Multiplexing:** Enable after P1-C1 → 3 days **BLOCKED**
 
 **Estimated Time to 100% P1 Complete:** 6-7 weeks (reduced from 7-8 weeks)
 **Phase 2 Complete Impact:** -2 weeks (all extractions done, core at 5.6K lines!)
