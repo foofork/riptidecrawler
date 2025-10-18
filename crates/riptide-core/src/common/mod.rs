@@ -5,8 +5,9 @@
 //!
 //! # Migration Note
 //!
-//! Configuration and validation functionality has been migrated to `riptide-config` crate.
-//! For backward compatibility, these types are re-exported here.
+//! Configuration and validation functionality has been fully migrated to `riptide-config` crate.
+//! All config builder types are now re-exported from riptide-config only.
+//! The duplicate config_builder.rs has been removed.
 
 pub mod error_conversions;
 
