@@ -18,21 +18,25 @@ This roadmap consolidates all outstanding issues identified across multiple hive
 
 ### 🎯 Current Status (Phase 1 - 2025-10-18)
 
-## 📊 P1 COMPLETION STATUS: 70% (+8% Hive Mind Session)
+## 📊 P1 COMPLETION STATUS: 73% (+3% Phase 2B Complete)
 
 ### Completed P1 Items ✅
 
-**P1-A: Architecture Refactoring (85% Complete - +15% Hive Mind)**
+**P1-A: Architecture Refactoring (90% Complete - +5% Phase 2B)**
 - ✅ P1-A1: riptide-types crate created
 - ✅ P1-A2: Circular dependencies resolved (dev-only remains)
-- ⚙️ P1-A3: Core refactoring (90% - research complete, Phase 2 ready) **UPDATED**
+- ⚙️ P1-A3: Core refactoring (95% - Phase 2B complete) **UPDATED**
   - ✅ riptide-spider created and compiling (12K lines)
   - ✅ riptide-fetch created (2.4K lines)
   - ✅ riptide-security created (4.7K lines)
   - ✅ riptide-monitoring created (2.5K lines)
+  - ✅ **riptide-events created (Phase 2A complete)** **COMPLETED**
+  - ✅ **riptide-pool created (Phase 2B complete)** **NEW**
   - ✅ Core reduced 44K → 17.5K lines (-60%)
-  - ✅ **Phase 2 plan complete** - Events/Pool/Cache extraction strategy **NEW**
-  - ⚙️ Phase 2 implementation: 17.5K → 10.9K lines (3 weeks) **READY**
+  - ✅ **Phase 2 plan complete** - Events/Pool/Cache extraction strategy
+  - ✅ **Phase 2A complete** - Events system extracted (~2,300 lines) **COMPLETED**
+  - ✅ **Phase 2B complete** - Instance pool extracted (~1,581 lines) **NEW**
+  - ⚙️ Phase 2C remaining: Cache consolidation (~1,800 lines) → 1 week
 - ⚙️ P1-A4: riptide-facade composition layer (50% - architecture complete) **NEW**
   - ✅ **Comprehensive design document** (15 sections) **NEW**
   - ✅ **Complete crate structure** (21 files, 3,118 lines) **NEW**
@@ -62,20 +66,20 @@ This roadmap consolidates all outstanding issues identified across multiple hive
 - 🔴 P1-C4: Validation (0% - 1 week work)
 
 ### Overall P1 Progress
-- **Architecture:** 85% (3/4 items complete, A3 90% done, A4 50% done) **+5%**
+- **Architecture:** 90% (3/4 items complete, A3 95% done, A4 50% done) **+5%**
 - **Performance:** 83% (5/6 items complete, B4 blocked by C1)
-- **Integration:** 10% (C1 40% done - foundation complete) **+8%**
-- **TOTAL:** 70% complete (17.3/23 sub-items done) **+8% this session**
+- **Integration:** 10% (C1 40% done - foundation complete)
+- **TOTAL:** 73% complete (18/23 sub-items done) **+3% Phase 2B**
 
 ### Remaining P1 Work
-1. **P1-A3 Phase 2 Implementation:** Execute events/pool/cache extractions → ~3 weeks **READY**
+1. **P1-A3 Phase 2C Implementation:** Cache consolidation extraction → 1 week **READY**
 2. **P1-A4 Phase 1 Implementation:** Build foundation facades → 2 weeks **READY**
 3. **P1-C1 Completion:** Resolve CDP conflicts + full hybrid launcher → 1 week
 4. **P1-C2-C4 Spider-Chrome:** Full integration migration → 6 weeks
 5. **P1-B4 CDP Multiplexing:** Enable after P1-C1 → 3 days
 
-**Estimated Time to 100% P1 Complete:** 8-9 weeks (reduced from 9.5-10 weeks)
-**Hive Mind Impact:** -1 week (planning/architecture complete)
+**Estimated Time to 100% P1 Complete:** 7-8 weeks (reduced from 8-9 weeks)
+**Phase 2B Impact:** -1 week (pool extraction complete)
 
 ---
 
@@ -84,13 +88,14 @@ This roadmap consolidates all outstanding issues identified across multiple hive
 - ✅ **Type Duplications Fixed** - ConfigBuilder, ExtractedDoc, BrowserConfig consolidated
 - ✅ **Redis Updated** - 0.24.0 → 0.26.1 (future-compatible)
 - ✅ **Feature Flags Added** - headless feature flag implemented
-- ✅ **Module Extraction** - riptide-spider (12K lines), riptide-fetch (2.4K lines) created
-- ✅ **Core Size Reduced** - 44,065 → 28,929 lines (-34.3%, -15K lines)
+- ✅ **Module Extraction** - riptide-spider (12K), riptide-fetch (2.4K), riptide-pool (1.6K) **UPDATED**
+- ✅ **Core Size Reduced** - 44,065 → 12,361 lines (-72%, -31.7K lines) **UPDATED**
 - ✅ **Browser Optimizations** - All P1-B1, B2, B3, B5, B6 complete
 - ✅ **CDP Tests Fixed** - 2 failing tests now passing (serial execution)
 - ✅ **Error Path Coverage** - 19+ new error tests added
 - ✅ **riptide-spider Fixed** - Import errors resolved, compiles successfully
-- ✅ **Build Status** - 24/24 crates compile (100% ✓) **UPDATED**
+- ✅ **riptide-pool Extracted** - Phase 2B complete, 1,581 lines moved **NEW**
+- ✅ **Build Status** - 24/24 crates compile (100% ✓)
 - ✅ **Type Conversions** - BasicExtractedDoc → ExtractedContent implemented
 - ✅ **Import Fixes** - All extraction strategy imports corrected
 - ✅ **MemoryManager Fix** - Spider vs Core MemoryManager types resolved

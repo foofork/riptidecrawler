@@ -6,7 +6,7 @@ use anyhow::Result;
 use tracing::{debug, info, warn};
 
 use super::pool::AdvancedInstancePool;
-use crate::events::PoolOperation;
+use riptide_events::PoolOperation;
 
 impl AdvancedInstancePool {
     /// Clear a specific number of instances for pool optimization
@@ -62,7 +62,7 @@ impl AdvancedInstancePool {
 
         // Emit memory cleanup event
         if let Some(event_bus) = &self.event_bus {
-            let event = crate::events::PoolEvent::new(
+            let event = riptide_events::PoolEvent::new(
                 PoolOperation::MemoryCleanup,
                 self.pool_id.clone(),
                 "instance_pool",

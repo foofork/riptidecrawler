@@ -7,7 +7,7 @@ use tracing::{debug, error, info, warn};
 
 use crate::component::{ExtractorConfig, PerformanceMetrics};
 use crate::events::{EventBus, HealthEvent, HealthStatus, MetricType, MetricsEvent};
-use crate::instance_pool::AdvancedInstancePool;
+use riptide_pool::AdvancedInstancePool;
 use std::collections::HashMap;
 
 /// Pool health status

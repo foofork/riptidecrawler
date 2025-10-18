@@ -86,7 +86,7 @@ mod instance_pool_tests {
 
     #[tokio::test]
     async fn test_circuit_breaker_states() {
-        use crate::instance_pool::CircuitBreakerState;
+        use riptide_pool::CircuitBreakerState;
         use std::time::Instant;
 
         let mut state = CircuitBreakerState::Closed {
@@ -195,7 +195,7 @@ mod instance_pool_tests {
 
     #[tokio::test]
     async fn test_instance_lifecycle() {
-        use crate::instance_pool::PooledInstance;
+        use riptide_pool::PooledInstance;
         use wasmtime::{component::*, Engine, Linker};
         use std::sync::Arc;
 

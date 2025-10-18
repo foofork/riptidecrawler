@@ -8,7 +8,7 @@ use tracing::{debug, error, info, warn};
 
 use super::models::PooledInstance;
 use super::pool::AdvancedInstancePool;
-use crate::events::PoolOperation;
+use riptide_events::PoolOperation;
 
 impl AdvancedInstancePool {
     /// Start continuous health monitoring for pool instances
@@ -142,7 +142,7 @@ impl AdvancedInstancePool {
             };
 
             let mut event =
-                crate::events::PoolEvent::new(operation, self.pool_id.clone(), "instance_pool")
+                riptide_events::PoolEvent::new(operation, self.pool_id.clone(), "instance_pool")
                     .with_instance_id(instance.id.clone());
 
             // Add health metrics
@@ -173,7 +173,7 @@ impl AdvancedInstancePool {
             let (available, active, total) = self.get_pool_status().await;
             let metrics = self.get_pool_metrics_for_events().await;
 
-            let mut event = crate::events::PoolEvent::new(
+            let mut event = riptide_events::PoolEvent::new(
                 PoolOperation::HealthCheck,
                 self.pool_id.clone(),
                 "instance_pool",

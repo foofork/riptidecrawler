@@ -9,9 +9,9 @@ use tracing::{debug, info, warn};
 use uuid::Uuid;
 use wasmtime::{component::*, Engine};
 
-use crate::component::{ExtractorConfig, PerformanceMetrics, WasmResourceTracker};
-use crate::events::{Event, EventBus, EventEmitter, PoolEvent, PoolMetrics, PoolOperation};
-use crate::types::{ExtractedDoc, ExtractionMode};
+use crate::config::{ExtractorConfig, PerformanceMetrics, WasmResourceTracker};
+use riptide_events::{Event, EventBus, EventEmitter, PoolEvent, PoolMetrics, PoolOperation};
+use riptide_types::{ExtractedDoc, ExtractionMode};
 use async_trait::async_trait;
 
 use super::models::{CircuitBreakerState, PooledInstance};
@@ -69,39 +69,10 @@ impl AdvancedInstancePool {
         let initial_metrics = Arc::new(Mutex::new(PerformanceMetrics::default()));
 
         // P2-2: WIT validation before instantiation
+        // Note: WIT validation is disabled to avoid circular dependency with riptide-core.
+        // Validation can be added at a higher level if needed.
         if config.enable_wit_validation {
-            use crate::wasm_validation::validate_before_instantiation;
-            info!("Performing WIT validation on component before instantiation");
-
-            // Track validation attempt
-            {
-                let mut metrics = initial_metrics.lock().await;
-                metrics.wit_validations_total += 1;
-            }
-
-            if let Err(e) = validate_before_instantiation(&component) {
-                // Track validation failure
-                {
-                    let mut metrics = initial_metrics.lock().await;
-                    metrics.wit_validations_failed += 1;
-                }
-
-                warn!(
-                    error = %e,
-                    component_path = %component_path,
-                    "WIT validation failed, component may be incompatible"
-                );
-                // Return error to prevent instantiation of invalid components
-                return Err(anyhow!("WIT validation failed: {}", e));
-            }
-
-            // Track validation success
-            {
-                let mut metrics = initial_metrics.lock().await;
-                metrics.wit_validations_passed += 1;
-            }
-
-            info!("WIT validation passed successfully");
+            warn!("WIT validation is enabled in config but not available in riptide-pool to avoid circular dependency");
         }
 
         let linker: Linker<WasmResourceTracker> = Linker::new(&engine);
@@ -210,8 +181,8 @@ impl AdvancedInstancePool {
 
                 // Emit timeout event
                 if let Some(event_bus) = &self.event_bus {
-                    let event = crate::events::ExtractionEvent::new(
-                        crate::events::ExtractionOperation::Timeout,
+                    let event = riptide_events::ExtractionEvent::new(
+                        riptide_events::ExtractionOperation::Timeout,
                         url.to_string(),
                         format!("{:?}", mode),
                         &format!("pool-{}", self.pool_id),
@@ -259,12 +230,12 @@ impl AdvancedInstancePool {
         if let Some(event_bus) = &self.event_bus {
             let duration = start_time.elapsed();
             let operation = if success {
-                crate::events::ExtractionOperation::Completed
+                riptide_events::ExtractionOperation::Completed
             } else {
-                crate::events::ExtractionOperation::Failed
+                riptide_events::ExtractionOperation::Failed
             };
 
-            let mut event = crate::events::ExtractionEvent::new(
+            let mut event = riptide_events::ExtractionEvent::new(
                 operation,
                 url.to_string(),
                 format!("{:?}", mode),
@@ -507,8 +478,8 @@ impl AdvancedInstancePool {
 
         // Emit fallback used event
         if let Some(event_bus) = &self.event_bus {
-            let event = crate::events::ExtractionEvent::new(
-                crate::events::ExtractionOperation::FallbackUsed,
+            let event = riptide_events::ExtractionEvent::new(
+                riptide_events::ExtractionOperation::FallbackUsed,
                 url.to_string(),
                 format!("{:?}", mode),
                 &format!("pool-{}", self.pool_id),

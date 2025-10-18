@@ -6676,6 +6676,7 @@ dependencies = [
  "riptide-fetch",
  "riptide-monitoring",
  "riptide-pdf",
+ "riptide-pool",
  "riptide-search",
  "riptide-security",
  "riptide-spider",
@@ -7059,6 +7060,26 @@ dependencies = [
  "tracing-subscriber",
  "uuid",
  "zstd",
+]
+
+[[package]]
+name = "riptide-pool"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "riptide-events",
+ "riptide-types",
+ "scraper 0.20.0",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tokio-test",
+ "tracing",
+ "uuid",
+ "wasmtime 37.0.2",
+ "wasmtime-wasi",
 ]
 
 [[package]]

@@ -1,0 +1,30 @@
+[package]
+name = "riptide-pool"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+authors = ["RipTide Team"]
+
+[dependencies]
+# Core riptide dependencies
+riptide-types = { path = "../riptide-types" }
+riptide-events = { path = "../riptide-events" }
+
+# Workspace dependencies
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+wasmtime = { workspace = true }
+scraper = { workspace = true }
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3.8"
+wasmtime-wasi = { workspace = true }
+
+[features]
+default = []

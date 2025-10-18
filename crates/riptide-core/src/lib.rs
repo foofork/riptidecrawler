@@ -45,7 +45,7 @@ pub mod events_pool_integration; // Events integration with instance pool
                                  // pub mod fetch;  // P1-C2: Moved to riptide-fetch crate
 pub mod gate;
 // pub mod html_parser;  // P1-C2: Moved to riptide-extraction crate
-pub mod instance_pool;
+// pub mod instance_pool;  // P1-A3 Phase 2B: Moved to riptide-pool crate
 pub mod integrated_cache;
 pub mod memory_manager;
 // pub mod monitoring;  // P1-A3: Moved to riptide-monitoring crate
@@ -208,6 +208,24 @@ pub mod events {
     //! use riptide_events::*;
     //! ```
     pub use riptide_events::*;
+}
+
+pub mod instance_pool {
+    //! Instance pool module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-pool` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The instance pool functionality has been extracted to its own crate.
+    //! Please migrate to using `riptide-pool` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::instance_pool::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_pool::*;
+    //! ```
+    pub use riptide_pool::*;
 }
 
 #[cfg(test)]

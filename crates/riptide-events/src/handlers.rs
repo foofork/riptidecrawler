@@ -4,9 +4,9 @@
 //! with existing monitoring, telemetry, and health check systems.
 
 use super::*;
-use riptide_monitoring::MetricsCollector;
 use opentelemetry::trace::{Span, Status, Tracer};
 use opentelemetry::{global, KeyValue};
+use riptide_monitoring::MetricsCollector;
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
@@ -159,9 +159,7 @@ impl MetricsEventHandler {
     async fn handle_pool_event(&self, event: &dyn Event) -> Result<()> {
         // Extract pool-specific metrics from event
         if let Ok(json_str) = event.to_json() {
-            if let Ok(pool_event) =
-                serde_json::from_str::<crate::PoolEvent>(&json_str)
-            {
+            if let Ok(pool_event) = serde_json::from_str::<crate::PoolEvent>(&json_str) {
                 // Record pool operation metrics
                 let _ = self
                     .metrics_collector
@@ -190,8 +188,7 @@ impl MetricsEventHandler {
 
     async fn handle_extraction_event(&self, event: &dyn Event) -> Result<()> {
         if let Ok(json_str) = event.to_json() {
-            if let Ok(extraction_event) =
-                serde_json::from_str::<crate::ExtractionEvent>(&json_str)
+            if let Ok(extraction_event) = serde_json::from_str::<crate::ExtractionEvent>(&json_str)
             {
                 // Record extraction metrics
                 let success = matches!(
@@ -221,9 +218,7 @@ impl MetricsEventHandler {
 
     async fn handle_metrics_event(&self, event: &dyn Event) -> Result<()> {
         if let Ok(json_str) = event.to_json() {
-            if let Ok(metrics_event) =
-                serde_json::from_str::<crate::MetricsEvent>(&json_str)
-            {
+            if let Ok(metrics_event) = serde_json::from_str::<crate::MetricsEvent>(&json_str) {
                 // Forward custom metrics to collector
                 let _ = self
                     .metrics_collector
@@ -240,9 +235,7 @@ impl MetricsEventHandler {
 
     async fn handle_health_event(&self, event: &dyn Event) -> Result<()> {
         if let Ok(json_str) = event.to_json() {
-            if let Ok(health_event) =
-                serde_json::from_str::<crate::HealthEvent>(&json_str)
-            {
+            if let Ok(health_event) = serde_json::from_str::<crate::HealthEvent>(&json_str) {
                 // Record component health status
                 let health_score = match health_event.status {
                     crate::HealthStatus::Healthy => 1.0,
@@ -618,9 +611,7 @@ impl EventHandler for HealthEventHandler {
         let component = if event.event_type().starts_with("health.") {
             // For explicit health events, try to extract component from JSON
             if let Ok(json_str) = event.to_json() {
-                if let Ok(health_event) =
-                    serde_json::from_str::<crate::HealthEvent>(&json_str)
-                {
+                if let Ok(health_event) = serde_json::from_str::<crate::HealthEvent>(&json_str) {
                     health_event.component
                 } else {
                     event.source().to_string()
@@ -674,10 +665,7 @@ mod tests {
         let handler = HealthEventHandler::new();
 
         // Initially should be healthy
-        assert_eq!(
-            handler.get_system_health(),
-            crate::HealthStatus::Healthy
-        );
+        assert_eq!(handler.get_system_health(), crate::HealthStatus::Healthy);
 
         // Add a healthy component
         let healthy_event = BaseEvent::new("test.event", "component1", EventSeverity::Info);
@@ -688,10 +676,7 @@ mod tests {
         handler.handle(&error_event).await.unwrap();
 
         // System should still be healthy since only one component has issues
-        assert_eq!(
-            handler.get_system_health(),
-            crate::HealthStatus::Degraded
-        );
+        assert_eq!(handler.get_system_health(), crate::HealthStatus::Degraded);
     }
 
     #[tokio::test]

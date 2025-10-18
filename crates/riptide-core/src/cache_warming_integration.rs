@@ -12,8 +12,8 @@ use crate::cache_warming::{
     CacheWarmingConfig, CacheWarmingManager, CacheWarmingPoolExt, CacheWarmingStats,
 };
 use crate::events::EventBus;
-use crate::instance_pool::AdvancedInstancePool;
 use crate::types::ExtractionMode;
+use riptide_pool::AdvancedInstancePool;
 
 /// Enhanced instance pool with integrated cache warming
 pub struct CacheWarmingEnabledPool {

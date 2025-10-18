@@ -5,7 +5,7 @@ use std::time::Instant;
 use uuid::Uuid;
 use wasmtime::{component::*, Engine, Store};
 
-use crate::component::{ExtractorConfig, WasmResourceTracker};
+use crate::config::{ExtractorConfig, WasmResourceTracker};
 
 /// Enhanced pooled instance with comprehensive tracking
 pub struct PooledInstance {

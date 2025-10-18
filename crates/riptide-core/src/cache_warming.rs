@@ -20,8 +20,8 @@ use tokio::time::{interval, sleep};
 use tracing::{debug, error, info, warn};
 
 use crate::events::{BaseEvent, Event, EventBus, EventSeverity};
-use crate::instance_pool::{AdvancedInstancePool, PooledInstance};
 use crate::types::ExtractionMode;
+use riptide_pool::{AdvancedInstancePool, PooledInstance};
 
 /// Configuration for cache warming strategies
 #[derive(Clone, Debug, Serialize, Deserialize)]
