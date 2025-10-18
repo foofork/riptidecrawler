@@ -57,6 +57,7 @@ riptide-search = { path = "../riptide-search" }
 riptide-performance = { path = "../riptide-performance" }
 riptide-persistence = { path = "../riptide-persistence" }
 riptide-monitoring = { path = "../riptide-monitoring", features = ["collector"] }
+riptide-facade = { path = "../riptide-facade" }
 chromiumoxide = { workspace = true }  # Must match riptide-engine version for BrowserPool API compatibility
 spider_chrome = { workspace = true }
 wasmtime = { workspace = true }

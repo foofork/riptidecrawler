@@ -4,6 +4,9 @@
 mod event_bus_integration_tests;
 
 #[cfg(test)]
+mod facade_integration_tests;
+
+#[cfg(test)]
 mod resource_controls;
 
 #[cfg(test)]

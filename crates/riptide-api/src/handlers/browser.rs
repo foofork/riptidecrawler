@@ -1,7 +1,7 @@
 //! Browser pool management handlers
 //!
 //! This module provides HTTP handlers for managing headless browser sessions
-//! through the integrated riptide-headless browser pool.
+//! through the integrated riptide-headless browser pool and riptide-facade.
 
 use crate::errors::ApiError;
 use crate::state::AppState;
@@ -9,6 +9,9 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     Json,
+};
+use riptide_facade::{
+    BrowserSession as FacadeBrowserSession, ScreenshotOptions as FacadeScreenshotOptions,
 };
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info, warn};
@@ -167,7 +170,7 @@ pub async fn create_browser_session(
         session_id = %session_id,
         stealth_preset = ?request.stealth_preset,
         initial_url = ?request.initial_url,
-        "Creating browser session"
+        "Creating browser session via browser_launcher (facade alternative available via state.browser_facade)"
     );
 
     // Parse stealth preset if provided

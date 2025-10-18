@@ -73,7 +73,7 @@ wasmtime = { version = "37", features = ["cache", "component-model"] }  # Upgrad
 wasmtime-wasi = "37"
 spider_chrome = "2.37.128"  # High-concurrency CDP (replaces chromiumoxide)
 spider = "2"
-chromiumoxide = "0.7"  # For headless-hybrid backward compatibility
+spider_chromiumoxide_cdp = "0.7.4"  # Spider's CDP fork - replaces standard chromiumoxide
 pdfium-render = { version = "0.8", features = ["sync", "thread_safe"] }
 env_logger = { version = "0.10" }
 tempfile = { version = "3" }

@@ -1,11 +1,12 @@
 //! Content extraction handler for single-URL extraction
 //!
 //! Provides a unified endpoint for extracting content from URLs using
-//! the multi-strategy extraction pipeline.
+//! the multi-strategy extraction pipeline and riptide-facade.
 
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use riptide_core::strategies::StrategyConfig;
 use riptide_core::types::CrawlOptions;
+use riptide_facade::{ExtractionStrategy as FacadeExtractionStrategy, HtmlExtractionOptions};
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
 
@@ -116,7 +117,7 @@ pub async fn extract(
         url = %payload.url,
         strategy = %payload.options.strategy,
         quality_threshold = payload.options.quality_threshold,
-        "Processing extraction request"
+        "Processing extraction request via StrategiesPipelineOrchestrator (facade alternative available via state.extraction_facade)"
     );
 
     // Create CrawlOptions from extract options

@@ -12,11 +12,8 @@ riptide-config = { path = "../riptide-config" }
 riptide-browser-abstraction = { path = "../riptide-browser-abstraction" }
 
 # Browser automation
-# Use chromiumoxide from workspace
-chromiumoxide = { workspace = true }
-# Note: spider_chrome temporarily disabled to avoid chromiumoxide version conflicts
-# TODO: Re-enable with proper version resolution or feature flags
-# spider_chrome = { workspace = true }
+# Use spider_chromiumoxide_cdp from workspace - compatible with spider_chrome
+spider_chromiumoxide_cdp = { workspace = true }
 
 # Stealth integration
 riptide-stealth = { path = "../riptide-stealth" }

@@ -6516,6 +6516,7 @@ dependencies = [
  "riptide-core",
  "riptide-engine",
  "riptide-extraction",
+ "riptide-facade",
  "riptide-headless",
  "riptide-intelligence",
  "riptide-monitoring",

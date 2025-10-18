@@ -13,9 +13,8 @@ tracing = "0.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
-# Browser engines - mutually exclusive to avoid name collision
-# spider_chrome exports its library as "chromiumoxide", which conflicts with standard chromiumoxide
-chromiumoxide = { workspace = true, optional = true }
+# Browser engines - now using spider_chromiumoxide_cdp for consistency
+spider_chromiumoxide_cdp = { workspace = true }
 spider_chrome = { workspace = true, optional = true }
 
 # Internal dependencies
@@ -25,11 +24,8 @@ riptide-types = { path = "../riptide-types" }
 tokio-test = "0.4"
 
 [features]
-default = ["chromiumoxide"]  # Use standard chromiumoxide by default
-spider = ["spider_chrome"]    # Use spider-chrome (exports as chromiumoxide)
+default = []  # spider_chromiumoxide_cdp is now a required dependency
+spider = ["spider_chrome"]    # Optional spider-chrome integration
 
-# WARNING: chromiumoxide and spider features are MUTUALLY EXCLUSIVE
-# spider_chrome exports itself as "chromiumoxide", causing a name collision.
-# Never use --all-features on this crate. Only enable one feature at a time:
-#   cargo build -p riptide-browser-abstraction --features chromiumoxide
-#   cargo build -p riptide-browser-abstraction --features spider
+# NOTE: spider_chromiumoxide_cdp 0.7.4 is compatible with spider_chrome
+# No more version conflicts between chromiumoxide implementations
