@@ -3,7 +3,7 @@
 //! Provides integrated security middleware that combines API key validation,
 //! budget enforcement, PII redaction, and audit logging.
 
-use crate::security::{
+use crate::{
     api_keys::ApiKeyManager,
     audit::{AuditDetails, AuditLogger, AuditOutcome},
     budget::BudgetManager,

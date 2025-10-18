@@ -57,7 +57,7 @@ pub use riptide_pdf as pdf;
 pub mod pool_health;
 pub mod reliability;
 pub mod robots;
-pub mod security;
+// pub mod security;  // P1-A3: Moved to riptide-security crate
 // pub mod spider;  // P1-C2: Moved to riptide-spider crate
 // pub mod strategies;  // P1-C2: Moved to riptide-extraction crate
 pub mod strategy_composition;
@@ -135,6 +135,24 @@ pub mod strategies {
     //! use riptide_extraction::strategies::*;
     //! ```
     pub use riptide_extraction::strategies::*;
+}
+
+pub mod security {
+    //! Security module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-security` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The security functionality has been extracted to its own crate.
+    //! Please migrate to using `riptide-security` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::security::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_security::*;
+    //! ```
+    pub use riptide_security::*;
 }
 
 #[cfg(test)]

@@ -3,7 +3,7 @@
 //! Tests integration between API keys, budget enforcement, PII redaction,
 //! and audit logging to ensure complete security functionality.
 
-use crate::security::*;
+use crate::*;
 use chrono::{Duration, Utc};
 use std::collections::HashMap;
 use tempfile::TempDir;

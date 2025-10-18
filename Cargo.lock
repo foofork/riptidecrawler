@@ -6676,6 +6676,7 @@ dependencies = [
  "riptide-fetch",
  "riptide-pdf",
  "riptide-search",
+ "riptide-security",
  "riptide-spider",
  "riptide-stealth",
  "riptide-types",
@@ -7003,6 +7004,31 @@ dependencies = [
  "tokio",
  "tokio-test",
  "url",
+]
+
+[[package]]
+name = "riptide-security"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64 0.22.1",
+ "chrono",
+ "governor",
+ "hex",
+ "rand 0.8.5",
+ "regex",
+ "reqwest 0.12.23",
+ "riptide-types",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-test",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]

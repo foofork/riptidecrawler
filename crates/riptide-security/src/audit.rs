@@ -3,7 +3,7 @@
 //! Provides comprehensive audit logging for security events, API requests,
 //! and compliance tracking with structured logging and retention policies.
 
-use crate::security::types::*;
+use crate::types::*;
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

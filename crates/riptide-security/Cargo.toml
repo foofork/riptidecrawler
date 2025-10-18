@@ -1,0 +1,51 @@
+[package]
+name = "riptide-security"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Security middleware and utilities for Riptide"
+keywords = ["security", "middleware", "pii", "audit", "rate-limiting"]
+categories = ["web-programming", "authentication"]
+
+[dependencies]
+# Shared types
+riptide-types = { path = "../riptide-types" }
+
+# Core dependencies
+anyhow.workspace = true
+async-trait.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
+tracing.workspace = true
+
+# HTTP and security
+reqwest = { workspace = true, features = ["json"] }
+chrono = { workspace = true, features = ["serde"] }
+
+# Hashing and crypto
+sha2.workspace = true
+base64.workspace = true
+hex.workspace = true
+
+# Rate limiting
+governor.workspace = true
+rand.workspace = true
+
+# Additional dependencies
+uuid.workspace = true
+regex.workspace = true
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile.workspace = true
+
+[features]
+default = ["api-keys", "audit", "budget", "middleware", "pii"]
+api-keys = []
+audit = []
+budget = []
+middleware = []
+pii = []

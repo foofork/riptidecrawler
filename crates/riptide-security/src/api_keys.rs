@@ -3,7 +3,7 @@
 //! Provides secure API key generation, validation, rotation, and rate limiting
 //! with per-tenant isolation and comprehensive audit logging.
 
-use crate::security::types::*;
+use crate::types::*;
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Duration, Utc};
 use rand::{distributions::Alphanumeric, Rng};

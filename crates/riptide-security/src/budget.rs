@@ -3,7 +3,7 @@
 //! Provides comprehensive cost tracking, budget enforcement, and circuit breaking
 //! to prevent excessive spending on LLM operations.
 
-use crate::security::types::*;
+use crate::types::*;
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Datelike, Duration, TimeZone, Utc};
 use serde::{Deserialize, Serialize};

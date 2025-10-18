@@ -3,7 +3,7 @@
 //! Provides automatic detection and redaction of Personally Identifiable Information
 //! in logs, LLM payloads, and other sensitive data.
 
-use crate::security::types::*;
+use crate::types::*;
 use anyhow::{anyhow, Result};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
