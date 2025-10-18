@@ -1,235 +1,163 @@
-//! Error types for RipTide extraction system
+//! Error types for the Riptide framework
+//!
+//! This module provides a unified error handling system using
+//! thiserror for ergonomic error definitions.
 
-use std::time::SystemTimeError;
 use thiserror::Error;
 
-/// Core error types for the RipTide system with proper error handling and recovery strategies
+/// Result type alias using RiptideError
+pub type Result<T> = std::result::Result<T, RiptideError>;
+
+/// Main error type for Riptide operations
 #[derive(Error, Debug)]
-pub enum CoreError {
-    /// WASM-related errors
-    #[error("WASM engine error: {message}")]
-    WasmError {
-        message: String,
-        #[source]
-        source: Option<Box<dyn std::error::Error + Send + Sync>>,
-    },
+pub enum RiptideError {
+    /// Browser initialization failed
+    #[error("Browser initialization failed: {0}")]
+    BrowserInitialization(String),
 
-    /// WASM instance management errors
-    #[error("WASM instance error: {message}")]
-    WasmInstanceError {
-        message: String,
-        instance_id: Option<String>,
-    },
+    /// Browser operation failed
+    #[error("Browser operation failed: {0}")]
+    BrowserOperation(String),
 
-    /// Memory management errors
-    #[error("Memory management error: {message}")]
-    MemoryError {
-        message: String,
-        current_usage_mb: Option<u64>,
-        max_usage_mb: Option<u64>,
-    },
+    /// Navigation error
+    #[error("Failed to navigate to URL: {0}")]
+    Navigation(String),
 
-    /// Circuit breaker errors
-    #[error("Circuit breaker error: {message}")]
-    CircuitBreakerError {
-        message: String,
-        state: Option<String>,
-    },
+    /// Content extraction failed
+    #[error("Content extraction failed: {0}")]
+    Extraction(String),
 
-    /// Time/Clock related errors
-    #[error("Time error: {message}")]
-    TimeError {
-        message: String,
-        #[source]
-        source: Option<SystemTimeError>,
-    },
+    /// Invalid configuration
+    #[error("Invalid configuration: {0}")]
+    Configuration(String),
 
-    /// HTTP client initialization errors
-    #[error("HTTP client error: {message}")]
-    HttpClientError { message: String },
+    /// Network error
+    #[error("Network error: {0}")]
+    Network(String),
 
-    /// Serialization/Deserialization errors
-    #[error("Serialization error: {message}")]
-    SerializationError { message: String },
+    /// Timeout error
+    #[error("Operation timed out after {0}ms")]
+    Timeout(u64),
 
-    /// Configuration errors
-    #[error("Configuration error: {message}")]
-    ConfigError {
-        message: String,
-        field: Option<String>,
-    },
+    /// Parse error
+    #[error("Parse error: {0}")]
+    Parse(String),
 
-    /// Resource exhaustion errors
-    #[error("Resource exhaustion: {resource} - {message}")]
-    ResourceExhaustion {
-        resource: String,
-        message: String,
-        current: Option<u64>,
-        limit: Option<u64>,
-    },
+    /// URL parse error
+    #[error("Invalid URL: {0}")]
+    InvalidUrl(#[from] url::ParseError),
 
-    /// Recovery errors
-    #[error("Recovery failed: {message}")]
-    RecoveryError {
-        message: String,
-        attempts: u32,
-        original_error: Option<String>,
-    },
+    /// JSON serialization/deserialization error
+    #[error("JSON error: {0}")]
+    Json(#[from] serde_json::Error),
 
-    /// Generic system error for fallback cases
-    #[error("System error: {message}")]
-    SystemError {
-        message: String,
-        #[source]
-        source: Option<Box<dyn std::error::Error + Send + Sync>>,
-    },
+    /// I/O error
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+
+    /// Cache error
+    #[error("Cache operation failed: {0}")]
+    Cache(String),
+
+    /// Storage error
+    #[error("Storage operation failed: {0}")]
+    Storage(String),
+
+    /// Resource not found
+    #[error("Resource not found: {0}")]
+    NotFound(String),
+
+    /// Resource already exists
+    #[error("Resource already exists: {0}")]
+    AlreadyExists(String),
+
+    /// Permission denied
+    #[error("Permission denied: {0}")]
+    PermissionDenied(String),
+
+    /// Generic error with custom message
+    #[error("{0}")]
+    Custom(String),
+
+    /// Error from anyhow for interoperability
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
 }
 
-impl CoreError {
-    /// Create a WASM engine error with source
-    pub fn wasm_engine<E>(message: impl Into<String>, source: E) -> Self
-    where
-        E: std::error::Error + Send + Sync + 'static,
-    {
-        Self::WasmError {
-            message: message.into(),
-            source: Some(Box::new(source)),
-        }
+impl RiptideError {
+    /// Create a custom error with a message
+    pub fn custom<S: Into<String>>(msg: S) -> Self {
+        RiptideError::Custom(msg.into())
     }
 
-    /// Create a WASM engine error without source
-    pub fn wasm_engine_msg(message: impl Into<String>) -> Self {
-        Self::WasmError {
-            message: message.into(),
-            source: None,
-        }
-    }
-
-    /// Create a WASM instance error
-    pub fn wasm_instance(message: impl Into<String>, instance_id: Option<String>) -> Self {
-        Self::WasmInstanceError {
-            message: message.into(),
-            instance_id,
-        }
-    }
-
-    /// Create a memory error with usage info
-    pub fn memory(
-        message: impl Into<String>,
-        current_mb: Option<u64>,
-        max_mb: Option<u64>,
-    ) -> Self {
-        Self::MemoryError {
-            message: message.into(),
-            current_usage_mb: current_mb,
-            max_usage_mb: max_mb,
-        }
-    }
-
-    /// Create a circuit breaker error
-    pub fn circuit_breaker(message: impl Into<String>, state: Option<String>) -> Self {
-        Self::CircuitBreakerError {
-            message: message.into(),
-            state,
-        }
-    }
-
-    /// Create a time error with source
-    pub fn time_error(message: impl Into<String>, source: Option<SystemTimeError>) -> Self {
-        Self::TimeError {
-            message: message.into(),
-            source,
-        }
-    }
-
-    /// Create an HTTP client error without source
-    pub fn http_client_msg(message: impl Into<String>) -> Self {
-        Self::HttpClientError {
-            message: message.into(),
-        }
-    }
-
-    /// Create a serialization error
-    pub fn serialization_msg(message: impl Into<String>) -> Self {
-        Self::SerializationError {
-            message: message.into(),
-        }
-    }
-
-    /// Create a resource exhaustion error
-    pub fn resource_exhaustion(
-        resource: impl Into<String>,
-        message: impl Into<String>,
-        current: Option<u64>,
-        limit: Option<u64>,
-    ) -> Self {
-        Self::ResourceExhaustion {
-            resource: resource.into(),
-            message: message.into(),
-            current,
-            limit,
-        }
-    }
-
-    /// Create a recovery error
-    pub fn recovery(
-        message: impl Into<String>,
-        attempts: u32,
-        original_error: Option<String>,
-    ) -> Self {
-        Self::RecoveryError {
-            message: message.into(),
-            attempts,
-            original_error,
-        }
-    }
-
-    /// Create a system error from anyhow::Error (to avoid trait conflicts)
-    pub fn from_anyhow(error: anyhow::Error) -> Self {
-        Self::SystemError {
-            message: error.to_string(),
-            source: None,
-        }
-    }
-
-    /// Check if this error is retryable
+    /// Check if error is retryable
     pub fn is_retryable(&self) -> bool {
-        match self {
-            CoreError::WasmError { .. } => false,
-            CoreError::WasmInstanceError { .. } => true,
-            CoreError::MemoryError { .. } => true,
-            CoreError::CircuitBreakerError { .. } => true,
-            CoreError::TimeError { .. } => false,
-            CoreError::HttpClientError { .. } => true,
-            CoreError::SerializationError { .. } => false,
-            CoreError::ConfigError { .. } => false,
-            CoreError::ResourceExhaustion { .. } => true,
-            CoreError::RecoveryError { .. } => false,
-            CoreError::SystemError { .. } => false,
-        }
+        matches!(
+            self,
+            RiptideError::Network(_) | RiptideError::Timeout(_) | RiptideError::BrowserOperation(_)
+        )
     }
 
-    /// Get suggested recovery action
-    pub fn recovery_suggestion(&self) -> &'static str {
-        match self {
-            CoreError::WasmError { .. } => "Check WASM engine configuration and component files",
-            CoreError::WasmInstanceError { .. } => {
-                "Retry instance creation or check resource availability"
-            }
-            CoreError::MemoryError { .. } => "Trigger garbage collection or increase memory limits",
-            CoreError::CircuitBreakerError { .. } => {
-                "Wait for circuit breaker cooldown or check service health"
-            }
-            CoreError::TimeError { .. } => "Check system clock and NTP synchronization",
-            CoreError::HttpClientError { .. } => "Retry request or check network connectivity",
-            CoreError::SerializationError { .. } => "Validate data format and schema",
-            CoreError::ConfigError { .. } => "Check configuration values and environment variables",
-            CoreError::ResourceExhaustion { .. } => "Free up resources or increase limits",
-            CoreError::RecoveryError { .. } => "Manual intervention required",
-            CoreError::SystemError { .. } => "Check system resources and dependencies",
-        }
+    /// Check if error is a client error (4xx equivalent)
+    pub fn is_client_error(&self) -> bool {
+        matches!(
+            self,
+            RiptideError::InvalidUrl(_)
+                | RiptideError::Configuration(_)
+                | RiptideError::NotFound(_)
+                | RiptideError::AlreadyExists(_)
+                | RiptideError::PermissionDenied(_)
+        )
+    }
+
+    /// Check if error is a server error (5xx equivalent)
+    pub fn is_server_error(&self) -> bool {
+        matches!(
+            self,
+            RiptideError::BrowserInitialization(_)
+                | RiptideError::BrowserOperation(_)
+                | RiptideError::Extraction(_)
+                | RiptideError::Cache(_)
+                | RiptideError::Storage(_)
+        )
     }
 }
 
-/// Convenience type alias for Results using CoreError
-pub type CoreResult<T> = Result<T, CoreError>;
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_error_creation() {
+        let err = RiptideError::custom("test error");
+        assert_eq!(err.to_string(), "test error");
+    }
+
+    #[test]
+    fn test_retryable_errors() {
+        assert!(RiptideError::Network("test".to_string()).is_retryable());
+        assert!(RiptideError::Timeout(1000).is_retryable());
+        assert!(!RiptideError::Configuration("test".to_string()).is_retryable());
+    }
+
+    #[test]
+    fn test_client_errors() {
+        assert!(RiptideError::NotFound("test".to_string()).is_client_error());
+        assert!(RiptideError::Configuration("test".to_string()).is_client_error());
+        assert!(!RiptideError::BrowserOperation("test".to_string()).is_client_error());
+    }
+
+    #[test]
+    fn test_server_errors() {
+        assert!(RiptideError::BrowserInitialization("test".to_string()).is_server_error());
+        assert!(RiptideError::Extraction("test".to_string()).is_server_error());
+        assert!(!RiptideError::Configuration("test".to_string()).is_server_error());
+    }
+
+    #[test]
+    fn test_url_parse_error_conversion() {
+        let url_err = url::Url::parse("not a url").unwrap_err();
+        let riptide_err: RiptideError = url_err.into();
+        assert!(matches!(riptide_err, RiptideError::InvalidUrl(_)));
+    }
+}

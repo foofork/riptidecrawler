@@ -233,7 +233,7 @@ impl ExtractionStrategy for CssSelectorStrategy {
         Ok(ExtractionResult {
             content: extracted,
             quality,
-            performance: Some(riptide_types::traits::PerformanceMetrics::new()),
+            performance: Some(crate::strategies::PerformanceMetrics::new()),
             metadata,
         })
     }
@@ -256,12 +256,6 @@ impl ExtractionStrategy for CssSelectorStrategy {
                 requires_network: false,
                 external_dependencies: vec!["scraper".to_string()],
             },
-            features: vec![
-                "css_selectors".to_string(),
-                "dom_parsing".to_string(),
-                "structured_extraction".to_string(),
-                "customizable_selectors".to_string(),
-            ],
         }
     }
 

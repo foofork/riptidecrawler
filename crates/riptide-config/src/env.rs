@@ -3,7 +3,7 @@
 //! This module provides utilities for loading configuration from environment variables
 //! with type conversion, validation, and error handling.
 
-use crate::builder::{BuilderError, BuilderResult, ConfigValue};
+use crate::builder::{BuilderResult, ConfigValue};
 use std::collections::HashMap;
 use std::env;
 use std::time::Duration;

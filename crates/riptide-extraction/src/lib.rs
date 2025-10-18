@@ -106,10 +106,7 @@ pub use table_extraction::{
 use serde::{Deserialize, Serialize};
 
 // Re-export shared types from riptide-types
-pub use riptide_types::{
-    extracted::ContentChunk, traits::PerformanceMetrics, ExtractedContent, ExtractionQuality,
-    ExtractionResult, ExtractionStrategy, StrategyCapabilities,
-};
+pub use riptide_types::{ContentChunk, ExtractedContent, ExtractionQuality, ExtractionResult};
 
 /// Regex pattern configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]

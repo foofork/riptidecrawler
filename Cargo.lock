@@ -6516,6 +6516,7 @@ dependencies = [
  "axum-prometheus",
  "base64 0.22.1",
  "bytes",
+ "chromiumoxide",
  "chrono",
  "clap",
  "criterion",
@@ -6539,6 +6540,7 @@ dependencies = [
  "regex",
  "reqwest 0.12.23",
  "riptide-core",
+ "riptide-engine",
  "riptide-extraction",
  "riptide-headless",
  "riptide-intelligence",
@@ -7070,12 +7072,12 @@ dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
- "regex",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
- "tokio-test",
+ "tokio",
  "url",
+ "uuid",
 ]
 
 [[package]]

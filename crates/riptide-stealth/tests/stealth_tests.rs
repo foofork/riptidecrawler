@@ -5,7 +5,7 @@
 
 #[cfg(test)]
 mod fingerprint_tests {
-    use riptide_stealth::{BrowserFingerprint, FingerprintGenerator};
+    use riptide_stealth::FingerprintGenerator;
     use std::collections::HashSet;
 
     #[test]
@@ -136,7 +136,7 @@ mod fingerprint_tests {
 
 #[cfg(test)]
 mod user_agent_tests {
-    use riptide_stealth::{BrowserFingerprint, FingerprintGenerator};
+    use riptide_stealth::FingerprintGenerator;
 
     // Note: User agent rotation and validity tests are now in src/tests.rs
     // See test_user_agent_manager_strategies() and test_stealth_controller_full_workflow()
@@ -154,14 +154,14 @@ mod user_agent_tests {
             assert!(
                 headers
                     .get("sec-ch-ua-platform")
-                    .map_or(false, |p| p.contains("Windows")),
+                    .is_some_and(|p| p.contains("Windows")),
                 "Platform header should match Windows user agent"
             );
         } else if fp.user_agent.contains("Mac") {
             assert!(
                 headers
                     .get("sec-ch-ua-platform")
-                    .map_or(false, |p| p.contains("macOS")),
+                    .is_some_and(|p| p.contains("macOS")),
                 "Platform header should match macOS user agent"
             );
         }

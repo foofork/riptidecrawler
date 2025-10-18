@@ -27,9 +27,9 @@
 //! ```
 
 // Modules
-mod traits;
 mod error;
 mod params;
+mod traits;
 
 // Conditional compilation to avoid chromiumoxide name collision
 // spider_chrome exports its library as "chromiumoxide", which conflicts with standard chromiumoxide

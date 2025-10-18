@@ -12,9 +12,9 @@ use tracing::{debug, warn};
 
 #[cfg(feature = "spider")]
 use crate::{
-    traits::{BrowserEngine, PageHandle, EngineType},
-    params::{ScreenshotParams, PdfParams, NavigateParams},
-    AbstractionResult, AbstractionError,
+    params::{NavigateParams, PdfParams, ScreenshotParams},
+    traits::{BrowserEngine, EngineType, PageHandle},
+    AbstractionError, AbstractionResult,
 };
 
 #[cfg(feature = "spider")]
@@ -37,7 +37,8 @@ impl SpiderChromeEngine {
 impl BrowserEngine for SpiderChromeEngine {
     async fn new_page(&self) -> AbstractionResult<Box<dyn PageHandle>> {
         debug!("Creating new page with spider-chrome");
-        let page = self.browser
+        let page = self
+            .browser
             .new_page("about:blank")
             .await
             .map_err(|e| AbstractionError::PageCreation(e.to_string()))?;
@@ -61,7 +62,8 @@ impl BrowserEngine for SpiderChromeEngine {
     }
 
     async fn version(&self) -> AbstractionResult<String> {
-        Ok(self.browser
+        Ok(self
+            .browser
             .version()
             .await
             .map_err(|e| AbstractionError::Other(e.to_string()))?
@@ -91,7 +93,8 @@ impl PageHandle for SpiderChromePage {
         debug!("Navigating to {} with spider-chrome", url);
 
         // Spider-chrome's goto returns the page
-        let _ = self.page
+        let _ = self
+            .page
             .goto(url)
             .await
             .map_err(|e| AbstractionError::Navigation(e.to_string()))?;
@@ -107,7 +110,8 @@ impl PageHandle for SpiderChromePage {
     }
 
     async fn url(&self) -> AbstractionResult<String> {
-        Ok(self.page
+        Ok(self
+            .page
             .url()
             .await
             .map_err(|e| AbstractionError::Other(e.to_string()))?
@@ -116,13 +120,15 @@ impl PageHandle for SpiderChromePage {
 
     async fn evaluate(&self, script: &str) -> AbstractionResult<serde_json::Value> {
         // Spider-chrome requires &str, not &String
-        let result = self.page
+        let result = self
+            .page
             .evaluate(script)
             .await
             .map_err(|e| AbstractionError::Evaluation(e.to_string()))?;
 
         // into_value() returns Result in spider-chrome
-        result.into_value()
+        result
+            .into_value()
             .map_err(|e| AbstractionError::Evaluation(e.to_string()))
     }
 
@@ -132,7 +138,7 @@ impl PageHandle for SpiderChromePage {
 
         // Would need to call CDP directly
         Err(AbstractionError::Unsupported(
-            "screenshot not yet implemented for spider-chrome".to_string()
+            "screenshot not yet implemented for spider-chrome".to_string(),
         ))
     }
 
@@ -142,7 +148,7 @@ impl PageHandle for SpiderChromePage {
 
         // Would need to call CDP directly
         Err(AbstractionError::Unsupported(
-            "pdf not yet implemented for spider-chrome".to_string()
+            "pdf not yet implemented for spider-chrome".to_string(),
         ))
     }
 
@@ -155,7 +161,10 @@ impl PageHandle for SpiderChromePage {
     }
 
     async fn set_timeout(&self, timeout_ms: u64) -> AbstractionResult<()> {
-        debug!("Setting timeout to {}ms (note: spider-chrome may not support this)", timeout_ms);
+        debug!(
+            "Setting timeout to {}ms (note: spider-chrome may not support this)",
+            timeout_ms
+        );
 
         // Spider-chrome doesn't have set_default_timeout
         // This is a no-op for compatibility

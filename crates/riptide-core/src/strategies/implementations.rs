@@ -125,7 +125,7 @@ impl ExtractionStrategy for WasmExtractionStrategy {
         Ok(ExtractionResult {
             content,
             quality,
-            performance: Some(riptide_types::traits::PerformanceMetrics::new()),
+            performance: Some(crate::strategies::PerformanceMetrics::new()),
             metadata,
         })
     }
@@ -148,11 +148,6 @@ impl ExtractionStrategy for WasmExtractionStrategy {
                 requires_network: false,
                 external_dependencies: vec!["wasmtime".to_string()],
             },
-            features: vec![
-                "wasm".to_string(),
-                "fast".to_string(),
-                "lightweight".to_string(),
-            ],
         }
     }
 

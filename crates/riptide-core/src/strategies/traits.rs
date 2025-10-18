@@ -3,20 +3,172 @@
 //! This module provides trait-based strategy management to replace the existing enum-based
 //! approach, enabling better extensibility and composition of strategies.
 
+use anyhow::Result;
+use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-// Re-export traits and types from riptide-types
-pub use riptide_types::{
-    CrawlRequest, CrawlResult, ExtractionResult, ExtractionStrategy, PerformanceTier, Priority,
-    ResourceRequirements, ResourceTier, SpiderStrategy, StrategyCapabilities,
-};
+// Re-export traits and types
+pub use riptide_types::ExtractionResult as RiptideExtractionResult;
 
-// All trait definitions and supporting types are now in riptide-types
-// This module serves as a re-export point for backward compatibility
+// Import spider types from local spider module
+pub use crate::spider::{CrawlRequest, CrawlResult, Priority};
 
 // Re-export ExtractionQuality for local use
+use crate::strategies::ExtractedContent;
 pub use riptide_types::ExtractionQuality;
+
+// ============================================================================
+// TRAIT DEFINITIONS
+// ============================================================================
+
+/// Trait for extraction strategy implementations
+#[async_trait]
+pub trait ExtractionStrategy: Send + Sync {
+    /// Extract content from HTML
+    async fn extract(&self, html: &str, url: &str) -> Result<ExtractionResult>;
+
+    /// Get strategy name
+    fn name(&self) -> &str;
+
+    /// Get strategy capabilities
+    fn capabilities(&self) -> StrategyCapabilities;
+
+    /// Check if strategy is available in current environment
+    fn is_available(&self) -> bool {
+        true
+    }
+
+    /// Calculate confidence score for given HTML (0.0 - 1.0)
+    fn confidence_score(&self, html: &str) -> f64 {
+        // Default implementation based on content structure
+        let has_article = html.contains("<article");
+        let has_main = html.contains("<main");
+        let has_semantic = has_article || has_main;
+
+        if has_semantic {
+            0.8
+        } else {
+            0.5
+        }
+    }
+}
+
+/// Trait for spider/crawling strategy implementations
+#[async_trait]
+pub trait SpiderStrategy: Send + Sync {
+    /// Get strategy name
+    fn name(&self) -> &str;
+
+    /// Initialize spider strategy
+    async fn initialize(&mut self) -> Result<()>;
+
+    /// Get next URL to crawl
+    async fn next_url(&mut self) -> Option<CrawlRequest>;
+
+    /// Add discovered URLs to the queue
+    async fn add_urls(&mut self, requests: Vec<CrawlRequest>) -> Result<()>;
+
+    /// Process a batch of crawl requests (prioritize, filter, etc.)
+    async fn process_requests(&self, requests: Vec<CrawlRequest>) -> Result<Vec<CrawlRequest>> {
+        // Default implementation: return requests as-is
+        Ok(requests)
+    }
+
+    /// Mark URL as completed
+    async fn mark_completed(&mut self, url: &str, result: CrawlResult) -> Result<()>;
+
+    /// Check if crawling is complete
+    fn is_complete(&self) -> bool;
+
+    /// Get crawl statistics
+    fn stats(&self) -> CrawlStats;
+}
+
+// ============================================================================
+// SUPPORTING TYPES
+// ============================================================================
+
+/// Extraction result with quality and performance metrics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExtractionResult {
+    /// Extracted content
+    pub content: ExtractedContent,
+    /// Quality metrics
+    pub quality: ExtractionQuality,
+    /// Performance metrics
+    pub performance: Option<crate::strategies::PerformanceMetrics>,
+    /// Additional metadata
+    pub metadata: HashMap<String, String>,
+}
+
+/// Strategy capabilities and requirements
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StrategyCapabilities {
+    /// Strategy type identifier
+    pub strategy_type: String,
+    /// Supported content types
+    pub supported_content_types: Vec<String>,
+    /// Performance tier
+    pub performance_tier: PerformanceTier,
+    /// Resource requirements
+    pub resource_requirements: ResourceRequirements,
+}
+
+/// Performance tier classification
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PerformanceTier {
+    /// Very fast, minimal processing
+    Fast,
+    /// Balanced speed and quality
+    Balanced,
+    /// High quality, slower processing
+    Thorough,
+    /// Best quality, slowest processing
+    Comprehensive,
+}
+
+/// Resource requirements for a strategy
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResourceRequirements {
+    /// Memory tier requirement
+    pub memory_tier: ResourceTier,
+    /// CPU tier requirement
+    pub cpu_tier: ResourceTier,
+    /// Requires network access
+    pub requires_network: bool,
+    /// External dependencies
+    pub external_dependencies: Vec<String>,
+}
+
+/// Resource tier classification
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ResourceTier {
+    /// Minimal resources (< 10MB, < 10% CPU)
+    Low,
+    /// Moderate resources (10-50MB, 10-30% CPU)
+    Medium,
+    /// High resources (50-200MB, 30-70% CPU)
+    High,
+    /// Very high resources (> 200MB, > 70% CPU)
+    VeryHigh,
+}
+
+/// Crawl statistics
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CrawlStats {
+    /// Total URLs discovered
+    pub total_discovered: usize,
+    /// URLs completed
+    pub completed: usize,
+    /// URLs pending
+    pub pending: usize,
+    /// URLs failed
+    pub failed: usize,
+    /// Average crawl time per URL
+    pub average_time_ms: u64,
+}
 
 /// Strategy registry for managing all strategy implementations
 pub struct StrategyRegistry {

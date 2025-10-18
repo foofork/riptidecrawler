@@ -289,11 +289,7 @@ impl ExtractionStrategy for RegexPatternStrategy {
         Ok(ExtractionResult {
             content: extracted.clone(),
             quality,
-            performance: Some(riptide_types::traits::PerformanceMetrics {
-                extraction_time_ms: 0,
-                content_length: extracted.content.len(),
-                memory_used_bytes: None,
-            }),
+            performance: Some(crate::strategies::PerformanceMetrics::new()),
             metadata,
         })
     }
@@ -317,12 +313,6 @@ impl ExtractionStrategy for RegexPatternStrategy {
                 requires_network: false,
                 external_dependencies: vec!["regex".to_string()],
             },
-            features: vec![
-                "pattern_matching".to_string(),
-                "structured_data".to_string(),
-                "fast_extraction".to_string(),
-                "customizable_patterns".to_string(),
-            ],
         }
     }
 

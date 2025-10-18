@@ -716,7 +716,6 @@ mod tests {
                     requires_network: false,
                     external_dependencies: vec![],
                 },
-                features: vec![],
             }
         }
 

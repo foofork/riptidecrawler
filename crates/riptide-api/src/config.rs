@@ -232,9 +232,9 @@ impl Default for MemoryConfig {
         Self {
             max_memory_per_request_mb: 256,
             global_memory_limit_mb: 2048,
-            memory_soft_limit_mb: 400,  // QW-3: Trigger warnings at 400MB
-            memory_hard_limit_mb: 500,  // QW-3: Reject requests at 500MB
-            pressure_threshold: 0.85, // 85% memory usage
+            memory_soft_limit_mb: 400, // QW-3: Trigger warnings at 400MB
+            memory_hard_limit_mb: 500, // QW-3: Reject requests at 500MB
+            pressure_threshold: 0.85,  // 85% memory usage
             auto_gc: true,
             gc_trigger_threshold_mb: 1024,
             monitoring_interval_secs: 30,

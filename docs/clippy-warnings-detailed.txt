@@ -1,0 +1,233 @@
+EVENTMESH CLIPPY WARNINGS - DETAILED LIST
+Generated: 2025-10-17
+Total: 39 warnings
+
+═══════════════════════════════════════════════════════════════════════════
+CRITICAL PRIORITY (7 warnings) - Fix immediately
+═══════════════════════════════════════════════════════════════════════════
+
+1. [UNUSED_IMPORT] crates/riptide-stealth/tests/stealth_tests.rs:8:27
+   unused import: `BrowserFingerprint`
+   Fix: Remove unused import
+   Auto: cargo clippy --fix --test "stealth_tests" -p riptide-stealth
+
+2. [UNUSED_IMPORT] crates/riptide-stealth/tests/stealth_tests.rs:139:27
+   unused import: `BrowserFingerprint`
+   Fix: Remove unused import
+   Auto: cargo clippy --fix --test "stealth_tests" -p riptide-stealth
+
+3. [UNUSED_IMPORT] crates/riptide-config/src/env.rs:6:22
+   unused import: `BuilderError`
+   Fix: Remove unused import
+   Auto: cargo clippy --fix --lib -p riptide-config
+
+4. [UNUSED_IMPORT] crates/riptide-engine/src/cdp_pool.rs:18:22
+   unused import: `error`
+   Fix: Remove unused import
+   Auto: cargo clippy --fix --lib -p riptide-engine
+
+5. [UNUSED_FUNCTION] crates/riptide-config/src/env.rs:235:8
+   function `load_vars_into_builder` is never used
+   Fix: Remove function or add #[allow(dead_code)] if part of public API
+   Manual: Review code and either delete or document why it exists
+
+═══════════════════════════════════════════════════════════════════════════
+HIGH PRIORITY (5 warnings) - Fix soon
+═══════════════════════════════════════════════════════════════════════════
+
+6. [SHOULD_IMPLEMENT_TRAIT] crates/riptide-cli/src/commands/render.rs:27:5
+   method `from_str` can be confused for std::str::FromStr::from_str
+   Fix: Implement FromStr trait or rename method
+   Manual: Replace with proper trait implementation
+
+7. [SHOULD_IMPLEMENT_TRAIT] crates/riptide-cli/src/commands/render.rs:71:5
+   method `from_str` can be confused for std::str::FromStr::from_str
+   Fix: Implement FromStr trait or rename method
+   Manual: Replace with proper trait implementation
+
+8. [SHOULD_IMPLEMENT_TRAIT] crates/riptide-cli/src/commands/*.rs
+   method `from_str` can be confused for std::str::FromStr::from_str
+   Fix: Implement FromStr trait or rename method
+   Manual: Replace with proper trait implementation (1 more instance)
+
+9. [UNEXPECTED_CFG] crates/riptide-headless/lib.rs
+   unexpected `cfg` condition value: `headless`
+   Fix: Add [features] headless = [] to Cargo.toml
+   Manual: Update Cargo.toml configuration
+
+10. [UNEXPECTED_CFG] crates/riptide-headless/lib.rs
+    unexpected `cfg` condition value: `headless`
+    Fix: Add [features] headless = [] to Cargo.toml
+    Manual: Update Cargo.toml configuration
+
+═══════════════════════════════════════════════════════════════════════════
+MEDIUM PRIORITY (12 warnings) - Nice to fix
+═══════════════════════════════════════════════════════════════════════════
+
+11. [TOO_MANY_ARGUMENTS] crates/riptide-cli/src/commands/extract.rs:196:1
+    this function has too many arguments (13/7)
+    Function: execute_extract
+    Fix: Create ExtractConfig struct to group parameters
+    Manual: 30-40 minutes refactoring
+
+12. [TOO_MANY_ARGUMENTS] crates/riptide-cli/src/commands/crawl.rs:252:1
+    this function has too many arguments (11/7)
+    Function: execute_crawl
+    Fix: Create CrawlConfig struct to group parameters
+    Manual: 30-40 minutes refactoring
+
+13. [TOO_MANY_ARGUMENTS] crates/riptide-cli/src/commands/pdf.rs:328:1
+    this function has too many arguments (8/7)
+    Function: execute_to_text
+    Fix: Create PdfConfig struct to group parameters
+    Manual: 15-20 minutes refactoring
+
+14. [TOO_MANY_ARGUMENTS] crates/riptide-cli/src/commands/pdf.rs:438:1
+    this function has too many arguments (8/7)
+    Function: execute_to_md
+    Fix: Create PdfConfig struct to group parameters
+    Manual: 15-20 minutes refactoring
+
+15. [TOO_MANY_ARGUMENTS] crates/riptide-cli/src/commands/session.rs:358:1
+    this function has too many arguments (8/7)
+    Function: create_session
+    Fix: Create SessionConfig struct to group parameters
+    Manual: 15-20 minutes refactoring
+
+16. [TOO_MANY_ARGUMENTS] crates/riptide-cli/src/commands/session.rs:761:1
+    this function has too many arguments (9/7)
+    Function: add_cookies
+    Fix: Create CookieConfig struct to group parameters
+    Manual: 15-20 minutes refactoring
+
+17. [TOO_MANY_ARGUMENTS] (2 more instances in riptide-cli)
+    Fix: Create config structs to group parameters
+    Manual: 15-20 minutes each
+
+18. [FIELD_REASSIGN_WITH_DEFAULT] crates/riptide-cli/src/commands/crawl.rs
+    field assignment outside of initializer for Default::default()
+    Fix: Use struct initialization with ..Default::default()
+    Auto: cargo clippy --fix --lib -p riptide-cli
+
+19. [FIELD_REASSIGN_WITH_DEFAULT] crates/riptide-cli/src/commands/extract.rs
+    field assignment outside of initializer for Default::default()
+    Fix: Use struct initialization with ..Default::default()
+    Auto: cargo clippy --fix --lib -p riptide-cli
+
+20. [FIELD_REASSIGN_WITH_DEFAULT] crates/riptide-cli/src/commands/pdf.rs
+    field assignment outside of initializer for Default::default()
+    Fix: Use struct initialization with ..Default::default()
+    Auto: cargo clippy --fix --lib -p riptide-cli
+
+21. [DRAIN_COLLECT] crates/riptide-engine/src/cdp_pool.rs:318:28
+    you seem to be trying to move all elements into a new Vec
+    Fix: Use std::mem::take(queue) instead
+    Auto: cargo clippy --fix --lib -p riptide-engine
+
+22. [DERIVABLE_IMPLS] crates/riptide-core/src/*
+    this `impl` can be derived
+    Fix: Replace manual Default impl with #[derive(Default)]
+    Auto: cargo clippy --fix --lib -p riptide-core
+
+═══════════════════════════════════════════════════════════════════════════
+LOW PRIORITY (5 warnings) - Style improvements
+═══════════════════════════════════════════════════════════════════════════
+
+23. [UNNECESSARY_MAP_OR] crates/riptide-stealth/tests/stealth_tests.rs:155:17
+    this `map_or` can be simplified
+    Fix: Use .is_some_and() instead
+    Auto: cargo clippy --fix --test "stealth_tests" -p riptide-stealth
+
+24. [UNNECESSARY_MAP_OR] crates/riptide-stealth/tests/stealth_tests.rs:162:17
+    this `map_or` can be simplified
+    Fix: Use .is_some_and() instead
+    Auto: cargo clippy --fix --test "stealth_tests" -p riptide-stealth
+
+25. [REDUNDANT_PATTERN_MATCHING] crates/riptide-cli/src/validation/checks.rs:211:20
+    redundant pattern matching, consider using `is_ok()`
+    Fix: Use .is_ok() instead of if let Ok(_)
+    Auto: cargo clippy --fix --lib -p riptide-cli
+
+26. [REDUNDANT_PATTERN_MATCHING] crates/riptide-cli/src/validation/checks.rs:369:30
+    redundant pattern matching, consider using `is_ok()`
+    Fix: Use .is_ok() instead of if let Ok(_)
+    Auto: cargo clippy --fix --lib -p riptide-cli
+
+═══════════════════════════════════════════════════════════════════════════
+AUTO-FIX COMMAND REFERENCE
+═══════════════════════════════════════════════════════════════════════════
+
+# Fix all auto-fixable warnings at once (15 warnings)
+cargo clippy --fix --allow-dirty --workspace --all-targets
+
+# Or fix by crate:
+cargo clippy --fix --allow-dirty --lib -p riptide-config
+cargo clippy --fix --allow-dirty --lib -p riptide-engine
+cargo clippy --fix --allow-dirty --lib -p riptide-core
+cargo clippy --fix --allow-dirty --lib -p riptide-cli
+cargo clippy --fix --allow-dirty --test "stealth_tests" -p riptide-stealth
+
+# Verify fixes
+cargo clippy --workspace --all-targets
+
+═══════════════════════════════════════════════════════════════════════════
+MANUAL FIX TEMPLATES
+═══════════════════════════════════════════════════════════════════════════
+
+[TEMPLATE: Implement FromStr]
+────────────────────────────
+// BEFORE
+impl MyType {
+    pub fn from_str(s: &str) -> Result<Self> {
+        // parsing logic
+    }
+}
+
+// AFTER
+impl std::str::FromStr for MyType {
+    type Err = anyhow::Error;
+    
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // same parsing logic
+    }
+}
+
+[TEMPLATE: Fix unexpected CFG]
+────────────────────────────
+Add to Cargo.toml:
+[features]
+headless = []
+default = ["headless"]
+
+[TEMPLATE: Fix too many arguments]
+────────────────────────────
+// BEFORE
+async fn execute(arg1: T1, arg2: T2, ... arg13: T13) -> Result<()> { }
+
+// AFTER
+#[derive(Debug)]
+struct Config {
+    group1: Group1Options,
+    group2: Group2Options,
+    group3: Group3Options,
+}
+
+async fn execute(config: Config) -> Result<()> { }
+
+[TEMPLATE: Fix field reassign with default]
+────────────────────────────
+// BEFORE
+let mut config = Config::default();
+config.field1 = value1;
+config.field2 = value2;
+
+// AFTER
+let config = Config {
+    field1: value1,
+    field2: value2,
+    ..Config::default()
+};
+
+═══════════════════════════════════════════════════════════════════════════
+END OF DETAILED WARNINGS LIST
+═══════════════════════════════════════════════════════════════════════════

@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::{Mutex, RwLock};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info, warn};
 
 /// Configuration for CDP connection pool
 #[derive(Clone, Debug)]
@@ -315,7 +315,7 @@ impl CdpConnectionPool {
     pub async fn flush_batches(&self, browser_id: &str) -> Result<Vec<CdpCommand>> {
         let mut queues = self.batch_queues.lock().await;
         if let Some(queue) = queues.get_mut(browser_id) {
-            let commands = queue.drain(..).collect();
+            let commands = std::mem::take(queue);
             Ok(commands)
         } else {
             Ok(Vec::new())
