@@ -9,6 +9,8 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 # Core dependencies
 riptide-core = { path = "../riptide-core" }
+riptide-events = { path = "../riptide-events" }
+riptide-types = { path = "../riptide-types" }
 
 # Workspace dependencies
 tokio = { workspace = true }

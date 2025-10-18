@@ -30,7 +30,7 @@ pub mod mock_provider;
 
 // Re-export core types
 pub use background_processor::{
-    AiProcessor, EnhancementResult, EnhancementTask, ProcessorConfig, TaskPriority,
+    AiProcessorConfig, AiProcessorStats, AiResult, AiTask, BackgroundAiProcessor, TaskPriority,
 };
 pub use circuit_breaker::{
     with_circuit_breaker, with_custom_circuit_breaker, CircuitBreaker, CircuitBreakerConfig,
