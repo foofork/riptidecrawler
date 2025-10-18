@@ -19,6 +19,7 @@ where
     let duration = start.elapsed();
     let avg_micros = duration.as_micros() as f64 / iterations as f64;
 
+    #[cfg(feature = "benchmark-debug")]
     println!(
         "{}: {:.2} μs/op ({} iterations)",
         name, avg_micros, iterations
@@ -27,9 +28,11 @@ where
 }
 
 fn main() {
+    #[cfg(feature = "benchmark-debug")]
     println!("=== P1-B6 Stealth Performance Benchmarks ===\n");
 
     // Benchmark: Fingerprint generation
+    #[cfg(feature = "benchmark-debug")]
     println!("## Fingerprint Generation");
     let mut generator = EnhancedFingerprintGenerator::with_default_config();
 
@@ -53,6 +56,7 @@ fn main() {
     });
 
     // Benchmark: CDP integration
+    #[cfg(feature = "benchmark-debug")]
     println!("\n## CDP Integration");
     let mut integrator = CdpStealthIntegrator::new();
 
@@ -72,6 +76,7 @@ fn main() {
     });
 
     // Benchmark: Stealth levels
+    #[cfg(feature = "benchmark-debug")]
     println!("\n## Stealth Level Configuration");
 
     for level in [
@@ -87,6 +92,7 @@ fn main() {
     }
 
     // Benchmark: JavaScript generation
+    #[cfg(feature = "benchmark-debug")]
     println!("\n## JavaScript Generation");
 
     for preset in [
@@ -104,6 +110,7 @@ fn main() {
     }
 
     // Benchmark: Header generation
+    #[cfg(feature = "benchmark-debug")]
     println!("\n## Header Generation");
 
     let controller = StealthController::from_preset(StealthPreset::High);
@@ -113,6 +120,7 @@ fn main() {
     });
 
     // Memory overhead test
+    #[cfg(feature = "benchmark-debug")]
     println!("\n## Memory Overhead");
 
     let mut generator = EnhancedFingerprintGenerator::with_default_config();
@@ -125,10 +133,13 @@ fn main() {
     }
 
     let cache_size = generator.cache_size();
+    #[cfg(feature = "benchmark-debug")]
     println!("Cache size: {} sessions", cache_size);
+    #[cfg(feature = "benchmark-debug")]
     println!("Base generator size: {} bytes", start_memory);
 
     // Comparative overhead
+    #[cfg(feature = "benchmark-debug")]
     println!("\n## Relative Overhead Analysis");
 
     let none_time = {
@@ -163,23 +174,26 @@ fn main() {
         })
     };
 
-    println!("\n## Overhead Summary");
-    println!("None (baseline): {:.2} μs", none_time);
-    println!(
-        "Low:    {:.2} μs ({:.1}% overhead)",
-        low_time,
-        (low_time / none_time.max(1.0) - 1.0) * 100.0
-    );
-    println!(
-        "Medium: {:.2} μs ({:.1}% overhead)",
-        medium_time,
-        (medium_time / none_time.max(1.0) - 1.0) * 100.0
-    );
-    println!(
-        "High:   {:.2} μs ({:.1}% overhead)",
-        high_time,
-        (high_time / none_time.max(1.0) - 1.0) * 100.0
-    );
+    #[cfg(feature = "benchmark-debug")]
+    {
+        println!("\n## Overhead Summary");
+        println!("None (baseline): {:.2} μs", none_time);
+        println!(
+            "Low:    {:.2} μs ({:.1}% overhead)",
+            low_time,
+            (low_time / none_time.max(1.0) - 1.0) * 100.0
+        );
+        println!(
+            "Medium: {:.2} μs ({:.1}% overhead)",
+            medium_time,
+            (medium_time / none_time.max(1.0) - 1.0) * 100.0
+        );
+        println!(
+            "High:   {:.2} μs ({:.1}% overhead)",
+            high_time,
+            (high_time / none_time.max(1.0) - 1.0) * 100.0
+        );
 
-    println!("\n=== Benchmark Complete ===");
+        println!("\n=== Benchmark Complete ===");
+    }
 }

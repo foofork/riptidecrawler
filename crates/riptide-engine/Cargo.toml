@@ -49,6 +49,7 @@ bytes = { workspace = true }
 [dev-dependencies]
 tokio-test = "0.4"
 tempfile = { workspace = true }
+serial_test = "3.2.0"
 
 [features]
 default = []
