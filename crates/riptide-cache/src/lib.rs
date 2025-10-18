@@ -46,6 +46,10 @@
 
 pub mod key;
 pub mod manager;
+pub mod redis;
+// pub mod integrated;  // Temporarily disabled: circular dependency with riptide-core
+pub mod warming;
+pub mod warming_integration;
 
 // Re-exports for convenience
 pub use key::{
@@ -55,6 +59,23 @@ pub use key::{
 pub use manager::{
     CacheConfig, CacheEntry, CacheManager, CacheMetadata, CacheStats, ConditionalResult,
 };
+pub use redis::{
+    CacheConfig as RedisCacheConfig, CacheEntry as RedisCacheEntry,
+    CacheManager as RedisCacheManager, CacheMetadata as RedisCacheMetadata,
+    CacheStats as RedisCacheStats, ConditionalResult as RedisConditionalResult,
+};
+// pub use integrated::{
+//     CachedContent, CacheCheckResult, IntegratedCacheConfig, IntegratedCacheManager,
+//     IntegratedCacheStats, create_optimized_integrated_cache_manager,
+// };
+pub use warming::{
+    CacheWarmingConfig, CacheWarmingManager, CacheWarmingOperation, CacheWarmingPoolExt,
+    CacheWarmingStats, PreFetchPriority, PreFetchResource,
+};
+pub use warming_integration::{
+    CacheWarmingEnabledPool, CacheWarmingHealthMonitor, CacheWarmingHealthStatus,
+    CacheWarmingPoolFactory,
+};
 
 /// Prelude module for convenient imports
 pub mod prelude {
@@ -62,6 +83,9 @@ pub mod prelude {
     pub use crate::manager::{
         CacheConfig, CacheEntry, CacheManager, CacheMetadata, CacheStats, ConditionalResult,
     };
+    pub use crate::redis::{CacheConfig as RedisCacheConfig, CacheManager as RedisCacheManager};
+    // pub use crate::integrated::{IntegratedCacheManager, IntegratedCacheConfig};
+    pub use crate::warming::{CacheWarmingConfig, CacheWarmingManager};
 }
 
 /// Cache version constant

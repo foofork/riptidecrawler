@@ -26,10 +26,10 @@
 
 // Core infrastructure modules
 pub mod ai_processor;
-pub mod cache;
-pub mod cache_key;
-pub mod cache_warming;
-pub mod cache_warming_integration;
+// pub mod cache;  // P1-A3 Phase 2C: Moved to riptide-cache crate
+// pub mod cache_key;  // P1-A3 Phase 2C: Moved to riptide-cache crate
+// pub mod cache_warming;  // P1-A3 Phase 2C: Moved to riptide-cache crate
+// pub mod cache_warming_integration;  // P1-A3 Phase 2C: Moved to riptide-cache crate
 pub mod circuit;
 pub mod circuit_breaker;
 pub mod common;
@@ -46,7 +46,7 @@ pub mod events_pool_integration; // Events integration with instance pool
 pub mod gate;
 // pub mod html_parser;  // P1-C2: Moved to riptide-extraction crate
 // pub mod instance_pool;  // P1-A3 Phase 2B: Moved to riptide-pool crate
-pub mod integrated_cache;
+// pub mod integrated_cache;  // P1-A3 Phase 2C: Moved to riptide-cache crate
 pub mod memory_manager;
 // pub mod monitoring;  // P1-A3: Moved to riptide-monitoring crate
 pub mod wasm_validation;
@@ -136,6 +136,87 @@ pub mod strategies {
     //! use riptide_extraction::strategies::*;
     //! ```
     pub use riptide_extraction::strategies::*;
+}
+
+pub mod cache {
+    //! Cache module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-cache` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The cache functionality has been extracted to its own crate.
+    //! Please migrate to using `riptide-cache` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::cache::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_cache::redis::*;
+    //! ```
+    pub use riptide_cache::redis::*;
+}
+
+pub mod cache_key {
+    //! Cache key module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-cache` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The cache key functionality has been extracted to its own crate.
+    //! Please migrate to using `riptide-cache` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::cache_key::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_cache::key::*;
+    //! ```
+    pub use riptide_cache::key::*;
+}
+
+pub mod cache_warming {
+    //! Cache warming module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-cache` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The cache warming functionality has been extracted to its own crate.
+    //! Please migrate to using `riptide-cache` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::cache_warming::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_cache::warming::*;
+    //! ```
+    pub use riptide_cache::warming::*;
+}
+
+pub mod cache_warming_integration {
+    //! Cache warming integration module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-cache` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The cache warming integration functionality has been extracted to its own crate.
+    //! Please migrate to using `riptide-cache` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::cache_warming_integration::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_cache::warming_integration::*;
+    //! ```
+    pub use riptide_cache::warming_integration::*;
+}
+
+pub mod integrated_cache {
+    //! Integrated cache module - MOVED (Temporarily disabled)
+    //!
+    //! **NOTICE**: This module has been moved to riptide-cache but is currently disabled
+    //! due to circular dependencies. It will be re-enabled after refactoring.
+    //!
+    //! For now, use the individual cache modules directly from riptide-cache.
 }
 
 pub mod security {

@@ -8,11 +8,11 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
 
-use crate::cache_warming::{
+use crate::warming::{
     CacheWarmingConfig, CacheWarmingManager, CacheWarmingPoolExt, CacheWarmingStats,
 };
-use crate::events::EventBus;
-use crate::types::ExtractionMode;
+use riptide_events::EventBus;
+use riptide_types::ExtractionMode;
 use riptide_pool::AdvancedInstancePool;
 
 /// Enhanced instance pool with integrated cache warming
@@ -71,7 +71,7 @@ impl CacheWarmingEnabledPool {
         html: &str,
         url: &str,
         mode: ExtractionMode,
-    ) -> Result<crate::types::ExtractedDoc> {
+    ) -> Result<riptide_types::ExtractedDoc> {
         let start_time = Instant::now();
         let mut used_warm_instance = false;
 
@@ -256,18 +256,14 @@ impl CacheWarmingHealthStatus {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::component::ExtractorConfig;
-    use wasmtime::Engine;
+    // Note: ExtractorConfig is from riptide-core, not available here
+    // use crate::component::ExtractorConfig;
 
-    #[tokio::test]
-    async fn test_cache_warming_pool_creation() {
-        // This would need a real WASM component for full testing
-        // For now, just test the structure can be created
-        let _engine = Engine::default();
-        let _config = ExtractorConfig::default();
-        // Note: This test would need to be expanded with actual pool creation
-        // when the full integration is available
-    }
+    // Test removed as it requires riptide-core dependencies
+    // #[tokio::test]
+    // async fn test_cache_warming_pool_creation() {
+    //     // This would need a real WASM component for full testing
+    // }
 
     #[test]
     fn test_health_status() {

@@ -23,6 +23,8 @@ riptide-monitoring = { path = "../riptide-monitoring" }
 riptide-events = { path = "../riptide-events" }
 # P1-A3 Phase 2B: Instance pool extracted from core (without wit-validation to avoid circular dep)
 riptide-pool = { path = "../riptide-pool" }
+# P1-A3 Phase 2C: Cache system extracted from core
+riptide-cache = { path = "../riptide-cache" }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 bytes = { workspace = true }

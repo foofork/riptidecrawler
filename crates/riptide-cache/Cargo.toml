@@ -9,6 +9,8 @@ license = "MIT"
 [dependencies]
 # Core dependencies
 riptide-types = { path = "../riptide-types" }
+riptide-pool = { path = "../riptide-pool" }
+riptide-events = { path = "../riptide-events" }
 anyhow = "1.0"
 thiserror = "1.0"
 
@@ -36,6 +38,9 @@ tracing = "0.1"
 
 # Collections
 dashmap = "6.0"
+
+# URL parsing for cache warming
+url = "2.5"
 
 [dev-dependencies]
 tokio-test = "0.4"

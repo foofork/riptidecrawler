@@ -6577,6 +6577,8 @@ dependencies = [
  "mockito",
  "redis",
  "reqwest 0.11.27",
+ "riptide-events",
+ "riptide-pool",
  "riptide-types",
  "serde",
  "serde_json",
@@ -6586,6 +6588,7 @@ dependencies = [
  "tokio-test",
  "tracing",
  "tracing-subscriber",
+ "url",
 ]
 
 [[package]]
@@ -6670,6 +6673,7 @@ dependencies = [
  "redis",
  "regex",
  "reqwest 0.12.24",
+ "riptide-cache",
  "riptide-config",
  "riptide-events",
  "riptide-extraction",

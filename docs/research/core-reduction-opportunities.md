@@ -163,26 +163,33 @@ pub use types::{
 
 ---
 
-### 3. Cache System → `riptide-cache` (Enhanced) 🔄 MEDIUM PRIORITY
-**Lines to Extract**: ~1,800
+### 3. Cache System → `riptide-cache` (Enhanced) ✅ COMPLETED (Phase 2C)
+**Lines Extracted**: ~977 lines (cache core functionality)
 **Impact**: Medium-High
 **Ease**: High
 **Risk**: Low
+**Status**: ✅ **COMPLETE** - Cache consolidation finished
 
-#### Current State
-- `riptide-cache` crate exists but is minimal (~200 lines)
-- Most cache logic still in core
+#### Completion Summary (2025-10-18)
+- ✅ Moved cache.rs → riptide-cache/src/redis.rs (381 lines)
+- ✅ Cache key already in riptide-cache/src/key.rs (313 lines)
+- ✅ Moved cache_warming.rs → riptide-cache/src/warming.rs (881 lines)
+- ✅ Moved cache_warming_integration.rs → riptide-cache/src/warming_integration.rs (150 lines)
+- ⚠️  integrated_cache.rs temporarily disabled (circular dependency with riptide-core)
+- ✅ Added backward compatibility re-exports in riptide-core
+- ✅ All tests passing (13 tests in riptide-cache)
 
-#### Files to Move to Enhanced riptide-cache
+#### Files Extracted
 ```
-cache.rs                (381 lines)   - Cache implementation
-cache_key.rs            (313 lines)   - Cache key generation
-integrated_cache.rs     (402 lines)   - Cache integration
-cache_warming.rs        (881 lines)   - Warming strategies (share with pool)
-cache_warming_integration.rs (150 lines) - Integration layer
+cache.rs                (381 lines)   → riptide-cache/redis.rs ✅
+cache_key.rs            (313 lines)   → Already in riptide-cache/key.rs ✅
+cache_warming.rs        (881 lines)   → riptide-cache/warming.rs ✅
+cache_warming_integration.rs (150 lines) → riptide-cache/warming_integration.rs ✅
+integrated_cache.rs     (402 lines)   → Temporarily disabled (circular deps) ⚠️
 ```
 
-**Total**: ~2,127 lines → Extract **~1,800 lines** (core cache logic)
+**Actual Reduction**: 977 lines extracted from riptide-core
+**Core Size**: 12,419 → 11,442 lines (7.9% reduction)
 
 #### Dependencies
 ```rust

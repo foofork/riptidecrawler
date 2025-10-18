@@ -10,12 +10,13 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::{debug, info};
 
-use crate::{
-    cache::{CacheConfig, CacheEntry, CacheManager, CacheMetadata, ConditionalResult},
-    common::{CommonValidator, ValidationConfig},
-    conditional::{extract_conditional_info, generate_etag, ConditionalRequest},
-    security::{SecurityConfig, SecurityMiddleware},
+use crate::redis::{
+    CacheConfig, CacheEntry, CacheManager, CacheMetadata, ConditionalResult,
 };
+
+// Note: These modules are from riptide-core and riptide-security
+// They will need to be imported by users of IntegratedCacheManager
+// For now, we'll comment out the integrated functionality that requires them
 
 /// Integrated cache configuration combining all security and performance features
 #[derive(Debug, Clone, Serialize, Deserialize)]
