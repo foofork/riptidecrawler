@@ -1,4 +1,4 @@
-use crate::spider::types::{CrawlRequest, CrawlResult};
+use crate::types::{CrawlRequest, CrawlResult};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use url::Url;

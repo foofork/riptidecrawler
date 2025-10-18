@@ -15,10 +15,10 @@ fn extract_links_basic(content: &str, base_url: &Url) -> Result<Vec<Url>> {
 
     Ok(links)
 }
-use crate::fetch::FetchEngine;
+use riptide_fetch::FetchEngine;
 use crate::memory_manager::MemoryManager;
 use crate::robots::RobotsManager;
-use crate::spider::{
+use crate::{
     adaptive_stop::{AdaptiveStopEngine, StopDecision},
     budget::BudgetManager,
     config::SpiderConfig,
@@ -767,12 +767,12 @@ impl Spider {
     }
 
     /// Get frontier statistics
-    pub async fn get_frontier_stats(&self) -> crate::spider::types::FrontierMetrics {
+    pub async fn get_frontier_stats(&self) -> crate::types::FrontierMetrics {
         self.frontier_manager.get_metrics().await
     }
 
     /// Get adaptive stop statistics
-    pub async fn get_adaptive_stop_stats(&self) -> crate::spider::adaptive_stop::AdaptiveStopStats {
+    pub async fn get_adaptive_stop_stats(&self) -> crate::adaptive_stop::AdaptiveStopStats {
         self.adaptive_stop_engine.get_stats().await
     }
 
@@ -922,8 +922,8 @@ fn blend_priority_with_relevance(strategy_priority: Priority, relevance_score: f
 }
 
 // Convert UrlProcessingConfig to UrlUtilsConfig
-impl From<crate::spider::config::UrlProcessingConfig> for crate::spider::url_utils::UrlUtilsConfig {
-    fn from(config: crate::spider::config::UrlProcessingConfig) -> Self {
+impl From<crate::config::UrlProcessingConfig> for crate::url_utils::UrlUtilsConfig {
+    fn from(config: crate::config::UrlProcessingConfig) -> Self {
         Self {
             enable_bloom_filter: config.enable_deduplication,
             bloom_filter_capacity: config.bloom_filter_capacity,
@@ -946,7 +946,7 @@ impl From<crate::spider::config::UrlProcessingConfig> for crate::spider::url_uti
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::spider::config::SpiderPresets;
+    use crate::config::SpiderPresets;
     use std::str::FromStr;
 
     #[tokio::test]

@@ -1,4 +1,4 @@
-use crate::spider::types::{ContentWindow, CrawlResult};
+use crate::types::{ContentWindow, CrawlResult};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
@@ -589,7 +589,7 @@ pub struct AdaptiveStopStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::spider::types::CrawlRequest;
+    use crate::types::CrawlRequest;
     use std::str::FromStr;
     use url::Url;
 

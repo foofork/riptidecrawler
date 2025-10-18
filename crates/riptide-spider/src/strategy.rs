@@ -1,4 +1,4 @@
-use crate::spider::types::{CrawlRequest, Priority, ScoringConfig};
+use crate::types::{CrawlRequest, Priority, ScoringConfig};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -147,7 +147,7 @@ impl DefaultScoring {
 
 impl ScoringFunction for DefaultScoring {
     fn score_url(&self, url: &Url, depth: u32, metadata: &HashMap<String, String>) -> f64 {
-        let mut score = 1.0;
+        let mut score: f64 = 1.0;
 
         // Depth penalty (prefer shallower pages)
         score += self.config.depth_weight * depth as f64;

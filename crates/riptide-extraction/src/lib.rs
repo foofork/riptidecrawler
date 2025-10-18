@@ -50,6 +50,10 @@ pub mod chunking;
 pub mod enhanced_extractor;
 pub mod table_extraction;
 
+// P1-C2: HTML parser and extraction strategies moved from riptide-core
+pub mod html_parser;
+pub mod strategies;
+
 // Re-export main interfaces
 pub use css_extraction::{
     default_selectors, extract as css_extract, extract_default as css_extract_default,
@@ -71,6 +75,12 @@ pub use wasm_extraction::{
     CmExtractor, ExtractedDoc, ExtractorConfig, HostExtractionMode, WasmExtractor,
     WasmResourceTracker,
 };
+
+// Re-export HTML parser (moved from riptide-core)
+pub use html_parser::{HtmlParser, ParsedHtml};
+
+// Re-export strategies (moved from riptide-core)
+pub use strategies::{ExtractionStrategy, StrategyManager, StrategyMetadata, StrategyPerformance};
 
 // // Re-export spider functionality
 // pub use spider::{

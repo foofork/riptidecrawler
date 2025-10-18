@@ -12,6 +12,9 @@ riptide-extraction = { path = "../riptide-extraction" }
 riptide-search = { path = "../riptide-search" }
 riptide-stealth = { path = "../riptide-stealth" }
 riptide-pdf = { path = "../riptide-pdf", optional = true }
+# P1-C2: Dependencies on extracted crates
+riptide-spider = { path = "../riptide-spider" }
+riptide-fetch = { path = "../riptide-fetch" }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 bytes = { workspace = true }

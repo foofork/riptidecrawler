@@ -1,5 +1,5 @@
 use crate::robots::RobotsConfig;
-use crate::spider::{
+use crate::{
     adaptive_stop::AdaptiveStopConfig,
     budget::BudgetConfig,
     frontier::FrontierConfig,
@@ -402,7 +402,7 @@ impl SpiderPresets {
 
     /// E-commerce site crawling configuration
     pub fn ecommerce_site() -> SpiderConfig {
-        let scoring_config = crate::spider::types::ScoringConfig {
+        let scoring_config = crate::types::ScoringConfig {
             content_keywords: vec![
                 "price".to_string(),
                 "product".to_string(),
@@ -466,8 +466,8 @@ impl SpiderPresets {
 
 impl StrategyConfig {
     /// Convert to CrawlingStrategy
-    pub fn to_crawling_strategy(&self) -> crate::spider::strategy::CrawlingStrategy {
-        use crate::spider::strategy::*;
+    pub fn to_crawling_strategy(&self) -> crate::strategy::CrawlingStrategy {
+        use crate::strategy::*;
 
         match self.default_strategy.as_str() {
             "BreadthFirst" => breadth_first_strategy(),

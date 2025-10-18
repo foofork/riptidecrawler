@@ -2,8 +2,8 @@
 /// Week 7 requirements: BM25 scoring, URL signals, domain diversity, early stopping
 #[cfg(test)]
 mod query_aware_week7_tests {
-    use crate::spider::query_aware::*;
-    use crate::spider::CrawlRequest;
+    use crate::query_aware::*;
+    use crate::CrawlRequest;
     use std::time::Instant;
     use url::Url;
 
@@ -641,8 +641,8 @@ mod query_aware_week7_tests {
 /// Integration tests for query-aware spider with other components
 #[cfg(test)]
 mod query_aware_integration_tests {
-    use crate::spider::query_aware::*;
-    use crate::spider::{config::SpiderPresets, core::Spider, CrawlRequest, CrawlResult};
+    use crate::query_aware::*;
+    use crate::{config::SpiderPresets, core::Spider, CrawlRequest, CrawlResult};
     use std::time::Instant;
     use url::Url;
 

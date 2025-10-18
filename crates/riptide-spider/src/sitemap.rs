@@ -1,4 +1,4 @@
-use crate::spider::types::{CrawlRequest, Priority, SitemapConfig};
+use crate::types::{CrawlRequest, Priority, SitemapConfig};
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use reqwest::Client;

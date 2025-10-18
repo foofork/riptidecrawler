@@ -1,4 +1,4 @@
-use crate::spider::types::{CrawlRequest, FrontierMetrics, HostState, Priority};
+use crate::types::{CrawlRequest, FrontierMetrics, HostState, Priority};
 use anyhow::Result;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};

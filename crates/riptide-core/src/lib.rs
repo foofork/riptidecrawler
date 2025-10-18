@@ -41,9 +41,9 @@ pub mod dynamic;
 // pub mod enhanced_extractor; // Temporarily disabled
 pub mod error;
 pub mod events;
-pub mod fetch;
+// pub mod fetch;  // P1-C2: Moved to riptide-fetch crate
 pub mod gate;
-pub mod html_parser;
+// pub mod html_parser;  // P1-C2: Moved to riptide-extraction crate
 pub mod instance_pool;
 pub mod integrated_cache;
 pub mod memory_manager;
@@ -58,11 +58,84 @@ pub mod pool_health;
 pub mod reliability;
 pub mod robots;
 pub mod security;
-pub mod spider;
-pub mod strategies;
+// pub mod spider;  // P1-C2: Moved to riptide-spider crate
+// pub mod strategies;  // P1-C2: Moved to riptide-extraction crate
 pub mod strategy_composition;
 pub mod telemetry;
 pub mod types;
+
+// P1-C2: Re-export extracted modules for backward compatibility
+pub mod fetch {
+    //! Fetch module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-fetch` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The fetch functionality has been extracted to its own crate.
+    //! Please migrate to using `riptide-fetch` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::fetch::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_fetch::*;
+    //! ```
+    pub use riptide_fetch::*;
+}
+
+pub mod spider {
+    //! Spider module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-spider` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The spider functionality has been extracted to its own crate.
+    //! Please migrate to using `riptide-spider` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::spider::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_spider::*;
+    //! ```
+    pub use riptide_spider::*;
+}
+
+pub mod html_parser {
+    //! HTML parser module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-extraction` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The HTML parser functionality has been moved to riptide-extraction.
+    //! Please migrate to using `riptide-extraction` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::html_parser::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_extraction::html_parser::*;
+    //! ```
+    pub use riptide_extraction::html_parser::*;
+}
+
+pub mod strategies {
+    //! Strategies module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-extraction` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The strategies functionality has been moved to riptide-extraction.
+    //! Please migrate to using `riptide-extraction` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::strategies::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_extraction::strategies::*;
+    //! ```
+    pub use riptide_extraction::strategies::*;
+}
 
 #[cfg(test)]
 mod fetch_engine_tests;

@@ -1,4 +1,4 @@
-use crate::spider::{
+use crate::{
     config::SpiderPresets,
     core::Spider,
     types::{CrawlRequest, Priority},
@@ -247,7 +247,7 @@ pub mod integration {
             let url = Url::from_str(&format!("https://example.com/page{}", i)).expect("Valid URL");
             let request = CrawlRequest::new(url);
 
-            let mut result = crate::spider::types::CrawlResult::success(request);
+            let mut result = crate::types::CrawlResult::success(request);
             result.text_content = Some("short".to_string()); // Very low content
             result.content_size = 50;
 
@@ -592,7 +592,7 @@ pub mod edge_cases {
             let url = Url::from_str(&format!("https://example.com/empty{}", i)).expect("Valid URL");
             let request = CrawlRequest::new(url);
 
-            let mut result = crate::spider::types::CrawlResult::success(request);
+            let mut result = crate::types::CrawlResult::success(request);
             result.text_content = None; // No content
             result.content_size = 0;
 
@@ -686,7 +686,7 @@ pub mod edge_cases {
 /// Configuration and validation tests
 pub mod config_tests {
     use super::*;
-    use crate::spider::config::SpiderConfig;
+    use crate::config::SpiderConfig;
 
     /// Test configuration validation
     #[test]
@@ -755,11 +755,11 @@ pub mod test_helpers {
         url: &str,
         content: &str,
         links: Vec<&str>,
-    ) -> crate::spider::types::CrawlResult {
+    ) -> crate::types::CrawlResult {
         let url = Url::from_str(url).expect("Valid URL");
         let request = CrawlRequest::new(url);
 
-        let mut result = crate::spider::types::CrawlResult::success(request);
+        let mut result = crate::types::CrawlResult::success(request);
         result.text_content = Some(content.to_string());
         result.content_size = content.len();
         result.extracted_urls = links

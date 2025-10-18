@@ -2,6 +2,8 @@
 members = [
   "crates/riptide-types",
   "crates/riptide-core",
+  "crates/riptide-spider",  # P1-C2: Spider/crawler engine (extracted from core)
+  "crates/riptide-fetch",   # P1-C2: HTTP/network layer (extracted from core)
   "crates/riptide-extraction",
   "crates/riptide-search",
   "crates/riptide-api",
