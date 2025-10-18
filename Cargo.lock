@@ -6518,6 +6518,7 @@ dependencies = [
  "riptide-extraction",
  "riptide-headless",
  "riptide-intelligence",
+ "riptide-monitoring",
  "riptide-pdf",
  "riptide-performance",
  "riptide-persistence",
@@ -6670,6 +6671,7 @@ dependencies = [
  "regex",
  "reqwest 0.12.24",
  "riptide-config",
+ "riptide-events",
  "riptide-extraction",
  "riptide-fetch",
  "riptide-monitoring",
@@ -6729,6 +6731,30 @@ dependencies = [
  "tower 0.5.2",
  "tower-http 0.6.6",
  "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "riptide-events"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "futures",
+ "opentelemetry 0.26.0",
+ "opentelemetry-otlp",
+ "opentelemetry-semantic-conventions",
+ "opentelemetry_sdk",
+ "riptide-monitoring",
+ "riptide-types",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-test",
+ "tracing",
+ "tracing-opentelemetry",
  "uuid",
 ]
 

@@ -416,7 +416,7 @@ pub struct EventBusStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::events::handlers::LoggingEventHandler;
+    use crate::handlers::LoggingEventHandler;
 
     #[tokio::test]
     async fn test_event_bus_creation() {

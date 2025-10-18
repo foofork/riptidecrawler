@@ -4,7 +4,7 @@
 //! with existing monitoring, telemetry, and health check systems.
 
 use super::*;
-use crate::monitoring::collector::MetricsCollector;
+use riptide_monitoring::MetricsCollector;
 use opentelemetry::trace::{Span, Status, Tracer};
 use opentelemetry::{global, KeyValue};
 use std::collections::VecDeque;
@@ -160,7 +160,7 @@ impl MetricsEventHandler {
         // Extract pool-specific metrics from event
         if let Ok(json_str) = event.to_json() {
             if let Ok(pool_event) =
-                serde_json::from_str::<crate::events::types::PoolEvent>(&json_str)
+                serde_json::from_str::<crate::PoolEvent>(&json_str)
             {
                 // Record pool operation metrics
                 let _ = self
@@ -191,12 +191,12 @@ impl MetricsEventHandler {
     async fn handle_extraction_event(&self, event: &dyn Event) -> Result<()> {
         if let Ok(json_str) = event.to_json() {
             if let Ok(extraction_event) =
-                serde_json::from_str::<crate::events::types::ExtractionEvent>(&json_str)
+                serde_json::from_str::<crate::ExtractionEvent>(&json_str)
             {
                 // Record extraction metrics
                 let success = matches!(
                     extraction_event.operation,
-                    crate::events::types::ExtractionOperation::Completed
+                    crate::ExtractionOperation::Completed
                 );
 
                 if let Some(duration_ms) = extraction_event.duration_ms {
@@ -222,7 +222,7 @@ impl MetricsEventHandler {
     async fn handle_metrics_event(&self, event: &dyn Event) -> Result<()> {
         if let Ok(json_str) = event.to_json() {
             if let Ok(metrics_event) =
-                serde_json::from_str::<crate::events::types::MetricsEvent>(&json_str)
+                serde_json::from_str::<crate::MetricsEvent>(&json_str)
             {
                 // Forward custom metrics to collector
                 let _ = self
@@ -241,14 +241,14 @@ impl MetricsEventHandler {
     async fn handle_health_event(&self, event: &dyn Event) -> Result<()> {
         if let Ok(json_str) = event.to_json() {
             if let Ok(health_event) =
-                serde_json::from_str::<crate::events::types::HealthEvent>(&json_str)
+                serde_json::from_str::<crate::HealthEvent>(&json_str)
             {
                 // Record component health status
                 let health_score = match health_event.status {
-                    crate::events::types::HealthStatus::Healthy => 1.0,
-                    crate::events::types::HealthStatus::Degraded => 0.7,
-                    crate::events::types::HealthStatus::Unhealthy => 0.3,
-                    crate::events::types::HealthStatus::Critical => 0.0,
+                    crate::HealthStatus::Healthy => 1.0,
+                    crate::HealthStatus::Degraded => 0.7,
+                    crate::HealthStatus::Unhealthy => 0.3,
+                    crate::HealthStatus::Critical => 0.0,
                 };
 
                 let _ = self
@@ -427,7 +427,7 @@ pub struct HealthEventHandler {
 
 #[derive(Debug, Clone)]
 pub struct ComponentHealth {
-    pub status: crate::events::types::HealthStatus,
+    pub status: crate::HealthStatus,
     pub last_updated: DateTime<Utc>,
     pub failure_count: u32,
     pub success_count: u32,
@@ -438,7 +438,7 @@ pub struct ComponentHealth {
 impl ComponentHealth {
     pub fn new() -> Self {
         Self {
-            status: crate::events::types::HealthStatus::Healthy,
+            status: crate::HealthStatus::Healthy,
             last_updated: Utc::now(),
             failure_count: 0,
             success_count: 0,
@@ -448,7 +448,7 @@ impl ComponentHealth {
     }
 
     pub fn is_healthy(&self) -> bool {
-        matches!(self.status, crate::events::types::HealthStatus::Healthy)
+        matches!(self.status, crate::HealthStatus::Healthy)
     }
 
     pub fn health_score(&self) -> f64 {
@@ -461,10 +461,10 @@ impl ComponentHealth {
 
         // Apply status modifier
         let status_modifier = match self.status {
-            crate::events::types::HealthStatus::Healthy => 1.0,
-            crate::events::types::HealthStatus::Degraded => 0.8,
-            crate::events::types::HealthStatus::Unhealthy => 0.5,
-            crate::events::types::HealthStatus::Critical => 0.2,
+            crate::HealthStatus::Healthy => 1.0,
+            crate::HealthStatus::Degraded => 0.8,
+            crate::HealthStatus::Unhealthy => 0.5,
+            crate::HealthStatus::Critical => 0.2,
         };
 
         base_score * status_modifier
@@ -502,11 +502,11 @@ impl HealthEventHandler {
     }
 
     /// Get overall system health
-    pub fn get_system_health(&self) -> crate::events::types::HealthStatus {
+    pub fn get_system_health(&self) -> crate::HealthStatus {
         let health_state = self.health_state.lock().unwrap();
 
         if health_state.is_empty() {
-            return crate::events::types::HealthStatus::Healthy;
+            return crate::HealthStatus::Healthy;
         }
 
         let mut critical_count = 0;
@@ -516,29 +516,29 @@ impl HealthEventHandler {
 
         for health in health_state.values() {
             match health.status {
-                crate::events::types::HealthStatus::Critical => critical_count += 1,
-                crate::events::types::HealthStatus::Unhealthy => unhealthy_count += 1,
-                crate::events::types::HealthStatus::Degraded => degraded_count += 1,
-                crate::events::types::HealthStatus::Healthy => {}
+                crate::HealthStatus::Critical => critical_count += 1,
+                crate::HealthStatus::Unhealthy => unhealthy_count += 1,
+                crate::HealthStatus::Degraded => degraded_count += 1,
+                crate::HealthStatus::Healthy => {}
             }
         }
 
         // If any component is critical, system is critical
         if critical_count > 0 {
-            return crate::events::types::HealthStatus::Critical;
+            return crate::HealthStatus::Critical;
         }
 
         // If more than 50% unhealthy, system is unhealthy
         if unhealthy_count as f64 / total_count as f64 > 0.5 {
-            return crate::events::types::HealthStatus::Unhealthy;
+            return crate::HealthStatus::Unhealthy;
         }
 
         // If any component is unhealthy or many degraded, system is degraded
         if unhealthy_count > 0 || degraded_count as f64 / total_count as f64 > 0.3 {
-            return crate::events::types::HealthStatus::Degraded;
+            return crate::HealthStatus::Degraded;
         }
 
-        crate::events::types::HealthStatus::Healthy
+        crate::HealthStatus::Healthy
     }
 
     /// Get recent health events
@@ -557,15 +557,15 @@ impl HealthEventHandler {
         match event.severity() {
             EventSeverity::Error | EventSeverity::Critical => {
                 health.failure_count += 1;
-                if health.status == crate::events::types::HealthStatus::Healthy {
-                    health.status = crate::events::types::HealthStatus::Degraded;
+                if health.status == crate::HealthStatus::Healthy {
+                    health.status = crate::HealthStatus::Degraded;
                 }
             }
             _ => {
                 health.success_count += 1;
                 // Gradually improve health on successful events
                 if health.failure_count > 0 && health.success_count > health.failure_count * 2 {
-                    health.status = crate::events::types::HealthStatus::Healthy;
+                    health.status = crate::HealthStatus::Healthy;
                 }
             }
         }
@@ -619,7 +619,7 @@ impl EventHandler for HealthEventHandler {
             // For explicit health events, try to extract component from JSON
             if let Ok(json_str) = event.to_json() {
                 if let Ok(health_event) =
-                    serde_json::from_str::<crate::events::types::HealthEvent>(&json_str)
+                    serde_json::from_str::<crate::HealthEvent>(&json_str)
                 {
                     health_event.component
                 } else {
@@ -676,7 +676,7 @@ mod tests {
         // Initially should be healthy
         assert_eq!(
             handler.get_system_health(),
-            crate::events::types::HealthStatus::Healthy
+            crate::HealthStatus::Healthy
         );
 
         // Add a healthy component
@@ -690,7 +690,7 @@ mod tests {
         // System should still be healthy since only one component has issues
         assert_eq!(
             handler.get_system_health(),
-            crate::events::types::HealthStatus::Degraded
+            crate::HealthStatus::Degraded
         );
     }
 
@@ -710,7 +710,7 @@ mod tests {
         assert!((health.health_score() - expected_score).abs() < 0.01);
 
         // Change status to degraded
-        health.status = crate::events::types::HealthStatus::Degraded;
+        health.status = crate::HealthStatus::Degraded;
         let expected_degraded_score = (8.0 / 10.0) * 0.8; // 80% success rate with degraded status
         assert!((health.health_score() - expected_degraded_score).abs() < 0.01);
     }

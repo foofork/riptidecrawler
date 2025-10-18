@@ -6,6 +6,7 @@ members = [
   "crates/riptide-fetch",   # P1-C2: HTTP/network layer (extracted from core)
   "crates/riptide-security",  # P1-A3: Security middleware (extracted from core)
   "crates/riptide-monitoring",  # P1-A3: Monitoring and telemetry (extracted from core)
+  "crates/riptide-events",  # P1-A3 Phase 2A: Event system (extracted from core)
   "crates/riptide-extraction",
   "crates/riptide-search",
   "crates/riptide-api",

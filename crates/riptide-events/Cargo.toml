@@ -1,0 +1,32 @@
+[package]
+name = "riptide-events"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+[dependencies]
+# Workspace dependencies
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+futures = { workspace = true }
+
+# OpenTelemetry dependencies
+opentelemetry = { workspace = true }
+opentelemetry-otlp = { workspace = true }
+opentelemetry_sdk = { workspace = true }
+opentelemetry-semantic-conventions = { workspace = true }
+tracing-opentelemetry = { workspace = true }
+
+# Other riptide crates
+riptide-types = { path = "../riptide-types" }
+riptide-monitoring = { path = "../riptide-monitoring", features = ["collector"] }
+
+[dev-dependencies]
+tokio-test = "0.4"

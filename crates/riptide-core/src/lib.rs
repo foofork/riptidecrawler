@@ -40,8 +40,9 @@ pub mod confidence_integration;
 pub mod dynamic;
 // pub mod enhanced_extractor; // Temporarily disabled
 pub mod error;
-pub mod events;
-// pub mod fetch;  // P1-C2: Moved to riptide-fetch crate
+// pub mod events;  // P1-A3 Phase 2A: Moved to riptide-events crate
+pub mod events_pool_integration; // Events integration with instance pool
+                                 // pub mod fetch;  // P1-C2: Moved to riptide-fetch crate
 pub mod gate;
 // pub mod html_parser;  // P1-C2: Moved to riptide-extraction crate
 pub mod instance_pool;
@@ -189,6 +190,24 @@ pub mod telemetry {
     //! use riptide_monitoring::telemetry::*;
     //! ```
     pub use riptide_monitoring::telemetry::*;
+}
+
+pub mod events {
+    //! Events module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-events` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The event system functionality has been extracted to its own crate.
+    //! Please migrate to using `riptide-events` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::events::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_events::*;
+    //! ```
+    pub use riptide_events::*;
 }
 
 #[cfg(test)]

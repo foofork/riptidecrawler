@@ -4,11 +4,11 @@
 //! capabilities to the existing AdvancedInstancePool without requiring
 //! significant changes to the existing codebase.
 
-use super::*;
-use crate::events::types::*;
+use crate::events::*;
 use crate::instance_pool::AdvancedInstancePool;
-use crate::types::{ExtractedDoc, ExtractionMode};
+use riptide_types::{ExtractedDoc, ExtractionMode};
 use anyhow::Result;
+use async_trait::async_trait;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tracing::{error, info, warn};

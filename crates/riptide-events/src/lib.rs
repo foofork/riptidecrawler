@@ -24,16 +24,12 @@ use uuid::Uuid;
 
 pub mod bus;
 pub mod handlers;
-pub mod pool_integration;
 pub mod types;
 
 pub use bus::{EventBus, EventBusConfig, EventBusStats, EventRouting};
 pub use handlers::{
     ComponentHealth, HealthEventHandler, LoggingEventHandler, MetricsEventHandler,
     TelemetryEventHandler,
-};
-pub use pool_integration::{
-    EventAwareInstancePool, EventAwarePoolFactory, PoolEventConfig, PoolEventEmissionHelper,
 };
 pub use types::*;
 
@@ -259,7 +255,7 @@ impl EventSubscription {
 macro_rules! emit_info_event {
     ($emitter:expr, $event_type:expr, $source:expr, $($key:expr => $value:expr),*) => {
         {
-            let mut event = $crate::events::BaseEvent::new($event_type, $source, $crate::events::EventSeverity::Info);
+            let mut event = $crate::BaseEvent::new($event_type, $source, $crate::EventSeverity::Info);
             $(
                 event.add_metadata($key, $value);
             )*
@@ -272,7 +268,7 @@ macro_rules! emit_info_event {
 macro_rules! emit_error_event {
     ($emitter:expr, $event_type:expr, $source:expr, $error:expr, $($key:expr => $value:expr),*) => {
         {
-            let mut event = $crate::events::BaseEvent::new($event_type, $source, $crate::events::EventSeverity::Error);
+            let mut event = $crate::BaseEvent::new($event_type, $source, $crate::EventSeverity::Error);
             event.add_metadata("error", &$error.to_string());
             $(
                 event.add_metadata($key, $value);
@@ -286,7 +282,7 @@ macro_rules! emit_error_event {
 macro_rules! emit_warning_event {
     ($emitter:expr, $event_type:expr, $source:expr, $message:expr, $($key:expr => $value:expr),*) => {
         {
-            let mut event = $crate::events::BaseEvent::new($event_type, $source, $crate::events::EventSeverity::Warn);
+            let mut event = $crate::BaseEvent::new($event_type, $source, $crate::EventSeverity::Warn);
             event.add_metadata("message", $message);
             $(
                 event.add_metadata($key, $value);

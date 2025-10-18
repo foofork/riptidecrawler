@@ -19,6 +19,8 @@ riptide-fetch = { path = "../riptide-fetch" }
 riptide-security = { path = "../riptide-security" }
 # P1-A3: Monitoring and telemetry extracted from core
 riptide-monitoring = { path = "../riptide-monitoring" }
+# P1-A3 Phase 2A: Event system extracted from core
+riptide-events = { path = "../riptide-events" }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 bytes = { workspace = true }
