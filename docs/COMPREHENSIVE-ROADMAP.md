@@ -25,11 +25,12 @@ This roadmap consolidates all outstanding issues identified across multiple hive
 **P1-A: Architecture Refactoring (70% Complete)**
 - ✅ P1-A1: riptide-types crate created
 - ✅ P1-A2: Circular dependencies resolved (dev-only remains)
-- ⚙️ P1-A3: Core refactoring (70% - spider/fetch extracted, compilation fixed)
-  - ✅ riptide-spider created and compiling
-  - ✅ riptide-fetch created
-  - ✅ Core reduced 44K → 13K lines (-70%)
-  - 🔴 Target: <10K lines (need -3K more, 23% remaining)
+- ⚙️ P1-A3: Core refactoring (75% - spider/fetch/security extracted)
+  - ✅ riptide-spider created and compiling (12K lines)
+  - ✅ riptide-fetch created (2.4K lines)
+  - ✅ riptide-security created (4.7K lines) **NEW**
+  - ✅ Core reduced 44K → 19.9K lines (-55%)
+  - 🔴 Target: <10K lines (need -9.9K more, 50% remaining)
 - 🔴 P1-A4: riptide-facade composition layer (TODO - 1 week)
 
 **P1-B: Performance Optimization (83% Complete)**
@@ -50,18 +51,18 @@ This roadmap consolidates all outstanding issues identified across multiple hive
 - 🔴 P1-C4: Validation (0% - 1 week work)
 
 ### Overall P1 Progress
-- **Architecture:** 70% (3/4 items complete, A3 ongoing)
+- **Architecture:** 75% (3/4 items complete, A3 75% done)
 - **Performance:** 83% (5/6 items complete, B4 blocked by C1)
 - **Integration:** 2% (C1 dependency added, implementation TODO)
-- **TOTAL:** 62% complete (14/23 sub-items done)
+- **TOTAL:** 65% complete (15/23 sub-items done, A3 progress +5%)
 
 ### Remaining P1 Work
-1. **P1-A3 Core Reduction:** Move 3K more lines from core → ~1 week
+1. **P1-A3 Core Reduction:** Move 9.9K more lines from core → ~2 weeks
 2. **P1-A4 Facade Pattern:** Design + implement composition layer → 1 week
 3. **P1-C1-C4 Spider-Chrome:** Full integration migration → 7 weeks
 4. **P1-B4 CDP Multiplexing:** Enable after P1-C1 → 3 days
 
-**Estimated Time to 100% P1 Complete:** 9-10 weeks
+**Estimated Time to 100% P1 Complete:** 10-11 weeks
 
 ---
 
@@ -85,12 +86,14 @@ This roadmap consolidates all outstanding issues identified across multiple hive
 - ✅ **Dependency Conflicts** - chromiumoxide conflicts resolved (workspace version unified)
 - ✅ **API Compatibility** - BrowserConfig, PoolStats API mismatches fixed
 - ✅ **Code Quality** - Clippy warnings addressed (redundant pattern matching fixed)
+- ✅ **Security Extraction** - riptide-security crate created (4.7K lines, 37 tests passing) **NEW 2025-10-18**
 
-**📈 PHASE 1 FINAL METRICS:**
-- **Compilation Rate:** 100% (22/22 crates ✓)
+**📈 PHASE 1 PROGRESS METRICS (2025-10-18):**
+- **Compilation Rate:** 100% (23/23 crates ✓) **+1 new crate**
 - **Errors Fixed:** 13 compilation errors → 0
 - **Test Compilation:** riptide-engine tests compile successfully
 - **Spider Integration:** Types exported, strategies restored
+- **Security Tests:** 37/37 tests passing in riptide-security
 - **Production Ready:** All core functionality compiling and operational
 
 **🎉 ACHIEVEMENTS:**
@@ -164,30 +167,32 @@ This roadmap consolidates all outstanding issues identified across multiple hive
 | | - Update Cargo.toml dependencies | ✅ | 0.25 day | |
 | | - Verify no circular refs | ✅ | 0.25 day | |
 | | **Note:** Only dev-dependency cycle remains (acceptable) | | | |
-| **P1-A3** | **Refactor riptide-core into specialized crates** | ⚙️ 70% | 1-2 weeks | In Progress |
+| **P1-A3** | **Refactor riptide-core into specialized crates** | ⚙️ 75% | 2-3 weeks | In Progress |
 | | - ✅ Created riptide-spider (12,134 lines) | ✅ | 2 days | 2025-10-18 |
 | | - ✅ Created riptide-fetch (2,393 lines) | ✅ | 2 days | 2025-10-18 |
+| | - ✅ Created riptide-security (4,719 lines) **NEW** | ✅ | 1 day | 2025-10-18 |
 | | - ✅ Moved HTML parser to riptide-extraction (+4,512 lines) | ✅ | 2 days | 2025-10-18 |
 | | - ✅ Moved strategies to riptide-extraction (+6.5K lines) | ✅ | 2 days | 2025-10-18 |
-| | - ✅ Core reduced 44K → 28.9K lines (-34.3%) | ✅ | - | 2025-10-18 |
+| | - ✅ Core reduced 44K → 19.9K lines (-55%) | ✅ | - | 2025-10-18 |
 | | - ✅ Fixed riptide-spider compilation (all errors resolved) | ✅ | 4h | 2025-10-18 |
-| | - 🔴 Further reduce core to <10K lines (need -18.9K more) | 🔴 | 1 week | Remaining |
+| | - 🔴 Further reduce core to <10K lines (need -9.9K more) | 🔴 | 2 weeks | Remaining |
 | **P1-A4** | **Create riptide-facade composition layer** | 🔴 TODO | 1 week | Week 4 |
 | | - Design facade API | 🔴 | 1 day | |
 | | - Implement composition patterns | 🔴 | 2 days | |
 | | - Update riptide-api to use facade | 🔴 | 1 day | |
 | | - Integration testing | 🔴 | 1 day | |
 
-**Progress: 70% Complete (2.8/4 weeks)**
+**Progress: 75% Complete (3/4 weeks)**
 
 **Achieved Outcomes:**
 - ✅ Circular dependencies mostly resolved (only dev-dep remains)
-- ✅ 22-crate modular architecture (better than planned 4!)
-- ✅ Core size reduced by 34.3% (44K → 28.9K lines)
+- ✅ 23-crate modular architecture (better than planned 4!)
+- ✅ Core size reduced by 55% (44K → 19.9K lines)
 - ✅ Type duplications eliminated
-- ✅ 2 new specialized crates created (spider, fetch) - both compiling
+- ✅ 3 new specialized crates created (spider, fetch, security) - all compiling
 - ✅ Spider strategy types exported and integrated
-- 🔴 Target: <10K lines core (currently 28.9K, need 60% more reduction)
+- ✅ Security middleware extracted with 37 passing tests
+- 🔴 Target: <10K lines core (currently 19.9K, need 50% more reduction)
 
 ---
 
