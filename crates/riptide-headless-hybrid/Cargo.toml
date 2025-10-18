@@ -20,12 +20,16 @@ serde_json = { workspace = true }
 futures = { workspace = true }
 async-trait = { workspace = true }
 
-# Spider chrome for browser automation (exports as chromiumoxide library)
+# Spider chrome for browser automation
 spider_chrome = { workspace = true }
+
+# Spider's chromiumoxide fork (what spider_chrome actually uses internally)
+spider_chromiumoxide_cdp = "0.7"
 
 # EventMesh stealth features
 riptide-stealth = { path = "../riptide-stealth" }
-riptide-core = { path = "../riptide-core" }
+riptide-types = { path = "../riptide-types" }
+riptide-engine = { path = "../riptide-engine" }
 
 # For maintaining compatibility
 uuid = { workspace = true }
@@ -33,3 +37,10 @@ uuid = { workspace = true }
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util", "macros", "rt-multi-thread"] }
 tempfile = { workspace = true }
+
+[features]
+default = ["spider-chrome", "stealth"]
+# Enable spider_chrome high-concurrency features
+spider-chrome = []
+# Enable all stealth features
+stealth = []

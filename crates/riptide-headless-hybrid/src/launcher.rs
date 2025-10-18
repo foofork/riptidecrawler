@@ -2,13 +2,16 @@
 
 use crate::models::PoolConfig;
 use crate::stealth_middleware::apply_stealth;
-use anyhow::{ Context, Result};
-use chromiumoxide::Browser;
+use anyhow::{Context, Result};
 use riptide_stealth::{StealthController, StealthPreset};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
+
+// Import spider's chromiumoxide fork types (what spider_chrome uses internally)
+// The package is spider_chromiumoxide_cdp but it's imported as chromiumoxide_cdp
+use chromiumoxide_cdp::{Browser, LaunchOptions, Page};
 
 /// Configuration for the hybrid headless launcher
 #[derive(Clone, Debug)]
@@ -210,7 +213,7 @@ impl HybridHeadlessLauncher {
             debug!("Creating new browser instance");
 
             // Build launch options
-            let mut launch_options = chromiumoxide::LaunchOptions::default_builder()
+            let mut launch_options = LaunchOptions::default_builder()
                 .headless(true)
                 .build()
                 .context("Failed to build launch options")?;
@@ -264,7 +267,7 @@ impl Drop for HybridHeadlessLauncher {
 /// A browser session with automatic cleanup
 pub struct LaunchSession<'a> {
     pub session_id: String,
-    pub page: chromiumoxide::Page,
+    pub page: Page,
     start_time: Instant,
     launcher: &'a HybridHeadlessLauncher,
 }

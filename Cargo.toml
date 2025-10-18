@@ -11,7 +11,7 @@ members = [
   "crates/riptide-api",
   "crates/riptide-cli",
   "crates/riptide-headless",
-  # "crates/riptide-headless-hybrid",  # Phase 1 Week 2 - Temporarily excluded for baseline (needs fixes)
+  "crates/riptide-headless-hybrid",  # P1-C1: Spider-chrome integration (re-enabled with fixes)
   "crates/riptide-workers",
   "crates/riptide-intelligence",
   "crates/riptide-persistence",
@@ -23,8 +23,7 @@ members = [
   "wasm/riptide-extractor-wasm", "crates/riptide-test-utils", "crates/riptide-config", "crates/riptide-engine", "crates/riptide-cache",
 ]
 # xtask excluded to avoid Docker build failures (dev tool only)
-# riptide-headless-hybrid excluded temporarily for baseline (API incompatibilities with chromiumoxide)
-exclude = ["xtask", "crates/riptide-headless-hybrid"]
+exclude = ["xtask"]
 resolver = "2"
 
 [workspace.package]

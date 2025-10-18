@@ -1,9 +1,12 @@
 //! Stealth middleware to apply EventMesh stealth features to spider-chrome pages
 
 use anyhow::{Context, Result};
-use chromiumoxide::Page;
 use riptide_stealth::{FingerprintGenerator, StealthController};
 use tracing::debug;
+
+// Import spider's chromiumoxide fork Page type (what spider_chrome uses internally)
+// The package is spider_chromiumoxide_cdp but it's imported as chromiumoxide_cdp
+use chromiumoxide_cdp::Page;
 
 /// Stealth middleware for applying anti-detection measures
 pub struct StealthMiddleware;
