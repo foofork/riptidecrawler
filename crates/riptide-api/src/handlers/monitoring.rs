@@ -144,7 +144,7 @@ pub async fn get_active_alerts(
 #[derive(Debug, Serialize)]
 pub struct CurrentMetricsResponse {
     /// Current performance metrics
-    pub metrics: riptide_core::monitoring::PerformanceMetrics,
+    pub metrics: riptide_monitoring::PerformanceMetrics,
 }
 
 /// GET /monitoring/metrics/current - Get current performance metrics
