@@ -35,5 +35,6 @@ tokio = { workspace = true, features = ["test-util", "macros"] }
 
 [features]
 default = []
+headless = []
 # WIP: Full headless browser automation (scaffolding not yet fully wired)
-# headless = ["riptide-headless-hybrid"]  # Temporarily disabled for baseline
+# headless-hybrid = ["riptide-headless-hybrid"]  # Temporarily disabled for baseline
