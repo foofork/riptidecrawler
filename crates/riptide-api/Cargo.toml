@@ -56,7 +56,7 @@ riptide-headless = { path = "../riptide-headless" }
 riptide-search = { path = "../riptide-search" }
 riptide-performance = { path = "../riptide-performance" }
 riptide-persistence = { path = "../riptide-persistence" }
-chromiumoxide = "0.7"  # Must match version used by riptide-engine/pool
+chromiumoxide = { workspace = true }  # Must match riptide-engine version for BrowserPool API compatibility
 spider_chrome = { workspace = true }
 wasmtime = { workspace = true }
 axum-prometheus = "0.7"

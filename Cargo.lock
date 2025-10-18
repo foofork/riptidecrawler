@@ -6743,6 +6743,7 @@ dependencies = [
  "lol_html",
  "regex",
  "riptide-core",
+ "riptide-spider",
  "riptide-types",
  "schemars",
  "scraper 0.20.0",

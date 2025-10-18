@@ -12,8 +12,8 @@ use std::sync::Arc;
 // Re-export traits and types
 pub use riptide_types::ExtractionResult as RiptideExtractionResult;
 
-// Import spider types from local spider module (commented out - module doesn't exist yet)
-// pub use crate::spider::{CrawlRequest, CrawlResult, Priority};
+// Import spider types from riptide-spider crate
+pub use riptide_spider::{CrawlRequest, CrawlResult, Priority};
 
 // Re-export ExtractionQuality and ExtractedContent for local use
 pub use riptide_types::{ExtractedContent, ExtractionQuality};
@@ -54,37 +54,36 @@ pub trait ExtractionStrategy: Send + Sync {
     }
 }
 
-// Spider strategy temporarily disabled until CrawlRequest and CrawlResult types are properly exported from riptide-spider
-// /// Trait for spider/crawling strategy implementations
-// #[async_trait]
-// pub trait SpiderStrategy: Send + Sync {
-//     /// Get strategy name
-//     fn name(&self) -> &str;
-//
-//     /// Initialize spider strategy
-//     async fn initialize(&mut self) -> Result<()>;
-//
-//     /// Get next URL to crawl
-//     async fn next_url(&mut self) -> Option<CrawlRequest>;
-//
-//     /// Add discovered URLs to the queue
-//     async fn add_urls(&mut self, requests: Vec<CrawlRequest>) -> Result<()>;
-//
-//     /// Process a batch of crawl requests (prioritize, filter, etc.)
-//     async fn process_requests(&self, requests: Vec<CrawlRequest>) -> Result<Vec<CrawlRequest>> {
-//         // Default implementation: return requests as-is
-//         Ok(requests)
-//     }
-//
-//     /// Mark URL as completed
-//     async fn mark_completed(&mut self, url: &str, result: CrawlResult) -> Result<()>;
-//
-//     /// Check if crawling is complete
-//     fn is_complete(&self) -> bool;
-//
-//     /// Get crawl statistics
-//     fn stats(&self) -> CrawlStats;
-// }
+/// Trait for spider/crawling strategy implementations
+#[async_trait]
+pub trait SpiderStrategy: Send + Sync {
+    /// Get strategy name
+    fn name(&self) -> &str;
+
+    /// Initialize spider strategy
+    async fn initialize(&mut self) -> Result<()>;
+
+    /// Get next URL to crawl
+    async fn next_url(&mut self) -> Option<CrawlRequest>;
+
+    /// Add discovered URLs to the queue
+    async fn add_urls(&mut self, requests: Vec<CrawlRequest>) -> Result<()>;
+
+    /// Process a batch of crawl requests (prioritize, filter, etc.)
+    async fn process_requests(&self, requests: Vec<CrawlRequest>) -> Result<Vec<CrawlRequest>> {
+        // Default implementation: return requests as-is
+        Ok(requests)
+    }
+
+    /// Mark URL as completed
+    async fn mark_completed(&mut self, url: &str, result: CrawlResult) -> Result<()>;
+
+    /// Check if crawling is complete
+    fn is_complete(&self) -> bool;
+
+    /// Get crawl statistics
+    fn stats(&self) -> CrawlStats;
+}
 
 // ============================================================================
 // SUPPORTING TYPES
@@ -173,7 +172,7 @@ pub struct CrawlStats {
 /// Strategy registry for managing all strategy implementations
 pub struct StrategyRegistry {
     extraction_strategies: HashMap<String, Arc<dyn ExtractionStrategy>>,
-    // spider_strategies: HashMap<String, Arc<dyn SpiderStrategy>>, // Temporarily disabled
+    spider_strategies: HashMap<String, Arc<dyn SpiderStrategy>>,
 }
 
 impl StrategyRegistry {
@@ -181,7 +180,7 @@ impl StrategyRegistry {
     pub fn new() -> Self {
         Self {
             extraction_strategies: HashMap::new(),
-            // spider_strategies: HashMap::new(), // Temporarily disabled
+            spider_strategies: HashMap::new(),
         }
     }
 
@@ -191,21 +190,21 @@ impl StrategyRegistry {
         self.extraction_strategies.insert(name, strategy);
     }
 
-    // /// Register a spider strategy - temporarily disabled
-    // pub fn register_spider(&mut self, strategy: Arc<dyn SpiderStrategy>) {
-    //     let name = strategy.name().to_string();
-    //     self.spider_strategies.insert(name, strategy);
-    // }
+    /// Register a spider strategy
+    pub fn register_spider(&mut self, strategy: Arc<dyn SpiderStrategy>) {
+        let name = strategy.name().to_string();
+        self.spider_strategies.insert(name, strategy);
+    }
 
     /// Get extraction strategy by name
     pub fn get_extraction(&self, name: &str) -> Option<&Arc<dyn ExtractionStrategy>> {
         self.extraction_strategies.get(name)
     }
 
-    // /// Get spider strategy by name - temporarily disabled
-    // pub fn get_spider(&self, name: &str) -> Option<&Arc<dyn SpiderStrategy>> {
-    //     self.spider_strategies.get(name)
-    // }
+    /// Get spider strategy by name
+    pub fn get_spider(&self, name: &str) -> Option<&Arc<dyn SpiderStrategy>> {
+        self.spider_strategies.get(name)
+    }
 
     /// List all available extraction strategies
     pub fn list_extraction_strategies(&self) -> Vec<(String, StrategyCapabilities)> {
@@ -220,13 +219,13 @@ impl StrategyRegistry {
         vec![] // Empty - chunking moved to riptide-extraction crate
     }
 
-    // /// List all available spider strategies - temporarily disabled
-    // pub fn list_spider_strategies(&self) -> Vec<String> {
-    //     self.spider_strategies
-    //         .keys()
-    //         .map(|s| s.to_string())
-    //         .collect()
-    // }
+    /// List all available spider strategies
+    pub fn list_spider_strategies(&self) -> Vec<String> {
+        self.spider_strategies
+            .keys()
+            .map(|s| s.to_string())
+            .collect()
+    }
 
     /// Find best extraction strategy for given content
     pub fn find_best_extraction(&self, html: &str) -> Option<&Arc<dyn ExtractionStrategy>> {

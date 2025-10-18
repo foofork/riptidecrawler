@@ -241,7 +241,7 @@ impl EnhancedStrategyManager {
                 .into_iter()
                 .map(|name| name.to_string())
                 .collect(),
-            spider: vec![], // Temporarily disabled until spider types properly exported
+            spider: self.registry.read().await.list_spider_strategies(),
         }
     }
 

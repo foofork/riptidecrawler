@@ -11,6 +11,8 @@ categories = ["text-processing", "web-programming"]
 [dependencies]
 # Shared types to break circular dependency
 riptide-types = { path = "../riptide-types" }
+# Spider types for strategy traits
+riptide-spider = { path = "../riptide-spider" }
 # Core dependencies removed to avoid circular dependency
 # riptide-core = { path = "../riptide-core" }
 anyhow.workspace = true
