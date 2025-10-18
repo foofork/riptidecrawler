@@ -157,9 +157,9 @@ pub mod json {
 
 /// Create temporary test files
 pub mod temp_files {
+    use anyhow::Result;
     use std::io::Write;
     use tempfile::NamedTempFile;
-    use anyhow::Result;
 
     /// Create a temporary file with HTML content
     pub fn html_file(content: &str) -> Result<NamedTempFile> {

@@ -92,8 +92,8 @@ pub mod factory {
 
 // Re-export main public API
 pub use cdp_pool::{
-    CdpCommand, CdpConnectionPool, CdpPoolConfig, ConnectionHealth, ConnectionStats,
-    PooledConnection,
+    BatchExecutionResult, BatchResult, CdpCommand, CdpConnectionPool, CdpPoolConfig,
+    ConnectionHealth, ConnectionStats, PooledConnection,
 };
 pub use launcher::{HeadlessLauncher, LaunchSession, LauncherConfig, LauncherStats};
 pub use pool::{BrowserCheckout, BrowserPool, BrowserPoolConfig, PoolEvent, PoolStats};

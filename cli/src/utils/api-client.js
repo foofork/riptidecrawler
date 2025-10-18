@@ -40,10 +40,31 @@ export class RipTideClient {
   }
 
   /**
-   * Health check
+   * Health check with tiered support (QW-2)
+   * @param {Object} options - Health check options
+   * @param {boolean} options.minimal - Fast liveness check (2s)
+   * @param {boolean} options.detailed - Full detailed diagnostics (15s)
+   * @param {boolean} options.critical - On-error verification (500ms)
+   * @param {AbortSignal} options.signal - Abort signal for timeout control
+   * @returns {Promise<Object>} Health check results
    */
-  async health() {
-    return this.client.get('/healthz');
+  async health(options = {}) {
+    const params = {};
+
+    if (options.minimal) {
+      params.mode = 'fast';
+    } else if (options.detailed) {
+      params.mode = 'full';
+    } else if (options.critical) {
+      params.mode = 'on-error';
+    }
+
+    const config = {
+      params,
+      ...(options.signal && { signal: options.signal })
+    };
+
+    return this.client.get('/healthz', config);
   }
 
   /**
