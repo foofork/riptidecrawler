@@ -36,13 +36,15 @@ pub mod pool;
 
 // Re-export main public API
 pub use config::{ExtractorConfig, PerformanceMetrics, WasmResourceTracker};
-pub use events_integration::{EventAwareInstancePool, PoolEventEmitter, PoolMetrics};
+pub use events_integration::{EventAwareInstancePool, PoolEventEmitter};
 pub use health_monitor::{
     HealthLevel, HealthTrend, MemoryHealthStats, MemoryPressureLevel, PoolHealthMonitor,
     PoolHealthStatus,
 };
 pub use memory_manager::{
-    MemoryEvent, MemoryManagerConfig, MemoryStats, TrackedWasmInstance, WasmMemoryManager,
+    MemoryEvent, MemoryManager, MemoryManagerConfig, MemoryStats, TrackedWasmInstance,
 };
+// Re-export PoolMetrics from riptide-events
 pub use models::{CircuitBreakerState, PooledInstance};
 pub use pool::{create_event_aware_pool, get_instances_per_worker, AdvancedInstancePool};
+pub use riptide_events::types::PoolMetrics;

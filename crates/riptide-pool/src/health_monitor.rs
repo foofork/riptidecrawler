@@ -6,8 +6,8 @@ use tokio::time::{interval, timeout};
 use tracing::{debug, error, info, warn};
 
 use crate::config::{ExtractorConfig, PerformanceMetrics};
-use riptide_events::{EventBus, HealthEvent, HealthStatus, MetricType, MetricsEvent};
 use crate::AdvancedInstancePool;
+use riptide_events::{EventBus, HealthEvent, HealthStatus, MetricType, MetricsEvent};
 use std::collections::HashMap;
 
 /// Pool health status

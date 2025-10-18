@@ -4,10 +4,10 @@
 //! capabilities to the existing AdvancedInstancePool without requiring
 //! significant changes to the existing codebase.
 
+use crate::pool::AdvancedInstancePool;
 use anyhow::Result;
 use async_trait::async_trait;
 use riptide_events::*;
-use riptide_pool::AdvancedInstancePool;
 use riptide_types::{ExtractedDoc, ExtractionMode};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
