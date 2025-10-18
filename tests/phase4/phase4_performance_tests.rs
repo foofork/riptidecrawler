@@ -10,7 +10,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
-use chromiumoxide_cdp::BrowserConfig;
+use spider_chrome::BrowserConfig;
 use riptide_headless::pool::{BrowserPool, BrowserPoolConfig};
 use riptide_extraction::wasm_extraction::{CmExtractor, ExtractorConfig};
 use riptide_intelligence::timeout::{TimeoutWrapper, TimeoutConfig};

@@ -7,11 +7,8 @@ use serde::{Deserialize, Serialize};
 /// Browser engine type identifier
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EngineType {
-    /// Standard chromiumoxide engine
+    /// Chromiumoxide engine (powered by spider_chrome)
     Chromiumoxide,
-    /// Spider-chrome engine with enhanced stealth
-    #[cfg(feature = "spider")]
-    SpiderChrome,
 }
 
 /// Unified browser engine interface

@@ -1,29 +1,22 @@
 //! Spider-chrome engine implementation
 
-#[cfg(feature = "spider")]
 use async_trait::async_trait;
-#[cfg(feature = "spider")]
-// Spider exports chromiumoxide types - use spider_chromiumoxide_cdp for consistency
-use chromiumoxide_cdp::{Browser as SpiderBrowser, Page as SpiderPage};
-#[cfg(feature = "spider")]
+// Spider exports chromiumoxide types via spider_chrome
+use spider_chrome::{Browser as SpiderBrowser, Page as SpiderPage};
 use std::sync::Arc;
-#[cfg(feature = "spider")]
 use tracing::{debug, warn};
 
-#[cfg(feature = "spider")]
 use crate::{
     params::{NavigateParams, PdfParams, ScreenshotParams},
     traits::{BrowserEngine, EngineType, PageHandle},
     AbstractionError, AbstractionResult,
 };
 
-#[cfg(feature = "spider")]
 /// Spider-chrome engine wrapper
 pub struct SpiderChromeEngine {
     browser: Arc<SpiderBrowser>,
 }
 
-#[cfg(feature = "spider")]
 impl SpiderChromeEngine {
     pub fn new(browser: SpiderBrowser) -> Self {
         Self {
@@ -32,7 +25,6 @@ impl SpiderChromeEngine {
     }
 }
 
-#[cfg(feature = "spider")]
 #[async_trait]
 impl BrowserEngine for SpiderChromeEngine {
     async fn new_page(&self) -> AbstractionResult<Box<dyn PageHandle>> {
@@ -71,13 +63,11 @@ impl BrowserEngine for SpiderChromeEngine {
     }
 }
 
-#[cfg(feature = "spider")]
 /// Spider-chrome page wrapper
 pub struct SpiderChromePage {
     page: Arc<SpiderPage>,
 }
 
-#[cfg(feature = "spider")]
 impl SpiderChromePage {
     pub fn new(page: SpiderPage) -> Self {
         Self {
@@ -86,7 +76,6 @@ impl SpiderChromePage {
     }
 }
 
-#[cfg(feature = "spider")]
 #[async_trait]
 impl PageHandle for SpiderChromePage {
     async fn goto(&self, url: &str, _params: NavigateParams) -> AbstractionResult<()> {

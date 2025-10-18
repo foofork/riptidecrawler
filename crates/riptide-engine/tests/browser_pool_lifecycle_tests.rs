@@ -12,7 +12,7 @@
 //! - Error handling
 
 use anyhow::Result;
-use chromiumoxide_cdp::BrowserConfig;
+use chromiumoxide::BrowserConfig;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
@@ -26,7 +26,7 @@ async fn test_pool_initialization_default() -> Result<()> {
     let config = BrowserPoolConfig::default();
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config.clone(), browser_config).await?;
     let stats = pool.stats().await;
@@ -52,7 +52,7 @@ async fn test_pool_initialization_custom() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config.clone(), browser_config).await?;
     let stats = pool.stats().await;
@@ -74,7 +74,7 @@ async fn test_pool_initialization_zero_size() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
     let stats = pool.stats().await;
@@ -95,7 +95,7 @@ async fn test_browser_checkout_single() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -125,7 +125,7 @@ async fn test_browser_checkout_multiple() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -157,7 +157,7 @@ async fn test_checkout_empty_pool_creates_browser() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
     let stats = pool.stats().await;
@@ -183,7 +183,7 @@ async fn test_concurrent_checkout_10() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = Arc::new(BrowserPool::new(config, browser_config).await?);
 
@@ -221,7 +221,7 @@ async fn test_concurrent_checkout_50() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = Arc::new(BrowserPool::new(config, browser_config).await?);
 
@@ -258,7 +258,7 @@ async fn test_browser_checkin_cleanup_timeout() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
     let checkout = pool.checkout().await?;
@@ -283,7 +283,7 @@ async fn test_browser_checkin_custom_timeout() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
     let checkout = pool.checkout().await?;
@@ -310,7 +310,7 @@ async fn test_pool_stats_accuracy() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -349,7 +349,7 @@ async fn test_pool_respects_max_size() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = Arc::new(BrowserPool::new(config, browser_config).await?);
 
@@ -377,7 +377,7 @@ async fn test_pool_respects_max_size() -> Result<()> {
 //         initial_pool_size: 1,
 //         ..Default::default()
 //     };
-//     let browser_config = BrowserConfig::builder().build().map_err(|e| anyhow::anyhow!(e))?;
+//     let browser_config = BrowserConfig::builder().build().map_err(|e| anyhow::anyhow!("{}", e))?;
 
 //     let pool = BrowserPool::new(config, browser_config).await?;
 //     let mut events = pool.subscribe_events();
@@ -393,7 +393,6 @@ async fn test_pool_respects_max_size() -> Result<()> {
 //     pool.shutdown().await?;
 //     Ok(())
 // }
-
 /// Test 14: Pool shutdown gracefully
 #[tokio::test]
 async fn test_pool_shutdown_graceful() -> Result<()> {
@@ -403,7 +402,7 @@ async fn test_pool_shutdown_graceful() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
     let stats_before = pool.stats().await;
@@ -427,7 +426,7 @@ async fn test_pool_shutdown_with_active_browsers() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -452,7 +451,7 @@ async fn test_browser_id_uniqueness() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -487,7 +486,7 @@ async fn test_tiered_health_checks_fast() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -513,7 +512,7 @@ async fn test_tiered_health_checks_full() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -537,7 +536,7 @@ async fn test_tiered_health_checks_disabled() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -563,7 +562,7 @@ async fn test_memory_soft_limit() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -590,7 +589,7 @@ async fn test_memory_hard_limit() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -613,7 +612,7 @@ async fn test_memory_limits_disabled() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -636,7 +635,7 @@ async fn test_v8_heap_stats_enabled() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -657,7 +656,7 @@ async fn test_v8_heap_stats_disabled() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -679,7 +678,7 @@ async fn test_browser_recovery_enabled() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -700,7 +699,7 @@ async fn test_browser_recovery_disabled() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -721,7 +720,7 @@ async fn test_max_retries_config() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -742,7 +741,7 @@ async fn test_idle_timeout_config() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -763,7 +762,7 @@ async fn test_max_lifetime_config() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -784,7 +783,7 @@ async fn test_health_check_interval_config() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -805,7 +804,7 @@ async fn test_memory_threshold_config() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -827,7 +826,7 @@ async fn test_custom_profile_base_dir() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -848,7 +847,7 @@ async fn test_default_profile_base_dir() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -869,7 +868,7 @@ async fn test_cleanup_timeout_config() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -890,7 +889,7 @@ async fn test_pool_min_size_enforcement() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -911,7 +910,7 @@ async fn test_concurrent_mixed_operations() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = Arc::new(BrowserPool::new(config, browser_config).await?);
 
@@ -950,7 +949,7 @@ async fn test_cleanup_timeout_behavior() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = Arc::new(BrowserPool::new(config, browser_config).await?);
 
@@ -980,7 +979,7 @@ async fn test_error_check_delay_config() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -1005,7 +1004,7 @@ async fn test_multiple_pools_independence() -> Result<()> {
 
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool1 = BrowserPool::new(config1, browser_config.clone()).await?;
     let pool2 = BrowserPool::new(config2, browser_config).await?;
@@ -1030,7 +1029,7 @@ async fn test_pool_stats_after_shutdown() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
     pool.shutdown().await?;
@@ -1052,7 +1051,7 @@ async fn test_rapid_checkout_checkin_cycles() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -1079,7 +1078,7 @@ async fn test_pool_resource_cleanup() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
     let stats_before = pool.stats().await;
@@ -1102,7 +1101,7 @@ async fn test_browser_checkout_drop() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -1132,7 +1131,7 @@ async fn test_sequential_vs_concurrent_performance() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = Arc::new(BrowserPool::new(config, browser_config).await?);
 
@@ -1209,7 +1208,7 @@ async fn test_browser_new_page() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
     let checkout = pool.checkout().await?;
@@ -1233,7 +1232,7 @@ async fn test_browser_new_page() -> Result<()> {
 //         initial_pool_size: 1,
 //         ..Default::default()
 //     };
-//     let browser_config = BrowserConfig::builder().build().map_err(|e| anyhow::anyhow!(e))?;
+//     let browser_config = BrowserConfig::builder().build().map_err(|e| anyhow::anyhow!("{}", e))?;
 
 //     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -1251,7 +1250,6 @@ async fn test_browser_new_page() -> Result<()> {
 //     pool.shutdown().await?;
 //     Ok(())
 // }
-
 /// Test 49: Zero-sized pool edge case
 #[tokio::test]
 async fn test_zero_sized_pool_checkout() -> Result<()> {
@@ -1263,7 +1261,7 @@ async fn test_zero_sized_pool_checkout() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -1291,7 +1289,7 @@ async fn test_large_pool_initialization() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let start = std::time::Instant::now();
     let pool = BrowserPool::new(config, browser_config).await?;
@@ -1322,7 +1320,7 @@ async fn test_error_pool_exhaustion_timeout() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = Arc::new(BrowserPool::new(config, browser_config).await?);
 
@@ -1351,7 +1349,7 @@ async fn test_error_invalid_pool_config() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     // Pool creation should either adjust config or fail gracefully
     let result = BrowserPool::new(config, browser_config).await;
@@ -1370,7 +1368,7 @@ async fn test_error_multiple_shutdown_calls() -> Result<()> {
     let config = BrowserPoolConfig::default();
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -1388,7 +1386,7 @@ async fn test_error_checkout_after_shutdown() -> Result<()> {
     let config = BrowserPoolConfig::default();
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
     pool.shutdown().await?;
@@ -1410,7 +1408,7 @@ async fn test_error_extreme_concurrent_contention() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = Arc::new(BrowserPool::new(config, browser_config).await?);
 
@@ -1449,7 +1447,7 @@ async fn test_error_very_short_timeouts() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     // Should not panic with very short timeouts
     let pool = BrowserPool::new(config, browser_config).await?;
@@ -1467,7 +1465,7 @@ async fn test_error_checkin_without_checkout() -> Result<()> {
     let config = BrowserPoolConfig::default();
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -1487,7 +1485,7 @@ async fn test_error_stats_during_rapid_operations() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = Arc::new(BrowserPool::new(config, browser_config).await?);
 
@@ -1532,7 +1530,7 @@ async fn test_error_all_browsers_unhealthy() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let pool = BrowserPool::new(config, browser_config).await?;
 
@@ -1561,7 +1559,7 @@ async fn test_error_memory_limit_zero() -> Result<()> {
     };
     let browser_config = BrowserConfig::builder()
         .build()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     // Should handle zero memory limit gracefully
     let result = BrowserPool::new(config, browser_config).await;

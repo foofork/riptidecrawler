@@ -12,7 +12,7 @@ use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
 
 #[cfg(feature = "headless")]
-use chromiumoxide_cdp::{Browser as ChromiumBrowser, Page as ChromiumPage};
+use spider_chrome::{Browser as ChromiumBrowser, Page as ChromiumPage};
 
 /// Fallback metrics for monitoring spider-chrome adoption
 #[derive(Debug, Clone, Default)]

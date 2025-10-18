@@ -3,9 +3,8 @@
 
 use crate::pool::{BrowserCheckout, BrowserPool, BrowserPoolConfig, PoolEvent};
 use anyhow::{anyhow, Result};
-use chromiumoxide_cdp::{
-    cdp::browser_protocol::emulation::SetDeviceMetricsOverrideParams, BrowserConfig, Page,
-};
+use chromiumoxide::{BrowserConfig, Page};
+use chromiumoxide_cdp::cdp::browser_protocol::emulation::SetDeviceMetricsOverrideParams;
 use riptide_stealth::{StealthController, StealthPreset};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -482,10 +481,18 @@ impl<'a> LaunchSession<'a> {
             "Taking screenshot"
         );
 
+        use chromiumoxide_cdp::cdp::browser_protocol::page::{
+            CaptureScreenshotFormat, CaptureScreenshotParams,
+        };
+
+        let screenshot_params = CaptureScreenshotParams {
+            format: Some(CaptureScreenshotFormat::Png),
+            ..Default::default()
+        };
+
         let screenshot = timeout(
             Duration::from_secs(10),
-            self.page
-                .screenshot(chromiumoxide::page::ScreenshotParams::default()),
+            self.page.screenshot(screenshot_params),
         )
         .await
         .map_err(|_| anyhow!("Screenshot timed out"))?

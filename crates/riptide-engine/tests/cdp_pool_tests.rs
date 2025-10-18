@@ -301,7 +301,7 @@ async fn test_batch_execute_empty() -> Result<()> {
         .build()
         .expect("Failed to build browser config");
 
-    let (mut browser, mut handler) = chromiumoxide::Browser::launch(browser_config)
+    let (browser, mut handler) = chromiumoxide::Browser::launch(browser_config)
         .await
         .expect("Failed to launch browser");
 
@@ -348,7 +348,7 @@ async fn test_batch_config_disabled() -> Result<()> {
         .build()
         .expect("Failed to build browser config");
 
-    let (mut browser, mut handler) = chromiumoxide::Browser::launch(browser_config)
+    let (browser, mut handler) = chromiumoxide::Browser::launch(browser_config)
         .await
         .expect("Failed to launch browser");
 
@@ -398,7 +398,7 @@ async fn test_batch_execute_with_commands() -> Result<()> {
         .build()
         .expect("Failed to build browser config");
 
-    let (mut browser, mut handler) = chromiumoxide::Browser::launch(browser_config)
+    let (browser, mut handler) = chromiumoxide::Browser::launch(browser_config)
         .await
         .expect("Failed to launch browser");
 

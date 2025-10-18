@@ -9,7 +9,7 @@
 //! - Graceful shutdown
 //! - Failure recovery
 
-use chromiumoxide_cdp::BrowserConfig;
+use spider_chrome::BrowserConfig;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::{sleep, timeout};

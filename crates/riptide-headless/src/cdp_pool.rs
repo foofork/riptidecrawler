@@ -10,7 +10,7 @@
 
 use anyhow::{anyhow, Result};
 use chromiumoxide_cdp::cdp::browser_protocol::target::SessionId;
-use chromiumoxide_cdp::{Browser, Page};
+use spider_chrome::{Browser, Page};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};

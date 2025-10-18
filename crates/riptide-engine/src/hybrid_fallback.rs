@@ -6,7 +6,6 @@
 use anyhow::{Context, Result};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
@@ -30,11 +29,11 @@ pub struct BrowserResponse {
     pub html: String,
     pub screenshot: Option<Vec<u8>>,
     pub pdf: Option<Vec<u8>>,
-    pub engine: BrowserEngine,
+    pub engine: EngineKind,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BrowserEngine {
+pub enum EngineKind {
     SpiderChrome,
     Chromiumoxide,
 }
@@ -210,7 +209,7 @@ impl HybridBrowserFallback {
             html,
             screenshot,
             pdf,
-            engine: BrowserEngine::SpiderChrome,
+            engine: EngineKind::SpiderChrome,
         })
     }
 
@@ -250,7 +249,7 @@ impl HybridBrowserFallback {
             html,
             screenshot: None,
             pdf: None,
-            engine: BrowserEngine::Chromiumoxide,
+            engine: EngineKind::Chromiumoxide,
         })
     }
 

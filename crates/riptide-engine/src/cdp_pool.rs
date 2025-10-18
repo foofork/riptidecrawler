@@ -9,8 +9,8 @@
 //! Target: 30% latency reduction through connection multiplexing
 
 use anyhow::{anyhow, Result};
+use chromiumoxide::{Browser, Page};
 use chromiumoxide_cdp::cdp::browser_protocol::target::SessionId;
-use chromiumoxide_cdp::{Browser, Page};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -700,7 +700,7 @@ mod tests {
             .build()
             .expect("Failed to build browser config");
 
-        let (mut browser, mut handler) = chromiumoxide::Browser::launch(browser_config)
+        let (browser, mut handler) = chromiumoxide::Browser::launch(browser_config)
             .await
             .expect("Failed to launch browser");
 
@@ -734,7 +734,7 @@ mod tests {
             .build()
             .expect("Failed to build browser config");
 
-        let (mut browser, mut handler) = chromiumoxide::Browser::launch(browser_config)
+        let (browser, mut handler) = chromiumoxide::Browser::launch(browser_config)
             .await
             .expect("Failed to launch browser");
 
@@ -800,7 +800,7 @@ mod tests {
             .build()
             .expect("Failed to build browser config");
 
-        let (mut browser, mut handler) = chromiumoxide::Browser::launch(browser_config)
+        let (browser, mut handler) = chromiumoxide::Browser::launch(browser_config)
             .await
             .expect("Failed to launch browser");
 

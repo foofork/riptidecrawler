@@ -13,9 +13,8 @@ tracing = "0.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
-# Browser engines - now using spider_chromiumoxide_cdp for consistency
-spider_chromiumoxide_cdp = { workspace = true }
-spider_chrome = { workspace = true, optional = true }
+# Browser engines - using spider_chrome for all browser operations
+spider_chrome = { workspace = true }
 
 # Internal dependencies
 riptide-types = { path = "../riptide-types" }
@@ -24,8 +23,7 @@ riptide-types = { path = "../riptide-types" }
 tokio-test = "0.4"
 
 [features]
-default = []  # spider_chromiumoxide_cdp is now a required dependency
-spider = ["spider_chrome"]    # Optional spider-chrome integration
+default = []
 
-# NOTE: spider_chromiumoxide_cdp 0.7.4 is compatible with spider_chrome
-# No more version conflicts between chromiumoxide implementations
+# NOTE: Using spider_chrome 2.37.128 for all browser operations
+# This is spider's high-performance CDP implementation
