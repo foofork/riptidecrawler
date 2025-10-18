@@ -24,7 +24,7 @@ async-trait = { workspace = true }
 spider_chrome = { workspace = true }
 
 # Spider's chromiumoxide fork (what spider_chrome actually uses internally)
-spider_chromiumoxide_cdp = "0.7"
+spider_chromiumoxide_cdp = { workspace = true }
 
 # EventMesh stealth features
 riptide-stealth = { path = "../riptide-stealth" }

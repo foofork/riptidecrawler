@@ -18,44 +18,42 @@
 //! - Timeout handling
 
 use anyhow::Result;
-use std::time::Duration;
 
 // Import from riptide-browser-abstraction
 use riptide_browser_abstraction::{
-    BrowserEngine, EngineType, NavigateParams, PdfParams, ScreenshotFormat, ScreenshotParams,
-    WaitUntil,
+    EngineType, NavigateParams, PdfParams, ScreenshotFormat, ScreenshotParams, WaitUntil,
 };
 
-/// Test 1: Spider engine initialization
+/// Test 1: Chromiumoxide engine initialization
 #[tokio::test]
-async fn test_spider_engine_initialization() -> Result<()> {
-    let engine_type = EngineType::Spider;
+async fn test_chromiumoxide_engine_initialization() -> Result<()> {
+    let engine_type = EngineType::Chromiumoxide;
 
-    assert_eq!(format!("{:?}", engine_type), "Spider");
+    assert_eq!(format!("{:?}", engine_type), "Chromiumoxide");
     Ok(())
 }
 
-/// Test 2: Engine type serialization - Spider
+/// Test 2: Engine type serialization - Chromiumoxide
 #[tokio::test]
-async fn test_engine_type_spider_serialization() -> Result<()> {
-    let engine = EngineType::Spider;
+async fn test_engine_type_chromiumoxide_serialization() -> Result<()> {
+    let engine = EngineType::Chromiumoxide;
     let serialized = serde_json::to_string(&engine)?;
 
-    assert!(serialized.contains("Spider") || serialized.contains("spider"));
+    assert!(serialized.contains("Chromiumoxide") || serialized.contains("chromiumoxide"));
     Ok(())
 }
 
-/// Test 3: Navigate params with Spider engine
+/// Test 3: Navigate params with Chromiumoxide engine
 #[tokio::test]
-async fn test_navigate_params_spider() -> Result<()> {
+async fn test_navigate_params_chromiumoxide() -> Result<()> {
     let params = NavigateParams {
-        url: "https://example.com".to_string(),
-        wait_until: Some(WaitUntil::NetworkIdle),
-        timeout: Some(Duration::from_secs(30)),
+        timeout_ms: 30000,
+        wait_until: WaitUntil::NetworkIdle,
+        referer: None,
     };
 
-    assert_eq!(params.url, "https://example.com");
-    assert!(params.wait_until.is_some());
+    assert_eq!(params.timeout_ms, 30000);
+    assert_eq!(format!("{:?}", params.wait_until), "NetworkIdle");
     Ok(())
 }
 
@@ -90,13 +88,13 @@ async fn test_wait_strategy_load() -> Result<()> {
 #[tokio::test]
 async fn test_screenshot_params_png() -> Result<()> {
     let params = ScreenshotParams {
-        format: ScreenshotFormat::PNG,
+        format: ScreenshotFormat::Png,
         quality: None,
         full_page: true,
-        clip: None,
+        viewport_only: false,
     };
 
-    assert_eq!(params.format, ScreenshotFormat::PNG);
+    assert_eq!(format!("{:?}", params.format), "Png");
     assert!(params.full_page);
     Ok(())
 }
@@ -105,28 +103,28 @@ async fn test_screenshot_params_png() -> Result<()> {
 #[tokio::test]
 async fn test_screenshot_params_jpeg() -> Result<()> {
     let params = ScreenshotParams {
-        format: ScreenshotFormat::JPEG,
+        format: ScreenshotFormat::Jpeg,
         quality: Some(85),
         full_page: false,
-        clip: None,
+        viewport_only: true,
     };
 
-    assert_eq!(params.format, ScreenshotFormat::JPEG);
+    assert_eq!(format!("{:?}", params.format), "Jpeg");
     assert_eq!(params.quality, Some(85));
     Ok(())
 }
 
-/// Test 9: Screenshot params - WebP format
+/// Test 9: Screenshot params - viewport only
 #[tokio::test]
-async fn test_screenshot_params_webp() -> Result<()> {
+async fn test_screenshot_params_viewport() -> Result<()> {
     let params = ScreenshotParams {
-        format: ScreenshotFormat::WebP,
+        format: ScreenshotFormat::Png,
         quality: Some(80),
-        full_page: true,
-        clip: None,
+        full_page: false,
+        viewport_only: true,
     };
 
-    assert_eq!(params.format, ScreenshotFormat::WebP);
+    assert!(params.viewport_only);
     Ok(())
 }
 
@@ -135,7 +133,7 @@ async fn test_screenshot_params_webp() -> Result<()> {
 async fn test_pdf_params_default() -> Result<()> {
     let params = PdfParams::default();
 
-    assert_eq!(params.format, "A4");
+    assert_eq!(params.paper_width, Some(8.5));
     assert!(!params.landscape);
     assert!(params.print_background);
     Ok(())
@@ -153,31 +151,29 @@ async fn test_pdf_params_landscape() -> Result<()> {
     Ok(())
 }
 
-/// Test 12: PDF params - custom format
+/// Test 12: PDF params - custom paper size
 #[tokio::test]
-async fn test_pdf_params_custom_format() -> Result<()> {
+async fn test_pdf_params_custom_paper_size() -> Result<()> {
     let params = PdfParams {
-        format: "Letter".to_string(),
+        paper_width: Some(8.5),
+        paper_height: Some(11.0),
         ..Default::default()
     };
 
-    assert_eq!(params.format, "Letter");
+    assert_eq!(params.paper_width, Some(8.5));
+    assert_eq!(params.paper_height, Some(11.0));
     Ok(())
 }
 
-/// Test 13: PDF params - margin configuration
+/// Test 13: PDF params - scale configuration
 #[tokio::test]
-async fn test_pdf_params_margins() -> Result<()> {
+async fn test_pdf_params_scale() -> Result<()> {
     let params = PdfParams {
-        margin_top: Some(1.0),
-        margin_bottom: Some(1.0),
-        margin_left: Some(0.5),
-        margin_right: Some(0.5),
+        scale: 1.5,
         ..Default::default()
     };
 
-    assert_eq!(params.margin_top, Some(1.0));
-    assert_eq!(params.margin_left, Some(0.5));
+    assert_eq!(params.scale, 1.5);
     Ok(())
 }
 
@@ -185,22 +181,21 @@ async fn test_pdf_params_margins() -> Result<()> {
 #[tokio::test]
 async fn test_navigation_timeout() -> Result<()> {
     let params = NavigateParams {
-        url: "https://example.com".to_string(),
-        wait_until: None,
-        timeout: Some(Duration::from_secs(15)),
+        timeout_ms: 15000,
+        wait_until: WaitUntil::Load,
+        referer: None,
     };
 
-    assert_eq!(params.timeout, Some(Duration::from_secs(15)));
+    assert_eq!(params.timeout_ms, 15000);
     Ok(())
 }
 
-/// Test 15: Spider vs Chromiumoxide engine comparison
+/// Test 15: Chromiumoxide engine type check
 #[tokio::test]
-async fn test_engine_comparison() -> Result<()> {
-    let spider = EngineType::Spider;
+async fn test_engine_type_check() -> Result<()> {
     let chromium = EngineType::Chromiumoxide;
 
-    assert_ne!(format!("{:?}", spider), format!("{:?}", chromium));
+    assert_eq!(format!("{:?}", chromium), "Chromiumoxide");
     Ok(())
 }
 
@@ -216,13 +211,9 @@ async fn test_error_type_variants() -> Result<()> {
 /// Test 17: Screenshot format variants
 #[tokio::test]
 async fn test_screenshot_format_variants() -> Result<()> {
-    let formats = vec![
-        ScreenshotFormat::PNG,
-        ScreenshotFormat::JPEG,
-        ScreenshotFormat::WebP,
-    ];
+    let formats = vec![ScreenshotFormat::Png, ScreenshotFormat::Jpeg];
 
-    assert_eq!(formats.len(), 3);
+    assert_eq!(formats.len(), 2);
     Ok(())
 }
 
@@ -242,57 +233,44 @@ async fn test_wait_until_variants() -> Result<()> {
 /// Test 19: Navigation params default
 #[tokio::test]
 async fn test_navigate_params_default() -> Result<()> {
-    let params = NavigateParams {
-        url: "https://example.com".to_string(),
-        wait_until: None,
-        timeout: None,
-    };
+    let params = NavigateParams::default();
 
-    assert_eq!(params.url, "https://example.com");
-    assert!(params.wait_until.is_none());
-    assert!(params.timeout.is_none());
+    assert_eq!(params.timeout_ms, 30000);
+    assert!(params.referer.is_none());
     Ok(())
 }
 
 /// Test 20: Screenshot params default
 #[tokio::test]
 async fn test_screenshot_params_default() -> Result<()> {
-    let params = ScreenshotParams {
-        format: ScreenshotFormat::PNG,
-        quality: None,
-        full_page: false,
-        clip: None,
-    };
+    let params = ScreenshotParams::default();
 
-    assert_eq!(params.format, ScreenshotFormat::PNG);
+    assert_eq!(format!("{:?}", params.format), "Png");
     assert!(!params.full_page);
     Ok(())
 }
 
-/// Test 21: PDF generation - header/footer
+/// Test 21: PDF generation - print background
 #[tokio::test]
-async fn test_pdf_header_footer() -> Result<()> {
+async fn test_pdf_print_background() -> Result<()> {
     let params = PdfParams {
-        display_header_footer: true,
-        header_template: Some("<div>Header</div>".to_string()),
-        footer_template: Some("<div>Footer</div>".to_string()),
+        print_background: true,
         ..Default::default()
     };
 
-    assert!(params.display_header_footer);
-    assert!(params.header_template.is_some());
+    assert!(params.print_background);
     Ok(())
 }
 
-/// Test 22: PDF generation - page ranges
+/// Test 22: PDF generation - custom scale
 #[tokio::test]
-async fn test_pdf_page_ranges() -> Result<()> {
+async fn test_pdf_custom_scale() -> Result<()> {
     let params = PdfParams {
-        page_ranges: Some("1-3,5".to_string()),
+        scale: 0.8,
         ..Default::default()
     };
 
-    assert_eq!(params.page_ranges, Some("1-3,5".to_string()));
+    assert_eq!(params.scale, 0.8);
     Ok(())
 }
 
@@ -543,7 +521,7 @@ async fn test_geolocation_config() -> Result<()> {
 async fn test_device_emulation_mobile() -> Result<()> {
     let device_name = "iPhone 12";
     let viewport_width = 390;
-    let viewport_height = 844;
+    let _viewport_height = 844;
 
     assert_eq!(device_name, "iPhone 12");
     assert_eq!(viewport_width, 390);
@@ -554,7 +532,7 @@ async fn test_device_emulation_mobile() -> Result<()> {
 #[tokio::test]
 async fn test_network_throttling() -> Result<()> {
     let download_speed_kbps = 1024; // 1 Mbps
-    let upload_speed_kbps = 512; // 512 Kbps
+    let _upload_speed_kbps = 512; // 512 Kbps
     let latency_ms = 50;
 
     assert!(download_speed_kbps > 0);

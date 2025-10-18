@@ -560,7 +560,6 @@ impl PerHostFetchEngine {
     }
 
     /// Extract hostname from URL (exposed for testing)
-    #[cfg(test)]
     pub fn extract_host_for_test(url: &str) -> Result<String> {
         Self::extract_host(url)
     }

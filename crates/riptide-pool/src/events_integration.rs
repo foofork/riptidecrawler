@@ -478,8 +478,8 @@ impl EventAwarePoolFactory {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::events::handlers::LoggingEventHandler;
-    use crate::events::EventBus;
+    use riptide_events::handlers::LoggingEventHandler;
+    use riptide_events::EventBus;
     use std::sync::Arc;
 
     #[tokio::test]

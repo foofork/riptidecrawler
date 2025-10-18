@@ -6743,6 +6743,7 @@ dependencies = [
  "riptide-extraction",
  "riptide-fetch",
  "riptide-headless",
+ "riptide-headless-hybrid",
  "riptide-monitoring",
  "riptide-pdf",
  "riptide-stealth",
@@ -6815,6 +6816,26 @@ dependencies = [
  "tower-http 0.6.6",
  "tracing",
  "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
+name = "riptide-headless-hybrid"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "futures",
+ "riptide-engine",
+ "riptide-stealth",
+ "riptide-types",
+ "serde",
+ "serde_json",
+ "spider_chrome",
+ "spider_chromiumoxide_cdp",
+ "tempfile",
+ "tokio",
+ "tracing",
  "uuid",
 ]
 
