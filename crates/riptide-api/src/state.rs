@@ -669,7 +669,7 @@ impl AppState {
         tracing::info!("Registered logging event handler");
 
         // Metrics handler for automatic metrics collection
-        let metrics_collector = riptide_core::monitoring::MetricsCollector::new();
+        let metrics_collector = riptide_monitoring::MetricsCollector::new();
         let metrics_handler = Arc::new(MetricsEventHandler::new(Arc::new(metrics_collector)));
         event_bus
             .register_handler(metrics_handler)
@@ -1241,7 +1241,7 @@ impl Default for MonitoringSystem {
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct PerformanceReport {
     /// Current performance metrics
-    pub metrics: riptide_core::monitoring::PerformanceMetrics,
+    pub metrics: riptide_monitoring::PerformanceMetrics,
 
     /// Overall health score (0-100)
     pub health_score: f32,
