@@ -231,17 +231,6 @@ where
     builder_fn(config_values)
 }
 
-/// Load specific environment variables into a builder
-pub fn load_vars_into_builder<T>(builder: &mut T, vars: &[(&str, &str)]) -> Result<(), EnvError>
-where
-    T: crate::builder::ConfigBuilder<T>,
-{
-    for (field, env_var) in vars {
-        builder.load_from_env_var(field, env_var);
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

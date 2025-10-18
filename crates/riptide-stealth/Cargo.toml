@@ -11,6 +11,7 @@ categories = ["web-programming", "development-tools"]
 [dependencies]
 # Core dependencies
 serde = { workspace = true }
+serde_json = { workspace = true }
 rand = { workspace = true, features = ["small_rng"] }
 tracing = { workspace = true }
 dashmap = { workspace = true }

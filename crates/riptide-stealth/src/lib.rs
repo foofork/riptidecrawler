@@ -59,6 +59,11 @@ pub mod rate_limiter;
 // Detection evasion and CAPTCHA detection
 pub mod detection;
 
+// P1-B6: Enhanced stealth integration (Phase 1 Week 6)
+pub mod cdp_integration;
+pub mod fingerprint_enhanced;
+pub mod stealth_level;
+
 // Re-export main types for easy access
 pub use config::{
     load_user_agents_from_file, DomainTiming, HeaderRandomization, LocaleRandomization,
@@ -91,6 +96,16 @@ pub use rate_limiter::{DomainStats, RateLimiter};
 // Re-export detection evasion features
 pub use detection::{
     CaptchaDetection, CaptchaDetector, CaptchaType, DetectionEvasion, DetectionScore, RiskLevel,
+};
+
+// Re-export P1-B6 enhanced features
+pub use cdp_integration::{BatchHeadersResult, CdpCommand, CdpStealthIntegrator};
+pub use fingerprint_enhanced::{
+    CdpStealthParams, EnhancedFingerprintGenerator, FingerprintConfig as EnhancedFingerprintConfig,
+};
+pub use stealth_level::{
+    AudioLevelConfig, CanvasLevelConfig, HardwareLevelConfig, StealthLevel, StealthLevelConfig,
+    WebGlLevelConfig, WebRtcLevelConfig,
 };
 
 // Tests module

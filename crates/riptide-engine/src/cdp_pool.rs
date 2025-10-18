@@ -779,7 +779,7 @@ mod tests {
         // Verify results structure
         for batch_result in &result.results {
             assert!(!batch_result.command_name.is_empty());
-            assert!(batch_result.execution_time.as_millis() >= 0);
+            // Execution time is always non-negative (u128), no need to check
         }
 
         // Cleanup
@@ -788,8 +788,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_batch_config_disabled() {
-        let mut config = CdpPoolConfig::default();
-        config.enable_batching = false;
+        let config = CdpPoolConfig {
+            enable_batching: false,
+            ..Default::default()
+        };
 
         let pool = CdpConnectionPool::new(config);
 
