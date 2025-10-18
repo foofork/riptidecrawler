@@ -13,10 +13,6 @@ use riptide_core::{
     component::PerformanceMetrics,
     events::{EventBus, EventBusConfig, EventSeverity},
     fetch::{http_client, FetchEngine},
-    monitoring::{
-        AlertCondition, AlertManager, AlertRule, AlertSeverity, HealthCalculator, MetricsCollector,
-        MonitoringConfig,
-    },
     pdf::PdfMetricsCollector,
     reliability::{ReliabilityConfig, ReliableExtractor},
     spider::{Spider, SpiderConfig},
@@ -24,6 +20,10 @@ use riptide_core::{
 };
 use riptide_extraction::wasm_extraction::WasmExtractor;
 use riptide_headless::launcher::HeadlessLauncher;
+use riptide_monitoring::{
+    AlertCondition, AlertManager, AlertRule, AlertSeverity, HealthCalculator, MetricsCollector,
+    MonitoringConfig,
+};
 use riptide_performance::PerformanceManager;
 use riptide_workers::{WorkerService, WorkerServiceConfig};
 use std::sync::Arc;
