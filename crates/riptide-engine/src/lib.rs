@@ -72,19 +72,19 @@ pub use riptide_browser_abstraction::{
     BrowserEngine as AbstractBrowserEngine, EngineType, NavigateParams, PageHandle,
 };
 
-// Factory functions for wrapping chromiumoxide instances
+// Factory functions for wrapping spider_chromiumoxide_cdp instances
 #[cfg(feature = "headless")]
 pub mod factory {
-    use chromiumoxide::{Browser, Page};
     use riptide_browser_abstraction::chromiumoxide_impl::{ChromiumoxideEngine, ChromiumoxidePage};
     use riptide_browser_abstraction::{BrowserEngine, PageHandle};
+    use spider_chromiumoxide_cdp::{Browser, Page};
 
-    /// Wrap a chromiumoxide Browser in the BrowserEngine trait
+    /// Wrap a spider_chromiumoxide_cdp Browser in the BrowserEngine trait
     pub fn wrap_browser(browser: Browser) -> Box<dyn BrowserEngine> {
         Box::new(ChromiumoxideEngine::new(browser))
     }
 
-    /// Wrap a chromiumoxide Page in the PageHandle trait
+    /// Wrap a spider_chromiumoxide_cdp Page in the PageHandle trait
     pub fn wrap_page(page: Page) -> Box<dyn PageHandle> {
         Box::new(ChromiumoxidePage::new(page))
     }

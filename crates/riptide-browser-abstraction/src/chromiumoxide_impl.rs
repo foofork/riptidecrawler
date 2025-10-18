@@ -1,7 +1,7 @@
-//! Chromiumoxide engine implementation
+//! Chromiumoxide engine implementation (using spider_chromiumoxide_cdp)
 
 use async_trait::async_trait;
-use chromiumoxide::{Browser, Page};
+use spider_chromiumoxide_cdp::{Browser, Page};
 use std::sync::Arc;
 use tracing::{debug, warn};
 

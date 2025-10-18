@@ -3,7 +3,7 @@
 
 use crate::pool::{BrowserCheckout, BrowserPool, BrowserPoolConfig, PoolEvent};
 use anyhow::{anyhow, Result};
-use chromiumoxide::{
+use spider_chromiumoxide_cdp::{
     cdp::browser_protocol::emulation::SetDeviceMetricsOverrideParams, BrowserConfig, Page,
 };
 use riptide_core::stealth::{StealthController, StealthPreset};

@@ -3,10 +3,10 @@
 
 use crate::pool::{BrowserCheckout, BrowserPool, BrowserPoolConfig, PoolEvent};
 use anyhow::{anyhow, Result};
-use chromiumoxide::{
+use riptide_stealth::{StealthController, StealthPreset};
+use spider_chromiumoxide_cdp::{
     cdp::browser_protocol::emulation::SetDeviceMetricsOverrideParams, BrowserConfig, Page,
 };
-use riptide_stealth::{StealthController, StealthPreset};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;

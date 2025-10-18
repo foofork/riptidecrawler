@@ -323,7 +323,7 @@ impl BrowserFacade {
         session: &BrowserSession<'_>,
         options: ScreenshotOptions,
     ) -> RiptideResult<Vec<u8>> {
-        use chromiumoxide::cdp::browser_protocol::page::{
+        use spider_chromiumoxide_cdp::cdp::browser_protocol::page::{
             CaptureScreenshotFormat, CaptureScreenshotParams,
         };
 
@@ -608,7 +608,9 @@ impl BrowserFacade {
         session: &BrowserSession<'_>,
         cookies: &[Cookie],
     ) -> RiptideResult<()> {
-        use chromiumoxide::cdp::browser_protocol::network::{CookieParam, SetCookiesParams};
+        use spider_chromiumoxide_cdp::cdp::browser_protocol::network::{
+            CookieParam, SetCookiesParams,
+        };
 
         let page = session.session.page();
 
