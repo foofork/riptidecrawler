@@ -47,7 +47,7 @@ pub mod gate;
 pub mod instance_pool;
 pub mod integrated_cache;
 pub mod memory_manager;
-pub mod monitoring;
+// pub mod monitoring;  // P1-A3: Moved to riptide-monitoring crate
 pub mod wasm_validation;
 
 // PDF functionality moved to riptide-pdf crate
@@ -61,7 +61,7 @@ pub mod robots;
 // pub mod spider;  // P1-C2: Moved to riptide-spider crate
 // pub mod strategies;  // P1-C2: Moved to riptide-extraction crate
 pub mod strategy_composition;
-pub mod telemetry;
+// pub mod telemetry;  // P1-A3: Moved to riptide-monitoring crate
 pub mod types;
 
 // P1-C2: Re-export extracted modules for backward compatibility
@@ -153,6 +153,42 @@ pub mod security {
     //! use riptide_security::*;
     //! ```
     pub use riptide_security::*;
+}
+
+pub mod monitoring {
+    //! Monitoring module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-monitoring` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The monitoring functionality has been extracted to its own crate.
+    //! Please migrate to using `riptide-monitoring` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::monitoring::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_monitoring::monitoring::*;
+    //! ```
+    pub use riptide_monitoring::monitoring::*;
+}
+
+pub mod telemetry {
+    //! Telemetry module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-monitoring` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The telemetry functionality has been extracted to its own crate.
+    //! Please migrate to using `riptide-monitoring` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::telemetry::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_monitoring::telemetry::*;
+    //! ```
+    pub use riptide_monitoring::telemetry::*;
 }
 
 #[cfg(test)]

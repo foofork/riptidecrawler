@@ -6674,6 +6674,7 @@ dependencies = [
  "riptide-config",
  "riptide-extraction",
  "riptide-fetch",
+ "riptide-monitoring",
  "riptide-pdf",
  "riptide-search",
  "riptide-security",
@@ -6874,6 +6875,34 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
+]
+
+[[package]]
+name = "riptide-monitoring"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "dashmap 6.1.0",
+ "once_cell",
+ "opentelemetry 0.26.0",
+ "opentelemetry-otlp",
+ "opentelemetry-semantic-conventions",
+ "opentelemetry_sdk",
+ "psutil",
+ "regex",
+ "riptide-types",
+ "serde",
+ "serde_json",
+ "sysinfo",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-test",
+ "tracing",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
 ]
 
 [[package]]

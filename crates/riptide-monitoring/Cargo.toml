@@ -1,0 +1,53 @@
+[package]
+name = "riptide-monitoring"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Monitoring, telemetry, and metrics collection for Riptide"
+keywords = ["monitoring", "telemetry", "metrics", "observability", "tracing"]
+categories = ["development-tools::profiling", "web-programming"]
+
+[dependencies]
+# Shared types
+riptide-types = { path = "../riptide-types" }
+
+# Core dependencies
+anyhow.workspace = true
+async-trait.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync", "time"] }
+tracing.workspace = true
+
+# Telemetry and monitoring
+opentelemetry.workspace = true
+opentelemetry-otlp.workspace = true
+opentelemetry_sdk.workspace = true
+opentelemetry-semantic-conventions.workspace = true
+tracing-opentelemetry.workspace = true
+tracing-subscriber.workspace = true
+
+# Metrics and system info
+sysinfo.workspace = true
+psutil.workspace = true
+chrono = { workspace = true, features = ["serde"] }
+
+# Additional dependencies
+once_cell.workspace = true
+dashmap = "6.1"
+regex.workspace = true
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile.workspace = true
+
+[features]
+default = ["telemetry", "collector", "alerts", "health"]
+telemetry = []
+collector = []
+alerts = []
+health = []
+reports = []
+time-series = []

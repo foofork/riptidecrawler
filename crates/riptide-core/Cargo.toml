@@ -17,6 +17,8 @@ riptide-spider = { path = "../riptide-spider" }
 riptide-fetch = { path = "../riptide-fetch" }
 # P1-A3: Security middleware extracted from core
 riptide-security = { path = "../riptide-security" }
+# P1-A3: Monitoring and telemetry extracted from core
+riptide-monitoring = { path = "../riptide-monitoring" }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 bytes = { workspace = true }

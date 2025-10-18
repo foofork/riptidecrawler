@@ -4,7 +4,7 @@
 //! with existing monitoring, telemetry, and health check systems.
 
 use super::*;
-use crate::monitoring::MetricsCollector;
+use crate::monitoring::collector::MetricsCollector;
 use opentelemetry::trace::{Span, Status, Tracer};
 use opentelemetry::{global, KeyValue};
 use std::collections::VecDeque;
