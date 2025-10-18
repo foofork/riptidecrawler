@@ -20,7 +20,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # Redis for distributed caching
-redis = { version = "0.24", features = ["tokio-comp", "connection-manager"] }
+redis = { workspace = true }
 
 # Cryptography for cache keys
 sha2 = "0.10"
