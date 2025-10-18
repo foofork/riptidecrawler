@@ -69,7 +69,7 @@ pub struct Session {
     pub metadata: SessionMetadata,
 
     /// Browser profile configuration
-    pub browser_config: BrowserConfig,
+    pub browser_config: SessionBrowserConfig,
 }
 
 /// Cookie jar for storing HTTP cookies
@@ -138,8 +138,9 @@ pub struct SessionMetadata {
 }
 
 /// Browser configuration for the session
+/// Note: This is session-specific. For generic browser config, use riptide_types::BrowserConfig
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BrowserConfig {
+pub struct SessionBrowserConfig {
     /// Browser type (chrome, firefox, etc.)
     pub browser_type: BrowserType,
 
@@ -156,7 +157,7 @@ pub struct BrowserConfig {
     pub executable_path: Option<PathBuf>,
 }
 
-impl Default for BrowserConfig {
+impl Default for SessionBrowserConfig {
     fn default() -> Self {
         Self {
             browser_type: BrowserType::Chrome,
@@ -283,7 +284,7 @@ impl Session {
             user_data_dir,
             cookies: CookieJar::default(),
             metadata: SessionMetadata::default(),
-            browser_config: BrowserConfig::default(),
+            browser_config: SessionBrowserConfig::default(),
         }
     }
 
