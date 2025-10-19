@@ -13,7 +13,7 @@ use crate::state::AppState;
 use crate::strategies_pipeline::StrategiesPipelineOrchestrator;
 
 /// Extract endpoint request payload
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ExtractRequest {
     /// URL to extract content from
     pub url: String,

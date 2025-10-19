@@ -130,8 +130,7 @@ async fn test_app_state_initialization_with_facades() {
         .is_ok());
     assert!(state
         .extractor
-        .extract("test", "https://example.com")
-        .await
+        .extract("<html>test</html>", "https://example.com", "standard")
         .is_ok());
     assert_eq!(state.config.max_concurrency, 4);
     assert_eq!(state.api_config.headless.max_pool_size, 2);
@@ -355,6 +354,8 @@ async fn test_fetch_metrics_response_structure() {
     let metrics = FetchMetricsResponse {
         hosts: std::collections::HashMap::new(),
         total_requests: 0,
+        total_success: 0,
+        total_failures: 0,
     };
 
     let json = serde_json::to_string(&metrics).unwrap();
@@ -584,7 +585,7 @@ async fn test_multi_facade_workflow() {
     // Note: Direct facade usage would be:
     // let extract_result = state.extraction_facade.extract_html(&html_content, &url, Default::default()).await;
     // For now, we use the existing extractor
-    let extract_result = state.extractor.extract(&html_content, &url).await;
+    let extract_result = state.extractor.extract(&html_content, &url, "standard");
     assert!(extract_result.is_ok());
 
     // Multi-facade workflow completed successfully
