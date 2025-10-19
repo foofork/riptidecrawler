@@ -522,8 +522,49 @@ This roadmap consolidates all outstanding issues identified across multiple hive
 | | - Performance benchmarks (ensure <5% regression) | 0.5 day | |
 | | - Update all documentation references | 0.5 day | |
 | | - Prepare major version release | 0.5 day | |
+| **P2-F3** | **Facade Architecture Optimization** | 4-5 days | Month 2 |
+| | **Analysis Complete** - 2-agent hive mind analysis done | ✅ COMPLETE | |
+| | **Recommendation** - Keep 6 core facades, delete 3 stubs | ✅ COMPLETE | |
+| | **Documentation** - 2 analysis documents in `/docs/architecture/` & `/docs/research/` | ✅ COMPLETE | |
+| | | | |
+| | **Day 1: Delete unnecessary facade stubs** | 0.5 day | |
+| | - Remove CacheFacade (cross-cutting → move to RiptideConfig) | 0.15 day | |
+| | - Remove SecurityFacade (cross-cutting → move to RiptideConfig) | 0.15 day | |
+| | - Remove MonitoringFacade (operational concern, not user-facing) | 0.15 day | |
+| | - Update facade module exports | 0.05 day | |
+| | | | |
+| | **Day 2: Implement SpiderFacade** | 1.5 days | |
+| | - Design SpiderFacade API (crawl, budget, frontier management) | 0.25 day | |
+| | - Implement core functionality (wrap riptide-spider) | 0.75 day | |
+| | - Add tests (8-10 tests for crawling workflows) | 0.5 day | |
+| | | | |
+| | **Day 3-4: Create SearchFacade** | 2 days | |
+| | - Design SearchFacade API (Google, Bing, DuckDuckGo integration) | 0.25 day | |
+| | - Implement Serper API wrapper (riptide-search integration) | 1 day | |
+| | - Add tests and documentation | 0.5 day | |
+| | - Example: Search → Scrape workflow | 0.25 day | |
+| | | | |
+| | **Day 5: Testing & documentation** | 1 day | |
+| | - Integration tests (facade composition) | 0.5 day | |
+| | - Update facade architecture docs | 0.25 day | |
+| | - Code examples for new facades | 0.25 day | |
+| **P2-F4** | **API Handler Migration to Facades** | 2 weeks | Month 2-3 |
+| | **Analysis** - 31 handler files need migration, 0% currently using facades | ✅ COMPLETE | |
+| | **Priority** - riptide-core imported 14× (60.9% of imports) | ✅ COMPLETE | |
+| | | | |
+| | **Week 1: High-priority handlers** | 1 week | |
+| | - Migrate fetch.rs to ScraperFacade (1 hour - simplest) | 0.125 day | |
+| | - Migrate extract.rs to ExtractionFacade (3 hours) | 0.375 day | |
+| | - Migrate browser.rs to BrowserFacade (6 hours) | 0.75 day | |
+| | - Migrate render/* handlers (4 files, 16 hours) | 2 days | |
+| | | | |
+| | **Week 2: Remaining handlers + validation** | 1 week | |
+| | - Migrate spider.rs, crawl.rs to SpiderFacade (8 hours) | 1 day | |
+| | - Migrate search-related handlers to SearchFacade (4 hours) | 0.5 day | |
+| | - Migrate remaining 20 handlers (incremental) | 2 days | |
+| | - Integration testing and validation | 0.5 day | |
 
-**Subtotal: 7-9 days**
+**Subtotal: 3-3.5 weeks (facades: 4-5 days, migration: 2 weeks)**
 
 **Key Decisions:**
 - ✅ **Recommended Approach**: Option B - Moderate Consolidation (5-7 days)
@@ -538,8 +579,14 @@ This roadmap consolidates all outstanding issues identified across multiple hive
 - ✅ Clear ownership boundaries for reliability patterns
 - ✅ Improved maintainability and discoverability
 - ✅ ~4,400 LOC reorganized into proper domain crates
+- ✅ 6 core facades (down from 9 stubs) - user-centric design
+- ✅ 80% facade adoption in API handlers (0% → 80% migration)
+- ✅ 30% code reduction in handlers via facade simplification
+- ✅ Search functionality integrated (SearchFacade for Google/Bing/DuckDuckGo)
 
 **Analysis Documents:**
+
+*riptide-core elimination:*
 1. `/docs/hive/RECOMMENDATION.md` - Executive summary and migration timeline
 2. `/docs/hive/riptide-core-identity-summary.md` - Core identity analysis
 3. `/docs/hive/riptide-core-analysis.md` - Full architectural analysis (8,000+ words)
@@ -547,6 +594,10 @@ This roadmap consolidates all outstanding issues identified across multiple hive
 5. `/docs/hive/riptide-core-module-analysis.md` - Module-by-module breakdown
 6. `/docs/hive/crate-research-findings.md` - All 27 crates analyzed
 7. `/docs/hive/architectural-synthesis.md` - Options comparison
+
+*Facade architecture:*
+8. `/docs/architecture/facade-structure-analysis.md` - Facade consolidation strategy
+9. `/docs/research/facade-best-practices-analysis.md` - Usage patterns & migration plan
 
 **Risk Mitigation:**
 - Automated migration script for import updates
