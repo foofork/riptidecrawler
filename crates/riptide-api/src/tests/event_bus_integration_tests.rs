@@ -5,7 +5,7 @@
 
 #[cfg(test)]
 mod tests {
-    use riptide_core::events::{BaseEvent, EventBus, EventEmitter, EventSeverity};
+    use riptide_events::{BaseEvent, EventBus, EventEmitter, EventSeverity};
     use std::sync::Arc;
     use tokio::time::Duration;
 
@@ -71,7 +71,7 @@ mod tests {
     /// Test event handler registration
     #[tokio::test]
     async fn test_handler_registration() {
-        use riptide_core::events::handlers::LoggingEventHandler;
+        use riptide_events::handlers::LoggingEventHandler;
 
         let event_bus = EventBus::new();
 
@@ -104,11 +104,11 @@ mod tests {
     /// Test multiple handler types
     #[tokio::test]
     async fn test_multiple_handlers() {
-        use riptide_core::events::handlers::{
+        use riptide_events::handlers::{
             HealthEventHandler, LoggingEventHandler, TelemetryEventHandler,
         };
         #[allow(unused_imports)]
-        use riptide_core::monitoring::MetricsCollector;
+        use riptide_monitoring::MetricsCollector;
 
         let event_bus = EventBus::new();
 
@@ -140,7 +140,7 @@ mod tests {
     /// Test event bus configuration
     #[tokio::test]
     async fn test_event_bus_configuration() {
-        use riptide_core::events::EventBusConfig;
+        use riptide_events::EventBusConfig;
 
         let config = EventBusConfig {
             buffer_size: 500,

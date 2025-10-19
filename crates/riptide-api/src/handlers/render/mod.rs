@@ -19,7 +19,7 @@ mod tests {
     #[allow(unused_imports)]
     use crate::state::AppState;
     use axum::http::StatusCode;
-    use riptide_core::types::{ExtractionMode, OutputFormat};
+    use riptide_types::{ExtractionMode, OutputFormat};
 
     #[tokio::test]
     async fn test_render_request_validation() {

@@ -282,7 +282,7 @@ mod tests {
             );
             // Note: ScrollMode doesn't implement PartialEq, so we check discriminant
             assert!(
-                matches!(scroll.mode, riptide_core::dynamic::ScrollMode::Smooth),
+                matches!(scroll.mode, ScrollMode::Smooth),
                 "Should use smooth scrolling"
             );
             assert!(
