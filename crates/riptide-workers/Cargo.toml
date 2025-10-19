@@ -16,7 +16,11 @@ tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 redis = { workspace = true }
-riptide-core = { path = "../riptide-core" }
+# P2-F1 Day 4-5: Migrated from riptide-core to specific crates
+riptide-types = { path = "../riptide-types" }
+riptide-reliability = { path = "../riptide-reliability" }
+riptide-cache = { path = "../riptide-cache" }
+riptide-pdf = { path = "../riptide-pdf" }
 chrono = { workspace = true }
 uuid = { workspace = true }
 futures = { workspace = true }
