@@ -1,4 +1,5 @@
-use riptide_core::stealth::StealthConfig;
+// P2-F1 Day 3: Updated to use riptide-stealth directly (circular dependency fix)
+use riptide_stealth::StealthConfig;
 use serde::{Deserialize, Serialize};
 
 /// Enhanced render request with Phase 3 PR-1 features

@@ -8,9 +8,10 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 # Core dependencies
-riptide-core = { path = "../riptide-core" }
-riptide-events = { path = "../riptide-events" }
+# P2-F1 Day 4-5: Migrated from riptide-core to riptide-reliability + riptide-types
+riptide-reliability = { path = "../riptide-reliability" }
 riptide-types = { path = "../riptide-types" }
+riptide-events = { path = "../riptide-events" }
 
 # Workspace dependencies
 tokio = { workspace = true }
@@ -46,13 +47,18 @@ notify = "6.0"
 
 # Additional dependencies for new features
 sha2 = "0.10"
+tiktoken-rs = "0.5"
+# Workspace dependencies for HTTP client features
+base64 = { workspace = true }
 
 [dev-dependencies]
 tokio-test = "0.4"
-mockall = "0.12"
-pretty_assertions = "1.4"
-tracing-subscriber = "0.3"
+tempfile = { workspace = true }
+criterion = { workspace = true }
 
 [features]
-default = ["mock"]
-mock = []
+default = ["openai", "anthropic", "groq"]
+openai = []
+anthropic = []
+groq = []
+all-providers = ["openai", "anthropic", "groq"]

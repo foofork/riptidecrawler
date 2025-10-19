@@ -18,7 +18,7 @@ futures = { workspace = true }
 # Internal crate dependencies
 riptide-engine = { path = "../riptide-engine" }
 riptide-stealth = { path = "../riptide-stealth" }
-riptide-core = { path = "../riptide-core" }
+# P2-F1 Day 3: Removed riptide-core dependency to break circular dependency
 # riptide-headless-hybrid = { path = "../riptide-headless-hybrid", optional = true }  # Temporarily disabled for baseline
 serde = { workspace = true }
 serde_json = { workspace = true }

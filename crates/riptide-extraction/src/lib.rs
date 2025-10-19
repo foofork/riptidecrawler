@@ -58,6 +58,9 @@ pub mod table_extraction;
 pub mod html_parser;
 pub mod strategies;
 
+// P2-F1 Day 3: WASM validation moved from riptide-core
+pub mod validation;
+
 // Re-export main interfaces
 pub use css_extraction::{
     default_selectors, extract as css_extract, extract_default as css_extract_default,
