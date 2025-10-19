@@ -36,7 +36,7 @@ tokio-test = "0.4"
 criterion = { version = "0.5", features = ["html_reports"] }
 
 [features]
-default = []
+default = ["events", "monitoring"]
 # Enable event bus integration for circuit breaker notifications
 events = ["riptide-events", "riptide-pool"]
 # Enable monitoring integration for metrics

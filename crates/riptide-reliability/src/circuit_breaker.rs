@@ -10,13 +10,8 @@ use tokio::sync::Mutex;
 use tracing::warn;
 
 // P2-F1 Day 3: Import from external crates (no longer from riptide-core)
-#[cfg(feature = "events")]
-use riptide_pool::PerformanceMetrics;
-#[cfg(not(feature = "events"))]
-use riptide_types::extracted::PerformanceMetrics; // Fallback if events feature not enabled
-
-#[cfg(feature = "events")]
 use riptide_events::{EventBus, PoolEvent, PoolOperation};
+use riptide_monitoring::PerformanceMetrics;
 
 /// Circuit Breaker State
 ///
@@ -123,12 +118,12 @@ pub async fn record_extraction_result(
             m.failed_extractions += 1;
         }
 
-        // Update average processing time
+        // Update average extraction time
         let new_time = result.duration.as_millis() as f64;
-        m.avg_processing_time_ms = if m.total_extractions == 1 {
+        m.avg_extraction_time_ms = if m.total_extractions == 1 {
             new_time
         } else {
-            (m.avg_processing_time_ms + new_time) / 2.0
+            (m.avg_extraction_time_ms + new_time) / 2.0
         };
 
         // Extract data before dropping lock
