@@ -479,6 +479,83 @@ This roadmap consolidates all outstanding issues identified across multiple hive
 
 ---
 
+#### Theme F: Architecture Cleanup - riptide-core Elimination **NEW 2025-10-19**
+
+| ID | Issue | Effort | Timeline |
+|----|-------|--------|----------|
+| **P2-F1** | **Eliminate riptide-core via Moderate Consolidation** | 5-7 days | Month 2 |
+| | **Analysis Complete** - 5-agent hive mind analysis done | ✅ COMPLETE | |
+| | **Recommendation** - Option B: Create riptide-reliability crate | ✅ COMPLETE | |
+| | **Documentation** - 7 detailed analysis documents in `/docs/hive/` | ✅ COMPLETE | |
+| | | | |
+| | **Day 1: Create riptide-reliability** | 1 day | |
+| | - Generate new crate structure | 0.5 day | |
+| | - Move circuit breakers (circuit.rs, circuit_breaker.rs) | 0.25 day | |
+| | - Move reliability patterns (reliability.rs, gate.rs) | 0.25 day | |
+| | | | |
+| | **Day 2: Enhance riptide-types** | 1 day | |
+| | - Move component/conditional/error modules | 0.5 day | |
+| | - Move common utilities and validation | 0.5 day | |
+| | | | |
+| | **Day 3: Fix circular dependencies** | 1 day | |
+| | - Move wasm_validation.rs to riptide-extraction | 0.25 day | |
+| | - Update riptide-headless imports (break riptide-core dependency) | 0.5 day | |
+| | - Update riptide-intelligence imports | 0.25 day | |
+| | | | |
+| | **Day 4-5: Update dependent crates** | 2 days | |
+| | - Update riptide-api imports (~50 files) | 0.5 day | |
+| | - Update riptide-workers, riptide-search, riptide-persistence | 0.5 day | |
+| | - Update riptide-pdf, riptide-streaming, riptide-cache | 0.5 day | |
+| | - Update remaining 4 crates | 0.5 day | |
+| | | | |
+| | **Day 6: Workspace integration** | 1 day | |
+| | - Update root Cargo.toml dependencies | 0.25 day | |
+| | - Full workspace rebuild and validation | 0.5 day | |
+| | - Delete riptide-core crate | 0.25 day | |
+| | | | |
+| | **Day 7: Documentation & testing** | 1 day | |
+| | - Write migration guide for external users | 0.5 day | |
+| | - Update CHANGELOG with breaking changes | 0.25 day | |
+| | - Run full test suite (`cargo test --workspace`) | 0.25 day | |
+| **P2-F2** | **Post-Elimination Validation** | 2 days | Month 2 |
+| | - Verify zero circular dependencies (`cargo tree`) | 0.5 day | |
+| | - Performance benchmarks (ensure <5% regression) | 0.5 day | |
+| | - Update all documentation references | 0.5 day | |
+| | - Prepare major version release | 0.5 day | |
+
+**Subtotal: 7-9 days**
+
+**Key Decisions:**
+- ✅ **Recommended Approach**: Option B - Moderate Consolidation (5-7 days)
+- ✅ **New Crate**: riptide-reliability (~70 KB - circuit breakers, gates, reliability wrappers)
+- ✅ **Enhanced Crate**: riptide-types (add component, conditional, error, common modules)
+- ✅ **Breaking Changes**: ~11 crates need import updates
+- ✅ **Circular Dependency Fix**: riptide-headless → riptide-stealth (break riptide-core dependency)
+
+**Expected Outcomes:**
+- ✅ riptide-core eliminated - Zero circular dependencies
+- ✅ Clean dependency DAG (no cycles possible)
+- ✅ Clear ownership boundaries for reliability patterns
+- ✅ Improved maintainability and discoverability
+- ✅ ~4,400 LOC reorganized into proper domain crates
+
+**Analysis Documents:**
+1. `/docs/hive/RECOMMENDATION.md` - Executive summary and migration timeline
+2. `/docs/hive/riptide-core-identity-summary.md` - Core identity analysis
+3. `/docs/hive/riptide-core-analysis.md` - Full architectural analysis (8,000+ words)
+4. `/docs/hive/riptide-dependency-map.md` - Visual dependency hierarchy
+5. `/docs/hive/riptide-core-module-analysis.md` - Module-by-module breakdown
+6. `/docs/hive/crate-research-findings.md` - All 27 crates analyzed
+7. `/docs/hive/architectural-synthesis.md` - Options comparison
+
+**Risk Mitigation:**
+- Automated migration script for import updates
+- Compiler-driven development (fix errors as they appear)
+- Fallback to Option A if blocked (just fix circular deps)
+- Benchmarks before/after each phase
+
+---
+
 ### Priority 3: LOW (3-6 Months)
 
 #### Theme F: Advanced Features & Optimization
