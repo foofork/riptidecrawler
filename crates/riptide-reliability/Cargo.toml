@@ -7,15 +7,17 @@ authors = ["Riptide Team"]
 description = "Reliability patterns for Riptide: circuit breakers, gates, and fault tolerance"
 
 [dependencies]
-# Internal dependencies
+# P2-F1 Day 3: Dependencies for modular architecture
 riptide-types = { path = "../riptide-types" }
-riptide-monitoring = { path = "../riptide-monitoring", optional = true }
+riptide-fetch = { path = "../riptide-fetch" }
 riptide-events = { path = "../riptide-events", optional = true }
+riptide-monitoring = { path = "../riptide-monitoring", optional = true }
 riptide-pool = { path = "../riptide-pool", optional = true }
 
 # Core dependencies
 tokio = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 anyhow = { workspace = true }

@@ -1,12 +1,13 @@
+use anyhow::Result;
 /// Enhanced reliability patterns for RipTide Phase-2 Lite
 ///
 /// This module implements timeout and reliability patterns for robust web scraping:
 /// 1. Fetch reliability - 3s connect, 15-20s total timeout, 1 retry for idempotent requests
 /// 2. Headless resilience - DOMContentLoaded + 1s idle, 3s hard cap, circuit breaker
 /// 3. Graceful degradation - Fallback to fast path when headless fails
-use crate::fetch::{CircuitBreakerConfig, ReliableHttpClient, RetryConfig};
-use crate::types::ExtractedDoc;
-use anyhow::Result;
+// P2-F1 Day 3: Import from external crates (no longer from riptide-core)
+use riptide_fetch::{CircuitBreakerConfig, ReliableHttpClient, RetryConfig};
+use riptide_types::ExtractedDoc;
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
 use tracing::{debug, error, info, warn};

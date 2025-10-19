@@ -9,8 +9,14 @@ use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 use tracing::warn;
 
-use crate::component::PerformanceMetrics;
-use crate::events::{EventBus, PoolEvent, PoolOperation};
+// P2-F1 Day 3: Import from external crates (no longer from riptide-core)
+#[cfg(feature = "events")]
+use riptide_pool::PerformanceMetrics;
+#[cfg(not(feature = "events"))]
+use riptide_types::extracted::PerformanceMetrics; // Fallback if events feature not enabled
+
+#[cfg(feature = "events")]
+use riptide_events::{EventBus, PoolEvent, PoolOperation};
 
 /// Circuit Breaker State
 ///
