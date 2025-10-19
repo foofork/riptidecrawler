@@ -2,7 +2,7 @@ use crate::job::{Job, JobType, PdfExtractionOptions};
 use crate::worker::JobProcessor;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use riptide_core::types::{CrawlOptions, ExtractedDoc};
+use riptide_types::{CrawlOptions, ExtractedDoc};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::{debug, error, info};
@@ -12,9 +12,9 @@ pub struct BatchCrawlProcessor {
     /// HTTP client for making requests
     http_client: reqwest::Client,
     /// WASM extractor for content processing
-    extractor: Arc<dyn riptide_core::extract::WasmExtractor>,
+    extractor: Arc<dyn riptide_reliability::WasmExtractor>,
     /// Cache manager for storing results
-    cache: Arc<tokio::sync::Mutex<riptide_core::cache::CacheManager>>,
+    cache: Arc<tokio::sync::Mutex<riptide_cache::redis::CacheManager>>,
     /// Maximum batch size to prevent memory issues
     max_batch_size: usize,
     /// Maximum concurrent requests within a batch
@@ -25,8 +25,8 @@ impl BatchCrawlProcessor {
     /// Create a new batch crawl processor
     pub fn new(
         http_client: reqwest::Client,
-        extractor: Arc<dyn riptide_core::extract::WasmExtractor>,
-        cache: Arc<tokio::sync::Mutex<riptide_core::cache::CacheManager>>,
+        extractor: Arc<dyn riptide_reliability::WasmExtractor>,
+        cache: Arc<tokio::sync::Mutex<riptide_cache::redis::CacheManager>>,
         max_batch_size: usize,
         max_concurrency: usize,
     ) -> Self {
@@ -804,8 +804,8 @@ pub struct PdfExtractionStats {
 mod tests {
     use super::*;
     use riptide_core::cache::CacheManager;
-    use riptide_core::extract::WasmExtractor;
     use riptide_core::types::ExtractedDoc;
+    use riptide_reliability::WasmExtractor;
 
     /// Simple mock extractor for testing processor metadata
     struct MockWasmExtractor;
