@@ -30,11 +30,80 @@
 // pub mod cache_key;  // P1-A3 Phase 2C: Moved to riptide-cache crate
 // pub mod cache_warming;  // P1-A3 Phase 2C: Moved to riptide-cache crate
 // pub mod cache_warming_integration;  // P1-A3 Phase 2C: Moved to riptide-cache crate
-pub mod circuit;
-pub mod circuit_breaker;
+// P2-F1 Day 3: Circuit breaker patterns moved to riptide-reliability
+pub mod circuit {
+    //! Circuit breaker module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-reliability` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The circuit breaker functionality has been extracted to its own crate.
+    //! Please migrate to using `riptide-reliability` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::circuit::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_reliability::circuit::*;
+    //! ```
+    pub use riptide_reliability::circuit::*;
+}
+
+pub mod circuit_breaker {
+    //! Circuit breaker state module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-reliability` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The circuit breaker state functionality has been extracted to its own crate.
+    //! Please migrate to using `riptide-reliability` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::circuit_breaker::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_reliability::circuit_breaker::*;
+    //! ```
+    pub use riptide_reliability::circuit_breaker::*;
+}
 pub mod common;
-pub mod component;
-pub mod conditional;
+// P2-F1 Day 3: Component types moved to riptide-types
+pub mod component {
+    //! Component module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-types` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The component types have been extracted to riptide-types.
+    //! Please migrate to using `riptide-types` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::component::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_types::component::*;
+    //! ```
+    pub use riptide_types::component::*;
+}
+
+// P2-F1 Day 3: Conditional request types moved to riptide-types
+pub mod conditional {
+    //! Conditional module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-types` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The conditional request types have been extracted to riptide-types.
+    //! Please migrate to using `riptide-types` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::conditional::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_types::conditional::*;
+    //! ```
+    pub use riptide_types::conditional::*;
+}
 // pub mod confidence;  // P1-A3 Phase 2D: Moved to riptide-extraction crate
 // pub mod confidence_integration;  // P1-A3 Phase 2D: Moved to riptide-extraction crate
 // pub mod dynamic;  // P1-A3 Phase 2D: Moved to riptide-headless crate
@@ -43,20 +112,71 @@ pub mod error;
 // pub mod events;  // P1-A3 Phase 2A: Moved to riptide-events crate
 // pub mod events_pool_integration;  // P1-A3 Phase 2D: Moved to riptide-pool crate
 // pub mod fetch;  // P1-C2: Moved to riptide-fetch crate
-pub mod gate;
+// P2-F1 Day 3: Gate decision logic moved to riptide-reliability
+pub mod gate {
+    //! Gate module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-reliability` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The gate decision functionality has been extracted to its own crate.
+    //! Please migrate to using `riptide-reliability` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::gate::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_reliability::gate::*;
+    //! ```
+    pub use riptide_reliability::gate::*;
+}
 // pub mod html_parser;  // P1-C2: Moved to riptide-extraction crate
 // pub mod instance_pool;  // P1-A3 Phase 2B: Moved to riptide-pool crate
 // pub mod integrated_cache;  // P1-A3 Phase 2C: Moved to riptide-cache crate
 // pub mod memory_manager;  // P1-A3 Phase 2D: Moved to riptide-pool crate
 // pub mod monitoring;  // P1-A3: Moved to riptide-monitoring crate
-pub mod wasm_validation;
+// P2-F1 Day 3: wasm_validation moved to riptide-extraction
+pub mod wasm_validation {
+    //! WASM validation module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-extraction` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The WASM validation functionality has been extracted to its own location.
+    //! Please migrate to using `riptide-extraction` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::wasm_validation::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_extraction::validation::*;
+    //! ```
+    pub use riptide_extraction::validation::*;
+}
 
 // PDF functionality moved to riptide-pdf crate
 #[cfg(feature = "pdf")]
 pub use riptide_pdf as pdf;
 
 // pub mod pool_health;  // P1-A3 Phase 2B: Moved to riptide-pool crate
-pub mod reliability;
+// P2-F1 Day 3: Reliability orchestration moved to riptide-reliability
+pub mod reliability {
+    //! Reliability module - MOVED
+    //!
+    //! This module re-exports types from the `riptide-reliability` crate for backward compatibility.
+    //!
+    //! **NOTICE**: The reliability orchestration functionality has been extracted to its own crate.
+    //! Please migrate to using `riptide-reliability` crate directly:
+    //!
+    //! ```rust
+    //! // Old (still works):
+    //! use riptide_core::reliability::*;
+    //!
+    //! // New (recommended):
+    //! use riptide_reliability::reliability::*;
+    //! ```
+    pub use riptide_reliability::reliability::*;
+}
 // pub mod robots;  // P1-A3 Phase 2D: Already moved to riptide-fetch crate (duplicate)
 // pub mod security;  // P1-A3: Moved to riptide-security crate
 // pub mod spider;  // P1-C2: Moved to riptide-spider crate
@@ -481,8 +601,11 @@ pub use common::{
 pub use riptide_config::ConfigValue;
 pub use types::*;
 
-// Re-export core functionality
+// Re-export core functionality from modular crates (P2-F1 Day 3)
+pub use component::{ComponentId, ComponentMeta};
+pub use conditional::{CacheValidation, ConditionalRequest, ConditionalResponse};
 pub use reliability::{ExtractionMode, ReliabilityConfig, ReliabilityMetrics, ReliableExtractor};
+pub use wasm_validation::{ComponentMetadata, TypeSignature, ValidationReport, WitValidator};
 
 // Create extract module alias for backward compatibility
 pub mod extract {

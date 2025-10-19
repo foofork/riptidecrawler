@@ -7,15 +7,10 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
+use tracing::warn;
 
-#[cfg(feature = "events")]
-use riptide_events::{EventBus, PoolEvent, PoolOperation};
-
-#[cfg(feature = "events")]
-use riptide_pool::PerformanceMetrics;
-
-#[cfg(not(feature = "events"))]
-use crate::reliability::PerformanceMetrics;
+use crate::component::PerformanceMetrics;
+use crate::events::{EventBus, PoolEvent, PoolOperation};
 
 /// Circuit Breaker State
 ///
@@ -104,7 +99,6 @@ pub struct ExtractionResult {
 /// 1. Using scoped blocks to ensure locks are dropped before the next phase
 /// 2. Extracting all necessary data before dropping locks
 /// 3. Performing event emission in spawned tasks with no locks held
-#[cfg(feature = "events")]
 pub async fn record_extraction_result(
     metrics: &Arc<Mutex<PerformanceMetrics>>,
     circuit_state: &Arc<Mutex<CircuitBreakerState>>,
@@ -164,7 +158,7 @@ pub async fn record_extraction_result(
                         // Need to update metrics again for circuit breaker trips
                         let new_trips = circuit_breaker_trips + 1;
 
-                        tracing::warn!(
+                        warn!(
                             failure_rate = failure_rate,
                             threshold = result.failure_threshold,
                             "Circuit breaker opened due to high failure rate"
@@ -240,7 +234,7 @@ pub async fn record_extraction_result(
                         last_failure: None,
                     }
                 } else if *test_requests >= 3 {
-                    tracing::warn!("Circuit breaker reopening after failed test requests");
+                    warn!("Circuit breaker reopening after failed test requests");
                     CircuitBreakerState::Open {
                         opened_at: Instant::now(),
                         failure_count: 1,
@@ -292,7 +286,7 @@ pub async fn record_extraction_result(
                     event.add_metadata("total_extractions", &total_extractions.to_string());
 
                     if let Err(e) = event_bus.emit(event).await {
-                        tracing::warn!(error = %e, "Failed to emit circuit breaker tripped event");
+                        warn!(error = %e, "Failed to emit circuit breaker tripped event");
                     }
                 });
             }
@@ -319,38 +313,10 @@ pub async fn record_extraction_result(
                 );
 
                 if let Err(e) = event_bus.emit(event).await {
-                    tracing::warn!(error = %e, "Failed to emit circuit breaker reset event");
+                    warn!(error = %e, "Failed to emit circuit breaker reset event");
                 }
             });
         }
-    }
-}
-
-/// Non-events version for when events feature is disabled
-#[cfg(not(feature = "events"))]
-pub async fn record_extraction_result(
-    metrics: &Arc<Mutex<PerformanceMetrics>>,
-    circuit_state: &Arc<Mutex<CircuitBreakerState>>,
-    _event_bus: &Option<()>, // Placeholder for API compatibility
-    result: ExtractionResult,
-) {
-    // Simplified version without event emission
-    // Phase 1: Update metrics
-    {
-        let mut m = metrics.lock().await;
-        m.total_extractions += 1;
-        if result.success {
-            m.successful_extractions += 1;
-        } else {
-            m.failed_extractions += 1;
-        }
-    }
-
-    // Phase 2: Update circuit breaker state
-    {
-        let mut state = circuit_state.lock().await;
-        // Simplified state update logic
-        *state = CircuitBreakerState::default();
     }
 }
 
@@ -386,5 +352,55 @@ mod tests {
             start_time: Instant::now(),
         };
         assert!(half_open.is_half_open());
+    }
+
+    #[tokio::test]
+    async fn test_record_extraction_result_success() {
+        let metrics = Arc::new(Mutex::new(PerformanceMetrics::default()));
+        let circuit_state = Arc::new(Mutex::new(CircuitBreakerState::default()));
+
+        record_extraction_result(
+            &metrics,
+            &circuit_state,
+            &None,
+            ExtractionResult {
+                pool_id: "test-pool".to_string(),
+                failure_threshold: 50,
+                timeout_duration: 5000,
+                success: true,
+                duration: Duration::from_millis(100),
+            },
+        )
+        .await;
+
+        let m = metrics.lock().await;
+        assert_eq!(m.total_extractions, 1);
+        assert_eq!(m.successful_extractions, 1);
+        assert_eq!(m.failed_extractions, 0);
+    }
+
+    #[tokio::test]
+    async fn test_record_extraction_result_failure() {
+        let metrics = Arc::new(Mutex::new(PerformanceMetrics::default()));
+        let circuit_state = Arc::new(Mutex::new(CircuitBreakerState::default()));
+
+        record_extraction_result(
+            &metrics,
+            &circuit_state,
+            &None,
+            ExtractionResult {
+                pool_id: "test-pool".to_string(),
+                failure_threshold: 50,
+                timeout_duration: 5000,
+                success: false,
+                duration: Duration::from_millis(100),
+            },
+        )
+        .await;
+
+        let m = metrics.lock().await;
+        assert_eq!(m.total_extractions, 1);
+        assert_eq!(m.successful_extractions, 0);
+        assert_eq!(m.failed_extractions, 1);
     }
 }

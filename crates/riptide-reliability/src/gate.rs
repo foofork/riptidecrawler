@@ -153,7 +153,7 @@ pub fn score(features: &GateFeatures) -> f32 {
 /// # Examples
 ///
 /// ```rust
-/// use riptide_reliability::gate::should_use_headless;
+/// use riptide_core::gate::should_use_headless;
 ///
 /// // PDF URLs should skip headless
 /// assert!(!should_use_headless("https://example.com/document.pdf", None));
@@ -205,7 +205,7 @@ pub fn should_use_headless(url: &str, content_type: Option<&str>) -> bool {
 /// # Examples
 ///
 /// ```rust
-/// use riptide_reliability::gate::{GateFeatures, decide, Decision};
+/// use riptide_core::gate::{GateFeatures, decide, Decision};
 ///
 /// // High-quality article
 /// let article_features = GateFeatures {
@@ -216,9 +216,7 @@ pub fn should_use_headless(url: &str, content_type: Option<&str>) -> bool {
 ///     has_og: true,
 ///     script_bytes: 500,
 ///     spa_markers: 0,
-///     h1h2_count: 3,
-///     has_jsonld_article: true,
-///     domain_prior: 0.7,
+///     // ... other fields
 /// };
 /// assert_eq!(decide(&article_features, 0.7, 0.3), Decision::Raw);
 ///
@@ -228,12 +226,7 @@ pub fn should_use_headless(url: &str, content_type: Option<&str>) -> bool {
 ///     visible_text_chars: 200,
 ///     script_bytes: 6000,
 ///     spa_markers: 3,
-///     p_count: 2,
-///     article_count: 0,
-///     h1h2_count: 1,
-///     has_og: false,
-///     has_jsonld_article: false,
-///     domain_prior: 0.5,
+///     // ... other fields
 /// };
 /// assert_eq!(decide(&spa_features, 0.7, 0.3), Decision::Headless);
 /// ```

@@ -12,6 +12,8 @@ riptide-extraction = { path = "../riptide-extraction" }
 riptide-search = { path = "../riptide-search" }
 riptide-stealth = { path = "../riptide-stealth" }
 riptide-pdf = { path = "../riptide-pdf", optional = true }
+# P2-F1 Day 3: Dependencies for re-exporting modular crates
+riptide-reliability = { path = "../riptide-reliability" }
 # P1-C2: Dependencies on extracted crates
 riptide-spider = { path = "../riptide-spider" }
 riptide-fetch = { path = "../riptide-fetch" }

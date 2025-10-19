@@ -60,6 +60,10 @@ pub mod strategies;
 
 // P2-F1 Day 3: WASM validation moved from riptide-core
 pub mod validation;
+pub use validation::{
+    validate_before_instantiation, ComponentMetadata, TypeMismatch, TypeSignature,
+    ValidationReport, WitValidator,
+};
 
 // Re-export main interfaces
 pub use css_extraction::{

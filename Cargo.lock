@@ -6583,6 +6583,7 @@ dependencies = [
  "riptide-monitoring",
  "riptide-pdf",
  "riptide-pool",
+ "riptide-reliability",
  "riptide-search",
  "riptide-security",
  "riptide-spider",
