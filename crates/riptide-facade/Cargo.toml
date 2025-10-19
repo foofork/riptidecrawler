@@ -17,6 +17,8 @@ riptide-engine = { path = "../riptide-engine" }
 riptide-headless-hybrid = { path = "../riptide-headless-hybrid" }
 riptide-stealth = { path = "../riptide-stealth" }
 riptide-monitoring = { path = "../riptide-monitoring", optional = true }
+riptide-spider = { path = "../riptide-spider" }
+riptide-search = { path = "../riptide-search" }
 
 # Error handling
 anyhow.workspace = true

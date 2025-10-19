@@ -6734,6 +6734,8 @@ dependencies = [
  "riptide-headless-hybrid",
  "riptide-monitoring",
  "riptide-pdf",
+ "riptide-search",
+ "riptide-spider",
  "riptide-stealth",
  "riptide-types",
  "scraper 0.20.0",

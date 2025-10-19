@@ -31,6 +31,26 @@ pub struct RiptideConfig {
     /// Stealth preset level (None, Low, Medium, High)
     #[serde(default)]
     pub stealth_preset: String,
+
+    /// Maximum concurrent requests (for spider/crawler)
+    #[serde(default = "default_max_concurrent_requests")]
+    pub max_concurrent_requests: usize,
+
+    /// Whether to respect robots.txt
+    #[serde(default = "default_respect_robots")]
+    pub respect_robots_txt: bool,
+
+    /// Rate limit per second (optional)
+    #[serde(default)]
+    pub rate_limit: Option<u32>,
+}
+
+fn default_max_concurrent_requests() -> usize {
+    10
+}
+
+fn default_respect_robots() -> bool {
+    true
 }
 
 fn default_stealth_enabled() -> bool {
@@ -48,6 +68,9 @@ impl Default for RiptideConfig {
             max_body_size: 10 * 1024 * 1024, // 10 MB
             stealth_enabled: true,
             stealth_preset: "Medium".to_string(),
+            max_concurrent_requests: 10,
+            respect_robots_txt: true,
+            rate_limit: Some(10),
         }
     }
 }

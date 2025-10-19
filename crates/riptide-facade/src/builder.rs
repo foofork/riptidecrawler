@@ -203,6 +203,124 @@ impl RiptideBuilder {
         crate::facades::BrowserFacade::new(self.config).await
     }
 
+    /// Build an extractor facade instance.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configuration is invalid or if initialization fails.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use riptide_facade::RiptideBuilder;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let extractor = RiptideBuilder::new()
+    ///     .build_extractor()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn build_extractor(self) -> RiptideResult<crate::facades::ExtractionFacade> {
+        // Validate configuration
+        self.config.validate().map_err(RiptideError::config)?;
+
+        // Build the extractor facade
+        crate::facades::ExtractionFacade::new(self.config).await
+    }
+
+    /// Build a spider facade instance for multi-page crawling.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configuration is invalid or if spider initialization fails.
+    ///
+    /// # Environment Variables
+    ///
+    /// Configuration can be customized via environment variables or builder methods.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use riptide_facade::{RiptideBuilder, CrawlBudget};
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let spider = RiptideBuilder::new()
+    ///     .user_agent("MyBot/1.0")
+    ///     .build_spider()
+    ///     .await?;
+    ///
+    /// let result = spider.crawl(
+    ///     "https://example.com",
+    ///     CrawlBudget::pages(100)
+    /// ).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn build_spider(self) -> RiptideResult<crate::facades::SpiderFacade> {
+        use crate::runtime::RiptideRuntime;
+        use std::sync::Arc;
+
+        // Validate configuration
+        self.config.validate().map_err(RiptideError::config)?;
+
+        // Create runtime
+        let runtime = Arc::new(
+            RiptideRuntime::new(self.config.clone())
+                .map_err(|e| RiptideError::config(format!("Failed to create runtime: {}", e)))?,
+        );
+
+        // Build the spider facade
+        crate::facades::SpiderFacade::new(self.config, runtime).await
+    }
+
+    /// Build a search facade instance for web search operations.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configuration is invalid or if search provider initialization fails.
+    ///
+    /// # Environment Variables
+    ///
+    /// - `SERPER_API_KEY`: API key for Serper backend (Google/Bing/DuckDuckGo)
+    /// - `SEARCH_BACKEND`: Backend type (serper, none, searxng) - defaults to "none"
+    /// - `SEARXNG_BASE_URL`: Base URL for SearXNG backend (if using searxng)
+    /// - `SEARCH_TIMEOUT`: Request timeout in seconds (default: 30)
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use riptide_facade::RiptideBuilder;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let search = RiptideBuilder::new()
+    ///     .build_search()
+    ///     .await?;
+    ///
+    /// let results = search.search("rust programming", 10).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn build_search(self) -> RiptideResult<crate::facades::SearchFacade> {
+        use crate::runtime::RiptideRuntime;
+        use std::sync::Arc;
+
+        // Validate configuration
+        self.config.validate().map_err(RiptideError::config)?;
+
+        // Create runtime
+        let runtime = Arc::new(
+            RiptideRuntime::new(self.config.clone())
+                .map_err(|e| RiptideError::config(format!("Failed to create runtime: {}", e)))?,
+        );
+
+        // Build the search facade
+        crate::facades::SearchFacade::new(self.config, runtime).await
+    }
+
     /// Get a reference to the current configuration.
     pub fn get_config(&self) -> &RiptideConfig {
         &self.config

@@ -1,7 +1,10 @@
-//! WASM validation module for extraction
+//! WASM validation module
 //!
-//! Moved from riptide-core as part of P2-F1 elimination plan.
+//! This module provides validation for WASM components.
 
-pub mod wasm;
+pub mod wasm_validation;
 
-pub use wasm::*;
+pub use wasm_validation::{
+    validate_before_instantiation, ComponentMetadata, TypeMismatch, TypeSignature,
+    ValidationReport, WitValidator,
+};

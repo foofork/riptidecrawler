@@ -43,4 +43,14 @@ impl RiptideError {
     pub fn extraction(msg: impl Into<String>) -> Self {
         Self::Extraction(msg.into())
     }
+
+    /// Create a new spider error.
+    pub fn spider(msg: impl Into<String>) -> Self {
+        Self::Other(anyhow::anyhow!("Spider error: {}", msg.into()))
+    }
+
+    /// Create a new search error.
+    pub fn search(msg: impl Into<String>) -> Self {
+        Self::Other(anyhow::anyhow!("Search error: {}", msg.into()))
+    }
 }

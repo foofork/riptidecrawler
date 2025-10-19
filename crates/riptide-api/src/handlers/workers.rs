@@ -38,12 +38,12 @@ pub enum JobTypeRequest {
     #[serde(rename = "batch_crawl")]
     BatchCrawl {
         urls: Vec<String>,
-        options: Option<riptide_core::types::CrawlOptions>,
+        options: Option<riptide_types::config::CrawlOptions>,
     },
     #[serde(rename = "single_crawl")]
     SingleCrawl {
         url: String,
-        options: Option<riptide_core::types::CrawlOptions>,
+        options: Option<riptide_types::config::CrawlOptions>,
     },
     #[serde(rename = "maintenance")]
     Maintenance {
