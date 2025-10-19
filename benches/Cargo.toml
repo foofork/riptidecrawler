@@ -16,6 +16,10 @@ harness = false
 name = "wasm_performance"
 harness = false
 
+[[bench]]
+name = "facade_benchmark"
+harness = false
+
 [dependencies]
 criterion = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
