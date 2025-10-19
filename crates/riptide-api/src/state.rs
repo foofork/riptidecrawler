@@ -10,7 +10,6 @@ use riptide_core::{
     cache::CacheManager,
     cache_warming::CacheWarmingConfig,
     circuit_breaker::CircuitBreakerState,
-    component::PerformanceMetrics,
     events::{EventBus, EventBusConfig, EventSeverity},
     fetch::{http_client, FetchEngine},
     pdf::PdfMetricsCollector,
@@ -25,7 +24,7 @@ use riptide_facade::{BrowserFacade, ScraperFacade};
 use riptide_headless::launcher::HeadlessLauncher;
 use riptide_monitoring::{
     AlertCondition, AlertManager, AlertRule, AlertSeverity, HealthCalculator, MetricsCollector,
-    MonitoringConfig,
+    MonitoringConfig, PerformanceMetrics,
 };
 use riptide_performance::PerformanceManager;
 use riptide_workers::{WorkerService, WorkerServiceConfig};

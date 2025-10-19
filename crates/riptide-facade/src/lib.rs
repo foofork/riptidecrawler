@@ -41,9 +41,8 @@ pub use builder::RiptideBuilder;
 pub use config::RiptideConfig;
 pub use error::{RiptideError, RiptideResult};
 pub use facades::{
-    BrowserAction, BrowserFacade, BrowserSession, Cookie, CrawlBudget, CrawlResult, FrontierStats,
-    ImageFormat, PipelineFacade, ScraperFacade, ScreenshotOptions, SearchFacade, SearchResult,
-    SpiderFacade,
+    BrowserAction, BrowserFacade, BrowserSession, Cookie, ImageFormat, PipelineFacade,
+    ScraperFacade, ScreenshotOptions,
 };
 
 /// Main entry point for the Riptide facade API.

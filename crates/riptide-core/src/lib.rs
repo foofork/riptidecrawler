@@ -610,8 +610,9 @@ pub use wasm_validation::{ComponentMetadata, TypeSignature, ValidationReport, Wi
 // Create extract module alias for backward compatibility
 pub mod extract {
     pub use crate::reliability::WasmExtractor;
+    // P2-F1: CmExtractor no longer exists after modular refactoring
     // Export the concrete implementation that can be instantiated
-    pub use crate::component::CmExtractor;
+    // pub use crate::component::CmExtractor;
 }
 
 // Add PDF conversion function for backward compatibility

@@ -1,17 +1,30 @@
 //! Intelligence facade (stub).
+//!
+//! Placeholder for future AI-powered content analysis and extraction features.
 
 use crate::config::RiptideConfig;
-use crate::error::Result;
-use crate::runtime::RiptideRuntime;
-use std::sync::Arc;
 
+/// Intelligence facade for AI-powered content analysis (not yet implemented).
+///
+/// This facade will provide:
+/// - Content summarization
+/// - Entity extraction
+/// - Sentiment analysis
+/// - Topic classification
+///
+/// Currently a stub for future implementation.
 pub struct IntelligenceFacade {
+    #[allow(dead_code)]
     config: RiptideConfig,
-    runtime: Arc<RiptideRuntime>,
 }
 
 impl IntelligenceFacade {
-    pub(crate) fn new(config: RiptideConfig, runtime: Arc<RiptideRuntime>) -> Self {
-        Self { config, runtime }
+    /// Create a new intelligence facade.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - Configuration for the facade
+    pub(crate) fn new(config: RiptideConfig) -> Self {
+        Self { config }
     }
 }

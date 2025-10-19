@@ -30,7 +30,7 @@ fn default_mode() -> String {
 }
 
 /// Extraction options
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ExtractOptions {
     /// Strategy to use (auto, css, wasm, llm, multi)
     #[serde(default = "default_strategy")]
