@@ -1,4 +1,4 @@
-use riptide_core::types::{ExtractedDoc, OutputFormat, RenderMode};
+use riptide_types::{ExtractedDoc, OutputFormat, RenderMode};
 use serde::{Deserialize, Serialize};
 
 /// Request body for enhanced render endpoint
@@ -14,10 +14,10 @@ pub struct RenderRequest {
     pub dynamic_config: Option<riptide_headless::dynamic::DynamicConfig>,
 
     /// Stealth configuration for anti-detection
-    pub stealth_config: Option<riptide_core::stealth::StealthConfig>,
+    pub stealth_config: Option<riptide_stealth::StealthConfig>,
 
     /// PDF processing configuration (for PDF URLs)
-    pub pdf_config: Option<riptide_core::pdf::PdfConfig>,
+    pub pdf_config: Option<riptide_pdf::PdfConfig>,
 
     /// Output format preference
     pub output_format: Option<OutputFormat>,
@@ -51,7 +51,7 @@ pub struct RenderResponse {
     pub content: Option<ExtractedDoc>,
 
     /// PDF processing result (if applicable)
-    pub pdf_result: Option<riptide_core::pdf::PdfProcessingResult>,
+    pub pdf_result: Option<riptide_pdf::PdfProcessingResult>,
 
     /// Dynamic rendering artifacts
     pub artifacts: Option<riptide_headless::dynamic::RenderArtifacts>,

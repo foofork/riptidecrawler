@@ -6,10 +6,8 @@ use axum::{
     extract::{Query, State},
     response::Json,
 };
-use riptide_core::{
-    strategies::{ExtractionStrategy, StrategyConfig},
-    types::CrawlOptions,
-};
+use riptide_extraction::strategies::{ExtractionStrategy, StrategyConfig};
+use riptide_types::config::CrawlOptions;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::{debug, info};

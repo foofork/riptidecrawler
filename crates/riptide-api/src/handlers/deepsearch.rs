@@ -7,7 +7,7 @@ use crate::telemetry_config::extract_trace_context;
 use crate::validation::validate_deepsearch_request;
 use axum::{extract::State, http::HeaderMap, response::IntoResponse, Json};
 use opentelemetry::trace::SpanKind;
-use riptide_core::events::{BaseEvent, EventSeverity};
+use riptide_events::{BaseEvent, EventSeverity};
 use std::time::Instant;
 use tracing::{debug, info, warn, Span};
 

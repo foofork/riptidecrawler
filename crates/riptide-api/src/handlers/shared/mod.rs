@@ -138,7 +138,7 @@ impl<'a> SpiderConfigBuilder<'a> {
     }
 
     #[allow(clippy::wrong_self_convention)] // Builder pattern - applies options to existing builder
-    pub fn from_crawl_options(self, _options: &riptide_core::types::CrawlOptions) -> Self {
+    pub fn from_crawl_options(self, _options: &riptide_types::config::CrawlOptions) -> Self {
         // Apply options to the builder
         // TODO(P1): Apply CrawlOptions to spider config
         // PLAN: Map CrawlOptions fields to SpiderConfig
@@ -156,7 +156,7 @@ impl<'a> SpiderConfigBuilder<'a> {
     }
 
     #[allow(dead_code)] // Reserved for future spider configuration
-    pub fn build(self) -> Result<riptide_core::spider::SpiderConfig, ApiError> {
-        Ok(riptide_core::spider::SpiderConfig::new(self.seed_url))
+    pub fn build(self) -> Result<riptide_spider::SpiderConfig, ApiError> {
+        Ok(riptide_spider::SpiderConfig::new(self.seed_url))
     }
 }

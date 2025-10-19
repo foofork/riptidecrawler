@@ -4,9 +4,9 @@
 
 use crate::errors::{ApiError, ApiResult};
 use crate::state::AppState;
-use riptide_core::pdf::utils as pdf_utils;
-use riptide_core::stealth::StealthController;
 use riptide_headless::dynamic::{DynamicConfig, DynamicRenderResult};
+use riptide_pdf::utils as pdf_utils;
+use riptide_stealth::StealthController;
 use tokio::time::{timeout, Duration};
 use tracing::{debug, error, warn};
 
@@ -16,11 +16,11 @@ use super::models::RenderRequest;
 pub async fn process_pdf(
     state: &AppState,
     url: &str,
-    pdf_config: Option<&riptide_core::pdf::PdfConfig>,
+    pdf_config: Option<&riptide_pdf::PdfConfig>,
 ) -> ApiResult<(
     String,
     Option<DynamicRenderResult>,
-    Option<riptide_core::pdf::PdfProcessingResult>,
+    Option<riptide_pdf::PdfProcessingResult>,
 )> {
     debug!(url = %url, "Processing as PDF");
 
@@ -53,7 +53,7 @@ pub async fn process_pdf(
     }
 
     // Process the PDF
-    let pdf_processor = riptide_core::pdf::create_pdf_processor();
+    let pdf_processor = riptide_pdf::create_pdf_processor();
     let config = pdf_config.cloned().unwrap_or_default();
 
     let pdf_result = pdf_processor
@@ -74,7 +74,7 @@ pub async fn process_dynamic(
 ) -> ApiResult<(
     String,
     Option<DynamicRenderResult>,
-    Option<riptide_core::pdf::PdfProcessingResult>,
+    Option<riptide_pdf::PdfProcessingResult>,
 )> {
     debug!(url = %url, "Processing with dynamic rendering");
 
@@ -224,7 +224,7 @@ pub async fn process_static(
 ) -> ApiResult<(
     String,
     Option<DynamicRenderResult>,
-    Option<riptide_core::pdf::PdfProcessingResult>,
+    Option<riptide_pdf::PdfProcessingResult>,
 )> {
     debug!(url = %url, "Processing with static rendering");
 
@@ -310,7 +310,7 @@ pub async fn process_adaptive(
 ) -> ApiResult<(
     String,
     Option<DynamicRenderResult>,
-    Option<riptide_core::pdf::PdfProcessingResult>,
+    Option<riptide_pdf::PdfProcessingResult>,
 )> {
     debug!(url = %url, "Processing with adaptive rendering");
 

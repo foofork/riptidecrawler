@@ -7,7 +7,6 @@ authors = ["RipTide Team"]
 description = "Advanced persistence layer for RipTide with Redis/DragonflyDB backend, multi-tenancy, and state management"
 
 [dependencies]
-riptide-core = { path = "../riptide-core" }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 bytes = { workspace = true }

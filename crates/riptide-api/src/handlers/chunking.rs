@@ -1,8 +1,8 @@
 use crate::errors::ApiResult;
-use riptide_core::types::{ChunkingConfig, ExtractedDoc};
 use riptide_extraction::chunking::{
     create_strategy, ChunkingConfig as HtmlChunkingConfig, ChunkingMode,
 };
+use riptide_types::{ChunkingConfig, ExtractedDoc};
 use tracing::{debug, info, warn};
 
 /// Apply content chunking to extracted document based on configuration.

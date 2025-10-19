@@ -144,7 +144,8 @@ The extraction code has been moved from `riptide-core` to `riptide-extraction` w
 
 ### Before (riptide-core)
 ```rust
-use riptide_core::strategies::{css_json, extraction_regex};
+// Note: Extraction strategies moved to specialized crates
+use riptide_extraction::{css_extraction, regex_extraction};
 ```
 
 ### After (riptide-extraction)
@@ -155,7 +156,8 @@ use riptide_extraction::{css_extraction, regex_extraction};
 ### Backward Compatibility
 ```rust
 // Still works - re-exported from riptide-extraction
-use riptide_core::strategies::{css_json, extraction_regex};
+// Note: Extraction strategies moved to specialized crates
+use riptide_extraction::{css_extraction, regex_extraction};
 ```
 
 ## 🧪 Testing

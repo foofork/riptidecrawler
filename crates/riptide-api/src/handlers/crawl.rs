@@ -8,8 +8,8 @@ use crate::telemetry_config::extract_trace_context;
 use crate::validation::validate_crawl_request;
 use axum::{extract::State, http::HeaderMap, Json};
 use opentelemetry::trace::SpanKind;
-use riptide_core::events::{BaseEvent, EventSeverity};
-// use riptide_core::spider::SpiderConfig; // Unused
+use riptide_events::{BaseEvent, EventSeverity};
+// use riptide_spider::SpiderConfig; // Unused
 use std::time::Instant;
 use tracing::{debug, info, warn, Span};
 
@@ -229,7 +229,7 @@ pub async fn crawl(
 pub(super) async fn handle_spider_crawl(
     state: &AppState,
     urls: &[String],
-    options: &riptide_core::types::CrawlOptions,
+    options: &riptide_types::config::CrawlOptions,
 ) -> Result<Json<CrawlResponse>, ApiError> {
     use super::shared::spider::parse_seed_urls;
 

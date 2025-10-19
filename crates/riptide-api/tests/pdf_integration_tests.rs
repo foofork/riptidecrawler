@@ -17,7 +17,7 @@ use axum::{
 };
 use base64::prelude::*;
 use futures_util::StreamExt;
-use riptide_core::pdf::types::ProgressUpdate;
+use riptide_pdf::types::ProgressUpdate;
 use serde_json::{json, Value};
 use std::{
     sync::{

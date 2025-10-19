@@ -1,4 +1,4 @@
-use riptide_core::stealth::StealthPreset;
+use riptide_stealth::StealthPreset;
 use riptide_headless::{
     launcher::{HeadlessLauncher, LauncherConfig},
     pool::{BrowserPool, BrowserPoolConfig},

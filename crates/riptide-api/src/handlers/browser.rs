@@ -174,10 +174,10 @@ pub async fn create_browser_session(
     // Parse stealth preset if provided
     let stealth_preset = if let Some(preset_str) = request.stealth_preset.as_ref() {
         match preset_str.to_lowercase().as_str() {
-            "none" => Some(riptide_core::stealth::StealthPreset::None),
-            "low" => Some(riptide_core::stealth::StealthPreset::Low),
-            "medium" => Some(riptide_core::stealth::StealthPreset::Medium),
-            "high" => Some(riptide_core::stealth::StealthPreset::High),
+            "none" => Some(riptide_stealth::StealthPreset::None),
+            "low" => Some(riptide_stealth::StealthPreset::Low),
+            "medium" => Some(riptide_stealth::StealthPreset::Medium),
+            "high" => Some(riptide_stealth::StealthPreset::High),
             _ => {
                 warn!(
                     preset = %preset_str,

@@ -4,7 +4,7 @@
 //! which provides a simplified interface via riptide-facade.
 
 use axum::{extract::State, Json};
-use riptide_core::fetch::FetchMetricsResponse;
+use riptide_fetch::FetchMetricsResponse;
 
 use crate::{errors::ApiResult, state::AppState};
 

@@ -1,13 +1,12 @@
 use crate::errors::{ApiError, ApiResult};
 use crate::state::AppState;
 use reqwest::Response;
-use riptide_core::{
-    events::{BaseEvent, EventSeverity},
-    fetch,
-    gate::{decide, score, Decision, GateFeatures},
-    pdf::{self, utils as pdf_utils},
-    types::{CrawlOptions, ExtractedDoc, RenderMode},
-};
+use riptide_events::{BaseEvent, EventSeverity};
+use riptide_fetch as fetch;
+use riptide_pdf::{self as pdf, utils as pdf_utils};
+use riptide_reliability::gate::{decide, score, Decision, GateFeatures};
+use riptide_types::config::CrawlOptions;
+use riptide_types::{ExtractedDoc, RenderMode};
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
 use tokio::time::timeout;
@@ -617,7 +616,7 @@ impl PipelineOrchestrator {
                     title = ?document.title,
                     "PDF processing completed successfully"
                 );
-                riptide_core::convert_pdf_extracted_doc(document)
+                document
             })
             .or_else(|e| {
                 error!(
@@ -736,7 +735,7 @@ impl PipelineOrchestrator {
         decision: Decision,
     ) -> ApiResult<ExtractedDoc> {
         use crate::reliability_integration::WasmExtractorAdapter;
-        use riptide_core::reliability::ExtractionMode;
+        use riptide_reliability::ExtractionMode;
 
         // Create adapter for WasmExtractor to work with ReliableExtractor (with metrics)
         let extractor_adapter = WasmExtractorAdapter::with_metrics(
@@ -766,10 +765,10 @@ impl PipelineOrchestrator {
         match result {
             Ok(doc) => {
                 // Emit reliability success event
-                let mut event = riptide_core::events::BaseEvent::new(
+                let mut event = riptide_events::BaseEvent::new(
                     "pipeline.extraction.reliable_success",
                     "pipeline_orchestrator",
-                    riptide_core::events::EventSeverity::Info,
+                    riptide_events::EventSeverity::Info,
                 );
                 event.add_metadata("url", url);
                 event.add_metadata("decision", &format!("{:?}", decision));
@@ -789,10 +788,10 @@ impl PipelineOrchestrator {
                 );
 
                 // Emit reliability failure event
-                let mut event = riptide_core::events::BaseEvent::new(
+                let mut event = riptide_events::BaseEvent::new(
                     "pipeline.extraction.reliable_failure",
                     "pipeline_orchestrator",
-                    riptide_core::events::EventSeverity::Warn,
+                    riptide_events::EventSeverity::Warn,
                 );
                 event.add_metadata("url", url);
                 event.add_metadata("error", &e.to_string());

@@ -6,18 +6,15 @@ use crate::sessions::{SessionConfig, SessionManager};
 use crate::streaming::StreamingModule;
 use anyhow::Result;
 use reqwest::Client;
-use riptide_core::{
-    cache::CacheManager,
-    cache_warming::CacheWarmingConfig,
-    circuit_breaker::CircuitBreakerState,
-    events::{EventBus, EventBusConfig, EventSeverity},
-    fetch::{http_client, FetchEngine},
-    pdf::PdfMetricsCollector,
-    reliability::{ReliabilityConfig, ReliableExtractor},
-    spider::{Spider, SpiderConfig},
-    telemetry::TelemetrySystem,
-};
+use riptide_cache::{CacheManager, CacheWarmingConfig};
+use riptide_events::{EventBus, EventBusConfig, EventSeverity};
+use riptide_fetch::{http_client, FetchEngine};
+use riptide_pdf::PdfMetricsCollector;
+use riptide_reliability::{CircuitBreakerState, ReliabilityConfig, ReliableExtractor};
+use riptide_spider::{Spider, SpiderConfig};
+// TelemetrySystem is in riptide_monitoring, not riptide_core
 use riptide_extraction::wasm_extraction::WasmExtractor;
+use riptide_monitoring::TelemetrySystem;
 // Facade types imported explicitly to avoid conflicts
 use riptide_facade::facades::ExtractionFacade;
 use riptide_facade::{BrowserFacade, ScraperFacade};
@@ -610,16 +607,15 @@ impl AppState {
             match Spider::new(spider_config).await {
                 Ok(spider_engine) => {
                     let spider_with_integrations = spider_engine
-                        .with_fetch_engine(Arc::new(riptide_core::fetch::FetchEngine::new()?))
+                        .with_fetch_engine(Arc::new(riptide_fetch::FetchEngine::new()?))
                         .with_memory_manager(Arc::new({
                             let mut wasmtime_config = wasmtime::Config::new();
                             wasmtime_config.wasm_component_model(true);
                             let engine = wasmtime::Engine::new(&wasmtime_config).map_err(|e| {
                                 anyhow::anyhow!("Failed to create wasmtime engine: {}", e)
                             })?;
-                            riptide_core::spider::memory_manager::MemoryManager::new(
-                                riptide_core::spider::memory_manager::MemoryManagerConfig::default(
-                                ),
+                            riptide_spider::memory_manager::MemoryManager::new(
+                                riptide_spider::memory_manager::MemoryManagerConfig::default(),
                                 engine,
                             )
                             .await?
@@ -667,7 +663,7 @@ impl AppState {
         let mut event_bus = EventBus::with_config(config.event_bus_config.clone());
 
         // Register event handlers
-        use riptide_core::events::handlers::{
+        use riptide_events::handlers::{
             HealthEventHandler, LoggingEventHandler, MetricsEventHandler, TelemetryEventHandler,
         };
 
@@ -798,7 +794,7 @@ impl AppState {
                 cleanup_timeout: Duration::from_secs(5),
                 ..Default::default()
             },
-            default_stealth_preset: riptide_core::stealth::StealthPreset::Medium,
+            default_stealth_preset: riptide_stealth::StealthPreset::Medium,
             enable_stealth: true,
             page_timeout: Duration::from_secs(30),
             enable_monitoring: true,
@@ -1215,7 +1211,7 @@ impl MonitoringSystem {
                             }
 
                             // Create and publish alert event to event bus
-                            use riptide_core::events::BaseEvent;
+                            use riptide_events::BaseEvent;
                             let mut base_event = BaseEvent::new(
                                 "monitoring.alert.triggered",
                                 "monitoring_system",

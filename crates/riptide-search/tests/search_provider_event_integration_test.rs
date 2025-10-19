@@ -5,7 +5,7 @@
 
 use anyhow::Result;
 use async_trait::async_trait;
-use riptide_core::events::{
+use riptide_events::{
     handlers::{HealthEventHandler, LoggingEventHandler},
     types::{MetricType, MetricsEvent, SystemEvent},
     Event, EventBus, EventBusConfig, EventEmitter, EventHandler, EventSeverity, HandlerConfig,

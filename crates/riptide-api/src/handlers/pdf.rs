@@ -7,7 +7,7 @@
 use axum::{extract::State, response::Response, Json};
 use base64::prelude::*;
 use futures_util::stream::Stream;
-use riptide_core::pdf::types::{ProgressReceiver, ProgressUpdate};
+use riptide_pdf::types::{ProgressReceiver, ProgressUpdate};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info, warn};
 
@@ -40,7 +40,7 @@ pub struct PdfProcessResponse {
     /// Processing success status
     pub success: bool,
     /// Extracted document (if successful)
-    pub document: Option<riptide_core::types::ExtractedDoc>,
+    pub document: Option<riptide_types::ExtractedDoc>,
     /// Error message (if failed)
     pub error: Option<String>,
     /// Processing statistics
@@ -145,7 +145,7 @@ pub async fn process_pdf(
     };
 
     // Create PDF integration
-    let pdf_integration = riptide_core::pdf::integration::create_pdf_integration_for_pipeline();
+    let pdf_integration = riptide_pdf::integration::create_pdf_integration_for_pipeline();
 
     // Check if file is actually a PDF
     if !pdf_integration.should_process_as_pdf(None, None, Some(&pdf_data)) {
@@ -232,7 +232,7 @@ pub async fn process_pdf(
 
             Ok(Json(PdfProcessResponse {
                 success: true,
-                document: Some(riptide_core::convert_pdf_extracted_doc(document)),
+                document: Some(document),
                 error: None,
                 stats,
             }))
@@ -275,7 +275,7 @@ pub async fn process_pdf_stream(
     }
 
     // Create PDF integration and progress channel
-    let pdf_integration = riptide_core::pdf::integration::create_pdf_integration_for_pipeline();
+    let pdf_integration = riptide_pdf::integration::create_pdf_integration_for_pipeline();
     let (progress_sender, progress_receiver) = pdf_integration.create_progress_channel();
 
     // Check if file is actually a PDF
@@ -498,7 +498,7 @@ mod tests {
 
     #[test]
     fn test_enhanced_progress_update_serialization() {
-        use riptide_core::pdf::types::*;
+        use riptide_pdf::types::*;
 
         let update = EnhancedProgressUpdate {
             update: ProgressUpdate::Progress(ProcessingProgress {

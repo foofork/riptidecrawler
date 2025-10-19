@@ -37,7 +37,7 @@ use axum::{
     Router,
 };
 use clap::Parser;
-use riptide_core::telemetry::TelemetrySystem;
+use riptide_monitoring::TelemetrySystem;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;

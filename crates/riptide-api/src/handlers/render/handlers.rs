@@ -5,7 +5,7 @@ use crate::resource_manager::{RenderResourceGuard, ResourceResult};
 use crate::sessions::middleware::SessionContext;
 use crate::state::AppState;
 use axum::{extract::State, response::IntoResponse, Json};
-use riptide_core::stealth::StealthController;
+use riptide_stealth::StealthController;
 use std::time::Instant;
 use tracing::{debug, error, info, warn};
 
@@ -192,11 +192,11 @@ async fn render_with_resources(
 
     // Determine processing path based on content type and mode
     let (final_url, render_result, pdf_result) = match &mode {
-        riptide_core::types::RenderMode::Pdf => {
+        riptide_types::RenderMode::Pdf => {
             // Handle PDF processing (no stealth support)
             process_pdf(&state, &url, body.pdf_config.as_ref()).await?
         }
-        riptide_core::types::RenderMode::Dynamic => {
+        riptide_types::RenderMode::Dynamic => {
             // Force dynamic rendering with stealth
             let mut stealth_controller = body.stealth_config.as_ref().map(|config| {
                 stealth_applied.push("user_agent_rotation".to_string());
@@ -214,7 +214,7 @@ async fn render_with_resources(
             )
             .await?
         }
-        riptide_core::types::RenderMode::Static => {
+        riptide_types::RenderMode::Static => {
             // Force static processing with stealth
             let mut stealth_controller = body.stealth_config.as_ref().map(|config| {
                 stealth_applied.push("user_agent_rotation".to_string());
@@ -230,7 +230,7 @@ async fn render_with_resources(
             )
             .await?
         }
-        riptide_core::types::RenderMode::Adaptive => {
+        riptide_types::RenderMode::Adaptive => {
             // Adaptive processing with stealth
             let mut stealth_controller = body.stealth_config.as_ref().map(|config| {
                 stealth_applied.push("user_agent_rotation".to_string());
@@ -247,7 +247,7 @@ async fn render_with_resources(
             )
             .await?
         }
-        riptide_core::types::RenderMode::Html => {
+        riptide_types::RenderMode::Html => {
             // HTML output mode with stealth
             let mut stealth_controller = body.stealth_config.as_ref().map(|config| {
                 stealth_applied.push("user_agent_rotation".to_string());
@@ -263,7 +263,7 @@ async fn render_with_resources(
             )
             .await?
         }
-        riptide_core::types::RenderMode::Markdown => {
+        riptide_types::RenderMode::Markdown => {
             // Markdown output mode with stealth
             let mut stealth_controller = body.stealth_config.as_ref().map(|config| {
                 stealth_applied.push("user_agent_rotation".to_string());

@@ -43,7 +43,7 @@ impl RpcClient {
         &self,
         url: &str,
         config: &DynamicConfig,
-        stealth_config: Option<&riptide_core::stealth::StealthConfig>,
+        stealth_config: Option<&riptide_stealth::StealthConfig>,
     ) -> Result<DynamicRenderResult> {
         let start_time = Instant::now();
 
@@ -160,7 +160,7 @@ struct HeadlessRenderRequest {
     actions: Option<Vec<HeadlessPageAction>>,
     timeouts: Option<HeadlessTimeouts>,
     artifacts: Option<HeadlessArtifacts>,
-    stealth_config: Option<riptide_core::stealth::StealthConfig>,
+    stealth_config: Option<riptide_stealth::StealthConfig>,
 }
 
 /// Timeout configuration for headless browser

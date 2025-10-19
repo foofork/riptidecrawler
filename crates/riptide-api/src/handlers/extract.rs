@@ -4,8 +4,8 @@
 //! the multi-strategy extraction pipeline and riptide-facade.
 
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use riptide_core::strategies::StrategyConfig;
-use riptide_core::types::CrawlOptions;
+use riptide_extraction::strategies::StrategyConfig;
+use riptide_types::config::CrawlOptions;
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
 
@@ -128,17 +128,17 @@ pub async fn extract(
 
     // Parse extraction strategy from user input
     let extraction_strategy = match payload.options.strategy.to_lowercase().as_str() {
-        "css" => riptide_core::strategies::ExtractionStrategy::Css,
-        "regex" => riptide_core::strategies::ExtractionStrategy::Regex,
-        "auto" => riptide_core::strategies::ExtractionStrategy::Auto,
-        "wasm" => riptide_core::strategies::ExtractionStrategy::Wasm,
-        "multi" => riptide_core::strategies::ExtractionStrategy::Auto, // Map multi to auto
+        "css" => riptide_extraction::ExtractionStrategy::Css,
+        "regex" => riptide_extraction::ExtractionStrategy::Regex,
+        "auto" => riptide_extraction::ExtractionStrategy::Auto,
+        "wasm" => riptide_extraction::ExtractionStrategy::Wasm,
+        "multi" => riptide_extraction::ExtractionStrategy::Auto, // Map multi to auto
         _ => {
             tracing::warn!(
                 strategy = %payload.options.strategy,
                 "Unknown strategy, defaulting to Auto"
             );
-            riptide_core::strategies::ExtractionStrategy::Auto
+            riptide_extraction::ExtractionStrategy::Auto
         }
     };
 

@@ -254,10 +254,10 @@ pub mod telemetry_integration {
     /// Record command metrics to OpenTelemetry if available
     pub async fn record_to_telemetry(
         metrics: &CommandMetrics,
-        _telemetry: Option<&riptide_core::telemetry::TelemetrySystem>,
+        _telemetry: Option<&()>, // TODO: Replace with riptide-monitoring::TelemetrySystem when needed
     ) -> Result<()> {
-        // Integration with riptide-core telemetry system
-        // This would be implemented when integrating with the core telemetry
+        // P2-F1 Day 4-5: Removed riptide-core dependency
+        // Integration with riptide-monitoring telemetry system (to be implemented)
 
         if let Some(duration_ms) = metrics.duration_ms {
             tracing::info!(

@@ -57,8 +57,9 @@ tracing.workspace = true
 # System checks
 num_cpus = "1.16"
 
-# Core integration for telemetry
-riptide-core = { path = "../riptide-core" }
+# P2-F1 Day 4-5: Migrated from riptide-core to specific crates
+riptide-types = { path = "../riptide-types" }
+riptide-monitoring = { path = "../riptide-monitoring" }
 
 # Phase 4 P0 Optimizations
 sha2 = "0.10"

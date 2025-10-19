@@ -2,7 +2,7 @@ use axum_prometheus::{metrics_exporter_prometheus::PrometheusHandle, PrometheusM
 use prometheus::{
     Counter, Gauge, GaugeVec, Histogram, HistogramOpts, HistogramVec, IntCounterVec, Opts, Registry,
 };
-use riptide_core::pdf::PdfMetricsCollector;
+use riptide_pdf::PdfMetricsCollector;
 use std::collections::HashMap;
 use std::time::Instant;
 use tracing::{info, warn};

@@ -1,15 +1,14 @@
 use crate::errors::{ApiError, ApiResult};
 use crate::state::AppState;
 use reqwest::Response;
-use riptide_core::{
-    fetch,
-    gate::{decide, score, Decision, GateFeatures},
-    pdf::{self, utils as pdf_utils},
-    strategies::{
-        ExtractionStrategy, PerformanceMetrics, ProcessedContent, StrategyConfig, StrategyManager,
-    },
-    types::{CrawlOptions, RenderMode},
+use riptide_extraction::strategies::{
+    ExtractionStrategy, PerformanceMetrics, ProcessedContent, StrategyConfig, StrategyManager,
 };
+use riptide_fetch as fetch;
+use riptide_pdf::{self as pdf, utils as pdf_utils};
+use riptide_reliability::gate::{decide, score, Decision, GateFeatures};
+use riptide_types::config::CrawlOptions;
+use riptide_types::RenderMode;
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
 use tokio::time::timeout;
@@ -480,7 +479,7 @@ impl StrategiesPipelineOrchestrator {
 
     /// Generate cache key with strategy config using deterministic builder
     fn generate_cache_key(&self, url: &str) -> String {
-        use riptide_core::cache_key::CacheKeyBuilder;
+        use riptide_cache::CacheKeyBuilder;
         use std::collections::BTreeMap;
 
         // Build deterministic options map

@@ -4,11 +4,11 @@
 //! and riptide-extraction's WasmExtractor, implementing the trait adapter pattern.
 
 use anyhow::Result;
-use riptide_core::{
-    reliability::{ReliabilityMetricsRecorder, WasmExtractor as WasmExtractorTrait},
-    types::ExtractedDoc,
-};
 use riptide_extraction::wasm_extraction::WasmExtractor as ConcreteWasmExtractor;
+use riptide_reliability::reliability::{
+    ReliabilityMetricsRecorder, WasmExtractor as WasmExtractorTrait,
+};
+use riptide_types::ExtractedDoc;
 use std::sync::Arc;
 use std::time::Instant;
 

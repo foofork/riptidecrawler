@@ -3,7 +3,7 @@ use crate::metrics::ErrorType;
 use crate::models::*;
 use crate::state::AppState;
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use riptide_core::spider::{CrawlingStrategy, ScoringConfig, SpiderConfig};
+use riptide_spider::{CrawlingStrategy, ScoringConfig, SpiderConfig};
 use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
 
@@ -95,7 +95,7 @@ pub async fn spider_crawl(
                 CrawlingStrategy::BreadthFirst
             }
         };
-        spider_config.strategy = riptide_core::spider::types::StrategyConfig {
+        spider_config.strategy = riptide_spider::types::StrategyConfig {
             default_strategy: "breadth_first".to_string(),
             scoring: ScoringConfig::default(),
             enable_adaptive: true,

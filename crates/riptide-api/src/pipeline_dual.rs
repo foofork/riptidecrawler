@@ -13,10 +13,8 @@
 use crate::errors::{ApiError, ApiResult};
 use crate::state::AppState;
 use anyhow::Result;
-use riptide_core::{
-    events::{CrawlEvent, CrawlOperation, EventBus, EventEmitter, ExtractionMode},
-    types::{CrawlOptions, ExtractedDoc},
-};
+use riptide_events::{CrawlEvent, CrawlOperation, EventBus, EventEmitter, ExtractionMode};
+use riptide_types::{CrawlOptions, ExtractedDoc};
 use riptide_intelligence::{AiProcessorConfig, AiTask, BackgroundAiProcessor, TaskPriority};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -270,8 +268,8 @@ impl DualPathOrchestrator {
 
     /// Fetch content for a URL
     async fn fetch_content(&self, url: &str) -> ApiResult<String> {
-        // Use existing fetch logic from riptide-core
-        use riptide_core::fetch::FetchEngine;
+        // Use existing fetch logic from riptide-fetch
+        use riptide_fetch::FetchEngine;
 
         let fetch_engine = FetchEngine::new()
             .map_err(|e| ApiError::internal(format!("Failed to create fetch engine: {}", e)))?;

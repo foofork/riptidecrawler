@@ -80,7 +80,7 @@ use riptide_headless::{
     launcher::{HeadlessLauncher, LauncherConfig},
     pool::BrowserPoolConfig,
 };
-use riptide_core::stealth::StealthPreset;
+use riptide_stealth::StealthPreset;
 use std::time::Duration;
 
 #[tokio::main]
@@ -312,7 +312,7 @@ export RUST_LOG=info
 ### Using Stealth Presets
 
 ```rust
-use riptide_core::stealth::StealthPreset;
+use riptide_stealth::StealthPreset;
 
 // No stealth (for debugging)
 let session = launcher.launch_page(
@@ -336,7 +336,7 @@ let session = launcher.launch_page(
 ### Custom Stealth Configuration
 
 ```rust
-use riptide_core::stealth::StealthController;
+use riptide_stealth::StealthController;
 
 let mut stealth = StealthController::from_preset(StealthPreset::Medium);
 

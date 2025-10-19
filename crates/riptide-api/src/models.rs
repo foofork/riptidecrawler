@@ -1,6 +1,7 @@
 use crate::state::DependencyHealth;
-use riptide_core::spider::{CrawlState, PerformanceMetrics};
-pub use riptide_core::types::{CrawlOptions, ExtractedDoc};
+use riptide_spider::{CrawlState, PerformanceMetrics};
+pub use riptide_types::config::CrawlOptions;
+pub use riptide_types::ExtractedDoc;
 use serde::{Deserialize, Serialize};
 
 /// Request body for crawling multiple URLs
@@ -373,10 +374,10 @@ pub struct SpiderStatusResponse {
     pub performance: Option<PerformanceMetrics>,
 
     /// Frontier statistics
-    pub frontier_stats: Option<riptide_core::spider::types::FrontierMetrics>,
+    pub frontier_stats: Option<riptide_spider::types::FrontierMetrics>,
 
     /// Adaptive stop statistics
-    pub adaptive_stop_stats: Option<riptide_core::spider::adaptive_stop::AdaptiveStopStats>,
+    pub adaptive_stop_stats: Option<riptide_spider::adaptive_stop::AdaptiveStopStats>,
 }
 
 /// Request body for spider control operations

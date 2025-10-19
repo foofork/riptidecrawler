@@ -26,7 +26,7 @@ pub fn pdf_routes() -> Router<AppState> {
 
 /// PDF processing health check endpoint
 async fn pdf_health_check() -> axum::response::Json<serde_json::Value> {
-    use riptide_core::pdf::integration::create_pdf_integration_for_pipeline;
+    use riptide_pdf::integration::create_pdf_integration_for_pipeline;
 
     let integration = create_pdf_integration_for_pipeline();
     let available = integration.is_available();

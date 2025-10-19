@@ -1,10 +1,10 @@
 use crate::errors::ApiResult;
-use riptide_core::types::{
-    ExtractedDoc as CoreExtractedDoc, ExtractionMode, ExtractionStats, OutputFormat,
-};
 use riptide_extraction::wasm_extraction::WasmExtractor;
 use riptide_headless::dynamic::DynamicRenderResult;
 use riptide_types::ExtractedDoc;
+use riptide_types::{
+    ExtractedDoc as CoreExtractedDoc, ExtractionMode, ExtractionStats, OutputFormat,
+};
 use std::sync::Arc;
 use std::time::Instant;
 use tracing::{debug, info, warn};
