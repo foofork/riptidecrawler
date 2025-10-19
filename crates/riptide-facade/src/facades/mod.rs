@@ -8,6 +8,8 @@ pub mod extractor;
 pub mod intelligence;
 pub mod pipeline;
 pub mod scraper;
+pub mod search;
+pub mod spider;
 
 pub use browser::{
     BrowserAction, BrowserFacade, BrowserSession, Cookie, ImageFormat, ScreenshotOptions,
@@ -18,3 +20,5 @@ pub use extractor::{
 };
 pub use pipeline::PipelineFacade;
 pub use scraper::ScraperFacade;
+pub use search::SearchFacade;
+pub use spider::{CrawlSummary, SpiderFacade, SpiderPreset};
