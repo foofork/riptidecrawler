@@ -7,8 +7,8 @@ use crate::queue::{JobQueue, QueueConfig};
 use crate::scheduler::{JobScheduler, ScheduledJob, SchedulerConfig};
 use crate::worker::{WorkerConfig, WorkerPool};
 use anyhow::{Context, Result};
-// use riptide_core::extract::WasmExtractor;
-use riptide_core::cache::CacheManager;
+// use riptide_reliability::WasmExtractor;
+use riptide_cache::redis::CacheManager;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::{error, info, warn};
@@ -309,11 +309,11 @@ impl WorkerService {
             .context("Failed to create HTTP client")?;
 
         // Initialize WASM extractor
-        use riptide_core::component::ExtractorConfig;
-        use riptide_core::extract::CmExtractor;
+        use riptide_reliability::CmExtractor;
+        use riptide_types::component::ExtractorConfig;
         let extractor_config = ExtractorConfig::default();
         let extractor = CmExtractor::new(extractor_config);
-        let extractor = Arc::new(extractor) as Arc<dyn riptide_core::extract::WasmExtractor>;
+        let extractor = Arc::new(extractor) as Arc<dyn riptide_reliability::WasmExtractor>;
 
         // Initialize cache manager
         let cache_manager = CacheManager::new(&self.config.redis_url)

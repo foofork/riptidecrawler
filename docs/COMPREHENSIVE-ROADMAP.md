@@ -3,7 +3,7 @@
 **Status:** Phase 1 - 92.5% Complete (23.5/24 items - P1-B4 not started, P1-C1 validation incomplete)
 **Source:** Systematic extraction and modularization - P1-A3 100% ✅, P1-A4 100% ✅, P1-B 83% ⚙️, P1-C1 90% ⚙️
 **Latest Achievement:** API/CLI integration complete - Build PASSING (commit: be2b6eb)
-**Current Focus:** Complete P1-B4 CDP multiplexing + P1-C1 performance validation → Phase 2 preparation
+**Current Focus:** riptide-core elimination and facade updates
 **Previous Session:** swarm-1760775331103-nzrxrs7r4 (4-agent hive mind)
 **Architect Session:** System Architect final roadmap coordination
 
@@ -28,84 +28,22 @@ This roadmap consolidates all outstanding issues identified across multiple hive
 - Core reduced 44K → 5.6K lines (-87%) via 10 crate extractions
 - 27-crate modular architecture, facade pattern (83 tests)
 - Git: `1525d95` (facades), `08f06fe` (phase 2D)
-  - ✅ riptide-spider created and compiling (12K lines)
-  - ✅ riptide-fetch created (2.4K lines)
-  - ✅ riptide-security created (4.7K lines)
-  - ✅ riptide-monitoring created (2.5K lines)
-  - ✅ **riptide-events created (2,322 lines) - Phase 2A ✅**
-  - ✅ **riptide-pool created (4,015 lines) - Phase 2B ✅**
-  - ✅ **riptide-cache consolidated (2,733 lines) - Phase 2C ✅**
-  - ✅ **Final extractions complete - Phase 2D ✅**
-  - ✅ Core reduced 44K → **5.6K lines (-87%, -38.4K lines)** 🚀
-  - ✅ **All Phase 2 work complete** (2A: events, 2B: pool, 2C: cache, 2D: final)
-  - ✅ **9/9 pool tests passing** (modernized test suite)
-  - ✅ **6 clippy warnings resolved** in pool extraction
-- ✅ **P1-A4: riptide-facade composition layer (100% COMPLETE)** 🎉
-  - ✅ **Comprehensive design document** (15 sections)
-  - ✅ **Phase 1 implementation complete** (foundation + ScraperFacade)
-  - ✅ **Phase 2 implementation complete** (Browser, Extraction, Pipeline facades)
-  - ✅ **Builder pattern with fluent API** (8 tests passing)
-  - ✅ **Configuration system** (3 tests passing)
-  - ✅ **Error handling** (20+ error variants)
-  - ✅ **ScraperFacade** (3 tests + 10 integration tests)
-  - ✅ **BrowserFacade, ExtractionFacade, ScraperFacade** integrated into riptide-api
-  - ✅ **AppState updated** with facade composition
-  - ✅ **API handlers migrated** (browser.rs, extract.rs, fetch.rs)
-  - ✅ **83 total tests** (60 unit + 23 integration: 6 active + 17 scaffolded)
-  - ✅ **Clippy clean** (0 warnings)
-  - ✅ **Completion Date:** 2025-10-18
-  - ✅ **Git Commit:** `1525d95` - Phase 2 facades complete
 
-**P1-B: Performance Optimization (100% Complete)** ✅
-- ✅ P1-B1: Browser pool scaling (max 5→20, +300% capacity)
-- ✅ P1-B2: Tiered health checks (fast/full/error modes)
-- ✅ P1-B3: Memory pressure management (400MB soft, 500MB hard limits)
-- ✅ **P1-B4: CDP connection multiplexing** (100% COMPLETE) **NEW 2025-10-18**
-  - ✅ Configuration validation (30 tests passing)
-  - ✅ Connection pooling with 70%+ reuse rate
-  - ✅ Command batching (-50% CDP calls)
-  - ✅ Wait queue with priority support
-  - ✅ Session affinity routing
-  - ✅ Performance metrics (P50, P95, P99)
-- ✅ P1-B5: CDP batch operations
-- ✅ P1-B6: Stealth integration improvements
+**P1-B: Performance Optimization** ⚙️ 83% (5/6)
+- ✅ Browser pool: 5→20 max (+300% capacity), tiered health checks, memory limits
+- ✅ Stealth integration, CDP batch operations
+- 🔴 **P1-B4 CDP multiplexing NOT started** (3 days - moved to P2)
 
-**P1-C: Spider-Chrome Integration (25% Complete - +5% Week 2 Day 8-10 API/CLI Integration)**
-- ⚙️ P1-C1: Preparation (85% - Week 2 Day 8-10 at 90%, validation pending) **UPDATED 2025-10-19**
-  - ✅ spider_chrome added to workspace
-  - ✅ **riptide-headless-hybrid crate created**
-  - ✅ **HybridHeadlessLauncher full implementation** - 543 lines
-  - ✅ **StealthMiddleware complete** - 243 lines
-  - ✅ **Feature flags: spider-chrome, stealth**
-  - ✅ **Foundation tests passing (5 tests)**
-  - ✅ **CDP conflict analysis documented**
-  - ✅ **CDP workspace unification COMPLETE** - chromiumoxide API aligned
-  - ✅ **Import migration complete** - chromiumoxide::{Browser, Page}
-  - ✅ **Type conflicts resolved** - All 14 API compatibility errors fixed
-  - ✅ **Blocker resolved:** P1-B4 CDP multiplexing now unblocked
-  - ✅ **Week 1 COMPLETE** - Core launcher, stealth, sessions implemented
-  - ✅ **Week 2 Day 6-7 COMPLETE** - BrowserFacade HybridHeadlessLauncher integration
-    - ✅ **BrowserFacade migrated** to HybridHeadlessLauncher
-    - ✅ **Stealth enabled by default** (Medium preset)
-    - ✅ **38/38 facade tests passing** (6 new P1-C1 tests added)
-    - ✅ **Configuration extended** with stealth_enabled, stealth_preset
-    - ✅ **100% backward compatible** - No breaking changes
-    - ✅ **Git Commit:** `507e28e` - P1-C1 Week 2 Day 6-7 facade integration
-  - ✅ **Week 2 Day 8-10 COMPLETE** - API/CLI integration (100% complete) **COMPLETED 2025-10-19**
-    - ✅ **Import path fixes** - Updated 12 files for facade/dynamic module reorganization
-    - ✅ **Stealth API handler** - Full implementation with 8 stealth features
-    - ✅ **Facade integration** - BrowserFacade, ExtractionFacade, ScraperFacade initialized
-    - ✅ **Documentation complete** - 100% crate coverage achieved
-    - ✅ **Hive mind coordination** - 5-agent parallel execution (researcher, coder, tester, analyst, architect)
-    - ✅ **Build PASSING** - cargo check --workspace: 0 errors, 115 warnings (3m 44s)
-    - ✅ **Compilation success** - All 24 crates compiling successfully
-    - ✅ **Git Commits:**
-      - `be2b6eb` - P1-C1 Week 2 Day 8-10 API/CLI integration
-      - `afebf35` - Documentation organization complete
-  - ⚙️ Week 2 Final Validation: Performance benchmarks + comprehensive testing (remaining 1.5%)
-- 🔴 P1-C2: Migration (0% - 3 weeks work)
-- 🔴 P1-C3: Cleanup (0% - 2 weeks work)
-- 🔴 P1-C4: Validation (0% - 1 week work)
+**P1-C1: Spider-Chrome Hybrid Foundation** ⚙️ 90%
+- ✅ HybridHeadlessLauncher (543L), StealthMiddleware (243L), BrowserFacade integration
+- ✅ API/CLI stealth handlers, 100% documentation, Build PASSING (0 errors, 115 warnings)
+- ✅ Git: `be2b6eb` (API/CLI), `afebf35` (docs)
+- ⚙️ **Performance validation incomplete** (0.5-1 day remaining):
+  - 🔴 Run facade benchmarks (65+ ready)
+  - 🔴 Execute comprehensive test suite
+  - 🔴 Validate performance targets (P50/P95/P99)
+  - 🔴 Document results, fix test failures
+- 🔴 **P1-C2-C4:** Full migration moved to Phase 2
 
 ### Overall P1 Progress
 - **Architecture:** 100% (4/4 items complete, **A3 100% ✅**, **A4 100% ✅**) 🎉

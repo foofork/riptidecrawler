@@ -271,16 +271,16 @@ pub struct SingleCrawlProcessor {
     /// HTTP client for making requests
     http_client: reqwest::Client,
     /// WASM extractor for content processing
-    extractor: Arc<dyn riptide_core::extract::WasmExtractor>,
+    extractor: Arc<dyn riptide_reliability::WasmExtractor>,
     /// Cache manager for storing results
-    cache: Arc<tokio::sync::Mutex<riptide_core::cache::CacheManager>>,
+    cache: Arc<tokio::sync::Mutex<riptide_cache::redis::CacheManager>>,
 }
 
 impl SingleCrawlProcessor {
     pub fn new(
         http_client: reqwest::Client,
-        extractor: Arc<dyn riptide_core::extract::WasmExtractor>,
-        cache: Arc<tokio::sync::Mutex<riptide_core::cache::CacheManager>>,
+        extractor: Arc<dyn riptide_reliability::WasmExtractor>,
+        cache: Arc<tokio::sync::Mutex<riptide_cache::redis::CacheManager>>,
     ) -> Self {
         Self {
             http_client,
@@ -498,9 +498,9 @@ pub struct CustomJobResult {
 /// PDF processor for handling PDF extraction jobs
 pub struct PdfProcessor {
     /// PDF pipeline integration for processing
-    pdf_pipeline: Arc<riptide_core::pdf::PdfPipelineIntegration>,
+    pdf_pipeline: Arc<riptide_pdf::PdfPipelineIntegration>,
     /// Default PDF configuration
-    default_config: riptide_core::pdf::PdfConfig,
+    default_config: riptide_pdf::PdfConfig,
     /// Maximum concurrent PDF processing operations
     #[allow(dead_code)]
     max_concurrent: usize,
@@ -509,7 +509,7 @@ pub struct PdfProcessor {
 impl PdfProcessor {
     /// Create a new PDF processor
     pub fn new() -> Self {
-        let default_config = riptide_core::pdf::PdfConfig {
+        let default_config = riptide_pdf::PdfConfig {
             extract_text: true,
             extract_images: false,
             extract_metadata: true,
@@ -518,7 +518,7 @@ impl PdfProcessor {
         };
 
         Self {
-            pdf_pipeline: Arc::new(riptide_core::pdf::PdfPipelineIntegration::with_config(
+            pdf_pipeline: Arc::new(riptide_pdf::PdfPipelineIntegration::with_config(
                 default_config.clone(),
             )),
             default_config,
@@ -527,9 +527,9 @@ impl PdfProcessor {
     }
 
     /// Create PDF processor with custom configuration
-    pub fn with_config(config: riptide_core::pdf::PdfConfig) -> Self {
+    pub fn with_config(config: riptide_pdf::PdfConfig) -> Self {
         Self {
-            pdf_pipeline: Arc::new(riptide_core::pdf::PdfPipelineIntegration::with_config(
+            pdf_pipeline: Arc::new(riptide_pdf::PdfPipelineIntegration::with_config(
                 config.clone(),
             )),
             default_config: config,
@@ -538,10 +538,7 @@ impl PdfProcessor {
     }
 
     /// Convert PDF extraction options to PDF config
-    fn create_pdf_config(
-        &self,
-        options: &Option<PdfExtractionOptions>,
-    ) -> riptide_core::pdf::PdfConfig {
+    fn create_pdf_config(&self, options: &Option<PdfExtractionOptions>) -> riptide_pdf::PdfConfig {
         match options {
             Some(opts) => {
                 let mut config = self.default_config.clone();
@@ -584,13 +581,12 @@ impl PdfProcessor {
         &self,
         pdf_data: &[u8],
         url: Option<&str>,
-        _config: &riptide_core::pdf::PdfConfig,
+        _config: &riptide_pdf::PdfConfig,
         enable_progress: bool,
     ) -> Result<ExtractedDoc> {
         if enable_progress {
             // Create progress channel for tracking using the correct type
-            let (progress_tx, mut progress_rx) =
-                riptide_core::pdf::types::create_progress_channel();
+            let (progress_tx, mut progress_rx) = riptide_pdf::types::create_progress_channel();
 
             // Spawn progress monitoring task
             let progress_task = tokio::spawn(async move {
@@ -609,7 +605,7 @@ impl PdfProcessor {
             // Wait for progress monitoring to complete
             progress_task.abort();
 
-            Ok(riptide_core::convert_pdf_extracted_doc(result))
+            Ok(riptide_pdf::convert_pdf_extracted_doc(result))
         } else {
             // Process without progress tracking
             let result = self
@@ -617,7 +613,7 @@ impl PdfProcessor {
                 .process_pdf_to_extracted_doc(pdf_data, url)
                 .await
                 .context("Failed to process PDF")?;
-            Ok(riptide_core::convert_pdf_extracted_doc(result))
+            Ok(riptide_pdf::convert_pdf_extracted_doc(result))
         }
     }
 
@@ -803,9 +799,9 @@ pub struct PdfExtractionStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use riptide_core::cache::CacheManager;
-    use riptide_core::types::ExtractedDoc;
+    use riptide_cache::redis::CacheManager;
     use riptide_reliability::WasmExtractor;
+    use riptide_types::ExtractedDoc;
 
     /// Simple mock extractor for testing processor metadata
     struct MockWasmExtractor;
