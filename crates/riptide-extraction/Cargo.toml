@@ -50,7 +50,7 @@ wit-bindgen = "0.16"
 [dev-dependencies]
 tokio-test = "0.4"
 tempfile.workspace = true
-riptide-core = { path = "../riptide-core" }
+# P2-F1 Day 6: riptide-core eliminated - functionality distributed to specialized crates
 futures.workspace = true
 
 [features]
