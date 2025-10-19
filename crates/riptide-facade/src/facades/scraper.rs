@@ -67,9 +67,10 @@ impl ScraperFacade {
         let url_str = url.as_ref();
 
         // Validate URL
-        let _ = Url::parse(url_str)?;
+        let _ = Url::parse(url_str)
+            .map_err(|e| RiptideError::InvalidUrl(format!("Invalid URL '{}': {}", url_str, e)))?;
 
-        // Fetch as text
+        // Fetch as text with timeout enforcement
         self.client
             .fetch_text(url_str)
             .await
