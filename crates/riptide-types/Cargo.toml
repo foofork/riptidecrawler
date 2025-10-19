@@ -26,6 +26,9 @@ chrono = { workspace = true }
 # UUID support
 uuid = { workspace = true }
 
+# Cryptographic hashing for ETags
+sha2 = "0.10"
+
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }
 

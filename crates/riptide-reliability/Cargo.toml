@@ -1,0 +1,43 @@
+[package]
+name = "riptide-reliability"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+authors = ["Riptide Team"]
+description = "Reliability patterns for Riptide: circuit breakers, gates, and fault tolerance"
+
+[dependencies]
+# Internal dependencies
+riptide-types = { path = "../riptide-types" }
+riptide-monitoring = { path = "../riptide-monitoring", optional = true }
+riptide-events = { path = "../riptide-events", optional = true }
+riptide-pool = { path = "../riptide-pool", optional = true }
+
+# Core dependencies
+tokio = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+
+# HTTP client
+reqwest = { workspace = true }
+
+# UUID for request tracking
+uuid = { workspace = true }
+
+# Specific dependencies for reliability patterns
+chrono = { workspace = true }
+
+[dev-dependencies]
+tokio-test = "0.4"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[features]
+default = []
+# Enable event bus integration for circuit breaker notifications
+events = ["riptide-events", "riptide-pool"]
+# Enable monitoring integration for metrics
+monitoring = ["riptide-monitoring"]
+# Enable full integration with all optional features
+full = ["events", "monitoring"]

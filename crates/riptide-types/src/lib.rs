@@ -9,6 +9,8 @@
 //! - Type aliases for common patterns
 
 // Public modules
+pub mod component;
+pub mod conditional;
 pub mod config;
 pub mod errors;
 pub mod extracted;
@@ -16,6 +18,11 @@ pub mod traits;
 pub mod types;
 
 // Re-export commonly used types at the crate root
+pub use component::{ComponentId, ComponentMeta};
+pub use conditional::{
+    format_http_date, generate_etag, generate_weak_etag, parse_http_date, validate_cache,
+    CacheValidation, ConditionalRequest, ConditionalResponse,
+};
 pub use config::{ChunkingConfig, ExtractionMode, OutputFormat, RenderMode, TopicChunkingConfig};
 pub use errors::{Result, RiptideError};
 pub use extracted::{
