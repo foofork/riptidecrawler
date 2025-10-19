@@ -84,7 +84,7 @@ pub async fn process_pdf(
         ApiError::validation(format!("Invalid base64 PDF data: {}", e))
     })?;
 
-    let (pdf_data, filename, url) = (decoded_data, request.filename, request.url);
+    let (pdf_data, filename, _url) = (decoded_data, request.filename, request.url);
 
     debug!(
         file_size = pdf_data.len(),
@@ -144,15 +144,6 @@ pub async fn process_pdf(
         }
     };
 
-    // Create PDF integration
-    let pdf_integration = riptide_pdf::integration::create_pdf_integration_for_pipeline();
-
-    // Check if file is actually a PDF
-    if !pdf_integration.should_process_as_pdf(None, None, Some(&pdf_data)) {
-        state.metrics.record_error(ErrorType::Http);
-        return Err(ApiError::validation("File does not appear to be a PDF"));
-    }
-
     // Determine timeout duration (allow per-request override)
     let pdf_timeout = if let Some(timeout_secs) = request.timeout {
         std::time::Duration::from_secs(timeout_secs)
@@ -160,11 +151,19 @@ pub async fn process_pdf(
         state.api_config.get_timeout("pdf")
     };
 
-    // Process the PDF with timeout
+    // Use ExtractionFacade for PDF processing
     let processing_start = std::time::Instant::now();
+
+    let pdf_options = riptide_facade::facades::PdfExtractionOptions {
+        extract_text: true,
+        extract_metadata: true,
+        extract_images: false,
+        include_page_numbers: true,
+    };
+
     let pdf_result = tokio::time::timeout(
         pdf_timeout,
-        pdf_integration.process_pdf_to_extracted_doc(&pdf_data, url.as_deref()),
+        state.extraction_facade.extract_pdf(&pdf_data, pdf_options),
     )
     .await;
 
@@ -192,13 +191,14 @@ pub async fn process_pdf(
             );
             Err(ApiError::internal(format!("PDF processing failed: {}", e)))
         }
-        Ok(Ok(document)) => {
+        Ok(Ok(extracted)) => {
             let processing_time = processing_start.elapsed();
             let total_time = start_time.elapsed();
 
-            // Calculate processing rate
+            // Calculate processing rate based on word count
+            let word_count = extracted.text.split_whitespace().count();
             let pages_per_second = if processing_time.as_secs() > 0 {
-                document.word_count.unwrap_or(0) as f64 / processing_time.as_secs_f64()
+                word_count as f64 / processing_time.as_secs_f64()
             } else {
                 0.0
             };
@@ -211,14 +211,30 @@ pub async fn process_pdf(
                 total_time.as_secs_f64(),
             );
 
-            // Get metrics from PDF integration
-            let pdf_metrics = pdf_integration.get_metrics_snapshot();
+            // Create ExtractedDoc from facade result
+            let document = riptide_types::ExtractedDoc {
+                url: extracted.url.clone(),
+                title: extracted.title.clone(),
+                text: extracted.text.clone(),
+                quality_score: Some((extracted.confidence * 100.0).min(100.0) as u8),
+                links: extracted.links.clone(),
+                byline: extracted.metadata.get("author").cloned(),
+                published_iso: extracted.metadata.get("published_date").cloned(),
+                markdown: extracted.markdown.clone(),
+                media: extracted.images.clone(), // media is Vec<String>, not Vec<Media>
+                language: extracted.metadata.get("language").cloned(),
+                reading_time: None,
+                word_count: Some(word_count as u32),
+                categories: Vec::new(),
+                site_name: None,
+                description: extracted.metadata.get("description").cloned(),
+            };
 
             let stats = ProcessingStats {
                 processing_time_ms: processing_time.as_millis() as u64,
                 file_size: pdf_data.len() as u64,
-                pages_processed: 1, // Estimated from document
-                memory_used: pdf_metrics.peak_memory_usage,
+                pages_processed: 1,                 // Estimated from document
+                memory_used: pdf_data.len() as u64, // Approximate
                 pages_per_second,
                 progress_overhead_us: None, // No progress callback used
             };
@@ -227,7 +243,7 @@ pub async fn process_pdf(
                 processing_time_ms = stats.processing_time_ms,
                 file_size = stats.file_size,
                 pages_per_second = stats.pages_per_second,
-                "PDF processing completed successfully"
+                "PDF processing completed successfully via ExtractionFacade"
             );
 
             Ok(Json(PdfProcessResponse {
@@ -274,7 +290,8 @@ pub async fn process_pdf_stream(
         return Err(ApiError::validation("PDF file too large (max 50MB)"));
     }
 
-    // Create PDF integration and progress channel
+    // For streaming, we still need to use the PDF integration directly for progress tracking
+    // ExtractionFacade doesn't support streaming progress yet
     let pdf_integration = riptide_pdf::integration::create_pdf_integration_for_pipeline();
     let (progress_sender, progress_receiver) = pdf_integration.create_progress_channel();
 

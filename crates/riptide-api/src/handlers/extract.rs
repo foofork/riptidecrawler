@@ -4,13 +4,10 @@
 //! the multi-strategy extraction pipeline and riptide-facade.
 
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use riptide_extraction::strategies::StrategyConfig;
-use riptide_types::config::CrawlOptions;
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
 
 use crate::state::AppState;
-use crate::strategies_pipeline::StrategiesPipelineOrchestrator;
 
 /// Extract endpoint request payload
 #[derive(Debug, Serialize, Deserialize)]
@@ -116,64 +113,139 @@ pub async fn extract(
         url = %payload.url,
         strategy = %payload.options.strategy,
         quality_threshold = payload.options.quality_threshold,
-        "Processing extraction request via StrategiesPipelineOrchestrator (facade alternative available via state.extraction_facade)"
+        "Processing extraction request via ExtractionFacade"
     );
 
-    // Create CrawlOptions from extract options
-    let crawl_options = CrawlOptions {
-        cache_mode: "standard".to_string(),
-        concurrency: 1,
-        ..Default::default()
-    };
+    // First fetch the HTML content using HTTP client
+    let html_result = state.http_client.get(&payload.url).send().await;
 
-    // Parse extraction strategy from user input
-    let extraction_strategy = match payload.options.strategy.to_lowercase().as_str() {
-        "css" => riptide_extraction::ExtractionStrategy::Css,
-        "regex" => riptide_extraction::ExtractionStrategy::Regex,
-        "auto" => riptide_extraction::ExtractionStrategy::Auto,
-        "wasm" => riptide_extraction::ExtractionStrategy::Wasm,
-        "multi" => riptide_extraction::ExtractionStrategy::Auto, // Map multi to auto
-        _ => {
-            tracing::warn!(
-                strategy = %payload.options.strategy,
-                "Unknown strategy, defaulting to Auto"
-            );
-            riptide_extraction::ExtractionStrategy::Auto
+    let html = match html_result {
+        Ok(response) => {
+            if !response.status().is_success() {
+                tracing::warn!(
+                    url = %payload.url,
+                    status = %response.status(),
+                    "HTTP request failed"
+                );
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({
+                        "error": "HTTP request failed",
+                        "message": format!("Server returned status: {}", response.status()),
+                        "url": payload.url
+                    })),
+                )
+                    .into_response();
+            }
+            match response.text().await {
+                Ok(text) => text,
+                Err(e) => {
+                    tracing::error!(url = %payload.url, error = %e, "Failed to read response body");
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(serde_json::json!({
+                            "error": "Failed to read response",
+                            "message": e.to_string(),
+                            "url": payload.url
+                        })),
+                    )
+                        .into_response();
+                }
+            }
+        }
+        Err(e) => {
+            tracing::error!(url = %payload.url, error = %e, "Failed to fetch URL");
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({
+                    "error": "Failed to fetch URL",
+                    "message": e.to_string(),
+                    "url": payload.url
+                })),
+            )
+                .into_response();
         }
     };
 
-    let strategy_config = StrategyConfig {
-        extraction: extraction_strategy,
-        enable_metrics: true,
-        validate_schema: false,
+    // Use ExtractionFacade based on strategy
+    let extraction_start = Instant::now();
+
+    let facade_result = match payload.options.strategy.to_lowercase().as_str() {
+        "css" => {
+            // Use HTML extraction with CSS
+            let options = riptide_facade::facades::HtmlExtractionOptions {
+                clean: true,
+                include_metadata: true,
+                extract_links: true,
+                extract_images: false,
+                as_markdown: payload.mode == "markdown",
+                custom_selectors: None,
+            };
+            state
+                .extraction_facade
+                .extract_html(&html, &payload.url, options)
+                .await
+        }
+        "wasm" => {
+            // Use WASM extraction strategy
+            state
+                .extraction_facade
+                .extract_with_strategy(
+                    &html,
+                    &payload.url,
+                    riptide_facade::facades::ExtractionStrategy::Wasm,
+                )
+                .await
+        }
+        "multi" | "auto" => {
+            // Use fallback chain for best quality
+            let strategies = vec![
+                riptide_facade::facades::ExtractionStrategy::Wasm,
+                riptide_facade::facades::ExtractionStrategy::HtmlCss,
+                riptide_facade::facades::ExtractionStrategy::Fallback,
+            ];
+            state
+                .extraction_facade
+                .extract_with_fallback(&html, &payload.url, &strategies)
+                .await
+        }
+        _ => {
+            tracing::warn!(
+                strategy = %payload.options.strategy,
+                "Unknown strategy, using default HTML extraction"
+            );
+            let options = riptide_facade::facades::HtmlExtractionOptions {
+                clean: true,
+                include_metadata: true,
+                extract_links: true,
+                extract_images: false,
+                as_markdown: false,
+                custom_selectors: None,
+            };
+            state
+                .extraction_facade
+                .extract_html(&html, &payload.url, options)
+                .await
+        }
     };
 
-    // Create strategies pipeline orchestrator
-    let pipeline =
-        StrategiesPipelineOrchestrator::new(state.clone(), crawl_options, Some(strategy_config));
+    let extraction_time_ms = extraction_start.elapsed().as_millis() as u64;
 
-    // Execute extraction
-    match pipeline.execute_single(&payload.url).await {
-        Ok(result) => {
-            // Access the extracted content fields correctly
-            let extracted = &result.processed_content.extracted;
-            let metadata = &result.processed_content.metadata;
-
+    match facade_result {
+        Ok(extracted) => {
             let response = ExtractResponse {
                 url: payload.url.clone(),
-                title: Some(extracted.title.clone()),
-                content: extracted.content.clone(),
+                title: extracted.title.clone(),
+                content: extracted.text.clone(),
                 metadata: ContentMetadata {
-                    word_count: metadata
-                        .word_count
-                        .unwrap_or_else(|| extracted.content.split_whitespace().count()),
-                    author: metadata.author.clone(),
-                    publish_date: metadata.published_date.as_ref().map(|dt| dt.to_rfc3339()),
-                    language: metadata.language.clone(),
+                    word_count: extracted.text.split_whitespace().count(),
+                    author: extracted.metadata.get("author").cloned(),
+                    publish_date: extracted.metadata.get("published_date").cloned(),
+                    language: extracted.metadata.get("language").cloned(),
                 },
                 strategy_used: extracted.strategy_used.clone(),
-                quality_score: extracted.extraction_confidence,
-                extraction_time_ms: result.processing_time_ms,
+                quality_score: extracted.confidence,
+                extraction_time_ms,
             };
 
             tracing::info!(
@@ -181,9 +253,7 @@ pub async fn extract(
                 strategy_used = %response.strategy_used,
                 quality_score = response.quality_score,
                 extraction_time_ms = response.extraction_time_ms,
-                from_cache = result.from_cache,
-                gate_decision = %result.gate_decision,
-                "Extraction completed successfully"
+                "Extraction completed successfully via ExtractionFacade"
             );
 
             (StatusCode::OK, Json(response)).into_response()

@@ -1,7 +1,13 @@
 //! Fetch metrics endpoint handlers
 //!
-//! Note: For simple HTTP operations, consider using state.scraper_facade
-//! which provides a simplified interface via riptide-facade.
+//! ## Facade Pattern Usage
+//!
+//! This handler uses `state.fetch_engine` directly for advanced metrics and per-host circuit breakers.
+//! For simple HTTP operations without metrics, consider using `state.scraper_facade` which provides:
+//! - `scraper_facade.fetch_html(url)` - Fetch HTML content as string
+//! - `scraper_facade.fetch_bytes(url)` - Fetch raw bytes
+//!
+//! Example: See `/handlers/render/processors.rs` for facade usage in PDF and static rendering.
 
 use axum::{extract::State, Json};
 use riptide_fetch::FetchMetricsResponse;

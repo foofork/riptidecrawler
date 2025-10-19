@@ -22,30 +22,15 @@ pub async fn process_pdf(
     Option<DynamicRenderResult>,
     Option<riptide_pdf::PdfProcessingResult>,
 )> {
-    debug!(url = %url, "Processing as PDF");
+    debug!(url = %url, "Processing as PDF via scraper_facade");
 
-    // Fetch the PDF content
-    let response =
-        state.http_client.get(url).send().await.map_err(|e| {
-            ApiError::dependency("http_client", format!("Failed to fetch PDF: {}", e))
-        })?;
-
-    if !response.status().is_success() {
-        return Err(ApiError::dependency(
-            "http_client",
-            format!("HTTP error fetching PDF: {}", response.status()),
-        ));
-    }
-
-    let content_type = response
-        .headers()
-        .get("content-type")
-        .and_then(|ct| ct.to_str().ok())
-        .map(|s| s.to_string());
-
-    let data = response.bytes().await.map_err(|e| {
-        ApiError::dependency("http_client", format!("Failed to read PDF data: {}", e))
+    // Fetch the PDF content using ScraperFacade
+    let data = state.scraper_facade.fetch_bytes(url).await.map_err(|e| {
+        ApiError::dependency("scraper_facade", format!("Failed to fetch PDF: {}", e))
     })?;
+
+    // Note: Content-type validation is handled by is_pdf_content() below
+    let content_type: Option<&str> = None; // ScraperFacade doesn't expose headers, rely on content detection
 
     // Verify it's actually a PDF
     if !pdf_utils::is_pdf_content(content_type.as_deref(), &data) {
@@ -228,64 +213,82 @@ pub async fn process_static(
 )> {
     debug!(url = %url, "Processing with static rendering");
 
-    // Apply stealth measures and session cookies if configured
-    let mut request_builder = state.http_client.get(url);
+    // For simple cases without stealth or session cookies, use ScraperFacade
+    let (final_url, html) = if stealth_controller.is_none() && session_id.is_none() {
+        debug!(url = %url, "Using scraper_facade for simple HTTP fetch");
+        let html = state.scraper_facade.fetch_html(url).await.map_err(|e| {
+            ApiError::dependency("scraper_facade", format!("Failed to fetch content: {}", e))
+        })?;
+        (url.to_string(), html)
+    } else {
+        // For advanced cases with stealth/sessions, use http_client directly
+        debug!(
+            url = %url,
+            has_stealth = stealth_controller.is_some(),
+            has_session = session_id.is_some(),
+            "Using http_client for advanced fetch with stealth/session support"
+        );
 
-    if let Some(stealth) = stealth_controller {
-        let user_agent = stealth.next_user_agent();
-        request_builder = request_builder.header("User-Agent", user_agent);
+        let mut request_builder = state.http_client.get(url);
 
-        let headers = stealth.generate_headers();
+        if let Some(stealth) = stealth_controller {
+            let user_agent = stealth.next_user_agent();
+            request_builder = request_builder.header("User-Agent", user_agent);
 
-        for (name, value) in headers {
-            request_builder = request_builder.header(name, value);
+            let headers = stealth.generate_headers();
+
+            for (name, value) in headers {
+                request_builder = request_builder.header(name, value);
+            }
         }
-    }
 
-    // Add session cookies if available
-    if let Some(sid) = session_id {
-        if let Ok(parsed_url) = url::Url::parse(url) {
-            if let Some(domain) = parsed_url.host_str() {
-                if let Ok(cookies) = state
-                    .session_manager
-                    .get_cookies_for_domain(sid, domain)
-                    .await
-                {
-                    if !cookies.is_empty() {
-                        let cookie_header = cookies
-                            .iter()
-                            .map(|c| format!("{}={}", c.name, c.value))
-                            .collect::<Vec<_>>()
-                            .join("; ");
-                        request_builder = request_builder.header("Cookie", cookie_header);
+        // Add session cookies if available
+        if let Some(sid) = session_id {
+            if let Ok(parsed_url) = url::Url::parse(url) {
+                if let Some(domain) = parsed_url.host_str() {
+                    if let Ok(cookies) = state
+                        .session_manager
+                        .get_cookies_for_domain(sid, domain)
+                        .await
+                    {
+                        if !cookies.is_empty() {
+                            let cookie_header = cookies
+                                .iter()
+                                .map(|c| format!("{}={}", c.name, c.value))
+                                .collect::<Vec<_>>()
+                                .join("; ");
+                            request_builder = request_builder.header("Cookie", cookie_header);
 
-                        debug!(
-                            session_id = %sid,
-                            domain = %domain,
-                            cookie_count = cookies.len(),
-                            "Added session cookies to static request"
-                        );
+                            debug!(
+                                session_id = %sid,
+                                domain = %domain,
+                                cookie_count = cookies.len(),
+                                "Added session cookies to static request"
+                            );
+                        }
                     }
                 }
             }
         }
-    }
 
-    let response = request_builder.send().await.map_err(|e| {
-        ApiError::dependency("http_client", format!("Failed to fetch content: {}", e))
-    })?;
+        let response = request_builder.send().await.map_err(|e| {
+            ApiError::dependency("http_client", format!("Failed to fetch content: {}", e))
+        })?;
 
-    if !response.status().is_success() {
-        return Err(ApiError::dependency(
-            "http_client",
-            format!("HTTP error: {}", response.status()),
-        ));
-    }
+        if !response.status().is_success() {
+            return Err(ApiError::dependency(
+                "http_client",
+                format!("HTTP error: {}", response.status()),
+            ));
+        }
 
-    let final_url = response.url().to_string();
-    let html = response.text().await.map_err(|e| {
-        ApiError::dependency("http_client", format!("Failed to read content: {}", e))
-    })?;
+        let final_url = response.url().to_string();
+        let html = response.text().await.map_err(|e| {
+            ApiError::dependency("http_client", format!("Failed to read content: {}", e))
+        })?;
+
+        (final_url, html)
+    };
 
     let render_result = DynamicRenderResult {
         success: true,

@@ -2,6 +2,15 @@
 //!
 //! This module provides HTTP handlers for managing headless browser sessions
 //! through the integrated riptide-headless browser pool and riptide-facade.
+//!
+//! ## Facade Pattern Usage
+//!
+//! This handler uses `state.browser_launcher` directly for fine-grained browser control.
+//! For high-level browser automation, consider using `state.browser_facade` which provides:
+//! - `browser_facade.render_page(url)` - Simple page rendering
+//! - `browser_facade.execute_with_stealth(url, preset)` - Stealth browsing
+//!
+//! Current implementation uses browser_launcher for advanced pool management and session control.
 
 use crate::errors::ApiError;
 use crate::state::AppState;

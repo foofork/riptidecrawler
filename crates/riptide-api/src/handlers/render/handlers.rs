@@ -281,10 +281,15 @@ async fn render_with_resources(
         }
     };
 
-    // Extract content from the rendered result
+    // Extract content from the rendered result using ExtractionFacade
     let extraction_start = Instant::now();
-    let content =
-        extract_content(&state.extractor, &render_result, &output_format, &final_url).await?;
+    let content = extract_content(
+        &state.extraction_facade,
+        &render_result,
+        &output_format,
+        &final_url,
+    )
+    .await?;
     let extraction_time_ms = extraction_start.elapsed().as_millis() as u64;
 
     // Build statistics
