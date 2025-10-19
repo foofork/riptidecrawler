@@ -233,11 +233,15 @@ pub(super) async fn handle_spider_crawl(
 ) -> Result<Json<CrawlResponse>, ApiError> {
     use super::shared::spider::parse_seed_urls;
 
-    // Check if spider is enabled
-    let spider = state.spider.as_ref().ok_or_else(|| ApiError::ConfigError {
-        message: "Spider engine is not enabled. Set SPIDER_ENABLE=true to enable spider crawling."
-            .to_string(),
-    })?;
+    // Check if spider facade is enabled
+    let spider_facade = state
+        .spider_facade
+        .as_ref()
+        .ok_or_else(|| ApiError::ConfigError {
+            message:
+                "SpiderFacade is not enabled. Set SPIDER_ENABLE=true to enable spider crawling."
+                    .to_string(),
+        })?;
 
     // Parse and validate URLs using shared utility
     let seed_urls = parse_seed_urls(urls)?;
@@ -246,13 +250,13 @@ pub(super) async fn handle_spider_crawl(
     let _spider_config =
         SpiderConfigBuilder::new(state, seed_urls[0].clone()).from_crawl_options(options);
 
-    debug!("Using spider crawl with provided options");
+    debug!("Using spider crawl via SpiderFacade with provided options");
 
     // Create metrics recorder
     let metrics = MetricsRecorder::new(state);
 
-    // Perform the crawl
-    let spider_result = spider.crawl(seed_urls).await.map_err(|e| {
+    // Perform the crawl using SpiderFacade (requires owned Vec<Url>)
+    let spider_result = spider_facade.crawl(seed_urls).await.map_err(|e| {
         // Record failed spider crawl
         metrics.record_spider_crawl_failure();
         ApiError::internal(format!("Spider crawl failed: {}", e))
@@ -262,7 +266,7 @@ pub(super) async fn handle_spider_crawl(
     metrics.record_spider_crawl(
         spider_result.pages_crawled,
         spider_result.pages_failed,
-        spider_result.duration,
+        std::time::Duration::from_secs_f64(spider_result.duration_secs),
     );
 
     // Convert spider result to standard crawl response format
@@ -278,7 +282,7 @@ pub(super) async fn handle_spider_crawl(
             from_cache: false,
             gate_decision: "spider_crawl".to_string(),
             quality_score: 0.8, // Placeholder
-            processing_time_ms: spider_result.duration.as_millis() as u64 / urls.len() as u64,
+            processing_time_ms: (spider_result.duration_secs * 1000.0) as u64 / urls.len() as u64,
             document: None, // Spider would need to return actual documents
             error: None,
             cache_key: format!("spider_{}", index),
@@ -286,8 +290,8 @@ pub(super) async fn handle_spider_crawl(
     }
 
     let statistics = CrawlStatistics {
-        total_processing_time_ms: spider_result.duration.as_millis() as u64,
-        avg_processing_time_ms: spider_result.duration.as_millis() as f64 / urls.len() as f64,
+        total_processing_time_ms: (spider_result.duration_secs * 1000.0) as u64,
+        avg_processing_time_ms: (spider_result.duration_secs * 1000.0) / urls.len() as f64,
         gate_decisions: GateDecisionBreakdown {
             raw: 0,
             probes_first: 0,
