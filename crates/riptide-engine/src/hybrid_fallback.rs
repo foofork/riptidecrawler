@@ -11,7 +11,7 @@ use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
 
 // Use browser abstraction layer
-use riptide_browser_abstraction::{BrowserEngine, NavigateParams, PageHandle};
+use riptide_browser_abstraction::{NavigateParams, PageHandle};
 
 /// Fallback metrics for monitoring spider-chrome adoption
 #[derive(Debug, Clone, Default)]

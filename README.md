@@ -545,23 +545,70 @@ RipTide uses a dual-path pipeline architecture for optimal performance:
 
 ## Workspace Structure
 
-RipTide is organized as a Cargo workspace with 13 specialized crates:
+RipTide is organized as a Cargo workspace with 27 specialized crates:
+
+### Core Crates
+
+| Crate | Description |
+|-------|-------------|
+| **riptide-core** | Core crawling engine, orchestration, and shared utilities |
+| **riptide-types** | Shared type definitions and common data structures |
+| **riptide-config** | Configuration management and validation |
+
+### API & Interface Layer
 
 | Crate | Description |
 |-------|-------------|
 | **riptide-api** | REST API server with 59 endpoints across 13 categories |
-| **riptide-core** | Core crawling engine, orchestration, and shared utilities |
+| **riptide-cli** | Command-line interface for web crawling and content extraction |
+| **riptide-facade** | High-level facade for simplified integration |
+
+### Extraction & Processing
+
+| Crate | Description |
+|-------|-------------|
 | **riptide-extraction** | Content extraction, HTML parsing, and markdown generation |
-| **riptide-search** | Web search integration with circuit breaker and provider abstraction |
-| **riptide-headless** | Headless browser service with Chromiumoxide and stealth mode |
-| **riptide-workers** | Background job queue with Redis-backed persistence |
-| **riptide-intelligence** | Multi-provider LLM abstraction (OpenAI, Anthropic, Google) |
-| **riptide-persistence** | Session management and data persistence layer |
-| **riptide-streaming** | Real-time streaming protocols (NDJSON, SSE, WebSocket) |
-| **riptide-stealth** | Anti-detection capabilities and fingerprint randomization |
-| **riptide-pdf** | PDF processing pipeline with table extraction |
-| **riptide-performance** | Monitoring, metrics collection, and bottleneck analysis |
 | **riptide-extractor-wasm** | WebAssembly content extraction component |
+| **riptide-intelligence** | Multi-provider LLM abstraction (OpenAI, Anthropic, Google) |
+| **riptide-pdf** | PDF processing pipeline with table extraction |
+
+### Browser Automation
+
+| Crate | Description |
+|-------|-------------|
+| **riptide-browser-abstraction** | Browser abstraction layer with unified interface |
+| **riptide-engine** | Browser automation engine with CDP integration |
+| **riptide-headless** | Headless browser service with Chromiumoxide |
+| **riptide-headless-hybrid** | Hybrid launcher with stealth capabilities |
+| **riptide-stealth** | Anti-detection capabilities and fingerprint randomization |
+
+### Network & Data Layer
+
+| Crate | Description |
+|-------|-------------|
+| **riptide-fetch** | HTTP/network layer with rate limiting and compression |
+| **riptide-spider** | Spider/crawler engine with frontier management |
+| **riptide-search** | Web search integration with circuit breaker and provider abstraction |
+| **riptide-cache** | Cache management system with Redis backend |
+| **riptide-persistence** | Session management and data persistence layer |
+
+### Infrastructure & Monitoring
+
+| Crate | Description |
+|-------|-------------|
+| **riptide-monitoring** | Monitoring, telemetry, and metrics collection |
+| **riptide-performance** | Memory profiling and bottleneck analysis |
+| **riptide-events** | Event system and OpenTelemetry integration |
+| **riptide-workers** | Background job queue with Redis-backed persistence |
+| **riptide-streaming** | Real-time streaming protocols (NDJSON, SSE, WebSocket) |
+
+### Security & Utilities
+
+| Crate | Description |
+|-------|-------------|
+| **riptide-security** | Security middleware and utilities |
+| **riptide-pool** | Resource pooling and lifecycle management |
+| **riptide-test-utils** | Testing utilities and helpers |
 
 ---
 

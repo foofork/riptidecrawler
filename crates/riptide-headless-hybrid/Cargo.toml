@@ -29,7 +29,6 @@ spider_chromiumoxide_cdp = { workspace = true }
 # EventMesh stealth features
 riptide-stealth = { path = "../riptide-stealth" }
 riptide-types = { path = "../riptide-types" }
-riptide-engine = { path = "../riptide-engine" }
 
 # For maintaining compatibility
 uuid = { workspace = true }

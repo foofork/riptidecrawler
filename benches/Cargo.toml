@@ -1,0 +1,34 @@
+[package]
+name = "riptide-benchmarks"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bench]]
+name = "hybrid_launcher_benchmark"
+harness = false
+
+[[bench]]
+name = "performance_benchmarks"
+harness = false
+
+[[bench]]
+name = "wasm_performance"
+harness = false
+
+[dependencies]
+criterion = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+futures = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Test utilities
+fastrand = { workspace = true }
+
+# Riptide dependencies for benchmarking
+riptide-tests = { path = "../tests" }
+
+[dev-dependencies]
+tokio-test = "0.4"

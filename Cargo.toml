@@ -84,6 +84,8 @@ sha2 = "0.10"
 base64 = "0.22"
 governor = "0.6"
 hex = "0.4"
+criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
+fastrand = "2"
 
 # Performance optimization settings
 [profile.release]

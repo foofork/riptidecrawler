@@ -1,0 +1,289 @@
+# Performance Baseline Configuration for P1-C1 Validation
+# This file defines the expected performance characteristics and thresholds
+# for the HybridHeadlessLauncher benchmark suite.
+
+[metadata]
+version = "1.0.0"
+date_created = "2025-10-19"
+phase = "P1-C1"
+description = "Performance baselines for HybridHeadlessLauncher with spider-chrome integration"
+
+# Session Lifecycle Benchmarks
+[session_lifecycle]
+
+[session_lifecycle.minimal_stealth]
+target_avg_ms = 50
+target_p50_ms = 35
+target_p95_ms = 45
+target_p99_ms = 48
+max_acceptable_ms = 60
+regression_threshold_percent = 10
+
+[session_lifecycle.medium_stealth]
+target_avg_ms = 75
+target_p50_ms = 58
+target_p95_ms = 72
+target_p99_ms = 74
+max_acceptable_ms = 90
+regression_threshold_percent = 10
+
+[session_lifecycle.high_stealth]
+target_avg_ms = 100
+target_p50_ms = 78
+target_p95_ms = 95
+target_p99_ms = 98
+max_acceptable_ms = 120
+regression_threshold_percent = 10
+
+# Page Load Performance Benchmarks
+[page_load]
+
+[page_load.static_html]
+target_avg_ms = 500
+target_p50_ms = 312
+target_p95_ms = 456
+target_p99_ms = 489
+max_acceptable_ms = 600
+regression_threshold_percent = 15
+
+[page_load.spa_application]
+target_avg_ms = 1500
+target_p50_ms = 1123
+target_p95_ms = 1398
+target_p99_ms = 1456
+max_acceptable_ms = 2000
+regression_threshold_percent = 15
+
+[page_load.heavy_javascript]
+target_avg_ms = 3000
+target_p50_ms = 2345
+target_p95_ms = 2789
+target_p99_ms = 2912
+max_acceptable_ms = 3500
+regression_threshold_percent = 15
+
+# Stealth Overhead Benchmarks
+[stealth_overhead]
+
+[stealth_overhead.baseline_no_stealth]
+target_avg_ms = 10
+max_acceptable_ms = 15
+
+[stealth_overhead.low_stealth]
+target_avg_ms = 12
+overhead_percent = 20
+max_acceptable_ms = 18
+
+[stealth_overhead.medium_stealth]
+target_avg_ms = 15
+overhead_percent = 50
+max_acceptable_ms = 22
+
+[stealth_overhead.high_stealth]
+target_avg_ms = 20
+overhead_percent = 100
+max_acceptable_ms = 30
+
+# Memory Profiling Benchmarks
+[memory_profiling]
+
+[memory_profiling.single_session]
+target_mb = 50
+max_acceptable_mb = 75
+regression_threshold_percent = 15
+
+[memory_profiling.pool_10_sessions]
+target_mb = 500
+max_acceptable_mb = 750
+regression_threshold_percent = 15
+
+[memory_profiling.leak_detection]
+max_growth_percent_per_1000_cycles = 5
+test_cycles = 1000
+
+# Concurrent Load Testing
+[concurrent_load]
+
+[concurrent_load.load_1k]
+total_sessions = 1000
+concurrent_workers = 50
+ramp_up_seconds = 30
+test_duration_seconds = 300
+min_success_rate_percent = 99.0
+max_avg_response_ms = 2000
+max_p95_response_ms = 3000
+max_memory_gb = 60
+max_cpu_percent = 80
+
+[concurrent_load.load_5k]
+total_sessions = 5000
+concurrent_workers = 200
+ramp_up_seconds = 120
+test_duration_seconds = 600
+min_success_rate_percent = 98.0
+max_avg_response_ms = 3000
+max_p95_response_ms = 4500
+max_memory_gb = 250
+max_cpu_percent = 90
+
+[concurrent_load.load_10k]
+total_sessions = 10000
+concurrent_workers = 500
+ramp_up_seconds = 300
+test_duration_seconds = 900
+min_success_rate_percent = 95.0
+max_avg_response_ms = 5000
+max_p95_response_ms = 7000
+max_memory_gb = 500
+max_cpu_percent = 95
+graceful_degradation_required = true
+
+# CDP Command Execution
+[cdp_commands]
+
+[cdp_commands.single_command]
+target_avg_ms = 5
+max_acceptable_ms = 10
+
+[cdp_commands.batch_5]
+target_avg_ms = 25
+max_acceptable_ms = 40
+
+[cdp_commands.batch_10]
+target_avg_ms = 50
+max_acceptable_ms = 80
+
+[cdp_commands.batch_20]
+target_avg_ms = 100
+max_acceptable_ms = 160
+
+[cdp_commands.batch_50]
+target_avg_ms = 250
+max_acceptable_ms = 400
+
+# Pool Management
+[pool_management]
+
+[pool_management.acquire_release]
+target_avg_ms = 2
+max_acceptable_ms = 5
+
+[pool_management.scale_up_5_sessions]
+target_avg_ms = 250
+max_acceptable_ms = 400
+
+[pool_management.scale_down_5_sessions]
+target_avg_ms = 50
+max_acceptable_ms = 100
+
+# Content Generation
+[content_generation]
+
+[content_generation.screenshot]
+target_avg_ms = 150
+max_acceptable_ms = 250
+
+[content_generation.pdf]
+target_avg_ms = 300
+max_acceptable_ms = 500
+
+[content_generation.html_extraction]
+target_avg_ms = 50
+max_acceptable_ms = 100
+
+# Error Recovery
+[error_recovery]
+
+[error_recovery.retry_3_attempts]
+target_avg_ms = 60
+max_acceptable_ms = 100
+
+[error_recovery.connection_recovery]
+target_avg_ms = 100
+max_acceptable_ms = 200
+
+# System Requirements
+[system_requirements]
+
+[system_requirements.minimum]
+cpu_cores = 16
+ram_gb = 64
+storage_gb = 100
+network_gbps = 1
+
+[system_requirements.recommended_5k]
+cpu_cores = 64
+ram_gb = 256
+storage_gb = 500
+network_gbps = 10
+
+[system_requirements.recommended_10k]
+cpu_cores = 128
+ram_gb = 512
+storage_gb = 1000
+network_gbps = 10
+
+# Regression Detection
+[regression_detection]
+enable_ci_checks = true
+fail_on_regression = true
+
+[regression_detection.thresholds]
+response_time_increase_percent = 10
+memory_increase_percent = 15
+error_rate_increase_percent = 2
+throughput_decrease_percent = 10
+
+# Monitoring and Alerting
+[monitoring]
+collect_system_metrics = true
+collect_process_metrics = true
+collect_network_metrics = true
+
+[monitoring.intervals]
+metrics_collection_seconds = 2
+health_check_seconds = 10
+alert_evaluation_seconds = 30
+
+[monitoring.alerts]
+cpu_threshold_percent = 90
+memory_threshold_percent = 85
+error_rate_threshold_percent = 5
+response_time_p95_threshold_ms = 5000
+
+# Reporting
+[reporting]
+generate_html_reports = true
+generate_json_output = true
+save_raw_data = true
+
+[reporting.retention]
+keep_last_n_runs = 100
+keep_baseline_forever = true
+
+# Environment Configuration
+[environment]
+
+[environment.benchmark]
+sample_size = 100
+measurement_time_seconds = 30
+warm_up_time_seconds = 5
+
+[environment.load_test]
+timeout_seconds = 300
+retry_attempts = 3
+retry_delay_ms = 1000
+
+# Validation Criteria
+[validation]
+
+# P1-C1 must pass all these criteria
+[validation.p1c1_acceptance]
+all_session_benchmarks_within_target = true
+all_page_load_benchmarks_within_target = true
+all_concurrent_load_tests_pass = true
+no_memory_leaks = true
+graceful_degradation_at_10k = true
+circuit_breakers_function = true
+auto_scaling_responds = true
+error_recovery_within_sla = true

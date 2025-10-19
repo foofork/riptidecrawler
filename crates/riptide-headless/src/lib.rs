@@ -57,7 +57,7 @@ pub use riptide_engine::{
 
 #[cfg(feature = "headless")]
 pub use riptide_engine::hybrid_fallback::{
-    BrowserEngine, BrowserResponse, FallbackMetrics, HybridBrowserFallback,
+    BrowserResponse, FallbackMetrics, HybridBrowserFallback,
 };
 
 // Local CDP HTTP API module (depends on riptide-engine components)
@@ -107,6 +107,6 @@ pub mod hybrid_fallback {
     //!
     //! This module re-exports types from `riptide-engine` for backward compatibility.
     pub use riptide_engine::hybrid_fallback::{
-        BrowserEngine, BrowserResponse, FallbackMetrics, HybridBrowserFallback,
+        BrowserResponse, FallbackMetrics, HybridBrowserFallback,
     };
 }
