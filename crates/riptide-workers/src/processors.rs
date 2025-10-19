@@ -2,7 +2,7 @@ use crate::job::{Job, JobType, PdfExtractionOptions};
 use crate::worker::JobProcessor;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use riptide_types::{CrawlOptions, ExtractedDoc};
+use riptide_types::{config::CrawlOptions, ExtractedDoc};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::{debug, error, info};
@@ -605,7 +605,7 @@ impl PdfProcessor {
             // Wait for progress monitoring to complete
             progress_task.abort();
 
-            Ok(riptide_pdf::convert_pdf_extracted_doc(result))
+            Ok(result)
         } else {
             // Process without progress tracking
             let result = self
@@ -613,7 +613,7 @@ impl PdfProcessor {
                 .process_pdf_to_extracted_doc(pdf_data, url)
                 .await
                 .context("Failed to process PDF")?;
-            Ok(riptide_pdf::convert_pdf_extracted_doc(result))
+            Ok(result)
         }
     }
 

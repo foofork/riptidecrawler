@@ -65,12 +65,12 @@ pub enum JobType {
     /// Batch crawl multiple URLs
     BatchCrawl {
         urls: Vec<String>,
-        options: Option<riptide_core::types::CrawlOptions>,
+        options: Option<riptide_types::config::CrawlOptions>,
     },
     /// Single URL crawl
     SingleCrawl {
         url: String,
-        options: Option<riptide_core::types::CrawlOptions>,
+        options: Option<riptide_types::config::CrawlOptions>,
     },
     /// PDF extraction and processing
     PdfExtraction {
