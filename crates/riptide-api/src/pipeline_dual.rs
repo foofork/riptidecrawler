@@ -14,10 +14,10 @@ use crate::errors::{ApiError, ApiResult};
 use crate::state::AppState;
 use anyhow::Result;
 use riptide_core::{
-    ai_processor::{AiProcessorConfig, AiTask, BackgroundAiProcessor, TaskPriority},
     events::{CrawlEvent, CrawlOperation, EventBus, EventEmitter, ExtractionMode},
     types::{CrawlOptions, ExtractedDoc},
 };
+use riptide_intelligence::{AiProcessorConfig, AiTask, BackgroundAiProcessor, TaskPriority};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;

@@ -6,7 +6,7 @@ pub mod metrics;
 pub mod middleware;
 pub mod models;
 pub mod pipeline;
-pub mod pipeline_dual;
+// pub mod pipeline_dual;  // Temporarily disabled - requires ai_processor module from riptide-intelligence
 pub mod pipeline_enhanced;
 pub mod reliability_integration;
 pub mod resource_manager;

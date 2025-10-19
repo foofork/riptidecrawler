@@ -6,7 +6,6 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use riptide_core::strategies::StrategyConfig;
 use riptide_core::types::CrawlOptions;
-use riptide_facade::{ExtractionStrategy as FacadeExtractionStrategy, HtmlExtractionOptions};
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
 

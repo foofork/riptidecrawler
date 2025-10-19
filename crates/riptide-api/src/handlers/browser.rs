@@ -10,9 +10,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use riptide_facade::{
-    BrowserSession as FacadeBrowserSession, ScreenshotOptions as FacadeScreenshotOptions,
-};
+// Browser facade types available from AppState
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info, warn};
 use uuid::Uuid;

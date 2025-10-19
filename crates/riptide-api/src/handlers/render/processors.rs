@@ -4,9 +4,9 @@
 
 use crate::errors::{ApiError, ApiResult};
 use crate::state::AppState;
-use riptide_core::dynamic::{DynamicConfig, DynamicRenderResult};
 use riptide_core::pdf::utils as pdf_utils;
 use riptide_core::stealth::StealthController;
+use riptide_headless::dynamic::{DynamicConfig, DynamicRenderResult};
 use tokio::time::{timeout, Duration};
 use tracing::{debug, error, warn};
 

@@ -127,7 +127,7 @@ impl HybridHeadlessLauncher {
         // Apply stealth configurations if enabled
         if self.config.enable_stealth && stealth_preset != Some(StealthPreset::None) {
             let mut stealth_controller = self.stealth_controller.write().await;
-            if let Err(e) = apply_stealth(&page, &mut *stealth_controller).await {
+            if let Err(e) = apply_stealth(&page, &mut stealth_controller).await {
                 warn!(
                     session_id = %session_id,
                     error = %e,

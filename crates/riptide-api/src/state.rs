@@ -19,7 +19,9 @@ use riptide_core::{
     telemetry::TelemetrySystem,
 };
 use riptide_extraction::wasm_extraction::WasmExtractor;
-use riptide_facade::prelude::*;
+// Facade types imported explicitly to avoid conflicts
+use riptide_facade::facades::ExtractionFacade;
+use riptide_facade::{BrowserFacade, ScraperFacade};
 use riptide_headless::launcher::HeadlessLauncher;
 use riptide_monitoring::{
     AlertCondition, AlertManager, AlertRule, AlertSeverity, HealthCalculator, MetricsCollector,
@@ -118,13 +120,13 @@ pub struct AppState {
     pub browser_launcher: Arc<HeadlessLauncher>,
 
     /// Browser facade for simplified browser automation
-    pub browser_facade: Arc<riptide_facade::BrowserFacade>,
+    pub browser_facade: Arc<BrowserFacade>,
 
     /// Extraction facade for content extraction with multiple strategies
-    pub extraction_facade: Arc<riptide_facade::ExtractionFacade>,
+    pub extraction_facade: Arc<ExtractionFacade>,
 
     /// Scraper facade for simple HTTP operations
-    pub scraper_facade: Arc<riptide_facade::ScraperFacade>,
+    pub scraper_facade: Arc<ScraperFacade>,
 
     /// Persistence adapter for multi-tenant operations (optional, requires persistence feature)
     #[cfg(feature = "persistence")]
@@ -822,23 +824,22 @@ impl AppState {
 
         // Create facade configuration from existing config
         let facade_config = riptide_facade::RiptideConfig::default()
-            .with_user_agent(&config.reliability_config.http_retry.user_agent)
-            .with_timeout_secs(config.reliability_config.headless_timeout.as_secs() as u32);
+            .with_timeout(config.reliability_config.headless_timeout)
+            .with_stealth_enabled(true) // Stealth enabled by default (Medium preset)
+            .with_stealth_preset("Medium");
 
         // Initialize browser facade
-        let browser_facade = Arc::new(
-            riptide_facade::BrowserFacade::new(facade_config.clone())
-                .await
-                .map_err(|e| {
-                    tracing::error!(error = %e, "Failed to initialize BrowserFacade");
-                    anyhow::anyhow!("Failed to initialize BrowserFacade: {}", e)
-                })?,
-        );
+        let browser_facade = Arc::new(BrowserFacade::new(facade_config.clone()).await.map_err(
+            |e| {
+                tracing::error!(error = %e, "Failed to initialize BrowserFacade");
+                anyhow::anyhow!("Failed to initialize BrowserFacade: {}", e)
+            },
+        )?);
         tracing::info!("BrowserFacade initialized successfully");
 
         // Initialize extraction facade
         let extraction_facade = Arc::new(
-            riptide_facade::ExtractionFacade::new(facade_config.clone())
+            ExtractionFacade::new(facade_config.clone())
                 .await
                 .map_err(|e| {
                     tracing::error!(error = %e, "Failed to initialize ExtractionFacade");
@@ -848,14 +849,12 @@ impl AppState {
         tracing::info!("ExtractionFacade initialized successfully");
 
         // Initialize scraper facade
-        let scraper_facade = Arc::new(
-            riptide_facade::ScraperFacade::new(facade_config.clone())
-                .await
-                .map_err(|e| {
-                    tracing::error!(error = %e, "Failed to initialize ScraperFacade");
-                    anyhow::anyhow!("Failed to initialize ScraperFacade: {}", e)
-                })?,
-        );
+        let scraper_facade = Arc::new(ScraperFacade::new(facade_config.clone()).await.map_err(
+            |e| {
+                tracing::error!(error = %e, "Failed to initialize ScraperFacade");
+                anyhow::anyhow!("Failed to initialize ScraperFacade: {}", e)
+            },
+        )?);
         tracing::info!("ScraperFacade initialized successfully");
 
         tracing::info!("Application state initialization complete with resource controls, event bus, circuit breaker, monitoring, fetch engine, performance manager, authentication, cache warming, browser launcher, and facade layer");
