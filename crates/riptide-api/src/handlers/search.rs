@@ -1,6 +1,7 @@
-//! Search integration handler
+//! Search integration handler using SearchFacade
 //!
-//! Provides search functionality using configured search providers.
+//! Provides search functionality using riptide-facade SearchFacade with
+//! support for multiple search providers (Serper, None, SearXNG).
 
 use axum::{
     extract::{Query, State},
@@ -67,8 +68,8 @@ pub struct SearchResponse {
 /// This endpoint provides search functionality using the riptide-search
 /// provider infrastructure. It supports multiple providers with automatic
 /// fallback capabilities.
-#[tracing::instrument(skip(_state), fields(query = %params.q, limit = params.limit))]
-pub async fn search(State(_state): State<AppState>, Query(params): Query<SearchQuery>) -> Response {
+#[tracing::instrument(skip(state), fields(query = %params.q, limit = params.limit))]
+pub async fn search(State(state): State<AppState>, Query(params): Query<SearchQuery>) -> Response {
     let start = Instant::now();
 
     // Validate query
@@ -96,22 +97,60 @@ pub async fn search(State(_state): State<AppState>, Query(params): Query<SearchQ
         "Processing search request"
     );
 
-    // TODO: Integrate with riptide-search providers
-    // For now, return a well-formed response that demonstrates the API shape
-    // This will be wired up to the actual search infrastructure
+    // Check if search facade is available
+    let search_facade = match state.search_facade.as_ref() {
+        Some(facade) => facade,
+        None => {
+            tracing::error!("SearchFacade not initialized");
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({
+                    "error": "Search not available",
+                    "message": "Search facade not initialized"
+                })),
+            )
+                .into_response();
+        }
+    };
 
-    let results = vec![SearchResult {
-        title: format!("Result for: {}", params.q),
-        url: "https://example.com/result-1".to_string(),
-        snippet: format!("This is a search result snippet for query: {}", params.q),
-        position: 1,
-    }];
+    // Perform search using facade
+    let search_hits = match search_facade
+        .search_with_options(&params.q, limit, &params.country, &params.language)
+        .await
+    {
+        Ok(hits) => hits,
+        Err(e) => {
+            tracing::error!(error = %e, "Search failed");
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({
+                    "error": "Search failed",
+                    "message": e.to_string()
+                })),
+            )
+                .into_response();
+        }
+    };
+
+    // Map SearchHit to SearchResult
+    let results: Vec<SearchResult> = search_hits
+        .into_iter()
+        .map(|hit| SearchResult {
+            title: hit.title.unwrap_or_default(),
+            url: hit.url,
+            snippet: hit.snippet.unwrap_or_default(),
+            position: hit.rank,
+        })
+        .collect();
+
+    let backend = search_facade.backend_type();
+    let provider_used = format!("{:?}", backend);
 
     let response = SearchResponse {
         query: params.q.clone(),
         total_results: results.len(),
         results,
-        provider_used: params.provider.unwrap_or_else(|| "none".to_string()),
+        provider_used,
         search_time_ms: start.elapsed().as_millis() as u64,
     };
 

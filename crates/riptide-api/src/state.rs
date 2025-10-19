@@ -17,6 +17,7 @@ use riptide_extraction::wasm_extraction::WasmExtractor;
 use riptide_monitoring::TelemetrySystem;
 // Facade types imported explicitly to avoid conflicts
 use riptide_facade::facades::ExtractionFacade;
+use riptide_facade::facades::{SearchFacade, SpiderFacade};
 use riptide_facade::{BrowserFacade, ScraperFacade};
 use riptide_headless::launcher::HeadlessLauncher;
 use riptide_monitoring::{
@@ -123,6 +124,12 @@ pub struct AppState {
 
     /// Scraper facade for simple HTTP operations
     pub scraper_facade: Arc<ScraperFacade>,
+
+    /// Spider facade for web crawling operations
+    pub spider_facade: Option<Arc<SpiderFacade>>,
+
+    /// Search facade for web search operations
+    pub search_facade: Option<Arc<SearchFacade>>,
 
     /// Persistence adapter for multi-tenant operations (optional, requires persistence feature)
     #[cfg(feature = "persistence")]
@@ -852,6 +859,39 @@ impl AppState {
         )?);
         tracing::info!("ScraperFacade initialized successfully");
 
+        // Initialize spider facade if spider is enabled
+        let spider_facade = if config.spider_config.is_some() {
+            tracing::info!("Initializing SpiderFacade for simplified spider operations");
+            match SpiderFacade::from_config(config.spider_config.as_ref().unwrap().clone()).await {
+                Ok(facade) => {
+                    tracing::info!("SpiderFacade initialized successfully");
+                    Some(Arc::new(facade))
+                }
+                Err(e) => {
+                    tracing::warn!(error = %e, "Failed to initialize SpiderFacade, spider operations will use direct engine");
+                    None
+                }
+            }
+        } else {
+            tracing::debug!("SpiderFacade disabled (spider not enabled)");
+            None
+        };
+
+        // Initialize search facade with default backend (None - URL parsing)
+        let search_facade = {
+            tracing::info!("Initializing SearchFacade with default backend");
+            match SearchFacade::new(riptide_search::SearchBackend::None).await {
+                Ok(facade) => {
+                    tracing::info!("SearchFacade initialized successfully with None backend");
+                    Some(Arc::new(facade))
+                }
+                Err(e) => {
+                    tracing::warn!(error = %e, "Failed to initialize SearchFacade");
+                    None
+                }
+            }
+        };
+
         tracing::info!("Application state initialization complete with resource controls, event bus, circuit breaker, monitoring, fetch engine, performance manager, authentication, cache warming, browser launcher, and facade layer");
 
         Ok(Self {
@@ -882,6 +922,8 @@ impl AppState {
             browser_facade,
             extraction_facade,
             scraper_facade,
+            spider_facade,
+            search_facade,
             #[cfg(feature = "persistence")]
             persistence_adapter: None, // TODO: Initialize actual persistence adapter when integrated
         })

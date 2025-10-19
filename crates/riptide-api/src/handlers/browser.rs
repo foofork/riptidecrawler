@@ -7,10 +7,23 @@
 //!
 //! This handler uses `state.browser_launcher` directly for fine-grained browser control.
 //! For high-level browser automation, consider using `state.browser_facade` which provides:
-//! - `browser_facade.render_page(url)` - Simple page rendering
-//! - `browser_facade.execute_with_stealth(url, preset)` - Stealth browsing
+//!
+//! ### Recommended Facade Methods
+//! - `browser_facade.launch()` - Create managed browser session
+//! - `browser_facade.navigate(session, url)` - Navigate to URL
+//! - `browser_facade.screenshot(session, options)` - Capture screenshots
+//! - `browser_facade.execute_script(session, script)` - Run JavaScript
+//! - `browser_facade.get_content(session)` - Get page HTML
+//! - `browser_facade.perform_actions(session, actions)` - Automate interactions
+//! - `browser_facade.get_cookies(session)` / `set_cookies(session, cookies)` - Cookie management
+//! - `browser_facade.close(session)` - Clean up session
+//!
+//! ### When to Use Each Approach
+//! - **BrowserFacade**: Simple automation, standard workflows, quick prototyping
+//! - **BrowserLauncher**: Pool management, session persistence, custom stealth configs
 //!
 //! Current implementation uses browser_launcher for advanced pool management and session control.
+//! Future enhancements may migrate to facade for simpler use cases.
 
 use crate::errors::ApiError;
 use crate::state::AppState;
@@ -166,6 +179,16 @@ pub struct LauncherStatsInfo {
 ///   "timeout_secs": 300
 /// }
 /// ```
+///
+/// # Facade Alternative
+///
+/// For simpler use cases, consider using BrowserFacade:
+/// ```no_run
+/// let session = state.browser_facade.launch().await?;
+/// state.browser_facade.navigate(&session, url).await?;
+/// let content = state.browser_facade.get_content(&session).await?;
+/// state.browser_facade.close(session).await?;
+/// ```
 pub async fn create_browser_session(
     State(state): State<AppState>,
     Json(request): Json<CreateSessionRequest>,
@@ -269,6 +292,15 @@ pub async fn create_browser_session(
 ///   "url": "https://example.com",
 ///   "wait_for_load": true
 /// }
+/// ```
+///
+/// # Facade Alternative
+///
+/// For script execution and actions, BrowserFacade provides:
+/// ```no_run
+/// let session = state.browser_facade.launch().await?;
+/// let result = state.browser_facade.execute_script(&session, "document.title").await?;
+/// state.browser_facade.perform_actions(&session, &actions).await?;
 /// ```
 pub async fn execute_browser_action(
     State(state): State<AppState>,
