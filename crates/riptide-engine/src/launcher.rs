@@ -3,8 +3,10 @@
 
 use crate::pool::{BrowserCheckout, BrowserPool, BrowserPoolConfig, PoolEvent};
 use anyhow::{anyhow, Result};
-use chromiumoxide::BrowserConfig;
+// spider_chrome exports its types as the chromiumoxide module for compatibility
+use chromiumoxide::{Browser, BrowserConfig, Page};
 use chromiumoxide_cdp::cdp::browser_protocol::emulation::SetDeviceMetricsOverrideParams;
+use futures::StreamExt;
 use riptide_browser_abstraction::{ChromiumoxidePage, PageHandle};
 use riptide_stealth::{StealthController, StealthPreset};
 use std::sync::Arc;
@@ -269,8 +271,8 @@ impl HeadlessLauncher {
         builder.build().map_err(|e| anyhow!(e))
     }
 
-    /// Apply stealth configurations to a page (works with raw chromiumoxide Page)
-    async fn apply_stealth_to_page(&self, page: &chromiumoxide::Page) -> Result<()> {
+    /// Apply stealth configurations to a page (works with spider_chrome Page)
+    async fn apply_stealth_to_page(&self, page: &Page) -> Result<()> {
         // Inject stealth JavaScript
         let stealth_js = include_str!("stealth.js");
         page.evaluate_on_new_document(stealth_js)
@@ -375,7 +377,7 @@ impl HeadlessLauncher {
 /// A browser session with automatic cleanup
 pub struct LaunchSession<'a> {
     pub session_id: String,
-    pub page: chromiumoxide::Page,
+    pub page: Page,
     #[allow(dead_code)]
     browser_checkout: BrowserCheckout,
     start_time: Instant,
@@ -390,7 +392,7 @@ impl<'a> LaunchSession<'a> {
     }
 
     /// Get the page instance
-    pub fn page(&self) -> &chromiumoxide::Page {
+    pub fn page(&self) -> &Page {
         &self.page
     }
 
@@ -474,7 +476,7 @@ impl<'a> LaunchSession<'a> {
         Ok(value)
     }
 
-    /// Take a screenshot
+    /// Take a screenshot (full page)
     #[allow(dead_code)]
     pub async fn screenshot(&self) -> Result<Vec<u8>> {
         debug!(
@@ -482,18 +484,11 @@ impl<'a> LaunchSession<'a> {
             "Taking screenshot"
         );
 
-        use chromiumoxide_cdp::cdp::browser_protocol::page::{
-            CaptureScreenshotFormat, CaptureScreenshotParams,
-        };
-
-        let screenshot_params = CaptureScreenshotParams {
-            format: Some(CaptureScreenshotFormat::Png),
-            ..Default::default()
-        };
+        use chromiumoxide::page::ScreenshotParams;
 
         let screenshot = timeout(
             Duration::from_secs(10),
-            self.page.screenshot(screenshot_params),
+            self.page.screenshot(ScreenshotParams::default()),
         )
         .await
         .map_err(|_| anyhow!("Screenshot timed out"))?
@@ -506,6 +501,79 @@ impl<'a> LaunchSession<'a> {
         );
 
         Ok(screenshot)
+    }
+
+    /// Take a screenshot and save to file (merged from HybridHeadlessLauncher)
+    #[allow(dead_code)]
+    pub async fn screenshot_to_file(&self, path: &str) -> Result<()> {
+        debug!(
+            session_id = %self.session_id,
+            path = %path,
+            "Taking screenshot to file"
+        );
+
+        let screenshot = self.screenshot().await?;
+        tokio::fs::write(path, screenshot)
+            .await
+            .map_err(|e| anyhow!("Failed to write screenshot to file: {}", e))?;
+
+        debug!(
+            session_id = %self.session_id,
+            path = %path,
+            "Screenshot saved to file"
+        );
+
+        Ok(())
+    }
+
+    /// Generate PDF from current page (merged from HybridHeadlessLauncher)
+    #[allow(dead_code)]
+    pub async fn pdf(&self) -> Result<Vec<u8>> {
+        debug!(
+            session_id = %self.session_id,
+            "Generating PDF"
+        );
+
+        use chromiumoxide_cdp::cdp::browser_protocol::page::PrintToPdfParams;
+
+        let pdf_data = timeout(
+            Duration::from_secs(10),
+            self.page.pdf(PrintToPdfParams::default()),
+        )
+        .await
+        .map_err(|_| anyhow!("PDF generation timed out"))?
+        .map_err(|e| anyhow!("PDF generation failed: {}", e))?;
+
+        debug!(
+            session_id = %self.session_id,
+            size_bytes = pdf_data.len(),
+            "PDF generated"
+        );
+
+        Ok(pdf_data)
+    }
+
+    /// Generate PDF and save to file (merged from HybridHeadlessLauncher)
+    #[allow(dead_code)]
+    pub async fn pdf_to_file(&self, path: &str) -> Result<()> {
+        debug!(
+            session_id = %self.session_id,
+            path = %path,
+            "Generating PDF to file"
+        );
+
+        let pdf_data = self.pdf().await?;
+        tokio::fs::write(path, pdf_data)
+            .await
+            .map_err(|e| anyhow!("Failed to write PDF to file: {}", e))?;
+
+        debug!(
+            session_id = %self.session_id,
+            path = %path,
+            "PDF saved to file"
+        );
+
+        Ok(())
     }
 
     /// Get page content (HTML)

@@ -1264,7 +1264,8 @@ impl Drop for BrowserCheckout {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chromiumoxide::BrowserConfig;
+    // spider_chrome exports its types as the chromiumoxide module for compatibility
+    use spider_chrome::BrowserConfig;
 
     #[tokio::test]
     async fn test_browser_pool_creation() {

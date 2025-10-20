@@ -2,7 +2,8 @@
 #![cfg_attr(not(feature = "headless"), allow(dead_code, unused))]
 
 use anyhow::{anyhow, Result};
-use chromiumoxide::{Browser, BrowserConfig};
+// spider_chrome exports its types as the chromiumoxide module for compatibility
+use chromiumoxide::{Browser, BrowserConfig, Page};
 use futures::StreamExt;
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
@@ -1181,7 +1182,7 @@ impl BrowserCheckout {
 
     /// Create a new page in the browser
     #[allow(dead_code)] // Method for future use
-    pub async fn new_page(&self, url: &str) -> Result<chromiumoxide::Page> {
+    pub async fn new_page(&self, url: &str) -> Result<Page> {
         let in_use = self.pool.in_use.read().await;
         if let Some(pooled_browser) = in_use.get(&self.browser_id) {
             let page = pooled_browser.browser.new_page(url).await?;

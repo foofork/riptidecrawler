@@ -9,6 +9,7 @@
 //! Target: 30% latency reduction through connection multiplexing
 
 use anyhow::{anyhow, Result};
+// spider_chrome re-exports as chromiumoxide module (see Cargo.toml)
 use chromiumoxide::Browser;
 use chromiumoxide_cdp::cdp::browser_protocol::target::SessionId;
 use std::collections::{HashMap, VecDeque};

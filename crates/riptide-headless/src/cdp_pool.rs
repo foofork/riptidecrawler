@@ -9,6 +9,7 @@
 //! Target: 30% latency reduction through connection multiplexing
 
 use anyhow::{anyhow, Result};
+// spider_chrome exports its types as the chromiumoxide module for compatibility
 use chromiumoxide_cdp::cdp::browser_protocol::target::SessionId;
 use spider_chrome::{Browser, Page};
 use std::collections::HashMap;
