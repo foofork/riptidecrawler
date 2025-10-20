@@ -3,8 +3,9 @@
 
 use crate::pool::{BrowserCheckout, BrowserPool, BrowserPoolConfig, PoolEvent};
 use anyhow::{anyhow, Result};
-use chromiumoxide::{BrowserConfig, Page};
+use chromiumoxide::BrowserConfig;
 use chromiumoxide_cdp::cdp::browser_protocol::emulation::SetDeviceMetricsOverrideParams;
+use riptide_browser_abstraction::{ChromiumoxidePage, PageHandle};
 use riptide_stealth::{StealthController, StealthPreset};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -268,8 +269,8 @@ impl HeadlessLauncher {
         builder.build().map_err(|e| anyhow!(e))
     }
 
-    /// Apply stealth configurations to a page
-    async fn apply_stealth_to_page(&self, page: &Page) -> Result<()> {
+    /// Apply stealth configurations to a page (works with raw chromiumoxide Page)
+    async fn apply_stealth_to_page(&self, page: &chromiumoxide::Page) -> Result<()> {
         // Inject stealth JavaScript
         let stealth_js = include_str!("stealth.js");
         page.evaluate_on_new_document(stealth_js)
@@ -374,7 +375,7 @@ impl HeadlessLauncher {
 /// A browser session with automatic cleanup
 pub struct LaunchSession<'a> {
     pub session_id: String,
-    pub page: Page,
+    pub page: chromiumoxide::Page,
     #[allow(dead_code)]
     browser_checkout: BrowserCheckout,
     start_time: Instant,
@@ -389,7 +390,7 @@ impl<'a> LaunchSession<'a> {
     }
 
     /// Get the page instance
-    pub fn page(&self) -> &Page {
+    pub fn page(&self) -> &chromiumoxide::Page {
         &self.page
     }
 

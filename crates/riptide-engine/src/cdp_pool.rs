@@ -9,7 +9,7 @@
 //! Target: 30% latency reduction through connection multiplexing
 
 use anyhow::{anyhow, Result};
-use chromiumoxide::{Browser, Page};
+use chromiumoxide::Browser;
 use chromiumoxide_cdp::cdp::browser_protocol::target::SessionId;
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
@@ -230,7 +230,7 @@ impl ConnectionStats {
 /// A pooled CDP connection
 pub struct PooledConnection {
     pub session_id: SessionId,
-    pub page: Page,
+    pub page: chromiumoxide::Page,
     pub created_at: Instant,
     pub last_used: Instant,
     pub stats: ConnectionStats,
@@ -780,7 +780,7 @@ impl CdpConnectionPool {
     pub async fn batch_execute(
         &self,
         browser_id: &str,
-        page: &Page,
+        page: &chromiumoxide::Page,
     ) -> Result<BatchExecutionResult> {
         if !self.config.enable_batching {
             return Ok(BatchExecutionResult {
@@ -909,7 +909,7 @@ impl CdpConnectionPool {
     /// Execute a single CDP command (internal helper)
     async fn execute_single_command(
         &self,
-        page: &Page,
+        page: &chromiumoxide::Page,
         command: &CdpCommand,
     ) -> Result<serde_json::Value> {
         // For production, we'd execute the actual CDP command

@@ -27,7 +27,7 @@ fn test_screenshot_params_default() {
 fn test_pdf_params_default() {
     let params = PdfParams::default();
     assert!(params.print_background);
-    assert_eq!(params.scale, 1.0);
+    assert_eq!(params.scale, Some(1.0));
     assert!(!params.landscape);
     assert_eq!(params.paper_width, Some(8.5));
     assert_eq!(params.paper_height, Some(11.0));
@@ -92,13 +92,20 @@ fn test_custom_screenshot_params() {
 fn test_custom_pdf_params() {
     let params = PdfParams {
         print_background: false,
-        scale: 1.5,
+        scale: Some(1.5),
         landscape: true,
         paper_width: Some(11.0),
         paper_height: Some(17.0),
+        display_header_footer: false,
+        margin_top: None,
+        margin_bottom: None,
+        margin_left: None,
+        margin_right: None,
+        page_ranges: None,
+        prefer_css_page_size: None,
     };
 
     assert!(!params.print_background);
-    assert_eq!(params.scale, 1.5);
+    assert_eq!(params.scale, Some(1.5));
     assert!(params.landscape);
 }

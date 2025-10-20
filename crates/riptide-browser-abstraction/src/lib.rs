@@ -30,6 +30,7 @@ mod chromiumoxide_impl;
 mod error;
 mod factory;
 mod params;
+mod spider_impl;
 mod traits;
 
 // Public exports
@@ -37,6 +38,7 @@ pub use chromiumoxide_impl::{ChromiumoxideEngine, ChromiumoxidePage};
 pub use error::{AbstractionError, AbstractionResult};
 pub use factory::create_engine;
 pub use params::{NavigateParams, PdfParams, ScreenshotFormat, ScreenshotParams, WaitUntil};
+pub use spider_impl::{SpiderChromeEngine, SpiderChromePage};
 pub use traits::{BrowserEngine, EngineType, PageHandle};
 
 #[cfg(test)]

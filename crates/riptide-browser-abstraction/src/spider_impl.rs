@@ -1,8 +1,42 @@
-//! Spider-chrome engine implementation
+//! Spider-chrome native engine implementation
+//!
+//! This module provides a direct implementation using spider_chrome's native API,
+//! unlike the chromiumoxide_impl which uses the chromiumoxide compatibility layer.
+//!
+//! ## Architecture
+//!
+//! - **Browser**: Uses `spider_chrome::Browser` directly
+//! - **Page**: Uses `spider_chrome::Page` directly
+//! - **CDP**: Uses CDP types from `spider_chrome::handler::blockers` for screenshot/PDF
+//!
+//! ## Key Differences from chromiumoxide_impl
+//!
+//! 1. **Direct API Access**: Uses spider_chrome's native types and methods
+//! 2. **CDP Integration**: Screenshot and PDF use CDP protocol directly via spider_chrome
+//! 3. **Thread Safety**: Uses `Arc<Page>` for safe concurrent access
+//! 4. **Navigation**: Implements proper timeout-based navigation waiting
+//!
+//! ## Implementation Notes
+//!
+//! ### Screenshot & PDF
+//! These methods use CDP (Chrome DevTools Protocol) types from spider_chrome:
+//! - `spider_chrome::handler::blockers::CaptureScreenshotFormat`
+//! - `spider_chrome::handler::blockers::PrintToPdfParams`
+//!
+//! ### Close Method
+//! The `close()` method has a known limitation due to spider_chrome's API design:
+//! - spider_chrome's `Page::close()` takes ownership (`self`, not `&self`)
+//! - We use `Arc<Page>` for thread-safety, which prevents calling close()
+//! - Pages are automatically cleaned up when all Arc references are dropped
+//!
+//! ### Navigation
+//! Uses spider_chrome's native `wait_for_navigation()` with tokio timeout wrapper
+//! for proper timeout handling as specified by the trait.
 
 use async_trait::async_trait;
-// Spider exports chromiumoxide types via spider_chrome
-use spider_chrome::{Browser as SpiderBrowser, Page as SpiderPage};
+// spider_chrome package exports its crate as "chromiumoxide"
+// We use it directly here to access native spider_chrome types
+use chromiumoxide::{Browser as SpiderBrowser, Page as SpiderPage};
 use std::sync::Arc;
 use tracing::{debug, warn};
 
@@ -121,31 +155,95 @@ impl PageHandle for SpiderChromePage {
             .map_err(|e| AbstractionError::Evaluation(e.to_string()))
     }
 
-    async fn screenshot(&self, _params: ScreenshotParams) -> AbstractionResult<Vec<u8>> {
-        debug!("Screenshot not directly supported in spider-chrome");
-        warn!("Spider-chrome screenshot requires manual CDP implementation");
+    async fn screenshot(&self, params: ScreenshotParams) -> AbstractionResult<Vec<u8>> {
+        debug!("Taking screenshot with spider-chrome native API");
 
-        // Would need to call CDP directly
-        Err(AbstractionError::Unsupported(
-            "screenshot not yet implemented for spider-chrome".to_string(),
-        ))
+        // Use CDP types from chromiumoxide_cdp (spider_chromiumoxide_cdp package)
+        // Note: CDP types are in chromiumoxide_cdp crate (spider's fork)
+        use chromiumoxide_cdp::cdp::browser_protocol::page::CaptureScreenshotFormat;
+
+        let mut spider_params = chromiumoxide::page::ScreenshotParams::builder();
+
+        // Set format (CDP CaptureScreenshotFormat enum)
+        spider_params = match params.format {
+            crate::params::ScreenshotFormat::Png => {
+                spider_params.format(CaptureScreenshotFormat::Png)
+            }
+            crate::params::ScreenshotFormat::Jpeg => {
+                spider_params.format(CaptureScreenshotFormat::Jpeg)
+            }
+        };
+
+        // Set quality (JPEG only, 0-100)
+        if let Some(quality) = params.quality {
+            spider_params = spider_params.quality(quality);
+        }
+
+        // Set full page capture (captures beyond viewport)
+        if params.full_page {
+            spider_params = spider_params.full_page(true);
+        }
+
+        let screenshot_params = spider_params.build();
+
+        // Execute screenshot via spider_chrome's Page::screenshot()
+        // This internally uses CDP Page.captureScreenshot command
+        self.page
+            .screenshot(screenshot_params)
+            .await
+            .map_err(|e| AbstractionError::Screenshot(e.to_string()))
     }
 
-    async fn pdf(&self, _params: PdfParams) -> AbstractionResult<Vec<u8>> {
-        debug!("PDF generation not directly supported in spider-chrome");
-        warn!("Spider-chrome PDF requires manual CDP implementation");
+    async fn pdf(&self, params: PdfParams) -> AbstractionResult<Vec<u8>> {
+        debug!("Generating PDF with spider-chrome native API");
 
-        // Would need to call CDP directly
-        Err(AbstractionError::Unsupported(
-            "pdf not yet implemented for spider-chrome".to_string(),
-        ))
+        // Use CDP PrintToPdfParams from chromiumoxide_cdp (spider_chromiumoxide_cdp package)
+        // Note: CDP types are in chromiumoxide_cdp crate (spider's fork)
+        use chromiumoxide_cdp::cdp::browser_protocol::page::PrintToPdfParams;
+
+        // Map our abstraction params to CDP PrintToPdfParams
+        // All fields are optional in CDP, matching our API design
+        let pdf_params = PrintToPdfParams {
+            landscape: Some(params.landscape),
+            display_header_footer: Some(params.display_header_footer),
+            print_background: Some(params.print_background),
+            scale: params.scale,
+            paper_width: params.paper_width,
+            paper_height: params.paper_height,
+            margin_top: params.margin_top,
+            margin_bottom: params.margin_bottom,
+            margin_left: params.margin_left,
+            margin_right: params.margin_right,
+            page_ranges: params.page_ranges.clone(),
+            prefer_css_page_size: params.prefer_css_page_size,
+            ..Default::default()
+        };
+
+        // Execute PDF generation via spider_chrome's Page::pdf()
+        // This internally uses CDP Page.printToPDF command
+        self.page
+            .pdf(pdf_params)
+            .await
+            .map_err(|e| AbstractionError::PdfGeneration(e.to_string()))
     }
 
     async fn wait_for_navigation(&self, timeout_ms: u64) -> AbstractionResult<()> {
-        debug!("Wait for navigation not directly supported in spider-chrome");
+        debug!(
+            "Waiting for navigation with spider-chrome (timeout: {}ms)",
+            timeout_ms
+        );
 
-        // Fallback: just wait
-        tokio::time::sleep(std::time::Duration::from_millis(timeout_ms)).await;
+        // Use spider_chrome's native wait_for_navigation with timeout
+        tokio::time::timeout(
+            std::time::Duration::from_millis(timeout_ms),
+            self.page.wait_for_navigation(),
+        )
+        .await
+        .map_err(|_| {
+            AbstractionError::Navigation(format!("Navigation timeout after {}ms", timeout_ms))
+        })?
+        .map_err(|e| AbstractionError::Navigation(e.to_string()))?;
+
         Ok(())
     }
 
@@ -163,16 +261,15 @@ impl PageHandle for SpiderChromePage {
     async fn close(&self) -> AbstractionResult<()> {
         debug!("Closing spider-chrome page");
 
-        // Spider-chrome's close() takes ownership
-        // Clone the page reference and close it
-        // Note: This creates a new Page handle from Arc, then closes it
-        if let Some(_page) = Arc::get_mut(&mut self.page.clone()) {
-            // This won't work because Arc::get_mut requires exclusive access
-            // For now, we'll just drop our reference
-            // The actual page will be closed when all references are dropped
-            debug!("Dropping page reference (spider-chrome close requires ownership)");
-        }
+        // Spider-chrome's close() takes ownership (self, not &self)
+        // Since we're behind an Arc and the trait requires &self, we cannot call close()
+        // The page will be automatically closed when all Arc references are dropped
+        //
+        // This is a known limitation of the abstraction layer when using Arc for thread-safety
+        // Alternative: If explicit close is critical, the caller should ensure they hold
+        // the last reference and call Arc::try_unwrap() + close() manually
 
+        warn!("Explicit page close not supported through Arc - page will close when all references are dropped");
         Ok(())
     }
 }

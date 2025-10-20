@@ -25,5 +25,11 @@ pub async fn create_engine(engine_type: EngineType) -> AbstractionResult<Box<dyn
                 "Factory function requires Browser instance parameter. Use ChromiumoxideEngine::new() directly.".to_string()
             ))
         }
+        EngineType::SpiderChrome => {
+            // This is a placeholder - actual implementation needs Browser instance
+            Err(AbstractionError::Other(
+                "Factory function requires Browser instance parameter. Use SpiderChromeEngine::new() directly.".to_string()
+            ))
+        }
     }
 }

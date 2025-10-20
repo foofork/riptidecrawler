@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 pub enum EngineType {
     /// Chromiumoxide engine (powered by spider_chrome)
     Chromiumoxide,
+    /// Spider-chrome native engine (direct spider_chrome usage)
+    SpiderChrome,
 }
 
 /// Unified browser engine interface
