@@ -61,8 +61,7 @@ pub use riptide_engine::hybrid_fallback::{
 };
 
 // Local CDP HTTP API module (depends on riptide-engine components)
-// Temporarily disabled due to chromiumoxide version conflict (Phase 2 resolution)
-// pub mod cdp;
+pub mod cdp;
 
 // P1-A3 Phase 2D: Dynamic content handling moved from riptide-core
 pub mod dynamic;

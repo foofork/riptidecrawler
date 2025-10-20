@@ -1,9 +1,9 @@
+use chromiumoxide::BrowserConfig;
 use riptide_headless::{
     launcher::{HeadlessLauncher, LauncherConfig},
     pool::{BrowserPool, BrowserPoolConfig},
 };
 use riptide_stealth::StealthPreset;
-use spider_chrome::BrowserConfig;
 use std::sync::Arc;
 use std::time::Duration;
 

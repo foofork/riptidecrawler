@@ -14,7 +14,12 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # Browser engines - using spider_chrome for all browser operations
+# Note: spider_chrome exports its crate as "chromiumoxide" for compatibility
+# Both spider_impl and chromiumoxide_impl use the same spider_chrome dependency
 spider_chrome = { workspace = true }
+
+# CDP protocol types (spider's fork)
+spider_chromiumoxide_cdp = { workspace = true }
 
 # Internal dependencies
 riptide-types = { path = "../riptide-types" }

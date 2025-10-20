@@ -4,8 +4,8 @@
 use crate::pool::{BrowserCheckout, BrowserPool, BrowserPoolConfig, PoolEvent};
 use anyhow::{anyhow, Result};
 // spider_chrome exports its types as the chromiumoxide module for compatibility
-use chromiumoxide_cdp::cdp::browser_protocol::emulation::SetDeviceMetricsOverrideParams;
-use spider_chrome::{BrowserConfig, Page};
+use chromiumoxide::cdp::browser_protocol::emulation::SetDeviceMetricsOverrideParams;
+use chromiumoxide::{BrowserConfig, Page};
 // P2-F1 Day 3: Updated to use riptide-stealth directly (circular dependency fix)
 use riptide_stealth::{StealthController, StealthPreset};
 use std::sync::Arc;

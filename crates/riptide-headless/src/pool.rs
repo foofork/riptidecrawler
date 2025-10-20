@@ -2,7 +2,7 @@
 #![cfg_attr(not(feature = "headless"), allow(dead_code, unused))]
 
 use anyhow::{anyhow, Result};
-use spider_chrome::{Browser, BrowserConfig, Page};
+use chromiumoxide::{Browser, BrowserConfig, Page};
 use futures::StreamExt;
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;

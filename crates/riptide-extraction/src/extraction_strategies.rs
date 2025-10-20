@@ -64,7 +64,7 @@ impl ContentExtractor for WasmExtractor {
     }
 
     fn strategy_name(&self) -> &'static str {
-        "wasm"
+        "wasm_extraction"
     }
 }
 
@@ -151,7 +151,7 @@ pub async fn fallback_extract(html: &str, url: &str) -> Result<ExtractedContent>
         content,
         summary: None,
         url: url.to_string(),
-        strategy_used: "trek_fallback".to_string(),
+        strategy_used: "wasm_fallback".to_string(),
         extraction_confidence: 0.6, // Lower confidence for fallback
     })
 }

@@ -1,5 +1,4 @@
-// Temporarily disabled due to chromiumoxide version conflict (Phase 2 resolution)
-// mod cdp;
+mod cdp;
 mod launcher;
 mod models;
 mod pool;
@@ -8,7 +7,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-// use cdp::AppState; // Import AppState from cdp module
+use cdp::AppState; // Import AppState from cdp module
 use launcher::HeadlessLauncher;
 use std::{net::SocketAddr, sync::Arc};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};

@@ -64,6 +64,7 @@ riptide-monitoring = { path = "../riptide-monitoring" }
 # Phase 4 P0 Optimizations
 sha2 = "0.10"
 uuid.workspace = true
+spider_chrome = "2.37.128"
 # Note: chromiumoxide types come from riptide-headless's dependency
 
 [dev-dependencies]

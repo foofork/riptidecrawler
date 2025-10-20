@@ -1,7 +1,7 @@
 use crate::{launcher::HeadlessLauncher, models::*};
 use axum::{extract::State, http::StatusCode, Json};
 use chromiumoxide::Page;
-use riptide_core::stealth::StealthPreset;
+use riptide_stealth::StealthPreset;
 use std::{
     sync::Arc,
     time::{Duration, Instant},

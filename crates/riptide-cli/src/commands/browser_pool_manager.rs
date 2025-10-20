@@ -10,9 +10,10 @@
 use anyhow::{anyhow, Result};
 use riptide_headless::pool::{BrowserCheckout as HeadlessCheckout, BrowserPool, BrowserPoolConfig};
 
-// Re-use types from spider_chrome (chromiumoxide replacement)
-use spider_chrome::Browser;
-// Note: BrowserConfig and Page types are re-exported through riptide_headless
+// spider_chrome types are used directly by pool.rs
+// We access them the same way as pool.rs does
+use chromiumoxide::{Browser, BrowserConfig, Page};
+
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{Mutex, RwLock};
@@ -89,6 +90,17 @@ impl BrowserPoolManager {
             max_retries: 3,
             profile_base_dir: None,
             cleanup_timeout: Duration::from_secs(5),
+            // QW-2: Tiered health checks
+            enable_tiered_health_checks: true,
+            fast_check_interval: Duration::from_secs(2),
+            full_check_interval: Duration::from_secs(15),
+            error_check_delay: Duration::from_millis(500),
+            // QW-3: Memory limits
+            enable_memory_limits: true,
+            memory_check_interval: Duration::from_secs(5),
+            memory_soft_limit_mb: 400,
+            memory_hard_limit_mb: 500,
+            enable_v8_heap_stats: true,
         };
 
         // Build browser config

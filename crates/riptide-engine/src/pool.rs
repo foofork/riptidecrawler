@@ -14,6 +14,9 @@ use tokio::time::{interval, timeout};
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
+// P1-B4: Import CDP pool for connection multiplexing
+use crate::cdp_pool::{CdpConnectionPool, CdpPoolConfig};
+
 /// Configuration for browser pool management
 #[derive(Clone, Debug)]
 #[allow(dead_code)] // Some fields are for future use
@@ -417,6 +420,8 @@ pub struct BrowserPool {
     #[allow(dead_code)]
     shutdown_sender: mpsc::Sender<()>,
     _management_task: tokio::task::JoinHandle<()>,
+    // P1-B4: CDP connection pool for multiplexing
+    cdp_pool: Arc<CdpConnectionPool>,
 }
 
 impl BrowserPool {
@@ -471,6 +476,12 @@ impl BrowserPool {
         }
 
         *available.lock().await = initial_browsers;
+
+        // P1-B4: Initialize CDP connection pool
+        let cdp_config = CdpPoolConfig::default();
+        let cdp_pool = Arc::new(CdpConnectionPool::new(cdp_config));
+
+        info!("CDP connection pool initialized for multiplexing");
 
         // Start management task for health checks and cleanup
         // P1-B2: Enhanced with tiered health monitoring
@@ -586,6 +597,7 @@ impl BrowserPool {
             event_receiver,
             shutdown_sender,
             _management_task: management_task,
+            cdp_pool,
         })
     }
 
@@ -647,6 +659,7 @@ impl BrowserPool {
                 browser_id,
                 pool: BrowserPoolRef::new(self),
                 permit: Some(permit),
+                cdp_pool: Arc::clone(&self.cdp_pool),
             })
         } else {
             Err(anyhow!(
@@ -1110,6 +1123,8 @@ pub struct BrowserPoolRef {
     in_use: Arc<RwLock<HashMap<String, PooledBrowser>>>,
     config: BrowserPoolConfig,
     event_sender: mpsc::UnboundedSender<PoolEvent>,
+    // P1-B4: CDP pool reference for connection management
+    cdp_pool: Arc<CdpConnectionPool>,
 }
 
 impl BrowserPoolRef {
@@ -1119,6 +1134,7 @@ impl BrowserPoolRef {
             in_use: Arc::clone(&pool.in_use),
             config: pool.config.clone(),
             event_sender: pool.event_sender.clone(),
+            cdp_pool: Arc::clone(&pool.cdp_pool),
         }
     }
 
@@ -1171,6 +1187,8 @@ pub struct BrowserCheckout {
     browser_id: String,
     pool: BrowserPoolRef,
     permit: Option<tokio::sync::OwnedSemaphorePermit>,
+    // P1-B4: CDP pool for connection multiplexing
+    cdp_pool: Arc<CdpConnectionPool>,
 }
 
 impl BrowserCheckout {
@@ -1180,11 +1198,24 @@ impl BrowserCheckout {
         &self.browser_id
     }
 
-    /// Create a new page in the browser
+    /// Create a new page in the browser using CDP connection pool
     #[allow(dead_code)] // Method for future use
     pub async fn new_page(&self, url: &str) -> Result<Page> {
         let in_use = self.pool.in_use.read().await;
         if let Some(pooled_browser) = in_use.get(&self.browser_id) {
+            // P1-B4: Use CDP pool for connection management
+            let session_id = self
+                .cdp_pool
+                .get_connection(&self.browser_id, &pooled_browser.browser, url)
+                .await?;
+
+            debug!(
+                browser_id = %self.browser_id,
+                session_id = ?session_id,
+                "CDP connection established via pool"
+            );
+
+            // Still create page directly (CDP pool manages connections, not pages)
             let page = pooled_browser.browser.new_page(url).await?;
             Ok(page)
         } else {
@@ -1207,6 +1238,10 @@ impl BrowserCheckout {
     /// If you need a custom timeout, use cleanup_with_timeout() instead.
     pub async fn cleanup(mut self) -> Result<()> {
         let timeout_duration = self.pool.config.cleanup_timeout;
+
+        // P1-B4: Cleanup CDP connections before browser checkin
+        self.cdp_pool.cleanup_browser(&self.browser_id).await;
+
         let _ = tokio::time::timeout(timeout_duration, self.pool.checkin(&self.browser_id))
             .await
             .map_err(|_| {
@@ -1225,6 +1260,9 @@ impl BrowserCheckout {
     /// Cleanup with custom timeout - for cases where you need a different timeout
     #[allow(dead_code)] // Public API for custom timeout scenarios
     pub async fn cleanup_with_timeout(mut self, timeout_duration: Duration) -> Result<()> {
+        // P1-B4: Cleanup CDP connections before browser checkin
+        self.cdp_pool.cleanup_browser(&self.browser_id).await;
+
         let _ = tokio::time::timeout(timeout_duration, self.pool.checkin(&self.browser_id))
             .await
             .map_err(|_| {

@@ -59,9 +59,8 @@ pub mod models;
 // High-level launcher API
 pub mod launcher;
 
-// CDP HTTP API types and utilities (temporarily disabled - depends on headless crate structure)
-// TODO: Re-enable after resolving circular dependencies with riptide-headless
-// pub mod cdp;
+// CDP HTTP API types and utilities
+pub mod cdp;
 
 // Hybrid engine fallback
 #[cfg(feature = "headless")]
