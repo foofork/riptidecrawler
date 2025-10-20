@@ -428,7 +428,9 @@ mod tests {
     #[test]
     fn test_extraction_quality_validation() {
         let good_result = ExtractResponse {
-            content: "This is a good extraction with sufficient content length and quality"
+            content: "This is a good extraction with sufficient content length and quality. \
+                      We need at least 100 characters to meet the minimum content requirement. \
+                      Adding more text here to ensure we pass the test."
                 .to_string(),
             confidence: Some(0.8),
             method_used: Some("wasm".to_string()),

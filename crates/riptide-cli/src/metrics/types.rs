@@ -45,7 +45,7 @@ pub struct CommandMetrics {
     pub peak_memory_bytes: u64,
 
     /// Additional command-specific metadata
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub metadata: HashMap<String, String>,
 }
 
@@ -133,7 +133,7 @@ pub struct CommandAggregates {
     pub last_executed: DateTime<Utc>,
 
     /// Error distribution (error type -> count)
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub error_distribution: HashMap<String, u64>,
 }
 
@@ -183,6 +183,7 @@ pub struct CliMetricsSummary {
     pub total_commands: u64,
 
     /// Commands by name with their aggregates
+    #[serde(default)]
     pub command_stats: HashMap<String, CommandAggregates>,
 
     /// Overall success rate
@@ -237,7 +238,7 @@ pub struct MetricPoint {
     pub value: f64,
 
     /// Optional labels/tags
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub labels: HashMap<String, String>,
 }
 

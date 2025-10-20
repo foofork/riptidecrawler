@@ -289,7 +289,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_cache_creation() {
-        let cache = Cache::new().await.unwrap();
+        use tempfile::tempdir;
+        let dir = tempdir().unwrap();
+        let config = CacheConfig {
+            cache_dir: dir.path().to_string_lossy().to_string(),
+            persistent: false, // Disable persistence for clean test
+            ..Default::default()
+        };
+        let cache = Cache::with_config(config).await.unwrap();
         let stats = cache.get_stats().await.unwrap();
         assert_eq!(stats.total_entries, 0);
     }

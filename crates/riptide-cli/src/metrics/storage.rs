@@ -7,8 +7,9 @@ use super::types::{CliMetricsSummary, CommandMetrics, MetricsStorageConfig};
 use anyhow::{Context, Result};
 use chrono::{Duration as ChronoDuration, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs::{self, File, OpenOptions};
-use std::io::{BufReader, BufWriter};
+use std::io::{BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
 
 /// Persistent metrics storage with rotation support
@@ -196,6 +197,11 @@ impl MetricsStorage {
 
     /// Save metrics to disk
     pub fn save(&self) -> Result<()> {
+        // Ensure parent directory exists
+        if let Some(parent) = self.storage_path.parent() {
+            fs::create_dir_all(parent).context("Failed to create metrics storage directory")?;
+        }
+
         // Create temporary file
         let temp_path = self.storage_path.with_extension("tmp");
 
@@ -206,10 +212,16 @@ impl MetricsStorage {
             .open(&temp_path)
             .context("Failed to create temporary metrics file")?;
 
-        let writer = BufWriter::new(file);
+        let mut writer = BufWriter::new(file);
 
         // Serialize to JSON
-        serde_json::to_writer_pretty(writer, &self).context("Failed to serialize metrics")?;
+        serde_json::to_writer_pretty(&mut writer, &self).context("Failed to serialize metrics")?;
+
+        // Flush the writer to ensure all data is written
+        writer.flush().context("Failed to flush metrics to disk")?;
+
+        // Drop writer to close file before rename
+        drop(writer);
 
         // Atomic rename
         fs::rename(&temp_path, &self.storage_path)

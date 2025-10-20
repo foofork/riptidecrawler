@@ -307,7 +307,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_metrics_manager() {
-        let manager = MetricsManager::new().unwrap();
+        use tempfile::tempdir;
+        let dir = tempdir().unwrap();
+        let config = MetricsStorageConfig {
+            storage_path: dir
+                .path()
+                .join("test_metrics.json")
+                .to_string_lossy()
+                .to_string(),
+            ..Default::default()
+        };
+        let manager = MetricsManager::with_config(config).unwrap();
 
         let tracking_id = manager.start_command("test").await.unwrap();
         manager

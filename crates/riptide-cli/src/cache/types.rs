@@ -43,7 +43,7 @@ pub struct CacheEntry {
     pub status_code: u16,
 
     /// Response headers
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub headers: HashMap<String, String>,
 
     /// ETag for cache validation
@@ -135,9 +135,11 @@ pub struct CacheStats {
     pub insertions: u64,
 
     /// Number of entries by domain
+    #[serde(default)]
     pub entries_by_domain: HashMap<String, usize>,
 
     /// Size by domain in bytes
+    #[serde(default)]
     pub size_by_domain: HashMap<String, u64>,
 
     /// Last update timestamp
@@ -304,7 +306,7 @@ mod tests {
 
         assert_eq!(entry.url, "https://example.com/page");
         assert_eq!(entry.domain, "example.com");
-        assert_eq!(entry.size_bytes, 21);
+        assert_eq!(entry.size_bytes, 20); // "<html>content</html>" is 20 bytes
         assert_eq!(entry.access_count, 0);
     }
 

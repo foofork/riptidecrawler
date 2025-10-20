@@ -358,20 +358,21 @@ fn get_current_memory_usage() -> Option<u64> {
 /// Extract error type from error message (e.g., "NetworkError", "TimeoutError")
 #[allow(dead_code)]
 fn extract_error_type(error_msg: &str) -> String {
-    // Try to extract error type from common patterns
-    if error_msg.contains("timeout") || error_msg.contains("timed out") {
+    // Try to extract error type from common patterns (case-insensitive)
+    let msg_lower = error_msg.to_lowercase();
+    if msg_lower.contains("timeout") || msg_lower.contains("timed out") {
         return "timeout".to_string();
     }
-    if error_msg.contains("network") || error_msg.contains("connection") {
+    if msg_lower.contains("network") || msg_lower.contains("connection") {
         return "network".to_string();
     }
-    if error_msg.contains("permission") || error_msg.contains("denied") {
+    if msg_lower.contains("permission") || msg_lower.contains("denied") {
         return "permission".to_string();
     }
-    if error_msg.contains("not found") || error_msg.contains("404") {
+    if msg_lower.contains("not found") || msg_lower.contains("404") {
         return "not_found".to_string();
     }
-    if error_msg.contains("parse") || error_msg.contains("invalid") {
+    if msg_lower.contains("parse") || msg_lower.contains("invalid") {
         return "parse".to_string();
     }
 
@@ -453,6 +454,9 @@ mod tests {
     fn test_error_type_extraction() {
         assert_eq!(extract_error_type("Connection timeout"), "timeout");
         assert_eq!(extract_error_type("Network error occurred"), "network");
+        // The implementation checks "network" first, then "connection"
+        // So "Network error" matches network, but "connection failed" needs network
+        assert_eq!(extract_error_type("network connection failed"), "network");
         assert_eq!(extract_error_type("Permission denied"), "permission");
         assert_eq!(extract_error_type("Resource not found"), "not_found");
         assert_eq!(extract_error_type("Parse error"), "parse");
