@@ -7,15 +7,14 @@
 //! NOTE: This is a minimal copy from riptide-extraction to avoid circular dependencies.
 //! The canonical version is in riptide-extraction::validation::wasm_validation.
 
-use anyhow::{anyhow, Result};
-use tracing::warn;
+use anyhow::Result;
 use wasmtime::component::Component;
 
 /// Validate a component before instantiation
 ///
 /// This is a convenience function that validates the component with default settings.
 /// Use this for quick validation to ensure WASM components are safe to instantiate.
-pub fn validate_before_instantiation(component: &Component) -> Result<()> {
+pub fn validate_before_instantiation(_component: &Component) -> Result<()> {
     // Basic validation - just ensure component is not null and can be used
     // Full validation is available in riptide-extraction::validation
 

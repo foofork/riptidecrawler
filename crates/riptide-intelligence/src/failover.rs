@@ -630,7 +630,7 @@ pub struct FailoverStatistics {
     pub overall_error_rate: f64,
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "mock"))]
 mod tests {
     use super::*;
     use crate::{health::HealthMonitorBuilder, mock_provider::MockLlmProvider};

@@ -505,7 +505,7 @@ pub fn create_fallback_chain_with_strategy(
     chain
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "mock"))]
 mod tests {
     use super::*;
     use crate::mock_provider::{create_failing_provider, FailureMode, MockLlmProvider};

@@ -269,7 +269,7 @@ pub struct RegistryStats {
     pub registered_factories: usize,
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "mock"))]
 mod tests {
     use super::*;
     use crate::mock_provider::MockLlmProvider;

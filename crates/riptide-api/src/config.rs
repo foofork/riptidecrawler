@@ -112,7 +112,7 @@ pub struct MemoryConfig {
 /// Headless browser configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HeadlessConfig {
-    /// Maximum browser pool size (QW-1: increased to 20 for better scaling)
+    /// Maximum browser pool size (requirement: pool cap = 3)
     pub max_pool_size: usize,
     /// Minimum browser pool size
     pub min_pool_size: usize,
@@ -247,7 +247,7 @@ impl Default for MemoryConfig {
 impl Default for HeadlessConfig {
     fn default() -> Self {
         Self {
-            max_pool_size: 20, // QW-1: Increased from 3 to 20 for better scaling and performance
+            max_pool_size: 3, // Requirement: Pool cap = 3
             min_pool_size: 1,
             idle_timeout_secs: 300, // 5 minutes
             health_check_interval_secs: 60,

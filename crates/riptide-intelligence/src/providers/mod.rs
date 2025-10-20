@@ -474,7 +474,7 @@ impl Default for ProviderManager {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "mock"))]
 mod provider_health_tests {
     use super::*;
     use crate::circuit_breaker::with_circuit_breaker;

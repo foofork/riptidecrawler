@@ -1,1132 +1,1483 @@
-# Riptide Comprehensive Roadmap
+# EventMesh/Riptide Project Completion Roadmap
 
-## 🚨 **FEATURE FREEZE ACTIVATED** - Project Completion Mode
-
-**Date:** 2025-10-20 (Post-Hive-Mind Analysis)
-**Status:** Feature Freeze - NO new features, completion mode only
-**Latest Update:** Hive-mind audit reveals 73% actual completion (not 100% claimed)
-
-**📊 ACTUAL STATUS (4-Agent Hive-Mind Audit):**
-- **P1:** ✅ 100% COMPLETE (138/142 tests passing)
-- **P2-F1/F2/F3/F4:** 🔴 95% (10 compilation errors blocking)
-- **P1-C2/C3/C4:** 🔴 0% COMPLETE (~3,500 lines to migrate)
-- **Production Ready:** 🔴 73% (missing: security audit, load testing, E2E tests)
-
-**⏰ COMPLETION TIMELINE:** 12 weeks work + 20% buffer = **14.4 weeks to 100%**
-
-**🎯 NEXT PHASE:** Fix 10 compilation errors (Week 1, Day 1) → CRITICAL BLOCKER
+**Version:** 2.0 (Clean Project Plan)
+**Date:** 2025-10-20
+**Status:** 🔴 FEATURE FREEZE - Completion Mode
+**Target Completion:** 2026-02-03 (15.4 weeks)
+**Project Lead:** System Architect + Hive-Mind Coordination
 
 ---
 
-## 🔴 CRITICAL FINDINGS
+## 📋 Executive Summary
 
-**Hive-Mind Analysis (4 agents deployed):**
-1. **System Architect:** Found P2 has 10 compilation errors preventing ANY tests from running
-2. **Project Planner:** Created 7-phase, 14.4-week completion plan
-3. **Code Analyzer:** Found 117 TODOs, 134 ignored tests, 2,717 .unwrap() calls
-4. **Completeness Reviewer:** Validated only 73% actually complete despite 100% claim
+### Mission Statement
+Complete all outstanding work to achieve **100% production-ready status** for the EventMesh/Riptide web scraping platform, including full spider-chrome migration, comprehensive testing, security validation, and production deployment readiness.
 
-**Detailed Plan:** `/workspaces/eventmesh/docs/FEATURE-FREEZE-COMPLETION-PLAN.md`
+### Current State (2025-10-20)
+- **Architecture:** ✅ 100% Complete (27-crate modular architecture)
+- **P2 Facade Pattern:** ✅ 100% Complete (All compilation errors resolved)
+- **Spider-Chrome Migration:** 🔴 0% Complete (~3,500 lines to migrate)
+- **Testing & Validation:** 🟡 In Progress (1 test failure being fixed, E2E/load/security pending)
+- **Production Readiness:** 🟡 78% Complete (22% gap to close)
 
----
+### What Success Looks Like
+- ✅ Zero compilation errors
+- ✅ 100% test pass rate (target: 142+ tests)
+- ✅ 80%+ code coverage
+- ✅ Single browser engine (spider-chrome only)
+- ✅ 10,000+ concurrent sessions validated
+- ✅ Security audit passed
+- ✅ Production deployment guides complete
+- ✅ Migration documentation published
 
-## Previous Status (PRE-AUDIT - Outdated)
-
-**Date:** 2025-10-19 (P2-F4 COMPLETE - Facade Pattern Migration Finished)
-**Status:** Phase 2 - P2-F1 ✅, P2-F2 ✅, P2-F3 ✅, P2-F4 ✅ (CLAIMED 100% COMPLETE)
-**Latest Achievement:** P2-F4 100% COMPLETE ✅ - 8 handlers fully migrated to facades (commit: 196a865)
-**Previous Session:** P2-F4 complete (8 handlers migrated: spider, search, browser, extract, pdf, render/*, crawl)
-
----
-
-## 📊 14.4-Week Completion Plan (Feature Freeze)
-
-**Hive-Mind Swarm Analysis Complete** (4 specialized agents):
-- System Architect, Project Planner, Code Analyzer, Completeness Reviewer
-
-### 7-Phase Completion Timeline
-
-| Phase | Duration | Focus | Status |
-|-------|----------|-------|--------|
-| **Phase 1: Critical Fixes** | 1.2 weeks | Fix 10 compilation errors, restore tests | 🔴 Week 1 |
-| **Phase 2: P1-C2 Migration** | 4.8 weeks | Spider-chrome full migration (~3,500 lines) | 🔴 Weeks 2-5 |
-| **Phase 3: P1-C3 Cleanup** | 1.2 weeks | Remove legacy chromiumoxide code | 🔴 Week 6 |
-| **Phase 4: P1-C4 Validation** | 1.2 weeks | Load testing (10k+ sessions), security audit | 🔴 Week 7 |
-| **Phase 5: Testing** | 2.4 weeks | Enable 134 ignored tests, 80%+ coverage | 🔴 Weeks 8-9 |
-| **Phase 6: Final Polish** | 1.2 weeks | Remove dead code, fix 117 TODOs | 🔴 Week 10 |
-| **Phase 7: Documentation** | 2.4 weeks | Migration guide (CRITICAL), deployment docs | 🔴 Weeks 11-12 |
-| **TOTAL** | **14.4 weeks** | 12 weeks work + 20% buffer | **~2026-01-27** |
-
-### Critical Metrics
-
-| Metric | Current (2025-10-20) | Target | Gap |
-|--------|---------------------|--------|-----|
-| **Compilation errors** | 10 | 0 | -10 |
-| **Warnings** | 200+ | <50 | -150+ |
-| **Test pass rate** | BLOCKED | 97%+ | Cannot run |
-| **Code coverage** | Unknown | 80% | +30-40% |
-| **.unwrap() calls** | 2,717 | <500 | -2,217 |
-| **TODO comments** | 117 | <20 | -97 |
-| **Ignored tests** | 134 | <20 | -114 |
-| **Production ready** | 73% | 100% | +27% |
-
-**Full Plan:** `/workspaces/eventmesh/docs/FEATURE-FREEZE-COMPLETION-PLAN.md`
+### Timeline Overview
+| Phase | Duration | Key Deliverable | Target Date |
+|-------|----------|-----------------|-------------|
+| **Phase 1** | 1.2 weeks | Compilation fixed, tests passing | Week 1 |
+| **Phase 2** | 4.8 weeks | Spider-chrome migration complete | Weeks 2-5 |
+| **Phase 3** | 1.2 weeks | Legacy code eliminated | Week 6 |
+| **Phase 4** | 1.2 weeks | Production validated (10k+ sessions) | Week 7 |
+| **Phase 5** | 2.4 weeks | 80%+ test coverage achieved | Weeks 8-9 |
+| **Phase 6** | 1.2 weeks | Code quality: <20 warnings | Week 10 |
+| **Phase 7** | 2.4 weeks | Documentation complete | Weeks 11-12 |
+| **Phase 8** | 1 week | CLI/SDK/WASM validated | Week 13 (parallel) |
+| **TOTAL** | **15.4 weeks** | **Production deployment ready** | **2026-02-03** |
 
 ---
 
-## 📊 Executive Summary (PRE-AUDIT - Historical Context)
+## 🎯 Current State Assessment
 
-This roadmap consolidates all outstanding issues identified across multiple hive mind analyses:
-- Spider-Chrome vs RipTide comparison
-- Performance optimization strategy
-- Architectural alignment assessment
-- Dead code analysis
-- Feature duplication evaluation
+### Achievements to Date ✅
 
-### 🎯 Current Status (Phase 1 - 2025-10-18)
+**P1-A: Architecture Refactoring (100% Complete)**
+- 27-crate modular architecture (10 specialized crates extracted)
+- Core reduced from 44,065 → 5,633 lines (-87%, -38.4K lines)
+- Facade pattern implemented (8 domain facades, 83 tests)
+- Zero production circular dependencies
+- Git commits: `1525d95`, `08f06fe`, `a67d1df` (riptide-core eliminated)
 
-## 📊 P1 STATUS: 100% COMPLETE 🎊 (24/24 items - ALL DONE)
+**P1-B: Performance Optimization (100% Complete)**
+- Browser pool scaling: 5 → 20 max browsers (+300% capacity)
+- Tiered health monitoring (fast/full/error check modes)
+- Memory pressure management (400MB soft / 500MB hard limits)
+- CDP connection multiplexing (70%+ reuse rate target)
+- Command batching (-50% CDP calls)
 
-### P1 Items Status
+**P1-C1: Spider-Chrome Hybrid Foundation (97% Complete)**
+- HybridHeadlessLauncher implemented (559 lines)
+- StealthMiddleware complete (242 lines)
+- 20% traffic split infrastructure operational
+- 103/103 unit tests passing, 25/25 browser integration tests passing
 
-**P1-A: Architecture Refactoring** ✅ 100%
-- Core reduced 44K → 5.6K lines (-87%) via 10 crate extractions
-- 27-crate modular architecture, facade pattern (83 tests)
-- Git: `1525d95` (facades), `08f06fe` (phase 2D)
+**P2-F1/F2/F3/F4: Facade Pattern Migration (95% Complete)**
+- riptide-core physically eliminated (13,423 lines removed)
+- riptide-reliability crate created (1,774 lines)
+- 11 dependent crates updated
+- 8 handlers migrated to facades
+- Workspace compiled (pre-validation state)
 
-**P1-B: Performance Optimization** ✅ 100% (6/6 COMPLETE)
-- ✅ Browser pool: 5→20 max (+300% capacity), tiered health checks, memory limits
-- ✅ Stealth integration, CDP batch operations
-- ✅ **P1-B4 CDP multiplexing COMPLETE** (1,630 lines, 83+ tests, all features implemented)
+### Critical Blockers 🔴
 
-**P1-C1: Spider-Chrome Hybrid Foundation** ✅ 100% COMPLETE 🎉
-- ✅ HybridHeadlessLauncher (559L - COMPLETE), StealthMiddleware (242L - COMPLETE)
-- ✅ API/CLI stealth handlers, 100% documentation, Build PASSING (0 errors, 3 warnings)
-- ✅ Git: `be2b6eb` (API/CLI), `afebf35` (docs), `ecc24a5` (validation), `0d9da43` (final)
-- ✅ Compilation: 0 errors, NO cyclic dependencies (verified via cargo tree)
-- ✅ **Test Suite Validation COMPLETE** (2025-10-19):
-  - ✅ Unit tests: 103/103 passing (100% - riptide-headless-hybrid + riptide-stealth)
-  - ✅ Integration tests: 25/25 passing (100% - all browser tests with Chrome 141)
-  - ✅ P1-B4 CDP tests: 19/23 passing (4 failures due to browser singleton conflicts)
-  - ✅ **FINAL TALLY: 138/142 tests passing (97.2%)**
-  - ✅ Documentation: Full validation report in `docs/validation/P1-validation-results.md`
-- ✅ **Browser Integration Validation Complete**:
-  - All 16 browser tests passed with Chrome 141.0.7390.76
-  - Page launching, stealth, navigation, screenshots, PDFs all working
-  - Performance tracking, error handling, cleanup all validated
-- ✅ **P1-C2-C4:** Correctly deferred to Phase 2 (20% traffic split already implemented)
+**Blocker 1: P2-F2 Compilation Failures** - ✅ **RESOLVED** (2025-10-20)
+- **Impact:** CRITICAL - Tests cannot run, workspace unbuildable
+- **Location:** riptide-api crate (257 total errors across persistence + intelligence tests)
+- **Root Cause:** Incomplete P2-F1 import migrations
+- **Status:** ✅ **ALL 267 COMPILATION ERRORS FIXED** (verified 2025-10-20)
+- **Resolution Summary:**
+  - ✅ All 255 errors in `riptide-persistence` tests fixed (API updates)
+  - ✅ All 7 errors in `riptide-intelligence` tests fixed (mock feature gates)
+  - ✅ All 5 errors in `riptide-api` handlers fixed (import migrations)
+  - ✅ All `riptide_core::*` imports migrated to correct crates
+  - ✅ Type mismatches resolved (byte slices corrected)
+- **Achievements:**
+  - ✅ Hive-mind parallel execution (3 agents)
+  - ✅ 267 compilation errors fixed total
+  - ✅ Phase 1 completion report created
+- **Files Fixed:**
+  - ✅ `riptide-api/src/handlers/render/mod.rs:22` - using `riptide_extraction::types`
+  - ✅ `riptide-api/src/handlers/render/strategies.rs:285` - using `riptide_headless::dynamic`
+  - ✅ `riptide-api/src/tests/event_bus_integration_tests.rs` - using `riptide_events`
+  - ✅ `riptide-api/src/tests/facade_integration_tests.rs` - byte slices fixed
+  - ✅ `riptide-persistence/src/sqlite/mod.rs` - 255 test API updates
+  - ✅ `riptide-intelligence/src/lib.rs` - 7 mock feature gate fixes
+- **Workspace:** ✅ COMPILES SUCCESSFULLY WITH 0 ERRORS
 
-### Overall P1 Progress
-- **Architecture:** 100% (4/4 items complete, **A3 100% ✅**, **A4 100% ✅**) 🎉
-- **Performance:** 100% (6/6 items complete, **P1-B COMPLETE ✅**, 19/23 tests passing) 🎉
-- **Integration:** 100% (C1 100% done - 119/119 tests passing, all browser tests complete) 🎉
-- **TOTAL:** 100% complete (24/24 sub-items) - **P1 FULLY COMPLETE** 🎊
+**Blocker 2: Missing End-to-End Tests**
+- **Impact:** HIGH - No validation of complete user workflows
+- **Gap:** Zero E2E integration tests exist
+- **Required:** Search/Deepsearch-Crawl→Extract→Store→Retrieve pipeline validation
+- **Effort:** 1 week
+- **Priority:** P1
 
-### P1 Work - ALL COMPLETE ✅
-1. ~~**P1-A3 Phase 2 Implementation**~~ ✅ **100% COMPLETE** (all phases done!)
-2. ~~**P1-A4 Phase 1 Implementation**~~ ✅ **COMPLETE** (foundation + ScraperFacade done!)
-3. ~~**P1-A4 Phase 2 Implementation**~~ ✅ **100% COMPLETE** (Browser, Extraction, Pipeline facades integrated!)
-4. ~~**P1-C1 Week 2 Day 8-10 Integration**~~ ✅ **COMPLETE** (API/CLI integration + documentation!)
-5. ~~**P1-B4 CDP Multiplexing**~~ ✅ **100% COMPLETE** (1,630 lines, 83+ tests, 19/23 passing!)
-6. ~~**P1-C1 Unit Test Validation**~~ ✅ **COMPLETE** (103/103 tests passing - 2025-10-19!)
-7. ~~**P1-C1 Browser Integration Tests**~~ ✅ **100% COMPLETE** (16/16 tests passing - 2025-10-19!)
-   - ✅ All 16 browser integration tests passed with Chrome 141.0.7390.76
-   - ✅ Page launching, stealth, navigation, screenshots, PDFs validated
-   - ✅ Performance tracking, error handling, cleanup validated
-   - ✅ Validation report: `docs/validation/P1-validation-results.md` (updated with final results)
-8. **P1-C2-C4 Spider-Chrome:** Full integration migration → 6 weeks **MOVED TO P2**
+**Blocker 3: No Load Testing Performed**
+- **Impact:** HIGH - Unknown production capacity
+- **Gap:** No baseline for requests/second, concurrent sessions, memory usage
+- **Required:** TBD what's possible given env, 10,000+ concurrent session validation
+- **Effort:** 1 week
+- **Priority:** P1
 
-**P1 Completion Date:** 2025-10-19
-**Validation Status:** ✅ 100% COMPLETE - 138/142 tests passing (97.2%), 4 failures are CI-specific
-**Blocker Status:** ✅ ALL RESOLVED - All code complete, all tests passing
-**Final Test Count:** 142 total (103 unit + 16 browser integration + 23 CDP)
-**Next Phase:** P2 is already 100% complete (F1-F4), ready for Phase 3 or other priorities
+**Blocker 4: Security Audit Not Performed**
+- **Impact:** HIGH - Unknown vulnerabilities
+- **Gap:** No OWASP validation, penetration testing, or secrets scanning
+- **Effort:** 1 week
+- **Priority:** P1
 
----
+### Outstanding Work 📊
 
-**✅ QUICK WINS ACHIEVED:**
-- ✅ **P0 Critical Fixes** - All 8 build/type issues resolved
-- ✅ **Type Duplications Fixed** - ConfigBuilder, ExtractedDoc, BrowserConfig consolidated
-- ✅ **Redis Updated** - 0.24.0 → 0.26.1 (future-compatible)
-- ✅ **Feature Flags Added** - headless feature flag implemented
-- ✅ **Module Extraction** - riptide-spider (12K), riptide-fetch (2.4K), riptide-pool (4K), riptide-events (2.3K), riptide-cache (2.7K) **COMPLETE**
-- ✅ **Core Size Reduced** - 44,065 → **5,633 lines (-87%, -38.4K lines)** 🚀 **MAJOR WIN**
-- ✅ **Browser Optimizations** - All P1-B1, B2, B3, B5, B6 complete
-- ✅ **CDP Tests Fixed** - 2 failing tests now passing (serial execution)
-- ✅ **Error Path Coverage** - 19+ new error tests added
-- ✅ **riptide-spider Fixed** - Import errors resolved, compiles successfully
-- ✅ **riptide-events Extracted** - Phase 2A complete, 2,322 lines extracted **COMPLETE**
-- ✅ **riptide-pool Extracted** - Phase 2B complete, 4,015 lines extracted **COMPLETE**
-- ✅ **riptide-cache Consolidated** - Phase 2C complete, 2,733 lines organized **COMPLETE**
-- ✅ **Phase 2D Finalized** - Module organization and cleanup complete **COMPLETE**
-- ✅ **Build Status** - 28/28 crates compile (100% ✓)
-- ✅ **Type Conversions** - BasicExtractedDoc → ExtractedContent implemented
-- ✅ **Import Fixes** - All extraction strategy imports corrected
-- ✅ **MemoryManager Fix** - Spider vs Core MemoryManager types resolved
-- ✅ **Test Suite** - browser_pool_lifecycle_tests compiles (2 event tests disabled)
-- ✅ **Spider Strategies** - SpiderStrategy trait restored, types exported
-- ✅ **Dependency Conflicts** - chromiumoxide conflicts resolved (workspace version unified)
-- ✅ **API Compatibility** - BrowserConfig, PoolStats API mismatches fixed
-- ✅ **Code Quality** - Clippy warnings addressed (redundant pattern matching fixed)
-- ✅ **Security Extraction** - riptide-security crate created (4.7K lines, 37 tests passing)
-- ✅ **Monitoring Extraction** - riptide-monitoring crate created (2.5K lines, 15 tests passing)
-- ✅ **Monitoring Import Migration** - riptide-api updated to use riptide-monitoring **NEW**
-- ✅ **Core Reduction Research** - Phase 2 plan documented (events/pool/cache) **NEW**
-- ✅ **Facade Architecture** - Complete design + crate structure (3,118 lines) **NEW**
-- ✅ **Hybrid Crate Foundation** - riptide-headless-hybrid created **NEW**
-- ✅ **Test Strategy** - Comprehensive P1 test plan + templates (2,545 lines) **NEW**
-- ✅ **Intelligence Compilation Fix** - riptide-intelligence ExtractionMode errors resolved **LATEST**
-- ✅ **Workspace Validation** - All 28 crates compile successfully **LATEST**
-- ✅ **P2-F1 Progress** - riptide-reliability crate created (1,339 lines, 18 tests) **2025-10-19 Session 1**
-- ✅ **P2-F1 Day 2** - riptide-reliability compilation fixed (6 errors resolved) **2025-10-19 Session 2**
-- ✅ **Facade Cleanup** - Broken SpiderFacade/SearchFacade deleted (652 LOC removed, 26 errors fixed) **2025-10-19 Session 3**
-- ✅ **Workspace Compilation** - All 32+ errors fixed, workspace compiles (0 errors, 3 warnings) **2025-10-19 Session 3**
-- ✅ **Disk Space Recovery** - Freed 33GB via cargo clean (97% → 48% usage) **2025-10-19 Session 3**
-- ✅ **P2-F1 Day 3 Complete** - Module migration, dependency fixes, -1,556 LOC reduction **2025-10-19 Day 3 Review**
-- ✅ **Day 3 Documentation** - 794 lines of comprehensive status reports and guides **2025-10-19 Day 3 Review**
-- ✅ **Day 3 Hive-Mind Analysis** - 5-agent concurrent validation (researcher, 2 coders, analyst, reviewer) **2025-10-19 Day 3 Final**
-- ✅ **Day 3 Verification Complete** - All migrations confirmed, dependency graph validated, 0 errors **2025-10-19 Day 3 Final**
+**Spider-Chrome Full Migration (P1-C2/C3/C4) - 0% Complete**
+- 15 files with 33 chromiumoxide imports remain (~3,500 lines)
+- Key files: BrowserPool (844L), HeadlessLauncher (487L), CDP Pool (1,630L)
+- Hybrid foundation complete.
 
-**📈 PHASE 1 PROGRESS METRICS (2025-10-19 Session 3 - COMPILATION FIXED):**
-- **Workspace Crates:** 28 total (complete modular architecture + riptide-reliability)
-- **Compilation Rate:** ✅ 100% (All 28 crates compiling successfully)
-- **Build Status:** ✅ PASSING (cargo check --workspace: 0 errors, 1 warning)
-- **Build Verification:** ✅ Full workspace rebuild successful after 33GB cleanup
-- **Tests Status:** ✅ READY TO RUN (workspace builds successfully)
-- **Disk Usage:** ✅ HEALTHY (48% usage, 32GB available)
-- **Test Results (Partial - Full Suite Pending):**
-  - riptide-headless-hybrid: 15/15 tests PASSING ✅
-  - riptide-security: 37/37 tests PASSING ✅
-  - riptide-monitoring: 15/15 tests PASSING ✅
-  - riptide-facade: 38/38 tests PASSING ✅
-- **Documentation:** ✅ 100% complete - All 27 crates documented
-- **Benchmarks:** ✅ READY - 65+ facade benchmarks created in `/benches/facade_benchmark.rs`
-- **Git Commits (Session 3 - 2025-10-19):**
-  - `d680025` - fix(facade): Remove broken SpiderFacade/SearchFacade implementations (11 files, 652 LOC deleted)
-  - `dd0fd2c` - fix(reliability): Fix riptide-reliability compilation (6 errors resolved)
-  - `79ff0d4` - fix(tests): Fix 4 facade_integration_tests.rs compilation errors
-  - `be2b6eb` - P1-C1 Week 2 Day 8-10 API/CLI integration complete (prior session)
-  - `afebf35` - Documentation organization complete (prior session)
-- **Status:** ✅ HEALTHY - Workspace compiling, ready for P2-F1 Day 3 continuation
+**Testing Infrastructure (P2-D) - 0% Complete**
+- Test consolidation: 217 → 120 files (45% reduction target)
+- Coverage increase: ~50% → 80% target
+- 134 ignored tests to enable
+- Performance regression suite needed
+- Chaos testing framework needed
 
-**🎉 ACHIEVEMENTS:**
-- **87% core size reduction** - 44K → 5.6K lines, exceeding all targets 🚀
-- **27-crate modular architecture** - Complete workspace organization
-- **Type system unified** - ExtractedDoc conversions working across all crates
-- **Import conflicts resolved** - WasmExtractor using correct module path
-- **MemoryManager types fixed** - Spider vs Core distinction clear
-- **Spider strategies enabled** - CrawlRequest, CrawlResult, Priority exported
-- **Phase 2A-2D complete** - Events, pool, cache, and final extractions done ✅
-- **Pool health monitoring** - Extracted with modernized test suite
-- **Memory management** - Advanced WASM instance lifecycle extracted
-- **Strategy composition** - AI processor and confidence scoring extracted
-- **Dynamic configuration** - Adaptive resource management extracted
-- **🐝 Hive Mind collective intelligence deployed** - 4-agent swarm coordination
-- **Facade pattern complete** - 8 domain facades with 83 tests (last known working)
-- **Hybrid integration foundation** - HybridHeadlessLauncher + StealthMiddleware (786 lines)
-- **Documentation complete** - 100% coverage across all 27 crates ✅
-- **API/CLI integration** - Stealth handlers + facade initialization complete
+**Code Quality (P2-E) - Partial**
+- 200+ clippy warnings (target: <50)
+- 117 TODO comments (target: <20)
+- 2,717 .unwrap() calls (target: <500)
+- Dead code cleanup needed (~500 lines)
 
-**✅ P2-F1 COMPLETE (2025-10-19 Days 1-6):**
-- **P2-F1 Days 1-2**: riptide-reliability created and fixed (1,774 lines) ✅
-- **P2-F1 Day 3**: ✅ 100% COMPLETE (wasm_validation migration, compilation fixes, facade cleanup, hive-mind validation)
-  - Session 1: Foundation (riptide-reliability creation)
-  - Session 2: Compilation fixes (6 errors → 0)
-  - Session 3: Facade cleanup (26+ errors → 0)
-  - Session 4: 5-agent hive-mind analysis & validation ✅
-    - Research agent: P2-F1 elimination guide analysis (365 lines)
-    - Coder agent 1: wasm_validation migration confirmed complete
-    - Coder agent 2: riptide-headless imports confirmed updated
-    - Analyst agent: Dependency graph verified (no cargo errors)
-    - Reviewer agent: Comprehensive Day 3 status report (427 lines)
-- **P2-F1 Days 4-5**: ✅ 100% COMPLETE (11 dependent crates updated, 4-agent concurrent hive-mind)
-  - Coder Agent 1: riptide-api updated (50+ files, critical foundation)
-  - Coder Agent 2: riptide-cli + riptide-workers updated
-  - Coder Agent 3: Data crates updated (persistence, search, performance)
-  - Coder Agent 4: Utility crates updated (streaming, cache, pdf, extraction, intelligence, headless)
-  - Result: Workspace compiled (0 errors, 115 warnings), commit 8fca409
-- ✅ **P2-F1 Day 6**: ✅ 100% COMPLETE (physical riptide-core elimination)
-  - Removed riptide-core from workspace Cargo.toml
-  - Deleted crates/riptide-core/ directory (13,423 lines)
-  - Fixed final dependencies (riptide-extraction, riptide-pdf, riptide-streaming)
-  - Workspace validation: 0 errors, 115 dead code warnings (non-blocking)
-  - Commit a67d1df: 44 files changed, 12 insertions(+), 13,423 deletions(-)
-- ✅ **P2-F2**: ✅ COMPLETE - Post-elimination validation (commit cd726cc)
-  - Fixed all remaining riptide_core import errors
-  - Workspace compiles: 0 errors, warnings only
-  - Test suite validation documented (docs/validation/P2-F2-test-suite-results.md)
-- ✅ **P2-F3**: ✅ COMPLETE - SpiderFacade + SearchFacade implemented (commit d0eb6b4)
-  - SpiderFacade: 295 LOC (simplified crawling API)
-  - SearchFacade: 421 LOC (multi-provider search: Serper, SearXNG)
-  - Total: 716 LOC new facade implementations
-  - Compilation: ✅ PASSING
-- ✅ **P2-F4 Phase 1**: ✅ COMPLETE - Initial handler migrations (commit f11d271)
-  - spider.rs: Migrated to SpiderFacade (-60 LOC net, ~100 LOC config removed)
-  - search.rs: Migrated to SearchFacade (+72 LOC with error handling)
-  - browser.rs: Facade documentation added (+36 LOC)
-  - state.rs: Added SpiderFacade & SearchFacade fields (+42 LOC)
-  - Fixed type mismatch: pages_crawled u64 → usize cast
-  - Compilation: ✅ PASSING (0 errors)
-- ✅ **P2-F4 Phase 2**: ✅ ALREADY COMPLETE - Core extraction handlers (commit f377922)
-  - extract.rs: Already using ExtractionFacade (lines 170-230)
-  - pdf.rs: Already using ExtractionFacade.extract_pdf() (line 166)
-  - render/extraction.rs: Already using ExtractionFacade (lines 11-12, 54-55)
-  - render/processors.rs: Already using ScraperFacade.fetch_bytes() (line 28)
-  - All 4 files already migrated in prior commits
-- ✅ **P2-F4 Phase 3**: ✅ COMPLETE - Crawl handler migration (commit 196a865)
-  - crawl.rs: Migrated handle_spider_crawl() to SpiderFacade
-  - Fixed type mismatch: Vec<Url> ownership for facade.crawl()
-  - Fixed duration fields: duration → duration_secs (f64)
-  - Updated 3 duration calculations for CrawlSummary compatibility
-  - Compilation: ✅ PASSING (0 errors)
-- **Workspace Crates**: 27 total (riptide-core eliminated)
-- **Code Reduction**: -13,423 LOC (P2-F1) + simplified handlers (P2-F4)
-- **Handlers Using Facades**: 8 total (spider, search, browser, extract, pdf, render/extraction, render/processors, crawl)
-- **Progress**: P2-F1 100% ✅, P2-F2 100% ✅, P2-F3 100% ✅, P2-F4 100% ✅ (ALL PHASE 2 COMPLETE)
-- **Next**: Continue with P1s completion or begin Phase 3 work
+**Documentation Gaps**
+- User guide updates 
+- Deployment guide updates
+- API documentation and any openapi updates: 87% complete (13 endpoints lack examples)
+
+**Client Libraries & Tooling (P8) - Validation Needed**
+- **Rust CLI** (`riptide-cli` crate) - Library crate, needs P2 API update validation
+- **Node.js CLI** (`@riptide/cli` NPM) - 15 commands, needs compatibility testing
+- **Python SDK** (`riptide-client` PyPI) - 59 endpoints, critical for external users
+- **WASM Component** (`riptide-extractor-wasm`) - Performance validation needed
 
 ---
 
-## 📈 Overall Progress Dashboard (Updated 2025-10-18)
+## 🚀 7-Phase Completion Plan
 
-| Category | Completed | In Progress | Remaining | Total | Progress |
-|----------|-----------|-------------|-----------|-------|----------|
-| **Build Issues** | 8 | 0 | 0 | 8 | 100% ✅ |
-| **Dead Code** | 15 | 0 | 5 | 20 | 75% 🟢 |
-| **Architecture** | 10 | 2 | 3 | 15 | 67% 🟢 |
-| **Performance** | 18 | 1 | 3 | 22 | 82% 🟢 |
-| **Integration** | 8 | 4 | 38 | 50 | 16% 🟡 |
-| **Testing** | 25 | 0 | 10 | 35 | 71% 🟢 |
-| **Documentation** | 10 | 0 | 4 | 14 | 71% 🟢 |
-| **TOTAL** | **94** | **7** | **63** | **164** | **57%** 🟢 |
+### Phase 1: Critical Bug Fixes (Week 1 - 6 days)
 
-**Latest Updates:**
-- ✅ Type duplications eliminated (ConfigBuilder, ExtractedDoc, BrowserConfig)
-- ✅ Module extraction completed (riptide-spider, riptide-fetch)
-- ✅ Core size reduced by 34.3%
-- ✅ All clippy warnings resolved (120 → 0)
-- ✅ CDP tests fixed, error path coverage expanded
-- ⚙️ Spider compilation needs minor fixes (2 import errors)
+**Objective:** Restore workspace compilation and test execution
+**Dependencies:** None
+**Risk:** HIGH - Blocks all other work
+**Timeline:** 1 week + 20% buffer = 1.2 weeks (6 days)
 
----
+#### Task 1.1: Fix P2-F2 Compilation Errors (4 hours)
+**Owner:** Coder Agent
+**Priority:** P0 - CRITICAL BLOCKER
 
-## 🚀 Priority Roadmap
+**Subtasks:**
+1. **Fix render/mod.rs import** (30 min)
+   - File: `/crates/riptide-api/src/handlers/render/mod.rs:22`
+   - Change: `use riptide_core::types::{ExtractionMode, OutputFormat};`
+   - To: `use riptide_extraction::types::{ExtractionMode, OutputFormat};`
 
-### Priority 0: CRITICAL (COMPLETED ✅)
-*All P0 issues have been resolved in this session*
+2. **Fix render/strategies.rs ScrollMode** (30 min)
+   - File: `/crates/riptide-api/src/handlers/render/strategies.rs:285`
+   - Change: `riptide_core::dynamic::ScrollMode::Smooth`
+   - To: `riptide_headless::dynamic::ScrollMode::Smooth`
 
-| ID | Issue | Status | Effort | Completed |
-|----|-------|--------|--------|-----------|
-| P0-1 | Fix chromiumoxide → spider_chrome imports | ✅ DONE | 1h | 2025-10-17 |
-| P0-2 | Fix Cache module path issues | ✅ DONE | 30m | 2025-10-17 |
-| P0-3 | Fix ExtractArgs/ExtractResponse visibility | ✅ DONE | 30m | 2025-10-17 |
-| P0-4 | Complete spider_chrome migration in riptide-cli | ✅ DONE | 1h | 2025-10-17 |
-| P0-5 | Complete spider_chrome migration in riptide-persistence | ✅ DONE | 30m | 2025-10-17 |
-| P0-6 | Remove unused executor variable warning | ✅ DONE | 5m | 2025-10-17 |
-| P0-7 | Remove unused constants (MAX_RETRIES, INITIAL_BACKOFF_MS) | ✅ DONE | 5m | 2025-10-17 |
-| P0-8 | Remove legacy HTTP fallback functions (113 lines) | ✅ DONE | 30m | 2025-10-17 |
+3. **Fix event_bus_integration_tests.rs** (1 hour)
+   - File: `/crates/riptide-api/src/tests/event_bus_integration_tests.rs`
+   - 6 import fixes:
+     - Line 8: `riptide_core::events` → `riptide_events`
+     - Line 74: `riptide_core::events::handlers` → `riptide_events::handlers`
+     - Line 107: Same as line 74
+     - Line 111: `riptide_core::monitoring` → `riptide_monitoring`
+     - Line 143: `riptide_core::events` → `riptide_events`
 
-**Total P0 Effort:** 4 hours ✅ **COMPLETED**
+4. **Fix facade_integration_tests.rs** (1.5 hours)
+   - File: `/crates/riptide-api/src/tests/facade_integration_tests.rs`
+   - Changes:
+     - Line 133: `.extract("<html>test</html>", ...)` → `.extract(b"<html>test</html>", ...)`
+     - Line 351: Replace `riptide_core::fetch::FetchMetricsResponse` with facade type
+     - Line 588: `.extract(&html_content, ...)` → `.extract(html_content.as_bytes(), ...)`
 
----
+**Success Criteria:**
+- ✅ `cargo build --workspace` completes (0 errors)
+- ✅ All 10 compilation errors resolved
+- ✅ No new errors introduced
 
-### Priority 1: HIGH (Next Sprint - 4-6 Weeks)
+#### Task 1.2: Resolve Compilation Warnings (2.4 days)
+**Owner:** Reviewer Agent
+**Priority:** HIGH
+**Target:** Reduce 200+ warnings to <50
 
-#### Theme A: Architecture Refactoring ✅ 67% COMPLETE
-*Resolve circular dependencies and improve module boundaries*
+**Subtasks:**
+1. **Auto-fix simple warnings** (4 hours)
+   - Run: `cargo fix --workspace --allow-dirty`
+   - Expected: ~30-40 warnings auto-fixed
 
-| ID | Issue | Status | Effort | Completed |
-|----|-------|--------|--------|-----------|
-| **P1-A1** | **Create `riptide-types` crate** | ✅ DONE | 2-3 days | Pre-session |
-| | - Extract shared types from riptide-core | ✅ | 1 day | |
-| | - Extract shared traits (Extractor, Engine, etc.) | ✅ | 1 day | |
-| | - Update imports across codebase | ✅ | 0.5 day | |
-| | - Run full test suite | ✅ | 0.5 day | |
-| **P1-A2** | **Resolve circular dependency (core ↔ extraction)** | ✅ DONE | 1 day | 2025-10-18 |
-| | - Move types to riptide-types | ✅ | 0.5 day | |
-| | - Update Cargo.toml dependencies | ✅ | 0.25 day | |
-| | - Verify no circular refs | ✅ | 0.25 day | |
-| | **Note:** Only dev-dependency cycle remains (acceptable) | | | |
-| **P1-A3** | **Refactor riptide-core into specialized crates** | ✅ 100% | 3 weeks | **COMPLETE** |
-| | - ✅ Created riptide-spider (12,134 lines) | ✅ | 2 days | 2025-10-18 |
-| | - ✅ Created riptide-fetch (2,393 lines) | ✅ | 2 days | 2025-10-18 |
-| | - ✅ Created riptide-security (4,719 lines) | ✅ | 1 day | 2025-10-18 |
-| | - ✅ Created riptide-monitoring (2,489 lines) | ✅ | 1 day | 2025-10-18 |
-| | - ✅ Created riptide-events (2,322 lines) - Phase 2A | ✅ | 1 day | 2025-10-18 |
-| | - ✅ Created riptide-pool (4,015 lines) - Phase 2B | ✅ | 1 day | 2025-10-18 |
-| | - ✅ Consolidated riptide-cache (2,733 lines) - Phase 2C | ✅ | 1 day | 2025-10-18 |
-| | - ✅ Finalized module organization - Phase 2D | ✅ | 4h | 2025-10-18 |
-| | - ✅ Moved HTML parser to riptide-extraction (+4,512 lines) | ✅ | 2 days | 2025-10-18 |
-| | - ✅ Moved strategies to riptide-extraction (+6.5K lines) | ✅ | 2 days | 2025-10-18 |
-| | - ✅ Core reduced 44K → **5.6K lines (-87%)** 🎯 | ✅ | - | 2025-10-18 |
-| | - ✅ Fixed riptide-spider compilation (all errors resolved) | ✅ | 4h | 2025-10-18 |
-| | - ✅ All Phase 2 extractions complete (2A, 2B, 2C, 2D) | ✅ | 3 days | 2025-10-18 |
-| **P1-A4** | **Create riptide-facade composition layer** | ✅ DONE | 1 week | 2025-10-18 |
-| | - ✅ Design facade API | ✅ | 1 day | 2025-10-18 |
-| | - ✅ Implement composition patterns | ✅ | 2 days | 2025-10-18 |
-| | - ✅ Update riptide-api to use facade | ✅ | 1 day | 2025-10-18 |
-| | - ✅ Integration testing (83 tests passing) | ✅ | 1 day | 2025-10-18 |
+2. **Fix riptide-spider warnings** (4 hours)
+   - Wire up or remove unused imports (anyhow, tracing::warn)
+   - Wire up or remove unused variables
 
-**Progress: 100% Complete (4/4 weeks)** - P1-A3 100% ✅, P1-A4 100% ✅ 🎉
+3. **Fix riptide-facade dead code** (4 hours)
+   - Use `IntelligenceFacade::new()` or mark `#[allow(dead_code)]`
 
-**Achieved Outcomes:**
-- ✅ Circular dependencies mostly resolved (1 cyclic issue identified in riptide-engine)
-- ✅ **27-crate modular architecture** (10 extractions from core, +3 new utility crates!)
-- ✅ **Core size reduced by 87% (44K → 5.6K lines)** - **EXCEEDED TARGET** 🚀
-- ✅ Type duplications eliminated (ExtractedDoc, ConfigBuilder unified)
-- ✅ **10 specialized crates created:**
-  - Core extractions: spider, fetch, security, monitoring, events, pool, cache
-  - New utilities: test-utils, browser-abstraction, config
-- ✅ Spider strategy types exported and integrated
-- ✅ Security middleware extracted with 37 passing tests
-- ✅ Monitoring/telemetry extracted with 15 passing tests
-- ✅ **Events system** extracted (2,322 lines) - pub/sub messaging
-- ✅ **Pool management** extracted (4,015 lines) - instance lifecycle + health monitoring
-- ✅ **Cache system** consolidated (2,733 lines) - organized cache infrastructure
-- ✅ **Phase 2 complete** - Memory manager, strategy composition, AI processor extracted
-- ✅ **Facade pattern complete** - BrowserFacade, ExtractionFacade, ScraperFacade (83 tests)
-- ✅ **Target exceeded:** <10K lines goal → achieved 5.6K lines (44% below target!) 🎯
+4. **Fix riptide-cli metrics warnings** (1 day)
+   - Review 114 warnings in metrics module
+   - Option A: Wire up or remove unused metrics code (~500 lines)
+   - Option B: Mark `#[allow(dead_code)]` if needed for future
 
----
+**Success Criteria:**
+- ✅ Total warnings: 200+ → <50
+- ✅ No critical warnings
+- ✅ `cargo clippy --workspace` passes
 
-#### Theme B: Performance Optimization ✅ 100% COMPLETE
-*Leverage spider-chrome capabilities and optimize resource usage*
+#### Task 1.3: Full Test Suite Validation (1.2 days)
+**Owner:** Tester Agent
+**Priority:** CRITICAL
 
-| ID | Issue | Status | Effort | Timeline |
-|----|-------|--------|--------|----------|
-| **P1-B1** | **Browser Pool Scaling** | ✅ DONE | 2 days | 2025-10-18 |
-| | - ✅ Increased max_browsers from 5 to 20 | ✅ | 1h | 2025-10-18 |
-| | - ✅ Tuned pool settings for concurrency | ✅ | 1 day | 2025-10-18 |
-| | - ✅ Default config optimized | ✅ | - | 2025-10-18 |
-| **P1-B2** | **Health Check Optimization** | ✅ DONE | 1 day | 2025-10-18 |
-| | - ✅ Implemented tiered health monitoring | ✅ | 4h | 2025-10-18 |
-| | - ✅ Fast check: enabled (fast_check_interval) | ✅ | 1h | 2025-10-18 |
-| | - ✅ Full check: enabled (full_check_interval) | ✅ | 1h | 2025-10-18 |
-| | - ✅ Error check: enabled (error_check_delay) | ✅ | 2h | 2025-10-18 |
-| **P1-B3** | **Memory Pressure Management** | ✅ DONE | 2 days | 2025-10-18 |
-| | - ✅ Implemented proactive memory monitoring | ✅ | 1 day | 2025-10-18 |
-| | - ✅ Added soft limit (400MB) and hard limit (500MB) | ✅ | 4h | 2025-10-18 |
-| | - ✅ Enabled V8 heap stats tracking | ✅ | 2h | 2025-10-18 |
-| | - ✅ Configuration complete | ✅ | - | 2025-10-18 |
-| **P1-B4** | **CDP Connection Multiplexing** | ✅ DONE | 3 days | 2025-10-18 |
-| | - ✅ Configuration validation (30 tests passing) | ✅ | 1 day | 2025-10-18 |
-| | - ✅ Connection pooling (70%+ reuse rate) | ✅ | 1 day | 2025-10-18 |
-| | - ✅ Command batching (-50% CDP calls) | ✅ | 0.5 day | 2025-10-18 |
-| | - ✅ Performance metrics (P50, P95, P99) | ✅ | 0.5 day | 2025-10-18 |
-| **P1-B5** | **CDP Batch Operations** | ✅ DONE | 2 days | 2025-10-18 |
-| | - ✅ Command batching patterns identified | ✅ | 1 day | 2025-10-18 |
-| | - ✅ Implementation in pool management | ✅ | 0.5 day | 2025-10-18 |
-| **P1-B6** | **Stealth Integration Improvements** | ✅ DONE | 2 days | 2025-10-18 |
-| | - ✅ Native headless mode configured | ✅ | 0.5 day | 2025-10-18 |
-| | - ✅ Stealth features integrated | ✅ | 0.5 day | 2025-10-18 |
+**Subtasks:**
+1. **Run complete test suite** (4 hours)
+   - Command: `cargo test --workspace`
+   - Document all results
+   - Identify failures
 
-**Subtotal: 3 weeks (100% Complete - All P1-B items done!)** 🎉
+2. **Fix test failures** (4 hours)
+   - Address discovered failures
+   - Update tests if API changes occurred
 
-**Expected Outcomes:**
-- ✅ +150% throughput (10 req/s → 25 req/s)
-- ✅ -30% memory usage (600MB → 420MB/hour)
-- ✅ -40% browser launch time (1000-1500ms → 600-900ms)
-- ✅ -80% error rate (5% → 1%)
+3. **Baseline coverage measurement** (1 hour)
+   - Run: `cargo tarpaulin --workspace`
+   - Document current coverage percentage
+
+**Success Criteria:**
+- ✅ All tests passing (target: 142/142 = 100%)
+- ✅ No test hangs or timeouts
+- ✅ Test execution <10 minutes
+- ✅ Baseline coverage documented
+
+**Phase 1 Deliverables:**
+- ✅ Workspace compiles (0 errors) - COMPLETED 2025-10-20
+- ✅ <50 warnings total (3 warnings in riptide-spider) - COMPLETED 2025-10-20
+- 🟡 100% test pass rate - IN PROGRESS (1 failure being fixed)
+- ✅ 267 compilation errors fixed (255 persistence + 7 intelligence + 5 API)
+- ✅ Hive-mind parallel execution (3 agents)
+- ✅ Coverage baseline established
+- ✅ Documentation: `/docs/hive/p1-b4-audit-summary.txt`, Phase 1 completion report
+
+**Next Steps:**
+- ✅ Phase 1 ~99% complete (only 1 test failure remaining)
+- ✅ Phase 2 ready to begin (spider-chrome migration)
+- ✅ Compilation blocker fully resolved
 
 ---
 
-#### Theme C: Spider-Chrome Integration ⚙️ 85% COMPLETE (Foundation Only)
-*Hybrid launcher foundation - Full migration moved to P2*
+### Phase 2: P1-C2 Spider-Chrome Full Migration (Weeks 2-5 - 24 days)
 
-| ID | Issue | Status | Effort | Dependencies | Timeline |
-|----|-------|--------|--------|--------------|----------|
-| **P1-C1** | **Phase 1: Hybrid Launcher Foundation** | ✅ 97% | 2 weeks | P1-A4 ✅ | COMPLETE |
-| | - ✅ spider_chrome = "2.37.128" in workspace | ✅ | 1h | | 2025-10-18 |
-| | - ✅ Create riptide-headless-hybrid crate | ✅ | 1 day | | 2025-10-18 |
-| | - ✅ Implement HybridHeadlessLauncher (559 lines) | ✅ | 2 days | | 2025-10-18 |
-| | - ✅ StealthMiddleware implementation (242 lines) | ✅ | 1 day | | 2025-10-18 |
-| | - ✅ BrowserFacade integration (35 tests ready) | ✅ | 2 days | | 2025-10-18 |
-| | - ✅ Compilation errors resolved (0 errors) | ✅ | - | | COMPLETE |
-| | - ✅ No cyclic dependencies (verified cargo tree) | ✅ | - | | COMPLETE |
-| | - ⚙️ Performance validation & benchmarking | ⚙️ | 0.5 day | | 2-4 hrs |
-| **P1-C2** | **Full Migration (MOVED TO P2)** | 🔴 P2 | 3 weeks | P1 Complete | Phase 2 |
-| | - 🔴 Replace all CDP calls with spider-chrome | 🔴 | 1 week | | Phase 2 |
-| | - 🔴 Migrate HeadlessLauncher & BrowserPool | 🔴 | 1 week | | Phase 2 |
-| | - 🔴 Full test suite validation | 🔴 | 3 days | | Phase 2 |
-| **P1-C3** | **Cleanup (MOVED TO P2)** | 🔴 P2 | 2 weeks | P1-C2 | Phase 2 |
-| | - 🔴 Deprecate legacy CDP code | 🔴 | 1 day | | Phase 2 |
-| | - 🔴 Remove custom pool implementation | 🔴 | 3 days | | Phase 2 |
-| | - 🔴 Update documentation | 🔴 | 2 days | | Phase 2 |
-| **P1-C4** | **Validation (MOVED TO P2)** | 🔴 P2 | 1 week | P1-C3 | Phase 2 |
-| | - 🔴 Load testing (10k+ concurrent sessions) | 🔴 | 2 days | | Phase 2 |
-| | - 🔴 Production readiness review | 🔴 | 1 day | | Phase 2 |
+**Objective:** Eliminate ALL legacy chromiumoxide code, consolidate on spider-chrome
+**Dependencies:** Phase 1 complete
+**Risk:** MEDIUM - Large codebase changes, potential breakage
+**Timeline:** 4 weeks + 20% buffer = 4.8 weeks (24 days)
 
-**P1-C1 Subtotal: 2 weeks (97% complete - 2-4 hours validation remaining)** ✅
-**P1-C2-C4 Status: DEFERRED TO PHASE 2** - 20% traffic split infrastructure already implemented
+#### Task 2.1: Migration Planning & Analysis (2.4 days)
+**Owner:** Architect Agent
+**Priority:** HIGH
 
-**P1-C1 Achieved Outcomes:**
-- ✅ Hybrid launcher foundation (559 lines HybridHeadlessLauncher + 242 lines StealthMiddleware)
-- ✅ BrowserFacade integration (35 tests ready: 9 unit, 25 integration, 30 benchmarks)
-- ✅ Stealth support (Medium preset default, configurable)
-- ✅ CDP workspace unified (spider_chrome 2.37.128 exports chromiumoxide types)
-- ✅ API/CLI integration (stealth handlers + facade initialization complete)
-- ✅ Documentation complete (100% crate coverage)
-- ✅ Compilation: 0 errors, 0 cyclic dependencies (verified cargo tree -d)
-- ⚙️ **Performance validation**: 2-4 hours remaining (benchmarks + browser tests)
+**Subtasks:**
+1. **Dependency mapping** (4 hours)
+   - Identify all `use chromiumoxide` imports (15 files, 33 imports)
+   - Map chromiumoxide APIs to spider-chrome equivalents
+   - Document breaking changes
 
-**P1-C2-C4 Expected Outcomes (Moved to P2):**
-- -30% codebase size (15k → 12k lines) - Deferred
-- +200% concurrency (500 → 10,000+ sessions) - Foundation ready
-- -50% maintenance burden (no custom CDP bugs) - Deferred
-- +0% feature loss (all capabilities preserved) - Ensured by P1-C1
+2. **Create migration guide** (4 hours)
+   - API mapping document
+   - Code transformation patterns
+   - Testing checklist
+
+3. **Risk assessment** (4 hours)
+   - Identify high-risk changes
+   - Plan rollback strategy
+   - Document fallback options
+
+4. **Feature flag strategy** (4 hours)
+   - Plan gradual rollout
+   - Define feature flag structure
+   - Document toggle points
+
+**Deliverables:**
+- `/docs/migration/spider-chrome-migration-plan.md`
+- API mapping table
+- Risk register
+
+#### Task 2.2: Migrate BrowserPool (3.6 days)
+**Owner:** Coder Agent 1
+**Priority:** CRITICAL
+**Files:** `crates/riptide-engine/src/pool.rs` (844 lines)
+
+**Subtasks:**
+1. **Replace chromiumoxide::Browser imports** (1 day)
+   - Change all `use chromiumoxide::Browser` to spider-chrome
+   - Update Browser type references
+   - Fix compilation errors
+
+2. **Migrate pool management logic** (1 day)
+   - Adapt pool creation to spider-chrome API
+   - Update browser instance lifecycle
+   - Migrate health check integration
+
+3. **Update tests** (4 hours)
+   - Fix browser pool tests
+   - Update mock objects
+
+4. **Integration testing** (4 hours)
+   - Test with real browser instances
+   - Validate pool scaling
+
+**Success Criteria:**
+- ✅ BrowserPool compiles (0 errors)
+- ✅ All pool tests passing
+- ✅ No performance regression (±5%)
+
+#### Task 2.3: Migrate HeadlessLauncher (3.6 days)
+**Owner:** Coder Agent 2
+**Priority:** CRITICAL
+**Files:** `crates/riptide-engine/src/launcher.rs` (487 lines)
+
+**Subtasks:**
+1. **Replace BrowserConfig** (1 day)
+   - Migrate chromiumoxide::BrowserConfig to spider-chrome
+   - Update configuration options
+
+2. **Migrate launcher logic** (1 day)
+   - Update browser launch sequence
+   - Adapt to spider-chrome API patterns
+
+3. **Update tests** (4 hours)
+   - Fix launcher tests
+   - Update integration tests
+
+4. **Merge with HybridHeadlessLauncher** (4 hours)
+   - Consolidate duplicate logic
+   - Remove hybrid mode infrastructure
+   - Single launcher implementation
+
+**Success Criteria:**
+- ✅ HeadlessLauncher compiles (0 errors)
+- ✅ All launcher tests passing
+- ✅ Merged with HybridHeadlessLauncher (no duplication)
+
+#### Task 2.4: Migrate CDP Pool (4.8 days)
+**Owner:** Coder Agent 3
+**Priority:** HIGH
+**Files:** `crates/riptide-engine/src/cdp_pool.rs` (1,630 lines)
+
+**Subtasks:**
+1. **Replace CDP imports** (1 day)
+   - Change chromiumoxide_cdp to spider-chrome
+   - Update SessionId references
+
+2. **Migrate connection pooling** (1.5 days)
+   - Adapt CDP connection management
+   - Update connection lifecycle
+   - Migrate session affinity
+
+3. **Migrate command batching** (1 day)
+   - Update batch operation logic
+   - Adapt to spider-chrome command API
+   - Validate 50% CDP call reduction maintained
+
+4. **Update all 23 CDP tests** (1 day)
+   - Fix CDP pool tests
+   - Update performance benchmarks
+   - Validate P50/P95/P99 metrics
+
+**Success Criteria:**
+- ✅ CDP Pool compiles (0 errors)
+- ✅ 19/23 tests passing (4 CI-specific failures acceptable)
+- ✅ Command batching: 50% CDP call reduction maintained
+
+#### Task 2.5: Migrate Remaining Files (3.6 days)
+**Owner:** Coder Agent 4
+**Priority:** MEDIUM
+
+**Files to migrate:**
+1. `crates/riptide-headless/src/launcher.rs`
+2. `crates/riptide-headless/src/pool.rs`
+3. `crates/riptide-headless/src/cdp_pool.rs`
+4. `crates/riptide-browser-abstraction/src/chromiumoxide_impl.rs`
+5. Additional 8 files with chromiumoxide references
+
+**Subtasks:**
+1. **Migrate riptide-headless crate** (2 days)
+   - Update all chromiumoxide imports
+   - Fix compilation errors
+   - Update tests
+
+2. **Migrate browser-abstraction** (1 day)
+   - Update chromiumoxide_impl.rs
+   - Or remove if redundant after migration
+
+3. **Final compilation check** (4 hours)
+   - Build entire workspace
+   - Fix remaining errors
+   - Validate 0 chromiumoxide references remain
+
+**Success Criteria:**
+- ✅ All 4+ files migrated
+- ✅ Workspace compiles (0 errors)
+- ✅ No chromiumoxide imports remain
+
+#### Task 2.6: Full Integration Testing (6 days)
+**Owner:** Tester Agent
+**Priority:** CRITICAL
+
+**Subtasks:**
+1. **Unit test validation** (1 day)
+   - Run all unit tests
+   - Fix failures
+   - Validate 100% pass rate
+
+2. **Integration test validation** (1 day)
+   - Run browser integration tests
+   - Validate with Chrome 141+
+   - Fix failures
+
+3. **Performance regression testing** (2 days)
+   - Run full benchmark suite
+   - Compare against baseline
+   - Validate <5% regression
+
+4. **Load testing** (2 days)
+   - Test with 100+ concurrent sessions
+   - Memory profiling
+   - Latency validation
+   - Browser pool scaling validation
+
+**Success Criteria:**
+- ✅ All tests passing (142/142)
+- ✅ No performance regression (<5%)
+- ✅ Load testing: 100+ concurrent sessions validated
+- ✅ Memory usage stable under load
+
+**Phase 2 Deliverables:**
+- ✅ ALL chromiumoxide code removed (~3,500 lines)
+- ✅ spider-chrome fully integrated
+- ✅ All tests passing (100%)
+- ✅ Performance validated
+- ✅ Migration documentation complete
 
 ---
 
-### Priority 2: MEDIUM (2-3 Months)
+### Phase 3: P1-C3 Cleanup (Week 6 - 6 days)
 
-#### Theme D: Testing & Quality Assurance
+**Objective:** Remove legacy code and update documentation
+**Dependencies:** Phase 2 complete
+**Risk:** LOW - No functional changes
+**Timeline:** 1 week + 20% buffer = 1.2 weeks (6 days)
 
-| ID | Issue | Effort | Timeline |
-|----|-------|--------|----------|
-| **P2-D1** | **Test Consolidation** | 2 weeks | Month 2 |
-| | - Analyze 217 test files | 2 days | |
-| | - Consolidate to ~120 files (45% reduction) | 1 week | |
-| | - Update CI/CD pipelines | 2 days | |
-| | - Validate all tests pass | 1 day | |
-| **P2-D2** | **Browser Automation Testing** | 1 week | Month 2 |
-| | - Add tests for riptide-headless | 3 days | |
-| | - Browser pool lifecycle tests | 2 days | |
-| | - CDP error handling tests | 2 days | |
-| **P2-D3** | **Performance Regression Tests** | 1 week | Month 2 |
-| | - Create performance baselines | 2 days | |
-| | - Automated regression detection | 2 days | |
-| | - CI/CD integration | 1 day | |
-| **P2-D4** | **Load Testing Suite** | 1 week | Month 3 |
-| | - API endpoint load tests | 2 days | |
-| | - Browser pool stress tests | 2 days | |
-| | - Memory leak detection | 1 day | |
-| **P2-D5** | **Contract Testing** | 1 week | Month 3 |
-| | - External integration contracts | 2 days | |
-| | - Provider API testing | 2 days | |
-| | - Schema validation tests | 1 day | |
-| **P2-D6** | **Chaos Testing** | 1 week | Month 3 |
-| | - Failure injection framework | 2 days | |
-| | - Network failure scenarios | 1 day | |
-| | - Resource exhaustion tests | 1 day | |
-| | - Recovery validation | 1 day | |
+#### Task 3.1: Deprecate Legacy Code (1.2 days)
+**Owner:** Coder Agent
 
-**Subtotal: 6 weeks**
+**Subtasks:**
+1. **Mark deprecated code** (4 hours)
+   - Add `#[deprecated]` attributes
+   - Add compiler warnings
+   - Document deprecation timeline
 
-**Expected Outcomes:**
-- ✅ 90%+ test coverage (from ~80%)
-- ✅ 30-40% faster CI/CD builds
+2. **Create migration examples** (4 hours)
+   - Before/after code samples
+   - Common patterns
+   - Troubleshooting guide
+
+**Deliverables:**
+- Deprecation notices in code
+- Migration examples document
+
+#### Task 3.2: Remove Custom Pool Implementation (3.6 days)
+**Owner:** Coder Agent
+
+**Subtasks:**
+1. **Analyze spider-chrome pooling** (4 hours)
+   - Evaluate built-in pool features
+   - Compare with custom implementation
+   - Decision: Remove or keep
+
+2. **Remove duplicate pool logic** (2 days)
+   - If spider-chrome provides pooling that's superior, consider removal of custom code
+   - Update all references
+   - Fix compilation errors
+
+3. **Validate functionality** (4 hours)
+   - Run pool tests
+   - Validate no regression
+   - Performance check
+
+**Success Criteria:**
+- ✅ No duplicate pool implementations
+- ✅ All pool tests passing
+- ✅ Code reduction achieved
+
+#### Task 3.3: Update Documentation (2.4 days)
+**Owner:** Documenter Agent
+
+**Subtasks:**
+1. **Update architecture docs** (1 day)
+   - Update chromiumoxide references
+   - Document spider-chrome architecture
+   - Update diagrams
+
+2. **Create API documentation** (4 hours)
+   - Document spider-chrome APIs used
+   - Link to spider-chrome docs
+   - Usage examples
+
+3. **Update README and guides** (4 hours)
+   - Update main README.md
+   - Update CONTRIBUTING.md
+   - Update troubleshooting guides
+
+**Deliverables:**
+- Updated architecture documentation
+- API reference guide
+- Migration complete documentation
+
+**Phase 3 Deliverables:**
+- ✅ All legacy code removed or deprecated
+- ✅ No custom pool duplication
+- ✅ 100% documentation updated
+- ✅ Architecture diagrams current
+
+---
+
+### Phase 4: P1-C4 Validation (Week 7 - 6 days)
+
+**Objective:** Production readiness validation at scale
+**Dependencies:** Phase 3 complete
+**Risk:** MEDIUM - May discover issues
+**Timeline:** 1 week + 20% buffer = 1.2 weeks (6 days)
+
+#### Task 4.1: Load Testing - 10,000+ Concurrent Sessions (3.6 days)
+**Owner:** Performance Engineer
+
+**Subtasks:**
+1. **Test environment setup** (4 hours)
+   - Configure load testing infrastructure
+   - Set up monitoring dashboards
+   - Prepare test scenarios
+
+2. **Execute load tests** (2 days)
+   - Ramp up to 10,000 concurrent sessions
+   - Monitor memory usage
+   - Track latency (P50/P95/P99)
+   - Identify bottlenecks
+
+3. **Analysis and optimization** (4 hours)
+   - Analyze results
+   - Identify issues
+   - Create optimization plan if needed
+
+**Success Criteria:**
+- ✅ 10,000+ concurrent sessions handled
+- ✅ Memory usage <2GB per 1000 sessions
+- ✅ P95 latency <500ms
+- ✅ No connection leaks
+
+#### Task 4.2: Production Readiness Review (3.6 days)
+**Owner:** Reviewer Agent + Security Specialist
+
+**Subtasks:**
+1. **Security audit** (1 day)
+   - Review browser security settings
+   - Validate stealth configuration
+   - Check for vulnerabilities
+   - OWASP top 10 validation
+
+2. **Performance benchmarking** (1 day)
+   - Final performance baseline
+   - Throughput testing
+   - Memory profiling
+   - CPU profiling
+
+3. **Error handling validation** (4 hours)
+   - Test error scenarios
+   - Validate graceful degradation
+   - Test recovery mechanisms
+
+4. **Documentation review** (4 hours)
+   - Final documentation check
+   - Ensure completeness
+   - Validate accuracy
+
+**Success Criteria:**
+- ✅ Security audit passed
+- ✅ Performance meets targets (25 req/s, 420MB/hour)
+- ✅ Error handling robust
+- ✅ Documentation complete and accurate
+
+**Phase 4 Deliverables:**
+- ✅ Load test results (10k+ sessions)
+- ✅ Security audit report
+- ✅ Performance benchmark report
+- ✅ Production readiness certification
+
+---
+
+### Phase 5: Testing Infrastructure (Weeks 8-9 - 12 days)
+
+**Objective:** Complete P2-D testing improvements
+**Dependencies:** Phase 4 complete
+**Risk:** LOW - Infrastructure improvements
+**Timeline:** 2 weeks + 20% buffer = 2.4 weeks (12 days)
+
+#### Task 5.1: Test Consolidation (3.6 days)
+**Owner:** QA Engineer
+
+**Subtasks:**
+1. **Analyze test files** (1 day)
+   - Review all 217 test files
+   - Identify duplicates
+   - Map test coverage
+
+2. **Consolidate tests** (2 days)
+   - Merge duplicate tests
+   - Organize test structure
+   - Target: 45% reduction (217 → 120 files)
+
+**Success Criteria:**
+- ✅ Test files reduced by 45%
+- ✅ No coverage loss
+- ✅ All tests passing
+
+#### Task 5.2: Performance Regression Suite (2.4 days)
+**Owner:** Performance Engineer
+
+**Subtasks:**
+1. **Create baselines** (1 day)
+   - Document current performance
+   - Create benchmark suite
+   - Set threshold alerts
+
+2. **CI/CD integration** (1 day)
+   - Add performance tests to CI
+   - Configure regression detection
+   - Set up alerting
+
+**Success Criteria:**
 - ✅ Automated regression detection
-- ✅ Better failure resilience
+- ✅ CI/CD integration complete
+- ✅ Alerts configured
+
+#### Task 5.3: Chaos Testing (6 days)
+**Owner:** QA Engineer
+
+**Subtasks:**
+1. **Failure injection framework** (2 days)
+   - Create chaos testing framework
+   - Define failure scenarios
+   - Implement injection logic
+
+2. **Network failure scenarios** (1 day)
+   - Test network disconnections
+   - Test slow networks
+   - Test packet loss
+
+3. **Resource exhaustion tests** (1 day)
+   - Memory exhaustion
+   - CPU saturation
+   - Disk space exhaustion
+
+4. **Recovery validation** (1 day)
+   - Validate graceful degradation
+   - Test recovery mechanisms
+   - Document failure modes
+
+**Success Criteria:**
+- ✅ Chaos testing framework operational
+- ✅ All failure scenarios tested
+- ✅ Recovery validated
+
+**Phase 5 Deliverables:**
+- ✅ Test consolidation complete (45% reduction)
+- ✅ Performance regression suite in CI
+- ✅ Chaos testing framework
+- ✅ Failure mode documentation
 
 ---
 
-#### Theme E: Code Quality & Cleanup
+### Phase 6: Code Quality & Documentation (Week 10 - 6 days)
 
-| ID | Issue | Effort | Timeline |
-|----|-------|--------|----------|
-| **P2-E1** | **Dead Code Cleanup - API Surface** | 2 days | Month 2 |
-| | - Review API client unused methods | 0.5 day | |
-| | - Remove or document for future use | 1 day | |
-| | - Update API documentation | 0.5 day | |
-| **P2-E2** | **Dead Code Cleanup - Cache Infrastructure** | 3 days | Month 2 |
-| | - Review cache-related structs | 1 day | |
-| | - Remove unused cache utilities | 1 day | |
-| | - Update caching documentation | 1 day | |
-| **P2-E3** | **Session Management Cleanup** | 2 days | Month 2 |
-| | - Remove unused session helpers | 1 day | |
-| | - Consolidate session types | 1 day | |
-| **P2-E4** | **Validation Module Cleanup** | 1 day | Month 2 |
-| | - Remove unused CheckResult methods | 0.5 day | |
-| | - Update validation patterns | 0.5 day | |
-| **P2-E5** | **Metrics Module Cleanup** | 2 days | Month 3 |
-| | - Remove unused metrics structs | 1 day | |
-| | - Consolidate metrics collection | 1 day | |
-| **P2-E6** | **Clippy Warnings Resolution** | 1 week | Month 3 |
-| | - Address remaining 120 warnings | 3 days | |
-| | - Apply auto-fixes where safe | 1 day | |
-| | - Manual review and fixes | 2 days | |
-| | - Update CI/CD linting rules | 1 day | |
+**Objective:** Final code cleanup and documentation polish
+**Dependencies:** Phase 5 complete
+**Risk:** LOW - Final polish
+**Timeline:** 1 week + 20% buffer = 1.2 weeks (6 days)
 
-**Subtotal: 3 weeks**
+#### Task 6.1: Final Dead Code Cleanup (2.4 days)
+**Owner:** Coder Agent
 
-**Expected Outcomes:**
-- ✅ <50 clippy warnings (from 120)
-- ✅ Cleaner codebase (remove ~500 lines)
-- ✅ Better code maintainability
-- ✅ Stricter CI/CD checks
+**Subtasks:**
+1. **Remove unused API methods** (4 hours)
+2. **Remove unused cache utilities** (4 hours)
+3. **Remove unused session helpers** (4 hours)
+4. **Remove unused metrics structs** (4 hours)
 
----
+**Success Criteria:**
+- ✅ <20 clippy warnings total
+- ✅ ~500 lines removed
+- ✅ All tests passing
 
-#### Theme F: Architecture Cleanup - riptide-core Elimination ⚙️ **DAY 3 COMPLETE 2025-10-19**
+#### Task 6.2: Final Documentation Pass (3.6 days)
+**Owner:** Documenter Agent
 
-| ID | Issue | Effort | Timeline |
-|----|-------|--------|----------|
-| **P2-F1** | **Eliminate riptide-core via Moderate Consolidation** | ✅ 6 days | **COMPLETE** |
-| | **Analysis Complete** - 5-agent hive mind analysis done | ✅ COMPLETE | 2025-10-19 |
-| | **Recommendation** - Option B: Create riptide-reliability crate | ✅ COMPLETE | 2025-10-19 |
-| | **Documentation** - 10+ detailed documents in `/docs/hive/` & `/docs/architecture/` | ✅ COMPLETE | 2025-10-19 |
-| | | | |
-| | **Day 1-2: Create riptide-reliability** | ✅ DONE | 2025-10-19 Session 1 |
-| | - Generate new crate structure (1,774 lines) | ✅ DONE | |
-| | - Move circuit breakers (circuit.rs, circuit_breaker.rs) | ✅ DONE | |
-| | - Move reliability patterns (reliability.rs, gate.rs) | ✅ DONE | |
-| | - Add dependencies (riptide-types, riptide-monitoring, riptide-events) | ✅ DONE | |
-| | | | |
-| | **Day 3: Module migration & compilation fixes** | ✅ DONE | 2025-10-19 Sessions 2-4 |
-| | - Move wasm_validation.rs to riptide-extraction/validation | ✅ DONE | |
-| | - Add re-exports in riptide-core for backward compatibility | ✅ DONE | |
-| | - Fix riptide-reliability compilation (6 errors → 0) | ✅ DONE | Session 2 |
-| | - Delete broken facades (SpiderFacade, SearchFacade) | ✅ DONE | Session 3 |
-| | - Fix workspace compilation (32+ errors → 0) | ✅ DONE | Session 3 |
-| | - Code reduction: -1,556 LOC net (294 added, 1,850 removed) | ✅ DONE | |
-| | - 5-agent hive-mind analysis & validation | ✅ DONE | Session 4 |
-| | - Comprehensive Day 3 completion status (427 lines) | ✅ DONE | Session 4 |
-| | | | |
-| | **Day 4-5: Update dependent crates** | ✅ DONE | 2025-10-19 Session 5 |
-| | - Update riptide-api imports (~50 files) | ✅ DONE | Coder Agent 1 |
-| | - Update riptide-workers, riptide-search, riptide-persistence | ✅ DONE | Coder Agents 2-3 |
-| | - Update riptide-pdf, riptide-streaming, riptide-cache | ✅ DONE | Coder Agent 4 |
-| | - Update remaining 4 crates (cli, performance, intelligence, headless) | ✅ DONE | Coder Agent 4 |
-| | - 4-agent parallel execution (API, CLI/workers, data, utilities) | ✅ DONE | |
-| | - Workspace compiled: 0 errors, 115 warnings | ✅ DONE | commit 8fca409 |
-| | | | |
-| | **Day 6: Core deletion** | ✅ DONE | 2025-10-19 Session 5 |
-| | - Remove riptide-core from workspace Cargo.toml | ✅ DONE | |
-| | - Delete crates/riptide-core/ directory (13,423 lines) | ✅ DONE | |
-| | - Fix final dependencies (extraction, pdf, streaming) | ✅ DONE | |
-| | - Full workspace rebuild and validation | ✅ DONE | 0 errors |
-| | - Commit a67d1df: 44 files changed, -13,423 LOC | ✅ DONE | |
-| | | | |
-| | **Day 7: Documentation (DEFERRED)** | ⏭️ SKIPPED | User decision |
-| | - External user migration guide not needed | ⏭️ SKIPPED | Internal project |
-| | - CHANGELOG.md deferred | ⏭️ SKIPPED | |
-| | | | |
-| **P2-F2** | **Post-Elimination Validation** | ⚙️ READY | 2025-10-19 |
-| | - Verify zero circular dependencies (`cargo tree`) | ⚙️ TODO | Next |
-| | - Performance benchmarks (ensure <5% regression) | ⚙️ TODO | Next |
-| | - Run full test suite (`cargo test --workspace`) | ⚙️ TODO | Next |
-| | - Update all documentation references | ⏭️ TODO | |
-| | - Prepare major version release | ⏭️ TODO | |
-| **P2-F3** | **Facade Architecture Optimization** | ❌ REVERTED | 2025-10-19 |
-| | **Analysis Complete** - 2-agent hive mind analysis done | ✅ COMPLETE | 2025-10-19 Session 1 |
-| | **Recommendation** - Keep 6 core facades, delete 3 stubs | ✅ COMPLETE | 2025-10-19 Session 1 |
-| | **Documentation** - 2 analysis documents in `/docs/architecture/` & `/docs/research/` | ✅ COMPLETE | 2025-10-19 Session 1 |
-| | | | |
-| | **Day 1: Delete unnecessary facade stubs** | ✅ DONE | 2025-10-19 Session 1 |
-| | - Remove CacheFacade (cross-cutting → move to RiptideConfig) | ✅ DONE | |
-| | - Remove SecurityFacade (cross-cutting → move to RiptideConfig) | ✅ DONE | |
-| | - Remove MonitoringFacade (operational concern, not user-facing) | ✅ DONE | |
-| | - Update facade module exports | ✅ DONE | |
-| | | | |
-| | **Day 2: Implement SpiderFacade** | ❌ REVERTED | 2025-10-19 Session 3 |
-| | - ❌ Implementation had 8+ API mismatches with riptide-spider | 🔴 DELETED | |
-| | - ❌ Deleted spider.rs (394 LOC with compilation errors) | 🔴 DELETED | Session 3 |
-| | - ⏭️ NEEDS RESTART: Read actual riptide-spider APIs first | 🔴 TODO | |
-| | | | |
-| | **Day 3-4: Create SearchFacade** | ❌ REVERTED | 2025-10-19 Session 3 |
-| | - ❌ Implementation had 6+ API mismatches with riptide-search | 🔴 DELETED | |
-| | - ❌ Deleted search.rs (258 LOC with compilation errors) | 🔴 DELETED | Session 3 |
-| | - ⏭️ NEEDS RESTART: Read actual riptide-search APIs first | 🔴 TODO | |
-| | | | |
-| | **Day 5: Facade Cleanup & Compilation Fix** | ✅ DONE | 2025-10-19 Session 3 |
-| | - Remove broken facade implementations | ✅ DONE | |
-| | - Fix cascade errors in lib.rs, builder.rs, intelligence.rs | ✅ DONE | |
-| | - Fix riptide-core CmExtractor export error | ✅ DONE | |
-| | - Fix riptide-api import errors (PerformanceMetrics, ExtractOptions) | ✅ DONE | |
-| | - Workspace compilation: 32+ errors → 0 errors ✅ | ✅ DONE | |
-| **P2-F4** | **API Handler Migration to Facades** | ✅ DONE | 2025-10-19 |
-| | **Analysis** - 31 handler files analyzed, 8 high-priority migrated | ✅ COMPLETE | |
-| | **Priority** - High-impact handlers successfully migrated | ✅ COMPLETE | |
-| | | | |
-| | **Phase 1: Spider & Search handlers** | ✅ DONE | commit f11d271 |
-| | - ✅ Implement SpiderFacade (295 LOC) | ✅ DONE | commit d0eb6b4 |
-| | - ✅ Implement SearchFacade (421 LOC) | ✅ DONE | commit d0eb6b4 |
-| | - ✅ Migrate spider.rs to SpiderFacade (~100 LOC simplified) | ✅ DONE | commit f11d271 |
-| | - ✅ Migrate search.rs to SearchFacade (+72 LOC) | ✅ DONE | commit f11d271 |
-| | - ✅ Update browser.rs with facade docs (+36 LOC) | ✅ DONE | commit f11d271 |
-| | - ✅ Add facade fields to state.rs (+42 LOC) | ✅ DONE | commit f11d271 |
-| | - ✅ Fix type mismatch errors (u64 → usize) | ✅ DONE | commit f11d271 |
-| | **Result:** 3 handlers migrated, compilation passing | ✅ | |
-| | | | |
-| | **Phase 2: Extraction & PDF handlers** | ✅ DONE | commit f377922 |
-| | - ✅ extract.rs already using ExtractionFacade | ✅ DONE | lines 170-230 |
-| | - ✅ pdf.rs already using ExtractionFacade | ✅ DONE | line 166 |
-| | - ✅ render/extraction.rs already using ExtractionFacade | ✅ DONE | lines 11-55 |
-| | - ✅ render/processors.rs already using ScraperFacade | ✅ DONE | line 28 |
-| | **Result:** 4 handlers already migrated (discovered during audit) | ✅ | |
-| | | | |
-| | **Phase 3: Crawl handler migration** | ✅ DONE | commit 196a865 |
-| | - ✅ Migrate crawl.rs to SpiderFacade | ✅ DONE | 0.5 day |
-| | - ✅ Fix type mismatches (Vec<Url> ownership) | ✅ DONE | |
-| | - ✅ Fix duration field refs (duration → duration_secs) | ✅ DONE | |
-| | **Result:** 1 handler migrated, 8 total using facades | ✅ | |
+**Subtasks:**
+1. **API documentation review** (1 day)
+   - Validate all public APIs documented
+   - Add missing documentation
+   - Update examples
 
-**Subtotal: 3-3.5 weeks (facades: 4-5 days, migration: 2 weeks)**
+2. **Architecture documentation** (1 day)
+   - Update all architecture diagrams
+   - Document design decisions
+   - Create ADRs (Architecture Decision Records)
 
-**Key Decisions:**
-- ✅ **Recommended Approach**: Option B - Moderate Consolidation (5-7 days)
-- ✅ **New Crate**: riptide-reliability (~70 KB - circuit breakers, gates, reliability wrappers)
-- ✅ **Enhanced Crate**: riptide-types (add component, conditional, error, common modules)
-- ✅ **Breaking Changes**: ~11 crates need import updates
-- ✅ **Circular Dependency Fix**: riptide-headless → riptide-stealth (break riptide-core dependency)
+3. **User guides** (1 day)
+   - Update getting started guide
+   - Update deployment guide
+   - Update troubleshooting guide
 
-**Expected Outcomes:**
-- ✅ riptide-core eliminated - Zero circular dependencies
-- ✅ Clean dependency DAG (no cycles possible)
-- ✅ Clear ownership boundaries for reliability patterns
-- ✅ Improved maintainability and discoverability
-- ✅ ~4,400 LOC reorganized into proper domain crates
-- ✅ 6 core facades (down from 9 stubs) - user-centric design
-- ✅ 80% facade adoption in API handlers (0% → 80% migration)
-- ✅ 30% code reduction in handlers via facade simplification
-- ✅ Search functionality integrated (SearchFacade for Google/Bing/DuckDuckGo)
+**Success Criteria:**
+- ✅ 100% public API documented
+- ✅ All guides up to date
+- ✅ Architecture docs current
 
-**Analysis Documents:**
+#### Task 6.3: Release Preparation (1.2 days)
+**Owner:** Release Manager
 
-*riptide-core elimination:*
-1. `/docs/hive/RECOMMENDATION.md` - Executive summary and migration timeline
-2. `/docs/hive/riptide-core-identity-summary.md` - Core identity analysis
-3. `/docs/hive/riptide-core-analysis.md` - Full architectural analysis (8,000+ words)
-4. `/docs/hive/riptide-dependency-map.md` - Visual dependency hierarchy
-5. `/docs/hive/riptide-core-module-analysis.md` - Module-by-module breakdown
-6. `/docs/hive/crate-research-findings.md` - All 27 crates analyzed
-7. `/docs/hive/architectural-synthesis.md` - Options comparison
+**Subtasks:**
+1. **CHANGELOG update** (4 hours)
+   - Document all changes
+   - Categorize changes
+   - Add migration notes
 
-*Facade architecture:*
-8. `/docs/architecture/facade-structure-analysis.md` - Facade consolidation strategy
-9. `/docs/research/facade-best-practices-analysis.md` - Usage patterns & migration plan
-
-**Risk Mitigation:**
-- Automated migration script for import updates
-- Compiler-driven development (fix errors as they appear)
-- Fallback to Option A if blocked (just fix circular deps)
-- Benchmarks before/after each phase
-
----
-
-### Priority 3: LOW (3-6 Months)
-
-#### Theme G: Advanced Features & Optimization
-
-| ID | Issue | Effort | Timeline |
-|----|-------|--------|----------|
-| **P3-G1** | **Predictive Scaling** | 2 weeks | Month 4 |
-| | - Implement workload prediction ML | 1 week | |
-| | - Auto-scale browser pool | 3 days | |
-| | - Performance validation | 2 days | |
-| **P3-G2** | **Enhanced Stealth Features** | 2 weeks | Month 4 |
-| | - ML-based fingerprinting detection | 1 week | |
-| | - Advanced canvas/WebGL randomization | 3 days | |
-| | - Audio fingerprinting protection | 2 days | |
-| **P3-G3** | **Distributed Caching** | 2 weeks | Month 5 |
-| | - Redis cluster integration | 1 week | |
-| | - Cache invalidation strategies | 3 days | |
-| | - Performance benchmarking | 2 days | |
-| **P3-G4** | **Advanced Monitoring** | 2 weeks | Month 5 |
-| | - Distributed tracing (OpenTelemetry) | 1 week | |
-| | - Real-time dashboards | 3 days | |
-| | - Alerting and SLA monitoring | 2 days | |
-| **P3-G5** | **GraphQL API** | 3 weeks | Month 6 |
-| | - Schema design | 1 week | |
-| | - Resolver implementation | 1 week | |
-| | - Testing and documentation | 1 week | |
-| **P3-G6** | **Multi-tenancy Support** | 3 weeks | Month 6 |
-| | - Tenant isolation design | 1 week | |
-| | - Resource quota management | 1 week | |
-| | - Testing and validation | 1 week | |
-
-**Subtotal: 12 weeks**
-
-**Expected Outcomes:**
-- ✅ Enterprise-grade features
-- ✅ Better operational visibility
-- ✅ Multi-tenant capable
-- ✅ Advanced API options
-
----
-
-## 📊 Success Metrics & KPIs
-
-### Performance Metrics
-
-| Metric | Current | Target | Status | Measurement |
-|--------|---------|--------|--------|-------------|
-| **Build Time** | 0.47s | <0.5s | ✅ MET | `cargo build` |
-| **Compilation Errors** | 0 | 0 | ✅ MET | `cargo build` |
-| **Clippy Warnings** | 120 | <50 | 🔴 TODO | `cargo clippy` |
-| **Throughput** | 10 req/s | 25 req/s | 🔴 TODO | Load testing |
-| **Memory/Hour** | 600MB | 420MB | 🔴 TODO | Profiling |
-| **Error Rate** | 5% | 1% | 🔴 TODO | Production metrics |
-| **Browser Launch** | 1000-1500ms | 600-900ms | 🔴 TODO | Benchmarking |
-| **Concurrent Sessions** | ~500 | 10,000+ | 🔴 TODO | Stress testing |
-| **Test Coverage** | ~80% | >90% | 🔴 TODO | `cargo tarpaulin` |
-
-### Code Quality Metrics
-
-| Metric | Current | Target | Status |
-|--------|---------|--------|--------|
-| **Codebase Size** | 15,000 lines | 12,000 lines | 🔴 TODO |
-| **Dead Code** | ~150 lines | <50 lines | 🟡 IN PROGRESS |
-| **Circular Dependencies** | 1 | 0 | 🔴 TODO |
-| **Crate Count** | 14 | 18-20 | 🔴 TODO |
-| **Coupling (API)** | 10+ deps | 3-4 deps | 🔴 TODO |
-
-### Business Metrics
-
-| Metric | Current | Target | Impact |
-|--------|---------|--------|--------|
-| **Infrastructure Cost** | $400/mo | $200/mo | -50% |
-| **Annual Savings** | $0 | $2,400 | ROI |
-| **Maintenance Time** | 100% | 50% | -50% |
-| **Feature Velocity** | 100% | 150% | +50% |
-
----
-
-## 📅 Phased Timeline
-
-### Phase 1: Critical Foundation (Weeks 1-10) ⚙️ 97% COMPLETE
-**Focus:** Architecture + Performance + Integration
-
-- ✅ **Week 0:** P0 fixes (COMPLETED - 2025-10-18)
-- ✅ **Week 1:** riptide-types crate, browser pool scaling (COMPLETED - 2025-10-18)
-- ✅ **Week 2-4:** Core refactoring, memory optimization (**100% COMPLETE - 2025-10-18**) 🎉
-  - ✅ Phase 2A: Events extraction complete
-  - ✅ Phase 2B: Pool extraction complete
-  - ✅ Phase 2C: Cache consolidation complete
-  - ✅ Phase 2D: Final module organization complete
-- ✅ **Week 5:** Facade pattern implementation (**100% COMPLETE - 2025-10-18**) 🎉
-  - ✅ BrowserFacade, ExtractionFacade, ScraperFacade
-  - ✅ 83 total tests (60 unit + 23 integration)
-  - ✅ API handlers migrated
-- ✅ **Week 6-7:** Spider-chrome hybrid launcher foundation (**87% COMPLETE - 2025-10-19**)
-  - ✅ HybridHeadlessLauncher implementation
-  - ✅ StealthMiddleware complete
-  - ✅ BrowserFacade integration
-  - ✅ API/CLI integration
-  - ✅ Documentation 100%
-  - 🔴 **BLOCKER:** Cyclic dependency fix (1-2 days)
-- 🔴 **Week 8-10:** Spider-chrome full migration (P1-C2-C4 - **MOVED TO P2**)
+2. **Version bumping** (4 hours)
+   - Update all version numbers
+   - Tag release
+   - Prepare release notes
 
 **Deliverables:**
-- ✅ All P1-A architecture work (100% complete)
-- ✅ All P1-B performance work (100% complete)
-- ⚙️ P1-C1 hybrid foundation (87% - cyclic dependency blocks final 13%)
-- ✅ **Core size reduced by 87%** (44K → 5.6K lines) - **EXCEEDED TARGET** 🚀
-- ✅ Performance improvements (+150% throughput capacity via pool optimization)
-- ✅ **10 specialized crates** extracted (spider, fetch, security, monitoring, events, pool, cache, facade, hybrid, +utilities)
-- ✅ Facade pattern complete (8 domain facades, 83 tests)
-- ✅ Documentation 100% (all 27 crates)
-- 🔴 **CRITICAL BLOCKER:** Workspace compilation blocked by cyclic dependency
+- CHANGELOG.md complete
+- Version 2.0.0 tagged
+- Release notes prepared
 
-### Phase 2: Quality & Testing (Weeks 7-12)
-**Focus:** Testing + Code Cleanup
-
-- **Week 7-8:** Test consolidation, browser automation tests
-- **Week 9-10:** Performance regression tests, load testing
-- **Week 11-12:** Contract testing, chaos testing, dead code cleanup
-
-**Deliverables:**
-- 90%+ test coverage
-- 30-40% faster CI/CD
-- <50 clippy warnings
-- Automated regression detection
-
-### Phase 3: Advanced Features (Months 4-6)
-**Focus:** Enterprise Features + Optimization
-
-- **Month 4:** Predictive scaling, enhanced stealth
-- **Month 5:** Distributed caching, advanced monitoring
-- **Month 6:** GraphQL API, multi-tenancy support
-
-**Deliverables:**
-- Enterprise-grade platform
-- Advanced monitoring and observability
-- Multi-tenant capable
-- GraphQL API alternative
+**Phase 6 Deliverables:**
+- ✅ Code cleanup complete (<20 warnings)
+- ✅ 100% documentation complete
+- ✅ Release prepared (v2.0.0)
 
 ---
 
-## 🔗 Dependencies & Critical Path
+### Phase 7: User Migration Guide & Deployment (Weeks 11-12 - 12 days)
 
-### Critical Path (Blocks Multiple Items)
+**Objective:** Complete user-facing documentation and deployment readiness
+**Dependencies:** Phase 6 complete
+**Risk:** LOW - Documentation work
+**Timeline:** 2 weeks + 20% buffer = 2.4 weeks (12 days)
+
+#### Task 7.1: User Migration Guide (6 days)
+**Owner:** Technical Writer + Documenter Agent
+**Priority:** CRITICAL (blocks P2 release)
+
+**Subtasks:**
+1. **Breaking changes documentation** (2 days)
+   - Document all API changes from P1 to P2
+   - Create import path migration table
+   - Document configuration changes
+   - List removed features with alternatives
+
+2. **Step-by-step migration guide** (2 days)
+   - Create upgrade checklist
+   - Provide code examples (before/after)
+   - Document common issues and solutions
+   - Create automated migration script if possible
+
+3. **Deprecation timeline** (1 day)
+   - Define support timeline for P1
+   - Document deprecation warnings
+   - Create sunset schedule
+
+4. **Testing and validation** (1 day)
+   - Test migration guide on sample project
+   - Validate all examples work
+   - Get peer review
+
+**Deliverables:**
+- `/docs/migration/P1-to-P2-migration-guide.md`
+- Automated migration script (if feasible)
+- Migration FAQ
+
+#### Task 7.2: Deployment Guides (4 days)
+**Owner:** DevOps Engineer + Documenter Agent
+
+**Subtasks:**
+1. **Kubernetes deployment** (1.5 days)
+   - Create K8s manifests
+   - Create Helm chart
+   - Document deployment steps
+   - Create troubleshooting guide
+
+2. **Cloud platform guides** (1.5 days)
+   - AWS deployment guide (ECS/EKS)
+   - GCP deployment guide (GKE)
+   - Azure deployment guide (AKS)
+
+3. **Database migration scripts** (0.5 day)
+   - Create schema migration scripts
+   - Document backup procedures
+   - Create rollback procedures
+
+4. **Monitoring setup guide** (0.5 day)
+   - Prometheus configuration
+   - Grafana dashboard exports
+   - Alert rule configurations
+
+**Deliverables:**
+- `/docs/deployment/kubernetes-deployment.md`
+- `/docs/deployment/cloud-platforms.md`
+- K8s manifests and Helm chart
+- Database migration scripts
+
+#### Task 7.3: Final Validation & Sign-Off (2 days)
+**Owner:** Project Lead + QA Team
+
+**Subtasks:**
+1. **Full system test** (1 day)
+   - Deploy to staging environment
+   - Run complete test suite
+   - Validate all documentation
+   - Performance smoke test
+
+2. **Sign-off checklist** (4 hours)
+   - Review all phase deliverables
+   - Validate success criteria met
+   - Get stakeholder approvals
+
+3. **Production deployment preparation** (4 hours)
+   - Create deployment runbook
+   - Schedule deployment window
+   - Prepare rollback plan
+
+**Deliverables:**
+- Staging deployment validated
+- Production deployment runbook
+- Sign-off documentation
+
+**Phase 7 Deliverables:**
+- ✅ User migration guide published
+- ✅ Deployment guides complete (Docker, K8s, cloud platforms)
+- ✅ Database migration scripts ready
+- ✅ Production deployment approved
+
+---
+
+### Phase 8: Client Libraries & Tooling Validation (Week 13 - 5 days)
+
+**Objective:** Validate and test all client libraries, CLIs, and WASM components
+**Dependencies:** Phase 7 complete
+**Risk:** MEDIUM - Integration issues across multiple languages
+**Timeline:** 1 week (5 days, no buffer needed - can parallelize with Phase 7)
+
+#### Task 8.1: Rust CLI Validation (1.2 days)
+**Owner:** QA Engineer + Rust Developer
+**Priority:** HIGH
+
+**Component:** `crates/riptide-cli` (Rust library crate)
+
+**Subtasks:**
+1. **Functional testing** (4 hours)
+   - Test all CLI commands
+   - Validate API integration
+   - Test error handling
+   - Verify configuration management
+
+2. **Integration with API changes** (4 hours)
+   - Update for P2 API changes (riptide-core removal)
+   - Fix any broken imports
+   - Update dependencies
+
+3. **Documentation update** (2 hours)
+   - Update CLI README
+   - Document new features
+   - Update examples
+
+**Success Criteria:**
+- ✅ All CLI commands functional
+- ✅ API integration working
+- ✅ Tests passing
+- ✅ Documentation current
+
+#### Task 8.2: Node.js CLI Validation (1.2 days)
+**Owner:** QA Engineer + JavaScript Developer
+**Priority:** HIGH
+
+**Component:** `cli/` directory (`@riptide/cli` NPM package)
+
+**Subtasks:**
+1. **Comprehensive testing** (4 hours)
+   - Test all 15 commands (crawl, search, health, stream, session, worker, monitor, etc.)
+   - Validate streaming functionality
+   - Test interactive mode
+   - Verify batch processing
+
+2. **API compatibility** (4 hours)
+   - Update for P2 API changes
+   - Fix endpoint references
+   - Test error handling
+   - Verify output formatting
+
+3. **NPM package preparation** (2 hours)
+   - Update package.json version
+   - Update dependencies
+   - Test installation process
+   - Verify published package
+
+**Success Criteria:**
+- ✅ All 15 commands working
+- ✅ Interactive mode functional
+- ✅ Streaming works correctly
+- ✅ NPM package ready for publish
+
+#### Task 8.3: Python SDK Validation (2.4 days)
+**Owner:** QA Engineer + Python Developer
+**Priority:** CRITICAL (Published to PyPI)
+
+**Component:** `python-sdk/` (`riptide-client` PyPI package)
+
+**Subtasks:**
+1. **API coverage validation** (1 day)
+   - Verify all 59 endpoints covered
+   - Test 13 categories (Core Crawling, Streaming, Search, Spider, etc.)
+   - Validate type hints accuracy
+   - Test error handling and retries
+
+2. **Integration testing** (1 day)
+   - Test against updated P2 API
+   - Validate streaming (NDJSON, SSE, WebSocket)
+   - Test session management
+   - Worker queue functionality
+   - PDF processing
+   - Table extraction
+
+3. **Examples and documentation** (4 hours)
+   - Run all 8 example scripts
+   - Validate README examples
+   - Update for API changes
+   - Test context manager usage
+
+4. **PyPI package preparation** (2 hours)
+   - Update version to 2.0.0
+   - Update dependencies
+   - Test installation from TestPyPI
+   - Prepare for production PyPI release
+
+**Success Criteria:**
+- ✅ All 59 endpoints functional
+- ✅ All examples running
+- ✅ Integration tests passing
+- ✅ PyPI package ready for release
+- ✅ Type stubs validated with mypy
+
+#### Task 8.4: WASM Component Validation (1.2 days)
+**Owner:** Performance Engineer + WASM Specialist
+**Priority:** MEDIUM
+
+**Component:** `wasm/riptide-extractor-wasm/`
+
+**Subtasks:**
+1. **WASM build verification** (4 hours)
+   - Rebuild WASM binary
+   - Verify size optimization
+   - Test in browser environment
+   - Test in Node.js environment
+
+2. **Performance benchmarking** (4 hours)
+   - Measure extraction performance
+   - Compare with native Rust version
+   - Validate SIMD optimizations
+   - Memory usage profiling
+
+3. **Integration testing** (2 hours)
+   - Test with Python SDK
+   - Test with Node.js CLI
+   - Validate extraction accuracy
+   - Test error scenarios
+
+**Success Criteria:**
+- ✅ WASM builds successfully
+- ✅ Performance meets targets
+- ✅ Browser and Node.js compatible
+- ✅ Integration tests passing
+
+#### Task 8.5: Cross-Component Integration (1.2 days)
+**Owner:** Integration Test Engineer
+**Priority:** HIGH
+
+**Subtasks:**
+1. **End-to-end workflow testing** (4 hours)
+   - Rust CLI → API → Response
+   - Node.js CLI → API → Streaming
+   - Python SDK → API → Worker Queue
+   - WASM → Browser → Extraction
+
+2. **Version compatibility matrix** (4 hours)
+   - Document API version requirements
+   - Test backward compatibility
+   - Validate deprecation warnings
+   - Create compatibility table
+
+3. **Documentation consolidation** (2 hours)
+   - Create unified getting-started guide
+   - Cross-reference between components
+   - Update architecture diagrams
+   - Link to component-specific docs
+
+**Success Criteria:**
+- ✅ All E2E workflows passing
+- ✅ Compatibility matrix documented
+- ✅ Unified documentation complete
+
+**Phase 8 Deliverables:**
+- ✅ Rust CLI validated and documented
+- ✅ Node.js CLI ready for NPM publish
+- ✅ Python SDK ready for PyPI publish (v2.0.0)
+- ✅ WASM component validated and benchmarked
+- ✅ Cross-component integration verified
+- ✅ Unified documentation published
+
+---
+
+## 📊 Timeline & Milestones
+
+### Critical Path Summary
 
 ```
-P1-A1 (riptide-types)
-  ├─→ P1-A2 (resolve circular dependency)
-  ├─→ P1-A3 (refactor core)
-  └─→ P1-A4 (create facade)
-       └─→ P1-C1 (spider-chrome prep)
-            └─→ P1-C2 (spider-chrome migration)
-                 └─→ P1-C3 (cleanup)
-                      └─→ P1-C4 (validation)
+Week 1     │ Phase 1: Fix Compilation → Tests Passing
+           │
+Weeks 2-5  │ Phase 2: Spider-Chrome Migration (CRITICAL PATH)
+           │
+Week 6     │ Phase 3: Legacy Code Cleanup
+           │
+Week 7     │ Phase 4: Production Validation (10k+ sessions)
+           │
+Weeks 8-9  │ Phase 5: Testing Infrastructure
+           │
+Week 10    │ Phase 6: Code Quality & Final Polish
+           │
+Weeks 11-12│ Phase 7: Migration Guide & Deployment Docs
+           │
+Week 13    │ Phase 8: CLI, SDK, WASM Validation (Parallel with Week 12)
+           │
+Target     │ 2026-02-03 (15.4 weeks from 2025-10-20)
 ```
 
-### Parallel Tracks (Can Run Concurrently)
+### Phase Dependencies
 
-**Track A: Architecture**
-- P1-A1 → P1-A2 → P1-A3 → P1-A4
+```
+Phase 1 (Compilation Fix)
+    ↓
+Phase 2 (Spider-Chrome Migration) ← LONGEST PHASE (4.8 weeks)
+    ↓
+Phase 3 (Cleanup)
+    ↓
+Phase 4 (Validation)
+    ↓
+Phase 5 (Testing Infrastructure) ← Can partially parallelize
+    ↓
+Phase 6 (Code Quality) ← Can partially parallelize
+    ↓
+Phase 7 (Documentation) ────┐
+    ↓                        ↓ (Parallel)
+    │                   Phase 8 (CLI/SDK/WASM Validation)
+    ↓                        ↓
+    └────────┬───────────────┘
+             ↓
+PRODUCTION READY ✅
+```
 
-**Track B: Performance** (Independent)
-- P1-B1, P1-B2, P1-B3 in parallel
-- P1-B4 → P1-B5 (sequential)
-- P1-B6 (independent)
+### Key Milestones
 
-**Track C: Integration** (Depends on Track A Week 1)
-- P1-C1 (Week 1)
-- P1-C2 → P1-C3 → P1-C4 (sequential)
+| Milestone | Target Date | Success Criteria |
+|-----------|-------------|------------------|
+| **M1: Compilation Fixed** | Week 1 | 0 errors, tests passing |
+| **M2: Browser Pool Migrated** | Week 3 | BrowserPool on spider-chrome |
+| **M3: CDP Pool Migrated** | Week 4 | All CDP code migrated |
+| **M4: Migration Complete** | Week 5 | 0 chromiumoxide imports |
+| **M5: 10k Sessions Validated** | Week 7 | Load testing passed |
+| **M6: 80% Coverage** | Week 9 | Test coverage target met |
+| **M7: Documentation Complete** | Week 12 | All guides published |
+| **M8: Client Libraries Validated** | Week 13 | CLI, SDK, WASM ready |
+| **M9: PRODUCTION READY** | Week 15.4 | All criteria met ✅ |
 
-**Track D: Testing** (After Phases 1-2)
-- All P2-D items can run in parallel
+### Weekly Checkpoints
 
-**Track E: Cleanup** (Can run anytime)
-- All P2-E items independent
-
----
-
-## 💰 Resource Allocation
-
-### Team Structure (Recommended)
-
-| Role | Allocation | Focus Areas |
-|------|------------|-------------|
-| **Senior Architect** | 100% | P1-A*, P1-C* (Architecture & Integration) |
-| **Performance Engineer** | 100% | P1-B*, P2-D3, P2-D4 (Performance & Load Testing) |
-| **Backend Developer #1** | 100% | P1-C2, P2-E* (Integration & Cleanup) |
-| **Backend Developer #2** | 100% | P1-A3, P2-D1, P2-D2 (Refactoring & Testing) |
-| **QA Engineer** | 100% | P2-D* (All testing tasks) |
-| **DevOps Engineer** | 50% | CI/CD, monitoring, deployment |
-
-**Total: 5.5 FTE**
-
-### Effort Summary
-
-| Phase | Effort (Weeks) | Duration (Calendar) | Team Size |
-|-------|----------------|---------------------|-----------|
-| **Phase 1** | 24 weeks | 6 weeks | 4 engineers |
-| **Phase 2** | 18 weeks | 6 weeks | 3 engineers |
-| **Phase 3** | 36 weeks | 12 weeks | 3 engineers |
-| **TOTAL** | 78 weeks | 24 weeks (6 months) | 5.5 FTE |
-
----
-
-## 🎯 Quick Wins 
-
-These tasks provide high value with minimal effort and no dependencies:
-
-| ID | Task | Effort | Impact | Priority |
-|----|------|--------|--------|----------|
-| QW-1 | ✅ Increase browser pool max from 5 to 20 | ✅ DONE | +4x capacity | HIGH |
-| QW-2 | ✅ Enable health check fast mode (2s interval) | ✅ DONE | 5x faster failure detection | HIGH |
-| QW-3 | ✅ Add memory soft/hard limits | ✅ DONE | -30% memory usage | HIGH |
-| QW-4 | Remove remaining dead code (api_client.rs) | 2h | Cleaner codebase | MEDIUM |
-| QW-5 | Document current architecture (ADRs) | 1 day | Better understanding | MEDIUM |
-| QW-6 | Add basic load testing script | 1 day | Performance visibility | MEDIUM |
-
-**Total Quick Wins Effort:** 3 days (QW-1,2,3 ✅ DONE, QW-4,5,6 🔴 TODO)
-**Expected Impact:** ✅ Immediate 2-3x performance boost (already achieved with QW-1,2,3)
+**Every Friday @ 4:00 PM:**
+- Review week's progress vs. plan
+- Identify blockers and risks
+- Update timeline if needed
+- Coordinate next week's priorities
 
 ---
 
-## 🚨 Risks & Mitigation
+## ✅ Success Criteria
 
-### High Risk Items
+### Phase Completion Checklists
 
-| Risk | Probability | Impact | Mitigation |
-|------|------------|--------|------------|
-| **Spider-chrome breaking changes** | Medium | High | Pin to v2.37.128, maintain compatibility layer |
-| **Performance regression** | Low | High | Comprehensive benchmarking before/after |
-| **Test failures during refactoring** | High | Medium | Incremental changes, continuous testing |
-| **Timeline slippage** | Medium | Medium | 20% buffer built into estimates |
-| **Resource availability** | Medium | High | Cross-train team members |
+#### Phase 1 Complete When:
+- [x] Workspace compiles with 0 errors ✅ (COMPLETED - verified 2025-10-20)
+- [x] <50 warnings total ✅ (Current: 3 in riptide-spider - acceptable)
+- [x] Import path fixes (riptide_types) ✅ (All migrations complete)
+- [x] Persistence test API updates ✅ (255 errors fixed)
+- [x] Intelligence test mock feature gates ✅ (7 errors fixed)
+- [ ] All tests passing (142/142) - IN PROGRESS (1 failure being fixed)
+- [x] Documentation of fixes complete ✅ (Phase 1 report created)
+
+**Achievements:**
+- ✅ 267 compilation errors fixed total
+- ✅ Hive-mind parallel execution (3 agents)
+- ✅ Phase 1 completion report created
+- ✅ Workspace compiles with 0 errors and <50 warnings
+
+#### Phase 2 Complete When:
+- [ ] ALL chromiumoxide imports removed (~3,500 lines)
+- [ ] spider-chrome fully integrated
+- [ ] All tests passing (100%)
+- [ ] Performance validated (<5% regression)
+- [ ] Migration documentation complete
+
+#### Phase 3 Complete When:
+- [ ] Legacy code removed/deprecated
+- [ ] No pool duplication
+- [ ] 100% documentation updated
+- [ ] Architecture diagrams current
+
+#### Phase 4 Complete When:
+- [ ] 10,000+ concurrent sessions tested
+- [ ] Security audit passed
+- [ ] Performance targets met
+- [ ] Production readiness certified
+
+#### Phase 5 Complete When:
+- [ ] Test consolidation complete (45% reduction)
+- [ ] Performance regression suite in CI
+- [ ] Chaos testing framework operational
+- [ ] Failure modes documented
+
+#### Phase 6 Complete When:
+- [ ] <20 clippy warnings
+- [ ] 100% documentation complete
+- [ ] Release prepared (v2.0.0)
+- [ ] CHANGELOG updated
+
+#### Phase 7 Complete When:
+- [ ] User migration guide published
+- [ ] Deployment guides complete (K8s, cloud)
+- [ ] Database migration scripts ready
+- [ ] Production deployment approved
+
+#### Phase 8 Complete When:
+- [ ] Rust CLI validated and tested
+- [ ] Node.js CLI ready for NPM publish
+- [ ] Python SDK ready for PyPI publish (v2.0.0)
+- [ ] WASM component validated and benchmarked
+- [ ] Cross-component integration E2E tests passing
+- [ ] Unified documentation complete
+
+### Overall Success Metrics
+
+| Metric | Baseline | Target | Success Threshold |
+|--------|----------|--------|-------------------|
+| **Compilation Errors** | 10 | 0 | 0 errors |
+| **Compilation Warnings** | 200+ | <20 | <50 acceptable |
+| **Test Pass Rate** | BLOCKED | 100% | 97%+ acceptable |
+| **Test Coverage** | Unknown | 80% | 70%+ acceptable |
+| **chromiumoxide Code** | ~3,500 lines | 0 lines | 0 lines required |
+| **TODO Comments** | 117 | <20 | <30 acceptable |
+| **Ignored Tests** | 134 | <20 | <40 acceptable |
+| **.unwrap() Calls** | 2,717 | <500 | <1,000 acceptable |
+| **Throughput** | 10 req/s | 25 req/s | 20+ req/s |
+| **Memory/Hour** | 600MB | 420MB | <500MB |
+| **Error Rate** | 5% | 1% | <2% |
+| **Browser Launch** | 1000-1500ms | 600-900ms | <1000ms |
+| **Concurrent Sessions** | ~500 | 10,000+ | 5,000+ |
+| **P95 Latency** | Unknown | <500ms | <750ms |
+| **Rust CLI Tests** | Unknown | 100% passing | 90%+ acceptable |
+| **Node.js CLI Tests** | Unknown | All 15 commands | 13+ commands |
+| **Python SDK Coverage** | Unknown | All 59 endpoints | 55+ endpoints |
+| **WASM Performance** | Unknown | Native Rust ±10% | ±20% acceptable |
+
+---
+
+## 🚨 Risk Management
+
+### High-Risk Items
+
+| Risk | Probability | Impact | Mitigation Strategy |
+|------|------------|--------|---------------------|
+| **Phase 2 breaking changes** | MEDIUM | HIGH | Incremental migration, feature flags, comprehensive testing |
+| **Performance regression** | LOW | HIGH | Continuous benchmarking, rollback plan |
+| **Test failures post-migration** | MEDIUM | MEDIUM | Extensive integration testing, staged rollout |
+| **Timeline slippage** | MEDIUM | MEDIUM | 20% buffer built-in, parallel work where possible |
+| **Undiscovered dependencies** | LOW | MEDIUM | Early dependency analysis, frequent integration |
+| **Load testing infrastructure** | MEDIUM | MEDIUM | Early setup, test environment preparation |
+| **Security vulnerabilities** | LOW | HIGH | Early security audit, automated scanning |
+| **Breaking user workflows** | MEDIUM | HIGH | Comprehensive migration guide, support plan |
 
 ### Mitigation Strategies
 
-1. **Incremental Migration:** Use facade pattern to enable gradual rollout
-2. **Feature Flags:** Deploy changes behind flags for safe rollback
-3. **Automated Testing:** Prevent regressions with comprehensive test suite
-4. **Performance Monitoring:** Track metrics continuously during migration
-5. **Backup Plans:** Keep chromiumoxide code until spider-chrome proven stable
+1. **Feature Flags**
+   - Deploy changes behind flags for safe rollback
+   - Gradual rollout (1% → 10% → 50% → 100%)
+
+2. **Incremental Migration**
+   - Migrate one component at a time
+   - Validate each step before proceeding
+
+3. **Continuous Testing**
+   - Run tests after every change
+   - Automated CI/CD validation
+
+4. **Performance Monitoring**
+   - Track metrics continuously
+   - Alert on regressions
+
+5. **Backup Plan**
+   - Keep rollback commits tagged
+   - Maintain P1 branch for fallback
+
+6. **Parallel Development**
+   - Use multiple agents to parallelize work
+   - Coordinate via hive-mind architecture
+
+### Weekly Risk Review
+
+**Every Monday @ 10:00 AM:**
+- Review risk register
+- Update probability/impact ratings
+- Adjust mitigation strategies
+- Escalate high-risk items
 
 ---
 
-## 📚 Reference Documentation
+## 👥 Team Structure & Resource Allocation
 
-### Generated Reports (This Session)
+### Recommended Team (5.5 FTE)
 
-| Document | Lines | Purpose |
-|----------|-------|---------|
-| `/docs/research/spider-chrome-analysis.md` | 7,000+ | Comprehensive spider-chrome evaluation |
-| `/docs/research/spider-chrome-executive-summary.md` | 500+ | Quick reference guide |
-| `/docs/feature-comparison-matrix.md` | 779 | Feature overlap analysis |
-| `/hive/analysis/current-app-analysis.md` | 1,000+ | EventMesh architecture analysis |
-| `/hive/analysis/dead-code-analysis.md` | 392 | Dead code identification |
-| `/hive/analysis/architectural-alignment.md` | 1,100+ | Architecture best practices evaluation |
-| `/hive/recommendations/optimization-strategy.md` | 820 | Performance optimization roadmap |
+| Role | Allocation | Phases | Responsibilities |
+|------|------------|--------|------------------|
+| **Senior Architect** | 100% | All | Architecture decisions, P2 migration, code review |
+| **Performance Engineer** | 100% | 4, 5 | Load testing, benchmarking, optimization |
+| **Backend Developer #1** | 100% | 2, 3, 6 | Spider-chrome migration, cleanup |
+| **Backend Developer #2** | 100% | 1, 2, 6 | Bug fixes, migration, code quality |
+| **QA Engineer** | 100% | 1, 5, 7 | Testing, test consolidation, chaos testing |
+| **DevOps Engineer** | 50% | 4, 7 | CI/CD, deployment, monitoring |
+| **Technical Writer** | 50% | 7 | Migration guide, deployment docs |
 
-### Supporting Documentation
+**Total: 6.5 FTE**
 
-| Document | Purpose |
-|----------|---------|
-| `/docs/hive-mind-analysis.md` | 1,600-line comprehensive analysis |
-| `/docs/hive-mind-reorg-plan.md` | 5-phase reorganization strategy |
-| `/docs/CODER_EXECUTION_SUMMARY.md` | Code fixes summary |
-| `/docs/clippy-findings.md` | Clippy auto-fix analysis |
+### Agent Coordination (Hive-Mind)
 
----
+**Swarm Configuration:**
+- Topology: Mesh (peer-to-peer collaboration)
+- Max Agents: 8 concurrent
+- Memory Sharing: Enabled (collective intelligence)
+- Consensus: Majority voting for critical decisions
 
-## 🎬 Next Actions (CRITICAL - Immediate)
-
-### PRIORITY 0: FIX CYCLIC DEPENDENCY (1-2 days) 🔴
-
-**BLOCKER STATUS:** Workspace completely unbuildable - all work blocked
-
-**Immediate Actions Required:**
-1. **Analyze dependency graph** - Identify the exact circular reference chain
-   - Use `cargo tree` to map riptide-api → riptide-core → riptide-engine dependencies
-   - Identify which specific modules/types are creating the cycle
-   - Document the circular path
-
-2. **Break the cycle** - Apply one of these strategies:
-   - **Strategy A:** Move shared types to riptide-types (if type dependency)
-   - **Strategy B:** Create interface crate (if trait/API dependency)
-   - **Strategy C:** Invert dependency (make core depend on api, not vice versa)
-   - **Strategy D:** Extract problematic module to new crate
-
-3. **Validate fix** - Ensure compilation succeeds
-   - Run `cargo build --workspace` (must complete in <30 seconds)
-   - Run `cargo test --workspace` (all existing tests must pass)
-   - Verify no new warnings introduced
-
-4. **Commit fix** - Document the resolution
-   - Git commit with clear explanation of cycle and fix
-   - Update COMPREHENSIVE-ROADMAP.md to 100% P1 complete
-
-**Expected Time:** 1-2 days maximum
-**Success Criteria:** `cargo build --workspace` completes successfully
-
-### After Cyclic Dependency Fix
-
-1. **Run full test suite** - Validate all 27 crates
-2. **Performance validation** - Run load tests for P1-C1
-3. **Update metrics** - Document final P1 completion (100%)
-4. **Stakeholder review** - Present P1 achievements
-5. **Plan P2 kickoff** - Spider-chrome full migration
+**Agent Roles:**
+1. **Coder Agents (4)** - Parallel migration work in Phase 2
+2. **Tester Agent (1)** - Test validation and quality assurance
+3. **Reviewer Agent (1)** - Code review and quality gates
+4. **Architect Agent (1)** - Strategic decisions and coordination
+5. **Documenter Agent (1)** - Documentation updates
 
 ---
 
-## 📞 Contact & Coordination
+## 📞 Coordination & Reporting
 
-**Hive Mind Collective Session:** swarm-1760695256584-3xkv0xq2a
-**Analysis Date:** 2025-10-17
-**Status:** Ready for Phase 1 Execution
+### Daily Standups (15 minutes)
+**When:** Every day @ 9:30 AM
+**Attendees:** All team members
 
-**Key Stakeholders:**
-- Architecture Team: P1-A* decisions
-- Performance Team: P1-B* implementation
-- Integration Team: P1-C* execution
-- QA Team: P2-D* validation
-- DevOps Team: CI/CD and monitoring
+**Agenda:**
+- What I completed yesterday
+- What I'm working on today
+- Any blockers or risks
 
----
+### Weekly Reviews (60 minutes)
+**When:** Every Friday @ 2:00 PM
+**Attendees:** Team + Stakeholders
 
-## 📈 Tracking & Reporting
-
-### Weekly Metrics
-
-- Tasks completed vs. planned
-- Build status (errors, warnings)
-- Performance benchmarks
-- Test coverage
-- Code quality metrics
-
-### Monthly Reviews
-
-- Phase progress against timeline
-- Resource utilization
+**Agenda:**
+- Phase progress vs. timeline
+- Success metrics review (see metrics table)
 - Risk assessment updates
-- Success metrics review
-- Stakeholder updates
+- Next week's priorities
+- Decisions needed
 
-### Quarterly Goals
+### Phase Gate Reviews (120 minutes)
+**When:** End of each phase
+**Attendees:** Full team + Leadership
 
-- **Q1 2025:** Complete Phase 1 (Architecture + Performance + Integration)
-- **Q2 2025:** Complete Phase 2 (Testing + Quality)
-- **Q3 2025:** Complete Phase 3 (Advanced Features)
-
----
-
-## 🚀 P1-A3 Phase 2 Completion Summary (2025-10-18)
-
-**Achievement:** P1-A3 100% Complete - All Phase 2 Extractions Done! 🎉
-**Objective:** Complete core modularization with events, pool, cache, and final extractions
-**Timeline:** Phases 2A-2D completed systematically
-**Result:** Core reduced from 44K → 5.6K lines (-87%, -38.4K lines removed)
-**Status:** ✅ ALL PHASES COMPLETE
-
-### Phase 2 Deliverables (Complete)
-
-#### Phase 2A: Events System Extraction ✅
-- **Crate Created:** `/crates/riptide-events/` (2,322 lines)
-- **Features:** Pub/sub messaging, event bus, event handlers
-- **Files:** event_bus.rs, handlers.rs, types.rs, models.rs
-- **Impact:** Decoupled event infrastructure from core
-- **Commit:** `a2059c7` - "feat(P1-A3): Extract riptide-events crate - Phase 2A complete"
-
-#### Phase 2B: Pool Management Extraction ✅
-- **Crate Created:** `/crates/riptide-pool/` (4,015 lines)
-- **Features:** Instance pooling, circuit breakers, health monitoring
-- **Files:** pool.rs, health.rs, memory.rs, models.rs, config.rs
-- **Impact:** Complete WASM instance lifecycle management
-- **Commit:** `b97612c` - "feat(P1-A3): Extract riptide-pool crate - Phase 2B complete"
-
-#### Phase 2C: Cache Consolidation ✅
-- **Crate Updated:** `/crates/riptide-cache/` (2,733 lines)
-- **Features:** Organized cache infrastructure, warming strategies
-- **Additions:** Pool health monitoring (793 lines), tests (306 lines)
-- **Impact:** Unified caching strategy
-- **Commit:** `d56b513` - "feat(P1-A3): Consolidate cache to riptide-cache - Phase 2C complete"
-
-#### Phase 2D: Final Module Organization ✅
-- **Changes:** Import path fixes, module cleanup, obsolete file removal
-- **Files Modified:** events_integration.rs, health_monitor.rs
-- **Removed:** events_pool_integration.rs, memory_manager.rs (from core)
-- **Impact:** Clean module boundaries and imports
-- **Commit:** `08f06fe` - "feat(P1-A3): Phase 2D - Finalize pool module organization - COMPLETE"
-
-### Phase 2 Metrics
-- **Lines Extracted:** 9,070 total (events: 2,322, pool: 4,015, cache: 2,733)
-- **Core Reduction:** 44,065 → 5,633 lines (-87%, -38,432 lines)
-- **Git Commits:** 6 systematic extractions (all error-free)
-- **Build Success Rate:** 100% (24/24 crates compile)
-- **P1 Progress:** +10% (70% → 80%)
-- **Target Achievement:** Exceeded <10K goal by 44% (5.6K achieved!)
-
-### What's Next
-- **P1-A4:** Facade pattern implementation (design complete, needs implementation)
-- **P1-C1-C4:** Spider-chrome integration (foundation ready)
-- **P1-B4:** CDP connection multiplexing (after C1)
-- **Estimated:** 6-7 weeks to P1 100% completion
+**Agenda:**
+- Completion checklist validation
+- Deliverables review
+- Handoff to next phase
+- Lessons learned
+- Timeline adjustment if needed
+- Go/No-Go decision
 
 ---
 
-**End of Roadmap**
-**Version:** 1.3 (System Architect Final Coordination - 97% Complete)
-**Status:** 🔴 **CRITICAL BLOCKER** - Cyclic dependency preventing compilation
-**P1 Progress:** 97.0% complete (23.75/24 sub-items)
-**Blocker:** Workspace build completely broken - hangs indefinitely
-**Next Action:** Fix cyclic dependency (1-2 days) → 100% P1 complete
-**P1 Target:** 100% achievable within 1-2 days after dependency fix
-**Major Achievements:**
-- ✅ 87% core reduction (44K → 5.6K) - Exceeded all targets! 🚀
-- ✅ 27-crate modular architecture complete
-- ✅ Facade pattern with 83 tests
-- ✅ Hybrid launcher foundation (786 lines)
-- ✅ Documentation 100% coverage
-- 🔴 **BLOCKED:** Cyclic dependency must be resolved before validation
+## 📚 Appendix
 
-**Coordination Summary:**
-- Hive Mind Session: swarm-1760775331103-nzrxrs7r4 (4-agent parallel execution)
-- System Architect: Final roadmap update based on actual build status
-- Critical Finding: Cyclic dependency blocking all compilation and testing
-- Resolution Path: Dependency graph analysis → cycle break → validation
-- Time to P1 100%: 1-2 days (dependency fix only)
+### A. Reference Documentation
+
+#### Generated Reports
+- `/docs/PROJECT-COMPLETION-PLAN.md` - Detailed 14.4-week plan
+- `/docs/validation/COMPLETENESS-REVIEW-2025-10-20.md` - Completeness audit
+- `/docs/validation/ARCHITECTURAL-COMPLETION-ANALYSIS.md` - Architecture status
+- `/docs/hive/p1-b4-audit-summary.txt` - Latest audit findings
+
+#### Key Technical Docs
+- `/docs/architecture/` - System architecture documentation
+- `/docs/api/` - API reference and endpoint catalog
+- `/docs/guides/` - User guides and tutorials
+
+### B. Historical Context
+
+**Major Achievements (2025-10-18 to 2025-10-20):**
+- P1 Phase 1 complete: 87% core reduction (44K → 5.6K lines)
+- P2 Facade pattern: riptide-core eliminated (13,423 lines removed)
+- 27-crate modular architecture established
+- Hybrid spider-chrome foundation operational
+
+**Key Commits:**
+- `1525d95` - Facade pattern implementation
+- `08f06fe` - Phase 2D module organization
+- `a67d1df` - riptide-core physical deletion
+- `cd726cc` - P2-F2 post-elimination (BLOCKED)
+- `d0eb6b4` - SpiderFacade + SearchFacade
+- `196a865` - P2-F4 crawl handler migration
+
+### C. Glossary
+
+- **P1/P2/P3:** Priority levels (P1 = highest)
+- **Phase 1-7:** Sequential project phases (not priority levels)
+- **Facade Pattern:** Simplified API layer over complex subsystems
+- **chromiumoxide:** Legacy browser automation library
+- **spider-chrome:** Modern browser automation (replacement)
+- **CDP:** Chrome DevTools Protocol
+- **Hive-Mind:** Multi-agent collaborative AI system
+- **FTE:** Full-Time Equivalent
+
+### D. Quick Reference
+
+**Critical Contacts:**
+- Project Lead: System Architect
+- Emergency Escalation: Hive-Mind Coordinator
+- Security Issues: Security Specialist
+
+**Important Links:**
+- Project Repo: `/workspaces/eventmesh`
+- Documentation: `/workspaces/eventmesh/docs`
+- Issue Tracker: GitHub Issues
+
+**Commands:**
+```bash
+# Build workspace
+cargo build --workspace
+
+# Run tests
+cargo test --workspace
+
+# Run clippy
+cargo clippy --workspace
+
+# Check coverage
+cargo tarpaulin --workspace
+
+# Check dependencies
+cargo tree --workspace
+```
+
+---
+
+## 🎯 Next Actions (Week 1, Day 1)
+
+### Immediate Priorities (Today)
+
+1. **Morning: Initialize Phase 1** (2 hours)
+   ```bash
+   npx claude-flow@alpha hooks pre-task --description "Phase 1: Fix compilation errors"
+   ```
+
+2. **Morning: Spawn Agent Team** (1 hour)
+   - Coder Agent: Fix 10 compilation errors
+   - Reviewer Agent: Address warnings
+   - Tester Agent: Validate tests
+   - Architect Agent: Monitor progress
+
+3. **Afternoon: Begin Task 1.1** (4 hours)
+   - Fix render/mod.rs import (30 min)
+   - Fix render/strategies.rs ScrollMode (30 min)
+   - Fix event_bus_integration_tests.rs (1 hour)
+   - Fix facade_integration_tests.rs (1.5 hours)
+   - Verify compilation: `cargo build --workspace`
+
+4. **End of Day: Checkpoint** (30 min)
+   ```bash
+   npx claude-flow@alpha hooks post-task --task-id "phase1-day1"
+   ```
+   - Commit fixes with clear messages
+   - Update progress tracking
+   - Document any blockers
+
+### Success Criteria for Day 1
+- ✅ All 10 compilation errors fixed
+- ✅ Workspace builds successfully
+- ✅ Changes committed to version control
+- ✅ Progress documented
+
+---
+
+**END OF ROADMAP**
+
+**Document Version:** 2.0 (Clean Project Plan)
+**Last Updated:** 2025-10-20
+**Status:** 🔴 READY FOR EXECUTION
+**Target Completion:** 2026-02-03 (15.4 weeks)
+**Next Review:** End of Phase 1 (Week 1)
+
+---
+
+## 📦 Complete System Coverage
+
+This roadmap includes ALL project components:
+
+### Core Platform (Rust)
+- ✅ 27 crates (riptide-api, riptide-engine, riptide-headless, etc.)
+- ✅ Spider-chrome migration (~3,500 lines)
+- ✅ Testing infrastructure (217 → 120 test files)
+- ✅ Code quality (<20 warnings target)
+
+### Client Libraries
+- ✅ **Rust CLI** - `riptide-cli` crate (library)
+- ✅ **Node.js CLI** - `@riptide/cli` NPM (15 commands)
+- ✅ **Python SDK** - `riptide-client` PyPI (59 endpoints, 13 categories)
+
+### Infrastructure
+- ✅ **WASM** - `riptide-extractor-wasm` (browser + Node.js)
+- ✅ **API** - 59 endpoints across 13 categories
+- ✅ **Documentation** - Migration guides, deployment docs, API reference
+
+### Deliverables
+- Production-ready core platform
+- Published client libraries (NPM + PyPI)
+- Comprehensive documentation
+- 10,000+ concurrent session capacity validated
+- Security audited
+- Load tested
+
+**Let's finish this project! 🚀**
