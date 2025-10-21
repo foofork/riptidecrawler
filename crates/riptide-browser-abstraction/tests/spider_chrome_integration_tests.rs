@@ -211,7 +211,7 @@ async fn test_error_type_variants() -> Result<()> {
 /// Test 17: Screenshot format variants
 #[tokio::test]
 async fn test_screenshot_format_variants() -> Result<()> {
-    let formats = vec![ScreenshotFormat::Png, ScreenshotFormat::Jpeg];
+    let formats = [ScreenshotFormat::Png, ScreenshotFormat::Jpeg];
 
     assert_eq!(formats.len(), 2);
     Ok(())
@@ -220,7 +220,7 @@ async fn test_screenshot_format_variants() -> Result<()> {
 /// Test 18: Wait until variants
 #[tokio::test]
 async fn test_wait_until_variants() -> Result<()> {
-    let variants = vec![
+    let variants = [
         WaitUntil::Load,
         WaitUntil::DOMContentLoaded,
         WaitUntil::NetworkIdle,
@@ -294,6 +294,7 @@ async fn test_content_extraction_text() -> Result<()> {
 
 /// Test 25: JavaScript execution compatibility
 #[tokio::test]
+#[allow(clippy::const_is_empty)]
 async fn test_javascript_execution() -> Result<()> {
     let js_code = "document.title";
 
@@ -335,6 +336,7 @@ async fn test_multi_page_navigation() -> Result<()> {
 
 /// Test 29: Form interaction - input fields
 #[tokio::test]
+#[allow(clippy::const_is_empty)]
 async fn test_form_input_interaction() -> Result<()> {
     let input_selector = "input[name='username']";
     let input_value = "testuser";
@@ -375,9 +377,9 @@ async fn test_form_button_click() -> Result<()> {
 /// - Cache management
 /// - Request/response headers
 /// - SSL certificate handling
-
 /// Test 31: Performance benchmark setup
 #[tokio::test]
+#[allow(clippy::const_is_empty)]
 async fn test_performance_benchmark_setup() -> Result<()> {
     let test_url = "https://example.com";
     let iterations = 10;
@@ -467,6 +469,7 @@ async fn test_proxy_configuration() -> Result<()> {
 
 /// Test 40: Authentication - basic auth
 #[tokio::test]
+#[allow(clippy::const_is_empty)]
 async fn test_basic_authentication() -> Result<()> {
     let username = "testuser";
     let password = "testpass";
@@ -496,6 +499,7 @@ async fn test_websocket_support() -> Result<()> {
 
 /// Test 43: Local storage access
 #[tokio::test]
+#[allow(clippy::const_is_empty)]
 async fn test_local_storage_access() -> Result<()> {
     let storage_key = "user_preference";
     let storage_value = "dark_mode";
@@ -511,8 +515,8 @@ async fn test_geolocation_config() -> Result<()> {
     let latitude = 37.7749;
     let longitude = -122.4194;
 
-    assert!(latitude >= -90.0 && latitude <= 90.0);
-    assert!(longitude >= -180.0 && longitude <= 180.0);
+    assert!((-90.0..=90.0).contains(&latitude));
+    assert!((-180.0..=180.0).contains(&longitude));
     Ok(())
 }
 

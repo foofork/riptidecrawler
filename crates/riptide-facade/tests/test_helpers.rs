@@ -147,12 +147,12 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::absurd_extreme_comparisons)]
     fn test_fixtures_are_valid() {
-        assert!(!fixtures::SIMPLE_HTML.is_empty());
-        assert!(!fixtures::ARTICLE_HTML.is_empty());
-        assert!(!fixtures::LINKS_HTML.is_empty());
-        assert!(!fixtures::IMAGES_HTML.is_empty());
+        // Verify fixtures contain expected content (not just checking emptiness)
+        assert!(fixtures::SIMPLE_HTML.contains("Hello World"));
+        assert!(fixtures::ARTICLE_HTML.contains("Article Title"));
+        assert!(fixtures::LINKS_HTML.contains("https://example.com/page1"));
+        assert!(fixtures::IMAGES_HTML.contains("image1.jpg"));
     }
 
     #[test]

@@ -129,7 +129,6 @@ async fn test_detailed_progress_callback() {
     }
 }
 */
-
 /// Test metrics collection for PDF processing
 #[tokio::test]
 #[cfg(feature = "pdf")]
