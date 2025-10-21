@@ -6340,14 +6340,13 @@ dependencies = [
  "redis",
  "regex",
  "reqwest 0.12.24",
+ "riptide-browser",
  "riptide-cache",
  "riptide-config",
- "riptide-engine",
  "riptide-events",
  "riptide-extraction",
  "riptide-facade",
  "riptide-fetch",
- "riptide-headless",
  "riptide-intelligence",
  "riptide-monitoring",
  "riptide-pdf",
@@ -6382,6 +6381,15 @@ dependencies = [
  "uuid",
  "wasmtime 37.0.2",
  "wiremock",
+]
+
+[[package]]
+name = "riptide-browser"
+version = "0.1.0"
+dependencies = [
+ "riptide-browser-abstraction",
+ "riptide-engine",
+ "riptide-headless",
 ]
 
 [[package]]
@@ -6447,8 +6455,8 @@ dependencies = [
  "opentelemetry 0.24.0",
  "rand 0.8.5",
  "reqwest 0.12.24",
+ "riptide-browser",
  "riptide-extraction",
- "riptide-headless",
  "riptide-monitoring",
  "riptide-pdf",
  "riptide-stealth",
@@ -6599,11 +6607,10 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "futures",
+ "riptide-browser",
  "riptide-cache",
- "riptide-engine",
  "riptide-extraction",
  "riptide-fetch",
- "riptide-headless",
  "riptide-headless-hybrid",
  "riptide-monitoring",
  "riptide-pdf",
