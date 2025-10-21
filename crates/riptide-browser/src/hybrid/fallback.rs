@@ -43,7 +43,7 @@ pub struct HybridBrowserFallback {
     metrics: Arc<RwLock<FallbackMetrics>>,
     spider_chrome_traffic_pct: u8,
     #[cfg(feature = "headless")]
-    spider_chrome_launcher: Option<Arc<riptide_headless_hybrid::HybridHeadlessLauncher>>,
+    spider_chrome_launcher: Option<Arc<crate::launcher::HeadlessLauncher>>,
 }
 
 impl HybridBrowserFallback {
@@ -63,7 +63,7 @@ impl HybridBrowserFallback {
 
         #[cfg(feature = "headless")]
         let spider_chrome_launcher = if spider_chrome_pct > 0 {
-            match riptide_headless_hybrid::HybridHeadlessLauncher::new().await {
+            match crate::launcher::HeadlessLauncher::new().await {
                 Ok(launcher) => {
                     info!(
                         traffic_pct = spider_chrome_pct,
@@ -84,7 +84,7 @@ impl HybridBrowserFallback {
         };
 
         #[cfg(not(feature = "headless"))]
-        let spider_chrome_launcher = None;
+        let spider_chrome_launcher: Option<Arc<crate::launcher::HeadlessLauncher>> = None;
 
         Ok(Self {
             metrics: Arc::new(RwLock::new(FallbackMetrics::default())),
@@ -159,7 +159,7 @@ impl HybridBrowserFallback {
     }
 
     /// Determine if URL should use spider-chrome (based on hash)
-    fn should_use_spider_chrome(&self, url: &str) -> bool {
+    fn should_use_spider_chrome(&self, _url: &str) -> bool {
         // If spider-chrome is disabled or not available, return false
         #[cfg(feature = "headless")]
         if self.spider_chrome_launcher.is_none() || self.spider_chrome_traffic_pct == 0 {

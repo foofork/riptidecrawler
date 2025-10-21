@@ -39,6 +39,7 @@
 // ========================================
 
 pub mod cdp;
+pub mod hybrid;
 pub mod launcher;
 pub mod models;
 pub mod pool;
@@ -61,6 +62,9 @@ pub use cdp::{
 
 // Launcher API
 pub use launcher::{HeadlessLauncher, LaunchSession, LauncherConfig, LauncherStats};
+
+// Hybrid fallback
+pub use hybrid::{BrowserResponse, EngineKind, FallbackMetrics, HybridBrowserFallback};
 
 // Models
 pub use models::{

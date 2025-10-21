@@ -10,7 +10,7 @@
 #[cfg(feature = "headless")]
 mod spider_chrome_tests {
     use anyhow::Result;
-    use riptide_headless_hybrid::{HybridHeadlessLauncher, LauncherConfig};
+    use riptide_browser::launcher::{HybridHeadlessLauncher, LauncherConfig};
     use riptide_stealth::StealthPreset;
     use std::time::Instant;
 

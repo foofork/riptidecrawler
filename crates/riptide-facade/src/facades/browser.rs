@@ -8,10 +8,10 @@
 //! - JavaScript execution
 //! - Browser actions (click, type, wait, scroll)
 //! - Cookie and storage management
-//! - Stealth features for anti-detection via HybridHeadlessLauncher
+//! - Stealth features for anti-detection via unified HeadlessLauncher
 
 use crate::{config::RiptideConfig, error::RiptideResult, RiptideError};
-use riptide_headless_hybrid::{HybridHeadlessLauncher, LaunchSession, LauncherConfig};
+use riptide_browser::launcher::{HeadlessLauncher, LaunchSession, LauncherConfig};
 use riptide_stealth::StealthPreset;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -20,9 +20,7 @@ use url::Url;
 /// Browser facade providing simplified headless browser automation.
 ///
 /// This facade integrates multiple Riptide components:
-/// - `riptide-headless-hybrid`: Hybrid launcher with spider-chrome and stealth
-/// - `riptide-engine`: CDP protocol and browser pool management
-/// - `riptide-headless`: Browser lifecycle and session management
+/// - `riptide-browser`: Unified browser launcher with pool and hybrid mode
 /// - `riptide-stealth`: Anti-detection features (enabled by default)
 ///
 /// # Example
@@ -50,7 +48,7 @@ use url::Url;
 #[derive(Clone)]
 pub struct BrowserFacade {
     config: Arc<RiptideConfig>,
-    launcher: Arc<HybridHeadlessLauncher>,
+    launcher: Arc<HeadlessLauncher>,
 }
 
 /// A managed browser session with automatic resource cleanup.
@@ -229,12 +227,10 @@ impl BrowserFacade {
             ..Default::default()
         };
 
-        // Initialize the hybrid headless launcher
-        let launcher = HybridHeadlessLauncher::with_config(launcher_config)
+        // Initialize the headless launcher
+        let launcher = HeadlessLauncher::with_config(launcher_config)
             .await
-            .map_err(|e| {
-                RiptideError::config(format!("Failed to initialize hybrid launcher: {}", e))
-            })?;
+            .map_err(|e| RiptideError::config(format!("Failed to initialize launcher: {}", e)))?;
 
         Ok(Self {
             config: Arc::new(config),
@@ -907,9 +903,9 @@ mod tests {
         assert_eq!(facade.config().stealth_preset, "High");
     }
 
-    // P1-C1 Week 2: Test hybrid launcher stats access
+    // P1-C1 Week 2: Test unified launcher stats access
     #[tokio::test]
-    async fn test_browser_hybrid_launcher_stats() {
+    async fn test_browser_launcher_stats() {
         let config = RiptideConfig::default().with_stealth_enabled(false);
         let facade = BrowserFacade::new(config).await.unwrap();
 

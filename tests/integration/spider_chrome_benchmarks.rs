@@ -10,8 +10,8 @@
 #[cfg(feature = "headless")]
 mod performance_benchmarks {
     use anyhow::Result;
-    use riptide_headless::HybridBrowserFallback;
-    use riptide_headless_hybrid::HybridHeadlessLauncher;
+    use riptide_browser::hybrid::fallback::HybridBrowserFallback;
+    use riptide_browser::launcher::HybridHeadlessLauncher;
     use riptide_stealth::StealthPreset;
     use std::time::{Duration, Instant};
 

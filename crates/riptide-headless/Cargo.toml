@@ -16,8 +16,7 @@ spider_chrome = { workspace = true }
 futures = { workspace = true }
 
 # Internal crate dependencies
-# P3-T4.4: Migrating from riptide-engine to riptide-browser
-riptide-engine = { path = "../riptide-engine" }  # TODO: Remove after migration complete
+# P3-T4.4: Migration from riptide-engine to riptide-browser complete
 riptide-browser = { path = "../riptide-browser" }
 riptide-stealth = { path = "../riptide-stealth" }
 # P2-F1 Day 3: Removed riptide-core dependency to break circular dependency

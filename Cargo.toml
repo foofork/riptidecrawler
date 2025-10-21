@@ -13,7 +13,6 @@ members = [
   "crates/riptide-api",
   "crates/riptide-cli",
   "crates/riptide-headless",
-  "crates/riptide-headless-hybrid",  # P1-C1: Spider-chrome integration (Week 1 Complete)
   "crates/riptide-workers",
   "crates/riptide-intelligence",
   "crates/riptide-persistence",
@@ -23,7 +22,7 @@ members = [
   "crates/riptide-performance",
   "crates/riptide-browser-abstraction",  # Phase 1 Week 3 - Browser abstraction layer
   "crates/riptide-facade",  # P1-C3: High-level facade API
-  "wasm/riptide-extractor-wasm", "crates/riptide-test-utils", "crates/riptide-config", "crates/riptide-engine", "crates/riptide-cache", "crates/riptide-reliability", "crates/riptide-browser",
+  "wasm/riptide-extractor-wasm", "crates/riptide-test-utils", "crates/riptide-config", "crates/riptide-cache", "crates/riptide-reliability", "crates/riptide-browser",
 ]
 # xtask excluded to avoid Docker build failures (dev tool only)
 exclude = ["xtask"]
