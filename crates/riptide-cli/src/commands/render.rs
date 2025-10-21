@@ -617,6 +617,7 @@ async fn execute_headless_render(
         enable_stealth: stealth_preset != StealthPreset::None,
         page_timeout: std::time::Duration::from_secs(30),
         enable_monitoring: false,
+        hybrid_mode: false,
     };
 
     // Initialize launcher

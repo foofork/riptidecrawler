@@ -38,10 +38,10 @@
 // Core Modules (REAL IMPLEMENTATIONS)
 // ========================================
 
-pub mod pool;
 pub mod cdp;
 pub mod launcher;
 pub mod models;
+pub mod pool;
 
 // ========================================
 // Public API - Re-export key types
@@ -49,19 +49,18 @@ pub mod models;
 
 // Pool management
 pub use pool::{
-    BrowserPool, BrowserPoolConfig, BrowserCheckout, BrowserHealth,
-    BrowserStats, PoolStats, PoolEvent, PooledBrowser, BrowserPoolRef,
+    BrowserCheckout, BrowserHealth, BrowserPool, BrowserPoolConfig, BrowserPoolRef, BrowserStats,
+    PoolEvent, PoolStats, PooledBrowser,
 };
 
 // CDP connection pooling
 pub use cdp::{
-    CdpConnectionPool, CdpPoolConfig, PooledConnection,
-    ConnectionHealth, ConnectionStats, CdpPoolStats, PerformanceMetrics,
-    CdpCommand, BatchResult, BatchExecutionResult, ConnectionPriority,
+    BatchExecutionResult, BatchResult, CdpCommand, CdpConnectionPool, CdpPoolConfig, CdpPoolStats,
+    ConnectionHealth, ConnectionPriority, ConnectionStats, PerformanceMetrics, PooledConnection,
 };
 
 // Launcher API
-pub use launcher::{HeadlessLauncher, LauncherConfig, LaunchSession, LauncherStats};
+pub use launcher::{HeadlessLauncher, LaunchSession, LauncherConfig, LauncherStats};
 
 // Models
 pub use models::{

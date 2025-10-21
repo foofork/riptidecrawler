@@ -96,4 +96,9 @@ pub mod cdp_pool {
     };
 }
 
-// Launcher module removed - now re-exported at crate root from riptide-browser
+pub mod launcher {
+    //! Launcher module - RE-EXPORTED from riptide-browser
+    //!
+    //! Phase 3 Task 4.4: Duplicates removed (-597 LOC), now re-exports from riptide-browser
+    pub use riptide_browser::{HeadlessLauncher, LaunchSession, LauncherConfig, LauncherStats};
+}

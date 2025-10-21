@@ -1,101 +1,112 @@
-//! Browser engine and pool management for RipTide
+//! ⚠️ DEPRECATED COMPATIBILITY WRAPPER ⚠️
 //!
-//! This crate provides browser automation infrastructure including:
-//! - Browser pool lifecycle management with resource tracking
-//! - CDP (Chrome DevTools Protocol) connection pooling and batching
-//! - Instance health monitoring and auto-recovery
-//! - Hybrid engine selection (chromiumoxide, spider-chrome)
-//! - Stealth and fingerprint management integration
+//! **This crate is deprecated. Use `riptide-browser` instead.**
 //!
-//! ## Architecture
+//! All browser automation functionality has been migrated to `riptide-browser`.
+//! This crate now serves as a thin compatibility layer for backward compatibility.
 //!
-//! The `riptide-engine` crate consolidates browser automation components
-//! from across the workspace:
+//! ## Migration Guide
 //!
-//! - **pool**: Browser pool management (from riptide-headless)
-//! - **cdp_pool**: CDP connection pooling and command batching (from riptide-headless)
-//! - **cdp**: CDP types and utilities (from riptide-headless)
-//! - **launcher**: High-level browser session launcher (from riptide-headless)
-//! - **hybrid_fallback**: Engine selection and fallback logic (from riptide-headless)
+//! Update your `Cargo.toml`:
+//! ```toml
+//! # Old (deprecated)
+//! riptide-engine = { path = "../riptide-engine" }
 //!
-//! ## Usage
-//!
-//! ```no_run
-//! # use riptide_engine::launcher::HeadlessLauncher;
-//! # async fn example() -> anyhow::Result<()> {
-//! // Create launcher with pooling
-//! let launcher = HeadlessLauncher::new().await?;
-//!
-//! // Launch a page with stealth
-//! let session = launcher.launch_page_default("https://example.com").await?;
-//!
-//! // Access the page
-//! let page = session.page();
-//! let content = page.content().await?;
-//!
-//! // Session automatically returns browser to pool when dropped
-//! # Ok(())
-//! # }
+//! # New (recommended)
+//! riptide-browser = { path = "../riptide-browser" }
 //! ```
 //!
-//! ## Features
+//! Update your imports:
+//! ```rust
+//! // Old (deprecated)
+//! use riptide_engine::launcher::HeadlessLauncher;
+//! use riptide_engine::pool::BrowserPool;
 //!
-//! - **Resource Management**: Automatic browser lifecycle, connection pooling
-//! - **Health Monitoring**: Tiered health checks (fast liveness + full diagnostics)
-//! - **Memory Optimization**: V8 heap tracking, automatic cleanup
-//! - **Stealth Integration**: Fingerprint randomization, anti-detection
-//! - **Hybrid Engines**: Automatic fallback between chromiumoxide and spider-chrome
-//! - **Performance Tracking**: Built-in metrics and statistics
+//! // New (recommended)
+//! use riptide_browser::launcher::HeadlessLauncher;
+//! use riptide_browser::pool::BrowserPool;
+//! ```
+//!
+//! ## What Changed?
+//!
+//! | Module | Old Location | New Location | Lines Migrated |
+//! |--------|-------------|--------------|----------------|
+//! | Pool Management | `riptide-engine/src/pool.rs` | `riptide-browser/src/pool/mod.rs` | 1,363 |
+//! | CDP Pooling | `riptide-engine/src/cdp_pool.rs` | `riptide-browser/src/cdp/mod.rs` | 1,630 |
+//! | Launcher | `riptide-engine/src/launcher.rs` | `riptide-browser/src/launcher/mod.rs` | 672 |
+//! | Models | `riptide-engine/src/models.rs` | `riptide-browser/src/models/mod.rs` | 132 |
+//!
+//! **Total: 3,797 lines of implementation moved to riptide-browser**
+
+// ========================================
+// Re-exports from riptide-browser
+// ========================================
 
 // Core browser pool management
-pub mod pool;
+pub use riptide_browser::pool;
+pub use riptide_browser::{
+    BrowserCheckout, BrowserHealth, BrowserPool, BrowserPoolConfig, BrowserPoolRef, BrowserStats,
+    PoolEvent, PoolStats, PooledBrowser,
+};
 
-// CDP connection pooling (P1-B4 optimization)
-pub mod cdp_pool;
+// CDP connection pooling
+pub use riptide_browser::cdp;
+pub use riptide_browser::{
+    BatchExecutionResult, BatchResult, CdpCommand, CdpConnectionPool, CdpPoolConfig,
+    ConnectionHealth, ConnectionPriority, ConnectionStats, PooledConnection,
+};
 
-// Models and types for CDP API
-pub mod models;
+// Launcher API
+pub use riptide_browser::launcher;
+pub use riptide_browser::{HeadlessLauncher, LaunchSession, LauncherConfig, LauncherStats};
 
-// High-level launcher API
-pub mod launcher;
+// Models and types
+pub use riptide_browser::models;
+pub use riptide_browser::{Artifacts, ArtifactsOut, PageAction, RenderReq, RenderResp, Timeouts};
 
-// CDP HTTP API types and utilities
-pub mod cdp;
+// Browser abstraction types
+pub use riptide_browser::{
+    Browser, BrowserConfig, BrowserEngine, ChromiumoxideEngine, ChromiumoxidePage, Page, SessionId,
+};
 
-// Hybrid engine fallback
+// ========================================
+// Legacy Modules (Kept for Compatibility)
+// ========================================
+
+// CDP utilities and types (if still needed separately)
+pub mod cdp_utils {
+    //! Legacy CDP utilities - prefer using riptide_browser::cdp directly
+    pub use riptide_browser::cdp::*;
+}
+
+// Hybrid fallback is unique to riptide-engine (not migrated)
 #[cfg(feature = "headless")]
 pub mod hybrid_fallback;
 
-// Re-export browser abstraction types
-pub use riptide_browser_abstraction::{
-    BrowserEngine as AbstractBrowserEngine, EngineType, NavigateParams, PageHandle,
-};
-
-// Factory functions for wrapping spider_chrome instances (exports as chromiumoxide)
+// Factory functions (kept for backward compatibility)
 #[cfg(feature = "headless")]
 pub mod factory {
+    //! Factory functions for wrapping browser instances
+    //!
+    //! **Note**: These are deprecated. Use `riptide_browser` abstractions directly.
     use chromiumoxide::{Browser, Page};
-    use riptide_browser_abstraction::{BrowserEngine, PageHandle};
-    use riptide_browser_abstraction::{ChromiumoxideEngine, ChromiumoxidePage};
+    use riptide_browser::{BrowserEngine, ChromiumoxideEngine, ChromiumoxidePage};
 
     /// Wrap a chromiumoxide Browser in the BrowserEngine trait
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use ChromiumoxideEngine::new() from riptide_browser directly"
+    )]
     pub fn wrap_browser(browser: Browser) -> Box<dyn BrowserEngine> {
         Box::new(ChromiumoxideEngine::new(browser))
     }
 
     /// Wrap a chromiumoxide Page in the PageHandle trait
-    pub fn wrap_page(page: Page) -> Box<dyn PageHandle> {
-        Box::new(ChromiumoxidePage::new(page))
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use ChromiumoxidePage::new() from riptide_browser directly"
+    )]
+    pub fn wrap_page(page: Page) -> Box<dyn riptide_browser::BrowserEngine> {
+        Box::new(ChromiumoxidePage::new(page)) as Box<dyn riptide_browser::BrowserEngine>
     }
 }
-
-// Re-export main public API
-pub use cdp_pool::{
-    BatchExecutionResult, BatchResult, CdpCommand, CdpConnectionPool, CdpPoolConfig,
-    ConnectionHealth, ConnectionStats, PooledConnection,
-};
-pub use launcher::{HeadlessLauncher, LaunchSession, LauncherConfig, LauncherStats};
-pub use pool::{BrowserCheckout, BrowserPool, BrowserPoolConfig, PoolEvent, PoolStats};
-
-#[cfg(feature = "headless")]
-pub use hybrid_fallback::{BrowserResponse, EngineKind, FallbackMetrics, HybridBrowserFallback};

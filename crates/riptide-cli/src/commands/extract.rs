@@ -760,6 +760,7 @@ async fn execute_headless_extraction(
         enable_stealth: args.stealth_level.is_some() && stealth_preset != StealthPreset::None,
         page_timeout: std::time::Duration::from_millis(args.headless_timeout.unwrap_or(30000)),
         enable_monitoring: false,
+        hybrid_mode: false,
     };
 
     // Initialize launcher

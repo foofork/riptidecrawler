@@ -1,8 +1,8 @@
-// P3-T4.4: Import from crate::launcher which re-exports from riptide-engine
-use crate::launcher::HeadlessLauncher;
+// P3-T4.4: Import from riptide-browser (consolidation)
 use crate::models::*;
 use axum::{extract::State, http::StatusCode, Json};
 use chromiumoxide::Page;
+use riptide_browser::launcher::HeadlessLauncher;
 use riptide_stealth::StealthPreset;
 use std::{
     sync::Arc,

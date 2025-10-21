@@ -1,14 +1,13 @@
 mod cdp;
-mod launcher;
 mod models;
-mod pool;
+// P3-T4.4: launcher and pool modules now re-exported from riptide-browser via lib.rs
 
 use axum::{
     routing::{get, post},
     Router,
 };
 use cdp::AppState; // Import AppState from cdp module
-use launcher::HeadlessLauncher;
+use riptide_browser::HeadlessLauncher;
 use std::{net::SocketAddr, sync::Arc};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing_subscriber::EnvFilter;

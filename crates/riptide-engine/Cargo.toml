@@ -6,46 +6,10 @@ license.workspace = true
 authors.workspace = true
 
 [dependencies]
-# Internal dependencies
-riptide-types = { path = "../riptide-types" }
-riptide-config = { path = "../riptide-config" }
-riptide-browser-abstraction = { path = "../riptide-browser-abstraction" }
-
-# Browser automation
-# Use spider_chromiumoxide_cdp from workspace - compatible with spider_chrome
-spider_chromiumoxide_cdp = { workspace = true }
-spider_chrome = { workspace = true }  # Exports as chromiumoxide for Browser/Page types
-
-# Stealth integration
-riptide-stealth = { path = "../riptide-stealth" }
-
-# Headless hybrid launcher (optional, feature-gated)
-riptide-headless-hybrid = { path = "../riptide-headless-hybrid", optional = true }
-
-# Async runtime
-tokio = { workspace = true }
-futures = { workspace = true }
-async-trait = { workspace = true }
-
-# Web/HTTP (for CDP API)
-axum = { workspace = true }
-tower = { workspace = true }
-tower-http = { workspace = true }
-base64 = "0.22"
-
-# Utilities
-tracing = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-anyhow = { workspace = true }
-thiserror = { workspace = true }
-dashmap = { workspace = true }
-sysinfo = { workspace = true }
-psutil = { workspace = true }
-uuid = { workspace = true }
-chrono = { workspace = true }
-tempfile = { workspace = true }
-bytes = { workspace = true }
+# DEPRECATED: This crate is now a compatibility wrapper.
+# All functionality has been moved to riptide-browser.
+# Use riptide-browser directly for new code.
+riptide-browser = { path = "../riptide-browser", features = ["headless"] }
 
 [dev-dependencies]
 tokio-test = "0.4"
@@ -54,4 +18,4 @@ serial_test = "3.2.0"
 
 [features]
 default = []
-headless = ["riptide-headless-hybrid"]
+headless = ["riptide-browser/headless"]
