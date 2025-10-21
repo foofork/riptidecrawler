@@ -1,0 +1,18 @@
+[package]
+name = "riptide-browser"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Unified browser automation facade for RipTide - combines riptide-engine and riptide-headless"
+
+[dependencies]
+# Core browser engine components with headless feature
+riptide-engine = { path = "../riptide-engine", features = ["headless"] }
+riptide-headless = { path = "../riptide-headless" }
+
+# Re-export browser abstraction for consumers
+riptide-browser-abstraction = { path = "../riptide-browser-abstraction" }
+
+[lib]
+path = "src/lib.rs"
