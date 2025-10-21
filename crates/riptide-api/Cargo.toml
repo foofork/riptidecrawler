@@ -57,6 +57,7 @@ riptide-config = { path = "../riptide-config" }
 riptide-intelligence = { path = "../riptide-intelligence" }
 riptide-workers = { path = "../riptide-workers" }
 riptide-browser = { path = "../riptide-browser" }
+riptide-headless = { path = "../riptide-headless" }
 riptide-search = { path = "../riptide-search" }
 riptide-performance = { path = "../riptide-performance" }
 riptide-persistence = { path = "../riptide-persistence" }

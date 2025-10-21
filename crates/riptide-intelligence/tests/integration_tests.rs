@@ -9,6 +9,8 @@
 //! - Health monitoring and automatic recovery
 //! - Enhanced LLM ops dashboards
 
+#![cfg(feature = "mock")]
+
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;

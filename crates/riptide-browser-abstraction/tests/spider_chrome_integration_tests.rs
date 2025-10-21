@@ -169,11 +169,11 @@ async fn test_pdf_params_custom_paper_size() -> Result<()> {
 #[tokio::test]
 async fn test_pdf_params_scale() -> Result<()> {
     let params = PdfParams {
-        scale: 1.5,
+        scale: Some(1.5),
         ..Default::default()
     };
 
-    assert_eq!(params.scale, 1.5);
+    assert_eq!(params.scale, Some(1.5));
     Ok(())
 }
 

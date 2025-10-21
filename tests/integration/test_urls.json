@@ -1,0 +1,67 @@
+[
+  {
+    "id": "news_article",
+    "url": "https://example.com",
+    "category": "news",
+    "expected": {
+      "min_content_length": 100,
+      "should_contain": ["Example Domain"],
+      "should_not_contain": ["404", "Error"],
+      "max_duration_ms": 10000,
+      "expected_success": true
+    },
+    "notes": "Simple test page for basic extraction"
+  },
+  {
+    "id": "wikipedia_article",
+    "url": "https://en.wikipedia.org/wiki/Web_scraping",
+    "category": "encyclopedia",
+    "expected": {
+      "min_content_length": 1000,
+      "should_contain": ["scraping", "data"],
+      "should_not_contain": [],
+      "max_duration_ms": 15000,
+      "expected_success": true
+    },
+    "notes": "Wikipedia article for complex HTML extraction"
+  },
+  {
+    "id": "github_readme",
+    "url": "https://github.com/rust-lang/rust/blob/master/README.md",
+    "category": "documentation",
+    "expected": {
+      "min_content_length": 500,
+      "should_contain": ["Rust"],
+      "should_not_contain": [],
+      "max_duration_ms": 12000,
+      "expected_success": true
+    },
+    "notes": "GitHub README for Markdown rendering"
+  },
+  {
+    "id": "blog_post",
+    "url": "https://blog.rust-lang.org/",
+    "category": "blog",
+    "expected": {
+      "min_content_length": 500,
+      "should_contain": ["Rust"],
+      "should_not_contain": [],
+      "max_duration_ms": 10000,
+      "expected_success": true
+    },
+    "notes": "Blog page with multiple articles"
+  },
+  {
+    "id": "json_api",
+    "url": "https://httpbin.org/json",
+    "category": "api",
+    "expected": {
+      "min_content_length": 50,
+      "should_contain": ["{"],
+      "should_not_contain": [],
+      "max_duration_ms": 8000,
+      "expected_success": true
+    },
+    "notes": "JSON API endpoint"
+  }
+]

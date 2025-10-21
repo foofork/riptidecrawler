@@ -6,7 +6,7 @@
 use crate::resource_manager::{
     memory_manager::MemoryManager, metrics::ResourceMetrics, wasm_manager::WasmInstanceManager,
 };
-use riptide_browser::pool::BrowserCheckout;
+use riptide_headless::pool::BrowserCheckout;
 use std::sync::Arc;
 use tokio::sync::OwnedSemaphorePermit;
 
