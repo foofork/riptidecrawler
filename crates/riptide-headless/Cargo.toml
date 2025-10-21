@@ -16,7 +16,9 @@ spider_chrome = { workspace = true }
 futures = { workspace = true }
 
 # Internal crate dependencies
-riptide-engine = { path = "../riptide-engine" }
+# P3-T4.4: Migrating from riptide-engine to riptide-browser
+riptide-engine = { path = "../riptide-engine" }  # TODO: Remove after migration complete
+riptide-browser = { path = "../riptide-browser" }
 riptide-stealth = { path = "../riptide-stealth" }
 # P2-F1 Day 3: Removed riptide-core dependency to break circular dependency
 # riptide-headless-hybrid = { path = "../riptide-headless-hybrid", optional = true }  # Temporarily disabled for baseline
@@ -35,6 +37,5 @@ tokio = { workspace = true, features = ["test-util", "macros"] }
 
 [features]
 default = []
-headless = []
 # WIP: Full headless browser automation (scaffolding not yet fully wired)
 # headless-hybrid = ["riptide-headless-hybrid"]  # Temporarily disabled for baseline

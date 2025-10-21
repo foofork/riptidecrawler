@@ -1,4 +1,6 @@
-use crate::{launcher::HeadlessLauncher, models::*};
+// P3-T4.4: Import from crate::launcher which re-exports from riptide-engine
+use crate::launcher::HeadlessLauncher;
+use crate::models::*;
 use axum::{extract::State, http::StatusCode, Json};
 use chromiumoxide::Page;
 use riptide_stealth::StealthPreset;
