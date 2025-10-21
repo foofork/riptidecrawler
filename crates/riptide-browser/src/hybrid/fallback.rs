@@ -3,14 +3,21 @@
 //! This module implements a 20% traffic split to spider-chrome with automatic
 //! fallback to chromiumoxide when spider-chrome fails.
 
-use anyhow::{Context, Result};
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
+use anyhow::Result;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+
+#[cfg(feature = "headless")]
+use anyhow::Context;
+#[cfg(feature = "headless")]
+use std::collections::hash_map::DefaultHasher;
+#[cfg(feature = "headless")]
+use std::hash::{Hash, Hasher};
+#[cfg(feature = "headless")]
 use tracing::{debug, info, warn};
 
 // Use browser abstraction layer
+#[cfg(feature = "headless")]
 use riptide_browser_abstraction::{NavigateParams, PageHandle};
 
 /// Fallback metrics for monitoring spider-chrome adoption
@@ -41,6 +48,7 @@ pub enum EngineKind {
 /// Hybrid browser fallback coordinator
 pub struct HybridBrowserFallback {
     metrics: Arc<RwLock<FallbackMetrics>>,
+    #[cfg(feature = "headless")]
     spider_chrome_traffic_pct: u8,
     #[cfg(feature = "headless")]
     spider_chrome_launcher: Option<Arc<crate::launcher::HeadlessLauncher>>,
@@ -83,11 +91,9 @@ impl HybridBrowserFallback {
             None
         };
 
-        #[cfg(not(feature = "headless"))]
-        let spider_chrome_launcher: Option<Arc<crate::launcher::HeadlessLauncher>> = None;
-
         Ok(Self {
             metrics: Arc::new(RwLock::new(FallbackMetrics::default())),
+            #[cfg(feature = "headless")]
             spider_chrome_traffic_pct: spider_chrome_pct,
             #[cfg(feature = "headless")]
             spider_chrome_launcher,
@@ -159,24 +165,18 @@ impl HybridBrowserFallback {
     }
 
     /// Determine if URL should use spider-chrome (based on hash)
-    fn should_use_spider_chrome(&self, _url: &str) -> bool {
+    #[cfg(feature = "headless")]
+    fn should_use_spider_chrome(&self, url: &str) -> bool {
         // If spider-chrome is disabled or not available, return false
-        #[cfg(feature = "headless")]
         if self.spider_chrome_launcher.is_none() || self.spider_chrome_traffic_pct == 0 {
             return false;
         }
 
-        #[cfg(not(feature = "headless"))]
-        return false;
-
         // Hash-based traffic splitting for consistent routing
-        #[cfg(feature = "headless")]
-        {
-            let mut hasher = DefaultHasher::new();
-            url.hash(&mut hasher);
-            let hash_value = hasher.finish();
-            (hash_value % 100) < self.spider_chrome_traffic_pct as u64
-        }
+        let mut hasher = DefaultHasher::new();
+        url.hash(&mut hasher);
+        let hash_value = hasher.finish();
+        (hash_value % 100) < self.spider_chrome_traffic_pct as u64
     }
 
     /// Try spider-chrome execution
