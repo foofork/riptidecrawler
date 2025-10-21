@@ -4,15 +4,32 @@ version = "0.1.0"
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
-description = "Unified browser automation facade for RipTide - combines riptide-engine and riptide-headless"
+description = "Unified browser automation core for RipTide - browser pool management, CDP pooling, and launcher"
 
 [dependencies]
-# Core browser engine components with headless feature
-riptide-engine = { path = "../riptide-engine", features = ["headless"] }
-riptide-headless = { path = "../riptide-headless" }
+# Core dependencies
+anyhow = "1.0"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+futures = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.0", features = ["v4"] }
 
-# Re-export browser abstraction for consumers
+# Browser automation (spider-chrome via chromiumoxide)
+chromiumoxide = "0.7"
+chromiumoxide_cdp = "0.7"
+
+# RipTide internal dependencies
 riptide-browser-abstraction = { path = "../riptide-browser-abstraction" }
+riptide-stealth = { path = "../riptide-stealth" }
+
+# Temp directory management
+tempfile = { workspace = true }
+
+[features]
+default = []
+headless = []
 
 [lib]
 path = "src/lib.rs"

@@ -1,13 +1,18 @@
-//! RipTide Browser - Unified Browser Automation Facade
+//! RipTide Browser - Unified Browser Automation Core
 //!
-//! This crate provides a unified interface for browser automation in RipTide,
-//! combining functionality from both `riptide-engine` and `riptide-headless`.
+//! This crate provides the core browser automation infrastructure for RipTide:
+//! - Browser pool management with resource tracking
+//! - CDP connection pooling for multiplexing
+//! - Headless browser launcher with stealth capabilities
+//! - Unified browser abstraction layer
 //!
 //! ## Architecture
 //!
-//! - **riptide-engine**: Core browser pool management, CDP connection pooling, launcher
-//! - **riptide-headless**: HTTP API wrapper, dynamic rendering, backward compatibility
-//! - **riptide-browser**: Unified facade that re-exports both
+//! **riptide-browser** now contains the REAL implementations (migrated from riptide-engine):
+//! - `pool`: Browser instance pooling and lifecycle management
+//! - `cdp`: CDP connection pooling with batching and multiplexing
+//! - `launcher`: High-level API for browser launching with stealth
+//! - `models`: Shared types and abstractions
 //!
 //! ## Usage
 //!
@@ -30,51 +35,52 @@
 //! ```
 
 // ========================================
-// Re-exports from riptide-engine
+// Core Modules (REAL IMPLEMENTATIONS)
 // ========================================
 
-// Core pool management
-pub use riptide_engine::{
-    pool, BrowserCheckout, BrowserPool, BrowserPoolConfig, PoolEvent, PoolStats,
+pub mod pool;
+pub mod cdp;
+pub mod launcher;
+pub mod models;
+
+// ========================================
+// Public API - Re-export key types
+// ========================================
+
+// Pool management
+pub use pool::{
+    BrowserPool, BrowserPoolConfig, BrowserCheckout, BrowserHealth,
+    BrowserStats, PoolStats, PoolEvent, PooledBrowser, BrowserPoolRef,
 };
 
 // CDP connection pooling
-pub use riptide_engine::{
-    cdp_pool, BatchExecutionResult, BatchResult, CdpCommand, CdpConnectionPool, CdpPoolConfig,
-    ConnectionHealth, ConnectionStats, PooledConnection,
+pub use cdp::{
+    CdpConnectionPool, CdpPoolConfig, PooledConnection,
+    ConnectionHealth, ConnectionStats, CdpPoolStats, PerformanceMetrics,
+    CdpCommand, BatchResult, BatchExecutionResult, ConnectionPriority,
 };
 
 // Launcher API
-pub use riptide_engine::{
-    launcher, HeadlessLauncher, LaunchSession, LauncherConfig, LauncherStats,
+pub use launcher::{HeadlessLauncher, LauncherConfig, LaunchSession, LauncherStats};
+
+// Models
+pub use models::{
+    Artifacts, ArtifactsOut, PageAction, RenderErrorResp, RenderReq, RenderResp, Timeouts,
 };
-
-// Models and CDP types
-pub use riptide_engine::{cdp, models};
-
-// Hybrid fallback (riptide-engine has headless feature enabled)
-pub use riptide_engine::hybrid_fallback::{
-    BrowserResponse, FallbackMetrics, HybridBrowserFallback,
-};
-
-// Browser abstraction
-pub use riptide_engine::{AbstractBrowserEngine, EngineType, NavigateParams, PageHandle};
-
-// Factory functions (riptide-engine has headless feature enabled)
-pub use riptide_engine::factory;
 
 // ========================================
-// Re-exports from riptide-headless
+// External Dependencies Re-exports
 // ========================================
 
-// Dynamic rendering module (unique to riptide-headless)
-pub use riptide_headless::dynamic;
+// Re-export spider_chrome types for consumers
+pub use chromiumoxide::{Browser, BrowserConfig, Page};
+pub use chromiumoxide_cdp::cdp::browser_protocol::target::SessionId;
 
-// Also re-export individual types for convenience
-pub use riptide_headless::dynamic::{
-    DynamicConfig, DynamicRenderResult, PageAction, RenderArtifacts, ScrollConfig, ViewportConfig,
-    WaitCondition,
-};
-
-// Re-export abstraction layer directly for convenience
+// Re-export browser abstraction for consumers
 pub use riptide_browser_abstraction::{BrowserEngine, ChromiumoxideEngine, ChromiumoxidePage};
+
+// ========================================
+// Integration with riptide-headless
+// ========================================
+// Note: riptide-headless depends on riptide-browser, not the other way around
+// Dynamic rendering capabilities are provided by riptide-headless
