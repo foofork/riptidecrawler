@@ -3,6 +3,7 @@
 /// This module provides comprehensive performance tracking for extraction operations
 /// including timing, memory usage, and engine selection metrics.
 use anyhow::Result;
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -193,13 +194,20 @@ impl Default for PerformanceStats {
     }
 }
 
-/// Global performance monitor instance
-static GLOBAL_MONITOR: once_cell::sync::OnceCell<PerformanceMonitor> =
-    once_cell::sync::OnceCell::new();
+/// Global performance monitor instance (using Arc for shared ownership)
+static GLOBAL_MONITOR: Lazy<Arc<PerformanceMonitor>> =
+    Lazy::new(|| Arc::new(PerformanceMonitor::new(1000)));
 
-/// Get the global performance monitor
+/// Get the global performance monitor as Arc (for shared ownership)
 pub fn global_monitor() -> &'static PerformanceMonitor {
-    GLOBAL_MONITOR.get_or_init(|| PerformanceMonitor::new(1000))
+    &GLOBAL_MONITOR
+}
+
+impl PerformanceMonitor {
+    /// Get the global performance monitor instance (Arc for shared ownership)
+    pub fn get_global() -> Arc<Self> {
+        Arc::clone(&GLOBAL_MONITOR)
+    }
 }
 
 #[cfg(test)]

@@ -14,7 +14,7 @@ use std::sync::Arc;
 use super::{
     adaptive_timeout::AdaptiveTimeoutManager,
     browser_pool_manager::BrowserPoolManager,
-    engine_cache::EngineCache,
+    engine_cache::EngineSelectionCache,
     extract::{Engine, ExtractArgs},
     performance_monitor::PerformanceMonitor,
     render::RenderArgs,
@@ -27,7 +27,7 @@ pub struct OptimizedExecutor {
     browser_pool: Arc<BrowserPoolManager>,
     wasm_aot: Arc<WasmAotCache>,
     timeout_mgr: Arc<AdaptiveTimeoutManager>,
-    engine_cache: Arc<EngineCache>,
+    engine_cache: Arc<EngineSelectionCache>,
     wasm_cache: Arc<WasmCache>,
     perf_monitor: Arc<PerformanceMonitor>,
 }
@@ -41,7 +41,7 @@ impl OptimizedExecutor {
         let browser_pool = BrowserPoolManager::initialize_global().await?;
         let wasm_aot = WasmAotCache::initialize_global().await?;
         let timeout_mgr = AdaptiveTimeoutManager::initialize_global().await?;
-        let engine_cache = EngineCache::get_global();
+        let engine_cache = EngineSelectionCache::get_global();
         let wasm_cache = WasmCache::get_global();
         let perf_monitor = PerformanceMonitor::get_global();
 
@@ -65,9 +65,19 @@ impl OptimizedExecutor {
         url: &str,
     ) -> Result<ExtractResponse> {
         let start = std::time::Instant::now();
+
+        // Validate URL format
+        if url.is_empty() {
+            return Err(anyhow::anyhow!("URL cannot be empty"));
+        }
+
         let domain = Self::extract_domain(url);
 
-        tracing::info!("Starting optimized extraction for {}", url);
+        if domain == "unknown" {
+            tracing::warn!("Could not parse domain from URL: {}", url);
+        }
+
+        tracing::info!("Starting optimized extraction for {} (domain: {})", url, domain);
 
         // 1. Check engine cache for previous decisions
         let engine = if let Some(cached_engine) = self.engine_cache.get(&domain).await {
@@ -78,11 +88,23 @@ impl OptimizedExecutor {
             let html_for_decision = if let Some(ref h) = html {
                 h.clone()
             } else {
-                self.fetch_html(url, &args).await?
+                match self.fetch_html(url, &args).await {
+                    Ok(html_content) => html_content,
+                    Err(e) => {
+                        tracing::error!("Failed to fetch HTML for {}: {}", url, e);
+                        return Err(anyhow::anyhow!(
+                            "Failed to fetch content from URL: {}. Please check the URL is accessible and try again.",
+                            e
+                        ));
+                    }
+                }
             };
 
             let selected = Engine::gate_decision(&html_for_decision, url);
-            self.engine_cache.store(&domain, selected, 0.85).await?;
+            if let Err(e) = self.engine_cache.store(&domain, selected, 0.85).await {
+                tracing::warn!("Failed to cache engine decision: {}", e);
+                // Non-fatal, continue with selected engine
+            }
             tracing::info!("✓ Selected and cached engine: {:?}", selected);
             selected
         };
@@ -97,11 +119,48 @@ impl OptimizedExecutor {
 
         // 3. Route to appropriate engine with optimizations
         let result = match engine {
-            Engine::Wasm => self.execute_wasm_optimized(&args, html, url).await?,
-            Engine::Headless => self.execute_headless_optimized(&args, url).await?,
-            Engine::Raw => self.execute_raw(&args, html, url).await?,
+            Engine::Wasm => {
+                tracing::debug!("Executing WASM extraction for {}", url);
+                match self.execute_wasm_optimized(&args, html, url).await {
+                    Ok(r) => r,
+                    Err(e) => {
+                        tracing::error!("WASM extraction failed for {}: {}", url, e);
+                        return Err(anyhow::anyhow!(
+                            "WASM extraction failed: {}. Try using --engine raw as fallback.",
+                            e
+                        ));
+                    }
+                }
+            }
+            Engine::Headless => {
+                tracing::debug!("Executing headless browser extraction for {}", url);
+                match self.execute_headless_optimized(&args, url).await {
+                    Ok(r) => r,
+                    Err(e) => {
+                        tracing::error!("Headless extraction failed for {}: {}", url, e);
+                        return Err(anyhow::anyhow!(
+                            "Headless browser extraction failed: {}. Check if browser is available.",
+                            e
+                        ));
+                    }
+                }
+            }
+            Engine::Raw => {
+                tracing::debug!("Executing raw HTTP fetch for {}", url);
+                match self.execute_raw(&args, html, url).await {
+                    Ok(r) => r,
+                    Err(e) => {
+                        tracing::error!("Raw extraction failed for {}: {}", url, e);
+                        return Err(anyhow::anyhow!(
+                            "HTTP fetch failed: {}. Check network connectivity and URL.",
+                            e
+                        ));
+                    }
+                }
+            }
             Engine::Auto => {
                 // Should not reach here as gate_decision returns concrete engine
+                tracing::warn!("Auto engine reached execution - falling back to WASM");
                 self.execute_wasm_optimized(&args, html, url).await?
             }
         };

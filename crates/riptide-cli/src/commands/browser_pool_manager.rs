@@ -8,7 +8,7 @@
 /// - Resource monitoring
 /// - Graceful cleanup on exit
 use anyhow::{anyhow, Result};
-use riptide_headless::pool::{BrowserCheckout as HeadlessCheckout, BrowserPool, BrowserPoolConfig};
+use riptide_browser::pool::{BrowserCheckout as HeadlessCheckout, BrowserPool, BrowserPoolConfig};
 
 // spider_chrome types are used directly by pool.rs
 // We access them the same way as pool.rs does

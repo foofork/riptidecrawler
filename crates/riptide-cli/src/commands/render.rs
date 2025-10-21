@@ -7,8 +7,8 @@ use std::path::Path;
 use std::str::FromStr;
 
 // Headless browser support
-use riptide_headless::launcher::{HeadlessLauncher, LauncherConfig};
-use riptide_headless::pool::BrowserPoolConfig;
+use riptide_browser::launcher::{HeadlessLauncher, LauncherConfig};
+use riptide_browser::pool::BrowserPoolConfig;
 
 /// Wait condition for page loading
 #[derive(Debug, Clone, PartialEq, Eq)]

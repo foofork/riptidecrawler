@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use reqwest::Client;
-use riptide_headless::dynamic::{DynamicConfig, DynamicRenderResult, PageAction, RenderArtifacts};
+use riptide_browser::dynamic::{DynamicConfig, DynamicRenderResult, PageAction, RenderArtifacts};
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
@@ -243,13 +243,13 @@ fn convert_actions(actions: &[PageAction]) -> Vec<HeadlessPageAction> {
             PageAction::Wait(wait_condition) => {
                 // Convert wait conditions to appropriate headless actions
                 match wait_condition {
-                    riptide_headless::dynamic::WaitCondition::Selector { selector, timeout } => {
+                    riptide_browser::dynamic::WaitCondition::Selector { selector, timeout } => {
                         Some(HeadlessPageAction::WaitForCss {
                             css: selector.clone(),
                             timeout_ms: Some(timeout.as_millis() as u64),
                         })
                     }
-                    riptide_headless::dynamic::WaitCondition::Javascript { script, timeout } => {
+                    riptide_browser::dynamic::WaitCondition::Javascript { script, timeout } => {
                         Some(HeadlessPageAction::WaitForJs {
                             expr: script.clone(),
                             timeout_ms: Some(timeout.as_millis() as u64),
@@ -278,7 +278,7 @@ fn convert_artifacts(artifacts: HeadlessArtifactsOut) -> Option<RenderArtifacts>
     Some(RenderArtifacts {
         screenshot: artifacts.screenshot_b64,
         mhtml: artifacts.mhtml_b64,
-        metadata: riptide_headless::dynamic::PageMetadata {
+        metadata: riptide_browser::dynamic::PageMetadata {
             title: None,
             description: None,
             og_tags: std::collections::HashMap::new(),
@@ -313,7 +313,7 @@ fn extract_action_names(actions: &[PageAction]) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use riptide_headless::dynamic::{PageAction, WaitCondition};
+    use riptide_browser::dynamic::{PageAction, WaitCondition};
     use std::time::Duration;
 
     #[test]

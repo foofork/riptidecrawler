@@ -16,10 +16,10 @@ use riptide_spider::{Spider, SpiderConfig};
 use riptide_extraction::wasm_extraction::WasmExtractor;
 use riptide_monitoring::TelemetrySystem;
 // Facade types imported explicitly to avoid conflicts
+use riptide_browser::launcher::HeadlessLauncher;
 use riptide_facade::facades::ExtractionFacade;
 use riptide_facade::facades::{SearchFacade, SpiderFacade};
 use riptide_facade::{BrowserFacade, ScraperFacade};
-use riptide_headless::launcher::HeadlessLauncher;
 use riptide_monitoring::{
     AlertCondition, AlertManager, AlertRule, AlertSeverity, HealthCalculator, MetricsCollector,
     MonitoringConfig, PerformanceMetrics,
@@ -786,8 +786,8 @@ impl AppState {
             "Initializing headless browser launcher with connection pooling"
         );
 
-        let browser_launcher_config = riptide_headless::launcher::LauncherConfig {
-            pool_config: riptide_headless::pool::BrowserPoolConfig {
+        let browser_launcher_config = riptide_browser::launcher::LauncherConfig {
+            pool_config: riptide_browser::pool::BrowserPoolConfig {
                 min_pool_size: std::cmp::max(1, api_config.headless.max_pool_size / 2),
                 max_pool_size: api_config.headless.max_pool_size,
                 initial_pool_size: std::cmp::max(1, api_config.headless.max_pool_size / 4),

@@ -11,7 +11,7 @@ pub struct RenderRequest {
     pub mode: Option<RenderMode>,
 
     /// Dynamic content configuration
-    pub dynamic_config: Option<riptide_headless::dynamic::DynamicConfig>,
+    pub dynamic_config: Option<riptide_browser::dynamic::DynamicConfig>,
 
     /// Stealth configuration for anti-detection
     pub stealth_config: Option<riptide_stealth::StealthConfig>,
@@ -54,7 +54,7 @@ pub struct RenderResponse {
     pub pdf_result: Option<riptide_pdf::PdfProcessingResult>,
 
     /// Dynamic rendering artifacts
-    pub artifacts: Option<riptide_headless::dynamic::RenderArtifacts>,
+    pub artifacts: Option<riptide_browser::dynamic::RenderArtifacts>,
 
     /// Processing statistics
     pub stats: RenderStats,

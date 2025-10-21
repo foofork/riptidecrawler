@@ -11,6 +11,7 @@ pub mod job_local;
 pub mod metrics;
 pub mod pdf;
 pub mod performance_monitor;
+pub mod progress;
 pub mod render;
 pub mod schema;
 pub mod search;
@@ -30,7 +31,7 @@ pub mod browser_pool_manager;
 pub mod wasm_aot_cache;
 
 // Phase 5 Integration
-// TODO(chromiumoxide-migration): Depends on browser_pool_manager - re-enable after migration
+// TODO(phase4): Re-enable after implementing missing global() methods in Phase 4 modules
 // pub mod optimized_executor;
 
 use clap::Subcommand;
@@ -44,15 +45,32 @@ use session::SessionCommands;
 #[derive(Subcommand)]
 pub enum Commands {
     /// Extract content from a URL with optional confidence scoring
+    ///
+    /// Examples:
+    ///   extract --url https://example.com --method article
+    ///   extract --url https://example.com --engine wasm --local
+    ///   extract --url https://example.com --show-confidence --metadata
     Extract(ExtractArgs),
 
     /// Render a page with headless browser capabilities
+    ///
+    /// Examples:
+    ///   render --url https://example.com --html
+    ///   render --url https://example.com --wait networkidle --screenshot
     Render(render::RenderArgs),
 
-    /// Crawl a website
+    /// Crawl a website and extract content from multiple pages
+    ///
+    /// Examples:
+    ///   crawl --url https://example.com --depth 2 --max-pages 50
+    ///   crawl --url https://example.com --output-dir ./results --stream
     Crawl(CrawlArgs),
 
-    /// Search for content
+    /// Search for content across indexed pages
+    ///
+    /// Examples:
+    ///   search --query "rust programming" --limit 10
+    ///   search --query "web scraping" --domain example.com
     Search(SearchArgs),
 
     /// Cache management commands

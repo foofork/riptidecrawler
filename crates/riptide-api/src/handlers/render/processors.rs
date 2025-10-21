@@ -4,7 +4,7 @@
 
 use crate::errors::{ApiError, ApiResult};
 use crate::state::AppState;
-use riptide_headless::dynamic::{DynamicConfig, DynamicRenderResult};
+use riptide_browser::dynamic::{DynamicConfig, DynamicRenderResult};
 use riptide_pdf::utils as pdf_utils;
 use riptide_stealth::StealthController;
 use tokio::time::{timeout, Duration};

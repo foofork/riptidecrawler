@@ -176,6 +176,64 @@ pub async fn get_cached_extractor(
     cache.get_or_load(wasm_path).await
 }
 
+/// Phase 4 P0: Singleton WASM cache for OptimizedExecutor
+/// This provides a simple singleton wrapper for WASM caching operations
+pub struct WasmCache {
+    // Internal module cache reference
+    _marker: std::marker::PhantomData<()>,
+}
+
+impl WasmCache {
+    /// Get the global singleton instance
+    pub fn get_global() -> Arc<Self> {
+        use once_cell::sync::Lazy;
+        static GLOBAL_WASM_CACHE: Lazy<Arc<WasmCache>> = Lazy::new(|| {
+            Arc::new(WasmCache {
+                _marker: std::marker::PhantomData,
+            })
+        });
+
+        Arc::clone(&GLOBAL_WASM_CACHE)
+    }
+
+    /// Get cached WASM module by path
+    pub async fn get(&self, _wasm_path: &str) -> Option<Arc<WasmExtractor>> {
+        // Delegate to WasmModuleCache
+        // For now, return None to trigger AOT cache path in optimized_executor
+        // Future enhancement: integrate with WasmModuleCache::global()
+        None
+    }
+
+    /// Store WASM module in cache
+    pub async fn store(&self, _wasm_path: &str, _extractor: Arc<WasmExtractor>) -> Result<()> {
+        // Delegate to WasmModuleCache
+        // Future enhancement: integrate with WasmModuleCache::global()
+        Ok(())
+    }
+
+    /// Clear the cache
+    pub async fn clear(&self) -> Result<()> {
+        WasmModuleCache::global().clear().await;
+        Ok(())
+    }
+
+    /// Get cache statistics
+    pub async fn stats(&self) -> serde_json::Value {
+        if let Some(stats) = WasmModuleCache::global().stats().await {
+            serde_json::json!({
+                "path": stats.path,
+                "age_seconds": stats.age_seconds,
+                "use_count": stats.use_count,
+                "hit_rate": stats.hit_rate,
+            })
+        } else {
+            serde_json::json!({
+                "cached": false
+            })
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -199,5 +257,26 @@ mod tests {
 
         // Should be the same instance
         assert!(std::ptr::eq(cache1, cache2));
+    }
+
+    #[test]
+    fn test_wasm_cache_singleton() {
+        let cache1 = WasmCache::get_global();
+        let cache2 = WasmCache::get_global();
+
+        // Should be the same Arc instance
+        assert!(Arc::ptr_eq(&cache1, &cache2));
+    }
+
+    #[tokio::test]
+    async fn test_wasm_cache_operations() {
+        let cache = WasmCache::get_global();
+
+        // Clear should not fail
+        assert!(cache.clear().await.is_ok());
+
+        // Stats should return valid JSON
+        let stats = cache.stats().await;
+        assert!(stats.is_object());
     }
 }

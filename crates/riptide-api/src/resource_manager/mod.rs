@@ -84,7 +84,7 @@ use url::Url;
 
 // Internal dependencies
 use crate::config::ApiConfig;
-use riptide_headless::pool::{BrowserPool, BrowserPoolConfig};
+use riptide_browser::pool::{BrowserPool, BrowserPoolConfig};
 
 /// Comprehensive resource manager coordinating all sub-managers
 ///

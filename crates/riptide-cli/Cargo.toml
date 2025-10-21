@@ -28,7 +28,7 @@ url.workspace = true
 riptide-extraction = { path = "../riptide-extraction" }
 riptide-stealth = { path = "../riptide-stealth" }
 riptide-pdf = { path = "../riptide-pdf" }
-riptide-headless = { path = "../riptide-headless" }
+riptide-browser = { path = "../riptide-browser" }
 
 # CLI-specific
 colored = "2.1"

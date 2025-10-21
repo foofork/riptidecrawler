@@ -1,5 +1,5 @@
 use crate::errors::ApiResult;
-use riptide_headless::dynamic::DynamicRenderResult;
+use riptide_browser::dynamic::DynamicRenderResult;
 use riptide_types::{ExtractedDoc as CoreExtractedDoc, OutputFormat};
 use tracing::{debug, info, warn};
 

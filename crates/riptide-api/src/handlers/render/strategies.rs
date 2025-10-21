@@ -1,4 +1,4 @@
-use riptide_headless::dynamic::{
+use riptide_browser::dynamic::{
     DynamicConfig, ScrollConfig, ScrollMode, ViewportConfig, WaitCondition,
 };
 use std::time::Duration;

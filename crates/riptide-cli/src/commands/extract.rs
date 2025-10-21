@@ -10,8 +10,8 @@ use std::str::FromStr;
 use riptide_extraction::wasm_extraction::WasmExtractor;
 
 // Headless browser support
-use riptide_headless::launcher::{HeadlessLauncher, LauncherConfig};
-use riptide_headless::pool::BrowserPoolConfig;
+use riptide_browser::launcher::{HeadlessLauncher, LauncherConfig};
+use riptide_browser::pool::BrowserPoolConfig;
 
 /// Extraction engine selection
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

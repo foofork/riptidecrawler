@@ -4,10 +4,15 @@
 /// based on domain patterns to avoid repeated analysis.
 use crate::commands::engine_fallback::EngineType;
 use anyhow::Result;
+use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
+
+/// Global singleton instance of the engine selection cache
+static GLOBAL_INSTANCE: Lazy<Arc<EngineSelectionCache>> =
+    Lazy::new(|| Arc::new(EngineSelectionCache::default()));
 
 /// Cache entry for engine selection
 #[derive(Debug, Clone)]
@@ -26,6 +31,11 @@ pub struct EngineSelectionCache {
 }
 
 impl EngineSelectionCache {
+    /// Get the global singleton instance of the engine selection cache
+    pub fn get_global() -> Arc<Self> {
+        Arc::clone(&GLOBAL_INSTANCE)
+    }
+
     /// Create a new engine selection cache
     pub fn new(ttl: Duration, max_entries: usize) -> Self {
         Self {
