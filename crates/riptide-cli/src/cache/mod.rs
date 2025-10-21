@@ -6,6 +6,7 @@
 //! - Persistent storage
 //! - Cache warming/preloading
 //! - Statistics tracking
+#![allow(dead_code)]
 
 pub mod manager;
 pub mod storage;

@@ -1,3 +1,6 @@
+// WASM AOT cache infrastructure - planned feature
+#![allow(dead_code)]
+
 /// WASM AOT (Ahead-Of-Time) Compilation Cache
 ///
 /// This module provides persistent disk-based caching of AOT-compiled WASM modules
@@ -426,6 +429,7 @@ pub struct CompiledModule {
 
 /// Cache statistics
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct CacheStats {
     pub total_entries: usize,
     pub total_size_bytes: u64,

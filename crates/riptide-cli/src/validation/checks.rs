@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::types::*;
 use crate::client::RipTideClient;
 use anyhow::Result;

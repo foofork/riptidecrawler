@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::types::Session;
 use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};

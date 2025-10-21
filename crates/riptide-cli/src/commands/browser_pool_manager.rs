@@ -1,3 +1,6 @@
+// Infrastructure for planned features
+#![allow(dead_code)]
+
 /// Browser Pool Pre-warming Manager for CLI
 ///
 /// This module provides CLI-level browser pool management with:

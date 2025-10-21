@@ -1,6 +1,7 @@
 //! Cache persistence and storage management
 //!
 //! This module handles saving and loading cache data to/from disk
+#![allow(dead_code)]
 
 use super::types::{CacheEntry, CacheStats};
 use anyhow::{Context, Result};

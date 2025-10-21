@@ -1,0 +1,97 @@
+{
+  "analysis_date": "2025-10-21",
+  "package": "riptide-cli",
+  "target": "bin/riptide",
+  "total_errors": 137,
+  "categories": {
+    "wasm_aot_cache": {
+      "count": 16,
+      "percentage": 12,
+      "strategy": "feature_flag",
+      "feature_name": "wasm-aot"
+    },
+    "commands_infrastructure": {
+      "count": 69,
+      "percentage": 50,
+      "subcategories": {
+        "engine_fallback": { "count": 16, "feature": "engine-fallback" },
+        "browser_pool_manager": { "count": 13, "feature": "browser-pool" },
+        "adaptive_timeout": { "count": 13, "feature": "adaptive-timeout" },
+        "performance_monitor": { "count": 9, "feature": "performance-monitoring" },
+        "progress": { "count": 6, "feature": "progress-ui" },
+        "engine_cache": { "count": 5, "feature": "engine-cache" },
+        "extract_enhanced": { "count": 2, "feature": "enhanced-extraction" }
+      }
+    },
+    "metrics_system": {
+      "count": 15,
+      "percentage": 11,
+      "strategy": "selective_allow_and_feature_flags",
+      "features": ["metrics-aggregation", "metrics-telemetry"]
+    },
+    "configuration": {
+      "count": 19,
+      "percentage": 14,
+      "strategy": "allow_dead_code",
+      "reason": "public_api_for_library_consumers"
+    },
+    "job_session_management": {
+      "count": 10,
+      "percentage": 7,
+      "strategy": "feature_flags",
+      "features": ["job-management", "session-management"]
+    },
+    "cache_infrastructure": {
+      "count": 5,
+      "percentage": 4,
+      "strategy": "allow_dead_code_and_feature_flag",
+      "feature": "cache-api"
+    },
+    "other": {
+      "count": 3,
+      "percentage": 2,
+      "items": ["pdf_impl", "client"]
+    }
+  },
+  "error_types": {
+    "struct_never_constructed": 30,
+    "function_never_used": 40,
+    "method_never_used": 50,
+    "static_never_used": 6,
+    "field_never_read": 6,
+    "enum_never_used": 1,
+    "constant_never_used": 4
+  },
+  "top_files_by_error_count": [
+    { "file": "config.rs", "errors": 19 },
+    { "file": "commands/engine_fallback.rs", "errors": 16 },
+    { "file": "commands/browser_pool_manager.rs", "errors": 13 },
+    { "file": "commands/adaptive_timeout.rs", "errors": 13 },
+    { "file": "commands/performance_monitor.rs", "errors": 9 },
+    { "file": "commands/wasm_cache.rs", "errors": 8 },
+    { "file": "commands/wasm_aot_cache.rs", "errors": 8 }
+  ],
+  "recommended_features": [
+    "wasm-aot",
+    "browser-pool",
+    "engine-fallback",
+    "adaptive-timeout",
+    "performance-monitoring",
+    "progress-ui",
+    "engine-cache",
+    "enhanced-extraction",
+    "job-management",
+    "session-management",
+    "cache-api",
+    "metrics-aggregation",
+    "metrics-telemetry",
+    "pdf-extraction"
+  ],
+  "fix_strategy_summary": {
+    "feature_flags": 85,
+    "allow_dead_code": 48,
+    "remove_code": 4
+  },
+  "estimated_resolution_time_hours": 2.5,
+  "expected_remaining_errors": 0
+}

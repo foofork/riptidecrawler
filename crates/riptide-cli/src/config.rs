@@ -25,46 +25,64 @@ pub fn get_output_directory() -> PathBuf {
 }
 
 /// Get the screenshots subdirectory
+// Public API for library consumers
+#[allow(dead_code)]
 pub fn get_screenshots_directory() -> PathBuf {
     get_output_directory().join("screenshots")
 }
 
 /// Get the HTML files subdirectory
+// Public API for library consumers
+#[allow(dead_code)]
 pub fn get_html_directory() -> PathBuf {
     get_output_directory().join("html")
 }
 
 /// Get the PDF files subdirectory
+// Public API for library consumers
+#[allow(dead_code)]
 pub fn get_pdf_directory() -> PathBuf {
     get_output_directory().join("pdf")
 }
 
 /// Get the DOM files subdirectory
+// Public API for library consumers
+#[allow(dead_code)]
 pub fn get_dom_directory() -> PathBuf {
     get_output_directory().join("dom")
 }
 
 /// Get the HAR files subdirectory
+// Public API for library consumers
+#[allow(dead_code)]
 pub fn get_har_directory() -> PathBuf {
     get_output_directory().join("har")
 }
 
 /// Get the reports subdirectory
+// Public API for library consumers
+#[allow(dead_code)]
 pub fn get_reports_directory() -> PathBuf {
     get_output_directory().join("reports")
 }
 
 /// Get the crawl results subdirectory
+// Public API for library consumers
+#[allow(dead_code)]
 pub fn get_crawl_directory() -> PathBuf {
     get_output_directory().join("crawl")
 }
 
 /// Get the sessions subdirectory
+// Public API for library consumers
+#[allow(dead_code)]
 pub fn get_sessions_directory() -> PathBuf {
     get_output_directory().join("sessions")
 }
 
 /// Get the cache subdirectory
+// Public API for library consumers
+#[allow(dead_code)]
 pub fn get_cache_directory() -> PathBuf {
     std::env::var("RIPTIDE_CACHE_DIR")
         .map(PathBuf::from)
@@ -78,6 +96,8 @@ pub fn get_cache_directory() -> PathBuf {
 }
 
 /// Get the logs subdirectory
+// Public API for library consumers
+#[allow(dead_code)]
 pub fn get_logs_directory() -> PathBuf {
     std::env::var("RIPTIDE_LOGS_DIR")
         .map(PathBuf::from)
@@ -91,6 +111,8 @@ pub fn get_logs_directory() -> PathBuf {
 }
 
 /// Ensure a directory exists, creating it if necessary
+// Public API for library consumers
+#[allow(dead_code)]
 pub fn ensure_directory_exists(path: &PathBuf) -> Result<()> {
     if !path.exists() {
         std::fs::create_dir_all(path)?;
@@ -99,6 +121,8 @@ pub fn ensure_directory_exists(path: &PathBuf) -> Result<()> {
 }
 
 /// Initialize all required directories
+// Public API for library consumers
+#[allow(dead_code)]
 pub fn initialize_directories() -> Result<()> {
     let directories = vec![
         get_output_directory(),
@@ -124,26 +148,36 @@ pub fn initialize_directories() -> Result<()> {
 /// Configuration for environment variables
 pub mod env {
     /// Get the output directory from environment
+    // Public API for library consumers
+    #[allow(dead_code)]
     pub fn output_dir() -> Option<String> {
         std::env::var("RIPTIDE_OUTPUT_DIR").ok()
     }
 
     /// Get the cache directory from environment
+    // Public API for library consumers
+    #[allow(dead_code)]
     pub fn cache_dir() -> Option<String> {
         std::env::var("RIPTIDE_CACHE_DIR").ok()
     }
 
     /// Get the logs directory from environment
+    // Public API for library consumers
+    #[allow(dead_code)]
     pub fn logs_dir() -> Option<String> {
         std::env::var("RIPTIDE_LOGS_DIR").ok()
     }
 
     /// Get the API host from environment
+    // Public API for library consumers
+    #[allow(dead_code)]
     pub fn api_host() -> Option<String> {
         std::env::var("RIPTIDE_API_HOST").ok()
     }
 
     /// Get the API port from environment
+    // Public API for library consumers
+    #[allow(dead_code)]
     pub fn api_port() -> Option<u16> {
         std::env::var("RIPTIDE_API_PORT")
             .ok()
@@ -151,6 +185,8 @@ pub mod env {
     }
 
     /// Get the log level from environment
+    // Public API for library consumers
+    #[allow(dead_code)]
     pub fn log_level() -> Option<String> {
         std::env::var("RIPTIDE_LOG_LEVEL")
             .ok()
@@ -158,6 +194,8 @@ pub mod env {
     }
 
     /// Check if running in development mode
+    // Public API for library consumers
+    #[allow(dead_code)]
     pub fn is_development_mode() -> bool {
         std::env::var("RIPTIDE_DEV").is_ok()
             || std::env::var("DEVELOPMENT").is_ok()

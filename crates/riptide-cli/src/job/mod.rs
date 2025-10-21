@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 /// Local job management module for RipTide CLI
 ///
 /// This module provides local job scheduling, tracking, and management

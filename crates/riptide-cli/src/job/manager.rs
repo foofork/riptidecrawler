@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::storage::JobStorage;
 use super::types::{Job, JobId, JobPriority, JobStatus, LogEntry, LogLevel};
 use anyhow::{Context, Result};

@@ -5,6 +5,7 @@
 //! - Size and count-based limits
 //! - Domain filtering
 //! - Thread-safe operations
+#![allow(dead_code)]
 
 use super::types::{CacheConfig, CacheEntry, CacheStats};
 use anyhow::Result;

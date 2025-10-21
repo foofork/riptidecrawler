@@ -5,6 +5,7 @@
 //! - LRU eviction policy support
 //! - Domain-based filtering
 //! - Cache statistics tracking
+#![allow(dead_code)]
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

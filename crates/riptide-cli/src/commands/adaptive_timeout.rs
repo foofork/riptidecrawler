@@ -1,3 +1,6 @@
+// Infrastructure for planned features
+#![allow(dead_code)]
+
 /// Adaptive Timeout System
 ///
 /// This module provides intelligent timeout management that learns optimal

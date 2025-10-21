@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::types::{Job, JobId, LogEntry};
 use anyhow::{Context, Result};
 use std::fs::{self, File, OpenOptions};

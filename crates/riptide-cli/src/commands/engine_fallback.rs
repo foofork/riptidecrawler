@@ -1,3 +1,6 @@
+// Infrastructure for planned features
+#![allow(dead_code)]
+
 /// Smart Engine Selection with Fallback Chain
 ///
 /// This module implements intelligent extraction engine selection with automatic
