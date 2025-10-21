@@ -259,6 +259,7 @@ impl MetricsCollector {
     }
 
     /// Get all counter values
+    #[allow(dead_code)]
     pub fn get_all_counters(&self) -> Result<HashMap<String, u64>> {
         let counters = self
             .counters
@@ -289,11 +290,13 @@ impl MetricsCollector {
     }
 
     /// Get collector uptime
+    #[allow(dead_code)]
     pub fn uptime(&self) -> Duration {
         self.start_time.elapsed()
     }
 
     /// Reset all metrics (useful for testing)
+    #[allow(dead_code)]
     #[cfg(test)]
     pub fn reset(&self) -> Result<()> {
         let mut active = self

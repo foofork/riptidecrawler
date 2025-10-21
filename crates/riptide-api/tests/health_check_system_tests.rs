@@ -67,7 +67,7 @@ async fn test_healthz_response_format() -> Result<()> {
         timestamp: 1234567890,
     };
 
-    assert!(health.components.len() > 0);
+    assert!(!health.components.is_empty());
     assert_eq!(health.components[0].name, "database");
     Ok(())
 }
@@ -75,7 +75,7 @@ async fn test_healthz_response_format() -> Result<()> {
 /// Test 3: Component health aggregation - all healthy
 #[tokio::test]
 async fn test_component_aggregation_all_healthy() -> Result<()> {
-    let components = vec![
+    let components = [
         ComponentHealth {
             name: "db".to_string(),
             status: HealthStatus::Healthy,
@@ -104,7 +104,7 @@ async fn test_component_aggregation_all_healthy() -> Result<()> {
 /// Test 4: Component health aggregation - one degraded
 #[tokio::test]
 async fn test_component_aggregation_one_degraded() -> Result<()> {
-    let components = vec![
+    let components = [
         ComponentHealth {
             name: "db".to_string(),
             status: HealthStatus::Healthy,
@@ -129,7 +129,7 @@ async fn test_component_aggregation_one_degraded() -> Result<()> {
 /// Test 5: Component health aggregation - one unhealthy
 #[tokio::test]
 async fn test_component_aggregation_one_unhealthy() -> Result<()> {
-    let components = vec![
+    let components = [
         ComponentHealth {
             name: "db".to_string(),
             status: HealthStatus::Healthy,
@@ -154,7 +154,7 @@ async fn test_component_aggregation_one_unhealthy() -> Result<()> {
 /// Test 6: Overall status determination from components
 #[tokio::test]
 async fn test_overall_status_determination() -> Result<()> {
-    let components = vec![
+    let components = [
         ComponentHealth {
             name: "service1".to_string(),
             status: HealthStatus::Healthy,
@@ -404,7 +404,6 @@ async fn test_health_check_cache_miss() -> Result<()> {
 /// - Auto-recovery mechanisms
 /// - Health metric export
 /// - Custom health check plugins
-
 /// Test 21: Load-based health - low load
 #[tokio::test]
 async fn test_load_based_health_low() -> Result<()> {
@@ -436,7 +435,7 @@ async fn test_load_based_health_high() -> Result<()> {
 /// Test 23: Dependency health check chain
 #[tokio::test]
 async fn test_dependency_health_chain() -> Result<()> {
-    let dependencies = vec![
+    let dependencies = [
         ComponentHealth {
             name: "primary_db".to_string(),
             status: HealthStatus::Healthy,

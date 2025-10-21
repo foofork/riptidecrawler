@@ -29,13 +29,13 @@ pub(super) async fn extract_with_extraction_facade(
     }
 
     // Validate HTML size (prevent excessive memory usage)
-    if html.as_bytes().len() > 50 * 1024 * 1024 {
+    if html.len() > 50 * 1024 * 1024 {
         // 50MB limit
         return Err("HTML content too large (>50MB)".into());
     }
 
     // Configure extraction options based on output format
-    let options = riptide_facade::facades::HtmlExtractionOptions {
+    let _options = riptide_facade::facades::HtmlExtractionOptions {
         as_markdown: matches!(output_format, OutputFormat::Markdown),
         clean: true,
         include_metadata: true,

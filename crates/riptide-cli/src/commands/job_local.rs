@@ -195,6 +195,7 @@ pub async fn execute(command: JobLocalCommands, output_format: &str) -> Result<(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn submit_job(
     manager: JobManager,
     urls: Vec<String>,

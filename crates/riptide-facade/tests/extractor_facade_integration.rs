@@ -5,8 +5,6 @@
 //!
 //! Note: Most tests are scaffolds as ExtractorFacade is not fully implemented yet.
 
-use riptide_facade::prelude::*;
-
 // Test scaffolds for when ExtractorFacade is implemented
 
 #[tokio::test]

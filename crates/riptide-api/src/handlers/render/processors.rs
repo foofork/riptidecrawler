@@ -33,7 +33,7 @@ pub async fn process_pdf(
     let content_type: Option<&str> = None; // ScraperFacade doesn't expose headers, rely on content detection
 
     // Verify it's actually a PDF
-    if !pdf_utils::is_pdf_content(content_type.as_deref(), &data) {
+    if !pdf_utils::is_pdf_content(content_type, &data) {
         return Err(ApiError::validation("Content is not a valid PDF"));
     }
 

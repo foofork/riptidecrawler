@@ -133,6 +133,7 @@ impl MetricsAggregator {
     }
 
     /// Calculate percentiles for metric points
+    #[allow(dead_code)]
     pub fn calculate_metric_percentiles(&self, points: &[MetricPoint]) -> (f64, f64, f64) {
         let values: Vec<f64> = points.iter().map(|p| p.value).collect();
         calculate_percentiles(&values)
@@ -214,6 +215,7 @@ impl MetricsAggregator {
     }
 
     /// Group metrics by time bucket (e.g., hourly, daily)
+    #[allow(dead_code)]
     pub fn group_by_time_bucket(
         &self,
         metrics: &[CommandMetrics],

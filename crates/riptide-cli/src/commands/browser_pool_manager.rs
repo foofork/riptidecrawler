@@ -12,7 +12,7 @@ use riptide_browser::pool::{BrowserCheckout as HeadlessCheckout, BrowserPool, Br
 
 // spider_chrome types are used directly by pool.rs
 // We access them the same way as pool.rs does
-use chromiumoxide::{Browser, BrowserConfig, Page};
+use chromiumoxide::{BrowserConfig, Page};
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -61,6 +61,7 @@ pub struct ResourceStats {
 /// CLI Browser Pool Manager
 pub struct BrowserPoolManager {
     pool: Arc<BrowserPool>,
+    #[allow(dead_code)]
     config: PoolManagerConfig,
     stats: Arc<RwLock<ResourceStats>>,
     health_checker: Arc<Mutex<HealthChecker>>,

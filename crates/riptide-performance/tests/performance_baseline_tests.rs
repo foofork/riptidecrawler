@@ -42,6 +42,12 @@ pub struct PerformanceBaseline {
     pub regression_threshold_percent: f64,
 }
 
+impl Default for PerformanceCollector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PerformanceCollector {
     pub fn new() -> Self {
         let mut baselines = HashMap::new();

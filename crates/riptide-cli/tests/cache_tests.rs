@@ -13,9 +13,11 @@ use tempfile::TempDir;
 #[tokio::test]
 async fn test_cache_basic_operations() {
     let temp_dir = TempDir::new().unwrap();
-    let mut config = CacheConfig::default();
-    config.cache_dir = temp_dir.path().to_string_lossy().to_string();
-    config.persistent = false;
+    let config = CacheConfig {
+        cache_dir: temp_dir.path().to_string_lossy().to_string(),
+        persistent: false,
+        ..Default::default()
+    };
 
     let cache = Cache::with_config(config).await.unwrap();
 
@@ -46,9 +48,11 @@ async fn test_cache_basic_operations() {
 #[tokio::test]
 async fn test_cache_domain_operations() {
     let temp_dir = TempDir::new().unwrap();
-    let mut config = CacheConfig::default();
-    config.cache_dir = temp_dir.path().to_string_lossy().to_string();
-    config.persistent = false;
+    let config = CacheConfig {
+        cache_dir: temp_dir.path().to_string_lossy().to_string(),
+        persistent: false,
+        ..Default::default()
+    };
 
     let cache = Cache::with_config(config).await.unwrap();
 
@@ -97,10 +101,12 @@ async fn test_cache_domain_operations() {
 #[tokio::test]
 async fn test_cache_lru_eviction() {
     let temp_dir = TempDir::new().unwrap();
-    let mut config = CacheConfig::default();
-    config.cache_dir = temp_dir.path().to_string_lossy().to_string();
-    config.persistent = false;
-    config.max_entries = 3;
+    let config = CacheConfig {
+        cache_dir: temp_dir.path().to_string_lossy().to_string(),
+        persistent: false,
+        max_entries: 3,
+        ..Default::default()
+    };
 
     let cache = Cache::with_config(config).await.unwrap();
 
@@ -142,9 +148,11 @@ async fn test_cache_lru_eviction() {
 #[tokio::test]
 async fn test_cache_statistics() {
     let temp_dir = TempDir::new().unwrap();
-    let mut config = CacheConfig::default();
-    config.cache_dir = temp_dir.path().to_string_lossy().to_string();
-    config.persistent = false;
+    let config = CacheConfig {
+        cache_dir: temp_dir.path().to_string_lossy().to_string(),
+        persistent: false,
+        ..Default::default()
+    };
 
     let cache = Cache::with_config(config).await.unwrap();
 
@@ -184,9 +192,11 @@ async fn test_cache_persistence() {
 
     // Create cache and insert entries
     {
-        let mut config = CacheConfig::default();
-        config.cache_dir = cache_dir.clone();
-        config.persistent = true;
+        let config = CacheConfig {
+            cache_dir: cache_dir.clone(),
+            persistent: true,
+            ..Default::default()
+        };
 
         let cache = Cache::with_config(config).await.unwrap();
 
@@ -202,9 +212,11 @@ async fn test_cache_persistence() {
 
     // Create new cache instance and verify entries are loaded
     {
-        let mut config = CacheConfig::default();
-        config.cache_dir = cache_dir;
-        config.persistent = true;
+        let config = CacheConfig {
+            cache_dir: cache_dir,
+            persistent: true,
+            ..Default::default()
+        };
 
         let cache = Cache::with_config(config).await.unwrap();
 
@@ -220,9 +232,11 @@ async fn test_cache_persistence() {
 #[tokio::test]
 async fn test_cache_clear_operations() {
     let temp_dir = TempDir::new().unwrap();
-    let mut config = CacheConfig::default();
-    config.cache_dir = temp_dir.path().to_string_lossy().to_string();
-    config.persistent = false;
+    let config = CacheConfig {
+        cache_dir: temp_dir.path().to_string_lossy().to_string(),
+        persistent: false,
+        ..Default::default()
+    };
 
     let cache = Cache::with_config(config).await.unwrap();
 
@@ -249,9 +263,11 @@ async fn test_cache_clear_operations() {
 #[tokio::test]
 async fn test_cache_list_urls() {
     let temp_dir = TempDir::new().unwrap();
-    let mut config = CacheConfig::default();
-    config.cache_dir = temp_dir.path().to_string_lossy().to_string();
-    config.persistent = false;
+    let config = CacheConfig {
+        cache_dir: temp_dir.path().to_string_lossy().to_string(),
+        persistent: false,
+        ..Default::default()
+    };
 
     let cache = Cache::with_config(config).await.unwrap();
 

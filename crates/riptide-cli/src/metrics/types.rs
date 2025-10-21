@@ -309,6 +309,7 @@ impl Counter {
 #[derive(Debug, Clone)]
 pub struct Timer {
     /// Timer name
+    #[allow(dead_code)]
     pub name: String,
 
     /// Start instant
@@ -346,6 +347,7 @@ impl Timer {
     }
 
     /// Get percentile duration in milliseconds
+    #[allow(dead_code)]
     pub fn percentile(&self, p: f64) -> f64 {
         if self.durations.is_empty() {
             return 0.0;

@@ -335,6 +335,7 @@ pub async fn execute(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn submit_job(
     client: RipTideClient,
     urls: Vec<String>,

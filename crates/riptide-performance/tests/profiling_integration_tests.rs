@@ -138,7 +138,7 @@ async fn test_complete_profiling_workflow() {
         .expect("Failed to get memory pressure");
 
     assert!(
-        memory_pressure >= 0.0 && memory_pressure <= 1.0,
+        (0.0..=1.0).contains(&memory_pressure),
         "Memory pressure should be between 0 and 1"
     );
 
@@ -148,7 +148,7 @@ async fn test_complete_profiling_workflow() {
         .expect("Failed to calculate efficiency");
 
     assert!(
-        efficiency_score >= 0.0 && efficiency_score <= 1.0,
+        (0.0..=1.0).contains(&efficiency_score),
         "Efficiency score should be between 0 and 1"
     );
 }
@@ -730,7 +730,7 @@ async fn test_allocation_analysis() {
         .expect("Failed to calculate efficiency");
 
     assert!(
-        efficiency >= 0.0 && efficiency <= 1.0,
+        (0.0..=1.0).contains(&efficiency),
         "Efficiency should be between 0 and 1"
     );
 }
@@ -948,14 +948,12 @@ async fn get_metrics_endpoint(tracker: &MemoryTracker, detector: &LeakDetector) 
 
     // Prometheus-style format
     let mut response = String::new();
-    response.push_str(&format!(
-        "# HELP memory_rss_bytes Resident set size in bytes\n"
-    ));
-    response.push_str(&format!("# TYPE memory_rss_bytes gauge\n"));
+    response.push_str("# HELP memory_rss_bytes Resident set size in bytes\n");
+    response.push_str("# TYPE memory_rss_bytes gauge\n");
     response.push_str(&format!("memory_rss_bytes {}\n", snapshot.rss_bytes));
 
-    response.push_str(&format!("# HELP memory_pressure Memory pressure (0-1)\n"));
-    response.push_str(&format!("# TYPE memory_pressure gauge\n"));
+    response.push_str("# HELP memory_pressure Memory pressure (0-1)\n");
+    response.push_str("# TYPE memory_pressure gauge\n");
     response.push_str(&format!("memory_pressure {:.2}\n", pressure));
 
     Ok(response)
@@ -977,6 +975,7 @@ async fn get_health_endpoint(_tracker: &MemoryTracker) -> Result<HealthResponse>
 #[derive(Debug)]
 struct SnapshotResponse {
     rss_bytes: u64,
+    #[allow(dead_code)]
     virtual_bytes: u64,
     timestamp_unix: i64,
 }
@@ -994,6 +993,7 @@ async fn get_snapshot_endpoint(tracker: &MemoryTracker) -> Result<SnapshotRespon
 #[derive(Debug)]
 struct LeaksResponse {
     potential_leak_count: usize,
+    #[allow(dead_code)]
     growth_rate_mb_per_hour: f64,
 }
 
@@ -1015,8 +1015,11 @@ enum AlertSeverity {
 #[derive(Debug, Clone)]
 struct Alert {
     severity: AlertSeverity,
+    #[allow(dead_code)]
     message: String,
+    #[allow(dead_code)]
     component: String,
+    #[allow(dead_code)]
     timestamp: chrono::DateTime<chrono::Utc>,
 }
 

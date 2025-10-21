@@ -609,14 +609,13 @@ impl PipelineOrchestrator {
             .process_pdf_bytes(&pdf_bytes_vec)
             .await
             .map_err(|e| ApiError::extraction(format!("PDF processing error: {}", e)))
-            .map(|document| {
+            .inspect(|document| {
                 info!(
                         url = %url_str,
                     text_length = document.text.len(),
                     title = ?document.title,
                     "PDF processing completed successfully"
                 );
-                document
             })
             .or_else(|e| {
                 error!(

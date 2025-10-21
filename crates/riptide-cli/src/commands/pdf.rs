@@ -325,6 +325,7 @@ pub async fn execute(
     result
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn execute_extract(
     input: String,
     format: String,
@@ -435,6 +436,7 @@ async fn execute_extract(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn execute_to_md(
     input: String,
     output_path: Option<String>,

@@ -929,6 +929,7 @@ impl BrowserPool {
     }
 
     /// Perform health checks on all browsers (legacy method, kept for compatibility)
+    #[allow(dead_code)]
     async fn perform_health_checks(
         config: &BrowserPoolConfig,
         available: &Arc<Mutex<VecDeque<PooledBrowser>>>,
@@ -1124,6 +1125,7 @@ pub struct BrowserPoolRef {
     config: BrowserPoolConfig,
     event_sender: mpsc::UnboundedSender<PoolEvent>,
     // P1-B4: CDP pool reference for connection management
+    #[allow(dead_code)] // False positive: field is used via Arc clones in BrowserCheckout
     cdp_pool: Arc<CdpConnectionPool>,
 }
 

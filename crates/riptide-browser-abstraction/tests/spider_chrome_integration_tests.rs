@@ -266,11 +266,11 @@ async fn test_pdf_print_background() -> Result<()> {
 #[tokio::test]
 async fn test_pdf_custom_scale() -> Result<()> {
     let params = PdfParams {
-        scale: 0.8,
+        scale: Some(0.8),
         ..Default::default()
     };
 
-    assert_eq!(params.scale, 0.8);
+    assert_eq!(params.scale, Some(0.8));
     Ok(())
 }
 
@@ -323,7 +323,7 @@ async fn test_network_interception() -> Result<()> {
 /// Test 28: Multi-page navigation
 #[tokio::test]
 async fn test_multi_page_navigation() -> Result<()> {
-    let urls = vec![
+    let urls = [
         "https://example.com/page1",
         "https://example.com/page2",
         "https://example.com/page3",
@@ -390,7 +390,7 @@ async fn test_performance_benchmark_setup() -> Result<()> {
 /// Test 32: Resource loading - images
 #[tokio::test]
 async fn test_resource_loading_images() -> Result<()> {
-    let image_types = vec!["image/png", "image/jpeg", "image/webp"];
+    let image_types = ["image/png", "image/jpeg", "image/webp"];
 
     assert!(image_types.contains(&"image/png"));
     Ok(())
@@ -554,7 +554,7 @@ async fn test_cache_management() -> Result<()> {
 /// Test 48: Request headers configuration
 #[tokio::test]
 async fn test_request_headers() -> Result<()> {
-    let headers = vec![
+    let headers = [
         ("Accept-Language", "en-US,en;q=0.9"),
         ("Accept-Encoding", "gzip, deflate, br"),
     ];

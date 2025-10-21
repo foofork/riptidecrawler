@@ -295,6 +295,7 @@ impl From<DependencyHealth> for ServiceHealth {
 }
 
 /// Request body for spider crawl operations
+#[allow(dead_code)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct SpiderCrawlBody {
     /// Seed URLs to start crawling from

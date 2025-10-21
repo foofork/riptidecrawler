@@ -105,7 +105,7 @@ impl HybridBrowserFallback {
     pub async fn execute_with_fallback(
         &self,
         url: &str,
-        chromium_page: &Box<dyn PageHandle>,
+        chromium_page: &dyn PageHandle,
     ) -> Result<BrowserResponse> {
         // Determine which engine to use
         if self.should_use_spider_chrome(url) {
@@ -159,7 +159,7 @@ impl HybridBrowserFallback {
     pub async fn execute_chromiumoxide_only(
         &self,
         url: &str,
-        chromium_page: &Box<dyn PageHandle>,
+        chromium_page: &dyn PageHandle,
     ) -> Result<BrowserResponse> {
         self.try_chromiumoxide(url, chromium_page).await
     }
@@ -215,11 +215,7 @@ impl HybridBrowserFallback {
 
     /// Try chromiumoxide execution
     #[cfg(feature = "headless")]
-    async fn try_chromiumoxide(
-        &self,
-        url: &str,
-        page: &Box<dyn PageHandle>,
-    ) -> Result<BrowserResponse> {
+    async fn try_chromiumoxide(&self, url: &str, page: &dyn PageHandle) -> Result<BrowserResponse> {
         // Navigate to URL with default parameters
         page.goto(url, NavigateParams::default())
             .await
@@ -294,11 +290,7 @@ mod tests {
             .unwrap();
 
         // Test URL hashing for traffic split
-        let test_urls: Vec<&str> = (0..100)
-            .map(|i| match i {
-                _ => "https://example.com",
-            })
-            .collect();
+        let test_urls: Vec<&str> = (0..100).map(|_| "https://example.com").collect();
 
         let spider_chrome_count = test_urls
             .iter()
@@ -307,7 +299,7 @@ mod tests {
 
         // Should be roughly 50% (allow some variance)
         assert!(
-            spider_chrome_count >= 30 && spider_chrome_count <= 70,
+            (30..=70).contains(&spider_chrome_count),
             "Expected ~50 spider-chrome URLs, got {}",
             spider_chrome_count
         );

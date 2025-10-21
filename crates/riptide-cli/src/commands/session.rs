@@ -355,6 +355,7 @@ pub async fn execute(command: SessionCommands, output_format: &str) -> Result<()
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn create_session(
     name: String,
     description: Option<String>,
@@ -758,6 +759,7 @@ async fn update_session(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn add_cookies(
     name: String,
     cookie_name: String,

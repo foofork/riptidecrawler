@@ -13,23 +13,15 @@
 //! `#[ignore]` require actual browser/network resources and should be run explicitly.
 
 use crate::config::ApiConfig;
-use crate::handlers::browser::{
-    BrowserAction, CreateSessionRequest, PoolStatusInfo, SessionResponse,
-};
-use crate::handlers::extract::{ExtractOptions, ExtractRequest, ExtractResponse};
+use crate::handlers::browser::{BrowserAction, CreateSessionRequest};
+use crate::handlers::extract::{ExtractOptions, ExtractRequest};
 use crate::health::HealthChecker;
 use crate::metrics::RipTideMetrics;
 use crate::state::{AppConfig, AppState};
 use anyhow::Result;
-use axum::{
-    body::Body,
-    extract::State,
-    http::{Request, StatusCode},
-    Json, Router,
-};
+use axum::{extract::State, http::StatusCode, Json};
 use http_body_util::BodyExt;
 use std::sync::Arc;
-use tower::ServiceExt;
 use wiremock::{
     matchers::{method, path},
     Mock, MockServer, ResponseTemplate,
@@ -101,6 +93,7 @@ async fn mock_timeout_response(server: &MockServer, path_str: &str) {
 }
 
 /// Parse JSON response from axum response
+#[allow(dead_code)]
 async fn parse_json_response<T: serde::de::DeserializeOwned>(
     response: axum::response::Response,
 ) -> Result<T> {
@@ -160,8 +153,10 @@ async fn test_app_state_health_check_with_facades() {
 #[tokio::test]
 async fn test_app_state_config_validation() {
     // Test with invalid configuration
-    let mut config = AppConfig::default();
-    config.max_concurrency = 0; // Invalid
+    let _config = AppConfig {
+        max_concurrency: 0, // Invalid
+        ..Default::default()
+    };
 
     let result = create_test_app_state().await;
     // Should either fail or default to valid value
@@ -222,7 +217,8 @@ async fn test_browser_pool_status() {
     let status = result.unwrap();
 
     assert_eq!(status.stats.total_capacity, 2);
-    assert!(status.launcher_stats.total_requests >= 0);
+    // Verify launcher_stats exists (total_requests is always >= 0 for unsigned type)
+    let _ = status.launcher_stats.total_requests;
 }
 
 #[tokio::test]
@@ -335,7 +331,7 @@ async fn test_extract_handler_with_mock_server() {
         options: ExtractOptions::default(),
     };
 
-    let result = crate::handlers::extract::extract(State(state), Json(request)).await;
+    let _result = crate::handlers::extract::extract(State(state), Json(request)).await;
 
     // Should succeed with extracted content
     // Note: Actual extraction requires WASM module, so we verify request handling
@@ -408,7 +404,7 @@ async fn test_timeout_handling() {
     let mock_server = create_mock_server().await;
     mock_timeout_response(&mock_server, "/slow").await;
 
-    let state = create_test_app_state().await.unwrap();
+    let _state = create_test_app_state().await.unwrap();
 
     // Create client with short timeout
     let client = reqwest::Client::builder()
@@ -652,8 +648,6 @@ async fn test_rapid_fetch_requests() {
 
 #[cfg(test)]
 mod test_utils {
-    use super::*;
-
     /// Helper to create test HTML content
     pub fn create_test_html(title: &str, body: &str) -> String {
         format!(

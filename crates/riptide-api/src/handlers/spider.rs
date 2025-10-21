@@ -9,7 +9,7 @@ use crate::models::*;
 use crate::state::AppState;
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use std::time::Instant;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 use super::shared::{spider::parse_seed_urls, MetricsRecorder};
 

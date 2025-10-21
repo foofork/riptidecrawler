@@ -590,6 +590,7 @@ async fn execute_init(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn execute_profile(
     domain: String,
     stealth: Option<String>,
@@ -715,6 +716,7 @@ async fn execute_profile(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn execute_drift(
     client: RipTideClient,
     domain: String,

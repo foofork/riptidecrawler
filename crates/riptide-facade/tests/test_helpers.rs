@@ -4,7 +4,7 @@ use riptide_facade::{Riptide, RiptideConfig, ScraperFacade};
 
 /// Helper function to create a test scraper with default config
 pub async fn create_test_scraper() -> Result<ScraperFacade, Box<dyn std::error::Error>> {
-    let config = RiptideConfig::default();
+    let _config = RiptideConfig::default();
     let scraper = Riptide::builder().build_scraper().await?;
     Ok(scraper)
 }
@@ -25,7 +25,6 @@ where
 }
 
 /// HTML test fixtures
-
 pub mod fixtures {
     pub const SIMPLE_HTML: &str = r#"
         <!DOCTYPE html>
@@ -119,7 +118,6 @@ pub mod fixtures {
 }
 
 /// Assertion helpers
-
 pub fn assert_contains_text(html: &str, text: &str) {
     assert!(
         html.contains(text),
@@ -149,6 +147,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::absurd_extreme_comparisons)]
     fn test_fixtures_are_valid() {
         assert!(!fixtures::SIMPLE_HTML.is_empty());
         assert!(!fixtures::ARTICLE_HTML.is_empty());

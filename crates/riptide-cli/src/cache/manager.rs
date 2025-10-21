@@ -302,8 +302,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_lru_eviction() {
-        let mut config = CacheConfig::default();
-        config.max_entries = 2;
+        let config = CacheConfig {
+            max_entries: 2,
+            ..Default::default()
+        };
 
         let manager = CacheManager::with_config(config).unwrap();
 

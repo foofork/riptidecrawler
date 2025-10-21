@@ -7,7 +7,6 @@ use super::types::{CliMetricsSummary, CommandMetrics, MetricsStorageConfig};
 use anyhow::{Context, Result};
 use chrono::{Duration as ChronoDuration, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::fs::{self, File, OpenOptions};
 use std::io::{BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};

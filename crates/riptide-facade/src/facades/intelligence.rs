@@ -24,6 +24,7 @@ impl IntelligenceFacade {
     /// # Arguments
     ///
     /// * `config` - Configuration for the facade
+    #[allow(dead_code)]
     pub(crate) fn new(config: RiptideConfig) -> Self {
         Self { config }
     }
