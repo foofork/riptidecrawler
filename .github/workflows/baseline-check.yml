@@ -54,25 +54,54 @@ jobs:
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
 
-      - name: Install cargo-tarpaulin
-        run: cargo install cargo-tarpaulin
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Run coverage for core
-        run: cargo tarpaulin --workspace --exclude-files "tests/*" --out Xml --output-dir ./coverage
+      - name: Cache cargo build
+        uses: actions/cache@v3
+        with:
+          path: target/
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Run coverage for workspace
+        run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
-          files: ./coverage/cobertura.xml
+          files: lcov.info
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Check coverage threshold
         run: |
-          # Future: Parse coverage XML and enforce 75% threshold
-          echo "✅ Coverage baseline check complete"
+          # Extract coverage percentage from lcov.info
+          COVERAGE=$(cargo llvm-cov --all-features --workspace --summary-only | grep -oP 'TOTAL\s+\d+\s+\d+\s+\K\d+\.\d+' || echo "0")
+          echo "📊 Current coverage: ${COVERAGE}%"
+
+          # Enforce 80% threshold
+          THRESHOLD=80.0
+          if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
+            echo "❌ Coverage ${COVERAGE}% is below threshold ${THRESHOLD}%"
+            exit 1
+          fi
+
+          echo "✅ Coverage baseline check complete: ${COVERAGE}%"
 
   benchmark-regression:
     name: Performance Regression Check

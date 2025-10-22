@@ -19,6 +19,7 @@ pub mod api {
 // Chaos and Resilience Tests
 pub mod chaos {
     pub mod error_resilience_tests;
+    pub mod edge_case_tests;
 }
 
 // Integration Tests
@@ -26,10 +27,70 @@ pub mod integration {
     pub mod session_persistence_tests;
     pub mod contract_tests;
     pub mod gap_fixes_integration;
+    pub mod browser_pool_tests;
+    pub mod engine_selection_tests;
+    pub mod wasm_caching_tests;
+    pub mod streaming_integration_tests;
+    pub mod phase3_integration_tests;
+    pub mod browser_pool_manager_tests;
+    pub mod phase4_integration_tests;
+    pub mod week3_integration_tests;
+}
+
+// Performance Tests
+pub mod performance {
+    pub mod phase3_benchmarks;
+    pub mod phase4_performance_tests;
+    pub mod benchmark_suite;
+}
+
+// Security Tests
+pub mod security {
+    pub mod stealth_tests;
+    pub mod stealth_mode_tests;
+}
+
+// Regression Tests
+pub mod regression {
+    pub mod adaptive_timeout_tests;
+    pub mod wasm_aot_cache_tests;
 }
 
 // CLI Integration Tests
 pub mod cli;
+
+// Phase 6 Component Tests
+pub mod component;
+
+// Additional test modules
+pub mod stealth;
+pub mod mocks;
+pub mod common;
+pub mod golden;
+pub mod health;
+pub mod metrics;
+pub mod strategy_composition {
+    pub mod mod_tests;
+}
+
+// WASM integration tests
+pub mod wasm_integration {
+    pub mod e2e_integration;
+    pub mod error_handling;
+    pub mod instance_pool;
+    pub mod resource_limits;
+    pub mod wit_bindings_integration;
+}
+
+// E2E tests
+pub mod e2e {
+    pub mod e2e_api;
+}
+
+// Integration tests (additional to integration/ module)
+pub mod integration_e2e {
+    pub mod end_to_end_workflow_tests;
+}
 
 // Gap fixes integration tests
 #[cfg(test)]
@@ -41,6 +102,7 @@ pub mod cache_consistency;
 // Unit Tests
 pub mod unit {
     pub mod component_model_tests;
+    pub mod chunking_strategies_tests;
 }
 
 // Note: Performance tests moved to crates/riptide-performance/tests/

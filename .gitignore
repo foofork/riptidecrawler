@@ -153,13 +153,19 @@ hive-mind-prompt-*.txt
 # ===========================================
 # Testing & Coverage
 # ===========================================
-# Test coverage
+# Test coverage (Tarpaulin legacy)
 coverage/
-*.lcov
 .nyc_output/
 *.gcov
 *.gcda
 *.gcno
+
+# cargo-llvm-cov coverage artifacts
+lcov.info
+coverage.json
+*.profraw
+*.profdata
+/target/llvm-cov/
 
 # Test artifacts
 test-results/

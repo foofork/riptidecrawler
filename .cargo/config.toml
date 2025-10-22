@@ -22,3 +22,12 @@ rustflags = [
   "-C", "link-arg=--max-memory=536870912",      # 512MB max (8192 pages × 64KB)
   "-C", "link-arg=-zstack-size=2097152",         # 2MB stack size
 ]
+
+# Coverage configuration for cargo-llvm-cov
+# Unified coverage across all 24 workspace crates
+[alias]
+coverage = "llvm-cov"
+coverage-html = "llvm-cov --html"
+coverage-json = "llvm-cov --json"
+coverage-lcov = "llvm-cov --lcov"
+coverage-all = "llvm-cov --all-features --workspace --lcov --output-path lcov.info"

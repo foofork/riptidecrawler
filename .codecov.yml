@@ -1,0 +1,128 @@
+# Codecov Configuration for RipTide EventMesh
+# cargo-llvm-cov unified coverage across 24 workspace crates
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+
+  status:
+    project:
+      default:
+        target: 80%
+        threshold: 2%
+        base: auto
+        if_ci_failed: error
+
+    patch:
+      default:
+        target: 75%
+        threshold: 5%
+        base: auto
+        if_ci_failed: error
+
+comment:
+  layout: "reach,diff,flags,tree,footer"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+
+flags:
+  unittests:
+    carryforward: true
+    paths:
+      - crates/
+      - wasm/
+
+  refactoring:
+    carryforward: true
+    paths:
+      - crates/
+
+ignore:
+  - "tests/"
+  - "xtask/"
+  - "examples/"
+  - "benches/"
+  - "**/tests.rs"
+  - "**/test_*.rs"
+  - "**/*_test.rs"
+
+# Coverage thresholds per component
+component_management:
+  default_rules:
+    statuses:
+      - type: project
+        target: 80%
+
+  individual_components:
+    - component_id: core
+      name: Core Crates
+      paths:
+        - crates/riptide-types/**
+        - crates/riptide-spider/**
+        - crates/riptide-fetch/**
+        - crates/riptide-security/**
+        - crates/riptide-monitoring/**
+        - crates/riptide-events/**
+        - crates/riptide-pool/**
+      statuses:
+        - type: project
+          target: 85%
+
+    - component_id: extraction
+      name: Extraction & Processing
+      paths:
+        - crates/riptide-extraction/**
+        - crates/riptide-search/**
+        - crates/riptide-intelligence/**
+      statuses:
+        - type: project
+          target: 80%
+
+    - component_id: browser
+      name: Browser Abstraction
+      paths:
+        - crates/riptide-browser/**
+        - crates/riptide-browser-abstraction/**
+        - crates/riptide-headless/**
+      statuses:
+        - type: project
+          target: 75%
+
+    - component_id: api
+      name: API & CLI
+      paths:
+        - crates/riptide-api/**
+        - crates/riptide-cli/**
+        - crates/riptide-facade/**
+      statuses:
+        - type: project
+          target: 80%
+
+    - component_id: infrastructure
+      name: Infrastructure
+      paths:
+        - crates/riptide-config/**
+        - crates/riptide-cache/**
+        - crates/riptide-reliability/**
+        - crates/riptide-persistence/**
+      statuses:
+        - type: project
+          target: 85%
+
+    - component_id: wasm
+      name: WASM Module
+      paths:
+        - wasm/riptide-extractor-wasm/**
+      statuses:
+        - type: project
+          target: 70%
+
+# GitHub checks configuration
+github_checks:
+  annotations: true
+
+# Notification settings
+slack_app: false

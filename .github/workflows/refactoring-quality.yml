@@ -127,26 +127,51 @@ jobs:
         with:
           toolchain: stable
           profile: minimal
+          components: llvm-tools-preview
           override: true
 
-      - name: Install tarpaulin
-        run: cargo install cargo-tarpaulin
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
 
       - name: Generate coverage
         run: |
-          cargo tarpaulin \
-            --all-features \
-            --workspace \
-            --timeout 300 \
-            --out Xml \
-            --output-dir coverage
-        continue-on-error: true
+          cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+        continue-on-error: false
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
-          files: ./coverage/cobertura.xml
+          files: lcov.info
+          flags: refactoring
           fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Generate HTML coverage report
+        run: cargo llvm-cov --all-features --workspace --html
+
+      - name: Upload HTML coverage artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: target/llvm-cov/html/
 
   refactoring-metrics:
     name: Refactoring Metrics

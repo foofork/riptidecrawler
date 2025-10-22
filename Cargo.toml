@@ -85,6 +85,9 @@ governor = "0.6"
 hex = "0.4"
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
 fastrand = "2"
+assert_cmd = "2.0"
+assert_fs = "1.1"
+predicates = "3.0"
 
 # Performance optimization settings
 [profile.release]
