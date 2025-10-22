@@ -207,16 +207,9 @@ docker-compose -f docker-compose.gateway.yml up -d
 ## 🛣️ Roadmap
 
 **Phase 1 (97%)** - Architecture & Performance
-- ✅ 27-crate modular workspace
 - ✅ Facade composition layer
 - ✅ Browser pool scaling, CDP multiplexing
-- ⚙️ Spider-chrome integration (95%)
-
-**Phase 2 (Planned)** - Scale & Distribution
-- Distributed crawling coordination
-- Enhanced analytics dashboard
-- GraphQL API endpoint
-- Advanced rate limiting
+- ✅ Spider-chrome integration complete (95%)
 
 **[Full roadmap](docs/COMPREHENSIVE-ROADMAP.md)**
 
