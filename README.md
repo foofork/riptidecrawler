@@ -17,7 +17,7 @@
 
 **Phase 1: 90+% Complete** ([Full Roadmap](docs/COMPREHENSIVE-ROADMAP.md))
 
-**Current Focus:** Testing, optimizing, and validating.  Note: There will be dead code, some things may be useful and some may be trash, marking or wiring it up. 
+**Current Focus:** Testing, optimizing, and validating.
 
 ---
 
