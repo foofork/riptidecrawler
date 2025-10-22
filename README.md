@@ -21,6 +21,47 @@
 
 ---
 
+
+## ⚡ Key Features
+
+### Core Capabilities
+- **WASM-Powered Extraction** - WebAssembly Component Model with adaptive routing
+- **Dual-Path Pipeline** - Fast static extraction with headless browser fallback
+- **Real-Time Streaming** - NDJSON, SSE, WebSocket protocols
+- **Smart Caching** - Redis-backed with TTL management
+- **Multi-Strategy Extraction** - CSS, LLM, Regex, Auto-selection
+- **PDF Processing** - Full pipeline with table extraction
+- **Deep Crawling** - Spider engine with frontier management
+
+### Enterprise Features
+- **Session Management** - Isolated browsing contexts with cookie persistence
+- **Async Job Queue** - Background processing with retry logic
+- **LLM Abstraction** - Multi-provider support (OpenAI, Anthropic, Google)
+- **Stealth Mode** - Anti-detection with fingerprint randomization
+- **Monitoring** - Prometheus metrics, health scores, bottleneck analysis
+- **API-First Architecture** - 59 endpoints across 13 categories
+
+---
+
+## 🏗️ Architecture
+
+### System Overview
+
+```
+Client (CLI/SDK/API)
+        ↓
+REST API (59 endpoints)
+        ↓
+Facade Layer (Browser, Extraction, Scraper, Pipeline)
+        ↓
+Core Services (27 specialized crates)
+        ↓
+External Integrations (Redis, Chromium, WASM, LLMs)
+```
+
+
+---
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -75,45 +116,6 @@ curl -X POST http://localhost:8080/crawl \
 curl -X POST http://localhost:8080/deepsearch \
   -H "Content-Type: application/json" \
   -d '{"query": "rust web scraping", "limit": 10, "include_content": true}'
-```
-
----
-
-## ⚡ Key Features
-
-### Core Capabilities
-- **WASM-Powered Extraction** - WebAssembly Component Model with adaptive routing
-- **Dual-Path Pipeline** - Fast static extraction with headless browser fallback
-- **Real-Time Streaming** - NDJSON, SSE, WebSocket protocols
-- **Smart Caching** - Redis-backed with TTL management
-- **Multi-Strategy Extraction** - CSS, LLM, Regex, Auto-selection
-- **PDF Processing** - Full pipeline with table extraction
-- **Deep Crawling** - Spider engine with frontier management
-
-### Enterprise Features
-- **Session Management** - Isolated browsing contexts with cookie persistence
-- **Async Job Queue** - Background processing with retry logic
-- **LLM Abstraction** - Multi-provider support (OpenAI, Anthropic, Google)
-- **Stealth Mode** - Anti-detection with fingerprint randomization
-- **Monitoring** - Prometheus metrics, health scores, bottleneck analysis
-- **API-First Architecture** - 59 endpoints across 13 categories
-
----
-
-## 🏗️ Architecture
-
-### System Overview
-
-```
-Client (CLI/SDK/API)
-        ↓
-REST API (59 endpoints)
-        ↓
-Facade Layer (Browser, Extraction, Scraper, Pipeline)
-        ↓
-Core Services (27 specialized crates)
-        ↓
-External Integrations (Redis, Chromium, WASM, LLMs)
 ```
 
 
