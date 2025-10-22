@@ -15,14 +15,9 @@
 
 ## 📊 Status
 
-**Phase 1: 97% Complete** ([Full Roadmap](docs/COMPREHENSIVE-ROADMAP.md))
+**Phase 1: 90+% Complete** ([Full Roadmap](docs/COMPREHENSIVE-ROADMAP.md))
 
-- ✅ **Architecture** - 27-crate modular workspace with facade composition
-- ✅ **Performance** - Browser pool scaling, CDP multiplexing, memory management
-- ⚙️ **Integration** - Spider-chrome integration (P1-C1 at 95%)
-- ✅ **Documentation** - 100% crate coverage with organized structure
-
-**Current Focus:** P1-C1 compilation fixes for spider-chrome integration
+**Current Focus:** Testing, optimizing, and validating.  Note: There will be dead code, some things may be useful and some may be trash, marking or wiring it up. 
 
 ---
 
@@ -121,27 +116,10 @@ Core Services (27 specialized crates)
 External Integrations (Redis, Chromium, WASM, LLMs)
 ```
 
-### Workspace Structure (27 Crates)
-
-**Core** (3): `riptide-core`, `riptide-types`, `riptide-config`
-
-**API & Interface** (3): `riptide-api`, `riptide-cli`, `riptide-facade`
-
-**Extraction** (4): `riptide-extraction`, `riptide-extractor-wasm`, `riptide-intelligence`, `riptide-pdf`
-
-**Browser** (5): `riptide-browser-abstraction`, `riptide-engine`, `riptide-headless`, `riptide-headless-hybrid`, `riptide-stealth`
-
-**Network & Data** (5): `riptide-fetch`, `riptide-spider`, `riptide-search`, `riptide-cache`, `riptide-persistence`
-
-**Infrastructure** (5): `riptide-monitoring`, `riptide-performance`, `riptide-events`, `riptide-workers`, `riptide-streaming`
-
-**Security & Utils** (3): `riptide-security`, `riptide-pool`, `riptide-test-utils`
-
-**[Full crate documentation](docs/implementation/P1/)**
 
 ---
 
-## 📚 Documentation
+## 📚 Documentation (drafts abound)
 
 ### Getting Started
 - **[Quick Deployment](docs/guides/quickstart/QUICK_DEPLOYMENT_GUIDE.md)** - Get up and running
