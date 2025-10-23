@@ -53,6 +53,7 @@ pub mod wasm_extraction; // WASM-based extraction moved from riptide-core // Con
 pub mod chunking;
 pub mod enhanced_extractor;
 pub mod table_extraction;
+pub mod tables;
 
 // P1-C2: HTML parser and extraction strategies moved from riptide-core
 pub mod html_parser;
@@ -128,6 +129,13 @@ pub use table_extraction::{
     extract_and_export_tables, extract_tables_advanced, AdvancedTableData, CellPosition, CellType,
     ColumnGroup, RowType, TableArtifact, TableCell, TableExtractionConfig, TableExtractionError,
     TableExtractor, TableHeaders, TableMetadata, TableRow, TableStructure,
+};
+
+// Re-export table extraction and conversion (CLI support)
+pub use tables::{
+    parse_content_to_table_data, parse_csv_to_data, parse_markdown_to_data, ApiClient,
+    TableConverter, TableData, TableExtractRequest, TableExtractResponse,
+    TableExtractor as TablesExtractor, TableSource, TableSummary,
 };
 
 // Re-export schema functionality

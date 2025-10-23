@@ -11,6 +11,7 @@ pub enum ExecutionMode {
     DirectOnly,
 }
 
+#[allow(dead_code)]
 impl ExecutionMode {
     /// Get execution mode from CLI flags and environment
     pub fn from_flags(direct: bool, api_only: bool) -> Self {

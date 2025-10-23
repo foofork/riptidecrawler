@@ -273,7 +273,7 @@ impl SchemaGenerator {
     ) -> Result<()> {
         for field_name in fields {
             // Generate selectors based on field name
-            let selectors = vec![
+            let selectors = [
                 (format!(".{}", field_name), 10, 0.8),
                 (format!("[name='{}']", field_name), 9, 0.75),
                 (format!("#{}", field_name), 8, 0.7),

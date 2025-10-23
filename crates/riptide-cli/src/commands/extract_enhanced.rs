@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 /// Enhanced Extract Command with Caching and Performance Monitoring
 ///
 /// This module wraps the original extract command with:

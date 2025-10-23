@@ -235,7 +235,7 @@ mod tests {
 
     #[test]
     fn test_validator_creation() {
-        let validator = SchemaValidator::new();
+        let _validator = SchemaValidator::new();
         // Just ensure it can be created
     }
 

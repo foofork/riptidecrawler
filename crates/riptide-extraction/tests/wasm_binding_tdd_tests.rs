@@ -1,3 +1,5 @@
+#![allow(clippy::all)]
+
 //! TDD tests for WASM component binding completion
 //!
 //! These tests ensure that the WASM component binding is complete and returns
@@ -56,7 +58,8 @@ async fn test_wasm_extractor_no_mock_data() -> Result<()> {
     );
 
     assert_ne!(
-        result.markdown, "# Sample Title\n\n<!DOCTYPE html>\n<html>\n<head>\n    <ti",
+        result.markdown.as_deref().unwrap_or(""),
+        "# Sample Title\n\n<!DOCTYPE html>\n<html>\n<head>\n    <ti",
         "❌ FAIL: Mock markdown pattern detected! WASM binding incomplete."
     );
 

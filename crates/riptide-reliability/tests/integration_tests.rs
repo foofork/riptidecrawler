@@ -105,7 +105,7 @@ fn test_gate_score_calculation() {
     };
     let empty_score = score(&empty);
     assert!(
-        empty_score >= 0.0 && empty_score <= 1.0,
+        (0.0..=1.0).contains(&empty_score),
         "Score should be normalized"
     );
 

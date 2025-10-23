@@ -299,7 +299,7 @@ fn test_coordinator_type_variants() {
             || {
                 let config = PersistenceConfig::from_env();
                 let dist = config.distributed.unwrap();
-                assert!(matches!(dist.coordinator_type, expected_type));
+                assert_eq!(dist.coordinator_type, expected_type);
             },
         );
     }

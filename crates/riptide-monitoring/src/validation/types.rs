@@ -1,25 +1,37 @@
-#![allow(dead_code)]
+//! Validation result types and structures
 
 use serde::{Deserialize, Serialize};
 
+/// Status of a validation check
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CheckStatus {
+    /// Check passed successfully
     Pass,
+    /// Check failed
     Fail,
+    /// Check passed with warnings
     Warning,
+    /// Check was skipped
     Skipped,
 }
 
+/// Result of a single validation check
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CheckResult {
+    /// Name of the check
     pub name: String,
+    /// Status of the check
     pub status: CheckStatus,
+    /// Human-readable message
     pub message: String,
+    /// Optional remediation steps
     pub remediation: Option<String>,
+    /// Optional additional details
     pub details: Option<serde_json::Value>,
 }
 
 impl CheckResult {
+    /// Create a passing check result
     pub fn pass(name: impl Into<String>, message: impl Into<String>) -> Self {
         Self {
             name: name.into(),
@@ -30,6 +42,7 @@ impl CheckResult {
         }
     }
 
+    /// Create a failing check result with remediation steps
     pub fn fail(
         name: impl Into<String>,
         message: impl Into<String>,
@@ -44,6 +57,7 @@ impl CheckResult {
         }
     }
 
+    /// Create a warning check result
     pub fn warning(name: impl Into<String>, message: impl Into<String>) -> Self {
         Self {
             name: name.into(),
@@ -54,6 +68,7 @@ impl CheckResult {
         }
     }
 
+    /// Create a skipped check result
     pub fn skipped(name: impl Into<String>, message: impl Into<String>) -> Self {
         Self {
             name: name.into(),
@@ -64,30 +79,43 @@ impl CheckResult {
         }
     }
 
+    /// Add additional details to the check result
     pub fn with_details(mut self, details: serde_json::Value) -> Self {
         self.details = Some(details);
         self
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ValidationReport {
-    pub timestamp: String,
-    pub checks: Vec<CheckResult>,
-    pub summary: ValidationSummary,
-}
-
+/// Summary of validation results
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ValidationSummary {
+    /// Total number of checks performed
     pub total_checks: usize,
+    /// Number of checks that passed
     pub passed: usize,
+    /// Number of checks that failed
     pub failed: usize,
+    /// Number of checks with warnings
     pub warnings: usize,
+    /// Number of checks that were skipped
     pub skipped: usize,
+    /// Overall validation status
     pub overall_status: CheckStatus,
 }
 
+/// Complete validation report
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ValidationReport {
+    /// Timestamp of the validation
+    pub timestamp: String,
+    /// Individual check results
+    pub checks: Vec<CheckResult>,
+    /// Summary of results
+    pub summary: ValidationSummary,
+}
+
 impl ValidationReport {
+    /// Create a new validation report from check results
     pub fn new(checks: Vec<CheckResult>) -> Self {
         let total_checks = checks.len();
         let passed = checks
@@ -129,6 +157,7 @@ impl ValidationReport {
         }
     }
 
+    /// Get exit code based on validation status
     pub fn exit_code(&self) -> i32 {
         match self.summary.overall_status {
             CheckStatus::Pass => 0,

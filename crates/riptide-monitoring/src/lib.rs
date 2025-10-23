@@ -10,8 +10,10 @@
 //! - **Health Checks**: Service health monitoring
 //! - **Reports**: Performance and usage reporting
 //! - **Time Series**: Time-series data collection and analysis
+//! - **Validation**: System validation and health checking
 
 pub mod telemetry;
+pub mod validation;
 
 #[cfg(feature = "collector")]
 pub mod monitoring {
@@ -27,6 +29,7 @@ pub mod monitoring {
 
 // Re-export commonly used types
 pub use telemetry::*;
+pub use validation::*;
 
 #[cfg(feature = "collector")]
 pub use monitoring::{

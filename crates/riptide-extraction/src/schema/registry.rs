@@ -49,10 +49,7 @@ impl SchemaRegistry {
 
     /// Register a new schema
     pub fn register(&mut self, schema: ExtractionSchema) -> Result<()> {
-        let versions = self
-            .schemas
-            .entry(schema.name.clone())
-            .or_insert_with(Vec::new);
+        let versions = self.schemas.entry(schema.name.clone()).or_default();
 
         // Check if version already exists
         if versions.iter().any(|s| s.version == schema.version) {

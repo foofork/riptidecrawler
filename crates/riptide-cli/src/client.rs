@@ -21,6 +21,7 @@ pub struct RipTideClient {
     is_available: Option<bool>,
 }
 
+#[allow(dead_code)]
 impl RipTideClient {
     pub fn new(base_url: String, api_key: Option<String>) -> Result<Self> {
         let client = ClientBuilder::new()
@@ -82,6 +83,7 @@ impl RipTideClient {
     }
 
     /// Get cached availability status (doesn't perform health check)
+    #[allow(dead_code)]
     pub fn is_available(&self) -> Option<bool> {
         self.is_available
     }

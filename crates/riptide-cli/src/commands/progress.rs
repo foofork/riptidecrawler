@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 //! Progress indication utilities for CLI commands
 //!
 //! Provides user-friendly progress indicators for long-running operations.

@@ -147,10 +147,7 @@ impl ExtractionSchema {
 
     /// Add a selector rule for a field
     pub fn add_selector(&mut self, field: String, rule: SelectorRule) {
-        self.selectors
-            .entry(field)
-            .or_insert_with(Vec::new)
-            .push(rule);
+        self.selectors.entry(field).or_default().push(rule);
     }
 
     /// Set validation rules

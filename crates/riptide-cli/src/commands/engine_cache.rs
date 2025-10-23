@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use anyhow::Result;
 use once_cell::sync::Lazy;
 /// Engine Selection Cache for Domain-Based Optimization

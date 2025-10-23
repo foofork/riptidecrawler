@@ -1,11 +1,26 @@
-#![allow(dead_code)]
+//! System validation checks
+//!
+//! Provides comprehensive validation checks for system components, dependencies,
+//! and runtime requirements.
 
 use super::types::*;
-use crate::client::RipTideClient;
 use anyhow::Result;
 use serde_json::json;
 use std::path::PathBuf;
 use std::process::Command;
+
+/// HTTP client trait for API connectivity checks
+///
+/// This allows the validation module to work with any HTTP client implementation
+/// without depending on specific client crates in riptide-cli.
+#[async_trait::async_trait]
+pub trait HttpClient {
+    /// Perform a GET request to the specified path and return JSON response
+    async fn get_json(&self, path: &str) -> Result<serde_json::Value>;
+
+    /// Perform a GET request to check connectivity (doesn't need response body)
+    async fn get_health(&self, path: &str) -> Result<()>;
+}
 
 /// Check WASM module availability and initialization
 pub async fn check_wasm(wasm_path: Option<&str>) -> CheckResult {
@@ -108,31 +123,27 @@ pub async fn check_headless_browser() -> CheckResult {
     )
 }
 
-/// Check Redis connectivity
-pub async fn check_redis(client: &RipTideClient) -> CheckResult {
-    match client.get("/api/health/detailed").await {
-        Ok(response) => {
-            if let Ok(health) = response.json::<serde_json::Value>().await {
-                let redis_status = health["redis"].as_str().unwrap_or("unknown");
+/// Check Redis connectivity using the provided HTTP client
+pub async fn check_redis<C: HttpClient>(client: &C) -> CheckResult {
+    match client.get_json("/api/health/detailed").await {
+        Ok(health) => {
+            let redis_status = health["redis"].as_str().unwrap_or("unknown");
 
-                if redis_status == "connected" {
-                    CheckResult::pass("Redis", "Redis connection established")
-                } else if redis_status == "not_configured" {
-                    CheckResult::warning(
-                        "Redis",
-                        "Redis not configured (optional for local operation)",
-                    )
-                } else {
-                    CheckResult::fail(
-                        "Redis",
-                        format!("Redis status: {}", redis_status),
-                        "Check Redis configuration and ensure Redis server is running:\n\
-                         docker run -d -p 6379:6379 redis:latest\n\
-                         or install locally: sudo apt-get install redis-server",
-                    )
-                }
+            if redis_status == "connected" {
+                CheckResult::pass("Redis", "Redis connection established")
+            } else if redis_status == "not_configured" {
+                CheckResult::warning(
+                    "Redis",
+                    "Redis not configured (optional for local operation)",
+                )
             } else {
-                CheckResult::warning("Redis", "Could not determine Redis status")
+                CheckResult::fail(
+                    "Redis",
+                    format!("Redis status: {}", redis_status),
+                    "Check Redis configuration and ensure Redis server is running:\n\
+                     docker run -d -p 6379:6379 redis:latest\n\
+                     or install locally: sudo apt-get install redis-server",
+                )
             }
         }
         Err(e) => CheckResult::fail(
@@ -143,9 +154,9 @@ pub async fn check_redis(client: &RipTideClient) -> CheckResult {
     }
 }
 
-/// Check API connectivity
-pub async fn check_api_connectivity(client: &RipTideClient) -> CheckResult {
-    match client.get("/healthz").await {
+/// Check API connectivity using the provided HTTP client
+pub async fn check_api_connectivity<C: HttpClient>(client: &C) -> CheckResult {
+    match client.get_health("/healthz").await {
         Ok(_) => CheckResult::pass("API Connectivity", "API server is reachable"),
         Err(e) => CheckResult::fail(
             "API Connectivity",
@@ -325,8 +336,8 @@ pub async fn check_dependencies() -> CheckResult {
 }
 
 /// Comprehensive validation - runs all checks
-pub async fn run_comprehensive_validation(
-    client: &RipTideClient,
+pub async fn run_comprehensive_validation<C: HttpClient>(
+    client: &C,
     wasm_path: Option<&str>,
 ) -> ValidationReport {
     let mut checks = Vec::new();
@@ -348,7 +359,7 @@ pub async fn run_comprehensive_validation(
 }
 
 /// Production-specific checks
-pub async fn run_production_checks(client: &RipTideClient) -> ValidationReport {
+pub async fn run_production_checks<C: HttpClient>(client: &C) -> ValidationReport {
     let mut checks = Vec::new();
 
     // All production checks must pass
@@ -364,11 +375,11 @@ pub async fn run_production_checks(client: &RipTideClient) -> ValidationReport {
 }
 
 /// Performance baseline profiling
-pub async fn run_performance_baseline(client: &RipTideClient) -> Result<serde_json::Value> {
+pub async fn run_performance_baseline<C: HttpClient>(client: &C) -> Result<serde_json::Value> {
     let start = std::time::Instant::now();
 
     // Simple API response time test
-    let api_latency = if client.get("/healthz").await.is_ok() {
+    let api_latency = if client.get_health("/healthz").await.is_ok() {
         start.elapsed().as_millis()
     } else {
         0

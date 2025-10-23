@@ -1,3 +1,5 @@
+#![allow(clippy::all)]
+
 use riptide_pool::*;
 use std::sync::Arc;
 use std::time::Duration;

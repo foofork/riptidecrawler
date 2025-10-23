@@ -42,6 +42,7 @@ pub struct StageTimer {
     current_stage: Option<(String, Instant)>,
 }
 
+#[allow(dead_code)]
 impl StageTimer {
     pub fn new() -> Self {
         Self {
@@ -92,6 +93,7 @@ pub struct PerformanceMonitor {
     max_history: usize,
 }
 
+#[allow(dead_code)]
 impl PerformanceMonitor {
     /// Create a new performance monitor
     pub fn new(max_history: usize) -> Self {
@@ -218,6 +220,7 @@ pub fn global_monitor() -> &'static PerformanceMonitor {
     &GLOBAL_MONITOR
 }
 
+#[allow(dead_code)]
 impl PerformanceMonitor {
     /// Get the global performance monitor instance (Arc for shared ownership)
     pub fn get_global() -> Arc<Self> {

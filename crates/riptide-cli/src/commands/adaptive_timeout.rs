@@ -6,6 +6,8 @@
 // All adaptive timeout functionality is now available at:
 // riptide_reliability::timeout
 
+#![allow(dead_code, unused_imports)]
+
 pub use riptide_reliability::timeout::{
     get_global_timeout_manager, AdaptiveTimeoutManager, TimeoutConfig, TimeoutProfile,
     TimeoutStats, BACKOFF_MULTIPLIER, DEFAULT_TIMEOUT_SECS, MAX_TIMEOUT_SECS, MIN_TIMEOUT_SECS,

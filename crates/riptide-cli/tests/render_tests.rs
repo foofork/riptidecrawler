@@ -1,3 +1,5 @@
+#![allow(clippy::all, dead_code, unused)]
+
 //! Integration tests for render command (980 LOC coverage)
 //!
 //! Tests all render command functionality including:

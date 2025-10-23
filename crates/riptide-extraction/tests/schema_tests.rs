@@ -162,7 +162,7 @@ fn test_schema_comparator_identical() {
 
     assert_eq!(comparison.added_fields.len(), 0);
     assert_eq!(comparison.removed_fields.len(), 0);
-    assert!(comparison.common_fields.len() > 0);
+    assert!(!comparison.common_fields.is_empty());
 }
 
 #[test]

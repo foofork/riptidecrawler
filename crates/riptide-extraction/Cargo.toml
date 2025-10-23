@@ -43,6 +43,8 @@ wasmtime-wasi = { workspace = true }
 # Table extraction dependencies
 chrono = { workspace = true, features = ["serde"] }
 schemars = { workspace = true }
+csv = "1.3"
+reqwest = { workspace = true, features = ["json"] }
 
 # Schema extraction dependencies (needed for metadata timestamps)
 # chrono already included above

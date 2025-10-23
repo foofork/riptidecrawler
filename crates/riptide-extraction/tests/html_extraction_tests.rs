@@ -1,3 +1,5 @@
+#![allow(clippy::all)]
+
 //! Comprehensive tests for HTML extraction functionality
 //! Tests CSS selectors, regex patterns, and DOM traversal utilities
 //!

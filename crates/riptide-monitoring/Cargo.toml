@@ -38,6 +38,8 @@ chrono = { workspace = true, features = ["serde"] }
 once_cell.workspace = true
 dashmap = "6.1"
 regex.workspace = true
+num_cpus = "1.16"
+reqwest = { workspace = true, features = ["json"] }
 
 [dev-dependencies]
 tokio-test = "0.4"

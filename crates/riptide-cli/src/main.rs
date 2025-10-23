@@ -8,7 +8,7 @@ mod job;
 mod metrics;
 mod output;
 mod session;
-mod validation;
+mod validation_adapter;
 
 use anyhow::Result;
 use clap::Parser;

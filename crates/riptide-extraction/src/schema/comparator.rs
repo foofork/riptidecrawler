@@ -243,6 +243,7 @@ impl Default for SchemaComparator {
 mod tests {
     use super::*;
     use crate::schema::types::{FieldSchema, SchemaMetadata};
+    use std::collections::HashMap;
 
     fn create_schema(name: &str, fields: Vec<&str>) -> ExtractionSchema {
         let mut schema = ExtractionSchema {

@@ -1,3 +1,5 @@
+#![allow(clippy::all, dead_code, unused)]
+
 //! Integration tests for extract command (882 LOC coverage)
 //!
 //! Tests all extraction functionality including:

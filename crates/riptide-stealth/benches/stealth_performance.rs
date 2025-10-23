@@ -8,7 +8,7 @@ use riptide_stealth::{
 };
 use std::time::Instant;
 
-fn benchmark_operation<F>(name: &str, iterations: usize, mut op: F) -> f64
+fn benchmark_operation<F>(_name: &str, iterations: usize, mut op: F) -> f64
 where
     F: FnMut(),
 {
@@ -124,7 +124,7 @@ fn main() {
     println!("\n## Memory Overhead");
 
     let mut generator = EnhancedFingerprintGenerator::with_default_config();
-    let start_memory = std::mem::size_of_val(&generator);
+    let _start_memory = std::mem::size_of_val(&generator);
 
     // Generate 100 cached sessions
     for i in 0..100 {
@@ -132,7 +132,7 @@ fn main() {
         generator.generate_contextual("ua", Some(&session_id));
     }
 
-    let cache_size = generator.cache_size();
+    let _cache_size = generator.cache_size();
     #[cfg(feature = "benchmark-debug")]
     println!("Cache size: {} sessions", cache_size);
     #[cfg(feature = "benchmark-debug")]
@@ -142,7 +142,7 @@ fn main() {
     #[cfg(feature = "benchmark-debug")]
     println!("\n## Relative Overhead Analysis");
 
-    let none_time = {
+    let _none_time = {
         let mut controller = StealthController::from_preset(StealthPreset::None);
         benchmark_operation("Stealth None (baseline)", 100, || {
             let _ = controller.get_stealth_js();
@@ -150,7 +150,7 @@ fn main() {
         })
     };
 
-    let low_time = {
+    let _low_time = {
         let mut controller = StealthController::from_preset(StealthPreset::Low);
         benchmark_operation("Stealth Low", 100, || {
             let _ = controller.get_stealth_js();
@@ -158,7 +158,7 @@ fn main() {
         })
     };
 
-    let medium_time = {
+    let _medium_time = {
         let mut controller = StealthController::from_preset(StealthPreset::Medium);
         benchmark_operation("Stealth Medium", 100, || {
             let _ = controller.get_stealth_js();
@@ -166,7 +166,7 @@ fn main() {
         })
     };
 
-    let high_time = {
+    let _high_time = {
         let mut controller = StealthController::from_preset(StealthPreset::High);
         benchmark_operation("Stealth High", 100, || {
             let _ = controller.get_stealth_js();

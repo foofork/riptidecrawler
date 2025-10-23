@@ -1,3 +1,5 @@
+#![allow(clippy::all, dead_code, unused)]
+
 //! Integration tests for cache management
 //!
 //! These tests verify the cache system functionality including:

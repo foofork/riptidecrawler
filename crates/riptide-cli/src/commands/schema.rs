@@ -425,7 +425,7 @@ fn execute_diff(
     schema1_path: String,
     schema2_path: String,
     format: &str,
-    only_diff: bool,
+    _only_diff: bool,
 ) -> Result<()> {
     output::print_info(&format!(
         "Comparing schemas: {} vs {}",
@@ -453,7 +453,8 @@ fn execute_diff(
             let mut table = output::create_table(vec!["Category", "Value"]);
             for row in table_data.iter().skip(1) {
                 // Skip header
-                table.add_row(row.iter().map(|s| s.as_str()).collect());
+                let row_vec: Vec<&str> = row.iter().map(|s| s.as_str()).collect();
+                table.add_row(row_vec);
             }
             println!("{table}");
         }
@@ -518,8 +519,7 @@ async fn execute_list(
     format: &str,
     limit: u32,
 ) -> Result<()> {
-    use riptide_extraction::schema::registry::{ListRequest, ListResponse, SchemaListItem};
-    use serde::{Deserialize, Serialize};
+    use riptide_extraction::schema::registry::{ListRequest, ListResponse};
 
     output::print_info("Listing schemas from registry");
 

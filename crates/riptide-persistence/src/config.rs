@@ -341,7 +341,7 @@ pub enum TenantIsolationLevel {
 }
 
 /// Coordinator types for distributed systems
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CoordinatorType {
     /// Redis-based coordination
     Redis,

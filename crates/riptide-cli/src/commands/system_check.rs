@@ -1,8 +1,8 @@
 use crate::client::RipTideClient;
 use crate::output;
-use crate::validation::{self, CheckStatus};
 use anyhow::Result;
 use clap::Args;
+use riptide_monitoring::validation::{self, CheckStatus};
 
 #[derive(Args, Debug)]
 pub struct SystemCheckArgs {
