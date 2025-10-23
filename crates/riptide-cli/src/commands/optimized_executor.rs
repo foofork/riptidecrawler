@@ -1,7 +1,11 @@
 //! Unified executor that orchestrates all Phase 3-4 optimizations
 //!
+//! **NOTE**: This module is currently disabled (see mod.rs). When re-enabled, it will need
+//! to be updated to use `riptide-browser::pool::BrowserPool` directly instead of the
+//! removed `browser_pool_manager`.
+//!
 //! This module provides a high-level API that integrates:
-//! - Browser pool management for efficient headless operations
+//! - Browser pool management (use riptide-browser::pool::BrowserPool)
 //! - WASM AOT cache for pre-compiled modules
 //! - Adaptive timeout manager for intelligent timeout selection
 //! - Engine cache for decision caching
@@ -13,7 +17,7 @@ use std::sync::Arc;
 
 use super::{
     adaptive_timeout::AdaptiveTimeoutManager,
-    browser_pool_manager::BrowserPoolManager,
+    // Note: browser_pool_manager removed - use riptide-browser::pool::BrowserPool directly
     engine_cache::EngineSelectionCache,
     extract::ExtractArgs,
     performance_monitor::PerformanceMonitor,
@@ -24,8 +28,12 @@ use super::{
 use riptide_reliability::engine_selection::Engine;
 
 /// Unified executor that orchestrates all optimization modules
+///
+/// NOTE: This needs updating to use riptide-browser::pool::BrowserPool when re-enabled
+#[allow(dead_code)]
 pub struct OptimizedExecutor {
-    browser_pool: Arc<BrowserPoolManager>,
+    // TODO(phase9): Replace with Arc<riptide_browser::pool::BrowserPool>
+    browser_pool: Arc<()>, // Placeholder - BrowserPoolManager removed
     wasm_aot: Arc<WasmAotCache>,
     timeout_mgr: Arc<AdaptiveTimeoutManager>,
     engine_cache: Arc<EngineSelectionCache>,

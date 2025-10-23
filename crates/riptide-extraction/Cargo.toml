@@ -44,6 +44,9 @@ wasmtime-wasi = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }
 schemars = { workspace = true }
 
+# Schema extraction dependencies (needed for metadata timestamps)
+# chrono already included above
+
 [build-dependencies]
 wit-bindgen = "0.16"
 

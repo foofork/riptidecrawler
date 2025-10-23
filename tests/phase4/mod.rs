@@ -4,7 +4,10 @@
 //!
 //! ## Test Coverage:
 //!
-//! ### 1. Browser Pool Manager Tests (`browser_pool_manager_tests.rs`)
+//! ### 1. Browser Pool Manager Tests (`browser_pool_manager_tests.rs`) [OBSOLETE]
+//! **OBSOLETE**: The CLI-level browser_pool_manager module was removed in Phase 9 Sprint 1.
+//! Use `riptide-browser::pool::BrowserPool` directly for all browser pooling needs.
+//! Tests retained for historical reference but are non-functional.
 //! - Pre-warming initialization (1-3 instances)
 //! - Health check detection and auto-restart
 //! - Checkout/checkin operations
@@ -107,6 +110,8 @@
 //! - All tests designed for CI/CD compatibility
 
 // Test modules
+// OBSOLETE: browser_pool_manager removed in Phase 9 - use riptide-browser::pool directly
+#[allow(dead_code)]
 pub mod browser_pool_manager_tests;
 pub mod wasm_aot_cache_tests;
 pub mod adaptive_timeout_tests;

@@ -48,6 +48,7 @@ notify = "6.0"
 # Additional dependencies for new features
 sha2 = "0.10"
 tiktoken-rs = "0.5"
+dirs = "5.0"
 # Workspace dependencies for HTTP client features
 base64 = { workspace = true }
 

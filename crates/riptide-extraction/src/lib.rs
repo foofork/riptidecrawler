@@ -130,6 +130,15 @@ pub use table_extraction::{
     TableExtractor, TableHeaders, TableMetadata, TableRow, TableStructure,
 };
 
+// Re-export schema functionality
+pub mod schema;
+pub use schema::{
+    ExtractionSchema, FieldSchema, SchemaAnalysis, SchemaComparator, SchemaExtractor,
+    SchemaGenerator, SchemaLearnRequest, SchemaLearnResponse, SchemaMetadata, SchemaRegistry,
+    SchemaTestRequest, SchemaTestResponse, SchemaValidator, SelectorRule, TestResult, TestSummary,
+    ValidationRules,
+};
+
 // Common types for extraction
 use serde::{Deserialize, Serialize};
 

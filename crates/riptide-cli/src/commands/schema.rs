@@ -1,8 +1,10 @@
 use crate::client::RipTideClient;
 use crate::output;
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use riptide_extraction::schema::{
+    ExtractionSchema, SchemaComparator, SchemaLearnRequest, SchemaLearnResponse, SchemaTestRequest,
+    SchemaTestResponse,
+};
 use std::fs;
 use std::path::Path;
 
@@ -164,116 +166,6 @@ pub enum SchemaCommands {
         #[arg(long, short = 'f')]
         force: bool,
     },
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ExtractionSchema {
-    pub name: String,
-    pub version: String,
-    pub goal: String,
-    pub description: Option<String>,
-    pub fields: HashMap<String, FieldSchema>,
-    pub selectors: HashMap<String, Vec<SelectorRule>>,
-    pub validation: Option<ValidationRules>,
-    pub metadata: SchemaMetadata,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct FieldSchema {
-    pub field_type: String,
-    pub required: bool,
-    pub description: Option<String>,
-    pub default: Option<serde_json::Value>,
-    pub transform: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SelectorRule {
-    pub selector: String,
-    pub selector_type: String, // css, xpath, regex
-    pub priority: u32,
-    pub confidence: f64,
-    pub fallback: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ValidationRules {
-    pub min_fields: Option<u32>,
-    pub required_fields: Option<Vec<String>>,
-    pub min_confidence: Option<f64>,
-    pub custom_rules: Option<Vec<String>>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SchemaMetadata {
-    pub created_at: String,
-    pub updated_at: String,
-    pub author: Option<String>,
-    pub tags: Vec<String>,
-    pub is_public: bool,
-    pub usage_count: u64,
-    pub success_rate: Option<f64>,
-}
-
-#[derive(Serialize)]
-struct SchemaLearnRequest {
-    url: String,
-    goal: String,
-    confidence_threshold: f64,
-    fields: Option<Vec<String>>,
-    verbose: bool,
-}
-
-#[derive(Deserialize, Serialize)]
-struct SchemaLearnResponse {
-    schema: ExtractionSchema,
-    analysis: SchemaAnalysis,
-    suggestions: Vec<String>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct SchemaAnalysis {
-    confidence: f64,
-    fields_detected: u32,
-    selectors_generated: u32,
-    patterns_found: Vec<String>,
-    warnings: Vec<String>,
-}
-
-#[derive(Serialize)]
-struct SchemaTestRequest {
-    schema: ExtractionSchema,
-    urls: Vec<String>,
-    fail_fast: bool,
-}
-
-#[derive(Deserialize, Serialize)]
-struct SchemaTestResponse {
-    total_tests: u32,
-    passed: u32,
-    failed: u32,
-    success_rate: f64,
-    results: Vec<TestResult>,
-    summary: TestSummary,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct TestResult {
-    url: String,
-    success: bool,
-    confidence: f64,
-    fields_extracted: u32,
-    missing_fields: Vec<String>,
-    errors: Vec<String>,
-    extraction_time_ms: u64,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct TestSummary {
-    avg_confidence: f64,
-    avg_extraction_time_ms: u64,
-    most_common_errors: Vec<String>,
-    field_success_rates: HashMap<String, f64>,
 }
 
 pub async fn execute(
@@ -547,147 +439,28 @@ fn execute_diff(
     let schema2_content = fs::read_to_string(&schema2_path)?;
     let schema2: ExtractionSchema = serde_json::from_str(&schema2_content)?;
 
-    // Compare schemas
-    let mut differences = Vec::new();
-    let mut similarities = Vec::new();
+    // Use SchemaComparator from extraction crate
+    let comparator = SchemaComparator::new();
+    let comparison = comparator.compare(&schema1, &schema2)?;
 
-    // Compare metadata
-    if schema1.name != schema2.name {
-        differences.push(format!("Name: '{}' → '{}'", schema1.name, schema2.name));
-    } else {
-        similarities.push(format!("Name: {}", schema1.name));
-    }
-
-    if schema1.version != schema2.version {
-        differences.push(format!(
-            "Version: '{}' → '{}'",
-            schema1.version, schema2.version
-        ));
-    } else {
-        similarities.push(format!("Version: {}", schema1.version));
-    }
-
-    if schema1.goal != schema2.goal {
-        differences.push(format!("Goal: '{}' → '{}'", schema1.goal, schema2.goal));
-    } else {
-        similarities.push(format!("Goal: {}", schema1.goal));
-    }
-
-    // Compare fields
-    let fields1: std::collections::HashSet<_> = schema1.fields.keys().collect();
-    let fields2: std::collections::HashSet<_> = schema2.fields.keys().collect();
-
-    let added_fields: Vec<_> = fields2.difference(&fields1).collect();
-    let removed_fields: Vec<_> = fields1.difference(&fields2).collect();
-    let common_fields: Vec<_> = fields1.intersection(&fields2).collect();
-
-    if !added_fields.is_empty() {
-        differences.push(format!(
-            "Added fields: {}",
-            added_fields
-                .iter()
-                .map(|f| f.to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
-        ));
-    }
-
-    if !removed_fields.is_empty() {
-        differences.push(format!(
-            "Removed fields: {}",
-            removed_fields
-                .iter()
-                .map(|f| f.to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
-        ));
-    }
-
-    // Display results
     match format {
         "json" => {
-            let diff_result = serde_json::json!({
-                "schema1": schema1_path,
-                "schema2": schema2_path,
-                "differences": differences,
-                "similarities": similarities,
-                "fields_added": added_fields.len(),
-                "fields_removed": removed_fields.len(),
-                "fields_common": common_fields.len(),
-            });
-            println!("{}", serde_json::to_string_pretty(&diff_result)?);
+            let json = comparator.generate_json_report(&comparison)?;
+            println!("{}", json);
         }
         "table" => {
-            let mut table =
-                output::create_table(vec!["Category", "Schema 1", "Schema 2", "Status"]);
-
-            table.add_row(vec![
-                "Name",
-                &schema1.name,
-                &schema2.name,
-                if schema1.name == schema2.name {
-                    "Same"
-                } else {
-                    "Different"
-                },
-            ]);
-
-            table.add_row(vec![
-                "Version",
-                &schema1.version,
-                &schema2.version,
-                if schema1.version == schema2.version {
-                    "Same"
-                } else {
-                    "Different"
-                },
-            ]);
-
-            table.add_row(vec![
-                "Goal",
-                &schema1.goal,
-                &schema2.goal,
-                if schema1.goal == schema2.goal {
-                    "Same"
-                } else {
-                    "Different"
-                },
-            ]);
-
-            table.add_row(vec![
-                "Fields",
-                &schema1.fields.len().to_string(),
-                &schema2.fields.len().to_string(),
-                if schema1.fields.len() == schema2.fields.len() {
-                    "Same"
-                } else {
-                    "Different"
-                },
-            ]);
-
+            let table_data = comparator.generate_table_report(&comparison);
+            let mut table = output::create_table(vec!["Category", "Value"]);
+            for row in table_data.iter().skip(1) {
+                // Skip header
+                table.add_row(row.iter().map(|s| s.as_str()).collect());
+            }
             println!("{table}");
         }
         _ => {
             // Text format
-            if !differences.is_empty() {
-                output::print_section("Differences");
-                for diff in &differences {
-                    println!("  ✗ {}", diff);
-                }
-            }
-
-            if !only_diff && !similarities.is_empty() {
-                output::print_section("Similarities");
-                for sim in &similarities {
-                    println!("  ✓ {}", sim);
-                }
-            }
-
-            output::print_section("Summary");
-            output::print_key_value("Total Differences", &differences.len().to_string());
-            output::print_key_value("Fields Added", &added_fields.len().to_string());
-            output::print_key_value("Fields Removed", &removed_fields.len().to_string());
-            output::print_key_value("Fields Common", &common_fields.len().to_string());
+            let report = comparator.generate_text_report(&comparison);
+            println!("{}", report);
         }
     }
 
@@ -745,33 +518,10 @@ async fn execute_list(
     format: &str,
     limit: u32,
 ) -> Result<()> {
+    use riptide_extraction::schema::registry::{ListRequest, ListResponse, SchemaListItem};
+    use serde::{Deserialize, Serialize};
+
     output::print_info("Listing schemas from registry");
-
-    #[derive(Serialize)]
-    struct ListRequest {
-        tag: Option<String>,
-        goal: Option<String>,
-        public_only: bool,
-        limit: u32,
-    }
-
-    #[derive(Deserialize, Serialize)]
-    struct ListResponse {
-        schemas: Vec<SchemaListItem>,
-        total: u32,
-    }
-
-    #[derive(Deserialize, Serialize)]
-    struct SchemaListItem {
-        name: String,
-        version: String,
-        goal: String,
-        description: Option<String>,
-        tags: Vec<String>,
-        is_public: bool,
-        usage_count: u64,
-        success_rate: Option<f64>,
-    }
 
     let request = ListRequest {
         tag,
@@ -846,6 +596,8 @@ async fn execute_show(
     show_example: bool,
     format: &str,
 ) -> Result<()> {
+    use serde::Serialize;
+
     // Check if it's a file path or registry name
     let schema: ExtractionSchema = if Path::new(&schema_identifier).exists() {
         output::print_info(&format!("Loading schema from file: {}", schema_identifier));
@@ -964,6 +716,8 @@ async fn execute_rm(
     version: Option<String>,
     force: bool,
 ) -> Result<()> {
+    use serde::Serialize;
+
     if !force {
         output::print_warning("This will remove the schema from the registry.");
         output::print_info("Use --force to confirm deletion");

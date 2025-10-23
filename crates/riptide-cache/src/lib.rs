@@ -50,6 +50,7 @@ pub mod redis;
 // pub mod integrated;  // Temporarily disabled: circular dependency with riptide-core
 pub mod warming;
 pub mod warming_integration;
+pub mod wasm;
 
 // Re-exports for convenience
 pub use key::{
@@ -76,6 +77,10 @@ pub use warming_integration::{
     CacheWarmingEnabledPool, CacheWarmingHealthMonitor, CacheWarmingHealthStatus,
     CacheWarmingPoolFactory,
 };
+pub use wasm::{
+    get_cached_extractor, get_global_aot_cache, AotCacheConfig, AotCacheEntry, AotCacheStats,
+    CachedWasmModule, CompiledModule, ModuleCacheStats, WasmAotCache, WasmCache, WasmModuleCache,
+};
 
 /// Prelude module for convenient imports
 pub mod prelude {
@@ -86,6 +91,7 @@ pub mod prelude {
     pub use crate::redis::{CacheConfig as RedisCacheConfig, CacheManager as RedisCacheManager};
     // pub use crate::integrated::{IntegratedCacheManager, IntegratedCacheConfig};
     pub use crate::warming::{CacheWarmingConfig, CacheWarmingManager};
+    pub use crate::wasm::{WasmAotCache, WasmCache, WasmModuleCache};
 }
 
 /// Cache version constant

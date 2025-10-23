@@ -5,12 +5,16 @@ use serde::{Deserialize, Serialize};
 use crate::client::RipTideClient;
 use crate::output;
 
-// Use crate's pdf_impl when feature is enabled, or local stub when disabled
+// Use helper functions from riptide-pdf library
 #[cfg(feature = "pdf")]
-use crate::pdf_impl;
+use riptide_pdf::{
+    convert_to_markdown, extract_full_content, extract_metadata, load_pdf, parse_page_range,
+    write_output,
+};
 
+// Stub implementations when PDF feature is not enabled
 #[cfg(not(feature = "pdf"))]
-mod pdf_impl {
+mod pdf_stubs {
     use anyhow::Result;
 
     pub async fn load_pdf(_input: &str) -> Result<Vec<u8>> {
@@ -37,6 +41,12 @@ mod pdf_impl {
         anyhow::bail!("PDF support not enabled. Rebuild with --features pdf")
     }
 }
+
+#[cfg(not(feature = "pdf"))]
+use pdf_stubs::{
+    convert_to_markdown, extract_full_content, extract_metadata, load_pdf, parse_page_range,
+    write_output,
+};
 
 #[derive(Subcommand)]
 pub enum PdfCommands {
@@ -340,16 +350,16 @@ async fn execute_extract(
     output::print_info(&format!("Extracting content from PDF: {}", input));
 
     // Load PDF
-    let pdf_data: Vec<u8> = pdf_impl::load_pdf(&input).await?;
+    let pdf_data: Vec<u8> = load_pdf(&input).await?;
 
     if metadata_only {
         // Extract only metadata
-        let metadata = pdf_impl::extract_metadata(&pdf_data)?;
+        let metadata = extract_metadata(&pdf_data)?;
 
         match format.as_str() {
             "json" => {
                 let json = serde_json::to_string_pretty(&metadata)?;
-                pdf_impl::write_output(&json, output_path.as_deref())?;
+                write_output(&json, output_path.as_deref())?;
             }
             _ => {
                 let mut table = output::create_table(vec!["Property", "Value"]);
@@ -381,22 +391,22 @@ async fn execute_extract(
     }
 
     // Extract full content
-    let content = pdf_impl::extract_full_content(&pdf_data)?;
+    let content = extract_full_content(&pdf_data)?;
 
     match format.as_str() {
         "json" => {
             let json = serde_json::to_string_pretty(&content)?;
-            pdf_impl::write_output(&json, output_path.as_deref())?;
+            write_output(&json, output_path.as_deref())?;
         }
         "text" => {
-            pdf_impl::write_output(&content.text, output_path.as_deref())?;
+            write_output(&content.text, output_path.as_deref())?;
         }
         "markdown" => {
             #[cfg(feature = "pdf")]
             {
                 let extractor = riptide_pdf::PdfExtractor::from_bytes(&pdf_data)?;
                 let md = extractor.to_markdown(&content);
-                pdf_impl::write_output(&md, output_path.as_deref())?;
+                write_output(&md, output_path.as_deref())?;
             }
             #[cfg(not(feature = "pdf"))]
             {
@@ -404,7 +414,7 @@ async fn execute_extract(
             }
         }
         _ => {
-            pdf_impl::write_output(&content.text, output_path.as_deref())?;
+            write_output(&content.text, output_path.as_deref())?;
         }
     }
 
@@ -450,13 +460,13 @@ async fn execute_to_md(
     output::print_info(&format!("Converting PDF to markdown: {}", input));
 
     // Load PDF
-    let pdf_data: Vec<u8> = pdf_impl::load_pdf(&input).await?;
+    let pdf_data: Vec<u8> = load_pdf(&input).await?;
 
     // Convert to markdown
-    let markdown = pdf_impl::convert_to_markdown(&pdf_data)?;
+    let markdown = convert_to_markdown(&pdf_data)?;
 
     // Write output
-    pdf_impl::write_output(&markdown, output_path.as_deref())?;
+    write_output(&markdown, output_path.as_deref())?;
 
     // Show conversion options
     let mut options_table = output::create_table(vec!["Option", "Status"]);
@@ -509,10 +519,10 @@ async fn execute_info(
     output::print_info(&format!("Reading PDF metadata: {}", input));
 
     // Load PDF
-    let pdf_data: Vec<u8> = pdf_impl::load_pdf(&input).await?;
+    let pdf_data: Vec<u8> = load_pdf(&input).await?;
 
     // Extract metadata
-    let metadata = pdf_impl::extract_metadata(&pdf_data)?;
+    let metadata = extract_metadata(&pdf_data)?;
 
     match format.as_str() {
         "json" => {
@@ -585,14 +595,14 @@ async fn execute_stream(
     output::print_info(&format!("Streaming PDF content: {}", input));
 
     // Load PDF
-    let pdf_data: Vec<u8> = pdf_impl::load_pdf(&input).await?;
+    let pdf_data: Vec<u8> = load_pdf(&input).await?;
 
     // Extract full content
-    let content = pdf_impl::extract_full_content(&pdf_data)?;
+    let content = extract_full_content(&pdf_data)?;
 
     // Determine which pages to stream
     let page_numbers: Vec<u32> = if let Some(range) = &_pages {
-        pdf_impl::parse_page_range(range)?
+        parse_page_range(range)?
     } else {
         (1..=content.metadata.page_count).collect()
     };

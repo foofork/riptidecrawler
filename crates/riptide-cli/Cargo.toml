@@ -30,6 +30,8 @@ riptide-reliability = { path = "../riptide-reliability" }
 riptide-stealth = { path = "../riptide-stealth" }
 riptide-pdf = { path = "../riptide-pdf" }
 riptide-browser = { path = "../riptide-browser" }
+riptide-workers = { path = "../riptide-workers" }
+riptide-cache = { path = "../riptide-cache" }
 
 # CLI-specific
 colored = "2.1"

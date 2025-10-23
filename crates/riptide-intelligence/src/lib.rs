@@ -9,6 +9,9 @@ use thiserror::Error;
 // P1-A3 Phase 2D: Background processor moved from riptide-core
 pub mod background_processor;
 
+// Sprint 2: Domain profiling intelligence module
+pub mod domain_profiling;
+
 pub mod circuit_breaker;
 pub mod config;
 pub mod dashboard;
@@ -43,6 +46,17 @@ pub use config::{
 pub use dashboard::{
     Alert, DashboardGenerator, DetailedCostAnalysis, EnhancedLlmOpsDashboard,
     ProviderCostBreakdown, Recommendation, TenantCostBreakdown,
+};
+pub use domain_profiling::{
+    analyzer::{
+        ContentPattern, DomainAnalyzer, DriftAnalyzer, DriftChange, DriftReport, DriftSummary,
+        SiteAnalysisResult, SiteBaseline, SiteStructure, UrlPattern,
+    },
+    profiler::{
+        DomainConfig, DomainMetadata, DomainPatterns, DomainProfile, ProfileManager,
+        ProfileRegistry,
+    },
+    DOMAIN_REGISTRY_DIR,
 };
 pub use failover::{
     FailoverConfig, FailoverManager, FailoverStatistics, ProviderPriority, ProviderState,

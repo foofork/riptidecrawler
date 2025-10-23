@@ -118,12 +118,33 @@
 //!     Some("http://headless-service:3000"),
 //! ).await?;
 //! ```
+//!
+//! ## Adaptive Timeouts
+//!
+//! Intelligent timeout management that learns from historical patterns:
+//!
+//! ```rust,ignore
+//! use riptide_reliability::timeout::{get_global_timeout_manager, TimeoutConfig};
+//! use std::time::Instant;
+//!
+//! // Get global timeout manager
+//! let manager = get_global_timeout_manager().await?;
+//!
+//! // Get adaptive timeout for URL
+//! let timeout = manager.get_timeout("https://example.com/page").await;
+//!
+//! // Record success/failure to learn
+//! let start = Instant::now();
+//! // ... perform request ...
+//! manager.record_success("https://example.com/page", start.elapsed()).await;
+//! ```
 
 pub mod circuit;
 pub mod circuit_breaker;
 pub mod engine_selection;
 pub mod gate;
 pub mod reliability;
+pub mod timeout;
 
 // Re-export commonly used types
 pub use circuit::{CircuitBreaker as AtomicCircuitBreaker, Clock, Config as CircuitConfig, State};
@@ -136,4 +157,7 @@ pub use engine_selection::{
 pub use gate::{decide, score, should_use_headless, Decision, GateFeatures};
 pub use reliability::{
     ExtractionMode, ReliabilityConfig, ReliabilityMetrics, ReliableExtractor, WasmExtractor,
+};
+pub use timeout::{
+    get_global_timeout_manager, AdaptiveTimeoutManager, TimeoutConfig, TimeoutProfile, TimeoutStats,
 };

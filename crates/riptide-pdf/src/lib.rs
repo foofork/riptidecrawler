@@ -39,6 +39,7 @@
 // Core modules
 pub mod config;
 pub mod errors;
+pub mod helpers;
 pub mod integration;
 pub mod memory_benchmark;
 pub mod metrics;
@@ -60,6 +61,10 @@ pub mod benchmarks;
 // Re-export main types and functions for convenient access
 pub use config::{ImageFormat, MemorySettings, OcrConfig, PdfCapabilities, PdfConfig};
 pub use errors::{PdfError, PdfResult};
+pub use helpers::{
+    convert_to_markdown, extract_full_content, extract_metadata, load_pdf, parse_page_range,
+    write_output,
+};
 pub use integration::{
     create_pdf_integration_for_pipeline, detect_and_process_pdf, PdfPipelineIntegration,
 };

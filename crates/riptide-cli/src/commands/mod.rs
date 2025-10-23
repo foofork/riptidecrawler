@@ -24,9 +24,7 @@ pub mod wasm_cache;
 
 // Phase 4 P0 Optimization Modules
 pub mod adaptive_timeout;
-// TODO(chromiumoxide-migration): Re-enable after completing chromiumoxide → spider_chrome migration
-// See: /docs/hive-mind-todos.md#c3-browser-pool-critical-issues
-pub mod browser_pool_manager;
+// Note: browser_pool_manager removed in Phase 9 - use riptide-browser::pool directly
 pub mod wasm_aot_cache;
 
 // Phase 5 Integration

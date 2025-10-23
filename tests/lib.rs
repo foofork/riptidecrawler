@@ -32,6 +32,8 @@ pub mod integration {
     pub mod wasm_caching_tests;
     pub mod streaming_integration_tests;
     pub mod phase3_integration_tests;
+    // OBSOLETE: browser_pool_manager removed in Phase 9 - use riptide-browser::pool directly
+    #[allow(dead_code)]
     pub mod browser_pool_manager_tests;
     pub mod phase4_integration_tests;
     pub mod week3_integration_tests;
