@@ -522,14 +522,26 @@ jobs:
     needs: [validate]
     if: always()
     steps:
-      - name: Clean up build space
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-sweep
+        run: cargo install cargo-sweep --locked
+
+      - name: Clean old build artifacts
         run: |
           echo "🧹 Reclaiming build space..."
+
+          # Clean build artifacts older than 7 days
+          cargo sweep --time 7 || echo "No old artifacts to clean"
 
           # Clean Docker build cache (keep recent)
           docker system prune -f --filter "until=24h" || true
 
-          # Clean cargo cache
+          # Clean cargo registry cache (keep recent)
           cargo cache --autoclean || true
 
           echo "💾 Space cleanup completed"
+          echo "✅ cargo-sweep: Removed artifacts older than 7 days"

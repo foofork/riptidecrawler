@@ -1,9 +1,9 @@
 # RipTide
 
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](CHANGELOG.md)
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Phase 1](https://img.shields.io/badge/phase%201-97%25%20complete-success.svg)](docs/COMPREHENSIVE-ROADMAP.md)
-[![Tests](https://img.shields.io/badge/tests-103%20files-green.svg)](docs/development/testing.md)
+[![Tests](https://img.shields.io/badge/tests-256%20files-green.svg)](docs/development/testing.md)
 [![Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen.svg)](docs/development/testing.md)
 
 <!-- IN DEVELOPMENT: Phase 1 - 97% Complete -->
@@ -15,9 +15,10 @@
 
 ## 📊 Status
 
-**Phase 1: 90+% Complete** ([Full Roadmap](docs/COMPREHENSIVE-ROADMAP.md))
+**90+% Complete** ([Full Roadmap](docs/COMPREHENSIVE-ROADMAP.md))
 
-**Current Focus:** Testing, optimizing, and validating.
+
+**Current Focus:** Testing and optimizing.
 
 ---
 
@@ -58,6 +59,24 @@ Core Services (27 specialized crates)
         ↓
 External Integrations (Redis, Chromium, WASM, LLMs)
 ```
+
+### Workspace Structure (27 Crates)
+
+**Core** (3): `riptide-core`, `riptide-types`, `riptide-config`
+
+**API & Interface** (3): `riptide-api`, `riptide-cli`, `riptide-facade`
+
+**Extraction** (4): `riptide-extraction`, `riptide-extractor-wasm`, `riptide-intelligence`, `riptide-pdf`
+
+**Browser** (5): `riptide-browser-abstraction`, `riptide-engine`, `riptide-headless`, `riptide-headless-hybrid`, `riptide-stealth`
+
+**Network & Data** (5): `riptide-fetch`, `riptide-spider`, `riptide-search`, `riptide-cache`, `riptide-persistence`
+
+**Infrastructure** (5): `riptide-monitoring`, `riptide-performance`, `riptide-events`, `riptide-workers`, `riptide-streaming`
+
+**Security & Utils** (3): `riptide-security`, `riptide-pool`, `riptide-test-utils`
+
+**[Full crate documentation](docs/implementation/P1/)**
 
 
 ---
@@ -118,10 +137,9 @@ curl -X POST http://localhost:8080/deepsearch \
   -d '{"query": "rust web scraping", "limit": 10, "include_content": true}'
 ```
 
-
 ---
 
-## 📚 Documentation (drafts abound)
+## 📚 Documentation
 
 ### Getting Started
 - **[Quick Deployment](docs/guides/quickstart/QUICK_DEPLOYMENT_GUIDE.md)** - Get up and running
@@ -207,9 +225,16 @@ docker-compose -f docker-compose.gateway.yml up -d
 ## 🛣️ Roadmap
 
 **Phase 1 (97%)** - Architecture & Performance
+- ✅ 27-crate modular workspace
 - ✅ Facade composition layer
 - ✅ Browser pool scaling, CDP multiplexing
-- ✅ Spider-chrome integration complete (95%)
+- ⚙️ Spider-chrome integration (95%)
+
+**Phase 2 (Planned)** - Scale & Distribution
+- Distributed crawling coordination
+- Enhanced analytics dashboard
+- GraphQL API endpoint
+- Advanced rate limiting
 
 **[Full roadmap](docs/COMPREHENSIVE-ROADMAP.md)**
 

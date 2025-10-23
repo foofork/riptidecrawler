@@ -121,6 +121,7 @@
 
 pub mod circuit;
 pub mod circuit_breaker;
+pub mod engine_selection;
 pub mod gate;
 pub mod reliability;
 
@@ -128,6 +129,9 @@ pub mod reliability;
 pub use circuit::{CircuitBreaker as AtomicCircuitBreaker, Clock, Config as CircuitConfig, State};
 pub use circuit_breaker::{
     record_extraction_result, CircuitBreakerState, ExtractionResult as CircuitExtractionResult,
+};
+pub use engine_selection::{
+    analyze_content, calculate_content_ratio, decide_engine, ContentAnalysis, Engine,
 };
 pub use gate::{decide, score, should_use_headless, Decision, GateFeatures};
 pub use reliability::{

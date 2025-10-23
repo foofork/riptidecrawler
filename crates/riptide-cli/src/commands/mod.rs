@@ -2,7 +2,6 @@ pub mod cache;
 pub mod crawl;
 pub mod domain;
 pub mod engine_cache;
-pub mod engine_fallback;
 pub mod extract;
 pub mod extract_enhanced;
 pub mod health;

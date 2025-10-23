@@ -22,7 +22,7 @@ use tokio::time::sleep;
 #[tokio::test]
 async fn test_engine_cache_singleton_thread_safety() {
     use riptide_cli::commands::engine_cache::EngineSelectionCache;
-    use riptide_cli::commands::engine_fallback::EngineType;
+    use riptide_reliability::engine_selection::Engine;
 
     const NUM_TASKS: usize = 100;
     const DOMAINS: &[&str] = &["example.com", "test.org", "sample.net", "demo.io"];
@@ -38,9 +38,9 @@ async fn test_engine_cache_singleton_thread_safety() {
             // Perform concurrent reads and writes
             for i in 0..10 {
                 let engine = if i % 2 == 0 {
-                    EngineType::Wasm
+                    Engine::Wasm
                 } else {
-                    EngineType::Headless
+                    Engine::Headless
                 };
 
                 // Write operation
@@ -209,9 +209,9 @@ async fn test_singleton_instance_uniqueness() {
 #[tokio::test]
 async fn test_all_singletons_concurrent_stress() {
     use riptide_cli::commands::engine_cache::EngineSelectionCache;
-    use riptide_cli::commands::engine_fallback::EngineType;
     use riptide_cli::commands::performance_monitor::PerformanceMonitor;
     use riptide_cli::commands::wasm_cache::WasmCache;
+    use riptide_reliability::engine_selection::Engine;
 
     const NUM_TASKS: usize = 200;
 
@@ -230,7 +230,7 @@ async fn test_all_singletons_concurrent_stress() {
             for i in 0..20 {
                 // Engine cache operations
                 engine_cache
-                    .set(&domain, EngineType::Wasm)
+                    .set(&domain, Engine::Wasm)
                     .await
                     .expect("Engine cache write failed");
 

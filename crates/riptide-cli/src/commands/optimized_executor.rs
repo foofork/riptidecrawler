@@ -15,12 +15,13 @@ use super::{
     adaptive_timeout::AdaptiveTimeoutManager,
     browser_pool_manager::BrowserPoolManager,
     engine_cache::EngineSelectionCache,
-    extract::{Engine, ExtractArgs},
+    extract::ExtractArgs,
     performance_monitor::PerformanceMonitor,
     render::RenderArgs,
     wasm_aot_cache::WasmAotCache,
     wasm_cache::WasmCache,
 };
+use riptide_reliability::engine_selection::Engine;
 
 /// Unified executor that orchestrates all optimization modules
 pub struct OptimizedExecutor {
@@ -100,7 +101,7 @@ impl OptimizedExecutor {
                 }
             };
 
-            let selected = Engine::gate_decision(&html_for_decision, url);
+            let selected = riptide_reliability::engine_selection::decide_engine(&html_for_decision, url);
             if let Err(e) = self.engine_cache.store(&domain, selected, 0.85).await {
                 tracing::warn!("Failed to cache engine decision: {}", e);
                 // Non-fatal, continue with selected engine

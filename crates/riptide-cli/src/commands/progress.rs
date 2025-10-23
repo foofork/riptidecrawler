@@ -1,11 +1,16 @@
 //! Progress indication utilities for CLI commands
 //!
 //! Provides user-friendly progress indicators for long-running operations.
+//!
+//! **Note**: This is infrastructure code for Phase 5+ UI features.
+//! Currently unused but designed for future CLI enhancements.
 
 use std::io::{self, Write};
 use std::time::{Duration, Instant};
 
 /// Simple progress indicator for CLI operations
+/// Infrastructure: UI utility for future CLI enhancements
+#[allow(dead_code)]
 pub struct ProgressIndicator {
     message: String,
     start_time: Instant,
@@ -86,6 +91,8 @@ impl ProgressIndicator {
 }
 
 /// Progress bar for operations with known total steps
+/// Infrastructure: Progress bar utility for CLI
+#[allow(dead_code)]
 pub struct ProgressBar {
     total: usize,
     current: usize,
@@ -167,6 +174,8 @@ impl ProgressBar {
 }
 
 /// Multi-step progress tracker
+/// Infrastructure: Multi-step workflow tracker
+#[allow(dead_code)]
 pub struct MultiStepProgress {
     steps: Vec<String>,
     current_step: usize,

@@ -5,6 +5,9 @@
 /// - WASM module caching
 /// - Performance monitoring and metrics
 /// - Enhanced error diagnostics
+///
+/// **Note**: This is infrastructure code for Phase 5+ optimization features.
+/// Currently unused but designed for future API integration.
 use crate::client::RipTideClient;
 use crate::commands::engine_cache::EngineSelectionCache;
 use crate::commands::performance_monitor::{ExtractionMetrics, PerformanceMonitor, StageTimer};
@@ -15,6 +18,8 @@ use anyhow::Result;
 use std::time::Duration;
 
 /// Enhanced extract executor with caching and monitoring
+/// Infrastructure: Designed for Phase 5+ optimization features
+#[allow(dead_code)]
 pub struct EnhancedExtractExecutor {
     engine_cache: EngineSelectionCache,
     wasm_cache: WasmModuleCache,

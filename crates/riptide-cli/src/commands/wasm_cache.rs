@@ -2,6 +2,9 @@
 ///
 /// This module provides efficient WASM module caching to avoid repeated
 /// loading and initialization overhead.
+///
+/// **Note**: This is infrastructure code for Phase 5+ caching features.
+/// Currently used by tests and designed for future API integration.
 use anyhow::{anyhow, Result};
 use once_cell::sync::OnceCell;
 use riptide_extraction::wasm_extraction::WasmExtractor;
@@ -10,9 +13,13 @@ use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 
 /// Global WASM module cache
+/// Infrastructure: Global singleton for WASM caching
+#[allow(dead_code)]
 static WASM_CACHE: OnceCell<WasmModuleCache> = OnceCell::new();
 
 /// Cached WASM extractor with metadata
+/// Infrastructure: Internal cache entry structure
+#[allow(dead_code)]
 #[derive(Clone)]
 pub struct CachedWasmModule {
     pub extractor: Arc<WasmExtractor>,
@@ -22,6 +29,8 @@ pub struct CachedWasmModule {
 }
 
 /// WASM module cache manager
+/// Infrastructure: Core WASM caching implementation
+#[allow(dead_code)]
 pub struct WasmModuleCache {
     module: Arc<RwLock<Option<CachedWasmModule>>>,
     init_timeout: Duration,
@@ -143,6 +152,8 @@ impl WasmModuleCache {
 }
 
 /// Cache statistics
+/// Infrastructure: Stats structure for cache monitoring
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct CacheStats {
     pub path: String,
@@ -153,6 +164,8 @@ pub struct CacheStats {
 }
 
 /// Helper function to get WASM extractor with caching
+/// Infrastructure: Convenience function for cached extraction
+#[allow(dead_code)]
 pub async fn get_cached_extractor(
     wasm_path: &str,
     init_timeout_ms: u64,
@@ -178,6 +191,8 @@ pub async fn get_cached_extractor(
 
 /// Phase 4 P0: Singleton WASM cache for OptimizedExecutor
 /// This provides a simple singleton wrapper for WASM caching operations
+/// Infrastructure: Singleton wrapper for optimized execution
+#[allow(dead_code)]
 pub struct WasmCache {
     // Internal module cache reference
     _marker: std::marker::PhantomData<()>,

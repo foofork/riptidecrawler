@@ -1,6 +1,6 @@
 [package]
 name = "riptide-cli"
-version = "1.0.0"
+version = "2.0.0"
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
@@ -26,6 +26,7 @@ url.workspace = true
 
 # Local extraction support
 riptide-extraction = { path = "../riptide-extraction" }
+riptide-reliability = { path = "../riptide-reliability" }
 riptide-stealth = { path = "../riptide-stealth" }
 riptide-pdf = { path = "../riptide-pdf" }
 riptide-browser = { path = "../riptide-browser" }
@@ -69,6 +70,9 @@ spider_chrome = "2.37.128"
 
 [dev-dependencies]
 tempfile = "3.13"
+assert_cmd = "2.0"
+assert_fs = "1.0"
+predicates = "3.0"
 
 [features]
 default = ["pdf"]

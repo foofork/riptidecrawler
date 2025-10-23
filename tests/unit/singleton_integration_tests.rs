@@ -104,13 +104,13 @@ async fn test_concurrent_singleton_access() {
 /// Test 3: Singleton state is shared across threads
 #[tokio::test]
 async fn test_shared_state_across_threads() {
-    use riptide_cli::commands::engine_fallback::EngineType;
+    use riptide_reliability::engine_selection::Engine;
 
     // Thread 1: Write to EngineSelectionCache
     let handle1 = tokio::spawn(async {
         let cache = EngineSelectionCache::get_global();
         cache
-            .set("thread-test.com", EngineType::Wasm)
+            .set("thread-test.com", Engine::Wasm)
             .await
             .expect("Should store cache entry");
     });
@@ -124,7 +124,7 @@ async fn test_shared_state_across_threads() {
         let result = cache.get("thread-test.com").await;
         assert_eq!(
             result,
-            Some(EngineType::Wasm),
+            Some(Engine::Wasm),
             "Should read value written by another thread"
         );
     });
@@ -157,7 +157,7 @@ async fn test_optimized_executor_initialization() {
 /// Test 5: Singleton operations are thread-safe under concurrent load
 #[tokio::test]
 async fn test_thread_safe_concurrent_operations() {
-    use riptide_cli::commands::engine_fallback::EngineType;
+    use riptide_reliability::engine_selection::Engine;
 
     let mut handles = vec![];
 
@@ -173,13 +173,13 @@ async fn test_thread_safe_concurrent_operations() {
 
             // Write to engine cache
             engine_cache
-                .set(&domain, EngineType::Headless)
+                .set(&domain, Engine::Headless)
                 .await
                 .expect("Should store");
 
             // Read from engine cache
             let result = engine_cache.get(&domain).await;
-            assert_eq!(result, Some(EngineType::Headless));
+            assert_eq!(result, Some(Engine::Headless));
 
             // Update feedback
             engine_cache
@@ -244,7 +244,7 @@ fn test_singleton_reference_counting() {
 /// Test 7: All three singletons can be used together safely
 #[tokio::test]
 async fn test_combined_singleton_usage() {
-    use riptide_cli::commands::engine_fallback::EngineType;
+    use riptide_reliability::engine_selection::Engine;
 
     let engine_cache = EngineSelectionCache::get_global();
     let wasm_cache = WasmCache::get_global();
@@ -252,7 +252,7 @@ async fn test_combined_singleton_usage() {
 
     // Use all three together
     engine_cache
-        .set("combined-test.com", EngineType::Wasm)
+        .set("combined-test.com", Engine::Wasm)
         .await
         .expect("Should set");
 
@@ -264,33 +264,33 @@ async fn test_combined_singleton_usage() {
 
     // Verify engine cache worked
     let cached = engine_cache.get("combined-test.com").await;
-    assert_eq!(cached, Some(EngineType::Wasm));
+    assert_eq!(cached, Some(Engine::Wasm));
 }
 
 /// Test 8: Singleton cleanup and TTL behavior
 #[tokio::test]
 async fn test_singleton_ttl_cleanup() {
-    use riptide_cli::commands::engine_fallback::EngineType;
+    use riptide_reliability::engine_selection::Engine;
     use std::time::Duration;
 
     let cache = EngineSelectionCache::get_global();
 
     // Set an entry
     cache
-        .set("ttl-test.com", EngineType::Raw)
+        .set("ttl-test.com", Engine::Raw)
         .await
         .expect("Should set");
 
     // Verify it exists
     let result = cache.get("ttl-test.com").await;
-    assert_eq!(result, Some(EngineType::Raw));
+    assert_eq!(result, Some(Engine::Raw));
 
     // Trigger cleanup (won't expire yet - default TTL is 1 hour)
     cache.cleanup_expired().await;
 
     // Should still exist
     let result = cache.get("ttl-test.com").await;
-    assert_eq!(result, Some(EngineType::Raw));
+    assert_eq!(result, Some(Engine::Raw));
 
     // Verify stats reflect the entry
     let stats = cache.stats().await;
@@ -321,7 +321,7 @@ fn test_lazy_initialization() {
 /// Test 10: Cross-singleton coordination
 #[tokio::test]
 async fn test_cross_singleton_coordination() {
-    use riptide_cli::commands::engine_fallback::EngineType;
+    use riptide_reliability::engine_selection::Engine;
 
     // Simulate a typical workflow using all singletons
     let engine_cache = EngineSelectionCache::get_global();
@@ -335,7 +335,7 @@ async fn test_cross_singleton_coordination() {
     // Step 2: If not cached, make a decision
     if cached_engine.is_none() {
         engine_cache
-            .set(domain, EngineType::Wasm)
+            .set(domain, Engine::Wasm)
             .await
             .expect("Should cache decision");
     }

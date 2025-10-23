@@ -4,7 +4,6 @@ use crate::output;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::str::FromStr;
 
 // Local extraction support
 use riptide_extraction::wasm_extraction::WasmExtractor;
@@ -13,99 +12,8 @@ use riptide_extraction::wasm_extraction::WasmExtractor;
 use riptide_browser::launcher::{HeadlessLauncher, LauncherConfig};
 use riptide_browser::pool::BrowserPoolConfig;
 
-/// Extraction engine selection
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Engine {
-    /// Automatically select engine based on content
-    Auto,
-    /// Pure HTTP fetch without JavaScript execution
-    Raw,
-    /// WASM-based extraction (fast, local)
-    Wasm,
-    /// Headless browser extraction (for JavaScript-heavy sites)
-    Headless,
-}
-
-impl std::str::FromStr for Engine {
-    type Err = anyhow::Error;
-
-    /// Parse engine from string
-    fn from_str(s: &str) -> Result<Self> {
-        match s.to_lowercase().as_str() {
-            "auto" => Ok(Engine::Auto),
-            "raw" => Ok(Engine::Raw),
-            "wasm" => Ok(Engine::Wasm),
-            "headless" => Ok(Engine::Headless),
-            _ => anyhow::bail!(
-                "Invalid engine: {}. Must be one of: auto, raw, wasm, headless",
-                s
-            ),
-        }
-    }
-}
-
-impl Engine {
-    /// Automatically decide engine based on content characteristics
-    pub fn gate_decision(html: &str, url: &str) -> Self {
-        // Check for heavy JavaScript frameworks
-        let has_react =
-            html.contains("__NEXT_DATA__") || html.contains("react") || html.contains("_reactRoot");
-        let has_vue = html.contains("v-app") || html.contains("vue");
-        let has_angular = html.contains("ng-app") || html.contains("ng-version");
-
-        // Check for dynamic content indicators
-        let has_spa_markers = html.contains("<!-- rendered by")
-            || html.contains("__webpack")
-            || html.contains("window.__INITIAL_STATE__");
-
-        // Check for minimal content (likely client-side rendered)
-        let content_ratio = calculate_content_ratio(html);
-
-        // Decision logic
-        if has_react || has_vue || has_angular || has_spa_markers {
-            output::print_info("Detected JavaScript framework - selecting Headless engine");
-            Engine::Headless
-        } else if content_ratio < 0.1 {
-            output::print_info("Low content ratio detected - selecting Headless engine");
-            Engine::Headless
-        } else if html.contains("wasm") || url.contains(".wasm") {
-            output::print_info("WASM content detected - selecting WASM engine");
-            Engine::Wasm
-        } else {
-            output::print_info(
-                "Standard HTML detected - selecting Raw engine with WASM extraction",
-            );
-            Engine::Wasm // Default to WASM for standard extraction
-        }
-    }
-
-    /// Get human-readable name
-    pub fn name(&self) -> &'static str {
-        match self {
-            Engine::Auto => "auto",
-            Engine::Raw => "raw",
-            Engine::Wasm => "wasm",
-            Engine::Headless => "headless",
-        }
-    }
-}
-
-/// Calculate content-to-markup ratio (heuristic for client-side rendering)
-fn calculate_content_ratio(html: &str) -> f64 {
-    let total_len = html.len() as f64;
-    if total_len == 0.0 {
-        return 0.0;
-    }
-
-    // Count text content (rough estimate)
-    let text_content: String = html
-        .split('<')
-        .map(|s| s.split('>').nth(1).unwrap_or(""))
-        .collect();
-
-    let content_len = text_content.trim().len() as f64;
-    content_len / total_len
-}
+// Engine selection from consolidated module
+use riptide_reliability::engine_selection::Engine;
 
 #[derive(Serialize)]
 struct ExtractRequest {
@@ -161,7 +69,7 @@ pub async fn execute(client: RipTideClient, args: ExtractArgs, output_format: &s
     };
 
     // Parse engine selection
-    let engine = Engine::from_str(&args.engine)?;
+    let engine = args.engine.parse::<Engine>()?;
     output::print_info(&format!("Engine mode: {}", engine.name()));
 
     // Record engine selection in metadata
@@ -379,7 +287,8 @@ async fn execute_direct_extraction(
 
     // Auto-detect engine if set to auto
     if engine == Engine::Auto {
-        engine = Engine::gate_decision(&html, &source);
+        engine = riptide_reliability::engine_selection::decide_engine(&html, &source);
+        output::print_info(&format!("Auto-detected engine: {}", engine.name()));
     }
 
     // Handle different engines
@@ -586,7 +495,8 @@ async fn execute_local_extraction(
 
     // Auto-detect engine if set to auto
     if engine == Engine::Auto {
-        engine = Engine::gate_decision(&html, url);
+        engine = riptide_reliability::engine_selection::decide_engine(&html, url);
+        output::print_info(&format!("Auto-detected engine: {}", engine.name()));
     }
 
     // Handle different engines

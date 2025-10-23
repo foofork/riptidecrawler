@@ -42,6 +42,97 @@ impl Default for ExtractorConfig {
     }
 }
 
+impl ExtractorConfig {
+    /// Load configuration from environment variables (12 fields)
+    pub fn from_env() -> Self {
+        let mut config = Self::default();
+
+        if let Ok(val) = std::env::var("POOL_MAX_INSTANCES") {
+            if let Ok(val) = val.parse() {
+                config.max_instances = val;
+            }
+        }
+        if let Ok(val) = std::env::var("POOL_ENABLE_METRICS") {
+            config.enable_metrics = val.to_lowercase() == "true";
+        }
+        if let Ok(val) = std::env::var("POOL_TIMEOUT_MS") {
+            if let Ok(val) = val.parse() {
+                config.timeout_ms = val;
+            }
+        }
+        if let Ok(val) = std::env::var("POOL_MEMORY_LIMIT_PAGES") {
+            if let Ok(val) = val.parse() {
+                config.memory_limit_pages = Some(val);
+            }
+        }
+        if let Ok(val) = std::env::var("POOL_EXTRACTION_TIMEOUT_MS") {
+            if let Ok(val) = val.parse() {
+                config.extraction_timeout = Some(val);
+            }
+        }
+        if let Ok(val) = std::env::var("POOL_MAX_POOL_SIZE") {
+            if let Ok(val) = val.parse() {
+                config.max_pool_size = val;
+            }
+        }
+        if let Ok(val) = std::env::var("POOL_INITIAL_POOL_SIZE") {
+            if let Ok(val) = val.parse() {
+                config.initial_pool_size = val;
+            }
+        }
+        if let Ok(val) = std::env::var("POOL_EPOCH_TIMEOUT_MS") {
+            if let Ok(val) = val.parse() {
+                config.epoch_timeout_ms = val;
+            }
+        }
+        if let Ok(val) = std::env::var("POOL_HEALTH_CHECK_INTERVAL_MS") {
+            if let Ok(val) = val.parse() {
+                config.health_check_interval = val;
+            }
+        }
+        if let Ok(val) = std::env::var("POOL_MEMORY_LIMIT_BYTES") {
+            if let Ok(val) = val.parse() {
+                config.memory_limit = Some(val);
+            }
+        }
+        if let Ok(val) = std::env::var("POOL_CIRCUIT_BREAKER_TIMEOUT_MS") {
+            if let Ok(val) = val.parse() {
+                config.circuit_breaker_timeout = val;
+            }
+        }
+        if let Ok(val) = std::env::var("POOL_CIRCUIT_BREAKER_FAILURE_THRESHOLD") {
+            if let Ok(val) = val.parse() {
+                config.circuit_breaker_failure_threshold = val;
+            }
+        }
+        if let Ok(val) = std::env::var("POOL_ENABLE_WIT_VALIDATION") {
+            config.enable_wit_validation = val.to_lowercase() == "true";
+        }
+
+        config
+    }
+
+    /// Validate configuration settings
+    pub fn validate(&self) -> Result<(), String> {
+        if self.max_instances == 0 {
+            return Err("max_instances must be greater than 0".to_string());
+        }
+        if self.max_pool_size == 0 {
+            return Err("max_pool_size must be greater than 0".to_string());
+        }
+        if self.initial_pool_size > self.max_pool_size {
+            return Err("initial_pool_size cannot be greater than max_pool_size".to_string());
+        }
+        if self.timeout_ms == 0 {
+            return Err("timeout_ms must be greater than 0".to_string());
+        }
+        if self.circuit_breaker_failure_threshold == 0 {
+            return Err("circuit_breaker_failure_threshold must be greater than 0".to_string());
+        }
+        Ok(())
+    }
+}
+
 /// Performance metrics for extraction and pool operations
 #[derive(Debug, Clone, Default)]
 pub struct PerformanceMetrics {

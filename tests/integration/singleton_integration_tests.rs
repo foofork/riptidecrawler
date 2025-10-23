@@ -88,11 +88,11 @@ async fn test_concurrent_executor_instances() -> Result<()> {
 #[tokio::test]
 async fn test_singleton_state_persistence() -> Result<()> {
     use riptide_cli::commands::engine_cache::EngineSelectionCache;
-    use riptide_cli::commands::engine_fallback::EngineType;
+    use riptide_reliability::engine_selection::Engine;
 
     // Set some state in the singleton
     let cache = EngineSelectionCache::get_global();
-    cache.set("test-domain.com", EngineType::Wasm).await?;
+    cache.set("test-domain.com", Engine::Wasm).await?;
 
     // Create an executor
     let executor1 = OptimizedExecutor::new().await?;

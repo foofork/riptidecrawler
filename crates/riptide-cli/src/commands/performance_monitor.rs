@@ -2,6 +2,9 @@
 ///
 /// This module provides comprehensive performance tracking for extraction operations
 /// including timing, memory usage, and engine selection metrics.
+///
+/// **Note**: This is infrastructure code for Phase 5+ monitoring features.
+/// Currently unused but designed for future API integration.
 use anyhow::Result;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -11,6 +14,8 @@ use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 
 /// Performance metrics for a single extraction operation
+/// Infrastructure: Used by performance monitoring system
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtractionMetrics {
     pub operation_id: String,
@@ -29,6 +34,8 @@ pub struct ExtractionMetrics {
 }
 
 /// Stage-based timing tracker
+/// Infrastructure: Timing utility for performance monitoring
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct StageTimer {
     stages: HashMap<String, Duration>,
@@ -78,6 +85,8 @@ impl Default for StageTimer {
 }
 
 /// Performance monitor for tracking extraction operations
+/// Infrastructure: Core monitoring system for Phase 5+
+#[allow(dead_code)]
 pub struct PerformanceMonitor {
     metrics: Arc<RwLock<Vec<ExtractionMetrics>>>,
     max_history: usize,
@@ -169,6 +178,8 @@ impl PerformanceMonitor {
 }
 
 /// Aggregate performance statistics
+/// Infrastructure: Stats aggregation for monitoring
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PerformanceStats {
     pub total_operations: usize,
@@ -195,10 +206,14 @@ impl Default for PerformanceStats {
 }
 
 /// Global performance monitor instance (using Arc for shared ownership)
+/// Infrastructure: Global singleton for monitoring system
+#[allow(dead_code)]
 static GLOBAL_MONITOR: Lazy<Arc<PerformanceMonitor>> =
     Lazy::new(|| Arc::new(PerformanceMonitor::new(1000)));
 
 /// Get the global performance monitor as Arc (for shared ownership)
+/// Infrastructure: Accessor for global monitoring instance
+#[allow(dead_code)]
 pub fn global_monitor() -> &'static PerformanceMonitor {
     &GLOBAL_MONITOR
 }

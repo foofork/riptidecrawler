@@ -2,6 +2,14 @@
 # Use default target for the platform
 target = "x86_64-unknown-linux-gnu"
 
+# Shared target directory for all workspace crates
+target-dir = "target"
+
+# sccache configuration for faster incremental builds
+# Install: cargo install sccache
+# Verify: sccache --show-stats
+rustc-wrapper = "sccache"
+
 # Note: Removed forced linker selection to allow cargo and dependencies
 # (like pdfium-render) to choose appropriate linker based on availability
 
@@ -31,3 +39,9 @@ coverage-html = "llvm-cov --html"
 coverage-json = "llvm-cov --json"
 coverage-lcov = "llvm-cov --lcov"
 coverage-all = "llvm-cov --all-features --workspace --lcov --output-path lcov.info"
+
+# sccache environment configuration
+[env]
+SCCACHE_DIR = { value = ".sccache", relative = true }
+SCCACHE_CACHE_SIZE = "10G"
+SCCACHE_IDLE_TIMEOUT = "0"

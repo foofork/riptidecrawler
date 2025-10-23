@@ -1,29 +1,38 @@
+use anyhow::Result;
+use once_cell::sync::Lazy;
 /// Engine Selection Cache for Domain-Based Optimization
 ///
 /// This module provides intelligent caching of engine selection decisions
 /// based on domain patterns to avoid repeated analysis.
-use crate::commands::engine_fallback::EngineType;
-use anyhow::Result;
-use once_cell::sync::Lazy;
+///
+/// **Note**: This is infrastructure code designed for Phase 5+ API integration.
+/// Some methods and structs are intentionally unused in current implementation.
+use riptide_reliability::engine_selection::Engine;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 
 /// Global singleton instance of the engine selection cache
+/// Infrastructure: Used by test suite and future API endpoints
+#[allow(dead_code)]
 static GLOBAL_INSTANCE: Lazy<Arc<EngineSelectionCache>> =
     Lazy::new(|| Arc::new(EngineSelectionCache::default()));
 
 /// Cache entry for engine selection
+/// Infrastructure: Internal implementation detail
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct CacheEntry {
-    pub engine: EngineType,
+    pub engine: Engine,
     pub timestamp: Instant,
     pub hit_count: u64,
     pub success_rate: f64,
 }
 
 /// Engine selection cache with TTL and domain-based heuristics
+/// Infrastructure: Core caching implementation for future API
+#[allow(dead_code)]
 pub struct EngineSelectionCache {
     cache: Arc<RwLock<HashMap<String, CacheEntry>>>,
     ttl: Duration,
@@ -46,7 +55,7 @@ impl EngineSelectionCache {
     }
 
     /// Get cached engine decision for a domain
-    pub async fn get(&self, domain: &str) -> Option<EngineType> {
+    pub async fn get(&self, domain: &str) -> Option<Engine> {
         let cache = self.cache.read().await;
 
         if let Some(entry) = cache.get(domain) {
@@ -60,7 +69,7 @@ impl EngineSelectionCache {
     }
 
     /// Store engine decision for a domain
-    pub async fn set(&self, domain: &str, engine: EngineType) -> Result<()> {
+    pub async fn set(&self, domain: &str, engine: Engine) -> Result<()> {
         let mut cache = self.cache.write().await;
 
         // Evict old entries if cache is full
@@ -174,8 +183,8 @@ mod tests {
         let cache = EngineSelectionCache::new(Duration::from_secs(60), 10);
 
         // Test set and get
-        cache.set("example.com", EngineType::Wasm).await.unwrap();
-        assert_eq!(cache.get("example.com").await, Some(EngineType::Wasm));
+        cache.set("example.com", Engine::Wasm).await.unwrap();
+        assert_eq!(cache.get("example.com").await, Some(Engine::Wasm));
 
         // Test non-existent domain
         assert_eq!(cache.get("nonexistent.com").await, None);
@@ -185,12 +194,9 @@ mod tests {
     async fn test_cache_eviction() {
         let cache = EngineSelectionCache::new(Duration::from_secs(60), 2);
 
-        cache.set("domain1.com", EngineType::Wasm).await.unwrap();
-        cache
-            .set("domain2.com", EngineType::Headless)
-            .await
-            .unwrap();
-        cache.set("domain3.com", EngineType::Raw).await.unwrap();
+        cache.set("domain1.com", Engine::Wasm).await.unwrap();
+        cache.set("domain2.com", Engine::Headless).await.unwrap();
+        cache.set("domain3.com", Engine::Raw).await.unwrap();
 
         let stats = cache.stats().await;
         assert_eq!(stats.entries, 2); // Should evict oldest

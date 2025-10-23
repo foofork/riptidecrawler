@@ -3,6 +3,8 @@
 //! This module provides functions for computing percentiles, averages,
 //! and other statistical aggregations over collected metrics.
 
+#![allow(dead_code)]
+
 use super::types::{CommandAggregates, CommandMetrics, MetricPoint};
 use std::collections::HashMap;
 

@@ -301,70 +301,297 @@ impl Default for SearchProviderConfig {
 }
 
 impl ApiConfig {
-    /// Load configuration from environment variables
+    /// Load configuration from environment variables with comprehensive support
     pub fn from_env() -> Self {
         let mut config = Self::default();
 
-        // Resource configuration
+        // Resource configuration (7 fields)
         if let Ok(val) = std::env::var("RIPTIDE_MAX_CONCURRENT_RENDERS") {
             if let Ok(val) = val.parse() {
                 config.resources.max_concurrent_renders = val;
             }
         }
-
         if let Ok(val) = std::env::var("RIPTIDE_MAX_CONCURRENT_PDF") {
             if let Ok(val) = val.parse() {
                 config.resources.max_concurrent_pdf = val;
             }
         }
+        if let Ok(val) = std::env::var("RIPTIDE_MAX_CONCURRENT_WASM") {
+            if let Ok(val) = val.parse() {
+                config.resources.max_concurrent_wasm = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_GLOBAL_TIMEOUT_SECS") {
+            if let Ok(val) = val.parse() {
+                config.resources.global_timeout_secs = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_CLEANUP_INTERVAL_SECS") {
+            if let Ok(val) = val.parse() {
+                config.resources.cleanup_interval_secs = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_ENABLE_MONITORING") {
+            config.resources.enable_monitoring = val.to_lowercase() == "true";
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_HEALTH_CHECK_INTERVAL_SECS") {
+            if let Ok(val) = val.parse() {
+                config.resources.health_check_interval_secs = val;
+            }
+        }
 
-        // Performance configuration
-        if let Ok(val) = std::env::var("RIPTIDE_RENDER_TIMEOUT") {
+        // Performance configuration (7 fields)
+        if let Ok(val) = std::env::var("RIPTIDE_RENDER_TIMEOUT_SECS") {
             if let Ok(val) = val.parse() {
                 config.performance.render_timeout_secs = val;
             }
         }
+        if let Ok(val) = std::env::var("RIPTIDE_PDF_TIMEOUT_SECS") {
+            if let Ok(val) = val.parse() {
+                config.performance.pdf_timeout_secs = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_WASM_TIMEOUT_SECS") {
+            if let Ok(val) = val.parse() {
+                config.performance.wasm_timeout_secs = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_HTTP_TIMEOUT_SECS") {
+            if let Ok(val) = val.parse() {
+                config.performance.http_timeout_secs = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_MEMORY_CLEANUP_THRESHOLD_MB") {
+            if let Ok(val) = val.parse() {
+                config.performance.memory_cleanup_threshold_mb = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_AUTO_CLEANUP_ON_TIMEOUT") {
+            config.performance.auto_cleanup_on_timeout = val.to_lowercase() == "true";
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_DEGRADATION_THRESHOLD") {
+            if let Ok(val) = val.parse() {
+                config.performance.degradation_threshold = val;
+            }
+        }
 
-        // Rate limiting configuration
+        // Rate limiting configuration (7 fields)
+        if let Ok(val) = std::env::var("RIPTIDE_RATE_LIMIT_ENABLED") {
+            config.rate_limiting.enabled = val.to_lowercase() == "true";
+        }
         if let Ok(val) = std::env::var("RIPTIDE_RATE_LIMIT_RPS") {
             if let Ok(val) = val.parse() {
                 config.rate_limiting.requests_per_second_per_host = val;
             }
         }
-
         if let Ok(val) = std::env::var("RIPTIDE_RATE_LIMIT_JITTER") {
             if let Ok(val) = val.parse() {
                 config.rate_limiting.jitter_factor = val;
             }
         }
-
-        // Headless configuration
-        if let Ok(val) = std::env::var("RIPTIDE_HEADLESS_POOL_SIZE") {
+        if let Ok(val) = std::env::var("RIPTIDE_RATE_LIMIT_BURST_CAPACITY") {
             if let Ok(val) = val.parse() {
-                config.headless.max_pool_size = val;
+                config.rate_limiting.burst_capacity_per_host = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_RATE_LIMIT_WINDOW_SECS") {
+            if let Ok(val) = val.parse() {
+                config.rate_limiting.window_duration_secs = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_RATE_LIMIT_CLEANUP_INTERVAL_SECS") {
+            if let Ok(val) = val.parse() {
+                config.rate_limiting.cleanup_interval_secs = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_RATE_LIMIT_MAX_TRACKED_HOSTS") {
+            if let Ok(val) = val.parse() {
+                config.rate_limiting.max_tracked_hosts = val;
             }
         }
 
-        // Memory configuration
-        if let Ok(val) = std::env::var("RIPTIDE_MEMORY_LIMIT_MB") {
+        // Memory configuration (10 fields)
+        if let Ok(val) = std::env::var("RIPTIDE_MAX_MEMORY_PER_REQUEST_MB") {
+            if let Ok(val) = val.parse() {
+                config.memory.max_memory_per_request_mb = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_GLOBAL_MEMORY_LIMIT_MB") {
             if let Ok(val) = val.parse() {
                 config.memory.global_memory_limit_mb = val;
             }
         }
-
-        // Search provider configuration
-        if let Ok(val) = std::env::var("SEARCH_BACKEND") {
-            config.search.backend = val;
+        if let Ok(val) = std::env::var("RIPTIDE_MEMORY_SOFT_LIMIT_MB") {
+            if let Ok(val) = val.parse() {
+                config.memory.memory_soft_limit_mb = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_MEMORY_HARD_LIMIT_MB") {
+            if let Ok(val) = val.parse() {
+                config.memory.memory_hard_limit_mb = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_MEMORY_PRESSURE_THRESHOLD") {
+            if let Ok(val) = val.parse() {
+                config.memory.pressure_threshold = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_MEMORY_AUTO_GC") {
+            config.memory.auto_gc = val.to_lowercase() == "true";
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_MEMORY_GC_TRIGGER_THRESHOLD_MB") {
+            if let Ok(val) = val.parse() {
+                config.memory.gc_trigger_threshold_mb = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_MEMORY_MONITORING_INTERVAL_SECS") {
+            if let Ok(val) = val.parse() {
+                config.memory.monitoring_interval_secs = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_MEMORY_ENABLE_LEAK_DETECTION") {
+            config.memory.enable_leak_detection = val.to_lowercase() == "true";
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_MEMORY_ENABLE_PROACTIVE_MONITORING") {
+            config.memory.enable_proactive_monitoring = val.to_lowercase() == "true";
         }
 
-        if let Ok(val) = std::env::var("SEARCH_TIMEOUT") {
+        // Headless browser configuration (9 fields)
+        if let Ok(val) = std::env::var("RIPTIDE_HEADLESS_MAX_POOL_SIZE") {
+            if let Ok(val) = val.parse() {
+                config.headless.max_pool_size = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_HEADLESS_MIN_POOL_SIZE") {
+            if let Ok(val) = val.parse() {
+                config.headless.min_pool_size = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_HEADLESS_IDLE_TIMEOUT_SECS") {
+            if let Ok(val) = val.parse() {
+                config.headless.idle_timeout_secs = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_HEADLESS_HEALTH_CHECK_INTERVAL_SECS") {
+            if let Ok(val) = val.parse() {
+                config.headless.health_check_interval_secs = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_HEADLESS_MAX_PAGES_PER_BROWSER") {
+            if let Ok(val) = val.parse() {
+                config.headless.max_pages_per_browser = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_HEADLESS_RESTART_THRESHOLD") {
+            if let Ok(val) = val.parse() {
+                config.headless.restart_threshold = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_HEADLESS_ENABLE_RECYCLING") {
+            config.headless.enable_recycling = val.to_lowercase() == "true";
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_HEADLESS_LAUNCH_TIMEOUT_SECS") {
+            if let Ok(val) = val.parse() {
+                config.headless.launch_timeout_secs = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_HEADLESS_MAX_RETRIES") {
+            if let Ok(val) = val.parse() {
+                config.headless.max_retries = val;
+            }
+        }
+
+        // PDF processing configuration (6 fields)
+        if let Ok(val) = std::env::var("RIPTIDE_PDF_MAX_CONCURRENT") {
+            if let Ok(val) = val.parse() {
+                config.pdf.max_concurrent = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_PDF_PROCESSING_TIMEOUT_SECS") {
+            if let Ok(val) = val.parse() {
+                config.pdf.processing_timeout_secs = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_PDF_MAX_FILE_SIZE_MB") {
+            if let Ok(val) = val.parse() {
+                config.pdf.max_file_size_mb = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_PDF_ENABLE_STREAMING") {
+            config.pdf.enable_streaming = val.to_lowercase() == "true";
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_PDF_QUEUE_SIZE") {
+            if let Ok(val) = val.parse() {
+                config.pdf.queue_size = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_PDF_QUEUE_TIMEOUT_SECS") {
+            if let Ok(val) = val.parse() {
+                config.pdf.queue_timeout_secs = val;
+            }
+        }
+
+        // WASM runtime configuration (8 fields)
+        if let Ok(val) = std::env::var("RIPTIDE_WASM_INSTANCES_PER_WORKER") {
+            if let Ok(val) = val.parse() {
+                config.wasm.instances_per_worker = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_WASM_MODULE_TIMEOUT_SECS") {
+            if let Ok(val) = val.parse() {
+                config.wasm.module_timeout_secs = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_WASM_MAX_MEMORY_MB") {
+            if let Ok(val) = val.parse() {
+                config.wasm.max_memory_mb = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_WASM_ENABLE_RECYCLING") {
+            config.wasm.enable_recycling = val.to_lowercase() == "true";
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_WASM_HEALTH_CHECK_INTERVAL_SECS") {
+            if let Ok(val) = val.parse() {
+                config.wasm.health_check_interval_secs = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_WASM_MAX_OPERATIONS_PER_INSTANCE") {
+            if let Ok(val) = val.parse() {
+                config.wasm.max_operations_per_instance = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_WASM_RESTART_THRESHOLD") {
+            if let Ok(val) = val.parse() {
+                config.wasm.restart_threshold = val;
+            }
+        }
+
+        // Search provider configuration (6 fields)
+        if let Ok(val) = std::env::var("RIPTIDE_SEARCH_BACKEND") {
+            config.search.backend = val;
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_SEARCH_TIMEOUT_SECS") {
             if let Ok(val) = val.parse() {
                 config.search.timeout_secs = val;
             }
         }
-
-        if let Ok(val) = std::env::var("SEARCH_ENABLE_URL_PARSING") {
+        if let Ok(val) = std::env::var("RIPTIDE_SEARCH_ENABLE_URL_PARSING") {
             config.search.enable_url_parsing = val.to_lowercase() == "true";
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_SEARCH_CIRCUIT_BREAKER_FAILURE_THRESHOLD") {
+            if let Ok(val) = val.parse() {
+                config.search.circuit_breaker_failure_threshold = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_SEARCH_CIRCUIT_BREAKER_MIN_REQUESTS") {
+            if let Ok(val) = val.parse() {
+                config.search.circuit_breaker_min_requests = val;
+            }
+        }
+        if let Ok(val) = std::env::var("RIPTIDE_SEARCH_CIRCUIT_BREAKER_RECOVERY_TIMEOUT_SECS") {
+            if let Ok(val) = val.parse() {
+                config.search.circuit_breaker_recovery_timeout_secs = val;
+            }
         }
 
         config

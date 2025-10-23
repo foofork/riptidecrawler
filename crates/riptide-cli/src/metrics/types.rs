@@ -3,6 +3,8 @@
 //! This module defines the data structures for tracking CLI command performance,
 //! execution statistics, and resource usage with minimal overhead.
 
+#![allow(dead_code)]
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
