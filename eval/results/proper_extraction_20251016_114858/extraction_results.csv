@@ -1,6 +1,0 @@
-URL,Engine,Content_Length,Extraction_Time_ms,Success,Error
-"https://en.wikipedia.org/wiki/Web_scraping","raw",158759,199,true,""
-"https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Introduction","raw",192499,161,true,""
-"https://www.reuters.com/graphics/UKRAINE-CRISIS/DRONES/dwpkeyjwkpm/","raw",67084,792,true,""
-"https://news.ycombinator.com/","raw",35400,698,true,""
-"https://example.com","raw",513,534,true,""

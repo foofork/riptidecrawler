@@ -316,6 +316,12 @@ eval/results/temp_extract/output_wasm__accd9547a71463f530ae12a8dd0d7696.txt
 pdfium-*.tgz
 pdfium-*.tar.gz
 
+# ===========================================
+# Evaluation & Test Results
+# ===========================================
+# All evaluation results (test output, extraction results, etc.)
+eval/results/
+
 
 # Removed Windows wrapper files per user request
 hive-mind-prompt-*.txt

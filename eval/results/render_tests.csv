@@ -1,6 +1,0 @@
-test_name,url,flags,status,render_time_ms,html_saved,screenshot_saved,dom_saved,har_saved,javascript_execution,headless_browser_available,viewport_size,output_file_size,notes
-basic_render,https://example.com,--html,SUCCESS,540,YES,NO,NO,NO,NO,NO,1920x1080,513,"Fallback HTTP rendering used, HTML successfully extracted"
-javascript_render,https://example.com,--javascript --html,SUCCESS,636,YES,NO,NO,NO,FALLBACK,NO,1920x1080,513,"JavaScript flag provided but headless browser not available, fallback HTTP rendering used"
-screenshot_viewport,https://example.com,--screenshot viewport,SUCCESS,628,NO,NO,NO,NO,NO,NO,1920x1080,0,"Screenshot requested but headless browser not available, no screenshot file generated"
-har_archive,https://example.com,--har --html,SUCCESS,494,YES,NO,NO,NO,NO,NO,1920x1080,513,"HAR archive requested but headless browser not available, only HTML saved"
-dom_extraction,https://example.com,--dom --html,SUCCESS,496,YES,NO,YES,NO,NO,NO,1920x1080,631,"DOM extraction partial - only basic metadata available without headless browser (118 bytes DOM JSON)"
