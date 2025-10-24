@@ -11,60 +11,80 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Copy dependency files first for better layer caching
+# Copy dependency files first for better caching
 COPY Cargo.toml Cargo.lock ./
 
-# Create directory structure and copy Cargo.toml files for all crates
-RUN mkdir -p crates/riptide-core/src \
-    crates/riptide-core/benches \
-    crates/riptide-api/src \
-    crates/riptide-headless/src \
-    crates/riptide-workers/src \
-    crates/riptide-html/src \
-    crates/riptide-html/examples \
-    crates/riptide-pdf/src \
-    crates/riptide-stealth/src \
-    crates/riptide-search/src \
-    crates/riptide-intelligence/src \
-    crates/riptide-performance/src \
-    crates/riptide-persistence/src \
-    crates/riptide-persistence/benches \
-    crates/riptide-streaming/src \
-    wasm/riptide-extractor-wasm/src
-
-# Copy individual Cargo.toml files to preserve structure
-COPY crates/riptide-core/Cargo.toml crates/riptide-core/
+# Copy all crate Cargo.toml files preserving structure
+RUN mkdir -p crates wasm
 COPY crates/riptide-api/Cargo.toml crates/riptide-api/
+COPY crates/riptide-browser-abstraction/Cargo.toml crates/riptide-browser-abstraction/
+COPY crates/riptide-browser/Cargo.toml crates/riptide-browser/
+COPY crates/riptide-cache/Cargo.toml crates/riptide-cache/
+COPY crates/riptide-cli/Cargo.toml crates/riptide-cli/
+COPY crates/riptide-config/Cargo.toml crates/riptide-config/
+COPY crates/riptide-events/Cargo.toml crates/riptide-events/
+COPY crates/riptide-extraction/Cargo.toml crates/riptide-extraction/
+COPY crates/riptide-facade/Cargo.toml crates/riptide-facade/
+COPY crates/riptide-fetch/Cargo.toml crates/riptide-fetch/
 COPY crates/riptide-headless/Cargo.toml crates/riptide-headless/
-COPY crates/riptide-workers/Cargo.toml crates/riptide-workers/
-COPY crates/riptide-html/Cargo.toml crates/riptide-html/
-COPY crates/riptide-pdf/Cargo.toml crates/riptide-pdf/
-COPY crates/riptide-stealth/Cargo.toml crates/riptide-stealth/
-COPY crates/riptide-search/Cargo.toml crates/riptide-search/
 COPY crates/riptide-intelligence/Cargo.toml crates/riptide-intelligence/
+COPY crates/riptide-monitoring/Cargo.toml crates/riptide-monitoring/
+COPY crates/riptide-pdf/Cargo.toml crates/riptide-pdf/
 COPY crates/riptide-performance/Cargo.toml crates/riptide-performance/
 COPY crates/riptide-persistence/Cargo.toml crates/riptide-persistence/
+COPY crates/riptide-pool/Cargo.toml crates/riptide-pool/
+COPY crates/riptide-reliability/Cargo.toml crates/riptide-reliability/
+COPY crates/riptide-search/Cargo.toml crates/riptide-search/
+COPY crates/riptide-security/Cargo.toml crates/riptide-security/
+COPY crates/riptide-spider/Cargo.toml crates/riptide-spider/
+COPY crates/riptide-stealth/Cargo.toml crates/riptide-stealth/
 COPY crates/riptide-streaming/Cargo.toml crates/riptide-streaming/
+COPY crates/riptide-types/Cargo.toml crates/riptide-types/
+COPY crates/riptide-workers/Cargo.toml crates/riptide-workers/
 COPY wasm/riptide-extractor-wasm/Cargo.toml wasm/riptide-extractor-wasm/
 
-# Create stub source files for dependency pre-building
-RUN echo "fn main() {}" > crates/riptide-core/src/lib.rs && \
-    echo "fn main() {}" > crates/riptide-core/benches/performance_benches.rs && \
-    echo "fn main() {}" > crates/riptide-core/benches/strategies_bench.rs && \
+# Remove benchmark and example configurations that require benches/ and examples/ directories
+# (these directories are not copied in the dependency caching layer)
+RUN sed -i '/\[\[bench\]\]/,/required-features/d' crates/riptide-performance/Cargo.toml || true && \
+    sed -i '/\[\[bench\]\]/,/required-features/d' crates/riptide-persistence/Cargo.toml || true && \
+    sed -i '/\[\[example\]\]/,/^$/d' crates/riptide-extraction/Cargo.toml || true
+
+# Create stub source files for dependency caching
+RUN mkdir -p crates/riptide-api/src crates/riptide-browser-abstraction/src \
+    crates/riptide-browser/src crates/riptide-cache/src crates/riptide-cli/src \
+    crates/riptide-config/src crates/riptide-events/src crates/riptide-extraction/src \
+    crates/riptide-facade/src crates/riptide-fetch/src crates/riptide-headless/src \
+    crates/riptide-intelligence/src crates/riptide-monitoring/src crates/riptide-pdf/src \
+    crates/riptide-performance/src crates/riptide-persistence/src crates/riptide-pool/src \
+    crates/riptide-reliability/src crates/riptide-search/src crates/riptide-security/src \
+    crates/riptide-spider/src crates/riptide-stealth/src crates/riptide-streaming/src \
+    crates/riptide-types/src crates/riptide-workers/src wasm/riptide-extractor-wasm/src && \
+    echo "fn main() {}" > crates/riptide-api/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-api/src/main.rs && \
-    echo "fn main() {}" > crates/riptide-headless/src/main.rs && \
+    echo "fn main() {}" > crates/riptide-browser-abstraction/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-browser/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-cache/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-cli/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-config/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-events/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-extraction/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-facade/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-fetch/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-headless/src/lib.rs && \
-    echo "fn main() {}" > crates/riptide-workers/src/lib.rs && \
-    echo "fn main() {}" > crates/riptide-html/src/lib.rs && \
-    echo "fn main() {}" > crates/riptide-html/examples/basic_extraction.rs && \
-    echo "fn main() {}" > crates/riptide-pdf/src/lib.rs && \
-    echo "fn main() {}" > crates/riptide-stealth/src/lib.rs && \
-    echo "fn main() {}" > crates/riptide-search/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-intelligence/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-monitoring/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-pdf/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-performance/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-persistence/src/lib.rs && \
-    echo "fn main() {}" > crates/riptide-persistence/benches/persistence_benchmarks.rs && \
+    echo "fn main() {}" > crates/riptide-pool/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-reliability/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-search/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-security/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-spider/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-stealth/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-streaming/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-types/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-workers/src/lib.rs && \
     echo "fn main() {}" > wasm/riptide-extractor-wasm/src/lib.rs
 
 # Pre-build dependencies (this layer will be cached)

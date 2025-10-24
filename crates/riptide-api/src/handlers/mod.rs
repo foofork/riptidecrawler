@@ -5,6 +5,7 @@ pub mod browser;
 pub mod chunking;
 pub mod crawl;
 pub mod deepsearch;
+pub mod engine_selection;
 pub mod extract;
 pub mod fetch;
 pub mod health;
@@ -12,6 +13,7 @@ pub mod llm;
 pub mod monitoring;
 pub mod pdf;
 pub mod pipeline_phases;
+pub mod profiles;
 pub mod profiling;
 pub mod render;
 pub mod resources;
@@ -24,7 +26,7 @@ pub mod strategies;
 pub mod tables;
 pub mod telemetry;
 pub mod utils;
-pub mod workers;
+pub mod workers; // Phase 10.4: Domain profile management API
 
 // Re-export main handlers for backward compatibility
 pub use crawl::crawl;

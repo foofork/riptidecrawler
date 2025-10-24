@@ -1293,6 +1293,59 @@ impl RipTideMetrics {
             .inc();
     }
 
+    /// Record engine selection decision (Phase 10)
+    pub fn increment_engine_selection(&self, engine: &str, _confidence: f64) {
+        // For now, just increment the gate decision counters
+        // This maps to existing metrics until we add dedicated engine selection metrics
+        match engine {
+            "raw" => self.gate_decisions_raw.inc(),
+            "wasm" => self.gate_decisions_probes_first.inc(),
+            "headless" => self.gate_decisions_headless.inc(),
+            _ => {}
+        }
+    }
+
+    /// Get engine selection statistics (Phase 10)
+    pub fn get_engine_stats(&self) -> EngineStats {
+        // For now, return basic stats from gate decision counters
+        // In production, this would track engine-specific counters
+        let raw_count = self.gate_decisions_raw.get() as u64;
+        let wasm_count = self.gate_decisions_probes_first.get() as u64;
+        let headless_count = self.gate_decisions_headless.get() as u64;
+        let cached_count = self.gate_decisions_cached.get() as u64;
+
+        let total = raw_count + wasm_count + headless_count + cached_count;
+
+        let mut engine_counts = HashMap::new();
+        engine_counts.insert("raw".to_string(), raw_count);
+        engine_counts.insert("wasm".to_string(), wasm_count);
+        engine_counts.insert("headless".to_string(), headless_count);
+        engine_counts.insert("cached".to_string(), cached_count);
+
+        let mut engine_percentages = HashMap::new();
+        if total > 0 {
+            engine_percentages.insert("raw".to_string(), (raw_count as f64 / total as f64) * 100.0);
+            engine_percentages.insert(
+                "wasm".to_string(),
+                (wasm_count as f64 / total as f64) * 100.0,
+            );
+            engine_percentages.insert(
+                "headless".to_string(),
+                (headless_count as f64 / total as f64) * 100.0,
+            );
+            engine_percentages.insert(
+                "cached".to_string(),
+                (cached_count as f64 / total as f64) * 100.0,
+            );
+        }
+
+        EngineStats {
+            total_requests: total,
+            engine_counts,
+            engine_percentages,
+        }
+    }
+
     /// Record pipeline phase timing
     /// Reserved for pipeline phase tracking - will be wired up when metrics collection is implemented
     #[allow(dead_code)]
@@ -1320,6 +1373,14 @@ pub enum ErrorType {
     Redis,
     Wasm,
     Http,
+}
+
+/// Engine selection statistics (Phase 10)
+#[derive(Debug, Clone)]
+pub struct EngineStats {
+    pub total_requests: u64,
+    pub engine_counts: HashMap<String, u64>,
+    pub engine_percentages: HashMap<String, f64>,
 }
 
 /// Phase timing tracker for structured logging and metrics

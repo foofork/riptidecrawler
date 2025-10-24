@@ -185,6 +185,9 @@ pub struct AppConfig {
 
     /// Cache warming configuration
     pub cache_warming_config: CacheWarmingConfig,
+
+    /// Engine selection configuration (Phase 10)
+    pub engine_selection_config: EngineSelectionConfig,
 }
 
 /// Enhanced pipeline configuration for phase timing and metrics
@@ -241,6 +244,38 @@ impl Default for EnhancedPipelineConfig {
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(60),
+        }
+    }
+}
+
+/// Engine selection configuration (Phase 10)
+#[derive(Clone, Debug)]
+pub struct EngineSelectionConfig {
+    /// Enable probe-first escalation for SPAs (try WASM before headless)
+    pub probe_first_spa: bool,
+    /// Enable visible text density calculation
+    #[allow(dead_code)] // Used in engine selection handlers
+    pub use_visible_text_density: bool,
+    /// Enable placeholder/skeleton detection
+    #[allow(dead_code)] // Used in engine selection handlers
+    pub detect_placeholders: bool,
+}
+
+impl Default for EngineSelectionConfig {
+    fn default() -> Self {
+        Self {
+            probe_first_spa: std::env::var("ENGINE_PROBE_FIRST_SPA")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(false), // Conservative default
+            use_visible_text_density: std::env::var("ENGINE_USE_VISIBLE_TEXT_DENSITY")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(true), // Enabled by default (Phase 10 refinement)
+            detect_placeholders: std::env::var("ENGINE_DETECT_PLACEHOLDERS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(true), // Enabled by default (Phase 10 refinement)
         }
     }
 }
@@ -310,6 +345,7 @@ impl Default for AppConfig {
             monitoring_config: MonitoringConfig::default(),
             enhanced_pipeline_config: EnhancedPipelineConfig::default(),
             cache_warming_config: CacheWarmingConfig::default(),
+            engine_selection_config: EngineSelectionConfig::default(),
         }
     }
 }
