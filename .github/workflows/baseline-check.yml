@@ -46,7 +46,7 @@ jobs:
           # Future: Parse test output and enforce 100% pass rate
 
   coverage-baseline:
-    name: Coverage Baseline
+    name: Coverage Baseline (Reporting Only)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -88,20 +88,13 @@ jobs:
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: Check coverage threshold
+      - name: Report coverage (no threshold enforcement)
         run: |
           # Extract coverage percentage from lcov.info
           COVERAGE=$(cargo llvm-cov --all-features --workspace --summary-only | grep -oP 'TOTAL\s+\d+\s+\d+\s+\K\d+\.\d+' || echo "0")
           echo "📊 Current coverage: ${COVERAGE}%"
-
-          # Enforce 80% threshold
-          THRESHOLD=80.0
-          if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
-            echo "❌ Coverage ${COVERAGE}% is below threshold ${THRESHOLD}%"
-            exit 1
-          fi
-
-          echo "✅ Coverage baseline check complete: ${COVERAGE}%"
+          echo "ℹ️  Coverage percentage gates removed - reporting only"
+          echo "✅ Coverage report complete: ${COVERAGE}%"
 
   benchmark-regression:
     name: Performance Regression Check

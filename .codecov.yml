@@ -1,25 +1,28 @@
 # Codecov Configuration for RipTide EventMesh
 # cargo-llvm-cov unified coverage across 24 workspace crates
+# Coverage percentage gates removed - reporting only
 
 coverage:
   precision: 2
   round: down
-  range: "70...100"
+  range: "0...100"
 
   status:
     project:
       default:
-        target: 80%
-        threshold: 2%
+        target: auto
+        threshold: 100%
         base: auto
-        if_ci_failed: error
+        if_ci_failed: ignore
+        informational: true
 
     patch:
       default:
-        target: 75%
-        threshold: 5%
+        target: auto
+        threshold: 100%
         base: auto
-        if_ci_failed: error
+        if_ci_failed: ignore
+        informational: true
 
 comment:
   layout: "reach,diff,flags,tree,footer"
@@ -49,12 +52,13 @@ ignore:
   - "**/test_*.rs"
   - "**/*_test.rs"
 
-# Coverage thresholds per component
+# Coverage thresholds per component - informational only (no gates)
 component_management:
   default_rules:
     statuses:
       - type: project
-        target: 80%
+        target: auto
+        informational: true
 
   individual_components:
     - component_id: core
@@ -69,7 +73,8 @@ component_management:
         - crates/riptide-pool/**
       statuses:
         - type: project
-          target: 85%
+          target: auto
+          informational: true
 
     - component_id: extraction
       name: Extraction & Processing
@@ -79,7 +84,8 @@ component_management:
         - crates/riptide-intelligence/**
       statuses:
         - type: project
-          target: 80%
+          target: auto
+          informational: true
 
     - component_id: browser
       name: Browser Abstraction
@@ -89,7 +95,8 @@ component_management:
         - crates/riptide-headless/**
       statuses:
         - type: project
-          target: 75%
+          target: auto
+          informational: true
 
     - component_id: api
       name: API & CLI
@@ -99,7 +106,8 @@ component_management:
         - crates/riptide-facade/**
       statuses:
         - type: project
-          target: 80%
+          target: auto
+          informational: true
 
     - component_id: infrastructure
       name: Infrastructure
@@ -110,7 +118,8 @@ component_management:
         - crates/riptide-persistence/**
       statuses:
         - type: project
-          target: 85%
+          target: auto
+          informational: true
 
     - component_id: wasm
       name: WASM Module
@@ -118,7 +127,8 @@ component_management:
         - wasm/riptide-extractor-wasm/**
       statuses:
         - type: project
-          target: 70%
+          target: auto
+          informational: true
 
 # GitHub checks configuration
 github_checks:

@@ -305,10 +305,9 @@ async fn test_deepsearch_basic_streaming() {
     // Setup mock servers - must keep mocks alive for duration of test
     let _serper_mock_guard =
         framework.setup_serper_mock("streaming technology", search_results.clone());
-    let _content_mocks_guard = framework.setup_content_mocks(&[
-        &format!("{}/article1", framework.content_mock_server.base_url()),
-        &format!("{}/article2", framework.content_mock_server.base_url()),
-    ]);
+    let url1 = format!("{}/article1", framework.content_mock_server.base_url());
+    let url2 = format!("{}/article2", framework.content_mock_server.base_url());
+    let _content_mocks_guard = framework.setup_content_mocks(&[url1.as_str(), url2.as_str()]);
 
     let request = framework.create_request("streaming technology", 2, true, Some(2));
     let response = framework
