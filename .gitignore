@@ -346,6 +346,10 @@ hive-mind-prompt-*.txt
 .claude/skills/verification-quality/SKILL.md
 .claude/statusline-command.sh
 
+
+# Removed Windows wrapper files per user request
+hive-mind-prompt-*.txt
+
 # Claude Flow generated files
 .claude/settings.local.json
 .mcp.json

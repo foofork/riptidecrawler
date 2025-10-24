@@ -67,6 +67,7 @@ table-extraction = []
 chunking = []
 spider = []
 strategy-traits = []
+jsonld-shortcircuit = []  # Phase 10: Early return for complete JSON-LD schemas
 
 [[example]]
 name = "basic_extraction"

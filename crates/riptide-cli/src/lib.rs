@@ -3,6 +3,7 @@
 //! This module re-exports the CLI components for use in integration tests.
 
 pub mod api_client;
+pub mod api_wrapper;
 pub mod cache;
 pub mod client;
 pub mod commands;

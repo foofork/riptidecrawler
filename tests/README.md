@@ -14,26 +14,131 @@ This comprehensive test suite follows the **London School (mockist) approach** t
 ## 📁 Test Suite Organization
 
 ```
-tests/                         # Workspace-level integration tests
-├── fixtures/                  # Mock objects and test data (London School TDD)
-│   ├── mod.rs                 # Core mock traits and implementations
-│   └── test_data.rs           # Comprehensive test data sets
-├── wasm/                      # WASM Component Integration Tests
-│   └── wasm_extractor_integration.rs
-├── api/                       # API Layer Tests
-│   └── dynamic_rendering_tests.rs
-├── chaos/                     # Chaos Engineering & Error Resilience
-│   └── error_resilience_tests.rs
-├── integration/               # Cross-Component Integration
+tests/                         # Workspace-level integration tests (251 files)
+├── unit/                      # 28 files - Component-level unit tests
+│   ├── buffer_backpressure_tests.rs
+│   ├── chunking_strategies_tests.rs
+│   ├── circuit_breaker_test.rs
+│   ├── component_model_tests.rs
+│   ├── component_model_validation.rs
+│   ├── event_system_comprehensive_tests.rs
+│   ├── event_system_test.rs
+│   ├── fix_topic_chunker.rs
+│   ├── health_system_tests.rs
+│   ├── lifetime_validation.rs
+│   ├── memory_manager_tests.rs
+│   ├── ndjson_format_compliance_tests.rs
+│   ├── opentelemetry_test.rs
+│   ├── performance_monitor_tests.rs
+│   ├── quick_circuit_test.rs
+│   ├── rate_limiter_tests.rs
+│   ├── resource_manager_edge_cases.rs
+│   ├── resource_manager_unit_tests.rs
+│   ├── singleton_thread_safety_tests.rs
+│   ├── spider_handler_tests.rs
+│   ├── strategies_pipeline_tests.rs
+│   ├── tdd_demo_test.rs
+│   ├── telemetry_opentelemetry_test.rs
+│   ├── ttfb_performance_tests.rs
+│   ├── wasm_component_guard_test.rs
+│   ├── wasm_component_tests.rs
+│   └── wasm_manager_tests.rs
+│
+├── integration/               # 38 files - Cross-component integration tests
+│   ├── browser_pool_manager_tests.rs
+│   ├── browser_pool_scaling_tests.rs
+│   ├── browser_pool_tests.rs
+│   ├── cdp_pool_tests.rs
+│   ├── cli_comprehensive/
+│   ├── cli_comprehensive_test.rs
+│   ├── contract_tests.rs
+│   ├── engine_selection_tests.rs
+│   ├── full_pipeline_tests.rs
+│   ├── gap_fixes_integration.rs
+│   ├── health_tests.rs
+│   ├── integration_dynamic_rendering.rs
+│   ├── integration_fetch_reliability.rs
+│   ├── integration_headless_cdp.rs
+│   ├── integration_pipeline_orchestration.rs
+│   ├── integration_test.rs
+│   ├── integration_tests.rs
+│   ├── memory_pressure_tests.rs
+│   ├── mod.rs
+│   ├── phase3_integration_tests.rs
+│   ├── phase4_integration_tests.rs
+│   ├── resource_management_tests.rs
+│   ├── resource_manager_integration_tests.rs
 │   ├── session_persistence_tests.rs
-│   └── contract_tests.rs
-├── unit/                      # Component-Level Unit Tests
-│   └── component_model_tests.rs
-├── lib.rs                     # Test framework and utilities
-└── Cargo.toml                 # Test dependencies
+│   ├── singleton_integration_tests.rs
+│   ├── spider_chrome_benchmarks.rs
+│   ├── spider_chrome_tests.rs
+│   ├── spider_integration_tests.rs
+│   ├── spider_multi_level_tests.rs
+│   ├── spider_query_aware_integration_test.rs
+│   ├── strategies_integration_test.rs
+│   ├── strategies_integration_tests.rs
+│   ├── streaming_integration_tests.rs
+│   ├── wasm_caching_tests.rs
+│   ├── week3_integration_tests.rs
+│   ├── wireup_tests.rs
+│   └── worker_integration_tests.rs
+│
+├── e2e/                       # 4 files - End-to-end system tests
+│   ├── e2e_api.rs
+│   ├── e2e_tests.rs
+│   ├── mod.rs
+│   └── real_world_tests.rs
+│
+├── chaos/                     # 5 files - Chaos engineering & resilience tests
+│   ├── edge_case_tests.rs
+│   ├── edge_cases_tests.rs
+│   ├── error_handling_comprehensive.rs
+│   ├── error_resilience_tests.rs
+│   └── failure_injection_tests.rs
+│
+├── performance/               # Performance & benchmark tests
+│   ├── benchmark_tests.rs
+│   ├── load_tests.rs
+│   ├── wasm_performance_test.rs
+│   └── ...
+│
+├── api/                      # API layer tests
+│   └── dynamic_rendering_tests.rs
+│
+├── cli/                      # CLI-specific tests
+│   ├── cli_tables_test.rs
+│   └── ...
+│
+├── golden/                   # Golden/snapshot tests
+│   ├── golden_test_cli.rs
+│   ├── golden_tests.rs
+│   └── outputs/
+│
+├── fixtures/                 # Shared test fixtures & mocks (London School TDD)
+│   ├── contract_definitions.rs
+│   ├── mock_services.rs
+│   ├── mod.rs
+│   ├── spa_fixtures.rs
+│   └── test_data.rs
+│
+├── benchmarks/               # Criterion benchmarks
+├── component/                # WASM component tests
+├── monitoring/               # Monitoring & observability tests
+├── regression/               # Regression test suite
+├── security/                 # Security & vulnerability tests
+├── wasm/                    # WASM-specific tests
+├── docs/                    # Test documentation
+│   ├── test-organization-summary.md
+│   ├── TESTING_GUIDE.md
+│   ├── BEST_PRACTICES.md
+│   └── ...
+│
+├── lib.rs                   # Test framework and utilities
+├── README.md                # Main test suite documentation (this file)
+└── Cargo.toml               # Test dependencies
 
-crates/                        # Crate-specific tests
-├── riptide-extraction/tests/        # HTML extraction tests
+crates/                      # Crate-specific tests
+├── riptide-extraction/tests/  # HTML extraction tests
 ├── riptide-search/tests/      # Search provider tests
 ├── riptide-stealth/tests/     # Stealth mode tests
 ├── riptide-pdf/tests/         # PDF processing tests
@@ -203,9 +308,65 @@ cargo test wasm_extractor_integration
 RUST_LOG=debug cargo test
 ```
 
-### Run Performance Benchmarks
+### Run Tests by Category
+
+#### Unit Tests (Fast Feedback - ~28 files)
 ```bash
-# Run all benchmarks
+# Run all unit tests
+cargo test --test 'unit/*'
+
+# Run specific unit test file
+cargo test --test unit/circuit_breaker_test
+
+# Run with detailed output
+cargo test --test 'unit/*' -- --nocapture --test-threads=1
+```
+
+#### Integration Tests (Cross-Component - ~38 files)
+```bash
+# Run all integration tests
+cargo test --test 'integration/*'
+
+# Run specific integration test
+cargo test --test integration/browser_pool_tests
+
+# Run Spider integration tests only
+cargo test --test 'integration/spider_*'
+
+# Run phase-specific tests
+cargo test --test 'integration/phase4_*'
+```
+
+#### E2E Tests (System Validation - ~4 files)
+```bash
+# Run all E2E tests
+cargo test --test 'e2e/*'
+
+# Run with real-world scenarios
+cargo test --test e2e/real_world_tests
+
+# Run API E2E tests
+cargo test --test e2e/e2e_api
+```
+
+#### Chaos Tests (Resilience Validation - ~5 files)
+```bash
+# Run all chaos/resilience tests
+cargo test --test 'chaos/*'
+
+# Run error resilience tests
+cargo test --test chaos/error_resilience_tests
+
+# Run failure injection tests
+cargo test --test chaos/failure_injection_tests
+```
+
+#### Performance & Benchmark Tests
+```bash
+# Run all performance tests
+cargo test --test 'performance/*'
+
+# Run criterion benchmarks
 cargo bench
 
 # Run specific benchmark group
@@ -215,19 +376,25 @@ cargo bench wasm_extraction
 cargo bench -- --output-format html
 ```
 
-### Run Tests by Category
+#### Specialized Test Categories
 ```bash
-# Integration tests only
-cargo test --test '*integration*'
+# Run CLI tests
+cargo test --test 'cli/*'
 
-# Unit tests only
-cargo test --test '*unit*'
+# Run Golden/Snapshot tests
+cargo test --test 'golden/*'
 
-# Chaos tests only
-cargo test --test '*chaos*'
+# Run API layer tests
+cargo test --test 'api/*'
 
-# Performance tests only
-cargo test --test '*performance*'
+# Run WASM component tests
+cargo test --test 'wasm/*'
+
+# Run security tests
+cargo test --test 'security/*'
+
+# Run regression tests
+cargo test --test 'regression/*'
 ```
 
 ### Coverage Analysis
@@ -235,12 +402,148 @@ cargo test --test '*performance*'
 # Install coverage tools
 cargo install cargo-tarpaulin
 
-# Generate coverage report
+# Generate coverage report for all tests
 cargo tarpaulin --workspace --out Html --output-dir coverage/
+
+# Generate coverage for specific category
+cargo tarpaulin --test 'unit/*' --out Html --output-dir coverage/unit/
+cargo tarpaulin --test 'integration/*' --out Html --output-dir coverage/integration/
 
 # View coverage report
 open coverage/tarpaulin-report.html
+
+# Coverage by crate (critical crates target: ≥85%)
+cargo tarpaulin -p riptide-core --out Html
+cargo tarpaulin -p riptide-extraction --out Html
+cargo tarpaulin -p riptide-streaming --out Html
 ```
+
+### Parallel Test Execution
+```bash
+# Run tests with maximum parallelism
+cargo test --workspace -- --test-threads=8
+
+# Run specific category in parallel
+cargo test --test 'unit/*' -- --test-threads=4
+
+# Sequential execution (for debugging)
+cargo test --workspace -- --test-threads=1
+```
+
+### CI/CD Test Commands
+```bash
+# Fast feedback loop (unit tests only)
+cargo test --test 'unit/*' --release
+
+# Full validation (all test categories)
+cargo test --workspace --release
+
+# Coverage validation (≥80% requirement)
+cargo tarpaulin --workspace --out Xml --output-dir coverage/ --fail-under 80
+
+# Performance regression check
+cargo bench --no-fail-fast
+```
+
+## 📋 Test Naming Conventions
+
+### File Naming Standards
+
+```
+<component>_<type>_tests.rs        # Standard pattern
+```
+
+**Examples:**
+- `circuit_breaker_test.rs` - Unit test for circuit breaker
+- `browser_pool_integration_tests.rs` - Integration test for browser pool
+- `spider_chrome_tests.rs` - Component-specific integration test
+- `error_resilience_tests.rs` - Chaos/resilience testing
+
+### Test Function Naming
+
+```rust
+#[tokio::test]
+async fn test_<behavior>_<condition>_<expected_result>() {
+    // Test implementation
+}
+```
+
+**Examples:**
+```rust
+#[tokio::test]
+async fn test_circuit_breaker_opens_after_consecutive_failures() { }
+
+#[tokio::test]
+async fn test_browser_pool_scales_up_under_load() { }
+
+#[tokio::test]
+async fn test_wasm_extraction_handles_malformed_html_gracefully() { }
+
+#[test]
+fn test_chunking_strategy_respects_max_tokens() { }
+```
+
+## 📂 Test Organization Guidelines
+
+### When to Place Tests in Each Directory
+
+#### `/tests/unit/`
+- **Purpose**: Fast, isolated component testing
+- **Characteristics**:
+  - No external dependencies (use mocks)
+  - Test single functions/structs
+  - Fast execution (< 100ms per test)
+  - High coverage target (≥85%)
+- **Examples**: Circuit breaker logic, rate limiter, memory manager
+
+#### `/tests/integration/`
+- **Purpose**: Multi-component interaction testing
+- **Characteristics**:
+  - Tests 2+ components working together
+  - May use real dependencies (databases, network)
+  - Moderate execution time (< 5s per test)
+  - Coverage target (≥75%)
+- **Examples**: Browser pool with CDP, extraction pipeline, session persistence
+
+#### `/tests/e2e/`
+- **Purpose**: Full system workflow validation
+- **Characteristics**:
+  - Tests complete user scenarios
+  - Uses real external services
+  - Slower execution (5-30s per test)
+  - Coverage target (≥60%)
+- **Examples**: Complete rendering pipeline, API endpoint workflows
+
+#### `/tests/chaos/`
+- **Purpose**: Resilience and error handling validation
+- **Characteristics**:
+  - Inject failures and edge cases
+  - Test system recovery
+  - Variable execution time
+  - No specific coverage target (focus on edge cases)
+- **Examples**: Network failures, resource exhaustion, malformed inputs
+
+#### `/tests/performance/`
+- **Purpose**: Performance and benchmark validation
+- **Characteristics**:
+  - Measure latency, throughput, resource usage
+  - Statistical analysis of performance
+  - Long execution time
+  - SLO validation
+- **Examples**: TTFB benchmarks, throughput tests, memory profiling
+
+### Coverage Requirements by Crate
+
+| Crate | Unit | Integration | E2E | Total Target |
+|-------|------|-------------|-----|--------------|
+| `riptide-core` | ≥90% | ≥80% | ≥60% | **≥85%** |
+| `riptide-extraction` | ≥90% | ≥80% | ≥60% | **≥85%** |
+| `riptide-streaming` | ≥85% | ≥80% | ≥65% | **≥85%** |
+| `riptide-performance` | ≥85% | ≥75% | N/A | **≥80%** |
+| `riptide-pdf` | ≥80% | ≥75% | ≥60% | **≥80%** |
+| `riptide-search` | ≥80% | ≥70% | ≥60% | **≥75%** |
+| `riptide-stealth` | ≥80% | ≥70% | ≥65% | **≥75%** |
+| **Overall** | **≥85%** | **≥75%** | **≥60%** | **≥80%** |
 
 ## 📊 Performance SLOs
 
