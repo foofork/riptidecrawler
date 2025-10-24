@@ -1,13 +1,13 @@
 openapi: 3.0.0
 info:
   title: RipTide API - Comprehensive Specification
-  version: 1.1.0
-  x-last-validated: "2025-10-17T07:50:00Z"
+  version: 1.2.0
+  x-last-validated: "2025-10-24T14:30:00Z"
   description: '# RipTide Crawler API
 
 
-    A high-performance web scraping and content extraction API with 95+ endpoints across
-    15 categories.
+    A high-performance web scraping and content extraction API with 110+ endpoints across
+    17 categories.
 
 
     ## Phase 1: Core Crawling & Event System (11 endpoints)
@@ -47,6 +47,13 @@ info:
     - `/monitoring/*` - Health monitoring and alerts (6)
 
 
+    ## Phase 10.4: Domain Profiling & Engine Selection (15 endpoints)
+
+    - `/api/v1/profiles/*` - Domain profile management with warm-start caching (11)
+
+    - `/api/v1/engine/*` - Intelligent engine selection and analysis (4)
+
+
     ## Architecture Highlights
 
     - **Dual-Path Pipeline**: Fast CSS + async AI enhancement
@@ -57,8 +64,12 @@ info:
 
     - **Adaptive Gate**: Smart routing (raw/probes/headless/cached)
 
+    - **Domain Profiling**: Warm-start optimization with cached engine preferences
 
-    **Total: 95+ endpoints documented**
+    - **Engine Selection**: AI-driven engine recommendations with 60-80% cost savings
+
+
+    **Total: 110+ endpoints documented**
 
     '
   contact:
@@ -108,6 +119,10 @@ tags:
   description: Health checks (6)
 - name: Admin
   description: Admin endpoints (13)
+- name: Profiles
+  description: Domain profile management (11)
+- name: Engine
+  description: Engine selection and analysis (4)
 paths:
   /healthz:
     get:
@@ -277,7 +292,7 @@ paths:
       operationId: render_post_v1
   /extract:
     post:
-      operationId: extract
+      operationId: extract_post
       tags:
       - Extraction
       summary: Content extraction endpoint
@@ -285,10 +300,9 @@ paths:
       responses:
         '200':
           description: Extracted content
-      operationId: extract_post
   /api/v1/extract:
     post:
-      operationId: extract_v1
+      operationId: extract_post_v1
       tags:
       - Extraction
       summary: Versioned content extraction
@@ -296,10 +310,9 @@ paths:
       responses:
         '200':
           description: Extracted content
-      operationId: extract_post_v1
   /search:
     get:
-      operationId: search
+      operationId: search_get
       tags:
       - Search
       summary: Web search endpoint
@@ -307,10 +320,9 @@ paths:
       responses:
         '200':
           description: Search results
-      operationId: search_get
   /api/v1/search:
     get:
-      operationId: search_v1
+      operationId: search_get_v1
       tags:
       - Search
       summary: Versioned web search
@@ -318,7 +330,6 @@ paths:
       responses:
         '200':
           description: Search results
-      operationId: search_get_v1
   /spider/crawl:
     post:
       tags:
@@ -1053,3 +1064,1057 @@ paths:
         '200':
           description: State reloaded
       operationId: admin_state_reload_post
+  /api/v1/profiles:
+    post:
+      operationId: create_profile
+      tags:
+      - Profiles
+      summary: Create domain profile
+      description: |
+        Creates a new domain profile with optional configuration and metadata.
+        Profiles store domain-specific preferences and cached engine selections
+        for warm-start optimization.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProfileRequest'
+            example:
+              domain: example.com
+              config:
+                stealth_level: high
+                rate_limit: 2.0
+                confidence_threshold: 0.8
+                enable_javascript: true
+                request_timeout_secs: 30
+              metadata:
+                description: E-commerce site with product pages
+                tags: [ecommerce, product-pages]
+                author: admin
+      responses:
+        '201':
+          description: Profile created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainProfile'
+        '400':
+          description: Invalid request (validation error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Domain cannot be empty
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      operationId: list_profiles
+      tags:
+      - Profiles
+      summary: List all domain profiles
+      description: |
+        Lists all domain profiles with optional filtering by domain pattern.
+        Useful for discovering existing profiles and their configurations.
+      parameters:
+      - name: filter
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Optional domain name filter pattern (substring match)
+        example: example
+      responses:
+        '200':
+          description: List of profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DomainProfile'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/profiles/{domain}:
+    get:
+      operationId: get_profile
+      tags:
+      - Profiles
+      summary: Get domain profile
+      description: Retrieves a specific domain profile by domain name
+      parameters:
+      - name: domain
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Domain name (e.g., example.com)
+        example: example.com
+      responses:
+        '200':
+          description: Profile found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainProfile'
+        '404':
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Profile not found for domain example.com
+        '500':
+          description: Internal server error
+    put:
+      operationId: update_profile
+      tags:
+      - Profiles
+      summary: Update domain profile
+      description: Updates an existing domain profile's configuration and metadata
+      parameters:
+      - name: domain
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Domain name to update
+        example: example.com
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+            example:
+              config:
+                stealth_level: medium
+                rate_limit: 5.0
+              metadata:
+                tags: [updated, optimized]
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainProfile'
+        '404':
+          description: Profile not found
+        '400':
+          description: Validation error
+        '500':
+          description: Internal server error
+    delete:
+      operationId: delete_profile
+      tags:
+      - Profiles
+      summary: Delete domain profile
+      description: Permanently deletes a domain profile from the registry
+      parameters:
+      - name: domain
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Domain name to delete
+        example: example.com
+      responses:
+        '204':
+          description: Profile deleted successfully (no content)
+        '404':
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+  /api/v1/profiles/{domain}/stats:
+    get:
+      operationId: get_profile_stats
+      tags:
+      - Profiles
+      summary: Get domain profile statistics
+      description: |
+        Retrieves usage statistics and cache status for a domain profile.
+        Includes request counts, success rates, response times, and cache information.
+      parameters:
+      - name: domain
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Domain name
+        example: example.com
+      responses:
+        '200':
+          description: Profile statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileStatsResponse'
+              example:
+                domain: example.com
+                total_requests: 1250
+                success_rate: 0.98
+                avg_response_time_ms: 450
+                last_accessed: "2025-10-24T14:25:00Z"
+                cache_status:
+                  has_cached_engine: true
+                  is_valid: true
+                  engine: Wasm
+                  confidence: 0.92
+                  expires_at: "2025-10-31T14:25:00Z"
+        '404':
+          description: Profile not found
+        '500':
+          description: Internal server error
+  /api/v1/profiles/metrics:
+    get:
+      operationId: get_caching_metrics
+      tags:
+      - Profiles
+      summary: Get global caching metrics
+      description: |
+        Retrieves aggregated metrics about profile caching status across all domains.
+        Useful for monitoring cache effectiveness and optimization opportunities.
+      responses:
+        '200':
+          description: Caching metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CachingMetricsResponse'
+              example:
+                total_profiles: 150
+                cached_profiles: 120
+                cache_hit_rate: 80.0
+                avg_confidence: 0.87
+                expired_caches: 5
+        '500':
+          description: Internal server error
+  /api/v1/profiles/batch:
+    post:
+      operationId: batch_create_profiles
+      tags:
+      - Profiles
+      summary: Batch create domain profiles
+      description: |
+        Creates multiple domain profiles in a single request.
+        Returns both successful creations and failures with error details.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchCreateRequest'
+            example:
+              profiles:
+              - domain: example1.com
+                config:
+                  stealth_level: high
+              - domain: example2.com
+                metadata:
+                  description: Test domain
+              - domain: example3.com
+      responses:
+        '201':
+          description: Batch creation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchCreateResponse'
+              example:
+                created: [example1.com, example3.com]
+                failed:
+                - domain: example2.com
+                  error: Domain already exists
+        '400':
+          description: Invalid request
+        '500':
+          description: Internal server error
+  /api/v1/profiles/search:
+    get:
+      operationId: search_profiles
+      tags:
+      - Profiles
+      summary: Search domain profiles
+      description: |
+        Searches for profiles matching the query pattern.
+        Supports substring matching across domain names.
+      parameters:
+      - name: query
+        in: query
+        required: true
+        schema:
+          type: string
+        description: Search query (domain substring)
+        example: shop
+      responses:
+        '200':
+          description: Matching profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DomainProfile'
+        '400':
+          description: Invalid query
+        '500':
+          description: Internal server error
+  /api/v1/profiles/{domain}/warm:
+    post:
+      operationId: warm_cache
+      tags:
+      - Profiles
+      summary: Warm domain cache
+      description: |
+        Warms the engine cache for a domain by analyzing a representative URL.
+        This preloads the optimal engine preference for faster subsequent requests.
+      parameters:
+      - name: domain
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Domain name
+        example: example.com
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WarmCacheRequest'
+            example:
+              url: https://example.com/product/12345
+      responses:
+        '200':
+          description: Cache warmed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WarmCacheResponse'
+              example:
+                success: true
+                domain: example.com
+                cached_engine: Wasm
+                confidence: 0.85
+                message: Cache warmed successfully for domain example.com
+        '404':
+          description: Profile not found
+        '500':
+          description: Internal server error
+  /api/v1/profiles/clear:
+    delete:
+      operationId: clear_all_caches
+      tags:
+      - Profiles
+      summary: Clear all profile caches
+      description: |
+        Clears all cached engine preferences across all profiles.
+        Useful for resetting optimization state after major changes.
+      responses:
+        '200':
+          description: Caches cleared
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  cleared:
+                    type: integer
+                  failed:
+                    type: integer
+                  message:
+                    type: string
+              example:
+                success: true
+                cleared: 45
+                failed: 0
+                message: Cleared 45 profile caches
+        '500':
+          description: Internal server error
+  /api/v1/engine/analyze:
+    post:
+      operationId: analyze_engine
+      tags:
+      - Engine
+      summary: Analyze HTML and recommend engine
+      description: |
+        Performs comprehensive content analysis and provides engine recommendation.
+        Analyzes JavaScript frameworks, SPA markers, content ratios, and more.
+
+        **Analysis includes:**
+        - Framework detection (React, Vue, Angular)
+        - SPA and anti-scraping detection
+        - Content-to-markup ratio
+        - Visible text density
+        - Placeholder/skeleton UI detection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalyzeRequest'
+            example:
+              html: "<html><body><div id=\"root\">...</div></body></html>"
+              url: https://example.com
+      responses:
+        '200':
+          description: Analysis complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyzeResponse'
+              example:
+                engine: Headless
+                confidence: 92.5
+                reasons:
+                - React framework detected (Next.js markers, webpack)
+                - Single Page Application (SPA) markers found
+                - Low content-to-markup ratio (8.5%) suggests client-side rendering
+                analysis:
+                  has_react: true
+                  has_vue: false
+                  has_angular: false
+                  has_spa_markers: true
+                  has_anti_scraping: false
+                  content_ratio: 0.085
+                  has_main_content: false
+                  visible_text_density: 0.12
+                  has_placeholders: true
+        '400':
+          description: Invalid request
+        '500':
+          description: Internal server error
+  /api/v1/engine/decide:
+    post:
+      operationId: decide_engine
+      tags:
+      - Engine
+      summary: Make engine decision with feature flags
+      description: |
+        Makes engine selection with fine-grained control through feature flags.
+        Supports advanced optimizations like probe-first escalation.
+
+        **Feature Flags:**
+        - `use_visible_text_density`: Refined visible-text calculation
+        - `detect_placeholders`: Enable skeleton UI detection
+        - `probe_first_spa`: Try WASM before headless (60-80% cost savings)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DecideRequest'
+            example:
+              html: "<html><body><div id=\"app\">...</div></body></html>"
+              url: https://spa-example.com
+              flags:
+                use_visible_text_density: true
+                detect_placeholders: true
+                probe_first_spa: true
+      responses:
+        '200':
+          description: Decision made
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecideResponse'
+              example:
+                engine: Wasm
+                confidence: 75.0
+                reasons:
+                - Vue.js framework detected
+                - Probe-first mode enabled - trying WASM extraction first
+                - Good content-to-markup ratio (35.2%) indicates server-rendered content
+                flags:
+                  use_visible_text_density: true
+                  detect_placeholders: true
+                  probe_first_spa: true
+        '400':
+          description: Invalid request
+        '500':
+          description: Internal server error
+  /api/v1/engine/stats:
+    get:
+      operationId: get_engine_stats
+      tags:
+      - Engine
+      summary: Get engine usage statistics
+      description: |
+        Returns aggregated statistics about engine usage across all requests.
+        Includes total counts, per-engine breakdown, and probe-first mode status.
+      responses:
+        '200':
+          description: Engine statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EngineStatsResponse'
+              example:
+                total_requests: 5420
+                engine_counts:
+                  Raw: 1250
+                  Wasm: 2890
+                  Headless: 1280
+                engine_percentages:
+                  Raw: 23.1
+                  Wasm: 53.3
+                  Headless: 23.6
+                probe_first_enabled: true
+        '500':
+          description: Internal server error
+  /api/v1/engine/probe-first:
+    put:
+      operationId: toggle_probe_first
+      tags:
+      - Engine
+      summary: Toggle probe-first mode
+      description: |
+        Enable or disable probe-first SPA optimization globally.
+        When enabled, SPA-detected pages try WASM extraction before headless.
+
+        **Cost Impact:**
+        - Enabled: 60-80% cost savings on SPAs with server-rendered content
+        - Risk: Minimal - automatic escalation ensures content quality
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProbeFirstRequest'
+            example:
+              enabled: true
+      responses:
+        '200':
+          description: Probe-first mode toggled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProbeFirstResponse'
+              example:
+                enabled: true
+                message: Probe-first mode enabled. SPAs will try WASM extraction before headless.
+        '400':
+          description: Invalid request
+        '500':
+          description: Internal server error
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+      required:
+      - error
+    
+    # ==================== Domain Profile Schemas ====================
+    
+    CreateProfileRequest:
+      type: object
+      required:
+      - domain
+      properties:
+        domain:
+          type: string
+          description: Domain name (e.g., example.com)
+          example: example.com
+        config:
+          $ref: '#/components/schemas/ProfileConfigRequest'
+        metadata:
+          $ref: '#/components/schemas/ProfileMetadataRequest'
+    
+    ProfileConfigRequest:
+      type: object
+      properties:
+        stealth_level:
+          type: string
+          description: Stealth browsing level
+          enum: [low, medium, high, maximum]
+          example: high
+        rate_limit:
+          type: number
+          format: double
+          description: Requests per second limit
+          minimum: 0.1
+          maximum: 100.0
+          example: 2.0
+        respect_robots_txt:
+          type: boolean
+          description: Whether to respect robots.txt
+          example: true
+        ua_strategy:
+          type: string
+          description: User-Agent rotation strategy
+          example: random
+        confidence_threshold:
+          type: number
+          format: double
+          description: Minimum confidence for engine selection (0.0-1.0)
+          minimum: 0.0
+          maximum: 1.0
+          example: 0.8
+        enable_javascript:
+          type: boolean
+          description: Enable JavaScript execution
+          example: true
+        request_timeout_secs:
+          type: integer
+          format: int64
+          description: Request timeout in seconds
+          minimum: 1
+          maximum: 300
+          example: 30
+    
+    ProfileMetadataRequest:
+      type: object
+      properties:
+        description:
+          type: string
+          description: Profile description
+          example: E-commerce site with product pages
+        tags:
+          type: array
+          items:
+            type: string
+          description: Profile tags for categorization
+          example: [ecommerce, product-pages]
+        author:
+          type: string
+          description: Profile creator
+          example: admin
+    
+    UpdateProfileRequest:
+      type: object
+      properties:
+        config:
+          $ref: '#/components/schemas/ProfileConfigRequest'
+        metadata:
+          $ref: '#/components/schemas/ProfileMetadataRequest'
+    
+    DomainProfile:
+      type: object
+      required:
+      - domain
+      - config
+      - metadata
+      properties:
+        domain:
+          type: string
+          description: Domain name
+          example: example.com
+        config:
+          type: object
+          description: Profile configuration
+          properties:
+            stealth_level:
+              type: string
+              example: high
+            rate_limit:
+              type: number
+              example: 2.0
+            respect_robots_txt:
+              type: boolean
+              example: true
+            ua_strategy:
+              type: string
+              example: random
+            confidence_threshold:
+              type: number
+              example: 0.8
+            enable_javascript:
+              type: boolean
+              example: true
+            request_timeout_secs:
+              type: integer
+              example: 30
+        metadata:
+          type: object
+          description: Profile metadata
+          properties:
+            description:
+              type: string
+              nullable: true
+            tags:
+              type: array
+              items:
+                type: string
+            author:
+              type: string
+              nullable: true
+            total_requests:
+              type: integer
+              format: int64
+            success_rate:
+              type: number
+              format: double
+            avg_response_time_ms:
+              type: integer
+              format: int64
+            last_accessed:
+              type: string
+              format: date-time
+              nullable: true
+        preferred_engine:
+          type: string
+          nullable: true
+          description: Cached engine preference
+          enum: [Raw, Wasm, Headless, Auto]
+          example: Wasm
+        last_success_confidence:
+          type: number
+          format: double
+          nullable: true
+          description: Confidence score of last successful engine selection
+          example: 0.92
+        cache_expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Cache expiration timestamp
+    
+    BatchCreateRequest:
+      type: object
+      required:
+      - profiles
+      properties:
+        profiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateProfileRequest'
+          description: List of profiles to create
+    
+    BatchCreateResponse:
+      type: object
+      properties:
+        created:
+          type: array
+          items:
+            type: string
+          description: Successfully created domain names
+        failed:
+          type: array
+          items:
+            $ref: '#/components/schemas/BatchFailure'
+          description: Failed creation attempts
+    
+    BatchFailure:
+      type: object
+      properties:
+        domain:
+          type: string
+          description: Domain name that failed
+        error:
+          type: string
+          description: Error message
+    
+    ProfileStatsResponse:
+      type: object
+      properties:
+        domain:
+          type: string
+          description: Domain name
+        total_requests:
+          type: integer
+          format: int64
+          description: Total number of requests
+        success_rate:
+          type: number
+          format: double
+          description: Success rate (0.0-1.0)
+        avg_response_time_ms:
+          type: integer
+          format: int64
+          description: Average response time in milliseconds
+        last_accessed:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last access timestamp
+        cache_status:
+          $ref: '#/components/schemas/CacheStatusInfo'
+    
+    CacheStatusInfo:
+      type: object
+      properties:
+        has_cached_engine:
+          type: boolean
+          description: Whether an engine is cached
+        is_valid:
+          type: boolean
+          description: Whether the cache is still valid
+        engine:
+          type: string
+          nullable: true
+          description: Cached engine name
+          enum: [Raw, Wasm, Headless, Auto]
+        confidence:
+          type: number
+          format: double
+          nullable: true
+          description: Confidence score
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Cache expiration timestamp
+    
+    WarmCacheRequest:
+      type: object
+      required:
+      - url
+      properties:
+        url:
+          type: string
+          format: uri
+          description: Representative URL to analyze
+          example: https://example.com/product/12345
+    
+    WarmCacheResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Whether cache warming succeeded
+        domain:
+          type: string
+          description: Domain name
+        cached_engine:
+          type: string
+          nullable: true
+          description: Cached engine name
+        confidence:
+          type: number
+          format: double
+          nullable: true
+          description: Confidence score
+        message:
+          type: string
+          description: Result message
+    
+    CachingMetricsResponse:
+      type: object
+      properties:
+        total_profiles:
+          type: integer
+          description: Total number of profiles
+        cached_profiles:
+          type: integer
+          description: Number of profiles with cached engines
+        cache_hit_rate:
+          type: number
+          format: double
+          description: Cache hit rate percentage (0-100)
+        avg_confidence:
+          type: number
+          format: double
+          description: Average confidence score across cached profiles
+        expired_caches:
+          type: integer
+          description: Number of expired caches
+    
+    # ==================== Engine Selection Schemas ====================
+    
+    AnalyzeRequest:
+      type: object
+      required:
+      - html
+      - url
+      properties:
+        html:
+          type: string
+          description: HTML content to analyze
+          example: "<html><body><div id=\"root\">...</div></body></html>"
+        url:
+          type: string
+          format: uri
+          description: Source URL for context
+          example: https://example.com
+    
+    AnalyzeResponse:
+      type: object
+      properties:
+        engine:
+          type: string
+          description: Recommended engine
+          enum: [Raw, Wasm, Headless, Auto]
+          example: Headless
+        confidence:
+          type: number
+          format: double
+          description: Confidence score (0-100)
+          example: 92.5
+        reasons:
+          type: array
+          items:
+            type: string
+          description: Reasons for the recommendation
+          example:
+          - React framework detected (Next.js markers, webpack)
+          - Single Page Application (SPA) markers found
+        analysis:
+          $ref: '#/components/schemas/ContentAnalysisResponse'
+    
+    ContentAnalysisResponse:
+      type: object
+      properties:
+        has_react:
+          type: boolean
+          description: React/Next.js framework detected
+        has_vue:
+          type: boolean
+          description: Vue.js framework detected
+        has_angular:
+          type: boolean
+          description: Angular framework detected
+        has_spa_markers:
+          type: boolean
+          description: SPA markers detected
+        has_anti_scraping:
+          type: boolean
+          description: Anti-scraping protection detected
+        content_ratio:
+          type: number
+          format: double
+          description: Content-to-markup ratio (0.0-1.0)
+        has_main_content:
+          type: boolean
+          description: Has main content tags (article, main)
+        visible_text_density:
+          type: number
+          format: double
+          description: Visible text density (excludes scripts/styles)
+        has_placeholders:
+          type: boolean
+          description: Placeholder/skeleton elements detected
+    
+    DecideRequest:
+      type: object
+      required:
+      - html
+      - url
+      properties:
+        html:
+          type: string
+          description: HTML content to analyze
+        url:
+          type: string
+          format: uri
+          description: Source URL for context
+        flags:
+          $ref: '#/components/schemas/EngineSelectionFlagsRequest'
+    
+    EngineSelectionFlagsRequest:
+      type: object
+      properties:
+        use_visible_text_density:
+          type: boolean
+          description: Enable refined visible-text density calculation
+          default: false
+        detect_placeholders:
+          type: boolean
+          description: Enable placeholder/skeleton detection
+          default: false
+        probe_first_spa:
+          type: boolean
+          description: Try WASM before headless for SPAs (60-80% cost savings)
+          default: false
+    
+    DecideResponse:
+      type: object
+      properties:
+        engine:
+          type: string
+          description: Selected engine
+          enum: [Raw, Wasm, Headless, Auto]
+        confidence:
+          type: number
+          format: double
+          description: Confidence score (0-100)
+        reasons:
+          type: array
+          items:
+            type: string
+          description: Reasons for the decision
+        flags:
+          $ref: '#/components/schemas/EngineSelectionFlagsResponse'
+    
+    EngineSelectionFlagsResponse:
+      type: object
+      properties:
+        use_visible_text_density:
+          type: boolean
+          description: Visible-text density calculation enabled
+        detect_placeholders:
+          type: boolean
+          description: Placeholder detection enabled
+        probe_first_spa:
+          type: boolean
+          description: Probe-first mode enabled
+    
+    EngineStatsResponse:
+      type: object
+      properties:
+        total_requests:
+          type: integer
+          format: int64
+          description: Total requests analyzed
+        engine_counts:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+          description: Engine usage counts
+          example:
+            Raw: 1250
+            Wasm: 2890
+            Headless: 1280
+        engine_percentages:
+          type: object
+          additionalProperties:
+            type: number
+            format: double
+          description: Engine usage percentages
+          example:
+            Raw: 23.1
+            Wasm: 53.3
+            Headless: 23.6
+        probe_first_enabled:
+          type: boolean
+          description: Current probe-first mode status
+    
+    ProbeFirstRequest:
+      type: object
+      required:
+      - enabled
+      properties:
+        enabled:
+          type: boolean
+          description: Enable or disable probe-first mode
+    
+    ProbeFirstResponse:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          description: New probe-first mode status
+        message:
+          type: string
+          description: Success message
