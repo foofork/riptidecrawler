@@ -1,15 +1,15 @@
 # Riptide Extractor WASM
 
-High-performance WebAssembly-powered content extraction module leveraging the TREK algorithm for intelligent article extraction, metadata processing, and rich content analysis.
+High-performance WebAssembly-powered content extraction module for intelligent article extraction, metadata processing, and rich content analysis.
 
 ## Overview and Purpose
 
-`riptide-extractor-wasm` is a WebAssembly component that provides portable, high-performance content extraction capabilities across any platform supporting the WASM Component Model. Built on the [trek-rs](https://github.com/yourusername/trek-rs) library, it delivers consistent ~45ms average extraction times while maintaining feature parity with native implementations.
+`riptide-extractor-wasm` is a WebAssembly component that provides portable, high-performance content extraction capabilities across any platform supporting the WASM Component Model. Built using native Rust extraction algorithms with `scraper` for HTML parsing, it delivers consistent ~45ms average extraction times while maintaining feature parity with native implementations.
 
 ### Key Features
 
 - **WASM Component Model Architecture** - Standards-compliant WebAssembly interface using WIT (WebAssembly Interface Types)
-- **TREK Algorithm Integration** - Advanced readability-based content extraction with automatic noise removal
+- **Advanced Content Extraction** - Readability-based content extraction with automatic noise removal using heuristics and DOM analysis
 - **Multi-Mode Extraction** - Article, full-page, metadata-only, and custom CSS selector modes
 - **Rich Content Analysis** - Link extraction, media detection, language identification, and category inference
 - **Language Detection** - Powered by `whatlang` with support for 85+ languages
@@ -63,49 +63,52 @@ world extractor {
 - **`cdylib`** - Dynamic library output for WASM runtimes
 - **`rlib`** - Rust library for native integration and testing
 
-## TREK Extraction Algorithm
+## Content Extraction Algorithm
 
 ### Algorithm Overview
 
-TREK (Text Readability Extraction Kit) is a sophisticated algorithm that combines multiple techniques to extract meaningful content:
+The extractor uses a sophisticated multi-stage algorithm that combines multiple techniques to extract meaningful content:
 
-1. **DOM Tree Analysis** - Identifies content blocks by analyzing node depth, text density, and sibling relationships
-2. **Noise Removal** - Eliminates navigation, advertisements, sidebars, and boilerplate using heuristics and exact/partial selectors
+1. **DOM Tree Analysis** - Identifies content blocks by analyzing node depth, text density, and sibling relationships using `scraper`
+2. **Noise Removal** - Eliminates navigation, advertisements, sidebars, and boilerplate using heuristics and CSS selectors
 3. **Content Scoring** - Assigns quality scores based on paragraph length, link density, punctuation, and semantic markers
-4. **Structured Data Extraction** - Parses JSON-LD, Open Graph, and meta tags for metadata enrichment
+4. **Structured Data Extraction** - Parses JSON-LD, Open Graph, microdata, and meta tags for metadata enrichment
 
-### Trek-rs Integration
+### Implementation
 
 ```rust
-use trek_rs::{Trek, TrekOptions};
+use scraper::{Html, Selector};
 
-// Configure extraction mode
-let options = TrekOptions {
-    debug: false,
-    url: Some(base_url),
-    output: trek_rs::types::OutputOptions {
-        markdown: true,          // Generate Markdown output
-        separate_markdown: true, // Separate content structure
-    },
-    removal: trek_rs::types::RemovalOptions {
-        remove_exact_selectors: true,    // Remove ads, navs
-        remove_partial_selectors: true,  // Remove likely noise
-    },
-};
+// Parse HTML document
+let document = Html::parse_document(html);
 
-let extractor = Trek::new(options);
-let response = extractor.parse(html)?;
+// Extract main content using readability heuristics
+let content = extract_main_content(&document, url)?;
+
+// Extract structured metadata
+let metadata = extract_metadata(&document)?;
+
+// Perform language detection
+let language = detect_language(&content.text)?;
 ```
 
-### Enhanced Extraction Features
+### Two-Stage Extraction Pipeline
 
-Beyond TREK's base capabilities, this component adds:
+The extractor uses a two-stage pipeline for comprehensive content extraction:
 
-- **Link Extraction** - Full URL resolution with attributes (`rel`, `hreflang`, link text)
-- **Media Discovery** - Images (including `srcset`), videos, audio, Open Graph images, favicons
-- **Language Detection** - Multi-method detection: HTML lang attribute, meta tags, JSON-LD, automatic text analysis
-- **Category Inference** - Breadcrumbs, JSON-LD sections, article tags, heuristic-based classification
-- **Quality Scoring** - Enhanced 0-100 score incorporating content richness, metadata completeness, media presence
+**Stage 1: Base Extraction (`perform_extraction_with_scraper`)**
+- Title extraction (from `<title>`, Open Graph, or `<h1>`)
+- Metadata extraction (author, published date, site name, description)
+- Main content extraction based on mode (Article/Full/Metadata/Custom)
+- Word count and reading time calculation
+- Basic quality score (0-100) based on content metrics
+
+**Stage 2: Enhancement (`perform_enhanced_extraction`)**
+- **Link Extraction** - Full URL resolution with attributes (`rel`, `hreflang`, link text), canonical links
+- **Media Discovery** - Images (including `srcset`, picture elements), videos, audio, Open Graph images, favicons
+- **Language Detection** - Multi-method detection: HTML `lang` attribute, meta tags, JSON-LD `inLanguage`, automatic text analysis with whatlang
+- **Category Inference** - JSON-LD articleSection, breadcrumbs (schema.org BreadcrumbList), meta tags, article tags
+- **Quality Scoring** - Enhanced score incorporating link richness, media presence, language detection, and categories
 
 ## Building the WASM Module
 
@@ -162,12 +165,14 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-wit-bindgen = "0.34"
-trek-rs = "0.1"
-scraper = "0.20"      # HTML parsing
-whatlang = "0.16"     # Language detection
-regex = "1"           # Pattern matching
-url = "2"             # URL resolution
+wit-bindgen = "0.34"    # WASM Component Model bindings
+scraper = "0.20"        # HTML parsing and CSS selectors
+whatlang = "0.16"       # Language detection (85+ languages)
+regex = "1"             # Pattern matching for content analysis
+url = "2"               # URL resolution and normalization
+once_cell = "1"         # Lazy static initialization
+chrono = "0.4"          # Date/time handling
+anyhow = "1"            # Error handling
 ```
 
 ## Integration with riptide-core
@@ -354,7 +359,7 @@ pub enum ExtractionError {
     NetworkError(String),     // Network issues (future)
     ParseError(String),       // HTML parsing failure
     ResourceLimit(String),    // Memory/time exceeded
-    ExtractorError(String),   // Trek-rs errors
+    ExtractorError(String),   // Extraction algorithm errors
     InternalError(String),    // Component failures
     UnsupportedMode(String),  // Invalid extraction mode
 }

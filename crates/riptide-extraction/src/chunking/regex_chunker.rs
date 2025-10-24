@@ -18,7 +18,14 @@ impl RegexChunker {
     pub fn new(pattern: String, min_chunk_size: usize, config: ChunkingConfig) -> Self {
         let regex = Regex::new(&pattern).unwrap_or_else(|_| {
             // Fallback to paragraph splitting if regex is invalid
-            Regex::new(r"\n\s*\n").unwrap()
+            // This fallback regex is simple and should always compile
+            Regex::new(r"\n\s*\n").unwrap_or_else(|_| {
+                // Last resort: use single newline
+                Regex::new(r"\n").unwrap_or_else(|_| {
+                    // Unreachable: newline regex is always valid
+                    panic!("Failed to compile even simplest regex")
+                })
+            })
         });
 
         Self {

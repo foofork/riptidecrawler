@@ -55,7 +55,10 @@ impl ChunkingStrategy for SentenceChunker {
                 chunks.push(chunk);
 
                 // Reset for next chunk
-                start_pos = current_chunk_sentences.last().unwrap().end_pos;
+                start_pos = current_chunk_sentences
+                    .last()
+                    .map(|s| s.end_pos)
+                    .unwrap_or(start_pos);
                 current_chunk_sentences.clear();
                 current_tokens = 0;
                 chunk_index += 1;
@@ -116,7 +119,7 @@ fn create_sentence_chunk(
         .collect::<Vec<_>>()
         .join(" ");
 
-    let end_pos = sentences.last().unwrap().end_pos;
+    let end_pos = sentences.last().map(|s| s.end_pos).unwrap_or(start_pos);
     let word_count = content.split_whitespace().count();
     let sentence_count = sentences.len();
     let topic_keywords = utils::extract_topic_keywords(&content);
@@ -293,8 +296,12 @@ fn is_likely_abbreviation(word: &str) -> bool {
     }
 
     // Single letter followed by period
-    if word.len() == 2 && word.ends_with('.') && word.chars().next().unwrap().is_uppercase() {
-        return true;
+    if word.len() == 2 && word.ends_with('.') {
+        if let Some(first_char) = word.chars().next() {
+            if first_char.is_uppercase() {
+                return true;
+            }
+        }
     }
 
     // Multiple periods (e.g., "Ph.D.")

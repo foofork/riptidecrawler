@@ -507,23 +507,23 @@ fn strategy_name(strategy: &ExtractionStrategy) -> String {
 }
 
 /// Compare strategies and provide recommendations
-pub fn compare_strategies(results: &[BenchmarkResult]) -> StrategyComparison {
+pub fn compare_strategies(results: &[BenchmarkResult]) -> Result<StrategyComparison> {
     if results.is_empty() {
-        return StrategyComparison {
+        return Ok(StrategyComparison {
             baseline_strategy: "none".to_string(),
             comparisons: Vec::new(),
             winner: "none".to_string(),
             performance_ratios: HashMap::new(),
             quality_ratios: HashMap::new(),
             recommendations: vec!["No results to compare".to_string()],
-        };
+        });
     }
 
     // Find the fastest strategy
     let fastest = results
         .iter()
         .min_by(|a, b| a.average_time.cmp(&b.average_time))
-        .unwrap();
+        .ok_or_else(|| anyhow::anyhow!("No benchmark results available"))?;
 
     let baseline_strategy = fastest.strategy_name.clone();
     let mut performance_ratios = HashMap::new();
@@ -547,8 +547,12 @@ pub fn compare_strategies(results: &[BenchmarkResult]) -> StrategyComparison {
 
     let highest_quality = results
         .iter()
-        .max_by(|a, b| a.quality_score.partial_cmp(&b.quality_score).unwrap())
-        .unwrap();
+        .max_by(|a, b| {
+            a.quality_score
+                .partial_cmp(&b.quality_score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .ok_or_else(|| anyhow::anyhow!("No benchmark results available"))?;
 
     if highest_quality.strategy_name != fastest.strategy_name {
         recommendations.push(format!(
@@ -563,21 +567,21 @@ pub fn compare_strategies(results: &[BenchmarkResult]) -> StrategyComparison {
         .max_by(|a, b| {
             (a.quality_score / a.average_time.as_secs_f64())
                 .partial_cmp(&(b.quality_score / b.average_time.as_secs_f64()))
-                .unwrap()
+                .unwrap_or(std::cmp::Ordering::Equal)
         })
-        .unwrap();
+        .ok_or_else(|| anyhow::anyhow!("No benchmark results available"))?;
 
     recommendations.push(format!(
         "Most efficient (quality/time): {}",
         most_efficient.strategy_name
     ));
 
-    StrategyComparison {
+    Ok(StrategyComparison {
         baseline_strategy: baseline_strategy.clone(),
         comparisons: Vec::new(), // Simplified for now
         winner: baseline_strategy,
         performance_ratios,
         quality_ratios,
         recommendations,
-    }
+    })
 }

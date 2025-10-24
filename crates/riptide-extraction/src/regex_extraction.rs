@@ -148,7 +148,10 @@ fn strip_html_tags(html: &str) -> String {
     let document = Html::parse_document(html);
 
     // Remove script and style content
-    let script_selector = Selector::parse("script, style").unwrap();
+    let script_selector = match Selector::parse("script, style") {
+        Ok(sel) => sel,
+        Err(_) => return String::new(), // Fallback on selector parse error
+    };
     let mut clean_html = html.to_string();
 
     for element in document.select(&script_selector) {

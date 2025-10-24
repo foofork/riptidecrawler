@@ -117,7 +117,10 @@ fn chunk_by_html_structure(document: &Html, config: &ChunkingConfig) -> Result<V
     ];
 
     for selector in structural_selectors {
-        let selector_obj = scraper::Selector::parse(selector).unwrap();
+        let selector_obj = match scraper::Selector::parse(selector) {
+            Ok(s) => s,
+            Err(_) => continue, // Skip invalid selectors
+        };
 
         for element in document.select(&selector_obj) {
             let content = extract_element_content(&element, true);
@@ -285,9 +288,12 @@ fn extract_element_content(element: &ElementRef, text_only: bool) -> String {
 
 /// Find all block-level elements in the document
 fn find_block_elements(document: &Html) -> Vec<ElementRef<'_>> {
-    let block_selector = scraper::Selector::parse(
+    let block_selector = match scraper::Selector::parse(
         "div, p, h1, h2, h3, h4, h5, h6, article, section, aside, header, footer, nav, main, blockquote, ul, ol, li, table, tr, td, th"
-    ).unwrap();
+    ) {
+        Ok(s) => s,
+        Err(_) => return Vec::new(), // Return empty vec if selector parsing fails
+    };
 
     document.select(&block_selector).collect()
 }

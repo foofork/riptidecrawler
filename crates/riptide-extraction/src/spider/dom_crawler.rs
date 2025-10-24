@@ -154,7 +154,9 @@ impl HtmlDomCrawler {
         }
 
         // Check heading hierarchy
-        let h1_count = document.root_element().select(&scraper::Selector::parse("h1").unwrap()).count();
+        let h1_selector = scraper::Selector::parse("h1")
+            .map_err(|_| anyhow::anyhow!("Invalid h1 selector"))?;
+        let h1_count = document.root_element().select(&h1_selector).count();
         if h1_count == 0 {
             issues.push("Missing H1 heading".to_string());
         } else if h1_count > 1 {
@@ -170,8 +172,10 @@ impl HtmlDomCrawler {
         let mut issues = Vec::new();
 
         // Check for empty href attributes
+        let empty_links_selector = scraper::Selector::parse("a[href=\"\"], a[href=\"#\"]")
+            .map_err(|_| anyhow::anyhow!("Invalid empty links selector"))?;
         let empty_links = document
-            .select(&scraper::Selector::parse("a[href=\"\"], a[href=\"#\"]").unwrap())
+            .select(&empty_links_selector)
             .count();
 
         if empty_links > 0 {
@@ -179,8 +183,10 @@ impl HtmlDomCrawler {
         }
 
         // Check for missing alt text on linked images
+        let img_alt_selector = scraper::Selector::parse("a img:not([alt])")
+            .map_err(|_| anyhow::anyhow!("Invalid image alt selector"))?;
         let linked_images_without_alt = document
-            .select(&scraper::Selector::parse("a img:not([alt])").unwrap())
+            .select(&img_alt_selector)
             .count();
 
         if linked_images_without_alt > 0 {
@@ -199,24 +205,32 @@ impl HtmlDomCrawler {
         let mut hints = serde_json::Map::new();
 
         // Count external resources
+        let script_selector = scraper::Selector::parse("script[src]")
+            .map_err(|_| anyhow::anyhow!("Invalid script selector"))?;
         let external_scripts = document
-            .select(&scraper::Selector::parse("script[src]").unwrap())
+            .select(&script_selector)
             .count();
         hints.insert("external_scripts".to_string(), serde_json::Value::Number(external_scripts.into()));
 
+        let stylesheet_selector = scraper::Selector::parse("link[rel=\"stylesheet\"]")
+            .map_err(|_| anyhow::anyhow!("Invalid stylesheet selector"))?;
         let external_stylesheets = document
-            .select(&scraper::Selector::parse("link[rel=\"stylesheet\"]").unwrap())
+            .select(&stylesheet_selector)
             .count();
         hints.insert("external_stylesheets".to_string(), serde_json::Value::Number(external_stylesheets.into()));
 
+        let img_selector = scraper::Selector::parse("img")
+            .map_err(|_| anyhow::anyhow!("Invalid img selector"))?;
         let images = document
-            .select(&scraper::Selector::parse("img").unwrap())
+            .select(&img_selector)
             .count();
         hints.insert("images".to_string(), serde_json::Value::Number(images.into()));
 
         // Check for performance-related meta tags
         let mut performance_meta = Vec::new();
-        for meta in document.select(&scraper::Selector::parse("meta").unwrap()) {
+        let meta_selector = scraper::Selector::parse("meta")
+            .map_err(|_| anyhow::anyhow!("Invalid meta selector"))?;
+        for meta in document.select(&meta_selector) {
             if let Some(name) = meta.value().attr("name") {
                 if name.contains("preload") || name.contains("prefetch") || name.contains("dns-prefetch") {
                     performance_meta.push(name.to_string());
@@ -228,7 +242,9 @@ impl HtmlDomCrawler {
         ));
 
         // Estimate page complexity
-        let total_elements = document.select(&scraper::Selector::parse("*").unwrap()).count();
+        let all_selector = scraper::Selector::parse("*")
+            .map_err(|_| anyhow::anyhow!("Invalid wildcard selector"))?;
+        let total_elements = document.select(&all_selector).count();
         hints.insert("total_elements".to_string(), serde_json::Value::Number(total_elements.into()));
 
         let complexity_score = if total_elements < 100 {
@@ -269,15 +285,13 @@ impl DomSpider for HtmlDomCrawler {
         let mut clean_html = html.to_string();
 
         // Simple removal of script and style tags (in production, use proper HTML cleaning)
-        clean_html = regex::Regex::new(r"<script[^>]*>.*?</script>")
-            .unwrap()
-            .replace_all(&clean_html, "")
-            .to_string();
+        if let Ok(script_regex) = regex::Regex::new(r"<script[^>]*>.*?</script>") {
+            clean_html = script_regex.replace_all(&clean_html, "").to_string();
+        }
 
-        clean_html = regex::Regex::new(r"<style[^>]*>.*?</style>")
-            .unwrap()
-            .replace_all(&clean_html, "")
-            .to_string();
+        if let Ok(style_regex) = regex::Regex::new(r"<style[^>]*>.*?</style>") {
+            clean_html = style_regex.replace_all(&clean_html, "").to_string();
+        }
 
         // Extract text using simple tag removal
         let text = self.simple_text_extraction(&clean_html);
@@ -292,7 +306,8 @@ impl DomSpider for HtmlDomCrawler {
     /// Analyze HTML content for spider optimization hints
     async fn analyze_content(&self, html: &str) -> Result<ContentAnalysis> {
         // Use the link extractor's analysis as the base
-        let base_url = Url::parse("http://example.com").unwrap(); // Temporary base for analysis
+        let base_url = Url::parse("http://example.com")
+            .map_err(|e| anyhow::anyhow!("Invalid base URL: {}", e))?;
         self.link_extractor.analyze_link_structure(html, &base_url).await
     }
 }

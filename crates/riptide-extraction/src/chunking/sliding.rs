@@ -69,10 +69,14 @@ impl ChunkingStrategy for SlidingWindowChunker {
                 // Reset for next chunk
                 current_chunk = overlap_content.clone();
                 current_tokens = utils::count_tokens(&current_chunk);
-                start_pos = if overlap_content.is_empty() {
-                    start_pos + chunks.last().unwrap().content.len()
+                start_pos = if let Some(last_chunk) = chunks.last() {
+                    if overlap_content.is_empty() {
+                        start_pos + last_chunk.content.len()
+                    } else {
+                        start_pos + last_chunk.content.len() - overlap_content.len()
+                    }
                 } else {
-                    start_pos + chunks.last().unwrap().content.len() - overlap_content.len()
+                    start_pos
                 };
                 chunk_index += 1;
                 sentence_buffer.clear();

@@ -209,7 +209,8 @@ fn extract_json_ld(
     metadata: &mut DocumentMetadata,
     method: &mut ExtractionMethod,
 ) -> Result<()> {
-    let selector = Selector::parse("script[type='application/ld+json']").unwrap();
+    let selector = Selector::parse("script[type='application/ld+json']")
+        .map_err(|e| anyhow::anyhow!("Invalid selector: {:?}", e))?;
 
     for element in document.select(&selector) {
         let json_text = element.text().collect::<String>();
@@ -246,8 +247,8 @@ fn extract_from_json_ld(json: &serde_json::Value, metadata: &mut DocumentMetadat
     }
 
     // Handle both single objects and arrays
-    let items = if json.is_array() {
-        json.as_array().unwrap()
+    let items: &[serde_json::Value] = if let Some(arr) = json.as_array() {
+        arr
     } else {
         std::slice::from_ref(json)
     };
@@ -469,7 +470,8 @@ fn extract_microdata(
     method: &mut ExtractionMethod,
 ) -> Result<()> {
     // Look for itemscope and itemtype attributes
-    let selector = Selector::parse("[itemscope][itemtype]").unwrap();
+    let selector = Selector::parse("[itemscope][itemtype]")
+        .map_err(|e| anyhow::anyhow!("Invalid selector: {:?}", e))?;
 
     for element in document.select(&selector) {
         if let Some(itemtype) = element.value().attr("itemtype") {
@@ -790,10 +792,11 @@ fn validate_metadata(metadata: &mut DocumentMetadata) -> Result<()> {
         // For now, we'll leave it as None
     }
 
-    if metadata.reading_time.is_none() && metadata.word_count.is_some() {
+    if metadata.reading_time.is_none() {
         // Average reading speed: 200 words per minute
-        let words = metadata.word_count.unwrap();
-        metadata.reading_time = Some((words / 200).max(1));
+        if let Some(words) = metadata.word_count {
+            metadata.reading_time = Some((words / 200).max(1));
+        }
     }
 
     Ok(())
@@ -833,8 +836,8 @@ fn validate_metadata(metadata: &mut DocumentMetadata) -> Result<()> {
 #[cfg(feature = "jsonld-shortcircuit")]
 fn is_jsonld_complete(json: &serde_json::Value, metadata: &DocumentMetadata) -> bool {
     // Handle both single objects and arrays
-    let items = if json.is_array() {
-        json.as_array().unwrap()
+    let items: &[serde_json::Value] = if let Some(arr) = json.as_array() {
+        arr
     } else {
         std::slice::from_ref(json)
     };

@@ -557,19 +557,20 @@ impl CmExtractor {
 
     /// Get health status
     pub fn health_status(&self) -> HostHealthStatus {
+        let stats = self.stats.lock().unwrap_or_else(|e| e.into_inner());
         HostHealthStatus {
             status: "healthy".to_string(),
             version: "1.0.0".to_string(),
             last_check: chrono::Utc::now(),
-            successful_extractions: self.stats.lock().unwrap().successful_extractions,
-            failed_extractions: self.stats.lock().unwrap().failed_extractions,
-            avg_extraction_time: self.stats.lock().unwrap().avg_extraction_time.as_millis() as f64,
+            successful_extractions: stats.successful_extractions,
+            failed_extractions: stats.failed_extractions,
+            avg_extraction_time: stats.avg_extraction_time.as_millis() as f64,
         }
     }
 
     /// Get extraction statistics
     pub fn get_stats(&self) -> HostExtractionStats {
-        self.stats.lock().unwrap().clone()
+        self.stats.lock().unwrap_or_else(|e| e.into_inner()).clone()
     }
 }
 

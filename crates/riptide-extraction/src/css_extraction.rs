@@ -320,7 +320,8 @@ impl CssJsonExtractor {
         // Handle custom :has-text() pseudo-selector by removing it for scraper parsing
         let cleaned_selector = if selector_str.contains(":has-text(") {
             // Remove :has-text() for now, we'll handle it as post-filter
-            let re = Regex::new(r":has-text\([^)]+\)").unwrap();
+            let re =
+                Regex::new(r":has-text\([^)]+\)").context("Failed to compile has-text regex")?;
             re.replace_all(selector_str, "").trim().to_string()
         } else {
             selector_str.to_string()
@@ -336,8 +337,11 @@ impl CssJsonExtractor {
     /// Enhance pseudo-selectors for better compatibility
     fn enhance_pseudo_selectors(&self, selector: &str) -> String {
         // Handle :nth-of-type() by converting to :nth-child() approximation
-        let re_nth_type = Regex::new(r":nth-of-type\((\w+)\)").unwrap();
-        let enhanced = re_nth_type.replace_all(selector, ":nth-child($1)");
+        let enhanced = if let Ok(re_nth_type) = Regex::new(r":nth-of-type\((\w+)\)") {
+            re_nth_type.replace_all(selector, ":nth-child($1)")
+        } else {
+            std::borrow::Cow::Borrowed(selector)
+        };
 
         // Handle :first-of-type and :last-of-type
         let enhanced = enhanced.replace(":first-of-type", ":first-child");
@@ -508,7 +512,7 @@ struct NormalizeWhitespaceTransformer;
 
 impl ContentTransformer for NormalizeWhitespaceTransformer {
     fn transform(&self, content: &str, _base_url: Option<&str>) -> Result<String> {
-        let re = Regex::new(r"\s+").unwrap();
+        let re = Regex::new(r"\s+").context("Failed to compile whitespace regex")?;
         Ok(re.replace_all(content.trim(), " ").to_string())
     }
 }
@@ -518,7 +522,8 @@ struct NumberTransformer;
 
 impl ContentTransformer for NumberTransformer {
     fn transform(&self, content: &str, _base_url: Option<&str>) -> Result<String> {
-        let re = Regex::new(r"[-+]?\d*\.?\d+([eE][-+]?\d+)?").unwrap();
+        let re = Regex::new(r"[-+]?\d*\.?\d+([eE][-+]?\d+)?")
+            .context("Failed to compile number regex")?;
         if let Some(mat) = re.find(content) {
             Ok(mat.as_str().to_string())
         } else {
@@ -532,7 +537,8 @@ struct CurrencyTransformer;
 
 impl ContentTransformer for CurrencyTransformer {
     fn transform(&self, content: &str, _base_url: Option<&str>) -> Result<String> {
-        let re = Regex::new(r"[$€£¥]?\s*(\d+(?:[.,]\d{3})*(?:[.,]\d{2})?)").unwrap();
+        let re = Regex::new(r"[$€£¥]?\s*(\d+(?:[.,]\d{3})*(?:[.,]\d{2})?)")
+            .context("Failed to compile currency regex")?;
         if let Some(captures) = re.captures(content) {
             if let Some(amount) = captures.get(1) {
                 // Normalize decimal separators
@@ -557,31 +563,27 @@ impl ContentTransformer for DateIsoTransformer {
         ];
 
         for pattern in &patterns {
-            let re = Regex::new(pattern).unwrap();
+            let re = Regex::new(pattern).context("Failed to compile date regex")?;
             if let Some(captures) = re.captures(content) {
                 match *pattern {
                     r"(\d{4})-(\d{2})-(\d{2})" => return Ok(content.to_string()),
                     r"(\d{1,2})/(\d{1,2})/(\d{4})" => {
-                        let month = captures.get(1).unwrap().as_str();
-                        let day = captures.get(2).unwrap().as_str();
-                        let year = captures.get(3).unwrap().as_str();
-                        return Ok(format!(
-                            "{}-{:02}-{:02}",
-                            year,
-                            month.parse::<u32>().unwrap(),
-                            day.parse::<u32>().unwrap()
-                        ));
+                        if let (Some(month), Some(day), Some(year)) =
+                            (captures.get(1), captures.get(2), captures.get(3))
+                        {
+                            let month = month.as_str().parse::<u32>().context("Invalid month")?;
+                            let day = day.as_str().parse::<u32>().context("Invalid day")?;
+                            return Ok(format!("{}-{:02}-{:02}", year.as_str(), month, day));
+                        }
                     }
                     r"(\d{1,2})\.(\d{1,2})\.(\d{4})" => {
-                        let day = captures.get(1).unwrap().as_str();
-                        let month = captures.get(2).unwrap().as_str();
-                        let year = captures.get(3).unwrap().as_str();
-                        return Ok(format!(
-                            "{}-{:02}-{:02}",
-                            year,
-                            month.parse::<u32>().unwrap(),
-                            day.parse::<u32>().unwrap()
-                        ));
+                        if let (Some(day), Some(month), Some(year)) =
+                            (captures.get(1), captures.get(2), captures.get(3))
+                        {
+                            let month = month.as_str().parse::<u32>().context("Invalid month")?;
+                            let day = day.as_str().parse::<u32>().context("Invalid day")?;
+                            return Ok(format!("{}-{:02}-{:02}", year.as_str(), month, day));
+                        }
                     }
                     _ => {}
                 }
@@ -643,7 +645,8 @@ struct RegexExtractTransformer;
 impl ContentTransformer for RegexExtractTransformer {
     fn transform(&self, content: &str, _base_url: Option<&str>) -> Result<String> {
         // Example pattern - could be parameterized
-        let re = Regex::new(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b").unwrap();
+        let re = Regex::new(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b")
+            .context("Failed to compile email regex")?;
         if let Some(mat) = re.find(content) {
             Ok(mat.as_str().to_string())
         } else {
@@ -700,11 +703,11 @@ struct RegexReplaceTransformer;
 impl ContentTransformer for RegexReplaceTransformer {
     fn transform(&self, content: &str, _base_url: Option<&str>) -> Result<String> {
         // Example: Remove all HTML tags - could be parameterized
-        let re = Regex::new(r"<[^>]*>").unwrap();
+        let re = Regex::new(r"<[^>]*>").context("Failed to compile HTML tag regex")?;
         let cleaned = re.replace_all(content, "");
 
         // Also clean up extra whitespace
-        let re_ws = Regex::new(r"\s+").unwrap();
+        let re_ws = Regex::new(r"\s+").context("Failed to compile whitespace regex")?;
         let normalized = re_ws.replace_all(cleaned.trim(), " ");
 
         Ok(normalized.to_string())
@@ -733,7 +736,8 @@ impl ContentTransformer for HtmlDecodeTransformer {
             .replace("&trade;", "™");
 
         // Handle numeric character references
-        let re_numeric = Regex::new(r"&#(\d+);").unwrap();
+        let re_numeric =
+            Regex::new(r"&#(\d+);").context("Failed to compile numeric entity regex")?;
         let result = re_numeric.replace_all(&decoded, |caps: &regex::Captures| {
             if let Ok(code) = caps[1].parse::<u32>() {
                 if let Some(ch) = char::from_u32(code) {
