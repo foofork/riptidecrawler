@@ -73,9 +73,11 @@ pub async fn extract_metadata(html: &str, url: &str) -> Result<DocumentMetadata>
     let mut metadata = DocumentMetadata::default();
     let mut extraction_method = ExtractionMethod::default();
 
-    // Extract from different sources with confidence scoring
-    extract_open_graph(&document, &mut metadata, &mut extraction_method)?;
+    // Phase 10: Extract JSON-LD FIRST for proper short-circuit and priority
     extract_json_ld(&document, &mut metadata, &mut extraction_method)?;
+
+    // Extract from other sources with confidence scoring
+    extract_open_graph(&document, &mut metadata, &mut extraction_method)?;
     extract_meta_tags(&document, &mut metadata, &mut extraction_method)?;
     extract_microdata(&document, &mut metadata, &mut extraction_method)?;
     extract_heuristics(&document, &mut metadata, &mut extraction_method, url)?;
@@ -233,6 +235,16 @@ fn extract_json_ld(
 
 /// Extract data from JSON-LD structure
 fn extract_from_json_ld(json: &serde_json::Value, metadata: &mut DocumentMetadata) -> Result<()> {
+    // Phase 10 Enhancement: Handle @graph arrays first
+    if let Some(graph) = json.get("@graph") {
+        if let Some(graph_array) = graph.as_array() {
+            for graph_item in graph_array {
+                extract_from_json_ld(graph_item, metadata)?;
+            }
+            return Ok(());
+        }
+    }
+
     // Handle both single objects and arrays
     let items = if json.is_array() {
         json.as_array().unwrap()
@@ -242,12 +254,22 @@ fn extract_from_json_ld(json: &serde_json::Value, metadata: &mut DocumentMetadat
 
     for item in items {
         if let Some(obj) = item.as_object() {
-            // Extract title/headline
+            // Phase 10: Only extract from content-relevant schema types
+            let schema_type = obj.get("@type").and_then(|v| v.as_str());
+            let is_content_type = match schema_type {
+                Some("Event") | Some("Article") | Some("NewsArticle") | Some("BlogPosting") => true,
+                _ => false,
+            };
+
+            // Extract title/headline (prioritize content types)
             if metadata.title.is_none() {
                 if let Some(headline) = obj.get("headline").and_then(|v| v.as_str()) {
                     metadata.title = Some(headline.to_string());
-                } else if let Some(name) = obj.get("name").and_then(|v| v.as_str()) {
-                    metadata.title = Some(name.to_string());
+                } else if is_content_type {
+                    // Only extract 'name' from content types to avoid Organization names
+                    if let Some(name) = obj.get("name").and_then(|v| v.as_str()) {
+                        metadata.title = Some(name.to_string());
+                    }
                 }
             }
 

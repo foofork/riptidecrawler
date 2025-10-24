@@ -1,9 +1,9 @@
-/// API wrapper module for RipTide CLI
-/// Provides high-level API operations with automatic fallback to direct execution
-use anyhow::{Context, Result};
 use crate::api_client::RiptideApiClient;
 use crate::client::RipTideClient;
 use crate::execution_mode::ExecutionMode;
+/// API wrapper module for RipTide CLI
+/// Provides high-level API operations with automatic fallback to direct execution
+use anyhow::{Context, Result};
 use tracing::{debug, info, warn};
 
 /// Wrapper for API operations with fallback support
@@ -125,11 +125,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_direct_mode_skips_api() {
-        let client = RipTideClient::new(
-            "http://localhost:8080".to_string(),
-            None,
-        )
-        .unwrap();
+        let client = RipTideClient::new("http://localhost:8080".to_string(), None).unwrap();
 
         let wrapper = ApiWrapper::new(
             client,

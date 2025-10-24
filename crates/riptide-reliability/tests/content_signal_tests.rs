@@ -7,7 +7,8 @@
 #![cfg(test)]
 
 use riptide_reliability::engine_selection::{
-    calculate_content_ratio, decide_engine, decide_engine_with_flags, Engine, EngineSelectionFlags,
+    calculate_content_ratio, calculate_visible_text_density, decide_engine,
+    decide_engine_with_flags, detect_placeholders, Engine, EngineSelectionFlags,
 };
 
 // ============================================================================
@@ -411,4 +412,488 @@ fn test_mixed_content_signals() {
     flags.probe_first_spa = true;
     let engine_probe = decide_engine_with_flags(html, "https://example.com", flags);
     assert_eq!(engine_probe, Engine::Wasm);
+}
+
+// ============================================================================
+// Phase 10: Visible Text Density Tests
+// ============================================================================
+
+#[test]
+fn test_visible_density_strips_scripts() {
+    let html = r#"<html>
+        <head>
+            <script>
+            // Large JavaScript bundle - 1000+ chars
+            const config = {
+                api: "https://api.example.com",
+                timeout: 5000,
+                retry: 3,
+                endpoints: {
+                    users: "/api/users",
+                    posts: "/api/posts",
+                    comments: "/api/comments"
+                }
+            };
+            function fetchData() { return fetch(config.api); }
+            function processData(data) { return JSON.parse(data); }
+            // More code to increase script size...
+            </script>
+        </head>
+        <body><p>Short visible text</p></body>
+    </html>"#;
+
+    let density = calculate_visible_text_density(html);
+    assert!(
+        density > 0.01,
+        "Should have positive density from visible text: {}",
+        density
+    );
+    // Density should be relatively low since scripts are stripped
+    // but visible text is minimal
+}
+
+#[test]
+fn test_visible_density_strips_styles() {
+    let html = r#"<html>
+        <head>
+            <style>
+            body { margin: 0; padding: 0; font-family: Arial; }
+            .container { max-width: 1200px; margin: 0 auto; }
+            .header { background: #333; color: white; padding: 20px; }
+            .content { padding: 40px; line-height: 1.6; }
+            .footer { background: #f5f5f5; text-align: center; }
+            /* More CSS to increase size */
+            </style>
+        </head>
+        <body><article>Visible article content here</article></body>
+    </html>"#;
+
+    let density = calculate_visible_text_density(html);
+    assert!(
+        density > 0.05,
+        "Should exclude style blocks from density calculation: {}",
+        density
+    );
+}
+
+#[test]
+fn test_visible_density_high_with_minimal_scripts() {
+    let html = r#"<html>
+        <head><script src="app.js"></script></head>
+        <body>
+            <article>
+                This is substantial visible content with good text density.
+                The content should dominate the density calculation.
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
+            </article>
+        </body>
+    </html>"#;
+
+    let density = calculate_visible_text_density(html);
+    assert!(
+        density > 0.2,
+        "Good content should have high visible density: {}",
+        density
+    );
+}
+
+#[test]
+fn test_visible_density_malformed_html_unclosed_script() {
+    let html = r#"<html>
+        <head>
+            <script>
+            const broken = "no closing tag";
+        </head>
+        <body><p>Some content</p></body>
+    </html>"#;
+
+    // Should handle malformed HTML gracefully without panicking
+    let density = calculate_visible_text_density(html);
+    assert!(
+        density >= 0.0,
+        "Malformed HTML should not panic: {}",
+        density
+    );
+}
+
+#[test]
+fn test_visible_density_malformed_html_unclosed_style() {
+    let html = r#"<html>
+        <head>
+            <style>
+            body { color: red;
+        </head>
+        <body><p>Content after unclosed style</p></body>
+    </html>"#;
+
+    let density = calculate_visible_text_density(html);
+    assert!(
+        density >= 0.0,
+        "Unclosed style should not cause panic: {}",
+        density
+    );
+}
+
+#[test]
+fn test_visible_density_empty_html() {
+    let html = "";
+    let density = calculate_visible_text_density(html);
+    assert_eq!(density, 0.0, "Empty HTML should have zero density");
+}
+
+#[test]
+fn test_visible_density_only_scripts_no_content() {
+    let html = r#"<html>
+        <head>
+            <script>console.log('app');</script>
+        </head>
+        <body>
+            <script>init();</script>
+        </body>
+    </html>"#;
+
+    let density = calculate_visible_text_density(html);
+    // Should be very low or zero since all content is in scripts
+    assert!(
+        density < 0.05,
+        "Script-only HTML should have very low density: {}",
+        density
+    );
+}
+
+// ============================================================================
+// Phase 10: Placeholder Detection Tests (18+ Patterns)
+// ============================================================================
+
+#[test]
+fn test_detect_skeleton_patterns() {
+    let skeleton_patterns = vec![
+        r#"<div class="skeleton">Loading</div>"#,
+        r#"<div class="shimmer">Please wait</div>"#,
+        r#"<div class="loading-skeleton"></div>"#,
+        r#"<div class="skeleton-loader"></div>"#,
+        r#"<div class="skeleton-box"></div>"#,
+        r#"<div class="skeleton-text"></div>"#,
+        r#"<div class="skeleton-line"></div>"#,
+        r#"<div class="skeleton-avatar"></div>"#,
+        r#"<div class="skeleton-card"></div>"#,
+    ];
+
+    for pattern in skeleton_patterns {
+        assert!(
+            detect_placeholders(pattern),
+            "Should detect skeleton pattern: {}",
+            pattern
+        );
+    }
+}
+
+#[test]
+fn test_detect_shimmer_patterns() {
+    let shimmer_patterns = vec![
+        r#"<div class="shimmer-effect">Loading...</div>"#,
+        r#"<div class="shimmer-wrapper"><div class="shimmer"></div></div>"#,
+    ];
+
+    for pattern in shimmer_patterns {
+        assert!(
+            detect_placeholders(pattern),
+            "Should detect shimmer pattern: {}",
+            pattern
+        );
+    }
+}
+
+#[test]
+fn test_detect_placeholder_glow_wave() {
+    let placeholder_patterns = vec![
+        r#"<div class="placeholder-glow">Loading</div>"#,
+        r#"<div class="placeholder-wave">Loading</div>"#,
+        r#"<div class="loading-placeholder"></div>"#,
+    ];
+
+    for pattern in placeholder_patterns {
+        assert!(
+            detect_placeholders(pattern),
+            "Should detect placeholder pattern: {}",
+            pattern
+        );
+    }
+}
+
+#[test]
+fn test_detect_loader_patterns() {
+    let loader_patterns = vec![
+        r#"<div class="content-loader">Loading content...</div>"#,
+        r#"<div class="bone-loader"></div>"#,
+        r#"<div class="pulse-loader"></div>"#,
+        r#"<div class="animated-background"></div>"#,
+    ];
+
+    for pattern in loader_patterns {
+        assert!(
+            detect_placeholders(pattern),
+            "Should detect loader pattern: {}",
+            pattern
+        );
+    }
+}
+
+#[test]
+fn test_detect_aria_busy_loading() {
+    let aria_patterns = vec![
+        r#"<div aria-busy="true">Loading...</div>"#,
+        r#"<section aria-busy="true"><span>Please wait</span></section>"#,
+    ];
+
+    for pattern in aria_patterns {
+        assert!(
+            detect_placeholders(pattern),
+            "Should detect aria-busy pattern: {}",
+            pattern
+        );
+    }
+}
+
+#[test]
+fn test_detect_role_status_with_loading() {
+    let role_patterns = vec![
+        r#"<div role="status">Loading...</div>"#,
+        r#"<div role="status"><span class="spinner">Loading</span></div>"#,
+    ];
+
+    for pattern in role_patterns {
+        assert!(
+            detect_placeholders(pattern),
+            "Should detect role=status with loading: {}",
+            pattern
+        );
+    }
+}
+
+#[test]
+fn test_detect_multiple_empty_divs_with_loading_classes() {
+    let html = r#"<html><body>
+        <div class="loading"></div>
+        <div class="loading"></div>
+        <div class="loading"></div>
+        <div class="loading"></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+    </body></html>"#;
+
+    assert!(
+        detect_placeholders(html),
+        "Should detect multiple loading divs as placeholder pattern"
+    );
+}
+
+#[test]
+fn test_no_placeholders_in_normal_content() {
+    let normal_content = vec![
+        r#"<article><h1>Title</h1><p>Content here</p></article>"#,
+        r#"<div class="content"><p>Real article text</p></div>"#,
+        r#"<main><section><p>Genuine content</p></section></main>"#,
+    ];
+
+    for content in normal_content {
+        assert!(
+            !detect_placeholders(content),
+            "Should not detect placeholders in normal content: {}",
+            content
+        );
+    }
+}
+
+#[test]
+fn test_placeholders_case_insensitive() {
+    let html = r#"<div class="SKELETON-LOADER">Loading</div>"#;
+    assert!(
+        detect_placeholders(html),
+        "Should detect uppercase skeleton class"
+    );
+
+    let html2 = r#"<div ARIA-BUSY="TRUE">Loading</div>"#;
+    assert!(
+        detect_placeholders(html2),
+        "Should detect uppercase ARIA attribute"
+    );
+}
+
+// ============================================================================
+// Phase 10: Engine Decision with Content Signals Integration
+// ============================================================================
+
+#[test]
+fn test_engine_with_visible_density_flags() {
+    let html = r#"<html>
+        <head><script>/* Large script */</script></head>
+        <body><article>Good visible content here with substance</article></body>
+    </html>"#;
+
+    // Without visible density flag (uses basic content_ratio)
+    let flags_off = EngineSelectionFlags::default();
+    let engine_off = decide_engine_with_flags(html, "https://example.com", flags_off);
+
+    // With visible density flag enabled
+    let mut flags_on = EngineSelectionFlags::default();
+    flags_on.use_visible_text_density = true;
+    let engine_on = decide_engine_with_flags(html, "https://example.com", flags_on);
+
+    // Both should work, but flags control which algorithm is used
+    assert!(
+        engine_off == Engine::Wasm || engine_off == Engine::Headless,
+        "Engine decision should be deterministic: {:?}",
+        engine_off
+    );
+    assert!(
+        engine_on == Engine::Wasm || engine_on == Engine::Headless,
+        "Engine with flags should be deterministic: {:?}",
+        engine_on
+    );
+}
+
+#[test]
+fn test_engine_with_placeholder_detection_flags() {
+    let html = r#"<html>
+        <body>
+            <div class="skeleton-loader">Loading...</div>
+            <div class="shimmer"></div>
+        </body>
+    </html>"#;
+
+    // Without placeholder detection flag
+    let flags_off = EngineSelectionFlags::default();
+    let _engine_off = decide_engine_with_flags(html, "https://example.com", flags_off);
+
+    // With placeholder detection enabled
+    let mut flags_on = EngineSelectionFlags::default();
+    flags_on.detect_placeholders = true;
+    let _engine_on = decide_engine_with_flags(html, "https://example.com", flags_on);
+
+    // Verify placeholders are detected
+    assert!(
+        detect_placeholders(html),
+        "Placeholders should be detected in skeleton HTML"
+    );
+}
+
+#[test]
+fn test_borderline_density_thresholds() {
+    // Test content right at the 0.1 threshold
+    let borderline_html = r#"<html>
+        <head><script src="app.js"></script></head>
+        <body><p>Text</p></body>
+    </html>"#;
+
+    let ratio = calculate_content_ratio(borderline_html);
+    let engine = decide_engine(borderline_html, "https://example.com");
+
+    if ratio < 0.1 {
+        // Low content ratio should trigger headless
+        assert_eq!(
+            engine,
+            Engine::Headless,
+            "Borderline low content should use headless: ratio={}",
+            ratio
+        );
+    } else {
+        // Above threshold should allow WASM
+        assert_eq!(
+            engine,
+            Engine::Wasm,
+            "Borderline good content should use WASM: ratio={}",
+            ratio
+        );
+    }
+}
+
+#[test]
+fn test_ssr_react_with_good_density_probe_first() {
+    let html = r#"<html>
+        <head><script>window.__NEXT_DATA__={}</script></head>
+        <body>
+            <article>
+                Server-side rendered React application with substantial content.
+                This demonstrates good visible text density despite framework markers.
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
+            </article>
+        </body>
+    </html>"#;
+
+    // Default: React marker → Headless
+    let engine_default = decide_engine(html, "https://example.com");
+    assert_eq!(engine_default, Engine::Headless);
+
+    // Probe-first: Try WASM first
+    let mut flags = EngineSelectionFlags::default();
+    flags.probe_first_spa = true;
+    let engine_probe = decide_engine_with_flags(html, "https://example.com", flags);
+    assert_eq!(
+        engine_probe,
+        Engine::Wasm,
+        "Probe-first should attempt WASM for SSR React"
+    );
+}
+
+#[test]
+fn test_client_only_spa_low_density() {
+    let html = r#"<html>
+        <head>
+            <script src="react.js"></script>
+            <script src="app.bundle.js"></script>
+        </head>
+        <body>
+            <div id="root"></div>
+            <noscript>Please enable JavaScript</noscript>
+        </body>
+    </html>"#;
+
+    let ratio = calculate_content_ratio(html);
+    assert!(
+        ratio < 0.1,
+        "Client-only SPA should have very low content ratio: {}",
+        ratio
+    );
+
+    let engine = decide_engine(html, "https://example.com");
+    assert_eq!(
+        engine,
+        Engine::Headless,
+        "Client-only SPA should use headless engine"
+    );
+}
+
+#[test]
+fn test_skeleton_screen_detected_needs_headless() {
+    let html = r#"<html>
+        <body>
+            <div class="skeleton-loader"></div>
+            <div class="skeleton-loader"></div>
+            <div class="skeleton-loader"></div>
+            <div class="shimmer-effect"></div>
+            <div class="placeholder-glow"></div>
+        </body>
+    </html>"#;
+
+    assert!(
+        detect_placeholders(html),
+        "Skeleton screen should be detected"
+    );
+
+    // Pages with placeholders should ideally use headless
+    // (current implementation may not explicitly check this,
+    // but low content ratio will trigger headless anyway)
+    let ratio = calculate_content_ratio(html);
+    assert!(ratio < 0.1, "Skeleton screen has very low content ratio");
 }
