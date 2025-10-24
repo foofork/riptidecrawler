@@ -294,7 +294,10 @@ impl HeadlessLauncher {
             *browser_guard = Some(arc_browser.clone());
             Ok(arc_browser)
         } else {
-            Ok(browser_guard.as_ref().unwrap().clone())
+            browser_guard
+                .as_ref()
+                .cloned()
+                .ok_or_else(|| anyhow::anyhow!("Browser guard unexpectedly empty"))
         }
     }
 
@@ -394,17 +397,17 @@ impl HeadlessLauncher {
             .map_err(|e| anyhow!("Failed to inject stealth JS: {}", e))?;
 
         // Set viewport to common resolution
-        page.execute(
-            SetDeviceMetricsOverrideParams::builder()
-                .width(1920)
-                .height(1080)
-                .device_scale_factor(1.0)
-                .mobile(false)
-                .build()
-                .unwrap(),
-        )
-        .await
-        .map_err(|e| anyhow!("Failed to set viewport: {}", e))?;
+        let viewport_params = SetDeviceMetricsOverrideParams::builder()
+            .width(1920)
+            .height(1080)
+            .device_scale_factor(1.0)
+            .mobile(false)
+            .build()
+            .map_err(|e| anyhow!("Failed to build viewport params: {}", e))?;
+
+        page.execute(viewport_params)
+            .await
+            .map_err(|e| anyhow!("Failed to set viewport: {}", e))?;
 
         // Override navigator properties
         let override_script = r#"

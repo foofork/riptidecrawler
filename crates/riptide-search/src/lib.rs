@@ -336,12 +336,12 @@ impl AdvancedSearchConfig {
         // Validate backend-specific requirements
         match self.backend {
             SearchBackend::Serper => {
-                if self.api_key.is_none() || self.api_key.as_ref().unwrap().trim().is_empty() {
+                if self.api_key.as_ref().is_none_or(|k| k.trim().is_empty()) {
                     return Err(anyhow::anyhow!("Serper backend requires a valid API key"));
                 }
             }
             SearchBackend::SearXNG => {
-                if self.base_url.is_none() || self.base_url.as_ref().unwrap().trim().is_empty() {
+                if self.base_url.as_ref().is_none_or(|u| u.trim().is_empty()) {
                     return Err(anyhow::anyhow!("SearXNG backend requires a valid base URL"));
                 }
             }
@@ -403,7 +403,7 @@ pub async fn create_search_provider(config: SearchConfig) -> Result<Box<dyn Sear
             let api_key = config
                 .api_key
                 .ok_or_else(|| anyhow::anyhow!("API key is required for Serper backend"))?;
-            Box::new(SerperProvider::new(api_key, config.timeout_seconds))
+            Box::new(SerperProvider::new(api_key, config.timeout_seconds)?)
         }
         SearchBackend::None => Box::new(NoneProvider::new(config.enable_url_parsing)),
         SearchBackend::SearXNG => {
@@ -455,7 +455,7 @@ impl SearchProviderFactory {
                 let api_key = config
                     .api_key
                     .ok_or_else(|| anyhow::anyhow!("API key is required for Serper backend"))?;
-                Box::new(SerperProvider::new(api_key, config.timeout_seconds))
+                Box::new(SerperProvider::new(api_key, config.timeout_seconds)?)
             }
             SearchBackend::None => Box::new(NoneProvider::new(config.enable_url_parsing)),
             SearchBackend::SearXNG => {

@@ -431,7 +431,7 @@ riptide extract --url "https://example.com" --show-confidence
 riptide extract --url "https://example.com" --strategy "chain:css,regex"
 
 # Specific extraction method
-riptide extract --url "https://example.com" --method trek
+riptide extract --url "https://example.com" --method css
 
 # Save to file
 riptide extract --url "https://example.com" -f output.md

@@ -54,9 +54,11 @@ impl AdvancedInstancePool {
             if !is_healthy {
                 let mut instances = self.available_instances.lock().await;
                 if let Some(pos) = instances.iter().position(|i| i.id == id) {
-                    let unhealthy_instance = instances.remove(pos).unwrap();
-                    drop(instances);
-                    unhealthy_instances.push(unhealthy_instance);
+                    // remove() returns Option<T> for VecDeque
+                    if let Some(unhealthy_instance) = instances.remove(pos) {
+                        drop(instances);
+                        unhealthy_instances.push(unhealthy_instance);
+                    }
                 }
             } else {
                 healthy_count += 1;

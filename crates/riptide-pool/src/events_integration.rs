@@ -11,7 +11,7 @@ use riptide_events::*;
 use riptide_types::{ExtractedDoc, ExtractionMode};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tracing::{error, info, warn};
+use tracing::{error, info, trace, warn};
 
 /// Extension trait for AdvancedInstancePool to add event emission capabilities
 #[async_trait]
@@ -460,13 +460,17 @@ impl EventAwarePoolFactory {
                     avg_latency_ms: performance_metrics.avg_processing_time_ms as u64,
                 };
 
-                let helper = PoolEventEmissionHelper::new(
-                    pool_clone.event_bus.as_ref().unwrap().clone(),
-                    pool_clone.pool_id().to_string(),
-                );
+                if let Some(event_bus) = pool_clone.event_bus.as_ref() {
+                    let helper = PoolEventEmissionHelper::new(
+                        event_bus.clone(),
+                        pool_clone.pool_id().to_string(),
+                    );
 
-                if let Err(e) = helper.emit_pool_metrics(pool_metrics).await {
-                    error!(error = %e, "Failed to emit pool metrics");
+                    if let Err(e) = helper.emit_pool_metrics(pool_metrics).await {
+                        error!(error = %e, "Failed to emit pool metrics");
+                    }
+                } else {
+                    trace!("No event bus configured, skipping metrics emission");
                 }
             }
         });

@@ -85,7 +85,7 @@ pub struct ValidationVerdict {
 impl Statistics {
     pub fn from_measurements(measurements: &[f64]) -> Self {
         let mut sorted = measurements.to_vec();
-        sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
         let mean = sorted.iter().sum::<f64>() / sorted.len() as f64;
         let median = sorted[sorted.len() / 2];

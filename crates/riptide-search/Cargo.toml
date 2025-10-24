@@ -17,6 +17,8 @@ reqwest = { workspace = true }
 regex = { workspace = true }
 url = { workspace = true }
 tokio = { workspace = true, features = ["time"] }
+once_cell = { workspace = true }
+tracing = { workspace = true }
 
 [dev-dependencies]
 tokio-test = "0.4"

@@ -414,8 +414,33 @@ impl TimezoneManager {
     pub fn random_timezone(&mut self) -> TimezoneInfo {
         let mut rng = rand::thread_rng();
         let keys: Vec<_> = self.timezones.keys().cloned().collect();
+        if keys.is_empty() {
+            // Fallback to UTC if no timezones available
+            let utc = TimezoneInfo {
+                iana_name: "UTC".to_string(),
+                standard_offset: 0,
+                daylight_offset: None,
+                typical_locale: "en-US".to_string(),
+                region: "Global".to_string(),
+            };
+            self.current = Some(utc.clone());
+            return utc;
+        }
         let index = rng.gen_range(0..keys.len());
-        let tz = self.timezones.get(&keys[index]).unwrap().clone();
+        let tz = self
+            .timezones
+            .get(&keys[index])
+            .cloned()
+            .unwrap_or_else(|| {
+                // Fallback if key doesn't exist (should never happen)
+                TimezoneInfo {
+                    iana_name: "UTC".to_string(),
+                    standard_offset: 0,
+                    daylight_offset: None,
+                    typical_locale: "en-US".to_string(),
+                    region: "Global".to_string(),
+                }
+            });
         self.current = Some(tz.clone());
         tz
     }

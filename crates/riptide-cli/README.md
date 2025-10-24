@@ -104,8 +104,8 @@ riptide extract --url "https://example.com" --strategy "chain:css,regex"
 # Parallel strategy execution
 riptide extract --url "https://example.com" --strategy "parallel:all"
 
-# Specific extraction method
-riptide extract --url "https://example.com" --method trek
+# Specific extraction method (wasm, css, llm, regex, auto, article)
+riptide extract --url "https://example.com" --method css
 
 # CSS selector extraction
 riptide extract --url "https://example.com" --method css --selector "article.content"

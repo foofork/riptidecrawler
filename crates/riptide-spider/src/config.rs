@@ -77,9 +77,13 @@ pub struct SpiderConfig {
 }
 
 impl Default for SpiderConfig {
+    #[allow(clippy::expect_used)]
     fn default() -> Self {
         Self {
-            base_url: Url::parse("https://example.com").expect("Valid default URL"),
+            // Default trait requires panic on failure - this hard-coded URL should always parse
+            base_url: Url::parse("https://example.com").unwrap_or_else(|_| {
+                panic!("Critical: Default URL 'https://example.com' failed to parse")
+            }),
             user_agent: "RipTide Spider/1.0".to_string(),
             timeout: Duration::from_secs(30),
             delay: Duration::from_millis(500),

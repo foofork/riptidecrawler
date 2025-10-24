@@ -100,7 +100,10 @@ impl UserAgentManager {
                     let index = rng.gen_range(0..self.config.agents.len());
                     self.session_user_agent = Some(self.config.agents[index].clone());
                 }
-                self.session_user_agent.as_ref().unwrap()
+                // Safe to unwrap: we just ensured session_user_agent is Some above
+                self.session_user_agent
+                    .as_ref()
+                    .unwrap_or(&self.config.agents[0])
             }
             RotationStrategy::DomainBased => {
                 // Simple domain-based selection using hash

@@ -177,7 +177,9 @@ impl FlamegraphGenerator {
                 "97", // Sample frequency
                 "-g", // Call graphs
                 "-o",
-                perf_data_path.to_str().unwrap(),
+                perf_data_path
+                    .to_str()
+                    .ok_or_else(|| anyhow::anyhow!("Invalid UTF-8 in perf data path"))?,
                 "--",
                 "sleep",
                 &duration_seconds.to_string(),
@@ -215,8 +217,11 @@ impl FlamegraphGenerator {
         // Convert perf.data to folded format
         let folded_path = self.output_dir.join("folded.txt");
 
+        let perf_data_str = perf_data
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("Invalid UTF-8 in perf data path"))?;
         let perf_script = Command::new("perf")
-            .args(["script", "-i", perf_data.to_str().unwrap()])
+            .args(["script", "-i", perf_data_str])
             .output()?;
 
         if !perf_script.status.success() {

@@ -378,8 +378,9 @@ impl ConnectionWaitQueue {
         // Remove expired waiters
         while let Some(waiter) = self.waiters.front() {
             if waiter.created_at.elapsed() > self.max_wait_time {
-                let expired = self.waiters.pop_front().unwrap();
-                let _ = expired.sender.send(Err(anyhow!("Connection wait timeout")));
+                if let Some(expired) = self.waiters.pop_front() {
+                    let _ = expired.sender.send(Err(anyhow!("Connection wait timeout")));
+                }
             } else {
                 break;
             }

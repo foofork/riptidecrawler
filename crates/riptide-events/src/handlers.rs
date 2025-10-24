@@ -491,12 +491,18 @@ impl HealthEventHandler {
 
     /// Get the current health status of a component
     pub fn get_component_health(&self, component: &str) -> Option<ComponentHealth> {
-        self.health_state.lock().unwrap().get(component).cloned()
+        self.health_state.lock().ok()?.get(component).cloned()
     }
 
     /// Get overall system health
     pub fn get_system_health(&self) -> crate::HealthStatus {
-        let health_state = self.health_state.lock().unwrap();
+        let health_state = match self.health_state.lock() {
+            Ok(state) => state,
+            Err(e) => {
+                tracing::error!("Health state lock poisoned: {}", e);
+                return crate::HealthStatus::Critical;
+            }
+        };
 
         if health_state.is_empty() {
             return crate::HealthStatus::Healthy;
@@ -536,12 +542,23 @@ impl HealthEventHandler {
 
     /// Get recent health events
     pub fn get_recent_events(&self, limit: usize) -> Vec<Arc<dyn Event>> {
-        let recent_events = self.recent_events.lock().unwrap();
-        recent_events.iter().rev().take(limit).cloned().collect()
+        match self.recent_events.lock() {
+            Ok(recent_events) => recent_events.iter().rev().take(limit).cloned().collect(),
+            Err(e) => {
+                tracing::error!("Recent events lock poisoned: {}", e);
+                Vec::new()
+            }
+        }
     }
 
     fn update_component_health(&self, component: &str, event: &dyn Event) {
-        let mut health_state = self.health_state.lock().unwrap();
+        let mut health_state = match self.health_state.lock() {
+            Ok(state) => state,
+            Err(e) => {
+                tracing::error!("Health state lock poisoned during update: {}", e);
+                return;
+            }
+        };
         let health = health_state.entry(component.to_string()).or_default();
 
         health.last_updated = Utc::now();
@@ -590,20 +607,23 @@ impl EventHandler for HealthEventHandler {
 
         // Store recent event
         {
-            let mut recent_events = self.recent_events.lock().unwrap();
-            recent_events.push_back(Arc::new(BaseEvent {
-                event_id: event.event_id().to_string(),
-                event_type: event.event_type().to_string(),
-                timestamp: event.timestamp(),
-                source: event.source().to_string(),
-                severity: event.severity(),
-                metadata: event.metadata().clone(),
-                context: None,
-            }));
+            if let Ok(mut recent_events) = self.recent_events.lock() {
+                recent_events.push_back(Arc::new(BaseEvent {
+                    event_id: event.event_id().to_string(),
+                    event_type: event.event_type().to_string(),
+                    timestamp: event.timestamp(),
+                    source: event.source().to_string(),
+                    severity: event.severity(),
+                    metadata: event.metadata().clone(),
+                    context: None,
+                }));
 
-            // Keep only the last 1000 events
-            while recent_events.len() > 1000 {
-                recent_events.pop_front();
+                // Keep only the last 1000 events
+                while recent_events.len() > 1000 {
+                    recent_events.pop_front();
+                }
+            } else {
+                tracing::error!("Recent events lock poisoned, cannot store event");
             }
         }
 

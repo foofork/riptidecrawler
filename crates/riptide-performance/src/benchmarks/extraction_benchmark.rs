@@ -127,7 +127,7 @@ impl ExtractionBenchmarkRunner {
             .iter()
             .map(|r| r.duration.as_secs_f64() * 1000.0) // Convert to ms
             .collect();
-        durations.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        durations.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
         let avg_duration_ms = durations.iter().sum::<f64>() / durations.len() as f64;
         let min_duration_ms = *durations.first().unwrap_or(&0.0);
@@ -285,7 +285,7 @@ fn rank_engines(
         })
         .collect();
 
-    scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap()); // Sort descending
+    scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)); // Sort descending
     scores
 }
 

@@ -791,7 +791,7 @@ impl PerformanceMonitor {
             b.severity.cmp(&a.severity).then_with(|| {
                 b.percentage_of_total
                     .partial_cmp(&a.percentage_of_total)
-                    .unwrap()
+                    .unwrap_or(std::cmp::Ordering::Equal)
             })
         });
 

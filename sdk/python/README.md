@@ -2,18 +2,24 @@
 
 Official Python SDK for the RipTide web crawling and extraction API.
 
+**Version:** 0.1.0
+**Status:** Beta - Production Ready (v2.1.0)
+**Python:** 3.8+ (Fully typed with async/await support)
+
 ## Features
 
 - 🚀 **Async/await support** - Built on httpx for high-performance async operations
 - 📊 **Type hints** - Full type annotations for Python 3.8+
 - 🔄 **Streaming support** - NDJSON and SSE streaming for real-time results
-- 🎯 **All Phase 10+ endpoints** - Complete API coverage including:
-  - Domain Profiles (Phase 10.4) - Warm-start caching
-  - Engine Selection (Phase 10) - Intelligent engine selection
-  - Batch crawling with caching
-  - Streaming operations
+- 🎯 **Complete API coverage** - All RipTide v2.1.0 endpoints:
+  - **Domain Profiles** - Warm-start caching and rate limiting
+  - **Engine Selection** - Intelligent raw/headless engine routing
+  - **Batch Operations** - Concurrent crawling with smart caching
+  - **Streaming** - Real-time processing with NDJSON/SSE/WebSocket
+  - **Deep Search** - Web search integration with content extraction
 - ⚡ **Connection pooling** - Efficient HTTP connection management
-- 🛡️ **Error handling** - Comprehensive exception hierarchy
+- 🛡️ **Error handling** - Comprehensive exception hierarchy with retry logic
+- 🧪 **Production tested** - Battle-tested with 165+ integration tests
 
 ## Installation
 

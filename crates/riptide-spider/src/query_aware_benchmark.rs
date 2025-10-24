@@ -259,10 +259,11 @@ impl QueryAwareBenchmark {
         let baseline_start = Instant::now();
 
         for i in 0..num_requests {
-            let url = Url::from_str(&format!("https://example.com/page{}", i)).unwrap();
-            let request = CrawlRequest::new(url);
-            let content = format!("Page {} content with various topics", i);
-            baseline_scorer.score_request(&request, Some(&content));
+            if let Ok(url) = Url::from_str(&format!("https://example.com/page{}", i)) {
+                let request = CrawlRequest::new(url);
+                let content = format!("Page {} content with various topics", i);
+                baseline_scorer.score_request(&request, Some(&content));
+            }
         }
 
         let baseline_duration = baseline_start.elapsed();
@@ -272,13 +273,14 @@ impl QueryAwareBenchmark {
         let qa_start = Instant::now();
 
         for i in 0..num_requests {
-            let url = Url::from_str(&format!("https://example.com/page{}", i)).unwrap();
-            let request = CrawlRequest::new(url);
-            let content = format!(
-                "Page {} content about machine learning and artificial intelligence",
-                i
-            );
-            qa_scorer.score_request(&request, Some(&content));
+            if let Ok(url) = Url::from_str(&format!("https://example.com/page{}", i)) {
+                let request = CrawlRequest::new(url);
+                let content = format!(
+                    "Page {} content about machine learning and artificial intelligence",
+                    i
+                );
+                qa_scorer.score_request(&request, Some(&content));
+            }
         }
 
         let qa_duration = qa_start.elapsed();
@@ -371,7 +373,10 @@ impl QueryAwareBenchmark {
 
             // Test that scorer works with these weights
             let mut scorer = QueryAwareScorer::new(config.clone());
-            let url = Url::from_str("https://example.com/test").unwrap();
+            let url = match Url::from_str("https://example.com/test") {
+                Ok(u) => u,
+                Err(_) => return false, // Hard-coded URL should always parse
+            };
             let request = CrawlRequest::new(url);
             let score = scorer.score_request(&request, Some("test content"));
 

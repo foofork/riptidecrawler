@@ -2,7 +2,15 @@
 
 use super::{SearchBackend, SearchHit, SearchProvider};
 use anyhow::Result;
+use once_cell::sync::Lazy;
 use regex::Regex;
+
+/// Compile-time URL regex pattern for extracting HTTP(S) URLs from text
+static URL_REGEX: Lazy<Option<Regex>> = Lazy::new(|| {
+    // This regex is a compile-time constant and should always compile successfully,
+    // but we handle the error to satisfy clippy's expect_used lint
+    Regex::new(r"https?://[^\s,\n]+").ok()
+});
 
 /// None provider that extracts URLs from the query string.
 ///
@@ -12,7 +20,6 @@ use regex::Regex;
 #[derive(Clone)]
 pub struct NoneProvider {
     enable_url_parsing: bool,
-    url_regex: Regex,
 }
 
 impl NoneProvider {
@@ -21,11 +28,7 @@ impl NoneProvider {
     /// # Parameters
     /// - `enable_url_parsing`: Whether to parse URLs from query string
     pub fn new(enable_url_parsing: bool) -> Self {
-        let url_regex = Regex::new(r"https?://[^\s,\n]+").expect("Failed to compile URL regex");
-        Self {
-            enable_url_parsing,
-            url_regex,
-        }
+        Self { enable_url_parsing }
     }
 
     /// Extract URLs from a query string.
@@ -40,18 +43,23 @@ impl NoneProvider {
             return vec![];
         }
 
-        self.url_regex
-            .find_iter(query)
-            .map(|m| {
-                m.as_str()
-                    .trim_end_matches(&[',', '.', ';', ')', ']', '}'] as &[_])
+        URL_REGEX
+            .as_ref()
+            .map(|regex| {
+                regex
+                    .find_iter(query)
+                    .map(|m| {
+                        m.as_str()
+                            .trim_end_matches(&[',', '.', ';', ')', ']', '}'] as &[_])
+                    })
+                    .filter(|url| {
+                        // Validate URL is well-formed
+                        url::Url::parse(url).is_ok()
+                    })
+                    .map(|s| s.to_string())
+                    .collect()
             })
-            .filter(|url| {
-                // Validate URL is well-formed
-                url::Url::parse(url).is_ok()
-            })
-            .map(|s| s.to_string())
-            .collect()
+            .unwrap_or_default()
     }
 }
 

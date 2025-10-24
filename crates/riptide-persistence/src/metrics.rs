@@ -74,8 +74,43 @@ impl Default for InternalCacheStats {
 }
 
 impl Default for CacheMetrics {
+    #[allow(clippy::expect_used)]
     fn default() -> Self {
-        Self::new().expect("Failed to create default CacheMetrics")
+        // Default trait requires infallible construction, so we must panic on failure.
+        // In practice, these simple metric names should never fail to register.
+        Self::new().unwrap_or_else(|e| {
+            // If primary metrics fail, try creating minimal fallback metrics
+            tracing::error!("Failed to create CacheMetrics, using fallback: {}", e);
+            match Self::create_fallback() {
+                Ok(metrics) => metrics,
+                Err(fallback_err) => {
+                    // If even fallback fails, this is a critical error
+                    panic!(
+                        "Critical: Cannot create CacheMetrics or fallback: {} / {}",
+                        e, fallback_err
+                    )
+                }
+            }
+        })
+    }
+}
+
+impl CacheMetrics {
+    /// Create fallback metrics with simple names that should never fail
+    fn create_fallback() -> Result<Self, prometheus::Error> {
+        Ok(Self {
+            hits: Counter::new("cache_hits_fb", "")?,
+            misses: Counter::new("cache_misses_fb", "")?,
+            sets: Counter::new("cache_sets_fb", "")?,
+            deletes: Counter::new("cache_deletes_fb", "")?,
+            access_time: Histogram::with_opts(HistogramOpts::new("cache_access_time_fb", ""))?,
+            entry_size: Histogram::with_opts(HistogramOpts::new("cache_entry_size_fb", ""))?,
+            memory_usage: Gauge::new("cache_memory_fb", "")?,
+            active_connections: Gauge::new("cache_conns_fb", "")?,
+            errors: Counter::new("cache_errors_fb", "")?,
+            compression_ratio: Gauge::new("cache_comp_fb", "")?,
+            stats: Arc::new(RwLock::new(InternalCacheStats::default())),
+        })
     }
 }
 

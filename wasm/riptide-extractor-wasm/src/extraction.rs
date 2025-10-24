@@ -603,9 +603,12 @@ fn is_likely_category(text: &str) -> bool {
     }
 
     // Skip if it contains numbers in a non-category way
-    let re = Regex::new(r"\d{4}|\d+\.\d+|page\s+\d+").unwrap();
-    if re.is_match(&lower_text) {
-        return false;
+    static CATEGORY_FILTER: once_cell::sync::Lazy<Option<Regex>> =
+        once_cell::sync::Lazy::new(|| Regex::new(r"\d{4}|\d+\.\d+|page\s+\d+").ok());
+    if let Some(filter) = CATEGORY_FILTER.as_ref() {
+        if filter.is_match(&lower_text) {
+            return false;
+        }
     }
 
     true

@@ -438,7 +438,7 @@ fn validate_expected_features(
     for feature in &test_case.expected_features {
         match *feature {
             "title_extraction" => {
-                if result.title.is_none() || result.title.as_ref().unwrap().is_empty() {
+                if result.title.as_ref().map_or(true, |t| t.is_empty()) {
                     return Err(format!(
                         "Feature '{}' missing in {}",
                         feature, test_case.name
@@ -446,7 +446,7 @@ fn validate_expected_features(
                 }
             }
             "author_detection" => {
-                if result.byline.is_none() || result.byline.as_ref().unwrap().is_empty() {
+                if result.byline.as_ref().map_or(true, |b| b.is_empty()) {
                     return Err(format!(
                         "Feature '{}' missing in {}",
                         feature, test_case.name

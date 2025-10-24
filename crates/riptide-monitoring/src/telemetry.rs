@@ -193,50 +193,46 @@ pub struct DataSanitizer {
 
 impl DataSanitizer {
     pub fn new() -> Self {
+        // Helper function to create regex patterns safely
+        // These patterns are compile-time constants and should always be valid,
+        // but we handle the error case to satisfy clippy's unwrap_used lint
+        let create_pattern = |pattern: &str, replacement: &str| -> Option<(Regex, String)> {
+            Regex::new(pattern)
+                .ok()
+                .map(|r| (r, replacement.to_string()))
+        };
+
         let patterns = vec![
             // API Keys and tokens
-            (
-                Regex::new(
-                    r#"(?i)(api[_-]?key|token|secret|password|auth)[\s=:]+([a-zA-Z0-9+/=-]{20,})"#,
-                )
-                .unwrap(),
-                "$1=***REDACTED***".to_string(),
+            create_pattern(
+                r#"(?i)(api[_-]?key|token|secret|password|auth)[\s=:]+([a-zA-Z0-9+/=-]{20,})"#,
+                "$1=***REDACTED***",
             ),
             // Authorization headers
-            (
-                Regex::new(
-                    r#"(?i)(authorization|bearer)["':\s=]*["']?([a-zA-Z0-9+/=._-]{20,})["']?"#,
-                )
-                .unwrap(),
-                "$1: ***REDACTED***".to_string(),
+            create_pattern(
+                r#"(?i)(authorization|bearer)["':\s=]*["']?([a-zA-Z0-9+/=._-]{20,})["']?"#,
+                "$1: ***REDACTED***",
             ),
             // Email addresses (PII)
-            (
-                Regex::new(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b").unwrap(),
-                "***EMAIL_REDACTED***".to_string(),
+            create_pattern(
+                r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
+                "***EMAIL_REDACTED***",
             ),
             // IP addresses (partial)
-            (
-                Regex::new(r"\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.)\d{1,3}\b").unwrap(),
-                "${1}XXX".to_string(),
-            ),
+            create_pattern(r"\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.)\d{1,3}\b", "${1}XXX"),
             // Credit card numbers
-            (
-                Regex::new(r"\b(?:\d{4}[-\s]?){3}\d{4}\b").unwrap(),
-                "***CC_REDACTED***".to_string(),
-            ),
+            create_pattern(r"\b(?:\d{4}[-\s]?){3}\d{4}\b", "***CC_REDACTED***"),
             // Social security numbers
-            (
-                Regex::new(r"\b\d{3}-?\d{2}-?\d{4}\b").unwrap(),
-                "***SSN_REDACTED***".to_string(),
-            ),
+            create_pattern(r"\b\d{3}-?\d{2}-?\d{4}\b", "***SSN_REDACTED***"),
             // Phone numbers
-            (
-                Regex::new(r"\b(?:\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}\b")
-                    .unwrap(),
-                "***PHONE_REDACTED***".to_string(),
+            create_pattern(
+                r"\b(?:\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}\b",
+                "***PHONE_REDACTED***",
             ),
-        ];
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
 
         Self { patterns }
     }

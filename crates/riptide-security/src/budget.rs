@@ -175,30 +175,23 @@ pub struct BudgetManager {
 }
 
 impl BudgetManager {
+    /// Helper to safely create a DateTime from year, month, day
+    fn safe_datetime(year: i32, month: u32, day: u32) -> DateTime<Utc> {
+        chrono::NaiveDate::from_ymd_opt(year, month, day)
+            .and_then(|d| d.and_hms_opt(0, 0, 0))
+            .map(|dt| Utc.from_utc_datetime(&dt))
+            .unwrap_or_else(Utc::now) // Fallback to now if date is invalid
+    }
+
     /// Create a new Budget Manager with default limits
     pub fn new(limits: Option<BudgetLimits>) -> Self {
         let limits = limits.unwrap_or_default();
         let now = Utc::now();
-        let month_start = Utc.from_utc_datetime(
-            &chrono::NaiveDate::from_ymd_opt(now.year(), now.month(), 1)
-                .unwrap()
-                .and_hms_opt(0, 0, 0)
-                .unwrap(),
-        );
+        let month_start = Self::safe_datetime(now.year(), now.month(), 1);
         let month_end = if now.month() == 12 {
-            Utc.from_utc_datetime(
-                &chrono::NaiveDate::from_ymd_opt(now.year() + 1, 1, 1)
-                    .unwrap()
-                    .and_hms_opt(0, 0, 0)
-                    .unwrap(),
-            )
+            Self::safe_datetime(now.year() + 1, 1, 1)
         } else {
-            Utc.from_utc_datetime(
-                &chrono::NaiveDate::from_ymd_opt(now.year(), now.month() + 1, 1)
-                    .unwrap()
-                    .and_hms_opt(0, 0, 0)
-                    .unwrap(),
-            )
+            Self::safe_datetime(now.year(), now.month() + 1, 1)
         };
 
         Self {
@@ -508,14 +501,18 @@ impl BudgetManager {
             (usage.total_cost_usd / self.limits.global_monthly_limit_usd) * 100.0;
         let remaining = self.limits.global_monthly_limit_usd - usage.total_cost_usd;
 
-        let breaker = self.circuit_breaker.read().unwrap();
+        let is_circuit_open = self
+            .circuit_breaker
+            .read()
+            .map(|breaker| breaker.state == CircuitBreakerState::Open)
+            .unwrap_or(true); // If lock poisoned, treat as open for safety
 
         BudgetHealthStatus {
             current_usage_usd: usage.total_cost_usd,
             monthly_limit_usd: self.limits.global_monthly_limit_usd,
             usage_percentage,
             remaining_budget_usd: remaining,
-            is_circuit_breaker_open: breaker.state == CircuitBreakerState::Open,
+            is_circuit_breaker_open: is_circuit_open,
             warning_threshold_reached: usage_percentage >= self.limits.warning_threshold_percent,
             days_remaining_in_month: Self::days_remaining_in_month(),
             projected_monthly_cost: Self::project_monthly_cost(&usage),
@@ -549,26 +546,11 @@ impl BudgetManager {
 
         // Reset for new month
         let now = Utc::now();
-        let month_start = Utc.from_utc_datetime(
-            &chrono::NaiveDate::from_ymd_opt(now.year(), now.month(), 1)
-                .unwrap()
-                .and_hms_opt(0, 0, 0)
-                .unwrap(),
-        );
+        let month_start = Self::safe_datetime(now.year(), now.month(), 1);
         let month_end = if now.month() == 12 {
-            Utc.from_utc_datetime(
-                &chrono::NaiveDate::from_ymd_opt(now.year() + 1, 1, 1)
-                    .unwrap()
-                    .and_hms_opt(0, 0, 0)
-                    .unwrap(),
-            )
+            Self::safe_datetime(now.year() + 1, 1, 1)
         } else {
-            Utc.from_utc_datetime(
-                &chrono::NaiveDate::from_ymd_opt(now.year(), now.month() + 1, 1)
-                    .unwrap()
-                    .and_hms_opt(0, 0, 0)
-                    .unwrap(),
-            )
+            Self::safe_datetime(now.year(), now.month() + 1, 1)
         };
 
         *current_usage = BudgetUsage::new(month_start, month_end);
@@ -587,19 +569,9 @@ impl BudgetManager {
     fn days_remaining_in_month() -> u32 {
         let now = Utc::now();
         let month_end = if now.month() == 12 {
-            Utc.from_utc_datetime(
-                &chrono::NaiveDate::from_ymd_opt(now.year() + 1, 1, 1)
-                    .unwrap()
-                    .and_hms_opt(0, 0, 0)
-                    .unwrap(),
-            )
+            Self::safe_datetime(now.year() + 1, 1, 1)
         } else {
-            Utc.from_utc_datetime(
-                &chrono::NaiveDate::from_ymd_opt(now.year(), now.month() + 1, 1)
-                    .unwrap()
-                    .and_hms_opt(0, 0, 0)
-                    .unwrap(),
-            )
+            Self::safe_datetime(now.year(), now.month() + 1, 1)
         };
 
         (month_end - now).num_days() as u32

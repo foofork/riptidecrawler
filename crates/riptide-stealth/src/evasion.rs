@@ -255,7 +255,12 @@ impl StealthController {
             ));
         }
 
-        let mut js_parts = vec![self.js_injector.as_ref().unwrap().generate_stealth_js()];
+        let mut js_parts = if let Some(injector) = self.js_injector.as_ref() {
+            vec![injector.generate_stealth_js()]
+        } else {
+            // This should never happen as we just initialized it, but handle gracefully
+            vec![]
+        };
 
         // Add enhanced WebRTC protection
         if self.config.preset != StealthPreset::None {

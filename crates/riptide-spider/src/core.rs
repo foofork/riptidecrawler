@@ -559,7 +559,10 @@ impl Spider {
                 .user_agent("RipTide Spider/1.0")
                 .timeout(self.config.performance.request_timeout)
                 .build()
-                .unwrap()
+                .unwrap_or_else(|e| {
+                    tracing::warn!("Failed to build HTTP client, using default: {}", e);
+                    reqwest::Client::new()
+                })
         });
 
         let response = http_client

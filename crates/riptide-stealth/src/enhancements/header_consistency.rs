@@ -142,8 +142,7 @@ impl HeaderConsistencyManager {
         }
 
         // Add base language with lowest quality
-        if locale.contains('-') {
-            let base_lang = locale.split('-').next().unwrap();
+        if let Some(base_lang) = locale.split('-').next() {
             lang_parts.push(format!("{};q=0.5", base_lang));
         }
 

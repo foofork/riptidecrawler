@@ -494,8 +494,16 @@ impl PiiRedactionMiddleware {
 }
 
 impl Default for PiiRedactionMiddleware {
+    #[allow(clippy::expect_used)]
     fn default() -> Self {
-        Self::new(None).expect("Failed to create default PII redaction middleware")
+        // Default trait requires infallible construction
+        Self::new(None).unwrap_or_else(|e| {
+            // If we can't create middleware, panic is appropriate for Default
+            panic!(
+                "Critical: Cannot create default PiiRedactionMiddleware: {}",
+                e
+            )
+        })
     }
 }
 

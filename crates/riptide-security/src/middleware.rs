@@ -419,14 +419,33 @@ impl SecurityMiddleware {
 
         headers.insert(
             CONTENT_SECURITY_POLICY,
-            "default-src 'self'".parse().unwrap(),
+            "default-src 'self'"
+                .parse()
+                .map_err(|e| anyhow::anyhow!("Failed to parse CSP header: {}", e))?,
         );
-        headers.insert(X_CONTENT_TYPE_OPTIONS, "nosniff".parse().unwrap());
-        headers.insert(X_FRAME_OPTIONS, "DENY".parse().unwrap());
-        headers.insert("X-XSS-Protection", "1; mode=block".parse().unwrap());
+        headers.insert(
+            X_CONTENT_TYPE_OPTIONS,
+            "nosniff".parse().map_err(|e| {
+                anyhow::anyhow!("Failed to parse X-Content-Type-Options header: {}", e)
+            })?,
+        );
+        headers.insert(
+            X_FRAME_OPTIONS,
+            "DENY"
+                .parse()
+                .map_err(|e| anyhow::anyhow!("Failed to parse X-Frame-Options header: {}", e))?,
+        );
+        headers.insert(
+            "X-XSS-Protection",
+            "1; mode=block"
+                .parse()
+                .map_err(|e| anyhow::anyhow!("Failed to parse X-XSS-Protection header: {}", e))?,
+        );
         headers.insert(
             "Strict-Transport-Security",
-            "max-age=31536000; includeSubDomains".parse().unwrap(),
+            "max-age=31536000; includeSubDomains"
+                .parse()
+                .map_err(|e| anyhow::anyhow!("Failed to parse HSTS header: {}", e))?,
         );
 
         Ok(())

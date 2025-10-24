@@ -2,13 +2,38 @@
 
 Command-line interface for the RipTide web crawler API.
 
+**Version:** 2.1.0
+**Status:** Production Ready (Phases 7.5, 9 complete)
+**Platform:** Cross-platform (Linux, macOS, Windows)
+
 ## Installation
 
+### Option 1: Cargo (Recommended for Rust users)
 ```bash
-# Install globally via npm
-npm install -g @riptide/cli
+# Install from crates.io
+cargo install riptide-cli
 
-# Or use npx (no installation required)
+# Or install from source
+cd /workspaces/eventmesh/crates/riptide-cli
+cargo install --path .
+```
+
+### Option 2: Pre-built Binaries
+```bash
+# Download from GitHub Releases
+# https://github.com/your-org/riptide/releases
+
+# Linux/macOS
+chmod +x riptide
+sudo mv riptide /usr/local/bin/
+```
+
+### Option 3: Docker
+```bash
+# Run via Docker
+docker run --rm riptide/cli:latest health
+
+# Or use npx (Node.js wrapper - if available)
 npx @riptide/cli crawl https://example.com
 ```
 

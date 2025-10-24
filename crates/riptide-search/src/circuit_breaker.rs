@@ -168,7 +168,11 @@ impl CircuitBreakerWrapper {
 
     /// Get the current circuit state for monitoring and debugging.
     pub fn current_state(&self) -> CircuitState {
-        *self.state.read().unwrap()
+        // If the lock is poisoned, we default to Open state for safety
+        *self.state.read().unwrap_or_else(|e| {
+            tracing::warn!("Circuit breaker state lock poisoned, defaulting to Open");
+            e.into_inner()
+        })
     }
 
     /// Get current failure rate percentage for monitoring.
@@ -179,7 +183,12 @@ impl CircuitBreakerWrapper {
     /// Manually reset the circuit breaker (for testing or manual recovery).
     pub fn reset(&self) {
         self.metrics.reset();
-        *self.state.write().unwrap() = CircuitState::Closed;
+        // Handle poisoned lock by replacing it
+        if let Ok(mut state) = self.state.write() {
+            *state = CircuitState::Closed;
+        } else {
+            tracing::error!("Circuit breaker state lock poisoned during reset");
+        }
     }
 
     /// Check if a request can proceed based on current circuit state.
@@ -191,8 +200,15 @@ impl CircuitBreakerWrapper {
             CircuitState::Open => {
                 // Check if we can transition to half-open
                 if self.metrics.can_attempt_reset(&self.config) {
-                    *self.state.write().unwrap() = CircuitState::HalfOpen;
-                    Ok(true)
+                    if let Ok(mut state) = self.state.write() {
+                        *state = CircuitState::HalfOpen;
+                        Ok(true)
+                    } else {
+                        tracing::error!(
+                            "Circuit breaker state lock poisoned, cannot transition to HalfOpen"
+                        );
+                        Ok(false)
+                    }
                 } else {
                     Ok(false)
                 }
@@ -227,14 +243,18 @@ impl CircuitBreakerWrapper {
                         if half_open_requests >= self.config.half_open_max_requests
                             && half_open_failures == 0
                         {
-                            *self.state.write().unwrap() = CircuitState::Closed;
-                            self.metrics.reset();
+                            if let Ok(mut state) = self.state.write() {
+                                *state = CircuitState::Closed;
+                                self.metrics.reset();
+                            }
                         }
                     }
                     CircuitState::Open => {
                         // This shouldn't happen, but if it does, we can close the circuit
-                        *self.state.write().unwrap() = CircuitState::Closed;
-                        self.metrics.reset();
+                        if let Ok(mut state) = self.state.write() {
+                            *state = CircuitState::Closed;
+                            self.metrics.reset();
+                        }
                     }
                 }
             }
@@ -245,14 +265,18 @@ impl CircuitBreakerWrapper {
 
                         // Check if we should open the circuit
                         if self.metrics.should_trip(&self.config) {
-                            *self.state.write().unwrap() = CircuitState::Open;
+                            if let Ok(mut state) = self.state.write() {
+                                *state = CircuitState::Open;
+                            }
                         }
                     }
                     CircuitState::HalfOpen => {
                         self.metrics.record_half_open_failure();
 
                         // Any failure in half-open immediately opens the circuit
-                        *self.state.write().unwrap() = CircuitState::Open;
+                        if let Ok(mut state) = self.state.write() {
+                            *state = CircuitState::Open;
+                        }
                     }
                     CircuitState::Open => {
                         // Already open, just update failure time

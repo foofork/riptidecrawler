@@ -6984,6 +6984,7 @@ dependencies = [
  "async-trait",
  "futures",
  "mockall 0.12.1",
+ "once_cell",
  "regex",
  "reqwest 0.12.24",
  "riptide-events",
@@ -6991,6 +6992,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tokio-test",
+ "tracing",
  "url",
 ]
 

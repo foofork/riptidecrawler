@@ -34,14 +34,17 @@ impl SerperProvider {
     /// # Parameters
     /// - `api_key`: Valid Serper.dev API key
     /// - `timeout_seconds`: Request timeout in seconds
-    pub fn new(api_key: String, timeout_seconds: u64) -> Self {
+    ///
+    /// # Errors
+    /// - Returns an error if HTTP client creation fails
+    pub fn new(api_key: String, timeout_seconds: u64) -> Result<Self> {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(timeout_seconds))
             .user_agent("RipTide/1.0")
             .build()
-            .expect("Failed to create HTTP client");
+            .context("Failed to create HTTP client")?;
 
-        Self { api_key, client }
+        Ok(Self { api_key, client })
     }
 }
 
