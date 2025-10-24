@@ -15,7 +15,6 @@ use axum::{
 };
 use riptide_intelligence::domain_profiling::{DomainProfile, ProfileManager};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use tracing::{debug, error, info};
 
 // ============================================================================
@@ -167,11 +166,11 @@ pub struct CachingMetricsResponse {
 /// ```
 #[tracing::instrument(
     name = "create_profile",
-    skip(state),
+    skip(_state),
     fields(domain = %request.domain)
 )]
 pub async fn create_profile(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Json(request): Json<CreateProfileRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
     info!("Creating domain profile for: {}", request.domain);
@@ -251,9 +250,9 @@ pub async fn create_profile(
 /// 2. GET /profiles/{domain} - Get profile
 ///
 /// Retrieves a domain profile by domain name.
-#[tracing::instrument(name = "get_profile", skip(state), fields(domain = %domain))]
+#[tracing::instrument(name = "get_profile", skip(_state), fields(domain = %domain))]
 pub async fn get_profile(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path(domain): Path<String>,
 ) -> Result<impl IntoResponse, ApiError> {
     debug!("Fetching profile for domain: {}", domain);
@@ -271,9 +270,9 @@ pub async fn get_profile(
 /// 3. PUT /profiles/{domain} - Update profile
 ///
 /// Updates an existing domain profile configuration and metadata.
-#[tracing::instrument(name = "update_profile", skip(state), fields(domain = %domain))]
+#[tracing::instrument(name = "update_profile", skip(_state), fields(domain = %domain))]
 pub async fn update_profile(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path(domain): Path<String>,
     Json(request): Json<UpdateProfileRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
@@ -350,9 +349,9 @@ pub async fn update_profile(
 /// 4. DELETE /profiles/{domain} - Delete profile
 ///
 /// Deletes a domain profile from the registry.
-#[tracing::instrument(name = "delete_profile", skip(state), fields(domain = %domain))]
+#[tracing::instrument(name = "delete_profile", skip(_state), fields(domain = %domain))]
 pub async fn delete_profile(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path(domain): Path<String>,
 ) -> Result<impl IntoResponse, ApiError> {
     info!("Deleting profile for domain: {}", domain);
@@ -375,9 +374,9 @@ pub async fn delete_profile(
 ///
 /// Query parameters:
 /// - `filter`: Optional domain name filter pattern
-#[tracing::instrument(name = "list_profiles", skip(state))]
+#[tracing::instrument(name = "list_profiles", skip(_state))]
 pub async fn list_profiles(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Query(query): Query<ListQuery>,
 ) -> Result<impl IntoResponse, ApiError> {
     debug!("Listing profiles with filter: {:?}", query.filter);
@@ -400,9 +399,9 @@ pub async fn list_profiles(
 /// 6. GET /profiles/{domain}/stats - Get usage stats
 ///
 /// Retrieves usage statistics and cache status for a domain profile.
-#[tracing::instrument(name = "get_profile_stats", skip(state), fields(domain = %domain))]
+#[tracing::instrument(name = "get_profile_stats", skip(_state), fields(domain = %domain))]
 pub async fn get_profile_stats(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path(domain): Path<String>,
 ) -> Result<impl IntoResponse, ApiError> {
     debug!("Fetching stats for domain: {}", domain);
@@ -460,9 +459,9 @@ pub async fn get_profile_stats(
 ///   ]
 /// }
 /// ```
-#[tracing::instrument(name = "batch_create_profiles", skip(state))]
+#[tracing::instrument(name = "batch_create_profiles", skip(_state))]
 pub async fn batch_create_profiles(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Json(request): Json<BatchCreateRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
     info!("Batch creating {} profiles", request.profiles.len());
@@ -472,7 +471,7 @@ pub async fn batch_create_profiles(
 
     for profile_req in request.profiles {
         let domain = profile_req.domain.clone();
-        match create_profile_internal(&state, profile_req).await {
+        match create_profile_internal(&_state, profile_req).await {
             Ok(_) => created.push(domain),
             Err(e) => failed.push(BatchFailure {
                 domain,
@@ -495,9 +494,9 @@ pub async fn batch_create_profiles(
 /// 8. GET /profiles/search?query={q} - Search profiles
 ///
 /// Searches for profiles matching the query pattern.
-#[tracing::instrument(name = "search_profiles", skip(state))]
+#[tracing::instrument(name = "search_profiles", skip(_state))]
 pub async fn search_profiles(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Query(query): Query<SearchQuery>,
 ) -> Result<impl IntoResponse, ApiError> {
     debug!("Searching profiles with query: {}", query.query);
@@ -523,9 +522,9 @@ pub async fn search_profiles(
 ///   "url": "https://example.com/page"
 /// }
 /// ```
-#[tracing::instrument(name = "warm_cache", skip(state), fields(domain = %domain))]
+#[tracing::instrument(name = "warm_cache", skip(_state), fields(domain = %domain))]
 pub async fn warm_cache(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path(domain): Path<String>,
     Json(request): Json<WarmCacheRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
@@ -586,9 +585,9 @@ pub async fn warm_cache(
 /// 10. DELETE /profiles/clear - Clear all caches
 ///
 /// Clears all cached engine preferences across all profiles.
-#[tracing::instrument(name = "clear_all_caches", skip(state))]
+#[tracing::instrument(name = "clear_all_caches", skip(_state))]
 pub async fn clear_all_caches(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> Result<impl IntoResponse, ApiError> {
     info!("Clearing all profile caches");
 
@@ -631,9 +630,9 @@ pub async fn clear_all_caches(
 /// 11. GET /profiles/metrics - Get caching metrics
 ///
 /// Retrieves aggregated metrics about profile caching status.
-#[tracing::instrument(name = "get_caching_metrics", skip(state))]
+#[tracing::instrument(name = "get_caching_metrics", skip(_state))]
 pub async fn get_caching_metrics(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> Result<impl IntoResponse, ApiError> {
     debug!("Fetching caching metrics");
 
