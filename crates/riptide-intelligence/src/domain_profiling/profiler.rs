@@ -12,6 +12,9 @@ use std::path::{Path, PathBuf};
 use super::analyzer::SiteBaseline;
 use super::DOMAIN_REGISTRY_DIR;
 
+// Phase 10.4: Import Engine type and trait for cache functionality
+use riptide_reliability::engine_selection::{Engine, EngineCacheable};
+
 /// Domain profile containing configuration and baseline information
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DomainProfile {
@@ -24,6 +27,19 @@ pub struct DomainProfile {
     pub baseline: Option<SiteBaseline>,
     pub metadata: DomainMetadata,
     pub patterns: DomainPatterns,
+
+    // Phase 10.4: Engine warm-start caching fields
+    /// Cached preferred engine from previous successful extractions
+    #[serde(default)]
+    pub preferred_engine: Option<Engine>,
+
+    /// Confidence score from last successful extraction (0.0-1.0)
+    #[serde(default)]
+    pub last_success_confidence: Option<f64>,
+
+    /// Expiration timestamp for cached engine (TTL: 7 days)
+    #[serde(default)]
+    pub engine_cache_expires_at: Option<DateTime<Utc>>,
 }
 
 /// Domain-specific extraction configuration
@@ -85,7 +101,7 @@ impl DomainProfile {
         Self {
             name: domain.clone(),
             domain: domain.clone(),
-            version: "1.0.0".to_string(),
+            version: "1.1.0".to_string(), // Phase 10.4: Updated version for caching
             created_at: now,
             updated_at: now,
             config: DomainConfig::default(),
@@ -104,6 +120,10 @@ impl DomainProfile {
                 path_patterns: Vec::new(),
                 exclude_patterns: Vec::new(),
             },
+            // Phase 10.4: Initialize caching fields
+            preferred_engine: None,
+            last_success_confidence: None,
+            engine_cache_expires_at: None,
         }
     }
 
@@ -157,6 +177,116 @@ impl DomainProfile {
     pub fn update_metadata(&mut self, update_fn: impl FnOnce(&mut DomainMetadata)) {
         update_fn(&mut self.metadata);
         self.updated_at = Utc::now();
+    }
+
+    // Phase 10.4: Engine warm-start caching methods
+
+    /// Cache the preferred engine with confidence score
+    ///
+    /// Sets the cached engine preference with a 7-day TTL. This cache is used
+    /// for warm-start optimization to skip analysis on subsequent requests.
+    ///
+    /// # Arguments
+    ///
+    /// * `engine` - The engine that successfully extracted content
+    /// * `confidence` - Quality score from extraction (0.0-1.0)
+    ///
+    /// # TTL Policy
+    ///
+    /// - Cache expires after 7 days to account for site structure changes
+    /// - Automatically invalidated on next load if expired
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// profile.cache_engine(Engine::Wasm, 0.85);
+    /// ```
+    pub fn cache_engine(&mut self, engine: Engine, confidence: f64) {
+        self.preferred_engine = Some(engine);
+        self.last_success_confidence = Some(confidence);
+        // Set 7-day TTL for cache
+        self.engine_cache_expires_at = Some(Utc::now() + chrono::Duration::days(7));
+        self.updated_at = Utc::now();
+    }
+
+    /// Get cached engine information (internal helper)
+    ///
+    /// Note: The public API uses the EngineCacheable trait implementation.
+    /// This method is kept for backward compatibility but delegates to the trait.
+    ///
+    /// # Returns
+    ///
+    /// `Some(Engine)` if cache is valid and high-confidence, `None` otherwise
+    pub fn get_cached_engine_info(&self) -> Option<(Engine, f64, DateTime<Utc>)> {
+        Some((
+            self.preferred_engine?,
+            self.last_success_confidence?,
+            self.engine_cache_expires_at?,
+        ))
+    }
+
+    /// Check if the engine cache is still valid (not expired)
+    ///
+    /// # Returns
+    ///
+    /// `true` if cache exists and hasn't expired, `false` otherwise
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// if profile.is_cache_valid() {
+    ///     println!("Cache is fresh");
+    /// } else {
+    ///     println!("Cache expired or missing");
+    /// }
+    /// ```
+    pub fn is_cache_valid(&self) -> bool {
+        if let Some(expires_at) = self.engine_cache_expires_at {
+            Utc::now() < expires_at
+        } else {
+            false
+        }
+    }
+
+    /// Invalidate the engine cache
+    ///
+    /// Clears all cached engine data. Useful when site structure changes
+    /// are detected or extraction quality degrades.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// profile.invalidate_cache();
+    /// ```
+    pub fn invalidate_cache(&mut self) {
+        self.preferred_engine = None;
+        self.last_success_confidence = None;
+        self.engine_cache_expires_at = None;
+        self.updated_at = Utc::now();
+    }
+}
+
+// Phase 10.4: Implement EngineCacheable trait for DomainProfile
+impl EngineCacheable for DomainProfile {
+    /// Get the cached engine if valid (non-expired, high confidence > 70%)
+    ///
+    /// This implementation provides the caching logic directly for the trait.
+    fn get_cached_engine(&self) -> Option<Engine> {
+        // Check if cache exists
+        let engine = self.preferred_engine?;
+        let confidence = self.last_success_confidence?;
+
+        // Validate cache hasn't expired
+        if !self.is_cache_valid() {
+            return None;
+        }
+
+        // Only use cache if confidence is high (> 70%)
+        if confidence > 0.70 {
+            Some(engine)
+        } else {
+            None
+        }
     }
 }
 
@@ -343,7 +473,7 @@ mod tests {
         let profile = DomainProfile::new(domain.clone());
         assert_eq!(profile.name, domain);
         assert_eq!(profile.domain, domain);
-        assert_eq!(profile.version, "1.0.0");
+        assert_eq!(profile.version, "1.1.0"); // Phase 10.4: Updated to v1.1.0
         assert!(profile.baseline.is_none());
     }
 

@@ -62,3 +62,7 @@ pub mod cli_comprehensive_test;
 
 // Phase 10: Engine Optimization Quick Wins (3 optimizations, ~290 LOC, 60-80% cost savings)
 pub mod phase10_engine_optimization;
+pub mod probe_first_escalation_tests;
+
+// Phase 10.4: Domain Warm-Start Caching (23 integration tests)
+pub mod domain_warm_start_tests;

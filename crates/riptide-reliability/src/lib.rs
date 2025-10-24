@@ -152,7 +152,8 @@ pub use circuit_breaker::{
     record_extraction_result, CircuitBreakerState, ExtractionResult as CircuitExtractionResult,
 };
 pub use engine_selection::{
-    analyze_content, calculate_content_ratio, decide_engine, ContentAnalysis, Engine,
+    analyze_content, calculate_content_ratio, decide_engine, decide_engine_with_flags,
+    ContentAnalysis, Engine, EngineCacheable, EngineSelectionFlags,
 };
 pub use gate::{decide, score, should_use_headless, Decision, GateFeatures};
 pub use reliability::{

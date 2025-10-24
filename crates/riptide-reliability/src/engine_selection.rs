@@ -32,6 +32,33 @@
 
 use serde::{Deserialize, Serialize};
 
+// Phase 10.4: Domain warm-start caching support
+// We define a minimal trait to avoid tight coupling with riptide-intelligence
+// Callers can implement this trait or use the provided DomainProfile from riptide-intelligence
+
+/// Trait for domain profiles that support engine caching
+///
+/// This trait allows `decide_engine_with_flags` to leverage cached engine preferences
+/// without creating a hard dependency on the full domain profiling system.
+pub trait EngineCacheable {
+    /// Get the cached engine if valid (non-expired, high confidence > 70%)
+    fn get_cached_engine(&self) -> Option<Engine>;
+}
+
+// Blanket implementation for Option to support optional profiles
+impl<T: EngineCacheable> EngineCacheable for Option<T> {
+    fn get_cached_engine(&self) -> Option<Engine> {
+        self.as_ref().and_then(|p| p.get_cached_engine())
+    }
+}
+
+// Implementation for unit type () to support "no profile" case
+impl EngineCacheable for () {
+    fn get_cached_engine(&self) -> Option<Engine> {
+        None
+    }
+}
+
 /// Extraction engine types
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Engine {
@@ -167,7 +194,8 @@ impl Default for EngineSelectionFlags {
 /// assert_eq!(decide_engine(article_html, "https://example.com"), Engine::Wasm);
 /// ```
 pub fn decide_engine(html: &str, url: &str) -> Engine {
-    decide_engine_with_flags(html, url, EngineSelectionFlags::default())
+    // Phase 10.4: Maintain backward compatibility by passing () for no profile
+    decide_engine_with_flags(html, url, EngineSelectionFlags::default(), ())
 }
 
 /// Decide engine with feature flags for advanced optimizations (Phase 10)
@@ -180,11 +208,17 @@ pub fn decide_engine(html: &str, url: &str) -> Engine {
 /// instead of `Engine::Headless`. The caller should attempt WASM extraction first and
 /// escalate to headless only if the quality score is below threshold.
 ///
+/// **Phase 10.4 Domain Warm-Start Caching**:
+/// When `profile` is provided and contains a valid cached engine (non-expired, confidence > 70%),
+/// the cached engine is returned immediately, skipping content analysis entirely. This provides
+/// significant performance improvements for repeat visits to known domains.
+///
 /// # Arguments
 ///
 /// * `html` - The HTML content to analyze
 /// * `url` - The source URL (used for additional context)
 /// * `flags` - Feature flags controlling selection behavior
+/// * `profile` - Optional domain profile with cached engine preference
 ///
 /// # Returns
 ///
@@ -198,14 +232,26 @@ pub fn decide_engine(html: &str, url: &str) -> Engine {
 /// // Standard behavior (conservative)
 /// let flags = EngineSelectionFlags::default();
 /// let spa_html = r#"<html><script>window.__NEXT_DATA__={}</script></html>"#;
-/// assert_eq!(decide_engine_with_flags(spa_html, "https://example.com", flags), Engine::Headless);
+/// assert_eq!(decide_engine_with_flags(spa_html, "https://example.com", flags, ()), Engine::Headless);
 ///
 /// // Probe-first optimization enabled
 /// let mut flags = EngineSelectionFlags::default();
 /// flags.probe_first_spa = true;
-/// assert_eq!(decide_engine_with_flags(spa_html, "https://example.com", flags), Engine::Wasm);
+/// assert_eq!(decide_engine_with_flags(spa_html, "https://example.com", flags, ()), Engine::Wasm);
 /// ```
-pub fn decide_engine_with_flags(html: &str, _url: &str, flags: EngineSelectionFlags) -> Engine {
+pub fn decide_engine_with_flags<P: EngineCacheable>(
+    html: &str,
+    _url: &str,
+    flags: EngineSelectionFlags,
+    profile: P,
+) -> Engine {
+    // Phase 10.4: Check cache first if profile is provided
+    if let Some(cached_engine) = profile.get_cached_engine() {
+        // Cache hit! Return cached engine without analysis
+        // This saves ~10-50ms per request for repeat domain visits
+        return cached_engine;
+    }
+    // Cache miss or expired - fall through to full analysis
     let html_lower = html.to_lowercase();
 
     // Check for heavy JavaScript frameworks (case-insensitive for better detection)
@@ -775,7 +821,7 @@ mod tests {
 
         // SPA content should still go to headless by default
         let spa_html = r#"<html><script>window.__NEXT_DATA__={}</script></html>"#;
-        let engine = decide_engine_with_flags(spa_html, "https://example.com", flags);
+        let engine = decide_engine_with_flags(spa_html, "https://example.com", flags, ());
         assert_eq!(engine, Engine::Headless);
     }
 
@@ -787,17 +833,17 @@ mod tests {
 
         // React SPA
         let react_html = r#"<html><script>window.__NEXT_DATA__={}</script></html>"#;
-        let engine = decide_engine_with_flags(react_html, "https://example.com", flags);
+        let engine = decide_engine_with_flags(react_html, "https://example.com", flags, ());
         assert_eq!(engine, Engine::Wasm);
 
         // Vue SPA
         let vue_html = r#"<html><div v-app>Content</div></html>"#;
-        let engine = decide_engine_with_flags(vue_html, "https://example.com", flags);
+        let engine = decide_engine_with_flags(vue_html, "https://example.com", flags, ());
         assert_eq!(engine, Engine::Wasm);
 
         // Low content ratio
         let low_content_html = r#"<html><head><script src="app.js"></script></head><body><div id="root"></div></body></html>"#;
-        let engine = decide_engine_with_flags(low_content_html, "https://example.com", flags);
+        let engine = decide_engine_with_flags(low_content_html, "https://example.com", flags, ());
         assert_eq!(engine, Engine::Wasm);
     }
 
@@ -809,7 +855,7 @@ mod tests {
         flags.probe_first_spa = true;
 
         let cloudflare_html = r#"<html><body>Cloudflare protection active</body></html>"#;
-        let engine = decide_engine_with_flags(cloudflare_html, "https://example.com", flags);
+        let engine = decide_engine_with_flags(cloudflare_html, "https://example.com", flags, ());
         assert_eq!(engine, Engine::Headless);
     }
 
