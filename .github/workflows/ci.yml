@@ -53,6 +53,9 @@ jobs:
           targets: wasm32-wasip2
           components: rustfmt, clippy
 
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
       - name: Install sccache
         uses: mozilla-actions/sccache-action@v0.0.6
 
@@ -470,6 +473,9 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
 
       - name: Install sccache
         uses: mozilla-actions/sccache-action@v0.0.6

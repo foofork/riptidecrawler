@@ -173,6 +173,7 @@ fn error_response(status: StatusCode, message: &str) -> Response {
 }
 
 /// Build HTTP response with proper error handling
+#[allow(clippy::result_large_err)]
 fn build_streaming_response(body_text: String, request_id: String) -> Result<Response, Response> {
     HttpResponse::builder()
         .status(StatusCode::OK)

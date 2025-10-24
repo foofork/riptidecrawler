@@ -67,5 +67,6 @@ benchmarks = []
 
 [[bench]]
 name = "query_aware_benchmark"
+path = "benches/query_aware_benchmark.rs"
 harness = false
 required-features = ["benchmarks"]
