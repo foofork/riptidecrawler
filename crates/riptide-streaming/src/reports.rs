@@ -117,22 +117,33 @@ impl ReportGenerator {
     }
 
     /// Create a new report generator with custom configuration
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if the built-in templates are malformed. This should never
+    /// happen in practice as the templates are static constants that are part of the compiled binary.
+    /// If a panic occurs, it indicates a critical bug in the template definitions that must be fixed.
     pub fn with_config(config: ReportConfig) -> Self {
         let mut handlebars = Handlebars::new();
 
-        // Register templates
+        // Register built-in templates
+        // These are compile-time constants, so errors indicate a critical programming bug
+        // We use expect() here because:
+        // 1. Templates are static and part of our codebase
+        // 2. Failures indicate developer errors, not runtime conditions
+        // 3. The application cannot function without valid templates
         handlebars
             .register_template_string("main", MAIN_TEMPLATE)
-            .expect("Failed to register main template");
+            .expect("BUG: Built-in main template is malformed - please report this issue");
         handlebars
             .register_template_string("summary", SUMMARY_TEMPLATE)
-            .expect("Failed to register summary template");
+            .expect("BUG: Built-in summary template is malformed - please report this issue");
         handlebars
             .register_template_string("results", RESULTS_TEMPLATE)
-            .expect("Failed to register results template");
+            .expect("BUG: Built-in results template is malformed - please report this issue");
         handlebars
             .register_template_string("charts", CHARTS_TEMPLATE)
-            .expect("Failed to register charts template");
+            .expect("BUG: Built-in charts template is malformed - please report this issue");
 
         // Register helpers
         handlebars.register_helper("format_duration", Box::new(format_duration));
@@ -312,6 +323,9 @@ impl ReportGenerator {
     }
 
     /// Generate timeline entries
+    ///
+    /// Groups extraction results by hour to create a timeline of activity.
+    /// Timestamps are normalized to the beginning of each hour for grouping.
     pub fn generate_timeline(&self, results: &[ExtractionResult]) -> Vec<TimelineEntry> {
         let mut timeline = Vec::new();
         let mut sorted_results: Vec<_> = results.iter().collect();
@@ -321,14 +335,26 @@ impl ReportGenerator {
         let mut hourly_counts: HashMap<chrono::DateTime<chrono::Utc>, usize> = HashMap::new();
 
         for result in sorted_results {
+            // Normalize timestamp to the beginning of the hour
+            // with_minute/with_second/with_nanosecond return None only for invalid values
+            // Since we're setting to 0, this should always succeed for valid DateTime objects
             let hour = result
                 .timestamp
                 .with_minute(0)
-                .unwrap()
-                .with_second(0)
-                .unwrap()
-                .with_nanosecond(0)
-                .unwrap();
+                .and_then(|dt| dt.with_second(0))
+                .and_then(|dt| dt.with_nanosecond(0))
+                .unwrap_or_else(|| {
+                    // Fallback: If normalization somehow fails (should be impossible for valid DateTime),
+                    // use the original timestamp and log the issue for investigation
+                    tracing::warn!(
+                        result_id = %result.id,
+                        timestamp = %result.timestamp,
+                        "Failed to normalize timestamp to hour - using original timestamp. \
+                         This indicates a DateTime object in an unexpected state."
+                    );
+                    result.timestamp
+                });
+
             *hourly_counts.entry(hour).or_insert(0) += 1;
         }
 

@@ -3,6 +3,7 @@
 //! Provides endpoints for streaming extraction results via NDJSON.
 
 use crate::StreamingCoordinator;
+use anyhow::Context;
 use axum::{
     body::Body,
     extract::{Json, State},
@@ -127,15 +128,11 @@ async fn handle_crawl_stream(
     // Create mock streaming response
     let body_text = create_mock_ndjson_stream(&request.urls, &extraction_id);
 
-    // Build response with proper headers
-    HttpResponse::builder()
-        .status(StatusCode::OK)
-        .header(header::CONTENT_TYPE, "application/x-ndjson")
-        .header(header::TRANSFER_ENCODING, "chunked")
-        .header("x-request-id", extraction_id)
-        .body(Body::from(body_text))
-        .unwrap()
-        .into_response()
+    // Build response with proper error handling
+    match build_streaming_response(body_text, extraction_id) {
+        Ok(response) => response,
+        Err(error_response) => error_response,
+    }
 }
 
 /// Handle /deepsearch/stream requests
@@ -154,15 +151,11 @@ async fn handle_deepsearch_stream(
     // Create mock search results
     let body_text = create_mock_search_stream(&request.query, &extraction_id, request.limit);
 
-    // Build response with proper headers
-    HttpResponse::builder()
-        .status(StatusCode::OK)
-        .header(header::CONTENT_TYPE, "application/x-ndjson")
-        .header(header::TRANSFER_ENCODING, "chunked")
-        .header("x-request-id", extraction_id)
-        .body(Body::from(body_text))
-        .unwrap()
-        .into_response()
+    // Build response with proper error handling
+    match build_streaming_response(body_text, extraction_id) {
+        Ok(response) => response,
+        Err(error_response) => error_response,
+    }
 }
 
 /// Create error response
@@ -177,6 +170,24 @@ fn error_response(status: StatusCode, message: &str) -> Response {
     });
 
     (status, Json(error)).into_response()
+}
+
+/// Build HTTP response with proper error handling
+fn build_streaming_response(body_text: String, request_id: String) -> Result<Response, Response> {
+    HttpResponse::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, "application/x-ndjson")
+        .header(header::TRANSFER_ENCODING, "chunked")
+        .header("x-request-id", request_id)
+        .body(Body::from(body_text))
+        .context("Failed to build HTTP response with streaming headers")
+        .map(|response| response.into_response())
+        .map_err(|e| {
+            error_response(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("Failed to build response: {}", e),
+            )
+        })
 }
 
 /// Create mock NDJSON stream for crawl endpoint

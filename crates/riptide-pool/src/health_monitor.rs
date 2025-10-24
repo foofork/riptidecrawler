@@ -268,11 +268,22 @@ impl PoolHealthMonitor {
     async fn process_health_status(&self, status: PoolHealthStatus) {
         // Store in history for trend analysis
         {
-            let mut history = self.health_history.lock().unwrap();
-            history.push(status.clone());
-            // Keep only last 100 entries
-            if history.len() > 100 {
-                history.remove(0);
+            match self.health_history.lock() {
+                Ok(mut history) => {
+                    history.push(status.clone());
+                    // Keep only last 100 entries
+                    if history.len() > 100 {
+                        history.remove(0);
+                    }
+                }
+                Err(poisoned) => {
+                    warn!("Health history mutex poisoned, attempting recovery");
+                    let mut history = poisoned.into_inner();
+                    history.push(status.clone());
+                    if history.len() > 100 {
+                        history.remove(0);
+                    }
+                }
             }
         }
 
@@ -385,7 +396,13 @@ impl PoolHealthMonitor {
 
     /// Calculate health trend based on recent history
     async fn calculate_health_trend(&self, _current_level: &HealthLevel) -> HealthTrend {
-        let history = self.health_history.lock().unwrap();
+        let history = match self.health_history.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => {
+                warn!("Health history mutex poisoned during trend calculation, recovering");
+                poisoned.into_inner()
+            }
+        };
 
         if history.len() < 3 {
             return HealthTrend::Unknown;
@@ -431,12 +448,24 @@ impl PoolHealthMonitor {
 
     /// Get health history for analysis
     pub fn get_health_history(&self) -> Vec<PoolHealthStatus> {
-        self.health_history.lock().unwrap().clone()
+        match self.health_history.lock() {
+            Ok(guard) => guard.clone(),
+            Err(poisoned) => {
+                warn!("Health history mutex poisoned during get_health_history, recovering");
+                poisoned.into_inner().clone()
+            }
+        }
     }
 
     /// Get health summary for external monitoring systems
     pub fn get_health_summary(&self) -> Result<serde_json::Value> {
-        let history = self.health_history.lock().unwrap();
+        let history = match self.health_history.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => {
+                warn!("Health history mutex poisoned during get_health_summary, recovering");
+                poisoned.into_inner()
+            }
+        };
 
         if let Some(latest) = history.last() {
             Ok(serde_json::json!({

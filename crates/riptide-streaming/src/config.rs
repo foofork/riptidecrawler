@@ -384,8 +384,78 @@ impl ConfigManager {
 }
 
 impl Default for ConfigManager {
+    /// Creates a ConfigManager with hardcoded default values that never panics.
+    ///
+    /// This implementation uses sensible defaults for all configuration values
+    /// without relying on file I/O or environment variables, ensuring the Default
+    /// trait contract is honored (never panics).
+    ///
+    /// # Default Values
+    /// - API: localhost:8080 with 30s timeout, 3 retries
+    /// - Streaming: 1000 buffer size, 10 max concurrent streams
+    /// - Backpressure: 1000 max in-flight, 100MB memory limit
+    /// - Reports: platform-specific output directory or ./riptide-output/reports
+    /// - CLI: JSON output with colors and progress bars enabled
+    /// - Logging: info level with pretty formatting
     fn default() -> Self {
-        Self::new().expect("Failed to create default configuration")
+        let output_dir = get_default_output_directory();
+
+        Self {
+            config: RiptideConfig {
+                api: ApiConfig {
+                    host: "localhost".to_string(),
+                    port: 8080,
+                    timeout_seconds: 30,
+                    max_retries: 3,
+                    rate_limit: RateLimitConfig {
+                        requests_per_minute: 60,
+                        burst_size: 10,
+                        enabled: true,
+                    },
+                },
+                streaming: StreamingConfig {
+                    buffer_size: 1000,
+                    max_concurrent_streams: 10,
+                    progress_update_interval_ms: 1000,
+                    ndjson_enabled: true,
+                    websocket_enabled: true,
+                    backpressure: BackpressureConfig {
+                        max_in_flight: 1000,
+                        max_memory_bytes: 104_857_600, // 100MB
+                        max_total_items: 10_000,
+                        activation_threshold: 0.8,
+                        recovery_threshold: 0.6,
+                        check_interval_ms: 500,
+                        adaptive: true,
+                    },
+                },
+                reports: ReportsConfig {
+                    output_directory: output_dir,
+                    template_directory: None,
+                    default_format: "html".to_string(),
+                    include_charts: true,
+                    include_raw_data: false,
+                    chart_width: 800,
+                    chart_height: 400,
+                    theme: "modern".to_string(),
+                },
+                cli: CliConfig {
+                    default_output_format: "json".to_string(),
+                    color_enabled: true,
+                    progress_bars: true,
+                    verbose: false,
+                    quiet: false,
+                },
+                logging: LoggingConfig {
+                    level: "info".to_string(),
+                    format: "pretty".to_string(),
+                    file_logging: false,
+                    log_file: None,
+                    structured_logging: false,
+                },
+            },
+            config_file: None,
+        }
     }
 }
 

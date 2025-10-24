@@ -207,8 +207,20 @@ impl AdvancedInstancePool {
             let mut i = 0;
             while i < instances.len() {
                 if instances[i].memory_usage_bytes > memory_threshold {
-                    let instance = instances.remove(i).unwrap();
-                    high_memory_instances.push(instance);
+                    // VecDeque::remove returns Option<T> - handle it gracefully
+                    // This should always succeed for valid indices, but we handle the error case
+                    if let Some(instance) = instances.remove(i) {
+                        high_memory_instances.push(instance);
+                        // Don't increment i, as elements shift down after removal
+                    } else {
+                        // This should never happen since we checked bounds, but be defensive
+                        error!(
+                            index = i,
+                            instances_len = instances.len(),
+                            "Failed to remove instance at valid index - collection may be corrupted"
+                        );
+                        i += 1;
+                    }
                 } else {
                     i += 1;
                 }

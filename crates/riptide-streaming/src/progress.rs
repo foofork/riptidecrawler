@@ -194,12 +194,14 @@ impl ProgressTracker {
                         samples.retain(|(time, _)| *time > cutoff);
 
                         // Calculate average rate
+                        // Safety: We've already checked that samples.len() >= 2, so first() and last()
+                        // are guaranteed to return Some. Using pattern matching for clarity.
                         if samples.len() >= 2 {
-                            let first = samples.first().unwrap();
-                            let last = samples.last().unwrap();
-                            let time_span = last.0.duration_since(first.0).as_secs_f64();
-                            if time_span > 0.0 {
-                                info.average_rate = (last.1 - first.1) as f64 / time_span;
+                            if let (Some(first), Some(last)) = (samples.first(), samples.last()) {
+                                let time_span = last.0.duration_since(first.0).as_secs_f64();
+                                if time_span > 0.0 {
+                                    info.average_rate = (last.1 - first.1) as f64 / time_span;
+                                }
                             }
                         }
                     }
