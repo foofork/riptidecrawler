@@ -43,7 +43,10 @@ pub use budget::BudgetManager;
 pub use config::SpiderConfig;
 pub use core::{CrawlState, PerformanceMetrics, Spider, SpiderResult};
 pub use frontier::FrontierManager;
-pub use query_aware::{QueryAwareConfig, QueryAwareScorer, QueryAwareStats};
+pub use query_aware::{
+    BM25Scorer, ContentSimilarityAnalyzer, DomainDiversityAnalyzer, QueryAwareConfig,
+    QueryAwareScorer, QueryAwareStats, UrlSignalAnalyzer,
+};
 pub use session::SessionManager;
 pub use sitemap::SitemapParser;
 pub use strategy::{CrawlingStrategy, StrategyEngine};

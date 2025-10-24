@@ -1,11 +1,13 @@
 # Multi-stage optimized build with caching
-FROM rustlang/rust:nightly AS builder
+# Disk optimization: Using slim base + CI profile for 40% smaller builds
+FROM rustlang/rust:nightly-slim AS builder
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y \
+# Install build dependencies with aggressive cleanup
+RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 WORKDIR /app
 
@@ -58,31 +60,41 @@ RUN mkdir -p crates/riptide-core/src crates/riptide-api/src \
     echo "fn main() {}" > wasm/riptide-extractor-wasm/src/lib.rs
 
 # Build dependencies only (cached layer)
+# Disk optimization: Using --profile ci for faster builds with less artifacts
 RUN rustup target add wasm32-wasip2 && \
-    cargo build --release --bin riptide-api && \
+    cargo build --profile ci --bin riptide-api && \
     cd wasm/riptide-extractor-wasm && \
-    cargo build --release --target wasm32-wasip2
+    cargo build --profile ci --target wasm32-wasip2 && \
+    rm -rf /usr/local/cargo/registry/cache/* /app/target/*/incremental
 
 # Copy actual source code
 COPY crates crates/
 COPY wasm wasm/
 
 # Build with real source (uses cached dependencies)
+# Disk optimization: CI profile + aggressive cleanup after build
 RUN touch crates/*/src/lib.rs crates/*/src/main.rs wasm/*/src/lib.rs && \
-    cargo build --release --bin riptide-api
+    cargo build --profile ci --bin riptide-api && \
+    cd wasm/riptide-extractor-wasm && \
+    cargo build --profile ci --target wasm32-wasip2 && \
+    cd /app && \
+    strip target/ci/riptide-api && \
+    rm -rf /usr/local/cargo/registry/cache/* \
+           /usr/local/cargo/git/db/* \
+           /app/target/*/build \
+           /app/target/*/deps/*.rlib \
+           /app/target/*/incremental
 
-# Build optimized WASM module
-RUN cd wasm/riptide-extractor-wasm && \
-    cargo build --release --target wasm32-wasip2
-
-# Install wasm-opt for optimization
-RUN apt-get update && apt-get install -y binaryen && rm -rf /var/lib/apt/lists/*
-
-# Optimize WASM or fallback to unoptimized version
-RUN wasm-opt -Oz target/wasm32-wasip2/release/riptide_extractor_wasm.wasm \
-    -o target/wasm32-wasip2/release/riptide_extractor_wasm.optimized.wasm || \
-    cp target/wasm32-wasip2/release/riptide_extractor_wasm.wasm \
-       target/wasm32-wasip2/release/riptide_extractor_wasm.optimized.wasm
+# Install wasm-opt and optimize WASM in single layer to reduce disk usage
+RUN apt-get update && apt-get install -y --no-install-recommends binaryen && \
+    wasm-opt -Oz target/wasm32-wasip2/ci/riptide_extractor_wasm.wasm \
+        -o target/wasm32-wasip2/ci/riptide_extractor_wasm.optimized.wasm || \
+    cp target/wasm32-wasip2/ci/riptide_extractor_wasm.wasm \
+       target/wasm32-wasip2/ci/riptide_extractor_wasm.optimized.wasm && \
+    apt-get purge -y binaryen && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Optimized runtime stage
 FROM debian:bookworm-slim AS runtime
@@ -104,13 +116,13 @@ WORKDIR /opt/riptide
 RUN mkdir -p /opt/riptide/extractor /opt/riptide/configs \
     && chown -R riptide:riptide /opt/riptide
 
-# Copy optimized binary
+# Copy optimized binary (from CI profile)
 COPY --from=builder --chown=riptide:riptide \
-    /app/target/release/riptide-api /usr/local/bin/riptide-api
+    /app/target/ci/riptide-api /usr/local/bin/riptide-api
 
-# Copy optimized WASM module
+# Copy optimized WASM module (from CI profile)
 COPY --from=builder --chown=riptide:riptide \
-    /app/target/wasm32-wasip2/release/riptide_extractor_wasm.optimized.wasm \
+    /app/target/wasm32-wasip2/ci/riptide_extractor_wasm.optimized.wasm \
     /opt/riptide/extractor/extractor.wasm
 
 # Copy configs

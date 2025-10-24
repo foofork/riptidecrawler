@@ -391,6 +391,12 @@ impl QueryAwareScorer {
         }
     }
 
+    /// Get mutable access to recent scores (for testing/benchmarking)
+    #[cfg(any(test, feature = "benchmarks"))]
+    pub fn recent_scores_mut(&mut self) -> &mut Vec<f64> {
+        &mut self.recent_scores
+    }
+
     /// Get current scoring statistics
     pub fn get_stats(&self) -> QueryAwareStats {
         let (unique_domains, total_pages) = self.domain_analyzer.get_stats();

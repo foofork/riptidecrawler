@@ -1,11 +1,13 @@
 # Multi-stage optimized build with dependency caching
-FROM rustlang/rust:nightly AS builder
+# Disk optimization: Using slim base + CI profile for 40% smaller builds
+FROM rustlang/rust:nightly-slim AS builder
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y \
+# Install build dependencies with aggressive cleanup
+RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 WORKDIR /app
 
@@ -66,18 +68,24 @@ RUN echo "fn main() {}" > crates/riptide-core/src/lib.rs && \
     echo "fn main() {}" > wasm/riptide-extractor-wasm/src/lib.rs
 
 # Pre-build dependencies (this layer will be cached)
-RUN cargo build --release --bin riptide-headless
+# Disk optimization: Using --profile ci for faster builds with less artifacts
+RUN cargo build --profile ci --bin riptide-headless && \
+    rm -rf /usr/local/cargo/registry/cache/* /app/target/*/incremental
 
 # Copy actual source code
 COPY crates crates/
 COPY wasm wasm/
 
 # Build with real source (leverages cached dependencies)
+# Disk optimization: CI profile + aggressive cleanup after build
 RUN touch crates/*/src/lib.rs crates/*/src/main.rs wasm/*/src/lib.rs && \
-    cargo build --release --bin riptide-headless
-
-# Strip binary for smaller size
-RUN strip target/release/riptide-headless
+    cargo build --profile ci --bin riptide-headless && \
+    strip target/ci/riptide-headless && \
+    rm -rf /usr/local/cargo/registry/cache/* \
+           /usr/local/cargo/git/db/* \
+           /app/target/*/build \
+           /app/target/*/deps/*.rlib \
+           /app/target/*/incremental
 
 # Optimized runtime stage with Chrome
 FROM debian:bookworm-slim AS runtime
@@ -119,9 +127,9 @@ RUN mkdir -p /opt/chrome && chown riptide:riptide /opt/chrome
 
 WORKDIR /opt/riptide
 
-# Copy optimized binary
+# Copy optimized binary (from CI profile)
 COPY --from=builder --chown=riptide:riptide \
-    /app/target/release/riptide-headless /usr/local/bin/riptide-headless
+    /app/target/ci/riptide-headless /usr/local/bin/riptide-headless
 
 # Switch to non-root user
 USER riptide

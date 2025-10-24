@@ -80,7 +80,9 @@ fn test_other_error() {
 fn test_error_result_ok() {
     let result: AbstractionResult<String> = Ok("success".to_string());
     assert!(result.is_ok());
-    assert_eq!(result.unwrap(), "success");
+    if let Ok(value) = result {
+        assert_eq!(value, "success");
+    }
 }
 
 #[test]

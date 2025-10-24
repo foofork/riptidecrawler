@@ -1,4 +1,7 @@
-use crate::spider::{query_aware::*, types::CrawlRequest};
+use riptide_spider::{
+    BM25Scorer, CrawlRequest, DomainDiversityAnalyzer, QueryAwareConfig, QueryAwareScorer,
+    UrlSignalAnalyzer,
+};
 use std::str::FromStr;
 use std::time::Instant;
 use url::Url;
@@ -218,22 +221,22 @@ impl QueryAwareBenchmark {
         let mut scorer = QueryAwareScorer::new(self.config.clone());
 
         // Test case 1: High relevance - should not stop
-        scorer.recent_scores.clear();
+        scorer.recent_scores_mut().clear();
         for _ in 0..5 {
-            scorer.recent_scores.push(0.7); // Above threshold
+            scorer.recent_scores_mut().push(0.7); // Above threshold
         }
         let (should_not_stop, _) = scorer.should_stop_early();
 
         // Test case 2: Low relevance - should stop
-        scorer.recent_scores.clear();
+        scorer.recent_scores_mut().clear();
         for _ in 0..5 {
-            scorer.recent_scores.push(0.2); // Below threshold
+            scorer.recent_scores_mut().push(0.2); // Below threshold
         }
         let (should_stop, _) = scorer.should_stop_early();
 
         // Test case 3: Insufficient data - should not stop
-        scorer.recent_scores.clear();
-        scorer.recent_scores.push(0.1);
+        scorer.recent_scores_mut().clear();
+        scorer.recent_scores_mut().push(0.1);
         let (insufficient_data_no_stop, _) = scorer.should_stop_early();
 
         let correct_decisions = [
@@ -577,4 +580,8 @@ pub fn run_query_aware_benchmark() {
     let benchmark = QueryAwareBenchmark::new("machine learning artificial intelligence");
     let _results = benchmark.run_full_benchmark();
     // Results are printed to stdout by run_full_benchmark
+}
+
+fn main() {
+    run_query_aware_benchmark();
 }

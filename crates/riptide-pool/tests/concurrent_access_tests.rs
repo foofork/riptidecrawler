@@ -306,7 +306,7 @@ async fn test_concurrent_pool_access_simulation() {
 
     // Pool should still have items
     let final_pool = pool.lock().await;
-    assert!(final_pool.len() > 0);
+    assert!(!final_pool.is_empty());
 }
 
 #[tokio::test]

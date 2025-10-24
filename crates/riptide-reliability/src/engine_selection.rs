@@ -818,8 +818,10 @@ mod tests {
     #[test]
     fn test_probe_first_spa_enabled() {
         // With probe_first_spa enabled, SPAs should try WASM first
-        let mut flags = EngineSelectionFlags::default();
-        flags.probe_first_spa = true;
+        let flags = EngineSelectionFlags {
+            probe_first_spa: true,
+            ..Default::default()
+        };
 
         // React SPA
         let react_html = r#"<html><script>window.__NEXT_DATA__={}</script></html>"#;
@@ -841,8 +843,10 @@ mod tests {
     fn test_probe_first_anti_scraping_still_headless() {
         // Anti-scraping protection should ALWAYS go to headless
         // regardless of probe_first_spa flag
-        let mut flags = EngineSelectionFlags::default();
-        flags.probe_first_spa = true;
+        let flags = EngineSelectionFlags {
+            probe_first_spa: true,
+            ..Default::default()
+        };
 
         let cloudflare_html = r#"<html><body>Cloudflare protection active</body></html>"#;
         let engine = decide_engine_with_flags(cloudflare_html, "https://example.com", flags, ());

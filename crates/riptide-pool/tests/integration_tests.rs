@@ -224,9 +224,9 @@ async fn test_extraction_mode_scenarios() {
 
     for mode in modes {
         match mode {
-            ExtractionMode::Article => assert!(true),
-            ExtractionMode::Full => assert!(true),
-            ExtractionMode::Metadata => assert!(true),
+            ExtractionMode::Article => {}
+            ExtractionMode::Full => {}
+            ExtractionMode::Metadata => {}
             ExtractionMode::Custom(selectors) => {
                 assert_eq!(selectors.len(), 2);
             }
@@ -306,9 +306,9 @@ async fn test_fallback_chain() {
         };
 
         match (result, expected) {
-            (ExtractionResult::Success, ExtractionResult::Success) => assert!(true),
-            (ExtractionResult::UsedFallback, ExtractionResult::UsedFallback) => assert!(true),
-            (ExtractionResult::Failed, ExtractionResult::Failed) => assert!(true),
+            (ExtractionResult::Success, ExtractionResult::Success) => {}
+            (ExtractionResult::UsedFallback, ExtractionResult::UsedFallback) => {}
+            (ExtractionResult::Failed, ExtractionResult::Failed) => {}
             _ => panic!("Unexpected result"),
         }
     }

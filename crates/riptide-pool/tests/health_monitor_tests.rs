@@ -91,7 +91,7 @@ async fn test_health_level_calculation_degraded() {
     let memory_pressure = MemoryPressureLevel::Medium;
 
     // Some degradation indicators
-    let is_degraded = (success_rate < 90.0 && success_rate >= 75.0)
+    let is_degraded = (75.0..90.0).contains(&success_rate)
         || memory_pressure == MemoryPressureLevel::Medium
         || (utilization > 75.0 && utilization <= 85.0)
         || (fallback_rate > 10.0 && fallback_rate <= 30.0);
@@ -107,7 +107,7 @@ async fn test_health_level_calculation_unhealthy() {
     let memory_pressure = MemoryPressureLevel::High;
 
     // Unhealthy indicators
-    let is_unhealthy = (success_rate < 75.0 && success_rate >= 50.0)
+    let is_unhealthy = (50.0..75.0).contains(&success_rate)
         || memory_pressure == MemoryPressureLevel::High
         || (utilization > 85.0 && utilization <= 95.0)
         || fallback_rate > 30.0;
@@ -134,7 +134,7 @@ async fn test_health_level_calculation_critical() {
 #[tokio::test]
 async fn test_health_trend_stable() {
     // Simulate stable health over time
-    let health_scores = vec![4, 4, 4, 4, 4]; // All healthy
+    let health_scores = [4, 4, 4, 4, 4]; // All healthy
 
     let first_score = health_scores[health_scores.len() - 1];
     let last_score = health_scores[0];
@@ -153,7 +153,7 @@ async fn test_health_trend_stable() {
 #[tokio::test]
 async fn test_health_trend_improving() {
     // Simulate improving health over time
-    let health_scores = vec![4, 3, 3, 2, 1]; // Getting better (reversed)
+    let health_scores = [4, 3, 3, 2, 1]; // Getting better (reversed)
 
     let first_score = health_scores[health_scores.len() - 1];
     let last_score = health_scores[0];
@@ -172,7 +172,7 @@ async fn test_health_trend_improving() {
 #[tokio::test]
 async fn test_health_trend_degrading() {
     // Simulate degrading health over time
-    let health_scores = vec![2, 3, 3, 4, 4]; // Getting worse (reversed)
+    let health_scores = [2, 3, 3, 4, 4]; // Getting worse (reversed)
 
     let first_score = health_scores[health_scores.len() - 1];
     let last_score = health_scores[0];
@@ -295,8 +295,8 @@ async fn test_utilization_thresholds() {
 
         match level {
             "low" => assert!(utilization < 30.0),
-            "normal" => assert!(utilization >= 30.0 && utilization < 75.0),
-            "high" => assert!(utilization >= 75.0 && utilization < 95.0),
+            "normal" => assert!((30.0..75.0).contains(&utilization)),
+            "high" => assert!((75.0..95.0).contains(&utilization)),
             "full" => assert!(utilization >= 95.0),
             _ => panic!("Unknown level"),
         }
@@ -305,14 +305,14 @@ async fn test_utilization_thresholds() {
 
 #[tokio::test]
 async fn test_health_history_tracking() {
-    let mut history: Vec<HealthLevel> = vec![];
-
     // Simulate health checks over time
-    history.push(HealthLevel::Healthy);
-    history.push(HealthLevel::Healthy);
-    history.push(HealthLevel::Degraded);
-    history.push(HealthLevel::Degraded);
-    history.push(HealthLevel::Unhealthy);
+    let history: Vec<HealthLevel> = vec![
+        HealthLevel::Healthy,
+        HealthLevel::Healthy,
+        HealthLevel::Degraded,
+        HealthLevel::Degraded,
+        HealthLevel::Unhealthy,
+    ];
 
     assert_eq!(history.len(), 5);
 
