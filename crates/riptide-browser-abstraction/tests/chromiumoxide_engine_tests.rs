@@ -14,8 +14,7 @@
 
 use anyhow::Result;
 use riptide_browser_abstraction::{
-    create_engine, BrowserEngine, EngineType, NavigateParams, PdfParams, ScreenshotParams,
-    WaitUntil,
+    EngineType, NavigateParams, PdfParams, ScreenshotParams, WaitUntil,
 };
 
 // ============================================================================
@@ -180,7 +179,7 @@ async fn test_url_error_handling() -> Result<()> {
 async fn test_evaluate_method() -> Result<()> {
     // Tests evaluate() method
     // chromiumoxide_impl.rs line 118-128
-    let script = "document.title";
+    let script = String::from("document.title");
     assert!(!script.is_empty());
     Ok(())
 }
@@ -295,7 +294,7 @@ async fn test_pdf_error_handling() -> Result<()> {
 #[tokio::test]
 async fn test_screenshot_binary_data() -> Result<()> {
     // Simulates binary PNG data
-    let png_header = vec![0x89, 0x50, 0x4E, 0x47];
+    let png_header = [0x89, 0x50, 0x4E, 0x47];
     assert_eq!(png_header.len(), 4);
     Ok(())
 }
@@ -428,7 +427,7 @@ async fn test_navigation_with_referer() -> Result<()> {
 /// Test 39: Multiple wait strategies
 #[tokio::test]
 async fn test_multiple_wait_strategies() -> Result<()> {
-    let strategies = vec![
+    let strategies = [
         WaitUntil::Load,
         WaitUntil::DOMContentLoaded,
         WaitUntil::NetworkIdle,

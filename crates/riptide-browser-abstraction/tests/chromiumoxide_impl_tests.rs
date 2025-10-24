@@ -55,7 +55,7 @@ async fn test_engine_type_equality() -> Result<()> {
 #[tokio::test]
 async fn test_engine_type_clone() -> Result<()> {
     let engine1 = EngineType::Chromiumoxide;
-    let engine2 = engine1.clone();
+    let engine2 = engine1;
     assert_eq!(engine1, engine2);
     Ok(())
 }
@@ -161,7 +161,7 @@ async fn test_wait_until_network_idle() -> Result<()> {
 /// Test 14: WaitUntil variants comparison
 #[tokio::test]
 async fn test_wait_until_variants_all() -> Result<()> {
-    let variants = vec![
+    let variants = [
         WaitUntil::Load,
         WaitUntil::DOMContentLoaded,
         WaitUntil::NetworkIdle,
@@ -239,7 +239,7 @@ async fn test_screenshot_params_viewport_only() -> Result<()> {
 /// Test 20: Screenshot format variants
 #[tokio::test]
 async fn test_screenshot_format_variants() -> Result<()> {
-    let formats = vec![ScreenshotFormat::Png, ScreenshotFormat::Jpeg];
+    let formats = [ScreenshotFormat::Png, ScreenshotFormat::Jpeg];
     assert_eq!(formats.len(), 2);
     Ok(())
 }
@@ -460,7 +460,7 @@ async fn test_javascript_evaluation_validation() -> Result<()> {
 /// Test 36: Empty URL handling
 #[tokio::test]
 async fn test_empty_url_handling() -> Result<()> {
-    let url = "";
+    let url = String::new();
     assert!(url.is_empty());
     Ok(())
 }
@@ -521,7 +521,7 @@ async fn test_navigate_zero_timeout() -> Result<()> {
 /// Test 41: Multiple navigate params configurations
 #[tokio::test]
 async fn test_multiple_navigate_configs() -> Result<()> {
-    let configs = vec![
+    let configs = [
         NavigateParams {
             timeout_ms: 10000,
             wait_until: WaitUntil::Load,
@@ -549,7 +549,7 @@ async fn test_multiple_navigate_configs() -> Result<()> {
 /// Test 42: Multiple screenshot configurations
 #[tokio::test]
 async fn test_multiple_screenshot_configs() -> Result<()> {
-    let configs = vec![
+    let configs = [
         ScreenshotParams {
             format: ScreenshotFormat::Png,
             quality: None,
@@ -571,7 +571,7 @@ async fn test_multiple_screenshot_configs() -> Result<()> {
 /// Test 43: Multiple PDF configurations
 #[tokio::test]
 async fn test_multiple_pdf_configs() -> Result<()> {
-    let configs = vec![
+    let configs = [
         PdfParams::default(),
         PdfParams {
             landscape: true,
@@ -611,7 +611,7 @@ async fn test_wait_strategy_combinations() -> Result<()> {
 /// Test 45: Screenshot format and quality combinations
 #[tokio::test]
 async fn test_screenshot_format_quality_combinations() -> Result<()> {
-    let combinations = vec![
+    let combinations = [
         (ScreenshotFormat::Png, None),
         (ScreenshotFormat::Jpeg, Some(50)),
         (ScreenshotFormat::Jpeg, Some(75)),

@@ -256,10 +256,10 @@ fn extract_from_json_ld(json: &serde_json::Value, metadata: &mut DocumentMetadat
         if let Some(obj) = item.as_object() {
             // Phase 10: Only extract from content-relevant schema types
             let schema_type = obj.get("@type").and_then(|v| v.as_str());
-            let is_content_type = match schema_type {
-                Some("Event") | Some("Article") | Some("NewsArticle") | Some("BlogPosting") => true,
-                _ => false,
-            };
+            let is_content_type = matches!(
+                schema_type,
+                Some("Event") | Some("Article") | Some("NewsArticle") | Some("BlogPosting")
+            );
 
             // Extract title/headline (prioritize content types)
             if metadata.title.is_none() {

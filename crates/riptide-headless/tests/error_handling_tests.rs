@@ -125,7 +125,7 @@ async fn test_render_request_validation() {
 #[tokio::test]
 async fn test_page_action_timeout_scenarios() {
     // Test actions with various timeout configurations
-    let actions = vec![
+    let actions = [
         PageAction::WaitForCss {
             css: "#never-appears".to_string(),
             timeout_ms: Some(100), // Very short timeout

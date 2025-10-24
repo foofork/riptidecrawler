@@ -14,8 +14,7 @@
 
 use anyhow::Result;
 use riptide_browser_abstraction::{
-    BrowserEngine, EngineType, NavigateParams, PageHandle, PdfParams, ScreenshotFormat,
-    ScreenshotParams, SpiderChromeEngine, SpiderChromePage, WaitUntil,
+    EngineType, NavigateParams, PdfParams, ScreenshotFormat, ScreenshotParams, WaitUntil,
 };
 
 /// Test 1: SpiderChromeEngine creation from browser
@@ -341,10 +340,10 @@ async fn test_spider_screenshot_quality_range() -> Result<()> {
     let quality_high = 90u8;
     let quality_max = 100u8;
 
-    assert!(quality_low >= 0 && quality_low <= 100);
-    assert!(quality_mid >= 0 && quality_mid <= 100);
-    assert!(quality_high >= 0 && quality_high <= 100);
-    assert!(quality_max >= 0 && quality_max <= 100);
+    assert!((0..=100).contains(&quality_low));
+    assert!((0..=100).contains(&quality_mid));
+    assert!((0..=100).contains(&quality_high));
+    assert!((0..=100).contains(&quality_max));
 
     Ok(())
 }

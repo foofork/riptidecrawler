@@ -113,7 +113,7 @@ fn test_engine_type_partial_eq_transitive() {
 #[test]
 fn test_params_in_vec() {
     // Test that params can be stored in collections
-    let screenshots = vec![
+    let screenshots = [
         ScreenshotParams::default(),
         ScreenshotParams {
             full_page: true,
@@ -160,9 +160,11 @@ fn test_engine_type_match_exhaustive() {
 #[test]
 fn test_params_builder_pattern() {
     // Test that params can be built incrementally
-    let mut params = PdfParams::default();
-    params.landscape = true;
-    params.scale = Some(1.5);
+    let params = PdfParams {
+        landscape: true,
+        scale: Some(1.5),
+        ..Default::default()
+    };
 
     assert!(params.landscape);
     assert_eq!(params.scale, Some(1.5));

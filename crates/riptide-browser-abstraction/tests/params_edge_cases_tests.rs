@@ -10,7 +10,7 @@ use riptide_browser_abstraction::{
 
 #[test]
 fn test_screenshot_params_all_combinations() {
-    let combinations = vec![
+    let combinations = [
         ScreenshotParams {
             full_page: true,
             format: ScreenshotFormat::Png,

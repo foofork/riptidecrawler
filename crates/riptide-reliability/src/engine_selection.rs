@@ -134,7 +134,7 @@ pub struct ContentAnalysis {
 }
 
 /// Feature flags for engine selection refinements (Phase 10)
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct EngineSelectionFlags {
     /// Enable refined visible-text density calculation
     pub use_visible_text_density: bool,
@@ -149,16 +149,6 @@ pub struct EngineSelectionFlags {
     /// **Cost Impact**: 60-80% savings on SPAs that actually have server-rendered content
     /// **Risk**: Minimal - automatic escalation ensures content quality
     pub probe_first_spa: bool,
-}
-
-impl Default for EngineSelectionFlags {
-    fn default() -> Self {
-        Self {
-            use_visible_text_density: false,
-            detect_placeholders: false,
-            probe_first_spa: false, // Conservative default - opt-in for gradual rollout
-        }
-    }
 }
 
 /// Automatically decide engine based on content characteristics

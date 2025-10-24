@@ -186,9 +186,11 @@ fn test_engine_decision_ssr_nextjs() {
     );
 
     // With probe-first enabled: Try WASM first
-    let mut flags = EngineSelectionFlags::default();
-    flags.probe_first_spa = true;
-    let engine_probe = decide_engine_with_flags(html, "https://example.com", flags);
+    let flags = EngineSelectionFlags {
+        probe_first_spa: true,
+        ..Default::default()
+    };
+    let engine_probe = decide_engine_with_flags(html, "https://example.com", flags, ());
     assert_eq!(
         engine_probe,
         Engine::Wasm,
@@ -215,9 +217,11 @@ fn test_engine_decision_empty_spa() {
     );
 
     // Even with probe-first, empty SPAs get WASM attempt (will escalate)
-    let mut flags = EngineSelectionFlags::default();
-    flags.probe_first_spa = true;
-    let engine_probe = decide_engine_with_flags(html, "https://example.com", flags);
+    let flags = EngineSelectionFlags {
+        probe_first_spa: true,
+        ..Default::default()
+    };
+    let engine_probe = decide_engine_with_flags(html, "https://example.com", flags, ());
     assert_eq!(
         engine_probe,
         Engine::Wasm,
@@ -266,9 +270,11 @@ fn test_engine_decision_anti_scraping_always_headless() {
     );
 
     // Even with probe-first, anti-scraping goes to headless
-    let mut flags = EngineSelectionFlags::default();
-    flags.probe_first_spa = true;
-    let engine_probe = decide_engine_with_flags(html, "https://example.com", flags);
+    let flags = EngineSelectionFlags {
+        probe_first_spa: true,
+        ..Default::default()
+    };
+    let engine_probe = decide_engine_with_flags(html, "https://example.com", flags, ());
     assert_eq!(
         engine_probe,
         Engine::Headless,
@@ -355,9 +361,11 @@ fn test_vue_app_with_ssr() {
     assert_eq!(engine, Engine::Headless, "Vue markers trigger headless");
 
     // With probe-first
-    let mut flags = EngineSelectionFlags::default();
-    flags.probe_first_spa = true;
-    let engine_probe = decide_engine_with_flags(html, "https://example.com", flags);
+    let flags = EngineSelectionFlags {
+        probe_first_spa: true,
+        ..Default::default()
+    };
+    let engine_probe = decide_engine_with_flags(html, "https://example.com", flags, ());
     assert_eq!(
         engine_probe,
         Engine::Wasm,
@@ -408,9 +416,11 @@ fn test_mixed_content_signals() {
     assert_eq!(engine, Engine::Headless);
 
     // Probe-first allows WASM attempt
-    let mut flags = EngineSelectionFlags::default();
-    flags.probe_first_spa = true;
-    let engine_probe = decide_engine_with_flags(html, "https://example.com", flags);
+    let flags = EngineSelectionFlags {
+        probe_first_spa: true,
+        ..Default::default()
+    };
+    let engine_probe = decide_engine_with_flags(html, "https://example.com", flags, ());
     assert_eq!(engine_probe, Engine::Wasm);
 }
 
@@ -741,12 +751,14 @@ fn test_engine_with_visible_density_flags() {
 
     // Without visible density flag (uses basic content_ratio)
     let flags_off = EngineSelectionFlags::default();
-    let engine_off = decide_engine_with_flags(html, "https://example.com", flags_off);
+    let engine_off = decide_engine_with_flags(html, "https://example.com", flags_off, ());
 
     // With visible density flag enabled
-    let mut flags_on = EngineSelectionFlags::default();
-    flags_on.use_visible_text_density = true;
-    let engine_on = decide_engine_with_flags(html, "https://example.com", flags_on);
+    let flags_on = EngineSelectionFlags {
+        use_visible_text_density: true,
+        ..Default::default()
+    };
+    let engine_on = decide_engine_with_flags(html, "https://example.com", flags_on, ());
 
     // Both should work, but flags control which algorithm is used
     assert!(
@@ -772,12 +784,14 @@ fn test_engine_with_placeholder_detection_flags() {
 
     // Without placeholder detection flag
     let flags_off = EngineSelectionFlags::default();
-    let _engine_off = decide_engine_with_flags(html, "https://example.com", flags_off);
+    let _engine_off = decide_engine_with_flags(html, "https://example.com", flags_off, ());
 
     // With placeholder detection enabled
-    let mut flags_on = EngineSelectionFlags::default();
-    flags_on.detect_placeholders = true;
-    let _engine_on = decide_engine_with_flags(html, "https://example.com", flags_on);
+    let flags_on = EngineSelectionFlags {
+        detect_placeholders: true,
+        ..Default::default()
+    };
+    let _engine_on = decide_engine_with_flags(html, "https://example.com", flags_on, ());
 
     // Verify placeholders are detected
     assert!(
@@ -836,9 +850,11 @@ fn test_ssr_react_with_good_density_probe_first() {
     assert_eq!(engine_default, Engine::Headless);
 
     // Probe-first: Try WASM first
-    let mut flags = EngineSelectionFlags::default();
-    flags.probe_first_spa = true;
-    let engine_probe = decide_engine_with_flags(html, "https://example.com", flags);
+    let flags = EngineSelectionFlags {
+        probe_first_spa: true,
+        ..Default::default()
+    };
+    let engine_probe = decide_engine_with_flags(html, "https://example.com", flags, ());
     assert_eq!(
         engine_probe,
         Engine::Wasm,

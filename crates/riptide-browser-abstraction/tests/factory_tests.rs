@@ -55,7 +55,7 @@ fn test_engine_type_equality() {
 #[test]
 fn test_engine_type_clone() {
     let original = EngineType::Chromiumoxide;
-    let cloned = original.clone();
+    let cloned = original;
 
     assert_eq!(original, cloned);
 }
@@ -113,7 +113,7 @@ fn test_engine_type_round_trip() {
 
 #[test]
 fn test_all_engine_types() {
-    let types = vec![EngineType::Chromiumoxide, EngineType::SpiderChrome];
+    let types = [EngineType::Chromiumoxide, EngineType::SpiderChrome];
 
     assert_eq!(types.len(), 2);
     assert!(types.contains(&EngineType::Chromiumoxide));

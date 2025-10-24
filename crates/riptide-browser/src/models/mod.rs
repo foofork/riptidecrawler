@@ -2,7 +2,7 @@ use riptide_stealth::StealthConfig;
 use serde::{Deserialize, Serialize};
 
 /// Enhanced render request with Phase 3 PR-1 features
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct RenderReq {
     /// Target URL to render
     pub url: String,
@@ -32,7 +32,7 @@ pub struct RenderReq {
 }
 
 /// Timeout configurations for rendering
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Timeouts {
     /// Navigation timeout in milliseconds
     #[allow(dead_code)] // Public API - navigation timeout configuration
@@ -48,7 +48,7 @@ pub struct Timeouts {
 }
 
 /// Page actions that can be executed
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PageAction {
     /// Wait for CSS selector to appear
@@ -85,7 +85,7 @@ pub enum PageAction {
 }
 
 /// Artifacts configuration
-#[derive(Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Artifacts {
     /// Capture screenshot
     pub screenshot: bool,
