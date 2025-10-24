@@ -32,6 +32,9 @@ jobs:
           components: rustfmt, clippy
           override: true
 
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.6
+
       - name: Cache cargo registry
         uses: actions/cache@v3
         with:
@@ -108,6 +111,9 @@ jobs:
           profile: minimal
           override: true
 
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.6
+
       - name: Build
         run: cargo build --all-features --workspace
 
@@ -129,6 +135,9 @@ jobs:
           profile: minimal
           components: llvm-tools-preview
           override: true
+
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.6
 
       - name: Cache cargo registry
         uses: actions/cache@v3
@@ -187,6 +196,9 @@ jobs:
           toolchain: stable
           profile: minimal
           override: true
+
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.6
 
       - name: Count large files
         run: |

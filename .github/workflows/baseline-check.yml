@@ -29,6 +29,9 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.6
+
       - name: Setup Rust cache (optimized)
         uses: Swatinem/rust-cache@v2
         with:
@@ -69,6 +72,9 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: llvm-tools-preview
+
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.6
 
       - name: Setup Rust cache (optimized)
         uses: Swatinem/rust-cache@v2
@@ -126,6 +132,9 @@ jobs:
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.6
 
       - name: Setup Rust cache (optimized)
         uses: Swatinem/rust-cache@v2
@@ -199,6 +208,9 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.6
+
       - name: Setup Rust cache (optimized)
         uses: Swatinem/rust-cache@v2
         with:
@@ -254,6 +266,9 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
+
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.6
 
       - name: Setup Rust cache (optimized)
         uses: Swatinem/rust-cache@v2

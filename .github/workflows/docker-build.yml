@@ -46,6 +46,9 @@ jobs:
           toolchain: stable
           targets: wasm32-wasip2
 
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.6
+
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
 

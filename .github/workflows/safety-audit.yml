@@ -98,6 +98,9 @@ jobs:
         with:
           components: clippy
 
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.6
+
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -139,19 +142,22 @@ jobs:
         with:
           components: miri
 
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.6
+
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
 
       - name: Setup Miri
-        run: cargo miri setup
+        run: cargo +nightly miri setup
 
       - name: Run Miri on memory_manager tests
         timeout-minutes: 5
         run: |
           # Run only memory_manager tests to keep CI fast
-          cargo miri test \
+          cargo +nightly miri test \
             --package riptide-core \
             --lib \
             memory_manager \
