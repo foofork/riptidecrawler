@@ -120,21 +120,6 @@ impl RegexPatternStrategy {
         self.patterns.insert(name, config);
     }
 
-    /// Extract all matches for a specific pattern
-    #[allow(dead_code)]
-    fn extract_pattern(&self, text: &str, pattern_name: &str) -> Vec<String> {
-        let config = match self.patterns.get(pattern_name) {
-            Some(c) => c,
-            None => return Vec::new(),
-        };
-
-        config
-            .regex
-            .find_iter(text)
-            .map(|m| m.as_str().to_string())
-            .collect()
-    }
-
     /// Extract matches for all patterns
     fn extract_all_patterns(&self, text: &str) -> HashMap<String, Vec<String>> {
         let mut results = HashMap::new();

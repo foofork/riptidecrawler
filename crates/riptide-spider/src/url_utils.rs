@@ -54,7 +54,7 @@ impl Default for UrlUtilsConfig {
             remove_default_ports: true,
             lowercase_hostname: true,
             remove_trailing_slash: true,
-            remove_www_prefix: false,
+            remove_www_prefix: true,
             exclude_patterns: vec![
                 r"/admin".to_string(),
                 r"/\..*".to_string(), // Hidden files

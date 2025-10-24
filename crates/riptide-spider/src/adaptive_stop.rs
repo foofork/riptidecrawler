@@ -39,12 +39,12 @@ pub struct AdaptiveStopConfig {
 impl Default for AdaptiveStopConfig {
     fn default() -> Self {
         Self {
-            window_size: 10,
+            window_size: 5,            // Reduced from 10 for faster detection
             min_gain_threshold: 100.0, // Minimum 100 unique chars per page
             patience: 5,
             min_pages_before_stop: 20,
             enable_quality_scoring: true,
-            quality_threshold: 0.5,
+            quality_threshold: 0.3, // Lowered from 0.5 for stricter stopping
             text_content_weight: 0.6,
             link_richness_weight: 0.3,
             content_size_weight: 0.1,
@@ -93,6 +93,7 @@ pub enum SiteType {
     Blog,
     Documentation,
     SocialMedia,
+    Generic,
     Unknown,
 }
 
@@ -105,7 +106,7 @@ impl SiteType {
             SiteType::Blog => hints.blog_multiplier,
             SiteType::Documentation => hints.documentation_multiplier,
             SiteType::SocialMedia => hints.social_media_multiplier,
-            SiteType::Unknown => hints.default_multiplier,
+            SiteType::Generic | SiteType::Unknown => hints.default_multiplier,
         }
     }
 }
@@ -155,6 +156,13 @@ pub struct StopDecision {
     pub detected_site_type: SiteType,
 }
 
+/// Site analysis data including URL and content metrics
+#[derive(Debug, Clone)]
+struct SiteAnalysisData {
+    url: String,
+    metrics: ContentMetrics,
+}
+
 /// Adaptive stopping engine
 pub struct AdaptiveStopEngine {
     config: AdaptiveStopConfig,
@@ -171,7 +179,7 @@ pub struct AdaptiveStopEngine {
 
     // Site analysis
     detected_site_type: Arc<RwLock<SiteType>>,
-    site_analysis_samples: Arc<RwLock<Vec<ContentMetrics>>>,
+    site_analysis_samples: Arc<RwLock<Vec<SiteAnalysisData>>>,
 
     // Performance tracking
     analysis_times: Arc<RwLock<VecDeque<Duration>>>,
@@ -244,7 +252,11 @@ impl AdaptiveStopEngine {
         // Update site analysis
         {
             let mut samples = self.site_analysis_samples.write().await;
-            samples.push(metrics.clone());
+            let analysis_data = SiteAnalysisData {
+                url: result.request.url.as_str().to_string(),
+                metrics: metrics.clone(),
+            };
+            samples.push(analysis_data);
             if samples.len() > 50 {
                 samples.remove(0); // Keep recent samples
             }
@@ -303,6 +315,38 @@ impl AdaptiveStopEngine {
             });
         }
 
+        let detected_site_type = *self.detected_site_type.read().await;
+
+        // CRITICAL FIX 1: Check for consecutive empty content pages
+        let samples = self.site_analysis_samples.read().await;
+        if samples.len() >= 3 {
+            let recent_samples = &samples[samples.len().saturating_sub(3)..];
+            let empty_count = recent_samples
+                .iter()
+                .filter(|s| s.metrics.unique_text_chars == 0 && s.metrics.content_size == 0)
+                .count();
+
+            if empty_count >= 3 {
+                info!(
+                    empty_pages = empty_count,
+                    total_pages = pages_analyzed,
+                    "Stopping: detected consecutive empty pages"
+                );
+                return Ok(StopDecision {
+                    should_stop: true,
+                    reason: format!(
+                        "Detected {} consecutive empty pages - no content being extracted",
+                        empty_count
+                    ),
+                    current_gain_average: 0.0,
+                    threshold_used: self.config.min_gain_threshold,
+                    consecutive_low_gain: empty_count,
+                    pages_analyzed,
+                    detected_site_type,
+                });
+            }
+        }
+
         // Get current gain average
         let window = self.content_window.read().await;
         if !window.has_sufficient_data() {
@@ -313,7 +357,7 @@ impl AdaptiveStopEngine {
                 threshold_used: self.config.min_gain_threshold,
                 consecutive_low_gain: 0,
                 pages_analyzed,
-                detected_site_type: *self.detected_site_type.read().await,
+                detected_site_type,
             });
         }
 
@@ -327,7 +371,6 @@ impl AdaptiveStopEngine {
         };
 
         let consecutive_low_gain = *self.consecutive_low_gain.read().await;
-        let detected_site_type = *self.detected_site_type.read().await;
 
         // Check if gain is below threshold
         if current_gain_average < threshold {
@@ -344,6 +387,13 @@ impl AdaptiveStopEngine {
 
             // Check if we've been patient enough
             if *consecutive >= self.config.patience {
+                info!(
+                    gain = current_gain_average,
+                    threshold = threshold,
+                    consecutive = *consecutive,
+                    pages = pages_analyzed,
+                    "Stopping: low content gain exceeded patience"
+                );
                 return Ok(StopDecision {
                     should_stop: true,
                     reason: format!(
@@ -362,13 +412,27 @@ impl AdaptiveStopEngine {
             *self.consecutive_low_gain.write().await = 0;
         }
 
-        // Check quality threshold if enabled
+        // CRITICAL FIX 2: Improved quality threshold checking
         if self.config.enable_quality_scoring {
             let quality_scores = self.quality_scores.read().await;
-            if quality_scores.len() >= 5 {
+            if quality_scores.len() >= 3 {
                 let avg_quality: f64 =
                     quality_scores.iter().sum::<f64>() / quality_scores.len() as f64;
+
+                debug!(
+                    avg_quality = avg_quality,
+                    threshold = self.config.quality_threshold,
+                    samples = quality_scores.len(),
+                    "Quality check"
+                );
+
                 if avg_quality < self.config.quality_threshold {
+                    info!(
+                        avg_quality = avg_quality,
+                        threshold = self.config.quality_threshold,
+                        pages = pages_analyzed,
+                        "Stopping: low average content quality"
+                    );
                     return Ok(StopDecision {
                         should_stop: true,
                         reason: format!(
@@ -385,6 +449,14 @@ impl AdaptiveStopEngine {
             }
         }
 
+        debug!(
+            gain = current_gain_average,
+            threshold = threshold,
+            consecutive_low = consecutive_low_gain,
+            pages = pages_analyzed,
+            "Continuing crawl"
+        );
+
         Ok(StopDecision {
             should_stop: false,
             reason: "Continue crawling".to_string(),
@@ -400,8 +472,26 @@ impl AdaptiveStopEngine {
     async fn calculate_quality_score(&self, result: &CrawlResult) -> f64 {
         let mut score = 0.0_f64;
 
+        // CRITICAL FIX 3: Explicit empty content detection
+        if result.text_content.is_none() || result.content_size == 0 {
+            debug!(
+                url = %result.request.url,
+                "Empty content detected - quality score 0.0"
+            );
+            return 0.0;
+        }
+
         // Text content quality
         if let Some(text) = &result.text_content {
+            // Check for actually empty text
+            if text.trim().is_empty() {
+                debug!(
+                    url = %result.request.url,
+                    "Text content is whitespace only - quality score 0.0"
+                );
+                return 0.0;
+            }
+
             let word_count = text.split_whitespace().count();
             let sentence_count =
                 text.matches('.').count() + text.matches('!').count() + text.matches('?').count();
@@ -442,7 +532,17 @@ impl AdaptiveStopEngine {
             score += 0.2;
         }
 
-        score.clamp(0.0_f64, 1.0_f64)
+        let final_score = score.clamp(0.0_f64, 1.0_f64);
+
+        debug!(
+            url = %result.request.url,
+            word_count = result.text_content.as_ref().map(|t| t.split_whitespace().count()).unwrap_or(0),
+            content_size = result.content_size,
+            quality_score = final_score,
+            "Quality calculated"
+        );
+
+        final_score
     }
 
     /// Calculate adaptive threshold based on site type and performance
@@ -460,7 +560,7 @@ impl AdaptiveStopEngine {
             let recent_samples = &samples[samples.len().saturating_sub(5)..];
             let avg_unique_chars: f64 = recent_samples
                 .iter()
-                .map(|s| s.unique_text_chars as f64)
+                .map(|s| s.metrics.unique_text_chars as f64)
                 .sum::<f64>()
                 / recent_samples.len() as f64;
 
@@ -485,37 +585,160 @@ impl AdaptiveStopEngine {
         adjusted_threshold
     }
 
-    /// Detect site type based on content patterns
-    fn detect_site_type(&self, samples: &[ContentMetrics]) -> SiteType {
+    /// Detect site type based on URL patterns and content analysis
+    fn detect_site_type(&self, samples: &[SiteAnalysisData]) -> SiteType {
         if samples.is_empty() {
             return SiteType::Unknown;
         }
 
+        // Calculate confidence scores for each site type
+        let mut blog_score: f64 = 0.0;
+        let mut news_score: f64 = 0.0;
+        let mut docs_score: f64 = 0.0;
+        let mut ecommerce_score: f64 = 0.0;
+        let mut social_score: f64 = 0.0;
+        let mut generic_score: f64 = 0.0;
+
+        // URL pattern analysis - check common patterns across samples
+        for sample in samples.iter() {
+            let url_lower = sample.url.to_lowercase();
+
+            // Blog patterns
+            if url_lower.contains("/blog")
+                || url_lower.contains("/post")
+                || url_lower.contains("/article")
+                || url_lower.contains("blog.")
+                || url_lower.contains("/author/")
+                || url_lower.contains("/category/")
+                || url_lower.contains("/tag/")
+            {
+                blog_score += 2.0;
+            }
+
+            // News patterns
+            if url_lower.contains("news.")
+                || url_lower.contains("/news/")
+                || url_lower.contains("/breaking/")
+                || url_lower.contains("/latest/")
+                || url_lower.contains("/story/")
+            {
+                news_score += 2.0;
+                blog_score += 0.5; // News sites can also be blog-like
+            }
+
+            // Documentation patterns
+            if url_lower.contains("/docs")
+                || url_lower.contains("/documentation")
+                || url_lower.contains("/api/")
+                || url_lower.contains("/reference")
+                || url_lower.contains("/guide")
+                || url_lower.contains("/tutorial")
+                || url_lower.contains("docs.")
+            {
+                docs_score += 2.0;
+            }
+
+            // E-commerce patterns
+            if url_lower.contains("/product")
+                || url_lower.contains("/shop")
+                || url_lower.contains("/cart")
+                || url_lower.contains("/checkout")
+                || url_lower.contains("/catalog")
+                || url_lower.contains("store.")
+            {
+                ecommerce_score += 2.0;
+            }
+
+            // Social media patterns
+            if url_lower.contains("/user/")
+                || url_lower.contains("/profile/")
+                || url_lower.contains("/feed/")
+                || url_lower.contains("/timeline/")
+                || url_lower.contains("/status/")
+            {
+                social_score += 2.0;
+            }
+        }
+
+        // Content-based analysis
         let avg_unique_chars: f64 = samples
             .iter()
-            .map(|s| s.unique_text_chars as f64)
+            .map(|s| s.metrics.unique_text_chars as f64)
             .sum::<f64>()
             / samples.len() as f64;
 
-        let avg_links: f64 =
-            samples.iter().map(|s| s.link_count as f64).sum::<f64>() / samples.len() as f64;
+        let avg_links: f64 = samples
+            .iter()
+            .map(|s| s.metrics.link_count as f64)
+            .sum::<f64>()
+            / samples.len() as f64;
 
         let avg_quality: f64 =
-            samples.iter().map(|s| s.quality_score).sum::<f64>() / samples.len() as f64;
+            samples.iter().map(|s| s.metrics.quality_score).sum::<f64>() / samples.len() as f64;
 
-        // Simple heuristic-based classification
+        // Content-based scoring adjustments
+        // High-quality long-form content suggests blog or news
         if avg_unique_chars > 5000.0 && avg_quality > 0.7 {
-            if avg_links > 20.0 {
-                SiteType::News
-            } else {
-                SiteType::Blog
-            }
-        } else if avg_links > 50.0 && avg_unique_chars > 2000.0 {
-            SiteType::SocialMedia
-        } else if avg_links < 5.0 && avg_unique_chars > 3000.0 {
+            blog_score += 1.5;
+            news_score += 1.0;
+        }
+
+        // Many links with high content suggests news
+        if avg_links > 20.0 && avg_unique_chars > 4000.0 {
+            news_score += 1.0;
+        }
+
+        // Moderate content with many links suggests blog
+        if avg_links > 10.0 && avg_links < 30.0 && avg_unique_chars > 3000.0 {
+            blog_score += 1.0;
+        }
+
+        // Very high link count suggests social media
+        if avg_links > 50.0 {
+            social_score += 2.0;
+        }
+
+        // Low links with high content suggests documentation
+        if avg_links < 10.0 && avg_unique_chars > 3000.0 {
+            docs_score += 1.0;
+        }
+
+        // Many short pages with links suggests e-commerce
+        if avg_links > 10.0 && avg_unique_chars < 2000.0 {
+            ecommerce_score += 1.0;
+        }
+
+        // Generic site indicators
+        if avg_unique_chars > 1000.0 && avg_unique_chars < 3000.0 {
+            generic_score += 0.5;
+        }
+
+        // Determine best match with confidence threshold
+        let max_score = blog_score
+            .max(news_score)
+            .max(docs_score)
+            .max(ecommerce_score)
+            .max(social_score)
+            .max(generic_score);
+
+        // Require minimum confidence score
+        if max_score < 1.0 {
+            return SiteType::Unknown;
+        }
+
+        // Return type with highest score
+        if blog_score == max_score {
+            SiteType::Blog
+        } else if news_score == max_score {
+            SiteType::News
+        } else if docs_score == max_score {
             SiteType::Documentation
-        } else if avg_links > 10.0 && avg_unique_chars < 2000.0 {
+        } else if ecommerce_score == max_score {
             SiteType::ECommerce
+        } else if social_score == max_score {
+            SiteType::SocialMedia
+        } else if generic_score == max_score {
+            SiteType::Generic
         } else {
             SiteType::Unknown
         }

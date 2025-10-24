@@ -13,27 +13,44 @@ use std::time::Duration;
 use url::Url;
 
 /// Main spider configuration
+///
+/// # Valid Configuration Ranges
+///
+/// ## Basic Settings
+/// - `concurrency`: > 0 (number of concurrent requests)
+/// - `max_depth`: > 0 when specified, recommended ≤ 1000
+/// - `max_pages`: > 0 when specified
+/// - `timeout`: > 0, recommended ≤ 300 seconds
+/// - `max_redirects`: ≤ 20
+///
+/// ## Component Configurations
+/// All nested configurations (frontier, performance, url_processing, etc.)
+/// have their own validation rules documented in their respective structs.
+///
+/// # Validation
+/// Call `validate()` to check all configuration values are within valid ranges
+/// and mutually consistent.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpiderConfig {
     /// Base URL for crawling
     pub base_url: Url,
     /// User agent string
     pub user_agent: String,
-    /// Request timeout
+    /// Request timeout (must be > 0, recommended ≤ 300s)
     pub timeout: Duration,
-    /// Delay between requests
+    /// Delay between requests (can be 0 for maximum speed)
     pub delay: Duration,
-    /// Maximum number of concurrent requests
+    /// Maximum number of concurrent requests (must be > 0)
     pub concurrency: usize,
-    /// Maximum depth to crawl
+    /// Maximum depth to crawl (must be > 0 when specified, recommended ≤ 1000)
     pub max_depth: Option<usize>,
-    /// Maximum number of pages to crawl
+    /// Maximum number of pages to crawl (must be > 0 when specified)
     pub max_pages: Option<usize>,
     /// Respect robots.txt
     pub respect_robots: bool,
     /// Follow redirects
     pub follow_redirects: bool,
-    /// Maximum number of redirects to follow
+    /// Maximum number of redirects to follow (must be ≤ 20)
     pub max_redirects: usize,
     /// Enable JavaScript rendering
     pub enable_javascript: bool,
@@ -88,6 +105,12 @@ impl Default for SpiderConfig {
 }
 
 /// Configuration for URL processing
+///
+/// # Valid Ranges
+/// - `max_url_length`: 1 to 65536 bytes (most browsers limit to 2048)
+/// - `bloom_filter_capacity`: > 0 when deduplication enabled
+/// - `bloom_filter_fpr`: 0.0 < value < 1.0 (typical: 0.01)
+/// - `max_exact_urls`: > 0 when deduplication enabled
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UrlProcessingConfig {
     /// Enable URL normalization
@@ -102,15 +125,15 @@ pub struct UrlProcessingConfig {
     pub remove_fragments: bool,
     /// Remove default ports
     pub remove_default_ports: bool,
-    /// Maximum URL length
+    /// Maximum URL length (valid range: 1-65536 bytes)
     pub max_url_length: usize,
     /// Enable URL deduplication
     pub enable_deduplication: bool,
-    /// Bloom filter capacity for deduplication
+    /// Bloom filter capacity for deduplication (must be > 0 when enabled)
     pub bloom_filter_capacity: usize,
-    /// Bloom filter false positive rate
+    /// Bloom filter false positive rate (valid range: 0.0 < fpr < 1.0)
     pub bloom_filter_fpr: f64,
-    /// Maximum exact URLs to track
+    /// Maximum exact URLs to track (must be > 0 when deduplication enabled)
     pub max_exact_urls: usize,
     /// URL exclude patterns
     pub exclude_patterns: Vec<String>,
@@ -156,25 +179,35 @@ impl Default for UrlProcessingConfig {
 }
 
 /// Configuration for performance settings
+///
+/// # Valid Ranges and Constraints
+/// - `max_concurrent_global`: > 0
+/// - `max_concurrent_per_host`: > 0 and ≤ max_concurrent_global
+/// - `request_timeout`: > 0
+/// - `metrics_interval`: > 0
+/// - `memory_pressure_threshold`: > 0 (bytes)
+/// - `cpu_usage_threshold`: 0.0 to 1.0 (0% to 100%)
+/// - `min_request_delay_micros`: ≤ max_request_delay_micros
+/// - `max_request_delay_micros`: ≥ min_request_delay_micros
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PerformanceConfig {
-    /// Maximum concurrent requests globally
+    /// Maximum concurrent requests globally (must be > 0)
     pub max_concurrent_global: usize,
-    /// Maximum concurrent requests per host
+    /// Maximum concurrent requests per host (must be > 0 and ≤ global)
     pub max_concurrent_per_host: usize,
-    /// Request timeout duration
+    /// Request timeout duration (must be > 0)
     pub request_timeout: Duration,
-    /// Interval for updating metrics
+    /// Interval for updating metrics (must be > 0)
     pub metrics_interval: Duration,
-    /// Memory pressure threshold (bytes)
+    /// Memory pressure threshold in bytes (must be > 0)
     pub memory_pressure_threshold: usize,
-    /// CPU usage threshold (0.0-1.0)
+    /// CPU usage threshold (valid range: 0.0-1.0)
     pub cpu_usage_threshold: f64,
     /// Enable adaptive throttling
     pub enable_adaptive_throttling: bool,
-    /// Minimum delay between requests (microseconds)
+    /// Minimum delay between requests in microseconds
     pub min_request_delay_micros: u64,
-    /// Maximum delay between requests (microseconds)
+    /// Maximum delay between requests in microseconds (must be ≥ min)
     pub max_request_delay_micros: u64,
 }
 
@@ -258,29 +291,208 @@ impl SpiderConfig {
     }
 
     /// Validate configuration
+    ///
+    /// Performs comprehensive validation of all configuration values including:
+    /// - Positive value checks (no zero or negative values where inappropriate)
+    /// - Boundary condition checks (reasonable upper limits)
+    /// - Mutually exclusive option checks
+    /// - Resource limit calculations
+    /// - Performance configuration consistency
     pub fn validate(&self) -> Result<(), String> {
+        // === Basic Concurrency Validation ===
         if self.concurrency == 0 {
             return Err("Concurrency must be greater than 0".to_string());
         }
 
+        // Validate max depth if specified
         if let Some(max_depth) = self.max_depth {
             if max_depth == 0 {
-                return Err("Max depth must be greater than 0".to_string());
+                return Err("Max depth must be greater than 0 when specified".to_string());
+            }
+            // Reasonable upper limit for depth to prevent infinite loops
+            if max_depth > 1000 {
+                return Err("Max depth should not exceed 1000 (current: {})".to_string());
             }
         }
 
+        // Validate max pages if specified
         if let Some(max_pages) = self.max_pages {
             if max_pages == 0 {
-                return Err("Max pages must be greater than 0".to_string());
+                return Err("Max pages must be greater than 0 when specified".to_string());
             }
         }
 
+        // === Timeout and Delay Validation ===
         if self.timeout.is_zero() {
-            return Err("Timeout must be greater than 0".to_string());
+            return Err("Request timeout must be greater than 0".to_string());
         }
 
+        // Delay can be zero but timeout should be reasonable
+        if self.timeout > Duration::from_secs(300) {
+            return Err("Request timeout should not exceed 300 seconds (5 minutes)".to_string());
+        }
+
+        // === Redirect Validation ===
         if self.max_redirects > 20 {
-            return Err("Max redirects should not exceed 20".to_string());
+            return Err(format!(
+                "Max redirects should not exceed 20 (current: {})",
+                self.max_redirects
+            ));
+        }
+
+        // === Frontier Configuration Validation ===
+        if self.frontier.memory_limit == 0 {
+            return Err("Frontier memory_limit must be greater than 0".to_string());
+        }
+
+        if self.frontier.memory_limit_mb == 0 {
+            return Err("Frontier memory_limit_mb must be greater than 0".to_string());
+        }
+
+        if self.frontier.max_requests_per_host == 0 {
+            return Err("Frontier max_requests_per_host must be greater than 0".to_string());
+        }
+
+        // Validate host diversity is in valid range (0.0 to 1.0)
+        if self.frontier.max_host_diversity < 0.0 || self.frontier.max_host_diversity > 1.0 {
+            return Err(format!(
+                "Frontier max_host_diversity must be between 0.0 and 1.0 (current: {})",
+                self.frontier.max_host_diversity
+            ));
+        }
+
+        // === Performance Configuration Validation ===
+        if self.performance.max_concurrent_global == 0 {
+            return Err("Performance max_concurrent_global must be greater than 0".to_string());
+        }
+
+        if self.performance.max_concurrent_per_host == 0 {
+            return Err("Performance max_concurrent_per_host must be greater than 0".to_string());
+        }
+
+        // Per-host concurrency should not exceed global concurrency
+        if self.performance.max_concurrent_per_host > self.performance.max_concurrent_global {
+            return Err(format!(
+                "Performance max_concurrent_per_host ({}) cannot exceed max_concurrent_global ({})",
+                self.performance.max_concurrent_per_host, self.performance.max_concurrent_global
+            ));
+        }
+
+        if self.performance.request_timeout.is_zero() {
+            return Err("Performance request_timeout must be greater than 0".to_string());
+        }
+
+        if self.performance.metrics_interval.is_zero() {
+            return Err("Performance metrics_interval must be greater than 0".to_string());
+        }
+
+        if self.performance.memory_pressure_threshold == 0 {
+            return Err("Performance memory_pressure_threshold must be greater than 0".to_string());
+        }
+
+        // CPU threshold should be between 0.0 and 1.0
+        if self.performance.cpu_usage_threshold < 0.0 || self.performance.cpu_usage_threshold > 1.0
+        {
+            return Err(format!(
+                "Performance cpu_usage_threshold must be between 0.0 and 1.0 (current: {})",
+                self.performance.cpu_usage_threshold
+            ));
+        }
+
+        // Request delay validation
+        if self.performance.min_request_delay_micros > self.performance.max_request_delay_micros {
+            return Err(format!(
+                "Performance min_request_delay_micros ({}) cannot exceed max_request_delay_micros ({})",
+                self.performance.min_request_delay_micros,
+                self.performance.max_request_delay_micros
+            ));
+        }
+
+        // === URL Processing Configuration Validation ===
+        if self.url_processing.max_url_length == 0 {
+            return Err("URL processing max_url_length must be greater than 0".to_string());
+        }
+
+        // URL length should be reasonable (most browsers limit to 2048)
+        if self.url_processing.max_url_length > 65536 {
+            return Err("URL processing max_url_length should not exceed 65536 bytes".to_string());
+        }
+
+        if self.url_processing.enable_deduplication {
+            if self.url_processing.bloom_filter_capacity == 0 {
+                return Err(
+                    "URL processing bloom_filter_capacity must be greater than 0 when deduplication is enabled"
+                        .to_string(),
+                );
+            }
+
+            if self.url_processing.max_exact_urls == 0 {
+                return Err(
+                    "URL processing max_exact_urls must be greater than 0 when deduplication is enabled"
+                        .to_string(),
+                );
+            }
+
+            // False positive rate should be between 0.0 and 1.0 (exclusive)
+            if self.url_processing.bloom_filter_fpr <= 0.0
+                || self.url_processing.bloom_filter_fpr >= 1.0
+            {
+                return Err(format!(
+                    "URL processing bloom_filter_fpr must be between 0.0 and 1.0 (current: {})",
+                    self.url_processing.bloom_filter_fpr
+                ));
+            }
+        }
+
+        // === Session Configuration Validation ===
+        if self.session.session_timeout.is_zero() {
+            return Err("Session timeout must be greater than 0".to_string());
+        }
+
+        if self.session.max_concurrent_sessions == 0 {
+            return Err("Session max_concurrent_sessions must be greater than 0".to_string());
+        }
+
+        // === Budget Configuration Validation ===
+        // Validate global budget limits if specified
+        if let Some(max_pages) = self.budget.global.max_pages {
+            if max_pages == 0 {
+                return Err(
+                    "Budget global max_pages must be greater than 0 when specified".to_string(),
+                );
+            }
+        }
+
+        if let Some(max_depth) = self.budget.global.max_depth {
+            if max_depth == 0 {
+                return Err(
+                    "Budget global max_depth must be greater than 0 when specified".to_string(),
+                );
+            }
+        }
+
+        // Validate that budget max_depth doesn't conflict with spider max_depth
+        if let (Some(budget_depth), Some(spider_depth)) =
+            (self.budget.global.max_depth, self.max_depth)
+        {
+            if budget_depth as usize != spider_depth {
+                // This is just a warning scenario - they can be different but it's worth noting
+                // We'll allow it but could log a warning in production code
+            }
+        }
+
+        // === Adaptive Stop Configuration Validation ===
+        if self.adaptive_stop.min_pages_before_stop == 0 {
+            return Err("Adaptive stop min_pages_before_stop must be greater than 0".to_string());
+        }
+
+        if self.adaptive_stop.patience == 0 {
+            return Err("Adaptive stop patience must be greater than 0".to_string());
+        }
+
+        // Gain threshold should be non-negative
+        if self.adaptive_stop.min_gain_threshold < 0.0 {
+            return Err("Adaptive stop min_gain_threshold cannot be negative".to_string());
         }
 
         Ok(())
@@ -310,29 +522,51 @@ impl SpiderConfig {
     }
 
     /// Optimize configuration for available resources
+    ///
+    /// Adjusts configuration parameters based on available system resources:
+    /// - Concurrency settings based on CPU cores
+    /// - Memory limits based on available RAM
+    /// - Bloom filter capacity for URL deduplication
+    /// - Frontier memory limits
+    ///
+    /// # Arguments
+    /// * `available_memory_mb` - Available system memory in megabytes
+    /// * `available_cores` - Number of available CPU cores
+    ///
+    /// # Resource Tiers
+    /// - **Low memory** (<1024MB): Conservative settings, small bloom filters
+    /// - **Medium memory** (1024-4095MB): Balanced settings
+    /// - **High memory** (≥4096MB): Aggressive settings, large bloom filters
     pub fn optimize_for_resources(&mut self, available_memory_mb: usize, available_cores: usize) {
-        // Adjust concurrency based on cores
+        // Adjust concurrency based on cores (2x cores, capped at 16)
         self.concurrency = (available_cores * 2).min(16);
         self.performance.max_concurrent_global = self.concurrency;
         self.performance.max_concurrent_per_host = (self.concurrency / 4).max(1);
 
-        // Adjust memory-based settings
+        // Adjust memory-based settings based on available memory tiers
         if available_memory_mb < 1024 {
             // Low memory: optimize for efficiency
             self.url_processing.bloom_filter_capacity = 10_000;
             self.url_processing.max_exact_urls = 1_000;
             self.frontier.memory_limit_mb = 50;
+            self.frontier.memory_limit = 5_000; // ~5k requests in memory
         } else if available_memory_mb < 4096 {
-            // Medium memory
+            // Medium memory: balanced configuration
             self.url_processing.bloom_filter_capacity = 100_000;
             self.url_processing.max_exact_urls = 10_000;
             self.frontier.memory_limit_mb = 200;
+            self.frontier.memory_limit = 50_000; // ~50k requests in memory
         } else {
-            // High memory
+            // High memory: aggressive settings for performance
             self.url_processing.bloom_filter_capacity = 1_000_000;
             self.url_processing.max_exact_urls = 100_000;
             self.frontier.memory_limit_mb = 500;
+            self.frontier.memory_limit = 200_000; // ~200k requests in memory
         }
+
+        // Adjust performance thresholds based on memory
+        self.performance.memory_pressure_threshold = (available_memory_mb * 1024 * 1024 * 3) / 4;
+        // 75% of available memory
     }
 }
 

@@ -82,32 +82,6 @@ impl CssSelectorStrategy {
         None
     }
 
-    /// Extract all matching elements for a selector
-    #[allow(dead_code)]
-    fn extract_all_by_selector(&self, doc: &Html, content_type: &str) -> Vec<String> {
-        let selector_str = match self.selectors.get(content_type) {
-            Some(s) => s,
-            None => return Vec::new(),
-        };
-
-        let mut results = Vec::new();
-
-        for sel_str in selector_str.split(',') {
-            let sel_str = sel_str.trim();
-            if let Ok(selector) = Selector::parse(sel_str) {
-                for element in doc.select(&selector) {
-                    let text = element.text().collect::<Vec<_>>().join(" ");
-                    let text = text.trim().to_string();
-                    if !text.is_empty() {
-                        results.push(text);
-                    }
-                }
-            }
-        }
-
-        results
-    }
-
     /// Calculate extraction confidence based on found elements
     fn calculate_confidence(&self, doc: &Html) -> f64 {
         let mut score = 0.0;
