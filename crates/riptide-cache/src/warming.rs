@@ -652,7 +652,9 @@ impl CacheWarmingManager {
             let mut i = 0;
             while i < warm_instances.len() {
                 if warm_instances[i].warmed_at.elapsed() > max_age {
-                    let old_instance = warm_instances.remove(i);
+                    let old_instance = warm_instances
+                        .remove(i)
+                        .expect("Index validated by loop condition");
                     debug!(instance_id = %old_instance.instance.id, age_secs = old_instance.warmed_at.elapsed().as_secs(),
                            "Cleaned up old warm instance");
                     cleaned += 1;
