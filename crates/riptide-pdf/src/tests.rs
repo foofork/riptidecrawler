@@ -489,6 +489,7 @@ async fn property_test_no_panic() {
 }
 
 #[tokio::test]
+#[ignore] // Requires libpdfium.so - skip in CI environments
 async fn test_memory_stability_under_load() {
     let processor = Arc::new(create_pdf_processor());
     let pdf_data = Arc::new(create_large_test_pdf(500));

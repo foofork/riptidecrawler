@@ -557,6 +557,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore] // Requires libpdfium.so - skip in CI environments
     async fn test_memory_benchmark_reporting() {
         let benchmark = PdfMemoryBenchmark::new();
         let result = benchmark.benchmark_single_pdf(10).await;
