@@ -1153,6 +1153,35 @@ pub struct PerformanceMetrics {
 mod tests {
     use super::*;
     use futures::StreamExt;
+    use serial_test::serial;
+
+    /// Helper to launch a browser with isolated temp profile directory.
+    /// Prevents Chrome SingletonLock collisions when tests run in parallel.
+    async fn launch_test_browser(
+    ) -> anyhow::Result<(chromiumoxide::Browser, chromiumoxide::Handler)> {
+        use tempfile::tempdir;
+
+        // Create unique temp directory for this browser instance
+        let profile_dir = tempdir()?;
+
+        // Configure browser with isolated profile and CI-safe flags
+        let browser_config = chromiumoxide::BrowserConfig::builder()
+            .user_data_dir(profile_dir.path())
+            .args(vec![
+                "--no-sandbox",            // Required for CI environments
+                "--disable-dev-shm-usage", // Prevent /dev/shm issues in containers
+                "--headless=new",          // Modern headless mode
+                "--disable-gpu",           // Not needed in headless
+            ])
+            .build()?;
+
+        let (browser, handler) = chromiumoxide::Browser::launch(browser_config).await?;
+
+        // Keep temp dir alive by leaking it (browser will clean up on close)
+        std::mem::forget(profile_dir);
+
+        Ok((browser, handler))
+    }
 
     #[test]
     fn test_config_defaults() {
@@ -1212,16 +1241,13 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_batch_execute_empty() {
         let config = CdpPoolConfig::default();
         let pool = CdpConnectionPool::new(config);
 
-        // Create a mock browser for testing
-        let browser_config = chromiumoxide::BrowserConfig::builder()
-            .build()
-            .expect("Failed to build browser config");
-
-        let (browser, mut handler) = chromiumoxide::Browser::launch(browser_config)
+        // Create browser with isolated profile
+        let (browser, mut handler) = launch_test_browser()
             .await
             .expect("Failed to launch browser");
 
@@ -1308,6 +1334,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_batch_config_disabled() {
         let config = CdpPoolConfig {
             enable_batching: false,
@@ -1316,12 +1343,8 @@ mod tests {
 
         let pool = CdpConnectionPool::new(config);
 
-        // Create a mock browser for testing
-        let browser_config = chromiumoxide::BrowserConfig::builder()
-            .build()
-            .expect("Failed to build browser config");
-
-        let (browser, mut handler) = chromiumoxide::Browser::launch(browser_config)
+        // Create browser with isolated profile
+        let (browser, mut handler) = launch_test_browser()
             .await
             .expect("Failed to launch browser");
 
@@ -1406,12 +1429,9 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_pooled_connection_mark_used() {
-        let browser_config = chromiumoxide::BrowserConfig::builder()
-            .build()
-            .expect("Failed to build browser config");
-
-        let (browser, mut handler) = chromiumoxide::Browser::launch(browser_config)
+        let (browser, mut handler) = launch_test_browser()
             .await
             .expect("Failed to launch browser");
 
@@ -1440,12 +1460,9 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_connection_latency_recording() {
-        let browser_config = chromiumoxide::BrowserConfig::builder()
-            .build()
-            .expect("Failed to build browser config");
-
-        let (browser, mut handler) = chromiumoxide::Browser::launch(browser_config)
+        let (browser, mut handler) = launch_test_browser()
             .await
             .expect("Failed to launch browser");
 

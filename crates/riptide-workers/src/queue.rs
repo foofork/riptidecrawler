@@ -224,7 +224,14 @@ impl JobQueue {
                 JobStatus::Retrying => {
                     // Move to retry queue with scheduled time
                     let retry_key = format!("{}:retry", self.config.namespace);
-                    let retry_score = job.next_retry_at.unwrap().timestamp();
+                    let retry_score = match job.next_retry_at {
+                        Some(timestamp) => timestamp.timestamp(),
+                        None => {
+                            return Err(anyhow::anyhow!(
+                                "Retrying job missing next_retry_at timestamp"
+                            ))
+                        }
+                    };
 
                     self.redis
                         .zadd::<_, _, _, ()>(&retry_key, job_id.to_string(), retry_score)

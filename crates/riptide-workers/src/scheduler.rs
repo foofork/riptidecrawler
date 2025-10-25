@@ -187,8 +187,10 @@ impl JobScheduler {
         redis_url: Option<&str>,
     ) -> Result<Self> {
         let redis_client = if config.persist_schedules && redis_url.is_some() {
-            let client = redis::Client::open(redis_url.unwrap())
-                .context("Failed to create Redis client for scheduler")?;
+            let url = redis_url
+                .ok_or_else(|| anyhow::anyhow!("Redis URL required for persisted schedules"))?;
+            let client =
+                redis::Client::open(url).context("Failed to create Redis client for scheduler")?;
             let connection = client
                 .get_multiplexed_async_connection()
                 .await
@@ -342,9 +344,11 @@ impl JobScheduler {
             }
 
             if let Some(next_exec) = schedule.next_execution_at {
-                if next_execution.is_none() || next_exec < next_execution.unwrap() {
-                    next_execution = Some(next_exec);
-                }
+                next_execution = match next_execution {
+                    Some(current) if next_exec < current => Some(next_exec),
+                    None => Some(next_exec),
+                    _ => next_execution,
+                };
             }
         }
 
