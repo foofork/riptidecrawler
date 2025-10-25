@@ -5,10 +5,10 @@
 # Shared target directory for all workspace crates
 target-dir = "target"
 
-# sccache configuration for faster incremental builds
+# sccache configuration for faster incremental builds (commented for CI compatibility)
 # Install: cargo install sccache
 # Verify: sccache --show-stats
-rustc-wrapper = "sccache"
+# rustc-wrapper = "sccache"
 
 # Note: Removed forced linker selection to allow cargo and dependencies
 # (like pdfium-render) to choose appropriate linker based on availability
