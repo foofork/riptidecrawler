@@ -1,6 +1,6 @@
 [build]
-# Use default target for the platform
-target = "x86_64-unknown-linux-gnu"
+# Use default target for the platform (commented for cross-platform CI)
+# target = "x86_64-unknown-linux-gnu"
 
 # Shared target directory for all workspace crates
 target-dir = "target"
