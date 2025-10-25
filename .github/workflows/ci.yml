@@ -64,7 +64,11 @@ jobs:
           components: rustfmt, clippy
 
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfontconfig1-dev pkg-config fontconfig
+          # Verify fontconfig pkg-config file exists
+          pkg-config --modversion fontconfig || echo "Warning: fontconfig.pc not found"
 
       - name: Install sccache
         uses: mozilla-actions/sccache-action@v0.0.6
@@ -104,7 +108,11 @@ jobs:
         uses: mozilla-actions/sccache-action@v0.0.6
 
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfontconfig1-dev pkg-config fontconfig
+          # Verify fontconfig pkg-config file exists
+          pkg-config --modversion fontconfig || echo "Warning: fontconfig.pc not found"
 
       - name: Restore Cargo cache
         uses: Swatinem/rust-cache@v2
@@ -301,7 +309,11 @@ jobs:
         uses: mozilla-actions/sccache-action@v0.0.6
 
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfontconfig1-dev pkg-config fontconfig
+          # Verify fontconfig pkg-config file exists
+          pkg-config --modversion fontconfig || echo "Warning: fontconfig.pc not found"
 
       - name: Restore Cargo cache
         uses: Swatinem/rust-cache@v2
@@ -438,7 +450,11 @@ jobs:
           toolchain: stable
 
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfontconfig1-dev pkg-config fontconfig
+          # Verify fontconfig pkg-config file exists
+          pkg-config --modversion fontconfig || echo "Warning: fontconfig.pc not found"
 
       - name: Install sccache
         uses: mozilla-actions/sccache-action@v0.0.6
