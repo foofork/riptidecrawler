@@ -435,13 +435,10 @@ impl FailoverManager {
     async fn select_random(&self, providers: &[String]) -> String {
         use rand::seq::SliceRandom;
         let mut rng = rand::thread_rng();
-        providers
-            .choose(&mut rng)
-            .map(|s| s.clone())
-            .unwrap_or_else(|| {
-                tracing::warn!("No providers available for random selection, using empty string");
-                String::new()
-            })
+        providers.choose(&mut rng).cloned().unwrap_or_else(|| {
+            tracing::warn!("No providers available for random selection, using empty string");
+            String::new()
+        })
     }
 
     /// Select provider using weighted selection
