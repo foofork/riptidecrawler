@@ -191,9 +191,8 @@ impl ExtractionFacade {
         options: HtmlExtractionOptions,
     ) -> Result<ExtractedData> {
         // Use CSS extraction as default
-        let result = if options.custom_selectors.is_some() {
+        let result = if let Some(selectors) = options.custom_selectors {
             // Custom selector extraction
-            let selectors = options.custom_selectors.unwrap();
             css_extract(html, url, &selectors)
                 .await
                 .map_err(|e| RiptideError::extraction(e.to_string()))?
@@ -501,10 +500,11 @@ impl ExtractionFacade {
 
         // Extract headers
         for level in 1..=6 {
-            let selector = Selector::parse(&format!("h{}", level)).unwrap();
-            for element in document.select(&selector) {
-                let text = element.text().collect::<Vec<_>>().join(" ");
-                markdown.push_str(&format!("{} {}\n\n", "#".repeat(level), text));
+            if let Ok(selector) = Selector::parse(&format!("h{}", level)) {
+                for element in document.select(&selector) {
+                    let text = element.text().collect::<Vec<_>>().join(" ");
+                    markdown.push_str(&format!("{} {}\n\n", "#".repeat(level), text));
+                }
             }
         }
 
