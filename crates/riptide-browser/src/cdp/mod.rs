@@ -71,7 +71,7 @@ impl CdpPoolConfig {
     ///
     /// # Examples
     /// ```
-    /// use riptide_engine::cdp_pool::CdpPoolConfig;
+    /// use riptide_browser::cdp::CdpPoolConfig;
     /// use std::time::Duration;
     ///
     /// let config = CdpPoolConfig {
