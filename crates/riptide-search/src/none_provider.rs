@@ -68,10 +68,16 @@ impl SearchProvider for NoneProvider {
     async fn search(
         &self,
         query: &str,
-        _limit: u32,
+        limit: u32,
         _country: &str,
         _locale: &str,
     ) -> Result<Vec<SearchHit>> {
+        if !self.enable_url_parsing {
+            return Err(anyhow::anyhow!(
+                "URL parsing is disabled for NoneProvider. Enable it or configure a search backend."
+            ));
+        }
+
         let urls = self.extract_urls(query);
 
         if urls.is_empty() {
@@ -80,9 +86,10 @@ impl SearchProvider for NoneProvider {
             ));
         }
 
-        // Convert URLs to SearchHit results
+        // Convert URLs to SearchHit results, respecting the limit
         let results: Vec<SearchHit> = urls
             .into_iter()
+            .take(limit as usize)
             .enumerate()
             .map(|(index, url)| {
                 SearchHit::new(url.clone(), (index + 1) as u32)

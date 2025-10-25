@@ -246,13 +246,13 @@ mod serper_provider_tests {
 
     #[test]
     fn test_serper_provider_creation() {
-        let provider = SerperProvider::new("test_api_key".to_string(), 30);
+        let provider = SerperProvider::new("test_api_key".to_string(), 30).unwrap();
         assert_eq!(provider.backend_type(), SearchBackend::Serper);
     }
 
     #[tokio::test]
     async fn test_serper_provider_empty_query() {
-        let provider = SerperProvider::new("test_api_key".to_string(), 30);
+        let provider = SerperProvider::new("test_api_key".to_string(), 30).unwrap();
 
         let result = provider.search("", 10, "us", "en").await;
         assert!(result.is_err());
@@ -261,7 +261,7 @@ mod serper_provider_tests {
 
     #[tokio::test]
     async fn test_serper_provider_limit_clamping() {
-        let provider = SerperProvider::new("test_api_key".to_string(), 30);
+        let provider = SerperProvider::new("test_api_key".to_string(), 30).unwrap();
 
         // Test with invalid API key - should fail but not due to limit
         let result = provider.search("test", 0, "us", "en").await;
@@ -271,7 +271,7 @@ mod serper_provider_tests {
 
     #[tokio::test]
     async fn test_serper_provider_invalid_api_key() {
-        let provider = SerperProvider::new("invalid_key".to_string(), 30);
+        let provider = SerperProvider::new("invalid_key".to_string(), 30).unwrap();
 
         let result = provider.search("test query", 10, "us", "en").await;
         // Should fail due to invalid API key

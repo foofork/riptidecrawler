@@ -367,7 +367,7 @@ mod tests {
         let config = CircuitBreakerConfig {
             failure_threshold_percentage: 50,
             minimum_request_threshold: 2,
-            recovery_timeout: Duration::from_millis(100),
+            recovery_timeout: Duration::from_secs(300), // Long timeout to prevent auto-recovery during test
             half_open_max_requests: 1,
         };
         let circuit = CircuitBreakerWrapper::with_config(provider, config);
@@ -380,7 +380,7 @@ mod tests {
         // Circuit should now be open due to 100% failure rate
         assert_eq!(circuit.current_state(), CircuitState::Open);
 
-        // Next request should fail fast
+        // Next request should fail fast (recovery timeout hasn't elapsed)
         let result = circuit.search("https://example.com", 1, "us", "en").await;
         assert!(result.is_err());
         assert!(result

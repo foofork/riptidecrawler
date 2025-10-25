@@ -156,19 +156,19 @@ mod circuit_breaker_failure_tests {
         let config = CircuitBreakerConfig {
             failure_threshold_percentage: 60,
             minimum_request_threshold: 10,
-            recovery_timeout: Duration::from_secs(60),
+            recovery_timeout: Duration::from_secs(300), // Long timeout to prevent auto-recovery
             half_open_max_requests: 1,
         };
         let circuit = CircuitBreakerWrapper::with_config(provider, config);
 
-        // Mix of successful and failed requests
+        // Do 4 successes first, then 6 failures to reach exactly 60% failure rate
         for i in 0..10 {
-            if i < 6 {
-                // 6 failures
-                let _ = circuit.search("no urls", 1, "us", "en").await;
-            } else {
-                // 4 successes
+            if i < 4 {
+                // 4 successes first
                 let _ = circuit.search("https://example.com", 1, "us", "en").await;
+            } else {
+                // 6 failures (brings us to 60% failure on the 10th request)
+                let _ = circuit.search("no urls", 1, "us", "en").await;
             }
         }
 
@@ -374,7 +374,10 @@ mod circuit_breaker_integration_tests {
 
     #[tokio::test]
     async fn test_circuit_breaker_with_serper_provider() {
-        let provider = Box::new(SerperProvider::new("test_key".to_string(), 30));
+        let provider = Box::new(
+            SerperProvider::new("test_key".to_string(), 30)
+                .expect("Failed to create SerperProvider"),
+        );
         let circuit = CircuitBreakerWrapper::new(provider);
 
         assert_eq!(circuit.backend_type(), SearchBackend::Serper);
