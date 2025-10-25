@@ -1,6 +1,17 @@
 //! Browser pool integration tests
 //!
 //! Comprehensive test suite for riptide-headless browser pool integration with riptide-api
+//!
+//! **NOTE**: These tests require external services (Redis, browser launcher) and are marked
+//! with `#[ignore]` by default. Run with:
+//! ```bash
+//! cargo test --test browser_pool_integration -- --ignored
+//! ```
+//!
+//! Required services:
+//! - Redis server running on default port (6379)
+//! - Chrome/Chromium browser installed
+//! - Network access for browser automation
 
 use axum::http::StatusCode;
 use http_body_util::BodyExt;
@@ -11,6 +22,7 @@ mod test_helpers;
 use test_helpers::*;
 
 #[tokio::test]
+#[ignore = "Requires browser launcher service and Redis - run with --ignored"]
 async fn test_create_browser_session_success() {
     let app = create_test_app().await;
 
@@ -45,6 +57,7 @@ async fn test_create_browser_session_success() {
 }
 
 #[tokio::test]
+#[ignore = "Requires browser launcher service and Redis - run with --ignored"]
 async fn test_create_browser_session_with_no_stealth() {
     let app = create_test_app().await;
 
@@ -70,6 +83,7 @@ async fn test_create_browser_session_with_no_stealth() {
 }
 
 #[tokio::test]
+#[ignore = "Requires browser launcher service and Redis - run with --ignored"]
 async fn test_create_browser_session_minimal() {
     let app = create_test_app().await;
 
@@ -90,6 +104,7 @@ async fn test_create_browser_session_minimal() {
 }
 
 #[tokio::test]
+#[ignore = "Requires browser launcher service and Redis - run with --ignored"]
 async fn test_execute_navigate_action() {
     let app = create_test_app().await;
 
@@ -125,6 +140,7 @@ async fn test_execute_navigate_action() {
 }
 
 #[tokio::test]
+#[ignore = "Requires browser launcher service and Redis - run with --ignored"]
 async fn test_execute_screenshot_action() {
     let app = create_test_app().await;
 
@@ -157,6 +173,7 @@ async fn test_execute_screenshot_action() {
 }
 
 #[tokio::test]
+#[ignore = "Requires browser launcher service and Redis - run with --ignored"]
 async fn test_execute_script_action() {
     let app = create_test_app().await;
 
@@ -189,6 +206,7 @@ async fn test_execute_script_action() {
 }
 
 #[tokio::test]
+#[ignore = "Requires browser launcher service and Redis - run with --ignored"]
 async fn test_execute_get_content_action() {
     let app = create_test_app().await;
 
@@ -220,6 +238,7 @@ async fn test_execute_get_content_action() {
 }
 
 #[tokio::test]
+#[ignore = "Requires browser launcher service and Redis - run with --ignored"]
 async fn test_execute_wait_for_element_action() {
     let app = create_test_app().await;
 
@@ -247,6 +266,7 @@ async fn test_execute_wait_for_element_action() {
 }
 
 #[tokio::test]
+#[ignore = "Requires browser launcher service and Redis - run with --ignored"]
 async fn test_execute_click_action() {
     let app = create_test_app().await;
 
@@ -273,6 +293,7 @@ async fn test_execute_click_action() {
 }
 
 #[tokio::test]
+#[ignore = "Requires browser launcher service and Redis - run with --ignored"]
 async fn test_execute_type_text_action() {
     let app = create_test_app().await;
 
@@ -300,6 +321,7 @@ async fn test_execute_type_text_action() {
 }
 
 #[tokio::test]
+#[ignore = "Requires browser launcher service and Redis - run with --ignored"]
 async fn test_execute_render_pdf_action() {
     let app = create_test_app().await;
 
@@ -327,6 +349,7 @@ async fn test_execute_render_pdf_action() {
 }
 
 #[tokio::test]
+#[ignore = "Requires browser launcher service and Redis - run with --ignored"]
 async fn test_get_browser_pool_status() {
     let app = create_test_app().await;
 
@@ -360,6 +383,7 @@ async fn test_get_browser_pool_status() {
 }
 
 #[tokio::test]
+#[ignore = "Requires browser launcher service and Redis - run with --ignored"]
 async fn test_close_browser_session() {
     let app = create_test_app().await;
 
@@ -378,6 +402,7 @@ async fn test_close_browser_session() {
 }
 
 #[tokio::test]
+#[ignore = "Requires browser launcher service and Redis - run with --ignored"]
 async fn test_browser_pool_auto_scaling() {
     // Test that pool automatically scales based on demand
     let app = create_test_app().await;
@@ -404,6 +429,7 @@ async fn test_browser_pool_auto_scaling() {
 }
 
 #[tokio::test]
+#[ignore = "Requires browser launcher service and Redis - run with --ignored"]
 async fn test_browser_session_lifecycle() {
     // Test full lifecycle: create -> use -> close
     let app = create_test_app().await;
@@ -472,6 +498,7 @@ async fn test_browser_session_lifecycle() {
 }
 
 #[tokio::test]
+#[ignore = "Requires browser launcher service and Redis - run with --ignored"]
 async fn test_invalid_action_type_handling() {
     let app = create_test_app().await;
 

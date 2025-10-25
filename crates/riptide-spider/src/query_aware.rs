@@ -99,6 +99,11 @@ impl BM25Scorer {
         let doc_terms = tokenize(document);
         let doc_length = doc_terms.len() as f64;
 
+        // Avoid division by zero
+        if doc_length == 0.0 {
+            return 0.0;
+        }
+
         // Count term frequencies in document
         let mut term_freq = HashMap::new();
         for term in doc_terms {
@@ -109,16 +114,37 @@ impl BM25Scorer {
 
         for query_term in &self.query_terms {
             let tf = *term_freq.get(query_term).unwrap_or(&0) as f64;
-            let df = *self.term_doc_freq.get(query_term).unwrap_or(&0) as f64;
 
-            if tf > 0.0 && df > 0.0 {
-                // IDF calculation
-                let idf = ((self.total_docs as f64 - df + 0.5) / (df + 0.5)).ln();
+            // Only score if term appears in document
+            if tf > 0.0 {
+                let df = *self.term_doc_freq.get(query_term).unwrap_or(&0) as f64;
+
+                // IDF calculation - modified Robertson/Sparck Jones formulation
+                // IDF = log((N - df + 0.5) / (df + 0.5))
+                // For terms appearing in all documents, use a small positive value
+                let idf = if df > 0.0 && df < self.total_docs as f64 {
+                    let ratio = (self.total_docs as f64 - df + 0.5) / (df + 0.5);
+                    if ratio > 0.0 {
+                        ratio.ln().max(0.01) // Ensure minimum positive IDF
+                    } else {
+                        0.01 // Very common terms get small but positive weight
+                    }
+                } else if df == 0.0 {
+                    // Term not in corpus - use ln(N) as IDF
+                    (self.total_docs as f64).ln()
+                } else {
+                    // df >= N - term in all documents, use minimum weight
+                    0.01
+                };
 
                 // BM25 formula
                 let numerator = tf * (self.k1 + 1.0);
-                let denominator =
-                    tf + self.k1 * (1.0 - self.b + self.b * (doc_length / self.avg_doc_length));
+                let avg_len = if self.avg_doc_length > 0.0 {
+                    self.avg_doc_length
+                } else {
+                    doc_length
+                };
+                let denominator = tf + self.k1 * (1.0 - self.b + self.b * (doc_length / avg_len));
 
                 score += idf * (numerator / denominator);
             }
@@ -163,7 +189,13 @@ impl UrlSignalAnalyzer {
         }
 
         let path = url.path().to_lowercase();
+        // Normalize path for matching (replace hyphens/underscores with empty string)
+        let normalized_path = path.replace('-', "").replace('_', "");
         let path_segments: Vec<&str> = path.split('/').collect();
+
+        // Get host for domain matching
+        let host_str = url.host_str().map(|h| h.to_lowercase()).unwrap_or_default();
+        let normalized_host = host_str.replace('-', "").replace('_', "").replace('.', "");
 
         let mut relevance_score = 0.0;
         let mut total_terms = 0;
@@ -171,22 +203,31 @@ impl UrlSignalAnalyzer {
         for query_term in &self.query_terms {
             total_terms += 1;
 
-            // Check if term appears in path
-            if path.contains(query_term) {
+            // Check if term appears in path (handle both hyphenated and non-hyphenated)
+            let path_match = path.contains(query_term) || normalized_path.contains(query_term);
+
+            // Check if term appears in domain (handle concatenated words like "machinelearning")
+            let domain_match =
+                host_str.contains(query_term) || normalized_host.contains(query_term);
+
+            if path_match || domain_match {
+                // Base score for any match
                 relevance_score += 1.0;
 
                 // Bonus for term in domain/subdomain
-                if let Some(host) = url.host_str() {
-                    if host.to_lowercase().contains(query_term) {
-                        relevance_score += 0.5;
-                    }
+                if domain_match {
+                    relevance_score += 0.5;
                 }
 
-                // Bonus for term in early path segments
-                for (i, segment) in path_segments.iter().enumerate() {
-                    if segment.contains(query_term) {
-                        let position_bonus = 1.0 / (i + 1) as f64;
-                        relevance_score += position_bonus * 0.3;
+                // Bonus for term in early path segments (only if in path)
+                if path_match {
+                    for (i, segment) in path_segments.iter().enumerate() {
+                        let normalized_segment = segment.replace('-', "").replace('_', "");
+                        if segment.contains(query_term) || normalized_segment.contains(query_term) {
+                            let position_bonus = 1.0 / (i + 1) as f64;
+                            relevance_score += position_bonus * 0.3;
+                            break; // Only count first occurrence
+                        }
                     }
                 }
             }
@@ -268,6 +309,15 @@ impl ContentSimilarityAnalyzer {
         }
 
         let content_terms: HashSet<String> = tokenize(content).into_iter().collect();
+        self.score_with_tokens(&content_terms)
+    }
+
+    /// Calculate content similarity score using pre-tokenized content (optimized)
+    pub fn score_with_tokens(&self, content_terms: &HashSet<String>) -> f64 {
+        if self.query_terms.is_empty() {
+            return 0.5; // Neutral score when no query
+        }
+
         let query_terms_set: HashSet<String> = self.query_terms.iter().cloned().collect();
 
         // Calculate Jaccard similarity
