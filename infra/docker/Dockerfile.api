@@ -48,7 +48,8 @@ COPY wasm/riptide-extractor-wasm/Cargo.toml wasm/riptide-extractor-wasm/
 # (these directories are not copied in the dependency caching layer)
 RUN sed -i '/\[\[bench\]\]/,/required-features/d' crates/riptide-performance/Cargo.toml || true && \
     sed -i '/\[\[bench\]\]/,/required-features/d' crates/riptide-persistence/Cargo.toml || true && \
-    sed -i '/\[\[example\]\]/,/^$/d' crates/riptide-extraction/Cargo.toml || true
+    sed -i '/\[\[example\]\]/,/^$/d' crates/riptide-extraction/Cargo.toml || true && \
+    sed -i '/\[\[example\]\]/,/^$/d' crates/riptide-intelligence/Cargo.toml || true
 
 # Create stub source files for dependency caching
 RUN mkdir -p crates/riptide-api/src crates/riptide-browser-abstraction/src \
