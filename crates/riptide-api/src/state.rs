@@ -133,7 +133,8 @@ pub struct AppState {
 
     /// Persistence adapter for multi-tenant operations (optional, requires persistence feature)
     #[cfg(feature = "persistence")]
-    pub persistence_adapter: Option<()>, // TODO: Replace with actual PersistenceAdapter type when available
+    #[allow(dead_code)] // TODO: Replace with actual PersistenceAdapter type when available
+    pub persistence_adapter: Option<()>,
 }
 
 /// Application configuration loaded from environment and config files.
