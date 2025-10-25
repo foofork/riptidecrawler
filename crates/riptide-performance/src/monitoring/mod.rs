@@ -177,7 +177,8 @@ mod tests {
 
         let bottlenecks = monitor.analyze_cpu_bottlenecks(&metrics).await.unwrap();
         assert!(!bottlenecks.is_empty());
-        assert_eq!(bottlenecks[0].severity, BottleneckSeverity::High);
+        // 85% CPU is > 80%, so severity is Critical not High
+        assert_eq!(bottlenecks[0].severity, BottleneckSeverity::Critical);
     }
 
     #[tokio::test]

@@ -206,21 +206,19 @@ pub struct MemoryAlertManager {
 impl MemoryAlertManager {
     /// Create a new memory alert manager with default rules
     pub fn new() -> Self {
+        // Initialize with default console channel
+        let mut channels: Vec<Box<dyn AlertChannel>> = Vec::new();
+        channels.push(Box::new(ConsoleAlertChannel));
+
         let mut manager = Self {
             alert_rules: Vec::new(),
             alert_history: Arc::new(RwLock::new(Vec::new())),
-            notification_channels: Arc::new(RwLock::new(Vec::new())),
+            notification_channels: Arc::new(RwLock::new(channels)),
             max_history_size: 1000,
         };
 
         // Initialize default alert rules
         manager.initialize_default_rules();
-
-        // Add default console channel
-        manager
-            .notification_channels
-            .blocking_write()
-            .push(Box::new(ConsoleAlertChannel));
 
         manager
     }
