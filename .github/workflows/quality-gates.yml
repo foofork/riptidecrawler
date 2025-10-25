@@ -252,7 +252,10 @@ jobs:
       - name: Generate coverage
         run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
 
-      - uses: codecov/codecov-action@v4
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        # Only upload on main or trusted PRs to avoid fork token issues
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
         with:
           files: lcov.info
           flags: quality-gates

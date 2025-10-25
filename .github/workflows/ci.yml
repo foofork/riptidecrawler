@@ -341,7 +341,16 @@ jobs:
 
           # Run browser tests with single thread to avoid Chrome profile conflicts
           # Chrome will use flags: --no-sandbox --disable-dev-shm-usage --headless=new
-          cargo test -p riptide-browser -- --test-threads=1 --nocapture
+          cargo test -p riptide-browser -- --test-threads=1 --nocapture 2>&1 | tee browser-tests.log
+
+      - name: Upload browser test logs on failure
+        if: matrix.test-type == 'browser' && failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-test-logs
+          path: browser-tests.log
+          retention-days: 7
+          if-no-files-found: ignore
 
   # Binary size monitoring
   size-check:
@@ -349,6 +358,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: build
+    continue-on-error: true  # Advisory - warns but doesn't block PRs
     steps:
       - uses: actions/checkout@v4
 
@@ -411,83 +421,6 @@ jobs:
           echo "- Use 'cargo bloat' to analyze binary composition"
           echo "- Consider feature flags to reduce binary size"
           echo "- Use 'wee_alloc' for WASM to reduce memory overhead"
-
-  # Parallel security and quality checks
-  quality:
-    name: Quality & Security
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: check
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-
-      - name: Install sccache
-        uses: mozilla-actions/sccache-action@v0.0.6
-
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
-
-      - name: Restore Cargo cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ needs.check.outputs.cache-key }}-quality
-          shared-key: "quality-cache"
-
-      - name: Install quality tools
-        run: |
-          cargo install cargo-deny cargo-audit cargo-bloat --locked
-
-      - name: Security audit
-        run: cargo audit --deny warnings || true
-
-      - name: Dependency check
-        run: cargo deny check
-
-      - name: Unsafe code audit
-        run: |
-          echo "🔍 Auditing unsafe code usage..."
-
-          # Check for unsafe blocks without SAFETY comments
-          # Exclude auto-generated bindings.rs which has proper file-level SAFETY doc
-          UNSAFE_WITHOUT_SAFETY=$(rg "unsafe" --type rust \
-            --glob '!**/bindings.rs' \
-            --glob '!target/**' \
-            crates/ wasm/ \
-            | grep -v "// SAFETY:" \
-            | grep -v "/// SAFETY:" \
-            | grep -v "#\[allow(unsafe" \
-            | grep -v "unsafe impl" \
-            | grep -v "unsafe trait" || true)
-
-          if [ -n "$UNSAFE_WITHOUT_SAFETY" ]; then
-            echo "⚠️  Found unsafe code without SAFETY comments:"
-            echo "$UNSAFE_WITHOUT_SAFETY"
-            echo ""
-            echo "Please add SAFETY comments explaining why unsafe is needed."
-            # Set as warning, not error - manual review needed
-            echo "::warning::Unsafe code without SAFETY comments detected"
-          else
-            echo "✅ All unsafe code has SAFETY documentation"
-          fi
-
-          # Summary of unsafe usage
-          echo ""
-          echo "📊 Unsafe usage summary:"
-          rg "unsafe" --type rust --glob '!target/**' crates/ wasm/ --count-matches || true
-
-      - name: Binary bloat analysis
-        run: |
-          cargo bloat --release --crates > bloat-report.txt || true
-          if [[ -f bloat-report.txt ]]; then
-            echo "📊 Binary Bloat Analysis:"
-            head -20 bloat-report.txt
-          fi
 
   # Performance benchmarking
   benchmark:
@@ -562,6 +495,7 @@ jobs:
           echo "- ✅ Binary size monitoring"
           echo "- ✅ Incremental builds configured"
           echo "- ✅ Docker builds separated (see docker-build.yml)"
+          echo "- ✅ Quality checks separated (see quality-gates.yml)"
           echo "- ✅ Concurrency cancellation enabled"
           echo "- ✅ Documentation changes skip CI"
 

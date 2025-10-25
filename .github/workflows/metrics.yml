@@ -183,7 +183,7 @@ jobs:
             test_unit.time
             test_integration.log
             test_integration.time
-          retention-days: 30
+          retention-days: 14  # Reduced from 30 to keep storage lean
 
       - name: Commit metrics to repo (main only)
         if: github.ref == 'refs/heads/main' && always()
