@@ -546,6 +546,7 @@ paths:
         schema:
           type: string
         description: Session identifier
+        example: session_abc123
       responses:
         '200':
           description: Success
@@ -561,6 +562,7 @@ paths:
         schema:
           type: string
         description: Session identifier
+        example: session_abc123
       responses:
         '200':
           description: Success
@@ -577,6 +579,7 @@ paths:
         schema:
           type: string
         description: Session identifier
+        example: session_abc123
       responses:
         '200':
           description: Success
@@ -593,6 +596,7 @@ paths:
         schema:
           type: string
         description: Session identifier
+        example: session_abc123
       responses:
         '200':
           description: Success
@@ -608,6 +612,7 @@ paths:
         schema:
           type: string
         description: Session identifier
+        example: session_abc123
       responses:
         '200':
           description: Success
@@ -624,12 +629,14 @@ paths:
         schema:
           type: string
         description: Session identifier
+        example: session_abc123
       - name: domain
         in: path
         required: true
         schema:
           type: string
         description: Cookie domain
+        example: example.com
       responses:
         '200':
           description: Success
@@ -646,18 +653,21 @@ paths:
         schema:
           type: string
         description: Session identifier
+        example: session_abc123
       - name: domain
         in: path
         required: true
         schema:
           type: string
         description: Cookie domain
+        example: example.com
       - name: name
         in: path
         required: true
         schema:
           type: string
         description: Cookie name
+        example: session_token
       responses:
         '200':
           description: Success
@@ -673,18 +683,21 @@ paths:
         schema:
           type: string
         description: Session identifier
+        example: session_abc123
       - name: domain
         in: path
         required: true
         schema:
           type: string
         description: Cookie domain
+        example: example.com
       - name: name
         in: path
         required: true
         schema:
           type: string
         description: Cookie name
+        example: session_token
       responses:
         '200':
           description: Success
@@ -719,6 +732,7 @@ paths:
         schema:
           type: string
         description: Job identifier
+        example: job_xyz789
       responses:
         '200':
           description: Success
@@ -735,6 +749,7 @@ paths:
         schema:
           type: string
         description: Job identifier
+        example: job_xyz789
       responses:
         '200':
           description: Success
@@ -795,6 +810,7 @@ paths:
         schema:
           type: string
         description: Scheduled job identifier
+        example: job_xyz789
       responses:
         '200':
           description: Success
@@ -1160,6 +1176,7 @@ paths:
           type: string
         description: Domain name (e.g., example.com)
         example: example.com
+        example: example.com
       responses:
         '200':
           description: Profile found
@@ -1190,6 +1207,7 @@ paths:
         schema:
           type: string
         description: Domain name to update
+        example: example.com
         example: example.com
       requestBody:
         required: true
@@ -1230,6 +1248,7 @@ paths:
           type: string
         description: Domain name to delete
         example: example.com
+        example: example.com
       responses:
         '204':
           description: Profile deleted successfully (no content)
@@ -1257,6 +1276,7 @@ paths:
         schema:
           type: string
         description: Domain name
+        example: example.com
         example: example.com
       responses:
         '200':
@@ -1391,6 +1411,7 @@ paths:
         schema:
           type: string
         description: Domain name
+        example: example.com
         example: example.com
       requestBody:
         required: true

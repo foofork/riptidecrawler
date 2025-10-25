@@ -67,6 +67,7 @@ RUN mkdir -p crates/riptide-api/src crates/riptide-browser-abstraction/src \
     echo "fn main() {}" > crates/riptide-browser/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-cache/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-cli/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-cli/src/main.rs && \
     echo "fn main() {}" > crates/riptide-config/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-events/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-extraction/src/lib.rs && \
