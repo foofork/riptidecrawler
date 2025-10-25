@@ -14,6 +14,10 @@ on:
       - "**.md"
       - ".github/workflows/api-validation.yml"
       - ".github/workflows/ci.yml"
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       push_to_registry:

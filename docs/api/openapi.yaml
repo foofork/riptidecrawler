@@ -1176,7 +1176,6 @@ paths:
           type: string
         description: Domain name (e.g., example.com)
         example: example.com
-        example: example.com
       responses:
         '200':
           description: Profile found
@@ -1207,7 +1206,6 @@ paths:
         schema:
           type: string
         description: Domain name to update
-        example: example.com
         example: example.com
       requestBody:
         required: true
@@ -1246,7 +1244,6 @@ paths:
         required: true
         schema:
           type: string
-        description: Domain name to delete
         example: example.com
         example: example.com
       responses:
@@ -1274,7 +1271,6 @@ paths:
         in: path
         required: true
         schema:
-          type: string
         description: Domain name
         example: example.com
         example: example.com
@@ -1408,7 +1404,6 @@ paths:
       - name: domain
         in: path
         required: true
-        schema:
           type: string
         description: Domain name
         example: example.com
