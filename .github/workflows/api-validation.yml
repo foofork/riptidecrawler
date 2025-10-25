@@ -101,18 +101,20 @@ jobs:
         run: cargo build --release -p riptide-api
 
       - name: Start API
-        env:
-          REDIS_URL: redis://localhost:6379
-          RUST_LOG: info,riptide_api=debug,riptide_core=debug,cranelift=warn,cranelift_codegen=warn,wasmtime=warn
-          RUST_BACKTRACE: full
-          API_HOST: 0.0.0.0
-          API_PORT: 8080
-          WASM_EXTRACTOR_PATH: target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
-          REQUIRE_AUTH: "false"
         run: |
           set -e
           BINARY_PATH=$(cargo metadata --format-version=1 | jq -r '.target_directory')/release/riptide-api || true
           [ -x "$BINARY_PATH" ] || BINARY_PATH=$(find target -name riptide-api -type f -executable | head -1)
+
+          # Export environment variables for the API binary
+          export REDIS_URL=redis://localhost:6379
+          export RUST_LOG=info,riptide_api=debug,riptide_core=debug,cranelift=warn,cranelift_codegen=warn,wasmtime=warn
+          export RUST_BACKTRACE=full
+          export API_HOST=0.0.0.0
+          export API_PORT=8080
+          export WASM_EXTRACTOR_PATH=target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
+          export REQUIRE_AUTH=false
+
           [ -f "$WASM_EXTRACTOR_PATH" ] || { echo "❌ missing WASM"; exit 1; }
           redis-cli -h localhost -p 6379 ping >/dev/null || { echo "❌ redis"; exit 1; }
           stdbuf -oL -eL "$BINARY_PATH" > api.log 2>&1 &
@@ -171,13 +173,16 @@ jobs:
       - run: cargo build --release -p riptide-api
 
       - name: Start API (health wait)
-        env:
-          REDIS_URL: redis://localhost:6379
-          API_PORT: 8080
-          WASM_EXTRACTOR_PATH: target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
-          REQUIRE_AUTH: "false"
         run: |
           BINARY_PATH=$(find target -name riptide-api -type f -executable | head -1)
+
+          # Export environment variables for the API binary
+          export REDIS_URL=redis://localhost:6379
+          export API_HOST=0.0.0.0
+          export API_PORT=8080
+          export WASM_EXTRACTOR_PATH=target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
+          export REQUIRE_AUTH=false
+
           stdbuf -oL -eL "$BINARY_PATH" > api.log 2>&1 & echo "API_PID=$!" >> $GITHUB_ENV
           for i in {1..30}; do curl -sf http://localhost:8080/healthz && break; sleep 2; done
           curl -sf http://localhost:8080/healthz || { echo "❌ health"; tail -100 api.log; exit 1; }
