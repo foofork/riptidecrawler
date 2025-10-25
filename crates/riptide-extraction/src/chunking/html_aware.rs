@@ -556,10 +556,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_safe_split_points() {
-        let html = r#"<p>Content</p><div>More content</div><span>Inline</span>"#;
-        let safe_points = find_safe_split_points(html);
+        // Create HTML long enough to trigger safe split points (>500 chars from last split)
+        let mut html = String::from("<p>");
+        html.push_str(&"Lorem ipsum dolor sit amet, consectetur adipiscing elit. ".repeat(10));
+        html.push_str("</p> <div>");
+        html.push_str(
+            &"Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ".repeat(10),
+        );
+        html.push_str("</div>");
 
-        // Should find points between tags
+        let safe_points = find_safe_split_points(&html);
+
+        // Should find points between tags for long content
         assert!(!safe_points.is_empty());
     }
 

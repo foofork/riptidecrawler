@@ -1173,7 +1173,8 @@ mod tests {
                 "--headless=new",          // Modern headless mode
                 "--disable-gpu",           // Not needed in headless
             ])
-            .build()?;
+            .build()
+            .map_err(|e| anyhow::anyhow!("Failed to build browser config: {}", e))?;
 
         let (browser, handler) = chromiumoxide::Browser::launch(browser_config).await?;
 

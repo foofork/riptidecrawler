@@ -71,7 +71,7 @@ impl From<BasicExtractedDoc> for ExtractedContent {
             content: doc.text,
             summary: doc.description,
             url: doc.url,
-            strategy_used: "wasm".to_string(),
+            strategy_used: "wasm_extraction".to_string(),
             extraction_confidence: doc
                 .quality_score
                 .map(|score| score as f64 / 100.0)

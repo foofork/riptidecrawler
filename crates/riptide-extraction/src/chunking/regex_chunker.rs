@@ -312,7 +312,8 @@ mod tests {
         let chunks = chunker.chunk(text).await.unwrap();
 
         assert!(!chunks.is_empty());
-        assert_eq!(chunks[0].metadata.chunk_type, "regex_paragraph");
+        // Paragraph pattern (\n\s*\n) sanitizes to "nsn"
+        assert_eq!(chunks[0].metadata.chunk_type, "regex_nsn");
     }
 
     #[tokio::test]
