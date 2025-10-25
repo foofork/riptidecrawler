@@ -67,6 +67,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libfontconfig1-dev pkg-config fontconfig
+          # Set PKG_CONFIG_PATH for fontconfig
+          echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> $GITHUB_ENV
           # Verify fontconfig pkg-config file exists
           pkg-config --modversion fontconfig || echo "Warning: fontconfig.pc not found"
 
@@ -111,6 +113,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libfontconfig1-dev pkg-config fontconfig
+          # Set PKG_CONFIG_PATH for fontconfig
+          echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> $GITHUB_ENV
           # Verify fontconfig pkg-config file exists
           pkg-config --modversion fontconfig || echo "Warning: fontconfig.pc not found"
 
@@ -300,6 +304,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Free disk space
+        run: |
+          # Remove unnecessary packages to free up space
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc || true
+          sudo apt-get clean
+          df -h
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -312,6 +323,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libfontconfig1-dev pkg-config fontconfig
+          # Set PKG_CONFIG_PATH for fontconfig
+          echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> $GITHUB_ENV
           # Verify fontconfig pkg-config file exists
           pkg-config --modversion fontconfig || echo "Warning: fontconfig.pc not found"
 
@@ -453,6 +466,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libfontconfig1-dev pkg-config fontconfig
+          # Set PKG_CONFIG_PATH for fontconfig
+          echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> $GITHUB_ENV
           # Verify fontconfig pkg-config file exists
           pkg-config --modversion fontconfig || echo "Warning: fontconfig.pc not found"
 

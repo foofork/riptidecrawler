@@ -207,8 +207,7 @@ impl MemoryAlertManager {
     /// Create a new memory alert manager with default rules
     pub fn new() -> Self {
         // Initialize with default console channel
-        let mut channels: Vec<Box<dyn AlertChannel>> = Vec::new();
-        channels.push(Box::new(ConsoleAlertChannel));
+        let channels: Vec<Box<dyn AlertChannel>> = vec![Box::new(ConsoleAlertChannel)];
 
         let mut manager = Self {
             alert_rules: Vec::new(),
