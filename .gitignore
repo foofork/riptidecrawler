@@ -123,20 +123,6 @@ Session.vim
 ._*
 Thumbs.db
 
-# ===========================================
-# Claude Flow & MCP
-# ===========================================
-
-# Memory and coordination
-memory/claude-flow-data.json
-memory/claude-flow@alpha-data.json
-memory/sessions/*
-!memory/sessions/README.md
-memory/agents/*
-!memory/agents/README.md
-coordination/memory_bank/*
-coordination/subtasks/*
-coordination/orchestration/*
 
 # Database files
 *.db
@@ -254,12 +240,10 @@ $RECYCLE.BIN/
 
 
 # Removed Windows wrapper files per user request
-hive-mind-prompt-*.txt
 .reports/*
 
 
 # Removed Windows wrapper files per user request
-hive-mind-prompt-*.txt
 eval/results/temp_extract/error_auto__0b31220e0f254cd0b385c7c8586262fc.txt
 eval/results/temp_extract/error_auto__accd9547a71463f530ae12a8dd0d7696.txt
 eval/results/temp_extract/error_auto_0b31220e0f254cd0b385c7c8586262fc.txt
@@ -322,39 +306,6 @@ pdfium-*.tar.gz
 # All evaluation results (test output, extraction results, etc.)
 eval/results/
 
-
-# Removed Windows wrapper files per user request
-hive-mind-prompt-*.txt
-.claude/skills/agentdb-advanced/SKILL.md
-.claude/skills/agentdb-learning/SKILL.md
-.claude/skills/agentdb-memory-patterns/SKILL.md
-.claude/skills/agentdb-optimization/SKILL.md
-.claude/skills/agentdb-vector-search/SKILL.md
-.claude/skills/flow-nexus-neural/SKILL.md
-.claude/skills/flow-nexus-platform/SKILL.md
-.claude/skills/flow-nexus-swarm/SKILL.md
-.claude/skills/github-code-review/SKILL.md
-.claude/skills/github-multi-repo/SKILL.md
-.claude/skills/github-project-management/SKILL.md
-.claude/skills/github-release-management/SKILL.md
-.claude/skills/github-workflow-automation/SKILL.md
-.claude/skills/hive-mind-advanced/SKILL.md
-.claude/skills/hooks-automation/SKILL.md
-.claude/skills/pair-programming/SKILL.md
-.claude/skills/performance-analysis/SKILL.md
-.claude/skills/reasoningbank-agentdb/SKILL.md
-.claude/skills/reasoningbank-intelligence/SKILL.md
-.claude/skills/skill-builder/SKILL.md
-.claude/skills/sparc-methodology/SKILL.md
-.claude/skills/stream-chain/SKILL.md
-.claude/skills/swarm-advanced/SKILL.md
-.claude/skills/swarm-orchestration/SKILL.md
-.claude/skills/verification-quality/SKILL.md
-.claude/statusline-command.sh
-
-
-# Removed Windows wrapper files per user request
-hive-mind-prompt-*.txt
 
 # Claude Flow generated files
 .claude/settings.local.json

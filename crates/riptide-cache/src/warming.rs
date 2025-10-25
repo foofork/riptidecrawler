@@ -402,14 +402,12 @@ impl CacheWarmingManager {
 
         // Update statistics
         {
-            let mut stats = self
-                .stats
-                .lock()
-                .expect("Cache warming stats mutex poisoned");
-            stats.warm_instances_created += warmed_count;
-            stats.avg_warm_time_ms = duration.as_millis() as f64 / warmed_count as f64;
-            stats.last_warming_at = Some(start_time);
-            stats.warming_cycles += 1;
+            if let Ok(mut stats) = self.stats.lock() {
+                stats.warm_instances_created += warmed_count;
+                stats.avg_warm_time_ms = duration.as_millis() as f64 / warmed_count as f64;
+                stats.last_warming_at = Some(start_time);
+                stats.warming_cycles += 1;
+            }
         }
 
         // Emit completion event
@@ -468,12 +466,10 @@ impl CacheWarmingManager {
 
                     // Update statistics
                     {
-                        let mut stats = self
-                            .stats
-                            .lock()
-                            .expect("Cache warming stats mutex poisoned");
-                        stats.prefetch_attempts += 1;
-                        stats.prefetch_successes += 1;
+                        if let Ok(mut stats) = self.stats.lock() {
+                            stats.prefetch_attempts += 1;
+                            stats.prefetch_successes += 1;
+                        }
                     }
                 }
                 Err(e) => {
@@ -481,12 +477,10 @@ impl CacheWarmingManager {
 
                     // Update statistics
                     {
-                        let mut stats = self
-                            .stats
-                            .lock()
-                            .expect("Cache warming stats mutex poisoned");
-                        stats.prefetch_attempts += 1;
-                        stats.prefetch_failures += 1;
+                        if let Ok(mut stats) = self.stats.lock() {
+                            stats.prefetch_attempts += 1;
+                            stats.prefetch_failures += 1;
+                        }
                     }
                 }
             }
@@ -512,12 +506,10 @@ impl CacheWarmingManager {
 
             // Update statistics
             {
-                let mut stats = self
-                    .stats
-                    .lock()
-                    .expect("Cache warming stats mutex poisoned");
-                stats.warm_instances_used += 1;
-                stats.cache_hits += 1;
+                if let Ok(mut stats) = self.stats.lock() {
+                    stats.warm_instances_used += 1;
+                    stats.cache_hits += 1;
+                }
             }
 
             // Emit cache hit event
@@ -533,11 +525,9 @@ impl CacheWarmingManager {
         } else {
             // Update statistics
             {
-                let mut stats = self
-                    .stats
-                    .lock()
-                    .expect("Cache warming stats mutex poisoned");
-                stats.cache_misses += 1;
+                if let Ok(mut stats) = self.stats.lock() {
+                    stats.cache_misses += 1;
+                }
             }
 
             // Emit cache miss event
@@ -652,12 +642,11 @@ impl CacheWarmingManager {
             let mut i = 0;
             while i < warm_instances.len() {
                 if warm_instances[i].warmed_at.elapsed() > max_age {
-                    let old_instance = warm_instances
-                        .remove(i)
-                        .expect("Index validated by loop condition");
-                    debug!(instance_id = %old_instance.instance.id, age_secs = old_instance.warmed_at.elapsed().as_secs(),
-                           "Cleaned up old warm instance");
-                    cleaned += 1;
+                    if let Some(old_instance) = warm_instances.remove(i) {
+                        debug!(instance_id = %old_instance.instance.id, age_secs = old_instance.warmed_at.elapsed().as_secs(),
+                               "Cleaned up old warm instance");
+                        cleaned += 1;
+                    }
                 } else {
                     i += 1;
                 }
@@ -671,16 +660,14 @@ impl CacheWarmingManager {
 
     /// Check cache hit ratio and emit warnings if below target
     async fn check_cache_hit_ratio(&self) -> Result<()> {
-        let (ratio, hits, misses) = {
-            let stats = self
-                .stats
-                .lock()
-                .expect("Cache warming stats mutex poisoned");
+        let (ratio, hits, misses) = if let Ok(stats) = self.stats.lock() {
             (
                 stats.cache_hit_ratio(),
                 stats.cache_hits,
                 stats.cache_misses,
             )
+        } else {
+            return Ok(());
         };
 
         if hits + misses > 10 && ratio < self.config.cache_hit_target {
@@ -764,32 +751,30 @@ impl CacheWarmingManager {
     pub async fn record_url_pattern(&self, url: &str, processing_time_ms: f64, cache_hit: bool) {
         let pattern = self.extract_url_pattern(url);
 
-        let mut patterns = self
-            .usage_patterns
-            .lock()
-            .expect("Usage patterns mutex poisoned");
-        let entry = patterns
-            .entry(pattern.clone())
-            .or_insert_with(|| UrlPattern {
-                pattern: pattern.clone(),
-                access_count: 0,
-                last_accessed: Instant::now(),
-                avg_processing_time_ms: 0.0,
-                cache_hit_ratio: 0.0,
-            });
+        if let Ok(mut patterns) = self.usage_patterns.lock() {
+            let entry = patterns
+                .entry(pattern.clone())
+                .or_insert_with(|| UrlPattern {
+                    pattern: pattern.clone(),
+                    access_count: 0,
+                    last_accessed: Instant::now(),
+                    avg_processing_time_ms: 0.0,
+                    cache_hit_ratio: 0.0,
+                });
 
-        entry.access_count += 1;
-        entry.last_accessed = Instant::now();
+            entry.access_count += 1;
+            entry.last_accessed = Instant::now();
 
-        // Update running average
-        let total_time =
-            entry.avg_processing_time_ms * (entry.access_count - 1) as f64 + processing_time_ms;
-        entry.avg_processing_time_ms = total_time / entry.access_count as f64;
+            // Update running average
+            let total_time =
+                entry.avg_processing_time_ms * (entry.access_count - 1) as f64 + processing_time_ms;
+            entry.avg_processing_time_ms = total_time / entry.access_count as f64;
 
-        // Update cache hit ratio
-        let hits = (entry.cache_hit_ratio * (entry.access_count - 1) as f64)
-            + if cache_hit { 1.0 } else { 0.0 };
-        entry.cache_hit_ratio = hits / entry.access_count as f64;
+            // Update cache hit ratio
+            let hits = (entry.cache_hit_ratio * (entry.access_count - 1) as f64)
+                + if cache_hit { 1.0 } else { 0.0 };
+            entry.cache_hit_ratio = hits / entry.access_count as f64;
+        }
     }
 
     /// Extract URL pattern for grouping
@@ -809,8 +794,9 @@ impl CacheWarmingManager {
     pub fn get_stats(&self) -> CacheWarmingStats {
         self.stats
             .lock()
-            .expect("Cache warming stats mutex poisoned")
-            .clone()
+            .ok()
+            .map(|s| s.clone())
+            .unwrap_or_default()
     }
 
     /// Get current warm pool size
