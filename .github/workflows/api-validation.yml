@@ -187,7 +187,7 @@ jobs:
           pip install schemathesis
           schemathesis run docs/api/openapi.yaml \
             --url http://localhost:8080 \
-            --checks all --max-examples=100 --hypothesis-deadline=5000
+            --checks all --max-examples=100
 
       - name: Upload fuzz artifacts
         if: always()
