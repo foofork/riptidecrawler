@@ -334,8 +334,10 @@ impl RuntimeSwitchManager {
                     // Check cooldown
                     if let Some(last_triggered) = rule.last_triggered {
                         let elapsed = chrono::Utc::now() - last_triggered;
-                        if elapsed < chrono::Duration::from_std(rule.cooldown).unwrap() {
-                            continue;
+                        if let Ok(cooldown_duration) = chrono::Duration::from_std(rule.cooldown) {
+                            if elapsed < cooldown_duration {
+                                continue;
+                            }
                         }
                     }
 
@@ -649,29 +651,29 @@ impl RuntimeSwitchManager {
         let now = chrono::Utc::now();
         let elapsed_since_step = now - rollout_state.last_step_time;
 
-        if elapsed_since_step
-            >= chrono::Duration::from_std(rollout_state.config.step_duration).unwrap()
-        {
-            // Move to next step
-            if rollout_state.current_traffic_to_new < 1.0 {
-                rollout_state.current_traffic_to_new += rollout_state.config.traffic_increment;
-                rollout_state.current_traffic_to_new =
-                    rollout_state.current_traffic_to_new.min(1.0);
-                rollout_state.step_number += 1;
-                rollout_state.last_step_time = now;
+        if let Ok(step_duration) = chrono::Duration::from_std(rollout_state.config.step_duration) {
+            if elapsed_since_step >= step_duration {
+                // Move to next step
+                if rollout_state.current_traffic_to_new < 1.0 {
+                    rollout_state.current_traffic_to_new += rollout_state.config.traffic_increment;
+                    rollout_state.current_traffic_to_new =
+                        rollout_state.current_traffic_to_new.min(1.0);
+                    rollout_state.step_number += 1;
+                    rollout_state.last_step_time = now;
 
-                // Check if we should continue based on success rate
-                if rollout_state.success_rate < rollout_state.config.success_threshold {
+                    // Check if we should continue based on success rate
+                    if rollout_state.success_rate < rollout_state.config.success_threshold {
+                        rollout_state.should_continue = false;
+                        info!(
+                            "Rollout stopped due to low success rate: {}",
+                            rollout_state.success_rate
+                        );
+                    }
+                } else {
+                    // Rollout completed
                     rollout_state.should_continue = false;
-                    info!(
-                        "Rollout stopped due to low success rate: {}",
-                        rollout_state.success_rate
-                    );
+                    info!("Gradual rollout completed");
                 }
-            } else {
-                // Rollout completed
-                rollout_state.should_continue = false;
-                info!("Gradual rollout completed");
             }
         }
     }

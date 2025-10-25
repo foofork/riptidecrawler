@@ -144,14 +144,15 @@ impl BedrockProvider {
         });
 
         if let Some(temperature) = request.temperature {
-            payload["temperature"] = serde_json::Value::Number(
-                serde_json::Number::from_f64(temperature as f64).unwrap(),
-            );
+            if let Some(num) = serde_json::Number::from_f64(temperature as f64) {
+                payload["temperature"] = serde_json::Value::Number(num);
+            }
         }
 
         if let Some(top_p) = request.top_p {
-            payload["top_p"] =
-                serde_json::Value::Number(serde_json::Number::from_f64(top_p as f64).unwrap());
+            if let Some(num) = serde_json::Number::from_f64(top_p as f64) {
+                payload["top_p"] = serde_json::Value::Number(num);
+            }
         }
 
         if let Some(stop_sequences) = &request.stop {
@@ -240,14 +241,15 @@ impl BedrockProvider {
         });
 
         if let Some(temperature) = request.temperature {
-            payload["temperature"] = serde_json::Value::Number(
-                serde_json::Number::from_f64(temperature as f64).unwrap(),
-            );
+            if let Some(num) = serde_json::Number::from_f64(temperature as f64) {
+                payload["temperature"] = serde_json::Value::Number(num);
+            }
         }
 
         if let Some(top_p) = request.top_p {
-            payload["top_p"] =
-                serde_json::Value::Number(serde_json::Number::from_f64(top_p as f64).unwrap());
+            if let Some(num) = serde_json::Number::from_f64(top_p as f64) {
+                payload["top_p"] = serde_json::Value::Number(num);
+            }
         }
 
         Ok(payload)

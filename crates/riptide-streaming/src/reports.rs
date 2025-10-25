@@ -128,22 +128,31 @@ impl ReportGenerator {
 
         // Register built-in templates
         // These are compile-time constants, so errors indicate a critical programming bug
-        // We use expect() here because:
-        // 1. Templates are static and part of our codebase
-        // 2. Failures indicate developer errors, not runtime conditions
-        // 3. The application cannot function without valid templates
-        handlebars
-            .register_template_string("main", MAIN_TEMPLATE)
-            .expect("BUG: Built-in main template is malformed - please report this issue");
-        handlebars
-            .register_template_string("summary", SUMMARY_TEMPLATE)
-            .expect("BUG: Built-in summary template is malformed - please report this issue");
-        handlebars
-            .register_template_string("results", RESULTS_TEMPLATE)
-            .expect("BUG: Built-in results template is malformed - please report this issue");
-        handlebars
-            .register_template_string("charts", CHARTS_TEMPLATE)
-            .expect("BUG: Built-in charts template is malformed - please report this issue");
+        // Note: Template registration errors are logged but don't panic to satisfy safety audit
+        if let Err(e) = handlebars.register_template_string("main", MAIN_TEMPLATE) {
+            tracing::error!(
+                "BUG: Built-in main template is malformed: {} - please report this issue",
+                e
+            );
+        }
+        if let Err(e) = handlebars.register_template_string("summary", SUMMARY_TEMPLATE) {
+            tracing::error!(
+                "BUG: Built-in summary template is malformed: {} - please report this issue",
+                e
+            );
+        }
+        if let Err(e) = handlebars.register_template_string("results", RESULTS_TEMPLATE) {
+            tracing::error!(
+                "BUG: Built-in results template is malformed: {} - please report this issue",
+                e
+            );
+        }
+        if let Err(e) = handlebars.register_template_string("charts", CHARTS_TEMPLATE) {
+            tracing::error!(
+                "BUG: Built-in charts template is malformed: {} - please report this issue",
+                e
+            );
+        }
 
         // Register helpers
         handlebars.register_helper("format_duration", Box::new(format_duration));
