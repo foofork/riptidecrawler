@@ -6,7 +6,6 @@ on:
     paths-ignore:
       - "docs/**"
       - "**.md"
-      - ".github/workflows/docker-build.yml"
       - ".github/workflows/quality-gates.yml"
       - ".github/workflows/metrics.yml"
       # API validation handles these:
@@ -17,7 +16,6 @@ on:
     paths-ignore:
       - "docs/**"
       - "**.md"
-      - ".github/workflows/docker-build.yml"
       - ".github/workflows/quality-gates.yml"
       - ".github/workflows/metrics.yml"
       # API validation handles these:
