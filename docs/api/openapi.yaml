@@ -1245,7 +1245,6 @@ paths:
         schema:
           type: string
         example: example.com
-        example: example.com
       responses:
         '204':
           description: Profile deleted successfully (no content)
@@ -1271,8 +1270,8 @@ paths:
         in: path
         required: true
         schema:
+          type: string
         description: Domain name
-        example: example.com
         example: example.com
       responses:
         '200':
@@ -1404,9 +1403,9 @@ paths:
       - name: domain
         in: path
         required: true
+        schema:
           type: string
         description: Domain name
-        example: example.com
         example: example.com
       requestBody:
         required: true
