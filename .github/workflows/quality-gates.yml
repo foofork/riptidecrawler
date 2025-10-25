@@ -1,0 +1,282 @@
+name: Quality Gates
+
+# Advisory checks - will become blocking once baseline is clean
+# Runs safety audits, dependency checks, and refactoring quality metrics
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'crates/**/*.rs'
+      - 'wasm/**/*.rs'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/quality-gates.yml'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+  CARGO_NET_RETRY: 10
+  RUSTC_WRAPPER: sccache
+
+jobs:
+  # Security & Dependency Checks
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true  # Advisory initially
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: mozilla-actions/sccache-action@v0.0.6
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "quality-gates"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Install audit tools
+        run: |
+          cargo install cargo-deny cargo-audit --locked || true
+
+      - name: Dependency audit (cargo-audit)
+        run: cargo audit --deny warnings
+        continue-on-error: true
+
+      - name: License & security check (cargo-deny)
+        run: cargo deny check
+        continue-on-error: true
+
+  # Unsafe Code Audit
+  unsafe-audit:
+    name: Unsafe Code Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true  # Advisory initially
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ripgrep
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
+      - name: Count unsafe blocks
+        id: count_unsafe
+        run: |
+          UNSAFE_COUNT=$(rg -c 'unsafe\s*\{' --type rust \
+            --glob '!*/bindings.rs' \
+            --glob '!**/bindings.rs' \
+            --glob '!*/tests/*' \
+            --glob '!**/tests/*' \
+            2>/dev/null | awk -F: '{sum+=$2} END {print sum+0}')
+          echo "count=$UNSAFE_COUNT" >> $GITHUB_OUTPUT
+          echo "Found $UNSAFE_COUNT unsafe blocks in production code"
+
+      - name: Verify SAFETY comments
+        if: steps.count_unsafe.outputs.count != '0'
+        run: |
+          echo "Checking SAFETY documentation..."
+          FILES_WITH_UNSAFE=$(rg -l 'unsafe\s*\{' --type rust \
+            --glob '!*/bindings.rs' \
+            --glob '!**/bindings.rs' \
+            --glob '!*/tests/*' \
+            --glob '!**/tests/*')
+
+          if [ -z "$FILES_WITH_UNSAFE" ]; then
+            echo "✅ No unsafe blocks in production code"
+            exit 0
+          fi
+
+          VIOLATIONS=0
+          for file in $FILES_WITH_UNSAFE; do
+            echo "Checking $file..."
+            UNDOCUMENTED=$(rg 'unsafe\s*\{' "$file" -n -B 3 | \
+              grep -v '//.*SAFETY:' | grep 'unsafe\s*\{' || true)
+            if [ -n "$UNDOCUMENTED" ]; then
+              echo "⚠️ Undocumented unsafe in $file"
+              VIOLATIONS=1
+            fi
+          done
+
+          if [ "$VIOLATIONS" -eq "1" ]; then
+            echo "::warning::Found unsafe blocks without SAFETY comments"
+          else
+            echo "✅ All unsafe blocks documented"
+          fi
+
+      - name: Report unsafe stats
+        run: |
+          echo "## Unsafe Code Statistics" >> $GITHUB_STEP_SUMMARY
+          echo "- Production unsafe blocks: ${{ steps.count_unsafe.outputs.count }}" >> $GITHUB_STEP_SUMMARY
+
+  # Clippy: No unwrap/expect in production
+  clippy-production:
+    name: Clippy (No unwrap/expect)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true  # Advisory initially
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: mozilla-actions/sccache-action@v0.0.6
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "quality-gates"
+
+      - name: Clippy (production code - no unwrap/expect)
+        run: |
+          cargo clippy \
+            --workspace \
+            --all-features \
+            --lib \
+            --bins \
+            -- \
+            -D clippy::unwrap_used \
+            -D clippy::expect_used \
+            -D warnings
+        continue-on-error: true
+
+      - name: Clippy (tests - allow unwrap/expect)
+        run: |
+          cargo clippy \
+            --workspace \
+            --all-features \
+            --tests \
+            -- \
+            -A clippy::unwrap_used \
+            -A clippy::expect_used \
+            -D warnings
+
+  # Refactoring Quality Metrics
+  refactoring-metrics:
+    name: Refactoring Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true  # Advisory
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check file lengths
+        run: |
+          echo "## Refactoring Progress" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          TOTAL=$(find crates wasm -name "*.rs" -not -path "*/target/*" -not -name "bindings.rs" -type f | wc -l)
+          LARGE=$(find crates wasm -name "*.rs" -not -path "*/target/*" -not -name "bindings.rs" -type f -exec sh -c 'lines=$(wc -l < "$1"); if [ $lines -gt 600 ]; then echo "$1"; fi' _ {} \; | wc -l)
+
+          echo "- Total Rust files: $TOTAL" >> $GITHUB_STEP_SUMMARY
+          echo "- Files >600 LOC: $LARGE" >> $GITHUB_STEP_SUMMARY
+          echo "- Target: 0 files >600 LOC" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$LARGE" -gt 0 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Files Requiring Refactoring" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            find crates wasm -name "*.rs" -not -path "*/target/*" -not -name "bindings.rs" -type f -exec sh -c 'lines=$(wc -l < "$1"); if [ $lines -gt 600 ]; then echo "$lines $1"; fi' _ {} \; | sort -rn | head -20 >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # Memory Safety (Miri)
+  miri-memory-safety:
+    name: Miri Memory Safety
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true  # Advisory
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: miri
+
+      - uses: mozilla-actions/sccache-action@v0.0.6
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "quality-gates"
+
+      - name: Setup Miri
+        run: cargo +nightly miri setup
+
+      - name: Run Miri tests
+        run: |
+          cargo +nightly miri test \
+            --package riptide-core \
+            --lib \
+            memory_manager \
+            -- \
+            --nocapture
+        continue-on-error: true
+
+  # Coverage (advisory)
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true  # Advisory
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+
+      - uses: mozilla-actions/sccache-action@v0.0.6
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "quality-gates"
+
+      - uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Generate coverage
+        run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+
+      - uses: codecov/codecov-action@v4
+        with:
+          files: lcov.info
+          flags: quality-gates
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # Summary
+  quality-summary:
+    name: Quality Summary
+    runs-on: ubuntu-latest
+    needs: [security-audit, unsafe-audit, clippy-production, refactoring-metrics, miri-memory-safety]
+    if: always()
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# Quality Gates Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Audit | ${{ needs.security-audit.result == 'success' && '✅' || '⚠️' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Unsafe Code Audit | ${{ needs.unsafe-audit.result == 'success' && '✅' || '⚠️' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Clippy (No unwrap/expect) | ${{ needs.clippy-production.result == 'success' && '✅' || '⚠️' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Refactoring Metrics | ${{ needs.refactoring-metrics.result == 'success' && '✅' || '⚠️' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Miri Memory Safety | ${{ needs.miri-memory-safety.result == 'success' && '✅' || '⚠️' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "ℹ️ These checks are currently **advisory** and do not block PRs." >> $GITHUB_STEP_SUMMARY
+          echo "Once the baseline is clean, they will become blocking." >> $GITHUB_STEP_SUMMARY
