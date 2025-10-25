@@ -7,13 +7,7 @@ name: Docker Build & Publish
 
 on:
   push:
-    branches: ["main"]
     tags: ["v*"]
-    paths-ignore:
-      - "docs/**"
-      - "**.md"
-      - ".github/workflows/api-validation.yml"
-      - ".github/workflows/ci.yml"
   workflow_run:
     workflows: ["CI"]
     types: [completed]
@@ -41,6 +35,8 @@ jobs:
     name: Build Release Artifacts
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Only run if CI workflow succeeded (or manual/tag trigger)
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
     steps:
       - uses: actions/checkout@v4
 
