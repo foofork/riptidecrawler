@@ -1,0 +1,73 @@
+name: Rust Autofix
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "**/*.rs"
+      - "Cargo.toml"
+      - "Cargo.lock"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  autofix:
+    # Skip when the PR comes from a fork (no write perms)
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache (cargo)
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "autofix-rust"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Format (rustfmt)
+        run: cargo fmt --all
+
+      - name: Clippy --fix (safe, non-fatal)
+        run: |
+          cargo clippy --workspace --all-features --fix \
+            --allow-dirty --allow-staged || true
+
+      - name: Detect changes
+        id: changes
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create/Update PR with fixes
+        if: steps.changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          title: "autofix: rustfmt + clippy --fix"
+          body: |
+            Automated mechanical fixes:
+            - `cargo fmt --all`
+            - `cargo clippy --fix` (safe rules only)
+
+            No semantic changes intended.
+          commit-message: "autofix: apply rustfmt + clippy --fix"
+          branch: "autofix/${{ github.event.pull_request.head.sha }}"
+          labels: "autofix"
+          signoff: false
+
+      - name: No changes to fix
+        if: steps.changes.outputs.changed != 'true'
+        run: echo "No autofix changes detected."

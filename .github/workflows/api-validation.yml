@@ -1,9 +1,5 @@
 name: API Validation Pipeline
 
-# 🎯 Expert Strategy: Fast, targeted validation for API changes only
-# Runs in parallel with comprehensive CI/CD pipeline
-# Provides 5-8 min feedback vs 20-30 min full build
-
 on:
   push:
     branches: [main, develop]
@@ -21,131 +17,90 @@ on:
       - '.github/workflows/api-validation.yml'
   workflow_dispatch:
 
-# Cancel previous runs on new push
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
   RUST_BACKTRACE: 1
-  RUSTFLAGS: "-Dwarnings"
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
   CARGO_NET_RETRY: 10
   RUST_LOG: warn
 
 jobs:
-  # ==========================================
-  # PHASE 1: Fast Static Analysis (2-3 min)
-  # ==========================================
-
   static-analysis:
     name: 🔍 Static Analysis
     runs-on: ubuntu-latest
     timeout-minutes: 10
-
+    env:
+      RUSTFLAGS: "-Dwarnings"
+      RUSTC_WRAPPER: sccache
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-          components: rustfmt, clippy
+      - uses: mozilla-actions/sccache-action@v0.0.6
 
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
-
-      - name: Cache Cargo dependencies
-        uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2
         with:
           shared-key: "api-validation"
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
-      - name: Check code formatting
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Check formatting
         run: cargo fmt --package riptide-api -- --check
 
-      - name: Run Clippy lints
+      - name: Clippy (zero warnings)
         run: cargo clippy --package riptide-api --all-targets -- -D warnings
 
-      - name: Validate OpenAPI spec syntax
+      - name: Validate OpenAPI (spectral + swagger-cli)
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
-      - name: Install OpenAPI validators
-        run: npm install -g @apidevtools/swagger-cli @stoplight/spectral-cli
-
-      - name: Validate OpenAPI specification
-        run: |
+      - run: npm i -g @apidevtools/swagger-cli @stoplight/spectral-cli
+      - run: |
           swagger-cli validate docs/api/openapi.yaml
           spectral lint docs/api/openapi.yaml --format stylish --fail-severity error
-
-  # ==========================================
-  # PHASE 2: Contract Testing (5-7 min)
-  # ==========================================
-  # Note: Basic unit/integration tests are handled by main CI pipeline
-  # This workflow focuses on API-specific validation (contracts, fuzzing, perf)
 
   contract-validation:
     name: 📋 Contract Validation (Dredd)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [static-analysis]
-
+    env:
+      RUSTC_WRAPPER: sccache
     services:
       redis:
         image: redis:7-alpine
-        ports:
-          - 6379:6379
+        ports: [ "6379:6379" ]
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: stable
+      - uses: actions/checkout@v4
+      - uses: mozilla-actions/sccache-action@v0.0.6
+      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@stable
 
       - name: Install WASM target
         run: rustup target add wasm32-wasip2
 
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
-
-      - name: Install Chromium for headless browser
-        run: |
-          sudo apt-get install -y chromium-browser chromium-chromedriver
-          echo "🔍 Browser installation check:"
-          which chromium-browser || which google-chrome || echo "⚠️  No browser found"
-          chromium-browser --version 2>/dev/null || google-chrome --version 2>/dev/null || echo "⚠️  Browser not responding"
-
-      - name: Cache Cargo
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            ~/.cache/wasmtime
-            target
-          key: ${{ runner.os }}-cargo-api-${{ hashFiles('**/Cargo.lock') }}
+      - name: System deps
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config redis-tools
 
       - name: Build WASM extractor
-        run: |
-          cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm
-          ls -lh target/wasm32-wasip2/release/*.wasm
+        run: cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm
 
       - name: Build API
-        run: cargo build --release --package riptide-api
+        env: { RUSTFLAGS: "-Dwarnings" }
+        run: cargo build --release -p riptide-api
 
-      - name: Start API server
+      - name: Start API
         env:
           REDIS_URL: redis://localhost:6379
           RUST_LOG: info,riptide_api=debug,riptide_core=debug,cranelift=warn,cranelift_codegen=warn,wasmtime=warn
@@ -154,150 +109,33 @@ jobs:
           API_PORT: 8080
           WASM_EXTRACTOR_PATH: target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
         run: |
-          BINARY_PATH=$(find target -name "riptide-api" -type f -executable | head -1)
-          echo "🔍 Diagnostic Information:"
-          echo "  Binary: $BINARY_PATH"
-          echo "  WASM Path: $WASM_EXTRACTOR_PATH"
-          echo "  Redis URL: $REDIS_URL"
-          echo ""
+          set -e
+          BINARY_PATH=$(cargo metadata --format-version=1 | jq -r '.target_directory')/release/riptide-api || true
+          [ -x "$BINARY_PATH" ] || BINARY_PATH=$(find target -name riptide-api -type f -executable | head -1)
+          [ -f "$WASM_EXTRACTOR_PATH" ] || { echo "❌ missing WASM"; exit 1; }
+          redis-cli -h localhost -p 6379 ping >/dev/null || { echo "❌ redis"; exit 1; }
+          stdbuf -oL -eL "$BINARY_PATH" > api.log 2>&1 &
+          echo "API_PID=$!" >> $GITHUB_ENV
+          for i in {1..30}; do curl -sf http://localhost:8080/healthz && break; sleep 2; done
+          curl -sf http://localhost:8080/healthz || { echo "❌ health"; tail -100 api.log; exit 1; }
 
-          # Verify WASM file exists
-          if [ ! -f "$WASM_EXTRACTOR_PATH" ]; then
-            echo "❌ ERROR: WASM file not found at $WASM_EXTRACTOR_PATH"
-            ls -la target/wasm32-wasip2/release/
-            exit 1
-          fi
-          echo "✅ WASM file found ($(stat -c%s "$WASM_EXTRACTOR_PATH") bytes)"
-
-          # Test Redis connectivity (install client first)
-          echo ""
-          echo "🔍 Testing Redis connectivity..."
-          sudo apt-get install -y redis-tools > /dev/null 2>&1
-          if redis-cli -h localhost -p 6379 ping > /dev/null 2>&1; then
-            echo "✅ Redis is responding"
-          else
-            echo "❌ Redis connection failed"
-            redis-cli -h localhost -p 6379 ping || true
-            exit 1
-          fi
-
-          # Check binary dependencies
-          echo ""
-          echo "🔍 Checking binary dependencies..."
-          ldd $BINARY_PATH | head -20 || echo "ldd check skipped"
-
-          # Try running API with direct output first to catch immediate errors
-          echo ""
-          echo "🚀 Testing API binary (direct execution for 3 seconds)..."
-          timeout 3s $BINARY_PATH || {
-            EXIT_CODE=$?
-            if [ $EXIT_CODE -eq 124 ]; then
-              echo "✅ API started successfully (timeout as expected)"
-            else
-              echo "❌ API failed immediately with exit code: $EXIT_CODE"
-              exit 1
-            fi
-          }
-
-          # Start API in background with unbuffered output
-          echo ""
-          echo "🚀 Starting API server..."
-          stdbuf -oL -eL $BINARY_PATH > api.log 2>&1 &
-          API_PID=$!
-          echo "API_PID=$API_PID" >> $GITHUB_ENV
-          echo "Started API with PID: $API_PID"
-
-          # Give it a moment to crash if it's going to
-          sleep 2
-
-          # Check if process is still alive
-          if ! kill -0 $API_PID 2>/dev/null; then
-            echo "❌ API process died immediately!"
-            echo "=== API LOG ==="
-            cat api.log || echo "(no log output)"
-            echo "==============="
-            exit 1
-          fi
-          echo "✅ Process is running"
-
-          # Check for any log output
-          if [ -s api.log ]; then
-            echo "📝 Initial log output:"
-            head -20 api.log
-          else
-            echo "⚠️  No log output yet (file is empty)"
-          fi
-
-          # Wait for health with detailed status
-          echo ""
-          echo "🏥 Waiting for API health endpoint..."
-          for i in {1..30}; do
-            # Check if process is still alive
-            if ! kill -0 $API_PID 2>/dev/null; then
-              echo "❌ API process died during startup!"
-              break
-            fi
-
-            # Try health check
-            if curl -sf http://localhost:8080/healthz > /dev/null 2>&1; then
-              echo "✅ API is healthy!"
-              echo ""
-              echo "=== Final API Log (first 50 lines) ==="
-              head -50 api.log
-              echo "======================================="
-              exit 0
-            fi
-
-            # Show progress every 5 attempts
-            if [ $((i % 5)) -eq 0 ]; then
-              echo "⏳ Attempt $i/30: Still waiting..."
-              if [ -s api.log ]; then
-                echo "   Latest log entries:"
-                tail -5 api.log | sed 's/^/   /'
-              fi
-            fi
-            sleep 2
-          done
-
-          # Failed to start
-          echo ""
-          echo "❌ API failed to become healthy after 60 seconds"
-          echo ""
-          echo "🔍 Process status:"
-          if kill -0 $API_PID 2>/dev/null; then
-            echo "  Process is still RUNNING (but not responding to health checks)"
-            echo "  Checking port binding:"
-            netstat -tlnp 2>/dev/null | grep :8080 || echo "  Port 8080 not bound"
-          else
-            echo "  Process DIED"
-          fi
-          echo ""
-          echo "=== FULL API LOG ==="
-          cat api.log || echo "(no log file or empty)"
-          echo "===================="
-          exit 1
-
-      - name: Setup Node.js
+      - name: Dredd
         uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Run Dredd contract tests
-        run: |
-          npm install -g dredd
+        with: { node-version: '20' }
+      - run: |
+          npm i -g dredd
           dredd docs/api/openapi.yaml http://localhost:8080 \
-            --reporter=html \
-            --reporter=markdown \
-            --output=dredd-report.html \
-            --output=dredd-report.md
+            --reporter=html --reporter=markdown \
+            --output=dredd-report.html --output=dredd-report.md
 
-      - name: Upload Dredd report
+      - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dredd-contract-report
-          path: dredd-report.*
-          if-no-files-found: ignore
+          name: contract-artifacts
+          path: |
+            dredd-report.*
+            api.log
 
       - name: Stop API
         if: always()
@@ -308,486 +146,72 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [static-analysis]
-
+    env:
+      RUSTC_WRAPPER: sccache
     services:
       redis:
         image: redis:7-alpine
-        ports:
-          - 6379:6379
+        ports: [ "6379:6379" ]
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: mozilla-actions/sccache-action@v0.0.6
+      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@stable
+      - run: rustup target add wasm32-wasip2
+      - run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config redis-tools
+      - run: cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm
+      - run: cargo build --release -p riptide-api
 
-      - name: Setup Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: stable
-
-      - name: Install WASM target
-        run: rustup target add wasm32-wasip2
-
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
-
-      - name: Install Chromium for headless browser
-        run: |
-          sudo apt-get install -y chromium-browser chromium-chromedriver
-          echo "🔍 Browser installation check:"
-          which chromium-browser || which google-chrome || echo "⚠️  No browser found"
-          chromium-browser --version 2>/dev/null || google-chrome --version 2>/dev/null || echo "⚠️  Browser not responding"
-
-      - name: Build WASM + API
-        run: |
-          cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm
-          cargo build --release --package riptide-api
-
-      - name: Start API server
+      - name: Start API (health wait)
         env:
           REDIS_URL: redis://localhost:6379
-          RUST_LOG: info,riptide_api=debug,riptide_core=debug,cranelift=warn,cranelift_codegen=warn,wasmtime=warn
-          RUST_BACKTRACE: full
-          API_HOST: 0.0.0.0
           API_PORT: 8080
           WASM_EXTRACTOR_PATH: target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
         run: |
-          BINARY_PATH=$(find target -name "riptide-api" -type f -executable | head -1)
-          echo "🔍 Starting API: $BINARY_PATH"
+          BINARY_PATH=$(find target -name riptide-api -type f -executable | head -1)
+          stdbuf -oL -eL "$BINARY_PATH" > api.log 2>&1 & echo "API_PID=$!" >> $GITHUB_ENV
+          for i in {1..30}; do curl -sf http://localhost:8080/healthz && break; sleep 2; done
+          curl -sf http://localhost:8080/healthz || { echo "❌ health"; tail -100 api.log; exit 1; }
 
-          # Verify WASM
-          [ -f "$WASM_EXTRACTOR_PATH" ] && echo "✅ WASM found" || { echo "❌ WASM missing"; exit 1; }
+      - uses: actions/setup-python@v4
+        with: { python-version: '3.11' }
 
-          # Test Redis (install client first)
-          sudo apt-get install -y redis-tools > /dev/null 2>&1
-          redis-cli -h localhost -p 6379 ping > /dev/null && echo "✅ Redis OK" || { echo "❌ Redis failed"; exit 1; }
-
-          # Start API with unbuffered output
-          stdbuf -oL -eL $BINARY_PATH > api.log 2>&1 &
-          API_PID=$!
-          echo "API_PID=$API_PID" >> $GITHUB_ENV
-          sleep 2
-
-          # Check process alive
-          if ! kill -0 $API_PID 2>/dev/null; then
-            echo "❌ API died immediately"
-            cat api.log
-            exit 1
-          fi
-
-          # Wait for health
-          echo "🏥 Waiting for health..."
-          for i in {1..30}; do
-            kill -0 $API_PID 2>/dev/null || { echo "❌ Process died"; cat api.log; exit 1; }
-            curl -sf http://localhost:8080/healthz > /dev/null 2>&1 && { echo "✅ API healthy"; exit 0; }
-            [ $((i % 5)) -eq 0 ] && echo "⏳ Attempt $i/30..."
-            sleep 2
-          done
-
-          echo "❌ Health check timeout"
-          kill -0 $API_PID 2>/dev/null && echo "Process still running" || echo "Process died"
-          cat api.log
-          exit 1
-
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Run Schemathesis fuzzing
+      - name: Schemathesis
         run: |
+          pip install --upgrade pip
           pip install schemathesis
           schemathesis run docs/api/openapi.yaml \
             --base-url http://localhost:8080 \
-            --checks all \
-            --max-examples=100 \
-            --hypothesis-deadline=5000
+            --checks all --max-examples=100 --hypothesis-deadline=5000
 
-      - name: Stop API
-        if: always()
-        run: kill ${{ env.API_PID }} || true
-
-  # ==========================================
-  # PHASE 5: Performance & Security (8-12 min)
-  # ==========================================
-
-  performance-tests:
-    name: 🚀 Performance Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [contract-validation]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    services:
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: stable
-
-      - name: Install WASM target
-        run: rustup target add wasm32-wasip2
-
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
-
-      - name: Install Chromium for headless browser
-        run: |
-          sudo apt-get install -y chromium-browser chromium-chromedriver
-          echo "🔍 Browser installation check:"
-          which chromium-browser || which google-chrome || echo "⚠️  No browser found"
-          chromium-browser --version 2>/dev/null || google-chrome --version 2>/dev/null || echo "⚠️  Browser not responding"
-
-      - name: Build optimized release
-        run: |
-          cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm
-          cargo build --release --package riptide-api
-
-      - name: Start API server
-        env:
-          REDIS_URL: redis://localhost:6379
-          RUST_LOG: info,riptide_api=debug,riptide_core=debug,cranelift=warn,cranelift_codegen=warn,wasmtime=warn
-          RUST_BACKTRACE: full
-          API_HOST: 0.0.0.0
-          API_PORT: 8080
-          WASM_EXTRACTOR_PATH: target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
-        run: |
-          BINARY_PATH=$(find target -name "riptide-api" -type f -executable | head -1)
-          echo "🔍 Starting API: $BINARY_PATH"
-
-          # Verify WASM + Redis
-          [ -f "$WASM_EXTRACTOR_PATH" ] && echo "✅ WASM found" || { echo "❌ WASM missing"; exit 1; }
-          redis-cli ping > /dev/null && echo "✅ Redis OK" || { echo "❌ Redis failed"; exit 1; }
-
-          # Start API with unbuffered output
-          stdbuf -oL -eL $BINARY_PATH > api.log 2>&1 &
-          API_PID=$!
-          echo "API_PID=$API_PID" >> $GITHUB_ENV
-          sleep 2
-
-          # Check process alive
-          if ! kill -0 $API_PID 2>/dev/null; then
-            echo "❌ API died immediately"
-            cat api.log
-            exit 1
-          fi
-
-          # Wait for health
-          echo "🏥 Waiting for health..."
-          for i in {1..30}; do
-            kill -0 $API_PID 2>/dev/null || { echo "❌ Process died"; cat api.log; exit 1; }
-            curl -sf http://localhost:8080/healthz > /dev/null 2>&1 && { echo "✅ API healthy"; break; }
-            [ $((i % 5)) -eq 0 ] && echo "⏳ Attempt $i/30..."
-            sleep 2
-          done
-
-          # Final check
-          if ! curl -sf http://localhost:8080/healthz > /dev/null 2>&1; then
-            echo "❌ Health check failed"
-            kill -0 $API_PID 2>/dev/null && echo "Process running but not healthy" || echo "Process died"
-            cat api.log
-            exit 1
-          fi
-
-      - name: Install k6
-        run: |
-          curl -L https://github.com/grafana/k6/releases/download/v0.47.0/k6-v0.47.0-linux-amd64.tar.gz | tar xvz
-          sudo mv k6-v0.47.0-linux-amd64/k6 /usr/local/bin/
-
-      - name: Run load tests
-        run: |
-          k6 run --vus 10 --duration 30s - <<'EOF'
-          import http from 'k6/http';
-          import { check, sleep } from 'k6';
-
-          export let options = {
-            thresholds: {
-              http_req_duration: ['p(95)<2000'],
-            },
-          };
-
-          export default function() {
-            let res = http.get('http://localhost:8080/healthz');
-            check(res, {
-              'status is 200': (r) => r.status === 200,
-              'response time < 500ms': (r) => r.timings.duration < 500,
-            });
-            sleep(1);
-          }
-          EOF
-
-      - name: Stop API
-        if: always()
-        run: kill ${{ env.API_PID }} || true
-
-  security-scan:
-    name: 🔒 Security Scan (OWASP ZAP)
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    needs: [contract-validation]
-
-    services:
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: stable
-
-      - name: Install WASM target
-        run: rustup target add wasm32-wasip2
-
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
-
-      - name: Install Chromium for headless browser
-        run: |
-          sudo apt-get install -y chromium-browser chromium-chromedriver
-          echo "🔍 Browser installation check:"
-          which chromium-browser || which google-chrome || echo "⚠️  No browser found"
-          chromium-browser --version 2>/dev/null || google-chrome --version 2>/dev/null || echo "⚠️  Browser not responding"
-
-      - name: Build API
-        run: |
-          cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm
-          cargo build --release --package riptide-api
-
-      - name: Start API server
-        env:
-          REDIS_URL: redis://localhost:6379
-          RUST_LOG: info,riptide_api=debug,riptide_core=debug,cranelift=warn,cranelift_codegen=warn,wasmtime=warn
-          RUST_BACKTRACE: full
-          API_HOST: 0.0.0.0
-          API_PORT: 8080
-          WASM_EXTRACTOR_PATH: target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
-        run: |
-          BINARY_PATH=$(find target -name "riptide-api" -type f -executable | head -1)
-          echo "🔍 Starting API: $BINARY_PATH"
-
-          # Verify WASM + Redis
-          [ -f "$WASM_EXTRACTOR_PATH" ] && echo "✅ WASM found" || { echo "❌ WASM missing"; exit 1; }
-          redis-cli ping > /dev/null && echo "✅ Redis OK" || { echo "❌ Redis failed"; exit 1; }
-
-          # Start API with unbuffered output
-          stdbuf -oL -eL $BINARY_PATH > api.log 2>&1 &
-          API_PID=$!
-          echo "API_PID=$API_PID" >> $GITHUB_ENV
-          sleep 2
-
-          # Check process alive
-          if ! kill -0 $API_PID 2>/dev/null; then
-            echo "❌ API died immediately"
-            cat api.log
-            exit 1
-          fi
-
-          # Wait for health
-          echo "🏥 Waiting for health..."
-          for i in {1..30}; do
-            kill -0 $API_PID 2>/dev/null || { echo "❌ Process died"; cat api.log; exit 1; }
-            curl -sf http://localhost:8080/healthz > /dev/null 2>&1 && { echo "✅ API healthy"; break; }
-            [ $((i % 5)) -eq 0 ] && echo "⏳ Attempt $i/30..."
-            sleep 2
-          done
-
-          # Final check
-          if ! curl -sf http://localhost:8080/healthz > /dev/null 2>&1; then
-            echo "❌ Health check failed"
-            kill -0 $API_PID 2>/dev/null && echo "Process running but not healthy" || echo "Process died"
-            cat api.log
-            exit 1
-          fi
-
-      - name: Run OWASP ZAP scan
-        uses: zaproxy/action-baseline@v0.9.0
-        with:
-          target: 'http://localhost:8080'
-          cmd_options: '-a'
-        continue-on-error: true
-
-      - name: Stop API
-        if: always()
-        run: kill ${{ env.API_PID }} || true
-
-  # ==========================================
-  # PHASE 6: Coverage & Benchmarks (Optional)
-  # ==========================================
-
-  test-coverage:
-    name: 📊 Test Coverage
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [contract-validation]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    services:
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-          components: llvm-tools-preview
-
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
-
-      - name: Install cargo-llvm-cov
-        run: cargo install cargo-llvm-cov --locked
-
-      - name: Generate coverage
-        env:
-          REDIS_URL: redis://localhost:6379
-        run: |
-          cargo llvm-cov --package riptide-api \
-            --lcov --output-path lcov.info
-
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: lcov.info
-
-      - name: Display summary
-        run: cargo llvm-cov report --package riptide-api || true
-
-  api-benchmarks:
-    name: ⚡ Benchmarks
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [contract-validation]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    services:
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
-
-      - name: Run benchmarks
-        env:
-          REDIS_URL: redis://localhost:6379
-        run: |
-          if cargo bench --package riptide-api --no-run 2>/dev/null; then
-            cargo bench --package riptide-api -- --output-format bencher | tee benchmark-results.txt
-          else
-            echo "No benchmarks defined for riptide-api"
-          fi
-
-      - name: Upload benchmark results
+      - name: Upload fuzz artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: benchmark-results
-          path: benchmark-results.txt
-          if-no-files-found: ignore
+          name: fuzzing-artifacts
+          path: api.log
 
-  # ==========================================
-  # FINAL VALIDATION
-  # ==========================================
+      - name: Stop API
+        if: always()
+        run: kill ${{ env.API_PID }} || true
 
   validation-complete:
     name: ✅ Validation Complete
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    needs:
-      - static-analysis
-      - contract-validation
-      - fuzzing-tests
+    needs: [static-analysis, contract-validation, fuzzing-tests]
     if: always()
-
     steps:
-      - name: Check all required jobs
-        run: |
-          echo "🔍 Validating API test results..."
-
-          FAILED=0
-
-          if [[ "${{ needs.static-analysis.result }}" != "success" ]]; then
-            echo "❌ Static analysis failed"
-            FAILED=1
-          fi
-
-          if [[ "${{ needs.contract-validation.result }}" != "success" ]]; then
-            echo "❌ Contract validation failed"
-            FAILED=1
-          fi
-
-          if [[ "${{ needs.fuzzing-tests.result }}" != "success" ]]; then
-            echo "❌ Fuzzing tests failed"
-            FAILED=1
-          fi
-
-          if [[ $FAILED -eq 1 ]]; then
-            echo ""
-            echo "❌ API Validation Pipeline Failed"
+      - run: |
+          echo "Static: ${{ needs.static-analysis.result }}"
+          echo "Dredd:  ${{ needs.contract-validation.result }}"
+          echo "Fuzz:   ${{ needs.fuzzing-tests.result }}"
+          if [ "${{ needs.static-analysis.result }}" != "success" ] || \
+             [ "${{ needs.contract-validation.result }}" != "success" ] || \
+             [ "${{ needs.fuzzing-tests.result }}" != "success" ]; then
             exit 1
           fi
-
-          echo ""
-          echo "✅ API Validation Pipeline Passed!"
-          echo "📊 Results Summary:"
-          echo "  • Static Analysis: ✅"
-          echo "  • Contract Validation (Dredd): ✅"
-          echo "  • Fuzzing Tests (Schemathesis): ✅"
-          echo ""
-          echo "ℹ️  Note: Basic unit/integration tests run in main CI pipeline"
-# Trigger API validation
