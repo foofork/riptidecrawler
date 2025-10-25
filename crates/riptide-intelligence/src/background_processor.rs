@@ -187,7 +187,13 @@ impl BackgroundAiProcessor {
                     if let Some(task) = task {
                         // Acquire semaphore permit for concurrency control
                         // RAII guard: must remain in scope to hold the permit during task processing
-                        let _permit = semaphore.acquire().await.unwrap();
+                        let _permit = match semaphore.acquire().await {
+                            Ok(permit) => permit,
+                            Err(_) => {
+                                tracing::error!("Background processor semaphore closed");
+                                break;
+                            }
+                        };
                         // Process the task
                         if let Err(e) = Self::process_task_worker(
                             worker_id,

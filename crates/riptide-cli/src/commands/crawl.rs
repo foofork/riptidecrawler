@@ -65,12 +65,11 @@ pub async fn execute(client: RipTideClient, args: CrawlArgs, output_format: &str
     ));
 
     let pb = ProgressBar::new(args.max_pages as u64);
-    pb.set_style(
-        ProgressStyle::default_bar()
-            .template("[{elapsed_precise}] {bar:40.cyan/blue} {pos}/{len} {msg}")
-            .unwrap()
-            .progress_chars("█▓▒░ "),
-    );
+    if let Ok(style) = ProgressStyle::default_bar()
+        .template("[{elapsed_precise}] {bar:40.cyan/blue} {pos}/{len} {msg}")
+    {
+        pb.set_style(style.progress_chars("█▓▒░ "));
+    }
 
     let request = CrawlRequest {
         urls: vec![args.url.clone()],

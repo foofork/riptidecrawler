@@ -365,7 +365,12 @@ impl MetricsStorage {
 
 impl Default for MetricsStorage {
     fn default() -> Self {
-        Self::new().expect("Failed to create default metrics storage")
+        match Self::new() {
+            Ok(storage) => storage,
+            Err(e) => {
+                panic!("Failed to create default metrics storage: {}", e);
+            }
+        }
     }
 }
 

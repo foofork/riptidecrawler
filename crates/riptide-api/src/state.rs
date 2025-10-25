@@ -381,7 +381,8 @@ impl AppConfig {
                     base_url,
                     e
                 );
-                url::Url::parse("https://example.com").unwrap()
+                url::Url::parse("https://example.com")
+                    .unwrap_or_else(|_| panic!("Built-in fallback URL is invalid"))
             }
         };
 
@@ -899,7 +900,11 @@ impl AppState {
         // Initialize spider facade if spider is enabled
         let spider_facade = if config.spider_config.is_some() {
             tracing::info!("Initializing SpiderFacade for simplified spider operations");
-            match SpiderFacade::from_config(config.spider_config.as_ref().unwrap().clone()).await {
+            let spider_config = config
+                .spider_config
+                .as_ref()
+                .ok_or_else(|| anyhow::anyhow!("Spider config expected but not found"))?;
+            match SpiderFacade::from_config(spider_config.clone()).await {
                 Ok(facade) => {
                     tracing::info!("SpiderFacade initialized successfully");
                     Some(Arc::new(facade))

@@ -68,9 +68,10 @@ async fn main() -> Result<()> {
 
     // Set up graceful shutdown
     let shutdown_signal = async {
-        tokio::signal::ctrl_c()
-            .await
-            .expect("Failed to listen for Ctrl+C");
+        if let Err(e) = tokio::signal::ctrl_c().await {
+            tracing::error!("Failed to listen for Ctrl+C: {}", e);
+            return;
+        }
         tracing::info!("Received shutdown signal, initiating graceful shutdown");
     };
 

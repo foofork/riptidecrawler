@@ -358,7 +358,12 @@ impl JobManager {
 
 impl Default for JobManager {
     fn default() -> Self {
-        Self::new().expect("Failed to create job manager")
+        match Self::new() {
+            Ok(manager) => manager,
+            Err(e) => {
+                panic!("Failed to create job manager: {}", e);
+            }
+        }
     }
 }
 

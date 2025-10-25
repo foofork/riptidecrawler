@@ -253,7 +253,12 @@ impl JobStorage {
 
 impl Default for JobStorage {
     fn default() -> Self {
-        Self::new().expect("Failed to create job storage")
+        match Self::new() {
+            Ok(storage) => storage,
+            Err(e) => {
+                panic!("Failed to create job storage: {}", e);
+            }
+        }
     }
 }
 

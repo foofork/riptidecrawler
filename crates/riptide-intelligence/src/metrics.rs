@@ -86,9 +86,9 @@ impl RequestMetrics {
     }
 
     pub fn complete_success(&mut self, response: &CompletionResponse, cost: Option<Cost>) {
-        self.end_time = Some(Utc::now());
-        self.duration_ms =
-            Some((self.end_time.unwrap() - self.start_time).num_milliseconds() as u64);
+        let end_time = Utc::now();
+        self.end_time = Some(end_time);
+        self.duration_ms = Some((end_time - self.start_time).num_milliseconds() as u64);
         self.success = true;
         self.usage = Some(response.usage.clone());
         self.cost = cost;
@@ -98,9 +98,9 @@ impl RequestMetrics {
     }
 
     pub fn complete_error(&mut self, error_type: &str, error_message: &str) {
-        self.end_time = Some(Utc::now());
-        self.duration_ms =
-            Some((self.end_time.unwrap() - self.start_time).num_milliseconds() as u64);
+        let end_time = Utc::now();
+        self.end_time = Some(end_time);
+        self.duration_ms = Some((end_time - self.start_time).num_milliseconds() as u64);
         self.success = false;
         self.error_type = Some(error_type.to_string());
         self.error_message = Some(error_message.to_string());
@@ -606,8 +606,8 @@ impl MetricsCollector {
             let p50 = latencies[latencies.len() * 50 / 100] as f64;
             let p95 = latencies[latencies.len() * 95 / 100] as f64;
             let p99 = latencies[latencies.len() * 99 / 100] as f64;
-            let max = *latencies.last().unwrap();
-            let min = *latencies.first().unwrap();
+            let max = latencies.last().copied().unwrap_or(0);
+            let min = latencies.first().copied().unwrap_or(0);
             (avg, p50, p95, p99, max, min)
         };
 

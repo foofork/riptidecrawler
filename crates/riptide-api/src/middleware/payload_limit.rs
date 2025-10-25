@@ -90,7 +90,7 @@ where
                                 "Payload size limit exceeded"
                             );
 
-                            return Ok(Response::builder()
+                            let response = Response::builder()
                                 .status(StatusCode::PAYLOAD_TOO_LARGE)
                                 .header(http::header::CONTENT_TYPE, "application/json")
                                 .body(Body::from(
@@ -102,8 +102,10 @@ where
                                     })
                                     .to_string(),
                                 ))
-                                .unwrap()
-                                .into_response());
+                                .unwrap_or_else(|_| {
+                                    Response::new(Body::from(r#"{"error":"PayloadTooLarge"}"#))
+                                });
+                            return Ok(response.into_response());
                         }
                     }
                 }

@@ -759,9 +759,15 @@ async fn execute_drift(
         .map(|u| u.split(',').map(|s| s.trim().to_string()).collect())
         .unwrap_or_else(|| vec![profile.domain.clone()]);
 
+    let baseline = if let Some(baseline) = profile.baseline.clone() {
+        baseline
+    } else {
+        return Err(anyhow::anyhow!("No baseline found in domain profile"));
+    };
+
     let request = DriftRequest {
         domain: domain.clone(),
-        baseline: profile.baseline.clone().unwrap(),
+        baseline,
         urls: check_urls,
         threshold,
         baseline_version,

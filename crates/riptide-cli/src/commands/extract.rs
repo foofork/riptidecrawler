@@ -125,7 +125,11 @@ pub async fn execute(client: RipTideClient, args: ExtractArgs, output_format: &s
     }
 
     // API server extraction
-    let url = args.url.as_ref().unwrap(); // Safe because we validated above
+    let url = if let Some(url) = args.url.as_ref() {
+        url
+    } else {
+        return Err(anyhow::anyhow!("URL required for extraction"));
+    };
     let request = ExtractRequest {
         url: url.clone(),
         method: args.method.clone(),

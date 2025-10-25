@@ -554,8 +554,16 @@ impl ReportGenerator {
                 return Ok(String::new());
             }
 
-            let start_time = timeline.first().unwrap().timestamp;
-            let end_time = timeline.last().unwrap().timestamp;
+            let start_time = if let Some(first) = timeline.first() {
+                first.timestamp
+            } else {
+                return Ok(String::new());
+            };
+            let end_time = if let Some(last) = timeline.last() {
+                last.timestamp
+            } else {
+                return Ok(String::new());
+            };
             let max_count = timeline.iter().map(|t| t.count).max().unwrap_or(1);
 
             let mut chart = ChartBuilder::on(&root)

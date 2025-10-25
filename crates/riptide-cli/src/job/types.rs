@@ -14,7 +14,7 @@ impl JobId {
         use std::time::{SystemTime, UNIX_EPOCH};
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .unwrap_or_else(|_| std::time::Duration::from_secs(0))
             .as_millis();
         let random = rand::random::<u32>();
         Self(format!("job_{:x}_{:x}", timestamp, random))

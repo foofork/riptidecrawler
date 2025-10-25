@@ -68,8 +68,11 @@ pub use storage::{ExportFormat, MetricsStorage};
 pub use types::{CliMetricsSummary, CommandAggregates, CommandMetrics, MetricsStorageConfig};
 
 /// Global metrics manager instance
-static GLOBAL_METRICS: Lazy<Arc<MetricsManager>> =
-    Lazy::new(|| Arc::new(MetricsManager::new().expect("Failed to initialize metrics manager")));
+static GLOBAL_METRICS: Lazy<Arc<MetricsManager>> = Lazy::new(|| {
+    Arc::new(MetricsManager::new().unwrap_or_else(|e| {
+        panic!("Failed to initialize metrics manager: {}", e);
+    }))
+});
 
 /// Central metrics manager coordinating collection, storage, and aggregation
 pub struct MetricsManager {

@@ -65,11 +65,13 @@ impl EnhancedExtractExecutor {
         };
 
         if let Some(engine) = cached_engine {
-            output::print_info(&format!(
-                "Using cached engine selection: {} for domain: {}",
-                engine.name(),
-                domain.as_ref().unwrap()
-            ));
+            if let Some(domain_str) = domain.as_ref() {
+                output::print_info(&format!(
+                    "Using cached engine selection: {} for domain: {}",
+                    engine.name(),
+                    domain_str
+                ));
+            }
         }
 
         // Execute the actual extraction

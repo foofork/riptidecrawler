@@ -545,7 +545,7 @@ impl DashboardGenerator {
                 a.metrics
                     .avg_latency_ms
                     .partial_cmp(&b.metrics.avg_latency_ms)
-                    .unwrap()
+                    .unwrap_or(std::cmp::Ordering::Equal)
             })
             .map(|p| p.provider_name.clone())
             .unwrap_or_default();
@@ -558,7 +558,7 @@ impl DashboardGenerator {
                 a.metrics
                     .success_rate
                     .partial_cmp(&b.metrics.success_rate)
-                    .unwrap()
+                    .unwrap_or(std::cmp::Ordering::Equal)
             })
             .map(|p| p.provider_name.clone())
             .unwrap_or_default();
@@ -571,7 +571,7 @@ impl DashboardGenerator {
                 a.metrics
                     .avg_cost_per_request
                     .partial_cmp(&b.metrics.avg_cost_per_request)
-                    .unwrap()
+                    .unwrap_or(std::cmp::Ordering::Equal)
             })
             .map(|p| p.provider_name.clone())
             .unwrap_or_default();
@@ -637,8 +637,16 @@ impl DashboardGenerator {
         }
 
         // Sort by cost and usage
-        by_cost.sort_by(|a, b| b.value.partial_cmp(&a.value).unwrap());
-        by_usage.sort_by(|a, b| b.value.partial_cmp(&a.value).unwrap());
+        by_cost.sort_by(|a, b| {
+            b.value
+                .partial_cmp(&a.value)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+        by_usage.sort_by(|a, b| {
+            b.value
+                .partial_cmp(&a.value)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         TenantRankings {
             by_cost,

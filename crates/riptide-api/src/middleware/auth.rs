@@ -202,7 +202,11 @@ fn unauthorized_response(message: &str) -> Response {
             })
             .to_string(),
         ))
-        .unwrap()
+        .unwrap_or_else(|_| {
+            Response::new(Body::from(
+                r#"{"error":"Unauthorized","message":"Failed to build response"}"#,
+            ))
+        })
         .into_response()
 }
 

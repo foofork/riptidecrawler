@@ -331,7 +331,10 @@ impl StreamingResponseBuilder {
 
         let body = axum::body::Body::from_stream(stream);
 
-        let mut response = Response::builder().status(self.status).body(body).unwrap();
+        let mut response = Response::builder()
+            .status(self.status)
+            .body(body)
+            .unwrap_or_else(|_| Response::new(axum::body::Body::empty()));
 
         *response.headers_mut() = self.headers;
 
@@ -363,7 +366,10 @@ impl StreamingResponseBuilder {
 
         let body = axum::body::Body::from_stream(stream);
 
-        let mut response = Response::builder().status(self.status).body(body).unwrap();
+        let mut response = Response::builder()
+            .status(self.status)
+            .body(body)
+            .unwrap_or_else(|_| Response::new(axum::body::Body::empty()));
 
         *response.headers_mut() = self.headers;
         response
@@ -390,7 +396,10 @@ impl StreamingResponseBuilder {
             }
         }));
 
-        let mut response = Response::builder().status(self.status).body(body).unwrap();
+        let mut response = Response::builder()
+            .status(self.status)
+            .body(body)
+            .unwrap_or_else(|_| Response::new(axum::body::Body::empty()));
 
         *response.headers_mut() = self.headers;
         response
@@ -416,7 +425,7 @@ impl StreamingErrorResponse {
         let mut response = Response::builder()
             .status(StatusCode::INTERNAL_SERVER_ERROR)
             .body(axum::body::Body::from(error_json))
-            .unwrap();
+            .unwrap_or_else(|_| Response::new(axum::body::Body::empty()));
 
         *response.headers_mut() = headers;
         response
@@ -436,7 +445,7 @@ impl StreamingErrorResponse {
         let mut response = Response::builder()
             .status(StatusCode::INTERNAL_SERVER_ERROR)
             .body(axum::body::Body::from(error_sse))
-            .unwrap();
+            .unwrap_or_else(|_| Response::new(axum::body::Body::empty()));
 
         *response.headers_mut() = headers;
         response
@@ -450,7 +459,7 @@ impl StreamingErrorResponse {
                 let mut response = Response::builder()
                     .status(StatusCode::INTERNAL_SERVER_ERROR)
                     .body(axum::body::Body::from(json))
-                    .unwrap();
+                    .unwrap_or_else(|_| Response::new(axum::body::Body::empty()));
 
                 *response.headers_mut() = headers;
                 response
@@ -464,7 +473,7 @@ impl StreamingErrorResponse {
                     .status(StatusCode::INTERNAL_SERVER_ERROR)
                     .header("content-type", "application/json")
                     .body(axum::body::Body::from(fallback))
-                    .unwrap()
+                    .unwrap_or_else(|_| Response::new(axum::body::Body::empty()))
             }
         }
     }

@@ -191,14 +191,15 @@ impl BedrockProvider {
         });
 
         if let Some(temperature) = request.temperature {
-            text_generation_config["temperature"] = serde_json::Value::Number(
-                serde_json::Number::from_f64(temperature as f64).unwrap(),
-            );
+            if let Some(num) = serde_json::Number::from_f64(temperature as f64) {
+                text_generation_config["temperature"] = serde_json::Value::Number(num);
+            }
         }
 
         if let Some(top_p) = request.top_p {
-            text_generation_config["topP"] =
-                serde_json::Value::Number(serde_json::Number::from_f64(top_p as f64).unwrap());
+            if let Some(num) = serde_json::Number::from_f64(top_p as f64) {
+                text_generation_config["topP"] = serde_json::Value::Number(num);
+            }
         }
 
         if let Some(stop_sequences) = &request.stop {

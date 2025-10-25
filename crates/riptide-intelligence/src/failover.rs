@@ -416,7 +416,9 @@ impl FailoverManager {
                     .get(*b)
                     .map(|s| s.failed_requests as f64 / (s.total_requests.max(1) as f64))
                     .unwrap_or(0.0);
-                a_error_rate.partial_cmp(&b_error_rate).unwrap()
+                a_error_rate
+                    .partial_cmp(&b_error_rate)
+                    .unwrap_or(std::cmp::Ordering::Equal)
             })
             .unwrap_or(&providers[0])
             .clone()
@@ -433,7 +435,13 @@ impl FailoverManager {
     async fn select_random(&self, providers: &[String]) -> String {
         use rand::seq::SliceRandom;
         let mut rng = rand::thread_rng();
-        providers.choose(&mut rng).unwrap().clone()
+        providers
+            .choose(&mut rng)
+            .map(|s| s.clone())
+            .unwrap_or_else(|| {
+                tracing::warn!("No providers available for random selection, using empty string");
+                String::new()
+            })
     }
 
     /// Select provider using weighted selection
@@ -555,10 +563,13 @@ impl FailoverManager {
                 && state.consecutive_failures >= self.config.health_check_threshold
             {
                 state.status = ProviderStatus::CircuitOpen;
-                state.circuit_breaker_open_until = Some(
-                    chrono::Utc::now()
-                        + chrono::Duration::from_std(self.config.failback_delay).unwrap(),
-                );
+                if let Ok(duration) = chrono::Duration::from_std(self.config.failback_delay) {
+                    state.circuit_breaker_open_until = Some(chrono::Utc::now() + duration);
+                } else {
+                    // Fallback to 5 minutes if conversion fails
+                    state.circuit_breaker_open_until =
+                        Some(chrono::Utc::now() + chrono::Duration::minutes(5));
+                }
 
                 let event = FailoverEvent::CircuitBreakerTripped {
                     provider: provider_name.to_string(),

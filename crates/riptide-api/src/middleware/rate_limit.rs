@@ -44,7 +44,7 @@ pub async fn rate_limit_middleware(
             "Rate limit exceeded"
         );
 
-        return Err(Response::builder()
+        let response = Response::builder()
             .status(StatusCode::TOO_MANY_REQUESTS)
             .header("Content-Type", "application/json")
             .header("Retry-After", "60") // Suggest retry after 60 seconds
@@ -56,8 +56,8 @@ pub async fn rate_limit_middleware(
                 })
                 .to_string(),
             ))
-            .unwrap()
-            .into_response());
+            .unwrap_or_else(|_| Response::new(Body::from(r#"{"error":"RateLimitExceeded"}"#)));
+        return Err(response.into_response());
     }
 
     // Acquire request permit (enforces max concurrent requests)
@@ -70,7 +70,7 @@ pub async fn rate_limit_middleware(
                 "Failed to acquire request permit"
             );
 
-            return Err(Response::builder()
+            let response = Response::builder()
                 .status(StatusCode::SERVICE_UNAVAILABLE)
                 .header("Content-Type", "application/json")
                 .header("Retry-After", "30")
@@ -82,8 +82,8 @@ pub async fn rate_limit_middleware(
                     })
                     .to_string(),
                 ))
-                .unwrap()
-                .into_response());
+                .unwrap_or_else(|_| Response::new(Body::from(r#"{"error":"ServiceUnavailable"}"#)));
+            return Err(response.into_response());
         }
     };
 
