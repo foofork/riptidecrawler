@@ -137,6 +137,7 @@ pub fn create_minimal_test_app() -> Router {
 // ============================================================================
 
 /// Create a test app with persistence features enabled
+#[allow(dead_code)]
 #[cfg(feature = "jemalloc")]
 pub async fn create_test_app_with_persistence() -> Router {
     // Try to create app with Redis/persistence features
@@ -144,6 +145,7 @@ pub async fn create_test_app_with_persistence() -> Router {
 }
 
 /// Create a test app with profiling features enabled
+#[allow(dead_code)]
 #[cfg(feature = "profiling-full")]
 pub async fn create_test_app_with_profiling() -> Router {
     create_test_app().await
@@ -162,6 +164,7 @@ pub async fn create_test_tenant(tenant_id: &str) -> serde_json::Value {
 }
 
 /// Mock browser session helper
+#[allow(dead_code)]
 #[cfg(feature = "sessions")]
 pub async fn create_test_browser_session() -> serde_json::Value {
     json!({
@@ -173,6 +176,7 @@ pub async fn create_test_browser_session() -> serde_json::Value {
 }
 
 /// Start a mock streaming session
+#[allow(dead_code)]
 #[cfg(feature = "streaming")]
 pub async fn start_test_stream() -> serde_json::Value {
     json!({
@@ -184,6 +188,7 @@ pub async fn start_test_stream() -> serde_json::Value {
 }
 
 /// Trigger mock profiling
+#[allow(dead_code)]
 #[cfg(feature = "profiling-full")]
 pub async fn trigger_test_profiling() -> serde_json::Value {
     json!({
