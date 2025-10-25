@@ -24,7 +24,7 @@ env:
   RUST_BACKTRACE: 1
   CARGO_TERM_COLOR: always
   CARGO_NET_RETRY: 10
-  RUSTC_WRAPPER: sccache
+  # RUSTC_WRAPPER: sccache  # Managed by sccache-action
 
 jobs:
   # Security & Dependency Checks
