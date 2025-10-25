@@ -459,6 +459,7 @@ paths:
         schema:
           type: string
         description: Table identifier
+        example: table_123
       responses:
         '200':
           description: Success

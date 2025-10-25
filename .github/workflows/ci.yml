@@ -502,7 +502,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [build, test, size-check]
-    if: always()
+    # Only validate if jobs weren't cancelled (due to new push)
+    if: |
+      always() &&
+      needs.build.result != 'cancelled' &&
+      needs.test.result != 'cancelled'
     steps:
       - name: Check job results
         run: |

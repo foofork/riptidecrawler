@@ -92,7 +92,7 @@ RUN mkdir -p crates/riptide-api/src crates/riptide-browser-abstraction/src \
 
 # Pre-build dependencies (this layer will be cached)
 # Disk optimization: Using --profile ci for faster builds with less artifacts
-RUN cargo build --profile ci --bin riptide-headless && \
+RUN cargo build --profile ci --bin riptide && \
     rm -rf /usr/local/cargo/registry/cache/* /app/target/*/incremental
 
 # Copy actual source code
@@ -102,8 +102,8 @@ COPY wasm wasm/
 # Build with real source (leverages cached dependencies)
 # Disk optimization: CI profile + aggressive cleanup after build
 RUN touch crates/*/src/lib.rs crates/*/src/main.rs wasm/*/src/lib.rs && \
-    cargo build --profile ci --bin riptide-headless && \
-    strip target/ci/riptide-headless && \
+    cargo build --profile ci --bin riptide && \
+    strip target/ci/riptide && \
     rm -rf /usr/local/cargo/registry/cache/* \
            /usr/local/cargo/git/db/* \
            /app/target/*/build \
@@ -152,7 +152,7 @@ WORKDIR /opt/riptide
 
 # Copy optimized binary (from CI profile)
 COPY --from=builder --chown=riptide:riptide \
-    /app/target/ci/riptide-headless /usr/local/bin/riptide-headless
+    /app/target/ci/riptide /usr/local/bin/riptide
 
 # Switch to non-root user
 USER riptide
@@ -171,4 +171,4 @@ ENV RUST_LOG=info \
 
 # Use tini for proper signal handling and zombie reaping
 ENTRYPOINT ["tini", "--"]
-CMD ["riptide-headless"]
+CMD ["riptide"]
