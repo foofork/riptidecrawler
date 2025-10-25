@@ -402,7 +402,10 @@ impl CacheWarmingManager {
 
         // Update statistics
         {
-            let mut stats = self.stats.lock().unwrap();
+            let mut stats = self
+                .stats
+                .lock()
+                .expect("Cache warming stats mutex poisoned");
             stats.warm_instances_created += warmed_count;
             stats.avg_warm_time_ms = duration.as_millis() as f64 / warmed_count as f64;
             stats.last_warming_at = Some(start_time);
@@ -465,7 +468,10 @@ impl CacheWarmingManager {
 
                     // Update statistics
                     {
-                        let mut stats = self.stats.lock().unwrap();
+                        let mut stats = self
+                            .stats
+                            .lock()
+                            .expect("Cache warming stats mutex poisoned");
                         stats.prefetch_attempts += 1;
                         stats.prefetch_successes += 1;
                     }
@@ -475,7 +481,10 @@ impl CacheWarmingManager {
 
                     // Update statistics
                     {
-                        let mut stats = self.stats.lock().unwrap();
+                        let mut stats = self
+                            .stats
+                            .lock()
+                            .expect("Cache warming stats mutex poisoned");
                         stats.prefetch_attempts += 1;
                         stats.prefetch_failures += 1;
                     }
@@ -503,7 +512,10 @@ impl CacheWarmingManager {
 
             // Update statistics
             {
-                let mut stats = self.stats.lock().unwrap();
+                let mut stats = self
+                    .stats
+                    .lock()
+                    .expect("Cache warming stats mutex poisoned");
                 stats.warm_instances_used += 1;
                 stats.cache_hits += 1;
             }
@@ -521,7 +533,10 @@ impl CacheWarmingManager {
         } else {
             // Update statistics
             {
-                let mut stats = self.stats.lock().unwrap();
+                let mut stats = self
+                    .stats
+                    .lock()
+                    .expect("Cache warming stats mutex poisoned");
                 stats.cache_misses += 1;
             }
 
@@ -637,7 +652,7 @@ impl CacheWarmingManager {
             let mut i = 0;
             while i < warm_instances.len() {
                 if warm_instances[i].warmed_at.elapsed() > max_age {
-                    let old_instance = warm_instances.remove(i).unwrap();
+                    let old_instance = warm_instances.remove(i);
                     debug!(instance_id = %old_instance.instance.id, age_secs = old_instance.warmed_at.elapsed().as_secs(),
                            "Cleaned up old warm instance");
                     cleaned += 1;
@@ -655,7 +670,10 @@ impl CacheWarmingManager {
     /// Check cache hit ratio and emit warnings if below target
     async fn check_cache_hit_ratio(&self) -> Result<()> {
         let (ratio, hits, misses) = {
-            let stats = self.stats.lock().unwrap();
+            let stats = self
+                .stats
+                .lock()
+                .expect("Cache warming stats mutex poisoned");
             (
                 stats.cache_hit_ratio(),
                 stats.cache_hits,
@@ -744,7 +762,10 @@ impl CacheWarmingManager {
     pub async fn record_url_pattern(&self, url: &str, processing_time_ms: f64, cache_hit: bool) {
         let pattern = self.extract_url_pattern(url);
 
-        let mut patterns = self.usage_patterns.lock().unwrap();
+        let mut patterns = self
+            .usage_patterns
+            .lock()
+            .expect("Usage patterns mutex poisoned");
         let entry = patterns
             .entry(pattern.clone())
             .or_insert_with(|| UrlPattern {
@@ -784,7 +805,10 @@ impl CacheWarmingManager {
 
     /// Get cache warming statistics
     pub fn get_stats(&self) -> CacheWarmingStats {
-        self.stats.lock().unwrap().clone()
+        self.stats
+            .lock()
+            .expect("Cache warming stats mutex poisoned")
+            .clone()
     }
 
     /// Get current warm pool size
