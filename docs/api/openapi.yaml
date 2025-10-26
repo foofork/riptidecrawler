@@ -135,19 +135,17 @@ paths:
         '200':
           description: Service healthy or degraded
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
-                example: "OK"
+                $ref: '#/components/schemas/HealthResponse'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           description: Service unhealthy
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
-                example: "Service Unavailable"
+                $ref: '#/components/schemas/HealthResponse'
   /api/v1/health:
     get:
       operationId: health_check_v1
@@ -158,19 +156,17 @@ paths:
         '200':
           description: Service healthy or degraded
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
-                example: "OK"
+                $ref: '#/components/schemas/HealthResponse'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           description: Service unhealthy
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
-                example: "Service Unavailable"
+                $ref: '#/components/schemas/HealthResponse'
   /api/health/detailed:
     get:
       operationId: health_detailed
@@ -182,19 +178,17 @@ paths:
         '200':
           description: Detailed health information
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
-                example: "OK"
+                $ref: '#/components/schemas/HealthResponse'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           description: Service unhealthy
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
-                example: "Service Unavailable"
+                $ref: '#/components/schemas/HealthResponse'
   /health/{component}:
     get:
       operationId: health_component
