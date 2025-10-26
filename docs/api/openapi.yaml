@@ -232,8 +232,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /api/v1/crawl:
     post:
       operationId: crawl_batch_v1
@@ -243,8 +249,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /crawl/stream:
     post:
       operationId: crawl_stream_ndjson
@@ -254,8 +266,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /crawl/sse:
     post:
       operationId: crawl_stream_sse
@@ -265,8 +283,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /crawl/ws:
     get:
       operationId: crawl_stream_websocket
@@ -286,8 +310,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: deepsearch_post
   /deepsearch/stream:
     post:
@@ -297,8 +327,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: deepsearch_stream_post
   /render:
     post:
@@ -308,8 +344,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: render_post
   /api/v1/render:
     post:
@@ -319,8 +361,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: render_post_v1
   /extract:
     post:
@@ -332,8 +380,14 @@ paths:
       responses:
         '200':
           description: Extracted content
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /api/v1/extract:
     post:
       operationId: extract_post_v1
@@ -344,8 +398,14 @@ paths:
       responses:
         '200':
           description: Extracted content
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /search:
     get:
       operationId: search_get
@@ -378,8 +438,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: spider_crawl_post
   /spider/status:
     post:
@@ -389,8 +455,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: spider_status_post
   /spider/control:
     post:
@@ -400,8 +472,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: spider_control_post
   /strategies/crawl:
     post:
@@ -411,8 +489,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: strategies_crawl_post
   /strategies/info:
     get:
@@ -433,8 +517,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: pdf_process_post
   /pdf/process-stream:
     post:
@@ -444,8 +534,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: pdf_process-stream_post
   /pdf/health:
     get:
@@ -466,8 +562,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: stealth_configure_post
   /stealth/test:
     post:
@@ -477,8 +579,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: stealth_test_post
   /stealth/capabilities:
     get:
@@ -510,8 +618,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: api_v1_tables_extract_post
   /api/v1/tables/{id}/export:
     get:
@@ -563,8 +677,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: api_v1_llm_providers_switch_post
   /api/v1/llm/config:
     get:
@@ -584,8 +704,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: api_v1_llm_config_post
   /sessions:
     post:
@@ -595,8 +721,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: sessions_post
     get:
       tags:
@@ -627,8 +759,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: sessions_cleanup_post
   /sessions/{session_id}:
     get:
@@ -666,6 +804,8 @@ paths:
       responses:
         '200':
           description: Success
+        '204':
+          description: No Content - Resource successfully deleted
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
       operationId: sessions_session_id_delete
@@ -685,8 +825,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: sessions_session_id_extend_post
   /sessions/{session_id}/cookies:
     post:
@@ -704,8 +850,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: sessions_session_id_cookies_post
     delete:
       tags:
@@ -722,6 +874,8 @@ paths:
       responses:
         '200':
           description: Success
+        '204':
+          description: No Content - Resource successfully deleted
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
       operationId: sessions_session_id_cookies_delete
@@ -813,6 +967,8 @@ paths:
       responses:
         '200':
           description: Success
+        '204':
+          description: No Content - Resource successfully deleted
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
       operationId: sessions_session_id_cookies_domain_name_delete
@@ -824,8 +980,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: workers_jobs_post
     get:
       tags:
@@ -917,8 +1079,14 @@ paths:
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: workers_schedule_post
     get:
       tags:
@@ -946,6 +1114,8 @@ paths:
       responses:
         '200':
           description: Success
+        '204':
+          description: No Content - Resource successfully deleted
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
       operationId: workers_schedule_job_id_delete
@@ -1024,8 +1194,14 @@ paths:
       responses:
         '200':
           description: Browser session created
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: browser_session_post
   /api/v1/browser/action:
     post:
@@ -1036,8 +1212,14 @@ paths:
       responses:
         '200':
           description: Action executed
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: browser_action_post
   /api/v1/browser/pool/status:
     get:
@@ -1068,6 +1250,8 @@ paths:
       responses:
         '200':
           description: Session closed
+        '204':
+          description: No Content - Resource successfully deleted
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
       operationId: browser_session_delete
@@ -1164,8 +1348,14 @@ paths:
       responses:
         '200':
           description: Tenant created
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: admin_tenants_post
     get:
       tags:
@@ -1212,8 +1402,14 @@ paths:
       responses:
         '200':
           description: Tenant updated
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: admin_tenants_id_put
     delete:
       tags:
@@ -1230,6 +1426,8 @@ paths:
       responses:
         '200':
           description: Tenant deleted
+        '204':
+          description: No Content - Resource successfully deleted
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
       operationId: admin_tenants_id_delete
@@ -1242,8 +1440,14 @@ paths:
       responses:
         '200':
           description: Cache warmed
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: admin_cache_warm_post
   /admin/cache/stats:
     get:
@@ -1266,8 +1470,14 @@ paths:
       responses:
         '200':
           description: State reloaded
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: admin_state_reload_post
   /api/v1/profiles:
     post:
@@ -1426,14 +1636,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DomainProfile'
-        '429':
-          $ref: '#/components/responses/RateLimitExceeded'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '404':
           description: Profile not found
-        '400':
-          description: Validation error
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           description: Internal server error
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
     delete:
       operationId: delete_profile
       tags:
@@ -1448,8 +1662,10 @@ paths:
           type: string
         example: example.com
       responses:
+        '200':
+          description: Profile deleted successfully
         '204':
-          description: Profile deleted successfully (no content)
+          description: No Content - Resource successfully deleted
         '404':
           description: Profile not found
           content:
@@ -1634,8 +1850,14 @@ paths:
                 cached_engine: Wasm
                 confidence: 0.85
                 message: Cache warmed successfully for domain example.com
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
         '404':
           description: Profile not found
         '500':
@@ -1670,6 +1892,8 @@ paths:
                 cleared: 45
                 failed: 0
                 message: Cleared 45 profile caches
+        '204':
+          description: No Content - Resource successfully deleted
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
         '500':
@@ -1774,12 +1998,16 @@ paths:
                   use_visible_text_density: true
                   detect_placeholders: true
                   probe_first_spa: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
-        '400':
-          description: Invalid request
         '500':
           description: Internal server error
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /api/v1/engine/stats:
     get:
       operationId: get_engine_stats
@@ -1884,6 +2112,32 @@ components:
             error: RateLimitExceeded
             message: "Rate limit exceeded: Resource limit exceeded: Global rate limit exceeded"
             retry_after_seconds: 60
+
+    UnsupportedMediaType:
+      description: Unsupported Media Type - Content-Type header missing or unsupported
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              message: "Expected request with `Content-Type: application/json`"
+              retryable: false
+              status: 415
+              type: unsupported_media_type
+
+    ServiceUnavailable:
+      description: Service Unavailable - Dependency unavailable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              message: "Dependency unavailable: redis - Connection timeout"
+              retryable: true
+              status: 503
+              type: dependency_error
 
   schemas:
     Error:

@@ -97,16 +97,34 @@ pub fn create_minimal_test_app() -> Router {
             "/api/v1/crawl",
             post(|| async { Json(json!({"status": "mock", "message": "Test crawl endpoint"})) }),
         )
-        // Extract endpoint - primary /api/v1 path
+        // Extract endpoint - primary /api/v1 path with validation
         .route(
             "/api/v1/extract",
-            post(|| async {
-                Json(json!({
-                    "url": "https://example.com",
-                    "content": "Test content",
-                    "strategy_used": "mock"
-                }))
-            }),
+            post(
+                |payload: Result<
+                    Json<serde_json::Value>,
+                    axum::extract::rejection::JsonRejection,
+                >| async move {
+                    // Validate JSON structure - if parsing fails, return 400
+                    match payload {
+                        Ok(_) => (
+                            StatusCode::OK,
+                            Json(json!({
+                                "url": "https://example.com",
+                                "content": "Test content",
+                                "strategy_used": "mock"
+                            })),
+                        ),
+                        Err(err) => (
+                            StatusCode::BAD_REQUEST,
+                            Json(json!({
+                                "error": "Invalid JSON",
+                                "message": err.to_string()
+                            })),
+                        ),
+                    }
+                },
+            ),
         )
         // Search endpoint - primary /api/v1 path
         .route(

@@ -460,87 +460,111 @@ mod tests {
         assert_eq!(metrics.total_streams, 1);
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_resource_acquisition() {
-        let config = BackpressureConfig::default();
-        let controller = BackpressureController::new(config);
-        let stream_id = Uuid::new_v4();
+        let test_future = async {
+            let config = BackpressureConfig::default();
+            let controller = BackpressureController::new(config);
+            let stream_id = Uuid::new_v4();
 
-        controller.register_stream(stream_id).await.unwrap();
+            controller.register_stream(stream_id).await.unwrap();
 
-        let permit = controller.acquire(stream_id, 1024).await.unwrap();
-        assert_eq!(permit.stream_id(), stream_id);
-        assert_eq!(permit.estimated_memory(), 1024);
+            let permit = controller.acquire(stream_id, 1024).await.unwrap();
+            assert_eq!(permit.stream_id(), stream_id);
+            assert_eq!(permit.estimated_memory(), 1024);
 
-        let metrics = controller.get_metrics().await;
-        assert_eq!(metrics.total_in_flight, 1);
+            let metrics = controller.get_metrics().await;
+            assert_eq!(metrics.total_in_flight, 1);
 
-        drop(permit);
+            drop(permit);
 
-        // Wait for cleanup
-        sleep(Duration::from_millis(10)).await;
+            // Wait for cleanup
+            sleep(Duration::from_millis(10)).await;
 
-        let metrics = controller.get_metrics().await;
-        assert_eq!(metrics.total_in_flight, 0);
+            let metrics = controller.get_metrics().await;
+            assert_eq!(metrics.total_in_flight, 0);
+        };
+
+        tokio::time::timeout(Duration::from_secs(120), test_future)
+            .await
+            .expect("Test should complete within 120 seconds");
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_backpressure_limits() {
-        let config = BackpressureConfig {
-            max_in_flight: 2,
-            max_total_items: 2,
-            ..Default::default()
+        let test_future = async {
+            let config = BackpressureConfig {
+                max_in_flight: 2,
+                max_total_items: 2,
+                ..Default::default()
+            };
+            let controller = BackpressureController::new(config);
+            let stream_id = Uuid::new_v4();
+
+            controller.register_stream(stream_id).await.unwrap();
+
+            // Acquire maximum permits
+            let _permit1 = controller.acquire(stream_id, 1024).await.unwrap();
+            let _permit2 = controller.acquire(stream_id, 1024).await.unwrap();
+
+            // Third acquisition should fail
+            let result = controller.acquire(stream_id, 1024).await;
+            assert!(result.is_err());
+            assert!(matches!(
+                result.unwrap_err(),
+                StreamingError::BackpressureExceeded
+            ));
         };
-        let controller = BackpressureController::new(config);
-        let stream_id = Uuid::new_v4();
 
-        controller.register_stream(stream_id).await.unwrap();
-
-        // Acquire maximum permits
-        let _permit1 = controller.acquire(stream_id, 1024).await.unwrap();
-        let _permit2 = controller.acquire(stream_id, 1024).await.unwrap();
-
-        // Third acquisition should fail
-        let result = controller.acquire(stream_id, 1024).await;
-        assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            StreamingError::BackpressureExceeded
-        ));
+        tokio::time::timeout(Duration::from_secs(120), test_future)
+            .await
+            .expect("Test should complete within 120 seconds");
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_memory_limits() {
-        let config = BackpressureConfig {
-            max_memory_bytes: 2048, // 2KB
-            ..Default::default()
+        let test_future = async {
+            let config = BackpressureConfig {
+                max_memory_bytes: 2048, // 2KB
+                ..Default::default()
+            };
+            let controller = BackpressureController::new(config);
+            let stream_id = Uuid::new_v4();
+
+            controller.register_stream(stream_id).await.unwrap();
+
+            // Acquire permit using all available memory
+            let _permit1 = controller.acquire(stream_id, 2048).await.unwrap();
+
+            // Second acquisition should fail due to memory limit
+            let result = controller.acquire(stream_id, 1024).await;
+            assert!(result.is_err());
         };
-        let controller = BackpressureController::new(config);
-        let stream_id = Uuid::new_v4();
 
-        controller.register_stream(stream_id).await.unwrap();
-
-        // Acquire permit using all available memory
-        let _permit1 = controller.acquire(stream_id, 2048).await.unwrap();
-
-        // Second acquisition should fail due to memory limit
-        let result = controller.acquire(stream_id, 1024).await;
-        assert!(result.is_err());
+        tokio::time::timeout(Duration::from_secs(120), test_future)
+            .await
+            .expect("Test should complete within 120 seconds");
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_metrics_calculation() {
-        let config = BackpressureConfig::default();
-        let controller = BackpressureController::new(config);
-        let stream_id = Uuid::new_v4();
+        let test_future = async {
+            let config = BackpressureConfig::default();
+            let controller = BackpressureController::new(config);
+            let stream_id = Uuid::new_v4();
 
-        controller.register_stream(stream_id).await.unwrap();
+            controller.register_stream(stream_id).await.unwrap();
 
-        let _permit = controller.acquire(stream_id, 1024).await.unwrap();
+            let _permit = controller.acquire(stream_id, 1024).await.unwrap();
 
-        let metrics = controller.get_metrics().await;
-        assert_eq!(metrics.total_streams, 1);
-        assert_eq!(metrics.total_in_flight, 1);
-        assert_eq!(metrics.total_memory_usage, 1024);
+            let metrics = controller.get_metrics().await;
+            assert_eq!(metrics.total_streams, 1);
+            assert_eq!(metrics.total_in_flight, 1);
+            assert_eq!(metrics.total_memory_usage, 1024);
+        };
+
+        tokio::time::timeout(Duration::from_secs(120), test_future)
+            .await
+            .expect("Test should complete within 120 seconds");
     }
 }
