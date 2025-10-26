@@ -150,7 +150,7 @@ fn main() {
         })
     };
 
-    let low_time = {
+    let _low_time = {
         let mut controller = StealthController::from_preset(StealthPreset::Low);
         benchmark_operation("Stealth Low", 100, || {
             let _ = controller.get_stealth_js();
@@ -158,7 +158,7 @@ fn main() {
         })
     };
 
-    let medium_time = {
+    let _medium_time = {
         let mut controller = StealthController::from_preset(StealthPreset::Medium);
         benchmark_operation("Stealth Medium", 100, || {
             let _ = controller.get_stealth_js();
@@ -166,7 +166,7 @@ fn main() {
         })
     };
 
-    let high_time = {
+    let _high_time = {
         let mut controller = StealthController::from_preset(StealthPreset::High);
         benchmark_operation("Stealth High", 100, || {
             let _ = controller.get_stealth_js();
