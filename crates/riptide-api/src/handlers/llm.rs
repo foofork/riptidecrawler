@@ -224,6 +224,67 @@ fn get_current_provider() -> Arc<tokio::sync::Mutex<Option<String>>> {
         .clone()
 }
 
+/// Response for current provider endpoint
+#[derive(Serialize, Debug)]
+pub struct CurrentProviderResponse {
+    /// Currently active provider name
+    pub current_provider: String,
+    /// Provider status
+    pub status: String,
+    /// Whether provider is available
+    pub available: bool,
+}
+
+/// Get the currently active LLM provider
+///
+/// This endpoint returns information about the currently active LLM provider.
+pub async fn get_current_provider_info(
+    State(state): State<AppState>,
+) -> Result<impl IntoResponse, ApiError> {
+    let start_time = Instant::now();
+
+    info!("Received get current provider request");
+
+    let current_provider_ref = get_current_provider();
+    let current_provider = current_provider_ref.lock().await.clone();
+
+    let provider_name = current_provider.unwrap_or_else(|| "openai".to_string());
+
+    // Check if provider is available
+    let registry = get_llm_registry();
+    let registry_guard = registry.lock().await;
+    let available = registry_guard.list_providers().contains(&provider_name);
+
+    drop(registry_guard);
+
+    let response = CurrentProviderResponse {
+        current_provider: provider_name.clone(),
+        status: if available {
+            "active".to_string()
+        } else {
+            "unavailable".to_string()
+        },
+        available,
+    };
+
+    info!(
+        current_provider = %response.current_provider,
+        status = %response.status,
+        processing_time_ms = start_time.elapsed().as_millis(),
+        "Get current provider request completed"
+    );
+
+    // Record metrics
+    state.metrics.record_http_request(
+        "GET",
+        "/api/v1/llm/providers/current",
+        200,
+        start_time.elapsed().as_secs_f64(),
+    );
+
+    Ok((StatusCode::OK, Json(response)))
+}
+
 /// List available LLM providers
 ///
 /// This endpoint returns information about all available LLM providers,

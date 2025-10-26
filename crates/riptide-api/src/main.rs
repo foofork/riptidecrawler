@@ -194,6 +194,8 @@ async fn main() -> anyhow::Result<()> {
         .nest("/api/v1/tables", routes::tables::table_routes())
         // LLM provider management endpoints
         .nest("/api/v1/llm", routes::llm::llm_routes())
+        // Content chunking endpoints
+        .nest("/api/v1/content", routes::chunking::chunking_routes())
         // Engine selection endpoints (Phase 10)
         .nest("/engine", routes::engine::engine_routes())
         // Domain profile management endpoints (Phase 10.4: Warm-Start Caching)

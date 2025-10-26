@@ -1,9 +1,231 @@
-use crate::errors::ApiResult;
+use crate::errors::{ApiError, ApiResult};
+use crate::state::AppState;
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use riptide_extraction::chunking::{
     create_strategy, ChunkingConfig as HtmlChunkingConfig, ChunkingMode,
 };
 use riptide_types::{ChunkingConfig, ExtractedDoc};
+use serde::{Deserialize, Serialize};
+use std::time::Instant;
 use tracing::{debug, info, warn};
+
+/// Request body for chunking content
+#[derive(Deserialize, Debug)]
+pub struct ChunkRequest {
+    /// Content to chunk
+    pub content: String,
+    /// Chunking mode (topic, sliding, fixed, sentence, html-aware)
+    pub chunking_mode: String,
+    /// Optional parameters for chunking
+    #[serde(default)]
+    pub parameters: Option<ChunkParameters>,
+}
+
+/// Optional chunking parameters
+#[derive(Deserialize, Debug, Default)]
+pub struct ChunkParameters {
+    /// Chunk size (default: 1000)
+    #[serde(default = "default_chunk_size")]
+    pub chunk_size: usize,
+    /// Overlap size for sliding window (default: 200)
+    #[serde(default = "default_overlap_size")]
+    pub overlap_size: usize,
+    /// Minimum chunk size (default: 100)
+    #[serde(default = "default_min_chunk_size")]
+    pub min_chunk_size: usize,
+    /// Preserve sentence boundaries (default: true)
+    #[serde(default = "default_preserve_sentences")]
+    pub preserve_sentences: bool,
+    /// Window size for sliding mode (optional, uses chunk_size if not provided)
+    pub window_size: Option<usize>,
+}
+
+fn default_chunk_size() -> usize {
+    1000
+}
+fn default_overlap_size() -> usize {
+    200
+}
+fn default_min_chunk_size() -> usize {
+    100
+}
+fn default_preserve_sentences() -> bool {
+    true
+}
+
+/// Response from chunking operation
+#[derive(Serialize, Debug)]
+pub struct ChunkResponse {
+    /// The chunked content
+    pub chunks: Vec<ChunkData>,
+    /// Total number of chunks
+    pub chunk_count: usize,
+    /// Original content length
+    pub original_length: usize,
+    /// Processing time in milliseconds
+    pub processing_time_ms: u128,
+}
+
+/// Individual chunk data
+#[derive(Serialize, Debug)]
+pub struct ChunkData {
+    /// Chunk index (0-based)
+    pub index: usize,
+    /// Chunk content
+    pub content: String,
+    /// Chunk length
+    pub length: usize,
+}
+
+/// HTTP endpoint for content chunking
+///
+/// This endpoint accepts content and chunking parameters, applies the requested
+/// chunking strategy, and returns the chunked content.
+///
+/// ## Request Body
+/// - `content`: Text content to chunk
+/// - `chunking_mode`: Strategy to use (topic, sliding, fixed, sentence, html-aware)
+/// - `parameters`: Optional chunking parameters (chunk_size, overlap_size, etc.)
+pub async fn chunk_content(
+    State(state): State<AppState>,
+    Json(request): Json<ChunkRequest>,
+) -> Result<impl IntoResponse, ApiError> {
+    let start_time = Instant::now();
+
+    info!(
+        chunking_mode = %request.chunking_mode,
+        content_length = request.content.len(),
+        "Received chunk content request"
+    );
+
+    // Validate input
+    if request.content.is_empty() {
+        return Err(ApiError::validation("Content cannot be empty"));
+    }
+
+    if request.content.len() > 10_000_000 {
+        return Err(ApiError::validation("Content too large (max 10MB)"));
+    }
+
+    // Get parameters or use defaults
+    let params = request.parameters.unwrap_or_default();
+
+    // Validate parameters
+    if params.overlap_size >= params.chunk_size {
+        return Err(ApiError::validation(
+            "overlap_size must be less than chunk_size",
+        ));
+    }
+
+    if params.window_size.is_some() && params.window_size.unwrap() < params.overlap_size {
+        return Err(ApiError::validation(
+            "window_size must be greater than overlap_size",
+        ));
+    }
+
+    // Create chunking config
+    let config = ChunkingConfig {
+        chunking_mode: request.chunking_mode.clone(),
+        chunk_size: params.chunk_size,
+        overlap_size: params.overlap_size,
+        min_chunk_size: params.min_chunk_size,
+        preserve_sentences: params.preserve_sentences,
+        topic_config: None,
+    };
+
+    // Apply chunking
+    let html_config = HtmlChunkingConfig {
+        max_tokens: config.chunk_size,
+        overlap_tokens: config.overlap_size,
+        preserve_sentences: config.preserve_sentences,
+        preserve_html_tags: false,
+        min_chunk_size: config.min_chunk_size,
+        max_chunk_size: config.chunk_size * 2,
+    };
+
+    let chunking_mode = validate_and_create_chunking_mode(&request.chunking_mode, &params)?;
+
+    let strategy = create_strategy(chunking_mode, html_config);
+
+    match strategy.chunk(&request.content).await {
+        Ok(chunks) => {
+            let chunk_data: Vec<ChunkData> = chunks
+                .into_iter()
+                .map(|chunk| ChunkData {
+                    index: chunk.chunk_index,
+                    content: chunk.content.clone(),
+                    length: chunk.content.len(),
+                })
+                .collect();
+
+            let chunk_count = chunk_data.len();
+            let response = ChunkResponse {
+                chunks: chunk_data,
+                chunk_count,
+                original_length: request.content.len(),
+                processing_time_ms: start_time.elapsed().as_millis(),
+            };
+
+            info!(
+                chunk_count = chunk_count,
+                processing_time_ms = response.processing_time_ms,
+                "Content chunking completed successfully"
+            );
+
+            // Record metrics
+            state.metrics.record_http_request(
+                "POST",
+                "/api/v1/content/chunk",
+                200,
+                start_time.elapsed().as_secs_f64(),
+            );
+
+            Ok((StatusCode::OK, Json(response)))
+        }
+        Err(e) => {
+            warn!("Content chunking failed: {}", e);
+            Err(ApiError::internal(format!(
+                "Failed to chunk content: {}",
+                e
+            )))
+        }
+    }
+}
+
+/// Validate chunking mode and create ChunkingMode enum
+fn validate_and_create_chunking_mode(
+    mode: &str,
+    params: &ChunkParameters,
+) -> Result<ChunkingMode, ApiError> {
+    match mode {
+        "topic" => Ok(ChunkingMode::Topic {
+            topic_chunking: true,
+            window_size: 100,
+            smoothing_passes: 2,
+        }),
+        "sliding" => Ok(ChunkingMode::Sliding {
+            window_size: params.window_size.unwrap_or(params.chunk_size),
+            overlap: params.overlap_size,
+        }),
+        "fixed" => Ok(ChunkingMode::Fixed {
+            size: params.chunk_size,
+            by_tokens: true,
+        }),
+        "sentence" => Ok(ChunkingMode::Sentence {
+            max_sentences: params.chunk_size / 20,
+        }),
+        "html-aware" => Ok(ChunkingMode::HtmlAware {
+            preserve_blocks: true,
+            preserve_structure: true,
+        }),
+        invalid_mode => {
+            Err(ApiError::invalid_request(format!(
+                "Invalid chunking_mode '{}'. Supported modes: topic, sliding, fixed, sentence, html-aware",
+                invalid_mode
+            )))
+        }
+    }
+}
 
 /// Apply content chunking to extracted document based on configuration.
 ///
@@ -78,15 +300,14 @@ pub(super) async fn apply_content_chunking(
             preserve_blocks: true,
             preserve_structure: true,
         },
-        _ => {
-            warn!(
-                "Unknown chunking mode '{}', falling back to sliding",
-                chunking_config.chunking_mode
-            );
-            ChunkingMode::Sliding {
-                window_size: chunking_config.chunk_size,
-                overlap: chunking_config.overlap_size,
-            }
+        invalid_mode => {
+            warn!("Invalid chunking mode '{}' provided", invalid_mode);
+            return Err(crate::errors::ApiError::invalid_request(
+                format!(
+                    "Invalid chunking_mode '{}'. Supported modes: topic, sliding, fixed, sentence, html-aware",
+                    invalid_mode
+                )
+            ));
         }
     };
 

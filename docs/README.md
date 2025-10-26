@@ -1,160 +1,305 @@
 # RipTide Documentation
 
-Comprehensive documentation for the RipTide web crawling and content extraction platform.
+Welcome to the comprehensive documentation for RipTide - a high-performance web crawler and content extraction platform built in Rust with WebAssembly optimization.
+
+---
+
+## 🚀 Quick Navigation
+
+**New to RipTide?** → [Getting Started Guide](./00-getting-started/README.md)
+
+**Need to do something?** → [Task-Oriented Guides](./01-guides/README.md)
+
+**API Reference?** → [API Documentation](./02-api-reference/README.md)
+
+**Deploying to production?** → [Deployment Guide](./06-deployment/README.md)
+
+---
 
 ## 📚 Documentation Structure
 
-### 🎯 [Guides](./guides/)
-User-facing documentation and operational guides.
-- [Quickstart](./guides/quickstart/) - Get started quickly
-- [Setup](./guides/setup/) - Configuration and installation
-- [Operations](./guides/operations/) - Day-to-day management
-- [Reference](./guides/reference/) - Quick reference and FAQ
+This documentation follows **progressive disclosure** - from beginner to advanced topics.
 
-### 🔧 [API Documentation](./api/)
-REST API endpoint documentation and examples.
-- 59 endpoints across 13 categories
-- Request/response examples
-- Authentication and rate limiting
+### 00 - Getting Started
+**[→ Go to Getting Started](./00-getting-started/)**
 
-### 🏗️ [Architecture](./architecture/)
-System design and technical architecture.
-- System overview and design patterns
-- Component architecture
-- Integration patterns
-- Performance architecture
+Your entry point to RipTide. Start here if you're new!
 
-### 💻 [Development](./development/)
-Developer documentation and guides.
-- Getting started with development
-- [Testing](./development/testing/) - Test strategy and infrastructure
-- [Deployment](./development/deployment/) - Deployment guides
-- [Performance](./development/performance/) - Profiling and optimization
+- **[Quick Start](./00-getting-started/README.md)** - Deploy and make your first API call in 5 minutes
+- **[Core Concepts](./00-getting-started/concepts.md)** - Understanding extractors, strategies, and pipelines
+- **[FAQ](./00-getting-started/faq.md)** - Common questions answered
 
-### ⚙️ [Configuration](./configuration/)
-Configuration examples and guides.
-- Spider engine configuration
-- CI/CD timeout settings
-- Service configuration
-
-### 🛠️ [Implementation](./implementation/)
-Technical implementation details.
-- [Features](./implementation/features/) - Feature implementations
-- [Refactoring](./implementation/refactoring/) - Code improvements
-- [Integration](./implementation/integration/) - System integrations
-- [P1](./implementation/P1/) - Phase 1 development docs
-
-### 📋 [Planning](./planning/)
-Roadmaps and execution plans.
-- [Roadmap](./planning/roadmap/) - Strategic planning
-- [Execution](./planning/execution/) - Execution plans
-- [Assessment](./planning/assessment/) - Readiness assessments
-- [Coordination](./planning/coordination/) - Team coordination
-
-### 📊 [Reports](./reports/)
-Completion reports and analysis.
-- [Completion](./reports/completion/) - Milestone reports
-- [Analysis](./reports/analysis/) - System analysis
-- [Validation](./reports/validation/) - Validation results
-- [Performance](./reports/performance/) - Performance benchmarks
-- [Quality](./reports/quality/) - Code quality reports
-- [Hive Mind](./reports/hive-mind/) - Swarm execution reports
-
-### 🔬 [Research](./research/)
-Research and investigation documents.
-- Spider-chrome analysis and evaluation
-- Feature comparison studies
-
-### 📁 [Examples](./examples/)
-Code examples and usage patterns.
-- API client examples
-- Integration examples
-
-### 🔍 [Streaming](./streaming/)
-Real-time streaming documentation.
-- NDJSON, SSE, WebSocket protocols
-
-### 🗂️ [Archive](./archive/)
-Historical and outdated documentation.
-- [2025-Q3 Development](./archive/2025-q3-development/)
-- [2025-Q4 Phase Reports](./archive/2025-q4-phase-reports/)
+**Time investment:** 30 minutes to get productive
 
 ---
 
-## 🚀 Quick Start
+### 01 - Guides
+**[→ Go to Guides](./01-guides/)**
 
-**New User?** Start here:
-1. [Quick Deployment Guide](./guides/quickstart/QUICK_DEPLOYMENT_GUIDE.md)
-2. [API Tooling Quickstart](./guides/quickstart/API_TOOLING_QUICKSTART.md)
-3. [User Guide](./guides/operations/USER_GUIDE.md)
+Task-oriented how-to guides for common operations.
 
-**Developer?** Check these:
-1. [Getting Started](./development/getting-started.md)
-2. [Architecture Overview](./architecture/system-overview.md)
-3. [Testing Guide](./development/testing.md)
+**Installation:**
+- Docker deployment
+- Source installation
+- Kubernetes setup
 
-**Current Status?** See:
-- [COMPREHENSIVE-ROADMAP.md](./COMPREHENSIVE-ROADMAP.md) - **Phase 1: 97% Complete**
+**Usage:**
+- Crawling websites
+- Extracting tables
+- Processing PDFs
+- Real-time streaming
 
----
+**Configuration:**
+- Environment variables
+- LLM provider setup
+- Browser pool configuration
+- Redis caching
 
-## 📈 Project Status
+**Operations:**
+- Monitoring and metrics
+- Troubleshooting
+- Performance tuning
+- Job management
 
-**Current Phase:** Phase 11 - Production Deployment (Next)
-**Latest Achievement:** Phase 10 Complete - Engine optimizations and v2.1.0 ready
-**Focus:** Production deployment and Docker orchestration
-**Workspace:** 27 specialized crates (modular architecture)
-
-### Phase 1-10 Progress (v2.1.0)
-- **Architecture:** 100% ✅ (Phases 1-4 complete)
-- **Engine Selection:** 100% ✅ (Phase 5, 10 complete)
-- **Testing Infrastructure:** 100% ✅ (Phase 6 - 165+ tests)
-- **Quality & CLI:** 100% ✅ (Phases 7, 7.5, 9 complete)
-- **Documentation:** 100% ✅ (All crates documented)
-
-**Next Milestone:** Phase 11 - Production Deployment (2.0 weeks)
+**Time investment:** Browse as needed for specific tasks
 
 ---
 
-## 🎯 Find What You Need
+### 02 - API Reference
+**[→ Go to API Reference](./02-api-reference/)**
 
-| Looking for... | Go to... |
-|----------------|----------|
-| **How to deploy?** | [Deployment Guide](./guides/quickstart/QUICK_DEPLOYMENT_GUIDE.md) |
-| **API documentation?** | [API Docs](./api/) |
-| **Setup LLM providers?** | [LLM Setup](./guides/setup/LLM_PROVIDER_SETUP.md) |
-| **Architecture details?** | [Architecture](./architecture/) |
-| **Current roadmap?** | [COMPREHENSIVE-ROADMAP.md](./COMPREHENSIVE-ROADMAP.md) |
-| **Performance tuning?** | [Development/Performance](./development/performance/) |
-| **Testing guide?** | [Development/Testing](./development/testing/) |
-| **Recent reports?** | [Reports](./reports/) |
-| **Implementation details?** | [Implementation](./implementation/) |
+Complete REST API documentation with 110+ endpoints.
 
----
+- **OpenAPI Specification** - Machine-readable API spec
+- **Endpoint Catalog** - Organized by category
+- **Request/Response Examples** - Copy-paste ready
+- **Authentication & Rate Limiting** - Security documentation
+- **Error Handling** - Error codes and troubleshooting
 
-## 📖 Documentation Coverage
-
-- **User Guides:** 15+ guides across all categories
-- **API Endpoints:** 59 endpoints fully documented
-- **Crate READMEs:** 27/27 crates (100% coverage)
-- **Architecture Docs:** System design, components, integration
-- **Reports:** Completion, analysis, validation, performance
-- **Quality:** 96.7/100 validation score
+**Time investment:** Reference material, use as needed
 
 ---
 
-## 🤝 Contributing
+### 03 - SDK
+**[→ Go to SDK](./03-sdk/)**
 
-For contributing to documentation:
-1. Follow the category structure above
-2. Add new docs to appropriate subdirectories
-3. Update category README.md files
-4. Maintain consistent formatting
-5. Keep docs concise and accurate
+Client libraries and integration examples.
+
+- **Python SDK** - Async client with full type hints
+- **REST Clients** - cURL, Postman, Insomnia examples
+- **Interactive Playground** - Test API in browser
+- **Code Examples** - Real-world integration patterns
+
+**Time investment:** 1 hour to integrate with your application
 
 ---
 
-**Last Updated:** 2025-10-24
-**Documentation Quality:** 96.7/100 (Excellent)
-**Organization Status:** Complete - All files categorized
-**Project Version:** v2.1.0 (Phases 1-10 Complete)
+### 04 - Architecture
+**[→ Go to Architecture](./04-architecture/)**
+
+System design, technical architecture, and decision records.
+
+- **System Overview** - High-level architecture
+- **Components** - Individual component designs
+- **WASM Integration** - WebAssembly architecture
+- **Decision Records** - Architectural decisions (ADRs)
+- **Design Patterns** - Reusable solutions
+
+**Time investment:** 2-4 hours for deep understanding
+
+---
+
+### 05 - Development
+**[→ Go to Development](./05-development/)**
+
+Contributing to RipTide and development workflows.
+
+- **Getting Started** - Development environment setup
+- **Contributing** - How to contribute code
+- **Testing** - Test infrastructure and best practices
+- **Coding Standards** - Code style and patterns
+- **Build System** - Cargo, CI/CD, and build optimization
+
+**Time investment:** 1 day to become a productive contributor
+
+---
+
+### 06 - Deployment
+**[→ Go to Deployment](./06-deployment/)**
+
+Production deployment guides and best practices.
+
+- **Docker Compose** - Multi-container deployment
+- **Kubernetes** - Cloud-native deployment
+- **Cloud Platforms** - AWS, GCP, Azure guides
+- **Monitoring** - Prometheus, Grafana setup
+- **Security** - Production hardening
+
+**Time investment:** 4-8 hours for first production deployment
+
+---
+
+### 07 - Advanced
+**[→ Go to Advanced](./07-advanced/)**
+
+Advanced topics for power users.
+
+- **Performance Optimization** - Tuning and scaling
+- **Custom Extractors** - Building WASM extractors
+- **Browser Automation** - Advanced browser control
+- **Distributed Crawling** - Multi-instance coordination
+- **LLM Integration** - AI-powered extraction
+
+**Time investment:** Ongoing learning
+
+---
+
+### 08 - Reference
+**[→ Go to Reference](./08-reference/)**
+
+Quick reference materials and glossary.
+
+- **Configuration Options** - All settings documented
+- **CLI Commands** - Command-line reference
+- **Environment Variables** - Complete list
+- **Metrics** - Prometheus metrics catalog
+- **Glossary** - Technical terms defined
+
+**Time investment:** Quick lookups
+
+---
+
+### 09 - Internal
+**[→ Go to Internal](./09-internal/)**
+
+Historical documents, phase reports, and internal analysis.
+
+- **Project History** - Phase reports (150+ documents)
+- **Decisions** - Historical decision-making
+- **Analysis** - Research and investigation
+- **Reports** - Completion and validation reports
+
+**Audience:** Maintainers and project historians
+
+---
+
+## 🎯 Common Tasks
+
+| I want to... | Go to... |
+|--------------|----------|
+| **Deploy RipTide in 5 minutes** | [Quick Start](./00-getting-started/README.md) |
+| **Make my first API call** | [Quick Start](./00-getting-started/README.md#your-first-crawl) |
+| **Understand core concepts** | [Concepts](./00-getting-started/concepts.md) |
+| **Crawl a website** | [Usage Guide](./01-guides/usage/crawling.md) |
+| **Extract tables** | [Table Extraction](./01-guides/usage/table-extraction.md) |
+| **Process PDFs** | [PDF Guide](./01-guides/usage/pdf-extraction.md) |
+| **Stream results in real-time** | [Streaming Guide](./01-guides/usage/streaming.md) |
+| **Setup LLM providers** | [LLM Configuration](./01-guides/configuration/llm-providers.md) |
+| **Configure browser pool** | [Browser Pool](./01-guides/configuration/browser-pool.md) |
+| **Monitor production** | [Monitoring](./01-guides/operations/monitoring.md) |
+| **Troubleshoot issues** | [Troubleshooting](./01-guides/operations/troubleshooting.md) |
+| **Use Python SDK** | [Python SDK](./03-sdk/python/README.md) |
+| **Browse API endpoints** | [API Reference](./02-api-reference/README.md) |
+| **Deploy to Kubernetes** | [Kubernetes](./06-deployment/kubernetes.md) |
+| **Contribute code** | [Contributing](./05-development/contributing.md) |
+| **Understand architecture** | [Architecture](./04-architecture/README.md) |
+
+---
+
+## 📖 Learning Paths
+
+### Beginner Path (2 hours)
+1. [Quick Start](./00-getting-started/README.md) - 15 min
+2. [Core Concepts](./00-getting-started/concepts.md) - 30 min
+3. [FAQ](./00-getting-started/faq.md) - 15 min
+4. [API Reference](./02-api-reference/README.md) - 30 min
+5. [Python SDK](./03-sdk/python/README.md) - 30 min
+
+### Intermediate Path (1 day)
+1. Complete Beginner Path
+2. [Crawling Guide](./01-guides/usage/crawling.md) - 1 hour
+3. [Configuration](./01-guides/configuration/) - 2 hours
+4. [Streaming](./01-guides/usage/streaming.md) - 1 hour
+5. [Deployment](./06-deployment/) - 2 hours
+6. [Monitoring](./01-guides/operations/monitoring.md) - 1 hour
+
+### Advanced Path (1 week)
+1. Complete Intermediate Path
+2. [Architecture](./04-architecture/) - 4 hours
+3. [Advanced Topics](./07-advanced/) - 8 hours
+4. [Development](./05-development/) - 8 hours
+5. Contribute code - Ongoing
+
+---
+
+## 🏗️ Project Status
+
+**Version:** v2.1.0
+**Status:** Production-ready (Phases 1-10 complete)
+**Workspace:** 27 specialized Rust crates
+
+### What's Implemented
+✅ Web crawling (static & dynamic sites)
+✅ Content extraction (CSS, Regex, WASM, LLM)
+✅ Real-time streaming (NDJSON, SSE, WebSocket)
+✅ PDF processing (text & tables)
+✅ Browser automation (headless Chrome)
+✅ Multi-provider LLM (OpenAI, Anthropic, Google, etc.)
+✅ Stealth mode (anti-detection)
+✅ Monitoring (Prometheus, OpenTelemetry)
+✅ Production deployment (Docker, Kubernetes)
+
+### Current Roadmap
+See [COMPREHENSIVE-ROADMAP.md](./00-getting-started/COMPREHENSIVE-ROADMAP.md) for details.
+
+**Next Phase:** Production optimization and scaling
+
+---
+
+## 📊 Documentation Stats
+
+- **Total Documents:** 200+ files
+- **API Endpoints:** 110+ documented
+- **Code Examples:** 50+ examples
+- **Crate Coverage:** 27/27 crates (100%)
+- **Test Coverage:** ~75%
+- **Archived Documents:** 157 historical files
+
+**Last Updated:** 2025-10-26
+**Quality Score:** 9/10
+
+---
+
+## 🤝 Contributing to Documentation
+
+Documentation improvements are welcome!
+
+1. Follow the numbered directory structure (00-09)
+2. Place new docs in the appropriate category
+3. Use templates from existing docs
+4. Keep language clear and concise
+5. Include code examples
+6. Test all commands and code snippets
+
+See [Contributing Guide](./05-development/contributing.md) for details.
+
+---
+
+## 📞 Getting Help
+
+- **Browse the [FAQ](./00-getting-started/faq.md)**
+- **Check [Troubleshooting](./01-guides/operations/troubleshooting.md)**
+- **Search the documentation** (use your IDE's search)
+- **Open a [GitHub Issue](https://github.com/your-org/eventmesh/issues)**
+
+---
+
+## 🔗 External Resources
+
+- **GitHub Repository:** https://github.com/your-org/eventmesh
+- **Issue Tracker:** https://github.com/your-org/eventmesh/issues
+- **Discussions:** https://github.com/your-org/eventmesh/discussions
+
+---
+
+**Ready to start?** → [Go to Getting Started](./00-getting-started/README.md) 🚀

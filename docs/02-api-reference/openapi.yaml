@@ -1,0 +1,3491 @@
+openapi: 3.0.0
+info:
+  title: RipTide API - Comprehensive Specification
+  version: 1.2.0
+  x-last-validated: "2025-10-24T14:30:00Z"
+  description: '# RipTide Crawler API
+
+
+    A high-performance web scraping and content extraction API with 110+ endpoints across
+    17 categories.
+
+
+    ## Phase 1: Core Crawling & Event System (11 endpoints)
+
+    - `/crawl` - Batch URL crawling with adaptive gate system
+
+    - `/crawl/stream`, `/crawl/sse`, `/crawl/ws` - Real-time streaming
+
+    - `/deepsearch`, `/deepsearch/stream` - Web search integration
+
+    - `/render` - Headless browser rendering
+
+    - `/healthz`, `/metrics` - System health and Prometheus metrics
+
+
+    ## Phase 2: Advanced Extraction (14 endpoints)
+
+    - `/strategies/*` - Multi-strategy extraction (CSS, WASM, LLM, Regex)
+
+    - `/pdf/*` - PDF processing with progress streaming
+
+    - `/api/v1/tables/*` - Table extraction and export (CSV/Markdown)
+
+
+    ## Phase 3: Enterprise Features (34 endpoints)
+
+    - `/spider/*` - Deep crawling with frontier management (3)
+
+    - `/stealth/*` - Stealth configuration and testing (4)
+
+    - `/api/v1/llm/*` - LLM provider management (4)
+
+    - `/sessions/*` - Session and cookie management (12)
+
+    - `/workers/*` - Async job queue and scheduling (9)
+
+    - `/monitoring/*` - Health monitoring and alerts (6)
+
+
+    ## Phase 10.4: Domain Profiling & Engine Selection (15 endpoints)
+
+    - `/api/v1/profiles/*` - Domain profile management with warm-start caching (11)
+
+    - `/api/v1/engine/*` - Intelligent engine selection and analysis (4)
+
+
+    ## Architecture Highlights
+
+    - **Dual-Path Pipeline**: Fast CSS + async AI enhancement
+
+    - **Event-Driven**: Core event bus for monitoring
+
+    - **Circuit Breaker**: Automatic failover for dependencies
+
+    - **Adaptive Gate**: Smart routing (raw/probes/headless/cached)
+
+    - **Domain Profiling**: Warm-start optimization with cached engine preferences
+
+    - **Engine Selection**: AI-driven engine recommendations with 60-80% cost savings
+
+
+    **Total: 110+ endpoints documented**
+
+    '
+  contact:
+    name: RipTide API Support
+    url: https://github.com/riptide/api
+    email: support@riptide.dev
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+- url: http://localhost:8080
+  description: Local development
+- url: https://api.riptide.example.com
+  description: Production
+tags:
+- name: Crawling
+  description: Core crawling endpoints (5)
+- name: Extraction
+  description: Content extraction endpoints (2)
+- name: Search
+  description: Web search endpoints (4)
+- name: Spider
+  description: Deep crawling (3)
+- name: Streaming
+  description: Real-time streaming (4)
+- name: Strategies
+  description: Advanced extraction (2)
+- name: PDF
+  description: PDF processing (3)
+- name: Stealth
+  description: Stealth browsing (4)
+- name: Tables
+  description: Table extraction (2)
+- name: LLM
+  description: LLM providers (4)
+- name: Sessions
+  description: Session management (12)
+- name: Workers
+  description: Job queue (11)
+- name: Browser
+  description: Browser session management (4)
+- name: Resources
+  description: Resource monitoring (7)
+- name: Monitoring
+  description: Metrics & alerts (6)
+- name: Health
+  description: Health checks (6)
+- name: Admin
+  description: Admin endpoints (13)
+- name: Profiles
+  description: Domain profile management (11)
+- name: Engine
+  description: Engine selection and analysis (4)
+paths:
+  /healthz:
+    get:
+      operationId: health_check
+      tags:
+      - Health
+      summary: System health check (basic)
+      description: Basic health check for load balancers and Kubernetes probes
+      responses:
+        '200':
+          description: Service healthy or degraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          description: Service unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /api/v1/health:
+    get:
+      operationId: health_check_v1
+      tags:
+      - Health
+      summary: Versioned health check (alias for /healthz)
+      responses:
+        '200':
+          description: Service healthy or degraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          description: Service unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /api/health/detailed:
+    get:
+      operationId: health_detailed
+      tags:
+      - Health
+      summary: Detailed health diagnostics
+      description: Comprehensive health check with all dependency status, system metrics, and build information
+      responses:
+        '200':
+          description: Detailed health information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          description: Service unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /health/{component}:
+    get:
+      operationId: health_component
+      tags:
+      - Health
+      summary: Component-specific health check
+      description: Check health of specific component (redis, extractor, http_client, headless, spider, etc.)
+      parameters:
+      - name: component
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [redis, extractor, http_client, headless, spider, resource_manager, streaming, worker_service, circuit_breaker]
+        description: Component name to check
+      responses:
+        '200':
+          description: Component healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "OK"
+        '404':
+          description: Component not found
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          description: Component unhealthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Service Unavailable"
+  /health/metrics:
+    get:
+      operationId: health_metrics_only
+      tags:
+      - Health
+      summary: Health metrics endpoint
+      description: System metrics only (CPU, memory, disk, etc.) without dependency checks
+      responses:
+        '200':
+          description: System metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "# HELP riptide_requests_total Total requests\n# TYPE riptide_requests_total counter\nriptide_requests_total 1250\n"
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+  /metrics:
+    get:
+      operationId: metrics_prometheus
+      tags:
+      - Health
+      summary: Prometheus metrics
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "# HELP riptide_requests_total Total requests\n# TYPE riptide_requests_total counter\nriptide_requests_total 1250\n"
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+  /api/v1/metrics:
+    get:
+      operationId: metrics_prometheus_v1
+      tags:
+      - Health
+      summary: Versioned Prometheus metrics (alias)
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "# HELP riptide_requests_total Total requests\n# TYPE riptide_requests_total counter\nriptide_requests_total 1250\n"
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+  /crawl:
+    post:
+      operationId: crawl_batch
+      tags:
+      - Crawling
+      summary: Batch crawl URLs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [urls]
+              properties:
+                urls:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+                  description: List of URLs to crawl
+                  example: ["https://example.com", "https://example.org"]
+                options:
+                  type: object
+                  description: Optional crawl configuration
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/crawl:
+    post:
+      operationId: crawl_batch_v1
+      tags:
+      - Crawling
+      summary: Versioned batch crawl (alias)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [urls]
+              properties:
+                urls:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+                  description: List of URLs to crawl
+                options:
+                  type: object
+                  description: Optional crawl configuration
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /crawl/stream:
+    post:
+      operationId: crawl_stream_ndjson
+      tags:
+      - Streaming
+      summary: Stream crawl results (NDJSON)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [urls]
+              properties:
+                urls:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+                  description: List of URLs to crawl
+                options:
+                  type: object
+                  description: Optional crawl configuration
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /crawl/sse:
+    post:
+      operationId: crawl_stream_sse
+      tags:
+      - Streaming
+      summary: Stream crawl results (SSE)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [urls]
+              properties:
+                urls:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+                  description: List of URLs to crawl
+                options:
+                  type: object
+                  description: Optional crawl configuration
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /crawl/ws:
+    get:
+      operationId: crawl_stream_websocket
+      tags:
+      - Streaming
+      summary: WebSocket crawl stream
+      responses:
+        '200':
+          description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+  /deepsearch:
+    post:
+      tags:
+      - Search
+      summary: Deep search with extraction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query:
+                  type: string
+                  description: Search query
+                  example: "web scraping tools"
+                options:
+                  type: object
+                  description: Optional search configuration
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: deepsearch_post
+  /deepsearch/stream:
+    post:
+      tags:
+      - Streaming
+      summary: Stream search results
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query:
+                  type: string
+                  description: Search query
+                options:
+                  type: object
+                  description: Optional search configuration
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: deepsearch_stream_post
+  /render:
+    post:
+      tags:
+      - Crawling
+      summary: Headless browser rendering
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: URL to render
+                  example: "https://example.com"
+                options:
+                  type: object
+                  description: Optional rendering configuration
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: render_post
+  /api/v1/render:
+    post:
+      tags:
+      - Crawling
+      summary: Versioned headless rendering (alias)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: URL to render
+                options:
+                  type: object
+                  description: Optional rendering configuration
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: render_post_v1
+  /extract:
+    post:
+      operationId: extract_post
+      tags:
+      - Extraction
+      summary: Content extraction endpoint
+      description: NEW v1.1 - Direct content extraction without crawling
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: URL to extract content from
+                  example: "https://example.com/article"
+                options:
+                  type: object
+                  description: Optional extraction configuration
+      responses:
+        '200':
+          description: Extracted content
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/extract:
+    post:
+      operationId: extract_post_v1
+      tags:
+      - Extraction
+      summary: Versioned content extraction
+      description: Primary extraction endpoint for v1.1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: URL to extract content from
+                options:
+                  type: object
+                  description: Optional extraction configuration
+      responses:
+        '200':
+          description: Extracted content
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /search:
+    get:
+      operationId: search_get
+      tags:
+      - Search
+      summary: Web search endpoint
+      description: NEW v1.1 - Web search functionality
+      responses:
+        '200':
+          description: Search results
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+  /api/v1/search:
+    get:
+      operationId: search_get_v1
+      tags:
+      - Search
+      summary: Versioned web search
+      description: Primary search endpoint for v1.1
+      responses:
+        '200':
+          description: Search results
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+  /spider/crawl:
+    post:
+      tags:
+      - Spider
+      summary: Deep crawl with Spider
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [start_url]
+              properties:
+                start_url:
+                  type: string
+                  format: uri
+                  description: Starting URL for spider crawl
+                  example: "https://example.com"
+                max_depth:
+                  type: integer
+                  minimum: 1
+                  maximum: 10
+                  description: Maximum crawl depth
+                  example: 3
+                options:
+                  type: object
+                  description: Optional spider configuration
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: spider_crawl_post
+  /spider/status:
+    post:
+      tags:
+      - Spider
+      summary: Get spider status
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [spider_id]
+              properties:
+                spider_id:
+                  type: string
+                  description: Spider instance identifier
+                  example: "spider_abc123"
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: spider_status_post
+  /spider/control:
+    post:
+      tags:
+      - Spider
+      summary: Control spider (stop/reset)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [spider_id, action]
+              properties:
+                spider_id:
+                  type: string
+                  description: Spider instance identifier
+                  example: "spider_abc123"
+                action:
+                  type: string
+                  enum: [stop, reset, pause, resume]
+                  description: Control action to perform
+                  example: "stop"
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: spider_control_post
+  /strategies/crawl:
+    post:
+      tags:
+      - Strategies
+      summary: Advanced extraction strategies
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url, strategy]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: URL to crawl with strategy
+                  example: "https://example.com"
+                strategy:
+                  type: string
+                  enum: [css, wasm, llm, regex]
+                  description: Extraction strategy to use
+                  example: "wasm"
+                options:
+                  type: object
+                  description: Optional strategy configuration
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: strategies_crawl_post
+  /strategies/info:
+    get:
+      tags:
+      - Strategies
+      summary: Get strategies info
+      responses:
+        '200':
+          description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: strategies_info_get
+  /pdf/process:
+    post:
+      tags:
+      - PDF
+      summary: Process PDF file
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: URL of PDF file to process
+                  example: "https://example.com/document.pdf"
+                options:
+                  type: object
+                  description: Optional PDF processing configuration
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: pdf_process_post
+  /pdf/process-stream:
+    post:
+      tags:
+      - PDF
+      summary: Stream PDF processing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: URL of PDF file to process with streaming
+                  example: "https://example.com/document.pdf"
+                options:
+                  type: object
+                  description: Optional PDF processing configuration
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: pdf_process-stream_post
+  /pdf/health:
+    get:
+      tags:
+      - PDF
+      summary: PDF processor health
+      responses:
+        '200':
+          description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: pdf_health_get
+  /stealth/configure:
+    post:
+      tags:
+      - Stealth
+      summary: Configure stealth settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stealth_level:
+                  type: string
+                  enum: [low, medium, high, maximum]
+                  description: Stealth mode level
+                  example: "high"
+                user_agent:
+                  type: string
+                  description: Custom user agent
+                viewport:
+                  type: object
+                  description: Browser viewport configuration
+                proxy:
+                  type: object
+                  description: Proxy configuration
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "OK"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: stealth_configure_post
+  /stealth/test:
+    post:
+      tags:
+      - Stealth
+      summary: Test stealth effectiveness
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: URL to test stealth configuration against
+                  example: "https://bot-detection-test.com"
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: stealth_test_post
+  /stealth/capabilities:
+    get:
+      tags:
+      - Stealth
+      summary: Get stealth capabilities
+      responses:
+        '200':
+          description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: stealth_capabilities_get
+  /stealth/health:
+    get:
+      tags:
+      - Stealth
+      summary: Stealth service health
+      responses:
+        '200':
+          description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: stealth_health_get
+  /api/v1/content/chunk:
+    post:
+      tags:
+      - Content Processing
+      summary: Chunk content using various strategies
+      description: Apply content chunking strategies to split text into manageable pieces
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content, chunking_mode]
+              properties:
+                content:
+                  type: string
+                  description: Text content to chunk
+                  example: "This is a long document that needs to be split into smaller chunks for processing..."
+                chunking_mode:
+                  type: string
+                  enum: [topic, sliding, fixed, sentence, html-aware]
+                  description: Chunking strategy to use
+                  example: "sliding"
+                parameters:
+                  type: object
+                  description: Optional chunking parameters
+                  properties:
+                    chunk_size:
+                      type: integer
+                      minimum: 100
+                      maximum: 10000
+                      default: 1000
+                      description: Target chunk size in tokens
+                    overlap_size:
+                      type: integer
+                      minimum: 0
+                      maximum: 5000
+                      default: 200
+                      description: Overlap between chunks (for sliding mode)
+                    min_chunk_size:
+                      type: integer
+                      minimum: 50
+                      default: 100
+                      description: Minimum chunk size
+                    preserve_sentences:
+                      type: boolean
+                      default: true
+                      description: Preserve sentence boundaries
+                    window_size:
+                      type: integer
+                      minimum: 100
+                      description: Window size for sliding mode
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  chunks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        index:
+                          type: integer
+                          description: Chunk index (0-based)
+                        content:
+                          type: string
+                          description: Chunk content
+                        length:
+                          type: integer
+                          description: Chunk length in characters
+                  chunk_count:
+                    type: integer
+                    description: Total number of chunks
+                  original_length:
+                    type: integer
+                    description: Original content length
+                  processing_time_ms:
+                    type: integer
+                    description: Processing time in milliseconds
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: api_v1_content_chunk_post
+  /api/v1/tables/extract:
+    post:
+      tags:
+      - Tables
+      summary: Extract tables from HTML
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [html]
+              properties:
+                html:
+                  type: string
+                  description: HTML content containing tables
+                  example: "<html><body><table>...</table></body></html>"
+                url:
+                  type: string
+                  format: uri
+                  description: Optional source URL for context
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "OK"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: api_v1_tables_extract_post
+  /api/v1/tables/{id}/export:
+    get:
+      tags:
+      - Tables
+      summary: Export table (CSV/Markdown)
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Table identifier
+        example: table_123
+      - name: format
+        in: query
+        required: true
+        schema:
+          type: string
+          enum: [csv, markdown]
+        description: Export format (csv or markdown)
+        example: csv
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: api_v1_tables_id_export_get
+  /api/v1/llm/providers:
+    get:
+      tags:
+      - LLM
+      summary: List LLM providers
+      responses:
+        '200':
+          description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: api_v1_llm_providers_get
+  /api/v1/llm/providers/current:
+    get:
+      tags:
+      - LLM
+      summary: Get current active LLM provider
+      description: Returns information about the currently active LLM provider
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  current_provider:
+                    type: string
+                    description: Currently active provider name
+                    example: "openai"
+                  status:
+                    type: string
+                    enum: [active, unavailable]
+                    description: Provider status
+                    example: "active"
+                  available:
+                    type: boolean
+                    description: Whether provider is currently available
+                    example: true
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: api_v1_llm_providers_current_get
+  /api/v1/llm/providers/switch:
+    post:
+      tags:
+      - LLM
+      summary: Switch LLM provider
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider]
+              properties:
+                provider:
+                  type: string
+                  enum: [openai, anthropic, cohere, huggingface]
+                  description: LLM provider to switch to
+                  example: "anthropic"
+                api_key:
+                  type: string
+                  description: Optional API key for the provider
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: api_v1_llm_providers_switch_post
+  /api/v1/llm/config:
+    get:
+      tags:
+      - LLM
+      summary: Get LLM config
+      responses:
+        '200':
+          description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: api_v1_llm_config_get
+    post:
+      tags:
+      - LLM
+      summary: Update LLM config
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                model:
+                  type: string
+                  description: Model name or identifier
+                  example: "claude-3-opus"
+                temperature:
+                  type: number
+                  minimum: 0.0
+                  maximum: 2.0
+                  description: Sampling temperature
+                  example: 0.7
+                max_tokens:
+                  type: integer
+                  minimum: 1
+                  description: Maximum tokens to generate
+                  example: 1000
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: api_v1_llm_config_post
+  /sessions:
+    post:
+      tags:
+      - Sessions
+      summary: Create session
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ttl_seconds:
+                  type: integer
+                  minimum: 60
+                  maximum: 86400
+                  description: Session time to live in seconds
+                  example: 3600
+                metadata:
+                  type: object
+                  description: Optional session metadata
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: sessions_post
+    get:
+      tags:
+      - Sessions
+      summary: List sessions
+      responses:
+        '200':
+          description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: sessions_get
+  /sessions/stats:
+    get:
+      tags:
+      - Sessions
+      summary: Session statistics
+      responses:
+        '200':
+          description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: sessions_stats_get
+  /sessions/cleanup:
+    post:
+      tags:
+      - Sessions
+      summary: Cleanup expired sessions
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                force:
+                  type: boolean
+                  description: Force cleanup of all sessions
+                  default: false
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: sessions_cleanup_post
+  /sessions/{session_id}:
+    get:
+      tags:
+      - Sessions
+      summary: Get session info
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Session identifier
+        example: session_abc123
+      responses:
+        '200':
+          description: Success
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: sessions_session_id_get
+    delete:
+      tags:
+      - Sessions
+      summary: Delete session
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Session identifier
+        example: session_abc123
+      responses:
+        '200':
+          description: Success
+        '204':
+          description: No Content - Resource successfully deleted
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: sessions_session_id_delete
+  /sessions/{session_id}/extend:
+    post:
+      tags:
+      - Sessions
+      summary: Extend session TTL
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Session identifier
+        example: session_abc123
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ttl_seconds:
+                  type: integer
+                  minimum: 60
+                  maximum: 86400
+                  description: Time to live in seconds
+                  example: 3600
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: sessions_session_id_extend_post
+  /sessions/{session_id}/cookies:
+    post:
+      tags:
+      - Sessions
+      summary: Set cookie
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Session identifier
+        example: session_abc123
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, value]
+              properties:
+                name:
+                  type: string
+                  description: Cookie name
+                  example: "session_token"
+                value:
+                  type: string
+                  description: Cookie value
+                  example: "abc123def456"
+                domain:
+                  type: string
+                  description: Cookie domain
+                  example: "example.com"
+                path:
+                  type: string
+                  description: Cookie path
+                  example: "/"
+                expires:
+                  type: string
+                  format: date-time
+                  description: Cookie expiration time
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: sessions_session_id_cookies_post
+    delete:
+      tags:
+      - Sessions
+      summary: Clear all cookies
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Session identifier
+        example: session_abc123
+      responses:
+        '200':
+          description: Success
+        '204':
+          description: No Content - Resource successfully deleted
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: sessions_session_id_cookies_delete
+  /sessions/{session_id}/cookies/{domain}:
+    get:
+      tags:
+      - Sessions
+      summary: Get domain cookies
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Session identifier
+        example: session_abc123
+      - name: domain
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Cookie domain
+        example: example.com
+      responses:
+        '200':
+          description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: sessions_session_id_cookies_domain_get
+  /sessions/{session_id}/cookies/{domain}/{name}:
+    get:
+      tags:
+      - Sessions
+      summary: Get specific cookie
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Session identifier
+        example: session_abc123
+      - name: domain
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Cookie domain
+        example: example.com
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Cookie name
+        example: session_token
+      responses:
+        '200':
+          description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: sessions_session_id_cookies_domain_name_get
+    delete:
+      tags:
+      - Sessions
+      summary: Delete cookie
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Session identifier
+        example: session_abc123
+      - name: domain
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Cookie domain
+        example: example.com
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Cookie name
+        example: session_token
+      responses:
+        '200':
+          description: Success
+        '204':
+          description: No Content - Resource successfully deleted
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: sessions_session_id_cookies_domain_name_delete
+  /workers/jobs:
+    post:
+      tags:
+      - Workers
+      summary: Submit async job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  pattern: '^https?://'
+                  description: URL to process as async job
+                  example: "https://example.com"
+                options:
+                  type: object
+                  description: Optional job configuration
+                priority:
+                  type: string
+                  enum: [low, normal, high]
+                  description: Job priority
+                  example: "normal"
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: workers_jobs_post
+    get:
+      tags:
+      - Workers
+      summary: List all jobs
+      description: Get list of all worker jobs with optional filtering
+      responses:
+        '200':
+          description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: workers_jobs_get
+  /workers/jobs/{job_id}:
+    get:
+      tags:
+      - Workers
+      summary: Get job status
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Job identifier
+        example: job_xyz789
+      responses:
+        '200':
+          description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: workers_jobs_job_id_get
+  /workers/jobs/{job_id}/result:
+    get:
+      tags:
+      - Workers
+      summary: Get job result
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Job identifier
+        example: job_xyz789
+      responses:
+        '200':
+          description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: workers_jobs_job_id_result_get
+  /workers/stats/queue:
+    get:
+      tags:
+      - Workers
+      summary: Queue statistics
+      responses:
+        '200':
+          description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: workers_stats_queue_get
+  /workers/stats/workers:
+    get:
+      tags:
+      - Workers
+      summary: Worker pool stats
+      responses:
+        '200':
+          description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: workers_stats_workers_get
+  /workers/metrics:
+    get:
+      tags:
+      - Workers
+      summary: Worker metrics
+      responses:
+        '200':
+          description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: workers_metrics_get
+  /workers/schedule:
+    post:
+      tags:
+      - Workers
+      summary: Create scheduled job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cron, job]
+              properties:
+                cron:
+                  type: string
+                  pattern: '^[0-9\*\-\,\/\ ]+$'
+                  description: Cron expression for schedule
+                  example: "0 */6 * * *"
+                job:
+                  type: object
+                  required: [url]
+                  description: Job configuration
+                  properties:
+                    url:
+                      type: string
+                      format: uri
+                      description: URL to process
+                    options:
+                      type: object
+                      description: Job options
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "# HELP riptide_requests_total Total requests\n# TYPE riptide_requests_total counter\nriptide_requests_total 1250\n"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: workers_schedule_post
+    get:
+      tags:
+      - Workers
+      summary: List scheduled jobs
+      responses:
+        '200':
+          description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: workers_schedule_get
+  /workers/schedule/{job_id}:
+    delete:
+      tags:
+      - Workers
+      summary: Delete scheduled job
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Scheduled job identifier
+        example: job_xyz789
+      responses:
+        '200':
+          description: Success
+        '204':
+          description: No Content - Resource successfully deleted
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: workers_schedule_job_id_delete
+  /monitoring/health-score:
+    get:
+      tags:
+      - Monitoring
+      summary: System health score (0-100)
+      responses:
+        '200':
+          description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: monitoring_health-score_get
+  /monitoring/performance-report:
+    get:
+      tags:
+      - Monitoring
+      summary: Performance report
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "OK"
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: monitoring_performance-report_get
+  /monitoring/metrics/current:
+    get:
+      tags:
+      - Monitoring
+      summary: Current metrics snapshot
+      responses:
+        '200':
+          description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: monitoring_metrics_current_get
+  /monitoring/alerts/rules:
+    get:
+      tags:
+      - Monitoring
+      summary: Alert rule definitions
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "# HELP riptide_requests_total Total requests\n# TYPE riptide_requests_total counter\nriptide_requests_total 1250\n"
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: monitoring_alerts_rules_get
+  /monitoring/alerts/active:
+    get:
+      tags:
+      - Monitoring
+      summary: Active alerts
+      responses:
+        '200':
+          description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: monitoring_alerts_active_get
+  /pipeline/phases:
+    get:
+      tags:
+      - Monitoring
+      summary: Pipeline phase metrics
+      responses:
+        '200':
+          description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: pipeline_phases_get
+  /api/v1/browser/session:
+    post:
+      tags:
+      - Browser
+      summary: Create browser session
+      description: Create a new browser session with optional stealth configuration
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stealth:
+                  type: boolean
+                  description: Enable stealth mode
+                  default: false
+                viewport:
+                  type: object
+                  description: Browser viewport configuration
+                  properties:
+                    width:
+                      type: integer
+                      example: 1920
+                    height:
+                      type: integer
+                      example: 1080
+                user_agent:
+                  type: string
+                  description: Custom user agent
+      responses:
+        '200':
+          description: Browser session created
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: browser_session_post
+  /api/v1/browser/action:
+    post:
+      tags:
+      - Browser
+      summary: Execute browser action
+      description: Execute an action on a browser session (navigate, screenshot, execute script, etc.)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [session_id, action]
+              properties:
+                session_id:
+                  type: string
+                  description: Browser session identifier
+                  example: "sess_abc123def456"
+                action:
+                  type: string
+                  enum: [navigate, screenshot, click, type, execute]
+                  description: Action to perform
+                  example: "navigate"
+                params:
+                  type: object
+                  description: Action-specific parameters
+                  properties:
+                    url:
+                      type: string
+                      format: uri
+                      description: URL for navigate action
+                    selector:
+                      type: string
+                      description: CSS selector for click/type actions
+                    text:
+                      type: string
+                      description: Text for type action
+                    script:
+                      type: string
+                      description: JavaScript code for execute action
+      responses:
+        '200':
+          description: Action executed
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: browser_action_post
+  /api/v1/browser/pool/status:
+    get:
+      tags:
+      - Browser
+      summary: Get browser pool status
+      description: Get current browser pool capacity and active sessions
+      responses:
+        '200':
+          description: Browser pool status
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: browser_pool_status_get
+  /api/v1/browser/session/{id}:
+    delete:
+      tags:
+      - Browser
+      summary: Close browser session
+      description: Close and cleanup a browser session
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Browser session ID
+        example: "sess_abc123def456"
+      responses:
+        '200':
+          description: Session closed
+        '204':
+          description: No Content - Resource successfully deleted
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: browser_session_delete
+  /resources/status:
+    get:
+      tags:
+      - Resources
+      summary: Get resource status
+      description: Overall resource usage and availability
+      responses:
+        '200':
+          description: Resource status
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: resources_status_get
+  /resources/browser-pool:
+    get:
+      tags:
+      - Resources
+      summary: Browser pool resources
+      description: Browser pool resource metrics and availability
+      responses:
+        '200':
+          description: Browser pool resources
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: resources_browser_pool_get
+  /resources/rate-limiter:
+    get:
+      tags:
+      - Resources
+      summary: Rate limiter status
+      description: Current rate limiting status and quotas
+      responses:
+        '200':
+          description: Rate limiter status
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: resources_rate_limiter_get
+  /resources/memory:
+    get:
+      tags:
+      - Resources
+      summary: Memory usage status
+      description: System memory usage and availability
+      responses:
+        '200':
+          description: Memory status
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: resources_memory_get
+  /resources/performance:
+    get:
+      tags:
+      - Resources
+      summary: Performance metrics
+      description: System performance metrics (CPU, latency, throughput)
+      responses:
+        '200':
+          description: Performance metrics
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: resources_performance_get
+  /resources/pdf/semaphore:
+    get:
+      tags:
+      - Resources
+      summary: PDF processing semaphore
+      description: PDF processing resource availability
+      responses:
+        '200':
+          description: PDF semaphore status
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: resources_pdf_semaphore_get
+  /fetch/metrics:
+    get:
+      tags:
+      - Resources
+      summary: Fetch engine metrics
+      description: HTTP fetch engine performance metrics
+      responses:
+        '200':
+          description: Fetch metrics
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: fetch_metrics_get
+  /admin/tenants:
+    post:
+      tags:
+      - Admin
+      summary: Create tenant
+      description: Create a new tenant (requires persistence feature)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, name]
+              properties:
+                id:
+                  type: string
+                  description: Tenant identifier
+                  example: "tenant_prod_123"
+                name:
+                  type: string
+                  description: Tenant name
+                  example: "Production Environment"
+                config:
+                  type: object
+                  description: Tenant-specific configuration
+      responses:
+        '200':
+          description: Tenant created
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "# HELP riptide_requests_total Total requests\n# TYPE riptide_requests_total counter\nriptide_requests_total 1250\n"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: admin_tenants_post
+    get:
+      tags:
+      - Admin
+      summary: List tenants
+      description: List all tenants
+      responses:
+        '200':
+          description: Tenant list
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: admin_tenants_get
+  /admin/tenants/{id}:
+    get:
+      tags:
+      - Admin
+      summary: Get tenant details
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Tenant ID
+        example: "tenant_prod_123"
+      responses:
+        '200':
+          description: Tenant details
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: admin_tenants_id_get
+    put:
+      tags:
+      - Admin
+      summary: Update tenant
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Tenant ID
+        example: "tenant_prod_123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Updated tenant name
+                config:
+                  type: object
+                  description: Updated tenant configuration
+                status:
+                  type: string
+                  enum: [active, suspended, deleted]
+                  description: Tenant status
+      responses:
+        '200':
+          description: Tenant updated
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: admin_tenants_id_put
+    delete:
+      tags:
+      - Admin
+      summary: Delete tenant
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Tenant ID
+        example: "tenant_prod_123"
+      responses:
+        '200':
+          description: Tenant deleted
+        '204':
+          description: No Content - Resource successfully deleted
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: admin_tenants_id_delete
+  /admin/cache/warm:
+    post:
+      tags:
+      - Admin
+      summary: Warm cache
+      description: Preload cache with common data
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                domains:
+                  type: array
+                  items:
+                    type: string
+                  description: Specific domains to warm cache for
+                  example: ["example.com", "test.com"]
+                force:
+                  type: boolean
+                  description: Force cache refresh
+                  default: false
+      responses:
+        '200':
+          description: Cache warmed
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: admin_cache_warm_post
+  /admin/cache/stats:
+    get:
+      tags:
+      - Admin
+      summary: Cache statistics
+      description: Get cache hit rates and statistics
+      responses:
+        '200':
+          description: Cache stats
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+      operationId: admin_cache_stats_get
+  /admin/state/reload:
+    post:
+      tags:
+      - Admin
+      summary: Reload state
+      description: Reload application state from storage
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                components:
+                  type: array
+                  items:
+                    type: string
+                  description: Specific components to reload
+                  example: ["profiles", "sessions"]
+      responses:
+        '200':
+          description: State reloaded
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: admin_state_reload_post
+  /api/v1/profiles:
+    post:
+      operationId: create_profile
+      tags:
+      - Profiles
+      summary: Create domain profile
+      description: |
+        Creates a new domain profile with optional configuration and metadata.
+        Profiles store domain-specific preferences and cached engine selections
+        for warm-start optimization.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProfileRequest'
+            example:
+              domain: example.com
+              config:
+                stealth_level: high
+                rate_limit: 2.0
+                confidence_threshold: 0.8
+                enable_javascript: true
+                request_timeout_secs: 30
+              metadata:
+                description: E-commerce site with product pages
+                tags: [ecommerce, product-pages]
+                author: admin
+      responses:
+        '201':
+          description: Profile created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainProfile'
+        '400':
+          description: Invalid request (validation error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  message: "Invalid request: Domain cannot be empty"
+                  retryable: false
+                  status: 400
+                  type: validation_error
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      operationId: list_profiles
+      tags:
+      - Profiles
+      summary: List all domain profiles
+      description: |
+        Lists all domain profiles with optional filtering by domain pattern.
+        Useful for discovering existing profiles and their configurations.
+      parameters:
+      - name: filter
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Optional domain name filter pattern (substring match)
+        example: example
+      responses:
+        '200':
+          description: List of profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DomainProfile'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/profiles/{domain}:
+    get:
+      operationId: get_profile
+      tags:
+      - Profiles
+      summary: Get domain profile
+      description: Retrieves a specific domain profile by domain name
+      parameters:
+      - name: domain
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Domain name (e.g., example.com)
+        example: example.com
+      responses:
+        '200':
+          description: Profile found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainProfile'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '404':
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  message: "Resource not found: Profile not found for domain example.com"
+                  retryable: false
+                  status: 404
+                  type: not_found
+        '500':
+          description: Internal server error
+    put:
+      operationId: update_profile
+      tags:
+      - Profiles
+      summary: Update domain profile
+      description: Updates an existing domain profile's configuration and metadata
+      parameters:
+      - name: domain
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Domain name to update
+        example: example.com
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+            example:
+              config:
+                stealth_level: medium
+                rate_limit: 5.0
+              metadata:
+                tags: [updated, optimized]
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainProfile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Profile not found
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          description: Internal server error
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+    delete:
+      operationId: delete_profile
+      tags:
+      - Profiles
+      summary: Delete domain profile
+      description: Permanently deletes a domain profile from the registry
+      parameters:
+      - name: domain
+        in: path
+        required: true
+        schema:
+          type: string
+        example: example.com
+      responses:
+        '200':
+          description: Profile deleted successfully
+        '204':
+          description: No Content - Resource successfully deleted
+        '404':
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+  /api/v1/profiles/{domain}/stats:
+    get:
+      operationId: get_profile_stats
+      tags:
+      - Profiles
+      summary: Get domain profile statistics
+      description: |
+        Retrieves usage statistics and cache status for a domain profile.
+        Includes request counts, success rates, response times, and cache information.
+      parameters:
+      - name: domain
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Domain name
+        example: example.com
+      responses:
+        '200':
+          description: Profile statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileStatsResponse'
+              example:
+                domain: example.com
+                total_requests: 1250
+                success_rate: 0.98
+                avg_response_time_ms: 450
+                last_accessed: "2025-10-24T14:25:00Z"
+                cache_status:
+                  has_cached_engine: true
+                  is_valid: true
+                  engine: Wasm
+                  confidence: 0.92
+                  expires_at: "2025-10-31T14:25:00Z"
+        '404':
+          description: Profile not found
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          description: Internal server error
+  /api/v1/profiles/metrics:
+    get:
+      operationId: get_caching_metrics
+      tags:
+      - Profiles
+      summary: Get global caching metrics
+      description: |
+        Retrieves aggregated metrics about profile caching status across all domains.
+        Useful for monitoring cache effectiveness and optimization opportunities.
+      responses:
+        '200':
+          description: Caching metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CachingMetricsResponse'
+              example:
+                total_profiles: 150
+                cached_profiles: 120
+                cache_hit_rate: 80.0
+                avg_confidence: 0.87
+                expired_caches: 5
+        '500':
+          description: Internal server error
+  /api/v1/profiles/batch:
+    post:
+      operationId: batch_create_profiles
+      tags:
+      - Profiles
+      summary: Batch create domain profiles
+      description: |
+        Creates multiple domain profiles in a single request.
+        Returns both successful creations and failures with error details.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchCreateRequest'
+            example:
+              profiles:
+              - domain: example1.com
+                config:
+                  stealth_level: high
+              - domain: example2.com
+                metadata:
+                  description: Test domain
+              - domain: example3.com
+      responses:
+        '201':
+          description: Batch creation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchCreateResponse'
+              example:
+                created: [example1.com, example3.com]
+                failed:
+                - domain: example2.com
+                  error: Domain already exists
+        '400':
+          description: Invalid request
+        '500':
+          description: Internal server error
+  /api/v1/profiles/search:
+    get:
+      operationId: search_profiles
+      tags:
+      - Profiles
+      summary: Search domain profiles
+      description: |
+        Searches for profiles matching the query pattern.
+        Supports substring matching across domain names.
+      parameters:
+      - name: query
+        in: query
+        required: true
+        schema:
+          type: string
+        description: Search query (domain substring)
+        example: shop
+      responses:
+        '200':
+          description: Matching profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DomainProfile'
+        '400':
+          description: Invalid query
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          description: Internal server error
+  /api/v1/profiles/{domain}/warm:
+    post:
+      operationId: warm_cache
+      tags:
+      - Profiles
+      summary: Warm domain cache
+      description: |
+        Warms the engine cache for a domain by analyzing a representative URL.
+        This preloads the optimal engine preference for faster subsequent requests.
+      parameters:
+      - name: domain
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Domain name
+        example: example.com
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WarmCacheRequest'
+            example:
+              url: https://example.com/product/12345
+      responses:
+        '200':
+          description: Cache warmed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WarmCacheResponse'
+              example:
+                success: true
+                domain: example.com
+                cached_engine: Wasm
+                confidence: 0.85
+                message: Cache warmed successfully for domain example.com
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '404':
+          description: Profile not found
+        '500':
+          description: Internal server error
+  /api/v1/profiles/clear:
+    delete:
+      operationId: clear_all_caches
+      tags:
+      - Profiles
+      summary: Clear all profile caches
+      description: |
+        Clears all cached engine preferences across all profiles.
+        Useful for resetting optimization state after major changes.
+      responses:
+        '200':
+          description: Caches cleared
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  cleared:
+                    type: integer
+                  failed:
+                    type: integer
+                  message:
+                    type: string
+              example:
+                success: true
+                cleared: 45
+                failed: 0
+                message: Cleared 45 profile caches
+        '204':
+          description: No Content - Resource successfully deleted
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          description: Internal server error
+  /api/v1/engine/analyze:
+    post:
+      operationId: analyze_engine
+      tags:
+      - Engine
+      summary: Analyze HTML and recommend engine
+      description: |
+        Performs comprehensive content analysis and provides engine recommendation.
+        Analyzes JavaScript frameworks, SPA markers, content ratios, and more.
+
+        **Analysis includes:**
+        - Framework detection (React, Vue, Angular)
+        - SPA and anti-scraping detection
+        - Content-to-markup ratio
+        - Visible text density
+        - Placeholder/skeleton UI detection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalyzeRequest'
+            example:
+              html: "<html><body><div id=\"root\">...</div></body></html>"
+              url: https://example.com
+      responses:
+        '200':
+          description: Analysis complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyzeResponse'
+              example:
+                engine: Headless
+                confidence: 92.5
+                reasons:
+                - React framework detected (Next.js markers, webpack)
+                - Single Page Application (SPA) markers found
+                - Low content-to-markup ratio (8.5%) suggests client-side rendering
+                analysis:
+                  has_react: true
+                  has_vue: false
+                  has_angular: false
+                  has_spa_markers: true
+                  has_anti_scraping: false
+                  content_ratio: 0.085
+                  has_main_content: false
+                  visible_text_density: 0.12
+                  has_placeholders: true
+        '400':
+          description: Invalid request
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          description: Internal server error
+  /api/v1/engine/decide:
+    post:
+      operationId: decide_engine
+      tags:
+      - Engine
+      summary: Make engine decision with feature flags
+      description: |
+        Makes engine selection with fine-grained control through feature flags.
+        Supports advanced optimizations like probe-first escalation.
+
+        **Feature Flags:**
+        - `use_visible_text_density`: Refined visible-text calculation
+        - `detect_placeholders`: Enable skeleton UI detection
+        - `probe_first_spa`: Try WASM before headless (60-80% cost savings)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DecideRequest'
+            example:
+              html: "<html><body><div id=\"app\">...</div></body></html>"
+              url: https://spa-example.com
+              flags:
+                use_visible_text_density: true
+                detect_placeholders: true
+                probe_first_spa: true
+      responses:
+        '200':
+          description: Decision made
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecideResponse'
+              example:
+                engine: Wasm
+                confidence: 75.0
+                reasons:
+                - Vue.js framework detected
+                - Probe-first mode enabled - trying WASM extraction first
+                - Good content-to-markup ratio (35.2%) indicates server-rendered content
+                flags:
+                  use_visible_text_density: true
+                  detect_placeholders: true
+                  probe_first_spa: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          description: Internal server error
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/engine/stats:
+    get:
+      operationId: get_engine_stats
+      tags:
+      - Engine
+      summary: Get engine usage statistics
+      description: |
+        Returns aggregated statistics about engine usage across all requests.
+        Includes total counts, per-engine breakdown, and probe-first mode status.
+      responses:
+        '200':
+          description: Engine statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EngineStatsResponse'
+              example:
+                total_requests: 5420
+                engine_counts:
+                  Raw: 1250
+                  Wasm: 2890
+                  Headless: 1280
+                engine_percentages:
+                  Raw: 23.1
+                  Wasm: 53.3
+                  Headless: 23.6
+                probe_first_enabled: true
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          description: Internal server error
+  /api/v1/engine/probe-first:
+    put:
+      operationId: toggle_probe_first
+      tags:
+      - Engine
+      summary: Toggle probe-first mode
+      description: |
+        Enable or disable probe-first SPA optimization globally.
+        When enabled, SPA-detected pages try WASM extraction before headless.
+
+        **Cost Impact:**
+        - Enabled: 60-80% cost savings on SPAs with server-rendered content
+        - Risk: Minimal - automatic escalation ensures content quality
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProbeFirstRequest'
+            example:
+              enabled: true
+      responses:
+        '200':
+          description: Probe-first mode toggled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProbeFirstResponse'
+              example:
+                enabled: true
+                message: Probe-first mode enabled. SPAs will try WASM extraction before headless.
+        '400':
+          description: Invalid request
+        '500':
+          description: Internal server error
+components:
+  responses:
+    BadRequest:
+      description: Bad Request - Invalid or missing required parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              message: "Invalid request: Missing required parameter 'format'"
+              retryable: false
+              status: 400
+              type: validation_error
+
+    NotFound:
+      description: Not Found - Resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              message: "Resource not found: Table with ID 'table_123' not found or expired"
+              retryable: false
+              status: 404
+              type: not_found
+
+    RateLimitExceeded:
+      description: Rate Limit Exceeded - Too many requests
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RateLimitError'
+          example:
+            error: RateLimitExceeded
+            message: "Rate limit exceeded: Resource limit exceeded: Global rate limit exceeded"
+            retry_after_seconds: 60
+
+    UnsupportedMediaType:
+      description: Unsupported Media Type - Content-Type header missing or unsupported
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              message: "Expected request with `Content-Type: application/json`"
+              retryable: false
+              status: 415
+              type: unsupported_media_type
+
+    ServiceUnavailable:
+      description: Service Unavailable - Dependency unavailable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              message: "Dependency unavailable: redis - Connection timeout"
+              retryable: true
+              status: 503
+              type: dependency_error
+
+    MethodNotAllowed:
+      description: Method Not Allowed - HTTP method not supported for this endpoint
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              message: "Method Not Allowed: This endpoint does not support the requested HTTP method"
+              retryable: false
+              status: 405
+              type: method_not_allowed
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          description: Error details object
+          properties:
+            message:
+              type: string
+              description: Detailed error message describing what went wrong
+              example: "Resource not found: Table with ID 'table_123' not found or expired"
+            retryable:
+              type: boolean
+              description: Whether the operation can be retried
+              example: false
+            status:
+              type: integer
+              description: HTTP status code
+              example: 404
+            type:
+              type: string
+              description: Error type identifier (e.g., not_found, validation_error, internal_server_error)
+              example: not_found
+          required:
+          - message
+          - retryable
+          - status
+          - type
+      required:
+      - error
+
+    RateLimitError:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type (RateLimitExceeded)
+          example: RateLimitExceeded
+        message:
+          type: string
+          description: Detailed error message
+          example: "Rate limit exceeded: Resource limit exceeded: Global rate limit exceeded"
+        retry_after_seconds:
+          type: integer
+          description: Seconds to wait before retrying
+          example: 60
+      required:
+      - error
+      - message
+      - retry_after_seconds
+    
+    # ==================== Domain Profile Schemas ====================
+    
+    CreateProfileRequest:
+      type: object
+      required:
+      - domain
+      properties:
+        domain:
+          type: string
+          description: Domain name (e.g., example.com)
+          example: example.com
+        config:
+          $ref: '#/components/schemas/ProfileConfigRequest'
+        metadata:
+          $ref: '#/components/schemas/ProfileMetadataRequest'
+    
+    ProfileConfigRequest:
+      type: object
+      properties:
+        stealth_level:
+          type: string
+          description: Stealth browsing level
+          enum: [low, medium, high, maximum]
+          example: high
+        rate_limit:
+          type: number
+          format: double
+          description: Requests per second limit
+          minimum: 0.1
+          maximum: 100.0
+          example: 2.0
+        respect_robots_txt:
+          type: boolean
+          description: Whether to respect robots.txt
+          example: true
+        ua_strategy:
+          type: string
+          description: User-Agent rotation strategy
+          example: random
+        confidence_threshold:
+          type: number
+          format: double
+          description: Minimum confidence for engine selection (0.0-1.0)
+          minimum: 0.0
+          maximum: 1.0
+          example: 0.8
+        enable_javascript:
+          type: boolean
+          description: Enable JavaScript execution
+          example: true
+        request_timeout_secs:
+          type: integer
+          format: int64
+          description: Request timeout in seconds
+          minimum: 1
+          maximum: 300
+          example: 30
+    
+    ProfileMetadataRequest:
+      type: object
+      properties:
+        description:
+          type: string
+          description: Profile description
+          example: E-commerce site with product pages
+        tags:
+          type: array
+          items:
+            type: string
+          description: Profile tags for categorization
+          example: [ecommerce, product-pages]
+        author:
+          type: string
+          description: Profile creator
+          example: admin
+    
+    UpdateProfileRequest:
+      type: object
+      properties:
+        config:
+          $ref: '#/components/schemas/ProfileConfigRequest'
+        metadata:
+          $ref: '#/components/schemas/ProfileMetadataRequest'
+    
+    DomainProfile:
+      type: object
+      required:
+      - domain
+      - config
+      - metadata
+      properties:
+        domain:
+          type: string
+          description: Domain name
+          example: example.com
+        config:
+          type: object
+          description: Profile configuration
+          properties:
+            stealth_level:
+              type: string
+              example: high
+            rate_limit:
+              type: number
+              example: 2.0
+            respect_robots_txt:
+              type: boolean
+              example: true
+            ua_strategy:
+              type: string
+              example: random
+            confidence_threshold:
+              type: number
+              example: 0.8
+            enable_javascript:
+              type: boolean
+              example: true
+            request_timeout_secs:
+              type: integer
+              example: 30
+        metadata:
+          type: object
+          description: Profile metadata
+          properties:
+            description:
+              type: string
+              nullable: true
+            tags:
+              type: array
+              items:
+                type: string
+            author:
+              type: string
+              nullable: true
+            total_requests:
+              type: integer
+              format: int64
+            success_rate:
+              type: number
+              format: double
+            avg_response_time_ms:
+              type: integer
+              format: int64
+            last_accessed:
+              type: string
+              format: date-time
+              nullable: true
+        preferred_engine:
+          type: string
+          nullable: true
+          description: Cached engine preference
+          enum: [Raw, Wasm, Headless, Auto]
+          example: Wasm
+        last_success_confidence:
+          type: number
+          format: double
+          nullable: true
+          description: Confidence score of last successful engine selection
+          example: 0.92
+        cache_expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Cache expiration timestamp
+    
+    BatchCreateRequest:
+      type: object
+      required:
+      - profiles
+      properties:
+        profiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateProfileRequest'
+          description: List of profiles to create
+    
+    BatchCreateResponse:
+      type: object
+      properties:
+        created:
+          type: array
+          items:
+            type: string
+          description: Successfully created domain names
+        failed:
+          type: array
+          items:
+            $ref: '#/components/schemas/BatchFailure'
+          description: Failed creation attempts
+    
+    BatchFailure:
+      type: object
+      properties:
+        domain:
+          type: string
+          description: Domain name that failed
+        error:
+          type: string
+          description: Error message
+    
+    ProfileStatsResponse:
+      type: object
+      properties:
+        domain:
+          type: string
+          description: Domain name
+        total_requests:
+          type: integer
+          format: int64
+          description: Total number of requests
+        success_rate:
+          type: number
+          format: double
+          description: Success rate (0.0-1.0)
+        avg_response_time_ms:
+          type: integer
+          format: int64
+          description: Average response time in milliseconds
+        last_accessed:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last access timestamp
+        cache_status:
+          $ref: '#/components/schemas/CacheStatusInfo'
+    
+    CacheStatusInfo:
+      type: object
+      properties:
+        has_cached_engine:
+          type: boolean
+          description: Whether an engine is cached
+        is_valid:
+          type: boolean
+          description: Whether the cache is still valid
+        engine:
+          type: string
+          nullable: true
+          description: Cached engine name
+          enum: [Raw, Wasm, Headless, Auto]
+        confidence:
+          type: number
+          format: double
+          nullable: true
+          description: Confidence score
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Cache expiration timestamp
+    
+    WarmCacheRequest:
+      type: object
+      required:
+      - url
+      properties:
+        url:
+          type: string
+          format: uri
+          description: Representative URL to analyze
+          example: https://example.com/product/12345
+    
+    WarmCacheResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Whether cache warming succeeded
+        domain:
+          type: string
+          description: Domain name
+        cached_engine:
+          type: string
+          nullable: true
+          description: Cached engine name
+        confidence:
+          type: number
+          format: double
+          nullable: true
+          description: Confidence score
+        message:
+          type: string
+          description: Result message
+    
+    CachingMetricsResponse:
+      type: object
+      properties:
+        total_profiles:
+          type: integer
+          description: Total number of profiles
+        cached_profiles:
+          type: integer
+          description: Number of profiles with cached engines
+        cache_hit_rate:
+          type: number
+          format: double
+          description: Cache hit rate percentage (0-100)
+        avg_confidence:
+          type: number
+          format: double
+          description: Average confidence score across cached profiles
+        expired_caches:
+          type: integer
+          description: Number of expired caches
+    
+    # ==================== Engine Selection Schemas ====================
+    
+    AnalyzeRequest:
+      type: object
+      required:
+      - html
+      - url
+      properties:
+        html:
+          type: string
+          description: HTML content to analyze
+          example: "<html><body><div id=\"root\">...</div></body></html>"
+        url:
+          type: string
+          format: uri
+          description: Source URL for context
+          example: https://example.com
+    
+    AnalyzeResponse:
+      type: object
+      properties:
+        engine:
+          type: string
+          description: Recommended engine
+          enum: [Raw, Wasm, Headless, Auto]
+          example: Headless
+        confidence:
+          type: number
+          format: double
+          description: Confidence score (0-100)
+          example: 92.5
+        reasons:
+          type: array
+          items:
+            type: string
+          description: Reasons for the recommendation
+          example:
+          - React framework detected (Next.js markers, webpack)
+          - Single Page Application (SPA) markers found
+        analysis:
+          $ref: '#/components/schemas/ContentAnalysisResponse'
+    
+    ContentAnalysisResponse:
+      type: object
+      properties:
+        has_react:
+          type: boolean
+          description: React/Next.js framework detected
+        has_vue:
+          type: boolean
+          description: Vue.js framework detected
+        has_angular:
+          type: boolean
+          description: Angular framework detected
+        has_spa_markers:
+          type: boolean
+          description: SPA markers detected
+        has_anti_scraping:
+          type: boolean
+          description: Anti-scraping protection detected
+        content_ratio:
+          type: number
+          format: double
+          description: Content-to-markup ratio (0.0-1.0)
+        has_main_content:
+          type: boolean
+          description: Has main content tags (article, main)
+        visible_text_density:
+          type: number
+          format: double
+          description: Visible text density (excludes scripts/styles)
+        has_placeholders:
+          type: boolean
+          description: Placeholder/skeleton elements detected
+    
+    DecideRequest:
+      type: object
+      required:
+      - html
+      - url
+      properties:
+        html:
+          type: string
+          description: HTML content to analyze
+        url:
+          type: string
+          format: uri
+          description: Source URL for context
+        flags:
+          $ref: '#/components/schemas/EngineSelectionFlagsRequest'
+    
+    EngineSelectionFlagsRequest:
+      type: object
+      properties:
+        use_visible_text_density:
+          type: boolean
+          description: Enable refined visible-text density calculation
+          default: false
+        detect_placeholders:
+          type: boolean
+          description: Enable placeholder/skeleton detection
+          default: false
+        probe_first_spa:
+          type: boolean
+          description: Try WASM before headless for SPAs (60-80% cost savings)
+          default: false
+    
+    DecideResponse:
+      type: object
+      properties:
+        engine:
+          type: string
+          description: Selected engine
+          enum: [Raw, Wasm, Headless, Auto]
+        confidence:
+          type: number
+          format: double
+          description: Confidence score (0-100)
+        reasons:
+          type: array
+          items:
+            type: string
+          description: Reasons for the decision
+        flags:
+          $ref: '#/components/schemas/EngineSelectionFlagsResponse'
+    
+    EngineSelectionFlagsResponse:
+      type: object
+      properties:
+        use_visible_text_density:
+          type: boolean
+          description: Visible-text density calculation enabled
+        detect_placeholders:
+          type: boolean
+          description: Placeholder detection enabled
+        probe_first_spa:
+          type: boolean
+          description: Probe-first mode enabled
+    
+    EngineStatsResponse:
+      type: object
+      properties:
+        total_requests:
+          type: integer
+          format: int64
+          description: Total requests analyzed
+        engine_counts:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+          description: Engine usage counts
+          example:
+            Raw: 1250
+            Wasm: 2890
+            Headless: 1280
+        engine_percentages:
+          type: object
+          additionalProperties:
+            type: number
+            format: double
+          description: Engine usage percentages
+          example:
+            Raw: 23.1
+            Wasm: 53.3
+            Headless: 23.6
+        probe_first_enabled:
+          type: boolean
+          description: Current probe-first mode status
+    
+    ProbeFirstRequest:
+      type: object
+      required:
+      - enabled
+      properties:
+        enabled:
+          type: boolean
+          description: Enable or disable probe-first mode
+    
+    ProbeFirstResponse:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          description: New probe-first mode status
+        message:
+          type: string
+          description: Success message

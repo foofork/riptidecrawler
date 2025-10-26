@@ -1,3 +1,4 @@
+pub mod chunking;
 pub mod engine;
 pub mod llm;
 pub mod pdf;

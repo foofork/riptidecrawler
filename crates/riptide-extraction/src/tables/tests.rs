@@ -105,4 +105,25 @@ mod integration_tests {
         assert_eq!(parsed[0], original_data[0]);
         assert_eq!(parsed[1], original_data[1]);
     }
+
+    /// Helper function to parse CSV back to data structure for round-trip testing
+    fn parse_csv_to_data(csv: &str) -> Result<Vec<Vec<String>>, String> {
+        let mut result = Vec::new();
+
+        for line in csv.lines() {
+            // Skip empty lines and comment lines
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+
+            let row: Vec<String> = line
+                .split(',')
+                .map(|cell| cell.trim().to_string())
+                .collect();
+
+            result.push(row);
+        }
+
+        Ok(result)
+    }
 }

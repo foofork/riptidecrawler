@@ -44,105 +44,25 @@ mod test_utils {
     /// ```
     pub fn create_test_app() -> axum::Router {
         use axum::routing::{get, post};
+        use riptide_api::routes;
+        use riptide_api::state::AppState;
+        use std::sync::Arc;
 
-        // Create a minimal router with test endpoints
-        // This is a stub implementation - endpoints will return 501 Not Implemented
-        // until the actual API endpoints are implemented
+        // Create a test app state with minimal configuration
+        // For tests, we use in-memory implementations where possible
+        let test_state = create_test_state();
+
+        // Use the actual API routes instead of stubs
         axum::Router::new()
-            // Health endpoints (should work)
+            // Health endpoints
             .route("/healthz", get(|| async { "OK" }))
-            // Table extraction endpoints (not yet implemented)
-            .route(
-                "/api/v1/tables/extract",
-                post(|| async {
-                    (
-                        axum::http::StatusCode::NOT_IMPLEMENTED,
-                        axum::Json(serde_json::json!({
-                            "error": "Table extraction endpoint not yet implemented"
-                        })),
-                    )
-                }),
-            )
-            .route(
-                "/api/v1/tables/:id/export",
-                get(|| async {
-                    (
-                        axum::http::StatusCode::NOT_IMPLEMENTED,
-                        axum::Json(serde_json::json!({
-                            "error": "Table export endpoint not yet implemented"
-                        })),
-                    )
-                }),
-            )
-            // LLM provider endpoints (not yet implemented)
-            .route(
-                "/api/v1/llm/providers",
-                get(|| async {
-                    (
-                        axum::http::StatusCode::NOT_IMPLEMENTED,
-                        axum::Json(serde_json::json!({
-                            "error": "LLM providers endpoint not yet implemented"
-                        })),
-                    )
-                }),
-            )
-            .route(
-                "/api/v1/llm/providers/current",
-                get(|| async {
-                    (
-                        axum::http::StatusCode::NOT_IMPLEMENTED,
-                        axum::Json(serde_json::json!({
-                            "error": "Current provider endpoint not yet implemented"
-                        })),
-                    )
-                }),
-            )
-            .route(
-                "/api/v1/llm/providers/switch",
-                post(|| async {
-                    (
-                        axum::http::StatusCode::NOT_IMPLEMENTED,
-                        axum::Json(serde_json::json!({
-                            "error": "Provider switch endpoint not yet implemented"
-                        })),
-                    )
-                }),
-            )
-            .route(
-                "/api/v1/llm/config",
-                get(|| async {
-                    (
-                        axum::http::StatusCode::NOT_IMPLEMENTED,
-                        axum::Json(serde_json::json!({
-                            "error": "LLM config get endpoint not yet implemented"
-                        })),
-                    )
-                }),
-            )
-            .route(
-                "/api/v1/llm/config",
-                post(|| async {
-                    (
-                        axum::http::StatusCode::NOT_IMPLEMENTED,
-                        axum::Json(serde_json::json!({
-                            "error": "LLM config update endpoint not yet implemented"
-                        })),
-                    )
-                }),
-            )
-            // Chunking endpoints (not yet implemented)
-            .route(
-                "/api/v1/content/chunk",
-                post(|| async {
-                    (
-                        axum::http::StatusCode::NOT_IMPLEMENTED,
-                        axum::Json(serde_json::json!({
-                            "error": "Content chunking endpoint not yet implemented"
-                        })),
-                    )
-                }),
-            )
-            // Crawl endpoints (not yet implemented for testing)
+            // Content chunking endpoints - NOW IMPLEMENTED
+            .nest("/api/v1/content", routes::chunking::chunking_routes())
+            // Table extraction endpoints - NOW IMPLEMENTED
+            .nest("/api/v1/tables", routes::tables::table_routes())
+            // LLM provider management endpoints - NOW IMPLEMENTED
+            .nest("/api/v1/llm", routes::llm::llm_routes())
+            // Crawl endpoint stub (would need full app state setup)
             .route(
                 "/crawl",
                 post(|| async {
@@ -154,18 +74,16 @@ mod test_utils {
                     )
                 }),
             )
-            // Analysis endpoints (not yet implemented)
-            .route(
-                "/api/v1/content/analyze",
-                post(|| async {
-                    (
-                        axum::http::StatusCode::NOT_IMPLEMENTED,
-                        axum::Json(serde_json::json!({
-                            "error": "Content analysis endpoint not yet implemented"
-                        })),
-                    )
-                }),
-            )
+            .with_state(test_state)
+    }
+
+    /// Create a minimal test state for integration tests
+    fn create_test_state() -> AppState {
+        use riptide_api::state::AppState;
+
+        // For now, we'll use a minimal test configuration
+        // This would need to be expanded for full integration testing
+        AppState::new_test_minimal()
     }
 
     /// Helper to make HTTP requests and parse JSON responses
