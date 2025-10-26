@@ -4,14 +4,14 @@ on:
   push:
     branches: [main, develop]
     paths:
-      - 'docs/api/openapi.yaml'
+      - 'docs/02-api-reference/openapi.yaml'
       - 'crates/riptide-api/**'
       - 'tests/api/**'
       - '.github/workflows/api-validation.yml'
   pull_request:
     branches: [main, develop]
     paths:
-      - 'docs/api/openapi.yaml'
+      - 'docs/02-api-reference/openapi.yaml'
       - 'crates/riptide-api/**'
       - 'tests/api/**'
       - '.github/workflows/api-validation.yml'
@@ -67,8 +67,8 @@ jobs:
         run: npm i -g @apidevtools/swagger-cli @stoplight/spectral-cli
       - if: false
         run: |
-          swagger-cli validate docs/api/openapi.yaml
-          spectral lint docs/api/openapi.yaml --format stylish --fail-severity error
+          swagger-cli validate docs/02-api-reference/openapi.yaml
+          spectral lint docs/02-api-reference/openapi.yaml --format stylish --fail-severity error
 
   contract-validation:
     name: 📋 Contract Validation (Dredd)
@@ -134,7 +134,7 @@ jobs:
         continue-on-error: true
         run: |
           npm i -g dredd
-          dredd docs/api/openapi.yaml http://localhost:8080 \
+          dredd docs/02-api-reference/openapi.yaml http://localhost:8080 \
             --reporter=html --reporter=markdown \
             --output=dredd-report.html --output=dredd-report.md
 
@@ -199,7 +199,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install schemathesis
-          schemathesis run docs/api/openapi.yaml \
+          schemathesis run docs/02-api-reference/openapi.yaml \
             --url http://localhost:8080 \
             --checks all --max-examples=100
 
