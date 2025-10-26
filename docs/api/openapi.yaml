@@ -1878,16 +1878,32 @@ components:
       type: object
       properties:
         error:
-          type: string
-          description: Error type identifier (e.g., NotFound, ValidationError, InternalServerError)
-          example: NotFound
-        message:
-          type: string
-          description: Detailed error message describing what went wrong
-          example: "Resource not found: Table with ID 'table_123' not found or expired"
+          type: object
+          description: Error details object
+          properties:
+            message:
+              type: string
+              description: Detailed error message describing what went wrong
+              example: "Resource not found: Table with ID 'table_123' not found or expired"
+            retryable:
+              type: boolean
+              description: Whether the operation can be retried
+              example: false
+            status:
+              type: integer
+              description: HTTP status code
+              example: 404
+            type:
+              type: string
+              description: Error type identifier (e.g., not_found, validation_error, internal_server_error)
+              example: not_found
+          required:
+          - message
+          - retryable
+          - status
+          - type
       required:
       - error
-      - message
 
     RateLimitError:
       type: object
