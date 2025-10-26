@@ -1,8 +1,5 @@
 name: API Validation Pipeline
 
-# DISABLED: Skipping OpenAPI validation to speed up CI
-# Re-enable by changing 'if: false' to 'if: true' in jobs below
-
 on:
   push:
     branches: [main, develop]
@@ -34,7 +31,6 @@ env:
 jobs:
   static-analysis:
     name: 🔍 Static Analysis
-    if: false  # Disabled - remove this line to re-enable OpenAPI validation
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -60,18 +56,22 @@ jobs:
       - name: Clippy (zero warnings)
         run: cargo clippy --package riptide-api --all-targets -- -D warnings
 
+      # OpenAPI validation disabled - skip swagger-cli and spectral checks
+      # Re-enable by removing 'if: false' below
       - name: Validate OpenAPI (spectral + swagger-cli)
+        if: false
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm i -g @apidevtools/swagger-cli @stoplight/spectral-cli
-      - run: |
+      - if: false
+        run: npm i -g @apidevtools/swagger-cli @stoplight/spectral-cli
+      - if: false
+        run: |
           swagger-cli validate docs/api/openapi.yaml
           spectral lint docs/api/openapi.yaml --format stylish --fail-severity error
 
   contract-validation:
     name: 📋 Contract Validation (Dredd)
-    if: false  # Disabled - remove this line to re-enable contract validation
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [static-analysis]
@@ -153,7 +153,6 @@ jobs:
 
   fuzzing-tests:
     name: 🔀 Fuzzing (Schemathesis)
-    if: false  # Disabled - remove this line to re-enable fuzzing tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [static-analysis]
@@ -217,9 +216,9 @@ jobs:
 
   validation-complete:
     name: ✅ Validation Complete
-    if: false  # Disabled - remove this line to re-enable validation
     runs-on: ubuntu-latest
     needs: [static-analysis, contract-validation, fuzzing-tests]
+    if: always()
     steps:
       - run: |
           echo "Static: ${{ needs.static-analysis.result }}"
