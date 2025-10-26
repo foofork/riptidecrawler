@@ -134,6 +134,8 @@ paths:
       responses:
         '200':
           description: Service healthy or degraded
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '503':
           description: Service unhealthy
   /api/v1/health:
@@ -145,6 +147,8 @@ paths:
       responses:
         '200':
           description: Service healthy or degraded
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '503':
           description: Service unhealthy
   /api/health/detailed:
@@ -157,6 +161,8 @@ paths:
       responses:
         '200':
           description: Detailed health information
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '503':
           description: Service unhealthy
   /health/{component}:
@@ -179,6 +185,8 @@ paths:
           description: Component healthy
         '404':
           description: Component not found
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '503':
           description: Component unhealthy
   /health/metrics:
@@ -191,6 +199,8 @@ paths:
       responses:
         '200':
           description: System metrics
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
   /metrics:
     get:
       operationId: metrics_prometheus
@@ -200,6 +210,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
   /api/v1/metrics:
     get:
       operationId: metrics_prometheus_v1
@@ -209,6 +221,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
   /crawl:
     post:
       operationId: crawl_batch
@@ -218,6 +232,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
   /api/v1/crawl:
     post:
       operationId: crawl_batch_v1
@@ -227,6 +243,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
   /crawl/stream:
     post:
       operationId: crawl_stream_ndjson
@@ -236,6 +254,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
   /crawl/sse:
     post:
       operationId: crawl_stream_sse
@@ -245,6 +265,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
   /crawl/ws:
     get:
       operationId: crawl_stream_websocket
@@ -254,6 +276,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
   /deepsearch:
     post:
       tags:
@@ -262,6 +286,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: deepsearch_post
   /deepsearch/stream:
     post:
@@ -271,6 +297,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: deepsearch_stream_post
   /render:
     post:
@@ -280,6 +308,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: render_post
   /api/v1/render:
     post:
@@ -289,6 +319,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: render_post_v1
   /extract:
     post:
@@ -300,6 +332,8 @@ paths:
       responses:
         '200':
           description: Extracted content
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
   /api/v1/extract:
     post:
       operationId: extract_post_v1
@@ -310,6 +344,8 @@ paths:
       responses:
         '200':
           description: Extracted content
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
   /search:
     get:
       operationId: search_get
@@ -320,6 +356,8 @@ paths:
       responses:
         '200':
           description: Search results
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
   /api/v1/search:
     get:
       operationId: search_get_v1
@@ -330,6 +368,8 @@ paths:
       responses:
         '200':
           description: Search results
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
   /spider/crawl:
     post:
       tags:
@@ -338,6 +378,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: spider_crawl_post
   /spider/status:
     post:
@@ -347,6 +389,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: spider_status_post
   /spider/control:
     post:
@@ -356,6 +400,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: spider_control_post
   /strategies/crawl:
     post:
@@ -365,6 +411,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: strategies_crawl_post
   /strategies/info:
     get:
@@ -374,6 +422,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: strategies_info_get
   /pdf/process:
     post:
@@ -383,6 +433,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: pdf_process_post
   /pdf/process-stream:
     post:
@@ -392,6 +444,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: pdf_process-stream_post
   /pdf/health:
     get:
@@ -401,6 +455,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: pdf_health_get
   /stealth/configure:
     post:
@@ -410,6 +466,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: stealth_configure_post
   /stealth/test:
     post:
@@ -419,6 +477,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: stealth_test_post
   /stealth/capabilities:
     get:
@@ -428,6 +488,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: stealth_capabilities_get
   /stealth/health:
     get:
@@ -437,6 +499,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: stealth_health_get
   /api/v1/tables/extract:
     post:
@@ -446,6 +510,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: api_v1_tables_extract_post
   /api/v1/tables/{id}/export:
     get:
@@ -486,6 +552,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: api_v1_llm_providers_get
   /api/v1/llm/providers/switch:
     post:
@@ -495,6 +563,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: api_v1_llm_providers_switch_post
   /api/v1/llm/config:
     get:
@@ -504,6 +574,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: api_v1_llm_config_get
     post:
       tags:
@@ -512,6 +584,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: api_v1_llm_config_post
   /sessions:
     post:
@@ -521,6 +595,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: sessions_post
     get:
       tags:
@@ -529,6 +605,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: sessions_get
   /sessions/stats:
     get:
@@ -538,6 +616,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: sessions_stats_get
   /sessions/cleanup:
     post:
@@ -547,6 +627,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: sessions_cleanup_post
   /sessions/{session_id}:
     get:
@@ -584,6 +666,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: sessions_session_id_delete
   /sessions/{session_id}/extend:
     post:
@@ -601,6 +685,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: sessions_session_id_extend_post
   /sessions/{session_id}/cookies:
     post:
@@ -618,6 +704,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: sessions_session_id_cookies_post
     delete:
       tags:
@@ -634,6 +722,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: sessions_session_id_cookies_delete
   /sessions/{session_id}/cookies/{domain}:
     get:
@@ -658,6 +748,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: sessions_session_id_cookies_domain_get
   /sessions/{session_id}/cookies/{domain}/{name}:
     get:
@@ -689,6 +781,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: sessions_session_id_cookies_domain_name_get
     delete:
       tags:
@@ -719,6 +813,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: sessions_session_id_cookies_domain_name_delete
   /workers/jobs:
     post:
@@ -728,6 +824,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: workers_jobs_post
     get:
       tags:
@@ -737,6 +835,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: workers_jobs_get
   /workers/jobs/{job_id}:
     get:
@@ -754,6 +854,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: workers_jobs_job_id_get
   /workers/jobs/{job_id}/result:
     get:
@@ -771,6 +873,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: workers_jobs_job_id_result_get
   /workers/stats/queue:
     get:
@@ -780,6 +884,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: workers_stats_queue_get
   /workers/stats/workers:
     get:
@@ -789,6 +895,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: workers_stats_workers_get
   /workers/metrics:
     get:
@@ -798,6 +906,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: workers_metrics_get
   /workers/schedule:
     post:
@@ -807,6 +917,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: workers_schedule_post
     get:
       tags:
@@ -815,6 +927,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: workers_schedule_get
   /workers/schedule/{job_id}:
     delete:
@@ -832,6 +946,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: workers_schedule_job_id_delete
   /monitoring/health-score:
     get:
@@ -841,6 +957,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: monitoring_health-score_get
   /monitoring/performance-report:
     get:
@@ -850,6 +968,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: monitoring_performance-report_get
   /monitoring/metrics/current:
     get:
@@ -859,6 +979,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: monitoring_metrics_current_get
   /monitoring/alerts/rules:
     get:
@@ -868,6 +990,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: monitoring_alerts_rules_get
   /monitoring/alerts/active:
     get:
@@ -877,6 +1001,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: monitoring_alerts_active_get
   /pipeline/phases:
     get:
@@ -886,6 +1012,8 @@ paths:
       responses:
         '200':
           description: Success
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: pipeline_phases_get
   /api/v1/browser/session:
     post:
@@ -896,6 +1024,8 @@ paths:
       responses:
         '200':
           description: Browser session created
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: browser_session_post
   /api/v1/browser/action:
     post:
@@ -906,6 +1036,8 @@ paths:
       responses:
         '200':
           description: Action executed
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: browser_action_post
   /api/v1/browser/pool/status:
     get:
@@ -916,6 +1048,8 @@ paths:
       responses:
         '200':
           description: Browser pool status
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: browser_pool_status_get
   /api/v1/browser/session/{id}:
     delete:
@@ -934,6 +1068,8 @@ paths:
       responses:
         '200':
           description: Session closed
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: browser_session_delete
   /resources/status:
     get:
@@ -944,6 +1080,8 @@ paths:
       responses:
         '200':
           description: Resource status
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: resources_status_get
   /resources/browser-pool:
     get:
@@ -954,6 +1092,8 @@ paths:
       responses:
         '200':
           description: Browser pool resources
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: resources_browser_pool_get
   /resources/rate-limiter:
     get:
@@ -964,6 +1104,8 @@ paths:
       responses:
         '200':
           description: Rate limiter status
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: resources_rate_limiter_get
   /resources/memory:
     get:
@@ -974,6 +1116,8 @@ paths:
       responses:
         '200':
           description: Memory status
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: resources_memory_get
   /resources/performance:
     get:
@@ -984,6 +1128,8 @@ paths:
       responses:
         '200':
           description: Performance metrics
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: resources_performance_get
   /resources/pdf/semaphore:
     get:
@@ -994,6 +1140,8 @@ paths:
       responses:
         '200':
           description: PDF semaphore status
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: resources_pdf_semaphore_get
   /fetch/metrics:
     get:
@@ -1004,6 +1152,8 @@ paths:
       responses:
         '200':
           description: Fetch metrics
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: fetch_metrics_get
   /admin/tenants:
     post:
@@ -1014,6 +1164,8 @@ paths:
       responses:
         '200':
           description: Tenant created
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: admin_tenants_post
     get:
       tags:
@@ -1023,6 +1175,8 @@ paths:
       responses:
         '200':
           description: Tenant list
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: admin_tenants_get
   /admin/tenants/{id}:
     get:
@@ -1040,6 +1194,8 @@ paths:
       responses:
         '200':
           description: Tenant details
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: admin_tenants_id_get
     put:
       tags:
@@ -1056,6 +1212,8 @@ paths:
       responses:
         '200':
           description: Tenant updated
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: admin_tenants_id_put
     delete:
       tags:
@@ -1072,6 +1230,8 @@ paths:
       responses:
         '200':
           description: Tenant deleted
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: admin_tenants_id_delete
   /admin/cache/warm:
     post:
@@ -1082,6 +1242,8 @@ paths:
       responses:
         '200':
           description: Cache warmed
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: admin_cache_warm_post
   /admin/cache/stats:
     get:
@@ -1092,6 +1254,8 @@ paths:
       responses:
         '200':
           description: Cache stats
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: admin_cache_stats_get
   /admin/state/reload:
     post:
@@ -1102,6 +1266,8 @@ paths:
       responses:
         '200':
           description: State reloaded
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: admin_state_reload_post
   /api/v1/profiles:
     post:
@@ -1145,10 +1311,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
               example:
+                error: ValidationError
                 message: "Invalid request: Domain cannot be empty"
-                retryable: false
-                status: 400
-                type: validation_error
         '500':
           description: Internal server error
           content:
@@ -1180,6 +1344,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/DomainProfile'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           description: Internal server error
           content:
@@ -1208,6 +1374,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DomainProfile'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '404':
           description: Profile not found
           content:
@@ -1215,10 +1383,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
               example:
+                error: NotFound
                 message: "Resource not found: Profile not found for domain example.com"
-                retryable: false
-                status: 404
-                type: not_found
         '500':
           description: Internal server error
     put:
@@ -1254,6 +1420,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DomainProfile'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '404':
           description: Profile not found
         '400':
@@ -1460,6 +1628,8 @@ paths:
                 cached_engine: Wasm
                 confidence: 0.85
                 message: Cache warmed successfully for domain example.com
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '404':
           description: Profile not found
         '500':
@@ -1549,6 +1719,8 @@ paths:
                   has_placeholders: true
         '400':
           description: Invalid request
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           description: Internal server error
   /api/v1/engine/decide:
@@ -1596,6 +1768,8 @@ paths:
                   use_visible_text_density: true
                   detect_placeholders: true
                   probe_first_spa: true
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '400':
           description: Invalid request
         '500':
@@ -1627,6 +1801,8 @@ paths:
                   Wasm: 53.3
                   Headless: 23.6
                 probe_first_enabled: true
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           description: Internal server error
   /api/v1/engine/probe-first:
@@ -1673,10 +1849,8 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
           example:
+            error: ValidationError
             message: "Invalid request: Missing required parameter 'format'"
-            retryable: false
-            status: 400
-            type: validation_error
 
     NotFound:
       description: Not Found - Resource does not exist
@@ -1685,10 +1859,8 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
           example:
+            error: NotFound
             message: "Resource not found: Table with ID 'table_123' not found or expired"
-            retryable: false
-            status: 404
-            type: not_found
 
     RateLimitExceeded:
       description: Rate Limit Exceeded - Too many requests
@@ -1705,27 +1877,17 @@ components:
     Error:
       type: object
       properties:
+        error:
+          type: string
+          description: Error type identifier (e.g., NotFound, ValidationError, InternalServerError)
+          example: NotFound
         message:
           type: string
           description: Detailed error message describing what went wrong
           example: "Resource not found: Table with ID 'table_123' not found or expired"
-        retryable:
-          type: boolean
-          description: Whether the request can be retried
-          example: false
-        status:
-          type: integer
-          description: HTTP status code
-          example: 404
-        type:
-          type: string
-          description: Error type identifier
-          example: not_found
       required:
+      - error
       - message
-      - retryable
-      - status
-      - type
 
     RateLimitError:
       type: object

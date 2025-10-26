@@ -1,6 +1,6 @@
 [package]
 name = "riptide-intelligence"
-version = "2.0.0"
+version = "0.9.0"
 edition = "2021"
 authors = ["RipTide Team"]
 description = "LLM abstraction layer for RipTide with safety guarantees"
