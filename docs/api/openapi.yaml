@@ -460,9 +460,23 @@ paths:
           type: string
         description: Table identifier
         example: table_123
+      - name: format
+        in: query
+        required: true
+        schema:
+          type: string
+          enum: [csv, markdown]
+        description: Export format (csv or markdown)
+        example: csv
       responses:
         '200':
           description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: api_v1_tables_id_export_get
   /api/v1/llm/providers:
     get:
@@ -550,6 +564,10 @@ paths:
       responses:
         '200':
           description: Success
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
       operationId: sessions_session_id_get
     delete:
       tags:
@@ -1298,6 +1316,8 @@ paths:
                   expires_at: "2025-10-31T14:25:00Z"
         '404':
           description: Profile not found
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           description: Internal server error
   /api/v1/profiles/metrics:
@@ -1392,6 +1412,8 @@ paths:
                   $ref: '#/components/schemas/DomainProfile'
         '400':
           description: Invalid query
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           description: Internal server error
   /api/v1/profiles/{domain}/warm:
@@ -1466,6 +1488,8 @@ paths:
                 cleared: 45
                 failed: 0
                 message: Cleared 45 profile caches
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           description: Internal server error
   /api/v1/engine/analyze:
@@ -1635,6 +1659,36 @@ paths:
         '500':
           description: Internal server error
 components:
+  responses:
+    BadRequest:
+      description: Bad Request - Invalid or missing required parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Missing required parameter 'format'
+
+    NotFound:
+      description: Not Found - Resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Resource not found
+
+    RateLimitExceeded:
+      description: Rate Limit Exceeded - Too many requests
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RateLimitError'
+          example:
+            error: RateLimitExceeded
+            message: "Rate limit exceeded: Resource limit exceeded: Global rate limit exceeded"
+            retry_after_seconds: 60
+
   schemas:
     Error:
       type: object
@@ -1644,6 +1698,26 @@ components:
           description: Error message
       required:
       - error
+
+    RateLimitError:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type (RateLimitExceeded)
+          example: RateLimitExceeded
+        message:
+          type: string
+          description: Detailed error message
+          example: "Rate limit exceeded: Resource limit exceeded: Global rate limit exceeded"
+        retry_after_seconds:
+          type: integer
+          description: Seconds to wait before retrying
+          example: 60
+      required:
+      - error
+      - message
+      - retry_after_seconds
     
     # ==================== Domain Profile Schemas ====================
     
