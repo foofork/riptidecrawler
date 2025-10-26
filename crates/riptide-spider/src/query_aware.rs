@@ -190,12 +190,12 @@ impl UrlSignalAnalyzer {
 
         let path = url.path().to_lowercase();
         // Normalize path for matching (replace hyphens/underscores with empty string)
-        let normalized_path = path.replace('-', "").replace('_', "");
+        let normalized_path = path.replace(['-', '_'], "");
         let path_segments: Vec<&str> = path.split('/').collect();
 
         // Get host for domain matching
         let host_str = url.host_str().map(|h| h.to_lowercase()).unwrap_or_default();
-        let normalized_host = host_str.replace('-', "").replace('_', "").replace('.', "");
+        let normalized_host = host_str.replace(['-', '_', '.'], "");
 
         let mut relevance_score = 0.0;
         let mut total_terms = 0;
@@ -222,7 +222,7 @@ impl UrlSignalAnalyzer {
                 // Bonus for term in early path segments (only if in path)
                 if path_match {
                     for (i, segment) in path_segments.iter().enumerate() {
-                        let normalized_segment = segment.replace('-', "").replace('_', "");
+                        let normalized_segment = segment.replace(['-', '_'], "");
                         if segment.contains(query_term) || normalized_segment.contains(query_term) {
                             let position_bonus = 1.0 / (i + 1) as f64;
                             relevance_score += position_bonus * 0.3;
