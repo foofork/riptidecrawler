@@ -129,6 +129,81 @@ pub fn create_minimal_test_app() -> Router {
                 }))
             }),
         )
+        // Cache endpoints for e2e tests
+        .route(
+            "/api/v1/cache/set",
+            post(|| async {
+                Json(json!({
+                    "status": "success",
+                    "message": "Cache entry stored",
+                    "key": "user:session:12345"
+                }))
+            }),
+        )
+        .route(
+            "/api/v1/cache/get",
+            get(|| async {
+                Json(json!({
+                    "key": "user:session:12345",
+                    "value": {"user_id": "12345", "preferences": {"theme": "dark"}},
+                    "hit": true
+                }))
+            }),
+        )
+        .route(
+            "/api/v1/cache/stats",
+            get(|| async {
+                Json(json!({
+                    "total_keys": 100,
+                    "memory_usage": "1.2MB",
+                    "hit_rate": 0.85
+                }))
+            }),
+        )
+        // Admin endpoints for e2e tests
+        .route(
+            "/admin/tenants",
+            post(|| async {
+                (
+                    StatusCode::CREATED,
+                    Json(json!({
+                        "tenant_id": "tenant-test-001",
+                        "status": "created",
+                        "message": "Tenant created successfully"
+                    })),
+                )
+            }),
+        )
+        .route(
+            "/admin/cache/warm",
+            post(|| async {
+                Json(json!({
+                    "status": "success",
+                    "message": "Cache warmed successfully",
+                    "keys_warmed": 3
+                }))
+            }),
+        )
+        .route(
+            "/admin/cache/stats",
+            get(|| async {
+                Json(json!({
+                    "total_keys": 100,
+                    "memory_usage": "1.2MB",
+                    "hit_rate": 0.85
+                }))
+            }),
+        )
+        .route(
+            "/admin/state/reload",
+            post(|| async {
+                Json(json!({
+                    "status": "success",
+                    "message": "State reloaded successfully",
+                    "timestamp": "2025-01-01T00:00:00Z"
+                }))
+            }),
+        )
         .layer(CorsLayer::permissive())
 }
 

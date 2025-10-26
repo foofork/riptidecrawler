@@ -1311,8 +1311,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
               example:
-                error: ValidationError
-                message: "Invalid request: Domain cannot be empty"
+                error:
+                  message: "Invalid request: Domain cannot be empty"
+                  retryable: false
+                  status: 400
+                  type: validation_error
         '500':
           description: Internal server error
           content:
@@ -1383,8 +1386,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
               example:
-                error: NotFound
-                message: "Resource not found: Profile not found for domain example.com"
+                error:
+                  message: "Resource not found: Profile not found for domain example.com"
+                  retryable: false
+                  status: 404
+                  type: not_found
         '500':
           description: Internal server error
     put:
@@ -1849,8 +1855,11 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
           example:
-            error: ValidationError
-            message: "Invalid request: Missing required parameter 'format'"
+            error:
+              message: "Invalid request: Missing required parameter 'format'"
+              retryable: false
+              status: 400
+              type: validation_error
 
     NotFound:
       description: Not Found - Resource does not exist
@@ -1859,8 +1868,11 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
           example:
-            error: NotFound
-            message: "Resource not found: Table with ID 'table_123' not found or expired"
+            error:
+              message: "Resource not found: Table with ID 'table_123' not found or expired"
+              retryable: false
+              status: 404
+              type: not_found
 
     RateLimitExceeded:
       description: Rate Limit Exceeded - Too many requests
