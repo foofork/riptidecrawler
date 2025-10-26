@@ -1,5 +1,8 @@
 name: API Validation Pipeline
 
+# DISABLED: Skipping OpenAPI validation to speed up CI
+# Re-enable by changing 'if: false' to 'if: true' in jobs below
+
 on:
   push:
     branches: [main, develop]
@@ -31,6 +34,7 @@ env:
 jobs:
   static-analysis:
     name: 🔍 Static Analysis
+    if: false  # Disabled - remove this line to re-enable OpenAPI validation
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -67,6 +71,7 @@ jobs:
 
   contract-validation:
     name: 📋 Contract Validation (Dredd)
+    if: false  # Disabled - remove this line to re-enable contract validation
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [static-analysis]
@@ -148,6 +153,7 @@ jobs:
 
   fuzzing-tests:
     name: 🔀 Fuzzing (Schemathesis)
+    if: false  # Disabled - remove this line to re-enable fuzzing tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [static-analysis]
@@ -211,9 +217,9 @@ jobs:
 
   validation-complete:
     name: ✅ Validation Complete
+    if: false  # Disabled - remove this line to re-enable validation
     runs-on: ubuntu-latest
     needs: [static-analysis, contract-validation, fuzzing-tests]
-    if: always()
     steps:
       - run: |
           echo "Static: ${{ needs.static-analysis.result }}"

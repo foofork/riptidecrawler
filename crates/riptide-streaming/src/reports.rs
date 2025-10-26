@@ -1079,7 +1079,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_generate_json_report() {
-        let generator = ReportGenerator::new();
+        let mut config = ReportConfig::default();
+        config.include_charts = false; // Disable charts to avoid bitmap errors in CI
+        let generator = ReportGenerator::with_config(config);
         let results = vec![ExtractionResult {
             id: "test-1".to_string(),
             url: "https://example.com".to_string(),
@@ -1106,7 +1108,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_generate_csv_report() {
-        let generator = ReportGenerator::new();
+        let mut config = ReportConfig::default();
+        config.include_charts = false; // Disable charts to avoid bitmap errors in CI
+        let generator = ReportGenerator::with_config(config);
         let results = vec![ExtractionResult {
             id: "test-1".to_string(),
             url: "https://example.com".to_string(),

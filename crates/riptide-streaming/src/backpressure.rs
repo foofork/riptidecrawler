@@ -448,7 +448,8 @@ mod tests {
         assert!(matches!(metrics.status, BackpressureStatus::Normal));
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
+    #[tokio::time::timeout(std::time::Duration::from_secs(5))]
     async fn test_stream_registration() {
         let config = BackpressureConfig::default();
         let controller = BackpressureController::new(config);
@@ -485,9 +486,9 @@ mod tests {
             assert_eq!(metrics.total_in_flight, 0);
         };
 
-        tokio::time::timeout(Duration::from_secs(120), test_future)
+        tokio::time::timeout(Duration::from_secs(10), test_future)
             .await
-            .expect("Test should complete within 120 seconds");
+            .expect("Test should complete within 10 seconds");
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -516,9 +517,9 @@ mod tests {
             ));
         };
 
-        tokio::time::timeout(Duration::from_secs(120), test_future)
+        tokio::time::timeout(Duration::from_secs(10), test_future)
             .await
-            .expect("Test should complete within 120 seconds");
+            .expect("Test should complete within 10 seconds");
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -541,9 +542,9 @@ mod tests {
             assert!(result.is_err());
         };
 
-        tokio::time::timeout(Duration::from_secs(120), test_future)
+        tokio::time::timeout(Duration::from_secs(10), test_future)
             .await
-            .expect("Test should complete within 120 seconds");
+            .expect("Test should complete within 10 seconds");
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -563,8 +564,8 @@ mod tests {
             assert_eq!(metrics.total_memory_usage, 1024);
         };
 
-        tokio::time::timeout(Duration::from_secs(120), test_future)
+        tokio::time::timeout(Duration::from_secs(10), test_future)
             .await
-            .expect("Test should complete within 120 seconds");
+            .expect("Test should complete within 10 seconds");
     }
 }
