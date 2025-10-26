@@ -22,6 +22,7 @@ use tower::ServiceExt;
 // Test utilities and helpers
 mod test_utils {
     use super::*;
+    use riptide_api::state::AppState;
 
     /// Creates a test app instance for integration testing
     ///
@@ -45,8 +46,6 @@ mod test_utils {
     pub fn create_test_app() -> axum::Router {
         use axum::routing::{get, post};
         use riptide_api::routes;
-        use riptide_api::state::AppState;
-        use std::sync::Arc;
 
         // Create a test app state with minimal configuration
         // For tests, we use in-memory implementations where possible
@@ -79,8 +78,6 @@ mod test_utils {
 
     /// Create a minimal test state for integration tests
     fn create_test_state() -> AppState {
-        use riptide_api::state::AppState;
-
         // For now, we'll use a minimal test configuration
         // This would need to be expanded for full integration testing
         AppState::new_test_minimal()
