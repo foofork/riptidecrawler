@@ -449,16 +449,21 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
-    #[tokio::time::timeout(std::time::Duration::from_secs(5))]
     async fn test_stream_registration() {
-        let config = BackpressureConfig::default();
-        let controller = BackpressureController::new(config);
-        let stream_id = Uuid::new_v4();
+        let test_future = async {
+            let config = BackpressureConfig::default();
+            let controller = BackpressureController::new(config);
+            let stream_id = Uuid::new_v4();
 
-        controller.register_stream(stream_id).await.unwrap();
+            controller.register_stream(stream_id).await.unwrap();
 
-        let metrics = controller.get_metrics().await;
-        assert_eq!(metrics.total_streams, 1);
+            let metrics = controller.get_metrics().await;
+            assert_eq!(metrics.total_streams, 1);
+        };
+
+        tokio::time::timeout(Duration::from_secs(5), test_future)
+            .await
+            .expect("Test should complete within 5 seconds");
     }
 
     #[tokio::test(flavor = "multi_thread")]
