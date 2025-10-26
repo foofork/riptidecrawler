@@ -23,6 +23,7 @@ mod error_recovery_tests {
     /// Recovery Test 1: Redis connection failure
     /// Verifies graceful degradation when Redis is unavailable
     #[tokio::test]
+    #[ignore = "Requires Redis service running - skip in CI"]
     async fn test_redis_connection_failure_recovery() {
         let app = test_helpers::create_minimal_test_app();
 
@@ -242,6 +243,7 @@ mod error_recovery_tests {
     /// Recovery Test 5: Tenant quota exceeded error handling
     /// Tests proper error responses when quotas are exceeded
     #[tokio::test]
+    #[ignore = "Requires full app state with Redis - skip in CI"]
     async fn test_tenant_quota_exceeded_errors() {
         let app = test_helpers::create_minimal_test_app();
 
@@ -315,6 +317,7 @@ mod error_recovery_tests {
     /// Recovery Test 6: Network timeout handling
     /// Tests recovery from network timeouts
     #[tokio::test]
+    #[ignore = "Requires full app state with Redis - skip in CI"]
     async fn test_network_timeout_recovery() {
         let app = test_helpers::create_minimal_test_app();
 

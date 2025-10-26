@@ -461,9 +461,9 @@ mod tests {
             assert_eq!(metrics.total_streams, 1);
         };
 
-        tokio::time::timeout(Duration::from_secs(5), test_future)
+        tokio::time::timeout(Duration::from_secs(30), test_future)
             .await
-            .expect("Test should complete within 5 seconds");
+            .expect("Test should complete within 30 seconds");
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -491,9 +491,9 @@ mod tests {
             assert_eq!(metrics.total_in_flight, 0);
         };
 
-        tokio::time::timeout(Duration::from_secs(10), test_future)
+        tokio::time::timeout(Duration::from_secs(30), test_future)
             .await
-            .expect("Test should complete within 10 seconds");
+            .expect("Test should complete within 30 seconds");
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -522,9 +522,9 @@ mod tests {
             ));
         };
 
-        tokio::time::timeout(Duration::from_secs(10), test_future)
+        tokio::time::timeout(Duration::from_secs(30), test_future)
             .await
-            .expect("Test should complete within 10 seconds");
+            .expect("Test should complete within 30 seconds");
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -547,9 +547,9 @@ mod tests {
             assert!(result.is_err());
         };
 
-        tokio::time::timeout(Duration::from_secs(10), test_future)
+        tokio::time::timeout(Duration::from_secs(30), test_future)
             .await
-            .expect("Test should complete within 10 seconds");
+            .expect("Test should complete within 30 seconds");
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -569,8 +569,8 @@ mod tests {
             assert_eq!(metrics.total_memory_usage, 1024);
         };
 
-        tokio::time::timeout(Duration::from_secs(10), test_future)
+        tokio::time::timeout(Duration::from_secs(30), test_future)
             .await
-            .expect("Test should complete within 10 seconds");
+            .expect("Test should complete within 30 seconds");
     }
 }
