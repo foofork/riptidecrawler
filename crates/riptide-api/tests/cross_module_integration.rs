@@ -132,6 +132,7 @@ mod cross_module_tests {
     /// Test 3: Persistence + Multi-tenancy
     /// Verify tenant quota enforcement with cache operations
     #[tokio::test]
+    #[cfg(all(feature = "persistence", feature = "tenants"))]
     async fn test_tenant_quota_with_cache() {
         let app = test_helpers::create_minimal_test_app();
 
@@ -285,6 +286,7 @@ mod cross_module_tests {
     /// Test 6: Cache + Tenant Isolation
     /// Verify cache isolation between tenants
     #[tokio::test]
+    #[cfg(all(feature = "persistence", feature = "tenants"))]
     async fn test_cache_tenant_isolation() {
         let app = test_helpers::create_minimal_test_app();
 
@@ -451,6 +453,7 @@ mod cross_module_tests {
     /// Test 9: Multi-tenant Rate Limiting + Profiling
     /// Track rate limit violations per tenant
     #[tokio::test]
+    #[cfg(all(feature = "tenants", feature = "profiling-full"))]
     async fn test_tenant_rate_limiting_with_profiling() {
         let app = test_helpers::create_minimal_test_app();
 
