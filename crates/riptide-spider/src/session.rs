@@ -262,7 +262,14 @@ impl SessionManager {
         }
 
         // Create new session
-        let session_id = format!("session_{}_{}", domain, Instant::now().elapsed().as_nanos());
+        let session_id = format!(
+            "session_{}_{}",
+            domain,
+            SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        );
         let session = SessionState::new(session_id.clone(), domain.to_string(), &self.config)?;
 
         sessions.insert(domain.to_string(), session);

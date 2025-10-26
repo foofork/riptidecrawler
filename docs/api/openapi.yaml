@@ -138,6 +138,11 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           description: Service unhealthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Service Unavailable"
   /api/v1/health:
     get:
       operationId: health_check_v1
@@ -151,6 +156,11 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           description: Service unhealthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Service Unavailable"
   /api/health/detailed:
     get:
       operationId: health_detailed
@@ -165,6 +175,11 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           description: Service unhealthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Service Unavailable"
   /health/{component}:
     get:
       operationId: health_component
@@ -189,6 +204,11 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           description: Component unhealthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Service Unavailable"
   /health/metrics:
     get:
       operationId: health_metrics_only
@@ -229,6 +249,24 @@ paths:
       tags:
       - Crawling
       summary: Batch crawl URLs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [urls]
+              properties:
+                urls:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+                  description: List of URLs to crawl
+                  example: ["https://example.com", "https://example.org"]
+                options:
+                  type: object
+                  description: Optional crawl configuration
       responses:
         '200':
           description: Success
@@ -246,6 +284,23 @@ paths:
       tags:
       - Crawling
       summary: Versioned batch crawl (alias)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [urls]
+              properties:
+                urls:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+                  description: List of URLs to crawl
+                options:
+                  type: object
+                  description: Optional crawl configuration
       responses:
         '200':
           description: Success
@@ -263,6 +318,23 @@ paths:
       tags:
       - Streaming
       summary: Stream crawl results (NDJSON)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [urls]
+              properties:
+                urls:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+                  description: List of URLs to crawl
+                options:
+                  type: object
+                  description: Optional crawl configuration
       responses:
         '200':
           description: Success
@@ -280,6 +352,23 @@ paths:
       tags:
       - Streaming
       summary: Stream crawl results (SSE)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [urls]
+              properties:
+                urls:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+                  description: List of URLs to crawl
+                options:
+                  type: object
+                  description: Optional crawl configuration
       responses:
         '200':
           description: Success
@@ -307,6 +396,21 @@ paths:
       tags:
       - Search
       summary: Deep search with extraction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query:
+                  type: string
+                  description: Search query
+                  example: "web scraping tools"
+                options:
+                  type: object
+                  description: Optional search configuration
       responses:
         '200':
           description: Success
@@ -324,6 +428,20 @@ paths:
       tags:
       - Streaming
       summary: Stream search results
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query:
+                  type: string
+                  description: Search query
+                options:
+                  type: object
+                  description: Optional search configuration
       responses:
         '200':
           description: Success
@@ -341,6 +459,22 @@ paths:
       tags:
       - Crawling
       summary: Headless browser rendering
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: URL to render
+                  example: "https://example.com"
+                options:
+                  type: object
+                  description: Optional rendering configuration
       responses:
         '200':
           description: Success
@@ -358,6 +492,21 @@ paths:
       tags:
       - Crawling
       summary: Versioned headless rendering (alias)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: URL to render
+                options:
+                  type: object
+                  description: Optional rendering configuration
       responses:
         '200':
           description: Success
@@ -377,6 +526,22 @@ paths:
       - Extraction
       summary: Content extraction endpoint
       description: NEW v1.1 - Direct content extraction without crawling
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: URL to extract content from
+                  example: "https://example.com/article"
+                options:
+                  type: object
+                  description: Optional extraction configuration
       responses:
         '200':
           description: Extracted content
@@ -395,6 +560,21 @@ paths:
       - Extraction
       summary: Versioned content extraction
       description: Primary extraction endpoint for v1.1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: URL to extract content from
+                options:
+                  type: object
+                  description: Optional extraction configuration
       responses:
         '200':
           description: Extracted content
@@ -435,6 +615,28 @@ paths:
       tags:
       - Spider
       summary: Deep crawl with Spider
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [start_url]
+              properties:
+                start_url:
+                  type: string
+                  format: uri
+                  description: Starting URL for spider crawl
+                  example: "https://example.com"
+                max_depth:
+                  type: integer
+                  minimum: 1
+                  maximum: 10
+                  description: Maximum crawl depth
+                  example: 3
+                options:
+                  type: object
+                  description: Optional spider configuration
       responses:
         '200':
           description: Success
@@ -452,6 +654,18 @@ paths:
       tags:
       - Spider
       summary: Get spider status
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [spider_id]
+              properties:
+                spider_id:
+                  type: string
+                  description: Spider instance identifier
+                  example: "spider_abc123"
       responses:
         '200':
           description: Success
@@ -469,6 +683,23 @@ paths:
       tags:
       - Spider
       summary: Control spider (stop/reset)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [spider_id, action]
+              properties:
+                spider_id:
+                  type: string
+                  description: Spider instance identifier
+                  example: "spider_abc123"
+                action:
+                  type: string
+                  enum: [stop, reset, pause, resume]
+                  description: Control action to perform
+                  example: "stop"
       responses:
         '200':
           description: Success
@@ -486,6 +717,27 @@ paths:
       tags:
       - Strategies
       summary: Advanced extraction strategies
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url, strategy]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: URL to crawl with strategy
+                  example: "https://example.com"
+                strategy:
+                  type: string
+                  enum: [css, wasm, llm, regex]
+                  description: Extraction strategy to use
+                  example: "wasm"
+                options:
+                  type: object
+                  description: Optional strategy configuration
       responses:
         '200':
           description: Success
@@ -514,6 +766,22 @@ paths:
       tags:
       - PDF
       summary: Process PDF file
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: URL of PDF file to process
+                  example: "https://example.com/document.pdf"
+                options:
+                  type: object
+                  description: Optional PDF processing configuration
       responses:
         '200':
           description: Success
@@ -531,6 +799,22 @@ paths:
       tags:
       - PDF
       summary: Stream PDF processing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: URL of PDF file to process with streaming
+                  example: "https://example.com/document.pdf"
+                options:
+                  type: object
+                  description: Optional PDF processing configuration
       responses:
         '200':
           description: Success
@@ -559,6 +843,27 @@ paths:
       tags:
       - Stealth
       summary: Configure stealth settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stealth_level:
+                  type: string
+                  enum: [low, medium, high, maximum]
+                  description: Stealth mode level
+                  example: "high"
+                user_agent:
+                  type: string
+                  description: Custom user agent
+                viewport:
+                  type: object
+                  description: Browser viewport configuration
+                proxy:
+                  type: object
+                  description: Proxy configuration
       responses:
         '200':
           description: Success
@@ -576,6 +881,19 @@ paths:
       tags:
       - Stealth
       summary: Test stealth effectiveness
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: URL to test stealth configuration against
+                  example: "https://bot-detection-test.com"
       responses:
         '200':
           description: Success
@@ -615,6 +933,22 @@ paths:
       tags:
       - Tables
       summary: Extract tables from HTML
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [html]
+              properties:
+                html:
+                  type: string
+                  description: HTML content containing tables
+                  example: "<html><body><table>...</table></body></html>"
+                url:
+                  type: string
+                  format: uri
+                  description: Optional source URL for context
       responses:
         '200':
           description: Success
@@ -674,6 +1008,22 @@ paths:
       tags:
       - LLM
       summary: Switch LLM provider
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider]
+              properties:
+                provider:
+                  type: string
+                  enum: [openai, anthropic, cohere, huggingface]
+                  description: LLM provider to switch to
+                  example: "anthropic"
+                api_key:
+                  type: string
+                  description: Optional API key for the provider
       responses:
         '200':
           description: Success
@@ -701,6 +1051,28 @@ paths:
       tags:
       - LLM
       summary: Update LLM config
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                model:
+                  type: string
+                  description: Model name or identifier
+                  example: "claude-3-opus"
+                temperature:
+                  type: number
+                  minimum: 0.0
+                  maximum: 2.0
+                  description: Sampling temperature
+                  example: 0.7
+                max_tokens:
+                  type: integer
+                  minimum: 1
+                  description: Maximum tokens to generate
+                  example: 1000
       responses:
         '200':
           description: Success
@@ -718,6 +1090,22 @@ paths:
       tags:
       - Sessions
       summary: Create session
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ttl_seconds:
+                  type: integer
+                  minimum: 60
+                  maximum: 86400
+                  description: Session time to live in seconds
+                  example: 3600
+                metadata:
+                  type: object
+                  description: Optional session metadata
       responses:
         '200':
           description: Success
@@ -756,6 +1144,17 @@ paths:
       tags:
       - Sessions
       summary: Cleanup expired sessions
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                force:
+                  type: boolean
+                  description: Force cleanup of all sessions
+                  default: false
       responses:
         '200':
           description: Success
@@ -822,6 +1221,19 @@ paths:
           type: string
         description: Session identifier
         example: session_abc123
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ttl_seconds:
+                  type: integer
+                  minimum: 60
+                  maximum: 86400
+                  description: Time to live in seconds
+                  example: 3600
       responses:
         '200':
           description: Success
@@ -847,6 +1259,34 @@ paths:
           type: string
         description: Session identifier
         example: session_abc123
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, value]
+              properties:
+                name:
+                  type: string
+                  description: Cookie name
+                  example: "session_token"
+                value:
+                  type: string
+                  description: Cookie value
+                  example: "abc123def456"
+                domain:
+                  type: string
+                  description: Cookie domain
+                  example: "example.com"
+                path:
+                  type: string
+                  description: Cookie path
+                  example: "/"
+                expires:
+                  type: string
+                  format: date-time
+                  description: Cookie expiration time
       responses:
         '200':
           description: Success
@@ -977,6 +1417,28 @@ paths:
       tags:
       - Workers
       summary: Submit async job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  pattern: '^https?://'
+                  description: URL to process as async job
+                  example: "https://example.com"
+                options:
+                  type: object
+                  description: Optional job configuration
+                priority:
+                  type: string
+                  enum: [low, normal, high]
+                  description: Job priority
+                  example: "normal"
       responses:
         '200':
           description: Success
@@ -1076,6 +1538,31 @@ paths:
       tags:
       - Workers
       summary: Create scheduled job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cron, job]
+              properties:
+                cron:
+                  type: string
+                  pattern: '^[0-9\*\-\,\/\ ]+$'
+                  description: Cron expression for schedule
+                  example: "0 */6 * * *"
+                job:
+                  type: object
+                  required: [url]
+                  description: Job configuration
+                  properties:
+                    url:
+                      type: string
+                      format: uri
+                      description: URL to process
+                    options:
+                      type: object
+                      description: Job options
       responses:
         '200':
           description: Success
@@ -1191,6 +1678,30 @@ paths:
       - Browser
       summary: Create browser session
       description: Create a new browser session with optional stealth configuration
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stealth:
+                  type: boolean
+                  description: Enable stealth mode
+                  default: false
+                viewport:
+                  type: object
+                  description: Browser viewport configuration
+                  properties:
+                    width:
+                      type: integer
+                      example: 1920
+                    height:
+                      type: integer
+                      example: 1080
+                user_agent:
+                  type: string
+                  description: Custom user agent
       responses:
         '200':
           description: Browser session created
@@ -1209,6 +1720,40 @@ paths:
       - Browser
       summary: Execute browser action
       description: Execute an action on a browser session (navigate, screenshot, execute script, etc.)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [session_id, action]
+              properties:
+                session_id:
+                  type: string
+                  description: Browser session identifier
+                  example: "sess_abc123def456"
+                action:
+                  type: string
+                  enum: [navigate, screenshot, click, type, execute]
+                  description: Action to perform
+                  example: "navigate"
+                params:
+                  type: object
+                  description: Action-specific parameters
+                  properties:
+                    url:
+                      type: string
+                      format: uri
+                      description: URL for navigate action
+                    selector:
+                      type: string
+                      description: CSS selector for click/type actions
+                    text:
+                      type: string
+                      description: Text for type action
+                    script:
+                      type: string
+                      description: JavaScript code for execute action
       responses:
         '200':
           description: Action executed
@@ -1345,6 +1890,25 @@ paths:
       - Admin
       summary: Create tenant
       description: Create a new tenant (requires persistence feature)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, name]
+              properties:
+                id:
+                  type: string
+                  description: Tenant identifier
+                  example: "tenant_prod_123"
+                name:
+                  type: string
+                  description: Tenant name
+                  example: "Production Environment"
+                config:
+                  type: object
+                  description: Tenant-specific configuration
       responses:
         '200':
           description: Tenant created
@@ -1399,6 +1963,23 @@ paths:
           type: string
         description: Tenant ID
         example: "tenant_prod_123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Updated tenant name
+                config:
+                  type: object
+                  description: Updated tenant configuration
+                status:
+                  type: string
+                  enum: [active, suspended, deleted]
+                  description: Tenant status
       responses:
         '200':
           description: Tenant updated
@@ -1437,6 +2018,23 @@ paths:
       - Admin
       summary: Warm cache
       description: Preload cache with common data
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                domains:
+                  type: array
+                  items:
+                    type: string
+                  description: Specific domains to warm cache for
+                  example: ["example.com", "test.com"]
+                force:
+                  type: boolean
+                  description: Force cache refresh
+                  default: false
       responses:
         '200':
           description: Cache warmed
@@ -1467,6 +2065,19 @@ paths:
       - Admin
       summary: Reload state
       description: Reload application state from storage
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                components:
+                  type: array
+                  items:
+                    type: string
+                  description: Specific components to reload
+                  example: ["profiles", "sessions"]
       responses:
         '200':
           description: State reloaded

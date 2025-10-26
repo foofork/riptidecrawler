@@ -222,6 +222,115 @@ pub fn create_minimal_test_app() -> Router {
                 }))
             }),
         )
+        // External service endpoints for error recovery tests
+        .route(
+            "/api/v1/external/failing-service",
+            post(|| async {
+                (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    Json(json!({
+                        "error": {
+                            "message": "Dependency unavailable: external service - Connection timeout",
+                            "retryable": true,
+                            "status": 503,
+                            "type": "dependency_error"
+                        }
+                    })),
+                )
+            }),
+        )
+        // Session endpoints for network timeout tests
+        .route(
+            "/api/v1/sessions",
+            post(|| async {
+                (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    Json(json!({
+                        "error": {
+                            "message": "Network timeout connecting to session service",
+                            "retryable": true,
+                            "status": 503,
+                            "type": "network_timeout"
+                        }
+                    })),
+                )
+            }),
+        )
+        .route(
+            "/api/v1/sessions/:session_id/crash",
+            post(|| async {
+                (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    Json(json!({
+                        "error": {
+                            "message": "Session service crashed",
+                            "retryable": true,
+                            "status": 503,
+                            "type": "service_error"
+                        }
+                    })),
+                )
+            }),
+        )
+        // Profiling endpoints for redis failure tests
+        .route(
+            "/api/v1/profiling/start",
+            post(|| async {
+                (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    Json(json!({
+                        "error": {
+                            "message": "Dependency unavailable: redis - Connection refused",
+                            "retryable": true,
+                            "status": 503,
+                            "type": "dependency_error"
+                        }
+                    })),
+                )
+            }),
+        )
+        .route(
+            "/api/v1/profiling/report",
+            get(|| async {
+                (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    Json(json!({
+                        "error": {
+                            "message": "Redis unavailable",
+                            "retryable": true,
+                            "status": 503,
+                            "type": "dependency_error"
+                        }
+                    })),
+                )
+            }),
+        )
+        // Stream endpoints for tenant quota tests
+        .route(
+            "/api/v1/stream/start",
+            post(|| async {
+                (
+                    StatusCode::TOO_MANY_REQUESTS,
+                    Json(json!({
+                        "error": {
+                            "message": "Tenant quota exceeded: streaming",
+                            "retryable": false,
+                            "status": 429,
+                            "type": "quota_exceeded"
+                        }
+                    })),
+                )
+            }),
+        )
+        .route(
+            "/api/v1/stream/:stream_id/status",
+            get(|| async {
+                Json(json!({
+                    "stream_id": "test-stream",
+                    "status": "active"
+                }))
+            }),
+        )
         .layer(CorsLayer::permissive())
 }
 
