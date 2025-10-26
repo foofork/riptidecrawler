@@ -335,7 +335,7 @@ jobs:
       - name: Run unit tests (non-browser, parallel)
         if: matrix.test-type == 'unit'
         env:
-          RUSTFLAGS: "-Dwarnings -C target-cpu=native"
+          RUSTFLAGS: "-Dwarnings -C target-cpu=x86-64-v2"
         run: |
           # Run all workspace crates except browser (parallel, fast)
           cargo test --workspace --lib --bins --exclude riptide-browser -- --nocapture --test-threads=4
@@ -343,7 +343,7 @@ jobs:
       - name: Run integration tests (non-browser, parallel)
         if: matrix.test-type == 'integration'
         env:
-          RUSTFLAGS: "-Dwarnings -C target-cpu=native"
+          RUSTFLAGS: "-Dwarnings -C target-cpu=x86-64-v2"
           REQUIRE_AUTH: "false"
         run: |
           # Run all workspace integration tests except browser (parallel)
@@ -352,7 +352,7 @@ jobs:
       - name: Run browser tests (serialized, isolated)
         if: matrix.test-type == 'browser'
         env:
-          RUSTFLAGS: "-Dwarnings -C target-cpu=native"
+          RUSTFLAGS: "-Dwarnings -C target-cpu=x86-64-v2"
           # Create unique temp dir per run to avoid Chrome SingletonLock collisions
           CHROME_USER_DATA_DIR: /tmp/chrome-ci-${{ github.run_id }}
         run: |
