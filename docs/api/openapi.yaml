@@ -134,6 +134,11 @@ paths:
       responses:
         '200':
           description: Service healthy or degraded
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "OK"
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
@@ -152,6 +157,11 @@ paths:
       responses:
         '200':
           description: Service healthy or degraded
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "OK"
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
@@ -171,6 +181,11 @@ paths:
       responses:
         '200':
           description: Detailed health information
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "OK"
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
@@ -198,6 +213,11 @@ paths:
       responses:
         '200':
           description: Component healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "OK"
         '404':
           description: Component not found
         '429':
@@ -219,6 +239,11 @@ paths:
       responses:
         '200':
           description: System metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "# HELP riptide_requests_total Total requests\n# TYPE riptide_requests_total counter\nriptide_requests_total 1250\n"
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
   /metrics:
@@ -230,6 +255,11 @@ paths:
       responses:
         '200':
           description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "# HELP riptide_requests_total Total requests\n# TYPE riptide_requests_total counter\nriptide_requests_total 1250\n"
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
   /api/v1/metrics:
@@ -241,6 +271,11 @@ paths:
       responses:
         '200':
           description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "# HELP riptide_requests_total Total requests\n# TYPE riptide_requests_total counter\nriptide_requests_total 1250\n"
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
   /crawl:
@@ -867,6 +902,11 @@ paths:
       responses:
         '200':
           description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "OK"
         '400':
           $ref: '#/components/responses/BadRequest'
         '415':
@@ -952,6 +992,11 @@ paths:
       responses:
         '200':
           description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "OK"
         '400':
           $ref: '#/components/responses/BadRequest'
         '415':
@@ -1566,6 +1611,11 @@ paths:
       responses:
         '200':
           description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "# HELP riptide_requests_total Total requests\n# TYPE riptide_requests_total counter\nriptide_requests_total 1250\n"
         '400':
           $ref: '#/components/responses/BadRequest'
         '415':
@@ -1625,6 +1675,11 @@ paths:
       responses:
         '200':
           description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "OK"
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
       operationId: monitoring_performance-report_get
@@ -1647,6 +1702,11 @@ paths:
       responses:
         '200':
           description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "# HELP riptide_requests_total Total requests\n# TYPE riptide_requests_total counter\nriptide_requests_total 1250\n"
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
       operationId: monitoring_alerts_rules_get
@@ -1912,6 +1972,11 @@ paths:
       responses:
         '200':
           description: Tenant created
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "# HELP riptide_requests_total Total requests\n# TYPE riptide_requests_total counter\nriptide_requests_total 1250\n"
         '400':
           $ref: '#/components/responses/BadRequest'
         '415':
@@ -2749,6 +2814,19 @@ components:
               retryable: true
               status: 503
               type: dependency_error
+
+    MethodNotAllowed:
+      description: Method Not Allowed - HTTP method not supported for this endpoint
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              message: "Method Not Allowed: This endpoint does not support the requested HTTP method"
+              retryable: false
+              status: 405
+              type: method_not_allowed
 
   schemas:
     Error:
