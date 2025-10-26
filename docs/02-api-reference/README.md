@@ -215,7 +215,7 @@ if [ "$STATUS" != "healthy" ]; then
 fi
 ```
 
-See [ENDPOINT_CATALOG.md](./ENDPOINT_CATALOG.md) for complete documentation on all 59 endpoints.
+See [ENDPOINT_CATALOG.md](./ENDPOINT_CATALOG.md) for complete documentation on all 120+ routes (59 primary user-facing endpoints, 123 total including admin/internal).
 
 ### Streaming Endpoints
 

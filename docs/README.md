@@ -68,7 +68,7 @@ Task-oriented how-to guides for common operations.
 ### 02 - API Reference
 **[→ Go to API Reference](./02-api-reference/)**
 
-Complete REST API documentation with 110+ endpoints.
+Complete REST API documentation with 120+ total routes (59 primary user-facing endpoints).
 
 - **OpenAPI Specification** - Machine-readable API spec
 - **Endpoint Catalog** - Organized by category
@@ -259,7 +259,7 @@ See [COMPREHENSIVE-ROADMAP.md](./00-getting-started/COMPREHENSIVE-ROADMAP.md) fo
 ## 📊 Documentation Stats
 
 - **Total Documents:** 200+ files
-- **API Endpoints:** 110+ documented
+- **API Routes:** 120+ total (59 primary endpoints documented)
 - **Code Examples:** 50+ examples
 - **Crate Coverage:** 27/27 crates (100%)
 - **Test Coverage:** ~75%

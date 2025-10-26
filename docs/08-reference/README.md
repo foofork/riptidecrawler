@@ -20,7 +20,7 @@ Until dedicated quick references are created, see these existing resources:
 ### API Reference
 - **[API Documentation](../02-api-reference/README.md)** - Complete API reference
 - **[OpenAPI Specification](../02-api-reference/openapi.yaml)** - Machine-readable schema
-- **[Endpoint Catalog](../02-api-reference/ENDPOINT_CATALOG.md)** - All 59 endpoints
+- **[Endpoint Catalog](../02-api-reference/ENDPOINT_CATALOG.md)** - All 120+ routes (59 primary endpoints)
 
 ### Configuration
 - **[Environment Setup](../01-guides/configuration/environment.md)** - Configuration guide

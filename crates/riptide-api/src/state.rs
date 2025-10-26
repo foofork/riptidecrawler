@@ -1139,141 +1139,159 @@ impl AppState {
     ///
     /// **Note**: This is intended for testing purposes only. Use in `cfg(test)` or test modules.
     #[allow(dead_code)]
-    pub fn new_test_minimal() -> Self {
+    pub async fn new_test_minimal() -> Self {
         use std::sync::Arc;
-        use tokio::runtime::Runtime;
         use tokio::sync::Mutex;
+        let http_client = http_client().expect("Failed to create HTTP client");
 
-        // Create a runtime for async operations in test setup
-        let rt = Runtime::new().expect("Failed to create runtime");
+        // Use Redis URL from env or default (tests should skip Redis-dependent features)
+        let redis_url =
+            std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
 
-        rt.block_on(async {
-            let http_client = http_client().expect("Failed to create HTTP client");
-
-            // Use Redis URL from env or default (tests should skip Redis-dependent features)
-            let redis_url = std::env::var("REDIS_URL")
-                .unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
-
-            // Try to create cache manager, if it fails use a placeholder
-            let cache = match CacheManager::new(&redis_url).await {
-                Ok(cm) => Arc::new(Mutex::new(cm)),
-                Err(_) => {
-                    eprintln!("Warning: Redis not available for tests, some features may not work");
-                    // Create cache with invalid URL, but don't fail
-                    Arc::new(Mutex::new(
-                        CacheManager::new("redis://invalid:9999").await
-                            .unwrap_or_else(|_| panic!("Could not create test cache"))
-                    ))
-                }
-            };
-
-            let config = AppConfig::default();
-            let api_config = ApiConfig::default();
-
-            // Try to load WASM extractor from default path, or skip
-            let wasm_path = std::env::var("WASM_EXTRACTOR_PATH")
-                .unwrap_or_else(|_| config.wasm_path.clone());
-
-            let extractor = match WasmExtractor::new(&wasm_path).await {
-                Ok(ext) => Arc::new(ext),
-                Err(_) => {
-                    eprintln!("Warning: WASM extractor not available, using placeholder");
-                    // Use a placeholder - actual extraction tests will need real WASM
-                    panic!("WASM extractor required for tests - set WASM_EXTRACTOR_PATH or skip WASM tests")
-                }
-            };
-
-            let reliable_extractor = Arc::new(
-                ReliableExtractor::new(config.reliability_config.clone())
-                    .expect("Failed to create reliable extractor")
-            );
-
-            let metrics = Arc::new(RipTideMetrics::new().expect("Failed to create metrics"));
-            let health_checker = Arc::new(HealthChecker::new());
-
-            let resource_manager = Arc::new(
-                ResourceManager::new(api_config.clone())
-                    .await
-                    .expect("Failed to create resource manager")
-            );
-
-            let session_config = SessionConfig::default();
-            let session_manager = Arc::new(
-                SessionManager::new(session_config)
-                    .await
-                    .expect("Failed to create session manager")
-            );
-
-            let streaming = Arc::new(StreamingModule::default());
-
-            let pdf_metrics = Arc::new(PdfMetricsCollector::new());
-
-            let worker_config = WorkerServiceConfig::default();
-            let worker_service = Arc::new(
-                WorkerService::new(worker_config)
-                    .await
-                    .expect("Failed to create worker service")
-            );
-
-            let event_bus = Arc::new(EventBus::new());
-
-            let circuit_breaker = Arc::new(Mutex::new(CircuitBreakerState::default()));
-            let performance_metrics = Arc::new(Mutex::new(PerformanceMetrics::default()));
-
-            let monitoring_system = Arc::new(MonitoringSystem::new());
-
-            // For tests, we can skip complex initialization and panic if needed
-            // Tests should either skip features or set appropriate env vars
-
-            let fetch_engine = Arc::new(FetchEngine::new().expect("Failed to create fetch engine"));
-            let performance_manager = Arc::new(PerformanceManager::new().expect("Failed to create performance manager"));
-            let auth_config = AuthConfig::default();
-            let cache_warmer_enabled = false;
-
-            let browser_launcher = Arc::new(HeadlessLauncher::new()
-                .await
-                .expect("Failed to create browser launcher"));
-
-            let facade_config = riptide_facade::RiptideConfig::default();
-            let browser_facade = Arc::new(BrowserFacade::new(facade_config.clone()).await
-                .expect("Failed to create browser facade"));
-            let extraction_facade = Arc::new(ExtractionFacade::new(facade_config.clone()).await
-                .expect("Failed to create extraction facade"));
-            let scraper_facade = Arc::new(ScraperFacade::new(facade_config.clone()).await
-                .expect("Failed to create scraper facade"));
-
-            Self {
-                http_client,
-                cache,
-                extractor,
-                reliable_extractor,
-                config,
-                api_config,
-                resource_manager,
-                metrics,
-                health_checker,
-                session_manager,
-                streaming,
-                telemetry: None,
-                spider: None,
-                pdf_metrics,
-                worker_service,
-                event_bus,
-                circuit_breaker,
-                performance_metrics,
-                monitoring_system,
-                fetch_engine,
-                performance_manager,
-                auth_config,
-                cache_warmer_enabled,
-                browser_launcher,
-                browser_facade,
-                extraction_facade,
-                scraper_facade,
-                spider_facade: None,
-                search_facade: None,
+        // Try to create cache manager, if it fails use a placeholder
+        let cache = match CacheManager::new(&redis_url).await {
+            Ok(cm) => Arc::new(Mutex::new(cm)),
+            Err(_) => {
+                eprintln!("Warning: Redis not available for tests, some features may not work");
+                // Create cache with invalid URL, but don't fail
+                Arc::new(Mutex::new(
+                    CacheManager::new("redis://invalid:9999")
+                        .await
+                        .unwrap_or_else(|_| panic!("Could not create test cache")),
+                ))
             }
-        })
+        };
+
+        let config = AppConfig::default();
+        let api_config = ApiConfig::default();
+
+        // Try to load WASM extractor from default path, or skip
+        let wasm_path =
+            std::env::var("WASM_EXTRACTOR_PATH").unwrap_or_else(|_| config.wasm_path.clone());
+
+        let extractor = match WasmExtractor::new(&wasm_path).await {
+            Ok(ext) => Arc::new(ext),
+            Err(e) => {
+                eprintln!(
+                    "Warning: WASM extractor not available ({}), tests requiring WASM will fail",
+                    e
+                );
+                // Create a minimal/stub extractor - actual extraction tests will need real WASM
+                // For basic endpoint tests, we just need something that satisfies the type
+                match WasmExtractor::new("dummy.wasm").await {
+                    Ok(ext) => Arc::new(ext),
+                    Err(_) => {
+                        // Last resort: skip tests that need full state
+                        eprintln!("CRITICAL: Cannot create WASM extractor stub");
+                        eprintln!("Set WASM_EXTRACTOR_PATH or build with: cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm");
+                        panic!("WASM extractor required for integration tests")
+                    }
+                }
+            }
+        };
+
+        let reliable_extractor = Arc::new(
+            ReliableExtractor::new(config.reliability_config.clone())
+                .expect("Failed to create reliable extractor"),
+        );
+
+        let metrics = Arc::new(RipTideMetrics::new().expect("Failed to create metrics"));
+        let health_checker = Arc::new(HealthChecker::new());
+
+        let resource_manager = Arc::new(
+            ResourceManager::new(api_config.clone())
+                .await
+                .expect("Failed to create resource manager"),
+        );
+
+        let session_config = SessionConfig::default();
+        let session_manager = Arc::new(
+            SessionManager::new(session_config)
+                .await
+                .expect("Failed to create session manager"),
+        );
+
+        let streaming = Arc::new(StreamingModule::default());
+
+        let pdf_metrics = Arc::new(PdfMetricsCollector::new());
+
+        let worker_config = WorkerServiceConfig::default();
+        let worker_service = Arc::new(
+            WorkerService::new(worker_config)
+                .await
+                .expect("Failed to create worker service"),
+        );
+
+        let event_bus = Arc::new(EventBus::new());
+
+        let circuit_breaker = Arc::new(Mutex::new(CircuitBreakerState::default()));
+        let performance_metrics = Arc::new(Mutex::new(PerformanceMetrics::default()));
+
+        let monitoring_system = Arc::new(MonitoringSystem::new());
+
+        // For tests, we can skip complex initialization and panic if needed
+        // Tests should either skip features or set appropriate env vars
+
+        let fetch_engine = Arc::new(FetchEngine::new().expect("Failed to create fetch engine"));
+        let performance_manager =
+            Arc::new(PerformanceManager::new().expect("Failed to create performance manager"));
+        let auth_config = AuthConfig::default();
+        let cache_warmer_enabled = false;
+
+        let browser_launcher = Arc::new(
+            HeadlessLauncher::new()
+                .await
+                .expect("Failed to create browser launcher"),
+        );
+
+        let facade_config = riptide_facade::RiptideConfig::default();
+        let browser_facade = Arc::new(
+            BrowserFacade::new(facade_config.clone())
+                .await
+                .expect("Failed to create browser facade"),
+        );
+        let extraction_facade = Arc::new(
+            ExtractionFacade::new(facade_config.clone())
+                .await
+                .expect("Failed to create extraction facade"),
+        );
+        let scraper_facade = Arc::new(
+            ScraperFacade::new(facade_config.clone())
+                .await
+                .expect("Failed to create scraper facade"),
+        );
+
+        Self {
+            http_client,
+            cache,
+            extractor,
+            reliable_extractor,
+            config,
+            api_config,
+            resource_manager,
+            metrics,
+            health_checker,
+            session_manager,
+            streaming,
+            telemetry: None,
+            spider: None,
+            pdf_metrics,
+            worker_service,
+            event_bus,
+            circuit_breaker,
+            performance_metrics,
+            monitoring_system,
+            fetch_engine,
+            performance_manager,
+            auth_config,
+            cache_warmer_enabled,
+            browser_launcher,
+            browser_facade,
+            extraction_facade,
+            scraper_facade,
+            spider_facade: None,
+            search_facade: None,
+        }
     }
 }
 

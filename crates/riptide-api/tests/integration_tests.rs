@@ -43,13 +43,13 @@ mod test_utils {
     /// let response = app.oneshot(request).await.unwrap();
     /// assert_eq!(response.status(), StatusCode::OK);
     /// ```
-    pub fn create_test_app() -> axum::Router {
+    pub async fn create_test_app() -> axum::Router {
         use axum::routing::{get, post};
         use riptide_api::routes;
 
         // Create a test app state with minimal configuration
         // For tests, we use in-memory implementations where possible
-        let test_state = create_test_state();
+        let test_state = create_test_state().await;
 
         // Use the actual API routes instead of stubs
         axum::Router::new()
@@ -77,10 +77,15 @@ mod test_utils {
     }
 
     /// Create a minimal test state for integration tests
-    fn create_test_state() -> AppState {
+    async fn create_test_state() -> AppState {
         // For now, we'll use a minimal test configuration
         // This would need to be expanded for full integration testing
-        AppState::new_test_minimal()
+        //
+        // NOTE: This requires WASM extractor to be built:
+        // cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm
+        //
+        // Set WASM_EXTRACTOR_PATH if not in default location
+        AppState::new_test_minimal().await
     }
 
     /// Helper to make HTTP requests and parse JSON responses
@@ -218,7 +223,7 @@ mod table_extraction_tests {
     /// - Handles both direct HTML content and URL fetching
     #[tokio::test]
     async fn test_table_extraction_from_html() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         let request_body = json!({
             "html_content": sample_html_with_tables(),
@@ -296,7 +301,7 @@ mod table_extraction_tests {
     /// - Handle network errors gracefully
     #[tokio::test]
     async fn test_table_extraction_from_url() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         let request_body = json!({
             "url": "https://example.com/tables",
@@ -339,7 +344,7 @@ mod table_extraction_tests {
     /// - Includes appropriate content-type header
     #[tokio::test]
     async fn test_table_csv_export() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         // First extract tables to get a table ID (this would normally be done in a previous step)
         let table_id = "table_12345"; // This would come from the extraction response
@@ -378,7 +383,7 @@ mod table_extraction_tests {
     /// - Includes appropriate content-type header
     #[tokio::test]
     async fn test_table_markdown_export() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         let table_id = "table_12345";
 
@@ -415,7 +420,7 @@ mod table_extraction_tests {
     /// - Provide span information in metadata
     #[tokio::test]
     async fn test_complex_table_span_handling() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         let complex_html = r#"
         <table>
@@ -471,7 +476,7 @@ mod table_extraction_tests {
     /// - Handle empty or no-table content
     #[tokio::test]
     async fn test_table_extraction_edge_cases() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         // Test with no tables
         let no_tables_request = json!({
@@ -561,7 +566,7 @@ mod llm_provider_tests {
     /// - Shows configuration requirements for each provider
     #[tokio::test]
     async fn test_list_llm_providers() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         let (status, response) = make_json_request(app, "GET", "/api/v1/llm/providers", None).await;
 
@@ -626,7 +631,7 @@ mod llm_provider_tests {
     /// - Shows usage statistics if available
     #[tokio::test]
     async fn test_get_current_llm_provider() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         let (status, response) =
             make_json_request(app, "GET", "/api/v1/llm/providers/current", None).await;
@@ -670,7 +675,7 @@ mod llm_provider_tests {
     /// - Returns confirmation of switch with new provider details
     #[tokio::test]
     async fn test_switch_llm_provider() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         let switch_request = json!({
             "provider": "anthropic",
@@ -715,7 +720,7 @@ mod llm_provider_tests {
     /// - Handle provider unavailability gracefully
     #[tokio::test]
     async fn test_invalid_provider_switch() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         // Test switch to non-existent provider
         let invalid_provider_request = json!({
@@ -776,7 +781,7 @@ mod llm_provider_tests {
     /// - Supports provider-specific settings
     #[tokio::test]
     async fn test_llm_provider_configuration() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         // Test getting current configuration
         let (status, response) =
@@ -837,7 +842,7 @@ mod llm_provider_tests {
     /// - Track failover events and statistics
     #[tokio::test]
     async fn test_llm_failover_chain() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         let failover_config = json!({
             "failover_enabled": true,
@@ -884,7 +889,7 @@ mod llm_provider_tests {
     /// - Provide health check endpoints for each provider
     #[tokio::test]
     async fn test_llm_provider_health_monitoring() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         let (status, response) = make_json_request(
             app,
@@ -941,7 +946,7 @@ mod advanced_chunking_tests {
     /// - Return chunked content with metadata about chunking applied
     #[tokio::test]
     async fn test_crawl_with_chunking_strategy() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         let crawl_request = json!({
             "urls": ["https://example.com/long-article"],
@@ -1010,7 +1015,7 @@ mod advanced_chunking_tests {
     /// - Include topic coherence scores for each chunk
     #[tokio::test]
     async fn test_topic_based_chunking() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         let chunking_request = json!({
             "content": sample_long_text(),
@@ -1076,7 +1081,7 @@ mod advanced_chunking_tests {
     /// - Include proper overlap between adjacent chunks
     #[tokio::test]
     async fn test_sliding_window_chunking() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         let chunking_request = json!({
             "content": sample_long_text(),
@@ -1135,7 +1140,7 @@ mod advanced_chunking_tests {
     /// - Provide performance metrics in response
     #[tokio::test]
     async fn test_chunking_performance() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         // Generate larger test content
         let large_content = sample_long_text().repeat(10); // ~5KB of text
@@ -1194,7 +1199,7 @@ mod advanced_chunking_tests {
     /// - Provide helpful error messages for invalid configurations
     #[tokio::test]
     async fn test_chunking_configuration_validation() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         // Test invalid chunking mode
         let invalid_mode_request = json!({
@@ -1283,7 +1288,7 @@ mod advanced_chunking_tests {
     /// - Support chunking in streaming operations
     #[tokio::test]
     async fn test_chunking_pipeline_integration() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         let integrated_request = json!({
             "urls": ["https://example.com/article"],
@@ -1350,7 +1355,7 @@ mod advanced_chunking_tests {
     /// - Apply appropriate preprocessing based on content type
     #[tokio::test]
     async fn test_chunking_content_types() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         // Test HTML content chunking
         let html_request = json!({
@@ -1436,7 +1441,7 @@ mod integration_workflow_tests {
     /// - Return structured analysis results
     #[tokio::test]
     async fn test_table_extraction_llm_analysis_workflow() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         let workflow_request = json!({
             "urls": ["https://example.com/financial-reports"],
@@ -1489,7 +1494,7 @@ mod integration_workflow_tests {
     /// - Provide topic labels and summaries for each chunk
     #[tokio::test]
     async fn test_llm_enhanced_chunking_workflow() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         let enhanced_chunking_request = json!({
             "content": sample_long_text(),
@@ -1548,7 +1553,7 @@ mod integration_workflow_tests {
     /// - Log failover event for monitoring
     #[tokio::test]
     async fn test_llm_failover_scenario() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         // This test would require more complex setup to simulate provider failures
         // For now, we'll test the configuration and expect the failover logic to exist
@@ -1604,7 +1609,7 @@ mod integration_workflow_tests {
     /// - Properly manage resources and connections
     #[tokio::test]
     async fn test_concurrent_request_performance() {
-        let app = create_test_app();
+        let app = create_test_app().await;
 
         // This test would spawn multiple concurrent requests
         // For TDD purposes, we'll define the expected behavior

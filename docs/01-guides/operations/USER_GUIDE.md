@@ -197,6 +197,8 @@ RipTide v2.0 introduces five critical optimization layers:
 5. **Adaptive Timeout Learning**: Per-domain timeout learning based on P95 latency
    - **Impact**: 87% less wasted time (4100ms → 500ms)
 
+For more details, see [Getting Started Guide](../../00-getting-started/README.md).
+
 ---
 
 ## Operation Modes
@@ -396,7 +398,7 @@ SERPER_API_KEY=your_serper_api_key_here
 # SEARXNG_BASE_URL=http://localhost:8888
 ```
 
-See [ENVIRONMENT_VARIABLES.md](configuration/ENVIRONMENT_VARIABLES.md) for complete reference.
+See the configuration section for complete reference.
 
 ---
 
@@ -593,7 +595,7 @@ curl http://localhost:8080/monitoring/health-score
 curl http://localhost:8080/monitoring/performance-report
 ```
 
-See [API Documentation](api/ENDPOINT_CATALOG.md) for all 59 endpoints.
+See [API Documentation](../../02-api-reference/ENDPOINT_CATALOG.md) for all 120+ routes.
 
 ---
 
@@ -716,7 +718,7 @@ RIPTIDE_MEMORY_AUTO_GC=true
 RIPTIDE_MEMORY_GC_TRIGGER_MB=1024
 ```
 
-See [PERFORMANCE_GUIDE.md](PERFORMANCE_GUIDE.md) for advanced tuning.
+See the performance tuning section above for advanced tuning.
 
 ---
 
@@ -834,7 +836,7 @@ riptide metrics -o json | jq '.optimization_layers'
 # }
 ```
 
-See [Troubleshooting Guide](user/troubleshooting.md) for more solutions.
+See [Troubleshooting Guide](../usage/troubleshooting.md) for more solutions.
 
 ---
 
@@ -984,11 +986,11 @@ riptide metrics -o json > weekly-metrics.json
 
 ## Next Steps
 
-- **Performance Tuning**: See [PERFORMANCE_GUIDE.md](PERFORMANCE_GUIDE.md)
-- **Migration from v1.0**: See [MIGRATION_GUIDE.md](guides/MIGRATION_GUIDE.md)
-- **Production Deployment**: See [DEPLOYMENT.md](DEPLOYMENT.md)
-- **API Reference**: See [ENDPOINT_CATALOG.md](api/ENDPOINT_CATALOG.md)
-- **Troubleshooting**: See [Troubleshooting Guide](user/troubleshooting.md)
+- **Getting Started**: See [Getting Started Guide](../../00-getting-started/README.md)
+- **Production Deployment**: See [Deployment Checklist](DEPLOYMENT_CHECKLIST.md)
+- **API Reference**: See [API Documentation](../../02-api-reference/ENDPOINT_CATALOG.md)
+- **Troubleshooting**: See [Troubleshooting Guide](../usage/troubleshooting.md)
+- **Configuration**: See [Configuration Guide](../usage/configuration.md)
 
 ---
 

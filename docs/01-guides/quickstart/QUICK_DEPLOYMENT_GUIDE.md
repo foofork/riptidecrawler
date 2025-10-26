@@ -43,8 +43,8 @@ riptide-cli extract --url https://example.com  # Test extraction
 ## ✅ Production Checklist
 
 ### Pre-Deployment
-- [ ] Review [PRODUCTION_READINESS_REPORT.md](PRODUCTION_READINESS_REPORT.md)
-- [ ] Read [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)
+- [ ] Review production readiness
+- [ ] Read [Deployment Checklist](../operations/DEPLOYMENT_CHECKLIST.md)
 - [ ] Configure all environment variables (see `.env.example`)
 - [ ] Create output directories
 - [ ] Set up monitoring and health checks
@@ -163,11 +163,11 @@ export RIPTIDE_MEMORY_LIMIT_MB=4096       # increase memory
 ## 📚 Documentation
 
 ### Quick Links
-- **Production Readiness**: [PRODUCTION_READINESS_REPORT.md](PRODUCTION_READINESS_REPORT.md)
-- **Deployment Guide**: [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)
-- **Performance**: [PERFORMANCE_BASELINE.md](PERFORMANCE_BASELINE.md)
-- **Release Info**: [RELEASE_ARTIFACTS.md](RELEASE_ARTIFACTS.md)
-- **FAQ**: [FAQ.md](FAQ.md)
+- **Getting Started**: [Getting Started Guide](../../00-getting-started/README.md)
+- **Deployment Guide**: [Deployment Checklist](../operations/DEPLOYMENT_CHECKLIST.md)
+- **Release Info**: [Release Artifacts](../operations/RELEASE_ARTIFACTS.md)
+- **FAQ**: [FAQ](../reference/FAQ.md)
+- **User Guide**: [User Guide](../operations/USER_GUIDE.md)
 
 ### Full Documentation (16 Guides)
 ```
@@ -247,5 +247,6 @@ riptide-cli health
 **Ready to deploy!** 🚀
 
 For detailed deployment instructions, see:
-- [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) - Complete deployment guide
-- [PRODUCTION_READINESS_REPORT.md](PRODUCTION_READINESS_REPORT.md) - Full validation report
+- [Deployment Checklist](../operations/DEPLOYMENT_CHECKLIST.md) - Complete deployment guide
+- [User Guide](../operations/USER_GUIDE.md) - Complete user manual
+- [Getting Started Guide](../../00-getting-started/README.md) - Quick start guide

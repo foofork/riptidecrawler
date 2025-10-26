@@ -1,8 +1,17 @@
 # RipTide API - Complete Endpoint Catalog
 
-**Total Endpoints: 59** across 12 categories
+**Total Routes: 120+** (59 primary user-facing endpoints, 123 total routes including admin/internal/nested)
 
 This document provides a comprehensive overview of all RipTide API endpoints, organized by feature category.
+
+## Endpoint Count Breakdown
+
+- **Primary User-Facing Endpoints**: 59 documented below
+- **Total Route Definitions**: ~123 (including admin, monitoring, profiling, telemetry)
+- **Nested Module Routes**: ~30 additional routes in specialized modules
+- **Admin Endpoints**: 13 (feature-gated with `persistence` flag)
+
+**Note**: The codebase implements more routes than this catalog documents. This catalog focuses on the 59 primary user-facing endpoints. For a complete list of all routes, see `/crates/riptide-api/src/main.rs` and nested route modules.
 
 ## Table of Contents
 1. [Health & Metrics (2)](#health--metrics)

@@ -1,6 +1,6 @@
 # API Tooling Quick Start Guide
 
-Your RipTide API now has **complete OpenAPI 3.0 documentation** with 100% endpoint coverage (59/59 endpoints). Here's how to use all the powerful tools that work with it.
+Your RipTide API now has **complete OpenAPI 3.0 documentation** with 100% endpoint coverage (120+ routes). Here's how to use all the powerful tools that work with it.
 
 ---
 
@@ -25,7 +25,7 @@ docker-compose -f docker-compose.swagger.yml up -d swagger-ui
 
 ```bash
 # Serve static files
-cd docs/api
+cd docs/02-api-reference
 python -m http.server 8081
 
 # Access at: http://localhost:8081/swagger.html
@@ -56,7 +56,7 @@ npm install -g dredd
 cargo run --package riptide-api &
 
 # Run contract tests
-dredd docs/api/openapi.yaml http://localhost:8080
+dredd docs/02-api-reference/openapi.yaml http://localhost:8080
 ```
 
 **What it tests:**
@@ -74,7 +74,7 @@ Automatically generates 1000s of test cases:
 pip install schemathesis
 
 # Run fuzzing tests
-schemathesis run docs/api/openapi.yaml \
+schemathesis run docs/02-api-reference/openapi.yaml \
   --base-url http://localhost:8080 \
   --checks all
 ```
@@ -188,7 +188,7 @@ npm install -g @openapitools/openapi-generator-cli
 
 # Generate TypeScript client
 openapi-generator-cli generate \
-  -i docs/api/openapi.yaml \
+  -i docs/02-api-reference/openapi.yaml \
   -g typescript-axios \
   -o clients/typescript
 
@@ -204,7 +204,7 @@ const response = await api.healthCheck();
 ```bash
 # Generate Python client
 openapi-generator-cli generate \
-  -i docs/api/openapi.yaml \
+  -i docs/02-api-reference/openapi.yaml \
   -g python \
   -o clients/python
 
@@ -221,7 +221,7 @@ response = api.health_check()
 ```bash
 # Generate Rust client
 openapi-generator-cli generate \
-  -i docs/api/openapi.yaml \
+  -i docs/02-api-reference/openapi.yaml \
   -g rust \
   -o clients/rust
 ```
@@ -231,7 +231,7 @@ openapi-generator-cli generate \
 ```bash
 # Generate Go client
 openapi-generator-cli generate \
-  -i docs/api/openapi.yaml \
+  -i docs/02-api-reference/openapi.yaml \
   -g go \
   -o clients/go
 ```
@@ -244,8 +244,8 @@ openapi-generator-cli generate \
 
 1. Open Postman
 2. Click **Import**
-3. Select `docs/api/openapi.yaml`
-4. Auto-generates 59 requests organized by category
+3. Select `docs/02-api-reference/openapi.yaml`
+4. Auto-generates 120+ requests organized by category
 
 **OR via CLI:**
 
@@ -254,7 +254,7 @@ openapi-generator-cli generate \
 npm install -g openapi-to-postmanv2
 
 openapi2postmanv2 \
-  -s docs/api/openapi.yaml \
+  -s docs/02-api-reference/openapi.yaml \
   -o riptide-api.postman.json
 
 # Import to Postman
@@ -265,7 +265,7 @@ openapi2postmanv2 \
 
 1. Open Insomnia
 2. Click **Import/Export**
-3. Select `docs/api/openapi.yaml`
+3. Select `docs/02-api-reference/openapi.yaml`
 4. Creates full collection with environments
 
 ---
@@ -279,7 +279,7 @@ openapi2postmanv2 \
 npm install -g @apidevtools/swagger-cli
 
 # Validate spec
-swagger-cli validate docs/api/openapi.yaml
+swagger-cli validate docs/02-api-reference/openapi.yaml
 ```
 
 ### Lint for Best Practices
@@ -289,7 +289,7 @@ swagger-cli validate docs/api/openapi.yaml
 npm install -g @stoplight/spectral-cli
 
 # Lint OpenAPI spec
-spectral lint docs/api/openapi.yaml
+spectral lint docs/02-api-reference/openapi.yaml
 ```
 
 ### Check Breaking Changes
@@ -300,8 +300,8 @@ npm install -g oasdiff
 
 # Compare versions
 oasdiff changelog \
-  docs/api/openapi.yaml.old \
-  docs/api/openapi.yaml
+  docs/02-api-reference/openapi.yaml.old \
+  docs/02-api-reference/openapi.yaml
 ```
 
 ---
@@ -344,10 +344,10 @@ docker-compose -f docker-compose.swagger.yml up -d swagger-ui
 # → http://localhost:8081
 
 # 2. Run contract tests
-dredd docs/api/openapi.yaml http://localhost:8080
+dredd docs/02-api-reference/openapi.yaml http://localhost:8080
 
 # 3. Fuzz testing
-schemathesis run docs/api/openapi.yaml --base-url http://localhost:8080
+schemathesis run docs/02-api-reference/openapi.yaml --base-url http://localhost:8080
 
 # 4. Start Kong Gateway
 docker-compose -f docker-compose.gateway.yml up -d
@@ -355,13 +355,13 @@ docker-compose -f docker-compose.gateway.yml up -d
 # → http://localhost:8002 (dashboard)
 
 # 5. Generate TypeScript client
-openapi-generator-cli generate -i docs/api/openapi.yaml -g typescript-axios -o clients/typescript
+openapi-generator-cli generate -i docs/02-api-reference/openapi.yaml -g typescript-axios -o clients/typescript
 
 # 6. Validate spec
-swagger-cli validate docs/api/openapi.yaml
+swagger-cli validate docs/02-api-reference/openapi.yaml
 
 # 7. Import to Postman
-openapi2postmanv2 -s docs/api/openapi.yaml -o riptide.postman.json
+openapi2postmanv2 -s docs/02-api-reference/openapi.yaml -o riptide.postman.json
 ```
 
 ---
@@ -380,7 +380,7 @@ openapi2postmanv2 -s docs/api/openapi.yaml -o riptide.postman.json
 
 ## 🎉 What You Have Now
 
-✅ **100% API Documentation** (59/59 endpoints)
+✅ **100% API Documentation** (120+ routes)
 ✅ **Interactive API Explorer** (Swagger UI)
 ✅ **Automated Contract Testing** (Dredd)
 ✅ **Fuzzing & Security Tests** (Schemathesis)
@@ -391,3 +391,5 @@ openapi2postmanv2 -s docs/api/openapi.yaml -o riptide.postman.json
 ✅ **API Monitoring** (Prometheus/Grafana)
 
 Your RipTide API is now enterprise-ready with professional tooling! 🚀
+
+For more information, see [Getting Started Guide](../../00-getting-started/README.md) and [API Reference](../../02-api-reference/ENDPOINT_CATALOG.md).

@@ -7,7 +7,7 @@ Comprehensive guides for RipTide users and operators.
 ### [Quickstart](./quickstart/)
 Get up and running quickly with RipTide.
 
-- [API Tooling Quickstart](./quickstart/API_TOOLING_QUICKSTART.md) - CLI, SDK, playground setup
+- [API Tooling Quickstart](./quickstart/API_TOOLING_QUICKSTART.md) - API documentation and testing tools
 - [Quick Deployment Guide](./quickstart/QUICK_DEPLOYMENT_GUIDE.md) - Fast deployment instructions
 - [Real World Test Setup](./quickstart/REAL_WORLD_TEST_SETUP.md) - Testing with real websites
 - [Job Queue Quick Start](./quickstart/job-quick-start.md) - Background job processing

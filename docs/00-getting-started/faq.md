@@ -95,13 +95,15 @@ See [Stealth Configuration](../01-guides/configuration/stealth.md).
 
 ### Can I use AI for extraction?
 
-Yes! RipTide supports multiple LLM providers:
-- OpenAI (GPT-4)
+Yes! RipTide supports **8 LLM providers**:
+- OpenAI (GPT-4, GPT-3.5)
 - Anthropic (Claude)
-- Google (Gemini)
+- Google Vertex AI (Gemini)
 - Azure OpenAI
 - AWS Bedrock
-- Ollama (local)
+- Ollama (local models)
+- LocalAI (self-hosted)
+- Custom providers (extensible)
 
 See [LLM Provider Setup](../01-guides/configuration/llm-providers.md).
 
@@ -170,7 +172,7 @@ RipTide is a REST API - use any HTTP client:
 - PHP: `Guzzle`
 - Ruby: `Faraday`, `HTTParty`
 
-See [API Reference](../02-api-reference/README.md) for OpenAPI spec.
+See [API Reference](../02-api-reference/README.md) for OpenAPI spec with 120+ routes.
 
 ### Can I use it as a library?
 

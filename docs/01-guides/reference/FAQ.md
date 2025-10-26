@@ -149,7 +149,7 @@ riptide cache stats
 riptide system-check
 ```
 
-See [PERFORMANCE_GUIDE.md](PERFORMANCE_GUIDE.md) for detailed monitoring.
+See [User Guide](../operations/USER_GUIDE.md) for detailed monitoring and performance tuning.
 
 ---
 
@@ -293,7 +293,7 @@ SERPER_API_KEY=your_serper_api_key_here
 
 **All other variables are optional** with sensible defaults.
 
-See [ENVIRONMENT_VARIABLES.md](configuration/ENVIRONMENT_VARIABLES.md) for complete reference.
+See [Configuration Guide](../usage/configuration.md) for complete reference.
 
 ### How do I configure output directories?
 
@@ -307,7 +307,7 @@ export RIPTIDE_CRAWL_DIR=./my-output/crawls
 export RIPTIDE_LOGS_DIR=./my-output/logs
 ```
 
-See [OUTPUT_DIRECTORIES.md](configuration/OUTPUT_DIRECTORIES.md) for details.
+See [User Guide](../operations/USER_GUIDE.md) for details on output directories.
 
 ---
 
@@ -402,7 +402,7 @@ docker-compose up -d
 curl http://localhost:8080/healthz
 ```
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for production deployment guide.
+See [Deployment Checklist](../operations/DEPLOYMENT_CHECKLIST.md) for production deployment guide.
 
 ### How do I scale RipTide horizontally?
 
@@ -468,7 +468,7 @@ RipTide is **open source and free**! Operational costs:
 
 ### How do I contribute to RipTide?
 
-See [CONTRIBUTING.md](development/contributing.md) for guidelines.
+See the project repository for contribution guidelines.
 
 **Quick start:**
 1. Fork repository
@@ -492,7 +492,7 @@ cargo test
 
 ### How can I add a new extraction method?
 
-See [development/EXTRACTION_GUIDE.md](development/EXTRACTION_GUIDE.md) for implementation guide.
+See the project repository and developer documentation for implementation guidelines.
 
 **Basic steps:**
 1. Implement `Extractor` trait
@@ -511,7 +511,7 @@ See [development/EXTRACTION_GUIDE.md](development/EXTRACTION_GUIDE.md) for imple
 - **Issues**: [GitHub Issues](https://github.com/your-org/riptide/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/your-org/riptide/discussions)
 - **User Guide**: [USER_GUIDE.md](USER_GUIDE.md)
-- **Troubleshooting**: [Troubleshooting Guide](user/troubleshooting.md)
+- **Troubleshooting**: [Troubleshooting Guide](../usage/troubleshooting.md)
 
 ### How do I report a bug?
 
@@ -538,7 +538,7 @@ See [development/EXTRACTION_GUIDE.md](development/EXTRACTION_GUIDE.md) for imple
 
 ### How do I upgrade from v1.0 to v2.0?
 
-See [MIGRATION_GUIDE.md](guides/MIGRATION_GUIDE.md) for detailed instructions.
+See the project changelog and migration documentation for detailed instructions.
 
 **Quick upgrade:**
 ```bash

@@ -111,14 +111,15 @@ browser_pool:
 
 **What**: Unified interface for multiple AI providers.
 
-**Supported Providers**:
+**Supported Providers** (8 total):
 - OpenAI (GPT-4, GPT-3.5)
 - Anthropic (Claude)
-- Google (Gemini)
+- Google Vertex AI (Gemini)
 - Azure OpenAI
 - AWS Bedrock
-- Ollama (local)
+- Ollama (local models)
 - LocalAI (self-hosted)
+- Custom providers (extensible)
 
 **Features**:
 - Circuit breakers

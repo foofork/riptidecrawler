@@ -1,13 +1,13 @@
 openapi: 3.0.0
 info:
   title: RipTide API - Comprehensive Specification
-  version: 1.2.0
-  x-last-validated: "2025-10-24T14:30:00Z"
+  version: 1.2.1
+  x-last-validated: "2025-10-26T00:00:00Z"
   description: '# RipTide Crawler API
 
 
-    A high-performance web scraping and content extraction API with 110+ endpoints across
-    17 categories.
+    A high-performance web scraping and content extraction API with 120+ routes (59
+    primary user-facing endpoints, 123 total including admin/internal) across 17 categories.
 
 
     ## Phase 1: Core Crawling & Event System (11 endpoints)
@@ -69,7 +69,8 @@ info:
     - **Engine Selection**: AI-driven engine recommendations with 60-80% cost savings
 
 
-    **Total: 110+ endpoints documented**
+    **Total: 120+ routes (59 primary user-facing endpoints documented, 123 total
+    including admin/internal)**
 
     '
   contact:
