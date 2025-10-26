@@ -1,6 +1,7 @@
 //! Unit tests for environment variable configuration parsing in riptide-api
 
 use riptide_api::config::ApiConfig;
+use serial_test::serial;
 use std::env;
 
 /// Helper to set and clear environment variables for testing
@@ -23,6 +24,7 @@ where
 }
 
 #[test]
+#[serial]
 fn test_resource_config_from_env() {
     with_env_vars(
         vec![
@@ -48,6 +50,7 @@ fn test_resource_config_from_env() {
 }
 
 #[test]
+#[serial]
 fn test_performance_config_from_env() {
     with_env_vars(
         vec![
@@ -73,6 +76,7 @@ fn test_performance_config_from_env() {
 }
 
 #[test]
+#[serial]
 fn test_rate_limiting_config_from_env() {
     with_env_vars(
         vec![
@@ -98,6 +102,7 @@ fn test_rate_limiting_config_from_env() {
 }
 
 #[test]
+#[serial]
 fn test_memory_config_from_env() {
     with_env_vars(
         vec![
@@ -129,6 +134,7 @@ fn test_memory_config_from_env() {
 }
 
 #[test]
+#[serial]
 fn test_headless_config_from_env() {
     with_env_vars(
         vec![
@@ -158,6 +164,7 @@ fn test_headless_config_from_env() {
 }
 
 #[test]
+#[serial]
 fn test_pdf_config_from_env() {
     with_env_vars(
         vec![
@@ -181,6 +188,7 @@ fn test_pdf_config_from_env() {
 }
 
 #[test]
+#[serial]
 fn test_wasm_config_from_env() {
     with_env_vars(
         vec![
@@ -206,6 +214,7 @@ fn test_wasm_config_from_env() {
 }
 
 #[test]
+#[serial]
 fn test_search_config_from_env() {
     with_env_vars(
         vec![
@@ -261,6 +270,7 @@ fn test_default_config_when_no_env_vars() {
 }
 
 #[test]
+#[serial]
 fn test_invalid_env_var_values_use_defaults() {
     with_env_vars(
         vec![
@@ -288,6 +298,7 @@ fn test_invalid_env_var_values_use_defaults() {
 }
 
 #[test]
+#[serial]
 fn test_config_validation_with_env_vars() {
     with_env_vars(
         vec![
@@ -303,6 +314,7 @@ fn test_config_validation_with_env_vars() {
 }
 
 #[test]
+#[serial]
 fn test_all_sections_loaded_together() {
     with_env_vars(
         vec![

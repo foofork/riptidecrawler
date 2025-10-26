@@ -90,6 +90,7 @@ axum-extra = { version = "0.9" }
 futures-util = "0.3"
 tokio-tungstenite = "0.23"
 http-body-util = "0.1"
+serial_test = "3.2"
 
 [features]
 default = []

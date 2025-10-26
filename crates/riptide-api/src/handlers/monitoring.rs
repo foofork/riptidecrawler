@@ -11,10 +11,6 @@ use axum::{
 };
 use serde::Serialize;
 
-// Allow unused imports - these may be used in future endpoint implementations
-#[allow(unused_imports)]
-use serde::Deserialize;
-
 /// Health score response
 #[derive(Debug, Serialize)]
 pub struct HealthScoreResponse {

@@ -531,7 +531,7 @@ impl ApiConfig {
             }
         }
 
-        // WASM runtime configuration (8 fields)
+        // WASM runtime configuration (7 fields)
         if let Ok(val) = std::env::var("RIPTIDE_WASM_INSTANCES_PER_WORKER") {
             if let Ok(val) = val.parse() {
                 config.wasm.instances_per_worker = val;
