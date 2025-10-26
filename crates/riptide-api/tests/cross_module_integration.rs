@@ -11,6 +11,8 @@ mod test_helpers;
 
 #[cfg(test)]
 mod cross_module_tests {
+    use super::test_helpers;
+
     #[allow(unused_imports)]
     use axum::body::Body;
     #[allow(unused_imports)]
