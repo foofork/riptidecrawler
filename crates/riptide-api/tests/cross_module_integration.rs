@@ -7,16 +7,18 @@
 //! - Profiling + Browser Pool (track pool resources)
 //! - Streaming + Browser (stream automation results)
 
-use axum::body::Body;
-use axum::http::{Request, StatusCode};
-use serde_json::json;
-use tower::ServiceExt;
-
 mod test_helpers;
 
 #[cfg(test)]
 mod cross_module_tests {
-    use super::*;
+    #[allow(unused_imports)]
+    use axum::body::Body;
+    #[allow(unused_imports)]
+    use axum::http::{Request, StatusCode};
+    #[allow(unused_imports)]
+    use serde_json::json;
+    #[allow(unused_imports)]
+    use tower::ServiceExt;
 
     /// Test 1: Streaming + Persistence
     /// Stream data and persist to cache for later retrieval
@@ -131,8 +133,9 @@ mod cross_module_tests {
 
     /// Test 3: Persistence + Multi-tenancy
     /// Verify tenant quota enforcement with cache operations
+    /// NOTE: Disabled - tenants feature not implemented yet
     #[tokio::test]
-    #[cfg(all(feature = "persistence", feature = "tenants"))]
+    #[ignore = "tenants feature not implemented"]
     async fn test_tenant_quota_with_cache() {
         let app = test_helpers::create_minimal_test_app();
 
@@ -285,8 +288,9 @@ mod cross_module_tests {
 
     /// Test 6: Cache + Tenant Isolation
     /// Verify cache isolation between tenants
+    /// NOTE: Disabled - tenants feature not implemented yet
     #[tokio::test]
-    #[cfg(all(feature = "persistence", feature = "tenants"))]
+    #[ignore = "tenants feature not implemented"]
     async fn test_cache_tenant_isolation() {
         let app = test_helpers::create_minimal_test_app();
 
@@ -452,8 +456,9 @@ mod cross_module_tests {
 
     /// Test 9: Multi-tenant Rate Limiting + Profiling
     /// Track rate limit violations per tenant
+    /// NOTE: Disabled - tenants feature not implemented yet
     #[tokio::test]
-    #[cfg(all(feature = "tenants", feature = "profiling-full"))]
+    #[ignore = "tenants feature not implemented"]
     async fn test_tenant_rate_limiting_with_profiling() {
         let app = test_helpers::create_minimal_test_app();
 
