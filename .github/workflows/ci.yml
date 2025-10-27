@@ -299,6 +299,17 @@ jobs:
           - unit
           - integration
           - browser
+    # Redis service for integration tests
+    services:
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
     steps:
       - uses: actions/checkout@v4
 
@@ -336,6 +347,7 @@ jobs:
         if: matrix.test-type == 'unit'
         env:
           RUSTFLAGS: "-Dwarnings -C target-cpu=x86-64-v2"
+          REDIS_URL: "redis://localhost:6379"
         run: |
           # Run all workspace crates except browser (parallel, fast)
           cargo test --workspace --lib --bins --exclude riptide-browser -- --nocapture --test-threads=4
@@ -345,7 +357,11 @@ jobs:
         env:
           RUSTFLAGS: "-Dwarnings -C target-cpu=x86-64-v2"
           REQUIRE_AUTH: "false"
+          REDIS_URL: "redis://localhost:6379"
         run: |
+          # Wait for Redis to be ready
+          timeout 30 bash -c 'until redis-cli -h localhost ping; do sleep 1; done' || echo "Redis may not be available"
+
           # Run all workspace integration tests except browser (parallel)
           cargo test --workspace --tests --exclude riptide-browser -- --nocapture --test-threads=2
 
