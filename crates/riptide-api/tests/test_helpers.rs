@@ -52,7 +52,7 @@ pub async fn create_test_app() -> Router {
 
 /// Create router with all routes configured
 pub fn create_test_router(state: AppState) -> Router {
-    use riptide_api::streaming;
+    use riptide_api::{routes, streaming};
 
     Router::new()
         // Health endpoint - standardized on /healthz
@@ -74,6 +74,12 @@ pub fn create_test_router(state: AppState) -> Router {
         )
         .route("/crawl/sse", post(streaming::crawl_sse))
         .route("/crawl/ws", get(streaming::crawl_websocket))
+        // Table extraction routes
+        .nest("/api/v1/tables", routes::tables::table_routes())
+        // LLM provider management routes
+        .nest("/api/v1/llm", routes::llm::llm_routes())
+        // Content chunking routes
+        .nest("/api/v1/content", routes::chunking::chunking_routes())
         .with_state(state)
         .layer(CorsLayer::permissive())
 }

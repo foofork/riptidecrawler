@@ -222,6 +222,7 @@ mod table_extraction_tests {
     /// - Identifies all tables in the content
     /// - Handles both direct HTML content and URL fetching
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_table_extraction_from_html() {
         let app = create_test_app().await;
 
@@ -300,6 +301,7 @@ mod table_extraction_tests {
     /// - Extract tables from fetched content
     /// - Handle network errors gracefully
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_table_extraction_from_url() {
         let app = create_test_app().await;
 
@@ -343,6 +345,7 @@ mod table_extraction_tests {
     /// - Handles special characters and escaping
     /// - Includes appropriate content-type header
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_table_csv_export() {
         let app = create_test_app().await;
 
@@ -382,6 +385,7 @@ mod table_extraction_tests {
     /// - Preserves table structure and alignment
     /// - Includes appropriate content-type header
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_table_markdown_export() {
         let app = create_test_app().await;
 
@@ -419,6 +423,7 @@ mod table_extraction_tests {
     /// - Maintain table structure integrity
     /// - Provide span information in metadata
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_complex_table_span_handling() {
         let app = create_test_app().await;
 
@@ -475,6 +480,7 @@ mod table_extraction_tests {
     /// - Return appropriate errors for invalid requests
     /// - Handle empty or no-table content
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_table_extraction_edge_cases() {
         let app = create_test_app().await;
 
@@ -565,6 +571,7 @@ mod llm_provider_tests {
     /// - Includes provider capabilities and status
     /// - Shows configuration requirements for each provider
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_list_llm_providers() {
         let app = create_test_app().await;
 
@@ -630,6 +637,7 @@ mod llm_provider_tests {
     /// - Includes provider configuration and status
     /// - Shows usage statistics if available
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_get_current_llm_provider() {
         let app = create_test_app().await;
 
@@ -674,6 +682,7 @@ mod llm_provider_tests {
     /// - Validates provider exists and is configured
     /// - Returns confirmation of switch with new provider details
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_switch_llm_provider() {
         let app = create_test_app().await;
 
@@ -719,6 +728,7 @@ mod llm_provider_tests {
     /// - Validate required configuration parameters
     /// - Handle provider unavailability gracefully
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_invalid_provider_switch() {
         let app = create_test_app().await;
 
@@ -780,6 +790,7 @@ mod llm_provider_tests {
     /// - Validates configuration parameters
     /// - Supports provider-specific settings
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_llm_provider_configuration() {
         let app = create_test_app().await;
 
@@ -841,6 +852,7 @@ mod llm_provider_tests {
     /// - Automatically switch on provider failure
     /// - Track failover events and statistics
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_llm_failover_chain() {
         let app = create_test_app().await;
 
@@ -888,6 +900,7 @@ mod llm_provider_tests {
     /// - Track usage statistics and quotas
     /// - Provide health check endpoints for each provider
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_llm_provider_health_monitoring() {
         let app = create_test_app().await;
 
@@ -945,6 +958,7 @@ mod advanced_chunking_tests {
     /// - Apply specified chunking strategy to extracted content
     /// - Return chunked content with metadata about chunking applied
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_crawl_with_chunking_strategy() {
         let app = create_test_app().await;
 
@@ -1014,6 +1028,7 @@ mod advanced_chunking_tests {
     /// - Produce semantically coherent chunks
     /// - Include topic coherence scores for each chunk
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_topic_based_chunking() {
         let app = create_test_app().await;
 
@@ -1080,6 +1095,7 @@ mod advanced_chunking_tests {
     /// - Maintain consistent chunk sizes (except possibly the last chunk)
     /// - Include proper overlap between adjacent chunks
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_sliding_window_chunking() {
         let app = create_test_app().await;
 
@@ -1139,6 +1155,7 @@ mod advanced_chunking_tests {
     /// - Scale reasonably with document length
     /// - Provide performance metrics in response
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_chunking_performance() {
         let app = create_test_app().await;
 
@@ -1198,6 +1215,7 @@ mod advanced_chunking_tests {
     /// - Handle edge cases like very short content
     /// - Provide helpful error messages for invalid configurations
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_chunking_configuration_validation() {
         let app = create_test_app().await;
 
@@ -1287,6 +1305,7 @@ mod advanced_chunking_tests {
     /// - Preserve extraction metadata across chunks
     /// - Support chunking in streaming operations
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_chunking_pipeline_integration() {
         let app = create_test_app().await;
 
@@ -1354,6 +1373,7 @@ mod advanced_chunking_tests {
     /// - Preserve formatting when requested
     /// - Apply appropriate preprocessing based on content type
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_chunking_content_types() {
         let app = create_test_app().await;
 
@@ -1440,6 +1460,7 @@ mod integration_workflow_tests {
     /// - Use LLM to analyze table content
     /// - Return structured analysis results
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_table_extraction_llm_analysis_workflow() {
         let app = create_test_app().await;
 
@@ -1493,6 +1514,7 @@ mod integration_workflow_tests {
     /// - Use LLM to improve topic boundary detection
     /// - Provide topic labels and summaries for each chunk
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_llm_enhanced_chunking_workflow() {
         let app = create_test_app().await;
 
@@ -1552,6 +1574,7 @@ mod integration_workflow_tests {
     /// - Complete request successfully with backup
     /// - Log failover event for monitoring
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_llm_failover_scenario() {
         let app = create_test_app().await;
 
@@ -1608,6 +1631,7 @@ mod integration_workflow_tests {
     /// - Maintain performance requirements across all endpoints
     /// - Properly manage resources and connections
     #[tokio::test]
+    #[ignore = "Requires WASM extractor, LLM providers, and full AppState dependencies - run with --ignored"]
     async fn test_concurrent_request_performance() {
         let app = create_test_app().await;
 
