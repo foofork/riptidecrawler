@@ -276,7 +276,6 @@ mod test_setup {
 
 // Test 1: Basic PDF Processing Through API Endpoint
 #[tokio::test]
-#[ignore = "Requires WASM extractor and full AppState dependencies - run with --ignored"]
 async fn test_basic_pdf_processing_api_endpoint() {
     let app = test_setup::create_test_app().await;
     let pdf_data = test_utils::create_mock_pdf_data();
@@ -315,7 +314,6 @@ async fn test_basic_pdf_processing_api_endpoint() {
 
 // Test 2: PDF Streaming with Progress Tracking
 #[tokio::test]
-#[ignore = "Requires WASM extractor and full AppState dependencies - run with --ignored"]
 async fn test_pdf_streaming_with_progress() {
     let app = test_setup::create_test_app().await;
     let pdf_data = test_utils::create_mock_pdf_data();
@@ -394,7 +392,6 @@ async fn test_pdf_streaming_with_progress() {
 
 // Test 3: PDF Processing Through Worker Service
 #[tokio::test]
-#[ignore = "Requires WASM extractor and full AppState dependencies - run with --ignored"]
 async fn test_pdf_processing_through_worker_service() {
     let app = test_setup::create_test_app().await;
     let pdf_data = test_utils::create_mock_pdf_data();
@@ -448,7 +445,6 @@ async fn test_pdf_processing_through_worker_service() {
 
 // Test 4: Memory Management with Large PDFs
 #[tokio::test]
-#[ignore = "Requires WASM extractor and full AppState dependencies - run with --ignored"]
 async fn test_memory_management_large_pdfs() {
     let monitor = test_utils::MemoryMonitor::new();
     let _memory_stream = monitor.start_monitoring(Duration::from_millis(100)).await;
@@ -506,7 +502,6 @@ async fn test_memory_management_large_pdfs() {
 
 // Test 5: Error Handling for Invalid PDFs
 #[tokio::test]
-#[ignore = "Requires WASM extractor and full AppState dependencies - run with --ignored"]
 async fn test_error_handling_invalid_pdfs() {
     let app = test_setup::create_test_app().await;
 
@@ -594,7 +589,6 @@ async fn test_error_handling_invalid_pdfs() {
 
 // Test 6: Concurrent PDF Processing
 #[tokio::test]
-#[ignore = "Requires WASM extractor and full AppState dependencies - run with --ignored"]
 async fn test_concurrent_pdf_processing() {
     const CONCURRENT_REQUESTS: usize = 5;
     let pdf_data = test_utils::create_mock_pdf_data();
@@ -672,7 +666,6 @@ async fn test_concurrent_pdf_processing() {
 
 // Test 7: PDF Extraction Options (Text, Images, Metadata)
 #[tokio::test]
-#[ignore = "Requires WASM extractor and full AppState dependencies - run with --ignored"]
 async fn test_pdf_extraction_options() {
     let pdf_data = test_utils::create_mock_pdf_data();
     let encoded_data = test_utils::encode_pdf_base64(&pdf_data);
@@ -764,7 +757,6 @@ async fn test_pdf_extraction_options() {
 
 // Test 8: Timeout Handling for Stuck PDFs
 #[tokio::test]
-#[ignore = "Requires WASM extractor and full AppState dependencies - run with --ignored"]
 async fn test_timeout_handling_stuck_pdfs() {
     let app = test_setup::create_test_app().await;
 
@@ -848,7 +840,6 @@ async fn test_timeout_handling_stuck_pdfs() {
 
 // Performance Benchmarks
 #[tokio::test]
-#[ignore = "Requires WASM extractor and full AppState dependencies - run with --ignored"]
 async fn test_pdf_processing_performance_benchmarks() {
     const BENCHMARK_ITERATIONS: usize = 10;
     let pdf_data = test_utils::create_mock_pdf_data();
@@ -977,7 +968,6 @@ async fn test_pdf_processing_performance_benchmarks() {
 
 // Progress Callback Overhead Test
 #[tokio::test]
-#[ignore = "Requires WASM extractor and full AppState dependencies - run with --ignored"]
 async fn test_progress_callback_overhead() {
     let app = test_setup::create_test_app().await;
     let pdf_data = test_utils::create_mock_pdf_data();
@@ -1078,7 +1068,6 @@ fn calculate_performance_score(
 
 // Integration test for PDF health check endpoint
 #[tokio::test]
-#[ignore = "Requires WASM extractor and full AppState dependencies - run with --ignored"]
 async fn test_pdf_health_check_endpoint() {
     let app = test_setup::create_test_app().await;
 
@@ -1116,7 +1105,6 @@ async fn test_pdf_health_check_endpoint() {
 
 // Zero panics/unwraps production safety test
 #[tokio::test]
-#[ignore = "Requires WASM extractor and full AppState dependencies - run with --ignored"]
 async fn test_zero_panics_unwraps_production_safety() {
     // This test verifies that the PDF pipeline gracefully handles errors
     // without panicking or using unwrap() in production code paths
