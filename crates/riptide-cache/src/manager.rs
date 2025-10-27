@@ -99,6 +99,19 @@ impl CacheManager {
         Ok(Self { conn, config })
     }
 
+    /// Create a stub cache manager for testing purposes - ASYNC version
+    ///
+    /// This creates a minimal cache manager that attempts connection but gracefully
+    /// handles failure. For use in test scenarios where Redis may not be available.
+    ///
+    /// Returns Ok if connection succeeds, Err if Redis is unavailable.
+    #[allow(dead_code)]
+    pub async fn new_stub_async() -> Result<Self> {
+        // Try to connect to test Redis on a non-standard port
+        // This will fail fast if Redis isn't running, which is fine for tests
+        Self::new("redis://127.0.0.1:16379").await
+    }
+
     /// Generate version-aware cache key
     pub fn generate_cache_key(
         &self,

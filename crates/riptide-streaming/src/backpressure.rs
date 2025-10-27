@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::{RwLock, Semaphore};
+use tokio::task::JoinHandle;
 use tokio::time::interval;
 use uuid::Uuid;
 
@@ -86,11 +87,24 @@ pub struct BackpressureController {
     rejection_count: Arc<RwLock<u64>>,
     total_requests: Arc<RwLock<u64>>,
     wait_times: Arc<RwLock<Vec<Duration>>>,
+    monitoring_task: Arc<RwLock<Option<JoinHandle<()>>>>,
 }
 
 impl BackpressureController {
     /// Create a new backpressure controller
     pub fn new(config: BackpressureConfig) -> Self {
+        Self::new_internal(config, true)
+    }
+
+    /// Create a new backpressure controller without starting background monitoring
+    /// This is useful for testing to avoid background tasks that can prevent test completion
+    #[cfg(test)]
+    fn new_without_monitoring(config: BackpressureConfig) -> Self {
+        Self::new_internal(config, false)
+    }
+
+    /// Internal constructor with optional monitoring
+    fn new_internal(config: BackpressureConfig, start_monitoring: bool) -> Self {
         let global_semaphore = Arc::new(Semaphore::new(config.max_total_items));
         let memory_semaphore = Arc::new(Semaphore::new(
             (config.max_memory_bytes / 1024) as usize, // Convert to KB for semaphore
@@ -113,10 +127,13 @@ impl BackpressureController {
             rejection_count: Arc::new(RwLock::new(0)),
             total_requests: Arc::new(RwLock::new(0)),
             wait_times: Arc::new(RwLock::new(Vec::new())),
+            monitoring_task: Arc::new(RwLock::new(None)),
         };
 
-        // Start background monitoring
-        controller.start_monitoring();
+        // Start background monitoring if requested
+        if start_monitoring {
+            controller.start_monitoring();
+        }
 
         controller
     }
@@ -133,6 +150,7 @@ impl BackpressureController {
                 throttle_until: None,
             },
         );
+        drop(resources); // Drop write lock before calling update_metrics
 
         self.update_metrics().await;
         Ok(())
@@ -313,7 +331,7 @@ impl BackpressureController {
     /// Start background monitoring task
     fn start_monitoring(&self) {
         let controller = self.clone();
-        tokio::spawn(async move {
+        let handle = tokio::spawn(async move {
             let mut interval = interval(controller.config.check_interval);
 
             loop {
@@ -321,6 +339,19 @@ impl BackpressureController {
                 controller.monitor_and_adjust().await;
             }
         });
+
+        // Store the handle so it can be aborted later
+        if let Ok(mut task) = self.monitoring_task.try_write() {
+            *task = Some(handle);
+        }
+    }
+
+    /// Stop the background monitoring task
+    pub async fn stop_monitoring(&self) {
+        let mut task = self.monitoring_task.write().await;
+        if let Some(handle) = task.take() {
+            handle.abort();
+        }
     }
 
     /// Monitor resources and adjust throttling
@@ -394,6 +425,18 @@ impl Clone for BackpressureController {
             rejection_count: Arc::clone(&self.rejection_count),
             total_requests: Arc::clone(&self.total_requests),
             wait_times: Arc::clone(&self.wait_times),
+            monitoring_task: Arc::clone(&self.monitoring_task),
+        }
+    }
+}
+
+impl Drop for BackpressureController {
+    fn drop(&mut self) {
+        // Abort monitoring task when controller is dropped
+        if let Ok(mut task) = self.monitoring_task.try_write() {
+            if let Some(handle) = task.take() {
+                handle.abort();
+            }
         }
     }
 }
@@ -441,7 +484,7 @@ mod tests {
     #[tokio::test]
     async fn test_backpressure_controller_creation() {
         let config = BackpressureConfig::default();
-        let controller = BackpressureController::new(config);
+        let controller = BackpressureController::new_without_monitoring(config);
 
         let metrics = controller.get_metrics().await;
         assert_eq!(metrics.total_streams, 0);
@@ -451,14 +494,23 @@ mod tests {
     #[tokio::test(flavor = "multi_thread")]
     async fn test_stream_registration() {
         let test_future = async {
+            println!("Test starting...");
             let config = BackpressureConfig::default();
-            let controller = BackpressureController::new(config);
+            println!("Config created");
+            let controller = BackpressureController::new_without_monitoring(config);
+            println!("Controller created");
             let stream_id = Uuid::new_v4();
+            println!("Stream ID: {:?}", stream_id);
 
+            println!("Registering stream...");
             controller.register_stream(stream_id).await.unwrap();
+            println!("Stream registered");
 
+            println!("Getting metrics...");
             let metrics = controller.get_metrics().await;
+            println!("Got metrics: {:?}", metrics.total_streams);
             assert_eq!(metrics.total_streams, 1);
+            println!("Test completed successfully!");
         };
 
         tokio::time::timeout(Duration::from_secs(30), test_future)
@@ -470,7 +522,7 @@ mod tests {
     async fn test_resource_acquisition() {
         let test_future = async {
             let config = BackpressureConfig::default();
-            let controller = BackpressureController::new(config);
+            let controller = BackpressureController::new_without_monitoring(config);
             let stream_id = Uuid::new_v4();
 
             controller.register_stream(stream_id).await.unwrap();
@@ -504,7 +556,7 @@ mod tests {
                 max_total_items: 2,
                 ..Default::default()
             };
-            let controller = BackpressureController::new(config);
+            let controller = BackpressureController::new_without_monitoring(config);
             let stream_id = Uuid::new_v4();
 
             controller.register_stream(stream_id).await.unwrap();
@@ -534,7 +586,7 @@ mod tests {
                 max_memory_bytes: 2048, // 2KB
                 ..Default::default()
             };
-            let controller = BackpressureController::new(config);
+            let controller = BackpressureController::new_without_monitoring(config);
             let stream_id = Uuid::new_v4();
 
             controller.register_stream(stream_id).await.unwrap();
@@ -556,7 +608,7 @@ mod tests {
     async fn test_metrics_calculation() {
         let test_future = async {
             let config = BackpressureConfig::default();
-            let controller = BackpressureController::new(config);
+            let controller = BackpressureController::new_without_monitoring(config);
             let stream_id = Uuid::new_v4();
 
             controller.register_stream(stream_id).await.unwrap();
