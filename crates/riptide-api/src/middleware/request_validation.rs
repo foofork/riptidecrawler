@@ -92,6 +92,12 @@ pub(crate) fn get_allowed_methods(path: &str) -> HashSet<&'static str> {
         return ["GET", "HEAD"].iter().copied().collect();
     }
 
+    // WebSocket endpoint - GET only (for upgrade)
+    // IMPORTANT: Check this BEFORE /crawl to avoid matching the prefix
+    if path.starts_with("/crawl/ws") {
+        return ["GET"].iter().copied().collect();
+    }
+
     // POST-only endpoints
     if path.starts_with("/crawl")
         || path.starts_with("/api/v1/crawl")
@@ -106,11 +112,6 @@ pub(crate) fn get_allowed_methods(path: &str) -> HashSet<&'static str> {
         || path.starts_with("/sessions")
     {
         return ["POST"].iter().copied().collect();
-    }
-
-    // WebSocket endpoint - GET only (for upgrade)
-    if path.starts_with("/crawl/ws") {
-        return ["GET"].iter().copied().collect();
     }
 
     // RESTful endpoints with multiple methods

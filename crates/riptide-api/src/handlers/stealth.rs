@@ -10,6 +10,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
+use crate::errors::ApiError;
 use crate::state::AppState;
 
 /// Stealth configuration request
@@ -67,14 +68,11 @@ pub async fn configure_stealth(
         .iter()
         .any(|p| p.eq_ignore_ascii_case(&preset))
     {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(json!({
-                "error": "Invalid stealth preset",
-                "message": format!("Preset must be one of: {:?}", valid_presets)
-            })),
-        )
-            .into_response();
+        return ApiError::validation(format!(
+            "Invalid stealth preset. Preset must be one of: {:?}",
+            valid_presets
+        ))
+        .into_response();
     }
 
     (
@@ -98,13 +96,7 @@ pub async fn test_stealth(State(state): State<AppState>) -> Response {
     let session = match state.browser_facade.launch().await {
         Ok(s) => s,
         Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({
-                    "error": "Failed to launch test browser",
-                    "message": e.to_string()
-                })),
-            )
+            return ApiError::internal(format!("Failed to launch test browser: {}", e))
                 .into_response();
         }
     };
@@ -142,14 +134,7 @@ pub async fn test_stealth(State(state): State<AppState>) -> Response {
     {
         Ok(fp) => fp,
         Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({
-                    "error": "Fingerprint test failed",
-                    "message": e.to_string()
-                })),
-            )
-                .into_response();
+            return ApiError::internal(format!("Fingerprint test failed: {}", e)).into_response();
         }
     };
 

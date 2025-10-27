@@ -102,6 +102,8 @@ info:
 
     - **429 Rate Limit Exceeded**: Too many requests (includes Retry-After header)
 
+    - **502 Bad Gateway**: Failed to fetch content from remote server (network errors, connection failures)
+
     - **503 Service Unavailable**: Dependency unavailable or service degraded
 
     '
@@ -476,7 +478,9 @@ paths:
               properties:
                 query:
                   type: string
-                  description: Search query
+                  minLength: 1
+                  maxLength: 500
+                  description: Search query (cannot be empty or whitespace-only)
                   example: "web scraping tools"
                 options:
                   type: object
@@ -657,6 +661,8 @@ paths:
           $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '502':
+          $ref: '#/components/responses/BadGateway'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
         '405':
@@ -720,6 +726,8 @@ paths:
           $ref: '#/components/responses/UnsupportedMediaType'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '502':
+          $ref: '#/components/responses/BadGateway'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
         '405':
@@ -3222,6 +3230,19 @@ components:
               retryable: false
               status: 405
               type: method_not_allowed
+
+    BadGateway:
+      description: Bad Gateway - Failed to fetch content from remote server
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              message: "Failed to fetch content from https://example.com/: Server returned status: 404 Not Found"
+              retryable: true
+              status: 502
+              type: fetch_error
 
   schemas:
     Error:

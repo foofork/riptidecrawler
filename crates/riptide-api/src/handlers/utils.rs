@@ -1,6 +1,6 @@
 use crate::errors::ApiError;
 use crate::state::AppState;
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
+use axum::{extract::State, http::StatusCode, response::IntoResponse};
 
 /// Prometheus metrics endpoint.
 ///
@@ -32,14 +32,5 @@ pub async fn metrics(State(state): State<AppState>) -> Result<impl IntoResponse,
 
 /// 404 handler for unknown endpoints.
 pub async fn not_found() -> impl IntoResponse {
-    let error_response = serde_json::json!({
-        "error": {
-            "type": "not_found",
-            "message": "The requested endpoint was not found",
-            "retryable": false,
-            "status": 404
-        }
-    });
-
-    (StatusCode::NOT_FOUND, Json(error_response))
+    ApiError::not_found("endpoint").into_response()
 }
