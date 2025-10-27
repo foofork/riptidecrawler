@@ -2907,14 +2907,22 @@ components:
 
     RateLimitExceeded:
       description: Rate Limit Exceeded - Too many requests
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying
+          schema:
+            type: integer
+          example: 60
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RateLimitError'
+            $ref: '#/components/schemas/Error'
           example:
-            error: RateLimitExceeded
-            message: "Rate limit exceeded: Resource limit exceeded: Global rate limit exceeded"
-            retry_after_seconds: 60
+            error:
+              message: "Rate limit exceeded: Resource limit exceeded: Global rate limit exceeded"
+              retryable: true
+              status: 429
+              type: rate_limited
 
     UnsupportedMediaType:
       description: Unsupported Media Type - Content-Type header missing or unsupported
@@ -2986,26 +2994,6 @@ components:
           - type
       required:
       - error
-
-    RateLimitError:
-      type: object
-      properties:
-        error:
-          type: string
-          description: Error type (RateLimitExceeded)
-          example: RateLimitExceeded
-        message:
-          type: string
-          description: Detailed error message
-          example: "Rate limit exceeded: Resource limit exceeded: Global rate limit exceeded"
-        retry_after_seconds:
-          type: integer
-          description: Seconds to wait before retrying
-          example: 60
-      required:
-      - error
-      - message
-      - retry_after_seconds
 
     # ==================== Health Check Schemas ====================
 

@@ -99,14 +99,7 @@ pub async fn extract(
     // Validate URL
     if let Err(e) = url::Url::parse(&payload.url) {
         tracing::warn!(url = %payload.url, error = %e, "Invalid URL provided");
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "error": "Invalid URL",
-                "message": e.to_string()
-            })),
-        )
-            .into_response();
+        return crate::errors::ApiError::invalid_url(&payload.url, e.to_string()).into_response();
     }
 
     tracing::info!(
@@ -127,43 +120,27 @@ pub async fn extract(
                     status = %response.status(),
                     "HTTP request failed"
                 );
-                return (
-                    StatusCode::BAD_REQUEST,
-                    Json(serde_json::json!({
-                        "error": "HTTP request failed",
-                        "message": format!("Server returned status: {}", response.status()),
-                        "url": payload.url
-                    })),
+                return crate::errors::ApiError::fetch(
+                    &payload.url,
+                    format!("Server returned status: {}", response.status()),
                 )
-                    .into_response();
+                .into_response();
             }
             match response.text().await {
                 Ok(text) => text,
                 Err(e) => {
                     tracing::error!(url = %payload.url, error = %e, "Failed to read response body");
-                    return (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(serde_json::json!({
-                            "error": "Failed to read response",
-                            "message": e.to_string(),
-                            "url": payload.url
-                        })),
+                    return crate::errors::ApiError::fetch(
+                        &payload.url,
+                        format!("Failed to read response body: {}", e),
                     )
-                        .into_response();
+                    .into_response();
                 }
             }
         }
         Err(e) => {
             tracing::error!(url = %payload.url, error = %e, "Failed to fetch URL");
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({
-                    "error": "Failed to fetch URL",
-                    "message": e.to_string(),
-                    "url": payload.url
-                })),
-            )
-                .into_response();
+            return crate::errors::ApiError::from(e).into_response();
         }
     };
 
@@ -266,15 +243,7 @@ pub async fn extract(
                 "Extraction failed"
             );
 
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({
-                    "error": "Extraction failed",
-                    "message": e.to_string(),
-                    "url": payload.url
-                })),
-            )
-                .into_response()
+            crate::errors::ApiError::extraction(e.to_string()).into_response()
         }
     }
 }

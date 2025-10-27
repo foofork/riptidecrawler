@@ -1,7 +1,5 @@
 use axum::{
-    body::Body,
     extract::{Request, State},
-    http::StatusCode,
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -44,20 +42,17 @@ pub async fn rate_limit_middleware(
             "Rate limit exceeded"
         );
 
-        let response = Response::builder()
-            .status(StatusCode::TOO_MANY_REQUESTS)
-            .header("Content-Type", "application/json")
-            .header("Retry-After", "60") // Suggest retry after 60 seconds
-            .body(Body::from(
-                serde_json::json!({
-                    "error": "RateLimitExceeded",
-                    "message": format!("Rate limit exceeded: {}", e),
-                    "retry_after_seconds": 60,
-                })
-                .to_string(),
-            ))
-            .unwrap_or_else(|_| Response::new(Body::from(r#"{"error":"RateLimitExceeded"}"#)));
-        return Err(response.into_response());
+        // Use ApiError for consistent error response format
+        let api_error =
+            crate::errors::ApiError::rate_limited(format!("Resource limit exceeded: {}", e));
+        let mut response = api_error.into_response();
+
+        // Add Retry-After header
+        response
+            .headers_mut()
+            .insert("Retry-After", "60".parse().unwrap());
+
+        return Err(response);
     }
 
     // Acquire request permit (enforces max concurrent requests)
@@ -70,19 +65,16 @@ pub async fn rate_limit_middleware(
                 "Failed to acquire request permit"
             );
 
-            let response = Response::builder()
-                .status(StatusCode::SERVICE_UNAVAILABLE)
-                .header("Content-Type", "application/json")
-                .header("Retry-After", "30")
-                .body(Body::from(
-                    serde_json::json!({
-                        "error": "ServiceUnavailable",
-                        "message": "System at capacity, please retry later",
-                        "retry_after_seconds": 30,
-                    })
-                    .to_string(),
-                ))
-                .unwrap_or_else(|_| Response::new(Body::from(r#"{"error":"ServiceUnavailable"}"#)));
+            // Use ApiError for consistent error response format
+            let api_error =
+                crate::errors::ApiError::service_unavailable(format!("System at capacity: {}", e));
+            let mut response = api_error.into_response();
+
+            // Add Retry-After header
+            response
+                .headers_mut()
+                .insert("Retry-After", "30".parse().unwrap());
+
             return Err(response.into_response());
         }
     };

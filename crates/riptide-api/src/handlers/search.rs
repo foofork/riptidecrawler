@@ -75,14 +75,7 @@ pub async fn search(State(state): State<AppState>, Query(params): Query<SearchQu
     // Validate query
     if params.q.trim().is_empty() {
         tracing::warn!("Empty search query provided");
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "error": "Invalid query",
-                "message": "Search query cannot be empty"
-            })),
-        )
-            .into_response();
+        return crate::errors::ApiError::validation("Search query cannot be empty").into_response();
     }
 
     // Validate and cap limit
@@ -102,14 +95,11 @@ pub async fn search(State(state): State<AppState>, Query(params): Query<SearchQu
         Some(facade) => facade,
         None => {
             tracing::error!("SearchFacade not initialized");
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({
-                    "error": "Search not available",
-                    "message": "Search facade not initialized"
-                })),
+            return crate::errors::ApiError::dependency(
+                "search_provider",
+                "SearchFacade not initialized - no search backend configured",
             )
-                .into_response();
+            .into_response();
         }
     };
 
@@ -121,14 +111,19 @@ pub async fn search(State(state): State<AppState>, Query(params): Query<SearchQu
         Ok(hits) => hits,
         Err(e) => {
             tracing::error!(error = %e, "Search failed");
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({
-                    "error": "Search failed",
-                    "message": e.to_string()
-                })),
-            )
+            // Determine if it's a dependency error (no API key, service unavailable)
+            let error_msg = e.to_string();
+            if error_msg.contains("API key") || error_msg.contains("not configured") {
+                return crate::errors::ApiError::dependency(
+                    "search_provider",
+                    format!(
+                        "SearchProviderFactory failed to create provider: {}",
+                        error_msg
+                    ),
+                )
                 .into_response();
+            }
+            return crate::errors::ApiError::internal(error_msg).into_response();
         }
     };
 
