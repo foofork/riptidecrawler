@@ -157,11 +157,11 @@ coverage-report:
 # Docker Build Targets (Phase 10+)
 docker-build-api:
 	@echo "🐳 Building riptide-api Docker image..."
-	docker build --profile ci -f infra/docker/Dockerfile.api -t riptide-api:latest .
+	docker build -f infra/docker/Dockerfile.api -t riptide-api:latest .
 
 docker-build-headless:
 	@echo "🐳 Building riptide-headless Docker image..."
-	docker build --profile ci -f infra/docker/Dockerfile.headless -t riptide-headless:latest .
+	docker build -f infra/docker/Dockerfile.headless -t riptide-headless:latest .
 
 docker-build-playground:
 	@echo "🐳 Building riptide-playground Docker image..."
