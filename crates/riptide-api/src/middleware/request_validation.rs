@@ -57,6 +57,7 @@ pub(crate) fn should_validate_body(method: &Method) -> bool {
 }
 
 /// Validate HTTP method against path-specific allowed methods
+#[allow(clippy::result_large_err)]
 pub(crate) fn validate_http_method(method: &Method, path: &str) -> Result<(), Response> {
     // Define allowed methods per path pattern
     let allowed_methods = get_allowed_methods(path);
@@ -132,6 +133,7 @@ pub(crate) fn get_allowed_methods(path: &str) -> HashSet<&'static str> {
 }
 
 /// Validate Content-Type header
+#[allow(clippy::result_large_err)]
 fn validate_content_type(headers: &axum::http::HeaderMap) -> Result<(), Response> {
     // Check Content-Type header
     let content_type = headers
