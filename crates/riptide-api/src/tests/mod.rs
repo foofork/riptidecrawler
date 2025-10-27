@@ -7,6 +7,9 @@ mod event_bus_integration_tests;
 mod facade_integration_tests;
 
 #[cfg(test)]
+mod middleware_validation_tests;
+
+#[cfg(test)]
 mod resource_controls;
 
 #[cfg(test)]

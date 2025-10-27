@@ -920,17 +920,67 @@ impl AppState {
             None
         };
 
-        // Initialize search facade with default backend (None - URL parsing)
+        // Initialize search facade with backend from environment or default to None
         let search_facade = {
-            tracing::info!("Initializing SearchFacade with default backend");
-            match SearchFacade::new(riptide_search::SearchBackend::None).await {
+            // Read search backend from environment with fallback to None
+            let backend_str = std::env::var("RIPTIDE_SEARCH_BACKEND")
+                .or_else(|_| std::env::var("SEARCH_BACKEND"))
+                .unwrap_or_else(|_| "none".to_string());
+
+            let backend: riptide_search::SearchBackend = backend_str.parse().unwrap_or_else(|e| {
+                tracing::warn!(
+                    error = %e,
+                    backend = %backend_str,
+                    "Invalid search backend specified, falling back to 'none'"
+                );
+                riptide_search::SearchBackend::None
+            });
+
+            tracing::info!(backend = %backend, "Initializing SearchFacade");
+
+            // Try to initialize with the specified backend
+            match SearchFacade::new(backend.clone()).await {
                 Ok(facade) => {
-                    tracing::info!("SearchFacade initialized successfully with None backend");
+                    tracing::info!(backend = %backend, "SearchFacade initialized successfully");
                     Some(Arc::new(facade))
                 }
                 Err(e) => {
-                    tracing::warn!(error = %e, "Failed to initialize SearchFacade");
-                    None
+                    tracing::warn!(
+                        error = %e,
+                        backend = %backend,
+                        "Failed to initialize SearchFacade with specified backend"
+                    );
+
+                    // If not already using None backend, try falling back to None
+                    if backend != riptide_search::SearchBackend::None {
+                        tracing::info!(
+                            "Attempting fallback to 'none' backend for graceful degradation"
+                        );
+                        match SearchFacade::new(riptide_search::SearchBackend::None).await {
+                            Ok(facade) => {
+                                tracing::info!(
+                                    "SearchFacade initialized successfully with fallback 'none' backend. \
+                                     Search functionality will work with URL parsing only."
+                                );
+                                Some(Arc::new(facade))
+                            }
+                            Err(fallback_err) => {
+                                tracing::error!(
+                                    error = %fallback_err,
+                                    "Failed to initialize SearchFacade even with 'none' backend fallback. \
+                                     Search endpoint will be unavailable."
+                                );
+                                None
+                            }
+                        }
+                    } else {
+                        // Already tried None backend and it failed
+                        tracing::error!(
+                            "Failed to initialize SearchFacade with 'none' backend. \
+                             Search endpoint will be unavailable."
+                        );
+                        None
+                    }
                 }
             }
         };

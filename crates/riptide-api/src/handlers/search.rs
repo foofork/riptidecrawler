@@ -94,12 +94,29 @@ pub async fn search(State(state): State<AppState>, Query(params): Query<SearchQu
     let search_facade = match state.search_facade.as_ref() {
         Some(facade) => facade,
         None => {
-            tracing::error!("SearchFacade not initialized");
-            return crate::errors::ApiError::dependency(
-                "search_provider",
-                "SearchFacade not initialized - no search backend configured",
-            )
-            .into_response();
+            tracing::error!("SearchFacade not initialized - check environment configuration");
+
+            // Provide helpful error message based on configuration
+            let backend = std::env::var("RIPTIDE_SEARCH_BACKEND")
+                .or_else(|_| std::env::var("SEARCH_BACKEND"))
+                .unwrap_or_else(|_| "none".to_string());
+
+            let message = match backend.to_lowercase().as_str() {
+                "serper" => {
+                    "Search provider not configured. Set SERPER_API_KEY environment variable to enable Serper search, \
+                     or change RIPTIDE_SEARCH_BACKEND to 'none' for URL parsing only."
+                }
+                "searxng" => {
+                    "Search provider not configured. Set SEARXNG_BASE_URL environment variable to enable SearXNG search, \
+                     or change RIPTIDE_SEARCH_BACKEND to 'none' for URL parsing only."
+                }
+                _ => {
+                    "SearchFacade not initialized. Check logs for initialization errors. \
+                     Set RIPTIDE_SEARCH_BACKEND to 'none', 'serper', or 'searxng'."
+                }
+            };
+
+            return crate::errors::ApiError::dependency("search_provider", message).into_response();
         }
     };
 
@@ -111,19 +128,56 @@ pub async fn search(State(state): State<AppState>, Query(params): Query<SearchQu
         Ok(hits) => hits,
         Err(e) => {
             tracing::error!(error = %e, "Search failed");
-            // Determine if it's a dependency error (no API key, service unavailable)
+
+            // Provide helpful error messages based on error type
             let error_msg = e.to_string();
-            if error_msg.contains("API key") || error_msg.contains("not configured") {
+
+            if error_msg.contains("API key") {
+                return crate::errors::ApiError::dependency(
+                    "search_provider",
+                    "Search provider authentication failed. Verify SERPER_API_KEY is set correctly. \
+                     Get your API key from https://serper.dev or set RIPTIDE_SEARCH_BACKEND=none for URL parsing.",
+                )
+                .into_response();
+            }
+
+            if error_msg.contains("not configured") || error_msg.contains("required") {
                 return crate::errors::ApiError::dependency(
                     "search_provider",
                     format!(
-                        "SearchProviderFactory failed to create provider: {}",
+                        "Search provider configuration error: {}. \
+                         Check environment variables or set RIPTIDE_SEARCH_BACKEND=none.",
                         error_msg
                     ),
                 )
                 .into_response();
             }
-            return crate::errors::ApiError::internal(error_msg).into_response();
+
+            if error_msg.contains("timeout") || error_msg.contains("deadline") {
+                return crate::errors::ApiError::internal(format!(
+                    "Search request timed out after {} seconds. \
+                     Try again or adjust RIPTIDE_SEARCH_TIMEOUT_SECS.",
+                    std::env::var("RIPTIDE_SEARCH_TIMEOUT_SECS")
+                        .unwrap_or_else(|_| "30".to_string())
+                ))
+                .into_response();
+            }
+
+            if error_msg.contains("circuit") || error_msg.contains("breaker") {
+                return crate::errors::ApiError::dependency(
+                    "search_provider",
+                    "Search provider is temporarily unavailable (circuit breaker open). \
+                     The service will automatically retry in 60 seconds.",
+                )
+                .into_response();
+            }
+
+            // Generic error for other cases
+            return crate::errors::ApiError::internal(format!(
+                "Search failed: {}. Check logs for details.",
+                error_msg
+            ))
+            .into_response();
         }
     };
 

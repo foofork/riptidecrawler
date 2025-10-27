@@ -29,7 +29,9 @@ static GLOBAL: Jemalloc = Jemalloc;
 
 use crate::health::HealthChecker;
 use crate::metrics::{create_metrics_layer, RipTideMetrics};
-use crate::middleware::{auth_middleware, rate_limit_middleware, PayloadLimitLayer};
+use crate::middleware::{
+    auth_middleware, rate_limit_middleware, request_validation_middleware, PayloadLimitLayer,
+};
 use crate::sessions::middleware::SessionLayer;
 use crate::state::{AppConfig, AppState};
 use axum::{
@@ -479,6 +481,7 @@ async fn main() -> anyhow::Result<()> {
     let app = app
         .merge(session_routes)
         .with_state(app_state.clone())
+        .layer(axum::middleware::from_fn(request_validation_middleware)) // Request validation - rejects malformed payloads and unsupported methods (400/405)
         .layer(axum::middleware::from_fn_with_state(
             app_state.clone(),
             auth_middleware,

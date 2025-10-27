@@ -72,6 +72,38 @@ info:
     **Total: 120+ routes (59 primary user-facing endpoints documented, 123 total
     including admin/internal)**
 
+
+    ## Content Types
+
+    This API uses the following content types:
+
+    - **Request Bodies**: `application/json` - All POST/PUT/PATCH requests expect JSON payloads
+
+    - **JSON Responses**: `application/json` - Standard API responses with structured data
+
+    - **Metrics**: `text/plain` - Prometheus metrics in text format
+
+    - **Stream Responses**:
+      - `application/x-ndjson` - Newline-delimited JSON for streaming endpoints
+      - `text/event-stream` - Server-Sent Events (SSE) for real-time updates
+
+
+    ## Error Handling
+
+    All error responses follow a consistent schema with:
+
+    - **400 Bad Request**: Invalid or missing required parameters
+
+    - **404 Not Found**: Resource does not exist
+
+    - **405 Method Not Allowed**: HTTP method not supported for endpoint
+
+    - **415 Unsupported Media Type**: Missing or incorrect Content-Type header
+
+    - **429 Rate Limit Exceeded**: Too many requests (includes Retry-After header)
+
+    - **503 Service Unavailable**: Dependency unavailable or service degraded
+
     '
   contact:
     name: RipTide API Support
@@ -308,6 +340,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
   /api/v1/crawl:
     post:
       operationId: crawl_batch_v1
@@ -342,6 +376,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
   /crawl/stream:
     post:
       operationId: crawl_stream_ndjson
@@ -376,6 +412,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
   /crawl/sse:
     post:
       operationId: crawl_stream_sse
@@ -410,6 +448,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
   /crawl/ws:
     get:
       operationId: crawl_stream_websocket
@@ -452,6 +492,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: deepsearch_post
   /deepsearch/stream:
     post:
@@ -483,6 +525,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: deepsearch_stream_post
   /render:
     post:
@@ -516,6 +560,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: render_post
   /api/v1/render:
     post:
@@ -548,6 +594,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: render_post_v1
   /extract:
     post:
@@ -569,9 +617,37 @@ paths:
                   format: uri
                   description: URL to extract content from
                   example: "https://example.com/article"
+                mode:
+                  type: string
+                  description: Extraction mode (standard, article, product, markdown, etc.)
+                  default: "standard"
+                  example: "article"
                 options:
                   type: object
                   description: Optional extraction configuration
+                  properties:
+                    strategy:
+                      type: string
+                      description: Extraction strategy to use
+                      enum: [auto, css, wasm, multi, llm]
+                      default: "multi"
+                      example: "multi"
+                    quality_threshold:
+                      type: number
+                      format: double
+                      description: Minimum quality threshold (0.0-1.0)
+                      minimum: 0.0
+                      maximum: 1.0
+                      default: 0.7
+                      example: 0.7
+                    timeout_ms:
+                      type: integer
+                      format: int64
+                      description: Timeout in milliseconds
+                      minimum: 1000
+                      maximum: 300000
+                      default: 30000
+                      example: 30000
       responses:
         '200':
           description: Extracted content
@@ -583,6 +659,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
   /api/v1/extract:
     post:
       operationId: extract_post_v1
@@ -602,9 +680,37 @@ paths:
                   type: string
                   format: uri
                   description: URL to extract content from
+                mode:
+                  type: string
+                  description: Extraction mode (standard, article, product, markdown, etc.)
+                  default: "standard"
+                  example: "article"
                 options:
                   type: object
                   description: Optional extraction configuration
+                  properties:
+                    strategy:
+                      type: string
+                      description: Extraction strategy to use
+                      enum: [auto, css, wasm, multi, llm]
+                      default: "multi"
+                      example: "multi"
+                    quality_threshold:
+                      type: number
+                      format: double
+                      description: Minimum quality threshold (0.0-1.0)
+                      minimum: 0.0
+                      maximum: 1.0
+                      default: 0.7
+                      example: 0.7
+                    timeout_ms:
+                      type: integer
+                      format: int64
+                      description: Timeout in milliseconds
+                      minimum: 1000
+                      maximum: 300000
+                      default: 30000
+                      example: 30000
       responses:
         '200':
           description: Extracted content
@@ -616,6 +722,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
   /search:
     get:
       operationId: search_get
@@ -623,11 +731,56 @@ paths:
       - Search
       summary: Web search endpoint
       description: NEW v1.1 - Web search functionality
+      parameters:
+      - name: q
+        in: query
+        required: true
+        schema:
+          type: string
+        description: Search query string
+        example: "web scraping tools"
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 10
+        description: Number of results to return
+        example: 10
+      - name: country
+        in: query
+        required: false
+        schema:
+          type: string
+          default: "us"
+        description: Country code for search localization
+        example: "us"
+      - name: language
+        in: query
+        required: false
+        schema:
+          type: string
+          default: "en"
+        description: Language code for search results
+        example: "en"
+      - name: provider
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Force specific search provider (optional)
+        example: "serper"
       responses:
         '200':
           description: Search results
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /api/v1/search:
     get:
       operationId: search_get_v1
@@ -635,11 +788,56 @@ paths:
       - Search
       summary: Versioned web search
       description: Primary search endpoint for v1.1
+      parameters:
+      - name: q
+        in: query
+        required: true
+        schema:
+          type: string
+        description: Search query string
+        example: "web scraping tools"
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 10
+        description: Number of results to return
+        example: 10
+      - name: country
+        in: query
+        required: false
+        schema:
+          type: string
+          default: "us"
+        description: Country code for search localization
+        example: "us"
+      - name: language
+        in: query
+        required: false
+        schema:
+          type: string
+          default: "en"
+        description: Language code for search results
+        example: "en"
+      - name: provider
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Force specific search provider (optional)
+        example: "serper"
       responses:
         '200':
           description: Search results
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /spider/crawl:
     post:
       tags:
@@ -678,6 +876,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: spider_crawl_post
   /spider/status:
     post:
@@ -707,6 +907,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: spider_status_post
   /spider/control:
     post:
@@ -741,6 +943,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: spider_control_post
   /strategies/crawl:
     post:
@@ -779,6 +983,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: strategies_crawl_post
   /strategies/info:
     get:
@@ -823,6 +1029,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: pdf_process_post
   /pdf/process-stream:
     post:
@@ -856,6 +1064,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: pdf_process-stream_post
   /pdf/health:
     get:
@@ -910,6 +1120,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: stealth_configure_post
   /stealth/test:
     post:
@@ -940,6 +1152,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: stealth_test_post
   /stealth/capabilities:
     get:
@@ -1054,6 +1268,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: api_v1_content_chunk_post
   /api/v1/tables/extract:
     post:
@@ -1092,6 +1308,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: api_v1_tables_extract_post
   /api/v1/tables/{id}/export:
     get:
@@ -1197,6 +1415,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: api_v1_llm_providers_switch_post
   /api/v1/llm/config:
     get:
@@ -1246,6 +1466,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: api_v1_llm_config_post
   /sessions:
     post:
@@ -1279,6 +1501,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: sessions_post
     get:
       tags:
@@ -1328,6 +1552,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: sessions_cleanup_post
   /sessions/{session_id}:
     get:
@@ -1407,6 +1633,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: sessions_session_id_extend_post
   /sessions/{session_id}/cookies:
     post:
@@ -1460,6 +1688,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: sessions_session_id_cookies_post
     delete:
       tags:
@@ -1612,6 +1842,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: workers_jobs_post
     get:
       tags:
@@ -1741,6 +1973,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: workers_schedule_post
     get:
       tags:
@@ -1890,6 +2124,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: browser_session_post
   /api/v1/browser/action:
     post:
@@ -1942,6 +2178,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: browser_action_post
   /api/v1/browser/pool/status:
     get:
@@ -2102,6 +2340,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: admin_tenants_post
     get:
       tags:
@@ -2173,6 +2413,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: admin_tenants_id_put
     delete:
       tags:
@@ -2228,6 +2470,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: admin_cache_warm_post
   /admin/cache/stats:
     get:
@@ -2271,6 +2515,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
       operationId: admin_state_reload_post
   /api/v1/profiles:
     post:
@@ -2327,6 +2573,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
     get:
       operationId: list_profiles
       tags:
@@ -2443,6 +2691,8 @@ paths:
           description: Internal server error
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
     delete:
       operationId: delete_profile
       tags:
@@ -2581,6 +2831,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '500':
           description: Internal server error
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
   /api/v1/profiles/search:
     get:
       operationId: search_profiles
@@ -2663,6 +2915,8 @@ paths:
           description: Profile not found
         '500':
           description: Internal server error
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
   /api/v1/profiles/clear:
     delete:
       operationId: clear_all_caches
@@ -2754,6 +3008,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '500':
           description: Internal server error
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
   /api/v1/engine/decide:
     post:
       operationId: decide_engine
@@ -2809,6 +3065,8 @@ paths:
           description: Internal server error
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
   /api/v1/engine/stats:
     get:
       operationId: get_engine_stats
@@ -2877,6 +3135,8 @@ paths:
           $ref: '#/components/responses/RateLimitExceeded'
         '500':
           description: Internal server error
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
 components:
   responses:
     BadRequest:
