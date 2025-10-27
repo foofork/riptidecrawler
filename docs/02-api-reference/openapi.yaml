@@ -2319,6 +2319,8 @@ paths:
                   retryable: false
                   status: 400
                   type: validation_error
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           description: Internal server error
           content:
@@ -2465,6 +2467,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           description: Internal server error
   /api/v1/profiles/{domain}/stats:
@@ -2531,6 +2535,8 @@ paths:
                 cache_hit_rate: 80.0
                 avg_confidence: 0.87
                 expired_caches: 5
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           description: Internal server error
   /api/v1/profiles/batch:
@@ -2571,6 +2577,8 @@ paths:
                   error: Domain already exists
         '400':
           description: Invalid request
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           description: Internal server error
   /api/v1/profiles/search:
@@ -2865,6 +2873,8 @@ paths:
                 message: Probe-first mode enabled. SPAs will try WASM extraction before headless.
         '400':
           description: Invalid request
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           description: Internal server error
 components:
