@@ -401,6 +401,9 @@ mod tests {
         metrics.record_job_submitted("test_job");
         metrics.record_job_completed("test_job", 100);
 
+        // Wait for spawned tasks to complete
+        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+
         let snapshot = metrics.get_snapshot().await;
         assert_eq!(snapshot.jobs_submitted, 1);
         assert_eq!(snapshot.jobs_completed, 1);

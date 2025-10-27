@@ -565,7 +565,7 @@ mod tests {
 
         let scheduled_job = ScheduledJob::new(
             "Daily Cleanup".to_string(),
-            "0 2 * * *".to_string(), // Daily at 2 AM
+            "0 0 2 * * *".to_string(), // Daily at 2 AM (sec min hour day month weekday)
             job_type,
         );
 
