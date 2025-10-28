@@ -1,0 +1,187 @@
+# ============================================================================
+# Docker Build Ignore Patterns
+# ============================================================================
+# Optimizes Docker build context by excluding unnecessary files
+# Reduces build time and image size significantly
+# ============================================================================
+
+# Build artifacts
+/target/
+**/target/
+*.wasm
+!wasm/riptide-extractor-wasm/
+# Allow Cargo.lock - needed for reproducible builds
+# Cargo.lock
+
+# Git and version control
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# Development tools
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# CI/CD
+.gitlab-ci.yml
+.travis.yml
+azure-pipelines.yml
+.circleci/
+
+# Documentation (not needed in runtime)
+docs/
+*.md
+!README.md
+LICENSE
+CHANGELOG.md
+
+# Test files
+# Allow benches/ - needed for cargo build
+# tests/
+# benches/
+# benchmarks/
+# examples/
+# **/tests/
+# **/benches/
+# **/examples/
+
+# Development configs
+.env
+.env.*
+!.env.example
+
+# Logs and temp files
+*.log
+logs/
+/riptide-output/
+*.tmp
+*.temp
+
+# Coverage and reports
+coverage/
+*.profraw
+*.profdata
+lcov.info
+coverage.json
+test-results/
+.reports/
+
+# Cache directories
+.sccache/
+.cache/
+.cargo/
+node_modules/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+agentdb.db
+
+# IDE and editor
+.vscode/
+.idea/
+*.iml
+.project
+.settings/
+.classpath
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Deployment files not needed in build
+deploy.sh
+deployment/
+infra/
+kubernetes/
+terraform/
+
+# Scripts not needed in runtime
+# Allow scripts/docker/ for healthcheck and entrypoint
+scripts/*
+!scripts/docker/
+Justfile
+Makefile
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.so
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Rust development
+**/*.rs.bk
+*.pdb
+.rustup/
+# Allow rust-toolchain.toml - needed for build
+# rust-toolchain.toml
+
+# Docker files (don't include in build context)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Coordination and hive mind (not needed in image)
+.hive-mind/
+.swarm/
+.claude/
+.claude-flow/
+coordination/
+hive/
+
+# Temporary work files
+temp.md
+*.backup
+playground/
+
+# Memory and metrics
+memory/
+metrics/
+
+# Evaluation artifacts
+eval/
+dump.rdb
+
+# Configuration templates (use runtime configs instead)
+# Allow all configs directory for Docker build
+# configs/
+# config/
+# !configs/riptide.yml
+
+# SDK and CLI (not needed in API image)
+sdk/
+cli/
+python-sdk/
+
+# WASM build artifacts except the final module
+wasm/**/target/
+wasm/**/*.wat
+wasm/**/*.wast
+
+# Package manager files
+package.json
+package-lock.json
+
+# Code quality reports
+clippy*.txt
+deny.toml
+.spectral.yaml
+.codecov.yml
+.rustfmt.toml
+
+# Test execution artifacts
+test-*.log
+*.log
+reports_test
