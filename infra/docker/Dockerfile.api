@@ -137,6 +137,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libssl3 \
     tini \
+    curl \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -161,6 +162,10 @@ COPY --from=builder --chown=riptide:riptide \
 
 # Copy configs
 COPY --chown=riptide:riptide configs /opt/riptide/configs
+
+# Copy healthcheck script
+COPY --chown=riptide:riptide scripts/docker/healthcheck.sh /usr/local/bin/healthcheck
+RUN chmod +x /usr/local/bin/healthcheck
 
 # Switch to non-root user
 USER riptide
