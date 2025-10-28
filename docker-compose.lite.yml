@@ -61,6 +61,7 @@ services:
       - RIPTIDE_API_HOST=0.0.0.0
       - RIPTIDE_API_PORT=8080
       - RIPTIDE_API_KEY=${RIPTIDE_API_KEY}
+      - REQUIRE_AUTH=${REQUIRE_AUTH:-false}
 
       # Redis connection (uses service name for DNS)
       - REDIS_URL=redis://redis:6379/0
@@ -90,8 +91,10 @@ services:
       - RIPTIDE_MAX_CONCURRENT_REQUESTS=${RIPTIDE_MAX_CONCURRENT_REQUESTS:-100}
       - RIPTIDE_POOL_SIZE=${RIPTIDE_POOL_SIZE:-10}
 
-    env_file:
-      - .env
+    # Optional: Load additional config from .env if it exists
+    # Most users don't need this - all critical defaults are set above
+    # env_file:
+    #   - .env
 
     volumes:
       # Persistent data volumes (managed by Docker)
