@@ -63,13 +63,20 @@ pub async fn get_resource_status(
     State(state): State<AppState>,
 ) -> Result<Json<ResourceStatusResponse>, StatusCode> {
     let resource_status = state.resource_manager.get_resource_status().await;
-    let pool_stats = state.resource_manager.browser_pool.get_stats().await;
+
+    let (total_capacity, in_use, available) = match &state.resource_manager.browser_pool {
+        Some(pool) => {
+            let stats = pool.get_stats().await;
+            (stats.total_capacity, stats.in_use, stats.available)
+        }
+        None => (0, 0, 0), // No local pool when using headless service
+    };
 
     Ok(Json(ResourceStatusResponse {
         browser_pool: BrowserPoolStatus {
-            total_capacity: pool_stats.total_capacity,
-            in_use: pool_stats.in_use,
-            available: pool_stats.available,
+            total_capacity,
+            in_use,
+            available,
             waiting: 0, // Field not available in PoolStats
         },
         rate_limiter: RateLimiterStatus {
@@ -96,12 +103,18 @@ pub async fn get_resource_status(
 pub async fn get_browser_pool_status(
     State(state): State<AppState>,
 ) -> Result<Json<BrowserPoolStatus>, StatusCode> {
-    let pool_stats = state.resource_manager.browser_pool.get_stats().await;
+    let (total_capacity, in_use, available) = match &state.resource_manager.browser_pool {
+        Some(pool) => {
+            let stats = pool.get_stats().await;
+            (stats.total_capacity, stats.in_use, stats.available)
+        }
+        None => (0, 0, 0), // No local pool when using headless service
+    };
 
     Ok(Json(BrowserPoolStatus {
-        total_capacity: pool_stats.total_capacity,
-        in_use: pool_stats.in_use,
-        available: pool_stats.available,
+        total_capacity,
+        in_use,
+        available,
         waiting: 0, // Field not available in PoolStats
     }))
 }

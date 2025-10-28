@@ -54,8 +54,20 @@ pub async fn configure_stealth(
     State(state): State<AppState>,
     Json(request): Json<StealthConfigRequest>,
 ) -> Response {
+    // Check if browser facade is available
+    let facade = match state.browser_facade.as_ref() {
+        Some(f) => f,
+        None => {
+            return ApiError::invalid_request(
+                "Browser facade not available - stealth features require local Chrome mode. \
+                Use headless service for browser rendering.",
+            )
+            .into_response();
+        }
+    };
+
     // Get current facade config
-    let current_config = state.browser_facade.config();
+    let current_config = facade.config();
 
     let enabled = request.enabled.unwrap_or(current_config.stealth_enabled);
     let preset = request
@@ -92,8 +104,20 @@ pub async fn configure_stealth(
 /// This endpoint launches a test browser session and checks
 /// for common detection points.
 pub async fn test_stealth(State(state): State<AppState>) -> Response {
+    // Check if browser facade is available
+    let facade = match state.browser_facade.as_ref() {
+        Some(f) => f,
+        None => {
+            return ApiError::invalid_request(
+                "Browser facade not available - stealth testing requires local Chrome mode. \
+                Use headless service for browser rendering.",
+            )
+            .into_response();
+        }
+    };
+
     // Launch a test session with current stealth settings
-    let session = match state.browser_facade.launch().await {
+    let session = match facade.launch().await {
         Ok(s) => s,
         Err(e) => {
             return ApiError::internal(format!("Failed to launch test browser: {}", e))
@@ -102,7 +126,7 @@ pub async fn test_stealth(State(state): State<AppState>) -> Response {
     };
 
     // Navigate to a stealth test page (or use JavaScript to check fingerprint)
-    if let Err(e) = state.browser_facade.navigate(&session, "about:blank").await {
+    if let Err(e) = facade.navigate(&session, "about:blank").await {
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(json!({
@@ -127,11 +151,7 @@ pub async fn test_stealth(State(state): State<AppState>) -> Response {
         })
     "#;
 
-    let fingerprint = match state
-        .browser_facade
-        .execute_script(&session, test_script)
-        .await
-    {
+    let fingerprint = match facade.execute_script(&session, test_script).await {
         Ok(fp) => fp,
         Err(e) => {
             return ApiError::internal(format!("Fingerprint test failed: {}", e)).into_response();
@@ -139,7 +159,7 @@ pub async fn test_stealth(State(state): State<AppState>) -> Response {
     };
 
     // Clean up session
-    let _ = state.browser_facade.close(session).await;
+    let _ = facade.close(session).await;
 
     // Analyze results
     let mut details = Vec::new();
@@ -170,7 +190,19 @@ pub async fn test_stealth(State(state): State<AppState>) -> Response {
 /// Returns information about available stealth features
 /// and current configuration.
 pub async fn get_stealth_capabilities(State(state): State<AppState>) -> Response {
-    let config = state.browser_facade.config();
+    // Check if browser facade is available
+    let facade = match state.browser_facade.as_ref() {
+        Some(f) => f,
+        None => {
+            return ApiError::invalid_request(
+                "Browser facade not available - stealth features require local Chrome mode. \
+                Use headless service for browser rendering.",
+            )
+            .into_response();
+        }
+    };
+
+    let config = facade.config();
 
     let capabilities = StealthCapabilities {
         presets: vec![

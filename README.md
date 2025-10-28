@@ -64,7 +64,7 @@ Extract structured data from any website with intelligent routing, multi-provide
 
 ### Option 1: Docker Deployment (Recommended)
 
-Get up and running in 5 minutes:
+Get up and running in 5 minutes with **production-ready microservices architecture**:
 
 ```bash
 # Clone and configure
@@ -73,7 +73,7 @@ cd eventmesh
 cp .env.example .env
 # Edit .env and add your SERPER_API_KEY
 
-# Start all services
+# Start all services (API + Headless Browser + Redis)
 make docker-build-all
 make docker-up
 
@@ -81,9 +81,18 @@ make docker-up
 curl http://localhost:8080/healthz
 # {"status":"healthy","version":"0.9.0"}
 
-# Access interactive playground
-open http://localhost:3000
+# Access API documentation
+open http://localhost:8081
 ```
+
+**What You Get:**
+- ✅ **RipTide API** (168MB) - REST API, no Chrome required
+- ✅ **Headless Service** (783MB) - Dedicated Chrome rendering service
+- ✅ **Redis Cache** - Fast session & data caching
+- ✅ **Swagger UI** - Interactive API documentation
+- ✅ **Automatic Scaling** - Microservices can scale independently
+
+**See: [Complete Docker Deployment Guide →](docs/DEPLOYMENT_GUIDE.md)**
 
 ### Option 2: Build from Source
 
@@ -279,10 +288,11 @@ riptide spider https://docs.rs --depth 3 --pages 100
 
 ## 🚢 Deployment Options
 
-### Docker Compose (Recommended for Development)
+### Docker Compose (Production & Development)
 
+**Production Mode** (Microservices - Recommended):
 ```bash
-# One-command deployment
+# Build and start all services
 make docker-build-all && make docker-up
 
 # View logs
@@ -292,11 +302,27 @@ make docker-logs
 make docker-down
 ```
 
-**Services Included:**
-- ✅ RipTide API (port 8080)
-- ✅ Redis cache (port 6379)
-- ✅ Interactive Playground (port 3000)
-- ✅ Headless browser pool
+**Development Mode** (Alternative):
+```bash
+# Start development services
+make docker-up-dev
+
+# View development logs
+make docker-logs-dev
+
+# Stop development services
+make docker-down-dev
+```
+
+**Production Services:**
+- ✅ RipTide API (port 8080) - No Chrome, optimized
+- ✅ Headless Service (port 9123) - Dedicated Chrome rendering
+- ✅ Redis cache (port 6379) - Session storage
+- ✅ Swagger UI (port 8081) - API documentation
+
+**Key Difference:**
+- **Production**: API + Headless Service (microservices, scalable)
+- **Development**: Monolithic API with embedded Chrome (simpler)
 
 ### Production Docker
 

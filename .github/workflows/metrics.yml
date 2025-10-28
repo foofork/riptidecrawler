@@ -1,9 +1,6 @@
 name: CI/CD Metrics Collection
 
 on:
-  # Run nightly to track performance trends
-  schedule:
-    - cron: "0 2 * * *"  # 2 AM UTC daily
   workflow_dispatch:
 
 # serialize per-branch so metrics stay coherent

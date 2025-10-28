@@ -1,5 +1,5 @@
 .PHONY: help ci ci-quick install-tools fmt lint test test-unit test-integration build build-wasm audit clean coverage coverage-html coverage-lcov coverage-json coverage-open coverage-report
-.PHONY: docker-build-api docker-build-headless docker-build-playground docker-build-all docker-up docker-down docker-logs
+.PHONY: docker-build-api docker-build-headless docker-build-playground docker-build-all docker-up docker-down docker-logs docker-up-dev docker-down-dev docker-logs-dev
 .PHONY: build-release build-ci build-fast-dev test-api test-spider test-extraction test-streaming test-browser
 .PHONY: test-cli-commands test-engine-selection test-profiles-api bench bench-pool bench-wasm bench-report
 .PHONY: build-wasm-optimized test-wasm dev-server quick-start smoke-test pre-commit monitor-health load-test
@@ -30,11 +30,16 @@ help:
 	@echo "  make coverage-open    - Generate and open HTML report"
 	@echo "  make coverage-report  - Full coverage report (all formats)"
 	@echo ""
-	@echo "Docker commands:"
+	@echo "Docker commands (production):"
 	@echo "  make docker-build-all - Build all Docker images"
-	@echo "  make docker-up        - Start all services with docker-compose"
-	@echo "  make docker-down      - Stop all services"
-	@echo "  make docker-logs      - View container logs"
+	@echo "  make docker-up        - Start production services (API + Headless + Redis)"
+	@echo "  make docker-down      - Stop production services"
+	@echo "  make docker-logs      - View production container logs"
+	@echo ""
+	@echo "Docker commands (development):"
+	@echo "  make docker-up-dev    - Start development services"
+	@echo "  make docker-down-dev  - Stop development services"
+	@echo "  make docker-logs-dev  - View development container logs"
 	@echo ""
 	@echo "Profile-specific builds:"
 	@echo "  make build-release    - Build with release profile"
@@ -172,16 +177,28 @@ docker-build-all: docker-build-api docker-build-headless docker-build-playground
 
 # Docker Compose Targets
 docker-up:
-	@echo "🚀 Starting services with docker-compose..."
-	docker-compose up -d
+	@echo "🚀 Starting services with docker-compose (production)..."
+	docker-compose -f docker-compose.production.yml up -d
 
 docker-down:
 	@echo "🛑 Stopping services..."
-	docker-compose down
+	docker-compose -f docker-compose.production.yml down
 
 docker-logs:
 	@echo "📋 Viewing container logs..."
-	docker-compose logs -f
+	docker-compose -f docker-compose.production.yml logs -f
+
+docker-up-dev:
+	@echo "🚀 Starting services with docker-compose (development)..."
+	docker-compose -f docker-compose.dev.yml up -d
+
+docker-down-dev:
+	@echo "🛑 Stopping development services..."
+	docker-compose -f docker-compose.dev.yml down
+
+docker-logs-dev:
+	@echo "📋 Viewing development container logs..."
+	docker-compose -f docker-compose.dev.yml logs -f
 
 # Profile-Aware Build Targets
 build-release:
