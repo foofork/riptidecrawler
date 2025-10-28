@@ -106,6 +106,7 @@ impl Default for TopicChunkingConfig {
 /// as those are defined in their respective crates. Those fields should be added
 /// in the crate that uses this type.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct CrawlOptions {
     pub concurrency: usize,
     pub cache_mode: String, // "enabled" | "bypass" | "read_through"
