@@ -1,6 +1,6 @@
 # RipTide Deployment Guide
 
-## Quick Start (Recommended for Production)
+## 🚀 Quick Start (5 Minutes to Production)
 
 ```bash
 # 1. Clone repository
@@ -13,77 +13,113 @@ cp .env.example .env
 # 3. Configure API keys (required)
 nano .env  # Set SERPER_API_KEY and optionally OPENAI_API_KEY
 
-# 4. Start all services
-docker-compose -f docker-compose.production.yml up -d
+# 4. Start all services with FULL functionality
+docker-compose up -d
 
 # 5. Verify deployment
 curl http://localhost:8080/health
 ```
 
-That's it! You now have:
-- **API** at http://localhost:8080
-- **Swagger UI** at http://localhost:8081
-- **Redis** for caching
-- **Headless Service** (internal, automatic)
+**That's it!** You now have COMPLETE functionality:
+- ✅ **API** at http://localhost:8080
+- ✅ **Swagger UI** at http://localhost:8081
+- ✅ **Chrome Browser Service** (5-browser pool for JavaScript)
+- ✅ **Redis** for caching
+- ✅ **WASM Extraction** as fallback
+
+**Memory Usage:** ~1.2GB total
+**Recommended For:** 95% of users
 
 ---
 
-## 🎯 Deployment Modes
+## 🎯 Deployment Options
 
-### Mode 1: Microservices (Default)
+### Option 1: Default (Full Stack) ✅ **RECOMMENDED**
 
-**What it is:** API and Chrome run in separate containers
+**What it is:** Complete functionality with included Chrome service
 
-**Configuration:**
-```yaml
-# docker-compose.production.yml (default)
-riptide-api:
-  environment:
-    - HEADLESS_URL=http://riptide-headless:9123  # Enabled by default
+**Command:**
+```bash
+docker-compose up -d
 ```
 
-**Provides:**
-- ✅ Full JavaScript rendering (via remote Chrome)
-- ✅ Complex page scraping (SPAs, dynamic content)
+**What You Get:**
+- ✅ Full Chrome rendering (5-browser pool)
+- ✅ JavaScript execution for SPA pages
 - ✅ PDF generation
-- ✅ WASM extraction (17MB module)
+- ✅ Complex page scraping (dynamic content)
+- ✅ WASM extraction fallback
 - ✅ Redis caching
-- ✅ Automatic scaling
+- ✅ Independent scaling
 
-**When to use:**
-- Production deployments
-- Cloud hosting (AWS, GCP, Azure)
-- Multi-instance scaling
-- High-traffic scenarios
+**Memory:** ~1.2GB
+**Configuration:** Zero - works out of box
+
+**When to Use:**
+- ✅ Production deployments
+- ✅ Cloud hosting (AWS, GCP, Azure, DigitalOcean)
+- ✅ Multi-instance scaling
+- ✅ High-traffic scenarios
+- ✅ JavaScript-heavy websites
+- ✅ SPA pages (React, Vue, Angular)
 
 ---
 
-### Mode 2: Monolithic (Simplified)
+### Option 2: External Browser Farm (Advanced)
 
-**What it is:** API and Chrome run in the same container
+**What it is:** API connects to your existing Chrome infrastructure
 
 **Configuration:**
-```yaml
-# docker-compose.simple.yml (create this)
-riptide-api:
-  environment:
-    # Comment out or remove HEADLESS_URL
-    # - HEADLESS_URL=...
+```bash
+# 1. Edit docker-compose.yml line 58:
+HEADLESS_URL=https://your-browser-farm.example.com:9123
 
-# Remove riptide-headless service entirely
+# 2. Comment out lines 161-193 (riptide-headless service)
+
+# 3. Start services
+docker-compose up -d
 ```
 
-**Provides:**
-- ✅ Same features as Mode 1
-- ✅ Simpler setup (one container)
-- ⚠️ Larger container (951MB vs 168MB)
-- ⚠️ Can't scale Chrome independently
+**What You Get:**
+- ✅ Same features as Option 1
+- ✅ Uses your Chrome infrastructure
+- ✅ Lower memory (~400MB without local Chrome)
+- ✅ Existing browser pool management
 
-**When to use:**
-- Local development
-- Small-scale deployments
-- Single-server hosting
-- Testing
+**Memory:** ~400MB (API + Redis only)
+
+**When to Use:**
+- 🏢 Enterprise with existing browser farms
+- ☸️ Kubernetes clusters with browser services
+- 🔧 Custom Chrome configurations needed
+- 📊 Advanced browser pool management
+
+---
+
+### Option 3: Lightweight (WASM-only)
+
+**What it is:** Minimal deployment without Chrome rendering
+
+**Command:**
+```bash
+docker-compose -f docker-compose.lite.yml up -d
+```
+
+**What You Get:**
+- ✅ WASM extraction (fast, efficient)
+- ✅ Redis caching
+- ✅ REST API + WebSocket
+- ❌ No JavaScript execution
+- ❌ No Chrome rendering
+- ❌ No SPA page support
+
+**Memory:** ~440MB (60% smaller)
+
+**When to Use:**
+- 💾 Memory-constrained environments
+- 📄 Static content extraction only
+- 🚀 Ultra-fast startup needed
+- 💰 Cost optimization (no Chrome licensing)
 
 ---
 

@@ -64,18 +64,17 @@ Extract structured data from any website with intelligent routing, multi-provide
 
 ### Option 1: Docker Deployment (Recommended)
 
-Get up and running in 5 minutes with **production-ready microservices architecture**:
+Get up and running in 5 minutes with **COMPLETE functionality out-of-box**:
 
 ```bash
 # Clone and configure
 git clone <repository-url>
-cd eventmesh
+cd riptide  # Or whatever you named the directory
 cp .env.example .env
 # Edit .env and add your SERPER_API_KEY
 
-# Start all services (API + Headless Browser + Redis)
-make docker-build-all
-make docker-up
+# Start all services - FULL functionality with one command!
+docker-compose up -d
 
 # Verify health
 curl http://localhost:8080/healthz
@@ -85,12 +84,20 @@ curl http://localhost:8080/healthz
 open http://localhost:8081
 ```
 
-**What You Get:**
-- ✅ **RipTide API** (168MB) - REST API, no Chrome required
-- ✅ **Headless Service** (783MB) - Dedicated Chrome rendering service
+**What You Get (FULL Stack by Default):**
+- ✅ **RipTide API** (168MB) - REST API + WebSocket
+- ✅ **Chrome Browser Service** (783MB) - 5-browser pool for JavaScript rendering
 - ✅ **Redis Cache** - Fast session & data caching
 - ✅ **Swagger UI** - Interactive API documentation
-- ✅ **Automatic Scaling** - Microservices can scale independently
+- ✅ **JavaScript Execution** - Full support for SPA pages
+- ✅ **WASM Extraction** - Fallback for static content
+
+**Memory:** ~1.2GB total | **No Configuration Needed!**
+
+**Optional Lightweight Mode** (WASM-only, 60% smaller):
+```bash
+docker-compose -f docker-compose.lite.yml up -d  # ~440MB, no Chrome
+```
 
 **See: [Complete Docker Deployment Guide →](docs/DEPLOYMENT_GUIDE.md)**
 
