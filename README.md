@@ -297,35 +297,53 @@ riptide spider https://docs.rs --depth 3 --pages 100
 
 ### Docker Compose (Production & Development)
 
-**Production Mode** (Microservices - Recommended):
+**Default (Full Stack - Recommended for 95% of users):**
 ```bash
-# Build and start all services
-make docker-build-all && make docker-up
+# Quick start - one command gives you EVERYTHING
+docker-compose up -d
+
+# Or using Makefile
+make docker-up
 
 # View logs
 make docker-logs
 
-# Stop all services
+# Stop services
 make docker-down
 ```
 
-**Development Mode** (Alternative):
+**Services Included:**
+- ✅ RipTide API (port 8080) - REST + WebSocket
+- ✅ Chrome Browser Service (port 9123) - 5-browser pool for JavaScript
+- ✅ Redis Cache (port 6379) - Session storage
+- ✅ Swagger UI (port 8081) - API documentation
+- ✅ Full JavaScript execution
+- ✅ SPA page support
+
+**Memory:** ~1.2GB | **Configuration:** Zero
+
+---
+
+**Lightweight Mode** (WASM-only, 60% smaller):
 ```bash
-# Start development services
-make docker-up-dev
+# For memory-constrained environments
+docker-compose -f docker-compose.lite.yml up -d
 
-# View development logs
-make docker-logs-dev
+# Or using Makefile
+make docker-up-lite
 
-# Stop development services
-make docker-down-dev
+# View logs
+make docker-logs-lite
+
+# Stop services
+make docker-down-lite
 ```
 
-**Production Services:**
-- ✅ RipTide API (port 8080) - No Chrome, optimized
-- ✅ Headless Service (port 9123) - Dedicated Chrome rendering
-- ✅ Redis cache (port 6379) - Session storage
+**Services Included:**
+- ✅ RipTide API (port 8080) - WASM extraction only
+- ✅ Redis Cache (port 6379) - Session storage
 - ✅ Swagger UI (port 8081) - API documentation
+- ❌ No Chrome service (no JavaScript)
 
 **Key Difference:**
 - **Production**: API + Headless Service (microservices, scalable)
