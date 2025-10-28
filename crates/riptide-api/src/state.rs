@@ -114,10 +114,11 @@ pub struct AppState {
     pub cache_warmer_enabled: bool,
 
     /// Headless browser launcher with connection pooling and stealth support
-    pub browser_launcher: Arc<HeadlessLauncher>,
+    pub browser_launcher: Option<Arc<HeadlessLauncher>>,
 
     /// Browser facade for simplified browser automation
-    pub browser_facade: Arc<BrowserFacade>,
+    /// Only available when using local Chrome mode (headless_url not configured)
+    pub browser_facade: Option<Arc<BrowserFacade>>,
 
     /// Extraction facade for content extraction with multiple strategies
     pub extraction_facade: Arc<ExtractionFacade>,
@@ -681,14 +682,17 @@ impl AppState {
             None
         };
 
-        // Initialize comprehensive resource manager
-        let resource_manager = ResourceManager::new(api_config.clone()).await?;
+        // Initialize comprehensive resource manager with headless URL
+        let resource_manager =
+            ResourceManager::new_with_headless_url(api_config.clone(), config.headless_url.clone())
+                .await?;
         let resource_manager = Arc::new(resource_manager);
         tracing::info!(
-            "Resource manager initialized with controls: pool_cap={}, pdf_semaphore={}, rate_limit={}rps",
+            "Resource manager initialized with controls: pool_cap={}, pdf_semaphore={}, rate_limit={}rps, headless_url={:?}",
             api_config.headless.max_pool_size,
             api_config.pdf.max_concurrent,
-            api_config.rate_limiting.requests_per_second_per_host
+            api_config.rate_limiting.requests_per_second_per_host,
+            config.headless_url
         );
 
         // Initialize PDF metrics collector for monitoring
@@ -818,47 +822,92 @@ impl AppState {
             tracing::info!("CacheWarmer feature flag enabled (full implementation pending)");
         }
 
-        // Initialize headless browser launcher with pooling
-        tracing::info!(
-            max_pool_size = api_config.headless.max_pool_size,
-            "Initializing headless browser launcher with connection pooling"
-        );
+        // Initialize headless browser launcher with pooling (only if no headless service URL)
+        let browser_launcher = if let Some(url) = &config.headless_url {
+            if !url.is_empty() {
+                tracing::info!(
+                    headless_url = %url,
+                    "Headless service URL configured - skipping local browser launcher initialization"
+                );
+                None
+            } else {
+                tracing::info!("HEADLESS_URL is empty - initializing local browser launcher");
+                // Build config and initialize launcher same as non-headless mode below
+                let browser_launcher_config = riptide_headless::launcher::LauncherConfig {
+                    pool_config: riptide_headless::pool::BrowserPoolConfig {
+                        min_pool_size: std::cmp::max(1, api_config.headless.max_pool_size / 2),
+                        max_pool_size: api_config.headless.max_pool_size,
+                        initial_pool_size: std::cmp::max(1, api_config.headless.max_pool_size / 4),
+                        idle_timeout: Duration::from_secs(api_config.headless.idle_timeout_secs),
+                        max_lifetime: Duration::from_secs(300),
+                        health_check_interval: Duration::from_secs(30),
+                        memory_threshold_mb: 500,
+                        enable_recovery: true,
+                        max_retries: 3,
+                        profile_base_dir: None,
+                        cleanup_timeout: Duration::from_secs(5),
+                        ..Default::default()
+                    },
+                    default_stealth_preset: riptide_stealth::StealthPreset::Medium,
+                    enable_stealth: true,
+                    page_timeout: Duration::from_secs(30),
+                    enable_monitoring: true,
+                    hybrid_mode: false,
+                };
 
-        let browser_launcher_config = riptide_headless::launcher::LauncherConfig {
-            pool_config: riptide_headless::pool::BrowserPoolConfig {
-                min_pool_size: std::cmp::max(1, api_config.headless.max_pool_size / 2),
-                max_pool_size: api_config.headless.max_pool_size,
-                initial_pool_size: std::cmp::max(1, api_config.headless.max_pool_size / 4),
-                idle_timeout: Duration::from_secs(api_config.headless.idle_timeout_secs),
-                max_lifetime: Duration::from_secs(300), // 5 minutes max lifetime
-                health_check_interval: Duration::from_secs(30),
-                memory_threshold_mb: 500,
-                enable_recovery: true,
-                max_retries: 3,
-                profile_base_dir: None, // Use system temp directory by default
-                cleanup_timeout: Duration::from_secs(5),
-                ..Default::default()
-            },
-            default_stealth_preset: riptide_stealth::StealthPreset::Medium,
-            enable_stealth: true,
-            page_timeout: Duration::from_secs(30),
-            enable_monitoring: true,
-            hybrid_mode: false,
+                Some(Arc::new(
+                    HeadlessLauncher::with_config(browser_launcher_config)
+                        .await
+                        .map_err(|e| {
+                            tracing::error!(error = %e, "Failed to initialize browser launcher");
+                            anyhow::anyhow!("Failed to initialize browser launcher: {}", e)
+                        })?,
+                ))
+            }
+        } else {
+            tracing::info!(
+                max_pool_size = api_config.headless.max_pool_size,
+                "No headless service URL - initializing local browser launcher with connection pooling"
+            );
+
+            let browser_launcher_config = riptide_headless::launcher::LauncherConfig {
+                pool_config: riptide_headless::pool::BrowserPoolConfig {
+                    min_pool_size: std::cmp::max(1, api_config.headless.max_pool_size / 2),
+                    max_pool_size: api_config.headless.max_pool_size,
+                    initial_pool_size: std::cmp::max(1, api_config.headless.max_pool_size / 4),
+                    idle_timeout: Duration::from_secs(api_config.headless.idle_timeout_secs),
+                    max_lifetime: Duration::from_secs(300), // 5 minutes max lifetime
+                    health_check_interval: Duration::from_secs(30),
+                    memory_threshold_mb: 500,
+                    enable_recovery: true,
+                    max_retries: 3,
+                    profile_base_dir: None, // Use system temp directory by default
+                    cleanup_timeout: Duration::from_secs(5),
+                    ..Default::default()
+                },
+                default_stealth_preset: riptide_stealth::StealthPreset::Medium,
+                enable_stealth: true,
+                page_timeout: Duration::from_secs(30),
+                enable_monitoring: true,
+                hybrid_mode: false,
+            };
+
+            let launcher = Arc::new(
+                HeadlessLauncher::with_config(browser_launcher_config)
+                    .await
+                    .map_err(|e| {
+                        tracing::error!(error = %e, "Failed to initialize browser launcher");
+                        anyhow::anyhow!("Failed to initialize browser launcher: {}", e)
+                    })?,
+            );
+
+            tracing::info!(
+                pool_size = api_config.headless.max_pool_size,
+                "Headless browser launcher initialized successfully"
+            );
+
+            Some(launcher)
         };
-
-        let browser_launcher = Arc::new(
-            HeadlessLauncher::with_config(browser_launcher_config)
-                .await
-                .map_err(|e| {
-                    tracing::error!(error = %e, "Failed to initialize browser launcher");
-                    anyhow::anyhow!("Failed to initialize browser launcher: {}", e)
-                })?,
-        );
-
-        tracing::info!(
-            pool_size = api_config.headless.max_pool_size,
-            "Headless browser launcher initialized successfully"
-        );
 
         // Initialize facade layer for simplified API access
         tracing::info!("Initializing riptide-facade layer for simplified APIs");
@@ -869,14 +918,40 @@ impl AppState {
             .with_stealth_enabled(true) // Stealth enabled by default (Medium preset)
             .with_stealth_preset("Medium");
 
-        // Initialize browser facade
-        let browser_facade = Arc::new(BrowserFacade::new(facade_config.clone()).await.map_err(
-            |e| {
-                tracing::error!(error = %e, "Failed to initialize BrowserFacade");
-                anyhow::anyhow!("Failed to initialize BrowserFacade: {}", e)
-            },
-        )?);
-        tracing::info!("BrowserFacade initialized successfully");
+        // Initialize browser facade only if not using headless service
+        let browser_facade = if let Some(url) = &config.headless_url {
+            if !url.is_empty() {
+                tracing::info!(
+                    headless_url = %url,
+                    "Headless service URL configured - skipping BrowserFacade initialization (requires local Chrome)"
+                );
+                None
+            } else {
+                tracing::info!("HEADLESS_URL is empty - initializing BrowserFacade for local browser automation");
+                match BrowserFacade::new(facade_config.clone()).await {
+                    Ok(facade) => {
+                        tracing::info!("BrowserFacade initialized successfully");
+                        Some(Arc::new(facade))
+                    }
+                    Err(e) => {
+                        tracing::error!(error = %e, "Failed to initialize BrowserFacade");
+                        return Err(anyhow::anyhow!("Failed to initialize BrowserFacade: {}", e));
+                    }
+                }
+            }
+        } else {
+            tracing::info!("Initializing BrowserFacade for local browser automation");
+            match BrowserFacade::new(facade_config.clone()).await {
+                Ok(facade) => {
+                    tracing::info!("BrowserFacade initialized successfully");
+                    Some(Arc::new(facade))
+                }
+                Err(e) => {
+                    tracing::error!(error = %e, "Failed to initialize BrowserFacade");
+                    return Err(anyhow::anyhow!("Failed to initialize BrowserFacade: {}", e));
+                }
+            }
+        };
 
         // Initialize extraction facade
         let extraction_facade = Arc::new(
@@ -1302,18 +1377,18 @@ impl AppState {
         let auth_config = AuthConfig::default();
         let cache_warmer_enabled = false;
 
-        let browser_launcher = Arc::new(
+        let browser_launcher = Some(Arc::new(
             HeadlessLauncher::new()
                 .await
                 .expect("Failed to create browser launcher"),
-        );
+        ));
 
         let facade_config = riptide_facade::RiptideConfig::default();
-        let browser_facade = Arc::new(
+        let browser_facade = Some(Arc::new(
             BrowserFacade::new(facade_config.clone())
                 .await
                 .expect("Failed to create browser facade"),
-        );
+        ));
         let extraction_facade = Arc::new(
             ExtractionFacade::new(facade_config.clone())
                 .await

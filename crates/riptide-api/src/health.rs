@@ -443,9 +443,14 @@ impl HealthChecker {
             0.0
         };
 
+        let active_connections = match &state.resource_manager.browser_pool {
+            Some(pool) => pool.get_stats().await.in_use as u32,
+            None => 0, // No local browser pool when using headless service
+        };
+
         SystemMetrics {
             memory_usage_bytes,
-            active_connections: state.resource_manager.browser_pool.get_stats().await.in_use as u32,
+            active_connections,
             total_requests,
             requests_per_second,
             avg_response_time_ms,

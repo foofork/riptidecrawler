@@ -6,6 +6,7 @@ FROM rustlang/rust:nightly-slim AS builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
+    make \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -128,7 +129,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends binaryen && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Optimized runtime stage
-FROM debian:bookworm-slim AS runtime
+# Using Debian Trixie to match builder's GLIBC 2.41
+FROM debian:trixie-slim AS runtime
 
 # Install runtime dependencies in single layer
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -145,6 +147,7 @@ WORKDIR /opt/riptide
 
 # Create required directories
 RUN mkdir -p /opt/riptide/extractor /opt/riptide/configs \
+             /opt/riptide/data /opt/riptide/logs /opt/riptide/cache \
     && chown -R riptide:riptide /opt/riptide
 
 # Copy optimized binary (from CI profile)

@@ -225,8 +225,11 @@ pub async fn create_browser_session(
     // Launch browser page
     let initial_url = request.initial_url.as_deref().unwrap_or("about:blank");
 
-    let session = state
-        .browser_launcher
+    let launcher = state.browser_launcher.as_ref().ok_or_else(|| {
+        ApiError::invalid_request("No local browser launcher available - use headless service")
+    })?;
+
+    let session = launcher
         .launch_page(initial_url, stealth_preset)
         .await
         .map_err(|e| {
@@ -246,13 +249,25 @@ pub async fn create_browser_session(
     let session_id = session.session_id().to_string();
 
     // Get pool statistics
-    let pool_stats = state.browser_launcher.stats().await;
-
-    let pool_stats_info = PoolStatusInfo {
-        available: 0, // Approximation - actual pool stats would need to be exposed
-        in_use: 1,
-        total_capacity: state.api_config.headless.max_pool_size,
-        utilization_percent: pool_stats.pool_utilization,
+    let pool_stats_info = match &state.browser_launcher {
+        Some(launcher) => {
+            let pool_stats = launcher.stats().await;
+            PoolStatusInfo {
+                available: 0, // Approximation - actual pool stats would need to be exposed
+                in_use: 1,
+                total_capacity: state.api_config.headless.max_pool_size,
+                utilization_percent: pool_stats.pool_utilization,
+            }
+        }
+        None => {
+            // No local browser launcher - using headless service
+            PoolStatusInfo {
+                available: 0,
+                in_use: 0,
+                total_capacity: 0,
+                utilization_percent: 0.0,
+            }
+        }
     };
 
     let created_at = chrono::Utc::now();
@@ -331,13 +346,19 @@ pub async fn execute_browser_action(
             );
 
             // Launch new session and navigate
-            let _session = state
-                .browser_launcher
-                .launch_page(&url, None)
-                .await
-                .map_err(|e| ApiError::InternalError {
-                    message: format!("Navigation failed: {}", e),
-                })?;
+            let launcher = state.browser_launcher.as_ref().ok_or_else(|| {
+                ApiError::invalid_request(
+                    "No local browser launcher available - use headless service",
+                )
+            })?;
+
+            let _session =
+                launcher
+                    .launch_page(&url, None)
+                    .await
+                    .map_err(|e| ApiError::InternalError {
+                        message: format!("Navigation failed: {}", e),
+                    })?;
 
             let final_url = url.clone(); // In production, get actual final URL from page
 
@@ -381,8 +402,13 @@ pub async fn execute_browser_action(
             );
 
             // Launch session and take screenshot
-            let session = state
-                .browser_launcher
+            let launcher = state.browser_launcher.as_ref().ok_or_else(|| {
+                ApiError::invalid_request(
+                    "No local browser launcher available - use headless service",
+                )
+            })?;
+
+            let session = launcher
                 .launch_page("about:blank", None)
                 .await
                 .map_err(|e| ApiError::InternalError {
@@ -419,8 +445,13 @@ pub async fn execute_browser_action(
             info!(session_id = %session_id, "Getting page content");
 
             // Launch session and get content
-            let session = state
-                .browser_launcher
+            let launcher = state.browser_launcher.as_ref().ok_or_else(|| {
+                ApiError::invalid_request(
+                    "No local browser launcher available - use headless service",
+                )
+            })?;
+
+            let session = launcher
                 .launch_page("about:blank", None)
                 .await
                 .map_err(|e| ApiError::InternalError {
@@ -549,36 +580,61 @@ pub async fn get_browser_pool_status(
 ) -> Result<Json<PoolStatus>, ApiError> {
     debug!("Getting browser pool status");
 
-    // Get launcher statistics
-    let launcher_stats = state.browser_launcher.stats().await;
+    // Get launcher statistics (return defaults if using headless service)
+    let (stats_info, launcher_stats_info, health) = match &state.browser_launcher {
+        Some(launcher) => {
+            let launcher_stats = launcher.stats().await;
 
-    let stats_info = PoolStatusInfo {
-        available: 0, // Approximation
-        in_use: 0,
-        total_capacity: state.api_config.headless.max_pool_size,
-        utilization_percent: launcher_stats.pool_utilization,
-    };
+            let stats = PoolStatusInfo {
+                available: 0, // Approximation
+                in_use: 0,
+                total_capacity: state.api_config.headless.max_pool_size,
+                utilization_percent: launcher_stats.pool_utilization,
+            };
 
-    let launcher_stats_info = LauncherStatsInfo {
-        total_requests: launcher_stats.total_requests,
-        successful_requests: launcher_stats.successful_requests,
-        failed_requests: launcher_stats.failed_requests,
-        avg_response_time_ms: launcher_stats.avg_response_time_ms,
-        stealth_requests: launcher_stats.stealth_requests,
-        non_stealth_requests: launcher_stats.non_stealth_requests,
-    };
+            let launcher_info = LauncherStatsInfo {
+                total_requests: launcher_stats.total_requests,
+                successful_requests: launcher_stats.successful_requests,
+                failed_requests: launcher_stats.failed_requests,
+                avg_response_time_ms: launcher_stats.avg_response_time_ms,
+                stealth_requests: launcher_stats.stealth_requests,
+                non_stealth_requests: launcher_stats.non_stealth_requests,
+            };
 
-    let health = if launcher_stats.failed_requests == 0 {
-        "healthy"
-    } else if launcher_stats.failed_requests < launcher_stats.successful_requests / 10 {
-        "degraded"
-    } else {
-        "unhealthy"
+            let health_status = if launcher_stats.failed_requests == 0 {
+                "healthy"
+            } else if launcher_stats.failed_requests < launcher_stats.successful_requests / 10 {
+                "degraded"
+            } else {
+                "unhealthy"
+            };
+
+            (stats, launcher_info, health_status)
+        }
+        None => {
+            // No local browser launcher - using headless service
+            let stats = PoolStatusInfo {
+                available: 0,
+                in_use: 0,
+                total_capacity: 0,
+                utilization_percent: 0.0,
+            };
+
+            let launcher_info = LauncherStatsInfo {
+                total_requests: 0,
+                successful_requests: 0,
+                failed_requests: 0,
+                avg_response_time_ms: 0.0,
+                stealth_requests: 0,
+                non_stealth_requests: 0,
+            };
+
+            (stats, launcher_info, "headless_service")
+        }
     };
 
     info!(
         utilization = stats_info.utilization_percent,
-        total_requests = launcher_stats.total_requests,
         health = %health,
         "Browser pool status retrieved"
     );

@@ -89,7 +89,7 @@ use riptide_headless::pool::{BrowserPool, BrowserPoolConfig};
 /// Comprehensive resource manager coordinating all sub-managers
 ///
 /// This is the main entry point for resource management. It coordinates:
-/// - Browser pool for headless rendering
+/// - Browser pool for headless rendering (optional when using headless service)
 /// - Rate limiting for per-host request control
 /// - PDF operation concurrency limiting
 /// - WASM instance management
@@ -99,8 +99,8 @@ use riptide_headless::pool::{BrowserPool, BrowserPoolConfig};
 pub struct ResourceManager {
     /// Configuration
     config: ApiConfig,
-    /// Headless browser pool manager
-    pub browser_pool: Arc<BrowserPool>,
+    /// Headless browser pool manager (None when using external headless service)
+    pub browser_pool: Option<Arc<BrowserPool>>,
     /// Per-host rate limiter
     pub rate_limiter: Arc<PerHostRateLimiter>,
     /// PDF processing semaphore
@@ -177,60 +177,78 @@ impl ResourceManager {
     /// * `Ok(ResourceManager)` - Successfully initialized manager
     /// * `Err(_)` - Initialization failed (browser pool, etc.)
     pub async fn new(config: ApiConfig) -> errors::Result<Self> {
+        Self::new_with_headless_url(config, None).await
+    }
+
+    /// Create new resource manager with optional headless service URL
+    ///
+    /// When headless_url is provided, local browser pool creation is skipped
+    /// as the API will use the headless service for rendering instead.
+    pub async fn new_with_headless_url(
+        config: ApiConfig,
+        headless_url: Option<String>,
+    ) -> errors::Result<Self> {
         info!("Initializing comprehensive resource manager");
 
         let metrics = Arc::new(ResourceMetrics::new());
 
-        // Initialize browser pool
-        let browser_pool_config = BrowserPoolConfig {
-            min_pool_size: 1,
-            max_pool_size: config.headless.max_pool_size,
-            initial_pool_size: 2,
-            idle_timeout: Duration::from_secs(30),
-            max_lifetime: Duration::from_secs(300),
-            health_check_interval: Duration::from_secs(10),
-            memory_threshold_mb: 500,
-            enable_recovery: true,
-            max_retries: config.headless.max_retries,
-            profile_base_dir: None, // Use system temp directory by default
-            cleanup_timeout: Duration::from_secs(5),
-            ..Default::default()
-        };
+        // Initialize browser pool only if headless service is NOT configured
+        let browser_pool = if headless_url.is_some() {
+            info!("Headless service URL configured - skipping local browser pool initialization");
+            None
+        } else {
+            info!("No headless service URL - initializing local browser pool");
 
-        // DEPENDENCY NOTE: chromiumoxide uses async-std internally (RUSTSEC-2025-0052)
-        // JUSTIFICATION:
-        //   - Provides Chrome DevTools Protocol (CDP) access for headless browsing
-        //   - Isolated to browser pool management (this module only)
-        //   - Main application runtime remains pure Tokio
-        //   - async-std tasks are spawned in isolated browser process contexts
-        //   - No runtime conflict: chromiumoxide manages its own task executor
-        // ALTERNATIVES CONSIDERED:
-        //   - thirtyfour (WebDriver): Less direct CDP control, higher latency
-        //   - Sidecar process: Over-engineering for current scale
-        // MITIGATION: Feature-gate for optional headless support if needed
-        // MONITORING: Track chromiumoxide updates for Tokio migration
-        // Using chromiumoxide v0.7 directly to match riptide-engine/pool
-        let browser_config = chromiumoxide::BrowserConfig::builder()
-            .with_head()
-            .no_sandbox()
-            .build()
-            .map_err(|e| {
-                ResourceManagerError::Configuration(format!(
-                    "Failed to build browser config: {}",
-                    e
-                ))
-            })?;
+            let browser_pool_config = BrowserPoolConfig {
+                min_pool_size: 1,
+                max_pool_size: config.headless.max_pool_size,
+                initial_pool_size: 2,
+                idle_timeout: Duration::from_secs(30),
+                max_lifetime: Duration::from_secs(300),
+                health_check_interval: Duration::from_secs(10),
+                memory_threshold_mb: 500,
+                enable_recovery: true,
+                max_retries: config.headless.max_retries,
+                profile_base_dir: None, // Use system temp directory by default
+                cleanup_timeout: Duration::from_secs(5),
+                ..Default::default()
+            };
 
-        let browser_pool = Arc::new(
-            BrowserPool::new(browser_pool_config, browser_config)
+            // DEPENDENCY NOTE: chromiumoxide uses async-std internally (RUSTSEC-2025-0052)
+            // JUSTIFICATION:
+            //   - Provides Chrome DevTools Protocol (CDP) access for headless browsing
+            //   - Isolated to browser pool management (this module only)
+            //   - Main application runtime remains pure Tokio
+            //   - async-std tasks are spawned in isolated browser process contexts
+            //   - No runtime conflict: chromiumoxide manages its own task executor
+            // ALTERNATIVES CONSIDERED:
+            //   - thirtyfour (WebDriver): Less direct CDP control, higher latency
+            //   - Sidecar process: Over-engineering for current scale
+            // MITIGATION: Feature-gate for optional headless support if needed
+            // MONITORING: Track chromiumoxide updates for Tokio migration
+            // Using chromiumoxide v0.7 directly to match riptide-engine/pool
+            let browser_config = chromiumoxide::BrowserConfig::builder()
+                .with_head()
+                .no_sandbox()
+                .build()
+                .map_err(|e| {
+                    ResourceManagerError::Configuration(format!(
+                        "Failed to build browser config: {}",
+                        e
+                    ))
+                })?;
+
+            let pool = BrowserPool::new(browser_pool_config, browser_config)
                 .await
                 .map_err(|e| {
                     ResourceManagerError::BrowserPool(format!(
                         "Failed to initialize browser pool: {}",
                         e
                     ))
-                })?,
-        );
+                })?;
+
+            Some(Arc::new(pool))
+        };
 
         // Track headless pool size in metrics
         metrics.headless_pool_size.store(
@@ -254,12 +272,20 @@ impl ResourceManager {
         // Initialize performance monitor
         let performance_monitor = Arc::new(PerformanceMonitor::new(metrics.clone())?);
 
-        info!(
-            headless_pool_cap = config.headless.max_pool_size,
-            pdf_semaphore = config.pdf.max_concurrent,
-            rate_limit_rps = config.rate_limiting.requests_per_second_per_host,
-            "Resource manager initialized with requirements"
-        );
+        if browser_pool.is_some() {
+            info!(
+                headless_pool_cap = config.headless.max_pool_size,
+                pdf_semaphore = config.pdf.max_concurrent,
+                rate_limit_rps = config.rate_limiting.requests_per_second_per_host,
+                "Resource manager initialized with local browser pool"
+            );
+        } else {
+            info!(
+                pdf_semaphore = config.pdf.max_concurrent,
+                rate_limit_rps = config.rate_limiting.requests_per_second_per_host,
+                "Resource manager initialized with headless service (no local browser pool)"
+            );
+        }
 
         Ok(Self {
             config,
@@ -314,11 +340,15 @@ impl ResourceManager {
         }
 
         // 3. Acquire headless browser with timeout
-        let browser_result = timeout(
-            self.config.get_timeout("render"),
-            self.browser_pool.checkout(),
-        )
-        .await;
+        let browser_result = match &self.browser_pool {
+            Some(pool) => timeout(self.config.get_timeout("render"), pool.checkout()).await,
+            None => {
+                // No local browser pool - caller should use headless service via RPC
+                return Err(ResourceManagerError::Configuration(
+                    "Local browser pool not available - use headless service RPC client for rendering".to_string()
+                ).into());
+            }
+        };
 
         let browser_checkout = match browser_result {
             Ok(Ok(checkout)) => {
@@ -451,11 +481,17 @@ impl ResourceManager {
     /// # Returns
     /// A `ResourceStatus` struct containing current metrics for all resources
     pub async fn get_resource_status(&self) -> ResourceStatus {
-        let pool_stats = self.browser_pool.get_stats().await;
+        let (pool_available, pool_total) = match &self.browser_pool {
+            Some(pool) => {
+                let stats = pool.get_stats().await;
+                (stats.available, stats.total_capacity)
+            }
+            None => (0, 0), // No local pool when using headless service
+        };
 
         ResourceStatus {
-            headless_pool_available: pool_stats.available,
-            headless_pool_total: pool_stats.total_capacity,
+            headless_pool_available: pool_available,
+            headless_pool_total: pool_total,
             pdf_available: self.pdf_semaphore.available_permits(),
             pdf_total: self.config.pdf.max_concurrent,
             memory_usage_mb: self.memory_manager.current_usage_mb(),
@@ -551,7 +587,9 @@ mod tests {
         let manager = ResourceManager::new(config).await.unwrap();
 
         // Test that all sub-managers are accessible
-        assert!(manager.browser_pool.get_stats().await.total_capacity > 0);
+        if let Some(pool) = &manager.browser_pool {
+            assert!(pool.get_stats().await.total_capacity > 0);
+        }
         assert_eq!(manager.wasm_manager.instance_count().await, 0);
         assert_eq!(manager.memory_manager.current_usage_mb(), 0);
         assert_eq!(
