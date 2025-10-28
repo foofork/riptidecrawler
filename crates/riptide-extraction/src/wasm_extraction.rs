@@ -12,7 +12,7 @@ use wasmtime::{component::*, Config, Engine, ResourceLimiter, Store};
 use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView};
 
 // Import ExtractedDoc from riptide-types instead of duplicating
-use riptide_types::ExtractedDoc;
+use riptide_types::{ExtractedDoc, ParserMetadata};
 
 // WIT bindings - Wasmtime 37 bindgen! macro
 // Generate bindings in a module to avoid namespace pollution
@@ -89,10 +89,19 @@ mod conversions {
                 language: wit.language,
                 reading_time: wit.reading_time,
                 quality_score: wit.quality_score,
+                parser_metadata: Some(ParserMetadata {
+                    parser_used: "wasm".to_string(),
+                    confidence_score: 0.9,
+                    fallback_occurred: false,
+                    parse_time_ms: 0,
+                    extraction_path: None,
+                    primary_error: None,
+                }),
                 word_count: wit.word_count,
                 categories: wit.categories,
                 site_name: wit.site_name,
                 description: wit.description,
+                html: None, // Not populated during WASM extraction
             }
         }
     }

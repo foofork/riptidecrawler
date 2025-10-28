@@ -23,6 +23,7 @@ pub mod monitoring {
     pub mod error;
     pub mod health;
     pub mod metrics;
+    pub mod parser_metrics;
     pub mod reports;
     pub mod time_series;
 }
@@ -34,4 +35,10 @@ pub use validation::*;
 #[cfg(feature = "collector")]
 pub use monitoring::{
     alerts::*, collector::*, error::*, health::*, metrics::*, reports::*, time_series::*,
+};
+
+// Always re-export parser_metrics (it's feature-gated internally)
+#[cfg(feature = "collector")]
+pub use monitoring::parser_metrics::{
+    record_extraction, ExecutionOutcome, ExecutionPath, ParserMetrics, ParserStrategy,
 };

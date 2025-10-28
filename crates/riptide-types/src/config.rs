@@ -122,6 +122,9 @@ pub struct CrawlOptions {
     pub spider_strategy: Option<String>,
     // Content chunking configuration
     pub chunking_config: Option<ChunkingConfig>,
+    /// Skip content extraction and return raw HTML only
+    /// When true, only HTML field is populated, text/links/metadata are empty
+    pub skip_extraction: Option<bool>,
 }
 
 impl Default for CrawlOptions {
@@ -139,6 +142,7 @@ impl Default for CrawlOptions {
             spider_max_depth: None,
             spider_strategy: None,
             chunking_config: None,
+            skip_extraction: None,
         }
     }
 }

@@ -147,6 +147,10 @@ pub use schema::{
     ValidationRules,
 };
 
+// Native HTML parser module (for headless-rendered content)
+pub mod native_parser;
+pub use native_parser::{NativeHtmlParser, ParserConfig};
+
 // Common types for extraction
 use serde::{Deserialize, Serialize};
 

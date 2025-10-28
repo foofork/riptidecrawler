@@ -78,6 +78,7 @@ pub(super) async fn extract_with_extraction_facade(
         categories: Vec::new(),
         site_name: extracted.metadata.get("site_name").cloned(),
         description: extracted.metadata.get("description").cloned(),
+        html: None,
     };
 
     Ok(core_doc)

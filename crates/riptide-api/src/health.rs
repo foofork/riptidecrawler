@@ -343,13 +343,13 @@ impl HealthChecker {
     }
 
     /// Check headless service health
-    async fn check_headless_health(&self, state: &AppState) -> ServiceHealth {
+    pub async fn check_headless_health(&self, state: &AppState) -> ServiceHealth {
         if let Some(headless_url) = &state.config.headless_url {
             let start_time = Instant::now();
 
             match state
                 .http_client
-                .get(format!("{}/health", headless_url))
+                .get(format!("{}/healthz", headless_url))
                 .send()
                 .await
             {

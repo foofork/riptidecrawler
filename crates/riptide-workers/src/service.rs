@@ -70,7 +70,7 @@ pub struct WorkerService {
 }
 
 impl WorkerService {
-    /// Create a new worker service
+    /// Create a new worker service and automatically start it
     pub async fn new(config: WorkerServiceConfig) -> Result<Self> {
         info!("Initializing worker service");
 
@@ -97,20 +97,44 @@ impl WorkerService {
             None
         };
 
-        info!("Worker service initialized successfully");
+        // Initialize job processors
+        info!("Initializing job processors");
+        let processors = Self::create_job_processors_static(&config).await?;
 
-        Ok(Self {
+        // Create worker pool immediately (not deferred to start())
+        info!("Creating worker pool");
+        let queue_for_pool = JobQueue::new(&config.redis_url, config.queue_config.clone()).await?;
+        let mut worker_pool = WorkerPool::new(config.worker_config.clone(), queue_for_pool);
+
+        // Add processors to worker pool
+        for processor in processors {
+            worker_pool.add_processor(processor);
+        }
+
+        let mut service = Self {
             config,
             queue,
-            worker_pool: None,
+            worker_pool: Some(worker_pool),
             scheduler,
             metrics,
             running: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        })
+        };
+
+        // Auto-start the service
+        service.start_internal().await?;
+
+        info!("Worker service initialized and started successfully");
+
+        Ok(service)
     }
 
-    /// Start the worker service
+    /// Start the worker service (public API for backward compatibility, calls internal start)
     pub async fn start(&mut self) -> Result<()> {
+        self.start_internal().await
+    }
+
+    /// Internal start method that actually starts the worker pool and scheduler
+    async fn start_internal(&mut self) -> Result<()> {
         if self.running.load(std::sync::atomic::Ordering::Relaxed) {
             warn!("Worker service is already running");
             return Ok(());
@@ -120,70 +144,37 @@ impl WorkerService {
         self.running
             .store(true, std::sync::atomic::Ordering::Relaxed);
 
-        // Initialize job processors
-        let processors = self.create_job_processors().await?;
-
-        // Create and configure worker pool
-        // Note: JobQueue doesn't implement Clone, so we create a new connection for the worker pool
-        let queue_for_pool =
-            JobQueue::new(&self.config.redis_url, self.config.queue_config.clone()).await?;
-        let mut worker_pool = WorkerPool::new(self.config.worker_config.clone(), queue_for_pool);
-
-        // Add processors to worker pool
-        for processor in processors {
-            worker_pool.add_processor(processor);
-        }
-
-        self.worker_pool = Some(worker_pool);
-
         // Start scheduler if enabled
         if let Some(scheduler) = &self.scheduler {
-            let scheduler_handle = {
-                let scheduler = Arc::clone(scheduler);
-                tokio::spawn(async move {
-                    if let Err(e) = scheduler.start().await {
-                        error!(error = %e, "Scheduler failed");
-                    }
-                })
-            };
-
-            // Start worker pool
-            let worker_handle = {
-                let _worker_pool = match self.worker_pool.as_ref() {
-                    Some(pool) => pool,
-                    None => return Err(anyhow::anyhow!("Worker pool not initialized")),
-                };
-                // TODO: Implement proper worker pool lifecycle management
-                // The worker pool needs to be moved into the spawned task or wrapped in Arc
-                tokio::spawn(async move {
-                    // Due to ownership issues, we'll need to handle this differently
-                    // For now, we'll log that the worker pool would start here
-                    info!("Worker pool would start here");
-                })
-            };
-
-            // Start metrics collection task
-            let metrics_handle = self.start_metrics_collection_task();
-
-            info!("Worker service started successfully");
-
-            // Wait for all tasks (in a real implementation, you'd want proper task management)
-            tokio::select! {
-                _ = scheduler_handle => {
-                    info!("Scheduler task completed");
+            let scheduler = Arc::clone(scheduler);
+            tokio::spawn(async move {
+                if let Err(e) = scheduler.start().await {
+                    error!(error = %e, "Scheduler failed");
                 }
-                _ = worker_handle => {
-                    info!("Worker pool task completed");
-                }
-                _ = metrics_handle => {
-                    info!("Metrics task completed");
-                }
-            }
-        } else {
-            // Start worker pool without scheduler
-            info!("Starting worker pool without scheduler");
-            // Similar handling needed here
+            });
         }
+
+        // Start worker pool
+        if let Some(worker_pool) = &self.worker_pool {
+            // Clone the worker pool stats reference for monitoring
+            let worker_config = self.config.worker_config.clone();
+            info!(
+                "Worker pool ready with {} workers",
+                worker_config.worker_count
+            );
+
+            // Start worker pool in background task
+            // Note: The worker pool's start() method should be called here
+            // For now, workers will poll automatically based on their configuration
+            worker_pool.start().await;
+        } else {
+            return Err(anyhow::anyhow!("Worker pool not initialized"));
+        }
+
+        // Start metrics collection task
+        let _metrics_handle = self.start_metrics_collection_task().await;
+
+        info!("Worker service started successfully");
 
         Ok(())
     }
@@ -301,8 +292,10 @@ impl WorkerService {
             .await
     }
 
-    /// Create job processors
-    async fn create_job_processors(&self) -> Result<Vec<Arc<dyn crate::worker::JobProcessor>>> {
+    /// Create job processors (static version for use in new())
+    async fn create_job_processors_static(
+        config: &WorkerServiceConfig,
+    ) -> Result<Vec<Arc<dyn crate::worker::JobProcessor>>> {
         info!("Initializing job processors");
 
         // Initialize HTTP client
@@ -332,7 +325,7 @@ impl WorkerService {
         let extractor = Arc::new(MockExtractor) as Arc<dyn WasmExtractor>;
 
         // Initialize cache manager
-        let cache_manager = CacheManager::new(&self.config.redis_url)
+        let cache_manager = CacheManager::new(&config.redis_url)
             .await
             .context("Failed to initialize cache manager")?;
         let cache = Arc::new(tokio::sync::Mutex::new(cache_manager));
@@ -343,8 +336,8 @@ impl WorkerService {
                 http_client.clone(),
                 extractor.clone(),
                 cache.clone(),
-                self.config.max_batch_size,
-                self.config.max_concurrency,
+                config.max_batch_size,
+                config.max_concurrency,
             )),
             // Single crawl processor
             Arc::new(SingleCrawlProcessor::new(
@@ -360,6 +353,11 @@ impl WorkerService {
 
         info!("Initialized {} job processors", processors.len());
         Ok(processors)
+    }
+
+    /// Create job processors (instance method for backward compatibility)
+    async fn create_job_processors(&self) -> Result<Vec<Arc<dyn crate::worker::JobProcessor>>> {
+        Self::create_job_processors_static(&self.config).await
     }
 
     /// Start metrics collection task

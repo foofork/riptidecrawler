@@ -6,6 +6,7 @@ use anyhow::Result;
 /// 2. Headless resilience - DOMContentLoaded + 1s idle, 3s hard cap, circuit breaker
 /// 3. Graceful degradation - Fallback to fast path when headless fails
 // P2-F1 Day 3: Import from external crates (no longer from riptide-core)
+use riptide_extraction::NativeHtmlParser;
 use riptide_fetch::{CircuitBreakerConfig, ReliableHttpClient, RetryConfig};
 use riptide_types::ExtractedDoc;
 use serde::{Deserialize, Serialize};
@@ -177,32 +178,105 @@ impl ReliableExtractor {
         })
     }
 
-    /// Fast extraction path
+    /// Fast extraction path (untrusted HTML - WASM primary, native fallback)
     async fn extract_fast(
         &self,
         url: &str,
         wasm_extractor: &dyn WasmExtractor,
         request_id: &str,
     ) -> Result<ExtractedDoc> {
-        debug!(request_id = %request_id, "Using fast extraction path");
+        debug!(request_id = %request_id, "Using fast extraction path (WASM primary)");
 
         // Fetch HTML with retry logic
         let response = self.http_client.get_with_retry(url).await?;
-        let html = response.text().await?;
+        let raw_html = response.text().await?;
 
-        // Extract using WASM
-        let doc = wasm_extractor.extract(html.as_bytes(), url, "article")?;
+        let extraction_start = std::time::Instant::now();
+
+        // PRIMARY: Try WASM extractor (secure for untrusted HTML)
+        info!(
+            path = "fast",
+            parser = "wasm",
+            request_id = %request_id,
+            url = %url,
+            "Primary parser selected for fast path"
+        );
+
+        let mut doc = wasm_extractor
+            .extract(raw_html.as_bytes(), url, "article")
+            .or_else(|wasm_err| {
+                let wasm_duration = extraction_start.elapsed();
+                warn!(
+                    path = "fast",
+                    primary_parser = "wasm",
+                    fallback_parser = "native",
+                    request_id = %request_id,
+                    error = %wasm_err,
+                    wasm_duration_ms = wasm_duration.as_millis(),
+                    "Fallback triggered - WASM extractor failed, trying native parser"
+                );
+
+                // FALLBACK: Try native parser (non-circular)
+                let fallback_start = std::time::Instant::now();
+                let native_parser = NativeHtmlParser::new();
+                let native_result =
+                    native_parser
+                        .parse_headless_html(&raw_html, url)
+                        .map_err(|native_err| {
+                            anyhow::anyhow!(
+                                "Both parsers failed in fast path. WASM: {}, Native: {}",
+                                wasm_err,
+                                native_err
+                            )
+                        });
+
+                if let Ok(ref doc) = native_result {
+                    let fallback_duration = fallback_start.elapsed();
+                    info!(
+                        path = "fast",
+                        parser = "native",
+                        fallback_occurred = true,
+                        request_id = %request_id,
+                        fallback_duration_ms = fallback_duration.as_millis(),
+                        content_length = doc.text.len(),
+                        "Native parser fallback succeeded"
+                    );
+                }
+
+                native_result
+            })?;
+
+        let extraction_duration = extraction_start.elapsed();
+
+        // Add parser metadata for observability
+        doc.parser_metadata = Some(riptide_types::ParserMetadata {
+            parser_used: if doc.parser_metadata.is_some()
+                && doc.parser_metadata.as_ref().unwrap().fallback_occurred
+            {
+                "native".to_string()
+            } else {
+                "wasm".to_string()
+            },
+            confidence_score: doc.quality_score.map(|q| q as f64 / 100.0).unwrap_or(0.8),
+            fallback_occurred: doc.parser_metadata.is_some()
+                && doc.parser_metadata.as_ref().unwrap().fallback_occurred,
+            parse_time_ms: extraction_duration.as_millis() as u64,
+            extraction_path: Some("fast".to_string()),
+            primary_error: None,
+        });
 
         info!(
             request_id = %request_id,
             content_length = doc.text.len(),
+            parser_used = doc.parser_metadata.as_ref().map(|m| m.parser_used.as_str()).unwrap_or("unknown"),
+            extraction_time_ms = extraction_duration.as_millis(),
             "Fast extraction completed"
         );
 
         Ok(doc)
     }
 
-    /// Headless extraction with circuit breaker protection
+    /// Headless extraction with circuit breaker protection (trusted HTML - native primary, WASM fallback)
     async fn extract_headless(
         &self,
         url: &str,
@@ -210,7 +284,7 @@ impl ReliableExtractor {
         wasm_extractor: &dyn WasmExtractor,
         request_id: &str,
     ) -> Result<ExtractedDoc> {
-        debug!(request_id = %request_id, "Using headless extraction path");
+        debug!(request_id = %request_id, "Using headless extraction path (native primary)");
 
         let headless_service_url =
             headless_url.ok_or_else(|| anyhow::anyhow!("Headless service URL not configured"))?;
@@ -220,7 +294,7 @@ impl ReliableExtractor {
         debug!(request_id = %request_id, circuit_state = ?cb_state, "Circuit breaker state");
 
         // Prepare headless request
-        let _render_request = serde_json::json!({
+        let render_request = serde_json::json!({
             "url": url,
             "wait_for": null,
             "scroll_steps": 0
@@ -231,7 +305,7 @@ impl ReliableExtractor {
         let response = tokio::time::timeout(
             self.config.headless_timeout,
             self.headless_client
-                .get_with_retry(&format!("{}/render", headless_service_url)),
+                .post_with_retry(&format!("{}/render", headless_service_url), &render_request),
         )
         .await
         .map_err(|_| anyhow::anyhow!("Headless service timeout"))?;
@@ -262,12 +336,85 @@ impl ReliableExtractor {
             "Headless rendering completed"
         );
 
-        // Extract from rendered HTML
-        let doc = wasm_extractor.extract(rendered_html.as_bytes(), url, "article")?;
+        let extraction_start = Instant::now();
+
+        // PRIMARY: Try native parser (fast for trusted HTML)
+        info!(
+            path = "headless",
+            parser = "native",
+            request_id = %request_id,
+            url = %url,
+            "Primary parser selected for headless path"
+        );
+
+        let native_parser = NativeHtmlParser::new();
+        let mut doc = native_parser
+            .parse_headless_html(&rendered_html, url)
+            .or_else(|native_err| {
+                let native_duration = extraction_start.elapsed();
+                warn!(
+                    path = "headless",
+                    primary_parser = "native",
+                    fallback_parser = "wasm",
+                    request_id = %request_id,
+                    error = %native_err,
+                    native_duration_ms = native_duration.as_millis(),
+                    "Fallback triggered - Native parser failed, trying WASM extractor"
+                );
+
+                // FALLBACK: Try WASM extractor (non-circular)
+                let fallback_start = Instant::now();
+                let wasm_result = wasm_extractor
+                    .extract(rendered_html.as_bytes(), url, "article")
+                    .map_err(|wasm_err| {
+                        anyhow::anyhow!(
+                            "Both parsers failed in headless path. Native: {}, WASM: {}",
+                            native_err,
+                            wasm_err
+                        )
+                    });
+
+                if let Ok(ref doc) = wasm_result {
+                    let fallback_duration = fallback_start.elapsed();
+                    info!(
+                        path = "headless",
+                        parser = "wasm",
+                        fallback_occurred = true,
+                        request_id = %request_id,
+                        fallback_duration_ms = fallback_duration.as_millis(),
+                        content_length = doc.text.len(),
+                        "WASM extractor fallback succeeded"
+                    );
+                }
+
+                wasm_result
+            })?;
+
+        let extraction_duration = extraction_start.elapsed();
+
+        // Add parser metadata for observability
+        doc.parser_metadata = Some(riptide_types::ParserMetadata {
+            parser_used: if doc.parser_metadata.is_some()
+                && doc.parser_metadata.as_ref().unwrap().fallback_occurred
+            {
+                "wasm".to_string()
+            } else {
+                "native".to_string()
+            },
+            confidence_score: doc.quality_score.map(|q| q as f64 / 100.0).unwrap_or(0.85),
+            fallback_occurred: doc.parser_metadata.is_some()
+                && doc.parser_metadata.as_ref().unwrap().fallback_occurred,
+            parse_time_ms: extraction_duration.as_millis() as u64,
+            extraction_path: Some("headless".to_string()),
+            primary_error: None,
+        });
 
         info!(
             request_id = %request_id,
             content_length = doc.text.len(),
+            quality_score = doc.quality_score,
+            parser_used = doc.parser_metadata.as_ref().map(|m| m.parser_used.as_str()).unwrap_or("unknown"),
+            extraction_time_ms = extraction_duration.as_millis(),
             "Headless extraction completed"
         );
 

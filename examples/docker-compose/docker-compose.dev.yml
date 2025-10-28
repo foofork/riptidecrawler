@@ -1,0 +1,205 @@
+# ============================================================================
+# RipTide Development Docker Compose Configuration
+# ============================================================================
+# Development environment with:
+#   - Hot-reload support
+#   - Volume mounting for live code changes
+#   - Debug ports exposed
+#   - Local development tools
+#
+# Usage:
+#   docker-compose -f docker-compose.dev.yml up
+#   docker-compose -f docker-compose.dev.yml logs -f riptide-api
+#   docker-compose -f docker-compose.dev.yml exec riptide-api bash
+#
+# Prerequisites:
+#   - Copy .env.example to .env
+#   - Build with: make build-wasm && cargo build
+# ============================================================================
+
+version: '3.8'
+
+services:
+  # =========================================================================
+  # RipTide API - Development mode with volume mounting
+  # =========================================================================
+  riptide-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    image: riptide-api:dev
+    container_name: riptide-api-dev
+    restart: unless-stopped
+
+    ports:
+      - "8080:8080"
+      - "9090:9090"  # Debug port
+
+    environment:
+      - RUST_LOG=debug
+      - RUST_BACKTRACE=full
+      - RIPTIDE_API_HOST=0.0.0.0
+      - RIPTIDE_API_PORT=8080
+      - REDIS_URL=redis://redis:6379/0
+      - HEADLESS_URL=http://riptide-headless:9123
+      - WASM_EXTRACTOR_PATH=/app/target/wasm32-wasip2/ci/riptide_extractor_wasm.wasm
+      - RIPTIDE_OUTPUT_DIR=/app/riptide-output
+      - RIPTIDE_CACHE_DIR=/app/cache
+      - RIPTIDE_LOGS_DIR=/app/logs
+
+    env_file:
+      - .env
+
+    volumes:
+      # Mount source for live reloading
+      - .:/app:cached
+      - cargo-cache:/usr/local/cargo/registry
+      - cargo-git:/usr/local/cargo/git
+      - target-cache:/app/target
+
+      # Mount configs directory
+      - ./configs:/app/configs:ro
+
+      # Mount output directories
+      - ./riptide-output:/app/riptide-output:delegated
+      - ./logs:/app/logs:delegated
+      - ./cache:/app/cache:delegated
+
+    working_dir: /app
+
+    networks:
+      - riptide-network
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    # Development: watch mode with pre-built dependencies
+    command: >
+      bash -c "
+        if [ ! -f /app/target/wasm32-wasip2/ci/riptide_extractor_wasm.wasm ]; then
+          echo 'Building WASM module...' &&
+          cd /app/wasm/riptide-extractor-wasm &&
+          cargo build --profile ci --target wasm32-wasip2 &&
+          cd /app;
+        fi &&
+        cargo watch -x 'run --profile ci --bin riptide-api'
+      "
+
+
+  # =========================================================================
+  # Redis - Development instance
+  # =========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: riptide-redis-dev
+    restart: unless-stopped
+
+    ports:
+      - "6379:6379"
+
+    command: redis-server --appendonly yes --loglevel debug
+
+    volumes:
+      - redis-dev-data:/data
+
+    networks:
+      - riptide-network
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  # =========================================================================
+  # Headless Browser - Development mode
+  # =========================================================================
+  riptide-headless:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.headless
+    image: riptide-headless:dev
+    container_name: riptide-headless-dev
+    restart: unless-stopped
+
+    ports:
+      - "9123:9123"
+
+    environment:
+      - RUST_LOG=debug
+      - CHROME_BIN=/usr/bin/chromium
+      - CHROME_FLAGS=--no-sandbox --headless --disable-gpu
+
+    networks:
+      - riptide-network
+
+    shm_size: 2gb
+
+
+  # =========================================================================
+  # Swagger UI - API Documentation
+  # =========================================================================
+  swagger-ui:
+    image: swaggerapi/swagger-ui:latest
+    container_name: riptide-swagger-ui-dev
+    restart: unless-stopped
+
+    ports:
+      - "8081:8080"
+
+    environment:
+      - SWAGGER_JSON=/openapi.yaml
+
+    volumes:
+      - ./docs/api/openapi.yaml:/openapi.yaml:ro
+
+    networks:
+      - riptide-network
+
+
+  # =========================================================================
+  # Redis Commander - Redis GUI (development tool)
+  # =========================================================================
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: riptide-redis-commander
+    restart: unless-stopped
+
+    ports:
+      - "8082:8081"
+
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+
+    networks:
+      - riptide-network
+
+    depends_on:
+      - redis
+
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  riptide-network:
+    driver: bridge
+
+
+# =============================================================================
+# Volumes - Development caches
+# =============================================================================
+volumes:
+  redis-dev-data:
+    driver: local
+  cargo-cache:
+    driver: local
+  cargo-git:
+    driver: local
+  target-cache:
+    driver: local

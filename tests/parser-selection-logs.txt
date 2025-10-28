@@ -1,0 +1,79 @@
+# Parser Selection Logs - Docker Environment
+# Analysis Date: 2025-10-28T14:30:00Z
+# Docker Services: riptide-api (Up 4+ minutes, Healthy)
+
+## Initialization Phase Logs
+
+[2025-10-28T14:23:40.407802Z] INFO [riptide_api]:
+  Application configuration loaded
+  redis_url=redis://redis:6379/0
+  wasm_path=/opt/riptide/extractor/extractor.wasm
+  max_concurrency=16
+  cache_ttl=3600
+  gate_hi_threshold=0.699999988079071
+  gate_lo_threshold=0.30000001192092896
+  headless_url=Some("http://riptide-headless:9123")
+
+[2025-10-28T14:23:40.408096Z] INFO [riptide_api::metrics]:
+  Prometheus metrics registry initialized with spider, PDF, WASM, worker,
+  and comprehensive Phase 1B metrics
+
+Wasmtime AOT caching enabled via feature flag - compiled modules will be cached
+
+[2025-10-28T14:23:42.476203Z] INFO [riptide_api::state]:
+  WASM extractor loaded: /opt/riptide/extractor/extractor.wasm
+
+[2025-10-28T14:23:42.553530Z] INFO [riptide_api::resource_manager::wasm_manager]:
+  Initializing WASM instance manager
+
+[2025-10-28T14:23:42.587433Z] INFO [riptide_api::state]:
+  ExtractionFacade initialized successfully
+
+## Runtime Observations
+
+### Health Check Requests (Multiple)
+[2025-10-28T14:23:45.577786Z] INFO [health_check{http.method="GET" http.route="/healthz"}]:
+  Health check completed status="healthy" uptime_seconds=5 check_time_ms=10
+
+[2025-10-28T14:24:15.645721Z] INFO [health_check{http.method="GET" http.route="/healthz"}]:
+  Health check completed status="healthy" uptime_seconds=35 check_time_ms=6
+
+[2025-10-28T14:24:45.710058Z] INFO [health_check{http.method="GET" http.route="/healthz"}]:
+  Health check completed status="healthy" uptime_seconds=65 check_time_ms=6
+
+### Extraction Events
+⚠️ NO EXTRACTION EVENTS LOGGED DURING MONITORING PERIOD
+
+### Fallback Events
+⚠️ NO FALLBACK EVENTS CAPTURED
+
+### Parser Selection Decisions
+⚠️ NO PARSER ROUTING DECISIONS LOGGED
+
+## Summary Statistics
+
+Total log lines analyzed: 500
+Lines matching parser keywords: 6 (1.2%)
+WASM initialization logs: 3
+Native parser logs: 0
+Fallback events: 0
+Extraction attempts: 0
+
+## Key Findings
+
+1. ✅ WASM module successfully initialized
+2. ✅ ExtractionFacade properly configured
+3. ⚠️ No runtime extraction activity logged
+4. ⚠️ No observable parser selection behavior
+5. ⚠️ No fallback chain execution visible
+
+## Recommendations
+
+See full analysis report: /workspaces/eventmesh/tests/parser-analysis-report.md
+
+Priority actions:
+1. Add debug-level logging for extraction methods
+2. Implement structured tracing for parser selection
+3. Add Prometheus metrics for strategy usage
+4. Run extraction tests with valid endpoints
+5. Enable OTEL_ENDPOINT for distributed tracing

@@ -16,6 +16,7 @@ use riptide_pdf::{create_pdf_processor, AnyPdfProcessor, PdfConfig};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use tracing::{error, info, warn};
 
 /// Result type alias for extraction operations
 pub type Result<T> = std::result::Result<T, RiptideError>;
@@ -334,6 +335,16 @@ impl ExtractionFacade {
         url: &str,
         strategy: ExtractionStrategy,
     ) -> Result<ExtractedData> {
+        let strategy_name = strategy.name();
+        let start_time = std::time::Instant::now();
+
+        tracing::info!(
+            strategy = %strategy_name,
+            url = %url,
+            content_size = content.len(),
+            "Starting extraction with strategy"
+        );
+
         let result = match strategy {
             ExtractionStrategy::HtmlCss => {
                 let extractors = self.extractors.read().await;
@@ -368,6 +379,16 @@ impl ExtractionFacade {
             }
         };
 
+        let duration = start_time.elapsed();
+
+        tracing::info!(
+            strategy = %strategy_name,
+            confidence = result.extraction_confidence,
+            duration_ms = duration.as_millis(),
+            content_length = result.content.len(),
+            "Strategy execution complete"
+        );
+
         Ok(ExtractedData {
             title: Some(result.title),
             text: result.content,
@@ -392,7 +413,20 @@ impl ExtractionFacade {
         let mut best_result: Option<ExtractedData> = None;
         let mut best_confidence = 0.0;
 
-        for strategy in strategies {
+        tracing::info!(
+            url = %url,
+            strategies = ?strategies.iter().map(|s| s.name()).collect::<Vec<_>>(),
+            "Starting fallback chain extraction"
+        );
+
+        for (index, strategy) in strategies.iter().enumerate() {
+            tracing::debug!(
+                strategy = %strategy.name(),
+                attempt = index + 1,
+                total_strategies = strategies.len(),
+                "Trying extraction strategy"
+            );
+
             match self
                 .extract_with_strategy(content, url, strategy.clone())
                 .await
@@ -406,10 +440,28 @@ impl ExtractionFacade {
 
                     // If confidence is high enough, return immediately
                     if result.confidence >= 0.85 {
+                        tracing::info!(
+                            strategy = %strategy.name(),
+                            confidence = result.confidence,
+                            attempt = index + 1,
+                            "High confidence result achieved, returning early"
+                        );
                         return Ok(result);
                     }
+
+                    tracing::debug!(
+                        strategy = %strategy.name(),
+                        confidence = result.confidence,
+                        "Strategy succeeded but confidence below threshold, continuing chain"
+                    );
                 }
                 Err(e) => {
+                    tracing::warn!(
+                        strategy = %strategy.name(),
+                        error = %e,
+                        attempt = index + 1,
+                        "Strategy failed, trying next"
+                    );
                     last_error = Some(e);
                 }
             }
@@ -417,10 +469,20 @@ impl ExtractionFacade {
 
         // Return best result if found
         if let Some(result) = best_result {
+            tracing::info!(
+                best_strategy = %result.strategy_used,
+                best_confidence = best_confidence,
+                strategies_tried = strategies.len(),
+                "Returning best result from fallback chain"
+            );
             return Ok(result);
         }
 
         // All strategies failed
+        tracing::error!(
+            strategies_tried = strategies.len(),
+            "All extraction strategies failed"
+        );
         Err(last_error
             .unwrap_or_else(|| RiptideError::extraction("All extraction strategies failed")))
     }

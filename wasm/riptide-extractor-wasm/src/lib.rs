@@ -7,6 +7,9 @@ use extraction_helpers::*;
 mod common_validation;
 use common_validation::*;
 
+// UTF-8 safety utilities for WASM environment
+mod utf8_utils;
+
 // Extraction module with comprehensive link, media, language, and category extraction
 mod extraction;
 
@@ -203,7 +206,7 @@ impl Component {
                 "full-page-extraction".to_string(),
                 "metadata-extraction".to_string(),
                 "custom-selectors".to_string(),
-                "scraper-based-extraction".to_string(),
+                "tl-based-extraction".to_string(),
                 "links-extraction".to_string(),
                 "media-extraction".to_string(),
                 "language-detection".to_string(),
@@ -296,31 +299,43 @@ impl Guest for Component {
     }
 }
 
-/// Perform content extraction using scraper (WASI-compatible, no browser APIs)
+/// Perform content extraction using tl parser (WASI-compatible, no browser APIs)
 fn perform_extraction_with_scraper(
     html: &str,
     url: &str,
     mode: &ExtractionMode,
 ) -> Result<ExtractedContent, ExtractionError> {
-    use scraper::Html;
+    use tl::ParserOptions;
 
-    let document = Html::parse_document(html);
+    let document = match tl::parse(html, ParserOptions::default()) {
+        Ok(dom) => dom,
+        Err(_) => {
+            return Err(ExtractionError::ParseError(
+                "Failed to parse HTML document".to_string(),
+            ))
+        }
+    };
+    let parser = document.parser();
 
     // Extract title
-    let title = extract_title(&document);
+    let title = extract_title(&document, parser);
 
     // Extract metadata
-    let byline = extract_meta_content(&document, &["author", "article:author"]);
-    let published = extract_meta_content(&document, &["article:published_time", "datePublished"]);
-    let site_name = extract_meta_content(&document, &["og:site_name", "twitter:site"]);
-    let description = extract_meta_content(&document, &["description", "og:description"]);
+    let byline = extract_meta_content(&document, parser, &["author", "article:author"]);
+    let published = extract_meta_content(
+        &document,
+        parser,
+        &["article:published_time", "datePublished"],
+    );
+    let site_name = extract_meta_content(&document, parser, &["og:site_name", "twitter:site"]);
+    let description = extract_meta_content(&document, parser, &["description", "og:description"]);
 
     // Extract main content based on mode
     let text = match mode {
-        ExtractionMode::Article => extract_article_content(&document),
-        ExtractionMode::Full => extract_full_content(&document),
+        ExtractionMode::Article => extract_article_content(&document, parser),
+        ExtractionMode::Full => extract_full_content(&document, parser),
         ExtractionMode::Metadata => String::new(),
-        ExtractionMode::Custom(selectors) => extract_custom_content(&document, selectors),
+        ExtractionMode::Custom(selectors) => extract_custom_content(&document, parser, selectors),
     };
 
     // Calculate word count and reading time
@@ -356,38 +371,52 @@ fn perform_extraction_with_scraper(
 }
 
 /// Extract title from HTML document
-fn extract_title(document: &scraper::Html) -> Option<String> {
-    use scraper::Selector;
-
+fn extract_title(document: &tl::VDom, parser: &tl::Parser) -> Option<String> {
     // Try <title> tag first
-    if let Ok(selector) = Selector::parse("title") {
-        if let Some(element) = document.select(&selector).next() {
-            let title: String = element.text().collect();
-            let trimmed = title.trim();
-            if !trimmed.is_empty() {
-                return Some(trimmed.to_string());
+    if let Some(nodes) = document.query_selector("title") {
+        if let Some(node_handle) = nodes.into_iter().next() {
+            if let Some(node) = node_handle.get(parser) {
+                if let Some(tag) = node.as_tag() {
+                    let title = tag.inner_text(parser);
+                    let trimmed = title.trim();
+                    if !trimmed.is_empty() {
+                        return Some(trimmed.to_string());
+                    }
+                }
             }
         }
     }
 
     // Try Open Graph title
-    if let Ok(selector) = Selector::parse("meta[property='og:title']") {
-        if let Some(element) = document.select(&selector).next() {
-            if let Some(content) = element.value().attr("content") {
-                if !content.is_empty() {
-                    return Some(content.to_string());
+    if let Some(nodes) = document.query_selector("meta[property='og:title']") {
+        if let Some(node_handle) = nodes.into_iter().next() {
+            if let Some(node) = node_handle.get(parser) {
+                if let Some(tag) = node.as_tag() {
+                    if let Some(content_attr) = tag.attributes().get("content") {
+                        if let Some(content) = content_attr
+                            .and_then(|bytes| std::str::from_utf8(bytes.as_bytes()).ok())
+                        {
+                            if !content.is_empty() {
+                                return Some(content.to_string());
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
     // Try h1 as fallback
-    if let Ok(selector) = Selector::parse("h1") {
-        if let Some(element) = document.select(&selector).next() {
-            let title: String = element.text().collect();
-            let trimmed = title.trim();
-            if !trimmed.is_empty() {
-                return Some(trimmed.to_string());
+    if let Some(nodes) = document.query_selector("h1") {
+        if let Some(node_handle) = nodes.into_iter().next() {
+            if let Some(node) = node_handle.get(parser) {
+                if let Some(tag) = node.as_tag() {
+                    let title = tag.inner_text(parser);
+                    let trimmed = title.trim();
+                    if !trimmed.is_empty() {
+                        return Some(trimmed.to_string());
+                    }
+                }
             }
         }
     }
@@ -396,42 +425,58 @@ fn extract_title(document: &scraper::Html) -> Option<String> {
 }
 
 /// Extract meta content by property names
-fn extract_meta_content(document: &scraper::Html, properties: &[&str]) -> Option<String> {
-    use scraper::Selector;
-
+fn extract_meta_content(
+    document: &tl::VDom,
+    parser: &tl::Parser,
+    properties: &[&str],
+) -> Option<String> {
     for property in properties {
         // Try meta[property]
         let property_selector = format!("meta[property='{}']", property);
-        if let Ok(selector) = Selector::parse(&property_selector) {
-            if let Some(element) = document.select(&selector).next() {
-                if let Some(content) = element.value().attr("content") {
-                    if !content.is_empty() {
-                        return Some(content.to_string());
+        if let Some(nodes) = document.query_selector(&property_selector) {
+            if let Some(node_handle) = nodes.into_iter().next() {
+                if let Some(node) = node_handle.get(parser) {
+                    if let Some(tag) = node.as_tag() {
+                        if let Some(content_attr) = tag.attributes().get("content") {
+                            if let Some(content) = content_attr
+                                .and_then(|bytes| std::str::from_utf8(bytes.as_bytes()).ok())
+                            {
+                                if !content.is_empty() {
+                                    return Some(content.to_string());
+                                }
+                            }
+                        }
                     }
                 }
             }
-        }; // Semicolon to drop temporary
+        }
 
         // Try meta[name]
         let name_selector = format!("meta[name='{}']", property);
-        if let Ok(selector) = Selector::parse(&name_selector) {
-            if let Some(element) = document.select(&selector).next() {
-                if let Some(content) = element.value().attr("content") {
-                    if !content.is_empty() {
-                        return Some(content.to_string());
+        if let Some(nodes) = document.query_selector(&name_selector) {
+            if let Some(node_handle) = nodes.into_iter().next() {
+                if let Some(node) = node_handle.get(parser) {
+                    if let Some(tag) = node.as_tag() {
+                        if let Some(content_attr) = tag.attributes().get("content") {
+                            if let Some(content) = content_attr
+                                .and_then(|bytes| std::str::from_utf8(bytes.as_bytes()).ok())
+                            {
+                                if !content.is_empty() {
+                                    return Some(content.to_string());
+                                }
+                            }
+                        }
                     }
                 }
             }
-        }; // Semicolon to drop temporary
+        }
     }
 
     None
 }
 
 /// Extract article content using common article selectors
-fn extract_article_content(document: &scraper::Html) -> String {
-    use scraper::Selector;
-
+fn extract_article_content(document: &tl::VDom, parser: &tl::Parser) -> String {
     // Try common article content selectors
     let selectors = [
         "article",
@@ -444,29 +489,35 @@ fn extract_article_content(document: &scraper::Html) -> String {
     ];
 
     for selector_str in &selectors {
-        if let Ok(selector) = Selector::parse(selector_str) {
-            if let Some(element) = document.select(&selector).next() {
-                let text: String = element.text().collect();
-                let trimmed = text.trim();
-                if trimmed.len() > 200 {
-                    return trimmed.to_string();
+        if let Some(nodes) = document.query_selector(selector_str) {
+            if let Some(node_handle) = nodes.into_iter().next() {
+                if let Some(node) = node_handle.get(parser) {
+                    if let Some(tag) = node.as_tag() {
+                        let text = tag.inner_text(parser);
+                        let trimmed = text.trim();
+                        if trimmed.len() > 200 {
+                            return trimmed.to_string();
+                        }
+                    }
                 }
             }
         }
     }
 
     // Fallback to body
-    extract_full_content(document)
+    extract_full_content(document, parser)
 }
 
 /// Extract full page content
-fn extract_full_content(document: &scraper::Html) -> String {
-    use scraper::Selector;
-
-    if let Ok(selector) = Selector::parse("body") {
-        if let Some(body) = document.select(&selector).next() {
-            let text: String = body.text().collect();
-            return text.trim().to_string();
+fn extract_full_content(document: &tl::VDom, parser: &tl::Parser) -> String {
+    if let Some(nodes) = document.query_selector("body") {
+        if let Some(node_handle) = nodes.into_iter().next() {
+            if let Some(node) = node_handle.get(parser) {
+                if let Some(tag) = node.as_tag() {
+                    let text = tag.inner_text(parser);
+                    return text.trim().to_string();
+                }
+            }
         }
     }
 
@@ -474,18 +525,24 @@ fn extract_full_content(document: &scraper::Html) -> String {
 }
 
 /// Extract content using custom CSS selectors
-fn extract_custom_content(document: &scraper::Html, selectors: &[String]) -> String {
-    use scraper::Selector;
-
+fn extract_custom_content(
+    document: &tl::VDom,
+    parser: &tl::Parser,
+    selectors: &[String],
+) -> String {
     let mut content = Vec::new();
 
     for selector_str in selectors {
-        if let Ok(selector) = Selector::parse(selector_str) {
-            for element in document.select(&selector) {
-                let text: String = element.text().collect();
-                let trimmed = text.trim();
-                if !trimmed.is_empty() {
-                    content.push(trimmed.to_string());
+        if let Some(nodes) = document.query_selector(selector_str) {
+            for node_handle in nodes {
+                if let Some(node) = node_handle.get(parser) {
+                    if let Some(tag) = node.as_tag() {
+                        let text = tag.inner_text(parser);
+                        let trimmed = text.trim();
+                        if !trimmed.is_empty() {
+                            content.push(trimmed.to_string());
+                        }
+                    }
                 }
             }
         }

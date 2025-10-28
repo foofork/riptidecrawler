@@ -1,0 +1,205 @@
+time="2025-10-28T14:53:16Z" level=warning msg="The \"RIPTIDE_API_KEY\" variable is not set. Defaulting to a blank string."
+time="2025-10-28T14:53:16Z" level=warning msg="The \"SERPER_API_KEY\" variable is not set. Defaulting to a blank string."
+time="2025-10-28T14:53:16Z" level=warning msg="The \"OPENAI_API_KEY\" variable is not set. Defaulting to a blank string."
+time="2025-10-28T14:53:16Z" level=warning msg="The \"ANTHROPIC_API_KEY\" variable is not set. Defaulting to a blank string."
+time="2025-10-28T14:53:16Z" level=warning msg="/workspaces/eventmesh/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+riptide-api  | [2m2025-10-28T14:50:10.263038Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_api::handlers::health[0m[2m:[0m Health check completed [3mstatus[0m[2m=[0m"healthy" [3muptime_seconds[0m[2m=[0m1589 [3mcheck_time_ms[0m[2m=[0m6
+riptide-api  | [2m2025-10-28T14:50:40.322199Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_api::state[0m[2m:[0m Starting health check
+riptide-api  | [2m2025-10-28T14:50:40.322542Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_cache::manager[0m[2m:[0m Cached entry stored [3mkey[0m[2m=[0mhealth_check [3msize[0m[2m=[0m4 [3mttl[0m[2m=[0m1
+riptide-api  | [2m2025-10-28T14:50:40.323773Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_api::health[0m[2m:[0m Health checker initialized [3mgit_sha[0m[2m=[0munknown [3mbuild_timestamp[0m[2m=[0m2025-10-28T14:50:40.323764232+00:00
+riptide-api  | [2m2025-10-28T14:50:40.329024Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_api::handlers::health[0m[2m:[0m Health check completed [3mstatus[0m[2m=[0m"healthy" [3muptime_seconds[0m[2m=[0m1619 [3mcheck_time_ms[0m[2m=[0m6
+riptide-api  | [2m2025-10-28T14:51:10.386872Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_api::state[0m[2m:[0m Starting health check
+riptide-api  | [2m2025-10-28T14:51:10.387180Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_cache::manager[0m[2m:[0m Cached entry stored [3mkey[0m[2m=[0mhealth_check [3msize[0m[2m=[0m4 [3mttl[0m[2m=[0m1
+riptide-api  | [2m2025-10-28T14:51:10.388317Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_api::health[0m[2m:[0m Health checker initialized [3mgit_sha[0m[2m=[0munknown [3mbuild_timestamp[0m[2m=[0m2025-10-28T14:51:10.388311072+00:00
+riptide-api  | [2m2025-10-28T14:51:10.393488Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_api::handlers::health[0m[2m:[0m Health check completed [3mstatus[0m[2m=[0m"healthy" [3muptime_seconds[0m[2m=[0m1649 [3mcheck_time_ms[0m[2m=[0m6
+riptide-api  | [2m2025-10-28T14:51:40.475395Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_api::state[0m[2m:[0m Starting health check
+riptide-api  | [2m2025-10-28T14:51:40.475806Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_cache::manager[0m[2m:[0m Cached entry stored [3mkey[0m[2m=[0mhealth_check [3msize[0m[2m=[0m4 [3mttl[0m[2m=[0m1
+riptide-api  | [2m2025-10-28T14:51:40.477110Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_api::health[0m[2m:[0m Health checker initialized [3mgit_sha[0m[2m=[0munknown [3mbuild_timestamp[0m[2m=[0m2025-10-28T14:51:40.477099931+00:00
+riptide-api  | [2m2025-10-28T14:51:40.487864Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_api::handlers::health[0m[2m:[0m Health check completed [3mstatus[0m[2m=[0m"healthy" [3muptime_seconds[0m[2m=[0m1680 [3mcheck_time_ms[0m[2m=[0m12
+riptide-api  | [2m2025-10-28T14:52:07.705764Z[0m [33m WARN[0m [2mriptide_api::errors[0m[2m:[0m Client error occurred [3merror_type[0m[2m=[0m"not_found" Resource not found: endpoint
+riptide-api  | [2m2025-10-28T14:52:10.596762Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_api::state[0m[2m:[0m Starting health check
+riptide-api  | [2m2025-10-28T14:52:10.597129Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_cache::manager[0m[2m:[0m Cached entry stored [3mkey[0m[2m=[0mhealth_check [3msize[0m[2m=[0m4 [3mttl[0m[2m=[0m1
+riptide-api  | [2m2025-10-28T14:52:10.598315Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_api::health[0m[2m:[0m Health checker initialized [3mgit_sha[0m[2m=[0munknown [3mbuild_timestamp[0m[2m=[0m2025-10-28T14:52:10.598305840+00:00
+riptide-api  | [2m2025-10-28T14:52:10.603955Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_api::handlers::health[0m[2m:[0m Health check completed [3mstatus[0m[2m=[0m"healthy" [3muptime_seconds[0m[2m=[0m1710 [3mcheck_time_ms[0m[2m=[0m7
+riptide-api  | [2m2025-10-28T14:52:40.675047Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_api::state[0m[2m:[0m Starting health check
+riptide-api  | [2m2025-10-28T14:52:40.675427Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_cache::manager[0m[2m:[0m Cached entry stored [3mkey[0m[2m=[0mhealth_check [3msize[0m[2m=[0m4 [3mttl[0m[2m=[0m1
+riptide-api  | [2m2025-10-28T14:52:40.677329Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_api::health[0m[2m:[0m Health checker initialized [3mgit_sha[0m[2m=[0munknown [3mbuild_timestamp[0m[2m=[0m2025-10-28T14:52:40.677320853+00:00
+riptide-api  | [2m2025-10-28T14:52:40.683034Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_api::handlers::health[0m[2m:[0m Health check completed [3mstatus[0m[2m=[0m"healthy" [3muptime_seconds[0m[2m=[0m1740 [3mcheck_time_ms[0m[2m=[0m7
+riptide-api  | [2m2025-10-28T14:53:10.745930Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_api::state[0m[2m:[0m Starting health check
+riptide-api  | [2m2025-10-28T14:53:10.746242Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_cache::manager[0m[2m:[0m Cached entry stored [3mkey[0m[2m=[0mhealth_check [3msize[0m[2m=[0m4 [3mttl[0m[2m=[0m1
+riptide-api  | [2m2025-10-28T14:53:10.747518Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_api::health[0m[2m:[0m Health checker initialized [3mgit_sha[0m[2m=[0munknown [3mbuild_timestamp[0m[2m=[0m2025-10-28T14:53:10.747509428+00:00
+riptide-api  | [2m2025-10-28T14:53:10.753008Z[0m [32m INFO[0m [1mhealth_check[0m[1m{[0m[3mhttp.method[0m[2m=[0m"GET" [3mhttp.route[0m[2m=[0m"/healthz"[1m}[0m[2m:[0m [2mriptide_api::handlers::health[0m[2m:[0m Health check completed [3mstatus[0m[2m=[0m"healthy" [3muptime_seconds[0m[2m=[0m1770 [3mcheck_time_ms[0m[2m=[0m7
+riptide-api  | [2m2025-10-28T14:53:12.598607Z[0m [32m INFO[0m [1mcrawl_handler[0m[1m{[0m[3mhttp.method[0m[2m=[0m"POST" [3mhttp.route[0m[2m=[0m"/crawl" [3murl_count[0m[2m=[0m3 [3mcache_mode[0m[2m=[0mSome("read_through") [3muse_spider[0m[2m=[0mNone [3motel.kind[0m[2m=[0mServer [3murl_count[0m[2m=[0m3 [3mcache_mode[0m[2m=[0m"read_through" [3muse_spider[0m[2m=[0mfalse[1m}[0m[2m:[0m [2mriptide_api::handlers::crawl[0m[2m:[0m Received crawl request [3murl_count[0m[2m=[0m3 [3mcache_mode[0m[2m=[0m"read_through"
+riptide-api  | [2m2025-10-28T14:53:12.598693Z[0m [32m INFO[0m [1mcrawl_handler[0m[1m{[0m[3mhttp.method[0m[2m=[0m"POST" [3mhttp.route[0m[2m=[0m"/crawl" [3murl_count[0m[2m=[0m3 [3mcache_mode[0m[2m=[0mSome("read_through") [3muse_spider[0m[2m=[0mNone [3motel.kind[0m[2m=[0mServer [3murl_count[0m[2m=[0m3 [3mcache_mode[0m[2m=[0m"read_through" [3muse_spider[0m[2m=[0mfalse[1m}[0m[2m:[0m [2mriptide_api::pipeline[0m[2m:[0m Starting batch pipeline execution [3murl_count[0m[2m=[0m3
+riptide-api  | [2m2025-10-28T14:53:12.598737Z[0m [32m INFO[0m [2mriptide_api::pipeline[0m[2m:[0m Starting pipeline execution [3murl[0m[2m=[0mhttps://example.com [3mcache_key[0m[2m=[0mriptide:v1:read_through:c4e6d80de232db04
+riptide-api  | [2m2025-10-28T14:53:12.598742Z[0m [32m INFO[0m [2mriptide_api::pipeline[0m[2m:[0m Starting pipeline execution [3murl[0m[2m=[0mhttps://github.com [3mcache_key[0m[2m=[0mriptide:v1:read_through:b28d1a7fbaada644
+riptide-api  | [2m2025-10-28T14:53:12.598768Z[0m [32m INFO[0m [2mriptide_api::pipeline[0m[2m:[0m Starting pipeline execution [3murl[0m[2m=[0mhttps://news.ycombinator.com [3mcache_key[0m[2m=[0mriptide:v1:read_through:6b1ed38e928c708a
+riptide-api  | [2m2025-10-28T14:53:12.598818Z[0m [32m INFO[0m [2mriptide_events::handlers[0m[2m:[0m Event emitted [3mevent_id[0m[2m=[0m1aab3f04-7d2c-4cf1-b488-d5fc14487cca [3mevent_type[0m[2m=[0mbase_event [3msource[0m[2m=[0mapi.crawl_handler [3mtimestamp[0m[2m=[0m2025-10-28 14:53:12.598649529 UTC [3mdata[0m[2m=[0m{"event_id":"1aab3f04-7d2c-4cf1-b488-d5fc14487cca","event_type":"crawl.started","timestamp":"2025-10-28T14:53:12.598649529Z","source":"api.crawl_handler","severity":"Info","metadata":{"url_count":"3","cache_mode":"read_through","concurrency":"16"},"context":null}
+riptide-api  | [2m2025-10-28T14:53:12.598843Z[0m [32m INFO[0m [2mriptide_events::handlers[0m[2m:[0m Event emitted [3mevent_id[0m[2m=[0m30f38c6c-73a3-412d-a843-ec3dfbef0ada [3mevent_type[0m[2m=[0mbase_event [3msource[0m[2m=[0mpipeline_orchestrator [3mtimestamp[0m[2m=[0m2025-10-28 14:53:12.598755999 UTC [3mdata[0m[2m=[0m{"event_id":"30f38c6c-73a3-412d-a843-ec3dfbef0ada","event_type":"pipeline.execution.started","timestamp":"2025-10-28T14:53:12.598755999Z","source":"pipeline_orchestrator","severity":"Info","metadata":{"cache_key":"riptide:v1:read_through:c4e6d80de232db04","url":"https://example.com"},"context":null}
+riptide-api  | [2m2025-10-28T14:53:12.598857Z[0m [32m INFO[0m [2mriptide_events::handlers[0m[2m:[0m Event emitted [3mevent_id[0m[2m=[0m3898ad78-a624-4dbd-9e96-5f18464d21cb [3mevent_type[0m[2m=[0mbase_event [3msource[0m[2m=[0mpipeline_orchestrator [3mtimestamp[0m[2m=[0m2025-10-28 14:53:12.598764314 UTC [3mdata[0m[2m=[0m{"event_id":"3898ad78-a624-4dbd-9e96-5f18464d21cb","event_type":"pipeline.execution.started","timestamp":"2025-10-28T14:53:12.598764314Z","source":"pipeline_orchestrator","severity":"Info","metadata":{"url":"https://github.com","cache_key":"riptide:v1:read_through:b28d1a7fbaada644"},"context":null}
+riptide-api  | [2m2025-10-28T14:53:12.598873Z[0m [32m INFO[0m [2mriptide_events::handlers[0m[2m:[0m Event emitted [3mevent_id[0m[2m=[0mf2dc6e3e-68aa-41fa-aeab-f88d91748711 [3mevent_type[0m[2m=[0mbase_event [3msource[0m[2m=[0mpipeline_orchestrator [3mtimestamp[0m[2m=[0m2025-10-28 14:53:12.598773251 UTC [3mdata[0m[2m=[0m{"event_id":"f2dc6e3e-68aa-41fa-aeab-f88d91748711","event_type":"pipeline.execution.started","timestamp":"2025-10-28T14:53:12.598773251Z","source":"pipeline_orchestrator","severity":"Info","metadata":{"url":"https://news.ycombinator.com","cache_key":"riptide:v1:read_through:6b1ed38e928c708a"},"context":null}
+riptide-api  | [2m2025-10-28T14:53:12.598968Z[0m [32m INFO[0m [2mriptide_api::pipeline[0m[2m:[0m Cache hit, returning cached result [3murl[0m[2m=[0mhttps://example.com
+riptide-api  | [2m2025-10-28T14:53:12.599026Z[0m [32m INFO[0m [2mriptide_events::handlers[0m[2m:[0m Event emitted [3mevent_id[0m[2m=[0m18d3ca78-5596-4896-acc8-5c1d296772b7 [3mevent_type[0m[2m=[0mbase_event [3msource[0m[2m=[0mpipeline_orchestrator [3mtimestamp[0m[2m=[0m2025-10-28 14:53:12.598981420 UTC [3mdata[0m[2m=[0m{"event_id":"18d3ca78-5596-4896-acc8-5c1d296772b7","event_type":"pipeline.cache.hit","timestamp":"2025-10-28T14:53:12.598981420Z","source":"pipeline_orchestrator","severity":"Info","metadata":{"cache_key":"riptide:v1:read_through:c4e6d80de232db04","url":"https://example.com"},"context":null}
+riptide-api  | [2m2025-10-28T14:53:12.599118Z[0m [32m INFO[0m [1mget[0m[1m{[0m[3murl[0m[2m=[0mhttps://github.com[1m}[0m[2m:[0m [2mriptide_fetch::fetch[0m[2m:[0m Starting HTTP GET request
+riptide-api  | [2m2025-10-28T14:53:12.599315Z[0m [32m INFO[0m [1mget[0m[1m{[0m[3murl[0m[2m=[0mhttps://news.ycombinator.com[1m}[0m[2m:[0m [2mriptide_fetch::fetch[0m[2m:[0m Starting HTTP GET request
+riptide-api  | [2m2025-10-28T14:53:12.628516Z[0m [32m INFO[0m [1mget[0m[1m{[0m[3murl[0m[2m=[0mhttps://github.com[1m}[0m[2m:[0m [2mriptide_fetch::fetch[0m[2m:[0m HTTP request completed [3mstatus_code[0m[2m=[0m200 [3mduration_ms[0m[2m=[0m29
+riptide-api  | [2m2025-10-28T14:53:12.652376Z[0m [32m INFO[0m [1mget[0m[1m{[0m[3murl[0m[2m=[0mhttps://github.com[1m}[0m[2m:[0m [2mriptide_fetch::fetch[0m[2m:[0m Starting HTTP GET request
+riptide-api  | [2m2025-10-28T14:53:12.661562Z[0m [32m INFO[0m [1mget[0m[1m{[0m[3murl[0m[2m=[0mhttps://github.com[1m}[0m[2m:[0m [2mriptide_fetch::fetch[0m[2m:[0m HTTP request completed [3mstatus_code[0m[2m=[0m200 [3mduration_ms[0m[2m=[0m9
+riptide-api  | [2m2025-10-28T14:53:12.665709Z[0m [32m INFO[0m [2mriptide_api::pipeline[0m[2m:[0m Gate analysis complete [3murl[0m[2m=[0mhttps://github.com [3mdecision[0m[2m=[0mraw [3mscore[0m[2m=[0m0.96117777
+riptide-api  | [2m2025-10-28T14:53:12.665749Z[0m [32m INFO[0m [2mriptide_reliability::reliability[0m[2m:[0m Starting reliable extraction [3mrequest_id[0m[2m=[0m035caf3f-3a87-4d8b-94a2-2f47fb4f9b57 [3murl[0m[2m=[0mhttps://github.com [3mmode[0m[2m=[0mFast
+riptide-api  | [2m2025-10-28T14:53:12.665768Z[0m [32m INFO[0m [1mget_with_retry[0m[1m{[0m[3murl[0m[2m=[0mhttps://github.com[1m}[0m[2m:[0m [2mriptide_fetch::fetch[0m[2m:[0m Starting HTTP GET request with retry
+riptide-api  | [2m2025-10-28T14:53:12.665872Z[0m [32m INFO[0m [2mriptide_events::handlers[0m[2m:[0m Event emitted [3mevent_id[0m[2m=[0m4ff9b6da-eafd-42ea-a500-0faeb850478a [3mevent_type[0m[2m=[0mbase_event [3msource[0m[2m=[0mpipeline_orchestrator [3mtimestamp[0m[2m=[0m2025-10-28 14:53:12.665730536 UTC [3mdata[0m[2m=[0m{"event_id":"4ff9b6da-eafd-42ea-a500-0faeb850478a","event_type":"pipeline.gate.decision","timestamp":"2025-10-28T14:53:12.665730536Z","source":"pipeline_orchestrator","severity":"Info","metadata":{"url":"https://github.com","decision":"raw","quality_score":"0.96117777"},"context":null}
+riptide-api  | WASM Memory Growth Request:
+riptide-api  |   Current: 0 bytes (0 pages)
+riptide-api  |   Desired: 2031616 bytes (31 pages)
+riptide-api  |   Maximum: Some(4294967296)
+riptide-api  |   Our limit: 8192 pages (512 MB)
+riptide-api  |   ALLOWED: Within limit
+riptide-api  | WASM Memory Growth Request:
+riptide-api  |   Current: 2031616 bytes (31 pages)
+riptide-api  |   Desired: 2555904 bytes (39 pages)
+riptide-api  |   Maximum: Some(4294967296)
+riptide-api  |   Our limit: 8192 pages (512 MB)
+riptide-api  |   ALLOWED: Within limit
+riptide-api  | [2m2025-10-28T14:53:12.723133Z[0m [33m WARN[0m [2mriptide_reliability::reliability[0m[2m:[0m WASM extractor failed, trying native parser fallback [3mrequest_id[0m[2m=[0m035caf3f-3a87-4d8b-94a2-2f47fb4f9b57 [3merror[0m[2m=[0mWASM runtime error: error while executing at wasm backtrace:
+riptide-api  |     0: 0x1a433b - riptide_extractor_wasm.wasm!core::str::converts::from_utf8::h91ad3795bad088eb
+riptide-api  |     1:  0x1cc91 - riptide_extractor_wasm.wasm!riptide_extractor_wasm::_export_extract_cabi::hd9f8f88b673a19e5
+riptide-api  |     2:  0x1c674 - riptide_extractor_wasm.wasm!extract
+riptide-api  | note: using the `WASMTIME_BACKTRACE_DETAILS=1` environment variable may show more debugging information
+riptide-api  | [2m2025-10-28T14:53:12.746348Z[0m [32m INFO[0m [2mriptide_reliability::reliability[0m[2m:[0m Fast extraction completed [3mrequest_id[0m[2m=[0m035caf3f-3a87-4d8b-94a2-2f47fb4f9b57 [3mcontent_length[0m[2m=[0m3202
+riptide-api  | [2m2025-10-28T14:53:12.746500Z[0m [32m INFO[0m [2mriptide_events::handlers[0m[2m:[0m Event emitted [3mevent_id[0m[2m=[0mfe528bc8-b722-4e2e-8806-7cb15e73f186 [3mevent_type[0m[2m=[0mbase_event [3msource[0m[2m=[0mpipeline_orchestrator [3mtimestamp[0m[2m=[0m2025-10-28 14:53:12.746373278 UTC [3mdata[0m[2m=[0m{"event_id":"fe528bc8-b722-4e2e-8806-7cb15e73f186","event_type":"pipeline.extraction.reliable_success","timestamp":"2025-10-28T14:53:12.746373278Z","source":"pipeline_orchestrator","severity":"Info","metadata":{"decision":"Raw","url":"https://github.com","content_length":"3202"},"context":null}
+riptide-api  | [2m2025-10-28T14:53:12.746883Z[0m [32m INFO[0m [2mriptide_cache::manager[0m[2m:[0m Cached entry stored [3mkey[0m[2m=[0mriptide:v1:read_through:b28d1a7fbaada644 [3msize[0m[2m=[0m14752 [3mttl[0m[2m=[0m3600
+riptide-api  | [2m2025-10-28T14:53:12.746895Z[0m [32m INFO[0m [2mriptide_api::pipeline[0m[2m:[0m Pipeline execution complete [3murl[0m[2m=[0mhttps://github.com [3mprocessing_time_ms[0m[2m=[0m148
+riptide-api  | [2m2025-10-28T14:53:12.746961Z[0m [32m INFO[0m [2mriptide_events::handlers[0m[2m:[0m Event emitted [3mevent_id[0m[2m=[0mb3f62fcf-a0f4-408c-bf8e-4919d904c34a [3mevent_type[0m[2m=[0mbase_event [3msource[0m[2m=[0mpipeline_orchestrator [3mtimestamp[0m[2m=[0m2025-10-28 14:53:12.746901574 UTC [3mdata[0m[2m=[0m{"event_id":"b3f62fcf-a0f4-408c-bf8e-4919d904c34a","event_type":"pipeline.execution.completed","timestamp":"2025-10-28T14:53:12.746901574Z","source":"pipeline_orchestrator","severity":"Info","metadata":{"gate_decision":"raw","quality_score":"0.96117777","processing_time_ms":"148","http_status":"200","url":"https://github.com"},"context":null}
+riptide-api  | [2m2025-10-28T14:53:13.293606Z[0m [32m INFO[0m [1mget[0m[1m{[0m[3murl[0m[2m=[0mhttps://news.ycombinator.com[1m}[0m[2m:[0m [2mriptide_fetch::fetch[0m[2m:[0m HTTP request completed [3mstatus_code[0m[2m=[0m200 [3mduration_ms[0m[2m=[0m694
+riptide-api  | [2m2025-10-28T14:53:13.293908Z[0m [32m INFO[0m [1mget[0m[1m{[0m[3murl[0m[2m=[0mhttps://news.ycombinator.com[1m}[0m[2m:[0m [2mriptide_fetch::fetch[0m[2m:[0m Starting HTTP GET request
+riptide-api  | [2m2025-10-28T14:53:13.437379Z[0m [32m INFO[0m [1mget[0m[1m{[0m[3murl[0m[2m=[0mhttps://news.ycombinator.com[1m}[0m[2m:[0m [2mriptide_fetch::fetch[0m[2m:[0m HTTP request completed [3mstatus_code[0m[2m=[0m200 [3mduration_ms[0m[2m=[0m143
+riptide-api  | [2m2025-10-28T14:53:13.437952Z[0m [32m INFO[0m [2mriptide_api::pipeline[0m[2m:[0m Gate analysis complete [3murl[0m[2m=[0mhttps://news.ycombinator.com [3mdecision[0m[2m=[0mprobes_first [3mscore[0m[2m=[0m0.59851164
+riptide-api  | [2m2025-10-28T14:53:13.437993Z[0m [32m INFO[0m [2mriptide_reliability::reliability[0m[2m:[0m Starting reliable extraction [3mrequest_id[0m[2m=[0m6e824446-dfda-48b8-b349-a2c68a4b4dfd [3murl[0m[2m=[0mhttps://news.ycombinator.com [3mmode[0m[2m=[0mProbesFirst
+riptide-api  | [2m2025-10-28T14:53:13.438020Z[0m [32m INFO[0m [1mget_with_retry[0m[1m{[0m[3murl[0m[2m=[0mhttps://news.ycombinator.com[1m}[0m[2m:[0m [2mriptide_fetch::fetch[0m[2m:[0m Starting HTTP GET request with retry
+riptide-api  | [2m2025-10-28T14:53:13.438141Z[0m [32m INFO[0m [2mriptide_events::handlers[0m[2m:[0m Event emitted [3mevent_id[0m[2m=[0mbb9f2dc1-6e60-4e79-8179-022b3b3a7297 [3mevent_type[0m[2m=[0mbase_event [3msource[0m[2m=[0mpipeline_orchestrator [3mtimestamp[0m[2m=[0m2025-10-28 14:53:13.437973224 UTC [3mdata[0m[2m=[0m{"event_id":"bb9f2dc1-6e60-4e79-8179-022b3b3a7297","event_type":"pipeline.gate.decision","timestamp":"2025-10-28T14:53:13.437973224Z","source":"pipeline_orchestrator","severity":"Info","metadata":{"decision":"probes_first","quality_score":"0.59851164","url":"https://news.ycombinator.com"},"context":null}
+riptide-api  | WASM Memory Growth Request:
+riptide-api  |   Current: 0 bytes (0 pages)
+riptide-api  |   Desired: 2031616 bytes (31 pages)
+riptide-api  |   Maximum: Some(4294967296)
+riptide-api  |   Our limit: 8192 pages (512 MB)
+riptide-api  |   ALLOWED: Within limit
+riptide-api  | WASM Memory Growth Request:
+riptide-api  |   Current: 2031616 bytes (31 pages)
+riptide-api  |   Desired: 2097152 bytes (32 pages)
+riptide-api  |   Maximum: Some(4294967296)
+riptide-api  |   Our limit: 8192 pages (512 MB)
+riptide-api  |   ALLOWED: Within limit
+riptide-api  | [2m2025-10-28T14:53:14.075132Z[0m [33m WARN[0m [2mriptide_reliability::reliability[0m[2m:[0m WASM extractor failed, trying native parser fallback [3mrequest_id[0m[2m=[0m6e824446-dfda-48b8-b349-a2c68a4b4dfd [3merror[0m[2m=[0mWASM runtime error: error while executing at wasm backtrace:
+riptide-api  |     0: 0x1a90eb - riptide_extractor_wasm.wasm!core::unicode::unicode_data::conversions::to_lower::h07085ab5ac7f707f
+riptide-api  |     1: 0x1a18fb - riptide_extractor_wasm.wasm!alloc::str::<impl str>::to_lowercase::hbe97a8f527819f4e
+riptide-api  |     2:   0x9477 - riptide_extractor_wasm.wasm!riptide_extractor_wasm::common_validation::validate_html_structure::h1bf4630ecfce0a2d
+riptide-api  |     3:   0xac4c - riptide_extractor_wasm.wasm!riptide_extractor_wasm::common_validation::validate_extraction_input::hc54b189ab5419802
+riptide-api  |     4:  0x1868c - riptide_extractor_wasm.wasm!riptide_extractor_wasm::Component::extract_internal::he312474aa7c66155
+riptide-api  |     5:  0x1cd4a - riptide_extractor_wasm.wasm!riptide_extractor_wasm::_export_extract_cabi::hd9f8f88b673a19e5
+riptide-api  |     6:  0x1c674 - riptide_extractor_wasm.wasm!extract
+riptide-api  | note: using the `WASMTIME_BACKTRACE_DETAILS=1` environment variable may show more debugging information
+riptide-api  | [2m2025-10-28T14:53:14.080642Z[0m [33m WARN[0m [2mriptide_reliability::reliability[0m[2m:[0m Fast extraction failed, trying headless [3mrequest_id[0m[2m=[0m6e824446-dfda-48b8-b349-a2c68a4b4dfd [3merror[0m[2m=[0mBoth parsers failed in fast path. WASM: WASM runtime error: error while executing at wasm backtrace:
+riptide-api  |     0: 0x1a90eb - riptide_extractor_wasm.wasm!core::unicode::unicode_data::conversions::to_lower::h07085ab5ac7f707f
+riptide-api  |     1: 0x1a18fb - riptide_extractor_wasm.wasm!alloc::str::<impl str>::to_lowercase::hbe97a8f527819f4e
+riptide-api  |     2:   0x9477 - riptide_extractor_wasm.wasm!riptide_extractor_wasm::common_validation::validate_html_structure::h1bf4630ecfce0a2d
+riptide-api  |     3:   0xac4c - riptide_extractor_wasm.wasm!riptide_extractor_wasm::common_validation::validate_extraction_input::hc54b189ab5419802
+riptide-api  |     4:  0x1868c - riptide_extractor_wasm.wasm!riptide_extractor_wasm::Component::extract_internal::he312474aa7c66155
+riptide-api  |     5:  0x1cd4a - riptide_extractor_wasm.wasm!riptide_extractor_wasm::_export_extract_cabi::hd9f8f88b673a19e5
+riptide-api  |     6:  0x1c674 - riptide_extractor_wasm.wasm!extract
+riptide-api  | note: using the `WASMTIME_BACKTRACE_DETAILS=1` environment variable may show more debugging information, Native: No extractable content found
+riptide-api  | [2m2025-10-28T14:53:14.080672Z[0m [32m INFO[0m [1mpost_with_retry[0m[1m{[0m[3murl[0m[2m=[0mhttp://riptide-headless:9123/render[1m}[0m[2m:[0m [2mriptide_fetch::fetch[0m[2m:[0m Starting HTTP POST request with retry
+riptide-api  | [2m2025-10-28T14:53:16.167650Z[0m [33m WARN[0m [2mriptide_reliability::reliability[0m[2m:[0m Native parser failed, trying WASM extractor fallback [3mrequest_id[0m[2m=[0m6e824446-dfda-48b8-b349-a2c68a4b4dfd [3merror[0m[2m=[0mNo extractable content found
+riptide-api  | WASM Memory Growth Request:
+riptide-api  |   Current: 0 bytes (0 pages)
+riptide-api  |   Desired: 2031616 bytes (31 pages)
+riptide-api  |   Maximum: Some(4294967296)
+riptide-api  |   Our limit: 8192 pages (512 MB)
+riptide-api  |   ALLOWED: Within limit
+riptide-api  | WASM Memory Growth Request:
+riptide-api  |   Current: 2031616 bytes (31 pages)
+riptide-api  |   Desired: 2097152 bytes (32 pages)
+riptide-api  |   Maximum: Some(4294967296)
+riptide-api  |   Our limit: 8192 pages (512 MB)
+riptide-api  |   ALLOWED: Within limit
+riptide-api  | [2m2025-10-28T14:53:16.168374Z[0m [33m WARN[0m [2mriptide_reliability::reliability[0m[2m:[0m Headless extraction also failed, attempting final fallback [3mrequest_id[0m[2m=[0m6e824446-dfda-48b8-b349-a2c68a4b4dfd [3merror[0m[2m=[0mBoth parsers failed in headless path. Native: No extractable content found, WASM: WASM runtime error: error while executing at wasm backtrace:
+riptide-api  |     0: 0x1a14ec - riptide_extractor_wasm.wasm!alloc::str::<impl str>::to_lowercase::hbe97a8f527819f4e
+riptide-api  |     1:   0x9477 - riptide_extractor_wasm.wasm!riptide_extractor_wasm::common_validation::validate_html_structure::h1bf4630ecfce0a2d
+riptide-api  |     2:   0xac4c - riptide_extractor_wasm.wasm!riptide_extractor_wasm::common_validation::validate_extraction_input::hc54b189ab5419802
+riptide-api  |     3:  0x1868c - riptide_extractor_wasm.wasm!riptide_extractor_wasm::Component::extract_internal::he312474aa7c66155
+riptide-api  |     4:  0x1cd4a - riptide_extractor_wasm.wasm!riptide_extractor_wasm::_export_extract_cabi::hd9f8f88b673a19e5
+riptide-api  |     5:  0x1c674 - riptide_extractor_wasm.wasm!extract
+riptide-api  | note: using the `WASMTIME_BACKTRACE_DETAILS=1` environment variable may show more debugging information
+riptide-api  | [2m2025-10-28T14:53:16.168402Z[0m [32m INFO[0m [1mget_with_retry[0m[1m{[0m[3murl[0m[2m=[0mhttps://news.ycombinator.com[1m}[0m[2m:[0m [2mriptide_fetch::fetch[0m[2m:[0m Starting HTTP GET request with retry
+riptide-api  | WASM Memory Growth Request:
+riptide-api  |   Current: 0 bytes (0 pages)
+riptide-api  |   Desired: 2031616 bytes (31 pages)
+riptide-api  |   Maximum: Some(4294967296)
+riptide-api  |   Our limit: 8192 pages (512 MB)
+riptide-api  |   ALLOWED: Within limit
+riptide-api  | WASM Memory Growth Request:
+riptide-api  |   Current: 2031616 bytes (31 pages)
+riptide-api  |   Desired: 2097152 bytes (32 pages)
+riptide-api  |   Maximum: Some(4294967296)
+riptide-api  |   Our limit: 8192 pages (512 MB)
+riptide-api  |   ALLOWED: Within limit
+riptide-api  | [2m2025-10-28T14:53:16.320304Z[0m [33m WARN[0m [2mriptide_reliability::reliability[0m[2m:[0m WASM extractor failed, trying native parser fallback [3mrequest_id[0m[2m=[0m6e824446-dfda-48b8-b349-a2c68a4b4dfd [3merror[0m[2m=[0mWASM runtime error: error while executing at wasm backtrace:
+riptide-api  |     0: 0x1a90eb - riptide_extractor_wasm.wasm!core::unicode::unicode_data::conversions::to_lower::h07085ab5ac7f707f
+riptide-api  |     1: 0x1a18fb - riptide_extractor_wasm.wasm!alloc::str::<impl str>::to_lowercase::hbe97a8f527819f4e
+riptide-api  |     2:   0x9477 - riptide_extractor_wasm.wasm!riptide_extractor_wasm::common_validation::validate_html_structure::h1bf4630ecfce0a2d
+riptide-api  |     3:   0xac4c - riptide_extractor_wasm.wasm!riptide_extractor_wasm::common_validation::validate_extraction_input::hc54b189ab5419802
+riptide-api  |     4:  0x1868c - riptide_extractor_wasm.wasm!riptide_extractor_wasm::Component::extract_internal::he312474aa7c66155
+riptide-api  |     5:  0x1cd4a - riptide_extractor_wasm.wasm!riptide_extractor_wasm::_export_extract_cabi::hd9f8f88b673a19e5
+riptide-api  |     6:  0x1c674 - riptide_extractor_wasm.wasm!extract
+riptide-api  | note: using the `WASMTIME_BACKTRACE_DETAILS=1` environment variable may show more debugging information
+riptide-api  | [2m2025-10-28T14:53:16.326034Z[0m [31mERROR[0m [2mriptide_reliability::reliability[0m[2m:[0m Reliable extraction failed [3mrequest_id[0m[2m=[0m6e824446-dfda-48b8-b349-a2c68a4b4dfd [3mduration_ms[0m[2m=[0m2888 [3merror[0m[2m=[0mBoth parsers failed in headless path. Native: No extractable content found, WASM: WASM runtime error: error while executing at wasm backtrace:
+riptide-api  |     0: 0x1a14ec - riptide_extractor_wasm.wasm!alloc::str::<impl str>::to_lowercase::hbe97a8f527819f4e
+riptide-api  |     1:   0x9477 - riptide_extractor_wasm.wasm!riptide_extractor_wasm::common_validation::validate_html_structure::h1bf4630ecfce0a2d
+riptide-api  |     2:   0xac4c - riptide_extractor_wasm.wasm!riptide_extractor_wasm::common_validation::validate_extraction_input::hc54b189ab5419802
+riptide-api  |     3:  0x1868c - riptide_extractor_wasm.wasm!riptide_extractor_wasm::Component::extract_internal::he312474aa7c66155
+riptide-api  |     4:  0x1cd4a - riptide_extractor_wasm.wasm!riptide_extractor_wasm::_export_extract_cabi::hd9f8f88b673a19e5
+riptide-api  |     5:  0x1c674 - riptide_extractor_wasm.wasm!extract
+riptide-api  | note: using the `WASMTIME_BACKTRACE_DETAILS=1` environment variable may show more debugging information
+riptide-api  | [2m2025-10-28T14:53:16.326050Z[0m [33m WARN[0m [2mriptide_api::pipeline[0m[2m:[0m ReliableExtractor failed, attempting direct WASM fallback [3murl[0m[2m=[0mhttps://news.ycombinator.com [3merror[0m[2m=[0mBoth parsers failed in headless path. Native: No extractable content found, WASM: WASM runtime error: error while executing at wasm backtrace:
+riptide-api  |     0: 0x1a14ec - riptide_extractor_wasm.wasm!alloc::str::<impl str>::to_lowercase::hbe97a8f527819f4e
+riptide-api  |     1:   0x9477 - riptide_extractor_wasm.wasm!riptide_extractor_wasm::common_validation::validate_html_structure::h1bf4630ecfce0a2d
+riptide-api  |     2:   0xac4c - riptide_extractor_wasm.wasm!riptide_extractor_wasm::common_validation::validate_extraction_input::hc54b189ab5419802
+riptide-api  |     3:  0x1868c - riptide_extractor_wasm.wasm!riptide_extractor_wasm::Component::extract_internal::he312474aa7c66155
+riptide-api  |     4:  0x1cd4a - riptide_extractor_wasm.wasm!riptide_extractor_wasm::_export_extract_cabi::hd9f8f88b673a19e5
+riptide-api  |     5:  0x1c674 - riptide_extractor_wasm.wasm!extract
+riptide-api  | note: using the `WASMTIME_BACKTRACE_DETAILS=1` environment variable may show more debugging information
+riptide-api  | [2m2025-10-28T14:53:16.326075Z[0m [32m INFO[0m [2mriptide_api::pipeline[0m[2m:[0m Attempting direct WASM fallback extraction [3murl[0m[2m=[0mhttps://news.ycombinator.com
+riptide-api  | WASM Memory Growth Request:
+riptide-api  |   Current: 0 bytes (0 pages)
+riptide-api  |   Desired: 2031616 bytes (31 pages)
+riptide-api  |   Maximum: Some(4294967296)
+riptide-api  |   Our limit: 8192 pages (512 MB)
+riptide-api  |   ALLOWED: Within limit
+riptide-api  | WASM Memory Growth Request:
+riptide-api  |   Current: 2031616 bytes (31 pages)
+riptide-api  |   Desired: 2097152 bytes (32 pages)
+riptide-api  |   Maximum: Some(4294967296)
+riptide-api  |   Our limit: 8192 pages (512 MB)
+riptide-api  |   ALLOWED: Within limit
+riptide-api  | [2m2025-10-28T14:53:16.326644Z[0m [31mERROR[0m [2mriptide_api::pipeline[0m[2m:[0m All extraction methods failed [3murl[0m[2m=[0mhttps://news.ycombinator.com [3merror[0m[2m=[0mWASM runtime error: error while executing at wasm backtrace:
+riptide-api  |     0: 0x1a90eb - riptide_extractor_wasm.wasm!core::unicode::unicode_data::conversions::to_lower::h07085ab5ac7f707f
+riptide-api  |     1: 0x1a18fb - riptide_extractor_wasm.wasm!alloc::str::<impl str>::to_lowercase::hbe97a8f527819f4e
+riptide-api  |     2:   0x9477 - riptide_extractor_wasm.wasm!riptide_extractor_wasm::common_validation::validate_html_structure::h1bf4630ecfce0a2d
+riptide-api  |     3:   0xac4c - riptide_extractor_wasm.wasm!riptide_extractor_wasm::common_validation::validate_extraction_input::hc54b189ab5419802
+riptide-api  |     4:  0x1868c - riptide_extractor_wasm.wasm!riptide_extractor_wasm::Component::extract_internal::he312474aa7c66155
+riptide-api  |     5:  0x1cd4a - riptide_extractor_wasm.wasm!riptide_extractor_wasm::_export_extract_cabi::hd9f8f88b673a19e5
+riptide-api  |     6:  0x1c674 - riptide_extractor_wasm.wasm!extract
+riptide-api  | note: using the `WASMTIME_BACKTRACE_DETAILS=1` environment variable may show more debugging information
+riptide-api  | [2m2025-10-28T14:53:16.326679Z[0m [31mERROR[0m [2mriptide_api::pipeline[0m[2m:[0m URL processing failed [3murl[0m[2m=[0mhttps://news.ycombinator.com [3mindex[0m[2m=[0m1 [3merror[0m[2m=[0mContent extraction failed: All extraction attempts failed: WASM runtime error: error while executing at wasm backtrace:
+riptide-api  |     0: 0x1a90eb - riptide_extractor_wasm.wasm!core::unicode::unicode_data::conversions::to_lower::h07085ab5ac7f707f
+riptide-api  |     1: 0x1a18fb - riptide_extractor_wasm.wasm!alloc::str::<impl str>::to_lowercase::hbe97a8f527819f4e
+riptide-api  |     2:   0x9477 - riptide_extractor_wasm.wasm!riptide_extractor_wasm::common_validation::validate_html_structure::h1bf4630ecfce0a2d
+riptide-api  |     3:   0xac4c - riptide_extractor_wasm.wasm!riptide_extractor_wasm::common_validation::validate_extraction_input::hc54b189ab5419802
+riptide-api  |     4:  0x1868c - riptide_extractor_wasm.wasm!riptide_extractor_wasm::Component::extract_internal::he312474aa7c66155
+riptide-api  |     5:  0x1cd4a - riptide_extractor_wasm.wasm!riptide_extractor_wasm::_export_extract_cabi::hd9f8f88b673a19e5
+riptide-api  |     6:  0x1c674 - riptide_extractor_wasm.wasm!extract
+riptide-api  | note: using the `WASMTIME_BACKTRACE_DETAILS=1` environment variable may show more debugging information
+riptide-api  | [2m2025-10-28T14:53:16.326739Z[0m [32m INFO[0m [1mcrawl_handler[0m[1m{[0m[3mhttp.method[0m[2m=[0m"POST" [3mhttp.route[0m[2m=[0m"/crawl" [3murl_count[0m[2m=[0m3 [3mcache_mode[0m[2m=[0mSome("read_through") [3muse_spider[0m[2m=[0mNone [3motel.kind[0m[2m=[0mServer [3murl_count[0m[2m=[0m3 [3mcache_mode[0m[2m=[0m"read_through" [3muse_spider[0m[2m=[0mfalse[1m}[0m[2m:[0m [2mriptide_api::pipeline[0m[2m:[0m Batch pipeline execution complete [3mtotal_urls[0m[2m=[0m3 [3msuccessful[0m[2m=[0m2 [3mfailed[0m[2m=[0m1 [3mcache_hits[0m[2m=[0m1 [3mtotal_time_ms[0m[2m=[0m3728
+riptide-api  | [2m2025-10-28T14:53:16.326749Z[0m [33m WARN[0m [2mriptide_events::handlers[0m[2m:[0m Event emitted [3mevent_id[0m[2m=[0md7f11b29-d5e2-4576-8b4b-22137077bd39 [3mevent_type[0m[2m=[0mbase_event [3msource[0m[2m=[0mpipeline_orchestrator [3mtimestamp[0m[2m=[0m2025-10-28 14:53:16.326057915 UTC [3mdata[0m[2m=[0m{"event_id":"d7f11b29-d5e2-4576-8b4b-22137077bd39","event_type":"pipeline.extraction.reliable_failure","timestamp":"2025-10-28T14:53:16.326057915Z","source":"pipeline_orchestrator","severity":"Warn","metadata":{"error":"Both parsers failed in headless path. Native: No extractable content found, WASM: WASM runtime error: error while executing at wasm backtrace:\n    0: 0x1a14ec - riptide_extractor_wasm.wasm!alloc::str::<impl str>::to_lowercase::hbe97a8f527819f4e\n    1:   0x9477 - riptide_extractor_wasm.wasm!riptide_extractor_wasm::common_validation::validate_html_structure::h1bf4630ecfce0a2d\n    2:   0xac4c - riptide_extractor_wasm.wasm!riptide_extractor_wasm::common_validation::validate_extraction_input::hc54b189ab5419802\n    3:  0x1868c - riptide_extractor_wasm.wasm!riptide_extractor_wasm::Component::extract_internal::he312474aa7c66155\n    4:  0x1cd4a - riptide_extractor_wasm.wasm!riptide_extractor_wasm::_export_extract_cabi::hd9f8f88b673a19e5\n    5:  0x1c674 - riptide_extractor_wasm.wasm!extract\nnote: using the `WASMTIME_BACKTRACE_DETAILS=1` environment variable may show more debugging information","url":"https://news.ycombinator.com"},"context":null}
+riptide-api  | [2m2025-10-28T14:53:16.326761Z[0m [32m INFO[0m [1mcrawl_handler[0m[1m{[0m[3mhttp.method[0m[2m=[0m"POST" [3mhttp.route[0m[2m=[0m"/crawl" [3murl_count[0m[2m=[0m3 [3mcache_mode[0m[2m=[0mSome("read_through") [3muse_spider[0m[2m=[0mNone [3motel.kind[0m[2m=[0mServer [3murl_count[0m[2m=[0m3 [3mcache_mode[0m[2m=[0m"read_through" [3muse_spider[0m[2m=[0mfalse [3motel.status_code[0m[2m=[0m"OK"[1m}[0m[2m:[0m [2mriptide_api::handlers::crawl[0m[2m:[0m Crawl request completed [3mtotal_urls[0m[2m=[0m3 [3msuccessful[0m[2m=[0m2 [3mfailed[0m[2m=[0m1 [3mcache_hits[0m[2m=[0m1 [3mtotal_time_ms[0m[2m=[0m3728
+riptide-api  | [2m2025-10-28T14:53:16.327111Z[0m [32m INFO[0m [2mriptide_events::handlers[0m[2m:[0m Event emitted [3mevent_id[0m[2m=[0m924e1dc7-acd3-4723-9477-b6ed05915345 [3mevent_type[0m[2m=[0mbase_event [3msource[0m[2m=[0mapi.crawl_handler [3mtimestamp[0m[2m=[0m2025-10-28 14:53:16.326772269 UTC [3mdata[0m[2m=[0m{"event_id":"924e1dc7-acd3-4723-9477-b6ed05915345","event_type":"crawl.completed","timestamp":"2025-10-28T14:53:16.326772269Z","source":"api.crawl_handler","severity":"Info","metadata":{"total_urls":"3","duration_ms":"3728","successful":"2","cache_hit_rate":"0.33","cache_hits":"1","failed":"1"},"context":null}

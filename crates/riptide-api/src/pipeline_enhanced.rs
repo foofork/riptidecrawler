@@ -475,6 +475,7 @@ impl EnhancedPipelineOrchestrator {
             categories: vec![],
             site_name: None,
             description: None,
+            html: None,
         };
 
         Ok(doc)
@@ -504,6 +505,7 @@ impl EnhancedPipelineOrchestrator {
             categories: vec![],
             site_name: None,
             description: None,
+            html: None,
         };
 
         Ok(doc)

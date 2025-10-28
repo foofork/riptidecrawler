@@ -1,12 +1,14 @@
 use regex::Regex;
-use scraper::{Html, Selector};
 use serde_json::Value;
+use tl::ParserOptions;
 use url::Url;
 use whatlang::{detect, Lang};
 
+// Import UTF-8 safety utilities
+use crate::utf8_utils::{get_attr_string, safe_utf8_conversion};
+
 /// Extract all links from HTML with full attributes
 pub fn extract_links(html: &str, base_url: &str) -> Vec<String> {
-    let document = Html::parse_document(html);
     let mut links = Vec::new();
 
     // Parse base URL for resolution
@@ -15,36 +17,56 @@ pub fn extract_links(html: &str, base_url: &str) -> Vec<String> {
         Err(_) => return links, // Return empty if base URL is invalid
     };
 
+    // Parse HTML with tl
+    let dom = match tl::parse(html, ParserOptions::default()) {
+        Ok(d) => d,
+        Err(_) => return links,
+    };
+    let parser = dom.parser();
+
     // Extract links from <a href> elements
-    if let Ok(selector) = Selector::parse("a[href]") {
-        for element in document.select(&selector) {
-            if let Some(href) = element.value().attr("href") {
-                // Resolve relative URLs to absolute
-                if let Ok(absolute_url) = base.join(href) {
-                    let link_info = format_link_with_attributes(element, absolute_url.as_str());
-                    links.push(link_info);
+    if let Some(nodes) = dom.query_selector("a[href]") {
+        for node_handle in nodes {
+            if let Some(node) = node_handle.get(parser) {
+                if let Some(tag) = node.as_tag() {
+                    if let Some(href) = get_attr_string(tag.attributes(), "href") {
+                        // Resolve relative URLs to absolute
+                        if let Ok(absolute_url) = base.join(&href) {
+                            let link_info =
+                                format_link_with_attributes(tag, parser, absolute_url.as_str());
+                            links.push(link_info);
+                        }
+                    }
                 }
             }
         }
     }
 
     // Extract links from area elements (image maps)
-    if let Ok(selector) = Selector::parse("area[href]") {
-        for element in document.select(&selector) {
-            if let Some(href) = element.value().attr("href") {
-                if let Ok(absolute_url) = base.join(href) {
-                    links.push(absolute_url.to_string());
+    if let Some(nodes) = dom.query_selector("area[href]") {
+        for node_handle in nodes {
+            if let Some(node) = node_handle.get(parser) {
+                if let Some(tag) = node.as_tag() {
+                    if let Some(href) = get_attr_string(tag.attributes(), "href") {
+                        if let Ok(absolute_url) = base.join(&href) {
+                            links.push(absolute_url.to_string());
+                        }
+                    }
                 }
             }
         }
     }
 
     // Extract canonical links
-    if let Ok(selector) = Selector::parse("link[rel='canonical'][href]") {
-        for element in document.select(&selector) {
-            if let Some(href) = element.value().attr("href") {
-                if let Ok(absolute_url) = base.join(href) {
-                    links.push(format!("canonical:{}", absolute_url));
+    if let Some(nodes) = dom.query_selector("link[rel='canonical'][href]") {
+        for node_handle in nodes {
+            if let Some(node) = node_handle.get(parser) {
+                if let Some(tag) = node.as_tag() {
+                    if let Some(href) = get_attr_string(tag.attributes(), "href") {
+                        if let Ok(absolute_url) = base.join(&href) {
+                            links.push(format!("canonical:{}", absolute_url));
+                        }
+                    }
                 }
             }
         }
@@ -54,10 +76,12 @@ pub fn extract_links(html: &str, base_url: &str) -> Vec<String> {
 }
 
 /// Format link with attributes (text, rel, hreflang)
-fn format_link_with_attributes(element: scraper::ElementRef, url: &str) -> String {
-    let text = element.text().collect::<String>().trim().to_string();
-    let rel = element.value().attr("rel").unwrap_or("");
-    let hreflang = element.value().attr("hreflang").unwrap_or("");
+fn format_link_with_attributes(tag: &tl::HTMLTag, parser: &tl::Parser, url: &str) -> String {
+    let text = safe_utf8_conversion(tag.inner_text(parser).as_bytes())
+        .trim()
+        .to_string();
+    let rel = get_attr_string(tag.attributes(), "rel").unwrap_or_default();
+    let hreflang = get_attr_string(tag.attributes(), "hreflang").unwrap_or_default();
 
     // Format as JSON-like string for structured data
     format!(
@@ -71,7 +95,6 @@ fn format_link_with_attributes(element: scraper::ElementRef, url: &str) -> Strin
 
 /// Extract all media URLs (images, videos, audio)
 pub fn extract_media(html: &str, base_url: &str) -> Vec<String> {
-    let document = Html::parse_document(html);
     let mut media = Vec::new();
 
     let base = match Url::parse(base_url) {
@@ -79,21 +102,42 @@ pub fn extract_media(html: &str, base_url: &str) -> Vec<String> {
         Err(_) => return media,
     };
 
+    let dom = match tl::parse(html, ParserOptions::default()) {
+        Ok(d) => d,
+        Err(_) => return media,
+    };
+    let parser = dom.parser();
+
     // Extract img src and srcset
-    if let Ok(selector) = Selector::parse("img") {
-        for element in document.select(&selector) {
-            if let Some(src) = element.value().attr("src") {
-                if let Ok(absolute_url) = base.join(src) {
-                    media.push(format!("image:{}", absolute_url));
-                }
-            }
-            if let Some(srcset) = element.value().attr("srcset") {
-                // Parse srcset format: "url 1x, url 2x" or "url 100w, url 200w"
-                for src_part in srcset.split(',') {
-                    let src = src_part.split_whitespace().next().unwrap_or("");
-                    if !src.is_empty() {
-                        if let Ok(absolute_url) = base.join(src) {
-                            media.push(format!("image:{}", absolute_url));
+    if let Some(nodes) = dom.query_selector("img") {
+        for node_handle in nodes {
+            if let Some(node) = node_handle.get(parser) {
+                if let Some(tag) = node.as_tag() {
+                    // Handle src attribute
+                    if let Some(src_attr) = tag.attributes().get("src") {
+                        if let Some(src) =
+                            src_attr.and_then(|bytes| std::str::from_utf8(bytes.as_bytes()).ok())
+                        {
+                            if let Ok(absolute_url) = base.join(src) {
+                                media.push(format!("image:{}", absolute_url));
+                            }
+                        }
+                    }
+
+                    // Handle srcset attribute
+                    if let Some(srcset_attr) = tag.attributes().get("srcset") {
+                        if let Some(srcset) =
+                            srcset_attr.and_then(|bytes| std::str::from_utf8(bytes.as_bytes()).ok())
+                        {
+                            // Parse srcset format: "url 1x, url 2x" or "url 100w, url 200w"
+                            for src_part in srcset.split(',') {
+                                let src = src_part.split_whitespace().next().unwrap_or("");
+                                if !src.is_empty() {
+                                    if let Ok(absolute_url) = base.join(src) {
+                                        media.push(format!("image:{}", absolute_url));
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -102,14 +146,22 @@ pub fn extract_media(html: &str, base_url: &str) -> Vec<String> {
     }
 
     // Extract picture > source srcset
-    if let Ok(selector) = Selector::parse("picture source[srcset]") {
-        for element in document.select(&selector) {
-            if let Some(srcset) = element.value().attr("srcset") {
-                for src_part in srcset.split(',') {
-                    let src = src_part.split_whitespace().next().unwrap_or("");
-                    if !src.is_empty() {
-                        if let Ok(absolute_url) = base.join(src) {
-                            media.push(format!("image:{}", absolute_url));
+    if let Some(nodes) = dom.query_selector("picture source[srcset]") {
+        for node_handle in nodes {
+            if let Some(node) = node_handle.get(parser) {
+                if let Some(tag) = node.as_tag() {
+                    if let Some(srcset_attr) = tag.attributes().get("srcset") {
+                        if let Some(srcset) =
+                            srcset_attr.and_then(|bytes| std::str::from_utf8(bytes.as_bytes()).ok())
+                        {
+                            for src_part in srcset.split(',') {
+                                let src = src_part.split_whitespace().next().unwrap_or("");
+                                if !src.is_empty() {
+                                    if let Ok(absolute_url) = base.join(src) {
+                                        media.push(format!("image:{}", absolute_url));
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -118,49 +170,87 @@ pub fn extract_media(html: &str, base_url: &str) -> Vec<String> {
     }
 
     // Extract video sources
-    if let Ok(selector) = Selector::parse("video source[src], video[src]") {
-        for element in document.select(&selector) {
-            if let Some(src) = element.value().attr("src") {
-                if let Ok(absolute_url) = base.join(src) {
-                    media.push(format!("video:{}", absolute_url));
+    if let Some(nodes) = dom.query_selector("video source[src], video[src]") {
+        for node_handle in nodes {
+            if let Some(node) = node_handle.get(parser) {
+                if let Some(tag) = node.as_tag() {
+                    if let Some(src_attr) = tag.attributes().get("src") {
+                        if let Some(src) =
+                            src_attr.and_then(|bytes| std::str::from_utf8(bytes.as_bytes()).ok())
+                        {
+                            if let Ok(absolute_url) = base.join(src) {
+                                media.push(format!("video:{}", absolute_url));
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
     // Extract audio sources
-    if let Ok(selector) = Selector::parse("audio source[src], audio[src]") {
-        for element in document.select(&selector) {
-            if let Some(src) = element.value().attr("src") {
-                if let Ok(absolute_url) = base.join(src) {
-                    media.push(format!("audio:{}", absolute_url));
+    if let Some(nodes) = dom.query_selector("audio source[src], audio[src]") {
+        for node_handle in nodes {
+            if let Some(node) = node_handle.get(parser) {
+                if let Some(tag) = node.as_tag() {
+                    if let Some(src_attr) = tag.attributes().get("src") {
+                        if let Some(src) =
+                            src_attr.and_then(|bytes| std::str::from_utf8(bytes.as_bytes()).ok())
+                        {
+                            if let Ok(absolute_url) = base.join(src) {
+                                media.push(format!("audio:{}", absolute_url));
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
     // Extract Open Graph images
-    if let Ok(selector) =
-        Selector::parse("meta[property='og:image'], meta[property='og:image:url']")
+    if let Some(nodes) =
+        dom.query_selector("meta[property='og:image'], meta[property='og:image:url']")
     {
-        for element in document.select(&selector) {
-            if let Some(content) = element.value().attr("content") {
-                if let Ok(absolute_url) = base.join(content) {
-                    media.push(format!("og:image:{}", absolute_url));
+        for node_handle in nodes {
+            if let Some(node) = node_handle.get(parser) {
+                if let Some(tag) = node.as_tag() {
+                    if let Some(content_attr) = tag.attributes().get("content") {
+                        if let Some(content) = content_attr
+                            .and_then(|bytes| std::str::from_utf8(bytes.as_bytes()).ok())
+                        {
+                            if let Ok(absolute_url) = base.join(content) {
+                                media.push(format!("og:image:{}", absolute_url));
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
     // Extract favicons and touch icons
-    if let Ok(selector) =
-        Selector::parse("link[rel*='icon'][href], link[rel*='apple-touch-icon'][href]")
+    if let Some(nodes) =
+        dom.query_selector("link[rel*='icon'][href], link[rel*='apple-touch-icon'][href]")
     {
-        for element in document.select(&selector) {
-            if let Some(href) = element.value().attr("href") {
-                if let Ok(absolute_url) = base.join(href) {
-                    let rel = element.value().attr("rel").unwrap_or("icon");
-                    media.push(format!("{}:{}", rel, absolute_url));
+        for node_handle in nodes {
+            if let Some(node) = node_handle.get(parser) {
+                if let Some(tag) = node.as_tag() {
+                    if let Some(href_attr) = tag.attributes().get("href") {
+                        if let Some(href) =
+                            href_attr.and_then(|bytes| std::str::from_utf8(bytes.as_bytes()).ok())
+                        {
+                            if let Ok(absolute_url) = base.join(href) {
+                                let rel = tag
+                                    .attributes()
+                                    .get("rel")
+                                    .and_then(|bytes| {
+                                        bytes.and_then(|b| std::str::from_utf8(b.as_bytes()).ok())
+                                    })
+                                    .unwrap_or("icon");
+                                media.push(format!("{}:{}", rel, absolute_url));
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -171,41 +261,65 @@ pub fn extract_media(html: &str, base_url: &str) -> Vec<String> {
 
 /// Detect page language using multiple methods
 pub fn detect_language(html: &str) -> Option<String> {
-    let document = Html::parse_document(html);
+    let dom = match tl::parse(html, ParserOptions::default()) {
+        Ok(d) => d,
+        Err(_) => return None,
+    };
+    let parser = dom.parser();
 
     // Priority 1: <html lang> attribute
-    if let Ok(selector) = Selector::parse("html[lang]") {
-        if let Some(element) = document.select(&selector).next() {
-            if let Some(lang) = element.value().attr("lang") {
-                let normalized = normalize_lang(lang);
-                if !normalized.is_empty() {
-                    return Some(normalized);
+    if let Some(nodes) = dom.query_selector("html[lang]") {
+        if let Some(node_handle) = nodes.into_iter().next() {
+            if let Some(node) = node_handle.get(parser) {
+                if let Some(tag) = node.as_tag() {
+                    if let Some(lang_attr) = tag.attributes().get("lang") {
+                        if let Some(lang) =
+                            lang_attr.and_then(|bytes| std::str::from_utf8(bytes.as_bytes()).ok())
+                        {
+                            let normalized = normalize_lang(lang);
+                            if !normalized.is_empty() {
+                                return Some(normalized);
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
     // Priority 2: meta og:locale
-    if let Ok(selector) = Selector::parse("meta[property='og:locale']") {
-        if let Some(element) = document.select(&selector).next() {
-            if let Some(content) = element.value().attr("content") {
-                let normalized = normalize_lang(content);
-                if !normalized.is_empty() {
-                    return Some(normalized);
+    if let Some(nodes) = dom.query_selector("meta[property='og:locale']") {
+        if let Some(node_handle) = nodes.into_iter().next() {
+            if let Some(node) = node_handle.get(parser) {
+                if let Some(tag) = node.as_tag() {
+                    if let Some(content_attr) = tag.attributes().get("content") {
+                        if let Some(content) = content_attr
+                            .and_then(|bytes| std::str::from_utf8(bytes.as_bytes()).ok())
+                        {
+                            let normalized = normalize_lang(content);
+                            if !normalized.is_empty() {
+                                return Some(normalized);
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
     // Priority 3: JSON-LD inLanguage
-    if let Ok(selector) = Selector::parse("script[type='application/ld+json']") {
-        for element in document.select(&selector) {
-            let text = element.text().collect::<String>();
-            if let Ok(json) = serde_json::from_str::<Value>(&text) {
-                if let Some(lang) = extract_json_ld_language(&json) {
-                    let normalized = normalize_lang(&lang);
-                    if !normalized.is_empty() {
-                        return Some(normalized);
+    if let Some(nodes) = dom.query_selector("script[type='application/ld+json']") {
+        for node_handle in nodes {
+            if let Some(node) = node_handle.get(parser) {
+                if let Some(tag) = node.as_tag() {
+                    let text = tag.inner_text(parser);
+                    if let Ok(json) = serde_json::from_str::<Value>(&text) {
+                        if let Some(lang) = extract_json_ld_language(&json) {
+                            let normalized = normalize_lang(&lang);
+                            if !normalized.is_empty() {
+                                return Some(normalized);
+                            }
+                        }
                     }
                 }
             }
@@ -213,19 +327,27 @@ pub fn detect_language(html: &str) -> Option<String> {
     }
 
     // Priority 4: Content-Language meta tag
-    if let Ok(selector) = Selector::parse("meta[http-equiv='Content-Language']") {
-        if let Some(element) = document.select(&selector).next() {
-            if let Some(content) = element.value().attr("content") {
-                let normalized = normalize_lang(content);
-                if !normalized.is_empty() {
-                    return Some(normalized);
+    if let Some(nodes) = dom.query_selector("meta[http-equiv='Content-Language']") {
+        if let Some(node_handle) = nodes.into_iter().next() {
+            if let Some(node) = node_handle.get(parser) {
+                if let Some(tag) = node.as_tag() {
+                    if let Some(content_attr) = tag.attributes().get("content") {
+                        if let Some(content) = content_attr
+                            .and_then(|bytes| std::str::from_utf8(bytes.as_bytes()).ok())
+                        {
+                            let normalized = normalize_lang(content);
+                            if !normalized.is_empty() {
+                                return Some(normalized);
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
     // Priority 5: Automatic detection from text content
-    let text_content = extract_text_for_detection(&document);
+    let text_content = extract_text_for_detection(&dom, parser);
     if !text_content.is_empty() {
         if let Some(info) = detect(&text_content) {
             return Some(lang_to_iso_code(info.lang()));
@@ -267,20 +389,24 @@ fn extract_json_ld_language(json: &Value) -> Option<String> {
 }
 
 /// Extract text content for language detection
-fn extract_text_for_detection(document: &Html) -> String {
+fn extract_text_for_detection(dom: &tl::VDom, parser: &tl::Parser) -> String {
     let mut text = String::new();
 
     // Extract from common text containers
     let selectors = ["title", "h1", "h2", "h3", "p", "article", "main"];
 
     for selector_str in &selectors {
-        if let Ok(selector) = Selector::parse(selector_str) {
-            for element in document.select(&selector).take(10) {
+        if let Some(nodes) = dom.query_selector(selector_str) {
+            for node_handle in nodes.take(10) {
                 // Limit for efficiency
-                let element_text = element.text().collect::<String>();
-                if !element_text.trim().is_empty() {
-                    text.push_str(&element_text);
-                    text.push(' ');
+                if let Some(node) = node_handle.get(parser) {
+                    if let Some(tag) = node.as_tag() {
+                        let element_text = tag.inner_text(parser);
+                        if !element_text.trim().is_empty() {
+                            text.push_str(&element_text);
+                            text.push(' ');
+                        }
+                    }
                 }
             }
         }
@@ -387,30 +513,45 @@ fn lang_to_iso_code(lang: Lang) -> String {
 
 /// Extract categories from various sources
 pub fn extract_categories(html: &str) -> Vec<String> {
-    let document = Html::parse_document(html);
     let mut categories = Vec::new();
 
+    let dom = match tl::parse(html, ParserOptions::default()) {
+        Ok(d) => d,
+        Err(_) => return categories,
+    };
+    let parser = dom.parser();
+
     // Extract from JSON-LD articleSection
-    if let Ok(selector) = Selector::parse("script[type='application/ld+json']") {
-        for element in document.select(&selector) {
-            let text = element.text().collect::<String>();
-            if let Ok(json) = serde_json::from_str::<Value>(&text) {
-                extract_json_ld_categories(&json, &mut categories);
+    if let Some(nodes) = dom.query_selector("script[type='application/ld+json']") {
+        for node_handle in nodes {
+            if let Some(node) = node_handle.get(parser) {
+                if let Some(tag) = node.as_tag() {
+                    let text = tag.inner_text(parser);
+                    if let Ok(json) = serde_json::from_str::<Value>(&text) {
+                        extract_json_ld_categories(&json, &mut categories);
+                    }
+                }
             }
         }
     }
 
     // Extract from breadcrumb schemas
-    extract_breadcrumb_categories(&document, &mut categories);
+    extract_breadcrumb_categories(&dom, parser, &mut categories);
 
     // Extract from meta category tags
-    if let Ok(selector) = Selector::parse("meta[name='category'], meta[name='categories'], meta[property='article:section'], meta[property='article:tag']") {
-        for element in document.select(&selector) {
-            if let Some(content) = element.value().attr("content") {
-                for category in content.split(',') {
-                    let trimmed = category.trim();
-                    if !trimmed.is_empty() && !categories.contains(&trimmed.to_string()) {
-                        categories.push(trimmed.to_string());
+    if let Some(nodes) = dom.query_selector("meta[name='category'], meta[name='categories'], meta[property='article:section'], meta[property='article:tag']") {
+        for node_handle in nodes {
+            if let Some(node) = node_handle.get(parser) {
+                if let Some(tag) = node.as_tag() {
+                    if let Some(content_attr) = tag.attributes().get("content") {
+                        if let Some(content) = content_attr.and_then(|bytes| std::str::from_utf8(bytes.as_bytes()).ok()) {
+                            for category in content.split(',') {
+                                let trimmed = category.trim();
+                                if !trimmed.is_empty() && !categories.contains(&trimmed.to_string()) {
+                                    categories.push(trimmed.to_string());
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -418,14 +559,28 @@ pub fn extract_categories(html: &str) -> Vec<String> {
     }
 
     // Extract from Open Graph article tags
-    if let Ok(selector) = Selector::parse("meta[property^='article:']") {
-        for element in document.select(&selector) {
-            if let Some(property) = element.value().attr("property") {
-                if property.contains("tag") || property.contains("section") {
-                    if let Some(content) = element.value().attr("content") {
-                        let trimmed = content.trim();
-                        if !trimmed.is_empty() && !categories.contains(&trimmed.to_string()) {
-                            categories.push(trimmed.to_string());
+    if let Some(nodes) = dom.query_selector("meta[property^='article:']") {
+        for node_handle in nodes {
+            if let Some(node) = node_handle.get(parser) {
+                if let Some(tag) = node.as_tag() {
+                    if let Some(property_attr) = tag.attributes().get("property") {
+                        if let Some(property) = property_attr
+                            .and_then(|bytes| std::str::from_utf8(bytes.as_bytes()).ok())
+                        {
+                            if property.contains("tag") || property.contains("section") {
+                                if let Some(content_attr) = tag.attributes().get("content") {
+                                    if let Some(content) = content_attr.and_then(|bytes| {
+                                        std::str::from_utf8(bytes.as_bytes()).ok()
+                                    }) {
+                                        let trimmed = content.trim();
+                                        if !trimmed.is_empty()
+                                            && !categories.contains(&trimmed.to_string())
+                                        {
+                                            categories.push(trimmed.to_string());
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -434,14 +589,19 @@ pub fn extract_categories(html: &str) -> Vec<String> {
     }
 
     // Extract from class names that suggest categories
-    if let Ok(selector) = Selector::parse("[class*='category'], [class*='tag'], [class*='topic']") {
-        for element in document.select(&selector).take(10) {
+    if let Some(nodes) = dom.query_selector("[class*='category'], [class*='tag'], [class*='topic']")
+    {
+        for node_handle in nodes.take(10) {
             // Limit for performance
-            let text = element.text().collect::<String>().trim().to_string();
-            if !text.is_empty() && text.len() < 50 && !categories.contains(&text) {
-                // Only add if it looks like a category (short text)
-                if is_likely_category(&text) {
-                    categories.push(text);
+            if let Some(node) = node_handle.get(parser) {
+                if let Some(tag) = node.as_tag() {
+                    let text = tag.inner_text(parser).trim().to_string();
+                    if !text.is_empty() && text.len() < 50 && !categories.contains(&text) {
+                        // Only add if it looks like a category (short text)
+                        if is_likely_category(&text) {
+                            categories.push(text);
+                        }
+                    }
                 }
             }
         }
@@ -519,21 +679,31 @@ fn extract_json_ld_categories(json: &Value, categories: &mut Vec<String>) {
 }
 
 /// Extract categories from breadcrumb navigation
-fn extract_breadcrumb_categories(document: &Html, categories: &mut Vec<String>) {
+fn extract_breadcrumb_categories(
+    dom: &tl::VDom,
+    parser: &tl::Parser,
+    categories: &mut Vec<String>,
+) {
     // JSON-LD BreadcrumbList
-    if let Ok(selector) = Selector::parse("script[type='application/ld+json']") {
-        for element in document.select(&selector) {
-            let text = element.text().collect::<String>();
-            if let Ok(json) = serde_json::from_str::<Value>(&text) {
-                if let Some(type_val) = json.get("@type") {
-                    if type_val == "BreadcrumbList" {
-                        if let Some(Value::Array(arr)) = json.get("itemListElement") {
-                            for item in arr {
-                                if let Some(name) = item.get("name") {
-                                    if let Some(name_str) = name.as_str() {
-                                        let trimmed = name_str.trim().to_string();
-                                        if !trimmed.is_empty() && !categories.contains(&trimmed) {
-                                            categories.push(trimmed);
+    if let Some(nodes) = dom.query_selector("script[type='application/ld+json']") {
+        for node_handle in nodes {
+            if let Some(node) = node_handle.get(parser) {
+                if let Some(tag) = node.as_tag() {
+                    let text = tag.inner_text(parser);
+                    if let Ok(json) = serde_json::from_str::<Value>(&text) {
+                        if let Some(type_val) = json.get("@type") {
+                            if type_val == "BreadcrumbList" {
+                                if let Some(Value::Array(arr)) = json.get("itemListElement") {
+                                    for item in arr {
+                                        if let Some(name) = item.get("name") {
+                                            if let Some(name_str) = name.as_str() {
+                                                let trimmed = name_str.trim().to_string();
+                                                if !trimmed.is_empty()
+                                                    && !categories.contains(&trimmed)
+                                                {
+                                                    categories.push(trimmed);
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -554,15 +724,19 @@ fn extract_breadcrumb_categories(document: &Html, categories: &mut Vec<String>) 
     ];
 
     for selector_str in &breadcrumb_selectors {
-        if let Ok(selector) = Selector::parse(selector_str) {
-            for element in document.select(&selector) {
-                let text = element.text().collect::<String>().trim().to_string();
-                if !text.is_empty()
-                    && text.len() < 100
-                    && !categories.contains(&text)
-                    && is_likely_category(&text)
-                {
-                    categories.push(text);
+        if let Some(nodes) = dom.query_selector(selector_str) {
+            for node_handle in nodes {
+                if let Some(node) = node_handle.get(parser) {
+                    if let Some(tag) = node.as_tag() {
+                        let text = tag.inner_text(parser).trim().to_string();
+                        if !text.is_empty()
+                            && text.len() < 100
+                            && !categories.contains(&text)
+                            && is_likely_category(&text)
+                        {
+                            categories.push(text);
+                        }
+                    }
                 }
             }
         }

@@ -15,7 +15,8 @@ once_cell = "1"
 chrono = { version = "0.4", features = ["serde", "wasm-bindgen"] }
 anyhow = "1"
 url = "2"
-scraper = "0.20"  # HTML parsing and CSS selectors
+# OLD: scraper = "0.20"  # ❌ Not WASM Component Model compatible (tendril crashes)
+tl = "0.7"  # ✅ WASM-compatible HTML parser with CSS selectors
 whatlang = "0.16"  # Language detection
 regex = "1"  # Regular expressions for text processing
 

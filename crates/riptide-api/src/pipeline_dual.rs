@@ -311,6 +311,7 @@ impl DualPathOrchestrator {
             categories: Vec::new(),
             site_name: None,
             description: None,
+                html: None,
         })
     }
 

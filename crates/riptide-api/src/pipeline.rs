@@ -31,6 +31,7 @@ fn convert_html_doc(doc: riptide_types::ExtractedDoc) -> ExtractedDoc {
         categories: doc.categories,
         site_name: doc.site_name,
         description: doc.description,
+        html: doc.html,
     }
 }
 
@@ -314,9 +315,32 @@ impl PipelineOrchestrator {
             warn!(error = %e, "Failed to emit gate decision event");
         }
 
-        // Step 5: Extract content based on gate decision
+        // Step 5: Extract content based on gate decision or skip extraction
         let extract_start = Instant::now();
-        let document = self.extract_content(&html_content, url, decision).await?;
+        let document = if self.options.skip_extraction.unwrap_or(false) {
+            // Skip extraction and return raw HTML only
+            info!(url = %url, "Skipping extraction, returning raw HTML");
+            ExtractedDoc {
+                url: url.to_string(),
+                html: Some(html_content.clone()),
+                title: None,
+                text: String::new(),
+                quality_score: None,
+                links: Vec::new(),
+                byline: None,
+                published_iso: None,
+                markdown: None,
+                media: Vec::new(),
+                language: None,
+                reading_time: None,
+                word_count: None,
+                categories: Vec::new(),
+                site_name: None,
+                description: None,
+            }
+        } else {
+            self.extract_content(&html_content, url, decision).await?
+        };
         let extract_duration = extract_start.elapsed();
 
         // Record WASM extraction phase timing
@@ -644,6 +668,7 @@ impl PipelineOrchestrator {
                     categories: vec!["pdf".to_string(), "error".to_string()],
                     site_name: None,
                     description: Some("Failed to process PDF document".to_string()),
+                    html: None,
                 })
             })
     }

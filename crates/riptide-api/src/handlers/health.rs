@@ -88,17 +88,19 @@ pub async fn health(State(state): State<AppState>) -> Result<impl IntoResponse, 
         "unhealthy"
     };
 
+    // Check headless service health if configured (before building dependency status)
+    let headless_health = if state.config.headless_url.is_some() {
+        Some(state.health_checker.check_headless_health(&state).await)
+    } else {
+        None
+    };
+
     // Build dependency status (moves health_status fields)
     let dependencies = DependencyStatus {
         redis: health_status.redis.into(),
         extractor: health_status.extractor.into(),
         http_client: health_status.http_client.into(),
-        headless_service: state.config.headless_url.as_ref().map(|_| ServiceHealth {
-            status: "unknown".to_string(),
-            message: Some("Headless service configured but not checked".to_string()),
-            response_time_ms: None,
-            last_check: timestamp.clone(),
-        }),
+        headless_service: headless_health,
         spider_engine: state.spider.as_ref().map(|_| ServiceHealth {
             status: health_status.spider.to_string(),
             message: Some(match health_status.spider {

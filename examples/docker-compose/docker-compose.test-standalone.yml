@@ -1,0 +1,242 @@
+# ============================================================================
+# RipTide Production Docker Compose Configuration
+# ============================================================================
+# Full-stack deployment with:
+#   - RipTide API (REST API + WebSocket)
+#   - Redis (caching and session storage)
+#   - Headless Browser Service (optional, for complex pages)
+#   - Swagger UI (API documentation)
+#   - Health monitoring
+#
+# Usage:
+#   docker-compose -f docker-compose.production.yml up -d
+#   docker-compose -f docker-compose.production.yml logs -f
+#   docker-compose -f docker-compose.production.yml down
+#
+# Prerequisites:
+#   - Copy .env.example to .env and configure
+#   - Set SERPER_API_KEY in .env
+#   - Adjust RIPTIDE_* variables as needed
+# ============================================================================
+
+version: '3.8'
+
+services:
+  # =========================================================================
+  # RipTide API - Core web scraping and extraction service
+  # =========================================================================
+  riptide-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+      cache_from:
+        - riptide-api:latest
+    image: riptide-api:latest
+    container_name: riptide-api
+    restart: unless-stopped
+
+    ports:
+      - "${RIPTIDE_API_PORT:-8080}:8080"
+
+    environment:
+      # Core configuration
+      - RUST_LOG=${RUST_LOG:-info}
+      - RUST_BACKTRACE=${RUST_BACKTRACE:-1}
+
+      # API configuration
+      - RIPTIDE_API_HOST=0.0.0.0
+      - RIPTIDE_API_PORT=8080
+      - RIPTIDE_API_KEY=${RIPTIDE_API_KEY}
+
+      # Redis connection (uses service name for DNS)
+      - REDIS_URL=redis://redis:6379/0
+
+      # Headless browser service (optional)
+      - # HEADLESS_URL commented for standalone test
+
+      # WASM configuration (pre-built in image)
+      - WASM_EXTRACTOR_PATH=/opt/riptide/extractor/extractor.wasm
+
+      # Output directories (container paths)
+      - RIPTIDE_OUTPUT_DIR=/opt/riptide/data
+      - RIPTIDE_CACHE_DIR=/opt/riptide/cache
+      - RIPTIDE_LOGS_DIR=/opt/riptide/logs
+
+      # Search configuration
+      - SEARCH_BACKEND=${SEARCH_BACKEND:-serper}
+      - SERPER_API_KEY=${SERPER_API_KEY}
+
+      # LLM configuration (optional)
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+
+      # Resource limits
+      - RIPTIDE_MAX_CONCURRENT_REQUESTS=${RIPTIDE_MAX_CONCURRENT_REQUESTS:-100}
+      - RIPTIDE_POOL_SIZE=${RIPTIDE_POOL_SIZE:-10}
+
+    env_file:
+      - .env
+
+    volumes:
+      # Persistent data volumes (managed by Docker)
+      - riptide-data:/opt/riptide/data
+      - riptide-cache:/opt/riptide/cache
+      - riptide-logs:/opt/riptide/logs
+
+      # Optional: Override config with custom settings
+      # Uncomment to use custom configuration
+      # - ./configs:/opt/riptide/configs:ro
+
+    networks:
+      - riptide-network
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Resource limits for production
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+
+  # =========================================================================
+  # Redis - Caching and session storage
+  # =========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: riptide-redis
+    restart: unless-stopped
+
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+
+    volumes:
+      - redis-data:/data
+
+    networks:
+      - riptide-network
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+
+  # =========================================================================
+  # Headless Browser Service - For JavaScript-heavy pages
+  # =========================================================================
+  riptide-headless:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.headless
+      target: runtime
+    image: riptide-headless:latest
+    container_name: riptide-headless
+    restart: unless-stopped
+
+    ports:
+      - "${HEADLESS_PORT:-9123}:9123"
+
+    environment:
+      - RUST_LOG=${RUST_LOG:-info}
+      - CHROME_BIN=/usr/bin/chromium
+      - CHROME_PATH=/usr/bin/chromium
+      - CHROME_FLAGS=--no-sandbox --headless --disable-gpu --disable-dev-shm-usage
+
+    networks:
+      - riptide-network
+
+    # Chromium requires more shared memory
+    shm_size: 2gb
+
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+
+  # =========================================================================
+  # Swagger UI - API Documentation
+  # =========================================================================
+  swagger-ui:
+    image: swaggerapi/swagger-ui:latest
+    container_name: riptide-swagger-ui
+    restart: unless-stopped
+
+    ports:
+      - "${SWAGGER_PORT:-8081}:8080"
+
+    environment:
+      - SWAGGER_JSON=/openapi.yaml
+      - BASE_URL=/docs
+
+    volumes:
+      - ./docs/api/openapi.yaml:/openapi.yaml:ro
+
+    networks:
+      - riptide-network
+
+    depends_on:
+      - riptide-api
+
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  riptide-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+
+# =============================================================================
+# Volumes - Persistent storage
+# =============================================================================
+volumes:
+  riptide-data:
+    driver: local
+  riptide-cache:
+    driver: local
+  riptide-logs:
+    driver: local
+  redis-data:
+    driver: local

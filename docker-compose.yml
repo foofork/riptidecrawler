@@ -85,6 +85,9 @@ services:
       # WASM configuration (pre-built in image)
       - WASM_EXTRACTOR_PATH=/opt/riptide/extractor/extractor.wasm
 
+      # Spider crawling engine (for deep multi-page site crawling)
+      - SPIDER_ENABLE=${SPIDER_ENABLE:-true}
+
       # Output directories (container paths)
       - RIPTIDE_OUTPUT_DIR=/opt/riptide/data
       - RIPTIDE_CACHE_DIR=/opt/riptide/cache
@@ -222,26 +225,27 @@ services:
   # =========================================================================
   # Swagger UI - API Documentation
   # =========================================================================
-  swagger-ui:
-    image: swaggerapi/swagger-ui:latest
-    container_name: riptide-swagger-ui
-    restart: unless-stopped
-
-    ports:
-      - "${SWAGGER_PORT:-8081}:8080"
-
-    environment:
-      - SWAGGER_JSON=/openapi.yaml
-      - BASE_URL=/docs
-
-    volumes:
-      - ./docs/api/openapi.yaml:/openapi.yaml:ro
-
-    networks:
-      - riptide-network
-
-    depends_on:
-      - riptide-api
+  # swagger-ui (OPTIONAL - uncomment to enable API documentation UI)
+  # Adds 132MB overhead - only enable if you need interactive API docs
+  # swagger-ui:
+  #   image: swaggerapi/swagger-ui:latest
+  #   container_name: riptide-swagger-ui
+  #   restart: unless-stopped
+  #
+  #   ports:
+  #     - "${SWAGGER_PORT:-8081}:8080"
+  #
+  #   environment:
+  #     - SWAGGER_JSON=/openapi.yaml
+  #     - BASE_URL=/docs
+  #
+  #   volumes:
+  #     - ./docs/api/openapi.yaml:/openapi.yaml:ro
+  #
+  #   networks:
+  #     - riptide-network
+  #   depends_on:
+  #     - riptide-api
 
 
 # =============================================================================

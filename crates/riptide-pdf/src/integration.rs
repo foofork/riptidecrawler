@@ -5,6 +5,7 @@
 use super::metrics::PdfMetricsCollector;
 use super::types::ExtractedDoc;
 use super::*;
+use riptide_types::ParserMetadata;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
@@ -174,9 +175,18 @@ impl PdfPipelineIntegration {
             reading_time,
             quality_score: Some(if result.success { 85 } else { 30 }),
             word_count: Some(word_count),
+            parser_metadata: Some(ParserMetadata {
+                parser_used: "pdf".to_string(),
+                confidence_score: if result.success { 0.85 } else { 0.3 },
+                fallback_occurred: false,
+                parse_time_ms: 0,
+                extraction_path: None,
+                primary_error: None,
+            }),
             categories: vec!["document".to_string(), "pdf".to_string()],
             site_name: metadata_obj.producer.clone(),
             description: metadata_obj.subject.clone(),
+            html: None, // PDFs don't have HTML content
         }
     }
 

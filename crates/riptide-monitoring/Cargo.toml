@@ -41,6 +41,10 @@ regex.workspace = true
 num_cpus = "1.16"
 reqwest = { workspace = true, features = ["json"] }
 
+# Prometheus metrics
+prometheus = { version = "0.14", optional = true }
+lazy_static = { version = "1.5", optional = true }
+
 [dev-dependencies]
 tokio-test = "0.4"
 tempfile.workspace = true
@@ -53,3 +57,4 @@ alerts = []
 health = []
 reports = []
 time-series = []
+prometheus = ["dep:prometheus", "dep:lazy_static"]

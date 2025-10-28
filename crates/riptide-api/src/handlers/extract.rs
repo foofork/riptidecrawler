@@ -73,6 +73,9 @@ pub struct ExtractResponse {
     pub strategy_used: String,
     pub quality_score: f64,
     pub extraction_time_ms: u64,
+    /// Parser metadata for observability (optional)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parser_metadata: Option<ParserMetadata>,
 }
 
 /// Content metadata
@@ -82,6 +85,19 @@ pub struct ContentMetadata {
     pub publish_date: Option<String>,
     pub word_count: usize,
     pub language: Option<String>,
+}
+
+/// Parser metadata for observability
+#[derive(Debug, Serialize)]
+pub struct ParserMetadata {
+    pub parser_used: String,
+    pub confidence_score: f64,
+    pub fallback_occurred: bool,
+    pub parse_time_ms: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub extraction_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub primary_error: Option<String>,
 }
 
 /// Extract content from a URL using multi-strategy extraction
@@ -210,6 +226,9 @@ pub async fn extract(
 
     match facade_result {
         Ok(extracted) => {
+            // Convert parser metadata if available (note: facade doesn't have this yet)
+            let parser_metadata = None; // Placeholder - facade would need to expose this
+
             let response = ExtractResponse {
                 url: payload.url.clone(),
                 title: extracted.title.clone(),
@@ -223,6 +242,7 @@ pub async fn extract(
                 strategy_used: extracted.strategy_used.clone(),
                 quality_score: extracted.confidence,
                 extraction_time_ms,
+                parser_metadata,
             };
 
             tracing::info!(
@@ -230,6 +250,7 @@ pub async fn extract(
                 strategy_used = %response.strategy_used,
                 quality_score = response.quality_score,
                 extraction_time_ms = response.extraction_time_ms,
+                parser_metadata = ?response.parser_metadata,
                 "Extraction completed successfully via ExtractionFacade"
             );
 

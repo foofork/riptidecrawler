@@ -80,6 +80,7 @@ impl WasmExtractorTrait for WasmExtractorAdapter {
             categories: doc.categories,
             site_name: doc.site_name,
             description: doc.description,
+            html: None,
         })
     }
 }

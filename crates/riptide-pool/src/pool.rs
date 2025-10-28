@@ -12,7 +12,7 @@ use wasmtime::{component::*, Engine};
 use crate::config::{ExtractorConfig, PerformanceMetrics, WasmResourceTracker};
 use async_trait::async_trait;
 use riptide_events::{Event, EventBus, EventEmitter, PoolEvent, PoolMetrics, PoolOperation};
-use riptide_types::{ExtractedDoc, ExtractionMode};
+use riptide_types::{ExtractedDoc, ExtractionMode, ParserMetadata};
 
 use super::models::{CircuitBreakerState, PooledInstance};
 
@@ -397,10 +397,19 @@ impl AdvancedInstancePool {
                     language: content.language,
                     reading_time: content.reading_time,
                     quality_score: content.quality_score,
+                    parser_metadata: Some(ParserMetadata {
+                        parser_used: "wasm".to_string(),
+                        confidence_score: 0.9,
+                        fallback_occurred: false,
+                        parse_time_ms: 0,
+                        extraction_path: None,
+                        primary_error: None,
+                    }),
                     word_count: content.word_count,
                     categories: content.categories,
                     site_name: content.site_name,
                     description: content.description,
+                    html: None, // Not populated during normal extraction
                 })
             }
             Ok(Err(extraction_error)) => {

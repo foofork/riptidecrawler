@@ -10,6 +10,7 @@ description = "Reliability patterns for Riptide: circuit breakers, gates, and fa
 # P2-F1 Day 3: Dependencies for modular architecture
 riptide-types = { path = "../riptide-types" }
 riptide-fetch = { path = "../riptide-fetch" }
+riptide-extraction = { path = "../riptide-extraction" }
 riptide-events = { path = "../riptide-events", optional = true }
 riptide-monitoring = { path = "../riptide-monitoring", optional = true }
 riptide-pool = { path = "../riptide-pool", optional = true }

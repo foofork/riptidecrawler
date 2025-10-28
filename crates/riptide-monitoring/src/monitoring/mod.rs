@@ -8,6 +8,7 @@ pub mod collector;
 pub mod error;
 pub mod health;
 pub mod metrics;
+pub mod parser_metrics; // Always available, conditionally compiled internally
 pub mod reports;
 pub mod time_series;
 
@@ -17,6 +18,9 @@ pub use collector::MetricsCollector;
 pub use error::{LockManager, MonitoringError, Result};
 pub use health::HealthCalculator;
 pub use metrics::{MetricDataPoint, MonitoringConfig, PerformanceMetrics};
+pub use parser_metrics::{
+    ExecutionOutcome, ExecutionPath, ParserMetrics, ParserStrategy, record_extraction,
+};
 pub use reports::{
     MetricSummary, PerformanceReport, ReportGenerator, TrendAnalysis, TrendDirection,
 };

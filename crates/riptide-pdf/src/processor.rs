@@ -9,6 +9,7 @@ use super::errors::{PdfError, PdfResult};
 use super::metrics::PdfMetricsCollector;
 use super::types::{PdfImage, PdfMetadata, PdfProcessingResult, PdfStats, ProgressCallback};
 use super::utils;
+use riptide_types::ParserMetadata;
 
 #[cfg(feature = "pdf")]
 use pdfium_render::prelude::*;
@@ -730,9 +731,18 @@ impl PdfiumProcessor {
                 reading_time,
                 quality_score: Some(85),
                 word_count: Some(word_count),
+                parser_metadata: Some(ParserMetadata {
+                    parser_used: "pdf".to_string(),
+                    confidence_score: 0.85,
+                    fallback_occurred: false,
+                    parse_time_ms: 0,
+                    extraction_path: None,
+                    primary_error: None,
+                }),
                 categories: vec!["document".to_string(), "pdf".to_string()],
                 site_name: metadata.get("producer").cloned(),
                 description: metadata.get("subject").cloned(),
+                html: None, // PDFs don't have HTML content
             })
         })
         .await

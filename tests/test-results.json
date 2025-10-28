@@ -1,0 +1,40 @@
+{
+  "timestamp": "2025-10-28T14:53:12+00:00",
+  "tests": [
+    {
+      "name": "WASM Parser Test",
+      "status": "FAIL",
+      "details": "Parser not detected"
+    },
+    {
+      "name": "Observability Logs",
+      "status": "PASS",
+      "details": "Parser logs present"
+    },
+    {
+      "name": "Response Metadata",
+      "status": "PASS",
+      "details": "Metadata fields populated"
+    },
+    {
+      "name": "Prometheus Metrics",
+      "status": "PASS",
+      "details": "Extraction metrics present"
+    },
+    {
+      "name": "Fallback Mechanism",
+      "status": "PASS",
+      "details": "Primary parser succeeded"
+    },
+    {
+      "name": "Performance Benchmark",
+      "status": "PASS",
+      "details": "Avg: 10.7ms, Min: 10ms, Max: 12ms"
+    },
+    {
+      "name": "Multi-URL Test",
+      "status": "FAIL",
+      "details": "Success: 0/8"
+    }
+  ]
+}

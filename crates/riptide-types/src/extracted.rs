@@ -21,6 +21,10 @@ pub struct BasicExtractedDoc {
     pub categories: Vec<String>,
     pub site_name: Option<String>,
     pub description: Option<String>,
+    /// Raw HTML content (populated when skip_extraction is true)
+    pub html: Option<String>,
+    /// Parser metadata for observability (optional)
+    pub parser_metadata: Option<ParserMetadata>,
 }
 
 /// Alias for ExtractedDoc to maintain compatibility
@@ -159,4 +163,21 @@ pub struct ContentChunk {
     pub end_pos: usize,
     /// Chunk metadata
     pub metadata: HashMap<String, String>,
+}
+
+/// Parser metadata for observability and debugging
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ParserMetadata {
+    /// Parser used for extraction: "wasm", "native", "css", "fallback"
+    pub parser_used: String,
+    /// Confidence score (0.0 - 1.0)
+    pub confidence_score: f64,
+    /// Whether fallback to another parser occurred
+    pub fallback_occurred: bool,
+    /// Parse time in milliseconds
+    pub parse_time_ms: u64,
+    /// Extraction path taken: "fast", "headless", "probes_first"
+    pub extraction_path: Option<String>,
+    /// Error message if primary parser failed (when fallback occurred)
+    pub primary_error: Option<String>,
 }

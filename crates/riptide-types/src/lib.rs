@@ -27,7 +27,7 @@ pub use config::{ChunkingConfig, ExtractionMode, OutputFormat, RenderMode, Topic
 pub use errors::{Result, RiptideError};
 pub use extracted::{
     BasicExtractedDoc, ComponentInfo, ContentChunk, ExtractedContent, ExtractedDoc,
-    ExtractionQuality, ExtractionStats, HealthStatus,
+    ExtractionQuality, ExtractionStats, HealthStatus, ParserMetadata,
 };
 pub use traits::{Browser, Extractor, Scraper};
 pub use types::{

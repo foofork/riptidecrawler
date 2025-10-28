@@ -228,6 +228,7 @@ pub async fn process_pdf(
                 categories: Vec::new(),
                 site_name: None,
                 description: extracted.metadata.get("description").cloned(),
+                html: None,
             };
 
             let stats = ProcessingStats {

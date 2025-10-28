@@ -138,6 +138,88 @@ impl ReliableHttpClient {
         self
     }
 
+    /// Perform HTTP POST with retry logic, circuit breaker protection, and optional robots.txt compliance
+    #[instrument(skip(self, body), fields(url = %url))]
+    pub async fn post_with_retry<T: serde::Serialize>(
+        &self,
+        url: &str,
+        body: &T,
+    ) -> Result<Response> {
+        let _span = telemetry_span!(
+            "http_post_with_retry",
+            url = %url,
+            max_attempts = %self.retry_config.max_attempts
+        );
+
+        info!("Starting HTTP POST request with retry");
+        // Check robots.txt compliance first if manager is available
+        if let Some(robots_manager) = &self.robots_manager {
+            let _robots_span = telemetry_span!("robots_check", url = %url);
+            if !robots_manager.can_crawl_with_wait(url).await? {
+                error!("URL blocked by robots.txt: {}", url);
+                return Err(anyhow::anyhow!("URL blocked by robots.txt: {}", url));
+            }
+            info!("Robots.txt check passed");
+        }
+
+        let mut last_error = None;
+
+        for attempt in 0..self.retry_config.max_attempts {
+            // Use circuit breaker for the request
+            match circuit::guarded_call(&self.circuit_breaker, || async {
+                self.client
+                    .post(url)
+                    .json(body)
+                    .send()
+                    .await
+                    .map_err(|e| anyhow::anyhow!(e))
+            })
+            .await
+            {
+                Ok(response) => {
+                    match response.error_for_status() {
+                        Ok(success_response) => {
+                            if attempt > 0 {
+                                debug!(url = %url, attempt = attempt + 1, "Request succeeded after retry");
+                            }
+                            return Ok(success_response);
+                        }
+                        Err(status_error) => {
+                            // Don't retry 4xx client errors (except 408, 429)
+                            if let Some(status) = status_error.status() {
+                                if status.is_client_error()
+                                    && status != reqwest::StatusCode::REQUEST_TIMEOUT
+                                    && status != reqwest::StatusCode::TOO_MANY_REQUESTS
+                                {
+                                    return Err(status_error.into());
+                                }
+                            }
+                            last_error = Some(status_error.into());
+                        }
+                    }
+                }
+                Err(err) => {
+                    let err_str = err.to_string();
+                    if err_str.contains("circuit open") {
+                        return Err(anyhow::anyhow!("Circuit breaker is open for {}", url));
+                    }
+                    // For other circuit breaker errors, treat as generic failure
+                    // Treat other circuit breaker errors as non-retryable for now
+                    return Err(err);
+                }
+            }
+
+            // Don't sleep after the last attempt
+            if attempt < self.retry_config.max_attempts - 1 {
+                let delay = self.calculate_delay(attempt);
+                debug!(url = %url, attempt = attempt + 1, delay_ms = delay.as_millis(), "Retrying request");
+                tokio::time::sleep(delay).await;
+            }
+        }
+
+        Err(last_error.unwrap_or_else(|| anyhow::anyhow!("All retry attempts failed")))
+    }
+
     /// Perform HTTP GET with retry logic, circuit breaker protection, and robots.txt compliance
     #[instrument(skip(self), fields(url = %url))]
     pub async fn get_with_retry(&self, url: &str) -> Result<Response> {
