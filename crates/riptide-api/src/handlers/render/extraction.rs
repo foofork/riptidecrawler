@@ -72,6 +72,7 @@ pub(super) async fn extract_with_extraction_facade(
         published_iso: extracted.metadata.get("published_date").cloned(),
         markdown: extracted.markdown.clone(),
         media: extracted.images.clone(),
+        parser_metadata: None,
         language: extracted.metadata.get("language").cloned(),
         reading_time: None,
         word_count: Some(extracted.text.split_whitespace().count() as u32),

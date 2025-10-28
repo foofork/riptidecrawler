@@ -25,6 +25,7 @@ fn convert_html_doc(doc: riptide_types::ExtractedDoc) -> ExtractedDoc {
         published_iso: doc.published_iso,
         markdown: doc.markdown,
         media: doc.media,
+        parser_metadata: doc.parser_metadata,
         language: doc.language,
         reading_time: doc.reading_time,
         word_count: doc.word_count,
@@ -330,6 +331,7 @@ impl PipelineOrchestrator {
                 byline: None,
                 published_iso: None,
                 markdown: None,
+                parser_metadata: None,
                 media: Vec::new(),
                 language: None,
                 reading_time: None,
@@ -662,6 +664,7 @@ impl PipelineOrchestrator {
                     links: Vec::new(),
                     media: Vec::new(),
                     language: None,
+                    parser_metadata: None,
                     reading_time: Some(1),
                     quality_score: Some(20), // Low quality due to error
                     word_count: Some(5),

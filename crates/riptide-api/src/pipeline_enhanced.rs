@@ -474,6 +474,7 @@ impl EnhancedPipelineOrchestrator {
             word_count: Some(content.split_whitespace().count() as u32),
             categories: vec![],
             site_name: None,
+            parser_metadata: None,
             description: None,
             html: None,
         };
@@ -503,6 +504,7 @@ impl EnhancedPipelineOrchestrator {
             quality_score: None,
             word_count: Some(100),
             categories: vec![],
+            parser_metadata: None,
             site_name: None,
             description: None,
             html: None,

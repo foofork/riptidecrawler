@@ -227,6 +227,7 @@ pub async fn process_pdf(
                 word_count: Some(word_count as u32),
                 categories: Vec::new(),
                 site_name: None,
+                parser_metadata: None,
                 description: extracted.metadata.get("description").cloned(),
                 html: None,
             };

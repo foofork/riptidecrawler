@@ -79,6 +79,7 @@ impl WasmExtractorTrait for WasmExtractorAdapter {
             word_count: doc.word_count,
             categories: doc.categories,
             site_name: doc.site_name,
+            parser_metadata: doc.parser_metadata,
             description: doc.description,
             html: None,
         })
