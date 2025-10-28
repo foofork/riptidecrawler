@@ -1,18 +1,33 @@
 # ============================================================================
-# RipTide Standalone Mode - Docker Compose Configuration
+# RipTide Lite - Lightweight Docker Compose Configuration
 # ============================================================================
-# Mode 2: Standalone deployment WITHOUT headless Chrome service
-# API uses local browser_launcher and browser_facade
+# LIGHTWEIGHT deployment with LIMITED functionality:
+#   ✅ RipTide API (REST API + WebSocket)
+#   ✅ WASM extraction (static content only)
+#   ✅ Redis (caching and session storage)
+#   ✅ Swagger UI (API documentation)
+#   ❌ No Chrome browser service
+#   ❌ No JavaScript execution
+#   ❌ No SPA page support
 #
-# Usage:
-#   docker-compose -f docker-compose.standalone.yml up -d
-#   docker-compose -f docker-compose.standalone.yml logs -f
-#   docker-compose -f docker-compose.standalone.yml down
+# Use this when:
+#   - Extracting static content only (no JavaScript required)
+#   - Running in memory-constrained environments
+#   - Don't need browser rendering capabilities
 #
-# Configuration:
-#   - HEADLESS_URL is NOT set (API uses local browser components)
-#   - WASM extraction is primary method
-#   - No separate headless service container
+# Quick Start:
+#   cp .env.example .env                      # Configure environment
+#   docker-compose -f docker-compose.lite.yml up -d
+#   docker-compose -f docker-compose.lite.yml logs -f
+#   docker-compose -f docker-compose.lite.yml down
+#
+# What You Get:
+#   - WASM-based extraction (fast, lightweight)
+#   - Memory: ~440MB total (60% smaller)
+#   - Static content extraction ✅
+#   - JavaScript rendering ❌
+#
+# For FULL functionality with Chrome, use: docker-compose.yml
 # ============================================================================
 
 version: '3.8'
@@ -24,7 +39,7 @@ services:
   riptide-api:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: infra/docker/Dockerfile.api
       target: runtime
       args:
         - BUILDKIT_INLINE_CACHE=1

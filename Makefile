@@ -30,16 +30,14 @@ help:
 	@echo "  make coverage-open    - Generate and open HTML report"
 	@echo "  make coverage-report  - Full coverage report (all formats)"
 	@echo ""
-	@echo "Docker commands (production):"
+	@echo "Docker commands:"
 	@echo "  make docker-build-all - Build all Docker images"
-	@echo "  make docker-up        - Start production services (API + Headless + Redis)"
-	@echo "  make docker-down      - Stop production services"
-	@echo "  make docker-logs      - View production container logs"
-	@echo ""
-	@echo "Docker commands (development):"
-	@echo "  make docker-up-dev    - Start development services"
-	@echo "  make docker-down-dev  - Stop development services"
-	@echo "  make docker-logs-dev  - View development container logs"
+	@echo "  make docker-up        - Start all services (FULL - API + Chrome + Redis) ✅"
+	@echo "  make docker-down      - Stop all services"
+	@echo "  make docker-logs      - View container logs"
+	@echo "  make docker-up-lite   - Start lite services (WASM-only, no Chrome)"
+	@echo "  make docker-down-lite - Stop lite services"
+	@echo "  make docker-logs-lite - View lite container logs"
 	@echo ""
 	@echo "Profile-specific builds:"
 	@echo "  make build-release    - Build with release profile"
@@ -177,28 +175,30 @@ docker-build-all: docker-build-api docker-build-headless docker-build-playground
 
 # Docker Compose Targets
 docker-up:
-	@echo "🚀 Starting services with docker-compose (production)..."
-	docker-compose -f docker-compose.production.yml up -d
+	@echo "🚀 Starting FULL services (API + Chrome Browser + Redis + Swagger)..."
+	@echo "   Memory: ~1.2GB | Features: ✅ Chrome rendering ✅ JavaScript ✅ SPA pages"
+	docker-compose up -d
 
 docker-down:
-	@echo "🛑 Stopping services..."
-	docker-compose -f docker-compose.production.yml down
+	@echo "🛑 Stopping all services..."
+	docker-compose down
 
 docker-logs:
 	@echo "📋 Viewing container logs..."
-	docker-compose -f docker-compose.production.yml logs -f
+	docker-compose logs -f
 
-docker-up-dev:
-	@echo "🚀 Starting services with docker-compose (development)..."
-	docker-compose -f docker-compose.dev.yml up -d
+docker-up-lite:
+	@echo "🚀 Starting LITE services (API + Redis + Swagger, no Chrome)..."
+	@echo "   Memory: ~440MB | Features: ✅ WASM extraction ❌ No JavaScript"
+	docker-compose -f docker-compose.lite.yml up -d
 
-docker-down-dev:
-	@echo "🛑 Stopping development services..."
-	docker-compose -f docker-compose.dev.yml down
+docker-down-lite:
+	@echo "🛑 Stopping lite services..."
+	docker-compose -f docker-compose.lite.yml down
 
-docker-logs-dev:
-	@echo "📋 Viewing development container logs..."
-	docker-compose -f docker-compose.dev.yml logs -f
+docker-logs-lite:
+	@echo "📋 Viewing lite container logs..."
+	docker-compose -f docker-compose.lite.yml logs -f
 
 # Profile-Aware Build Targets
 build-release:
