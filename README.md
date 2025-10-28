@@ -345,9 +345,7 @@ make docker-down-lite
 - ✅ Swagger UI (port 8081) - API documentation
 - ❌ No Chrome service (no JavaScript)
 
-**Key Difference:**
-- **Production**: API + Headless Service (microservices, scalable)
-- **Development**: Monolithic API with embedded Chrome (simpler)
+**Memory:** ~440MB | **Best For:** Static content extraction
 
 ### Production Docker
 
