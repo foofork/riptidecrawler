@@ -371,19 +371,32 @@ impl HeadlessLauncher {
         }
 
         // Performance and security optimizations
-        builder = builder
-            .arg("--no-sandbox")
-            .arg("--disable-dev-shm-usage")
-            .arg("--disable-gpu")
-            .arg("--disable-web-security")
-            .arg("--disable-extensions")
-            .arg("--disable-plugins")
-            .arg("--disable-images")
-            .arg("--disable-javascript")
-            .arg("--disable-background-timer-throttling")
-            .arg("--disable-backgrounding-occluded-windows")
-            .arg("--disable-renderer-backgrounding")
-            .arg("--memory-pressure-off");
+        // Check for custom Chrome flags from environment (for advanced users)
+        if let Ok(custom_flags) = std::env::var("CHROME_FLAGS") {
+            debug!("Using custom CHROME_FLAGS from environment");
+            for flag in custom_flags.split_whitespace() {
+                builder = builder.arg(flag);
+            }
+        } else {
+            // Sensible defaults for most users (Docker-optimized)
+            debug!("Using default Chrome flags optimized for Docker/headless environments");
+            builder = builder
+                .arg("--no-sandbox")
+                .arg("--disable-dev-shm-usage")
+                .arg("--disable-gpu")
+                .arg("--disable-web-security")
+                .arg("--disable-extensions")
+                .arg("--disable-plugins")
+                .arg("--disable-images")
+                .arg("--disable-javascript")
+                .arg("--disable-background-timer-throttling")
+                .arg("--disable-backgrounding-occluded-windows")
+                .arg("--disable-renderer-backgrounding")
+                .arg("--memory-pressure-off")
+                .arg("--disable-crash-reporter")
+                .arg("--crash-dumps-dir=/tmp")
+                .arg("--disable-breakpad");
+        }
 
         builder.build().map_err(|e| anyhow!(e))
     }

@@ -93,7 +93,7 @@ RUN mkdir -p crates/riptide-api/src crates/riptide-browser-abstraction/src \
 
 # Pre-build dependencies (this layer will be cached)
 # Disk optimization: Using --profile ci for faster builds with less artifacts
-RUN cargo build --profile ci --bin riptide && \
+RUN cargo build --profile ci -p riptide-headless && \
     rm -rf /usr/local/cargo/registry/cache/* /app/target/*/incremental
 
 # Copy actual source code
@@ -103,8 +103,8 @@ COPY wasm wasm/
 # Build with real source (leverages cached dependencies)
 # Disk optimization: CI profile + aggressive cleanup after build
 RUN touch crates/*/src/lib.rs crates/*/src/main.rs wasm/*/src/lib.rs && \
-    cargo build --profile ci --bin riptide && \
-    strip target/ci/riptide && \
+    cargo build --profile ci -p riptide-headless && \
+    strip target/ci/riptide-headless && \
     rm -rf /usr/local/cargo/registry/cache/* \
            /usr/local/cargo/git/db/* \
            /app/target/*/build \
@@ -112,7 +112,8 @@ RUN touch crates/*/src/lib.rs crates/*/src/main.rs wasm/*/src/lib.rs && \
            /app/target/*/incremental
 
 # Optimized runtime stage with Chrome
-FROM debian:bookworm-slim AS runtime
+# Using Debian Trixie to match builder's GLIBC 2.41
+FROM debian:trixie-slim AS runtime
 
 # Install runtime dependencies in minimal layers
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -153,7 +154,7 @@ WORKDIR /opt/riptide
 
 # Copy optimized binary (from CI profile)
 COPY --from=builder --chown=riptide:riptide \
-    /app/target/ci/riptide /usr/local/bin/riptide
+    /app/target/ci/riptide-headless /usr/local/bin/riptide-headless
 
 # Switch to non-root user
 USER riptide
@@ -166,10 +167,13 @@ ENV RUST_LOG=info \
     CHROME_PATH=/usr/bin/chromium \
     DISPLAY=:99 \
     MALLOC_ARENA_MAX=2 \
-    # Chrome optimization flags
     CHROME_DEVEL_SANDBOX=/usr/lib/chromium/chrome-sandbox \
-    CHROME_FLAGS="--no-sandbox --headless --disable-gpu --disable-dev-shm-usage --disable-extensions --no-first-run"
+    XDG_CONFIG_HOME=/tmp/.chromium \
+    XDG_CACHE_HOME=/tmp/.chromium
+# Note: CHROME_FLAGS defaults are now in code (launcher/mod.rs)
+# Set CHROME_FLAGS environment variable only if you need custom overrides
+# XDG_* variables fix Chrome 128+ crashpad handler database requirement
 
 # Use tini for proper signal handling and zombie reaping
 ENTRYPOINT ["tini", "--"]
-CMD ["riptide"]
+CMD ["riptide-headless"]
