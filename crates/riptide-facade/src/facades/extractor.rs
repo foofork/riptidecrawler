@@ -16,7 +16,6 @@ use riptide_pdf::{create_pdf_processor, AnyPdfProcessor, PdfConfig};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{error, info, warn};
 
 /// Result type alias for extraction operations
 pub type Result<T> = std::result::Result<T, RiptideError>;

@@ -24,6 +24,7 @@ impl Default for ResultMode {
 
 /// Statistics result for spider crawl operations (backward compatible)
 #[derive(Serialize, Debug)]
+#[allow(dead_code)]
 pub struct SpiderResultStats {
     /// Total pages crawled
     pub pages_crawled: u64,
@@ -43,6 +44,7 @@ pub struct SpiderResultStats {
 
 /// URLs result for spider crawl operations
 #[derive(Serialize, Debug)]
+#[allow(dead_code)]
 pub struct SpiderResultUrls {
     /// Total pages crawled
     pub pages_crawled: u64,
@@ -255,7 +257,7 @@ pub struct FieldFilter {
 
 impl FieldFilter {
     /// Create a new field filter from comma-separated string
-    pub fn from_str(s: &str) -> Self {
+    pub fn parse(s: &str) -> Self {
         Self {
             fields: s.split(',').map(|f| f.trim().to_string()).collect(),
         }
@@ -293,6 +295,7 @@ pub struct SpiderResultPages {
     pub api_version: String,
 }
 
+#[allow(dead_code)]
 fn default_api_version() -> String {
     "v1".to_string()
 }
@@ -378,7 +381,7 @@ mod tests {
 
     #[test]
     fn test_field_filter() {
-        let filter = FieldFilter::from_str("title,links,markdown");
+        let filter = FieldFilter::parse("title,links,markdown");
         assert!(filter.has_field("title"));
         assert!(filter.has_field("links"));
         assert!(filter.has_field("markdown"));
@@ -387,7 +390,7 @@ mod tests {
 
     #[test]
     fn test_field_filter_with_whitespace() {
-        let filter = FieldFilter::from_str("title, links , markdown");
+        let filter = FieldFilter::parse("title, links , markdown");
         assert!(filter.has_field("title"));
         assert!(filter.has_field("links"));
         assert!(filter.has_field("markdown"));
@@ -400,7 +403,7 @@ mod tests {
         page.content = Some("Content".to_string());
         page.markdown = Some("Markdown".to_string());
 
-        let filter = FieldFilter::from_str("title");
+        let filter = FieldFilter::parse("title");
         page.apply_field_filter(Some(&filter), None);
 
         assert!(page.title.is_some());
@@ -415,7 +418,7 @@ mod tests {
         page.content = Some("Content".to_string());
         page.markdown = Some("Markdown".to_string());
 
-        let filter = FieldFilter::from_str("content");
+        let filter = FieldFilter::parse("content");
         page.apply_field_filter(None, Some(&filter));
 
         assert!(page.title.is_some());
@@ -468,7 +471,7 @@ mod tests {
             api_version: "v1".to_string(),
         };
 
-        let filter = FieldFilter::from_str("title");
+        let filter = FieldFilter::parse("title");
         result.apply_field_filter(Some(&filter), None);
 
         for page in &result.pages {

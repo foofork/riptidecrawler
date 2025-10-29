@@ -166,7 +166,7 @@ impl WorkerService {
             // Start worker pool in background task
             // Note: The worker pool's start() method should be called here
             // For now, workers will poll automatically based on their configuration
-            worker_pool.start().await;
+            let _ = worker_pool.start().await;
         } else {
             return Err(anyhow::anyhow!("Worker pool not initialized"));
         }
@@ -356,6 +356,7 @@ impl WorkerService {
     }
 
     /// Create job processors (instance method for backward compatibility)
+    #[allow(dead_code)]
     async fn create_job_processors(&self) -> Result<Vec<Arc<dyn crate::worker::JobProcessor>>> {
         Self::create_job_processors_static(&self.config).await
     }

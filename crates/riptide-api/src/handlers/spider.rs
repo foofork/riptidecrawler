@@ -142,8 +142,8 @@ pub async fn spider_crawl(
     metrics.record_http_request("POST", "/spider/crawl", 200, start_time.elapsed());
 
     // Parse field filters
-    let include_filter = query.include.as_ref().map(|s| FieldFilter::from_str(s));
-    let exclude_filter = query.exclude.as_ref().map(|s| FieldFilter::from_str(s));
+    let include_filter = query.include.as_ref().map(|s| FieldFilter::parse(s));
+    let exclude_filter = query.exclude.as_ref().map(|s| FieldFilter::parse(s));
     let max_content_bytes = query.max_content_bytes.unwrap_or(DEFAULT_MAX_CONTENT_BYTES);
 
     // Build response based on result_mode
@@ -193,8 +193,7 @@ pub async fn spider_crawl(
             let pages: Vec<CrawledPage> = crawl_summary
                 .discovered_urls
                 .iter()
-                .enumerate()
-                .map(|(_i, url)| {
+                .map(|url| {
                     let mut page = CrawledPage::new(url.clone(), 0, 200);
                     // TODO: Populate with actual crawled data when available
                     // For now, we set basic metadata

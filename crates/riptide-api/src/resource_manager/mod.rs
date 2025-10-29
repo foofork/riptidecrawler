@@ -346,7 +346,7 @@ impl ResourceManager {
                 // No local browser pool - caller should use headless service via RPC
                 return Err(ResourceManagerError::Configuration(
                     "Local browser pool not available - use headless service RPC client for rendering".to_string()
-                ).into());
+                ));
             }
         };
 

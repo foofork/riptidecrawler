@@ -254,3 +254,117 @@ Here’s the split that tends to work best:
 * If you ever need to break the page schema, version at the **API path** (`/v2/spider`) rather than only in the facade.
 
 **Bottom line:** implement Phase 2 (pages, streaming, stored results, field selection) **in the API**; keep higher-level “discover+extract+normalize” workflows **in the facade**. This gives users the expected crawler semantics, keeps performance characteristics correct, and lets your facade focus on product logic instead of transport.
+
+
+Here’s what each checkbox buys you—practically, for users and for you—and how to know it’s “done.”
+
+NDJSON/SSE streaming (result_mode="stream")
+
+What you get
+
+Near-real-time pages as they’re crawled ({"type":"page","data":{...}}), plus a final {"type":"stats",...}.
+
+Low latency UX; no giant response bodies; consumers can start processing immediately.
+
+Developer impact
+
+Implement a streaming writer around your crawl loop.
+
+Heartbeats + graceful end; gzip off (usually) for SSE, okay for NDJSON over HTTP.
+
+Sample line
+
+{"type":"page","data":{"url":"https://ex.com/a","depth":1,"status_code":200,"title":"A","links":["..."]}}
+
+
+Acceptance criteria
+
+Consumers can parse incrementally; no buffering required.
+
+Backpressure respected; connection survives long runs; final stats always emitted.
+
+Job storage & pagination (result_mode="store")
+
+What you get
+
+Async crawls that scale: POST /spider → {job_id} then GET /jobs/{id}/results?cursor=...&limit=....
+
+Works for very large sites; stable memory footprint.
+
+Developer impact
+
+Persistent store for pages (e.g., sqlite/postgres + blob/table).
+
+Cursor-based pagination; retention & quotas.
+
+Acceptance criteria
+
+Idempotent fetches; stable ordering (e.g., by discover_time then url).
+
+Can retrieve partial fields via include=title,links,markdown.
+
+Jobs have lifecycle: queued|running|done|failed|canceled with accurate stats.
+
+Extraction helpers (POST /extract/batch, POST /spider+extract)
+
+What you get
+
+One-call ergonomics for common flows:
+
+extract/batch: { "urls":[...], "format":"markdown" } → [ {url, markdown, metadata} ] (or stream).
+
+spider+extract: seeds → discovery and detail-page extraction, delivered as pages with markdown populated.
+
+Developer impact
+
+These can live in your facade (or API if you want), orchestrating existing spider + extract.
+
+Optional: only extract on “detail pages” (e.g., heuristic on link density, URL patterns).
+
+Acceptance criteria
+
+Batch honors per-URL errors without failing the whole request.
+
+spider+extract returns only pages meeting extraction criteria (or flags others).
+
+Integration tests (live API)
+
+What you get
+
+Confidence the whole stack works (routing, auth, streaming, storage, pagination).
+
+Prevents regressions in content fields and result shapes.
+
+Developer impact
+
+Spin a test crawler against deterministic fixtures (local HTTP server with canned pages).
+
+Golden tests for schema: assert fields, ordering, pagination, end-of-stream stats.
+
+Acceptance criteria
+
+CI runs tests that: stream small crawl, store big crawl, paginate, batch-extract, and cancel mid-crawl.
+
+All endpoints return correct Content-Type, status codes, and headers.
+
+Performance optimization & benchmarking
+
+What you get
+
+Clear SLOs and levers (concurrency, rate limits, HTML parsing cost).
+
+Proof you’re competitive (or where to improve).
+
+Developer impact
+
+Bench harness: seeds, depth, max_pages; metrics: pages/sec, median/95p fetch+parse, memory, CPU.
+
+Profiling hot spots (DNS, TLS, parsing, DOM→markdown).
+
+Acceptance criteria
+
+Documented baseline vs. target (e.g., 50–150 pages/sec on LAN fixtures).
+
+No unbounded memory with store; consistent tail latency on stream.
+
+Per-domain politeness preserved under load.
