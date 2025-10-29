@@ -1,0 +1,31 @@
+{
+  "name": "playground-tests",
+  "version": "1.0.0",
+  "description": "Test suite for RipTide playground",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:all": "npm run test:coverage && npm run test:e2e",
+    "install-browsers": "npx playwright install --with-deps"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@playwright/test": "^1.40.1",
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/react": "^14.1.2",
+    "@testing-library/user-event": "^14.5.1",
+    "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/ui": "^1.0.4",
+    "axe-core": "^4.8.3",
+    "jsdom": "^23.0.1",
+    "msw": "^2.0.11",
+    "vitest": "^1.0.4",
+    "@vitest/coverage-v8": "^1.0.4"
+  }
+}

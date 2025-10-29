@@ -31,6 +31,7 @@ pub mod spider_chrome_tests;
 pub mod spider_chrome_benchmarks;
 pub mod spider_multi_level_tests;
 pub mod spider_query_aware_integration_test;
+pub mod spider_result_mode_tests;
 
 // Strategies integration tests
 pub mod strategies_integration_test;

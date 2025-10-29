@@ -2,6 +2,14 @@
 
 <div align="center">
 
+# ⚠️ **UNDER CONSTRUCTION** ⚠️
+
+## **THIS PLAYGROUND HAS NOT BEEN FULLY CONSTRUCTED YET**
+
+### **FOR PRODUCTION USE, PLEASE RELY ON THE OFFICIAL SDK AND API DOCUMENTATION**
+
+---
+
 ![RipTide Playground](https://via.placeholder.com/800x400/4F46E5/FFFFFF?text=RipTide+API+Playground)
 
 **Interactive web-based playground for testing the RipTide API**

@@ -1,9 +1,11 @@
+import { config } from '../config/environment'
+
 export function generateCode(endpoint, requestBody, language) {
   if (!endpoint) {
     return '// Select an endpoint to generate code'
   }
 
-  const apiUrl = 'http://localhost:8080'
+  const apiUrl = config.api.baseUrl
   const fullUrl = `${apiUrl}${endpoint.path}`
   const body = requestBody || '{}'
 

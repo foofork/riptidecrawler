@@ -61,3 +61,6 @@ pub mod quick_circuit_test;
 // Utility and fix tests
 pub mod fix_topic_chunker;
 pub mod tdd_demo_test;
+
+// Phase 2 spider result mode tests
+pub mod result_mode_tests;
