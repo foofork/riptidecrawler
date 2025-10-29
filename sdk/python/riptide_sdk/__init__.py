@@ -41,6 +41,7 @@ from .models import (
     CacheMode,
     StealthLevel,
     UAStrategy,
+    ResultMode,
     PdfExtractionOptions,
     PdfExtractionResult,
     PdfJobStatus,
@@ -119,6 +120,7 @@ __all__ = [
     "CacheMode",
     "StealthLevel",
     "UAStrategy",
+    "ResultMode",
     "JobPriority",
     "JobStatus",
     # Exceptions

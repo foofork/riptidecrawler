@@ -36,6 +36,12 @@ class UAStrategy(str, Enum):
     RANDOM = "random"
 
 
+class ResultMode(str, Enum):
+    """Result mode for spider crawl operations"""
+    STATS = "stats"
+    URLS = "urls"
+
+
 # ============================================================================
 # Configuration Models
 # ============================================================================
@@ -716,6 +722,7 @@ class SpiderResult:
     result: SpiderApiResult
     state: CrawlState
     performance: PerformanceMetrics
+    discovered_urls: Optional[List[str]] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'SpiderResult':
@@ -723,6 +730,7 @@ class SpiderResult:
             result=SpiderApiResult.from_dict(data['result']),
             state=CrawlState.from_dict(data['state']),
             performance=PerformanceMetrics.from_dict(data['performance']),
+            discovered_urls=data.get('discovered_urls'),
         )
 
     @property

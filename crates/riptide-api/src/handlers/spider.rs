@@ -3,15 +3,30 @@
 //! This module provides HTTP handlers for deep crawling operations using
 //! the riptide-facade SpiderFacade for simplified spider engine access.
 
+use crate::dto::{ResultMode, SpiderResultStats, SpiderResultUrls};
 use crate::errors::ApiError;
 use crate::metrics::ErrorType;
 use crate::models::*;
 use crate::state::AppState;
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
+use axum::{
+    extract::{Query, State},
+    http::StatusCode,
+    response::IntoResponse,
+    Json,
+};
+use serde::Deserialize;
 use std::time::Instant;
 use tracing::{debug, info};
 
 use super::shared::{spider::parse_seed_urls, MetricsRecorder};
+
+/// Query parameters for spider crawl endpoint
+#[derive(Debug, Deserialize)]
+pub struct SpiderCrawlQuery {
+    /// Result mode: stats (default) or urls
+    #[serde(default)]
+    pub result_mode: ResultMode,
+}
 
 /// Spider crawl endpoint for deep crawling operations.
 ///
@@ -22,6 +37,11 @@ use super::shared::{spider::parse_seed_urls, MetricsRecorder};
 /// - Adaptive stopping based on content analysis
 /// - Budget controls and rate limiting
 /// - Session persistence for authenticated crawling
+///
+/// Query Parameters:
+/// - result_mode: "stats" (default) or "urls"
+///   - stats: Returns statistics only (backward compatible)
+///   - urls: Returns statistics plus discovered URLs list
 #[tracing::instrument(
     name = "spider_crawl",
     skip(state, body),
@@ -36,6 +56,7 @@ use super::shared::{spider::parse_seed_urls, MetricsRecorder};
 )]
 pub async fn spider_crawl(
     State(state): State<AppState>,
+    Query(query): Query<SpiderCrawlQuery>,
     Json(body): Json<SpiderCrawlBody>,
 ) -> Result<impl IntoResponse, ApiError> {
     let start_time = Instant::now();
@@ -95,33 +116,59 @@ pub async fn spider_crawl(
         .await
         .map_err(|e| ApiError::internal(format!("Failed to get performance metrics: {}", e)))?;
 
-    // Build API response from CrawlSummary
-    let api_result = SpiderApiResult {
-        pages_crawled: crawl_summary.pages_crawled,
-        pages_failed: crawl_summary.pages_failed,
-        duration_seconds: crawl_summary.duration_secs,
-        stop_reason: crawl_summary.stop_reason.clone(),
-        domains: crawl_summary.domains.clone(),
-    };
-
-    let response = SpiderCrawlResponse {
-        result: api_result,
-        state: crawl_state,
-        performance: performance_metrics,
-    };
-
     info!(
         pages_crawled = crawl_summary.pages_crawled,
         pages_failed = crawl_summary.pages_failed,
         duration_ms = start_time.elapsed().as_millis(),
         stop_reason = %crawl_summary.stop_reason,
+        discovered_urls = crawl_summary.discovered_urls.len(),
+        result_mode = ?query.result_mode,
         "Spider crawl completed"
     );
 
     // Record HTTP request metrics
     metrics.record_http_request("POST", "/spider/crawl", 200, start_time.elapsed());
 
-    Ok(Json(response))
+    // Build response based on result_mode
+    match query.result_mode {
+        ResultMode::Stats => {
+            // Statistics only (backward compatible)
+            let api_result = SpiderApiResult {
+                pages_crawled: crawl_summary.pages_crawled,
+                pages_failed: crawl_summary.pages_failed,
+                duration_seconds: crawl_summary.duration_secs,
+                stop_reason: crawl_summary.stop_reason.clone(),
+                domains: crawl_summary.domains.clone(),
+            };
+
+            let response = SpiderCrawlResponseStats {
+                result: api_result,
+                state: crawl_state,
+                performance: performance_metrics,
+            };
+
+            Ok(Json(response).into_response())
+        }
+        ResultMode::Urls => {
+            // Statistics with discovered URLs
+            let api_result = SpiderApiResultUrls {
+                pages_crawled: crawl_summary.pages_crawled,
+                pages_failed: crawl_summary.pages_failed,
+                duration_seconds: crawl_summary.duration_secs,
+                stop_reason: crawl_summary.stop_reason.clone(),
+                domains: crawl_summary.domains.clone(),
+                discovered_urls: crawl_summary.discovered_urls.clone(),
+            };
+
+            let response = SpiderCrawlResponseUrls {
+                result: api_result,
+                state: crawl_state,
+                performance: performance_metrics,
+            };
+
+            Ok(Json(response).into_response())
+        }
+    }
 }
 
 /// Get spider status and metrics

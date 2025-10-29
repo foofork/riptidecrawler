@@ -146,6 +146,8 @@ pub struct SpiderResult {
     pub performance: PerformanceMetrics,
     /// Domains crawled
     pub domains: Vec<String>,
+    /// URLs discovered during crawl (in order of discovery, capped at max_pages)
+    pub discovered_urls: Vec<String>,
 }
 
 impl Spider {
@@ -287,6 +289,8 @@ impl Spider {
         let mut pages_crawled = 0u64;
         let mut pages_failed = 0u64;
         let mut last_metrics_update = Instant::now();
+        let mut discovered_urls: Vec<String> = Vec::new();
+        let max_urls_to_collect = self.config.budget.global.max_pages.unwrap_or(10000) as usize;
 
         loop {
             // Check if we should stop crawling
@@ -305,6 +309,7 @@ impl Spider {
                         .iter()
                         .cloned()
                         .collect(),
+                    discovered_urls: discovered_urls.clone(),
                 });
             }
 
@@ -328,6 +333,7 @@ impl Spider {
                                 .iter()
                                 .cloned()
                                 .collect(),
+                            discovered_urls: discovered_urls.clone(),
                         });
                     }
 
@@ -342,6 +348,11 @@ impl Spider {
                 Ok(result) => {
                     if result.success {
                         pages_crawled += 1;
+
+                        // Collect the current URL if within capacity
+                        if discovered_urls.len() < max_urls_to_collect {
+                            discovered_urls.push(result.request.url.to_string());
+                        }
 
                         // Add extracted URLs to frontier - clone before moving to avoid partial move
                         let extracted_urls = result.extracted_urls.clone();

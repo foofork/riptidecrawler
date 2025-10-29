@@ -17,6 +17,7 @@ from ..models import (
     SpiderResult,
     SpiderStatus,
     SpiderControlResponse,
+    ResultMode,
 )
 from ..exceptions import APIError, ValidationError, ConfigError
 
@@ -45,6 +46,7 @@ class SpiderAPI:
         self,
         seed_urls: List[str],
         config: Optional[SpiderConfig] = None,
+        result_mode: ResultMode = ResultMode.STATS,
     ) -> SpiderResult:
         """
         Start a deep crawl from seed URLs using the Spider engine
@@ -55,9 +57,11 @@ class SpiderAPI:
         Args:
             seed_urls: List of starting URLs for the crawl
             config: Optional spider configuration (defaults, depth, strategy, etc.)
+            result_mode: Result mode - STATS (default) or URLS to include discovered URLs
 
         Returns:
-            SpiderResult with crawl summary, state, and performance metrics
+            SpiderResult with crawl summary, state, and performance metrics.
+            If result_mode=URLS, also includes discovered_urls list.
 
         Raises:
             ValidationError: If seed URLs are invalid or empty
@@ -65,15 +69,25 @@ class SpiderAPI:
             APIError: If the API returns an error
 
         Example:
-            Basic crawl:
+            Basic crawl (stats only):
             >>> result = await client.spider.crawl(
             ...     seed_urls=["https://example.com"],
             ... )
             >>> print(f"Crawled {result.pages_crawled} pages")
             >>> print(f"Stop reason: {result.stop_reason}")
 
+            Crawl with URLs mode (for discovery):
+            >>> from riptide_sdk import ResultMode
+            >>> result = await client.spider.crawl(
+            ...     seed_urls=["https://example.com"],
+            ...     result_mode=ResultMode.URLS,
+            ... )
+            >>> print(f"Discovered {len(result.discovered_urls)} URLs")
+            >>> for url in result.discovered_urls[:10]:
+            ...     print(f"  - {url}")
+
             Advanced configuration:
-            >>> from riptide_sdk import SpiderConfig
+            >>> from riptide_sdk import SpiderConfig, ResultMode
             >>> config = SpiderConfig(
             ...     max_depth=3,
             ...     max_pages=100,
@@ -85,19 +99,22 @@ class SpiderAPI:
             >>> result = await client.spider.crawl(
             ...     seed_urls=["https://example.com"],
             ...     config=config,
+            ...     result_mode=ResultMode.URLS,
             ... )
             >>> print(result.to_summary())
+            >>> print(f"Discovered URLs: {len(result.discovered_urls)}")
 
-            Multiple seed URLs:
-            >>> result = await client.spider.crawl(
-            ...     seed_urls=[
-            ...         "https://example.com",
-            ...         "https://example.org",
-            ...         "https://example.net",
-            ...     ],
-            ...     config=SpiderConfig(max_pages=500),
+            Discover → Extract workflow:
+            >>> # Step 1: Discover URLs
+            >>> discovery = await client.spider.crawl(
+            ...     seed_urls=["https://example.com/blog"],
+            ...     config=SpiderConfig(max_depth=2),
+            ...     result_mode=ResultMode.URLS,
             ... )
-            >>> print(f"Domains crawled: {', '.join(result.domains)}")
+            >>> # Step 2: Extract content from discovered URLs
+            >>> for url in discovery.discovered_urls:
+            ...     content = await client.extract.extract(url)
+            ...     print(f"Extracted: {content.title}")
         """
         if not seed_urls:
             raise ValidationError("seed_urls list cannot be empty")
@@ -115,11 +132,17 @@ class SpiderAPI:
         if config:
             body.update(config.to_dict())
 
+        # Build query parameters
+        params = {}
+        if result_mode != ResultMode.STATS:
+            params["result_mode"] = result_mode.value
+
         # Make request
         try:
             response = await self.client.post(
                 f"{self.base_url}/api/v1/spider/crawl",
                 json=body,
+                params=params,
             )
         except httpx.RequestError as e:
             raise APIError(

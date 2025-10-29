@@ -225,6 +225,8 @@ pub struct CrawlSummary {
     pub stop_reason: String,
     /// List of domains that were crawled
     pub domains: Vec<String>,
+    /// All URLs discovered during the crawl
+    pub discovered_urls: Vec<String>,
 }
 
 impl From<riptide_spider::SpiderResult> for CrawlSummary {
@@ -237,6 +239,7 @@ impl From<riptide_spider::SpiderResult> for CrawlSummary {
             errors_count: result.pages_failed as usize,
             stop_reason: result.stop_reason,
             domains: result.domains,
+            discovered_urls: result.discovered_urls,
         }
     }
 }

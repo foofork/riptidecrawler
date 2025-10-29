@@ -326,10 +326,10 @@ pub struct SpiderCrawlBody {
     pub follow_redirects: Option<bool>,
 }
 
-/// Response for spider crawl operations
+/// Response for spider crawl operations with statistics
 #[derive(Serialize, Debug)]
-pub struct SpiderCrawlResponse {
-    /// Spider crawl result
+pub struct SpiderCrawlResponseStats {
+    /// Spider crawl result statistics
     pub result: SpiderApiResult,
 
     /// Current crawl state
@@ -339,7 +339,20 @@ pub struct SpiderCrawlResponse {
     pub performance: PerformanceMetrics,
 }
 
-/// API-friendly version of SpiderResult
+/// Response for spider crawl operations with URLs
+#[derive(Serialize, Debug)]
+pub struct SpiderCrawlResponseUrls {
+    /// Spider crawl result with URLs
+    pub result: SpiderApiResultUrls,
+
+    /// Current crawl state
+    pub state: CrawlState,
+
+    /// Performance metrics
+    pub performance: PerformanceMetrics,
+}
+
+/// API-friendly version of SpiderResult (statistics only)
 #[derive(Serialize, Debug)]
 pub struct SpiderApiResult {
     /// Total pages crawled
@@ -356,6 +369,28 @@ pub struct SpiderApiResult {
 
     /// Domains crawled
     pub domains: Vec<String>,
+}
+
+/// API-friendly version of SpiderResult with discovered URLs
+#[derive(Serialize, Debug)]
+pub struct SpiderApiResultUrls {
+    /// Total pages crawled
+    pub pages_crawled: u64,
+
+    /// Total pages failed
+    pub pages_failed: u64,
+
+    /// Crawl duration in seconds
+    pub duration_seconds: f64,
+
+    /// Reason for stopping
+    pub stop_reason: String,
+
+    /// Domains crawled
+    pub domains: Vec<String>,
+
+    /// All URLs discovered during the crawl
+    pub discovered_urls: Vec<String>,
 }
 
 /// Request body for spider status

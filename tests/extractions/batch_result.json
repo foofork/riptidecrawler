@@ -1,0 +1,48 @@
+{
+  "summary": {
+    "total_urls": 4,
+    "successful": 4,
+    "failed": 0,
+    "from_cache": 2,
+    "avg_processing_time": 927.0,
+    "cache_hit_rate": 0.5
+  },
+  "results": [
+    {
+      "url": "https://www.livehilversum.com/nl/discover-live/mediastad-van-nederland",
+      "status": 200,
+      "from_cache": true,
+      "gate_decision": "cached",
+      "quality_score": 1.0,
+      "processing_time_ms": 0,
+      "title": "Hilversum Mediastad"
+    },
+    {
+      "url": "https://example.com",
+      "status": 200,
+      "from_cache": true,
+      "gate_decision": "cached",
+      "quality_score": 1.0,
+      "processing_time_ms": 1,
+      "title": "Example Domain"
+    },
+    {
+      "url": "https://example.org",
+      "status": 200,
+      "from_cache": false,
+      "gate_decision": "probes_first",
+      "quality_score": 0.66591674,
+      "processing_time_ms": 2400,
+      "title": "Example Domain"
+    },
+    {
+      "url": "https://www.iana.org",
+      "status": 200,
+      "from_cache": false,
+      "gate_decision": "probes_first",
+      "quality_score": 0.656188,
+      "processing_time_ms": 1307,
+      "title": "Internet Assigned Numbers Authority"
+    }
+  ]
+}
