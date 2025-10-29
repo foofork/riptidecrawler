@@ -16,7 +16,19 @@ from typing import Optional, Dict, Any, List
 import httpx
 import asyncio
 
-from .endpoints import CrawlAPI, ProfilesAPI, EngineSelectionAPI, StreamingAPI
+from .endpoints import (
+    CrawlAPI,
+    ProfilesAPI,
+    EngineSelectionAPI,
+    StreamingAPI,
+    SearchAPI,
+    SessionsAPI,
+    SpiderAPI,
+    PdfAPI,
+    ExtractAPI,
+    WorkersAPI,
+    BrowserAPI,
+)
 from .exceptions import ConfigError
 
 
@@ -40,6 +52,15 @@ class RipTideClient:
         ...
         ...     # Engine selection
         ...     stats = await client.engine.get_stats()
+        ...
+        ...     # Search
+        ...     search_result = await client.search.search("python tutorial")
+        ...     for item in search_result.results:
+        ...         print(f"{item.title}: {item.url}")
+        ...
+        ...     # Sessions
+        ...     session = await client.sessions.create()
+        ...     await client.sessions.set_cookie(session.session_id, cookie)
         ...
         ...     # Streaming
         ...     async for item in client.streaming.crawl_ndjson(urls):
@@ -109,6 +130,13 @@ class RipTideClient:
         self.profiles = ProfilesAPI(self._client, self.base_url)
         self.engine = EngineSelectionAPI(self._client, self.base_url)
         self.streaming = StreamingAPI(self._client, self.base_url)
+        self.search = SearchAPI(self._client, self.base_url)
+        self.sessions = SessionsAPI(self._client, self.base_url)
+        self.spider = SpiderAPI(self._client, self.base_url)
+        self.extract = ExtractAPI(self._client, self.base_url)
+        self.pdf = PdfAPI(self._client, self.base_url)
+        self.workers = WorkersAPI(self._client, self.base_url)
+        self.browser = BrowserAPI(self._client, self.base_url)
 
         # Retry config (set by builder if used)
         self._retry_config = None
