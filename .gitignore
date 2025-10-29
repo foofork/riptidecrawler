@@ -50,6 +50,15 @@ MANIFEST
 *.pyc
 *.pyo
 
+# Python Testing & Coverage
+.pytest_cache/
+.hypothesis/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+
 # ===========================================
 # Node.js / NPM
 # ===========================================
