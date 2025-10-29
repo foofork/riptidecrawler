@@ -1,0 +1,42 @@
+# Development and testing dependencies for RipTide Python SDK
+
+# Testing framework
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-timeout==2.2.0
+pytest-mock==3.12.0
+pytest-xdist==3.5.0  # Parallel test execution
+
+# HTTP mocking
+responses==0.24.1
+httpx==0.25.2
+respx==0.20.2
+
+# Async testing
+aioresponses==0.7.6
+asynctest==0.13.0
+
+# Code quality
+ruff==0.1.8
+black==23.12.1
+mypy==1.7.1
+isort==5.13.2
+
+# Coverage
+coverage[toml]==7.3.4
+
+# Performance testing
+pytest-benchmark==4.0.0
+memory-profiler==0.61.0
+
+# Type checking
+types-requests==2.31.0.10
+
+# Documentation
+mkdocs==1.5.3
+mkdocs-material==9.5.2
+
+# Utilities
+faker==21.0.0  # Generate test data
+freezegun==1.4.0  # Time mocking

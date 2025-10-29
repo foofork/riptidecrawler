@@ -13,6 +13,7 @@ Example:
 """
 
 from .client import RipTideClient
+from .builder import RipTideClientBuilder, RetryConfig
 from .models import (
     CrawlResult,
     CrawlResponse,
@@ -21,6 +22,9 @@ from .models import (
     EngineStats,
     CrawlOptions,
     ChunkingConfig,
+    CacheMode,
+    StealthLevel,
+    UAStrategy,
 )
 from .exceptions import (
     RipTideError,
@@ -28,11 +32,22 @@ from .exceptions import (
     APIError,
     NetworkError,
     TimeoutError,
+    ConfigError,
+    StreamingError,
+)
+from .formatters import (
+    format_crawl_response,
+    format_domain_profile,
+    format_engine_stats,
 )
 
 __version__ = "0.1.0"
 __all__ = [
+    # Client
     "RipTideClient",
+    "RipTideClientBuilder",
+    "RetryConfig",
+    # Models
     "CrawlResult",
     "CrawlResponse",
     "StreamingResult",
@@ -40,9 +55,20 @@ __all__ = [
     "EngineStats",
     "CrawlOptions",
     "ChunkingConfig",
+    # Enums
+    "CacheMode",
+    "StealthLevel",
+    "UAStrategy",
+    # Exceptions
     "RipTideError",
     "ValidationError",
     "APIError",
     "NetworkError",
     "TimeoutError",
+    "ConfigError",
+    "StreamingError",
+    # Formatters
+    "format_crawl_response",
+    "format_domain_profile",
+    "format_engine_stats",
 ]
