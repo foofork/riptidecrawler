@@ -1,4 +1,5 @@
 mod config;
+mod dto;
 mod errors;
 mod handlers;
 mod health;
