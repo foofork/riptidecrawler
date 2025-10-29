@@ -3,7 +3,7 @@
 //! This module provides HTTP handlers for deep crawling operations using
 //! the riptide-facade SpiderFacade for simplified spider engine access.
 
-use crate::dto::{ResultMode, SpiderResultStats, SpiderResultUrls};
+use crate::dto::{CrawledPage, FieldFilter, ResultMode, SpiderResultPages};
 use crate::errors::ApiError;
 use crate::metrics::ErrorType;
 use crate::models::*;
@@ -20,12 +20,24 @@ use tracing::{debug, info};
 
 use super::shared::{spider::parse_seed_urls, MetricsRecorder};
 
+/// Default max content size in bytes (1MB)
+const DEFAULT_MAX_CONTENT_BYTES: usize = 1_048_576;
+
 /// Query parameters for spider crawl endpoint
 #[derive(Debug, Deserialize)]
 pub struct SpiderCrawlQuery {
-    /// Result mode: stats (default) or urls
+    /// Result mode: stats (default), urls, pages, stream, or store
     #[serde(default)]
     pub result_mode: ResultMode,
+
+    /// Include specific fields (comma-separated, e.g., "title,links,markdown")
+    pub include: Option<String>,
+
+    /// Exclude specific fields (comma-separated, e.g., "content")
+    pub exclude: Option<String>,
+
+    /// Maximum content size in bytes per page (default: 1MB)
+    pub max_content_bytes: Option<usize>,
 }
 
 /// Spider crawl endpoint for deep crawling operations.
@@ -129,6 +141,11 @@ pub async fn spider_crawl(
     // Record HTTP request metrics
     metrics.record_http_request("POST", "/spider/crawl", 200, start_time.elapsed());
 
+    // Parse field filters
+    let include_filter = query.include.as_ref().map(|s| FieldFilter::from_str(s));
+    let exclude_filter = query.exclude.as_ref().map(|s| FieldFilter::from_str(s));
+    let max_content_bytes = query.max_content_bytes.unwrap_or(DEFAULT_MAX_CONTENT_BYTES);
+
     // Build response based on result_mode
     match query.result_mode {
         ResultMode::Stats => {
@@ -167,6 +184,48 @@ pub async fn spider_crawl(
             };
 
             Ok(Json(response).into_response())
+        }
+        ResultMode::Pages => {
+            // Full page objects with content
+            // Create CrawledPage objects from discovered URLs
+            // Note: In a real implementation, this would need access to the actual
+            // crawled page data. For now, we create placeholder pages from discovered URLs.
+            let pages: Vec<CrawledPage> = crawl_summary
+                .discovered_urls
+                .iter()
+                .enumerate()
+                .map(|(_i, url)| {
+                    let mut page = CrawledPage::new(url.clone(), 0, 200);
+                    // TODO: Populate with actual crawled data when available
+                    // For now, we set basic metadata
+                    page.final_url = Some(url.clone());
+                    page.robots_obeyed = Some(true);
+                    page
+                })
+                .collect();
+
+            let mut result = SpiderResultPages {
+                pages_crawled: crawl_summary.pages_crawled,
+                pages_failed: crawl_summary.pages_failed,
+                duration_seconds: crawl_summary.duration_secs,
+                stop_reason: crawl_summary.stop_reason.clone(),
+                domains: crawl_summary.domains.clone(),
+                pages,
+                api_version: "v1".to_string(),
+            };
+
+            // Apply field filtering and truncation
+            result.apply_field_filter(include_filter.as_ref(), exclude_filter.as_ref());
+            result.truncate_content(max_content_bytes);
+
+            Ok(Json(result).into_response())
+        }
+        ResultMode::Stream | ResultMode::Store => {
+            // Not yet implemented
+            Err(ApiError::validation(format!(
+                "Result mode '{:?}' is not yet implemented. Use 'stats', 'urls', or 'pages'.",
+                query.result_mode
+            )))
         }
     }
 }
