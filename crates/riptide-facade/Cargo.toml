@@ -49,5 +49,10 @@ futures.workspace = true
 scraper.workspace = true
 spider_chromiumoxide_cdp = { workspace = true }
 
+[features]
+default = []
+# Phase 1: WASM Optional - Feature flag for WASM extraction
+wasm-extractor = ["riptide-extraction/wasm-extractor", "riptide-cache/wasm-extractor"]
+
 [lib]
 path = "src/lib.rs"

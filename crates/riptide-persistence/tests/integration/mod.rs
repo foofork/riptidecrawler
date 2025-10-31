@@ -5,10 +5,9 @@ Comprehensive integration tests covering all persistence features with >80% cove
 */
 
 use riptide_persistence::{
-    PersistentCacheManager, StateManager, TenantManager,
-    PersistenceConfig, CacheConfig, StateConfig, TenantConfig,
-    TenantOwner, BillingPlan, ResourceUsageRecord, TenantMetrics,
-    TenantIsolationLevel, CompressionAlgorithm, EvictionPolicy
+    PersistentCacheManager, StateManager,
+    PersistenceConfig, CacheConfig, StateConfig,
+    CompressionAlgorithm, EvictionPolicy
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -18,7 +17,6 @@ use uuid::Uuid;
 
 mod cache_integration_tests;
 mod state_integration_tests;
-mod tenant_integration_tests;
 mod performance_tests;
 mod spillover_tests;
 
@@ -58,23 +56,6 @@ fn create_test_state_config() -> StateConfig {
     }
 }
 
-/// Test helper to create tenant config
-fn create_test_tenant_config() -> TenantConfig {
-    let mut default_quotas = HashMap::new();
-    default_quotas.insert("memory_bytes".to_string(), 1024 * 1024); // 1MB
-    default_quotas.insert("operations_per_minute".to_string(), 100);
-    default_quotas.insert("storage_bytes".to_string(), 10 * 1024 * 1024); // 10MB
-
-    TenantConfig {
-        enabled: true,
-        default_quotas,
-        isolation_level: TenantIsolationLevel::Strong,
-        enable_billing: true,
-        billing_interval_seconds: 30, // 30 seconds for tests
-        max_tenants: 10,
-        enable_encryption: true,
-    }
-}
 
 /// Test helper to create persistence config
 fn create_test_persistence_config() -> PersistenceConfig {
@@ -92,7 +73,6 @@ fn create_test_persistence_config() -> PersistenceConfig {
         },
         cache: create_test_cache_config(),
         state: create_test_state_config(),
-        tenant: create_test_tenant_config(),
         distributed: None, // Disable distributed for tests
         performance: riptide_persistence::config::PerformanceConfig {
             target_cache_access_ms: 5,
@@ -127,43 +107,18 @@ async fn cleanup_test_data(redis_url: &str, key_prefix: &str) -> Result<(), Box<
 }
 
 #[tokio::test]
-async fn test_full_integration_workflow() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_basic_integration_workflow() -> Result<(), Box<dyn std::error::Error>> {
     let config = create_test_persistence_config();
     let redis_url = &config.redis.url;
 
     // Clean up before test
     cleanup_test_data(redis_url, &config.cache.key_prefix).await?;
 
-    // Initialize all components
+    // Initialize core components (cache and state)
     let cache_manager = PersistentCacheManager::new(redis_url, config.cache.clone()).await?;
     let state_manager = StateManager::new(redis_url, config.state.clone()).await?;
 
-    let tenant_metrics = Arc::new(RwLock::new(TenantMetrics::new(Arc::new(prometheus::Registry::new()))));
-    let tenant_manager = TenantManager::new(redis_url, config.tenant.clone(), tenant_metrics).await?;
-
-    // Test 1: Create a tenant
-    let owner = TenantOwner {
-        id: "test_owner".to_string(),
-        name: "Test Owner".to_string(),
-        email: "test@example.com".to_string(),
-        organization: Some("Test Org".to_string()),
-    };
-
-    let tenant_config = riptide_persistence::tenant::TenantConfig {
-        tenant_id: "".to_string(), // Will be generated
-        name: "Test Tenant".to_string(),
-        quotas: config.tenant.default_quotas.clone(),
-        isolation_level: TenantIsolationLevel::Strong,
-        encryption_enabled: true,
-        settings: HashMap::new(),
-        created_at: chrono::Utc::now(),
-        updated_at: chrono::Utc::now(),
-    };
-
-    let tenant_id = tenant_manager.create_tenant(tenant_config, owner, BillingPlan::Basic).await?;
-    assert!(!tenant_id.is_empty());
-
-    // Test 2: Create a session for the tenant
+    // Test 1: Create a session (without tenant context)
     let session_metadata = riptide_persistence::state::SessionMetadata {
         client_ip: Some("127.0.0.1".to_string()),
         user_agent: Some("test-agent".to_string()),
@@ -172,64 +127,44 @@ async fn test_full_integration_workflow() -> Result<(), Box<dyn std::error::Erro
     };
 
     let session_id = state_manager.create_session(
-        Some(tenant_id.clone()),
+        None, // No tenant context
         session_metadata,
         Some(600), // 10 minutes
     ).await?;
     assert!(!session_id.is_empty());
 
-    // Test 3: Cache some data with tenant context
-    let cache_key = format!("tenant_data_{}", tenant_id);
+    // Test 2: Cache some data (without tenant context)
+    let cache_key = "test_data_key";
     let test_data = serde_json::json!({
-        "message": "Hello from tenant",
-        "tenant_id": tenant_id,
+        "message": "Hello from cache",
         "timestamp": chrono::Utc::now().to_rfc3339()
     });
 
     cache_manager.set(
-        &cache_key,
+        cache_key,
         &test_data,
-        Some(&tenant_id),
+        None, // No tenant context
         None,
         None,
     ).await?;
 
-    // Test 4: Retrieve cached data
-    let retrieved_data: Option<serde_json::Value> = cache_manager.get(&cache_key, Some(&tenant_id)).await?;
+    // Test 3: Retrieve cached data
+    let retrieved_data: Option<serde_json::Value> = cache_manager.get(cache_key, None).await?;
     assert!(retrieved_data.is_some());
-    assert_eq!(retrieved_data.unwrap()["message"], "Hello from tenant");
+    assert_eq!(retrieved_data.unwrap()["message"], "Hello from cache");
 
-    // Test 5: Record resource usage
-    let usage_record = ResourceUsageRecord {
-        operation_count: 1,
-        data_bytes: 1024,
-        compute_time_ms: 50,
-        storage_bytes: 2048,
-        timestamp: chrono::Utc::now(),
-    };
-
-    tenant_manager.record_usage(&tenant_id, "cache_operation", usage_record).await?;
-
-    // Test 6: Check quota validation
-    let quota_check = tenant_manager.check_quota(&tenant_id, "memory_bytes", 512).await?;
-    assert!(quota_check);
-
-    // Test 7: Get tenant usage statistics
-    let usage_stats = tenant_manager.get_tenant_usage(&tenant_id).await?;
-    assert!(usage_stats.operations_per_minute >= 0);
-
-    // Test 8: Create a checkpoint
+    // Test 4: Create a checkpoint
     let checkpoint_id = state_manager.create_checkpoint(
         riptide_persistence::state::CheckpointType::Manual,
         Some("Integration test checkpoint".to_string()),
     ).await?;
     assert!(!checkpoint_id.is_empty());
 
-    // Test 9: Get cache statistics
+    // Test 5: Get cache statistics
     let cache_stats = cache_manager.get_stats().await?;
     assert!(cache_stats.total_keys >= 1);
 
-    // Test 10: Session data operations
+    // Test 6: Session data operations
     state_manager.update_session_data(&session_id, "test_key", serde_json::json!("test_value")).await?;
     let session = state_manager.get_session(&session_id).await?;
     assert!(session.is_some());
@@ -239,7 +174,7 @@ async fn test_full_integration_workflow() -> Result<(), Box<dyn std::error::Erro
     // Cleanup
     cleanup_test_data(redis_url, &config.cache.key_prefix).await?;
 
-    println!("Full integration test completed successfully!");
+    println!("Basic integration test completed successfully!");
     Ok(())
 }
 

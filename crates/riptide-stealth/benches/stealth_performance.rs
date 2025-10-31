@@ -142,7 +142,7 @@ fn main() {
     #[cfg(feature = "benchmark-debug")]
     println!("\n## Relative Overhead Analysis");
 
-    let _none_time = {
+    let none_time = {
         let mut controller = StealthController::from_preset(StealthPreset::None);
         benchmark_operation("Stealth None (baseline)", 100, || {
             let _ = controller.get_stealth_js();
@@ -150,7 +150,7 @@ fn main() {
         })
     };
 
-    let _low_time = {
+    let low_time = {
         let mut controller = StealthController::from_preset(StealthPreset::Low);
         benchmark_operation("Stealth Low", 100, || {
             let _ = controller.get_stealth_js();
@@ -158,7 +158,7 @@ fn main() {
         })
     };
 
-    let _medium_time = {
+    let medium_time = {
         let mut controller = StealthController::from_preset(StealthPreset::Medium);
         benchmark_operation("Stealth Medium", 100, || {
             let _ = controller.get_stealth_js();
@@ -166,7 +166,7 @@ fn main() {
         })
     };
 
-    let _high_time = {
+    let high_time = {
         let mut controller = StealthController::from_preset(StealthPreset::High);
         benchmark_operation("Stealth High", 100, || {
             let _ = controller.get_stealth_js();

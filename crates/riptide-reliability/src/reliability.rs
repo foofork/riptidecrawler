@@ -645,6 +645,8 @@ mod tests {
                 categories: vec![],
                 site_name: None,
                 description: Some("Test description".to_string()),
+                html: None,
+                parser_metadata: None,
             })
         }
     }

@@ -41,7 +41,7 @@ mod stress_tests {
             let failure_clone = Arc::clone(&failure_count);
 
             let handle = tokio::spawn(async move {
-                let result = app_clone
+                let result = (*app_clone)
                     .clone()
                     .oneshot(
                         Request::builder()
@@ -103,7 +103,7 @@ mod stress_tests {
         let app = Arc::new(test_helpers::create_minimal_test_app());
 
         // Initialize browser pool with small size
-        let _ = app
+        let _ = (*app)
             .clone()
             .oneshot(
                 Request::builder()
@@ -165,7 +165,7 @@ mod stress_tests {
         // Verify pool can recover
         sleep(Duration::from_secs(2)).await;
 
-        let recovery_response = app
+        let recovery_response = (*app)
             .clone()
             .oneshot(
                 Request::builder()
@@ -328,7 +328,7 @@ mod stress_tests {
         let app = Arc::new(test_helpers::create_minimal_test_app());
 
         // Start memory profiling
-        let _ = app
+        let _ = (*app)
             .clone()
             .oneshot(
                 Request::builder()
@@ -349,7 +349,7 @@ mod stress_tests {
 
             // Mixed workload
             for i in 0..100 {
-                let _ = app
+                let _ = (*app)
                     .clone()
                     .oneshot(
                         Request::builder()

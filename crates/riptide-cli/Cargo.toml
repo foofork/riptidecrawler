@@ -81,3 +81,5 @@ predicates = "3.0"
 [features]
 default = ["pdf"]
 pdf = ["riptide-pdf/pdf"]
+# Phase 1: WASM Optional - Feature flag for WASM extraction
+wasm-extractor = ["riptide-extraction/wasm-extractor", "riptide-cache/wasm-extractor"]

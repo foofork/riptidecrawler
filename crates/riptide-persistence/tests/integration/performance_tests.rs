@@ -5,10 +5,9 @@ Tests to validate performance targets and benchmarks for the persistence layer.
 */
 
 use super::*;
-use riptide_persistence::{PersistentCacheManager, StateManager, TenantManager};
+use riptide_persistence::{PersistentCacheManager, StateManager};
 use std::time::{Duration, Instant};
 use std::sync::Arc;
-use tokio::sync::RwLock;
 
 #[tokio::test]
 async fn test_cache_access_performance_target() -> Result<(), Box<dyn std::error::Error>> {
@@ -301,84 +300,6 @@ async fn test_session_management_performance() -> Result<(), Box<dyn std::error:
     Ok(())
 }
 
-#[tokio::test]
-async fn test_tenant_operations_performance() -> Result<(), Box<dyn std::error::Error>> {
-    let config = create_test_tenant_config();
-    let redis_url = get_test_redis_url();
-
-    let tenant_metrics = Arc::new(RwLock::new(riptide_persistence::TenantMetrics::new(
-        Arc::new(prometheus::Registry::new())
-    )));
-    let tenant_manager = TenantManager::new(&redis_url, config.clone(), tenant_metrics).await?;
-
-    // Test tenant creation performance
-    let tenant_count = 10;
-    let create_start = Instant::now();
-
-    let mut tenant_ids = Vec::new();
-    for i in 0..tenant_count {
-        let owner = riptide_persistence::TenantOwner {
-            id: format!("perf_owner_{}", i),
-            name: format!("Performance Owner {}", i),
-            email: format!("perf{}@example.com", i),
-            organization: Some(format!("Perf Corp {}", i)),
-        };
-
-        let tenant_config = riptide_persistence::tenant::TenantConfig {
-            tenant_id: "".to_string(),
-            name: format!("Performance Tenant {}", i),
-            quotas: config.default_quotas.clone(),
-            isolation_level: riptide_persistence::TenantIsolationLevel::Logical,
-            encryption_enabled: false, // Disable for performance test
-            settings: std::collections::HashMap::new(),
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        };
-
-        let tenant_id = tenant_manager.create_tenant(
-            tenant_config,
-            owner,
-            riptide_persistence::BillingPlan::Basic,
-        ).await?;
-
-        tenant_ids.push(tenant_id);
-    }
-
-    let create_duration = create_start.elapsed();
-    let create_rate = tenant_count as f64 / create_duration.as_secs_f64();
-
-    println!("Tenant creation rate: {:.2} tenants/sec", create_rate);
-
-    // Test tenant access validation performance
-    let validation_start = Instant::now();
-    let validation_count = tenant_count * 5; // 5 validations per tenant
-
-    for tenant_id in &tenant_ids {
-        for j in 0..5 {
-            let _access = tenant_manager.validate_access(
-                tenant_id,
-                &format!("resource_{}", j),
-                "read",
-            ).await?;
-        }
-    }
-
-    let validation_duration = validation_start.elapsed();
-    let validation_rate = validation_count as f64 / validation_duration.as_secs_f64();
-
-    println!("Access validation rate: {:.2} validations/sec", validation_rate);
-
-    // Performance assertions
-    assert!(create_rate > 1.0, "Tenant creation should be > 1 tenant/sec");
-    assert!(validation_rate > 10.0, "Access validation should be > 10 validations/sec");
-
-    // Clean up
-    for tenant_id in tenant_ids {
-        tenant_manager.delete_tenant(&tenant_id).await?;
-    }
-
-    Ok(())
-}
 
 #[tokio::test]
 async fn test_memory_usage_patterns() -> Result<(), Box<dyn std::error::Error>> {

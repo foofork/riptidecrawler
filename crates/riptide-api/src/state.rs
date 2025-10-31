@@ -1447,6 +1447,8 @@ impl AppState {
             scraper_facade,
             spider_facade: None,
             search_facade: None,
+            #[cfg(feature = "persistence")]
+            persistence_adapter: None, // TODO: Initialize actual persistence adapter when integrated
         }
     }
 }

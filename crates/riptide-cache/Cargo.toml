@@ -60,3 +60,6 @@ tempfile = "3.0"
 default = []
 distributed = []
 warming = []
+# Phase 1: WASM Optional - Feature flags for WASM functionality
+wasm-pool = ["riptide-pool/wasm-pool"]
+wasm-extractor = ["riptide-extraction/wasm-extractor"]

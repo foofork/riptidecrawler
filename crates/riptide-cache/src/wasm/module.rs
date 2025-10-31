@@ -18,11 +18,15 @@
 //! - **Timeout protection** for loading operations
 
 use anyhow::{anyhow, Result};
+#[cfg(feature = "wasm-extractor")]
 use once_cell::sync::OnceCell;
 #[cfg(feature = "wasm-extractor")]
 use riptide_extraction::wasm_extraction::WasmExtractor;
+#[cfg(feature = "wasm-extractor")]
 use std::sync::Arc;
+#[cfg(feature = "wasm-extractor")]
 use std::time::{Duration, Instant};
+#[cfg(feature = "wasm-extractor")]
 use tokio::sync::RwLock;
 
 /// Global WASM module cache

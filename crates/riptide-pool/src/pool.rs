@@ -615,7 +615,9 @@ impl AdvancedInstancePool {
             ExtractionMode::Metadata => {
                 exports::riptide::extractor::extract::ExtractionMode::Metadata
             }
-            ExtractionMode::Custom(selectors) => riptide_types::ExtractionMode::Custom(selectors),
+            ExtractionMode::Custom(selectors) => {
+                exports::riptide::extractor::extract::ExtractionMode::Custom(selectors)
+            }
         }
     }
 

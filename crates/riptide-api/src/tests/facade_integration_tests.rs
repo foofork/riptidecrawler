@@ -123,7 +123,8 @@ async fn test_app_state_initialization_with_facades() {
         .is_ok());
     assert!(state
         .extractor
-        .extract(b"<html>test</html>", "https://example.com", "standard")
+        .extract("<html>test</html>", "https://example.com")
+        .await
         .is_ok());
     assert_eq!(state.config.max_concurrency, 4);
     assert_eq!(state.api_config.headless.max_pool_size, 2);
@@ -571,9 +572,7 @@ async fn test_multi_facade_workflow() {
     // Note: Direct facade usage would be:
     // let extract_result = state.extraction_facade.extract_html(&html_content, &url, Default::default()).await;
     // For now, we use the existing extractor
-    let extract_result = state
-        .extractor
-        .extract(html_content.as_bytes(), &url, "standard");
+    let extract_result = state.extractor.extract(&html_content, &url).await;
     assert!(extract_result.is_ok());
 
     // Multi-facade workflow completed successfully

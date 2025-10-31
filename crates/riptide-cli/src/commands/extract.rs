@@ -241,6 +241,9 @@ pub async fn execute(client: RipTideClient, args: ExtractArgs, output_format: &s
 /// 1. CLI flag --wasm-path
 /// 2. Environment variable RIPTIDE_WASM_PATH
 /// 3. Default fallback path
+///
+/// Note: Currently unused but kept for future WASM path resolution functionality
+#[allow(dead_code)]
 fn resolve_wasm_path(args: &ExtractArgs) -> String {
     // Priority 1: CLI flag (already checked via clap's env attribute)
     if let Some(ref path) = args.wasm_path {

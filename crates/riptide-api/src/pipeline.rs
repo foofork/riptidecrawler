@@ -36,6 +36,29 @@ fn convert_html_doc(doc: riptide_types::ExtractedDoc) -> ExtractedDoc {
     }
 }
 
+/// Convert from riptide_types::ExtractedContent to ExtractedDoc
+fn convert_extracted_content(content: riptide_types::ExtractedContent, url: &str) -> ExtractedDoc {
+    ExtractedDoc {
+        url: url.to_string(),
+        title: Some(content.title),
+        text: content.content.clone(),
+        quality_score: Some((content.extraction_confidence * 100.0) as u8),
+        links: Vec::new(),
+        byline: None,
+        published_iso: None,
+        markdown: None,
+        media: Vec::new(),
+        parser_metadata: None, // ExtractedContent doesn't have parser metadata
+        language: None,
+        reading_time: None,
+        word_count: Some(content.content.split_whitespace().count() as u32),
+        categories: Vec::new(),
+        site_name: None,
+        description: content.summary,
+        html: None,
+    }
+}
+
 /// Pipeline execution result containing the extracted document and metadata.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PipelineResult {
@@ -847,31 +870,6 @@ impl PipelineOrchestrator {
                 }
             }
         }
-
-        /// Fallback to direct WASM extraction when ReliableExtractor fails
-        #[cfg(feature = "wasm-extractor")]
-        async fn fallback_to_wasm_extraction(
-            &self,
-            html: &str,
-            url: &str,
-        ) -> Result<ExtractedDoc, ApiError> {
-            info!(url = %url, "Attempting direct WASM fallback extraction");
-
-            let extractor = self.state.extractor.clone();
-            let html_bytes = html.as_bytes().to_vec();
-            let url_str = url.to_string();
-
-            extractor
-                .extract(&html_bytes, &url_str, "article")
-                .map(convert_html_doc)
-                .map_err(|e| {
-                    error!(url = %url_str, error = %e, "All extraction methods failed");
-                    self.state
-                        .metrics
-                        .record_error(crate::metrics::ErrorType::Wasm);
-                    ApiError::extraction(format!("All extraction attempts failed: {}", e))
-                })
-        }
     }
 
     /// Check cache for existing content.
@@ -924,6 +922,31 @@ impl PipelineOrchestrator {
             self.options.cache_mode,
             hasher.finish()
         )
+    }
+
+    /// Fallback to direct WASM extraction when ReliableExtractor fails
+    ///
+    /// This method provides a last-resort extraction mechanism using direct WASM
+    /// extraction when the ReliableExtractor (with retries and circuit breakers) fails.
+    #[cfg(feature = "wasm-extractor")]
+    async fn fallback_to_wasm_extraction(
+        &self,
+        html: &str,
+        url: &str,
+    ) -> Result<ExtractedDoc, ApiError> {
+        info!(url = %url, "Attempting direct WASM fallback extraction");
+
+        // UnifiedExtractor::extract is async and takes (&str, &str) -> Result<ExtractedContent>
+        let extracted_content = self.state.extractor.extract(html, url).await.map_err(|e| {
+            error!(url = %url, error = %e, "All extraction methods failed");
+            self.state
+                .metrics
+                .record_error(crate::metrics::ErrorType::Wasm);
+            ApiError::extraction(format!("All extraction attempts failed: {}", e))
+        })?;
+
+        // Convert ExtractedContent to ExtractedDoc
+        Ok(convert_extracted_content(extracted_content, url))
     }
 }
 

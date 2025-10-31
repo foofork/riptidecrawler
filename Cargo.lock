@@ -6681,6 +6681,7 @@ dependencies = [
  "once_cell",
  "regex",
  "reqwest 0.12.24",
+ "scraper",
  "serde",
  "serde_json",
  "tl",
