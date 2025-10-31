@@ -36,14 +36,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
-
-      - uses: mozilla-actions/sccache-action@v0.0.6
-
-      - uses: Swatinem/rust-cache@v2
+      - name: Setup Rust environment
+        uses: ./.github/actions/setup-rust
         with:
-          shared-key: "quality-gates"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          shared-key: quality-gates
 
       - name: Install audit tools
         run: |

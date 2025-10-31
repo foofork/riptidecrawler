@@ -1,3 +1,4 @@
+#![cfg(feature = "wasm-extractor")]
 //! Comprehensive tests for WASM module cache
 
 use riptide_cache::wasm::WasmModuleCache;

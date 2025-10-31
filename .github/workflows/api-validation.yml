@@ -39,16 +39,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: mozilla-actions/sccache-action@v0.0.6
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: "api-validation"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Setup Rust environment
+        uses: ./.github/actions/setup-rust
         with:
           components: clippy, rustfmt
+          shared-key: api-validation
 
       - name: Check formatting
         run: cargo fmt --package riptide-api -- --check

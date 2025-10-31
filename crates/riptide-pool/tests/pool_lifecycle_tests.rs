@@ -1,3 +1,4 @@
+#![cfg(feature = "wasm-pool")]
 //! Comprehensive pool lifecycle tests for riptide-pool
 //!
 //! Tests pool creation, warmup, scaling, and shutdown

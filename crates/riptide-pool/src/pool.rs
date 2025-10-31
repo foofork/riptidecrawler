@@ -1,20 +1,5 @@
-use anyhow::{anyhow, Result};
-use std::collections::VecDeque;
-use std::env;
-use std::sync::Arc;
-use std::time::{Duration, Instant};
-use tokio::sync::{Mutex, Semaphore};
-use tokio::time::{sleep, timeout};
-use tracing::{debug, info, warn};
-use uuid::Uuid;
-
 #[cfg(feature = "wasm-pool")]
 use wasmtime::{component::*, Engine};
-
-use crate::config::{ExtractorConfig, PerformanceMetrics, WasmResourceTracker};
-use async_trait::async_trait;
-use riptide_events::{Event, EventBus, EventEmitter, PoolEvent, PoolMetrics, PoolOperation};
-use riptide_types::{ExtractedDoc, ExtractionMode, ParserMetadata};
 
 #[cfg(feature = "wasm-pool")]
 use super::models::{CircuitBreakerState, PooledInstance};

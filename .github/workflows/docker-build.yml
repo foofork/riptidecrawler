@@ -49,30 +49,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      # OPTIMIZATION: Try to download artifacts from CI workflow first
+      - name: Download artifacts from CI workflow
+        id: download-ci-artifacts
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
-          toolchain: stable
+          name: build-artifacts-${{ matrix.variant == 'wasm' && 'wasm32-wasip2' || 'native' }}
+          path: target/release
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Verify downloaded artifacts
+        id: check-artifacts
+        run: |
+          if [ -f "target/release/riptide-api" ] && [ -f "target/release/riptide-headless" ] && [ -f "target/release/riptide-workers" ]; then
+            echo "✅ Using artifacts from CI workflow (saves 15-20 minutes!)"
+            echo "has-artifacts=true" >> $GITHUB_OUTPUT
+            ls -lh target/release/riptide-*
+          else
+            echo "⚠️  No CI artifacts found, will build from scratch"
+            echo "has-artifacts=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Rust environment
+        if: steps.check-artifacts.outputs.has-artifacts != 'true'
+        uses: ./.github/actions/setup-rust
+        with:
           targets: ${{ matrix.variant == 'wasm' && 'wasm32-wasip2' || '' }}
-
-      - name: Install sccache
-        uses: mozilla-actions/sccache-action@v0.0.6
-
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
-
-      - name: Restore Cargo cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: "docker-build-cache-${{ matrix.variant }}"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          shared-key: docker-build-cache-${{ matrix.variant }}
 
       - name: Build native binaries (${{ matrix.variant }} variant)
         if: |
-          matrix.variant == 'native' ||
-          github.ref == 'refs/heads/main' ||
-          github.event_name == 'workflow_dispatch' ||
-          startsWith(github.ref, 'refs/tags/v')
+          steps.check-artifacts.outputs.has-artifacts != 'true' &&
+          (matrix.variant == 'native' ||
+           github.ref == 'refs/heads/main' ||
+           github.event_name == 'workflow_dispatch' ||
+           startsWith(github.ref, 'refs/tags/v'))
         env:
           RUSTFLAGS: "-C target-cpu=x86-64-v2"
         run: |

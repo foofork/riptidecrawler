@@ -243,6 +243,7 @@ async fn test_memory_pressure_detection() -> Result<()> {
 }
 
 #[tokio::test]
+#[cfg(feature = "wasm-extractor")]
 async fn test_wasm_single_instance_per_worker() -> Result<()> {
     let mut config = ApiConfig::default();
     config.wasm.instances_per_worker = 1; // Requirement verification

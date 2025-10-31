@@ -13,29 +13,6 @@ use tokio::time::timeout;
 use tracing::{debug, error, info, warn};
 use url::Url;
 
-/// Convert from riptide_types ExtractedDoc to riptide_core ExtractedDoc
-fn convert_html_doc(doc: riptide_types::ExtractedDoc) -> ExtractedDoc {
-    ExtractedDoc {
-        url: doc.url,
-        title: doc.title,
-        text: doc.text,
-        quality_score: doc.quality_score,
-        links: doc.links,
-        byline: doc.byline,
-        published_iso: doc.published_iso,
-        markdown: doc.markdown,
-        media: doc.media,
-        parser_metadata: doc.parser_metadata,
-        language: doc.language,
-        reading_time: doc.reading_time,
-        word_count: doc.word_count,
-        categories: doc.categories,
-        site_name: doc.site_name,
-        description: doc.description,
-        html: doc.html,
-    }
-}
-
 /// Convert from riptide_types::ExtractedContent to ExtractedDoc
 fn convert_extracted_content(content: riptide_types::ExtractedContent, url: &str) -> ExtractedDoc {
     ExtractedDoc {
@@ -786,7 +763,6 @@ impl PipelineOrchestrator {
     ) -> ApiResult<ExtractedDoc> {
         #[cfg(feature = "wasm-extractor")]
         use crate::reliability_integration::WasmExtractorAdapter;
-        use riptide_reliability::ExtractionMode;
 
         // Create adapter for WasmExtractor to work with ReliableExtractor (with metrics)
         #[cfg(feature = "wasm-extractor")]

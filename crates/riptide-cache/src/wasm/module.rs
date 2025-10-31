@@ -17,7 +17,6 @@
 //! - **Access counting** for cache hit rate metrics
 //! - **Timeout protection** for loading operations
 
-use anyhow::{anyhow, Result};
 #[cfg(feature = "wasm-extractor")]
 use once_cell::sync::OnceCell;
 #[cfg(feature = "wasm-extractor")]
@@ -168,6 +167,7 @@ impl WasmModuleCache {
 
 /// Cache statistics
 #[derive(Debug, Clone)]
+#[cfg(feature = "wasm-extractor")]
 pub struct CacheStats {
     pub path: String,
     pub loaded_at: Instant,
@@ -260,7 +260,7 @@ impl WasmCache {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "wasm-extractor"))]
 mod tests {
     use super::*;
 

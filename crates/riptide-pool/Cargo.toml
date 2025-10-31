@@ -27,6 +27,7 @@ tokio-test = "0.4"
 tempfile = "3.8"
 # Phase 1: WASM Optional - wasmtime-wasi for dev/tests
 wasmtime-wasi = { workspace = true }
+wasmtime = { workspace = true }
 
 [features]
 default = []

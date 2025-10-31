@@ -1,3 +1,4 @@
+#![cfg(feature = "wasm-pool")]
 //! Memory management tests for stratified pooling
 //!
 //! Tests hot/warm/cold tier pool management, memory tracking, and GC

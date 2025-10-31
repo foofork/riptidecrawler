@@ -52,31 +52,13 @@ jobs:
         run: |
           echo "key=rust-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}-${{ github.sha }}" >> $GITHUB_OUTPUT
 
-      - name: Install Rust (stable)
-        uses: dtolnay/rust-toolchain@stable
+      - name: Setup Rust environment
+        uses: ./.github/actions/setup-rust
         with:
-          toolchain: stable
           targets: wasm32-wasip2
           components: rustfmt, clippy
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libfontconfig1-dev pkg-config fontconfig
-          # Set PKG_CONFIG_PATH for fontconfig
-          echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> $GITHUB_ENV
-          # Verify fontconfig pkg-config file exists
-          pkg-config --modversion fontconfig || echo "Warning: fontconfig.pc not found"
-
-      - name: Install sccache
-        uses: mozilla-actions/sccache-action@v0.0.6
-
-      - name: Restore Cargo cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ steps.cache-key.outputs.key }}
-          shared-key: "ci-cache"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-key: ${{ steps.cache-key.outputs.key }}
+          shared-key: ci-cache
 
       - name: Check formatting
         run: cargo fmt --all --check
@@ -98,29 +80,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Setup Rust environment
+        uses: ./.github/actions/setup-rust
         with:
-          toolchain: stable
           targets: ${{ matrix.target == 'wasm32-wasip2' && 'wasm32-wasip2' || '' }}
-
-      - name: Install sccache
-        uses: mozilla-actions/sccache-action@v0.0.6
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libfontconfig1-dev pkg-config fontconfig
-          # Set PKG_CONFIG_PATH for fontconfig
-          echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> $GITHUB_ENV
-          # Verify fontconfig pkg-config file exists
-          pkg-config --modversion fontconfig || echo "Warning: fontconfig.pc not found"
-
-      - name: Restore Cargo cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ needs.check.outputs.cache-key }}-${{ matrix.target }}
-          shared-key: "build-cache-${{ matrix.target }}"
+          cache-key: ${{ needs.check.outputs.cache-key }}-${{ matrix.target }}
+          shared-key: build-cache-${{ matrix.target }}
 
       - name: Build native binaries (fast, native-only)
         if: matrix.target == 'native'
@@ -328,28 +293,11 @@ jobs:
           sudo apt-get clean
           df -h
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Setup Rust environment
+        uses: ./.github/actions/setup-rust
         with:
-          toolchain: stable
-
-      - name: Install sccache
-        uses: mozilla-actions/sccache-action@v0.0.6
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libfontconfig1-dev pkg-config fontconfig
-          # Set PKG_CONFIG_PATH for fontconfig
-          echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> $GITHUB_ENV
-          # Verify fontconfig pkg-config file exists
-          pkg-config --modversion fontconfig || echo "Warning: fontconfig.pc not found"
-
-      - name: Restore Cargo cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ needs.check.outputs.cache-key }}-test
-          shared-key: "test-cache"
+          cache-key: ${{ needs.check.outputs.cache-key }}-test
+          shared-key: test-cache
 
       - name: Run unit tests (non-browser, parallel)
         if: matrix.test-type == 'unit'
@@ -548,22 +496,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Setup Rust environment
+        uses: ./.github/actions/setup-rust
         with:
-          toolchain: stable
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libfontconfig1-dev pkg-config fontconfig
-          # Set PKG_CONFIG_PATH for fontconfig
-          echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> $GITHUB_ENV
-          # Verify fontconfig pkg-config file exists
-          pkg-config --modversion fontconfig || echo "Warning: fontconfig.pc not found"
-
-      - name: Install sccache
-        uses: mozilla-actions/sccache-action@v0.0.6
+          shared-key: benchmark-cache
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4

@@ -283,8 +283,6 @@ async fn execute_direct_extraction(
     output_format: &str,
     mut engine: Engine,
 ) -> Result<()> {
-    use std::time::Instant;
-
     // Check if WASM should be skipped
     if args.no_wasm && (engine == Engine::Wasm || engine == Engine::Auto) {
         output::print_warning("WASM extraction disabled via --no-wasm flag");

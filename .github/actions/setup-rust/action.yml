@@ -1,0 +1,52 @@
+name: 'Setup Rust Environment'
+description: 'Install Rust toolchain with system dependencies, caching, and sccache'
+
+inputs:
+  toolchain:
+    description: 'Rust toolchain to install'
+    required: false
+    default: 'stable'
+  targets:
+    description: 'Additional targets (comma-separated)'
+    required: false
+    default: ''
+  components:
+    description: 'Additional components (comma-separated)'
+    required: false
+    default: ''
+  cache-key:
+    description: 'Custom cache key suffix'
+    required: false
+    default: 'default'
+  shared-key:
+    description: 'Shared cache key for cross-workflow caching'
+    required: false
+    default: 'rust-cache'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install system dependencies
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libfontconfig1-dev pkg-config fontconfig
+        echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> $GITHUB_ENV
+        pkg-config --modversion fontconfig || echo "Warning: fontconfig.pc not found"
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ inputs.toolchain }}
+        targets: ${{ inputs.targets }}
+        components: ${{ inputs.components }}
+
+    - name: Install sccache
+      uses: mozilla-actions/sccache-action@v0.0.6
+
+    - name: Restore Cargo cache
+      uses: Swatinem/rust-cache@v2
+      with:
+        key: ${{ inputs.cache-key }}
+        shared-key: ${{ inputs.shared-key }}
+        save-if: ${{ github.ref == 'refs/heads/main' }}

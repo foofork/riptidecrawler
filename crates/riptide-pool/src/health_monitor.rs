@@ -1,15 +1,8 @@
-use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
-use tokio::time::{interval, timeout};
-use tracing::{debug, error, info, warn};
+use std::time::Instant;
 
-use crate::config::{ExtractorConfig, PerformanceMetrics};
 #[cfg(feature = "wasm-pool")]
 use crate::AdvancedInstancePool;
-use riptide_events::{EventBus, HealthEvent, HealthStatus, MetricType, MetricsEvent};
-use std::collections::HashMap;
 
 /// Pool health status
 #[derive(Debug, Clone, Serialize, Deserialize)]

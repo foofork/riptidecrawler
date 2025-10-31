@@ -24,16 +24,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - name: Setup Rust environment
+        uses: ./.github/actions/setup-rust
+        with:
+          shared-key: metrics-cache
 
-      - name: System deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libfontconfig1-dev pkg-config bc time jq
-
-      - name: sccache
-        uses: mozilla-actions/sccache-action@v0.0.6
+      - name: Install additional tools
+        run: sudo apt-get update && sudo apt-get install -y bc time jq
 
       - name: Cargo cache
         id: cache

@@ -51,8 +51,6 @@ pub use manager::*;
 pub use css_strategy::CssSelectorStrategy;
 pub use regex_strategy::{PatternConfig, RegexPatternStrategy};
 
-use crate::extraction_strategies::ContentExtractor;
-
 #[cfg(feature = "wasm-extractor")]
 use crate::extraction_strategies::WasmExtractor as ContentWasmExtractor;
 use anyhow::Result;

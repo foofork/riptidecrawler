@@ -1,3 +1,4 @@
+#![cfg(feature = "wasm-pool")]
 #![allow(clippy::all)]
 
 use riptide_pool::*;

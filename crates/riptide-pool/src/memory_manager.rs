@@ -1,13 +1,4 @@
-use anyhow::{anyhow, Result};
-use std::collections::{HashMap, VecDeque};
-use std::sync::{
-    atomic::{AtomicU64, AtomicUsize, Ordering},
-    Arc,
-};
 use std::time::{Duration, Instant};
-use tokio::sync::{mpsc, watch, Mutex, RwLock};
-use tokio::time::interval;
-use tracing::{debug, error, info, warn};
 
 #[cfg(feature = "wasm-pool")]
 use wasmtime::component::Component;
@@ -1063,7 +1054,7 @@ impl Drop for WasmInstanceHandle {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "wasm-pool"))]
 mod tests {
     use super::*;
     use wasmtime::{Config, Engine};
