@@ -1,0 +1,271 @@
+# ============================================================================
+# RipTide - Multi-Variant Docker Compose Configuration
+# ============================================================================
+# This file demonstrates BOTH native and WASM image variants running
+# side-by-side for comparison and testing.
+#
+# Use this configuration to:
+#   • Compare performance between native and WASM
+#   • Test both extractors simultaneously
+#   • Benchmark extraction speed differences
+#
+# Quick Start:
+#   docker-compose -f docker-compose.variants.yml up -d
+#   docker-compose -f docker-compose.variants.yml logs -f
+#   docker-compose -f docker-compose.variants.yml down
+#
+# Services:
+#   • riptide-api-native (port 8080) - Native extraction (fast)
+#   • riptide-api-wasm (port 8081)   - WASM extraction (sandboxed)
+#   • redis (port 6379)              - Shared cache
+#
+# ============================================================================
+
+version: '3.8'
+
+services:
+  # =========================================================================
+  # Native Variant - Fast, Recommended for Production
+  # =========================================================================
+  riptide-api-native:
+    build:
+      context: ../..
+      dockerfile: examples/docker/Dockerfile.api.wasm
+      args:
+        ENABLE_WASM: "false"
+    image: riptide-api:native
+    container_name: riptide-native
+    restart: unless-stopped
+
+    ports:
+      - "8080:8080"
+
+    environment:
+      - RUST_LOG=${RUST_LOG:-info,riptide_api=debug}
+      - RUST_BACKTRACE=1
+
+      # API configuration
+      - RIPTIDE_API_HOST=0.0.0.0
+      - RIPTIDE_API_PORT=8080
+
+      # Redis connection
+      - REDIS_URL=redis://redis:6379/0
+
+      # No WASM_EXTRACTOR_PATH needed (native only)
+
+      # Search configuration
+      - SERPER_API_KEY=${SERPER_API_KEY}
+
+    volumes:
+      - riptide-native-data:/opt/riptide/data
+      - riptide-native-cache:/opt/riptide/cache
+      - riptide-native-logs:/opt/riptide/logs
+
+    networks:
+      - riptide-network
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+    labels:
+      - "com.riptide.variant=native"
+      - "com.riptide.performance=fast"
+      - "com.riptide.extractor=native-parser"
+
+
+  # =========================================================================
+  # WASM Variant - Sandboxed, Security-Critical
+  # =========================================================================
+  riptide-api-wasm:
+    build:
+      context: ../..
+      dockerfile: examples/docker/Dockerfile.api.wasm
+      args:
+        ENABLE_WASM: "true"
+    image: riptide-api:wasm
+    container_name: riptide-wasm
+    restart: unless-stopped
+
+    ports:
+      - "8081:8080"  # Different port to avoid conflict
+
+    environment:
+      - RUST_LOG=${RUST_LOG:-info,riptide_api=debug}
+      - RUST_BACKTRACE=1
+
+      # API configuration
+      - RIPTIDE_API_HOST=0.0.0.0
+      - RIPTIDE_API_PORT=8080
+
+      # Redis connection
+      - REDIS_URL=redis://redis:6379/1  # Different Redis DB
+
+      # WASM extractor path (pre-configured in image)
+      - WASM_EXTRACTOR_PATH=/opt/riptide/extractor/extractor.wasm
+
+      # Search configuration
+      - SERPER_API_KEY=${SERPER_API_KEY}
+
+    volumes:
+      - riptide-wasm-data:/opt/riptide/data
+      - riptide-wasm-cache:/opt/riptide/cache
+      - riptide-wasm-logs:/opt/riptide/logs
+
+    networks:
+      - riptide-network
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G  # More memory for WASM runtime
+        reservations:
+          cpus: '0.5'
+          memory: 768M
+
+    labels:
+      - "com.riptide.variant=wasm"
+      - "com.riptide.performance=secure"
+      - "com.riptide.extractor=wasm-sandboxed"
+
+
+  # =========================================================================
+  # Redis - Shared Cache and Session Storage
+  # =========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: riptide-redis
+    restart: unless-stopped
+
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --databases 16
+
+    volumes:
+      - redis-data:/data
+
+    networks:
+      - riptide-network
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  riptide-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.0.0/16
+
+
+# =============================================================================
+# Volumes - Persistent Storage (separate for each variant)
+# =============================================================================
+volumes:
+  # Native variant volumes
+  riptide-native-data:
+    driver: local
+  riptide-native-cache:
+    driver: local
+  riptide-native-logs:
+    driver: local
+
+  # WASM variant volumes
+  riptide-wasm-data:
+    driver: local
+  riptide-wasm-cache:
+    driver: local
+  riptide-wasm-logs:
+    driver: local
+
+  # Shared Redis
+  redis-data:
+    driver: local
+
+
+# =============================================================================
+# Usage Examples
+# =============================================================================
+#
+# Start both variants:
+#   docker-compose -f docker-compose.variants.yml up -d
+#
+# Test native variant (port 8080):
+#   curl -X POST http://localhost:8080/crawl \
+#     -H "Content-Type: application/json" \
+#     -d '{"urls": ["https://example.com"]}'
+#
+# Test WASM variant (port 8081):
+#   curl -X POST http://localhost:8081/crawl \
+#     -H "Content-Type: application/json" \
+#     -d '{"urls": ["https://example.com"]}'
+#
+# Compare health endpoints:
+#   curl http://localhost:8080/healthz | jq .extractor
+#   curl http://localhost:8081/healthz | jq .extractor
+#
+# View logs:
+#   docker-compose -f docker-compose.variants.yml logs -f riptide-api-native
+#   docker-compose -f docker-compose.variants.yml logs -f riptide-api-wasm
+#
+# Benchmark performance:
+#   time curl -X POST http://localhost:8080/crawl -H "Content-Type: application/json" \
+#     -d '{"urls": ["https://example.com"]}'
+#   time curl -X POST http://localhost:8081/crawl -H "Content-Type: application/json" \
+#     -d '{"urls": ["https://example.com"]}'
+#
+# Stop services:
+#   docker-compose -f docker-compose.variants.yml down
+#
+# =============================================================================
