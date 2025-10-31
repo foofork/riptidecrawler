@@ -140,10 +140,23 @@ impl EnhancedExtractExecutor {
     /// Get cache statistics
     pub async fn get_cache_stats(&self) -> String {
         let engine_stats = self.engine_cache.stats().await;
+
         #[cfg(feature = "wasm-extractor")]
-        let wasm_stats = self.wasm_cache.stats().await;
+        let wasm_status = {
+            let wasm_stats = self.wasm_cache.stats().await;
+            if let Some(wasm) = wasm_stats {
+                format!(
+                    "loaded ({}s old, {} uses)",
+                    wasm.age_seconds, wasm.use_count
+                )
+            } else {
+                "not loaded".to_string()
+            }
+        };
+
         #[cfg(not(feature = "wasm-extractor"))]
-        let wasm_stats = "WASM cache disabled (feature not enabled)".to_string();
+        let wasm_status = "WASM cache disabled (feature not enabled)".to_string();
+
         let perf_stats = self.perf_monitor.get_stats().await;
 
         format!(
@@ -153,14 +166,7 @@ impl EnhancedExtractExecutor {
             engine_stats.entries,
             engine_stats.total_hits,
             engine_stats.avg_success_rate * 100.0,
-            if let Some(wasm) = wasm_stats {
-                format!(
-                    "loaded ({}s old, {} uses)",
-                    wasm.age_seconds, wasm.use_count
-                )
-            } else {
-                "not loaded".to_string()
-            },
+            wasm_status,
             perf_stats.total_operations,
             perf_stats.success_rate * 100.0,
             perf_stats.avg_duration_ms
