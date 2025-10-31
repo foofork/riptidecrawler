@@ -111,6 +111,18 @@ pub async fn health(State(state): State<AppState>) -> Result<impl IntoResponse, 
             response_time_ms: None,
             last_check: timestamp.clone(),
         }),
+        worker_service: Some(ServiceHealth {
+            status: health_status.worker_service.to_string(),
+            message: Some(match health_status.worker_service {
+                crate::state::DependencyHealth::Healthy => "Worker service operational".to_string(),
+                crate::state::DependencyHealth::Unhealthy(ref msg) => msg.clone(),
+                crate::state::DependencyHealth::Unknown => {
+                    "Worker service status unknown".to_string()
+                }
+            }),
+            response_time_ms: None,
+            last_check: timestamp.clone(),
+        }),
     };
 
     // Implement actual system metrics collection using full health checker
@@ -319,7 +331,7 @@ pub async fn component_health_check(
                 status: "not_configured".to_string(),
                 message: Some("Headless service not configured".to_string()),
                 response_time_ms: None,
-                last_check: timestamp,
+                last_check: timestamp.clone(),
             }),
         "spider" => health_response
             .dependencies
@@ -328,10 +340,21 @@ pub async fn component_health_check(
                 status: "not_configured".to_string(),
                 message: Some("Spider engine not configured".to_string()),
                 response_time_ms: None,
-                last_check: timestamp,
+                last_check: timestamp.clone(),
             }),
+        "worker" | "worker_service" => {
+            health_response
+                .dependencies
+                .worker_service
+                .unwrap_or_else(|| ServiceHealth {
+                    status: "unknown".to_string(),
+                    message: Some("Worker service status unavailable".to_string()),
+                    response_time_ms: None,
+                    last_check: timestamp,
+                })
+        }
         _ => {
-            return Err(ApiError::not_found(format!("Component '{}' not found. Available components: redis, extractor, http_client, headless, spider", component)));
+            return Err(ApiError::not_found(format!("Component '{}' not found. Available components: redis, extractor, http_client, headless, spider, worker_service", component)));
         }
     };
 

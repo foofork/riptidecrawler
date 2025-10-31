@@ -217,6 +217,9 @@ pub struct DependencyStatus {
 
     /// Spider engine health (if configured)
     pub spider_engine: Option<ServiceHealth>,
+
+    /// Worker service health (background job processing)
+    pub worker_service: Option<ServiceHealth>,
 }
 
 /// Health status for an individual service
