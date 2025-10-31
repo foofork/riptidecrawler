@@ -52,7 +52,7 @@ use tower_http::{
 #[command(name = "riptide-api")]
 #[command(about = "RipTide Crawler API Service")]
 struct Args {
-    #[arg(long, default_value = "configs/riptide.yml")]
+    #[arg(long, default_value = "config/application/riptide.yml")]
     config: String,
 
     #[arg(long, default_value = "0.0.0.0:8080")]

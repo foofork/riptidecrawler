@@ -88,7 +88,7 @@ services:
 
       # Optional: Override config with custom settings
       # Uncomment to use custom configuration
-      # - ./configs:/opt/riptide/configs:ro
+      # - ./config:/opt/riptide/config:ro
 
     networks:
       - riptide-network

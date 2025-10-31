@@ -6,7 +6,7 @@ RipTide configuration is managed through environment variables with sensible def
 
 ## Configuration Files
 
-### Primary Configuration: `configs/riptide.yml`
+### Primary Configuration: `config/application/riptide.yml`
 
 The main configuration file controls all aspects of the crawler's behavior:
 
@@ -88,7 +88,7 @@ logging:
 
 ### Additional Configuration Files
 
-**Security Policies**: `configs/policies.yml`
+**Security Policies**: `config/application/policies.yml`
 ```yaml
 # Content security and filtering policies
 security:
@@ -98,7 +98,7 @@ security:
   content_filters: []
 ```
 
-**Content Fingerprints**: `configs/fingerprints.yml`
+**Content Fingerprints**: `config/application/fingerprints.yml`
 ```yaml
 # Content deduplication fingerprints
 fingerprinting:
@@ -297,7 +297,7 @@ The system validates configuration at startup:
 
 ```rust
 // Configuration loading and validation
-let config = Config::from_file("configs/riptide.yml")?;
+let config = Config::from_file("config/application/riptide.yml")?;
 config.validate()?;
 ```
 
@@ -327,7 +327,7 @@ Some configuration can be updated at runtime:
 ### Development Configuration
 
 ```yaml
-# configs/riptide-dev.yml
+# config/application/riptide-dev.yml
 crawl:
   concurrency: 4                # Lower concurrency for development
   timeout_ms: 30000             # Longer timeout for debugging
@@ -345,7 +345,7 @@ dynamic:
 ### Production Configuration
 
 ```yaml
-# configs/riptide-prod.yml
+# config/application/riptide-prod.yml
 crawl:
   concurrency: 32               # Higher concurrency for performance
   timeout_ms: 15000             # Shorter timeout for efficiency
@@ -362,7 +362,7 @@ dynamic:
 ### High-Security Configuration
 
 ```yaml
-# configs/riptide-secure.yml
+# config/application/riptide-secure.yml
 stealth:
   enabled: true
   random_ua: true
@@ -428,7 +428,7 @@ data:
 **Configuration Not Found**:
 ```bash
 # Check file path and permissions
-ls -la configs/riptide.yml
+ls -la config/application/riptide.yml
 # Verify Docker volume mounts
 docker inspect riptide-api | grep -A 10 Mounts
 ```
@@ -460,7 +460,7 @@ Validate configuration syntax:
 
 ```bash
 # YAML syntax check
-python -c "import yaml; yaml.safe_load(open('configs/riptide.yml'))"
+python -c "import yaml; yaml.safe_load(open('config/application/riptide.yml'))"
 
 # JSON schema validation (if schema available)
 jsonschema -i configs/riptide.yml schema/config.schema.json

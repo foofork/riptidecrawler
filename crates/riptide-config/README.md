@@ -53,10 +53,10 @@ use riptide_config::*;
 #[tokio::main]
 async fn main() -> Result<()> {
     // Load from file
-    let config = Config::from_file("configs/riptide.yml")?;
+    let config = Config::from_file("config/application/riptide.yml")?;
 
     // Load with environment overrides
-    let config = Config::from_file_with_env("configs/riptide.yml")?;
+    let config = Config::from_file_with_env("config/application/riptide.yml")?;
 
     // Load from environment only
     let config = Config::from_env()?;
@@ -73,7 +73,7 @@ async fn main() -> Result<()> {
 
 ### Configuration File Format
 
-**YAML Configuration (`configs/riptide.yml`):**
+**YAML Configuration (`config/application/riptide.yml`):**
 
 ```yaml
 # Core settings
@@ -216,10 +216,10 @@ let config = Config::for_profile("staging")?;
 ```
 
 **Profile Files:**
-- `configs/riptide.yml` - Base configuration
-- `configs/riptide-dev.yml` - Development overrides
-- `configs/riptide-prod.yml` - Production settings
-- `configs/riptide-staging.yml` - Staging configuration
+- `config/application/riptide.yml` - Base configuration
+- `config/application/riptide-dev.yml` - Development overrides
+- `config/application/riptide-prod.yml` - Production settings
+- `config/application/riptide-staging.yml` - Staging configuration
 
 ### Validation
 
@@ -248,7 +248,7 @@ config.validate_constraints()?;
 use riptide_config::*;
 
 // Watch configuration file
-let (config_rx, _watcher) = Config::watch("configs/riptide.yml")?;
+let (config_rx, _watcher) = Config::watch("config/application/riptide.yml")?;
 
 tokio::spawn(async move {
     while let Ok(new_config) = config_rx.recv().await {

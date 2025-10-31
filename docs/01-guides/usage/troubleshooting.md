@@ -460,7 +460,7 @@ curl -H "Authorization: Bearer your-api-key" \
   http://localhost:8080/crawl
 
 # Verify key in configuration
-grep -r "api_key" configs/
+grep -r "api_key" config/
 
 # Test without authentication
 # Temporarily disable auth in config
@@ -527,7 +527,7 @@ riptide-api --config /full/path/to/riptide.yml
 export RIPTIDE_CONFIG_FILE=/path/to/riptide.yml
 
 # Copy example configuration
-cp configs/riptide.yml.example riptide.yml
+cp config/application/riptide.yml.example riptide.yml
 ```
 
 #### Issue: Invalid YAML syntax

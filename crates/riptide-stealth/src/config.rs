@@ -60,7 +60,7 @@ impl Default for StealthConfig {
             fingerprinting: FingerprintingConfig::default(),
             timing: TimingConfig::default(),
             preset: StealthPreset::default(),
-            ua_file_path: Some("configs/ua_list.txt".to_string()),
+            ua_file_path: Some("config/application/ua_list.txt".to_string()),
         }
     }
 }

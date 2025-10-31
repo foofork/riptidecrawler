@@ -116,7 +116,7 @@ fi
 log_success "WASM module found at: $WASM_PATH"
 
 # Check if config file exists
-CONFIG_PATH="${RIPTIDE_CONFIG_PATH:-/opt/riptide/configs/riptide.yml}"
+CONFIG_PATH="${RIPTIDE_CONFIG_PATH:-/opt/riptide/config/application/riptide.yml}"
 if [ ! -f "$CONFIG_PATH" ]; then
     log_warning "Config file not found at: $CONFIG_PATH (using defaults)"
 else

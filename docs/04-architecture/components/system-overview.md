@@ -84,7 +84,7 @@ RipTide follows a modular, microservices-based architecture with the following c
 - **Purpose**: Caching crawled content and task queueing
 - **Port**: 6379
 - **Features**: Health checks, data persistence
-- **Configuration**: `/configs/riptide.yml`
+- **Configuration**: `/config/application/riptide.yml`
 
 ## Data Flow Architecture
 
@@ -136,7 +136,7 @@ RipTide follows a modular, microservices-based architecture with the following c
 
 ## Configuration Management
 
-### Primary Configuration: `/configs/riptide.yml`
+### Primary Configuration: `/config/application/riptide.yml`
 
 **Key Sections**:
 - **Search**: Serper.dev API integration

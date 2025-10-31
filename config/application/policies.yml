@@ -19,7 +19,7 @@ rate_limits:
 
 content_filters:
   block_patterns:
-    - "\.exe$"
-    - "\.zip$"
-    - "\.dmg$"
+    - '\.exe$'
+    - '\.zip$'
+    - '\.dmg$'
   max_size_mb: 20

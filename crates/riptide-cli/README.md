@@ -346,7 +346,7 @@ The CLI integrates seamlessly with the REST API:
 
 ```bash
 # Start API server
-./target/release/riptide-api --config configs/riptide.yml &
+./target/release/riptide-api --config config/application/riptide.yml &
 
 # CLI automatically uses API
 riptide extract --url "https://example.com"

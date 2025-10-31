@@ -152,7 +152,7 @@ curl -X POST http://localhost:8080/api/v1/extract \
 
 ### Configuration File
 
-Create `configs/riptide.yml` for advanced configuration:
+Create `config/application/riptide.yml` for advanced configuration:
 
 ```yaml
 resources:
@@ -228,7 +228,7 @@ cargo build --release --features full
 
 # Run with custom configuration
 ./target/release/riptide-api \
-  --config configs/riptide.yml \
+  --config config/application/riptide.yml \
   --bind 0.0.0.0:8080
 ```
 

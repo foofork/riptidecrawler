@@ -72,7 +72,7 @@ docker run -d --name redis -p 6379:6379 redis:7-alpine
 ./target/release/riptide-headless &
 
 # Start API service
-./target/release/riptide-api --config configs/riptide.yml --bind 0.0.0.0:8080
+./target/release/riptide-api --config config/application/riptide.yml --bind 0.0.0.0:8080
 ```
 
 ## Production Deployment
@@ -729,7 +729,7 @@ kubectl describe nodes
 **Configuration Issues**:
 ```bash
 # Verify configuration
-kubectl exec -n riptide api-pod -- cat /app/configs/riptide.yml
+kubectl exec -n riptide api-pod -- cat /app/config/application/riptide.yml
 kubectl get configmap riptide-config -o yaml
 ```
 

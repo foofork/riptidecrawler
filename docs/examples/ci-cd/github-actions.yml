@@ -101,7 +101,7 @@ jobs:
 
       - name: Start API server
         run: |
-          ./target/release/riptide-api --config configs/riptide.yml &
+          ./target/release/riptide-api --config config/application/riptide.yml &
           sleep 5
         env:
           REDIS_URL: redis://localhost:6379/0
@@ -251,7 +251,7 @@ jobs:
       - name: Build and start services
         run: |
           cargo build --release
-          ./target/release/riptide-api --config configs/riptide.yml &
+          ./target/release/riptide-api --config config/application/riptide.yml &
           sleep 5
         env:
           REDIS_URL: redis://localhost:6379/0

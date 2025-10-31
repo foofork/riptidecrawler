@@ -147,7 +147,7 @@ RUN groupadd -r riptide && useradd -r -g riptide riptide
 WORKDIR /opt/riptide
 
 # Create required directories
-RUN mkdir -p /opt/riptide/extractor /opt/riptide/configs \
+RUN mkdir -p /opt/riptide/extractor /opt/riptide/config \
              /opt/riptide/data /opt/riptide/logs /opt/riptide/cache \
     && chown -R riptide:riptide /opt/riptide
 
@@ -161,7 +161,7 @@ COPY --from=builder --chown=riptide:riptide \
     /opt/riptide/extractor/extractor.wasm
 
 # Copy configs
-COPY --chown=riptide:riptide configs /opt/riptide/configs
+COPY --chown=riptide:riptide config /opt/riptide/config
 
 # Copy healthcheck script
 COPY --chown=riptide:riptide scripts/docker/healthcheck.sh /usr/local/bin/healthcheck
@@ -179,4 +179,4 @@ ENV RUST_LOG=info \
 
 # Use tini for proper signal handling
 ENTRYPOINT ["tini", "--"]
-CMD ["riptide-api", "--config", "/opt/riptide/configs/riptide.yml"]
+CMD ["riptide-api", "--config", "/opt/riptide/config/application/riptide.yml"]

@@ -785,7 +785,7 @@ riptide-api --config riptide.yml --validate-section extraction
 
 ### Configuration Examples
 
-The `configs/` directory contains example configurations:
+The `config/application/` directory contains example configurations:
 
 - `riptide.yml.example` - Basic configuration template
 - `high-performance.yml` - High-throughput setup

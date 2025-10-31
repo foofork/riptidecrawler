@@ -1,21 +1,29 @@
-# RipTide CLI
+# RipTide CLI (Node.js)
 
-Command-line interface for the RipTide web crawler API.
+**🔹 This is the Node.js/JavaScript wrapper CLI for the RipTide API**
+
+> **Note:** There are two separate CLIs for different ecosystems:
+> - **This CLI (`/cli`)**: Lightweight Node.js HTTP client wrapper (requires API server)
+> - **Native Rust CLI (`/crates/riptide-cli`)**: Full-featured native CLI with local processing capabilities
+>
+> Choose the Node.js CLI for easy npm integration and scripting. Use the Rust CLI for better performance, local extraction, browser automation, and PDF processing without requiring an API server.
+
+Command-line HTTP client for the RipTide web crawler API.
 
 **Version:** 2.1.0
 **Status:** Production Ready (Phases 7.5, 9 complete)
 **Platform:** Cross-platform (Linux, macOS, Windows)
+**Ecosystem:** Node.js/npm
 
 ## Installation
 
-### Option 1: Cargo (Recommended for Rust users)
+### Option 1: npm/npx (Recommended)
 ```bash
-# Install from crates.io
-cargo install riptide-cli
+# Global installation
+npm install -g @riptide/cli
 
-# Or install from source
-cd /workspaces/eventmesh/crates/riptide-cli
-cargo install --path .
+# Or use directly with npx (no installation)
+npx @riptide/cli crawl https://example.com
 ```
 
 ### Option 2: Pre-built Binaries
@@ -32,9 +40,12 @@ sudo mv riptide /usr/local/bin/
 ```bash
 # Run via Docker
 docker run --rm riptide/cli:latest health
+```
 
-# Or use npx (Node.js wrapper - if available)
-npx @riptide/cli crawl https://example.com
+### Alternative: Native Rust CLI
+For local processing without an API server, see [`/crates/riptide-cli`](/crates/riptide-cli):
+```bash
+cargo install riptide-cli
 ```
 
 ## Quick Start

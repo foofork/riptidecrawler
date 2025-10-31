@@ -56,8 +56,8 @@ git clone <repository-url>
 cd riptide
 
 # Edit configuration
-cp configs/riptide.yml.example configs/riptide.yml
-# Edit configs/riptide.yml with your settings
+cp config/application/riptide.yml.example config/application/riptide.yml
+# Edit config/application/riptide.yml with your settings
 
 # Start with custom config
 docker-compose -f docker-compose.yml up -d

@@ -61,7 +61,7 @@ services:
       - target-cache:/app/target
 
       # Mount configs directory
-      - ./configs:/app/configs:ro
+      - ./config:/app/config:ro
 
       # Mount output directories
       - ./riptide-output:/app/riptide-output:delegated
