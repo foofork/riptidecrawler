@@ -82,7 +82,7 @@
 
 ### 1. Client Layer
 
-**Python SDK** (`pip install riptide-client`)
+**Python SDK** (`pip install riptide-sdk`)
 - Full API coverage
 - Type hints
 - Retry logic

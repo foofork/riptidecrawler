@@ -542,7 +542,7 @@ const searchResults = await client.deepSearch('rust programming', {
 ### Python
 
 ```python
-from riptide_client import RipTideClient
+from riptide_sdk import RipTideClient
 
 client = RipTideClient(
     base_url='http://localhost:8080',

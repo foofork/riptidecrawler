@@ -302,11 +302,11 @@ monitor.monitor(30000) // Check every 30 seconds`,
         title: 'Python SDK',
         description: 'Using the official Python SDK',
         language: 'python',
-        code: `# Install: pip install riptide-client
-from riptide import RipTide
+        code: `# Install: pip install riptide-sdk
+from riptide_sdk import RipTideClient
 
 # Initialize client
-client = RipTide('http://localhost:8080')
+client = RipTideClient('http://localhost:8080')
 
 # Basic crawl
 result = client.crawl(['https://example.com'])

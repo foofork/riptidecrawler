@@ -385,7 +385,7 @@ docs/
 
 **Integrators** → `Tools-SDKs/README.md`
 - CLI → `Tools-SDKs/CLI/`
-- Python SDK → `Tools-SDKs/Python-SDK/`
+- Python SDK (riptide-sdk) → `Tools-SDKs/Python-SDK/`
 - Playground → `Tools-SDKs/Web-Playground/`
 
 ---

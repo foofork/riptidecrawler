@@ -1,5 +1,25 @@
 # RipTide Python Client
 
+> ## ⚠️ DEPRECATION NOTICE
+>
+> **This package (`riptide-client`) is deprecated and will no longer receive updates.**
+>
+> Please migrate to the modern, async-based SDK:
+> - **New Package:** `riptide-sdk`
+> - **Location:** `/sdk/python`
+> - **Installation:** `pip install riptide-sdk`
+> - **Migration Guide:** See [MIGRATION_FROM_RIPTIDE_CLIENT.md](../sdk/python/docs/MIGRATION_FROM_RIPTIDE_CLIENT.md)
+>
+> **Key improvements in riptide-sdk:**
+> - ✅ Modern async/await support (httpx-based)
+> - ✅ 8x more comprehensive (6,470 vs 827 lines)
+> - ✅ Better architecture (modular endpoints)
+> - ✅ Active development and maintenance
+> - ✅ WebSocket streaming support
+> - ✅ Better error handling
+>
+> **Timeline:** This package will be archived on 2025-12-31.
+
 [![PyPI version](https://badge.fury.io/py/riptide-client.svg)](https://badge.fury.io/py/riptide-client)
 [![Python versions](https://img.shields.io/pypi/pyversions/riptide-client.svg)](https://pypi.org/project/riptide-client/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

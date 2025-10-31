@@ -235,7 +235,7 @@ See [ENDPOINT_CATALOG.md](./ENDPOINT_CATALOG.md) for complete documentation on a
 npm install @riptide/api-client
 
 # Python
-pip install riptide-api-client
+pip install riptide-sdk
 
 # Go
 go get github.com/riptide/go-client

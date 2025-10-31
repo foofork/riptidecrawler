@@ -40,7 +40,7 @@ RipTide is a high-performance web crawling and content extraction platform built
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │  ┌────────────────┐                                                    │
-│  │   Client SDKs  │  (CLI, Python SDK, REST API)                      │
+│  │   Client SDKs  │  (CLI, riptide-sdk, REST API)                     │
 │  └────────┬───────┘                                                    │
 │           │                                                             │
 │           ▼                                                             │

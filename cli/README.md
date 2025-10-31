@@ -612,7 +612,7 @@ git push origin cli-v1.0.0
 - [API Documentation](https://github.com/your-org/riptide-api/tree/main/docs)
 - [Issues](https://github.com/your-org/riptide-api/issues)
 - [Web Playground](http://localhost:3000)
-- [Python SDK](https://pypi.org/project/riptide-client/)
+- [Python SDK](https://pypi.org/project/riptide-sdk/)
 
 ## License
 

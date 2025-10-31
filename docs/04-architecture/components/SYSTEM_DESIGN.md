@@ -139,10 +139,11 @@ CLI → Direct Rust FFI/Subprocess → Core Services → Response
 - REST API integration
 - Real-time streaming support (SSE, WebSocket)
 
-#### Python SDK
-- Official Python client library
+#### Python SDK (riptide-sdk)
+- Official Python client library (`pip install riptide-sdk`)
 - Async/await support
 - Type hints and comprehensive docs
+- Located at `/sdk/python` in the repository
 
 ### 2. API Layer
 

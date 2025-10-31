@@ -1,5 +1,12 @@
 # RipTide Python SDK
 
+> ## 📦 Official Python SDK
+>
+> **This is the official and recommended Python SDK for RipTide.**
+>
+> If you were using the older `riptide-client` package (located in `/python-sdk`),
+> please see our [Migration Guide](docs/MIGRATION_FROM_RIPTIDE_CLIENT.md) for upgrade instructions.
+
 Official Python SDK for the RipTide web crawling and extraction API.
 
 **Version:** 0.2.0 ⚡
