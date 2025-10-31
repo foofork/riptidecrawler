@@ -48,6 +48,7 @@ version: '3.8'
 services:
   # =========================================================================
   # RipTide API - Core web scraping and extraction service
+  # Native-parser only (optimized for production)
   # =========================================================================
   riptide-api:
     build:
@@ -81,9 +82,6 @@ services:
 
       # Headless browser service (optional)
       - HEADLESS_URL=${HEADLESS_URL:-http://riptide-headless:9123}
-
-      # WASM configuration (pre-built in image)
-      - WASM_EXTRACTOR_PATH=/opt/riptide/extractor/extractor.wasm
 
       # Spider crawling engine (for deep multi-page site crawling)
       - SPIDER_ENABLE=${SPIDER_ENABLE:-true}

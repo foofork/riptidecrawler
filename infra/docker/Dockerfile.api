@@ -1,6 +1,17 @@
-# Multi-stage optimized build with caching
-# Disk optimization: Using slim base + CI profile for 40% smaller builds
+# syntax=docker/dockerfile:1
+# ============================================================================
+# RipTide API - Native-Only Production Dockerfile
+# ============================================================================
+# Optimized for production with native-parser only (no WASM dependencies)
+# For WASM variant, see: examples/docker/Dockerfile.api.wasm
+# ============================================================================
+
+# ============================================================================
+# Builder Stage
+# ============================================================================
 FROM rustlang/rust:nightly-slim AS builder
+
+WORKDIR /app
 
 # Install build dependencies with aggressive cleanup
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -9,8 +20,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     make \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-WORKDIR /app
 
 # Copy dependency files first for better caching
 COPY Cargo.toml Cargo.lock ./
@@ -45,8 +54,7 @@ COPY crates/riptide-types/Cargo.toml crates/riptide-types/
 COPY crates/riptide-workers/Cargo.toml crates/riptide-workers/
 COPY wasm/riptide-extractor-wasm/Cargo.toml wasm/riptide-extractor-wasm/
 
-# Remove benchmark and example configurations that require benches/ and examples/ directories
-# (these directories are not copied in the dependency caching layer)
+# Remove benchmark and example configurations
 RUN sed -i '/\[\[bench\]\]/,/required-features/d' crates/riptide-performance/Cargo.toml || true && \
     sed -i '/\[\[bench\]\]/,/required-features/d' crates/riptide-persistence/Cargo.toml || true && \
     sed -i '/\[\[example\]\]/,/^$/d' crates/riptide-extraction/Cargo.toml || true && \
@@ -91,24 +99,19 @@ RUN mkdir -p crates/riptide-api/src crates/riptide-browser-abstraction/src \
     echo "fn main() {}" > crates/riptide-workers/src/lib.rs && \
     echo "fn main() {}" > wasm/riptide-extractor-wasm/src/lib.rs
 
-# Build dependencies only (cached layer)
-# Disk optimization: Using --profile ci for faster builds with less artifacts
-RUN rustup target add wasm32-wasip2 && \
-    cargo build --profile ci --bin riptide-api && \
-    cd wasm/riptide-extractor-wasm && \
-    cargo build --profile ci --target wasm32-wasip2 && \
+# Build dependencies only (cached layer) - NATIVE ONLY
+RUN echo "🔧 Building native-only (no WASM)..." && \
+    cargo build --profile ci --bin riptide-api --no-default-features --features native-parser && \
     rm -rf /usr/local/cargo/registry/cache/* /app/target/*/incremental
 
 # Copy actual source code
 COPY crates crates/
 COPY wasm wasm/
 
-# Build with real source (uses cached dependencies)
-# Disk optimization: CI profile + aggressive cleanup after build
+# Build with real source (uses cached dependencies) - NATIVE ONLY
 RUN touch crates/*/src/lib.rs crates/*/src/main.rs wasm/*/src/lib.rs && \
-    cargo build --profile ci --bin riptide-api && \
-    cd wasm/riptide-extractor-wasm && \
-    cargo build --profile ci --target wasm32-wasip2 && \
+    echo "🚀 Building native-only API..." && \
+    cargo build --profile ci --bin riptide-api --no-default-features --features native-parser && \
     cd /app && \
     strip target/ci/riptide-api && \
     rm -rf /usr/local/cargo/registry/cache/* \
@@ -117,22 +120,12 @@ RUN touch crates/*/src/lib.rs crates/*/src/main.rs wasm/*/src/lib.rs && \
            /app/target/*/deps/*.rlib \
            /app/target/*/incremental
 
-# Install wasm-opt and optimize WASM in single layer to reduce disk usage
-RUN apt-get update && apt-get install -y --no-install-recommends binaryen && \
-    wasm-opt -Oz target/wasm32-wasip2/ci/riptide_extractor_wasm.wasm \
-        -o target/wasm32-wasip2/ci/riptide_extractor_wasm.optimized.wasm || \
-    cp target/wasm32-wasip2/ci/riptide_extractor_wasm.wasm \
-       target/wasm32-wasip2/ci/riptide_extractor_wasm.optimized.wasm && \
-    apt-get purge -y binaryen && \
-    apt-get autoremove -y && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-# Optimized runtime stage
-# Using Debian Trixie to match builder's GLIBC 2.41
+# ============================================================================
+# Runtime Stage
+# ============================================================================
 FROM debian:trixie-slim AS runtime
 
-# Install runtime dependencies in single layer
+# Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libssl3 \
@@ -141,24 +134,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Create non-root user for security
+# Create non-root user
 RUN groupadd -r riptide && useradd -r -g riptide riptide
 
 WORKDIR /opt/riptide
 
-# Create required directories
-RUN mkdir -p /opt/riptide/extractor /opt/riptide/config \
-             /opt/riptide/data /opt/riptide/logs /opt/riptide/cache \
-    && chown -R riptide:riptide /opt/riptide
+# Create directories (no extractor dir needed for native-only)
+RUN mkdir -p /opt/riptide/config /opt/riptide/data /opt/riptide/logs /opt/riptide/cache && \
+    chown -R riptide:riptide /opt/riptide
 
-# Copy optimized binary (from CI profile)
+# Copy optimized binary
 COPY --from=builder --chown=riptide:riptide \
     /app/target/ci/riptide-api /usr/local/bin/riptide-api
-
-# Copy optimized WASM module (from CI profile)
-COPY --from=builder --chown=riptide:riptide \
-    /app/target/wasm32-wasip2/ci/riptide_extractor_wasm.optimized.wasm \
-    /opt/riptide/extractor/extractor.wasm
 
 # Copy configs
 COPY --chown=riptide:riptide config /opt/riptide/config
@@ -172,10 +159,16 @@ USER riptide
 
 EXPOSE 8080
 
-# Environment optimization
+# Environment configuration
 ENV RUST_LOG=info \
     RUST_BACKTRACE=1 \
     MALLOC_ARENA_MAX=2
+
+# Labels for image metadata
+LABEL org.opencontainers.image.title="RipTide API" \
+      org.opencontainers.image.description="High-performance web crawling - Native Parser Only" \
+      org.opencontainers.image.variant="native" \
+      org.opencontainers.image.wasm.enabled="false"
 
 # Use tini for proper signal handling
 ENTRYPOINT ["tini", "--"]
