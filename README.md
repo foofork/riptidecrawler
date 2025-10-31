@@ -14,19 +14,22 @@ Extract structured data from any website with intelligent routing, multi-provide
 
 ## ✨ Why RipTide?
 
-- 🚀 **Blazing Fast** - WASM-accelerated extraction with intelligent static/browser routing
+- 🚀 **Blazing Fast** - Native Rust extraction (2-5ms) with optional WASM sandboxing
 - 🧠 **AI-Powered** - 8 LLM providers (OpenAI, Anthropic, Google, Azure, AWS, Ollama) with automatic failover
 - 🎯 **Smart Crawling** - Deep spider engine with relevance-based frontier management
 - 🔄 **Real-Time Streams** - NDJSON, SSE, and WebSocket protocols with backpressure control
 - 🛡️ **Production Ready** - Redis caching, session management, health monitoring, and graceful degradation
 - 🧩 **Modular Architecture** - 27-crate workspace with clean separation of concerns
+- ⚡ **Flexible Extraction** - Choose native (fast) or WASM (sandboxed) with three-tier fallback
 
 ---
 
 ## 🎯 Key Features
 
 ### Extraction & Processing
-- **WASM-Powered Extraction** - WebAssembly Component Model (Wasmtime 37) with AOT caching
+- **Native Parser (Default)** - Pure Rust extraction (2-5ms) with scraper crate for 99% of use cases
+- **Optional WASM Sandboxing** - WebAssembly Component Model (Wasmtime 37) for security-critical applications
+- **Three-Tier Fallback** - Compile-time → Runtime → Execution fallback for maximum reliability
 - **Dual-Path Pipeline** - Static extraction (90% of requests) with headless browser fallback
 - **Multi-Strategy Extraction** - CSS selectors, LLM-based, Regex, with auto-selection
 - **PDF Processing** - Full text extraction with table parsing and streaming support
@@ -103,20 +106,37 @@ docker-compose -f docker-compose.lite.yml up -d  # ~440MB, no Chrome
 
 ### Option 2: Build from Source
 
+**Default (Native Parser - Fast, Recommended):**
 ```bash
 # Install Rust toolchain
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-rustup target add wasm32-wasip2
 
-# Build WASM component and API
-make build-wasm
-make build-release
+# Build API (native parser only, 40% faster)
+cargo build --release
 
 # Start Redis
 docker run -d --name redis -p 6379:6379 redis:7-alpine
 
-# Run RipTide
-./target/release/riptide-api --config configs/riptide.yml
+# Run RipTide (no WASM needed!)
+./target/release/riptide-api
+```
+
+**With WASM (Optional - Security-Critical):**
+```bash
+# Install Rust with WASM target
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup target add wasm32-wasip2
+
+# Build with WASM feature
+cargo build --release --features wasm-extractor
+cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm
+
+# Start Redis
+docker run -d --name redis -p 6379:6379 redis:7-alpine
+
+# Run RipTide with WASM
+export WASM_EXTRACTOR_PATH=target/wasm32-wasip2/release/riptide_extractor_wasm.wasm
+./target/release/riptide-api
 ```
 
 ---
@@ -239,9 +259,10 @@ riptide spider https://docs.rs --depth 3 --pages 100
 
 ### 📖 API Reference
 - **[Endpoint Catalog](docs/02-api-reference/ENDPOINT_CATALOG.md)** - 120+ routes, 59 primary endpoints
-- **[OpenAPI Specification](docs/02-api-reference/openapi.yaml)** - Complete API schema
 - **[Streaming Protocols](docs/02-api-reference/streaming.md)** - NDJSON, SSE, WebSocket
 - **[LLM Provider Setup](docs/01-guides/setup/LLM_PROVIDER_SETUP.md)** - Configure AI providers
+- **[Feature Flags](docs/FEATURES.md)** - Native vs WASM extraction modes
+- **[Docker Guide](docs/DOCKER.md)** - Container deployment options
 
 ### 🏗️ Architecture
 - **[System Overview](docs/04-architecture/ARCHITECTURE.md)** - High-level architecture

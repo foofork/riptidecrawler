@@ -335,6 +335,7 @@ pub async fn execute(
     result
 }
 
+#[cfg(feature = "pdf")]
 #[allow(clippy::too_many_arguments)]
 async fn execute_extract(
     input: String,
@@ -446,6 +447,23 @@ async fn execute_extract(
     Ok(())
 }
 
+#[cfg(not(feature = "pdf"))]
+#[allow(clippy::too_many_arguments)]
+async fn execute_extract(
+    _input: String,
+    _format: String,
+    _tables: bool,
+    _images: bool,
+    _ocr: bool,
+    _pages: Option<String>,
+    _output_path: Option<String>,
+    _metadata_only: bool,
+    _output_format: &str,
+) -> Result<()> {
+    anyhow::bail!("PDF support not enabled. Rebuild with --features pdf")
+}
+
+#[cfg(feature = "pdf")]
 #[allow(clippy::too_many_arguments)]
 async fn execute_to_md(
     input: String,
@@ -510,6 +528,22 @@ async fn execute_to_md(
     Ok(())
 }
 
+#[cfg(not(feature = "pdf"))]
+#[allow(clippy::too_many_arguments)]
+async fn execute_to_md(
+    _input: String,
+    _output_path: Option<String>,
+    _preserve_format: bool,
+    _include_images: bool,
+    _convert_tables: bool,
+    _pages: Option<String>,
+    _image_dir: Option<String>,
+    _output_format: &str,
+) -> Result<()> {
+    anyhow::bail!("PDF support not enabled. Rebuild with --features pdf")
+}
+
+#[cfg(feature = "pdf")]
 async fn execute_info(
     input: String,
     detailed: bool,
@@ -584,6 +618,17 @@ async fn execute_info(
     Ok(())
 }
 
+#[cfg(not(feature = "pdf"))]
+async fn execute_info(
+    _input: String,
+    _detailed: bool,
+    _format: String,
+    _output_format: &str,
+) -> Result<()> {
+    anyhow::bail!("PDF support not enabled. Rebuild with --features pdf")
+}
+
+#[cfg(feature = "pdf")]
 async fn execute_stream(
     input: String,
     include_metadata: bool,
@@ -647,4 +692,16 @@ async fn execute_stream(
     }
 
     Ok(())
+}
+
+#[cfg(not(feature = "pdf"))]
+async fn execute_stream(
+    _input: String,
+    _include_metadata: bool,
+    _include_tables: bool,
+    _include_images: bool,
+    _pages: Option<String>,
+    _batch_size: u32,
+) -> Result<()> {
+    anyhow::bail!("PDF support not enabled. Rebuild with --features pdf")
 }

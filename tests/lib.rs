@@ -6,6 +6,9 @@
 
 pub mod fixtures;
 
+// Phase 5: Feature Flag and Fallback Tests
+pub mod extractor_fallback_tests;
+
 // WASM Component Tests
 pub mod wasm {
     pub mod wasm_extractor_integration;

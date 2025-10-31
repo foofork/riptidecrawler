@@ -48,8 +48,15 @@ pub mod regex_extraction;
 // Re-enable once types are moved to a shared crate or dependency cycle is resolved
 // pub mod strategy_implementations;
 pub mod extraction_strategies;
-pub mod wasm_extraction; // WASM-based extraction moved from riptide-core // Content extraction strategies moved from riptide-core
-                         // pub mod spider;  // Temporarily disabled due to compilation errors
+
+// WASM extraction module (only with wasm-extractor feature)
+#[cfg(feature = "wasm-extractor")]
+pub mod wasm_extraction;
+
+// Unified extractor with three-tier fallback
+pub mod unified_extractor;
+
+// pub mod spider;  // Temporarily disabled due to compilation errors
 pub mod chunking;
 pub mod enhanced_extractor;
 pub mod table_extraction;
@@ -59,8 +66,11 @@ pub mod tables;
 pub mod html_parser;
 pub mod strategies;
 
-// P2-F1 Day 3: WASM validation moved from riptide-core
+// P2-F1 Day 3: WASM validation moved from riptide-core (only with wasm-extractor feature)
+#[cfg(feature = "wasm-extractor")]
 pub mod validation;
+
+#[cfg(feature = "wasm-extractor")]
 pub use validation::{
     validate_before_instantiation, ComponentMetadata, TypeMismatch, TypeSignature,
     ValidationReport, WitValidator,
@@ -77,15 +87,24 @@ pub use dom_utils::{
 pub use enhanced_extractor::StructuredExtractor;
 pub use extraction_strategies::{
     extract_links_basic, fallback_extract, ContentExtractor, CssExtractorStrategy,
-    WasmExtractor as StrategyWasmExtractor,
 };
+
+// Conditional exports for WASM extraction
+#[cfg(feature = "wasm-extractor")]
+pub use extraction_strategies::WasmExtractor as StrategyWasmExtractor;
+
+#[cfg(feature = "wasm-extractor")]
+pub use wasm_extraction::{
+    CmExtractor, ExtractorConfig, HostExtractionMode, WasmExtractor, WasmResourceTracker,
+};
+
+// Always export unified extractor and native extractor
+pub use unified_extractor::{NativeExtractor, UnifiedExtractor};
+
 pub use processor::{
     ChunkingMode, HtmlProcessor, ProcessingError, ProcessingResult, TableExtractionMode,
 };
 pub use regex_extraction::{default_patterns, extract as regex_extract, RegexExtractor};
-pub use wasm_extraction::{
-    CmExtractor, ExtractorConfig, HostExtractionMode, WasmExtractor, WasmResourceTracker,
-};
 // Re-export ExtractedDoc from riptide-types
 pub use riptide_types::ExtractedDoc;
 

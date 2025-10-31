@@ -6,6 +6,7 @@ use tokio::time::{interval, timeout};
 use tracing::{debug, error, info, warn};
 
 use crate::config::{ExtractorConfig, PerformanceMetrics};
+#[cfg(feature = "wasm-pool")]
 use crate::AdvancedInstancePool;
 use riptide_events::{EventBus, HealthEvent, HealthStatus, MetricType, MetricsEvent};
 use std::collections::HashMap;
@@ -95,6 +96,7 @@ pub enum HealthTrend {
 }
 
 /// Pool health monitor with automated diagnostics
+#[cfg(feature = "wasm-pool")]
 pub struct PoolHealthMonitor {
     /// Pool to monitor
     pool: Arc<AdvancedInstancePool>,
@@ -110,6 +112,7 @@ pub struct PoolHealthMonitor {
     monitor_id: String,
 }
 
+#[cfg(feature = "wasm-pool")]
 impl PoolHealthMonitor {
     /// Create new health monitor
     pub fn new(

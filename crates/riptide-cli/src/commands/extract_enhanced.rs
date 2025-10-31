@@ -13,6 +13,7 @@
 use crate::client::RipTideClient;
 use crate::commands::engine_cache::EngineSelectionCache;
 use crate::commands::performance_monitor::{ExtractionMetrics, PerformanceMonitor, StageTimer};
+#[cfg(feature = "wasm-extractor")]
 use crate::commands::wasm_cache::WasmModuleCache;
 use crate::commands::ExtractArgs;
 use crate::output;
@@ -24,6 +25,7 @@ use std::time::Duration;
 #[allow(dead_code)]
 pub struct EnhancedExtractExecutor {
     engine_cache: EngineSelectionCache,
+    #[cfg(feature = "wasm-extractor")]
     wasm_cache: WasmModuleCache,
     perf_monitor: PerformanceMonitor,
 }
@@ -33,6 +35,7 @@ impl EnhancedExtractExecutor {
     pub fn new() -> Self {
         Self {
             engine_cache: EngineSelectionCache::new(Duration::from_secs(3600), 1000),
+            #[cfg(feature = "wasm-extractor")]
             wasm_cache: WasmModuleCache::new(Duration::from_secs(10)),
             perf_monitor: PerformanceMonitor::new(1000),
         }
@@ -137,7 +140,10 @@ impl EnhancedExtractExecutor {
     /// Get cache statistics
     pub async fn get_cache_stats(&self) -> String {
         let engine_stats = self.engine_cache.stats().await;
+        #[cfg(feature = "wasm-extractor")]
         let wasm_stats = self.wasm_cache.stats().await;
+        #[cfg(not(feature = "wasm-extractor"))]
+        let wasm_stats = "WASM cache disabled (feature not enabled)".to_string();
         let perf_stats = self.perf_monitor.get_stats().await;
 
         format!(

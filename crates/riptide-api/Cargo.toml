@@ -46,7 +46,8 @@ tower-http = { workspace = true, features = ["timeout"] }
 tracing-subscriber = { workspace = true }
 riptide-pdf = { path = "../riptide-pdf", features = ["pdf"] }
 riptide-stealth = { path = "../riptide-stealth", features = ["stealth"] }
-riptide-extraction = { path = "../riptide-extraction" }
+# Phase 1: WASM Optional - Use native-parser by default, wasm-extractor opt-in
+riptide-extraction = { path = "../riptide-extraction", default-features = false, features = ["css-extraction", "regex-extraction", "dom-utils", "chunking", "native-parser"] }
 riptide-types = { path = "../riptide-types" }
 riptide-reliability = { path = "../riptide-reliability" }
 riptide-fetch = { path = "../riptide-fetch" }
@@ -94,7 +95,7 @@ serial_test = "3.2"
 lazy_static = "1.4"
 
 [features]
-default = []
+default = ["native-parser"]
 # WIP feature gates for scaffolding code not yet fully wired
 events = []           # EventEmitter/ResultTransformer in handlers/shared
 sessions = []         # Session management system
@@ -103,5 +104,10 @@ telemetry = []        # Telemetry configuration
 persistence = []      # Advanced caching and multi-tenancy with riptide-persistence
 jemalloc = ["riptide-performance/jemalloc", "tikv-jemallocator"]  # Real memory monitoring via riptide-performance's jemalloc
 profiling-full = ["jemalloc", "riptide-performance/bottleneck-analysis-full"]  # Full profiling with flamegraphs (dev only)
+
+# Phase 1: WASM Optional - Feature flags for extraction strategies
+native-parser = ["riptide-extraction/native-parser"]     # Native Rust parser (default, fast)
+wasm-extractor = ["riptide-extraction/wasm-extractor"]   # WASM-based extraction (opt-in)
+
 # Full feature set for production (when ready)
 full = ["events", "sessions", "streaming", "telemetry", "persistence", "jemalloc"]

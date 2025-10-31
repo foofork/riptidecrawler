@@ -1,6 +1,8 @@
 //! Pool configuration and resource tracking types
 
 use serde::{Deserialize, Serialize};
+
+#[cfg(feature = "wasm-pool")]
 use wasmtime::ResourceLimiter;
 
 /// Configuration for the pool and extractor component
@@ -189,6 +191,7 @@ impl Default for WasmResourceTracker {
     }
 }
 
+#[cfg(feature = "wasm-pool")]
 impl ResourceLimiter for WasmResourceTracker {
     fn memory_growing(
         &mut self,

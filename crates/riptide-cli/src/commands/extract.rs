@@ -5,7 +5,8 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::fs;
 
-// Local extraction support
+// Local extraction support (only with wasm-extractor feature)
+#[cfg(feature = "wasm-extractor")]
 use riptide_extraction::wasm_extraction::WasmExtractor;
 
 // Headless browser support
@@ -324,86 +325,94 @@ async fn execute_direct_extraction(
     }
 
     // Perform WASM extraction
-    output::print_info("Performing local WASM extraction...");
-    let extraction_start = Instant::now();
+    #[cfg(feature = "wasm-extractor")]
+    {
+        output::print_info("Performing local WASM extraction...");
+        let extraction_start = Instant::now();
 
-    // Resolve WASM path
-    let wasm_path = resolve_wasm_path(&args);
+        // Resolve WASM path
+        let wasm_path = resolve_wasm_path(&args);
 
-    // Verify WASM file exists
-    if !std::path::Path::new(&wasm_path).exists() {
-        output::print_warning(&format!("WASM file not found at: {}", wasm_path));
-        anyhow::bail!(
-            "WASM module not found at '{}'. Please:\n  \
-             1. Build the WASM module: cargo build --release --target wasm32-wasip2\n  \
-             2. Specify path with: --wasm-path <path>\n  \
-             3. Set environment: RIPTIDE_WASM_PATH=<path>",
-            wasm_path
-        );
-    }
-
-    // Create extractor
-    output::print_info(&format!("Loading WASM module from: {}", wasm_path));
-    let timeout_duration = std::time::Duration::from_millis(args.init_timeout_ms);
-    let extractor_result =
-        tokio::time::timeout(timeout_duration, WasmExtractor::new(&wasm_path)).await;
-
-    let extractor = match extractor_result {
-        Ok(Ok(ext)) => {
-            output::print_info("✓ WASM module loaded successfully");
-            ext
-        }
-        Ok(Err(e)) => {
-            anyhow::bail!("Failed to initialize WASM module: {}", e);
-        }
-        Err(_) => {
+        // Verify WASM file exists
+        if !std::path::Path::new(&wasm_path).exists() {
+            output::print_warning(&format!("WASM file not found at: {}", wasm_path));
             anyhow::bail!(
-                "WASM module initialization timed out after {}ms",
-                args.init_timeout_ms
+                "WASM module not found at '{}'. Please:\n  \
+                 1. Build the WASM module: cargo build --release --target wasm32-wasip2\n  \
+                 2. Specify path with: --wasm-path <path>\n  \
+                 3. Set environment: RIPTIDE_WASM_PATH=<path>",
+                wasm_path
             );
         }
-    };
 
-    let mode = if args.metadata {
-        "metadata"
-    } else if args.method == "full" {
-        "full"
-    } else {
-        "article"
-    };
+        // Create extractor
+        output::print_info(&format!("Loading WASM module from: {}", wasm_path));
+        let timeout_duration = std::time::Duration::from_millis(args.init_timeout_ms);
+        let extractor_result =
+            tokio::time::timeout(timeout_duration, WasmExtractor::new(&wasm_path)).await;
 
-    let result = extractor.extract(html.as_bytes(), &source, mode)?;
-    let extraction_time = extraction_start.elapsed();
+        let extractor = match extractor_result {
+            Ok(Ok(ext)) => {
+                output::print_info("✓ WASM module loaded successfully");
+                ext
+            }
+            Ok(Err(e)) => {
+                anyhow::bail!("Failed to initialize WASM module: {}", e);
+            }
+            Err(_) => {
+                anyhow::bail!(
+                    "WASM module initialization timed out after {}ms",
+                    args.init_timeout_ms
+                );
+            }
+        };
 
-    // Calculate metrics
-    let word_count = result.text.split_whitespace().count();
-    let confidence = result.quality_score.unwrap_or(0) as f64 / 100.0;
+        let mode = if args.metadata {
+            "metadata"
+        } else if args.method == "full" {
+            "full"
+        } else {
+            "article"
+        };
 
-    // Create response
-    let extract_result = ExtractResponse {
-        content: result.text.clone(),
-        confidence: Some(confidence),
-        method_used: Some(format!("local-{}", engine.name())),
-        extraction_time_ms: Some(extraction_time.as_millis() as u64),
-        metadata: Some(serde_json::json!({
-            "engine": engine.name(),
-            "source": source,
-            "title": result.title,
-            "byline": result.byline,
-            "published": result.published_iso,
-            "site_name": result.site_name,
-            "description": result.description,
-            "word_count": word_count,
-            "reading_time": result.reading_time,
-            "quality_score": result.quality_score,
-            "links_count": result.links.len(),
-            "media_count": result.media.len(),
-            "language": result.language,
-            "categories": result.categories,
-        })),
-    };
+        let result = extractor.extract(html.as_bytes(), &source, mode)?;
+        let extraction_time = extraction_start.elapsed();
 
-    output_extraction_result(extract_result, &args, output_format, &source)
+        // Calculate metrics
+        let word_count = result.text.split_whitespace().count();
+        let confidence = result.quality_score.unwrap_or(0) as f64 / 100.0;
+
+        // Create response
+        let extract_result = ExtractResponse {
+            content: result.text.clone(),
+            confidence: Some(confidence),
+            method_used: Some(format!("local-{}", engine.name())),
+            extraction_time_ms: Some(extraction_time.as_millis() as u64),
+            metadata: Some(serde_json::json!({
+                "engine": engine.name(),
+                "source": source,
+                "title": result.title,
+                "byline": result.byline,
+                "published": result.published_iso,
+                "site_name": result.site_name,
+                "description": result.description,
+                "word_count": word_count,
+                "reading_time": result.reading_time,
+                "quality_score": result.quality_score,
+                "links_count": result.links.len(),
+                "media_count": result.media.len(),
+                "language": result.language,
+                "categories": result.categories,
+            })),
+        };
+
+        output_extraction_result(extract_result, &args, output_format, &source)
+    }
+
+    #[cfg(not(feature = "wasm-extractor"))]
+    {
+        anyhow::bail!("WASM extraction not available. Rebuild with --features wasm-extractor")
+    }
 }
 
 /// Execute local WASM extraction without API server
@@ -534,106 +543,114 @@ async fn execute_local_extraction(
     }
 
     // Perform local extraction
-    output::print_info("Performing local WASM extraction...");
-    let extraction_start = Instant::now();
+    #[cfg(not(feature = "wasm-extractor"))]
+    {
+        anyhow::bail!("Local WASM extraction not available. Rebuild with --features wasm-extractor or use API mode");
+    }
 
-    // Resolve WASM path with priority order
-    let wasm_path = resolve_wasm_path(&args);
+    #[cfg(feature = "wasm-extractor")]
+    {
+        output::print_info("Performing local WASM extraction...");
+        let extraction_start = Instant::now();
 
-    // Verify WASM file exists before attempting to load
-    if !std::path::Path::new(&wasm_path).exists() {
-        output::print_warning(&format!("WASM file not found at: {}", wasm_path));
-        anyhow::bail!(
-            "WASM module not found at '{}'. Please:\n  \
+        // Resolve WASM path with priority order
+        let wasm_path = resolve_wasm_path(&args);
+
+        // Verify WASM file exists before attempting to load
+        if !std::path::Path::new(&wasm_path).exists() {
+            output::print_warning(&format!("WASM file not found at: {}", wasm_path));
+            anyhow::bail!(
+                "WASM module not found at '{}'. Please:\n  \
              1. Build the WASM module: cargo build --release --target wasm32-wasip2\n  \
              2. Specify path with: --wasm-path <path>\n  \
              3. Set environment: RIPTIDE_WASM_PATH=<path>\n  \
              4. Or use API server mode without --local flag",
-            wasm_path
-        );
-    }
-
-    // Create extractor with timeout handling
-    output::print_info(&format!("Loading WASM module from: {}", wasm_path));
-    output::print_info(&format!(
-        "Initialization timeout: {}ms",
-        args.init_timeout_ms
-    ));
-
-    let timeout_duration = std::time::Duration::from_millis(args.init_timeout_ms);
-    let extractor_result =
-        tokio::time::timeout(timeout_duration, WasmExtractor::new(&wasm_path)).await;
-
-    let extractor = match extractor_result {
-        Ok(Ok(ext)) => {
-            output::print_info("✓ WASM module loaded successfully");
-            ext
-        }
-        Ok(Err(e)) => {
-            output::print_warning(&format!("WASM initialization failed: {}", e));
-            anyhow::bail!(
-                "Failed to initialize WASM module: {}\n  \
-                 Tip: Verify the WASM file is valid and compatible with the current runtime",
-                e
+                wasm_path
             );
         }
-        Err(_) => {
-            output::print_warning(&format!(
-                "WASM initialization timed out after {}ms",
-                args.init_timeout_ms
-            ));
-            anyhow::bail!(
-                "WASM module initialization timed out after {}ms.\n  \
+
+        // Create extractor with timeout handling
+        output::print_info(&format!("Loading WASM module from: {}", wasm_path));
+        output::print_info(&format!(
+            "Initialization timeout: {}ms",
+            args.init_timeout_ms
+        ));
+
+        let timeout_duration = std::time::Duration::from_millis(args.init_timeout_ms);
+        let extractor_result =
+            tokio::time::timeout(timeout_duration, WasmExtractor::new(&wasm_path)).await;
+
+        let extractor = match extractor_result {
+            Ok(Ok(ext)) => {
+                output::print_info("✓ WASM module loaded successfully");
+                ext
+            }
+            Ok(Err(e)) => {
+                output::print_warning(&format!("WASM initialization failed: {}", e));
+                anyhow::bail!(
+                    "Failed to initialize WASM module: {}\n  \
+                 Tip: Verify the WASM file is valid and compatible with the current runtime",
+                    e
+                );
+            }
+            Err(_) => {
+                output::print_warning(&format!(
+                    "WASM initialization timed out after {}ms",
+                    args.init_timeout_ms
+                ));
+                anyhow::bail!(
+                    "WASM module initialization timed out after {}ms.\n  \
                  Possible causes:\n  \
                  - WASM file is too large or complex\n  \
                  - System resource constraints\n  \
                  - File I/O issues\n  \
                  Try: Increase timeout with --init-timeout-ms <milliseconds>",
-                args.init_timeout_ms
-            );
-        }
-    };
+                    args.init_timeout_ms
+                );
+            }
+        };
 
-    let mode = if args.metadata {
-        "metadata"
-    } else if args.method == "full" {
-        "full"
-    } else {
-        "article"
-    };
+        let mode = if args.metadata {
+            "metadata"
+        } else if args.method == "full" {
+            "full"
+        } else {
+            "article"
+        };
 
-    let result = extractor.extract(html.as_bytes(), url, mode)?;
-    let extraction_time = extraction_start.elapsed();
+        let result = extractor.extract(html.as_bytes(), url, mode)?;
+        let extraction_time = extraction_start.elapsed();
 
-    // Calculate word count and confidence
-    let word_count = result.text.split_whitespace().count();
-    let confidence = result.quality_score.unwrap_or(0) as f64 / 100.0;
+        // Calculate word count and confidence
+        let word_count = result.text.split_whitespace().count();
+        let confidence = result.quality_score.unwrap_or(0) as f64 / 100.0;
 
-    // Create response structure
-    let extract_result = ExtractResponse {
-        content: result.text.clone(),
-        confidence: Some(confidence),
-        method_used: Some(format!("local-{}", engine.name())),
-        extraction_time_ms: Some(extraction_time.as_millis() as u64),
-        metadata: Some(serde_json::json!({
-            "engine": engine.name(),
-            "title": result.title,
-            "byline": result.byline,
-            "published": result.published_iso,
-            "site_name": result.site_name,
-            "description": result.description,
-            "word_count": word_count,
-            "reading_time": result.reading_time,
-            "quality_score": result.quality_score,
-            "links_count": result.links.len(),
-            "media_count": result.media.len(),
-            "language": result.language,
-            "categories": result.categories,
-            "fetch_time_ms": fetch_time.as_millis(),
-        })),
-    };
+        // Create response structure
+        let extract_result = ExtractResponse {
+            content: result.text.clone(),
+            confidence: Some(confidence),
+            method_used: Some(format!("local-{}", engine.name())),
+            extraction_time_ms: Some(extraction_time.as_millis() as u64),
+            metadata: Some(serde_json::json!({
+                "engine": engine.name(),
+                "title": result.title,
+                "byline": result.byline,
+                "published": result.published_iso,
+                "site_name": result.site_name,
+                "description": result.description,
+                "word_count": word_count,
+                "reading_time": result.reading_time,
+                "quality_score": result.quality_score,
+                "links_count": result.links.len(),
+                "media_count": result.media.len(),
+                "language": result.language,
+                "categories": result.categories,
+                "fetch_time_ms": fetch_time.as_millis(),
+            })),
+        };
 
-    output_extraction_result(extract_result, &args, output_format, url)
+        output_extraction_result(extract_result, &args, output_format, url)
+    }
 }
 
 /// Execute headless browser extraction for JavaScript-heavy sites
@@ -735,67 +752,77 @@ async fn execute_headless_extraction(
     let extraction_time = extraction_start.elapsed();
 
     // Now use WASM extractor to parse the rendered HTML
-    output::print_info("Parsing rendered content with WASM extractor...");
-
-    let wasm_path = resolve_wasm_path(args);
-    if !std::path::Path::new(&wasm_path).exists() {
+    #[cfg(not(feature = "wasm-extractor"))]
+    {
         anyhow::bail!(
-            "WASM module not found at '{}'. Headless extraction requires WASM for content parsing.",
-            wasm_path
+            "Headless extraction requires WASM extractor. Rebuild with --features wasm-extractor"
         );
     }
 
-    let timeout_duration = std::time::Duration::from_millis(args.init_timeout_ms);
-    let extractor_result =
-        tokio::time::timeout(timeout_duration, WasmExtractor::new(&wasm_path)).await;
+    #[cfg(feature = "wasm-extractor")]
+    {
+        output::print_info("Parsing rendered content with WASM extractor...");
 
-    let extractor = match extractor_result {
-        Ok(Ok(ext)) => ext,
-        Ok(Err(e)) => anyhow::bail!("Failed to initialize WASM module: {}", e),
-        Err(_) => anyhow::bail!("WASM module initialization timed out"),
-    };
+        let wasm_path = resolve_wasm_path(args);
+        if !std::path::Path::new(&wasm_path).exists() {
+            anyhow::bail!(
+            "WASM module not found at '{}'. Headless extraction requires WASM for content parsing.",
+            wasm_path
+        );
+        }
 
-    let mode = if args.metadata {
-        "metadata"
-    } else if args.method == "full" {
-        "full"
-    } else {
-        "article"
-    };
+        let timeout_duration = std::time::Duration::from_millis(args.init_timeout_ms);
+        let extractor_result =
+            tokio::time::timeout(timeout_duration, WasmExtractor::new(&wasm_path)).await;
 
-    let result = extractor.extract(html.as_bytes(), &final_url, mode)?;
+        let extractor = match extractor_result {
+            Ok(Ok(ext)) => ext,
+            Ok(Err(e)) => anyhow::bail!("Failed to initialize WASM module: {}", e),
+            Err(_) => anyhow::bail!("WASM module initialization timed out"),
+        };
 
-    // Calculate metrics
-    let word_count = result.text.split_whitespace().count();
-    let confidence = result.quality_score.unwrap_or(0) as f64 / 100.0;
+        let mode = if args.metadata {
+            "metadata"
+        } else if args.method == "full" {
+            "full"
+        } else {
+            "article"
+        };
 
-    // Create response
-    let extract_result = ExtractResponse {
-        content: result.text.clone(),
-        confidence: Some(confidence),
-        method_used: Some("headless".to_string()),
-        extraction_time_ms: Some(extraction_time.as_millis() as u64),
-        metadata: Some(serde_json::json!({
-            "engine": "headless",
-            "title": result.title,
-            "byline": result.byline,
-            "published": result.published_iso,
-            "site_name": result.site_name,
-            "description": result.description,
-            "word_count": word_count,
-            "reading_time": result.reading_time,
-            "quality_score": result.quality_score,
-            "links_count": result.links.len(),
-            "media_count": result.media.len(),
-            "language": result.language,
-            "categories": result.categories,
-            "final_url": final_url,
-            "stealth_enabled": args.stealth_level.is_some(),
-            "stealth_level": args.stealth_level.as_ref().unwrap_or(&"none".to_string()),
-        })),
-    };
+        let result = extractor.extract(html.as_bytes(), &final_url, mode)?;
 
-    output_extraction_result(extract_result, args, output_format, url)
+        // Calculate metrics
+        let word_count = result.text.split_whitespace().count();
+        let confidence = result.quality_score.unwrap_or(0) as f64 / 100.0;
+
+        // Create response
+        let extract_result = ExtractResponse {
+            content: result.text.clone(),
+            confidence: Some(confidence),
+            method_used: Some("headless".to_string()),
+            extraction_time_ms: Some(extraction_time.as_millis() as u64),
+            metadata: Some(serde_json::json!({
+                "engine": "headless",
+                "title": result.title,
+                "byline": result.byline,
+                "published": result.published_iso,
+                "site_name": result.site_name,
+                "description": result.description,
+                "word_count": word_count,
+                "reading_time": result.reading_time,
+                "quality_score": result.quality_score,
+                "links_count": result.links.len(),
+                "media_count": result.media.len(),
+                "language": result.language,
+                "categories": result.categories,
+                "final_url": final_url,
+                "stealth_enabled": args.stealth_level.is_some(),
+                "stealth_level": args.stealth_level.as_ref().unwrap_or(&"none".to_string()),
+            })),
+        };
+
+        output_extraction_result(extract_result, args, output_format, url)
+    }
 }
 
 /// Output extraction results in the specified format

@@ -9,6 +9,7 @@
 //! - Background warming tasks with configurable intervals
 //! - Integration with existing instance pool health monitoring
 
+#![cfg(feature = "wasm-pool")]
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -20,6 +21,7 @@ use tokio::time::{interval, sleep};
 use tracing::{debug, error, info, warn};
 
 use riptide_events::{BaseEvent, Event, EventBus, EventSeverity};
+#[cfg(feature = "wasm-pool")]
 use riptide_pool::{AdvancedInstancePool, PooledInstance};
 use riptide_types::ExtractionMode;
 

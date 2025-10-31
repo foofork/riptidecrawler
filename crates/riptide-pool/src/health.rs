@@ -2,6 +2,8 @@
 //!
 //! Provides health check functionality for WASM component instances.
 
+#![cfg(feature = "wasm-pool")]
+
 use anyhow::Result;
 use std::time::Duration;
 use tracing::{debug, error, info, warn};

@@ -4,6 +4,7 @@
 //! and riptide-extraction's WasmExtractor, implementing the trait adapter pattern.
 
 use anyhow::Result;
+#[cfg(feature = "wasm-extractor")]
 use riptide_extraction::wasm_extraction::WasmExtractor as ConcreteWasmExtractor;
 use riptide_reliability::reliability::{
     ReliabilityMetricsRecorder, WasmExtractor as WasmExtractorTrait,
@@ -13,11 +14,13 @@ use std::sync::Arc;
 use std::time::Instant;
 
 /// Adapter to make riptide_extraction::WasmExtractor compatible with the reliability trait
+#[cfg(feature = "wasm-extractor")]
 pub struct WasmExtractorAdapter {
     extractor: Arc<ConcreteWasmExtractor>,
     metrics: Option<Arc<crate::metrics::RipTideMetrics>>,
 }
 
+#[cfg(feature = "wasm-extractor")]
 impl WasmExtractorAdapter {
     /// Create a new WASM extractor adapter without metrics
     /// Public API for reliability system initialization
@@ -41,6 +44,7 @@ impl WasmExtractorAdapter {
     }
 }
 
+#[cfg(feature = "wasm-extractor")]
 impl WasmExtractorTrait for WasmExtractorAdapter {
     fn extract(&self, html: &[u8], url: &str, mode: &str) -> Result<ExtractedDoc> {
         let start = Instant::now();

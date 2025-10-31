@@ -32,11 +32,20 @@ concurrency:
 jobs:
   # Build binaries first (reusable for Docker)
   build-artifacts:
-    name: Build Release Artifacts
+    name: Build Release Artifacts (${{ matrix.variant }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # Only run if CI workflow succeeded (or manual/tag trigger)
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        variant:
+          - native  # Fast builds without WASM (default for PRs)
+          - wasm    # Full build with WASM (for main/releases)
+        include:
+          # WASM variant only on main branch, tags, or workflow_dispatch
+          - variant: wasm
     steps:
       - uses: actions/checkout@v4
 
@@ -44,7 +53,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-          targets: wasm32-wasip2
+          targets: ${{ matrix.variant == 'wasm' && 'wasm32-wasip2' || '' }}
 
       - name: Install sccache
         uses: mozilla-actions/sccache-action@v0.0.6
@@ -55,15 +64,28 @@ jobs:
       - name: Restore Cargo cache
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: "docker-build-cache"
+          shared-key: "docker-build-cache-${{ matrix.variant }}"
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
-      - name: Build native binaries
+      - name: Build native binaries (${{ matrix.variant }} variant)
+        if: |
+          matrix.variant == 'native' ||
+          github.ref == 'refs/heads/main' ||
+          github.event_name == 'workflow_dispatch' ||
+          startsWith(github.ref, 'refs/tags/v')
         env:
           RUSTFLAGS: "-C target-cpu=x86-64-v2"
         run: |
-          echo "🔨 Building native release binaries..."
-          cargo build --release -p riptide-api
+          echo "🔨 Building native release binaries (${{ matrix.variant }} variant)..."
+
+          if [ "${{ matrix.variant }}" = "native" ]; then
+            echo "Building with native-parser only (no WASM, 40% faster)..."
+            cargo build --release -p riptide-api --no-default-features --features native-parser
+          else
+            echo "Building with WASM support..."
+            cargo build --release -p riptide-api --features wasm-extractor
+          fi
+
           cargo build --release -p riptide-headless
           cargo build --release -p riptide-workers
 
@@ -77,6 +99,11 @@ jobs:
           ls -lh target/release/riptide-*
 
       - name: Build WASM component
+        if: |
+          matrix.variant == 'wasm' &&
+          (github.ref == 'refs/heads/main' ||
+           github.event_name == 'workflow_dispatch' ||
+           startsWith(github.ref, 'refs/tags/v'))
         run: |
           echo "🔨 Building WASM component..."
           cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm
@@ -90,7 +117,7 @@ jobs:
       - name: Upload native artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: native-binaries
+          name: native-binaries-${{ matrix.variant }}
           path: |
             target/release/riptide-api
             target/release/riptide-headless
@@ -99,6 +126,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload WASM artifacts
+        if: matrix.variant == 'wasm'
         uses: actions/upload-artifact@v4
         with:
           name: wasm-binaries
@@ -106,9 +134,9 @@ jobs:
           retention-days: 3
           if-no-files-found: error
 
-  # Build Docker images in parallel
+  # Build Docker images in parallel (both native and WASM variants for API)
   docker-build:
-    name: Build ${{ matrix.service }} Image
+    name: Build ${{ matrix.service }} Image (${{ matrix.variant || 'default' }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: build-artifacts
@@ -116,8 +144,19 @@ jobs:
       contents: read
       packages: write
     strategy:
+      fail-fast: false
       matrix:
         service: [api, headless]
+        variant: [native]  # Default to native-only builds
+        include:
+          # Add WASM variant for API on main/releases only
+          - service: api
+            variant: wasm
+            enable_wasm: true
+        exclude:
+          # Headless doesn't use extraction, always native
+          - service: headless
+            variant: wasm
     steps:
       - uses: actions/checkout@v4
 
@@ -137,11 +176,11 @@ jobs:
       - name: Download native artifacts
         uses: actions/download-artifact@v4
         with:
-          name: native-binaries
+          name: native-binaries-${{ matrix.variant }}
           path: artifacts/
 
-      - name: Download WASM artifacts (API only)
-        if: matrix.service == 'api'
+      - name: Download WASM artifacts (API WASM variant only)
+        if: matrix.service == 'api' && matrix.variant == 'wasm'
         uses: actions/download-artifact@v4
         with:
           name: wasm-binaries
@@ -149,10 +188,11 @@ jobs:
 
       - name: Verify artifacts
         run: |
-          echo "📦 Verifying build artifacts..."
+          echo "📦 Verifying build artifacts (${{ matrix.variant }} variant)..."
           ls -lh artifacts/
-          if [ "${{ matrix.service }}" = "api" ]; then
-            ls -lh wasm-dist/
+          if [ "${{ matrix.service }}" = "api" ] && [ "${{ matrix.variant }}" = "wasm" ]; then
+            echo "WASM artifacts:"
+            ls -lh wasm-dist/ || echo "No WASM artifacts (expected for native variant)"
           fi
 
       - name: Extract metadata
@@ -161,12 +201,13 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.service }}
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch,suffix=-${{ matrix.variant }}
+            type=ref,event=pr,suffix=-${{ matrix.variant }}
+            type=semver,pattern={{version}},suffix=-${{ matrix.variant }}
+            type=semver,pattern={{major}}.{{minor}},suffix=-${{ matrix.variant }}
+            type=sha,prefix={{branch}}-${{ matrix.variant }}-
+            type=raw,value=latest-${{ matrix.variant }},enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' && matrix.variant == 'native' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -176,9 +217,11 @@ jobs:
           push: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) || inputs.push_to_registry }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.service }}-${{ matrix.variant }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}-${{ matrix.variant }}
           platforms: linux/amd64
+          build-args: |
+            ENABLE_WASM=${{ matrix.variant == 'wasm' && 'true' || 'false' }}
 
       - name: Export image for testing
         if: github.event_name == 'pull_request'
@@ -186,43 +229,47 @@ jobs:
         with:
           context: .
           file: infra/docker/Dockerfile.${{ matrix.service }}
-          tags: riptide-${{ matrix.service }}:test
-          cache-from: type=gha
-          outputs: type=docker,dest=/tmp/riptide-${{ matrix.service }}.tar
+          tags: riptide-${{ matrix.service }}:test-${{ matrix.variant }}
+          cache-from: type=gha,scope=${{ matrix.service }}-${{ matrix.variant }}
+          outputs: type=docker,dest=/tmp/riptide-${{ matrix.service }}-${{ matrix.variant }}.tar
+          build-args: |
+            ENABLE_WASM=${{ matrix.variant == 'wasm' && 'true' || 'false' }}
 
       - name: Upload image artifact (PRs only)
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: docker-image-${{ matrix.service }}
-          path: /tmp/riptide-${{ matrix.service }}.tar
+          name: docker-image-${{ matrix.service }}-${{ matrix.variant }}
+          path: /tmp/riptide-${{ matrix.service }}-${{ matrix.variant }}.tar
           retention-days: 1
 
   # Validate Docker images work
   docker-test:
-    name: Test ${{ matrix.service }} Image
+    name: Test ${{ matrix.service }} Image (${{ matrix.variant }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: docker-build
     if: github.event_name == 'pull_request'
     strategy:
+      fail-fast: false
       matrix:
         service: [api, headless]
+        variant: [native]  # Only test native variant in PRs for speed
     steps:
       - name: Download image
         uses: actions/download-artifact@v4
         with:
-          name: docker-image-${{ matrix.service }}
+          name: docker-image-${{ matrix.service }}-${{ matrix.variant }}
           path: /tmp
 
       - name: Load and test image
         run: |
-          docker load -i /tmp/riptide-${{ matrix.service }}.tar
-          echo "✅ Image loaded successfully"
+          docker load -i /tmp/riptide-${{ matrix.service }}-${{ matrix.variant }}.tar
+          echo "✅ Image loaded successfully (${{ matrix.variant }} variant)"
 
           # Basic smoke test
-          docker run --rm riptide-${{ matrix.service }}:test --version || true
-          echo "✅ Image runs"
+          docker run --rm riptide-${{ matrix.service }}:test-${{ matrix.variant }} --version || true
+          echo "✅ Image runs (${{ matrix.variant }} variant)"
 
   # Summary
   docker-complete:

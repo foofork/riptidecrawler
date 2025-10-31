@@ -8,7 +8,10 @@ use std::time::{Duration, Instant};
 use tokio::sync::{mpsc, watch, Mutex, RwLock};
 use tokio::time::interval;
 use tracing::{debug, error, info, warn};
+
+#[cfg(feature = "wasm-pool")]
 use wasmtime::component::Component;
+#[cfg(feature = "wasm-pool")]
 use wasmtime::{Engine, Store};
 
 /// Configuration for memory management and monitoring
@@ -115,6 +118,7 @@ pub enum MemoryEvent {
 }
 
 /// WASM instance with memory tracking
+#[cfg(feature = "wasm-pool")]
 pub struct TrackedWasmInstance {
     pub id: String,
     pub store: Store<()>,
@@ -132,6 +136,7 @@ pub struct TrackedWasmInstance {
     pub access_frequency: f64,
 }
 
+#[cfg(feature = "wasm-pool")]
 impl TrackedWasmInstance {
     pub fn new(id: String, store: Store<()>, component: Component) -> Self {
         let now = Instant::now();
@@ -216,6 +221,7 @@ impl TrackedWasmInstance {
 /// - Hot tier: Ready instantly (0-5ms)
 /// - Warm tier: Fast activation (10-50ms)
 /// - Cold tier: Create on demand (100-200ms)
+#[cfg(feature = "wasm-pool")]
 pub struct StratifiedInstancePool {
     hot: VecDeque<TrackedWasmInstance>,
     warm: VecDeque<TrackedWasmInstance>,
@@ -229,6 +235,7 @@ pub struct StratifiedInstancePool {
     promotions: Arc<AtomicU64>,
 }
 
+#[cfg(feature = "wasm-pool")]
 impl StratifiedInstancePool {
     pub fn new(hot_cap: usize, warm_cap: usize) -> Self {
         Self {
@@ -432,6 +439,7 @@ pub struct PoolMetrics {
 }
 
 /// Memory manager for WASM instances with pooling and optimization
+#[cfg(feature = "wasm-pool")]
 pub struct MemoryManager {
     config: MemoryManagerConfig,
     engine: Engine,
@@ -456,6 +464,7 @@ pub struct MemoryManager {
     _management_task: tokio::task::JoinHandle<()>,
 }
 
+#[cfg(feature = "wasm-pool")]
 impl MemoryManager {
     /// Create a new memory manager
     pub async fn new(config: MemoryManagerConfig, engine: Engine) -> Result<Self> {
@@ -931,6 +940,7 @@ impl MemoryManager {
 /// Reference to the memory manager for checkout operations
 /// Uses Arc clones to maintain strong references for safety
 #[derive(Clone)]
+#[cfg(feature = "wasm-pool")]
 pub struct MemoryManagerRef {
     stratified_pool: Arc<Mutex<StratifiedInstancePool>>,
     in_use_instances: Arc<RwLock<HashMap<String, TrackedWasmInstance>>>,
@@ -938,6 +948,7 @@ pub struct MemoryManagerRef {
     config: MemoryManagerConfig,
 }
 
+#[cfg(feature = "wasm-pool")]
 impl MemoryManagerRef {
     fn new(manager: &MemoryManager) -> Self {
         Self {
@@ -972,11 +983,13 @@ impl MemoryManagerRef {
 }
 
 /// Handle for a checked-out WASM instance
+#[cfg(feature = "wasm-pool")]
 pub struct WasmInstanceHandle {
     instance_id: String,
     manager: MemoryManagerRef,
 }
 
+#[cfg(feature = "wasm-pool")]
 impl WasmInstanceHandle {
     /// Get the instance ID
     pub fn instance_id(&self) -> &str {
@@ -1026,6 +1039,7 @@ impl WasmInstanceHandle {
     }
 }
 
+#[cfg(feature = "wasm-pool")]
 impl Drop for WasmInstanceHandle {
     fn drop(&mut self) {
         warn!(

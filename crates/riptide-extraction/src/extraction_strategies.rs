@@ -3,7 +3,10 @@
 //! This module provides different content extraction strategies including
 //! WASM-based extraction and fallback methods.
 
-use crate::{wasm_extraction::CmExtractor, ExtractedContent};
+#[cfg(feature = "wasm-extractor")]
+use crate::wasm_extraction::CmExtractor;
+
+use crate::ExtractedContent;
 use anyhow::Result;
 use async_trait::async_trait;
 use scraper::{Html, Selector};
@@ -18,10 +21,13 @@ pub trait ContentExtractor: Send + Sync {
 }
 
 /// WASM extraction strategy - Default WASM-based extraction
+/// Only available when wasm-extractor feature is enabled
+#[cfg(feature = "wasm-extractor")]
 pub struct WasmExtractor {
     wasm_extractor: Option<CmExtractor>,
 }
 
+#[cfg(feature = "wasm-extractor")]
 impl WasmExtractor {
     pub async fn new(wasm_path: Option<&str>) -> Result<Self> {
         let wasm_extractor = if let Some(path) = wasm_path {
@@ -34,6 +40,7 @@ impl WasmExtractor {
     }
 }
 
+#[cfg(feature = "wasm-extractor")]
 #[async_trait]
 impl ContentExtractor for WasmExtractor {
     async fn extract(&self, html: &str, url: &str) -> Result<ExtractedContent> {
@@ -157,9 +164,18 @@ pub async fn fallback_extract(html: &str, url: &str) -> Result<ExtractedContent>
 }
 
 /// Direct extraction function for compatibility
+/// Uses WASM if feature is enabled, otherwise falls back to native
 pub async fn extract(html: &str, url: &str) -> Result<ExtractedContent> {
-    let extractor = WasmExtractor::new(None).await?;
-    extractor.extract(html, url).await
+    #[cfg(feature = "wasm-extractor")]
+    {
+        let extractor = WasmExtractor::new(None).await?;
+        extractor.extract(html, url).await
+    }
+
+    #[cfg(not(feature = "wasm-extractor"))]
+    {
+        fallback_extract(html, url).await
+    }
 }
 
 /// CSS-based extraction strategy
@@ -394,6 +410,7 @@ mod tests {
         assert!(result.extraction_confidence > 0.7);
     }
 
+    #[cfg(feature = "wasm-extractor")]
     #[tokio::test]
     async fn test_wasm_extractor_fallback() {
         let html = r#"<html><head><title>Test</title></head><body><p>Content</p></body></html>"#;

@@ -36,9 +36,10 @@ uuid = { version = "1.0", features = ["v4"] }
 # Optional features
 futures.workspace = true
 
-# WASM extraction dependencies (moved from riptide-core)
-wasmtime = { workspace = true }
-wasmtime-wasi = { workspace = true }
+# WASM extraction dependencies (OPTIONAL - Phase 1)
+# Only compiled when wasm-extractor feature is enabled
+wasmtime = { workspace = true, optional = true }
+wasmtime-wasi = { workspace = true, optional = true }
 
 # Table extraction dependencies
 chrono = { workspace = true, features = ["serde"] }
@@ -59,7 +60,7 @@ tempfile.workspace = true
 futures.workspace = true
 
 [features]
-default = ["css-extraction", "regex-extraction", "dom-utils", "chunking"]
+default = ["css-extraction", "regex-extraction", "dom-utils", "chunking", "native-parser"]
 css-extraction = []
 regex-extraction = []
 dom-utils = []
@@ -68,6 +69,10 @@ chunking = []
 spider = []
 strategy-traits = []
 jsonld-shortcircuit = []  # Phase 10: Early return for complete JSON-LD schemas
+
+# Phase 1: WASM Optional - New feature flags
+native-parser = []           # Use native Rust parser (default, fast, always available)
+wasm-extractor = ["dep:wasmtime", "dep:wasmtime-wasi"]  # Enable WASM-based extraction (opt-in)
 
 [[example]]
 name = "basic_extraction"

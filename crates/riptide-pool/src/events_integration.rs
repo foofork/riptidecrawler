@@ -4,6 +4,8 @@
 //! capabilities to the existing AdvancedInstancePool without requiring
 //! significant changes to the existing codebase.
 
+#![cfg(feature = "wasm-pool")]
+
 use crate::pool::AdvancedInstancePool;
 use anyhow::Result;
 use async_trait::async_trait;

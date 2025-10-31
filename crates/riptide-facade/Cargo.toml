@@ -9,7 +9,8 @@ authors.workspace = true
 # Internal dependencies
 riptide-types = { path = "../riptide-types" }
 riptide-fetch = { path = "../riptide-fetch" }
-riptide-extraction = { path = "../riptide-extraction" }
+# Phase 1: WASM Optional - Use native-parser by default
+riptide-extraction = { path = "../riptide-extraction", default-features = false, features = ["css-extraction", "regex-extraction", "dom-utils", "chunking", "native-parser"] }
 riptide-pdf = { path = "../riptide-pdf" }
 riptide-cache = { path = "../riptide-cache" }
 riptide-browser = { path = "../riptide-browser" }

@@ -33,6 +33,7 @@ pub use aot::{
     get_global_aot_cache, AotCacheConfig, CacheEntry as AotCacheEntry, CacheStats as AotCacheStats,
     CompiledModule, WasmAotCache,
 };
+#[cfg(feature = "wasm-extractor")]
 pub use module::{
     get_cached_extractor, CacheStats as ModuleCacheStats, CachedWasmModule, WasmCache,
     WasmModuleCache,

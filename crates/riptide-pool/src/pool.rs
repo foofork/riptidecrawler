@@ -7,6 +7,8 @@ use tokio::sync::{Mutex, Semaphore};
 use tokio::time::{sleep, timeout};
 use tracing::{debug, info, warn};
 use uuid::Uuid;
+
+#[cfg(feature = "wasm-pool")]
 use wasmtime::{component::*, Engine};
 
 use crate::config::{ExtractorConfig, PerformanceMetrics, WasmResourceTracker};
@@ -14,14 +16,17 @@ use async_trait::async_trait;
 use riptide_events::{Event, EventBus, EventEmitter, PoolEvent, PoolMetrics, PoolOperation};
 use riptide_types::{ExtractedDoc, ExtractionMode, ParserMetadata};
 
+#[cfg(feature = "wasm-pool")]
 use super::models::{CircuitBreakerState, PooledInstance};
 
+#[cfg(feature = "wasm-pool")]
 wasmtime::component::bindgen!({
     world: "extractor",
     path: "wit",
 });
 
 /// Advanced instance pool with semaphore-based concurrency control
+#[cfg(feature = "wasm-pool")]
 pub struct AdvancedInstancePool {
     /// Pool configuration
     pub(super) config: ExtractorConfig,
@@ -48,6 +53,7 @@ pub struct AdvancedInstancePool {
     pub(super) event_bus: Option<Arc<EventBus>>,
 }
 
+#[cfg(feature = "wasm-pool")]
 impl AdvancedInstancePool {
     /// Create new instance pool with configuration
     pub async fn new(
@@ -75,7 +81,8 @@ impl AdvancedInstancePool {
             warn!("WIT validation is enabled in config but not available in riptide-pool to avoid circular dependency");
         }
 
-        let linker: Linker<WasmResourceTracker> = Linker::new(&engine);
+        let linker: wasmtime::component::Linker<WasmResourceTracker> =
+            wasmtime::component::Linker::new(&engine);
 
         let pool = Self {
             config: config.clone(),
@@ -595,6 +602,7 @@ impl AdvancedInstancePool {
     }
 
     /// Convert ExtractionMode to WIT format
+    #[cfg(feature = "wasm-pool")]
     fn convert_extraction_mode(
         &self,
         mode: ExtractionMode,
@@ -607,9 +615,7 @@ impl AdvancedInstancePool {
             ExtractionMode::Metadata => {
                 exports::riptide::extractor::extract::ExtractionMode::Metadata
             }
-            ExtractionMode::Custom(selectors) => {
-                exports::riptide::extractor::extract::ExtractionMode::Custom(selectors)
-            }
+            ExtractionMode::Custom(selectors) => riptide_types::ExtractionMode::Custom(selectors),
         }
     }
 
@@ -927,6 +933,7 @@ impl AdvancedInstancePool {
 }
 
 /// Configuration for RIPTIDE_WASM_INSTANCES_PER_WORKER environment variable
+#[cfg(feature = "wasm-pool")]
 pub fn get_instances_per_worker() -> usize {
     env::var("RIPTIDE_WASM_INSTANCES_PER_WORKER")
         .ok()
@@ -936,6 +943,7 @@ pub fn get_instances_per_worker() -> usize {
 
 /// Implement EventEmitter trait for AdvancedInstancePool
 #[async_trait]
+#[cfg(feature = "wasm-pool")]
 impl EventEmitter for AdvancedInstancePool {
     async fn emit_event<E: Event + 'static>(&self, event: E) -> Result<()> {
         if let Some(event_bus) = &self.event_bus {
@@ -966,6 +974,7 @@ impl EventEmitter for AdvancedInstancePool {
 }
 
 /// Factory function to create an event-aware instance pool
+#[cfg(feature = "wasm-pool")]
 pub async fn create_event_aware_pool(
     config: ExtractorConfig,
     engine: Engine,

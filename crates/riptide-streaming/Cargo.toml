@@ -11,7 +11,8 @@ path = "src/lib.rs"
 
 [dependencies]
 # P2-F1 Day 6: riptide-core eliminated - functionality distributed to specialized crates
-riptide-extraction = { path = "../riptide-extraction" }
+# Phase 1: WASM Optional - Use native-parser by default
+riptide-extraction = { path = "../riptide-extraction", default-features = false, features = ["css-extraction", "regex-extraction", "dom-utils", "chunking", "native-parser"] }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 axum = { workspace = true, features = ["ws"] }

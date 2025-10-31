@@ -7,7 +7,8 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 /// Global API configuration with resource management
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(not(feature = "wasm-extractor"), derive(Default))]
 pub struct ApiConfig {
     /// Resource management configuration
     pub resources: ResourceConfig,
@@ -21,7 +22,8 @@ pub struct ApiConfig {
     pub headless: HeadlessConfig,
     /// PDF processing configuration
     pub pdf: PdfConfig,
-    /// WASM runtime configuration
+    /// WASM runtime configuration (only with wasm-extractor feature)
+    #[cfg(feature = "wasm-extractor")]
     pub wasm: WasmConfig,
     /// Search provider configuration
     pub search: SearchProviderConfig,
@@ -149,7 +151,8 @@ pub struct PdfConfig {
     pub queue_timeout_secs: u64,
 }
 
-/// WASM runtime configuration
+/// WASM runtime configuration (only when wasm-extractor feature is enabled)
+#[cfg(feature = "wasm-extractor")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WasmConfig {
     /// Single instance per worker (requirement)
@@ -273,6 +276,7 @@ impl Default for PdfConfig {
     }
 }
 
+#[cfg(feature = "wasm-extractor")]
 impl Default for WasmConfig {
     fn default() -> Self {
         Self {
@@ -296,6 +300,23 @@ impl Default for SearchProviderConfig {
             circuit_breaker_failure_threshold: 50, // 50% failure rate
             circuit_breaker_min_requests: 5,
             circuit_breaker_recovery_timeout_secs: 60,
+        }
+    }
+}
+
+// Manual Default implementation for ApiConfig when wasm-extractor feature is enabled
+#[cfg(feature = "wasm-extractor")]
+impl Default for ApiConfig {
+    fn default() -> Self {
+        Self {
+            resources: ResourceConfig::default(),
+            performance: PerformanceConfig::default(),
+            rate_limiting: RateLimitingConfig::default(),
+            memory: MemoryConfig::default(),
+            headless: HeadlessConfig::default(),
+            pdf: PdfConfig::default(),
+            wasm: WasmConfig::default(),
+            search: SearchProviderConfig::default(),
         }
     }
 }
@@ -531,38 +552,41 @@ impl ApiConfig {
             }
         }
 
-        // WASM runtime configuration (7 fields)
-        if let Ok(val) = std::env::var("RIPTIDE_WASM_INSTANCES_PER_WORKER") {
-            if let Ok(val) = val.parse() {
-                config.wasm.instances_per_worker = val;
+        // WASM runtime configuration (7 fields) - only with wasm-extractor feature
+        #[cfg(feature = "wasm-extractor")]
+        {
+            if let Ok(val) = std::env::var("RIPTIDE_WASM_INSTANCES_PER_WORKER") {
+                if let Ok(val) = val.parse() {
+                    config.wasm.instances_per_worker = val;
+                }
             }
-        }
-        if let Ok(val) = std::env::var("RIPTIDE_WASM_MODULE_TIMEOUT_SECS") {
-            if let Ok(val) = val.parse() {
-                config.wasm.module_timeout_secs = val;
+            if let Ok(val) = std::env::var("RIPTIDE_WASM_MODULE_TIMEOUT_SECS") {
+                if let Ok(val) = val.parse() {
+                    config.wasm.module_timeout_secs = val;
+                }
             }
-        }
-        if let Ok(val) = std::env::var("RIPTIDE_WASM_MAX_MEMORY_MB") {
-            if let Ok(val) = val.parse() {
-                config.wasm.max_memory_mb = val;
+            if let Ok(val) = std::env::var("RIPTIDE_WASM_MAX_MEMORY_MB") {
+                if let Ok(val) = val.parse() {
+                    config.wasm.max_memory_mb = val;
+                }
             }
-        }
-        if let Ok(val) = std::env::var("RIPTIDE_WASM_ENABLE_RECYCLING") {
-            config.wasm.enable_recycling = val.to_lowercase() == "true";
-        }
-        if let Ok(val) = std::env::var("RIPTIDE_WASM_HEALTH_CHECK_INTERVAL_SECS") {
-            if let Ok(val) = val.parse() {
-                config.wasm.health_check_interval_secs = val;
+            if let Ok(val) = std::env::var("RIPTIDE_WASM_ENABLE_RECYCLING") {
+                config.wasm.enable_recycling = val.to_lowercase() == "true";
             }
-        }
-        if let Ok(val) = std::env::var("RIPTIDE_WASM_MAX_OPERATIONS_PER_INSTANCE") {
-            if let Ok(val) = val.parse() {
-                config.wasm.max_operations_per_instance = val;
+            if let Ok(val) = std::env::var("RIPTIDE_WASM_HEALTH_CHECK_INTERVAL_SECS") {
+                if let Ok(val) = val.parse() {
+                    config.wasm.health_check_interval_secs = val;
+                }
             }
-        }
-        if let Ok(val) = std::env::var("RIPTIDE_WASM_RESTART_THRESHOLD") {
-            if let Ok(val) = val.parse() {
-                config.wasm.restart_threshold = val;
+            if let Ok(val) = std::env::var("RIPTIDE_WASM_MAX_OPERATIONS_PER_INSTANCE") {
+                if let Ok(val) = val.parse() {
+                    config.wasm.max_operations_per_instance = val;
+                }
+            }
+            if let Ok(val) = std::env::var("RIPTIDE_WASM_RESTART_THRESHOLD") {
+                if let Ok(val) = val.parse() {
+                    config.wasm.restart_threshold = val;
+                }
             }
         }
 
@@ -638,9 +662,12 @@ impl ApiConfig {
             return Err("headless min_pool_size cannot be greater than max_pool_size".to_string());
         }
 
-        // Validate WASM settings
-        if self.wasm.instances_per_worker == 0 {
-            return Err("wasm instances_per_worker must be greater than 0".to_string());
+        // Validate WASM settings (only with wasm-extractor feature)
+        #[cfg(feature = "wasm-extractor")]
+        {
+            if self.wasm.instances_per_worker == 0 {
+                return Err("wasm instances_per_worker must be greater than 0".to_string());
+            }
         }
 
         // Validate search provider settings
@@ -709,7 +736,11 @@ mod tests {
         assert_eq!(config.performance.render_timeout_secs, 3); // 3s timeout
         assert_eq!(config.rate_limiting.requests_per_second_per_host, 1.5); // 1.5 RPS
         assert_eq!(config.pdf.max_concurrent, 2); // PDF semaphore = 2
-        assert_eq!(config.wasm.instances_per_worker, 1); // Single instance per worker
+
+        #[cfg(feature = "wasm-extractor")]
+        {
+            assert_eq!(config.wasm.instances_per_worker, 1); // Single instance per worker
+        }
     }
 
     #[test]

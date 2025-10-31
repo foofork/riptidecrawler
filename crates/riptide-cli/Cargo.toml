@@ -26,7 +26,8 @@ reqwest.workspace = true
 url.workspace = true
 
 # Local extraction support
-riptide-extraction = { path = "../riptide-extraction" }
+# Phase 1: WASM Optional - Use native-parser by default
+riptide-extraction = { path = "../riptide-extraction", default-features = false, features = ["css-extraction", "regex-extraction", "dom-utils", "chunking", "native-parser"] }
 riptide-reliability = { path = "../riptide-reliability" }
 riptide-stealth = { path = "../riptide-stealth" }
 riptide-pdf = { path = "../riptide-pdf" }

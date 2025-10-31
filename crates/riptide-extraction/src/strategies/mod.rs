@@ -51,7 +51,10 @@ pub use manager::*;
 pub use css_strategy::CssSelectorStrategy;
 pub use regex_strategy::{PatternConfig, RegexPatternStrategy};
 
-use crate::extraction_strategies::{ContentExtractor, WasmExtractor as ContentWasmExtractor};
+use crate::extraction_strategies::ContentExtractor;
+
+#[cfg(feature = "wasm-extractor")]
+use crate::extraction_strategies::WasmExtractor as ContentWasmExtractor;
 use anyhow::Result;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -139,14 +142,52 @@ impl StrategyManager {
 
         match &self.config.extraction {
             ExtractionStrategy::Wasm => {
-                // Use extraction_strategies::WasmExtractor with Option<&str> constructor
-                let extractor = ContentWasmExtractor::new(None).await?;
-                extractor.extract(html, url).await
+                #[cfg(feature = "wasm-extractor")]
+                {
+                    // Use extraction_strategies::WasmExtractor with Option<&str> constructor
+                    let extractor = ContentWasmExtractor::new(None).await?;
+                    extractor.extract(html, url).await
+                }
+                #[cfg(not(feature = "wasm-extractor"))]
+                {
+                    // Fall back to regex when WASM is not available
+                    tracing::warn!(
+                        "WASM extractor requested but not available, falling back to regex"
+                    );
+                    let patterns = default_patterns();
+                    let html_result = regex_extract(html, url, &patterns).await?;
+                    Ok(ExtractedContent {
+                        title: html_result.title,
+                        content: html_result.content,
+                        summary: html_result.summary,
+                        url: html_result.url,
+                        strategy_used: "wasm_fallback:regex".to_string(),
+                        extraction_confidence: html_result.extraction_confidence,
+                    })
+                }
             }
             ExtractionStrategy::Css => {
-                // Temporarily fallback to WASM until CssSelectorStrategy trait is implemented
-                let extractor = ContentWasmExtractor::new(None).await?;
-                extractor.extract(html, url).await
+                #[cfg(feature = "wasm-extractor")]
+                {
+                    // Temporarily fallback to WASM until CssSelectorStrategy trait is implemented
+                    let extractor = ContentWasmExtractor::new(None).await?;
+                    extractor.extract(html, url).await
+                }
+                #[cfg(not(feature = "wasm-extractor"))]
+                {
+                    // Fall back to regex when WASM is not available
+                    tracing::warn!("CSS extraction via WASM not available, falling back to regex");
+                    let patterns = default_patterns();
+                    let html_result = regex_extract(html, url, &patterns).await?;
+                    Ok(ExtractedContent {
+                        title: html_result.title,
+                        content: html_result.content,
+                        summary: html_result.summary,
+                        url: html_result.url,
+                        strategy_used: "css_fallback:regex".to_string(),
+                        extraction_confidence: html_result.extraction_confidence,
+                    })
+                }
             }
             ExtractionStrategy::Regex => {
                 // Use regex extraction from this crate
@@ -164,12 +205,29 @@ impl StrategyManager {
                 })
             }
             ExtractionStrategy::Auto => {
-                // Auto-detect best strategy - temporarily simplified to use WASM only
-                // Full implementation requires CssSelectorStrategy trait implementation
-                let extractor = ContentWasmExtractor::new(None).await?;
-                let mut result = extractor.extract(html, url).await?;
-                result.strategy_used = "auto:wasm".to_string();
-                Ok(result)
+                #[cfg(feature = "wasm-extractor")]
+                {
+                    // Auto-detect best strategy - temporarily simplified to use WASM only
+                    // Full implementation requires CssSelectorStrategy trait implementation
+                    let extractor = ContentWasmExtractor::new(None).await?;
+                    let mut result = extractor.extract(html, url).await?;
+                    result.strategy_used = "auto:wasm".to_string();
+                    Ok(result)
+                }
+                #[cfg(not(feature = "wasm-extractor"))]
+                {
+                    // Auto-select: use regex when WASM is not available
+                    let patterns = default_patterns();
+                    let html_result = regex_extract(html, url, &patterns).await?;
+                    Ok(ExtractedContent {
+                        title: html_result.title,
+                        content: html_result.content,
+                        summary: html_result.summary,
+                        url: html_result.url,
+                        strategy_used: "auto:regex".to_string(),
+                        extraction_confidence: html_result.extraction_confidence,
+                    })
+                }
             }
         }
     }

@@ -5,7 +5,8 @@
 
 #![allow(dead_code, unused_imports)]
 
-// Re-export from library for backwards compatibility
+// Re-export from library for backwards compatibility (only with wasm-extractor feature)
+#[cfg(feature = "wasm-extractor")]
 pub use riptide_cache::wasm::{
     get_cached_extractor, CachedWasmModule, ModuleCacheStats as CacheStats, WasmCache,
     WasmModuleCache,

@@ -761,100 +761,117 @@ impl PipelineOrchestrator {
         url: &str,
         decision: Decision,
     ) -> ApiResult<ExtractedDoc> {
+        #[cfg(feature = "wasm-extractor")]
         use crate::reliability_integration::WasmExtractorAdapter;
         use riptide_reliability::ExtractionMode;
 
         // Create adapter for WasmExtractor to work with ReliableExtractor (with metrics)
+        #[cfg(feature = "wasm-extractor")]
         let extractor_adapter = WasmExtractorAdapter::with_metrics(
             self.state.extractor.clone(),
             self.state.metrics.clone(),
         );
 
-        // Map gate Decision to ExtractionMode
-        let extraction_mode = match decision {
-            Decision::Raw => ExtractionMode::Fast,
-            Decision::ProbesFirst => ExtractionMode::ProbesFirst,
-            Decision::Headless => ExtractionMode::Headless,
-        };
+        #[cfg(not(feature = "wasm-extractor"))]
+        {
+            return Err(ApiError::internal(
+                "WASM extractor not available. Rebuild with --features wasm-extractor",
+            ));
+        }
 
-        // Use ReliableExtractor with retry and circuit breaker patterns
-        let result = self
-            .state
-            .reliable_extractor
-            .extract_with_reliability(
-                url,
-                extraction_mode,
-                &extractor_adapter,
-                self.state.config.headless_url.as_deref(),
-            )
-            .await;
+        #[cfg(feature = "wasm-extractor")]
+        {
+            // Map gate Decision to ExtractionMode
+            let extraction_mode = match decision {
+                Decision::Raw => ExtractionMode::Fast,
+                Decision::ProbesFirst => ExtractionMode::ProbesFirst,
+                Decision::Headless => ExtractionMode::Headless,
+            };
 
-        match result {
-            Ok(doc) => {
-                // Emit reliability success event
-                let mut event = riptide_events::BaseEvent::new(
-                    "pipeline.extraction.reliable_success",
-                    "pipeline_orchestrator",
-                    riptide_events::EventSeverity::Info,
-                );
-                event.add_metadata("url", url);
-                event.add_metadata("decision", &format!("{:?}", decision));
-                event.add_metadata("content_length", &doc.text.len().to_string());
-                if let Err(e) = self.state.event_bus.emit(event).await {
-                    warn!(error = %e, "Failed to emit reliability success event");
+            // Use ReliableExtractor with retry and circuit breaker patterns
+            let result = self
+                .state
+                .reliable_extractor
+                .extract_with_reliability(
+                    url,
+                    extraction_mode,
+                    &extractor_adapter,
+                    self.state.config.headless_url.as_deref(),
+                )
+                .await;
+
+            match result {
+                Ok(doc) => {
+                    // Emit reliability success event
+                    let mut event = riptide_events::BaseEvent::new(
+                        "pipeline.extraction.reliable_success",
+                        "pipeline_orchestrator",
+                        riptide_events::EventSeverity::Info,
+                    );
+                    event.add_metadata("url", url);
+                    event.add_metadata("decision", &format!("{:?}", decision));
+                    event.add_metadata("content_length", &doc.text.len().to_string());
+                    if let Err(e) = self.state.event_bus.emit(event).await {
+                        warn!(error = %e, "Failed to emit reliability success event");
+                    }
+
+                    Ok(doc)
                 }
+                Err(e) => {
+                    // Log the failure and attempt fallback to direct WASM extraction
+                    warn!(
+                        url = %url,
+                        error = %e,
+                        "ReliableExtractor failed, attempting direct WASM fallback"
+                    );
 
-                Ok(doc)
-            }
-            Err(e) => {
-                // Log the failure and attempt fallback to direct WASM extraction
-                warn!(
-                    url = %url,
-                    error = %e,
-                    "ReliableExtractor failed, attempting direct WASM fallback"
-                );
+                    // Emit reliability failure event
+                    let mut event = riptide_events::BaseEvent::new(
+                        "pipeline.extraction.reliable_failure",
+                        "pipeline_orchestrator",
+                        riptide_events::EventSeverity::Warn,
+                    );
+                    event.add_metadata("url", url);
+                    event.add_metadata("error", &e.to_string());
+                    if let Err(e) = self.state.event_bus.emit(event).await {
+                        warn!(error = %e, "Failed to emit reliability failure event");
+                    }
 
-                // Emit reliability failure event
-                let mut event = riptide_events::BaseEvent::new(
-                    "pipeline.extraction.reliable_failure",
-                    "pipeline_orchestrator",
-                    riptide_events::EventSeverity::Warn,
-                );
-                event.add_metadata("url", url);
-                event.add_metadata("error", &e.to_string());
-                if let Err(e) = self.state.event_bus.emit(event).await {
-                    warn!(error = %e, "Failed to emit reliability failure event");
+                    // Track extraction errors
+                    self.state
+                        .metrics
+                        .record_error(crate::metrics::ErrorType::Wasm);
+
+                    // Fallback: Try direct WASM extraction as last resort
+                    self.fallback_to_wasm_extraction(html, url).await
                 }
-
-                // Track extraction errors
-                self.state
-                    .metrics
-                    .record_error(crate::metrics::ErrorType::Wasm);
-
-                // Fallback: Try direct WASM extraction as last resort
-                self.fallback_to_wasm_extraction(html, url).await
             }
         }
-    }
 
-    /// Fallback to direct WASM extraction when ReliableExtractor fails
-    async fn fallback_to_wasm_extraction(&self, html: &str, url: &str) -> ApiResult<ExtractedDoc> {
-        info!(url = %url, "Attempting direct WASM fallback extraction");
+        /// Fallback to direct WASM extraction when ReliableExtractor fails
+        #[cfg(feature = "wasm-extractor")]
+        async fn fallback_to_wasm_extraction(
+            &self,
+            html: &str,
+            url: &str,
+        ) -> Result<ExtractedDoc, ApiError> {
+            info!(url = %url, "Attempting direct WASM fallback extraction");
 
-        let extractor = self.state.extractor.clone();
-        let html_bytes = html.as_bytes().to_vec();
-        let url_str = url.to_string();
+            let extractor = self.state.extractor.clone();
+            let html_bytes = html.as_bytes().to_vec();
+            let url_str = url.to_string();
 
-        extractor
-            .extract(&html_bytes, &url_str, "article")
-            .map(convert_html_doc)
-            .map_err(|e| {
-                error!(url = %url_str, error = %e, "All extraction methods failed");
-                self.state
-                    .metrics
-                    .record_error(crate::metrics::ErrorType::Wasm);
-                ApiError::extraction(format!("All extraction attempts failed: {}", e))
-            })
+            extractor
+                .extract(&html_bytes, &url_str, "article")
+                .map(convert_html_doc)
+                .map_err(|e| {
+                    error!(url = %url_str, error = %e, "All extraction methods failed");
+                    self.state
+                        .metrics
+                        .record_error(crate::metrics::ErrorType::Wasm);
+                    ApiError::extraction(format!("All extraction attempts failed: {}", e))
+                })
+        }
     }
 
     /// Check cache for existing content.

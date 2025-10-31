@@ -4,16 +4,18 @@ use crate::metrics::RipTideMetrics;
 use crate::resource_manager::ResourceManager;
 use crate::sessions::{SessionConfig, SessionManager};
 use crate::streaming::StreamingModule;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use reqwest::Client;
-use riptide_cache::{CacheManager, CacheWarmingConfig};
+use riptide_cache::CacheManager;
+#[cfg(feature = "wasm-extractor")]
+use riptide_cache::CacheWarmingConfig;
 use riptide_events::{EventBus, EventBusConfig, EventSeverity};
 use riptide_fetch::{http_client, FetchEngine};
 use riptide_pdf::PdfMetricsCollector;
 use riptide_reliability::{CircuitBreakerState, ReliabilityConfig, ReliableExtractor};
 use riptide_spider::{Spider, SpiderConfig};
 // TelemetrySystem is in riptide_monitoring, not riptide_core
-use riptide_extraction::wasm_extraction::WasmExtractor;
+use riptide_extraction::UnifiedExtractor;
 use riptide_monitoring::TelemetrySystem;
 // Facade types imported explicitly to avoid conflicts
 use riptide_facade::facades::ExtractionFacade;
@@ -35,7 +37,7 @@ use crate::middleware::AuthConfig;
 /// Application state shared across all request handlers.
 ///
 /// This struct contains all the shared resources needed for crawling operations,
-/// including HTTP clients, cache connections, and WASM extractors. The state
+/// including HTTP clients, cache connections, and content extractors. The state
 /// is wrapped in Arc for efficient sharing across async handlers.
 #[derive(Clone)]
 pub struct AppState {
@@ -45,8 +47,8 @@ pub struct AppState {
     /// Redis cache manager for storing and retrieving cached content
     pub cache: Arc<tokio::sync::Mutex<CacheManager>>,
 
-    /// WASM extractor for content processing
-    pub extractor: Arc<WasmExtractor>,
+    /// Unified extractor for content processing (WASM or native)
+    pub extractor: Arc<UnifiedExtractor>,
 
     /// Reliable extractor wrapper with retry and circuit breaker logic
     pub reliable_extractor: Arc<ReliableExtractor>,
@@ -185,7 +187,8 @@ pub struct AppConfig {
     /// Enhanced pipeline configuration
     pub enhanced_pipeline_config: EnhancedPipelineConfig,
 
-    /// Cache warming configuration
+    /// Cache warming configuration (only with wasm-extractor feature)
+    #[cfg(feature = "wasm-extractor")]
     pub cache_warming_config: CacheWarmingConfig,
 
     /// Engine selection configuration (Phase 10)
@@ -346,6 +349,7 @@ impl Default for AppConfig {
             reliability_config: ReliabilityConfig::from_env(),
             monitoring_config: MonitoringConfig::default(),
             enhanced_pipeline_config: EnhancedPipelineConfig::default(),
+            #[cfg(feature = "wasm-extractor")]
             cache_warming_config: CacheWarmingConfig::default(),
             engine_selection_config: EngineSelectionConfig::default(),
         }
@@ -607,9 +611,18 @@ impl AppState {
         let cache = Arc::new(tokio::sync::Mutex::new(cache_manager));
         tracing::info!("Redis connection established: {}", config.redis_url);
 
-        // Initialize WASM extractor
-        let extractor = Arc::new(WasmExtractor::new(&config.wasm_path).await?);
-        tracing::info!("WASM extractor loaded: {}", config.wasm_path);
+        // Initialize unified extractor with automatic fallback
+        let wasm_path = std::env::var("WASM_EXTRACTOR_PATH").ok();
+        let extractor = Arc::new(
+            UnifiedExtractor::new(wasm_path.as_deref())
+                .await
+                .context("Failed to initialize content extractor")?,
+        );
+        tracing::info!(
+            extractor_type = extractor.extractor_type(),
+            wasm_available = UnifiedExtractor::wasm_available(),
+            "Content extractor initialized"
+        );
 
         // Initialize ReliableExtractor with the WASM extractor adapter
         let reliable_extractor = Arc::new(
@@ -817,9 +830,12 @@ impl AppState {
         );
 
         // Note: CacheWarmer initialization to be added in future
-        let cache_warmer_enabled = config.cache_warming_config.enabled;
-        if cache_warmer_enabled {
-            tracing::info!("CacheWarmer feature flag enabled (full implementation pending)");
+        #[cfg(feature = "wasm-extractor")]
+        {
+            let cache_warmer_enabled = config.cache_warming_config.enabled;
+            if cache_warmer_enabled {
+                tracing::info!("CacheWarmer feature flag enabled (full implementation pending)");
+            }
         }
 
         // Initialize headless browser launcher with pooling (only if no headless service URL)
@@ -1061,6 +1077,12 @@ impl AppState {
         };
 
         tracing::info!("Application state initialization complete with resource controls, event bus, circuit breaker, monitoring, fetch engine, performance manager, authentication, cache warming, browser launcher, and facade layer");
+
+        // Determine cache warmer enabled status
+        #[cfg(feature = "wasm-extractor")]
+        let cache_warmer_enabled = config.cache_warming_config.enabled;
+        #[cfg(not(feature = "wasm-extractor"))]
+        let cache_warmer_enabled = false;
 
         Ok(Self {
             http_client,
@@ -1308,24 +1330,19 @@ impl AppState {
         let wasm_path =
             std::env::var("WASM_EXTRACTOR_PATH").unwrap_or_else(|_| config.wasm_path.clone());
 
-        let extractor = match WasmExtractor::new(&wasm_path).await {
+        let extractor = match UnifiedExtractor::new(Some(&wasm_path)).await {
             Ok(ext) => Arc::new(ext),
             Err(e) => {
                 eprintln!(
-                    "Warning: WASM extractor not available ({}), tests requiring WASM will fail",
+                    "Warning: Content extractor initialization failed ({}), using default native extractor",
                     e
                 );
-                // Create a minimal/stub extractor - actual extraction tests will need real WASM
-                // For basic endpoint tests, we just need something that satisfies the type
-                match WasmExtractor::new("dummy.wasm").await {
-                    Ok(ext) => Arc::new(ext),
-                    Err(_) => {
-                        // Last resort: skip tests that need full state
-                        eprintln!("CRITICAL: Cannot create WASM extractor stub");
-                        eprintln!("Set WASM_EXTRACTOR_PATH or build with: cargo build --release --target wasm32-wasip2 -p riptide-extractor-wasm");
-                        panic!("WASM extractor required for integration tests")
-                    }
-                }
+                // Fall back to native extractor
+                Arc::new(
+                    UnifiedExtractor::new(None)
+                        .await
+                        .expect("Native extractor should always work"),
+                )
             }
         };
 

@@ -3,6 +3,8 @@
 //! This module provides integration between cache warming functionality
 //! and the existing instance pool system.
 
+#![cfg(feature = "wasm-pool")]
+
 use anyhow::Result;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -12,6 +14,7 @@ use crate::warming::{
     CacheWarmingConfig, CacheWarmingManager, CacheWarmingPoolExt, CacheWarmingStats,
 };
 use riptide_events::EventBus;
+#[cfg(feature = "wasm-pool")]
 use riptide_pool::AdvancedInstancePool;
 use riptide_types::ExtractionMode;
 

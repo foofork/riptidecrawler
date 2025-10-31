@@ -3,11 +3,14 @@
 use std::sync::Arc;
 use std::time::Instant;
 use uuid::Uuid;
+
+#[cfg(feature = "wasm-pool")]
 use wasmtime::{component::*, Engine, Store};
 
 use crate::config::{ExtractorConfig, WasmResourceTracker};
 
 /// Enhanced pooled instance with comprehensive tracking
+#[cfg(feature = "wasm-pool")]
 pub struct PooledInstance {
     pub id: String,
     pub engine: Arc<Engine>,
@@ -21,6 +24,7 @@ pub struct PooledInstance {
     pub resource_tracker: WasmResourceTracker,
 }
 
+#[cfg(feature = "wasm-pool")]
 impl PooledInstance {
     pub fn new(
         engine: Arc<Engine>,
@@ -77,6 +81,7 @@ impl PooledInstance {
     }
 }
 
+#[cfg(feature = "wasm-pool")]
 impl std::fmt::Debug for PooledInstance {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PooledInstance")

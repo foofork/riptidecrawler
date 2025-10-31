@@ -177,10 +177,11 @@ async with RipTideClient() as client:
 from riptide_sdk.models import ExtractOptions
 
 async with RipTideClient() as client:
-    # Basic extraction
+    # Basic extraction (uses native strategy by default)
     result = await client.extract.extract("https://example.com/article")
     print(f"Title: {result.title}")
     print(f"Content: {result.content[:200]}...")
+    print(f"Strategy used: {result.strategy_used}")  # Shows "native"
 
     # Article extraction
     article = await client.extract.extract_article("https://blog.example.com/post")
@@ -194,6 +195,76 @@ async with RipTideClient() as client:
     # Product extraction
     product = await client.extract.extract_product("https://shop.example.com/item")
     print(f"Price: ${product.metadata.price}")
+
+    # Explicit strategy selection (v0.9.0+)
+    options = ExtractOptions(strategy="native")  # Default, fastest (2-5ms)
+    result = await client.extract.extract(url, options=options)
+
+    # WASM extraction (only if server supports it)
+    try:
+        options = ExtractOptions(strategy="wasm")  # 4x slower but sandboxed
+        result = await client.extract.extract(url, options=options)
+    except Exception as e:
+        print(f"WASM not available: {e}")
+```
+
+#### Extraction Strategies (v0.9.0+)
+
+The SDK now supports multiple extraction strategies with **native as the new default** for better performance:
+
+| Strategy | Speed | Availability | Use Case |
+|----------|-------|--------------|----------|
+| `native` (default) | 2-5ms | Always | General web scraping (recommended) |
+| `wasm` | 10-20ms | Server feature | Untrusted HTML, sandboxing needed |
+| `multi` | Varies | Always | Server auto-selects best strategy |
+
+**Server Compatibility:**
+
+```python
+# Server with native-only (default build):
+# ✅ strategy="native" - Works
+# ✅ strategy="multi" - Falls back to native
+# ❌ strategy="wasm" - Error (WASM not available)
+
+# Server with WASM enabled (--features wasm-extractor):
+# ✅ strategy="native" - Works
+# ✅ strategy="wasm" - Works
+# ✅ strategy="multi" - Prefers WASM, falls back to native
+```
+
+**Migration from v0.8.x:**
+
+```python
+# Before v0.9.0: Used WASM by default if available
+result = await client.extract.extract(url)
+
+# After v0.9.0: Uses native by default (4x faster)
+result = await client.extract.extract(url)
+# Strategy used: "native" (unless explicitly changed)
+
+# To restore old behavior (use WASM if available):
+options = ExtractOptions(strategy="wasm")
+result = await client.extract.extract(url, options=options)
+```
+
+**Graceful Fallback Pattern:**
+
+```python
+from riptide_sdk.exceptions import ExtractionError
+
+async def extract_with_fallback(url):
+    """Try WASM first, fall back to native"""
+    for strategy in ["wasm", "native"]:
+        try:
+            options = ExtractOptions(strategy=strategy)
+            result = await client.extract.extract(url, options=options)
+            print(f"✅ Success with {strategy}")
+            return result
+        except ExtractionError as e:
+            if "not available" in str(e).lower():
+                print(f"⚠️  {strategy} unavailable, trying next...")
+                continue
+            raise
 ```
 
 ### Search API ⚡ NEW

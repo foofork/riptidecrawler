@@ -202,6 +202,7 @@ impl OptimizedExecutor {
         html: Option<String>,
         url: &str,
     ) -> Result<ExtractResponse> {
+        #[cfg(feature = "wasm-extractor")]
         use riptide_extraction::wasm_extraction::WasmExtractor;
 
         tracing::info!("Executing WASM extraction with AOT cache");

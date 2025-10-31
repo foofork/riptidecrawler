@@ -19,16 +19,19 @@
 
 use anyhow::{anyhow, Result};
 use once_cell::sync::OnceCell;
+#[cfg(feature = "wasm-extractor")]
 use riptide_extraction::wasm_extraction::WasmExtractor;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 
 /// Global WASM module cache
+#[cfg(feature = "wasm-extractor")]
 static WASM_CACHE: OnceCell<WasmModuleCache> = OnceCell::new();
 
 /// Cached WASM extractor with metadata
 #[derive(Clone)]
+#[cfg(feature = "wasm-extractor")]
 pub struct CachedWasmModule {
     pub extractor: Arc<WasmExtractor>,
     pub loaded_at: Instant,
@@ -37,11 +40,13 @@ pub struct CachedWasmModule {
 }
 
 /// WASM module cache manager
+#[cfg(feature = "wasm-extractor")]
 pub struct WasmModuleCache {
     module: Arc<RwLock<Option<CachedWasmModule>>>,
     init_timeout: Duration,
 }
 
+#[cfg(feature = "wasm-extractor")]
 impl WasmModuleCache {
     /// Create a new WASM module cache
     pub fn new(init_timeout: Duration) -> Self {
@@ -168,6 +173,7 @@ pub struct CacheStats {
 }
 
 /// Helper function to get WASM extractor with caching
+#[cfg(feature = "wasm-extractor")]
 pub async fn get_cached_extractor(
     wasm_path: &str,
     init_timeout_ms: u64,
@@ -195,10 +201,12 @@ pub async fn get_cached_extractor(
 ///
 /// This provides a simple wrapper around the module cache for use in
 /// CLI commands and optimized extraction workflows.
+#[cfg(feature = "wasm-extractor")]
 pub struct WasmCache {
     _marker: std::marker::PhantomData<()>,
 }
 
+#[cfg(feature = "wasm-extractor")]
 impl WasmCache {
     /// Get the global singleton instance
     pub fn get_global() -> Arc<Self> {

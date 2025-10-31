@@ -9,9 +9,11 @@
 
 use crate::config::RiptideConfig;
 use crate::error::RiptideError;
-use riptide_extraction::{
-    css_extract, fallback_extract, ContentExtractor, CssExtractorStrategy, StrategyWasmExtractor,
-};
+use riptide_extraction::{css_extract, fallback_extract, ContentExtractor, CssExtractorStrategy};
+
+#[cfg(feature = "wasm-extractor")]
+use riptide_extraction::StrategyWasmExtractor;
+
 use riptide_pdf::{create_pdf_processor, AnyPdfProcessor, PdfConfig};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -144,9 +146,12 @@ impl ExtractionRegistry {
     }
 
     async fn register_default_strategies(&mut self) -> Result<()> {
-        // Register WASM extractor
-        if let Ok(wasm) = StrategyWasmExtractor::new(None).await {
-            self.strategies.insert("wasm".to_string(), Box::new(wasm));
+        // Register WASM extractor (only when feature enabled)
+        #[cfg(feature = "wasm-extractor")]
+        {
+            if let Ok(wasm) = StrategyWasmExtractor::new(None).await {
+                self.strategies.insert("wasm".to_string(), Box::new(wasm));
+            }
         }
 
         // Register CSS extractor

@@ -2,6 +2,8 @@
 //!
 //! Handles memory cleanup, instance recycling, and resource optimization.
 
+#![cfg(feature = "wasm-pool")]
+
 use anyhow::Result;
 use tracing::{debug, info, warn};
 

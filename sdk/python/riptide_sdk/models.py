@@ -357,8 +357,60 @@ class StreamingResult:
 
 @dataclass
 class ExtractOptions:
-    """Options for content extraction"""
-    strategy: str = "multi"
+    """Options for content extraction.
+
+    Attributes:
+        strategy: Extraction strategy to use (v0.9.0+ default changed to "native").
+            - "native" (default): Fast pure-Rust extraction (2-5ms, always available)
+            - "wasm": WASM-based extraction (10-20ms, requires server --features wasm-extractor)
+            - "multi": Server auto-selects best available strategy
+            Defaults to "native" for best performance.
+
+        quality_threshold: Minimum quality score (0.0-1.0) for extraction.
+        timeout_ms: Maximum time to wait for extraction in milliseconds.
+
+    Server Compatibility:
+        Native-only server (default build):
+            ✅ strategy="native" - Works
+            ✅ strategy="multi" - Falls back to native
+            ❌ strategy="wasm" - Error (WASM not available)
+
+        WASM-enabled server (--features wasm-extractor):
+            ✅ strategy="native" - Works
+            ✅ strategy="wasm" - Works
+            ✅ strategy="multi" - Prefers WASM, falls back to native
+
+    Migration from v0.8.x:
+        The default strategy changed from "multi" to "native" in v0.9.0.
+        To restore old behavior (use WASM if available):
+            options = ExtractOptions(strategy="wasm")
+
+        Or use multi-strategy auto-selection:
+            options = ExtractOptions(strategy="multi")
+
+    Example:
+        >>> # Default: native extraction (fastest, recommended)
+        >>> options = ExtractOptions()
+        >>> result = await client.extract.extract(url, options=options)
+        >>> print(result.strategy_used)  # "native"
+
+        >>> # Explicit WASM (only if server supports it)
+        >>> options = ExtractOptions(strategy="wasm")
+        >>> try:
+        ...     result = await client.extract.extract(url, options=options)
+        ... except ExtractionError as e:
+        ...     print(f"WASM not available: {e}")
+
+        >>> # Auto-select (server decides based on availability)
+        >>> options = ExtractOptions(strategy="multi")
+        >>> result = await client.extract.extract(url, options=options)
+
+    Note:
+        WASM strategy requires the server to be built with the wasm-extractor
+        feature flag and WASM_EXTRACTOR_PATH environment variable set. Most
+        deployments use native extraction for better performance (4x faster).
+    """
+    strategy: str = "native"  # Changed from "multi" to "native" in v0.9.0
     quality_threshold: float = 0.7
     timeout_ms: int = 30000
 
@@ -412,7 +464,34 @@ class ParserMetadata:
 
 @dataclass
 class ExtractionResult:
-    """Result of content extraction operation"""
+    """Result of content extraction operation.
+
+    Attributes:
+        url: The URL that was extracted from.
+        title: Extracted page title.
+        content: Main content text extracted from the page.
+        metadata: Additional metadata about the content (author, date, etc).
+        strategy_used: Which extraction strategy was actually used ("native" or "wasm").
+            This may differ from the requested strategy if fallback occurred.
+        quality_score: Extraction quality score (0.0-1.0).
+        extraction_time_ms: Time taken for extraction in milliseconds.
+        parser_metadata: Optional detailed parser information for observability.
+
+    Note:
+        The strategy_used field indicates which extraction method was employed.
+        The server may fall back to native even if WASM was requested, depending
+        on server configuration and availability.
+
+        In v0.9.0+, you'll typically see strategy_used="native" as that's the
+        new default. If the server has WASM enabled and you request it explicitly,
+        you'll see strategy_used="wasm".
+
+    Example:
+        >>> result = await client.extract.extract("https://example.com")
+        >>> print(f"Used: {result.strategy_used}")  # "native" in v0.9.0+
+        >>> print(f"Quality: {result.quality_score:.2f}")
+        >>> print(f"Time: {result.extraction_time_ms}ms")
+    """
     url: str
     title: Optional[str]
     content: str

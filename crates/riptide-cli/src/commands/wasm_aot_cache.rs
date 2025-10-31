@@ -5,7 +5,8 @@
 
 #![allow(dead_code, unused_imports)]
 
-// Re-export from library for backwards compatibility
+// Re-export from library for backwards compatibility (only with wasm-extractor feature)
+#[cfg(feature = "wasm-extractor")]
 pub use riptide_cache::wasm::{
     get_global_aot_cache, AotCacheConfig, AotCacheEntry as CacheEntry, AotCacheStats as CacheStats,
     CompiledModule, WasmAotCache,
