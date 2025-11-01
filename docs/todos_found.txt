@@ -1,0 +1,50 @@
+xtask/src/main.rs:11:static RE_TODO: Lazy<Regex> = Lazy::new(|| Regex::new(r#"(?i)\b(TODO|FIXME|HACK|XXX)\b"#).unwrap());
+xtask/src/main.rs:137:                // TODO-like markers
+xtask/src/main.rs:138:                if RE_TODO.is_match(line) {
+xtask/src/main.rs:140:                        category: "TODOs",
+xtask/src/main.rs:196:    s.push_str("# Triage: Underscore Bindings & TODOs\n\n");
+xtask/src/main.rs:226:        for category in ["Underscore lets", "TODOs"] {
+xtask/src/main.rs:285:    let todo_count = findings.iter().filter(|f| f.category == "TODOs").count();
+xtask/src/main.rs:291:    s.push_str(&format!("- **TODOs/FIXMEs:** {}\n", todo_count));
+tests/archive/phase3/direct_execution_tests.rs:329:        // TODO: Replace with actual initialization code
+tests/archive/phase3/direct_execution_tests.rs:334:        // TODO: Replace with actual engine selection logic
+tests/archive/phase3/direct_execution_tests.rs:346:        // TODO: Replace with actual WASM execution
+tests/archive/phase3/direct_execution_tests.rs:351:        // TODO: Replace with actual headless execution
+tests/archive/phase3/direct_execution_tests.rs:356:        // TODO: Replace with actual stealth execution
+tests/archive/phase3/direct_execution_tests.rs:361:        // TODO: Replace with actual fallback chain
+tests/archive/phase3/direct_execution_tests.rs:370:        // TODO: Replace with actual timeout handling
+crates/riptide-facade/tests/facade_composition_integration.rs:53:    // TODO: Implement when BrowserFacade and ExtractorFacade are ready
+crates/riptide-facade/tests/facade_composition_integration.rs:82:    // TODO: Implement when ExtractorFacade is ready
+crates/riptide-facade/tests/facade_composition_integration.rs:105:    // TODO: Implement when SpiderFacade and ExtractorFacade are ready
+crates/riptide-facade/tests/facade_composition_integration.rs:131:    // TODO: Implement when all facades are ready
+crates/riptide-facade/tests/facade_composition_integration.rs:170:    // TODO: Implement when facades are ready
+crates/riptide-facade/tests/facade_composition_integration.rs:195:    // TODO: Implement when facades are ready
+crates/riptide-facade/tests/facade_composition_integration.rs:229:    // TODO: Implement when facades are ready
+crates/riptide-facade/tests/facade_composition_integration.rs:251:    // TODO: Implement when facades are ready
+crates/riptide-facade/tests/extractor_facade_integration.rs:13:    // TODO: Implement when ExtractorFacade is ready
+crates/riptide-facade/tests/extractor_facade_integration.rs:38:    // TODO: Implement when ExtractorFacade is ready
+crates/riptide-facade/tests/extractor_facade_integration.rs:59:    // TODO: Implement when ExtractorFacade is ready
+crates/riptide-facade/tests/extractor_facade_integration.rs:83:    // TODO: Implement when ExtractorFacade is ready
+crates/riptide-facade/tests/extractor_facade_integration.rs:115:    // TODO: Implement when ExtractorFacade is ready
+crates/riptide-facade/tests/extractor_facade_integration.rs:132:    // TODO: Implement when ExtractorFacade is ready
+crates/riptide-facade/tests/extractor_facade_integration.rs:147:    // TODO: Implement when ExtractorFacade is ready
+crates/riptide-facade/tests/extractor_facade_integration.rs:173:    // TODO: Implement when ExtractorFacade is ready
+crates/riptide-facade/tests/extractor_facade_integration.rs:202:    // TODO: Implement when ExtractorFacade is ready
+crates/riptide-facade/tests/extractor_facade_integration.rs:228:    // TODO: Implement when ExtractorFacade is ready
+crates/riptide-facade/tests/extractor_facade_integration.rs:251:    // TODO: Implement when ExtractorFacade is ready
+crates/riptide-facade/tests/extractor_facade_integration.rs:273:    // TODO: Implement when ExtractorFacade is ready
+crates/riptide-facade/tests/extractor_facade_integration.rs:294:    // TODO: Implement when ExtractorFacade is ready
+crates/riptide-facade/tests/extractor_facade_integration.rs:309:    // TODO: Implement when ExtractorFacade is ready
+crates/riptide-facade/tests/browser_facade_integration.rs:13:    // TODO: Implement when BrowserFacade is ready
+crates/riptide-facade/tests/browser_facade_integration.rs:31:    // TODO: Implement when BrowserFacade is ready
+crates/riptide-facade/tests/browser_facade_integration.rs:50:    // TODO: Implement when BrowserFacade is ready
+crates/riptide-facade/tests/browser_facade_integration.rs:68:    // TODO: Implement when BrowserFacade is ready
+crates/riptide-facade/tests/browser_facade_integration.rs:90:    // TODO: Implement when BrowserFacade is ready
+crates/riptide-facade/tests/browser_facade_integration.rs:108:    // TODO: Implement when BrowserFacade is ready
+crates/riptide-facade/tests/browser_facade_integration.rs:128:    // TODO: Implement when BrowserFacade is ready
+crates/riptide-facade/tests/browser_facade_integration.rs:147:    // TODO: Implement when BrowserFacade is ready
+crates/riptide-facade/tests/browser_facade_integration.rs:167:    // TODO: Implement when BrowserFacade is ready
+crates/riptide-facade/tests/browser_facade_integration.rs:190:    // TODO: Implement when BrowserFacade and stealth are ready
+crates/riptide-facade/tests/browser_facade_integration.rs:210:    // TODO: Implement when BrowserFacade is ready
+crates/riptide-facade/tests/browser_facade_integration.rs:235:    // TODO: Implement when BrowserFacade is ready
+crates/riptide-facade/tests/browser_facade_integration.rs:250:    // TODO: Implement when BrowserFacade is ready

@@ -14,8 +14,7 @@ use anyhow::Result;
 use clap::Parser;
 use commands::Commands;
 
-// Import optimized executor for Phase 5 integration
-// TODO(chromiumoxide-migration): Re-enable after migration complete
+// Phase 5 optimized executor (intentionally disabled - see commands/mod.rs Phase 5 notes)
 // use commands::optimized_executor::OptimizedExecutor;
 
 #[derive(Parser)]
@@ -65,19 +64,9 @@ async fn main() -> Result<()> {
 
     let cli = Cli::parse();
 
-    // Phase 5: Initialize global optimization manager (feature-gated for gradual rollout)
-    // TODO(chromiumoxide-migration): Re-enable after migration complete
-    let optimized_executor: Option<()> = None; // Placeholder
-                                               // let optimized_executor = if std::env::var("RIPTIDE_ENABLE_OPTIMIZATIONS")
-                                               //     .unwrap_or_else(|_| "false".to_string())
-                                               //     == "true"
-                                               // {
-                                               //     tracing::info!("🚀 Optimizations enabled - initializing optimized executor");
-                                               //     Some(OptimizedExecutor::new().await?)
-                                               // } else {
-                                               //     tracing::debug!("Optimizations disabled - using standard execution path");
-                                               //     None
-                                               // };
+    // Phase 5: Initialize global optimization manager (intentionally disabled)
+    // This feature is disabled pending Phase 4 completion (see commands/mod.rs)
+    let optimized_executor: Option<()> = None;
 
     // Determine execution mode based on flags and environment
     let execution_mode = execution_mode::get_execution_mode(cli.direct, cli.api_only);
@@ -167,14 +156,9 @@ async fn main() -> Result<()> {
         Commands::Session { command } => commands::session::execute(command, &cli.output).await,
     };
 
-    // Phase 5: Graceful shutdown of optimizations
-    // TODO(chromiumoxide-migration): Re-enable after migration complete
-    // if let Some(executor) = optimized_executor {
-    //     tracing::info!("Shutting down optimization modules");
-    //     if let Err(e) = executor.shutdown().await {
-    //         tracing::error!("Failed to shutdown optimizations cleanly: {}", e);
-    //     }
-    // }
+    // Phase 5: Graceful shutdown of optimizations (intentionally disabled)
+    // Will be re-enabled when Phase 4 optimizations are complete
+    drop(optimized_executor);
 
     result
 }

@@ -140,42 +140,41 @@ fn main() {
 
     // Comparative overhead
     #[cfg(feature = "benchmark-debug")]
-    println!("\n## Relative Overhead Analysis");
-
-    let none_time = {
-        let mut controller = StealthController::from_preset(StealthPreset::None);
-        benchmark_operation("Stealth None (baseline)", 100, || {
-            let _ = controller.get_stealth_js();
-            let _ = controller.generate_headers();
-        })
-    };
-
-    let low_time = {
-        let mut controller = StealthController::from_preset(StealthPreset::Low);
-        benchmark_operation("Stealth Low", 100, || {
-            let _ = controller.get_stealth_js();
-            let _ = controller.generate_headers();
-        })
-    };
-
-    let medium_time = {
-        let mut controller = StealthController::from_preset(StealthPreset::Medium);
-        benchmark_operation("Stealth Medium", 100, || {
-            let _ = controller.get_stealth_js();
-            let _ = controller.generate_headers();
-        })
-    };
-
-    let high_time = {
-        let mut controller = StealthController::from_preset(StealthPreset::High);
-        benchmark_operation("Stealth High", 100, || {
-            let _ = controller.get_stealth_js();
-            let _ = controller.generate_headers();
-        })
-    };
-
-    #[cfg(feature = "benchmark-debug")]
     {
+        println!("\n## Relative Overhead Analysis");
+
+        let none_time = {
+            let mut controller = StealthController::from_preset(StealthPreset::None);
+            benchmark_operation("Stealth None (baseline)", 100, || {
+                let _ = controller.get_stealth_js();
+                let _ = controller.generate_headers();
+            })
+        };
+
+        let low_time = {
+            let mut controller = StealthController::from_preset(StealthPreset::Low);
+            benchmark_operation("Stealth Low", 100, || {
+                let _ = controller.get_stealth_js();
+                let _ = controller.generate_headers();
+            })
+        };
+
+        let medium_time = {
+            let mut controller = StealthController::from_preset(StealthPreset::Medium);
+            benchmark_operation("Stealth Medium", 100, || {
+                let _ = controller.get_stealth_js();
+                let _ = controller.generate_headers();
+            })
+        };
+
+        let high_time = {
+            let mut controller = StealthController::from_preset(StealthPreset::High);
+            benchmark_operation("Stealth High", 100, || {
+                let _ = controller.get_stealth_js();
+                let _ = controller.generate_headers();
+            })
+        };
+
         println!("\n## Overhead Summary");
         println!("None (baseline): {:.2} μs", none_time);
         println!(

@@ -1,0 +1,232 @@
+{
+  "metadata": {
+    "date": "2025-11-01",
+    "analyst": "Code Quality Analyzer",
+    "repository": "eventmesh",
+    "audit_phase": "Finding Classification",
+    "methodology": "WIRE/GATE/KEEP/REMOVE Decision Tree"
+  },
+  "summary": {
+    "total_findings": 73,
+    "wire": 1,
+    "gate": 8,
+    "keep": 58,
+    "remove": 6,
+    "high_priority_actions": 7
+  },
+  "classifications": [
+    {
+      "id": 1,
+      "file": "crates/riptide-api/src/pipeline.rs",
+      "line": 19,
+      "symbol": "convert_extracted_content",
+      "finding": "Function marked with #[allow(dead_code)]",
+      "decision": "REMOVE",
+      "reasoning": "Function IS actually used at line 927. The #[allow(dead_code)] annotation is incorrect and should be removed.",
+      "action": "Remove the #[allow(dead_code)] attribute - function is actively used",
+      "priority": "high"
+    },
+    {
+      "id": 2,
+      "file": "crates/riptide-api/src/state.rs",
+      "line": 11,
+      "symbol": "CacheWarmingConfig",
+      "finding": "Import gated with #[cfg(feature = \"wasm-extractor\")]",
+      "decision": "GATE",
+      "reasoning": "Correctly gated - only used with wasm-extractor feature. Used in CacheManager initialization.",
+      "action": "No action needed - properly configured",
+      "priority": "low"
+    },
+    {
+      "id": 3,
+      "file": "crates/riptide-api/src/resource_manager/mod.rs",
+      "lines": "59-71",
+      "symbol": "Multiple imports with #[allow(unused_imports)]",
+      "finding": "Helper functions and monitoring types marked as unused",
+      "decision": "KEEP",
+      "reasoning": "Reserved for future monitoring endpoints and public API. Comments indicate intentional preservation for upcoming features.",
+      "action": "Keep with documentation - add TODO ticket reference",
+      "priority": "medium"
+    },
+    {
+      "id": 4,
+      "file": "crates/riptide-api/src/handlers/strategies.rs",
+      "lines": "71, 81",
+      "symbol": "Serde-only types with #[allow(unused)]",
+      "finding": "Type fields marked as unused",
+      "decision": "WIRE",
+      "reasoning": "These are deserialized types whose fields should be read/used. Either remove the types if not needed or use the fields.",
+      "action": "Investigate usage - either use the fields or remove the types",
+      "priority": "high"
+    },
+    {
+      "id": 5,
+      "file": "wasm/riptide-extractor-wasm/src/extraction_helpers.rs",
+      "line": 62,
+      "symbol": "Function with #[allow(dead_code)]",
+      "finding": "WASM helper function marked as dead code",
+      "decision": "GATE",
+      "reasoning": "Likely only used in WASM context. Should be gated with #[cfg(target_arch = \"wasm32\")] instead of blanket allow.",
+      "action": "Replace #[allow(dead_code)] with #[cfg(target_arch = \"wasm32\")]",
+      "priority": "medium"
+    },
+    {
+      "id": 6,
+      "file": "wasm/riptide-extractor-wasm/tests/benchmarks/mod.rs",
+      "lines": "23-50, 461",
+      "symbol": "Multiple benchmark structs and functions",
+      "finding": "Benchmark code marked with #[allow(dead_code)]",
+      "decision": "GATE",
+      "reasoning": "Benchmarks only run with #[cfg(test)] and specific bench features. Should use proper gating.",
+      "action": "Replace #[allow(dead_code)] with #[cfg(all(test, feature = \"bench\"))]",
+      "priority": "low"
+    },
+    {
+      "id": 7,
+      "file": "wasm/riptide-extractor-wasm/src/utf8_utils.rs",
+      "lines": "29, 63, 83",
+      "symbol": "UTF-8 utility functions",
+      "finding": "Helper functions marked as dead code",
+      "decision": "KEEP",
+      "reasoning": "Utility functions for WASM UTF-8 handling. May be used conditionally or reserved for WASM runtime.",
+      "action": "Add documentation explaining WASM-specific usage",
+      "priority": "low"
+    },
+    {
+      "id": 8,
+      "file": "wasm/riptide-extractor-wasm/src/common_validation.rs",
+      "lines": "134-208",
+      "symbol": "Multiple validation functions",
+      "finding": "Validation helper functions marked as dead code",
+      "decision": "KEEP",
+      "reasoning": "Validation utilities for WASM module. Likely used in conditional compilation or reserved for future validators.",
+      "action": "Document intended usage and add #[cfg] gates if needed",
+      "priority": "low"
+    },
+    {
+      "id": 9,
+      "file": "crates/riptide-search/tests/serper_provider_test.rs",
+      "lines": "4, 10, 16, 44",
+      "symbol": "Test helper functions",
+      "finding": "Test utilities marked as dead code",
+      "decision": "GATE",
+      "reasoning": "Test-only code should be properly gated with #[cfg(test)].",
+      "action": "Replace #[allow(dead_code)] with #[cfg(test)]",
+      "priority": "medium"
+    },
+    {
+      "id": 10,
+      "file": "tests/archive/phase3/direct_execution_tests.rs",
+      "lines": "329-370",
+      "symbol": "Multiple TODO placeholders in tests",
+      "finding": "TODO comments for unimplemented test code",
+      "decision": "KEEP",
+      "reasoning": "Archived phase3 tests with TODOs. Tests are in archive directory - kept for reference.",
+      "action": "Add issue tracking for test completion or consider removing archive",
+      "priority": "low"
+    },
+    {
+      "id": 11,
+      "file": "crates/riptide-facade/tests/*.rs",
+      "lines": "Multiple",
+      "symbol": "Facade integration test TODOs",
+      "finding": "53+ TODO comments for facade implementations",
+      "decision": "KEEP",
+      "reasoning": "Placeholder tests waiting for BrowserFacade and ExtractorFacade implementations. Tests document expected behavior.",
+      "action": "Track facade implementation progress - add GitHub issue references",
+      "priority": "high"
+    },
+    {
+      "id": 12,
+      "file": "crates/riptide-streaming/tests/ndjson_stream_tests.rs",
+      "line": 184,
+      "symbol": "#[allow(unused_variables)] in test",
+      "finding": "Test with unused variable suppression",
+      "decision": "REMOVE",
+      "reasoning": "Either use the variables or rename them with underscore prefix (_var).",
+      "action": "Review test and rename unused vars to _var pattern",
+      "priority": "medium"
+    },
+    {
+      "id": 13,
+      "file": "crates/riptide-pdf/src/benchmarks.rs",
+      "line": 12,
+      "symbol": "#[allow(unused_imports)]",
+      "finding": "Benchmark module with unused import suppression",
+      "decision": "GATE",
+      "reasoning": "Benchmarks should be properly feature-gated.",
+      "action": "Add #[cfg(all(test, feature = \"bench\"))] and remove blanket allow",
+      "priority": "low"
+    },
+    {
+      "id": 14,
+      "file": "crates/riptide-extraction/tests/html_extraction_tests.rs",
+      "line": 8,
+      "symbol": "#[allow(unused_imports)]",
+      "finding": "Test file with unused import suppression",
+      "decision": "REMOVE",
+      "reasoning": "Either use the imports or remove them. Blanket allows hide real issues.",
+      "action": "Remove unused imports or the allow attribute",
+      "priority": "medium"
+    },
+    {
+      "id": 15,
+      "file": "crates/riptide-api/tests/cross_module_integration.rs",
+      "lines": "16-22",
+      "symbol": "Multiple #[allow(unused_imports)] in test",
+      "finding": "Cross-module test with multiple unused import suppressions",
+      "decision": "REMOVE",
+      "reasoning": "Clean up test imports - either use them or remove them.",
+      "action": "Audit test imports and remove unused ones",
+      "priority": "medium"
+    }
+  ],
+  "high_priority_actions": [
+    {
+      "action": "Remove #[allow(dead_code)] from convert_extracted_content - function is used",
+      "files": ["crates/riptide-api/src/pipeline.rs:19"],
+      "impact": "Removes incorrect suppression"
+    },
+    {
+      "action": "Investigate Serde-only types in strategies.rs - use fields or remove types",
+      "files": ["crates/riptide-api/src/handlers/strategies.rs:71,81"],
+      "impact": "Either enables functionality or removes dead code"
+    },
+    {
+      "action": "Add GitHub issue tracking for 53+ facade implementation TODOs",
+      "files": ["crates/riptide-facade/tests/*"],
+      "impact": "Provides visibility into incomplete features"
+    },
+    {
+      "action": "Clean up test import suppressions",
+      "files": [
+        "crates/riptide-extraction/tests/html_extraction_tests.rs",
+        "crates/riptide-api/tests/cross_module_integration.rs"
+      ],
+      "impact": "Improves code hygiene"
+    },
+    {
+      "action": "Review resource_manager imports",
+      "files": ["crates/riptide-api/src/resource_manager/mod.rs:59-71"],
+      "impact": "Documents future work"
+    },
+    {
+      "action": "Convert test #[allow(dead_code)] to #[cfg(test)]",
+      "files": ["crates/riptide-search/tests/serper_provider_test.rs"],
+      "impact": "Proper gating"
+    },
+    {
+      "action": "Rename unused test variables",
+      "files": ["crates/riptide-streaming/tests/ndjson_stream_tests.rs:184"],
+      "impact": "Explicit intent"
+    }
+  ],
+  "statistics": {
+    "by_decision": {
+      "WIRE": {"count": 1, "percentage": 1.4},
+      "GATE": {"count": 8, "percentage": 11.0},
+      "KEEP": {"count": 58, "percentage": 79.5},
+      "REMOVE": {"count": 6, "percentage": 8.2}
+    }
+  }
+}

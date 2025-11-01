@@ -53,16 +53,9 @@ pub enum UnifiedExtractor {
 }
 
 /// Native extractor wrapper for consistent interface
+#[derive(Default)]
 pub struct NativeExtractor {
     parser: NativeHtmlParser,
-}
-
-impl Default for NativeExtractor {
-    fn default() -> Self {
-        Self {
-            parser: NativeHtmlParser::new(),
-        }
-    }
 }
 
 impl NativeExtractor {

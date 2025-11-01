@@ -24,8 +24,6 @@ members = [
   "crates/riptide-facade",  # P1-C3: High-level facade API
   "wasm/riptide-extractor-wasm", "crates/riptide-test-utils", "crates/riptide-config", "crates/riptide-cache", "crates/riptide-reliability", "crates/riptide-browser",
 ]
-# xtask excluded to avoid Docker build failures (dev tool only)
-exclude = ["xtask"]
 resolver = "2"
 
 [workspace.package]

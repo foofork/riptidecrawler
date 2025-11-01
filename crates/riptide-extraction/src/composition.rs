@@ -20,9 +20,9 @@
 
 use crate::strategies::traits::{ExtractionResult, ExtractionStrategy};
 use crate::strategies::PerformanceMetrics;
-use riptide_types::ExtractedDoc as ExtractedContent;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
+use riptide_types::ExtractedContent;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;

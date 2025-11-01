@@ -1,0 +1,29 @@
+# Rust Hygiene Audit - Signal Collection Summary
+# Generated: $(date)
+
+## Files Generated:
+- .check.json (948K) - cargo check JSON output
+- .clippy.json (983K) - clippy JSON output
+- .check_nofeat.json (985K) - check without default features
+- .check_allfeat.json (3.0M) - check with all features
+- .check_tests.json (909K) - test compilation check
+- .check_readable.txt - human-readable check output
+- .clippy_readable.txt - human-readable clippy output
+
+## Warning Categories Found:
+
+### Unused Variables (cargo check):
+- unused variable: \`none_time\` in riptide-stealth bench
+- unused variable: \`low_time\` in riptide-stealth bench
+- unused variable: \`medium_time\` in riptide-stealth bench
+- unused variable: \`high_time\` in riptide-stealth bench
+
+### Clippy Warnings:
+- Derivable impl in riptide-extraction
+- Unneeded return statement in riptide-api
+- Module has same name as containing module in riptide-extraction
+
+## Next Steps:
+1. Parse detailed warnings from readable output
+2. Categorize by severity and type
+3. Generate actionable remediation plan

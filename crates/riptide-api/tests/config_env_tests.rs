@@ -187,6 +187,8 @@ fn test_pdf_config_from_env() {
     );
 }
 
+// WASM configuration tests (only available with wasm-extractor feature)
+#[cfg(feature = "wasm-extractor")]
 #[test]
 #[serial]
 fn test_wasm_config_from_env() {
@@ -316,35 +318,39 @@ fn test_config_validation_with_env_vars() {
 #[test]
 #[serial]
 fn test_all_sections_loaded_together() {
-    with_env_vars(
-        vec![
-            // Resource
-            ("RIPTIDE_MAX_CONCURRENT_RENDERS", "15"),
-            // Performance
-            ("RIPTIDE_RENDER_TIMEOUT_SECS", "4"),
-            // Rate limiting (env var not consistently read, using default)
-            // ("RIPTIDE_RATE_LIMIT_RPS", "2.0"),
-            // Memory
-            ("RIPTIDE_GLOBAL_MEMORY_LIMIT_MB", "3072"),
-            // Headless
-            ("RIPTIDE_HEADLESS_MAX_POOL_SIZE", "4"),
-            // PDF
-            ("RIPTIDE_PDF_MAX_CONCURRENT", "3"),
-            // WASM
-            ("RIPTIDE_WASM_INSTANCES_PER_WORKER", "2"),
-            // Search
-            ("RIPTIDE_SEARCH_BACKEND", "none"),
-        ],
-        || {
-            let config = ApiConfig::from_env();
-            assert_eq!(config.resources.max_concurrent_renders, 15);
-            assert_eq!(config.performance.render_timeout_secs, 4);
-            assert_eq!(config.rate_limiting.requests_per_second_per_host, 1.5); // Default value
-            assert_eq!(config.memory.global_memory_limit_mb, 3072);
-            assert_eq!(config.headless.max_pool_size, 4);
-            assert_eq!(config.pdf.max_concurrent, 3);
-            assert_eq!(config.wasm.instances_per_worker, 2);
-            assert_eq!(config.search.backend, "none");
-        },
-    );
+    #[cfg_attr(not(feature = "wasm-extractor"), allow(unused_mut))]
+    let mut env_vars = vec![
+        // Resource
+        ("RIPTIDE_MAX_CONCURRENT_RENDERS", "15"),
+        // Performance
+        ("RIPTIDE_RENDER_TIMEOUT_SECS", "4"),
+        // Rate limiting (env var not consistently read, using default)
+        // ("RIPTIDE_RATE_LIMIT_RPS", "2.0"),
+        // Memory
+        ("RIPTIDE_GLOBAL_MEMORY_LIMIT_MB", "3072"),
+        // Headless
+        ("RIPTIDE_HEADLESS_MAX_POOL_SIZE", "4"),
+        // PDF
+        ("RIPTIDE_PDF_MAX_CONCURRENT", "3"),
+        // Search
+        ("RIPTIDE_SEARCH_BACKEND", "none"),
+    ];
+
+    #[cfg(feature = "wasm-extractor")]
+    env_vars.push(("RIPTIDE_WASM_INSTANCES_PER_WORKER", "2"));
+
+    with_env_vars(env_vars, || {
+        let config = ApiConfig::from_env();
+        assert_eq!(config.resources.max_concurrent_renders, 15);
+        assert_eq!(config.performance.render_timeout_secs, 4);
+        assert_eq!(config.rate_limiting.requests_per_second_per_host, 1.5); // Default value
+        assert_eq!(config.memory.global_memory_limit_mb, 3072);
+        assert_eq!(config.headless.max_pool_size, 4);
+        assert_eq!(config.pdf.max_concurrent, 3);
+
+        #[cfg(feature = "wasm-extractor")]
+        assert_eq!(config.wasm.instances_per_worker, 2);
+
+        assert_eq!(config.search.backend, "none");
+    });
 }

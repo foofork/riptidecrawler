@@ -1,7 +1,7 @@
 //! Tests for native HTML parser
 
 #[cfg(test)]
-mod tests {
+mod native_parser_tests {
     use crate::native_parser::{NativeHtmlParser, ParserConfig};
 
     #[test]

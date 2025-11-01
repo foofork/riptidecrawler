@@ -1,12 +1,7 @@
 //! Integration of confidence scoring with HTML extraction strategies
 
 use crate::confidence::{ConfidenceScore, ConfidenceScorer};
-
-// Placeholder for ExtractedContent - will be integrated with actual extraction results
-#[derive(Debug, Clone)]
-pub struct ExtractedContent {
-    pub extraction_confidence: f64,
-}
+use riptide_types::ExtractedContent;
 
 /// WASM extractor confidence scorer
 pub struct WasmConfidenceScorer {
