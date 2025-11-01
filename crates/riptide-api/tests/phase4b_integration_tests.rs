@@ -46,11 +46,14 @@ mod test_utils {
     }
 
     /// Create test router with all Phase 4B routes
-    /// Note: create_router function doesn't exist yet, will be implemented when routes are added
+    /// TODO(P2): Re-enable after test_router module is implemented
+    #[allow(dead_code)]
     pub async fn create_test_router() -> Router {
-        // TODO: Implement create_router function in routes module
-        // For now, return empty router to allow tests to compile
-        Router::new()
+        // use riptide_api::routes::test_router;
+
+        let app_state = create_test_app_state().await;
+        Router::new().with_state((*app_state).clone())
+        // test_router::create_router().with_state((*app_state).clone())
     }
 
     /// Helper to parse NDJSON stream

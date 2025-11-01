@@ -158,7 +158,8 @@ async fn main() -> Result<()> {
 
     // Phase 5: Graceful shutdown of optimizations (intentionally disabled)
     // Will be re-enabled when Phase 4 optimizations are complete
-    drop(optimized_executor);
+    // Note: drop() removed as optimized_executor is Option<()> which implements Copy
+    let _ = optimized_executor; // Explicitly ignore unused variable
 
     result
 }

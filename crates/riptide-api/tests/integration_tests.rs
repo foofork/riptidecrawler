@@ -360,18 +360,383 @@ mod table_extraction_tests {
         // This test will FAIL until the endpoint is implemented
         assert_eq!(status, StatusCode::OK, "CSV export should return OK");
 
-        // TODO(P1): Validate CSV content structure
-        // VALIDATION CHECKLIST:
-        //   1. Check content-type header is text/csv
-        //   2. Validate CSV format with proper escaping
-        //   3. Ensure headers are included if requested
-        //   4. Verify row count matches table rows
-        //   5. Check special characters are properly escaped
-        // EFFORT: Low (1-2 hours)
-        // BLOCKER: Requires endpoint implementation first
-        // - Check content-type header is text/csv
-        // - Validate CSV format with proper escaping
-        // - Ensure headers are included if requested
+        // CSV content structure validation
+        // Note: This assumes the response body contains CSV text
+        // In a real implementation, we'd extract the body as text first
+        // let csv_content = extract_response_body_as_text(response);
+
+        // TODO(P1): Implement full CSV validation once endpoint is complete
+        // For now, we define the validation logic that will be applied:
+        // validate_csv_structure(&csv_content);
+    }
+
+    /// Helper function to validate CSV content structure
+    ///
+    /// Validates:
+    /// - Headers are present and well-formed
+    /// - Row count matches expected count
+    /// - Data types in columns are consistent
+    /// - No malformed rows
+    /// - Special characters are properly escaped
+    #[allow(dead_code)]
+    fn validate_csv_structure(csv_content: &str, expected_rows: Option<usize>) {
+        // Split CSV into lines
+        let lines: Vec<&str> = csv_content.lines().collect();
+
+        assert!(!lines.is_empty(), "CSV content should not be empty");
+
+        // Validate header row exists
+        let header = lines[0];
+        assert!(!header.is_empty(), "CSV header row should not be empty");
+
+        // Validate header has proper CSV format (comma-separated values)
+        let header_columns: Vec<&str> = header.split(',').collect();
+        assert!(
+            !header_columns.is_empty(),
+            "CSV should have at least one column"
+        );
+
+        // Validate each header column is non-empty (after trimming quotes)
+        for (idx, col) in header_columns.iter().enumerate() {
+            let trimmed = col.trim().trim_matches('"');
+            assert!(
+                !trimmed.is_empty(),
+                "Header column {} should not be empty",
+                idx
+            );
+        }
+
+        // Validate data rows
+        let data_rows = &lines[1..];
+
+        if let Some(expected) = expected_rows {
+            assert_eq!(
+                data_rows.len(),
+                expected,
+                "CSV should have {} data rows (excluding header)",
+                expected
+            );
+        }
+
+        // Validate each data row
+        for (row_idx, row) in data_rows.iter().enumerate() {
+            if row.is_empty() {
+                continue; // Allow trailing empty lines
+            }
+
+            let columns: Vec<&str> = parse_csv_row(row);
+
+            assert_eq!(
+                columns.len(),
+                header_columns.len(),
+                "Row {} should have same number of columns as header ({} vs {})",
+                row_idx + 1,
+                columns.len(),
+                header_columns.len()
+            );
+
+            // Validate no unescaped special characters cause malformed rows
+            // Check that quotes are properly balanced
+            let quote_count = row.matches('"').count();
+            assert_eq!(
+                quote_count % 2,
+                0,
+                "Row {} should have balanced quotes",
+                row_idx + 1
+            );
+        }
+    }
+
+    /// Parse a CSV row handling quoted values with commas
+    #[allow(dead_code)]
+    fn parse_csv_row(row: &str) -> Vec<&str> {
+        // Simplified CSV parser - in production use a proper CSV library
+        // This handles basic quoted fields
+        let mut result = Vec::new();
+        let mut start = 0;
+        let mut in_quotes = false;
+
+        for (i, ch) in row.char_indices() {
+            if ch == '"' {
+                in_quotes = !in_quotes;
+            } else if ch == ',' && !in_quotes {
+                result.push(&row[start..i]);
+                start = i + 1;
+            }
+        }
+
+        // Add the last field
+        result.push(&row[start..]);
+
+        result
+    }
+
+    /// Test CSV validation with various edge cases
+    #[tokio::test]
+    async fn test_csv_structure_validation() {
+        // Test valid CSV
+        let valid_csv = "Product ID,Name,Price,Category\n001,Laptop,$999.99,Electronics\n002,Mouse,$24.99,Accessories";
+        validate_csv_structure(valid_csv, Some(2));
+
+        // Test CSV with quoted fields containing commas
+        let csv_with_commas = "ID,Name,Description\n1,\"Product A\",\"A product, with commas\"\n2,\"Product B\",\"Another, product\"";
+        validate_csv_structure(csv_with_commas, Some(2));
+
+        // Test CSV with special characters
+        let csv_with_special =
+            "ID,Name,Price\n1,\"Product \"\"Special\"\"\",\"$1,000.00\"\n2,Product B,$500";
+        validate_csv_structure(csv_with_special, Some(2));
+    }
+
+    /// Test CSV validation catches errors
+    #[tokio::test]
+    #[should_panic(expected = "CSV content should not be empty")]
+    async fn test_csv_validation_empty_content() {
+        validate_csv_structure("", Some(0));
+    }
+
+    #[tokio::test]
+    #[should_panic(expected = "should have same number of columns")]
+    async fn test_csv_validation_mismatched_columns() {
+        let malformed_csv = "A,B,C\n1,2\n3,4,5";
+        validate_csv_structure(malformed_csv, Some(2));
+    }
+
+    #[tokio::test]
+    #[should_panic(expected = "should have balanced quotes")]
+    async fn test_csv_validation_unbalanced_quotes() {
+        let malformed_csv = "A,B\n1,\"unclosed quote";
+        validate_csv_structure(malformed_csv, Some(1));
+    }
+
+    /// Helper function to validate Markdown table format
+    ///
+    /// Validates that a Markdown table has:
+    /// - Proper table syntax with pipe separators (|)
+    /// - Valid alignment row with dashes (---)
+    /// - Consistent column structure across all rows
+    /// - Properly escaped special characters
+    #[allow(dead_code)]
+    fn validate_markdown_table(markdown_content: &str, expected_rows: Option<usize>) {
+        // Split content into lines for validation
+        let lines: Vec<&str> = markdown_content
+            .lines()
+            .filter(|l| !l.trim().is_empty())
+            .collect();
+
+        assert!(
+            lines.len() >= 3,
+            "Markdown table should have at least 3 lines (header, separator, data)"
+        );
+
+        // 1. Validate table headers (first line) - should have pipe separators
+        let header_line = lines[0];
+        assert!(
+            header_line.contains('|'),
+            "Header line should contain pipe separators |"
+        );
+
+        // Most Markdown tables start and end with pipes
+        let header_starts_with_pipe = header_line.trim().starts_with('|');
+        let header_ends_with_pipe = header_line.trim().ends_with('|');
+
+        // Count pipes to determine column count
+        let header_pipes = header_line.matches('|').count();
+        assert!(
+            header_pipes >= 2,
+            "Header should have at least 2 pipes (minimum for 1 column)"
+        );
+
+        // Calculate expected column count
+        // If table uses outer pipes: columns = pipes - 1
+        // If table doesn't use outer pipes: columns = pipes + 1
+        let expected_columns = if header_starts_with_pipe && header_ends_with_pipe {
+            header_pipes - 1
+        } else {
+            header_pipes + 1
+        };
+
+        assert!(expected_columns >= 1, "Table should have at least 1 column");
+
+        // 2. Validate alignment/separator row (second line)
+        let separator_line = lines[1];
+        assert!(
+            separator_line.contains('|'),
+            "Separator line should contain pipe separators |"
+        );
+
+        // Check for alignment markers (---, :---, ---:, or :---:)
+        assert!(
+            separator_line.contains("---")
+                || separator_line.contains(":--")
+                || separator_line.contains("--:"),
+            "Separator line should contain alignment markers with dashes (---), got: '{}'",
+            separator_line
+        );
+
+        // 3. Validate pipe separators are consistent across header and separator
+        let separator_pipes = separator_line.matches('|').count();
+        assert_eq!(
+            header_pipes, separator_pipes,
+            "Header and separator rows should have same number of pipes (header: {}, separator: {})",
+            header_pipes,
+            separator_pipes
+        );
+
+        // 4. Validate separator cells contain only valid characters
+        let separator_cells: Vec<&str> = separator_line
+            .split('|')
+            .filter(|s| !s.is_empty())
+            .collect();
+
+        assert_eq!(
+            separator_cells.len(),
+            expected_columns,
+            "Separator should have {} columns",
+            expected_columns
+        );
+
+        for (i, cell) in separator_cells.iter().enumerate() {
+            let trimmed = cell.trim();
+            assert!(
+                trimmed
+                    .chars()
+                    .all(|c| c == '-' || c == ':' || c.is_whitespace()),
+                "Separator cell {} should only contain dashes, colons, or whitespace, got: '{}'",
+                i,
+                trimmed
+            );
+            assert!(
+                trimmed.contains('-'),
+                "Separator cell {} must contain at least one dash, got: '{}'",
+                i,
+                trimmed
+            );
+
+            // Validate alignment marker patterns
+            let has_valid_pattern = trimmed == "---"
+                || trimmed.starts_with(":---")
+                || trimmed.ends_with("---:")
+                || (trimmed.starts_with(':') && trimmed.ends_with(':'));
+
+            assert!(
+                has_valid_pattern || trimmed.contains("---"),
+                "Separator cell {} should have valid alignment pattern (---, :---, ---:, or :---:), got: '{}'",
+                i,
+                trimmed
+            );
+        }
+
+        // 5. Validate data rows have consistent structure
+        let data_rows = &lines[2..];
+
+        if let Some(expected) = expected_rows {
+            assert_eq!(
+                data_rows.len(),
+                expected,
+                "Expected {} data rows, got {}",
+                expected,
+                data_rows.len()
+            );
+        }
+
+        for (i, line) in data_rows.iter().enumerate() {
+            assert!(
+                line.contains('|'),
+                "Data row {} should contain pipe separators",
+                i
+            );
+
+            let data_pipes = line.matches('|').count();
+            assert_eq!(
+                header_pipes, data_pipes,
+                "Data row {} should have same number of pipes as header (expected: {}, got: {})",
+                i, header_pipes, data_pipes
+            );
+
+            // Count columns in this row
+            let row_cells: Vec<&str> = line.split('|').filter(|s| !s.is_empty()).collect();
+
+            assert_eq!(
+                row_cells.len(),
+                expected_columns,
+                "Data row {} should have {} columns, got {}",
+                i,
+                expected_columns,
+                row_cells.len()
+            );
+        }
+
+        // 6. Validate special character escaping
+        // In Markdown tables, pipe characters within cells should be escaped as \|
+        for (i, line) in lines.iter().enumerate() {
+            // Skip the separator line for this check
+            if i == 1 {
+                continue;
+            }
+
+            // Check for unescaped pipes that might indicate issues
+            // This is a simplified check - full validation would need proper parsing
+            let parts: Vec<&str> = line.split('|').collect();
+            for (j, part) in parts.iter().enumerate() {
+                // Check that backslashes before pipes are actually escape sequences
+                if part.contains("\\|") {
+                    // Valid: escaped pipe within cell content
+                    continue;
+                }
+
+                // Ensure cell content doesn't have unbalanced formatting
+                let backtick_count = part.matches('`').count();
+                if backtick_count > 0 {
+                    assert_eq!(
+                        backtick_count % 2,
+                        0,
+                        "Cell at row {}, column {} should have balanced backticks for code formatting",
+                        i,
+                        j
+                    );
+                }
+            }
+        }
+    }
+
+    /// Test Markdown table structure validation with various formats
+    #[tokio::test]
+    async fn test_markdown_table_validation() {
+        // Test valid Markdown table with outer pipes
+        let valid_markdown = "| Product ID | Name | Price | Category |\n| --- | --- | --- | --- |\n| 001 | Laptop | $999.99 | Electronics |\n| 002 | Mouse | $24.99 | Accessories |";
+        validate_markdown_table(valid_markdown, Some(2));
+
+        // Test valid Markdown table with alignment markers
+        let aligned_markdown =
+            "| ID | Name | Price |\n| :--- | :---: | ---: |\n| 1 | Product | $100 |";
+        validate_markdown_table(aligned_markdown, Some(1));
+
+        // Test Markdown table without outer pipes (also valid)
+        let no_outer_pipes = "Product | Price\n--- | ---\nLaptop | $999\nMouse | $24";
+        validate_markdown_table(no_outer_pipes, Some(2));
+    }
+
+    /// Test Markdown validation catches format errors
+    #[tokio::test]
+    #[should_panic(expected = "should have at least 3 lines")]
+    async fn test_markdown_validation_too_few_lines() {
+        let invalid_markdown = "| Header |\n| --- |";
+        validate_markdown_table(invalid_markdown, Some(1));
+    }
+
+    #[tokio::test]
+    #[should_panic(expected = "should have same number of pipes")]
+    async fn test_markdown_validation_inconsistent_pipes() {
+        let invalid_markdown = "| A | B | C |\n| --- | --- |\n| 1 | 2 | 3 |";
+        validate_markdown_table(invalid_markdown, Some(1));
+    }
+
+    #[tokio::test]
+    #[should_panic(expected = "should contain alignment markers")]
+    async fn test_markdown_validation_missing_dashes() {
+        let invalid_markdown = "| A | B |\n| | |\n| 1 | 2 |";
+        validate_markdown_table(invalid_markdown, Some(1));
     }
 
     /// Test Markdown export functionality
@@ -387,7 +752,7 @@ mod table_extraction_tests {
 
         let table_id = "table_12345";
 
-        let (status, _response) = make_json_request(
+        let (status, response) = make_json_request(
             app,
             "GET",
             &format!("/api/v1/tables/{}/export?format=markdown", table_id),
@@ -398,18 +763,20 @@ mod table_extraction_tests {
         // This test will FAIL until the endpoint is implemented
         assert_eq!(status, StatusCode::OK, "Markdown export should return OK");
 
-        // TODO(P1): Validate Markdown table format
-        // VALIDATION CHECKLIST:
-        //   1. Check content includes proper table syntax with |
-        //   2. Verify alignment row with ---
-        //   3. Ensure special characters are escaped properly
-        //   4. Validate table headers match structure
-        //   5. Check cell content formatting
-        // EFFORT: Low (1-2 hours)
-        // BLOCKER: Requires endpoint implementation first
-        // - Check content includes proper table syntax with |
-        // - Verify alignment row with ---
-        // - Ensure special characters are escaped properly
+        // P1: Validate Markdown table format using validation helper
+        let markdown_content = response["content"]
+            .as_str()
+            .expect("Response should contain markdown content");
+
+        // Use the validation helper to thoroughly check Markdown format
+        validate_markdown_table(markdown_content, None);
+
+        // Additional checks specific to API response
+        assert!(
+            response["format"].as_str().unwrap_or("") == "markdown"
+                || response.get("format").is_none(),
+            "Response should indicate markdown format"
+        );
     }
 
     /// Test table extraction with complex span handling

@@ -36,12 +36,10 @@ impl HealthChecker {
             "riptide-api".to_string(),
             env!("CARGO_PKG_VERSION").to_string(),
         );
-        component_versions.insert("riptide-core".to_string(), "0.1.0".to_string());
-        // TODO(P1): Get version from workspace Cargo.toml dynamically
-        // PLAN: Use workspace resolver to read riptide-core version at compile time
-        // DEPENDENCIES: None - can use cargo_metadata or compile-time env vars
-        // EFFORT: Low (1-2 hours)
-        // BLOCKER: None
+        component_versions.insert(
+            "riptide-core".to_string(),
+            env!("CARGO_PKG_VERSION").to_string(),
+        );
         component_versions.insert("rust".to_string(), "unknown".to_string());
 
         // Dependency versions
@@ -173,22 +171,19 @@ impl HealthChecker {
         // Worker service health check
         let worker_health = self.check_worker_service_health(state).await;
 
+        // Spider engine health check (if enabled)
+        let spider_health = if state.spider.is_some() {
+            Some(self.check_spider_health(state).await)
+        } else {
+            None
+        };
+
         DependencyStatus {
             redis: redis_health,
             extractor: extractor_health,
             http_client: http_health,
             headless_service: headless_health,
-            spider_engine: None,
-            // TODO(P1): Implement spider health check
-            // PLAN: Add spider engine health monitoring with connectivity test
-            // IMPLEMENTATION:
-            //   1. Check spider engine initialization status
-            //   2. Test crawl queue connectivity
-            //   3. Verify spider worker pool health
-            //   4. Return status with response time metrics
-            // DEPENDENCIES: Requires spider engine API to expose health check method
-            // EFFORT: Medium (4-6 hours)
-            // BLOCKER: Spider engine must be initialized in AppState
+            spider_engine: spider_health,
             worker_service: Some(worker_health),
         }
     }
@@ -421,6 +416,45 @@ impl HealthChecker {
                     response_time_ms: None,
                     last_check: chrono::Utc::now().to_rfc3339(),
                 }
+            }
+        }
+    }
+
+    /// Check spider engine health
+    async fn check_spider_health(&self, state: &AppState) -> ServiceHealth {
+        let start_time = Instant::now();
+
+        // Check if spider engine is initialized
+        if let Some(spider) = &state.spider {
+            // Get crawl state to verify spider engine is operational
+            let crawl_state = spider.get_crawl_state().await;
+            let response_time = start_time.elapsed().as_millis() as u64;
+
+            // Spider is healthy if it can respond to state queries
+            // Additional checks for active crawling status
+            let status_message = if crawl_state.active {
+                format!(
+                    "Spider engine operational (active crawl: {} pages, {} domains)",
+                    crawl_state.pages_crawled,
+                    crawl_state.active_domains.len()
+                )
+            } else {
+                "Spider engine operational (idle)".to_string()
+            };
+
+            ServiceHealth {
+                status: "healthy".to_string(),
+                message: Some(status_message),
+                response_time_ms: Some(response_time),
+                last_check: chrono::Utc::now().to_rfc3339(),
+            }
+        } else {
+            // Spider not initialized (should not reach here due to outer check, but defensive)
+            ServiceHealth {
+                status: "not_configured".to_string(),
+                message: Some("Spider engine not initialized".to_string()),
+                response_time_ms: None,
+                last_check: chrono::Utc::now().to_rfc3339(),
             }
         }
     }
