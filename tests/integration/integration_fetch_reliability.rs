@@ -1,7 +1,7 @@
-use riptide_core::fetch::{
+use riptide_fetch::{
     ReliableHttpClient, RetryConfig, CircuitBreakerConfig, CircuitState
 };
-use riptide_core::robots::{RobotsConfig, RobotsManager};
+use riptide_robots::{RobotsConfig, RobotsManager};
 use std::time::Duration;
 use tokio::time::sleep;
 use wiremock::{

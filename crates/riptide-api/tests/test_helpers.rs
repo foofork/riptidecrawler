@@ -12,6 +12,39 @@ use std::sync::Arc;
 use tower::ServiceExt;
 use tower_http::cors::CorsLayer;
 
+/// Create a test AppState with full dependencies
+///
+/// This function creates a fully initialized AppState with all dependencies,
+/// enabling comprehensive integration testing.
+///
+/// Note: This function will attempt to connect to Redis and other services.
+/// Returns Result to allow tests to handle missing dependencies gracefully.
+pub async fn create_test_state() -> AppState {
+    // Initialize test config using AppConfig::default() with test overrides
+    let mut config = riptide_api::state::AppConfig::default();
+
+    // Override with test-specific values if needed
+    if let Ok(redis_url) = std::env::var("TEST_REDIS_URL") {
+        config.redis_url = redis_url;
+    }
+
+    if let Ok(wasm_path) = std::env::var("TEST_WASM_PATH") {
+        config.wasm_path = wasm_path;
+    }
+
+    // Initialize test metrics
+    let metrics = Arc::new(RipTideMetrics::new().expect("Failed to create test metrics"));
+
+    // Initialize test health checker
+    let health_checker = Arc::new(HealthChecker::new());
+
+    // Create test app state
+    // Note: This may fail if dependencies are not available
+    AppState::new(config, metrics, health_checker)
+        .await
+        .expect("Failed to create test AppState - check dependencies")
+}
+
 /// Create a test application with full dependencies
 ///
 /// This function creates a fully initialized AppState with all dependencies,
@@ -52,7 +85,10 @@ pub async fn create_test_app() -> Router {
 
 /// Create router with all routes configured
 pub fn create_test_router(state: AppState) -> Router {
-    use riptide_api::{routes, streaming};
+    use riptide_api::routes;
+    use riptide_api::streaming::ndjson::handlers::{crawl_stream, deepsearch_stream};
+    use riptide_api::streaming::sse::crawl_sse;
+    use riptide_api::streaming::websocket::crawl_websocket;
 
     Router::new()
         // Health endpoint - standardized on /healthz
@@ -67,13 +103,10 @@ pub fn create_test_router(state: AppState) -> Router {
         // Search endpoint - NEW v1.1 (v1 path primary)
         .route("/api/v1/search", get(handlers::search))
         // Streaming endpoints (test-enabled)
-        .route("/crawl/stream", post(streaming::ndjson_crawl_stream))
-        .route(
-            "/deepsearch/stream",
-            post(streaming::ndjson_deepsearch_stream),
-        )
-        .route("/crawl/sse", post(streaming::crawl_sse))
-        .route("/crawl/ws", get(streaming::crawl_websocket))
+        .route("/crawl/stream", post(crawl_stream))
+        .route("/deepsearch/stream", post(deepsearch_stream))
+        .route("/crawl/sse", post(crawl_sse))
+        .route("/crawl/ws", get(crawl_websocket))
         // Table extraction routes
         .nest("/api/v1/tables", routes::tables::table_routes())
         // LLM provider management routes

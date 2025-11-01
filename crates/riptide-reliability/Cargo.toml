@@ -9,9 +9,9 @@ description = "Reliability patterns for Riptide: circuit breakers, gates, and fa
 [dependencies]
 # P2-F1 Day 3: Dependencies for modular architecture
 riptide-types = { path = "../riptide-types" }
+# NOTE: Circular dependency RESOLVED via trait abstraction (HtmlParser trait in riptide-types)
+# riptide-fetch dependency is for HTTP client and circuit breaker functionality
 riptide-fetch = { path = "../riptide-fetch" }
-# Phase 1: WASM Optional - Use native-parser by default
-riptide-extraction = { path = "../riptide-extraction", default-features = false, features = ["css-extraction", "regex-extraction", "dom-utils", "chunking", "native-parser"] }
 riptide-events = { path = "../riptide-events", optional = true }
 riptide-monitoring = { path = "../riptide-monitoring", optional = true }
 riptide-pool = { path = "../riptide-pool", optional = true }
@@ -41,10 +41,15 @@ criterion = { version = "0.5", features = ["html_reports"] }
 tempfile = "3.15"
 
 [features]
-default = ["events", "monitoring"]
+# NOTE: reliability-patterns feature RE-ENABLED via trait abstraction
+# Circular dependency resolved by using HtmlParser trait from riptide-types
+# instead of concrete NativeHtmlParser type from riptide-extraction
+# The trait is implemented by NativeHtmlParser, enabling dependency injection
+reliability-patterns = []  # Now enabled - no dependencies needed (uses trait)
+default = ["events", "monitoring", "reliability-patterns"]
 # Enable event bus integration for circuit breaker notifications
 events = ["riptide-events", "riptide-pool"]
 # Enable monitoring integration for metrics
 monitoring = ["riptide-monitoring"]
 # Enable full integration with all optional features
-full = ["events", "monitoring"]
+full = ["events", "monitoring", "reliability-patterns"]

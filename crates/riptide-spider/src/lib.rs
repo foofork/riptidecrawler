@@ -21,7 +21,6 @@
 
 pub mod adaptive_stop;
 pub mod budget;
-pub mod circuit;
 pub mod config;
 pub mod core;
 pub mod frontier;
@@ -36,6 +35,9 @@ pub mod strategy;
 pub mod types;
 pub mod url_utils;
 pub mod wasm_validation;
+
+// Re-export circuit breaker from riptide-types
+pub use riptide_types::reliability::circuit::CircuitBreaker;
 
 // Re-export main types
 pub use adaptive_stop::AdaptiveStopEngine;

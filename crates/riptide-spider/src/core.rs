@@ -1,4 +1,4 @@
-use crate::circuit::CircuitBreaker;
+use riptide_types::reliability::circuit::CircuitBreaker;
 
 /// Basic link extraction using regex (simplified for core)
 fn extract_links_basic(content: &str, base_url: &Url) -> Result<Vec<Url>> {

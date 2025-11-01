@@ -19,12 +19,15 @@
 //! - **riptide-core**: Orchestration
 
 // Core modules
-pub mod circuit;
 pub mod fetch;
 pub mod robots;
 pub mod telemetry;
 
+// Re-export circuit breaker from riptide-types
+pub use riptide_types::reliability::circuit::{
+    CircuitBreaker, Config as CircuitConfig, RealClock, State as CircuitState,
+};
+
 // Re-export main types
-pub use circuit::{CircuitBreaker, State as CircuitState};
 pub use fetch::*;
 pub use robots::{RobotsConfig, RobotsManager};

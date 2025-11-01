@@ -17,6 +17,12 @@ anyhow = { workspace = true }
 # Async traits
 async-trait = { workspace = true }
 
+# Tokio runtime (for CircuitBreaker)
+tokio = { workspace = true }
+
+# Logging (for CircuitBreaker)
+tracing = { workspace = true }
+
 # URL handling
 url = { workspace = true }
 

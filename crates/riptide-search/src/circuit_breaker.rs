@@ -2,6 +2,20 @@
 //!
 //! This module provides circuit breaker functionality to protect against
 //! cascading failures when search providers become unavailable or unreliable.
+//!
+//! ## Relationship to Canonical Circuit Breaker
+//!
+//! This is a **specialized wrapper** for the `SearchProvider` trait. The canonical,
+//! production-ready circuit breaker lives in `riptide-types::reliability::circuit`.
+//!
+//! **Why this wrapper exists:**
+//! - Provides SearchProvider-specific integration
+//! - Percentage-based failure thresholds (more intuitive for search APIs)
+//! - Transparent wrapper pattern for any SearchProvider implementation
+//! - Health check passthrough (independent of circuit state)
+//!
+//! **Future work:** Could be refactored to use the canonical circuit breaker internally
+//! while maintaining the same public API. See `/docs/architecture/CIRCUIT_BREAKER_CONSOLIDATION_SUMMARY.md`
 
 use super::{SearchBackend, SearchHit, SearchProvider};
 use anyhow::Result;

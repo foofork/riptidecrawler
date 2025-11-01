@@ -1,5 +1,7 @@
 //! Core parser implementation for native HTML parsing
 
+use anyhow::Result as AnyhowResult;
+use riptide_types::extractors::HtmlParser as HtmlParserTrait;
 use riptide_types::{ExtractedDoc, ParserMetadata};
 use scraper::Html;
 use tracing::{debug, warn};
@@ -244,5 +246,18 @@ impl NativeHtmlParser {
 impl Default for NativeHtmlParser {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// Implement HtmlParser trait for dependency injection in riptide-reliability
+impl HtmlParserTrait for NativeHtmlParser {
+    fn parse_html(&self, html: &str, url: &str) -> AnyhowResult<ExtractedDoc> {
+        self.parse_headless_html(html, url)
+            .map_err(|e| anyhow::anyhow!("Native HTML parsing failed: {}", e))
+    }
+
+    fn parse_with_fallbacks(&self, html: &str, url: &str) -> AnyhowResult<ExtractedDoc> {
+        self.extract_with_fallbacks(html, url)
+            .map_err(|e| anyhow::anyhow!("Native HTML parsing with fallbacks failed: {}", e))
     }
 }

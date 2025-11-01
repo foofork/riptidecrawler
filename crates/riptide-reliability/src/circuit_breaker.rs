@@ -3,6 +3,22 @@
 //! This module provides circuit breaker functionality with deadlock-safe implementation.
 //! The key improvement is the phase-based locking pattern that ensures no overlapping
 //! locks are held across await points.
+//!
+//! ## Relationship to Canonical Circuit Breaker
+//!
+//! This is a **specialized wrapper** for extraction pool management. The canonical,
+//! lock-free circuit breaker lives in `riptide-types::reliability::circuit` (which we re-export).
+//!
+//! **Why this specialized version exists:**
+//! - Integrates with `riptide-events::EventBus` for pool lifecycle events
+//! - Tracks `riptide-monitoring::PerformanceMetrics` for extraction metrics
+//! - Phase-based locking pattern to prevent deadlocks across async boundaries
+//! - Pool-specific state management coordinated with metrics
+//!
+//! **Design decision:** Kept as specialized due to tight integration with event bus and metrics.
+//! Uses `Mutex` for coordination instead of the canonical's lock-free atomics.
+//!
+//! See `/docs/architecture/CIRCUIT_BREAKER_CONSOLIDATION_SUMMARY.md` for full analysis.
 
 use std::sync::Arc;
 use std::time::{Duration, Instant};

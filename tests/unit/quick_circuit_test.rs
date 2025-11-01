@@ -1,5 +1,5 @@
 // Quick test to verify circuit breaker fixes
-use riptide_core::circuit::{CircuitBreaker, Config, RealClock, State};
+use riptide_types::reliability::circuit::{CircuitBreaker, Config, RealClock, State};
 use std::sync::Arc;
 
 #[test]
@@ -27,7 +27,7 @@ fn test_circuit_breaker_basic() {
 
 #[test]
 fn test_fetch_client_creation() {
-    use riptide_core::fetch::{ReliableHttpClient, RetryConfig, CircuitBreakerConfig};
+    use riptide_fetch::{ReliableHttpClient, RetryConfig, CircuitBreakerConfig};
 
     let client = ReliableHttpClient::new(
         RetryConfig::default(),

@@ -1,4 +1,5 @@
 use anyhow::Result;
+use riptide_fetch::{CircuitBreakerConfig, ReliableHttpClient, RetryConfig};
 /// Enhanced reliability patterns for RipTide Phase-2 Lite
 ///
 /// This module implements timeout and reliability patterns for robust web scraping:
@@ -6,8 +7,8 @@ use anyhow::Result;
 /// 2. Headless resilience - DOMContentLoaded + 1s idle, 3s hard cap, circuit breaker
 /// 3. Graceful degradation - Fallback to fast path when headless fails
 // P2-F1 Day 3: Import from external crates (no longer from riptide-core)
-use riptide_extraction::NativeHtmlParser;
-use riptide_fetch::{CircuitBreakerConfig, ReliableHttpClient, RetryConfig};
+// Use trait abstraction instead of concrete type to avoid circular dependency
+use riptide_types::extractors::HtmlParser;
 use riptide_types::ExtractedDoc;
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
@@ -138,11 +139,19 @@ impl ReliableExtractor {
     }
 
     /// Perform content extraction with full reliability patterns
+    ///
+    /// # Arguments
+    /// * `url` - URL to extract content from
+    /// * `extraction_mode` - Extraction strategy (Fast, Headless, ProbesFirst)
+    /// * `wasm_extractor` - WASM-based extractor for untrusted HTML
+    /// * `html_parser` - Native HTML parser for trusted headless HTML
+    /// * `headless_url` - Optional headless service URL
     pub async fn extract_with_reliability(
         &self,
         url: &str,
         extraction_mode: ExtractionMode,
         wasm_extractor: &dyn WasmExtractor,
+        html_parser: &dyn HtmlParser,
         headless_url: Option<&str>,
     ) -> Result<ExtractedDoc> {
         let start_time = Instant::now();
@@ -156,14 +165,23 @@ impl ReliableExtractor {
         );
 
         match extraction_mode {
-            ExtractionMode::Fast => self.extract_fast(url, wasm_extractor, &request_id).await,
+            ExtractionMode::Fast => {
+                self.extract_fast(url, wasm_extractor, html_parser, &request_id)
+                    .await
+            }
             ExtractionMode::Headless => {
-                self.extract_headless(url, headless_url, wasm_extractor, &request_id)
+                self.extract_headless(url, headless_url, html_parser, wasm_extractor, &request_id)
                     .await
             }
             ExtractionMode::ProbesFirst => {
-                self.extract_with_probes(url, headless_url, wasm_extractor, &request_id)
-                    .await
+                self.extract_with_probes(
+                    url,
+                    headless_url,
+                    wasm_extractor,
+                    html_parser,
+                    &request_id,
+                )
+                .await
             }
         }
         .map_err(|e| {
@@ -183,6 +201,7 @@ impl ReliableExtractor {
         &self,
         url: &str,
         wasm_extractor: &dyn WasmExtractor,
+        html_parser: &dyn HtmlParser,
         request_id: &str,
     ) -> Result<ExtractedDoc> {
         debug!(request_id = %request_id, "Using fast extraction path (WASM primary)");
@@ -216,19 +235,17 @@ impl ReliableExtractor {
                     "Fallback triggered - WASM extractor failed, trying native parser"
                 );
 
-                // FALLBACK: Try native parser (non-circular)
+                // FALLBACK: Try native parser (via trait - breaks circular dependency)
                 let fallback_start = std::time::Instant::now();
-                let native_parser = NativeHtmlParser::new();
-                let native_result =
-                    native_parser
-                        .parse_headless_html(&raw_html, url)
-                        .map_err(|native_err| {
-                            anyhow::anyhow!(
-                                "Both parsers failed in fast path. WASM: {}, Native: {}",
-                                wasm_err,
-                                native_err
-                            )
-                        });
+                let native_result = html_parser
+                    .parse_html(&raw_html, url)
+                    .map_err(|native_err| {
+                        anyhow::anyhow!(
+                            "Both parsers failed in fast path. WASM: {}, Native: {}",
+                            wasm_err,
+                            native_err
+                        )
+                    });
 
                 if let Ok(ref doc) = native_result {
                     let fallback_duration = fallback_start.elapsed();
@@ -281,6 +298,7 @@ impl ReliableExtractor {
         &self,
         url: &str,
         headless_url: Option<&str>,
+        html_parser: &dyn HtmlParser,
         wasm_extractor: &dyn WasmExtractor,
         request_id: &str,
     ) -> Result<ExtractedDoc> {
@@ -338,7 +356,7 @@ impl ReliableExtractor {
 
         let extraction_start = Instant::now();
 
-        // PRIMARY: Try native parser (fast for trusted HTML)
+        // PRIMARY: Try native parser (fast for trusted HTML - via trait)
         info!(
             path = "headless",
             parser = "native",
@@ -347,9 +365,8 @@ impl ReliableExtractor {
             "Primary parser selected for headless path"
         );
 
-        let native_parser = NativeHtmlParser::new();
-        let mut doc = native_parser
-            .parse_headless_html(&rendered_html, url)
+        let mut doc = html_parser
+            .parse_html(&rendered_html, url)
             .or_else(|native_err| {
                 let native_duration = extraction_start.elapsed();
                 warn!(
@@ -427,12 +444,16 @@ impl ReliableExtractor {
         url: &str,
         headless_url: Option<&str>,
         wasm_extractor: &dyn WasmExtractor,
+        html_parser: &dyn HtmlParser,
         request_id: &str,
     ) -> Result<ExtractedDoc> {
         debug!(request_id = %request_id, "Using probes-first extraction");
 
         // First, try fast extraction
-        match self.extract_fast(url, wasm_extractor, request_id).await {
+        match self
+            .extract_fast(url, wasm_extractor, html_parser, request_id)
+            .await
+        {
             Ok(doc) => {
                 // Evaluate quality of fast extraction
                 let quality_score = self.evaluate_extraction_quality(&doc);
@@ -483,7 +504,7 @@ impl ReliableExtractor {
         // If fast extraction failed or quality is poor, try headless
         if self.config.enable_graceful_degradation {
             match self
-                .extract_headless(url, headless_url, wasm_extractor, request_id)
+                .extract_headless(url, headless_url, html_parser, wasm_extractor, request_id)
                 .await
             {
                 Ok(doc) => {
@@ -501,7 +522,10 @@ impl ReliableExtractor {
                     );
 
                     // Final fallback: try fast extraction one more time with minimal content
-                    if let Ok(doc) = self.extract_fast(url, wasm_extractor, request_id).await {
+                    if let Ok(doc) = self
+                        .extract_fast(url, wasm_extractor, html_parser, request_id)
+                        .await
+                    {
                         warn!(
                             request_id = %request_id,
                             "Returning low-quality fast extraction as final fallback"

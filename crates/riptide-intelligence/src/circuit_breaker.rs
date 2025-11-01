@@ -1,4 +1,20 @@
 //! Circuit breaker implementation with multi-signal support and 1 repair retry maximum
+//!
+//! ## Relationship to Canonical Circuit Breaker
+//!
+//! This is a **specialized domain-specific wrapper** for LLM providers. The canonical,
+//! lock-free circuit breaker lives in `riptide-types::reliability::circuit`.
+//!
+//! **Why this specialized version exists:**
+//! - Wraps `Arc<dyn LlmProvider>` with transparent circuit breaker behavior
+//! - Implements repair attempt limiting (hard requirement: max 1 retry)
+//! - Uses time-windowed failure tracking (not just counters)
+//! - Provides detailed `CircuitBreakerStats` for LLM monitoring
+//! - Implements the `LlmProvider` trait itself (transparent wrapper pattern)
+//! - Multi-tier configurations: `new()`, `strict()`, `lenient()`
+//!
+//! **Design decision:** Kept as specialized implementation due to domain-specific requirements.
+//! See `/docs/architecture/CIRCUIT_BREAKER_CONSOLIDATION_SUMMARY.md` for full analysis.
 
 use async_trait::async_trait;
 use parking_lot::RwLock;

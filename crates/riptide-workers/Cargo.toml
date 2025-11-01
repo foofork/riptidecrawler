@@ -37,3 +37,8 @@ rand = { workspace = true }
 [dev-dependencies]
 tokio-test = "0.4"
 tempfile = { workspace = true }
+
+[features]
+default = []
+# Enable WASM-based extraction (requires WASM file at runtime)
+wasm-extractor = []

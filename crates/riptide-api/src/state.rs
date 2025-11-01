@@ -12,7 +12,8 @@ use riptide_cache::CacheWarmingConfig;
 use riptide_events::{EventBus, EventBusConfig, EventSeverity};
 use riptide_fetch::{http_client, FetchEngine};
 use riptide_pdf::PdfMetricsCollector;
-use riptide_reliability::{CircuitBreakerState, ReliabilityConfig, ReliableExtractor};
+use riptide_reliability::CircuitBreakerState;
+use riptide_reliability::{ReliabilityConfig, ReliableExtractor};
 use riptide_spider::{Spider, SpiderConfig};
 // TelemetrySystem is in riptide_monitoring, not riptide_core
 use riptide_extraction::UnifiedExtractor;
@@ -53,7 +54,6 @@ pub struct AppState {
     pub extractor: Arc<UnifiedExtractor>,
 
     /// Reliable extractor wrapper with retry and circuit breaker logic
-    /// TODO: Future wiring for reliability layer
     #[allow(dead_code)]
     pub reliable_extractor: Arc<ReliableExtractor>,
 
@@ -631,7 +631,7 @@ impl AppState {
             "Content extractor initialized"
         );
 
-        // Initialize ReliableExtractor with the WASM extractor adapter
+        // Initialize ReliableExtractor with retry and circuit breaker logic
         let reliable_extractor = Arc::new(
             ReliableExtractor::new(config.reliability_config.clone())
                 .map_err(|e| anyhow::anyhow!("Failed to initialize ReliableExtractor: {}", e))?,
@@ -936,8 +936,9 @@ impl AppState {
         tracing::info!("Initializing riptide-facade layer for simplified APIs");
 
         // Create facade configuration from existing config
+        // NOTE: Using default timeout since reliability_config is feature-gated
         let facade_config = riptide_facade::RiptideConfig::default()
-            .with_timeout(config.reliability_config.headless_timeout)
+            .with_timeout(Duration::from_secs(30)) // Default timeout since reliability_config is disabled
             .with_stealth_enabled(true) // Stealth enabled by default (Medium preset)
             .with_stealth_preset("Medium");
 

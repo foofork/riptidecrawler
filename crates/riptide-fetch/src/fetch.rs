@@ -1,6 +1,6 @@
-use crate::circuit::{self, CircuitBreaker, Config as CircuitConfig};
 use crate::robots::{RobotsConfig, RobotsManager};
 use crate::{telemetry_info, telemetry_span};
+use riptide_types::reliability::circuit::{self, CircuitBreaker, Config as CircuitConfig};
 // Removed unused error imports
 use anyhow::Result;
 use reqwest::{Client, Response};
@@ -27,9 +27,7 @@ impl Default for CircuitBreakerConfig {
     }
 }
 
-pub use crate::circuit::State as CircuitState;
-
-// Circuit breaker implementation moved to circuit.rs module
+pub use riptide_types::reliability::circuit::State as CircuitState;
 
 /// Retry configuration with exponential backoff
 #[derive(Debug, Clone, Serialize, Deserialize)]

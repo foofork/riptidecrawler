@@ -16,7 +16,7 @@
 //! A lightweight, lock-free circuit breaker using atomic operations for high-performance scenarios:
 //!
 //! ```rust,ignore
-//! use riptide_reliability::circuit::{CircuitBreaker, Config, RealClock};
+//! use riptide_types::reliability::circuit::{CircuitBreaker, Config, RealClock};
 //! use std::sync::Arc;
 //!
 //! let cb = CircuitBreaker::new(
@@ -139,15 +139,32 @@
 //! manager.record_success("https://example.com/page", start.elapsed()).await;
 //! ```
 
-pub mod circuit;
 pub mod circuit_breaker;
 pub mod engine_selection;
 pub mod gate;
+#[cfg(feature = "reliability-patterns")]
 pub mod reliability;
 pub mod timeout;
 
-// Re-export commonly used types
-pub use circuit::{CircuitBreaker as AtomicCircuitBreaker, Clock, Config as CircuitConfig, State};
+// Re-export circuit breaker from riptide-types (now the canonical location)
+// CircuitBreaker has moved to riptide-types to avoid circular dependencies
+pub use riptide_types::reliability::circuit::{
+    guarded_call, CircuitBreaker, Clock, Config as CircuitConfig, RealClock, State,
+};
+
+// Re-export extractor traits from riptide-types
+// These traits break circular dependencies via dependency injection
+pub use riptide_types::extractors::{HtmlParser, WasmExtractor};
+
+// Backward compatibility aliases
+pub use guarded_call as types_guarded_call;
+pub use CircuitBreaker as AtomicCircuitBreaker;
+pub use CircuitBreaker as TypesCircuitBreaker;
+pub use CircuitConfig as TypesCircuitConfig;
+pub use Clock as TypesClock;
+pub use RealClock as TypesRealClock;
+pub use State as TypesCircuitState;
+
 pub use circuit_breaker::{
     record_extraction_result, CircuitBreakerState, ExtractionResult as CircuitExtractionResult,
 };
@@ -156,8 +173,10 @@ pub use engine_selection::{
     ContentAnalysis, Engine, EngineCacheable, EngineSelectionFlags,
 };
 pub use gate::{decide, score, should_use_headless, Decision, GateFeatures};
+#[cfg(feature = "reliability-patterns")]
 pub use reliability::{
-    ExtractionMode, ReliabilityConfig, ReliabilityMetrics, ReliableExtractor, WasmExtractor,
+    ExtractionMode, ReliabilityConfig, ReliabilityMetrics, ReliabilityMetricsRecorder,
+    ReliableExtractor, WasmExtractor as ReliabilityWasmExtractor,
 };
 pub use timeout::{
     get_global_timeout_manager, AdaptiveTimeoutManager, TimeoutConfig, TimeoutProfile, TimeoutStats,

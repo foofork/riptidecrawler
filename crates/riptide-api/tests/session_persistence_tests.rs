@@ -50,9 +50,11 @@ async fn test_session_persistence_integration() {
     // Create dynamic config
     let dynamic_config = DynamicConfig {
         actions: vec![],
-        wait_conditions: vec![],
+        wait_for: None,
+        scroll: None,
         capture_artifacts: false,
         timeout: Duration::from_secs(3),
+        viewport: None,
     };
 
     // Note: This will fail if headless service is not running, but tests the API

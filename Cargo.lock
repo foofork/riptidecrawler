@@ -7017,7 +7017,6 @@ dependencies = [
  "dirs 5.0.1",
  "reqwest 0.12.24",
  "riptide-events",
- "riptide-extraction",
  "riptide-fetch",
  "riptide-monitoring",
  "riptide-pool",
@@ -7207,6 +7206,7 @@ dependencies = [
  "sha2",
  "thiserror 1.0.69",
  "tokio",
+ "tracing",
  "url",
  "uuid",
 ]

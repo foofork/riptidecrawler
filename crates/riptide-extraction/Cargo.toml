@@ -11,8 +11,12 @@ categories = ["text-processing", "web-programming"]
 [dependencies]
 # Shared types to break circular dependency
 riptide-types = { path = "../riptide-types" }
-# Spider types for strategy traits
-riptide-spider = { path = "../riptide-spider" }
+# Spider types for strategy traits - OPTIONAL (DISABLED BY DEFAULT)
+# WARNING: Creates circular dependency: extraction → spider → reliability → pool → extraction
+# DO NOT enable unless circular dependency is resolved
+# Only enable with "spider" feature when needed for SpiderStrategy trait
+# Current status: spider_implementations.rs is disabled, no crates use this feature
+riptide-spider = { path = "../riptide-spider", optional = true }
 # Core dependencies removed to avoid circular dependency
 # riptide-core = { path = "../riptide-core" }
 anyhow.workspace = true
@@ -69,8 +73,20 @@ regex-extraction = []
 dom-utils = []
 table-extraction = []
 chunking = []
-spider = []
+
+# Spider integration feature (OPTIONAL - NOT RECOMMENDED)
+# WARNING: Creates circular dependency and is currently non-functional
+# - Enables SpiderStrategy trait from riptide-spider crate
+# - spider_implementations.rs is disabled due to missing dependencies
+# - No crates in the codebase currently use this feature
+# - Requires architecture refactoring to break circular dependency
+# DO NOT add to default features or enable unless circular dependency is resolved
+spider = ["dep:riptide-spider", "strategy-traits"]
+
+# Strategy traits for extensibility
 strategy-traits = []
+
+# JSON-LD optimization
 jsonld-shortcircuit = []  # Phase 10: Early return for complete JSON-LD schemas
 
 # Phase 1: WASM Optional - New feature flags

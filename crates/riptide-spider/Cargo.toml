@@ -13,6 +13,7 @@ categories = ["web-programming"]
 riptide-types = { path = "../riptide-types" }
 riptide-config = { path = "../riptide-config" }
 riptide-fetch = { path = "../riptide-fetch" }
+# Note: riptide-reliability removed - circuit breaker functionality moved to native implementation
 
 # Core dependencies
 anyhow.workspace = true
