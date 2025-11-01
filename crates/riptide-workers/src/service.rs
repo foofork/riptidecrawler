@@ -296,7 +296,7 @@ impl WorkerService {
     async fn create_job_processors_static(
         config: &WorkerServiceConfig,
     ) -> Result<Vec<Arc<dyn crate::worker::JobProcessor>>> {
-        info!("Initializing job processors");
+        info!("Initializing job processors with native-first extraction strategy");
 
         // Initialize HTTP client
         let http_client = reqwest::Client::builder()
@@ -304,24 +304,42 @@ impl WorkerService {
             .build()
             .context("Failed to create HTTP client")?;
 
-        // Initialize WASM extractor with UnifiedExtractor
+        // Initialize UnifiedExtractor with native-first strategy
         use riptide_extraction::UnifiedExtractor;
         use riptide_reliability::WasmExtractor;
 
-        // Create UnifiedExtractor which handles WASM with automatic fallback to native
-        let wasm_path = if std::path::Path::new(&config.wasm_path).exists() {
+        // UnifiedExtractor uses native extraction by default
+        // WASM is only used if:
+        // 1. wasm-extractor feature is enabled
+        // 2. WASM file exists at the specified path
+        let wasm_path = if cfg!(feature = "wasm-extractor")
+            && std::path::Path::new(&config.wasm_path).exists()
+        {
+            tracing::info!(
+                wasm_path = %config.wasm_path,
+                "WASM extractor available, will be used as enhancement over native"
+            );
             Some(config.wasm_path.as_str())
         } else {
-            tracing::warn!(
-                wasm_path = %config.wasm_path,
-                "WASM extractor path not found, using native extractor"
-            );
+            if !std::path::Path::new(&config.wasm_path).exists() {
+                tracing::info!(
+                    wasm_path = %config.wasm_path,
+                    "WASM extractor path not found, using native extraction"
+                );
+            } else {
+                tracing::info!("wasm-extractor feature not enabled, using native extraction");
+            }
             None
         };
 
         let unified_extractor = UnifiedExtractor::new(wasm_path)
             .await
             .context("Failed to initialize unified extractor")?;
+
+        tracing::info!(
+            strategy = unified_extractor.extractor_type(),
+            "Initialized content extractor"
+        );
 
         // Wrap UnifiedExtractor to implement WasmExtractor trait
         struct UnifiedExtractorAdapter {

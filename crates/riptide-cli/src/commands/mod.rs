@@ -142,7 +142,7 @@ pub enum Commands {
     },
 }
 
-#[derive(clap::Args)]
+#[derive(clap::Args, Clone)]
 pub struct ExtractArgs {
     /// URL to extract content from
     #[arg(long)]
@@ -234,9 +234,13 @@ pub struct ExtractArgs {
     #[arg(long, env = "RIPTIDE_WASM_PATH")]
     pub wasm_path: Option<String>,
 
-    /// Skip WASM module loading entirely (fallback to API-only mode)
+    /// Skip WASM module loading entirely (deprecated - native is now default)
     #[arg(long)]
     pub no_wasm: bool,
+
+    /// Enable WASM enhancement for native extraction (opt-in)
+    #[arg(long)]
+    pub with_wasm: bool,
 
     /// WASM initialization timeout in milliseconds
     #[arg(long, default_value = "5000")]

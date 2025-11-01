@@ -784,148 +784,88 @@ impl PipelineOrchestrator {
     ///
     /// ```text
     /// ┌─────────────────────────────────────────────────────────────────┐
-    /// │                    EXTRACTION PIPELINE FLOW                      │
+    /// │        EXTRACTION PIPELINE FLOW (Native-First Strategy)         │
     /// ├─────────────────────────────────────────────────────────────────┤
     /// │                                                                  │
-    /// │  1. Gate Decision → ExtractionMode Mapping                      │
-    /// │     • Decision::Raw         → ExtractionMode::Fast              │
-    /// │     • Decision::ProbesFirst → ExtractionMode::ProbesFirst       │
-    /// │     • Decision::Headless    → ExtractionMode::Headless          │
+    /// │  1. UnifiedExtractor.extract() (riptide-extraction)             │
+    /// │     • Native parser (always available)                          │
+    /// │     • WASM extraction (optional, if feature enabled)            │
+    /// │     • Automatic strategy selection                              │
     /// │                                                                  │
-    /// │  2. ReliableExtractor (riptide-reliability)                     │
-    /// │     • Circuit breaker pattern                                   │
-    /// │     • Exponential backoff retry (3 attempts)                    │
-    /// │     • Graceful degradation on failure                           │
+    /// │  2. Strategy Selection (based on availability)                  │
+    /// │     • WASM available? → Use WASM extractor                      │
+    /// │     • WASM unavailable? → Use native parser                     │
+    /// │     • WASM fails? → Automatic fallback to native                │
     /// │                                                                  │
-    /// │  3. WasmExtractorAdapter (reliability_integration.rs)           │
-    /// │     • Bridges UnifiedExtractor to reliability traits            │
-    /// │     • Tracks WASM cold start metrics                            │
-    /// │     • Records memory usage                                      │
+    /// │  3. Content Extraction                                          │
+    /// │     • Parse HTML and extract content                            │
+    /// │     • Calculate quality scores                                  │
+    /// │     • Return ExtractedContent                                   │
     /// │                                                                  │
-    /// │  4. UnifiedExtractor (riptide-extraction)                       │
-    /// │     • WASM-based content extraction                             │
-    /// │     • Returns ExtractedContent                                  │
-    /// │                                                                  │
-    /// │  5. convert_extracted_content                                   │
+    /// │  4. convert_extracted_content                                   │
     /// │     • ExtractedContent → ExtractedDoc conversion                │
     /// │     • Final result formatting                                   │
     /// │                                                                  │
-    /// │  6. Fallback: fallback_to_wasm_extraction                       │
-    /// │     • Direct WASM call if ReliableExtractor fails               │
-    /// │     • Last-resort extraction mechanism                          │
+    /// │  5. Event Emission                                              │
+    /// │     • Success: pipeline.extraction.success                      │
+    /// │     • Includes strategy used (native/wasm)                      │
+    /// │     • Tracks performance metrics                                │
     /// │                                                                  │
     /// └─────────────────────────────────────────────────────────────────┘
     /// ```
     ///
-    /// # Reliability Features
+    /// # Extraction Strategy
     ///
-    /// - **Retry Logic**: 3 attempts with exponential backoff (100ms, 200ms, 400ms)
-    /// - **Circuit Breaker**: Opens after 5 consecutive failures
-    /// - **Metrics**: Tracks extraction success/failure rates and timings
-    /// - **Event Emission**: Reports success/failure via event bus
+    /// - **Primary**: Native parser (always available, no feature flags required)
+    /// - **Enhancement**: WASM extraction (optional, requires wasm-extractor feature)
+    /// - **Automatic**: UnifiedExtractor selects best available strategy
+    /// - **Metrics**: Tracks extraction performance and strategy used
+    /// - **Event Emission**: Reports success with strategy information
     ///
     /// # Error Handling
     ///
-    /// - Primary: ReliableExtractor with retry/circuit breaker
-    /// - Fallback: Direct WASM extraction
+    /// - Native extraction handles all content types reliably
+    /// - WASM provides enhanced extraction when available
+    /// - UnifiedExtractor automatically falls back to native if WASM fails
     /// - Metrics: Records all errors for monitoring
     ///
     /// # Performance
     ///
-    /// - WASM extraction: ~50-200ms (depending on content complexity)
-    /// - Retry overhead: 100-700ms total on failure (3 attempts)
-    /// - Circuit breaker: Prevents cascading failures
+    /// - Native extraction: ~10-50ms (fast, lightweight baseline)
+    /// - WASM extraction: ~50-200ms (advanced features, optional enhancement)
+    /// - No retry overhead, direct extraction path
     async fn extract_content(
         &self,
-        _html: &str,
-        _url: &str,
+        html: &str,
+        url: &str,
         _decision: Decision,
     ) -> ApiResult<ExtractedDoc> {
-        #[cfg(feature = "wasm-extractor")]
-        use crate::reliability_integration::WasmExtractorAdapter;
+        // Primary path: Use UnifiedExtractor which provides native extraction
+        // WASM is only used if feature is enabled and initialized
+        let extracted_content = self.state.extractor.extract(html, url).await.map_err(|e| {
+            error!(url = %url, error = %e, "Content extraction failed");
+            ApiError::extraction(format!("Extraction failed: {}", e))
+        })?;
 
-        // Create adapter for WasmExtractor to work with ReliableExtractor (with metrics)
-        #[cfg(feature = "wasm-extractor")]
-        let extractor_adapter = WasmExtractorAdapter::with_metrics(
-            self.state.extractor.clone(),
-            self.state.metrics.clone(),
+        // Emit success event with strategy information
+        let strategy = self.state.extractor.strategy_name();
+        let mut event = riptide_events::BaseEvent::new(
+            "pipeline.extraction.success",
+            "pipeline_orchestrator",
+            riptide_events::EventSeverity::Info,
         );
-
-        #[cfg(not(feature = "wasm-extractor"))]
-        {
-            Err(ApiError::internal(
-                "WASM extractor not available. Rebuild with --features wasm-extractor",
-            ))
+        event.add_metadata("url", url);
+        event.add_metadata("strategy", strategy);
+        event.add_metadata(
+            "content_length",
+            &extracted_content.content.len().to_string(),
+        );
+        if let Err(e) = self.state.event_bus.emit(event).await {
+            warn!(error = %e, "Failed to emit extraction success event");
         }
 
-        #[cfg(feature = "wasm-extractor")]
-        {
-            // Map gate Decision to ExtractionMode
-            let extraction_mode = match decision {
-                Decision::Raw => ExtractionMode::Fast,
-                Decision::ProbesFirst => ExtractionMode::ProbesFirst,
-                Decision::Headless => ExtractionMode::Headless,
-            };
-
-            // Use ReliableExtractor with retry and circuit breaker patterns
-            let result = self
-                .state
-                .reliable_extractor
-                .extract_with_reliability(
-                    url,
-                    extraction_mode,
-                    &extractor_adapter,
-                    self.state.config.headless_url.as_deref(),
-                )
-                .await;
-
-            match result {
-                Ok(doc) => {
-                    // Emit reliability success event
-                    let mut event = riptide_events::BaseEvent::new(
-                        "pipeline.extraction.reliable_success",
-                        "pipeline_orchestrator",
-                        riptide_events::EventSeverity::Info,
-                    );
-                    event.add_metadata("url", url);
-                    event.add_metadata("decision", &format!("{:?}", decision));
-                    event.add_metadata("content_length", &doc.text.len().to_string());
-                    if let Err(e) = self.state.event_bus.emit(event).await {
-                        warn!(error = %e, "Failed to emit reliability success event");
-                    }
-
-                    Ok(doc)
-                }
-                Err(e) => {
-                    // Log the failure and attempt fallback to direct WASM extraction
-                    warn!(
-                        url = %url,
-                        error = %e,
-                        "ReliableExtractor failed, attempting direct WASM fallback"
-                    );
-
-                    // Emit reliability failure event
-                    let mut event = riptide_events::BaseEvent::new(
-                        "pipeline.extraction.reliable_failure",
-                        "pipeline_orchestrator",
-                        riptide_events::EventSeverity::Warn,
-                    );
-                    event.add_metadata("url", url);
-                    event.add_metadata("error", &e.to_string());
-                    if let Err(e) = self.state.event_bus.emit(event).await {
-                        warn!(error = %e, "Failed to emit reliability failure event");
-                    }
-
-                    // Track extraction errors
-                    self.state
-                        .metrics
-                        .record_error(crate::metrics::ErrorType::Wasm);
-
-                    // Fallback: Try direct WASM extraction as last resort
-                    self.fallback_to_wasm_extraction(html, url).await
-                }
-            }
-        }
+        // Convert ExtractedContent to ExtractedDoc
+        Ok(convert_extracted_content(extracted_content, url))
     }
 
     /// Check cache for existing content.
@@ -978,31 +918,6 @@ impl PipelineOrchestrator {
             self.options.cache_mode,
             hasher.finish()
         )
-    }
-
-    /// Fallback to direct WASM extraction when ReliableExtractor fails
-    ///
-    /// This method provides a last-resort extraction mechanism using direct WASM
-    /// extraction when the ReliableExtractor (with retries and circuit breakers) fails.
-    #[cfg(feature = "wasm-extractor")]
-    async fn fallback_to_wasm_extraction(
-        &self,
-        html: &str,
-        url: &str,
-    ) -> Result<ExtractedDoc, ApiError> {
-        info!(url = %url, "Attempting direct WASM fallback extraction");
-
-        // UnifiedExtractor::extract is async and takes (&str, &str) -> Result<ExtractedContent>
-        let extracted_content = self.state.extractor.extract(html, url).await.map_err(|e| {
-            error!(url = %url, error = %e, "All extraction methods failed");
-            self.state
-                .metrics
-                .record_error(crate::metrics::ErrorType::Wasm);
-            ApiError::extraction(format!("All extraction attempts failed: {}", e))
-        })?;
-
-        // Convert ExtractedContent to ExtractedDoc
-        Ok(convert_extracted_content(extracted_content, url))
     }
 }
 
