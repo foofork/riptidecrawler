@@ -7201,6 +7201,7 @@ dependencies = [
  "redis",
  "reqwest 0.12.24",
  "riptide-cache",
+ "riptide-extraction",
  "riptide-pdf",
  "riptide-reliability",
  "riptide-types",

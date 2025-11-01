@@ -304,25 +304,61 @@ impl WorkerService {
             .build()
             .context("Failed to create HTTP client")?;
 
-        // Initialize WASM extractor
-        // TODO: Replace with actual extractor implementation
-        // For now, using a mock to unblock compilation
+        // Initialize WASM extractor with UnifiedExtractor
+        use riptide_extraction::UnifiedExtractor;
         use riptide_reliability::WasmExtractor;
-        struct MockExtractor;
-        impl WasmExtractor for MockExtractor {
+
+        // Create UnifiedExtractor which handles WASM with automatic fallback to native
+        let wasm_path = if std::path::Path::new(&config.wasm_path).exists() {
+            Some(config.wasm_path.as_str())
+        } else {
+            tracing::warn!(
+                wasm_path = %config.wasm_path,
+                "WASM extractor path not found, using native extractor"
+            );
+            None
+        };
+
+        let unified_extractor = UnifiedExtractor::new(wasm_path)
+            .await
+            .context("Failed to initialize unified extractor")?;
+
+        // Wrap UnifiedExtractor to implement WasmExtractor trait
+        struct UnifiedExtractorAdapter {
+            inner: UnifiedExtractor,
+        }
+
+        impl WasmExtractor for UnifiedExtractorAdapter {
             fn extract(
                 &self,
-                _html: &[u8],
+                html: &[u8],
                 url: &str,
                 _mode: &str,
             ) -> anyhow::Result<riptide_types::ExtractedDoc> {
+                // Convert bytes to string
+                let html_str = String::from_utf8_lossy(html);
+
+                // Use tokio block_in_place for async extraction in sync context
+                let result = tokio::task::block_in_place(|| {
+                    tokio::runtime::Handle::current()
+                        .block_on(async { self.inner.extract(&html_str, url).await })
+                })?;
+
+                // Convert ExtractedContent to ExtractedDoc
                 Ok(riptide_types::ExtractedDoc {
-                    url: url.to_string(),
+                    url: result.url,
+                    title: Some(result.title),
+                    text: result.content,
+                    description: result.summary,
+                    quality_score: Some((result.extraction_confidence * 100.0).min(100.0) as u8),
                     ..Default::default()
                 })
             }
         }
-        let extractor = Arc::new(MockExtractor) as Arc<dyn WasmExtractor>;
+
+        let extractor = Arc::new(UnifiedExtractorAdapter {
+            inner: unified_extractor,
+        }) as Arc<dyn WasmExtractor>;
 
         // Initialize cache manager
         let cache_manager = CacheManager::new(&config.redis_url)

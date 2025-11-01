@@ -150,9 +150,71 @@ impl SitemapParser {
                 }
             }
 
-            // TODO: Check robots.txt for sitemap entries
+            // Check robots.txt for sitemap entries
+            match self.parse_robots_txt_sitemaps(base_url).await {
+                Ok(robots_sitemaps) => {
+                    for sitemap_url in robots_sitemaps {
+                        if !sitemaps.contains(&sitemap_url) {
+                            sitemaps.push(sitemap_url);
+                        }
+                    }
+                }
+                Err(e) => {
+                    debug!("Failed to parse robots.txt for sitemaps: {}", e);
+                }
+            }
         }
 
+        Ok(sitemaps)
+    }
+
+    /// Parse robots.txt for sitemap directives
+    /// Returns sitemap URLs found in robots.txt per RFC 9309
+    async fn parse_robots_txt_sitemaps(&self, base_url: &Url) -> Result<Vec<String>> {
+        let robots_url = format!("{}/robots.txt", base_url.origin().ascii_serialization());
+        debug!("Checking robots.txt at: {}", robots_url);
+
+        let response = self
+            .client
+            .get(&robots_url)
+            .send()
+            .await
+            .context("Failed to fetch robots.txt")?;
+
+        if !response.status().is_success() {
+            return Ok(Vec::new());
+        }
+
+        let content = response
+            .text()
+            .await
+            .context("Failed to read robots.txt content")?;
+
+        let mut sitemaps = Vec::new();
+
+        // Parse robots.txt for "Sitemap:" directives (case-insensitive per RFC 9309)
+        for line in content.lines() {
+            let trimmed = line.trim();
+
+            // Check for sitemap directive (case-insensitive)
+            if let Some(sitemap_value) = trimmed
+                .strip_prefix("Sitemap:")
+                .or_else(|| trimmed.strip_prefix("sitemap:"))
+                .or_else(|| trimmed.strip_prefix("SITEMAP:"))
+            {
+                let sitemap_url = sitemap_value.trim();
+
+                // Validate URL format
+                if let Ok(parsed_url) = Url::parse(sitemap_url) {
+                    if parsed_url.scheme() == "http" || parsed_url.scheme() == "https" {
+                        debug!("Found sitemap in robots.txt: {}", sitemap_url);
+                        sitemaps.push(sitemap_url.to_string());
+                    }
+                }
+            }
+        }
+
+        info!("Found {} sitemap(s) in robots.txt", sitemaps.len());
         Ok(sitemaps)
     }
 

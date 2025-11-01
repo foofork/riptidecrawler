@@ -36,10 +36,6 @@ impl HealthChecker {
             "riptide-api".to_string(),
             env!("CARGO_PKG_VERSION").to_string(),
         );
-        component_versions.insert(
-            "riptide-core".to_string(),
-            env!("CARGO_PKG_VERSION").to_string(),
-        );
         component_versions.insert("rust".to_string(), "unknown".to_string());
 
         // Dependency versions

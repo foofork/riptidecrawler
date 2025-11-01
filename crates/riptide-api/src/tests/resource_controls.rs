@@ -223,21 +223,19 @@ async fn test_memory_pressure_detection() -> Result<()> {
         "Should not be under pressure initially"
     );
 
-    // TODO: Fix test - track_allocation() is private
-    // Test requires access to private memory_manager.track_allocation() method
     // Simulate high memory usage
-    // for _ in 0..20 {
-    //     manager.memory_manager.track_allocation(5).await; // 5MB each = 100MB total
-    // }
-    //
-    // let status = manager.get_resource_status().await;
-    // assert!(status.memory_pressure, "Should detect memory pressure");
-    //
-    // // Requests should be rejected under memory pressure
-    // let result = manager
-    //     .acquire_render_resources("https://example.com")
-    //     .await?;
-    // assert!(matches!(result, ResourceResult::MemoryPressure));
+    for _ in 0..20 {
+        manager.memory_manager.track_allocation(5); // 5MB each = 100MB total
+    }
+
+    let status = manager.get_resource_status().await;
+    assert!(status.memory_pressure, "Should detect memory pressure");
+
+    // Requests should be rejected under memory pressure
+    let result = manager
+        .acquire_render_resources("https://example.com")
+        .await?;
+    assert!(matches!(result, ResourceResult::MemoryPressure));
 
     Ok(())
 }

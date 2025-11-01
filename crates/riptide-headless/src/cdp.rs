@@ -88,16 +88,25 @@ async fn exec_actions(page: &Page, actions: &[PageAction]) -> anyhow::Result<()>
     for action in actions {
         match action {
             PageAction::WaitForCss { css, timeout_ms } => {
-                // Note: timeout is not currently enforced by spider_chrome's find_element
-                // TODO: Implement timeout mechanism similar to WaitForJs with deadline check
-                let _ = page
-                    .find_element(css)
-                    .await
-                    .map_err(|e| anyhow::anyhow!("CSS selector not found: {}", e))?;
-                debug!(
-                    "Waited for CSS selector: {} (timeout_ms: {:?})",
-                    css, timeout_ms
-                );
+                // Implement deadline-based timeout similar to WaitForJs
+                let deadline = Instant::now() + Duration::from_millis(timeout_ms.unwrap_or(5000));
+                loop {
+                    // Attempt to find the element
+                    match timeout(Duration::from_millis(100), page.find_element(css)).await {
+                        Ok(Ok(_elem)) => {
+                            debug!("CSS selector found: {} (timeout_ms: {:?})", css, timeout_ms);
+                            break;
+                        }
+                        Ok(Err(_)) | Err(_) => {
+                            // Element not found yet, check deadline
+                            if Instant::now() >= deadline {
+                                anyhow::bail!("wait_for_css timeout: {}", css);
+                            }
+                            // Wait before retrying
+                            sleep(Duration::from_millis(100)).await;
+                        }
+                    }
+                }
             }
             PageAction::WaitForJs { expr, timeout_ms } => {
                 let deadline = Instant::now() + Duration::from_millis(timeout_ms.unwrap_or(5000));
@@ -124,17 +133,37 @@ async fn exec_actions(page: &Page, actions: &[PageAction]) -> anyhow::Result<()>
             } => {
                 for i in 0..*steps {
                     let scroll_js = format!("window.scrollBy(0, {});", step_px);
-                    page.evaluate(scroll_js.as_str()).await?;
+                    // Add timeout for scroll evaluation (500ms per step)
+                    timeout(
+                        Duration::from_millis(500),
+                        page.evaluate(scroll_js.as_str()),
+                    )
+                    .await
+                    .map_err(|_| anyhow::anyhow!("Scroll step {} timed out", i + 1))??;
                     debug!("Scrolled step {}/{}: {}px", i + 1, steps, step_px);
                     sleep(Duration::from_millis(*delay_ms)).await;
                 }
             }
             PageAction::Js { code } => {
-                page.evaluate(code.as_str()).await?;
+                // Add timeout for JavaScript execution (2s default)
+                timeout(Duration::from_millis(2000), page.evaluate(code.as_str()))
+                    .await
+                    .map_err(|_| anyhow::anyhow!("JavaScript execution timed out"))??;
                 debug!("Executed JavaScript code");
             }
             PageAction::Click { css } => {
-                page.find_element(css).await?.click().await?;
+                // Add timeout for finding element and clicking (1s total)
+                let element = timeout(Duration::from_millis(500), page.find_element(css))
+                    .await
+                    .map_err(|_| {
+                        anyhow::anyhow!("Finding element for click timed out: {}", css)
+                    })??;
+
+                timeout(Duration::from_millis(500), element.click())
+                    .await
+                    .map_err(|_| {
+                        anyhow::anyhow!("Click operation timed out for selector: {}", css)
+                    })??;
                 debug!("Clicked element: {}", css);
             }
             PageAction::Type {
@@ -142,10 +171,23 @@ async fn exec_actions(page: &Page, actions: &[PageAction]) -> anyhow::Result<()>
                 text,
                 delay_ms,
             } => {
-                let element = page.find_element(css).await?;
+                // Add timeout for finding element (1s)
+                let element = timeout(Duration::from_millis(1000), page.find_element(css))
+                    .await
+                    .map_err(|_| {
+                        anyhow::anyhow!("Finding element for typing timed out: {}", css)
+                    })??;
+
+                // Type with per-character timeout protection
+                let char_delay = delay_ms.unwrap_or(20);
                 for ch in text.chars() {
-                    element.type_str(&ch.to_string()).await?;
-                    sleep(Duration::from_millis(delay_ms.unwrap_or(20))).await;
+                    timeout(
+                        Duration::from_millis(char_delay + 100), // Add 100ms buffer for operation
+                        element.type_str(&ch.to_string()),
+                    )
+                    .await
+                    .map_err(|_| anyhow::anyhow!("Typing character timed out"))??;
+                    sleep(Duration::from_millis(char_delay)).await;
                 }
                 debug!("Typed text into element: {}", css);
             }
