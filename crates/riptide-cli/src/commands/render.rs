@@ -10,6 +10,10 @@ use std::str::FromStr;
 use riptide_browser::launcher::{HeadlessLauncher, LauncherConfig};
 use riptide_browser::pool::BrowserPoolConfig;
 
+// chromiumoxide types for screenshot and PDF generation (re-exported by spider_chrome)
+use chromiumoxide::cdp::browser_protocol::page::PrintToPdfParams;
+use chromiumoxide::page::ScreenshotParams;
+
 /// Wait condition for page loading
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WaitCondition {
@@ -685,10 +689,51 @@ async fn execute_headless_render(
     // Capture screenshot if requested
     if screenshot_mode != ScreenshotMode::None {
         output::print_info(&format!("Capturing screenshot: {}", screenshot_mode.name()));
-        // TODO: Re-implement with proper chromiumoxide type access
-        output::print_warning(
-            "Screenshot functionality temporarily disabled - type visibility issues",
-        );
+
+        let mut screenshot_params = ScreenshotParams::builder();
+
+        // Configure screenshot based on mode
+        match screenshot_mode {
+            ScreenshotMode::Full => {
+                screenshot_params = screenshot_params.full_page(true);
+            }
+            ScreenshotMode::Viewport => {
+                screenshot_params = screenshot_params.full_page(false);
+            }
+            ScreenshotMode::None => unreachable!(),
+        }
+
+        match tokio::time::timeout(
+            std::time::Duration::from_secs(10),
+            page.screenshot(screenshot_params.build()),
+        )
+        .await
+        {
+            Ok(Ok(screenshot_data)) => {
+                let screenshot_path = Path::new(output_dir).join(format!("{}.png", file_prefix));
+
+                fs::write(&screenshot_path, &screenshot_data)
+                    .context("Failed to write screenshot file")?;
+
+                let size = screenshot_data.len() as u64;
+                files_saved.push(SavedFile {
+                    file_type: "screenshot".to_string(),
+                    path: screenshot_path.to_string_lossy().to_string(),
+                    size_bytes: size,
+                });
+
+                output::print_success(&format!(
+                    "Screenshot saved to: {}",
+                    screenshot_path.display()
+                ));
+            }
+            Ok(Err(e)) => {
+                output::print_warning(&format!("Screenshot capture failed: {}", e));
+            }
+            Err(_) => {
+                output::print_warning("Screenshot capture timed out");
+            }
+        }
     }
 
     // Extract HTML content if requested
@@ -773,8 +818,31 @@ async fn execute_headless_render(
     // Generate PDF if requested
     if args.pdf {
         output::print_info("Generating PDF...");
-        // TODO: Re-implement with proper chromiumoxide type access
-        output::print_warning("PDF functionality temporarily disabled - type visibility issues");
+
+        let pdf_params = PrintToPdfParams::default();
+
+        match tokio::time::timeout(std::time::Duration::from_secs(10), page.pdf(pdf_params)).await {
+            Ok(Ok(pdf_data)) => {
+                let pdf_path = Path::new(output_dir).join(format!("{}.pdf", file_prefix));
+
+                fs::write(&pdf_path, &pdf_data).context("Failed to write PDF file")?;
+
+                let size = pdf_data.len() as u64;
+                files_saved.push(SavedFile {
+                    file_type: "pdf".to_string(),
+                    path: pdf_path.to_string_lossy().to_string(),
+                    size_bytes: size,
+                });
+
+                output::print_success(&format!("PDF saved to: {}", pdf_path.display()));
+            }
+            Ok(Err(e)) => {
+                output::print_warning(&format!("PDF generation failed: {}", e));
+            }
+            Err(_) => {
+                output::print_warning("PDF generation timed out");
+            }
+        }
     }
 
     // HAR archive generation (if requested)

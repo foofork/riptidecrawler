@@ -658,7 +658,7 @@ async fn execute_local_extraction(
 async fn execute_headless_extraction(
     args: &ExtractArgs,
     url: &str,
-    output_format: &str,
+    _output_format: &str,
 ) -> Result<()> {
     use riptide_stealth::StealthPreset;
     use std::time::Instant;
@@ -734,13 +734,13 @@ async fn execute_headless_extraction(
 
     // Extract HTML content
     output::print_info("Extracting rendered HTML...");
-    let html = tokio::time::timeout(std::time::Duration::from_millis(5000), page.content())
+    let _html = tokio::time::timeout(std::time::Duration::from_millis(5000), page.content())
         .await
         .map_err(|_| anyhow::anyhow!("HTML content extraction timed out"))?
         .map_err(|e| anyhow::anyhow!("Failed to extract HTML content: {}", e))?;
 
     // Get final URL after redirects
-    let final_url = page
+    let _final_url = page
         .url()
         .await
         .ok()
@@ -750,7 +750,7 @@ async fn execute_headless_extraction(
     // Shutdown launcher to clean up resources
     launcher.shutdown().await?;
 
-    let extraction_time = extraction_start.elapsed();
+    let _extraction_time = extraction_start.elapsed();
 
     // Now use WASM extractor to parse the rendered HTML
     #[cfg(not(feature = "wasm-extractor"))]
