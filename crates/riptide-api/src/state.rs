@@ -48,9 +48,13 @@ pub struct AppState {
     pub cache: Arc<tokio::sync::Mutex<CacheManager>>,
 
     /// Unified extractor for content processing (WASM or native)
+    /// TODO: Future wiring for learned extractor patterns
+    #[allow(dead_code)]
     pub extractor: Arc<UnifiedExtractor>,
 
     /// Reliable extractor wrapper with retry and circuit breaker logic
+    /// TODO: Future wiring for reliability layer
+    #[allow(dead_code)]
     pub reliable_extractor: Arc<ReliableExtractor>,
 
     /// Configuration settings

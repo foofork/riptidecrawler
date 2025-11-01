@@ -75,8 +75,9 @@ pub struct RipTideMetrics {
     #[allow(dead_code)]
     pub pdf_cleanup_operations: Counter,
 
-    /// WASM memory metrics
+    /// WASM memory metrics (always present but only used with wasm-extractor feature)
     pub wasm_memory_pages: Gauge,
+    #[allow(dead_code)] // Only used when wasm-extractor feature is enabled
     pub wasm_grow_failed_total: Counter,
     pub wasm_peak_memory_pages: Gauge,
     pub wasm_cold_start_time_ms: Gauge,
@@ -1033,7 +1034,8 @@ impl RipTideMetrics {
         self.pdf_cleanup_operations.inc();
     }
 
-    /// Update WASM memory metrics
+    /// Update WASM memory metrics (only available with wasm-extractor feature)
+    #[cfg(feature = "wasm-extractor")]
     pub fn update_wasm_memory_metrics(
         &self,
         current_pages: usize,
@@ -1053,7 +1055,8 @@ impl RipTideMetrics {
         }
     }
 
-    /// Update WASM cold start time
+    /// Update WASM cold start time (only available with wasm-extractor feature)
+    #[cfg(feature = "wasm-extractor")]
     pub fn update_wasm_cold_start_time(&self, time_ms: f64) {
         self.wasm_cold_start_time_ms.set(time_ms);
     }

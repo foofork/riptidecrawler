@@ -14,6 +14,8 @@ use tracing::{debug, error, info, warn};
 use url::Url;
 
 /// Convert from riptide_types::ExtractedContent to ExtractedDoc
+/// TODO: Will be called after extractor normalizes content
+#[allow(dead_code)]
 fn convert_extracted_content(content: riptide_types::ExtractedContent, url: &str) -> ExtractedDoc {
     ExtractedDoc {
         url: url.to_string(),
@@ -757,9 +759,9 @@ impl PipelineOrchestrator {
     /// graceful degradation, wrapping extraction calls with the reliability module.
     async fn extract_content(
         &self,
-        html: &str,
-        url: &str,
-        decision: Decision,
+        _html: &str,
+        _url: &str,
+        _decision: Decision,
     ) -> ApiResult<ExtractedDoc> {
         #[cfg(feature = "wasm-extractor")]
         use crate::reliability_integration::WasmExtractorAdapter;
@@ -773,9 +775,9 @@ impl PipelineOrchestrator {
 
         #[cfg(not(feature = "wasm-extractor"))]
         {
-            return Err(ApiError::internal(
+            Err(ApiError::internal(
                 "WASM extractor not available. Rebuild with --features wasm-extractor",
-            ));
+            ))
         }
 
         #[cfg(feature = "wasm-extractor")]
