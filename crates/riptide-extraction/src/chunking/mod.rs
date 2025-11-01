@@ -9,6 +9,7 @@
 //! All chunking strategies must process 50KB of text in ≤200ms to meet RipTide's
 //! performance requirements.
 
+pub mod cache;
 pub mod fixed;
 pub mod html_aware;
 pub mod regex_chunker;
@@ -201,12 +202,41 @@ pub fn create_strategy(mode: ChunkingMode, config: ChunkingConfig) -> Box<dyn Ch
 pub mod utils {
     use super::*;
 
-    /// Calculate approximate token count for text
+    /// Calculate approximate token count for text (fast, synchronous)
+    ///
+    /// This provides a fast approximation for synchronous contexts.
+    /// For exact counts, use `count_tokens_exact()` which is async.
     pub fn count_tokens(text: &str) -> usize {
-        // Use word-based approximation to avoid blocking network I/O
+        // Use word-based approximation to avoid blocking
         // Accurate within ±10% for English text
-        // TODO: Add async tiktoken cache in future for exact counts
         (text.split_whitespace().count() as f64 * 1.3) as usize
+    }
+
+    /// Calculate exact token count for text using tiktoken (async)
+    ///
+    /// This uses the tiktoken-rs library with caching for accurate token counts.
+    /// Prefer this over `count_tokens()` when accuracy is important and async context is available.
+    ///
+    /// # Example
+    /// ```no_run
+    /// use riptide_extraction::chunking::utils::count_tokens_exact;
+    ///
+    /// # async fn example() -> anyhow::Result<()> {
+    /// let text = "This is a test document.";
+    /// let exact_count = count_tokens_exact(text).await?;
+    /// println!("Exact token count: {}", exact_count);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn count_tokens_exact(text: &str) -> anyhow::Result<usize> {
+        cache::count_tokens_exact(text).await
+    }
+
+    /// Count tokens for multiple texts in batch (async)
+    ///
+    /// More efficient than calling `count_tokens_exact()` multiple times.
+    pub async fn count_tokens_batch(texts: &[&str]) -> anyhow::Result<Vec<usize>> {
+        cache::count_tokens_batch(texts).await
     }
 
     /// Calculate quality score for a chunk

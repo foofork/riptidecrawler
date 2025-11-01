@@ -8,6 +8,15 @@ use super::models::{CircuitBreakerState, PooledInstance};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 #[cfg(feature = "wasm-pool")]
+use async_trait::async_trait;
+
+#[cfg(feature = "wasm-pool")]
+use tracing::{debug, info, warn};
+
+#[cfg(feature = "wasm-pool")]
+use anyhow::anyhow;
+
+#[cfg(feature = "wasm-pool")]
 wasmtime::component::bindgen!({
     world: "extractor",
     path: "wit",
@@ -277,9 +286,41 @@ impl AdvancedInstancePool {
         match extraction_result {
             Ok(doc) => Ok(doc),
             Err(e) => {
-                // For now, just return the error without fallback
-                // TODO: Implement fallback to native extraction if needed
-                Err(e)
+                // Fallback to native extraction if WASM fails
+                tracing::warn!(
+                    url = %url,
+                    error = %e,
+                    "WASM extraction failed, falling back to native extraction"
+                );
+
+                // Use native parser as fallback
+                use riptide_extraction::native_parser::NativeHtmlParser;
+                let native_parser = NativeHtmlParser::default();
+
+                match native_parser.parse_headless_html(html, url) {
+                    Ok(mut doc) => {
+                        // Mark that fallback occurred
+                        if let Some(ref mut metadata) = doc.parser_metadata {
+                            metadata.fallback_occurred = true;
+                            metadata.primary_error = Some(e.to_string());
+                            metadata.parser_used = "native_fallback".to_string();
+                        }
+                        Ok(doc)
+                    }
+                    Err(native_err) => {
+                        tracing::error!(
+                            url = %url,
+                            wasm_error = %e,
+                            native_error = %native_err,
+                            "Both WASM and native extraction failed"
+                        );
+                        Err(anyhow!(
+                            "Both WASM ({}) and native ({}) extraction failed",
+                            e,
+                            native_err
+                        ))
+                    }
+                }
             }
         }
     }

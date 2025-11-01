@@ -10,26 +10,53 @@
 
 This roadmap consolidates all development tasks identified during the code hygiene audit. Items are prioritized (P1-P3), categorized by subsystem, and tagged with implementation labels.
 
-### 📊 Progress Update (2025-11-01 - Batch 2 Complete)
-**Recent Activity:** Swarm Batch 2 Completion - 5 P1 Items
-**Items Completed:** 5 new P1 items fully completed and verified
+### 📊 Progress Update (2025-11-01 - P2 Batch Completions)
+**Recent Activity:** P2 Feature Completion - 15 Items Across 3 Batches
+**Items Completed:** 15 P2 items fully completed (Batch 1: 8, Batch 2: 6, Native: 1)
 **Current Build Status:** ✅ All checks passing (cargo check, clippy, test builds)
 
 #### Completion Metrics
 - **P1 Items Completed:** 5/23 (21.7% complete)
 - **P1 Items In Progress:** 2/23 (WASM config tests, Spider-chrome integration)
 - **P1 Completion Rate:** 30.4% (7 items addressed total)
+- **P2 Items Completed:** 15/31 (48.4% complete) 🎉
+- **P2 Major Achievements:**
+  - ✅ Streaming infrastructure fully activated (7 items)
+  - ✅ Telemetry & metrics complete (3 items)
+  - ✅ Memory & resource tracking (4/6 items)
+  - ✅ Native-first architecture migration (1 item)
 
-#### Batch 2 Completions (2025-11-01)
+#### P1 Batch 2 Completions (2025-11-01)
 1. ✅ **Shared Response Models** (riptide-api) - P1-B2
 2. ✅ **Resource Management Tests** (riptide-api) - P1-B3
 3. ✅ **Sitemap XML Validation** (riptide-spider) - P1-C1
 4. ✅ **CDP Operation Timeouts** (riptide-headless) - P1-D1
 5. ✅ **Worker Service Tests** (riptide-workers) - P1-F4
 
-#### Previous Completions
+#### P1 Previous Completions
 6. ✅ **WASM Configuration Tests** - Refactored to new structure (verification pending)
 7. 🟡 **Spider-Chrome Integration** - 13/13 tests passing (cleanup remaining)
+
+#### P2 Batch 1 Completions (Commit: 59f9103)
+1. ✅ **Activate streaming routes** - 7 streaming infrastructure files
+2. ✅ **Activate enhanced pipeline orchestrator** - Production pipeline enabled
+3. ✅ **Add tikv-jemalloc-ctl dependency** - Memory stats integration
+4. ✅ **Implement disk usage tracking** - Telemetry system integration
+5. ✅ **Implement file descriptor tracking** - Platform-specific tracking
+6. ✅ **Implement proper percentile calculation** - Histogram-based metrics
+7. ✅ **Use state for runtime telemetry info** - State wiring complete
+8. ✅ **Track pending acquisitions in pool** - Pool metrics enhanced
+
+#### P2 Batch 2 Completions (Commit: e584782)
+9. ✅ **Replace placeholder BrowserPool type** - Proper type implementation
+10. ✅ **Replace telemetry placeholder** - Production telemetry wired
+11. ✅ **Implement retryable_error_detection test** - Error handling tests
+12. ✅ **Verify pipeline integration** - Pipeline architecture documented
+13. ✅ **Populate crawled data when available** - Spider handler enhancement
+14. ✅ **Implement LRU eviction tracking** - Persistence metrics complete
+
+#### P2 Native-First Architecture (Commit: 37fbdbf)
+15. ✅ **Native-first extraction architecture** - Major architectural migration
 
 #### Build Health
 - ✅ cargo check --workspace --all-targets: PASS
@@ -236,11 +263,13 @@ WASM configuration tests were failing due to missing `wasm` field in `ApiConfig`
 
 ## 🟠 P2: Important Features (31 items)
 
-### Streaming Infrastructure (riptide-api) - 7 items
+**Progress:** 15/31 completed (48.4% complete)
 
-**Context:** Streaming infrastructure is prepared but routes not yet activated
+### Streaming Infrastructure (riptide-api) - 7 items ✅ COMPLETE
 
-- [ ] **Activate streaming routes** `#feature:incomplete`
+**Context:** Streaming infrastructure activated and wired into production
+
+- [x] **Activate streaming routes** `#feature:incomplete` ✅ COMPLETE
   - Files:
     - `src/streaming/config.rs:1`
     - `src/streaming/error.rs:1`
@@ -250,15 +279,20 @@ WASM configuration tests were failing due to missing `wasm` field in `ApiConfig`
     - `src/streaming/pipeline.rs:1`
     - `src/streaming/ndjson/streaming.rs:3`
   - Description: Wire streaming infrastructure into API routes
-  - Effort: 2-3 days
-  - Dependencies: Route design decision
+  - Status: All 7 streaming route files activated
+  - Completed: 2025-11-01 (Batch 1)
+  - Commit: 59f9103
+  - Effort: 2-3 days → Completed
 
-- [ ] **Activate enhanced pipeline orchestrator** `#feature:incomplete`
+- [x] **Activate enhanced pipeline orchestrator** `#feature:incomplete` ✅ COMPLETE
   - File: `src/pipeline_enhanced.rs:1`
   - Description: Enable production-ready pipeline orchestrator
-  - Effort: 1-2 days
+  - Status: Enhanced pipeline orchestrator activated
+  - Completed: 2025-11-01 (Batch 1)
+  - Commit: 59f9103
+  - Effort: 1-2 days → Completed
 
-### Memory & Resource Management - 6 items
+### Memory & Resource Management - 6 items (4/6 complete)
 
 - [ ] **Implement memory profiling integration** `#observability`
   - File: `crates/riptide-api/src/handlers/monitoring.rs:213`
@@ -272,35 +306,53 @@ WASM configuration tests were failing due to missing `wasm` field in `ApiConfig`
   - File: `crates/riptide-api/src/handlers/monitoring.rs:266`
   - Effort: 2-3 days
 
-- [ ] **Add tikv-jemalloc-ctl for memory stats** `#performance`
+- [x] **Add tikv-jemalloc-ctl for memory stats** `#performance` ✅ COMPLETE
   - File: `crates/riptide-api/src/main.rs:128`
   - Description: Add dependency for detailed memory metrics
-  - Effort: 0.5 day
+  - Status: tikv-jemalloc-ctl dependency added and integrated
+  - Completed: 2025-11-01 (Batch 1)
+  - Commit: 59f9103
+  - Effort: 0.5 day → Completed
 
-- [ ] **Implement disk usage tracking** `#observability`
+- [x] **Implement disk usage tracking** `#observability` ✅ COMPLETE
   - Files: `telemetry.rs:545` (2 locations)
-  - Effort: 1 day
+  - Status: Disk usage tracking implemented in telemetry system
+  - Completed: 2025-11-01 (Batch 1)
+  - Commit: 59f9103
+  - Effort: 1 day → Completed
 
-- [ ] **Implement file descriptor tracking** `#observability`
+- [x] **Implement file descriptor tracking** `#observability` ✅ COMPLETE
   - Files: `telemetry.rs:548` (2 locations)
-  - Effort: 1 day
+  - Status: File descriptor tracking implemented in telemetry system
+  - Completed: 2025-11-01 (Batch 1)
+  - Commit: 59f9103
+  - Effort: 1 day → Completed
 
-### Telemetry & Metrics - 3 items
+### Telemetry & Metrics - 3 items (3/3 complete) ✅ COMPLETE
 
-- [ ] **Implement proper percentile calculation with histogram** `#metrics`
+- [x] **Implement proper percentile calculation with histogram** `#metrics` ✅ COMPLETE
   - Files: `telemetry.rs:395` (2 locations)
   - Description: Replace naive percentile with histogram-based
-  - Effort: 1-2 days
+  - Status: Histogram-based percentile calculation implemented
+  - Completed: 2025-11-01 (Batch 1)
+  - Commit: 59f9103
+  - Effort: 1-2 days → Completed
 
-- [ ] **Use state for runtime telemetry info** `#wire-up`
+- [x] **Use state for runtime telemetry info** `#wire-up` ✅ COMPLETE
   - File: `handlers/telemetry.rs:386`
-  - Effort: 0.5 day
+  - Status: State integration for runtime telemetry complete
+  - Completed: 2025-11-01 (Batch 1)
+  - Commit: 59f9103
+  - Effort: 0.5 day → Completed
 
-- [ ] **Track pending acquisitions in pool** `#metrics`
+- [x] **Track pending acquisitions in pool** `#metrics` ✅ COMPLETE
   - Files:
     - `riptide-pool/src/pool.rs:888`
     - `riptide-pool/src/events_integration.rs:454`
-  - Effort: 1 day
+  - Status: Pending acquisition tracking implemented in pool
+  - Completed: 2025-11-01 (Batch 1)
+  - Commit: 59f9103
+  - Effort: 1 day → Completed
 
 ### State Management & Future Wiring - 3 items
 
@@ -319,17 +371,23 @@ WASM configuration tests were failing due to missing `wasm` field in `ApiConfig`
   - Description: Replace None with actual adapter
   - Effort: 2-3 days
 
-### Browser & Rendering - 2 items
+### Browser & Rendering - 2 items ✅ COMPLETE
 
-- [ ] **Replace placeholder BrowserPool type** `#wire-up`
+- [x] **Replace placeholder BrowserPool type** `#wire-up` ✅ COMPLETE
   - File: `commands/optimized_executor.rs:35`
   - Description: Use Arc<riptide_browser::pool::BrowserPool>
-  - Effort: 0.5 day
+  - Status: BrowserPool placeholder replaced with proper type
+  - Completed: 2025-11-01 (Batch 2)
+  - Commit: e584782
+  - Effort: 0.5 day → Completed
 
-- [ ] **Replace telemetry placeholder** `#wire-up`
+- [x] **Replace telemetry placeholder** `#wire-up` ✅ COMPLETE
   - File: `riptide-cli/src/metrics/mod.rs:262`
   - Description: Use riptide-monitoring::TelemetrySystem
-  - Effort: 0.5 day
+  - Status: Telemetry placeholder replaced with production implementation
+  - Completed: 2025-11-01 (Batch 2)
+  - Commit: e584782
+  - Effort: 0.5 day → Completed
 
 ### Pool & WASM - 2 items
 
@@ -343,41 +401,53 @@ WASM configuration tests were failing due to missing `wasm` field in `ApiConfig`
   - Description: Export from riptide-core or riptide-pool
   - Effort: 1 day
 
-### Extraction & Processing - 2 items
+### Extraction & Processing - 2 items (1/2 complete)
 
-- [ ] **Pipeline will be called after extractor normalizes content** `#architecture`
+- [x] **Pipeline will be called after extractor normalizes content** `#architecture` ✅ COMPLETE
   - File: `crates/riptide-api/src/pipeline.rs:17`
   - Description: Document and verify pipeline integration
-  - Effort: 0.5 day
+  - Status: Pipeline integration verified and documented
+  - Completed: 2025-11-01 (Batch 2)
+  - Commit: e584782
+  - Effort: 0.5 day → Completed
 
 - [ ] **Use CSS selectors, regex patterns, LLM config** `#feature:incomplete`
   - File: `handlers/strategies.rs:304`
   - Description: Implement additional extraction strategies
   - Effort: 2-3 days
 
-### Testing & Quality - 3 items
+### Testing & Quality - 3 items (2/3 complete)
 
 - [ ] **Add test logic for WASM components** `#test-coverage`
   - File: `riptide-pool/src/events_integration.rs:498`
   - Description: Test WASM integration points
   - Effort: 1-2 days
 
-- [ ] **Implement retryable_error_detection test** `#test-coverage`
+- [x] **Implement retryable_error_detection test** `#test-coverage` ✅ COMPLETE
   - File: `riptide-fetch/src/fetch.rs:953`
-  - Effort: 0.5 day
+  - Status: Retryable error detection test implemented
+  - Completed: 2025-11-01 (Batch 2)
+  - Commit: e584782
+  - Effort: 0.5 day → Completed
 
-- [ ] **Populate crawled data when available** `#wire-up`
+- [x] **Populate crawled data when available** `#wire-up` ✅ COMPLETE
   - File: `handlers/spider.rs:198`
   - Description: Add actual crawl results to response
-  - Effort: 1 day
+  - Status: Crawled data population implemented in spider handler
+  - Completed: 2025-11-01 (Batch 2)
+  - Commit: e584782
+  - Effort: 1 day → Completed
 
-### Persistence - 1 item
+### Persistence - 1 item ✅ COMPLETE
 
-- [ ] **Implement LRU eviction tracking** `#performance`
+- [x] **Implement LRU eviction tracking** `#performance` ✅ COMPLETE
   - File: `riptide-persistence/src/metrics.rs:374`
   - Description: Add eviction_tracking feature
+  - Status: LRU eviction tracking with histogram-based metrics
+  - Completed: 2025-11-01 (Batch 2)
+  - Commit: e584782
   - Issue: `#eviction-tracking`
-  - Effort: 1-2 days
+  - Effort: 1-2 days → Completed
 
 ### Chunking - 1 item
 
@@ -385,6 +455,20 @@ WASM configuration tests were failing due to missing `wasm` field in `ApiConfig`
   - File: `riptide-extraction/src/chunking/mod.rs:208`
   - Description: Replace approximation with exact counts
   - Effort: 1-2 days
+
+### Native-First Architecture - 1 item ✅ COMPLETE
+
+- [x] **Native-first extraction architecture** `#architecture` ✅ COMPLETE
+  - Description: Migrate from WASM-first to native-first extraction strategy
+  - Status: Architecture redesigned to prioritize native extraction over WASM
+  - Completed: 2025-11-01 (Native-First Batch)
+  - Commit: 37fbdbf
+  - Effort: 3-5 days → Completed
+  - Benefits:
+    - Native extraction now primary path
+    - Better performance and functionality
+    - WASM as optional enhancement
+    - Simplified extraction pipeline
 
 ---
 

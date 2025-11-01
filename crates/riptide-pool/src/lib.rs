@@ -6,6 +6,7 @@
 //! ## Features
 //!
 //! - **Instance Pooling**: Thread-safe pool of WASM component instances
+//! - **Native Extraction Pooling**: First-class support for CSS and Regex extractors
 //! - **Health Monitoring**: Continuous health checks and validation
 //! - **Circuit Breaker**: Fault tolerance and resilience patterns
 //! - **Memory Management**: Advanced memory allocation and cleanup
@@ -32,6 +33,7 @@ pub mod health_monitor;
 pub mod memory;
 pub mod memory_manager;
 pub mod models;
+pub mod native_pool;
 pub mod pool;
 
 // Re-export main public API
@@ -51,6 +53,9 @@ pub use memory_manager::{
 pub use models::CircuitBreakerState;
 #[cfg(feature = "wasm-pool")]
 pub use models::PooledInstance;
+pub use native_pool::{
+    NativeExtractorPool, NativeExtractorType, NativePoolConfig, NativePoolMetrics,
+};
 #[cfg(feature = "wasm-pool")]
 pub use pool::{create_event_aware_pool, get_instances_per_worker, AdvancedInstancePool};
 pub use riptide_events::types::PoolMetrics;

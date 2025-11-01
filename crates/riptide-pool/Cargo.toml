@@ -9,6 +9,7 @@ authors = ["RipTide Team"]
 # Core riptide dependencies
 riptide-types = { path = "../riptide-types" }
 riptide-events = { path = "../riptide-events" }
+riptide-extraction = { path = "../riptide-extraction", optional = true }
 
 # Workspace dependencies
 anyhow = { workspace = true }
@@ -28,8 +29,17 @@ tempfile = "3.8"
 # Phase 1: WASM Optional - wasmtime-wasi for dev/tests
 wasmtime-wasi = { workspace = true }
 wasmtime = { workspace = true }
+# Testing and benchmarking dependencies
+criterion = { version = "0.5", features = ["async_tokio"] }
+futures = "0.3"
+
+[[bench]]
+name = "native_pool_bench"
+harness = false
 
 [features]
-default = []
+default = ["native-pool"]
 # Phase 1: WASM Optional - New feature flag for WASM pool management
-wasm-pool = ["dep:wasmtime"]
+wasm-pool = ["dep:wasmtime", "dep:riptide-extraction", "riptide-extraction/wasm-extractor"]
+# Native extraction pooling (CSS and Regex extractors)
+native-pool = ["dep:riptide-extraction"]

@@ -1,6 +1,8 @@
 use std::time::{Duration, Instant};
 
 #[cfg(feature = "wasm-pool")]
+use riptide_extraction::validate_before_instantiation;
+#[cfg(feature = "wasm-pool")]
 use wasmtime::component::Component;
 #[cfg(feature = "wasm-pool")]
 use wasmtime::{Engine, Store};
@@ -732,17 +734,15 @@ impl MemoryManager {
         })?;
 
         // P2-2: WIT validation before instantiation
-        // TODO: Re-enable when wasm_validation is available in riptide-pool or riptide-core exports it
         if self.config.enable_wit_validation {
-            debug!(instance_id = %id, "WIT validation requested (currently disabled during refactoring)");
-            // use crate::wasm_validation::validate_before_instantiation;
-            // if let Err(e) = validate_before_instantiation(&component) {
-            //     warn!(instance_id = %id, error = %e, component_path = %component_path,
-            //           "WIT validation failed for WASM instance");
-            //     error!(%e, component_path = %component_path, "WIT validation failed");
-            //     return Err(anyhow!("WIT validation failed: {}", e));
-            // }
-            // debug!(instance_id = %id, "WIT validation passed");
+            debug!(instance_id = %id, "Running WIT validation before component instantiation");
+            if let Err(e) = validate_before_instantiation(&component) {
+                warn!(instance_id = %id, error = %e, component_path = %component_path,
+                      "WIT validation failed for WASM instance");
+                error!(%e, component_path = %component_path, "WIT validation failed");
+                return Err(anyhow!("WIT validation failed: {}", e));
+            }
+            debug!(instance_id = %id, "WIT validation passed successfully");
         }
 
         let instance = TrackedWasmInstance::new(id, store, component);

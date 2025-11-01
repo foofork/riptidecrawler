@@ -197,13 +197,16 @@ impl UnifiedExtractor {
         }
     }
 
-    /// Extract content with automatic fallback
+    /// Extract content with automatic fallback (NATIVE FIRST)
     ///
-    /// # Three-Tier Fallback
+    /// # Extraction Strategy (REVERSED - Native Primary)
     ///
-    /// 1. Uses WASM extractor if available and feature enabled
-    /// 2. Falls back to native on WASM execution errors
-    /// 3. Returns native extraction result
+    /// 1. **PRIMARY**: Uses native Rust parser for fast, reliable extraction
+    /// 2. **FALLBACK**: Falls back to WASM only if native fails (if available)
+    /// 3. Returns extraction result with metadata about which parser was used
+    ///
+    /// This is the **REVERSED** strategy - native extraction is now PRIMARY,
+    /// and WASM is only used as a fallback/enhancement strategy.
     ///
     /// # Arguments
     ///
@@ -223,39 +226,63 @@ impl UnifiedExtractor {
     /// # }
     /// ```
     pub async fn extract(&self, html: &str, url: &str) -> Result<ExtractedContent> {
-        match self {
-            #[cfg(feature = "wasm-extractor")]
-            Self::Wasm(extractor) => {
-                // Level 3: Execution-time error handling with fallback
-                use crate::extraction_strategies::ContentExtractor;
-                match extractor.extract(html, url).await {
-                    Ok(content) => {
-                        tracing::debug!(
-                            url = %url,
-                            strategy = "wasm",
-                            "Content extracted successfully with WASM"
-                        );
-                        Ok(content)
-                    }
-                    Err(e) => {
-                        tracing::warn!(
-                            url = %url,
-                            error = %e,
-                            "WASM extraction failed, falling back to native"
-                        );
-                        // Execution fallback to native
-                        let native = NativeExtractor::default();
-                        native.extract(html, url).await
-                    }
-                }
-            }
-            Self::Native(extractor) => {
+        // ALWAYS try native FIRST (regardless of variant)
+        let native = NativeExtractor::default();
+        match native.extract(html, url).await {
+            Ok(content) => {
                 tracing::debug!(
                     url = %url,
                     strategy = "native",
-                    "Extracting content with native parser"
+                    "Content extracted successfully with native parser"
                 );
-                extractor.extract(html, url).await
+                Ok(content)
+            }
+            Err(native_err) => {
+                tracing::warn!(
+                    url = %url,
+                    error = %native_err,
+                    "Native extraction failed, attempting WASM fallback"
+                );
+
+                // Only fallback to WASM if available
+                match self {
+                    #[cfg(feature = "wasm-extractor")]
+                    Self::Wasm(extractor) => {
+                        use crate::extraction_strategies::ContentExtractor;
+                        match extractor.extract(html, url).await {
+                            Ok(content) => {
+                                tracing::info!(
+                                    url = %url,
+                                    strategy = "wasm_fallback",
+                                    "Content extracted with WASM fallback after native failure"
+                                );
+                                Ok(content)
+                            }
+                            Err(wasm_err) => {
+                                tracing::error!(
+                                    url = %url,
+                                    native_error = %native_err,
+                                    wasm_error = %wasm_err,
+                                    "Both native and WASM extraction failed"
+                                );
+                                Err(anyhow!(
+                                    "Both native ({}) and WASM ({}) extraction failed",
+                                    native_err,
+                                    wasm_err
+                                ))
+                            }
+                        }
+                    }
+                    Self::Native(_) => {
+                        // No WASM available, return native error
+                        tracing::error!(
+                            url = %url,
+                            error = %native_err,
+                            "Native extraction failed and no WASM fallback available"
+                        );
+                        Err(native_err)
+                    }
+                }
             }
         }
     }
