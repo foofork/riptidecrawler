@@ -1,9 +1,13 @@
+#![cfg(feature = "wasm-extractor")]
 #![allow(clippy::all)]
 
 //! TDD tests for WASM component binding completion
 //!
 //! These tests ensure that the WASM component binding is complete and returns
 //! real data from the WASM extractor, not mock data.
+//!
+//! NOTE: These tests only compile when the `wasm-extractor` feature is enabled.
+//! Run with: `cargo test --package riptide-extraction --test wasm_binding_tdd_tests --features wasm-extractor`
 
 use anyhow::Result;
 use std::path::PathBuf;

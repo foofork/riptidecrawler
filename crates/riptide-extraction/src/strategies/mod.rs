@@ -52,7 +52,7 @@ pub use css_strategy::CssSelectorStrategy;
 pub use regex_strategy::{PatternConfig, RegexPatternStrategy};
 
 #[cfg(feature = "wasm-extractor")]
-use crate::extraction_strategies::WasmExtractor as ContentWasmExtractor;
+use crate::extraction_strategies::{ContentExtractor, WasmExtractor as ContentWasmExtractor};
 use anyhow::Result;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
