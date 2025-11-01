@@ -90,6 +90,26 @@ impl EngineSelectionCache {
         Ok(())
     }
 
+    /// Store engine decision with confidence score
+    pub async fn store(&self, domain: &str, engine: Engine, confidence: f64) -> Result<()> {
+        let mut cache = self.cache.write().await;
+
+        // Evict old entries if cache is full
+        if cache.len() >= self.max_entries {
+            self.evict_oldest(&mut cache);
+        }
+
+        let entry = CacheEntry {
+            engine,
+            timestamp: Instant::now(),
+            hit_count: 1,
+            success_rate: confidence,
+        };
+
+        cache.insert(domain.to_string(), entry);
+        Ok(())
+    }
+
     /// Update cache entry with success/failure feedback
     pub async fn update_feedback(&self, domain: &str, success: bool) -> Result<()> {
         let mut cache = self.cache.write().await;

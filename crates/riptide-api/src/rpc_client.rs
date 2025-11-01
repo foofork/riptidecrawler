@@ -45,25 +45,33 @@ impl RpcClient {
         config: &DynamicConfig,
         stealth_config: Option<&riptide_stealth::StealthConfig>,
     ) -> Result<DynamicRenderResult> {
+        self.render_dynamic_with_session(url, config, stealth_config, None, None)
+            .await
+    }
+
+    /// Render a page with dynamic configuration and session persistence
+    pub async fn render_dynamic_with_session(
+        &self,
+        url: &str,
+        config: &DynamicConfig,
+        stealth_config: Option<&riptide_stealth::StealthConfig>,
+        session_id: Option<&str>,
+        user_data_dir: Option<&str>,
+    ) -> Result<DynamicRenderResult> {
         let start_time = Instant::now();
 
-        info!(url = %url, "Starting dynamic render via RPC v2");
+        info!(
+            url = %url,
+            session_id = ?session_id,
+            has_user_data_dir = user_data_dir.is_some(),
+            "Starting dynamic render via RPC v2 with session context"
+        );
 
-        // Convert dynamic config to headless browser format
+        // Convert dynamic config to headless browser format with session context
         let request = HeadlessRenderRequest {
             url: url.to_string(),
-            session_id: None,
-            // TODO(P1): Implement session persistence for stateful rendering
-            // PLAN: Pass session_id from session manager to headless service
-            // IMPLEMENTATION:
-            //   1. Accept session_id parameter in render_dynamic method
-            //   2. Include in HeadlessRenderRequest
-            //   3. Headless service uses session_id for browser profile selection
-            //   4. Maintains cookies, localStorage, and authentication state
-            // DEPENDENCIES: Related to render/processors.rs:132
-            // EFFORT: Low (2-3 hours)
-            // PRIORITY: Required for authenticated workflows
-            // BLOCKER: None - just needs parameter plumbing
+            session_id: session_id.map(|s| s.to_string()),
+            user_data_dir: user_data_dir.map(|d| d.to_string()),
             actions: Some(convert_actions(&config.actions)),
             timeouts: Some(HeadlessTimeouts {
                 nav_ms: Some(1000),
@@ -156,7 +164,10 @@ impl RpcClient {
 #[derive(Debug, Serialize)]
 struct HeadlessRenderRequest {
     url: String,
+    /// Session ID for browser profile persistence
     session_id: Option<String>,
+    /// User data directory for persistent browser state (cookies, localStorage, etc.)
+    user_data_dir: Option<String>,
     actions: Option<Vec<HeadlessPageAction>>,
     timeouts: Option<HeadlessTimeouts>,
     artifacts: Option<HeadlessArtifacts>,

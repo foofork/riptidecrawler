@@ -11,7 +11,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 use crate::errors::ApiError;
 use crate::state::AppState;
@@ -38,7 +38,7 @@ pub struct TraceQueryParams {
 }
 
 /// Trace metadata response
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct TraceMetadata {
     /// Trace ID
     pub trace_id: String,
@@ -153,7 +153,7 @@ pub struct TraceSummary {
 /// Useful for discovering traces to investigate.
 #[tracing::instrument(
     name = "list_traces",
-    skip(_state),
+    skip(state),
     fields(
         http.method = "GET",
         http.route = "/telemetry/traces",
@@ -162,48 +162,31 @@ pub struct TraceSummary {
     )
 )]
 pub async fn list_traces(
-    State(_state): State<AppState>,
-    // TODO(P1): Wire up to actual trace backend (Jaeger/Zipkin/OTLP)
-    // PLAN: Integrate with OpenTelemetry trace storage
-    // IMPLEMENTATION:
-    //   1. Add trace backend client to AppState (Jaeger/Zipkin client)
-    //   2. Configure OTLP exporter or native backend client
-    //   3. Query traces from backend storage
-    //   4. Parse and return real trace metadata
-    //   5. Support filtering by service, time range, status
-    // DEPENDENCIES: OpenTelemetry backend deployment
-    // EFFORT: High (8-12 hours)
-    // PRIORITY: Important for production observability
-    // BLOCKER: Requires trace backend infrastructure
+    State(state): State<AppState>,
     Query(query): Query<TraceQueryParams>,
 ) -> Result<Json<Vec<TraceMetadata>>, ApiError> {
     info!("Listing traces with query: {:?}", query);
 
-    // Note: In a real implementation, this would query a trace backend like Jaeger/Zipkin
-    // For demonstration purposes, we'll return mock data
+    let time_range_secs = query.time_range_secs.unwrap_or(300);
+    let limit = query.limit.unwrap_or(10);
 
-    let mut traces = vec![TraceMetadata {
-        trace_id: "0af7651916cd43dd8448eb211c80319c".to_string(),
-        root_span_id: "b7ad6b7169203331".to_string(),
-        start_time: "2025-10-03T10:00:00Z".to_string(),
-        duration_ms: 1234,
-        service_name: "riptide-api".to_string(),
-        span_count: 15,
-        status: "OK".to_string(),
-        attributes: {
-            let mut attrs = HashMap::new();
-            attrs.insert("http.method".to_string(), "POST".to_string());
-            attrs.insert("http.route".to_string(), "/crawl".to_string());
-            attrs
-        },
-    }];
+    // Query from trace backend if available
+    let traces = if let Some(ref backend) = state.trace_backend {
+        backend
+            .list_traces(time_range_secs, limit, query.service.clone())
+            .await?
+    } else {
+        // Return empty list if no backend configured
+        warn!("No trace backend configured - returning empty trace list");
+        vec![]
+    };
 
-    // Filter by service if specified
-    if let Some(ref service_filter) = query.service {
-        traces.retain(|t| t.service_name.contains(service_filter));
-    }
+    debug!(
+        trace_count = traces.len(),
+        backend_available = state.trace_backend.is_some(),
+        "Returning traces from backend"
+    );
 
-    debug!(trace_count = traces.len(), "Returning traces");
     Ok(Json(traces))
 }
 
@@ -213,7 +196,7 @@ pub async fn list_traces(
 /// Shows parent-child relationships and critical path analysis.
 #[tracing::instrument(
     name = "get_trace_tree",
-    skip(_state),
+    skip(state),
     fields(
         http.method = "GET",
         http.route = "/telemetry/traces/:trace_id",
@@ -221,18 +204,7 @@ pub async fn list_traces(
     )
 )]
 pub async fn get_trace_tree(
-    State(_state): State<AppState>,
-    // TODO(P1): Wire up to actual trace backend for trace tree retrieval
-    // PLAN: Query complete trace spans and build parent-child tree
-    // IMPLEMENTATION:
-    //   1. Query all spans for given trace_id from backend
-    //   2. Build span tree from parent-child relationships
-    //   3. Calculate critical path timing
-    //   4. Return TraceTreeResponse with full hierarchy
-    // DEPENDENCIES: Same as list_traces (telemetry.rs:165)
-    // EFFORT: Medium (6-8 hours)
-    // PRIORITY: Important for distributed tracing analysis
-    // BLOCKER: Requires trace backend integration
+    State(state): State<AppState>,
     Query(query): Query<TraceQueryParams>,
 ) -> Result<Json<TraceTreeResponse>, ApiError> {
     let trace_id_str = query
@@ -241,123 +213,28 @@ pub async fn get_trace_tree(
 
     info!(trace_id = %trace_id_str, "Fetching trace tree");
 
-    // Validate trace ID format
-    let _trace_id = parse_trace_id(&trace_id_str).ok_or_else(|| {
+    // Validate trace ID format and parse
+    let trace_id = parse_trace_id(&trace_id_str).ok_or_else(|| {
         ApiError::invalid_request("Invalid trace ID format (expected 32-char hex)")
     })?;
 
-    // Note: In production, this would fetch from a trace backend
-    // For demonstration, we'll return a mock trace tree
+    // Query trace from backend
+    let trace_backend = state
+        .trace_backend
+        .as_ref()
+        .ok_or_else(|| ApiError::internal("Trace backend not configured"))?;
 
-    let root_span = SpanNode {
-        span_id: "b7ad6b7169203331".to_string(),
-        name: "crawl_handler".to_string(),
-        parent_span_id: None,
-        kind: "SERVER".to_string(),
-        start_offset_ms: 0,
-        duration_ms: 1234,
-        status: "OK".to_string(),
-        attributes: {
-            let mut attrs = HashMap::new();
-            attrs.insert("http.method".to_string(), "POST".to_string());
-            attrs.insert("http.route".to_string(), "/crawl".to_string());
-            attrs.insert("url_count".to_string(), "5".to_string());
-            attrs
-        },
-        events: vec![
-            SpanEvent {
-                name: "validation_complete".to_string(),
-                timestamp_offset_ms: 10,
-                attributes: HashMap::new(),
-            },
-            SpanEvent {
-                name: "pipeline_started".to_string(),
-                timestamp_offset_ms: 15,
-                attributes: HashMap::new(),
-            },
-        ],
-        children: vec![
-            SpanNode {
-                span_id: "00f067aa0ba902b7".to_string(),
-                name: "pipeline.fetch".to_string(),
-                parent_span_id: Some("b7ad6b7169203331".to_string()),
-                kind: "INTERNAL".to_string(),
-                start_offset_ms: 20,
-                duration_ms: 450,
-                status: "OK".to_string(),
-                attributes: {
-                    let mut attrs = HashMap::new();
-                    attrs.insert("url".to_string(), "https://example.com".to_string());
-                    attrs.insert("cache_hit".to_string(), "false".to_string());
-                    attrs
-                },
-                events: vec![],
-                children: vec![],
-            },
-            SpanNode {
-                span_id: "0123456789abcdef".to_string(),
-                name: "pipeline.gate".to_string(),
-                parent_span_id: Some("b7ad6b7169203331".to_string()),
-                kind: "INTERNAL".to_string(),
-                start_offset_ms: 480,
-                duration_ms: 25,
-                status: "OK".to_string(),
-                attributes: {
-                    let mut attrs = HashMap::new();
-                    attrs.insert("decision".to_string(), "raw".to_string());
-                    attrs.insert("quality_score".to_string(), "0.85".to_string());
-                    attrs
-                },
-                events: vec![],
-                children: vec![],
-            },
-            SpanNode {
-                span_id: "fedcba9876543210".to_string(),
-                name: "pipeline.extract".to_string(),
-                parent_span_id: Some("b7ad6b7169203331".to_string()),
-                kind: "INTERNAL".to_string(),
-                start_offset_ms: 510,
-                duration_ms: 700,
-                status: "OK".to_string(),
-                attributes: {
-                    let mut attrs = HashMap::new();
-                    attrs.insert("extractor".to_string(), "wasm".to_string());
-                    attrs.insert("word_count".to_string(), "1234".to_string());
-                    attrs
-                },
-                events: vec![],
-                children: vec![],
-            },
-        ],
-    };
+    let trace = trace_backend
+        .get_trace(&trace_id)
+        .await?
+        .ok_or_else(|| ApiError::not_found(&format!("Trace {} not found", trace_id_str)))?;
 
-    let metadata = TraceMetadata {
-        trace_id: trace_id_str,
-        root_span_id: "b7ad6b7169203331".to_string(),
-        start_time: "2025-10-03T10:00:00Z".to_string(),
-        duration_ms: 1234,
-        service_name: "riptide-api".to_string(),
-        span_count: 4,
-        status: "OK".to_string(),
-        attributes: {
-            let mut attrs = HashMap::new();
-            attrs.insert("http.method".to_string(), "POST".to_string());
-            attrs.insert("http.route".to_string(), "/crawl".to_string());
-            attrs
-        },
-    };
-
-    let summary = TraceSummary {
-        total_spans: 4,
-        error_count: 0,
-        avg_span_duration_ms: 391.25,
-        max_span_duration_ms: 700,
-        critical_path_duration_ms: 1234,
-        services: vec!["riptide-api".to_string()],
-    };
+    // Build trace tree from flat span list
+    use crate::handlers::trace_backend::build_trace_tree;
+    let (root_span, summary) = build_trace_tree(&trace)?;
 
     let response = TraceTreeResponse {
-        metadata,
+        metadata: trace.metadata.clone(),
         root_span,
         summary,
     };
@@ -366,7 +243,8 @@ pub async fn get_trace_tree(
         trace_id = %response.metadata.trace_id,
         span_count = response.summary.total_spans,
         duration_ms = response.metadata.duration_ms,
-        "Trace tree retrieved successfully"
+        backend_type = trace_backend.backend_type(),
+        "Trace tree retrieved successfully from backend"
     );
 
     Ok(Json(response))
@@ -375,27 +253,26 @@ pub async fn get_trace_tree(
 /// Get telemetry status and configuration
 #[tracing::instrument(
     name = "get_telemetry_status",
-    skip(_state),
+    skip(state),
     fields(
         http.method = "GET",
         http.route = "/telemetry/status"
     )
 )]
 pub async fn get_telemetry_status(
-    State(_state): State<AppState>,
-    // TODO(P2): Use state for runtime telemetry info
-    // PLAN: Add real-time runtime telemetry data from AppState
-    // IMPLEMENTATION:
-    //   1. Query metrics collector for current system state
-    //   2. Include active request counts and resource usage
-    //   3. Add component status from health checker
-    //   4. Return comprehensive runtime diagnostics
-    // DEPENDENCIES: None - metrics already available in state
-    // EFFORT: Low (2-3 hours)
-    // PRIORITY: Nice-to-have for debugging
-    // BLOCKER: None
+    State(state): State<AppState>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let config = crate::telemetry_config::TelemetryConfig::from_env();
+
+    // Get trace backend status
+    let (backend_type, backend_healthy) = if let Some(ref backend) = state.trace_backend {
+        (
+            backend.backend_type().to_string(),
+            backend.health_check().await,
+        )
+    } else {
+        ("none".to_string(), false)
+    };
 
     let status = serde_json::json!({
         "enabled": config.enabled,
@@ -405,11 +282,17 @@ pub async fn get_telemetry_status(
         "otlp_endpoint": config.otlp_endpoint,
         "sampling_ratio": config.sampling_ratio,
         "trace_propagation_enabled": config.enable_trace_propagation,
+        "trace_backend": {
+            "type": backend_type,
+            "healthy": backend_healthy,
+            "configured": state.trace_backend.is_some(),
+        },
         "features": {
             "distributed_tracing": true,
             "custom_attributes": true,
             "trace_visualization": true,
             "trace_export": config.enabled,
+            "trace_storage": state.trace_backend.is_some(),
         }
     });
 

@@ -11,13 +11,16 @@ use axum::{
 /// Configure PDF processing routes
 ///
 /// Provides endpoints for:
-/// - Synchronous PDF processing
+/// - Synchronous PDF processing (JSON)
+/// - Multipart PDF file upload and processing
 /// - Streaming PDF processing with real-time progress
 /// - Health check for PDF processing capabilities
 pub fn pdf_routes() -> Router<AppState> {
     Router::new()
-        // Synchronous PDF processing endpoint
+        // Synchronous PDF processing endpoint (JSON body)
         .route("/process", post(pdf::process_pdf))
+        // Multipart PDF file upload endpoint
+        .route("/upload", post(pdf::upload_pdf))
         // Streaming PDF processing with NDJSON progress updates
         .route("/process-stream", post(pdf::process_pdf_stream))
         // Health check for PDF processing capabilities

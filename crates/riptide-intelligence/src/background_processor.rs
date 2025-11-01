@@ -21,6 +21,11 @@ use uuid::Uuid;
 
 use riptide_events::{CrawlEvent, CrawlOperation, EventBus, EventEmitter, ExtractionMode};
 
+use crate::{
+    CompletionRequest, CompletionResponse, FailoverManager, IntelligenceError, LlmProvider,
+    LlmRegistry, Message,
+};
+
 /// Priority levels for AI enhancement tasks
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum TaskPriority {
@@ -101,6 +106,20 @@ pub struct AiProcessorConfig {
     pub worker_timeout: Duration,
     /// Enable result streaming
     pub stream_results: bool,
+    /// LLM model to use for enhancement
+    pub llm_model: String,
+    /// Maximum tokens for LLM requests
+    pub max_tokens: u32,
+    /// Temperature for LLM requests
+    pub temperature: f32,
+    /// Rate limiting: requests per second
+    pub rate_limit_rps: f64,
+    /// Initial backoff duration for retries
+    pub initial_backoff: Duration,
+    /// Maximum backoff duration
+    pub max_backoff: Duration,
+    /// Backoff multiplier
+    pub backoff_multiplier: f64,
 }
 
 impl Default for AiProcessorConfig {
@@ -111,6 +130,44 @@ impl Default for AiProcessorConfig {
             max_concurrent_requests: 10,
             worker_timeout: Duration::from_secs(60),
             stream_results: true,
+            llm_model: "gpt-3.5-turbo".to_string(),
+            max_tokens: 2048,
+            temperature: 0.7,
+            rate_limit_rps: 10.0,
+            initial_backoff: Duration::from_millis(100),
+            max_backoff: Duration::from_secs(30),
+            backoff_multiplier: 2.0,
+        }
+    }
+}
+
+/// Rate limiter state for LLM requests
+#[derive(Debug)]
+struct RateLimiter {
+    last_request: Arc<RwLock<Instant>>,
+    min_interval: Duration,
+}
+
+impl RateLimiter {
+    fn new(requests_per_second: f64) -> Self {
+        let min_interval = Duration::from_secs_f64(1.0 / requests_per_second);
+        Self {
+            last_request: Arc::new(RwLock::new(Instant::now() - min_interval)),
+            min_interval,
+        }
+    }
+
+    async fn acquire(&self) {
+        let mut last_request = self.last_request.write().await;
+        let elapsed = last_request.elapsed();
+
+        if elapsed < self.min_interval {
+            let sleep_duration = self.min_interval - elapsed;
+            drop(last_request); // Release lock before sleeping
+            tokio::time::sleep(sleep_duration).await;
+            *self.last_request.write().await = Instant::now();
+        } else {
+            *last_request = Instant::now();
         }
     }
 }
@@ -125,15 +182,20 @@ pub struct BackgroundAiProcessor {
     workers: Vec<JoinHandle<()>>,
     semaphore: Arc<Semaphore>,
     running: Arc<std::sync::atomic::AtomicBool>,
+    llm_registry: Option<Arc<LlmRegistry>>,
+    llm_failover: Option<Arc<FailoverManager>>,
+    rate_limiter: Arc<RateLimiter>,
 }
 
 impl BackgroundAiProcessor {
     /// Create a new Background AI Processor
     pub fn new(config: AiProcessorConfig) -> Self {
         let (result_sender, result_receiver) = mpsc::unbounded_channel();
+        let rate_limiter = Arc::new(RateLimiter::new(config.rate_limit_rps));
 
         Self {
             semaphore: Arc::new(Semaphore::new(config.max_concurrent_requests)),
+            rate_limiter,
             config,
             task_queue: Arc::new(RwLock::new(Vec::new())),
             result_sender,
@@ -141,12 +203,26 @@ impl BackgroundAiProcessor {
             event_bus: None,
             workers: Vec::new(),
             running: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            llm_registry: None,
+            llm_failover: None,
         }
     }
 
     /// Set the event bus for event emission
     pub fn with_event_bus(mut self, event_bus: Arc<EventBus>) -> Self {
         self.event_bus = Some(event_bus);
+        self
+    }
+
+    /// Set the LLM registry for AI processing
+    pub fn with_llm_registry(mut self, registry: Arc<LlmRegistry>) -> Self {
+        self.llm_registry = Some(registry);
+        self
+    }
+
+    /// Set the LLM failover manager for high availability
+    pub fn with_llm_failover(mut self, failover: Arc<FailoverManager>) -> Self {
+        self.llm_failover = Some(failover);
         self
     }
 
@@ -172,6 +248,17 @@ impl BackgroundAiProcessor {
             let semaphore = self.semaphore.clone();
             let running = self.running.clone();
             let worker_timeout = self.config.worker_timeout;
+            let llm_registry = self.llm_registry.clone();
+            let llm_failover = self.llm_failover.clone();
+            let rate_limiter = self.rate_limiter.clone();
+            let llm_config = (
+                self.config.llm_model.clone(),
+                self.config.max_tokens,
+                self.config.temperature,
+                self.config.initial_backoff,
+                self.config.max_backoff,
+                self.config.backoff_multiplier,
+            );
 
             let worker = tokio::spawn(async move {
                 debug!("Worker {} started", worker_id);
@@ -201,6 +288,10 @@ impl BackgroundAiProcessor {
                             result_sender.clone(),
                             event_bus.clone(),
                             worker_timeout,
+                            llm_registry.clone(),
+                            llm_failover.clone(),
+                            rate_limiter.clone(),
+                            llm_config.clone(),
                         )
                         .await
                         {
@@ -276,12 +367,17 @@ impl BackgroundAiProcessor {
     }
 
     /// Worker task processing logic
+    #[allow(clippy::too_many_arguments)]
     async fn process_task_worker(
         worker_id: usize,
         mut task: AiTask,
         result_sender: mpsc::UnboundedSender<AiResult>,
         event_bus: Option<Arc<EventBus>>,
         timeout: Duration,
+        llm_registry: Option<Arc<LlmRegistry>>,
+        llm_failover: Option<Arc<FailoverManager>>,
+        rate_limiter: Arc<RateLimiter>,
+        llm_config: (String, u32, f32, Duration, Duration, f64),
     ) -> Result<()> {
         debug!(
             "Worker {} processing task {} for URL: {}",
@@ -303,7 +399,11 @@ impl BackgroundAiProcessor {
         }
 
         // Process with timeout
-        let result = tokio::time::timeout(timeout, Self::enhance_content(&task)).await;
+        let result = tokio::time::timeout(
+            timeout,
+            Self::enhance_content(&task, llm_registry, llm_failover, rate_limiter, llm_config),
+        )
+        .await;
 
         let processing_time = start.elapsed();
 
@@ -408,17 +508,130 @@ impl BackgroundAiProcessor {
         Ok(())
     }
 
-    /// Placeholder for actual AI enhancement logic
-    /// TODO: Integrate with LLM client pool
-    async fn enhance_content(task: &AiTask) -> Result<String> {
-        // Simulate AI processing
-        tokio::time::sleep(Duration::from_millis(50)).await;
+    /// Enhance content using LLM with rate limiting and exponential backoff
+    async fn enhance_content(
+        task: &AiTask,
+        llm_registry: Option<Arc<LlmRegistry>>,
+        llm_failover: Option<Arc<FailoverManager>>,
+        rate_limiter: Arc<RateLimiter>,
+        llm_config: (String, u32, f32, Duration, Duration, f64),
+    ) -> Result<String> {
+        let (model, max_tokens, temperature, initial_backoff, max_backoff, backoff_multiplier) =
+            llm_config;
 
-        // For now, return placeholder enhanced content
-        Ok(format!(
-            "AI Enhanced: {} (length: {})",
-            task.url,
-            task.content.len()
+        // If no LLM registry is configured, return placeholder
+        let Some(registry) = llm_registry else {
+            warn!("No LLM registry configured, using placeholder enhancement");
+            return Ok(format!(
+                "AI Enhanced (placeholder): {} (length: {})",
+                task.url,
+                task.content.len()
+            ));
+        };
+
+        // Apply rate limiting before making request
+        rate_limiter.acquire().await;
+
+        // Build the LLM request
+        let messages = vec![
+            Message::system(
+                "You are an AI content enhancer. Analyze and enhance the given web content by extracting key information, improving clarity, and adding structured insights."
+            ),
+            Message::user(format!(
+                "URL: {}\n\nContent:\n{}",
+                task.url, task.content
+            )),
+        ];
+
+        let request = CompletionRequest::new(model, messages)
+            .with_max_tokens(max_tokens)
+            .with_temperature(temperature);
+
+        // Try to get response with exponential backoff
+        let mut backoff = initial_backoff;
+        let mut last_error: Option<IntelligenceError> = None;
+
+        for attempt in 0..task.max_retries {
+            // Try with failover manager first if available
+            let result = if let Some(failover) = &llm_failover {
+                failover.complete_with_failover(request.clone()).await
+            } else {
+                // Fallback to registry default provider
+                match registry.get_provider("default").or_else(|| {
+                    // Try to get first available provider
+                    registry
+                        .list_providers()
+                        .first()
+                        .and_then(|name| registry.get_provider(name))
+                }) {
+                    Some(provider) => provider.complete(request.clone()).await,
+                    None => return Err(anyhow::anyhow!("No LLM providers available in registry")),
+                }
+            };
+
+            match result {
+                Ok(response) => {
+                    debug!(
+                        "LLM enhancement successful for task {} (attempt {})",
+                        task.task_id,
+                        attempt + 1
+                    );
+                    return Ok(response.content);
+                }
+                Err(e) => {
+                    last_error = Some(e.clone());
+
+                    match &e {
+                        IntelligenceError::RateLimit { retry_after_ms } => {
+                            let retry_duration = Duration::from_millis(*retry_after_ms);
+                            warn!(
+                                "Rate limit hit for task {}, waiting {:?}",
+                                task.task_id, retry_duration
+                            );
+                            tokio::time::sleep(retry_duration).await;
+                            continue;
+                        }
+                        IntelligenceError::CircuitOpen { reason } => {
+                            warn!("Circuit breaker open for task {}: {}", task.task_id, reason);
+                            // Wait and retry
+                            tokio::time::sleep(backoff).await;
+                        }
+                        IntelligenceError::Network(_)
+                        | IntelligenceError::Provider(_)
+                        | IntelligenceError::Timeout { .. } => {
+                            if attempt < task.max_retries - 1 {
+                                warn!(
+                                    "Transient error for task {} (attempt {}): {}, retrying in {:?}",
+                                    task.task_id,
+                                    attempt + 1,
+                                    e,
+                                    backoff
+                                );
+                                tokio::time::sleep(backoff).await;
+                                backoff = std::cmp::min(
+                                    Duration::from_secs_f64(
+                                        backoff.as_secs_f64() * backoff_multiplier,
+                                    ),
+                                    max_backoff,
+                                );
+                            }
+                        }
+                        _ => {
+                            // Non-retryable error
+                            return Err(anyhow::anyhow!("LLM enhancement failed: {}", e));
+                        }
+                    }
+                }
+            }
+        }
+
+        // All retries exhausted
+        Err(anyhow::anyhow!(
+            "LLM enhancement failed after {} attempts: {}",
+            task.max_retries,
+            last_error
+                .map(|e| e.to_string())
+                .unwrap_or_else(|| "Unknown error".to_string())
         ))
     }
 

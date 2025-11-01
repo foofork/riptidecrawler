@@ -28,8 +28,7 @@ pub mod adaptive_timeout;
 pub mod wasm_aot_cache;
 
 // Phase 5 Integration
-// TODO(phase4): Re-enable after implementing missing global() methods in Phase 4 modules
-// pub mod optimized_executor;
+pub mod optimized_executor;
 
 use clap::Subcommand;
 use domain::DomainCommands;

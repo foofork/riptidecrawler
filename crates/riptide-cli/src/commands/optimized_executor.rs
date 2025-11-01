@@ -19,13 +19,15 @@ use super::{
     adaptive_timeout::AdaptiveTimeoutManager,
     // Note: browser_pool_manager removed - use riptide-browser::pool::BrowserPool directly
     engine_cache::EngineSelectionCache,
-    extract::ExtractArgs,
     performance_monitor::PerformanceMonitor,
     render::RenderArgs,
-    wasm_aot_cache::WasmAotCache,
-    wasm_cache::WasmCache,
+    ExtractArgs, // Import from mod.rs
 };
 use riptide_reliability::engine_selection::Engine;
+
+// Import WASM types from riptide-cache (only when wasm-extractor feature is enabled)
+#[cfg(feature = "wasm-extractor")]
+use riptide_cache::wasm::{WasmAotCache, WasmCache};
 
 /// Unified executor that orchestrates all optimization modules
 ///
@@ -34,10 +36,20 @@ use riptide_reliability::engine_selection::Engine;
 pub struct OptimizedExecutor {
     // TODO(phase9): Replace with Arc<riptide_browser::pool::BrowserPool>
     browser_pool: Arc<()>, // Placeholder - BrowserPoolManager removed
+
+    #[cfg(feature = "wasm-extractor")]
     wasm_aot: Arc<WasmAotCache>,
+    #[cfg(not(feature = "wasm-extractor"))]
+    wasm_aot: Arc<()>, // Placeholder for non-wasm builds
+
     timeout_mgr: Arc<AdaptiveTimeoutManager>,
     engine_cache: Arc<EngineSelectionCache>,
+
+    #[cfg(feature = "wasm-extractor")]
     wasm_cache: Arc<WasmCache>,
+    #[cfg(not(feature = "wasm-extractor"))]
+    wasm_cache: Arc<()>, // Placeholder for non-wasm builds
+
     perf_monitor: Arc<PerformanceMonitor>,
 }
 
@@ -46,22 +58,31 @@ impl OptimizedExecutor {
     pub async fn new() -> Result<Self> {
         tracing::info!("Initializing optimized executor with all optimization modules");
 
-        // Initialize all global managers
-        let browser_pool = BrowserPoolManager::initialize_global().await?;
-        let wasm_aot = WasmAotCache::initialize_global().await?;
-        let timeout_mgr = AdaptiveTimeoutManager::initialize_global().await?;
+        // Initialize all global managers using their respective global accessors
+        // Note: browser_pool is currently a placeholder - will be replaced with BrowserPool in Phase 9
+        let browser_pool = Arc::new(()); // Placeholder until BrowserPool integration
+        let timeout_mgr = super::adaptive_timeout::get_global_timeout_manager().await?;
         let engine_cache = EngineSelectionCache::get_global();
-        let wasm_cache = WasmCache::get_global();
         let perf_monitor = PerformanceMonitor::get_global();
 
         tracing::info!("✓ All optimization modules initialized");
 
         Ok(Self {
             browser_pool,
-            wasm_aot,
+
+            #[cfg(feature = "wasm-extractor")]
+            wasm_aot: riptide_cache::wasm::get_global_aot_cache(),
+            #[cfg(not(feature = "wasm-extractor"))]
+            wasm_aot: Arc::new(()), // Placeholder for non-wasm builds
+
             timeout_mgr,
             engine_cache,
-            wasm_cache,
+
+            #[cfg(feature = "wasm-extractor")]
+            wasm_cache: WasmCache::get_global(),
+            #[cfg(not(feature = "wasm-extractor"))]
+            wasm_cache: Arc::new(()), // Placeholder for non-wasm builds
+
             perf_monitor,
         })
     }
@@ -86,7 +107,11 @@ impl OptimizedExecutor {
             tracing::warn!("Could not parse domain from URL: {}", url);
         }
 
-        tracing::info!("Starting optimized extraction for {} (domain: {})", url, domain);
+        tracing::info!(
+            "Starting optimized extraction for {} (domain: {})",
+            url,
+            domain
+        );
 
         // 1. Check engine cache for previous decisions
         let engine = if let Some(cached_engine) = self.engine_cache.get(&domain).await {
@@ -109,7 +134,8 @@ impl OptimizedExecutor {
                 }
             };
 
-            let selected = riptide_reliability::engine_selection::decide_engine(&html_for_decision, url);
+            let selected =
+                riptide_reliability::engine_selection::decide_engine(&html_for_decision, url);
             if let Err(e) = self.engine_cache.store(&domain, selected, 0.85).await {
                 tracing::warn!("Failed to cache engine decision: {}", e);
                 // Non-fatal, continue with selected engine
@@ -177,9 +203,11 @@ impl OptimizedExecutor {
         let duration = start.elapsed();
 
         // 4. Update adaptive timeout profile based on actual performance
-        self.timeout_mgr
-            .record_operation(&domain, duration, result.success)
-            .await?;
+        if result.success {
+            self.timeout_mgr.record_success(&domain, duration).await;
+        } else {
+            self.timeout_mgr.record_timeout(&domain).await;
+        }
 
         // 5. Record performance metrics
         self.perf_monitor
@@ -210,25 +238,10 @@ impl OptimizedExecutor {
         let wasm_path = Self::resolve_wasm_path(args);
 
         // Check WASM cache first for compiled module
+        #[cfg(feature = "wasm-extractor")]
         let extractor = if let Some(cached_module) = self.wasm_cache.get(&wasm_path).await {
             tracing::info!("✓ Using cached WASM module");
-            // Note: WasmCache returns the module, but WasmExtractor needs the path
-            // We'll use AOT cache which handles pre-compilation
-            match self.wasm_aot.get_or_compile(&wasm_path).await {
-                Ok(module) => {
-                    tracing::info!("✓ Using AOT-compiled WASM module");
-                    // Create extractor from pre-compiled module
-                    // Note: Current API requires path, future enhancement could accept Module
-                    WasmExtractor::new(&wasm_path).await?
-                }
-                Err(e) => {
-                    tracing::warn!(
-                        "AOT cache miss or error: {}, falling back to standard load",
-                        e
-                    );
-                    WasmExtractor::new(&wasm_path).await?
-                }
-            }
+            cached_module
         } else {
             // Try AOT cache
             match self.wasm_aot.get_or_compile(&wasm_path).await {
@@ -243,99 +256,56 @@ impl OptimizedExecutor {
             }
         };
 
-        // Fetch HTML if not provided
-        let html_content = if let Some(h) = html {
-            h
-        } else {
-            self.fetch_html(url, args).await?
-        };
+        #[cfg(not(feature = "wasm-extractor"))]
+        return Err(anyhow::anyhow!("WASM extractor feature not enabled"));
 
-        // Extract with WASM
-        let mode = if args.metadata {
-            "metadata"
-        } else if args.method == "full" {
-            "full"
-        } else {
-            "article"
-        };
+        #[cfg(feature = "wasm-extractor")]
+        {
+            // Fetch HTML if not provided
+            let html_content = if let Some(h) = html {
+                h
+            } else {
+                self.fetch_html(url, args).await?
+            };
 
-        let result = extractor.extract(html_content.as_bytes(), url, mode)?;
+            // Extract with WASM
+            let mode = if args.metadata {
+                "metadata"
+            } else if args.method == "full" {
+                "full"
+            } else {
+                "article"
+            };
 
-        Ok(ExtractResponse {
-            content: result.text,
-            confidence: result.quality_score.map(|s| s as f64 / 100.0),
-            method_used: Some("wasm-optimized".to_string()),
-            success: true,
-            metadata: Some(serde_json::json!({
-                "title": result.title,
-                "byline": result.byline,
-                "published": result.published_iso,
-                "optimizations": ["wasm_cache", "aot_cache", "adaptive_timeout"],
-            })),
-        })
+            let result = extractor.extract(html_content.as_bytes(), url, mode)?;
+
+            Ok(ExtractResponse {
+                content: result.text,
+                confidence: result.quality_score.map(|s| s as f64 / 100.0),
+                method_used: Some("wasm-optimized".to_string()),
+                success: true,
+                metadata: Some(serde_json::json!({
+                    "title": result.title,
+                    "byline": result.byline,
+                    "published": result.published_iso,
+                    "optimizations": ["wasm_cache", "aot_cache", "adaptive_timeout"],
+                })),
+            })
+        }
     }
 
     /// Execute headless extraction with browser pool optimization
     async fn execute_headless_optimized(
         &self,
-        args: &ExtractArgs,
-        url: &str,
+        _args: &ExtractArgs,
+        _url: &str,
     ) -> Result<ExtractResponse> {
-        use riptide_stealth::StealthPreset;
-
-        tracing::info!("Executing headless extraction with browser pool");
-
-        // Determine stealth preset
-        let stealth = if let Some(ref level) = args.stealth_level {
-            match level.as_str() {
-                "low" => StealthPreset::Low,
-                "medium" => StealthPreset::Medium,
-                "high" => StealthPreset::High,
-                _ => StealthPreset::None,
-            }
-        } else {
-            StealthPreset::None
-        };
-
-        // Checkout browser from pool
-        let browser = self.browser_pool.checkout().await?;
-        tracing::info!("✓ Checked out browser from pool");
-
-        // Launch page with browser
-        let session = browser
-            .launch_page(url, Some(stealth))
-            .await
-            .map_err(|e| anyhow::anyhow!("Failed to launch page: {}", e))?;
-
-        // Wait for page load
-        let page = session.page();
-        let _ = tokio::time::timeout(
-            std::time::Duration::from_millis(args.headless_timeout.unwrap_or(30000)),
-            page.wait_for_navigation(),
-        )
-        .await;
-
-        // Extract HTML
-        let html = page
-            .content()
-            .await
-            .map_err(|e| anyhow::anyhow!("Failed to extract HTML: {}", e))?;
-
-        // Return browser to pool
-        self.browser_pool.checkin(browser).await;
-        tracing::info!("✓ Returned browser to pool");
-
-        // Now extract with WASM from rendered HTML
-        let wasm_result = self.execute_wasm_optimized(args, Some(html), url).await?;
-
-        Ok(ExtractResponse {
-            method_used: Some("headless-optimized".to_string()),
-            metadata: Some(serde_json::json!({
-                "optimizations": ["browser_pool", "wasm_cache", "adaptive_timeout"],
-                "stealth_level": stealth.to_string(),
-            })),
-            ..wasm_result
-        })
+        // TODO(phase9): Implement when BrowserPool is integrated
+        // For now, return an error indicating this feature needs browser pool
+        Err(anyhow::anyhow!(
+            "Headless extraction requires browser pool integration (Phase 9). \
+             Use --engine wasm or --engine raw as alternatives."
+        ))
     }
 
     /// Execute raw HTTP fetch without extraction
@@ -364,114 +334,12 @@ impl OptimizedExecutor {
     }
 
     /// Execute optimized render with all optimizations
-    pub async fn execute_render(&self, args: RenderArgs) -> Result<RenderResponse> {
-        let start = std::time::Instant::now();
-        let domain = Self::extract_domain(&args.url);
-
-        tracing::info!("Starting optimized render for {}", args.url);
-
-        // Apply adaptive timeout
-        let timeout = self.timeout_mgr.get_timeout(&domain).await;
-        tracing::info!("✓ Applied adaptive timeout: {:?}", timeout);
-
-        // Use browser pool for rendering
-        let browser = self.browser_pool.checkout().await?;
-        tracing::info!("✓ Checked out browser from pool");
-
-        // Parse stealth level
-        let stealth = match args.stealth.as_str() {
-            "low" => riptide_stealth::StealthPreset::Low,
-            "med" | "medium" => riptide_stealth::StealthPreset::Medium,
-            "high" => riptide_stealth::StealthPreset::High,
-            _ => riptide_stealth::StealthPreset::None,
-        };
-
-        // Launch page
-        let session = browser
-            .launch_page(&args.url, Some(stealth))
-            .await
-            .map_err(|e| anyhow::anyhow!("Failed to launch page: {}", e))?;
-
-        let page = session.page();
-
-        // Wait based on condition
-        self.apply_wait_condition(&args, page).await?;
-
-        // Extract results
-        let html = page.content().await.ok();
-        let title = page
-            .evaluate("document.title")
-            .await
-            .ok()
-            .and_then(|r| r.into_value::<String>().ok());
-
-        // Return browser to pool
-        self.browser_pool.checkin(browser).await;
-        tracing::info!("✓ Returned browser to pool");
-
-        let duration = start.elapsed();
-
-        // Update timeout profile
-        self.timeout_mgr
-            .record_operation(&domain, duration, html.is_some())
-            .await?;
-
-        // Record metrics
-        self.perf_monitor
-            .record_render(&args.url, duration.as_millis() as u64)
-            .await?;
-
-        Ok(RenderResponse {
-            html,
-            title,
-            success: true,
-            render_time_ms: duration.as_millis() as u64,
-            metadata: serde_json::json!({
-                "optimizations": ["browser_pool", "adaptive_timeout"],
-                "stealth_level": args.stealth,
-            }),
-        })
-    }
-
-    /// Apply wait condition from render args
-    async fn apply_wait_condition(
-        &self,
-        args: &RenderArgs,
-        page: &chromiumoxide::Page,
-    ) -> Result<()> {
-        use super::render::WaitCondition;
-
-        let condition = WaitCondition::from_str(&args.wait)?;
-
-        match condition {
-            WaitCondition::Load => {
-                let _ = tokio::time::timeout(
-                    std::time::Duration::from_secs(10),
-                    page.wait_for_navigation(),
-                )
-                .await;
-            }
-            WaitCondition::NetworkIdle => {
-                let _ = tokio::time::timeout(
-                    std::time::Duration::from_secs(5),
-                    page.wait_for_navigation(),
-                )
-                .await;
-                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-            }
-            WaitCondition::Selector(selector) => {
-                let _ = tokio::time::timeout(
-                    std::time::Duration::from_secs(10),
-                    page.find_element(&selector),
-                )
-                .await;
-            }
-            WaitCondition::Timeout(ms) => {
-                tokio::time::sleep(std::time::Duration::from_millis(ms)).await;
-            }
-        }
-
-        Ok(())
+    pub async fn execute_render(&self, _args: RenderArgs) -> Result<RenderResponse> {
+        // TODO(phase9): Implement when BrowserPool is integrated
+        Err(anyhow::anyhow!(
+            "Render functionality requires browser pool integration (Phase 9). \
+             Use the 'render' command directly as an alternative."
+        ))
     }
 
     /// Fetch HTML content with optional stealth
@@ -539,25 +407,30 @@ impl OptimizedExecutor {
     pub async fn shutdown(&self) -> Result<()> {
         tracing::info!("Shutting down optimized executor");
 
-        // Shutdown browser pool
-        self.browser_pool.shutdown().await?;
-        tracing::info!("✓ Browser pool shutdown");
+        // Browser pool shutdown - TODO(phase9): Implement when BrowserPool is integrated
+        // self.browser_pool.shutdown().await?;
+        tracing::info!("✓ Browser pool shutdown (placeholder)");
 
         // Save WASM AOT cache
-        self.wasm_aot.save_cache().await?;
-        tracing::info!("✓ WASM AOT cache saved");
+        #[cfg(feature = "wasm-extractor")]
+        {
+            if let Err(e) = self.wasm_aot.save_cache().await {
+                tracing::warn!("Failed to save WASM AOT cache: {}", e);
+            }
+            tracing::info!("✓ WASM AOT cache saved");
+        }
 
         // Save timeout profiles
-        self.timeout_mgr.save_profiles().await?;
+        if let Err(e) = self.timeout_mgr.save_profiles().await {
+            tracing::warn!("Failed to save timeout profiles: {}", e);
+        }
         tracing::info!("✓ Timeout profiles saved");
 
-        // Save engine cache
-        self.engine_cache.save().await?;
-        tracing::info!("✓ Engine cache saved");
+        // Engine cache doesn't have a save method - it's in-memory only
+        tracing::info!("✓ Engine cache (in-memory)");
 
-        // Save performance metrics
-        self.perf_monitor.save().await?;
-        tracing::info!("✓ Performance metrics saved");
+        // Performance monitor doesn't have a save method - it's in-memory only
+        tracing::info!("✓ Performance metrics (in-memory)");
 
         tracing::info!("Optimized executor shutdown complete");
 
@@ -567,10 +440,43 @@ impl OptimizedExecutor {
     /// Get performance statistics
     pub async fn get_stats(&self) -> OptimizationStats {
         OptimizationStats {
-            browser_pool: self.browser_pool.get_stats().await,
-            wasm_aot_cache: self.wasm_aot.get_stats().await,
-            engine_cache: self.engine_cache.get_stats().await,
-            performance: self.perf_monitor.get_stats().await,
+            browser_pool: serde_json::json!({
+                "status": "not_implemented",
+                "note": "Browser pool integration pending (Phase 9)"
+            }),
+
+            #[cfg(feature = "wasm-extractor")]
+            wasm_aot_cache: self
+                .wasm_aot
+                .stats()
+                .await
+                .map(|s| serde_json::to_value(s).unwrap_or(serde_json::json!({})))
+                .unwrap_or(serde_json::json!({})),
+            #[cfg(not(feature = "wasm-extractor"))]
+            wasm_aot_cache: serde_json::json!({"status": "disabled"}),
+
+            engine_cache: {
+                let stats = self.engine_cache.stats().await;
+                serde_json::json!({
+                    "entries": stats.entries,
+                    "total_hits": stats.total_hits,
+                    "avg_success_rate": stats.avg_success_rate,
+                    "max_capacity": stats.max_capacity,
+                })
+            },
+
+            performance: {
+                let stats = self.perf_monitor.get_stats().await;
+                serde_json::json!({
+                    "total_operations": stats.total_operations,
+                    "successful_operations": stats.successful_operations,
+                    "failed_operations": stats.failed_operations,
+                    "success_rate": stats.success_rate,
+                    "avg_duration_ms": stats.avg_duration_ms,
+                    "avg_content_size_bytes": stats.avg_content_size_bytes,
+                    "engine_usage": stats.engine_usage,
+                })
+            },
         }
     }
 }

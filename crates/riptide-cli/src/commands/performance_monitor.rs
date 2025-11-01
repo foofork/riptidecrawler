@@ -177,6 +177,27 @@ impl PerformanceMonitor {
         serde_json::to_string_pretty(&*history)
             .map_err(|e| anyhow::anyhow!("Failed to serialize metrics: {}", e))
     }
+
+    /// Record extraction operation metrics
+    pub async fn record_extraction(&self, url: &str, engine: &str, duration_ms: u64) -> Result<()> {
+        let metrics = ExtractionMetrics {
+            operation_id: uuid::Uuid::new_v4().to_string(),
+            url: Some(url.to_string()),
+            engine_used: engine.to_string(),
+            total_duration_ms: duration_ms,
+            fetch_duration_ms: None,
+            extraction_duration_ms: None,
+            wasm_init_duration_ms: None,
+            browser_launch_duration_ms: None,
+            content_size_bytes: 0,
+            confidence_score: None,
+            success: true,
+            error_message: None,
+            timestamp: chrono::Utc::now(),
+        };
+
+        self.record(metrics).await
+    }
 }
 
 /// Aggregate performance statistics

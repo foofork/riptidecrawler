@@ -91,7 +91,7 @@ pub use timeout::{with_custom_timeout, with_timeout, TimeoutWrapper};
 pub use mock_provider::MockLlmProvider;
 
 /// Main error type for the intelligence layer
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone)]
 pub enum IntelligenceError {
     #[error("Provider error: {0}")]
     Provider(String),

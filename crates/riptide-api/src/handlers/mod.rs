@@ -25,6 +25,7 @@ pub mod stealth;
 pub mod strategies;
 pub mod tables;
 pub mod telemetry;
+pub mod trace_backend;
 pub mod utils;
 pub mod workers; // Phase 10.4: Domain profile management API
 

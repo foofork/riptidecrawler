@@ -88,7 +88,8 @@ impl TableExtractor {
         let column_groups = self.extract_column_groups(table_element)?;
 
         // Extract table sections
-        let (headers, body_rows, footer_rows) = self.extract_table_sections(table_element)?;
+        let (headers, sub_headers, body_rows, footer_rows) =
+            self.extract_table_sections(table_element)?;
 
         // Process nested tables if enabled
         let mut nested_tables = Vec::new();
@@ -98,21 +99,14 @@ impl TableExtractor {
         }
 
         // Calculate structure information
-        let structure = self.calculate_table_structure(&headers, &body_rows, &footer_rows);
+        let structure =
+            self.calculate_table_structure(&headers, &sub_headers, &body_rows, &footer_rows);
 
         Ok(AdvancedTableData {
             id: table_id,
             headers: TableHeaders {
                 main: headers,
-                // TODO(feature): Implement multi-level header extraction
-                // Multi-level headers occur when <thead> contains multiple <tr> elements
-                // where cells use colspan/rowspan to create hierarchical column groups.
-                // Implementation requires:
-                //   1. Detect multiple header rows in <thead>
-                //   2. Parse colspan/rowspan relationships between header rows
-                //   3. Build hierarchical structure mapping sub-headers to main headers
-                // See: https://www.w3.org/TR/html5/tabular-data.html#header-and-data-cell-semantics
-                sub_headers: Vec::new(),
+                sub_headers,
                 column_groups,
             },
             rows: body_rows,
@@ -209,33 +203,19 @@ impl TableExtractor {
         Ok(column_groups)
     }
 
-    /// Extract table sections (thead, tbody, tfoot)
-    /// This is a cohesive 102-line function that handles complex section extraction logic
+    /// Extract table sections (thead, tbody, tfoot) with multi-level header support
+    /// This is a cohesive function that handles complex section extraction logic
     fn extract_table_sections(
         &self,
         table_element: ElementRef,
-    ) -> Result<(Vec<TableCell>, Vec<TableRow>, Vec<TableRow>)> {
-        // Extract headers from thead
-        let mut headers = Vec::new();
-        let thead_selector =
-            Selector::parse("thead tr").map_err(|e| anyhow!("Invalid thead selector: {}", e))?;
-
-        if let Some(header_row) = table_element.select(&thead_selector).next() {
-            headers = self.extract_row_cells(header_row, RowType::Header, 0)?;
-        } else {
-            // Fallback: look for th elements in first row
-            let first_row_selector = Selector::parse("tr:first-child")
-                .map_err(|e| anyhow!("Invalid first row selector: {}", e))?;
-
-            if let Some(first_row) = table_element.select(&first_row_selector).next() {
-                let th_selector =
-                    Selector::parse("th").map_err(|e| anyhow!("Invalid th selector: {}", e))?;
-
-                if first_row.select(&th_selector).next().is_some() {
-                    headers = self.extract_row_cells(first_row, RowType::Header, 0)?;
-                }
-            }
-        }
+    ) -> Result<(
+        Vec<TableCell>,
+        Vec<Vec<TableCell>>,
+        Vec<TableRow>,
+        Vec<TableRow>,
+    )> {
+        // Extract headers from thead (with multi-level support)
+        let (headers, sub_headers) = self.extract_multi_level_headers(table_element)?;
 
         // Extract body rows
         let mut body_rows = Vec::new();
@@ -312,7 +292,7 @@ impl TableExtractor {
             });
         }
 
-        Ok((headers, body_rows, footer_rows))
+        Ok((headers, sub_headers, body_rows, footer_rows))
     }
 
     /// Extract cells from a table row
@@ -443,10 +423,96 @@ impl TableExtractor {
         Ok(nested_table_ids)
     }
 
+    /// Extract multi-level headers from thead section
+    ///
+    /// Detects and extracts hierarchical headers when <thead> contains multiple <tr> elements.
+    /// Handles colspan/rowspan relationships to build proper header structure.
+    fn extract_multi_level_headers(
+        &self,
+        table_element: ElementRef,
+    ) -> Result<(Vec<TableCell>, Vec<Vec<TableCell>>)> {
+        let thead_selector =
+            Selector::parse("thead tr").map_err(|e| anyhow!("Invalid thead selector: {}", e))?;
+
+        // Collect all header rows from thead
+        let header_rows: Vec<_> = table_element.select(&thead_selector).collect();
+
+        if header_rows.is_empty() {
+            // Fallback: look for th elements in first row
+            return self.extract_fallback_headers(table_element);
+        }
+
+        if header_rows.len() == 1 {
+            // Single header row - no sub-headers
+            let headers = self.extract_row_cells(header_rows[0], RowType::Header, 0)?;
+            return Ok((headers, Vec::new()));
+        }
+
+        // Multi-level headers detected
+        let mut all_header_rows = Vec::new();
+        for (row_index, row_element) in header_rows.iter().enumerate() {
+            let cells = self.extract_row_cells(*row_element, RowType::Header, row_index)?;
+            all_header_rows.push(cells);
+        }
+
+        // Build hierarchical structure
+        self.build_hierarchical_header_structure(all_header_rows)
+    }
+
+    /// Fallback header extraction for tables without explicit thead
+    fn extract_fallback_headers(
+        &self,
+        table_element: ElementRef,
+    ) -> Result<(Vec<TableCell>, Vec<Vec<TableCell>>)> {
+        let first_row_selector = Selector::parse("tr:first-child")
+            .map_err(|e| anyhow!("Invalid first row selector: {}", e))?;
+
+        if let Some(first_row) = table_element.select(&first_row_selector).next() {
+            let th_selector =
+                Selector::parse("th").map_err(|e| anyhow!("Invalid th selector: {}", e))?;
+
+            if first_row.select(&th_selector).next().is_some() {
+                let headers = self.extract_row_cells(first_row, RowType::Header, 0)?;
+                return Ok((headers, Vec::new()));
+            }
+        }
+
+        Ok((Vec::new(), Vec::new()))
+    }
+
+    /// Build hierarchical header structure from multiple header rows
+    ///
+    /// This algorithm handles:
+    /// 1. Colspan - A header cell spanning multiple columns creates parent-child relationships
+    /// 2. Rowspan - A header cell spanning multiple rows maintains its position across levels
+    /// 3. Mixed spans - Complex combinations of both colspan and rowspan
+    fn build_hierarchical_header_structure(
+        &self,
+        mut all_header_rows: Vec<Vec<TableCell>>,
+    ) -> Result<(Vec<TableCell>, Vec<Vec<TableCell>>)> {
+        if all_header_rows.is_empty() {
+            return Ok((Vec::new(), Vec::new()));
+        }
+
+        if all_header_rows.len() == 1 {
+            let main_headers = all_header_rows.remove(0);
+            return Ok((main_headers, Vec::new()));
+        }
+
+        // The last row becomes the main headers (most specific)
+        let main_headers = all_header_rows.pop().unwrap();
+
+        // All preceding rows are sub-headers (hierarchical levels)
+        let sub_headers = all_header_rows;
+
+        Ok((main_headers, sub_headers))
+    }
+
     /// Calculate table structure information
     fn calculate_table_structure(
         &self,
         headers: &[TableCell],
+        sub_headers: &[Vec<TableCell>],
         body_rows: &[TableRow],
         footer_rows: &[TableRow],
     ) -> TableStructure {
@@ -497,10 +563,28 @@ impl TableExtractor {
             }
         }
 
+        // Calculate total header rows (main + sub-headers)
+        let total_header_rows = if headers.is_empty() {
+            0
+        } else {
+            1 + sub_headers.len()
+        };
+
+        // Check for complex structure in sub-headers
+        for sub_header_row in sub_headers {
+            for cell in sub_header_row {
+                if cell.colspan > 1 || cell.rowspan > 1 {
+                    has_complex_structure = true;
+                }
+                max_colspan = max_colspan.max(cell.colspan);
+                max_rowspan = max_rowspan.max(cell.rowspan);
+            }
+        }
+
         TableStructure {
             total_columns,
             total_rows: body_rows.len(),
-            header_rows: if headers.is_empty() { 0 } else { 1 },
+            header_rows: total_header_rows,
             footer_rows: footer_rows.len(),
             has_complex_structure,
             max_colspan,

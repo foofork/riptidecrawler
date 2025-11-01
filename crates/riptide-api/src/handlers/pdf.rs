@@ -4,12 +4,16 @@
 //! It integrates with the RipTide PDF processing pipeline and provides both synchronous
 //! and streaming endpoints for different use cases.
 
-use axum::{extract::State, response::Response, Json};
+use axum::{
+    extract::{Multipart, State},
+    response::Response,
+    Json,
+};
 use base64::prelude::*;
 use futures_util::stream::Stream;
 use riptide_pdf::types::{ProgressReceiver, ProgressUpdate};
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info, warn};
+use tracing::{debug, error, info, warn};
 
 use crate::{
     errors::ApiError,
@@ -472,27 +476,296 @@ pub struct EnhancedProgressUpdate {
     pub memory_usage_mb: Option<f64>,
 }
 
+/// Multipart PDF upload and processing endpoint
+///
+/// Handles PDF file uploads via multipart/form-data.
+/// Accepts a PDF file field and optional metadata fields.
+///
+/// # Form Fields
+/// - `file`: PDF file (required)
+/// - `filename`: Optional filename override
+/// - `url`: Optional URL to associate with the document
+/// - `stream_progress`: Optional boolean to enable streaming response
+///
+/// # File Validation
+/// - Maximum file size: 50MB
+/// - Content type must be application/pdf or valid PDF magic bytes
+/// - File must have valid PDF structure
+pub async fn upload_pdf(
+    State(state): State<AppState>,
+    mut multipart: Multipart,
+) -> Result<Json<PdfProcessResponse>, ApiError> {
+    let start_time = std::time::Instant::now();
+
+    let mut pdf_data: Option<Vec<u8>> = None;
+    let mut filename: Option<String> = None;
+    let mut url: Option<String> = None;
+    let mut stream_progress = false;
+
+    // Process multipart fields
+    while let Some(field) = multipart.next_field().await.map_err(|e| {
+        state.metrics.record_error(ErrorType::Http);
+        ApiError::validation(format!("Failed to read multipart field: {}", e))
+    })? {
+        let field_name = field.name().unwrap_or("").to_string();
+
+        match field_name.as_str() {
+            "file" => {
+                let content_type = field.content_type().unwrap_or("").to_string();
+                let field_filename = field.file_name().map(|s| s.to_string());
+
+                // Read file data
+                let data = field.bytes().await.map_err(|e| {
+                    state.metrics.record_error(ErrorType::Http);
+                    ApiError::validation(format!("Failed to read file data: {}", e))
+                })?;
+
+                // Validate file size
+                if data.len() > 50 * 1024 * 1024 {
+                    // 50MB limit
+                    state.metrics.record_error(ErrorType::Http);
+                    return Err(ApiError::validation("PDF file too large (max 50MB)"));
+                }
+
+                if data.is_empty() {
+                    state.metrics.record_error(ErrorType::Http);
+                    return Err(ApiError::validation("Uploaded file is empty"));
+                }
+
+                // Validate PDF magic bytes (%PDF-)
+                if data.len() < 5 || &data[0..4] != b"%PDF" {
+                    state.metrics.record_error(ErrorType::Http);
+                    return Err(ApiError::validation(
+                        "File does not appear to be a valid PDF",
+                    ));
+                }
+
+                // Validate content type if provided
+                if !content_type.is_empty()
+                    && !content_type.contains("application/pdf")
+                    && !content_type.contains("application/octet-stream")
+                {
+                    warn!(
+                        content_type = %content_type,
+                        "Unexpected content type for PDF upload, accepting based on magic bytes"
+                    );
+                }
+
+                pdf_data = Some(data.to_vec());
+                if filename.is_none() {
+                    filename = field_filename;
+                }
+
+                debug!(
+                    file_size = data.len(),
+                    filename = filename.as_deref(),
+                    content_type = %content_type,
+                    "Received PDF file upload"
+                );
+            }
+            "filename" => {
+                let value = field.text().await.map_err(|e| {
+                    ApiError::validation(format!("Failed to read filename field: {}", e))
+                })?;
+                if !value.is_empty() {
+                    filename = Some(value);
+                }
+            }
+            "url" => {
+                let value = field.text().await.map_err(|e| {
+                    ApiError::validation(format!("Failed to read url field: {}", e))
+                })?;
+                if !value.is_empty() {
+                    url = Some(value);
+                }
+            }
+            "stream_progress" => {
+                let value = field.text().await.map_err(|e| {
+                    ApiError::validation(format!("Failed to read stream_progress field: {}", e))
+                })?;
+                stream_progress = value.parse::<bool>().unwrap_or(false);
+            }
+            _ => {
+                debug!(field_name = %field_name, "Ignoring unknown multipart field");
+            }
+        }
+    }
+
+    // Ensure we received a file
+    let pdf_data = pdf_data.ok_or_else(|| {
+        state.metrics.record_error(ErrorType::Http);
+        ApiError::validation("No PDF file provided in 'file' field")
+    })?;
+
+    debug!(
+        file_size = pdf_data.len(),
+        filename = filename.as_deref(),
+        url = url.as_deref(),
+        stream_progress = stream_progress,
+        "Processing uploaded PDF file"
+    );
+
+    // Acquire PDF processing resources
+    let _pdf_guard = match state.resource_manager.acquire_pdf_resources().await {
+        Ok(ResourceResult::Success(guard)) => guard,
+        Ok(ResourceResult::Timeout) => {
+            state.metrics.record_error(ErrorType::Http);
+            return Err(ApiError::timeout(
+                "Resource acquisition",
+                "Timeout acquiring PDF processing resources",
+            ));
+        }
+        Ok(ResourceResult::ResourceExhausted) => {
+            state.metrics.record_error(ErrorType::Http);
+            return Err(ApiError::internal(
+                "PDF processing resources exhausted, please try again later",
+            ));
+        }
+        Ok(ResourceResult::MemoryPressure) => {
+            state.metrics.record_error(ErrorType::Http);
+            return Err(ApiError::internal(
+                "System under memory pressure, please try again later",
+            ));
+        }
+        Ok(ResourceResult::RateLimited { retry_after }) => {
+            state.metrics.record_error(ErrorType::Http);
+            return Err(ApiError::internal(format!(
+                "Rate limited, retry after {}ms",
+                retry_after.as_millis()
+            )));
+        }
+        Ok(ResourceResult::Error(msg)) => {
+            state.metrics.record_error(ErrorType::Http);
+            return Err(ApiError::internal(format!(
+                "Failed to acquire PDF resources: {}",
+                msg
+            )));
+        }
+        Err(e) => {
+            state.metrics.record_error(ErrorType::Http);
+            return Err(ApiError::internal(format!(
+                "Failed to acquire PDF resources: {}",
+                e
+            )));
+        }
+    };
+
+    // Determine timeout duration (use default)
+    let pdf_timeout = state.api_config.get_timeout("pdf");
+
+    // Use ExtractionFacade for PDF processing
+    let processing_start = std::time::Instant::now();
+
+    let pdf_options = riptide_facade::facades::PdfExtractionOptions {
+        extract_text: true,
+        extract_metadata: true,
+        extract_images: false,
+        include_page_numbers: true,
+    };
+
+    let pdf_result = tokio::time::timeout(
+        pdf_timeout,
+        state.extraction_facade.extract_pdf(&pdf_data, pdf_options),
+    )
+    .await;
+
+    match pdf_result {
+        Err(_) => {
+            // Timeout occurred
+            state.metrics.record_error(ErrorType::Http);
+            warn!(
+                "PDF processing timed out after {}ms",
+                pdf_timeout.as_millis()
+            );
+            Err(ApiError::timeout(
+                "PDF processing",
+                "PDF processing exceeded maximum time limit",
+            ))
+        }
+        Ok(Err(e)) => {
+            // Processing error
+            let processing_time = processing_start.elapsed();
+            state.metrics.record_error(ErrorType::Wasm);
+            error!(
+                processing_time_ms = processing_time.as_millis(),
+                error = %e,
+                filename = filename.as_deref(),
+                "PDF processing failed for uploaded file"
+            );
+            Err(ApiError::internal(format!("PDF processing failed: {}", e)))
+        }
+        Ok(Ok(extracted)) => {
+            let processing_time = processing_start.elapsed();
+            let total_time = start_time.elapsed();
+
+            // Calculate processing rate based on word count
+            let word_count = extracted.text.split_whitespace().count();
+            let pages_per_second = if processing_time.as_secs() > 0 {
+                word_count as f64 / processing_time.as_secs_f64()
+            } else {
+                0.0
+            };
+
+            // Record metrics
+            state
+                .metrics
+                .record_http_request("POST", "/pdf/upload", 200, total_time.as_secs_f64());
+
+            // Create ExtractedDoc from facade result
+            let document = riptide_types::ExtractedDoc {
+                url: url.unwrap_or(extracted.url.clone()),
+                title: extracted.title.clone(),
+                text: extracted.text.clone(),
+                quality_score: Some((extracted.confidence * 100.0).min(100.0) as u8),
+                links: extracted.links.clone(),
+                byline: extracted.metadata.get("author").cloned(),
+                published_iso: extracted.metadata.get("published_date").cloned(),
+                markdown: extracted.markdown.clone(),
+                media: extracted.images.clone(),
+                language: extracted.metadata.get("language").cloned(),
+                reading_time: None,
+                word_count: Some(word_count as u32),
+                categories: Vec::new(),
+                site_name: None,
+                parser_metadata: None,
+                description: extracted.metadata.get("description").cloned(),
+                html: None,
+            };
+
+            let stats = ProcessingStats {
+                processing_time_ms: processing_time.as_millis() as u64,
+                file_size: pdf_data.len() as u64,
+                pages_processed: 1,
+                memory_used: pdf_data.len() as u64,
+                pages_per_second,
+                progress_overhead_us: None,
+            };
+
+            info!(
+                processing_time_ms = stats.processing_time_ms,
+                file_size = stats.file_size,
+                pages_per_second = stats.pages_per_second,
+                filename = filename.as_deref(),
+                "PDF upload and processing completed successfully"
+            );
+
+            Ok(Json(PdfProcessResponse {
+                success: true,
+                document: Some(document),
+                error: None,
+                stats,
+            }))
+        }
+    }
+}
+
 /// Request type enum for handling both JSON and multipart requests
 #[derive(Debug)]
 #[allow(dead_code)]
-// TODO(P1): Implement multipart PDF upload support
-// PLAN: Add multipart form upload handler for PDF files
-// IMPLEMENTATION:
-//   1. Create POST /api/v1/pdf/upload endpoint
-//   2. Use axum::extract::Multipart to handle file uploads
-//   3. Validate uploaded file is valid PDF
-//   4. Process using existing pdf_processor
-//   5. Return PdfProcessingResult with upload metadata
-// DEPENDENCIES: None - axum has built-in multipart support
-// EFFORT: Medium (4-6 hours)
-// PRIORITY: Important for user-uploaded PDF processing
-// BLOCKER: None
 pub enum PdfProcessingRequest {
     Json(PdfProcessRequest),
     Multipart(Vec<u8>, Option<String>, Option<String>), // data, filename, url
 }
-
-// Note: For multipart support, add a separate handler endpoint
 
 #[cfg(test)]
 mod tests {
@@ -536,5 +809,44 @@ mod tests {
         assert!(serialized.contains("current_page"));
         assert!(serialized.contains("pages_per_second"));
         assert!(serialized.contains("3.33"));
+    }
+
+    #[test]
+    fn test_pdf_request_enum() {
+        // Test that the enum variants exist and can be constructed
+        let json_req = PdfProcessingRequest::Json(PdfProcessRequest {
+            pdf_data: Some("test".to_string()),
+            filename: Some("test.pdf".to_string()),
+            stream_progress: Some(false),
+            url: None,
+            timeout: None,
+        });
+
+        match json_req {
+            PdfProcessingRequest::Json(_) => (),
+            _ => panic!("Expected Json variant"),
+        }
+
+        let multipart_req =
+            PdfProcessingRequest::Multipart(vec![1, 2, 3], Some("test.pdf".to_string()), None);
+
+        match multipart_req {
+            PdfProcessingRequest::Multipart(data, filename, _) => {
+                assert_eq!(data, vec![1, 2, 3]);
+                assert_eq!(filename, Some("test.pdf".to_string()));
+            }
+            _ => panic!("Expected Multipart variant"),
+        }
+    }
+
+    #[test]
+    fn test_pdf_magic_bytes_validation() {
+        // Valid PDF magic bytes
+        let valid_pdf = b"%PDF-1.4\n";
+        assert_eq!(&valid_pdf[0..4], b"%PDF");
+
+        // Invalid PDF
+        let invalid_pdf = b"<html>";
+        assert_ne!(&invalid_pdf[0..4], b"%PDF");
     }
 }

@@ -108,20 +108,6 @@ pub async fn process_dynamic(
         "Calling dynamic rendering with session context"
     );
 
-    // TODO(P1): Pass session context to RPC client for browser state persistence
-    // STATUS: Session manager provides user_data_dir but not passed to RPC
-    // PLAN: Extend RPC client to support session-based rendering
-    // IMPLEMENTATION:
-    //   1. Add render_dynamic_with_session() method to RpcClient
-    //   2. Pass session_id and user_data_dir to headless service
-    //   3. Headless service launches browser with persistent profile
-    //   4. Browser maintains cookies, localStorage, and auth state
-    //   5. Enable multi-step workflows with session continuity
-    // DEPENDENCIES: Headless service must support profile directories
-    // EFFORT: Medium (6-8 hours)
-    // PRIORITY: Important for authenticated scraping workflows
-    // BLOCKER: None - infrastructure exists, just needs wiring
-
     // Get render timeout from configuration
     let render_timeout = Duration::from_secs(state.api_config.performance.render_timeout_secs);
 
@@ -131,10 +117,16 @@ pub async fn process_dynamic(
         "Applying render timeout protection"
     );
 
-    // Call dynamic rendering via RPC with timeout protection
+    // Call dynamic rendering via RPC with timeout protection and session persistence
     let render_result = timeout(
         render_timeout,
-        rpc_client.render_dynamic(url, dynamic_config, stealth_config.as_ref()),
+        rpc_client.render_dynamic_with_session(
+            url,
+            dynamic_config,
+            stealth_config.as_ref(),
+            session_id,
+            user_data_dir.as_deref(),
+        ),
     )
     .await;
 

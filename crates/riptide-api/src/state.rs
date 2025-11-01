@@ -138,6 +138,9 @@ pub struct AppState {
     /// Search facade for web search operations
     pub search_facade: Option<Arc<SearchFacade>>,
 
+    /// Trace backend for distributed trace storage and retrieval
+    pub trace_backend: Option<Arc<dyn crate::handlers::trace_backend::TraceBackend>>,
+
     /// Persistence adapter for multi-tenant operations (optional, requires persistence feature)
     #[cfg(feature = "persistence")]
     #[allow(dead_code)] // TODO: Replace with actual PersistenceAdapter type when available
@@ -1082,6 +1085,32 @@ impl AppState {
 
         tracing::info!("Application state initialization complete with resource controls, event bus, circuit breaker, monitoring, fetch engine, performance manager, authentication, cache warming, browser launcher, and facade layer");
 
+        // Initialize trace backend for distributed tracing
+        let trace_backend: Option<Arc<dyn crate::handlers::trace_backend::TraceBackend>> = {
+            use crate::handlers::trace_backend::{InMemoryTraceBackend, OtlpTraceBackend};
+
+            // Try to use OTLP backend if configured, otherwise fall back to in-memory
+            if let Some(otlp_backend) = OtlpTraceBackend::from_env() {
+                tracing::info!(
+                    backend_type = "otlp",
+                    "OTLP trace backend configured for distributed tracing"
+                );
+                Some(Arc::new(otlp_backend) as Arc<dyn crate::handlers::trace_backend::TraceBackend>)
+            } else {
+                // Use in-memory backend for development
+                tracing::info!(
+                    backend_type = "in-memory",
+                    "Using in-memory trace backend (set OTLP_TRACE_QUERY_ENDPOINT for production)"
+                );
+                let backend = InMemoryTraceBackend::new();
+
+                // Populate with mock data for demonstration
+                backend.populate_mock_data().await;
+
+                Some(Arc::new(backend) as Arc<dyn crate::handlers::trace_backend::TraceBackend>)
+            }
+        };
+
         // Determine cache warmer enabled status
         #[cfg(feature = "wasm-extractor")]
         let cache_warmer_enabled = config.cache_warming_config.enabled;
@@ -1118,6 +1147,7 @@ impl AppState {
             scraper_facade,
             spider_facade,
             search_facade,
+            trace_backend,
             #[cfg(feature = "persistence")]
             persistence_adapter: None, // TODO: Initialize actual persistence adapter when integrated
         })
@@ -1451,6 +1481,7 @@ impl AppState {
             scraper_facade,
             spider_facade: None,
             search_facade: None,
+            trace_backend: None,
             #[cfg(feature = "persistence")]
             persistence_adapter: None, // TODO: Initialize actual persistence adapter when integrated
         }
