@@ -23,6 +23,7 @@ use super::{
     render::RenderArgs,
     ExtractArgs, // Import from mod.rs
 };
+use riptide_browser::pool::BrowserPool;
 use riptide_reliability::engine_selection::Engine;
 
 // Import WASM types from riptide-cache (only when wasm-extractor feature is enabled)
@@ -34,8 +35,7 @@ use riptide_cache::wasm::{WasmAotCache, WasmCache};
 /// NOTE: This needs updating to use riptide-browser::pool::BrowserPool when re-enabled
 #[allow(dead_code)]
 pub struct OptimizedExecutor {
-    // TODO(phase9): Replace with Arc<riptide_browser::pool::BrowserPool>
-    browser_pool: Arc<()>, // Placeholder - BrowserPoolManager removed
+    browser_pool: Option<Arc<BrowserPool>>, // Optional BrowserPool for headless operations
 
     #[cfg(feature = "wasm-extractor")]
     wasm_aot: Arc<WasmAotCache>,
@@ -59,8 +59,8 @@ impl OptimizedExecutor {
         tracing::info!("Initializing optimized executor with all optimization modules");
 
         // Initialize all global managers using their respective global accessors
-        // Note: browser_pool is currently a placeholder - will be replaced with BrowserPool in Phase 9
-        let browser_pool = Arc::new(()); // Placeholder until BrowserPool integration
+        // BrowserPool is now properly typed but remains optional for configurations without headless support
+        let browser_pool: Option<Arc<BrowserPool>> = None; // Will be initialized on-demand for headless operations
         let timeout_mgr = super::adaptive_timeout::get_global_timeout_manager().await?;
         let engine_cache = EngineSelectionCache::get_global();
         let perf_monitor = PerformanceMonitor::get_global();
@@ -407,9 +407,13 @@ impl OptimizedExecutor {
     pub async fn shutdown(&self) -> Result<()> {
         tracing::info!("Shutting down optimized executor");
 
-        // Browser pool shutdown - TODO(phase9): Implement when BrowserPool is integrated
-        // self.browser_pool.shutdown().await?;
-        tracing::info!("✓ Browser pool shutdown (placeholder)");
+        // Browser pool shutdown - properly handles Option<Arc<BrowserPool>>
+        if let Some(ref pool) = self.browser_pool {
+            pool.shutdown().await?;
+            tracing::info!("✓ Browser pool shutdown complete");
+        } else {
+            tracing::info!("✓ Browser pool not initialized (skipped)");
+        }
 
         // Save WASM AOT cache
         #[cfg(feature = "wasm-extractor")]
@@ -440,10 +444,21 @@ impl OptimizedExecutor {
     /// Get performance statistics
     pub async fn get_stats(&self) -> OptimizationStats {
         OptimizationStats {
-            browser_pool: serde_json::json!({
-                "status": "not_implemented",
-                "note": "Browser pool integration pending (Phase 9)"
-            }),
+            browser_pool: if let Some(ref pool) = self.browser_pool {
+                let stats = pool.get_stats().await;
+                serde_json::json!({
+                    "status": "active",
+                    "available": stats.available,
+                    "in_use": stats.in_use,
+                    "total_capacity": stats.total_capacity,
+                    "utilization": stats.utilization
+                })
+            } else {
+                serde_json::json!({
+                    "status": "not_initialized",
+                    "note": "Browser pool will be initialized on-demand for headless operations"
+                })
+            },
 
             #[cfg(feature = "wasm-extractor")]
             wasm_aot_cache: self

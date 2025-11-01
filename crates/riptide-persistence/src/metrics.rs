@@ -12,7 +12,33 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
-use tracing::{debug, error};
+use tracing::{debug, error, info};
+
+/// Eviction entry tracking
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EvictionEntry {
+    /// Timestamp when eviction occurred
+    pub evicted_at: DateTime<Utc>,
+    /// Reason for eviction
+    pub reason: EvictionReason,
+    /// Entry size in bytes
+    pub entry_size: usize,
+    /// Time since last access in seconds
+    pub time_since_access: Option<u64>,
+}
+
+/// Reason for cache eviction
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub enum EvictionReason {
+    /// LRU eviction due to capacity
+    LruCapacity,
+    /// TTL expiration
+    TtlExpired,
+    /// Manual invalidation
+    Manual,
+    /// Memory pressure
+    MemoryPressure,
+}
 
 /// Cache performance metrics
 #[derive(Debug, Clone)]
@@ -37,6 +63,8 @@ pub struct CacheMetrics {
     pub errors: Counter,
     /// Compression ratio gauge
     pub compression_ratio: Gauge,
+    /// Eviction counter
+    pub evictions: Counter,
     /// Internal statistics
     stats: Arc<RwLock<InternalCacheStats>>,
 }
@@ -54,6 +82,9 @@ struct InternalCacheStats {
     compression_ratios: Vec<f32>,
     last_reset: DateTime<Utc>,
     slow_operations: u64,
+    /// LRU eviction tracking
+    total_evictions: u64,
+    evicted_entries: Vec<EvictionEntry>,
 }
 
 impl Default for InternalCacheStats {
@@ -69,6 +100,8 @@ impl Default for InternalCacheStats {
             compression_ratios: Vec::new(),
             last_reset: Utc::now(),
             slow_operations: 0,
+            total_evictions: 0,
+            evicted_entries: Vec::new(),
         }
     }
 }
@@ -109,6 +142,7 @@ impl CacheMetrics {
             active_connections: Gauge::new("cache_conns_fb", "")?,
             errors: Counter::new("cache_errors_fb", "")?,
             compression_ratio: Gauge::new("cache_comp_fb", "")?,
+            evictions: Counter::new("cache_evictions_fb", "")?,
             stats: Arc::new(RwLock::new(InternalCacheStats::default())),
         })
     }
@@ -172,6 +206,11 @@ impl CacheMetrics {
             "Average compression ratio",
         ))?;
 
+        let evictions = Counter::with_opts(Opts::new(
+            "riptide_cache_evictions_total",
+            "Total cache evictions",
+        ))?;
+
         Ok(Self {
             hits,
             misses,
@@ -183,6 +222,7 @@ impl CacheMetrics {
             active_connections,
             errors,
             compression_ratio,
+            evictions,
             stats: Arc::new(RwLock::new(InternalCacheStats::default())),
         })
     }
@@ -199,6 +239,7 @@ impl CacheMetrics {
         registry.register(Box::new(self.active_connections.clone()))?;
         registry.register(Box::new(self.errors.clone()))?;
         registry.register(Box::new(self.compression_ratio.clone()))?;
+        registry.register(Box::new(self.evictions.clone()))?;
         Ok(())
     }
 
@@ -319,6 +360,92 @@ impl CacheMetrics {
         }
     }
 
+    /// Record cache eviction
+    pub async fn record_eviction(
+        &self,
+        reason: EvictionReason,
+        entry_size: usize,
+        time_since_access: Option<u64>,
+    ) {
+        self.evictions.inc();
+
+        let mut stats = self.stats.write().await;
+        stats.total_evictions += 1;
+
+        // Clone reason before moving into struct
+        let reason_debug = reason.clone();
+
+        let eviction_entry = EvictionEntry {
+            evicted_at: Utc::now(),
+            reason,
+            entry_size,
+            time_since_access,
+        };
+
+        stats.evicted_entries.push(eviction_entry);
+
+        // Keep only recent evictions (last 1000)
+        if stats.evicted_entries.len() > 1000 {
+            stats.evicted_entries.drain(0..100);
+        }
+
+        info!(
+            reason = ?reason_debug,
+            entry_size = entry_size,
+            time_since_access = ?time_since_access,
+            "Cache eviction recorded"
+        );
+    }
+
+    /// Get eviction statistics
+    pub async fn get_eviction_stats(&self) -> EvictionStats {
+        let stats = self.stats.read().await;
+
+        let mut evictions_by_reason = HashMap::new();
+        let mut total_evicted_bytes = 0u64;
+        let mut avg_time_since_access = 0u64;
+        let mut count_with_access_time = 0u64;
+
+        for entry in &stats.evicted_entries {
+            *evictions_by_reason
+                .entry(entry.reason.clone())
+                .or_insert(0u64) += 1;
+            total_evicted_bytes += entry.entry_size as u64;
+
+            if let Some(time) = entry.time_since_access {
+                avg_time_since_access += time;
+                count_with_access_time += 1;
+            }
+        }
+
+        if count_with_access_time > 0 {
+            avg_time_since_access /= count_with_access_time;
+        }
+
+        // Calculate eviction rate (evictions per second)
+        let duration = Utc::now().signed_duration_since(stats.last_reset);
+        let eviction_rate = if duration.num_seconds() > 0 {
+            stats.total_evictions as f64 / duration.num_seconds() as f64
+        } else {
+            0.0
+        };
+
+        EvictionStats {
+            total_evictions: stats.total_evictions,
+            eviction_rate,
+            evictions_by_reason,
+            total_evicted_bytes,
+            avg_time_since_access_seconds: avg_time_since_access,
+            recent_evictions: stats
+                .evicted_entries
+                .iter()
+                .rev()
+                .take(10)
+                .cloned()
+                .collect(),
+        }
+    }
+
     /// Update memory usage
     pub async fn update_memory_usage(&self, bytes: u64) {
         self.memory_usage.set(bytes as f64);
@@ -365,17 +492,22 @@ impl CacheMetrics {
             1.0
         };
 
+        // Calculate eviction rate
+        let duration = Utc::now().signed_duration_since(stats.last_reset);
+        let eviction_rate = if duration.num_seconds() > 0 {
+            stats.total_evictions as f64 / duration.num_seconds() as f64
+        } else {
+            0.0
+        };
+
         CacheStatsSummary {
             hit_rate,
             miss_rate,
             avg_access_time_us,
             ops_per_second,
             total_operations,
-            // TODO(#eviction-tracking): Implement LRU eviction tracking
-            // Plan: Add eviction counter to InternalCacheStats, increment on cache evictions
-            // Track: evicted_keys Vec<String> with timestamps, expose via get_eviction_stats()
-            // Priority: Medium - needed for capacity planning and monitoring
-            eviction_count: 0,
+            eviction_count: stats.total_evictions,
+            eviction_rate,
             avg_compression_ratio,
             slow_operations: stats.slow_operations,
             error_count: stats.total_errors,
@@ -399,9 +531,27 @@ pub struct CacheStatsSummary {
     pub ops_per_second: f64,
     pub total_operations: u64,
     pub eviction_count: u64,
+    pub eviction_rate: f64,
     pub avg_compression_ratio: f32,
     pub slow_operations: u64,
     pub error_count: u64,
+}
+
+/// Eviction statistics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EvictionStats {
+    /// Total number of evictions
+    pub total_evictions: u64,
+    /// Evictions per second
+    pub eviction_rate: f64,
+    /// Breakdown of evictions by reason
+    pub evictions_by_reason: HashMap<EvictionReason, u64>,
+    /// Total bytes evicted
+    pub total_evicted_bytes: u64,
+    /// Average time since last access (seconds)
+    pub avg_time_since_access_seconds: u64,
+    /// Recent evictions (last 10)
+    pub recent_evictions: Vec<EvictionEntry>,
 }
 
 /// Tenant usage metrics

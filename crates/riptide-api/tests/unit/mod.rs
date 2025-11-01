@@ -7,6 +7,7 @@ pub mod test_state;
 pub mod test_errors;
 pub mod test_validation;
 pub mod test_pipeline;
+pub mod spider_crawled_page_tests;
 
 #[cfg(test)]
 mod test_runner {

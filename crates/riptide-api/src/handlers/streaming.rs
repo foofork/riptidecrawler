@@ -262,6 +262,8 @@ mod tests {
         let body = DeepSearchBody {
             query: "".to_string(),
             limit: Some(10),
+            country: None,
+            locale: None,
             include_content: Some(true),
             crawl_options: None,
         };
@@ -283,6 +285,8 @@ mod tests {
         let body = DeepSearchBody {
             query: "test query".to_string(),
             limit: Some(0),
+            country: None,
+            locale: None,
             include_content: Some(true),
             crawl_options: None,
         };

@@ -217,6 +217,26 @@ impl PersistentCacheManager {
                 let age = Utc::now().signed_duration_since(entry.created_at);
                 if age.num_seconds() > entry.ttl_seconds as i64 {
                     debug!(key = %cache_key, age_seconds = age.num_seconds(), "Entry expired");
+
+                    // Record eviction due to TTL expiration
+                    let time_since_access = Utc::now()
+                        .signed_duration_since(entry.last_accessed)
+                        .num_seconds() as u64;
+
+                    #[cfg(feature = "metrics")]
+                    self.metrics
+                        .record_eviction(
+                            crate::metrics::EvictionReason::TtlExpired,
+                            entry
+                                .metadata
+                                .attributes
+                                .get("size")
+                                .and_then(|s| s.parse().ok())
+                                .unwrap_or(0),
+                            Some(time_since_access),
+                        )
+                        .await;
+
                     // Clean up expired entry
                     let _ = self.delete(key, namespace).await;
                     self.metrics.record_miss().await;
@@ -358,15 +378,44 @@ impl PersistentCacheManager {
 
     /// Delete entry from cache
     pub async fn delete(&self, key: &str, namespace: Option<&str>) -> PersistenceResult<bool> {
+        self.delete_with_reason(key, namespace, crate::metrics::EvictionReason::Manual)
+            .await
+    }
+
+    /// Delete entry from cache with eviction reason tracking
+    pub async fn delete_with_reason(
+        &self,
+        key: &str,
+        namespace: Option<&str>,
+        reason: crate::metrics::EvictionReason,
+    ) -> PersistenceResult<bool> {
         let cache_key = self.generate_key(key, namespace);
         let mut conn = self.get_connection().await?;
+
+        // Get entry metadata before deletion for eviction tracking
+        #[cfg(feature = "metrics")]
+        let entry_data: Option<Vec<u8>> = conn.get(&cache_key).await.ok();
 
         let deleted: u64 = conn.del(&cache_key).await?;
         let was_deleted = deleted > 0;
 
         if was_deleted {
-            debug!(key = %cache_key, "Cache entry deleted");
+            debug!(key = %cache_key, reason = ?reason, "Cache entry deleted");
             self.metrics.record_delete().await;
+
+            // Record eviction if metrics enabled
+            #[cfg(feature = "metrics")]
+            if let Some(bytes) = entry_data {
+                if let Ok(entry) = serde_json::from_slice::<CacheEntry<serde_json::Value>>(&bytes) {
+                    let time_since_access = Utc::now()
+                        .signed_duration_since(entry.last_accessed)
+                        .num_seconds() as u64;
+
+                    self.metrics
+                        .record_eviction(reason, bytes.len(), Some(time_since_access))
+                        .await;
+                }
+            }
 
             // Notify distributed cache if enabled
             if let Some(sync_manager) = &self.sync_manager {

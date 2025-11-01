@@ -5,6 +5,7 @@
 
 pub mod test_handlers;
 pub mod test_edge_cases;
+pub mod spider_pages_mode_tests;
 
 #[cfg(test)]
 mod test_helpers {

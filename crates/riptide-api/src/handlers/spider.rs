@@ -187,18 +187,40 @@ pub async fn spider_crawl(
         }
         ResultMode::Pages => {
             // Full page objects with content
-            // Create CrawledPage objects from discovered URLs
-            // Note: In a real implementation, this would need access to the actual
-            // crawled page data. For now, we create placeholder pages from discovered URLs.
+            // Note: The current Spider implementation doesn't persist crawled page content
+            // during the crawl operation. It only tracks metadata (URLs, statistics).
+            // To support full page data, we would need to:
+            // 1. Add a results collector to the Spider engine that stores CrawlResult objects
+            // 2. Modify the crawl loop to optionally persist page content
+            // 3. Add configuration for page data retention limits
+            //
+            // For now, we return minimal page objects based on discovered URLs.
+            // This provides a valid API response while the full implementation is deferred.
             let pages: Vec<CrawledPage> = crawl_summary
                 .discovered_urls
                 .iter()
-                .map(|url| {
-                    let mut page = CrawledPage::new(url.clone(), 0, 200);
-                    // TODO: Populate with actual crawled data when available
-                    // For now, we set basic metadata
+                .enumerate()
+                .map(|(idx, url)| {
+                    let mut page = CrawledPage::new(
+                        url.clone(),
+                        0, // Depth information not available without full page data
+                        200, // Assume success for discovered URLs
+                    );
+
+                    // Set available metadata
                     page.final_url = Some(url.clone());
                     page.robots_obeyed = Some(true);
+
+                    // Mark as incomplete if content fields are filtered
+                    if include_filter.as_ref().map(|f| f.has_field("content")).unwrap_or(false)
+                        || include_filter.as_ref().map(|f| f.has_field("markdown")).unwrap_or(false) {
+                        // Content was requested but not available
+                        page.fetch_error = Some(
+                            "Page content not available - Spider engine does not persist crawled data. \
+                             Use 'stats' or 'urls' mode for metadata only.".to_string()
+                        );
+                    }
+
                     page
                 })
                 .collect();

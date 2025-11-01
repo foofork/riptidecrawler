@@ -255,23 +255,51 @@ macro_rules! track_command {
 /// Integration helper for OpenTelemetry
 pub mod telemetry_integration {
     use super::*;
+    use riptide_monitoring::TelemetrySystem;
 
     /// Record command metrics to OpenTelemetry if available
     pub async fn record_to_telemetry(
         metrics: &CommandMetrics,
-        _telemetry: Option<&()>, // TODO: Replace with riptide-monitoring::TelemetrySystem when needed
+        telemetry: Option<&TelemetrySystem>,
     ) -> Result<()> {
-        // P2-F1 Day 4-5: Removed riptide-core dependency
-        // Integration with riptide-monitoring telemetry system (to be implemented)
+        // Integration with riptide-monitoring telemetry system
+        if let Some(telemetry_system) = telemetry {
+            // Sanitize data before logging
+            let command_name = telemetry_system.sanitize_data(&metrics.command_name);
 
-        if let Some(duration_ms) = metrics.duration_ms {
-            tracing::info!(
-                command = %metrics.command_name,
-                duration_ms = %duration_ms,
-                success = %metrics.success,
-                items = %metrics.items_processed,
-                "Command execution recorded"
-            );
+            // Record metrics to telemetry system
+            if let Some(duration_ms) = metrics.duration_ms {
+                tracing::info!(
+                    command = %command_name,
+                    duration_ms = %duration_ms,
+                    success = %metrics.success,
+                    items = %metrics.items_processed,
+                    bytes_transferred = %metrics.bytes_transferred,
+                    cache_hits = %metrics.cache_hits,
+                    api_calls = %metrics.api_calls,
+                    "Command execution recorded with telemetry"
+                );
+            }
+
+            if let Some(ref error) = metrics.error {
+                let sanitized_error = telemetry_system.sanitize_data(error);
+                tracing::error!(
+                    command = %command_name,
+                    error = %sanitized_error,
+                    "Command execution failed"
+                );
+            }
+        } else {
+            // Fallback to basic tracing when telemetry is not available
+            if let Some(duration_ms) = metrics.duration_ms {
+                tracing::info!(
+                    command = %metrics.command_name,
+                    duration_ms = %duration_ms,
+                    success = %metrics.success,
+                    items = %metrics.items_processed,
+                    "Command execution recorded"
+                );
+            }
         }
 
         Ok(())
