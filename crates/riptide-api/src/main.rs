@@ -121,12 +121,26 @@ async fn main() -> anyhow::Result<()> {
     {
         tracing::info!("jemalloc allocator enabled for memory profiling");
 
-        // Log initial memory stats using jemalloc if available
+        // Collect and log initial memory stats using jemalloc
         #[cfg(not(target_env = "msvc"))]
         {
-            // Note: jemalloc memory stats not yet wired up
-            // TODO: Add tikv-jemalloc-ctl dependency if needed for memory stats
-            tracing::debug!("Memory allocator: jemalloc (stats not yet implemented)");
+            use riptide_api::jemalloc_stats::JemallocStats;
+
+            if let Some(stats) = JemallocStats::collect() {
+                tracing::info!(
+                    allocated_mb = stats.allocated_mb(),
+                    resident_mb = stats.resident_mb(),
+                    metadata_mb = stats.metadata_mb(),
+                    fragmentation_ratio = stats.fragmentation_ratio(),
+                    metadata_overhead = stats.metadata_overhead_ratio(),
+                    "Initial jemalloc memory statistics"
+                );
+
+                // Update metrics with initial stats
+                metrics.update_jemalloc_stats();
+            } else {
+                tracing::warn!("jemalloc allocator enabled but stats collection failed - ensure jemalloc feature is enabled");
+            }
         }
     }
 
@@ -178,9 +192,8 @@ async fn main() -> anyhow::Result<()> {
         // Crawl endpoints - both root and v1 paths
         .route("/crawl", post(handlers::crawl))
         .route("/api/v1/crawl", post(handlers::crawl)) // v1 alias
-        .route("/crawl/stream", post(streaming::ndjson_crawl_stream))
-        .route("/crawl/sse", post(streaming::crawl_sse))
-        .route("/crawl/ws", get(streaming::crawl_websocket))
+        .route("/crawl/stream", post(handlers::crawl_stream))
+        .route("/api/v1/crawl/stream", post(handlers::crawl_stream)) // v1 alias
         // Extract endpoint - NEW v1.1 feature
         .route("/api/v1/extract", post(handlers::extract))
         .route("/extract", post(handlers::extract)) // Root alias for backward compatibility
@@ -189,6 +202,11 @@ async fn main() -> anyhow::Result<()> {
         .route("/search", get(handlers::search)) // Root alias for backward compatibility
         // DeepSearch
         .route("/deepsearch", post(handlers::deepsearch))
+        .route("/deepsearch/stream", post(handlers::deepsearch_stream))
+        .route(
+            "/api/v1/deepsearch/stream",
+            post(handlers::deepsearch_stream),
+        ) // v1 alias
         // PDF processing endpoints with progress tracking
         .nest("/pdf", routes::pdf::pdf_routes())
         // Stealth configuration and testing endpoints
@@ -216,10 +234,6 @@ async fn main() -> anyhow::Result<()> {
         .route("/spider/crawl", post(handlers::spider::spider_crawl))
         .route("/spider/status", post(handlers::spider::spider_status))
         .route("/spider/control", post(handlers::spider::spider_control))
-        .route(
-            "/deepsearch/stream",
-            post(streaming::ndjson_deepsearch_stream),
-        )
         // Session management endpoints
         .route("/sessions", post(handlers::sessions::create_session))
         .route("/sessions", get(handlers::sessions::list_sessions))

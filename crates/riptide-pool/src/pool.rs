@@ -5,6 +5,9 @@ use wasmtime::{component::*, Engine};
 use super::models::{CircuitBreakerState, PooledInstance};
 
 #[cfg(feature = "wasm-pool")]
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+#[cfg(feature = "wasm-pool")]
 wasmtime::component::bindgen!({
     world: "extractor",
     path: "wit",
@@ -36,6 +39,8 @@ pub struct AdvancedInstancePool {
     pub(super) pool_id: String,
     /// Optional event bus for event emission
     pub(super) event_bus: Option<Arc<EventBus>>,
+    /// Counter for pending instance acquisitions
+    pub(super) pending_acquisitions: Arc<AtomicUsize>,
 }
 
 #[cfg(feature = "wasm-pool")]
@@ -87,6 +92,7 @@ impl AdvancedInstancePool {
             component_path: component_path.to_string(),
             pool_id: Uuid::new_v4().to_string(),
             event_bus: None,
+            pending_acquisitions: Arc::new(AtomicUsize::new(0)),
         };
 
         // Pre-warm the pool
@@ -162,12 +168,19 @@ impl AdvancedInstancePool {
 
         let start_time = Instant::now();
 
+        // Increment pending acquisitions counter
+        self.pending_acquisitions.fetch_add(1, Ordering::Relaxed);
+
         // Acquire semaphore permit with timeout
         let timeout_duration =
             Duration::from_millis(self.config.extraction_timeout.unwrap_or(30000));
         let permit = match timeout(timeout_duration, self.semaphore.acquire()).await {
             Ok(Ok(permit)) => permit,
-            Ok(Err(_)) => return Err(anyhow!("Semaphore closed")),
+            Ok(Err(_)) => {
+                // Decrement counter on semaphore error
+                self.pending_acquisitions.fetch_sub(1, Ordering::Relaxed);
+                return Err(anyhow!("Semaphore closed"));
+            }
             Err(_) => {
                 self.record_timeout().await;
 
@@ -186,6 +199,8 @@ impl AdvancedInstancePool {
                     }
                 }
 
+                // Decrement counter before fallback
+                self.pending_acquisitions.fetch_sub(1, Ordering::Relaxed);
                 return self.fallback_extract(html, url, mode).await;
             }
         };
@@ -252,6 +267,9 @@ impl AdvancedInstancePool {
 
         // Update semaphore wait time metric
         self.update_semaphore_wait_time(semaphore_wait_time).await;
+
+        // Decrement pending acquisitions counter before releasing permit
+        self.pending_acquisitions.fetch_sub(1, Ordering::Relaxed);
 
         // Release permit
         drop(permit);
@@ -885,7 +903,7 @@ impl AdvancedInstancePool {
             available_instances: available,
             active_instances: active,
             total_instances: total,
-            pending_acquisitions: 0, // TODO: Track this if needed
+            pending_acquisitions: self.pending_acquisitions.load(Ordering::Relaxed),
             success_rate: if performance_metrics.total_extractions > 0 {
                 performance_metrics.successful_extractions as f64
                     / performance_metrics.total_extractions as f64

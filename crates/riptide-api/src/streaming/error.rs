@@ -1,11 +1,3 @@
-// TODO(P2): Streaming infrastructure - will be activated when routes are added
-// STATUS: Complete error types prepared for streaming
-// PLAN: Activate with streaming routes (see streaming/config.rs:1)
-// EFFORT: Part of streaming feature implementation
-// PRIORITY: Future feature
-// BLOCKER: Same as streaming/config.rs
-#![allow(dead_code)]
-
 //! Error types for streaming operations.
 //!
 //! This module provides comprehensive error handling for all streaming operations

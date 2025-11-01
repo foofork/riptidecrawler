@@ -90,12 +90,8 @@ pub use error::StreamingError;
 pub use lifecycle::StreamLifecycleManager;
 pub use pipeline::StreamingPipeline;
 
-// Re-export public API functions
-pub use ndjson::{
-    crawl_stream as ndjson_crawl_stream, deepsearch_stream as ndjson_deepsearch_stream,
-};
-pub use sse::crawl_sse;
-pub use websocket::crawl_websocket;
+// Note: Public API functions are now exposed through handlers::streaming
+// The ndjson module contains internal implementation details
 
 /// Streaming protocol types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

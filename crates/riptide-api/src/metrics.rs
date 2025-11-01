@@ -7,6 +7,9 @@ use std::collections::HashMap;
 use std::time::Instant;
 use tracing::{info, warn};
 
+#[cfg(feature = "jemalloc")]
+use crate::jemalloc_stats::JemallocStats;
+
 /// Metrics collection and management for RipTide API
 #[derive(Debug)]
 pub struct RipTideMetrics {
@@ -130,6 +133,16 @@ pub struct RipTideMetrics {
     /// Reserved for pipeline phase tracking - used via record_pipeline_phase_ms()
     #[allow(dead_code)]
     pub pipeline_phase_extraction_ms: Histogram, // Extraction phase
+
+    // Jemalloc Memory Metrics (P2 enhancement)
+    pub jemalloc_allocated_bytes: Gauge, // Total allocated bytes
+    pub jemalloc_active_bytes: Gauge,    // Active bytes in pages
+    pub jemalloc_resident_bytes: Gauge,  // Resident physical memory
+    pub jemalloc_metadata_bytes: Gauge,  // Metadata overhead
+    pub jemalloc_mapped_bytes: Gauge,    // Total mapped bytes
+    pub jemalloc_retained_bytes: Gauge,  // Retained for future allocs
+    pub jemalloc_fragmentation_ratio: Gauge, // Active/Allocated ratio
+    pub jemalloc_metadata_ratio: Gauge,  // Metadata overhead ratio
 }
 
 impl RipTideMetrics {
@@ -710,6 +723,71 @@ impl RipTideMetrics {
             ]),
         )?;
 
+        // Jemalloc Memory Metrics
+        let jemalloc_allocated_bytes = Gauge::with_opts(
+            Opts::new(
+                "riptide_jemalloc_allocated_bytes",
+                "Total bytes allocated by the application via jemalloc",
+            )
+            .const_label("service", "riptide-api"),
+        )?;
+
+        let jemalloc_active_bytes = Gauge::with_opts(
+            Opts::new(
+                "riptide_jemalloc_active_bytes",
+                "Total bytes in active pages allocated by the application",
+            )
+            .const_label("service", "riptide-api"),
+        )?;
+
+        let jemalloc_resident_bytes = Gauge::with_opts(
+            Opts::new(
+                "riptide_jemalloc_resident_bytes",
+                "Maximum bytes in physically resident data pages mapped",
+            )
+            .const_label("service", "riptide-api"),
+        )?;
+
+        let jemalloc_metadata_bytes = Gauge::with_opts(
+            Opts::new(
+                "riptide_jemalloc_metadata_bytes",
+                "Total bytes dedicated to jemalloc metadata",
+            )
+            .const_label("service", "riptide-api"),
+        )?;
+
+        let jemalloc_mapped_bytes = Gauge::with_opts(
+            Opts::new(
+                "riptide_jemalloc_mapped_bytes",
+                "Total bytes in chunks mapped on behalf of the application",
+            )
+            .const_label("service", "riptide-api"),
+        )?;
+
+        let jemalloc_retained_bytes = Gauge::with_opts(
+            Opts::new(
+                "riptide_jemalloc_retained_bytes",
+                "Total bytes retained for future allocations",
+            )
+            .const_label("service", "riptide-api"),
+        )?;
+
+        let jemalloc_fragmentation_ratio = Gauge::with_opts(
+            Opts::new(
+                "riptide_jemalloc_fragmentation_ratio",
+                "Memory fragmentation ratio (active/allocated)",
+            )
+            .const_label("service", "riptide-api"),
+        )?;
+
+        let jemalloc_metadata_ratio = Gauge::with_opts(
+            Opts::new(
+                "riptide_jemalloc_metadata_ratio",
+                "Metadata overhead ratio (metadata/allocated)",
+            )
+            .const_label("service", "riptide-api"),
+        )?;
+
         // Register all metrics
         registry.register(Box::new(http_requests_total.clone()))?;
         registry.register(Box::new(http_request_duration.clone()))?;
@@ -783,7 +861,17 @@ impl RipTideMetrics {
         registry.register(Box::new(pipeline_phase_gate_analysis_ms.clone()))?;
         registry.register(Box::new(pipeline_phase_extraction_ms.clone()))?;
 
-        info!("Prometheus metrics registry initialized with spider, PDF, WASM, worker, and comprehensive Phase 1B metrics");
+        // Register jemalloc memory metrics
+        registry.register(Box::new(jemalloc_allocated_bytes.clone()))?;
+        registry.register(Box::new(jemalloc_active_bytes.clone()))?;
+        registry.register(Box::new(jemalloc_resident_bytes.clone()))?;
+        registry.register(Box::new(jemalloc_metadata_bytes.clone()))?;
+        registry.register(Box::new(jemalloc_mapped_bytes.clone()))?;
+        registry.register(Box::new(jemalloc_retained_bytes.clone()))?;
+        registry.register(Box::new(jemalloc_fragmentation_ratio.clone()))?;
+        registry.register(Box::new(jemalloc_metadata_ratio.clone()))?;
+
+        info!("Prometheus metrics registry initialized with spider, PDF, WASM, worker, jemalloc, and comprehensive Phase 1B metrics");
 
         Ok(Self {
             registry,
@@ -857,7 +945,44 @@ impl RipTideMetrics {
             extraction_fallback_triggered,
             pipeline_phase_gate_analysis_ms,
             pipeline_phase_extraction_ms,
+            // Jemalloc memory metrics
+            jemalloc_allocated_bytes,
+            jemalloc_active_bytes,
+            jemalloc_resident_bytes,
+            jemalloc_metadata_bytes,
+            jemalloc_mapped_bytes,
+            jemalloc_retained_bytes,
+            jemalloc_fragmentation_ratio,
+            jemalloc_metadata_ratio,
         })
+    }
+
+    /// Update jemalloc memory statistics
+    ///
+    /// Collects current memory stats from jemalloc and updates all related metrics.
+    /// This should be called periodically (e.g., every 30 seconds) to track memory usage.
+    #[cfg(feature = "jemalloc")]
+    pub fn update_jemalloc_stats(&self) {
+        if let Some(stats) = JemallocStats::collect() {
+            self.jemalloc_allocated_bytes.set(stats.allocated as f64);
+            self.jemalloc_active_bytes.set(stats.active as f64);
+            self.jemalloc_resident_bytes.set(stats.resident as f64);
+            self.jemalloc_metadata_bytes.set(stats.metadata as f64);
+            self.jemalloc_mapped_bytes.set(stats.mapped as f64);
+            self.jemalloc_retained_bytes.set(stats.retained as f64);
+            self.jemalloc_fragmentation_ratio
+                .set(stats.fragmentation_ratio());
+            self.jemalloc_metadata_ratio
+                .set(stats.metadata_overhead_ratio());
+
+            tracing::debug!(
+                allocated_mb = stats.allocated_mb(),
+                resident_mb = stats.resident_mb(),
+                metadata_mb = stats.metadata_mb(),
+                fragmentation = stats.fragmentation_ratio(),
+                "jemalloc memory stats updated"
+            );
+        }
     }
 
     /// Record HTTP request

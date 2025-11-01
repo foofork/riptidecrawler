@@ -10,6 +10,9 @@ use crate::state::AppState;
 use axum::{extract::State, http::StatusCode, Json};
 use serde::Serialize;
 
+#[cfg(feature = "jemalloc")]
+use crate::jemalloc_stats::JemallocStats;
+
 /// Complete resource status overview
 #[derive(Debug, Serialize)]
 pub struct ResourceStatusResponse {
@@ -49,6 +52,20 @@ pub struct SemaphoreStatus {
 pub struct MemoryStatus {
     pub current_usage_mb: usize,
     pub pressure_detected: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub jemalloc: Option<JemallocMemoryStats>,
+}
+
+/// Jemalloc-specific memory statistics
+#[derive(Debug, Serialize)]
+pub struct JemallocMemoryStats {
+    pub allocated_mb: f64,
+    pub resident_mb: f64,
+    pub metadata_mb: f64,
+    pub mapped_mb: f64,
+    pub retained_mb: f64,
+    pub fragmentation_ratio: f64,
+    pub metadata_overhead_ratio: f64,
 }
 
 /// Performance status
@@ -88,9 +105,33 @@ pub async fn get_resource_status(
             available_permits: resource_status.pdf_available,
             in_use: resource_status.pdf_total - resource_status.pdf_available,
         },
-        memory: MemoryStatus {
-            current_usage_mb: resource_status.memory_usage_mb,
-            pressure_detected: resource_status.memory_pressure,
+        memory: {
+            // Collect jemalloc stats if available
+            #[cfg(feature = "jemalloc")]
+            let jemalloc_stats = JemallocStats::collect().map(|stats| JemallocMemoryStats {
+                allocated_mb: stats.allocated_mb(),
+                resident_mb: stats.resident_mb(),
+                metadata_mb: stats.metadata_mb(),
+                mapped_mb: stats.mapped as f64 / (1024.0 * 1024.0),
+                retained_mb: stats.retained as f64 / (1024.0 * 1024.0),
+                fragmentation_ratio: stats.fragmentation_ratio(),
+                metadata_overhead_ratio: stats.metadata_overhead_ratio(),
+            });
+
+            #[cfg(not(feature = "jemalloc"))]
+            let jemalloc_stats = None;
+
+            // Update metrics with latest jemalloc stats
+            #[cfg(feature = "jemalloc")]
+            if jemalloc_stats.is_some() {
+                state.metrics.update_jemalloc_stats();
+            }
+
+            MemoryStatus {
+                current_usage_mb: resource_status.memory_usage_mb,
+                pressure_detected: resource_status.memory_pressure,
+                jemalloc: jemalloc_stats,
+            }
         },
         performance: PerformanceStatus {
             timeout_count: resource_status.timeout_count,
@@ -137,9 +178,31 @@ pub async fn get_memory_status(
 ) -> Result<Json<MemoryStatus>, StatusCode> {
     let resource_status = state.resource_manager.get_resource_status().await;
 
+    // Collect jemalloc stats if available
+    #[cfg(feature = "jemalloc")]
+    let jemalloc_stats = JemallocStats::collect().map(|stats| JemallocMemoryStats {
+        allocated_mb: stats.allocated_mb(),
+        resident_mb: stats.resident_mb(),
+        metadata_mb: stats.metadata_mb(),
+        mapped_mb: stats.mapped as f64 / (1024.0 * 1024.0),
+        retained_mb: stats.retained as f64 / (1024.0 * 1024.0),
+        fragmentation_ratio: stats.fragmentation_ratio(),
+        metadata_overhead_ratio: stats.metadata_overhead_ratio(),
+    });
+
+    #[cfg(not(feature = "jemalloc"))]
+    let jemalloc_stats = None;
+
+    // Update metrics with latest jemalloc stats
+    #[cfg(feature = "jemalloc")]
+    if jemalloc_stats.is_some() {
+        state.metrics.update_jemalloc_stats();
+    }
+
     Ok(Json(MemoryStatus {
         current_usage_mb: resource_status.memory_usage_mb,
         pressure_detected: resource_status.memory_pressure,
+        jemalloc: jemalloc_stats,
     }))
 }
 

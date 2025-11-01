@@ -1,11 +1,3 @@
-// TODO(P2): Streaming pipeline infrastructure prepared but routes not yet activated
-// STATUS: Pipeline orchestration for streaming ready
-// PLAN: Activate with streaming routes (see streaming/config.rs:1)
-// EFFORT: Part of streaming feature implementation
-// PRIORITY: Future feature
-// BLOCKER: Same as streaming/config.rs
-#![allow(dead_code)]
-
 //! Pipeline orchestration for streaming operations.
 //!
 //! This module provides high-level orchestration logic for coordinating

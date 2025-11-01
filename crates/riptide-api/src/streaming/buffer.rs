@@ -1,11 +1,3 @@
-// TODO(P2): Streaming infrastructure - will be activated when routes are added
-// STATUS: Buffer management ready for streaming
-// PLAN: Activate with streaming routes (see streaming/config.rs:1)
-// EFFORT: Part of streaming feature implementation
-// PRIORITY: Future feature
-// BLOCKER: Same as streaming/config.rs
-#![allow(dead_code)]
-
 //! Buffer management and backpressure handling for streaming operations.
 //!
 //! This module provides dynamic buffer sizing, backpressure detection, and

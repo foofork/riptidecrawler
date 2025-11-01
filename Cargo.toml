@@ -78,6 +78,10 @@ tempfile = { version = "3" }
 dashmap = "6.1"
 wiremock = "0.6"
 schemars = { version = "0.8", features = ["chrono"] }
+libc = "0.2"  # For Unix syscalls (disk/fd tracking)
+hdrhistogram = "7.5"  # For accurate percentile calculations
+windows-sys = { version = "0.59", features = ["Win32_System_Diagnostics_Debug", "Win32_Storage_FileSystem", "Win32_System_Threading"] }  # For Windows disk/fd tracking
+tikv-jemalloc-ctl = { version = "0.6", features = ["use_std"] }  # For detailed memory statistics
 sha2 = "0.10"
 base64 = "0.22"
 governor = "0.6"

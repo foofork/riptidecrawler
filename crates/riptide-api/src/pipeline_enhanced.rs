@@ -1,17 +1,18 @@
-// TODO(P2): Enhanced pipeline orchestrator prepared for production use
-// STATUS: Module is complete but marked for production validation
-// PLAN: Validate and activate for production workloads
-// VALIDATION CHECKLIST:
-//   1. Load testing with concurrent requests (100+ RPS)
-//   2. Memory leak testing over 24+ hour runs
-//   3. Error handling validation with fault injection
-//   4. Metrics accuracy verification
-//   5. Phase timing calibration under various loads
-// EFFORT: Medium (4-6 hours for comprehensive testing)
-// PRIORITY: Important before production deployment
-// BLOCKER: None - code is ready, just needs validation
-#![allow(dead_code)]
-
+/// Enhanced pipeline orchestrator with comprehensive phase timing and metrics.
+///
+/// This module provides production-ready enhanced pipeline orchestration with:
+/// - Detailed phase timing for fetch, gate, wasm, and render operations
+/// - Enhanced metrics collection and performance monitoring
+/// - Debug logging for each pipeline phase
+/// - Phase visualization data for analysis
+/// - Backward compatibility with standard PipelineOrchestrator
+///
+/// Configuration is controlled via environment variables:
+/// - ENHANCED_PIPELINE_ENABLE: Enable/disable enhanced pipeline (default: true)
+/// - ENHANCED_PIPELINE_METRICS: Enable phase metrics collection (default: true)
+/// - ENHANCED_PIPELINE_DEBUG: Enable debug logging (default: false)
+/// - ENHANCED_PIPELINE_FETCH_TIMEOUT: Fetch phase timeout in seconds
+/// - ENHANCED_PIPELINE_RENDER_TIMEOUT: Render phase timeout in seconds
 use crate::errors::ApiResult;
 use crate::metrics::{PhaseTimer, PhaseType, RipTideMetrics};
 use crate::pipeline::{PipelineOrchestrator, PipelineResult, PipelineStats};

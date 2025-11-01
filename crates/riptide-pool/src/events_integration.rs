@@ -451,7 +451,9 @@ impl EventAwarePoolFactory {
                     available_instances: available,
                     active_instances: active,
                     total_instances: total,
-                    pending_acquisitions: 0, // TODO: Get from pool if available
+                    pending_acquisitions: pool_clone
+                        .pending_acquisitions
+                        .load(std::sync::atomic::Ordering::Relaxed),
                     success_rate: if performance_metrics.total_extractions > 0 {
                         performance_metrics.successful_extractions as f64
                             / performance_metrics.total_extractions as f64

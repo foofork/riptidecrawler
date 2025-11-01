@@ -3,6 +3,7 @@ use crate::models::{
     CrawlBody, CrawlResponse, CrawlResult, CrawlStatistics, ErrorInfo, GateDecisionBreakdown,
 };
 use crate::pipeline::PipelineOrchestrator;
+use crate::pipeline_enhanced::EnhancedPipelineOrchestrator;
 use crate::state::AppState;
 use crate::telemetry_config::extract_trace_context;
 use crate::validation::validate_crawl_request;
@@ -92,14 +93,73 @@ pub async fn crawl(
     debug!(
         concurrency = options.concurrency,
         cache_mode = %options.cache_mode,
-        "Using standard crawl options"
+        enhanced_pipeline = state.config.enhanced_pipeline_config.enable_enhanced_pipeline,
+        "Using crawl options"
     );
 
-    // Create pipeline orchestrator
-    let pipeline = PipelineOrchestrator::new(state.clone(), options.clone());
+    // Create pipeline orchestrator - use enhanced pipeline if enabled
+    let (pipeline_results, stats) = if state
+        .config
+        .enhanced_pipeline_config
+        .enable_enhanced_pipeline
+    {
+        info!("Using enhanced pipeline orchestrator with detailed phase timing");
+        let enhanced_pipeline = EnhancedPipelineOrchestrator::new(state.clone(), options.clone());
+        let (results, enhanced_stats) = enhanced_pipeline.execute_batch_enhanced(&body.urls).await;
 
-    // Execute batch crawling
-    let (pipeline_results, stats) = pipeline.execute_batch(&body.urls).await;
+        // Convert enhanced stats to standard stats for compatibility
+        let standard_stats = crate::pipeline::PipelineStats {
+            total_processed: enhanced_stats.total_urls,
+            cache_hits: enhanced_stats.cache_hits,
+            successful_extractions: enhanced_stats.successful,
+            failed_extractions: enhanced_stats.failed,
+            gate_decisions: enhanced_stats.gate_decisions,
+            avg_processing_time_ms: enhanced_stats.avg_processing_time_ms,
+            total_processing_time_ms: enhanced_stats.total_duration_ms,
+        };
+
+        // Convert enhanced results to standard pipeline results
+        let standard_results: Vec<Option<crate::pipeline::PipelineResult>> = results
+            .into_iter()
+            .map(|opt_result| {
+                opt_result.map(|enhanced_result| crate::pipeline::PipelineResult {
+                    document: enhanced_result.document.unwrap_or_else(|| {
+                        riptide_types::ExtractedDoc {
+                            url: enhanced_result.url.clone(),
+                            title: None,
+                            text: String::new(),
+                            quality_score: None,
+                            links: Vec::new(),
+                            byline: None,
+                            published_iso: None,
+                            markdown: None,
+                            media: Vec::new(),
+                            parser_metadata: None,
+                            language: None,
+                            reading_time: None,
+                            word_count: None,
+                            categories: Vec::new(),
+                            site_name: None,
+                            description: None,
+                            html: None,
+                        }
+                    }),
+                    from_cache: enhanced_result.cache_hit,
+                    gate_decision: enhanced_result.gate_decision,
+                    quality_score: enhanced_result.quality_score,
+                    processing_time_ms: enhanced_result.total_duration_ms,
+                    cache_key: format!("riptide:v1:enhanced:{}", enhanced_result.url),
+                    http_status: 200,
+                })
+            })
+            .collect();
+
+        (standard_results, standard_stats)
+    } else {
+        info!("Using standard pipeline orchestrator");
+        let pipeline = PipelineOrchestrator::new(state.clone(), options.clone());
+        pipeline.execute_batch(&body.urls).await
+    };
 
     // Convert pipeline results to API response format
     let mut crawl_results = Vec::with_capacity(body.urls.len());

@@ -3,6 +3,7 @@ pub mod dto;
 pub mod errors;
 pub mod handlers;
 pub mod health;
+pub mod jemalloc_stats;
 pub mod metrics;
 pub mod middleware;
 pub mod models;

@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use hdrhistogram::Histogram;
 use opentelemetry::trace::{TraceError, TracerProvider};
 use opentelemetry::{global, KeyValue};
 use opentelemetry_otlp::WithExportConfig;
@@ -272,7 +273,7 @@ pub struct SlaMonitor {
     sla_thresholds: HashMap<String, SlaThreshold>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct OperationMetrics {
     pub total_requests: u64,
     pub successful_requests: u64,
@@ -283,10 +284,34 @@ pub struct OperationMetrics {
     pub p99_duration: Duration,
     pub error_count: u64,
     pub timeout_count: u64,
+    // HDR Histogram for accurate percentile calculation
+    // Tracks latencies from 1ns to 1 hour with 3 significant digits
+    latency_histogram: Histogram<u64>,
+}
+
+impl Clone for OperationMetrics {
+    fn clone(&self) -> Self {
+        Self {
+            total_requests: self.total_requests,
+            successful_requests: self.successful_requests,
+            total_duration: self.total_duration,
+            max_duration: self.max_duration,
+            min_duration: self.min_duration,
+            p95_duration: self.p95_duration,
+            p99_duration: self.p99_duration,
+            error_count: self.error_count,
+            timeout_count: self.timeout_count,
+            latency_histogram: self.latency_histogram.clone(),
+        }
+    }
 }
 
 impl Default for OperationMetrics {
     fn default() -> Self {
+        // Create histogram tracking 1ns to 1 hour (3_600_000_000_000 ns) with 3 sig figs
+        let histogram = Histogram::<u64>::new_with_bounds(1, 3_600_000_000_000, 3)
+            .expect("Failed to create histogram with valid bounds");
+
         Self {
             total_requests: 0,
             successful_requests: 0,
@@ -297,6 +322,7 @@ impl Default for OperationMetrics {
             p99_duration: Duration::ZERO,
             error_count: 0,
             timeout_count: 0,
+            latency_histogram: histogram,
         }
     }
 }
@@ -392,15 +418,29 @@ impl SlaMonitor {
         metrics.max_duration = metrics.max_duration.max(duration);
         metrics.min_duration = metrics.min_duration.min(duration);
 
-        // TODO: Implement proper percentile calculation with histogram
-        // For now, use simple approximation
-        if metrics.total_requests.is_multiple_of(20) {
-            metrics.p95_duration = Duration::from_nanos(
-                (metrics.total_duration.as_nanos() as f64 * 0.95) as u64 / metrics.total_requests,
+        // Record duration in histogram for accurate percentile calculation
+        let duration_ns = duration.as_nanos() as u64;
+        // Clamp value to histogram bounds (1ns to 1 hour)
+        let clamped_duration = duration_ns.max(1).min(3_600_000_000_000);
+
+        if let Err(e) = metrics.latency_histogram.record(clamped_duration) {
+            tracing::warn!(
+                operation = operation,
+                duration_ns = duration_ns,
+                error = ?e,
+                "Failed to record latency in histogram"
             );
-            metrics.p99_duration = Duration::from_nanos(
-                (metrics.total_duration.as_nanos() as f64 * 0.99) as u64 / metrics.total_requests,
-            );
+        }
+
+        // Calculate percentiles from histogram (every 10 requests for efficiency)
+        if metrics.total_requests % 10 == 0 && metrics.latency_histogram.len() > 0 {
+            // P95 percentile
+            let p95_ns = metrics.latency_histogram.value_at_percentile(95.0);
+            metrics.p95_duration = Duration::from_nanos(p95_ns);
+
+            // P99 percentile
+            let p99_ns = metrics.latency_histogram.value_at_percentile(99.0);
+            metrics.p99_duration = Duration::from_nanos(p99_ns);
         }
     }
 
@@ -538,16 +578,165 @@ impl ResourceTracker {
         let network_rx = 0;
         let network_tx = 0;
 
+        // Get disk usage for current working directory
+        let disk_usage_bytes = Self::get_disk_usage();
+
+        // Get open file descriptor count
+        let open_file_descriptors = Self::get_file_descriptor_count();
+
         ResourceUsage {
             cpu_usage_percent: cpu_usage,
             memory_usage_bytes: used_memory,
             memory_usage_percent: memory_percent,
-            disk_usage_bytes: 0, // TODO: Implement disk usage tracking
+            disk_usage_bytes,
             network_rx_bytes: network_rx,
             network_tx_bytes: network_tx,
-            open_file_descriptors: 0, // TODO: Implement FD tracking
+            open_file_descriptors,
             load_average: (load_avg.one, load_avg.five, load_avg.fifteen),
         }
+    }
+
+    /// Get disk usage for current working directory
+    ///
+    /// Uses platform-specific methods to determine disk space usage:
+    /// - Linux: Uses statvfs to get filesystem statistics
+    /// - macOS: Uses statvfs to get filesystem statistics
+    /// - Windows: Uses GetDiskFreeSpaceEx to get volume statistics
+    ///
+    /// Returns the total disk space used in bytes, or 0 on error.
+    fn get_disk_usage() -> u64 {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+
+            // Try to get disk usage from filesystem stats
+            if let Ok(metadata) = std::fs::metadata(".") {
+                // Get the device ID (currently unused, but kept for future enhancements)
+                let _dev = metadata.dev();
+
+                // Try using statvfs to get filesystem stats
+                #[cfg(target_os = "linux")]
+                {
+                    use std::ffi::CString;
+                    use std::mem::MaybeUninit;
+
+                    if let Ok(path) = CString::new(".") {
+                        unsafe {
+                            let mut stat: MaybeUninit<libc::statvfs> = MaybeUninit::uninit();
+                            if libc::statvfs(path.as_ptr(), stat.as_mut_ptr()) == 0 {
+                                let stat = stat.assume_init();
+                                let total_blocks = stat.f_blocks;
+                                let free_blocks = stat.f_bfree;
+                                let used_blocks = total_blocks.saturating_sub(free_blocks);
+                                let block_size = stat.f_frsize;
+                                return used_blocks * block_size;
+                            }
+                        }
+                    }
+                }
+
+                #[cfg(target_os = "macos")]
+                {
+                    use std::ffi::CString;
+                    use std::mem::MaybeUninit;
+
+                    if let Ok(path) = CString::new(".") {
+                        unsafe {
+                            let mut stat: MaybeUninit<libc::statvfs> = MaybeUninit::uninit();
+                            if libc::statvfs(path.as_ptr(), stat.as_mut_ptr()) == 0 {
+                                let stat = stat.assume_init();
+                                let total_blocks = stat.f_blocks;
+                                let free_blocks = stat.f_bfree;
+                                let used_blocks = total_blocks.saturating_sub(free_blocks);
+                                let block_size = stat.f_frsize as u64;
+                                return used_blocks * block_size;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        #[cfg(windows)]
+        {
+            use std::ffi::OsStr;
+            use std::os::windows::ffi::OsStrExt;
+            use std::path::Path;
+
+            if let Ok(current_dir) = std::env::current_dir() {
+                let path = current_dir.to_str().unwrap_or(".");
+                let wide: Vec<u16> = OsStr::new(path)
+                    .encode_wide()
+                    .chain(std::iter::once(0))
+                    .collect();
+
+                unsafe {
+                    use windows_sys::Win32::Storage::FileSystem::GetDiskFreeSpaceExW;
+                    let mut total_bytes: u64 = 0;
+                    let mut free_bytes: u64 = 0;
+
+                    if GetDiskFreeSpaceExW(
+                        wide.as_ptr(),
+                        std::ptr::null_mut(),
+                        &mut total_bytes,
+                        &mut free_bytes,
+                    ) != 0
+                    {
+                        return total_bytes.saturating_sub(free_bytes);
+                    }
+                }
+            }
+        }
+
+        // Fallback: return 0 if unable to determine
+        0
+    }
+
+    /// Get file descriptor count for current process
+    ///
+    /// Platform-specific implementations:
+    /// - Linux: Counts entries in /proc/self/fd directory
+    /// - macOS: Counts entries in /dev/fd directory or uses proc_pidinfo
+    /// - Windows: Uses GetProcessHandleCount
+    ///
+    /// Returns the number of open file descriptors/handles, or 0 on error.
+    fn get_file_descriptor_count() -> u64 {
+        #[cfg(target_os = "linux")]
+        {
+            // On Linux, count files in /proc/self/fd
+            if let Ok(entries) = std::fs::read_dir("/proc/self/fd") {
+                return entries.count() as u64;
+            }
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            // On macOS, try /dev/fd first
+            if let Ok(entries) = std::fs::read_dir("/dev/fd") {
+                return entries.count() as u64;
+            }
+
+            // Fallback: use proc_pidinfo if available
+            // This would require the libproc crate, so we'll skip for now
+        }
+
+        #[cfg(windows)]
+        {
+            use windows_sys::Win32::Foundation::HANDLE;
+            use windows_sys::Win32::System::Threading::{GetCurrentProcess, GetProcessHandleCount};
+
+            unsafe {
+                let process: HANDLE = GetCurrentProcess();
+                let mut handle_count: u32 = 0;
+
+                if GetProcessHandleCount(process, &mut handle_count) != 0 {
+                    return handle_count as u64;
+                }
+            }
+        }
+
+        // Fallback: return 0 if unable to determine
+        0
     }
 }
 
@@ -635,4 +824,153 @@ mod tests {
         assert!(usage.memory_usage_percent >= 0.0);
         assert!(usage.memory_usage_percent <= 100.0);
     }
+}
+
+#[test]
+fn test_histogram_percentile_accuracy() {
+    let mut monitor = SlaMonitor::new();
+
+    // Record a distribution with known percentiles
+    // Create 100 requests with latencies from 1ms to 100ms
+    for i in 1..=100 {
+        monitor.record_metric("percentile_test", Duration::from_millis(i), true);
+    }
+
+    let status = monitor.get_status();
+    let op_status = &status.operations["percentile_test"];
+
+    // P95 should be around 95ms (95th value in sorted list)
+    // Allow some tolerance due to histogram bucketing
+    let p95_ms = op_status.p95_latency.as_millis();
+    assert!(
+        p95_ms >= 90 && p95_ms <= 100,
+        "P95 latency {} ms should be near 95ms",
+        p95_ms
+    );
+
+    // P99 should be around 99ms
+    let p99_ms = op_status.p99_latency.as_millis();
+    assert!(
+        p99_ms >= 95 && p99_ms <= 105,
+        "P99 latency {} ms should be near 99ms",
+        p99_ms
+    );
+}
+
+#[test]
+fn test_histogram_with_outliers() {
+    let mut monitor = SlaMonitor::new();
+
+    // Record mostly fast requests with a few outliers
+    // 95 fast requests at 10ms
+    for _ in 0..95 {
+        monitor.record_metric("outlier_test", Duration::from_millis(10), true);
+    }
+
+    // 5 slow outliers at 1000ms
+    for _ in 0..5 {
+        monitor.record_metric("outlier_test", Duration::from_millis(1000), true);
+    }
+
+    let status = monitor.get_status();
+    let op_status = &status.operations["outlier_test"];
+
+    // P95 should still be around 10ms (not affected by the 5% outliers)
+    let p95_ms = op_status.p95_latency.as_millis();
+    assert!(
+        p95_ms >= 8 && p95_ms <= 20,
+        "P95 latency {} ms should be near 10ms despite outliers",
+        p95_ms
+    );
+
+    // P99 should be closer to the outlier values
+    let p99_ms = op_status.p99_latency.as_millis();
+    assert!(
+        p99_ms >= 100,
+        "P99 latency {} ms should reflect the outliers",
+        p99_ms
+    );
+}
+
+#[test]
+fn test_histogram_percentile_stability() {
+    let mut monitor = SlaMonitor::new();
+
+    // Record requests in batches and verify percentiles are stable
+    for batch in 1..=5 {
+        for i in 1..=20 {
+            monitor.record_metric("stability_test", Duration::from_millis(i), true);
+        }
+
+        if batch >= 2 {
+            // After second batch, percentiles should be relatively stable
+            let status = monitor.get_status();
+            let op_status = &status.operations["stability_test"];
+
+            let p95_ms = op_status.p95_latency.as_millis();
+            assert!(
+                p95_ms >= 17 && p95_ms <= 21,
+                "P95 should be stable around 19ms in batch {}, got {}ms",
+                batch,
+                p95_ms
+            );
+        }
+    }
+}
+
+#[test]
+fn test_histogram_extreme_values() {
+    let mut monitor = SlaMonitor::new();
+
+    // Test with very small durations
+    for _ in 0..50 {
+        monitor.record_metric("extreme_test", Duration::from_nanos(100), true);
+    }
+
+    // Test with very large durations (but within histogram bounds)
+    for _ in 0..50 {
+        monitor.record_metric("extreme_test", Duration::from_secs(60), true);
+    }
+
+    let status = monitor.get_status();
+    let op_status = &status.operations["extreme_test"];
+
+    // Percentiles should handle extreme ranges
+    assert!(op_status.p95_latency > Duration::ZERO);
+    assert!(op_status.p99_latency > Duration::ZERO);
+    assert!(op_status.p99_latency >= op_status.p95_latency);
+}
+
+#[test]
+fn test_histogram_percentile_ordering() {
+    let mut monitor = SlaMonitor::new();
+
+    // Record various latencies
+    for i in (10..=100).step_by(10) {
+        for _ in 0..10 {
+            monitor.record_metric("ordering_test", Duration::from_millis(i), true);
+        }
+    }
+
+    let status = monitor.get_status();
+    let op_status = &status.operations["ordering_test"];
+
+    // Verify percentile ordering: P95 <= P99
+    assert!(
+        op_status.p95_latency <= op_status.p99_latency,
+        "P95 ({:?}) should be <= P99 ({:?})",
+        op_status.p95_latency,
+        op_status.p99_latency
+    );
+
+    // Verify percentiles are within reasonable range
+    // Note: histogram bucketing may cause slight variations above max due to precision
+    assert!(
+        op_status.p95_latency >= Duration::from_millis(10),
+        "P95 should be >= minimum value"
+    );
+    assert!(
+        op_status.p99_latency <= Duration::from_millis(120),
+        "P99 should be near maximum value (with tolerance for histogram bucketing)"
+    );
 }

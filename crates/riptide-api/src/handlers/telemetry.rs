@@ -274,6 +274,30 @@ pub async fn get_telemetry_status(
         ("none".to_string(), false)
     };
 
+    // Extract runtime info from AppState
+    let resource_status = state.resource_manager.get_resource_status().await;
+    let streaming_metrics = state.streaming.metrics().await;
+    let circuit_breaker_state = {
+        let cb = state.circuit_breaker.lock().await;
+        if cb.is_open() {
+            "open"
+        } else if cb.is_half_open() {
+            "half_open"
+        } else {
+            "closed"
+        }
+    };
+
+    // Get worker service health
+    let worker_health = state.worker_service.health_check().await;
+
+    // Get spider state if available
+    let spider_active = if let Some(ref spider) = state.spider {
+        spider.get_crawl_state().await.active
+    } else {
+        false
+    };
+
     let status = serde_json::json!({
         "enabled": config.enabled,
         "service_name": config.service_name,
@@ -293,6 +317,42 @@ pub async fn get_telemetry_status(
             "trace_visualization": true,
             "trace_export": config.enabled,
             "trace_storage": state.trace_backend.is_some(),
+        },
+        "runtime": {
+            "resource_manager": {
+                "memory_pressure": resource_status.memory_pressure,
+                "degradation_score": resource_status.degradation_score,
+                "headless_pool_available": resource_status.headless_pool_available,
+                "headless_pool_total": resource_status.headless_pool_total,
+                "pdf_available": resource_status.pdf_available,
+                "pdf_total": resource_status.pdf_total,
+                "memory_usage_mb": resource_status.memory_usage_mb,
+                "rate_limit_hits": resource_status.rate_limit_hits,
+            },
+            "streaming": {
+                "active_connections": streaming_metrics.active_connections,
+                "total_connections": streaming_metrics.total_connections,
+                "total_messages_sent": streaming_metrics.total_messages_sent,
+                "total_messages_dropped": streaming_metrics.total_messages_dropped,
+                "error_rate": streaming_metrics.error_rate,
+                "memory_usage_bytes": streaming_metrics.memory_usage_bytes,
+            },
+            "circuit_breaker": {
+                "state": circuit_breaker_state,
+            },
+            "worker_service": {
+                "healthy": worker_health.overall_healthy,
+                "queue_healthy": worker_health.queue_healthy,
+                "pool_healthy": worker_health.worker_pool_healthy,
+                "scheduler_healthy": worker_health.scheduler_healthy,
+            },
+            "spider": {
+                "enabled": state.spider.is_some(),
+                "active": spider_active,
+            },
+            "telemetry_system": {
+                "enabled": state.telemetry.is_some(),
+            },
         }
     });
 

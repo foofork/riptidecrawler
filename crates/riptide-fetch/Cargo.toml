@@ -53,11 +53,19 @@ robotstxt = "0.2"
 xml = "0.8"
 sysinfo.workspace = true
 psutil.workspace = true
+hdrhistogram.workspace = true
 
 [dev-dependencies]
 tokio-test = "0.4"
 tempfile.workspace = true
 wiremock.workspace = true
+
+# Platform-specific dependencies for resource tracking
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Storage_FileSystem", "Win32_System_Threading"] }
 
 [features]
 default = []

@@ -3209,6 +3209,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "hdrhistogram"
+version = "7.5.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "765c9198f173dd59ce26ff9f95ef0aafd0a0fe01fb9d72841bc5066a4c06511d"
+dependencies = [
+ "base64 0.21.7",
+ "byteorder",
+ "crossbeam-channel",
+ "flate2",
+ "nom 7.1.3",
+ "num-traits",
+]
+
+[[package]]
 name = "heck"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6472,6 +6486,7 @@ dependencies = [
  "sysinfo",
  "tempfile",
  "thiserror 1.0.69",
+ "tikv-jemalloc-ctl",
  "tikv-jemallocator",
  "tokio",
  "tokio-stream",
@@ -6733,8 +6748,10 @@ dependencies = [
  "chrono",
  "dashmap 6.1.0",
  "futures",
+ "hdrhistogram",
  "http 1.3.1",
  "hyper 1.7.0",
+ "libc",
  "opentelemetry 0.26.0",
  "opentelemetry-otlp",
  "opentelemetry-semantic-conventions",
@@ -6757,6 +6774,7 @@ dependencies = [
  "tracing-opentelemetry",
  "tracing-subscriber",
  "url",
+ "windows-sys 0.59.0",
  "wiremock",
  "xml",
 ]
@@ -6826,7 +6844,9 @@ dependencies = [
  "async-trait",
  "chrono",
  "dashmap 6.1.0",
+ "hdrhistogram",
  "lazy_static",
+ "libc",
  "num_cpus",
  "once_cell",
  "opentelemetry 0.26.0",
@@ -6848,6 +6868,7 @@ dependencies = [
  "tracing",
  "tracing-opentelemetry",
  "tracing-subscriber",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

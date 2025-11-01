@@ -1,11 +1,3 @@
-// TODO(P2): Streaming infrastructure - will be activated when routes are added
-// STATUS: Stream lifecycle management complete
-// PLAN: Activate with streaming routes (see streaming/config.rs:1)
-// EFFORT: Part of streaming feature implementation
-// PRIORITY: Future feature
-// BLOCKER: Same as streaming/config.rs
-#![allow(dead_code)]
-
 //! Stream lifecycle management and event handling.
 //!
 //! This module provides sophisticated lifecycle management for streaming operations,

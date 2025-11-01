@@ -1,11 +1,3 @@
-// TODO(P2): Streaming infrastructure prepared but routes not yet activated
-// STATUS: Stream processing logic complete
-// PLAN: Activate with streaming routes (see streaming/config.rs:1)
-// EFFORT: Part of streaming feature implementation
-// PRIORITY: Future feature
-// BLOCKER: Same as streaming/config.rs
-#![allow(dead_code)]
-
 //! Stream processing logic and utilities.
 //!
 //! This module contains common processing logic shared across different

@@ -40,10 +40,18 @@ dashmap = "6.1"
 regex.workspace = true
 num_cpus = "1.16"
 reqwest = { workspace = true, features = ["json"] }
+hdrhistogram.workspace = true
 
 # Prometheus metrics
 prometheus = { version = "0.14", optional = true }
 lazy_static = { version = "1.5", optional = true }
+
+# Platform-specific dependencies for resource tracking
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Storage_FileSystem", "Win32_System_Threading"] }
 
 [dev-dependencies]
 tokio-test = "0.4"

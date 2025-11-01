@@ -9,7 +9,8 @@ pub mod progress;
 pub mod streaming;
 
 // Re-export main public APIs
-pub use handlers::{crawl_stream, deepsearch_stream};
+// NDJSON handlers are exposed through crate::handlers::streaming
+// No re-exports needed here
 
 #[cfg(test)]
 mod tests {

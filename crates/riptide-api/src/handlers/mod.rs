@@ -12,6 +12,7 @@ pub mod health;
 pub mod llm;
 pub mod monitoring;
 pub mod pdf;
+pub mod pipeline_metrics; // Enhanced pipeline metrics visualization
 pub mod pipeline_phases;
 pub mod profiles;
 pub mod profiling;
@@ -23,6 +24,7 @@ pub mod shared; // Shared utilities for handlers (reduces duplication)
 pub mod spider;
 pub mod stealth;
 pub mod strategies;
+pub mod streaming; // NDJSON streaming endpoints for real-time data delivery
 pub mod tables;
 pub mod telemetry;
 pub mod trace_backend;
@@ -37,4 +39,5 @@ pub use health::{health, health_detailed, init_startup_time, START_TIME};
 pub use pipeline_phases::get_pipeline_phases;
 pub use render::render;
 pub use search::search;
+pub use streaming::{crawl_stream, deepsearch_stream};
 pub use utils::{metrics, not_found};

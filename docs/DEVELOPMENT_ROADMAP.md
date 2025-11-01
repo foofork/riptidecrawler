@@ -528,12 +528,74 @@ Placeholder implementations for:
 - All resource metrics available
 - Pipeline fully operational
 
-### Sprint 5+ (Week 9+): Polish & P3
-**Goal:** Address nice-to-have items
+### Sprint 5 (Week 9-10): Code Consolidation
+**Goal:** Reduce technical debt through duplication elimination
+**Status:** 🆕 NEW (2025-11-01)
+
+**Week 9 - Core Consolidations (P1)**
+- Create `riptide-telemetry` shared crate (2 days)
+  - Extract TelemetrySystem, DataSanitizer, SlaMonitor, ResourceTracker
+  - Migrate `riptide-monitoring` and `riptide-fetch`
+  - Remove ~1,200 lines of duplicate code
+- Consolidate Circuit Breaker pattern (1 day)
+  - Promote `riptide-reliability::circuit` as canonical
+  - Migrate 4 duplicate implementations
+- Create NativeExtractorPool (2 days)
+  - Design and implement native pool in `riptide-pool`
+  - Make native primary extraction path
+
+**Week 10 - Pattern Standardization (P1-P2)**
+- Create `riptide-config-core` framework (3 days)
+  - Define standard traits: Config, Validate, FromEnv, ConfigBuilder
+  - Migrate high-duplication crates
+- Consolidate metrics facade (2 days)
+  - Define MetricsCollector trait
+  - Create adapter pattern
+  - Standardize naming
+
+**Success Criteria:**
+- ✅ Reduce codebase by ~2,500 lines
+- ✅ Eliminate 3+ duplicate implementations
+- ✅ Native extraction has dedicated pool
+- ✅ All tests pass after consolidation
+- ✅ Improved maintainability score
+
+**Metrics Tracked:**
+- Telemetry LOC: 1,500 → 0 duplicates
+- Circuit breaker impls: 5 → 1
+- Config struct files: 131 → ~80
+- Native pool: Missing → Implemented
+
+### Sprint 6 (Week 11-12): Pipeline & Retry Consolidation
+**Goal:** Standardize orchestration and reliability patterns
+**Status:** 🆕 NEW (2025-11-01)
+
+**Week 11 - Pipeline Consolidation (P2)**
+- Document all pipeline implementations (1 day)
+- Choose canonical implementation (0.5 day)
+- Migrate to `pipeline_enhanced.rs` (2 days)
+- Archive duplicate implementations (0.5 day)
+
+**Week 12 - Retry & Manager Patterns (P2)**
+- Create shared retry utility in `riptide-reliability` (1 day)
+- Migrate 33 retry implementations (2 days)
+- Review Manager pattern usage (1 day)
+- Document best practices (1 day)
+
+**Success Criteria:**
+- Single canonical pipeline architecture
+- Shared retry abstraction with 20+ consumers
+- Manager pattern guidelines documented
+- Performance improvement from standardization
+
+### Sprint 7+ (Week 13+): Polish & P3
+**Goal:** Address nice-to-have items and future improvements
 
 - Implement facade layer (P3)
 - Add golden test tools (P3)
 - Enhance CLI features (P3)
+- Test infrastructure consolidation (P3)
+- Error type standardization (P3)
 - Performance optimizations (P2/P3)
 
 ---
@@ -569,31 +631,301 @@ Placeholder implementations for:
 
 ---
 
-## 🐛 Known Issues to Track
+## 🔄 CODE DUPLICATION & CONSOLIDATION (New - 2025-11-01)
 
-### Clippy Warnings (6 items)
-**Priority:** Low - Should be fixed during refactoring
+### Critical Duplication Analysis
 
-1. **Derivable impl** - `riptide-extraction/unified_extractor.rs:60`
-   - Replace manual Default impl with #[derive(Default)]
+**Full Report:** See `/workspaces/eventmesh/docs/code_duplication_analysis.md`
 
-2. **Needless return** - `riptide-api/pipeline.rs:778`
-   - Remove explicit return statement
+This section addresses **significant code duplication** discovered across the codebase, representing substantial technical debt and maintenance burden.
 
-3. **Module inception** - `riptide-extraction/native_parser/tests.rs:4`
-   - Rename inner `tests` module
+### 🔴 P1: Critical Duplication (Must Fix)
 
-4-7. **Unused variables** - `riptide-stealth/benches/stealth_performance.rs`
-   - Prefix with underscore: `_none_time`, `_low_time`, `_medium_time`, `_high_time`
+#### 1. Telemetry System - Complete Duplication (~1,500 LOC)
+**Priority:** P1-HIGH
+**Effort:** 2-3 days
+**Impact:** Maintenance burden, inconsistent observability
 
-**Recommended Action:** Run `cargo clippy --fix` in controlled PR
+**Problem:**
+- Identical telemetry implementations in 3 crates:
+  - `riptide-monitoring/src/telemetry.rs` (984 lines)
+  - `riptide-fetch/src/telemetry.rs` (788 lines)
+  - Referenced in 14 total files
+- Duplicate structs: `TelemetrySystem`, `DataSanitizer`, `SlaMonitor`, `ResourceTracker`
+- Duplicate platform code (Linux/macOS/Windows FD tracking, disk usage)
+
+**Action Items:**
+- [ ] Create `riptide-telemetry` shared crate
+- [ ] Extract common telemetry components
+- [ ] Migrate `riptide-monitoring` and `riptide-fetch` to use shared crate
+- [ ] Remove ~1,200 lines of duplicate code
+
+**Expected Reduction:** ~1,200-1,500 lines
+
+#### 2. Configuration Framework - Massive Fragmentation
+**Priority:** P1-MEDIUM
+**Effort:** 3-5 days
+**Impact:** Inconsistent config patterns, validation gaps
+
+**Problem:**
+- **131 files** with `pub struct *Config`
+- **13 dedicated `config.rs` files**
+- **266 impl blocks** for Config/Settings/Options
+- No standardized builder, validation, or environment parsing
+
+**Action Items:**
+- [ ] Create `riptide-config-core` crate with shared traits
+- [ ] Define standard patterns: `Config`, `Validate`, `FromEnv`, `ConfigBuilder`
+- [ ] Migrate high-duplication crates (api, streaming, persistence, stealth)
+- [ ] Document migration guide for remaining crates
+
+**Expected Reduction:** 500-1,000 lines (30-40% of config code)
+
+#### 3. Circuit Breaker Pattern - 78 Implementations
+**Priority:** P1-MEDIUM
+**Effort:** 1-2 days
+**Impact:** Reliability inconsistency
+
+**Problem:**
+- 5+ full circuit breaker implementations across crates
+- 78 files reference circuit breaker patterns
+- `riptide-reliability::circuit` exists but not used universally
+
+**Action Items:**
+- [ ] Promote `riptide-reliability::circuit::CircuitBreaker` as canonical
+- [ ] Add missing features from other implementations
+- [ ] Migrate consumers: `riptide-intelligence`, `riptide-search`, `riptide-fetch`, `riptide-spider`
+- [ ] Remove 4 duplicate implementations
+
+**Expected Reduction:** ~800-1,000 lines
+
+### 🟡 P2: Important Consolidations
+
+#### 4. Metrics Infrastructure - 17 Fragmented Files
+**Priority:** P2
+**Effort:** 2-3 days
+
+**Problem:**
+- 17 files: `metrics.rs` (11) and `health.rs` (6)
+- 333 Metrics/Stats/Status struct occurrences across 185 files
+- Inconsistent metric collection patterns
+
+**Action Items:**
+- [ ] Define `MetricsCollector` trait in `riptide-monitoring`
+- [ ] Create adapter pattern for crate-specific metrics
+- [ ] Standardize metric naming conventions
+- [ ] Consolidate common metric types
+
+**Expected Reduction:** 400-600 lines (40% of metrics code)
+
+#### 5. Pipeline Orchestration - Multiple Architectures
+**Priority:** P2
+**Effort:** 3-5 days
+
+**Problem:**
+- 9 pipeline files in codebase
+- 3+ different architectures in `riptide-api` alone:
+  - `pipeline.rs`
+  - `pipeline_dual.rs`
+  - `pipeline_enhanced.rs`
+  - `streaming/pipeline.rs`
+  - `strategies_pipeline.rs`
+
+**Action Items:**
+- [ ] Document purpose of each pipeline implementation
+- [ ] Choose canonical implementation (likely `pipeline_enhanced.rs`)
+- [ ] Migrate consumers to canonical pipeline
+- [ ] Archive or remove duplicate implementations
+- [ ] Update documentation
+
+#### 6. Retry Logic - 33 Scattered Implementations
+**Priority:** P2
+**Effort:** 1-2 days
+
+**Problem:**
+- 33 files with retry logic
+- Inconsistent backoff strategies
+- No shared abstraction
+
+**Action Items:**
+- [ ] Create retry utility in `riptide-reliability`
+- [ ] Support exponential backoff with jitter
+- [ ] Migrate high-value use cases
+- [ ] Document retry best practices
+
+#### 7. Manager Pattern - 50 Structs
+**Priority:** P2-LOW
+**Effort:** 3-4 days
+
+**Problem:**
+- 50 files with `*Manager` structs
+- 7 dedicated `manager.rs` files
+- Overlapping responsibilities
+
+**Action Items:**
+- [ ] Define `Manager` trait with lifecycle methods
+- [ ] Document when to use Manager vs direct struct
+- [ ] Consider consolidation through composition
+- [ ] Review if all 50 managers are necessary
+
+### 🟢 P3: Future Improvements
+
+#### 8. Test Infrastructure
+**Effort:** 2-3 days
+
+**Problem:**
+- `browser_pool_tests.rs` appears 3 times
+- `wasm_caching_tests.rs` appears 3 times
+- Multiple `benchmark_suite.rs` files
+- 53 `mod.rs` files, 9 `tests.rs` files
+
+**Action Items:**
+- [ ] Consolidate `riptide-test-utils` with common patterns
+- [ ] Share test fixtures and mocks
+- [ ] Create test data generators
+
+#### 9. Error Types & Type Definitions
+**Effort:** 1-2 days
+
+**Problem:**
+- 5 `error.rs` + 5 `errors.rs` files
+- 13 `types.rs` files
+- Overlapping error enums
+
+**Action Items:**
+- [ ] Review error type overlap
+- [ ] Consider shared error traits
+- [ ] Standardize error messages
+
+#### 10. Default Trait Implementations
+**Effort:** 1 day
+
+**Problem:**
+- 187 files with `impl Default for`
+- Many could use `#[derive(Default)]`
+
+**Action Items:**
+- [ ] Use derive macro where possible
+- [ ] Document when manual impl is needed
 
 ---
 
-## 📝 GitHub Issue Templates
+## 🎯 NATIVE EXTRACTION POOL GAP (New - 2025-11-01)
 
-See companion file: `/workspaces/eventmesh/docs/github_issues.md`
+### Critical Architecture Gap Identified
 
+**Context:** The user identified that native extraction needs better functionality support than WASM.
+
+### Current State
+
+**Existing Pools:**
+1. ✅ **Browser Pool** (`riptide-browser::BrowserPool`) - For headless browser rendering
+2. ✅ **WASM Pool** (`riptide-pool`) - For WASM extractor instances
+3. ❌ **Native Pool** - **MISSING** - Native extraction used only as fallback
+
+**Evidence:**
+```rust
+// crates/riptide-pool/src/pool.rs:280
+match extraction_result {
+    Ok(doc) => Ok(doc),
+    Err(e) => {
+        // For now, just return the error without fallback
+        // TODO: Implement fallback to native extraction if needed
+        Err(e)
+    }
+}
+```
+
+**Logs show:**
+```
+WARN riptide_reliability::reliability: WASM extractor failed, trying native parser fallback
+```
+
+### The Gap
+
+**Problem:**
+- WASM extraction has dedicated pooling, lifecycle management, health checks
+- Native extraction has NO dedicated pool - only fallback mechanism
+- Native should be FIRST-CLASS with BETTER support than WASM
+- Current architecture treats native as backup, not primary
+
+**Impact:**
+- Native extraction lacks resource management
+- No health monitoring for native parsers
+- Missing performance optimizations (pooling, reuse)
+- Inconsistent with "native > WASM" priority
+
+### 🔴 P1: Native Extraction Pool Implementation
+
+**Priority:** P1-HIGH (Affects production performance)
+**Effort:** 3-5 days
+**Complexity:** Medium-High
+
+**Requirements:**
+
+1. **Create NativeExtractorPool in `riptide-pool`**
+   ```rust
+   pub struct NativeExtractorPool {
+       pool: Arc<Pool<NativeExtractor>>,
+       config: NativePoolConfig,
+       health_monitor: HealthMonitor,
+   }
+   ```
+
+2. **Features Required:**
+   - Instance pooling and reuse
+   - Health monitoring
+   - Resource limits (memory, CPU)
+   - Metrics collection
+   - Graceful degradation
+   - Lifecycle management (warm-up, cool-down)
+
+3. **Integration Points:**
+   - Primary extraction path (not fallback)
+   - WASM becomes fallback/alternative
+   - Browser pool integration for hybrid extraction
+
+**Action Items:**
+- [ ] **Design NativeExtractorPool architecture** (1 day)
+  - Define config structure
+  - Resource management strategy
+  - Health check implementation
+
+- [ ] **Implement NativeExtractorPool** (2 days)
+  - File: `crates/riptide-pool/src/native_pool.rs`
+  - Core pooling logic
+  - Health monitoring
+  - Metrics integration
+
+- [ ] **Update extraction pipeline** (1 day)
+  - Make native the PRIMARY path
+  - WASM becomes fallback (reverse current logic)
+  - Update `riptide-pool/src/pool.rs:280` TODO
+
+- [ ] **Add tests** (1 day)
+  - Pool lifecycle tests
+  - Health check tests
+  - Performance benchmarks
+  - Failover scenarios
+
+**Files to Modify:**
+- `crates/riptide-pool/src/pool.rs:280` - Implement native fallback
+- `crates/riptide-pool/src/native_pool.rs` - New file
+- `crates/riptide-pool/src/lib.rs` - Export NativeExtractorPool
+- `crates/riptide-api/src/state.rs` - Add native pool to state
+- `crates/riptide-extraction/src/unified_extractor.rs` - Use native pool first
+
+**Success Criteria:**
+- Native extraction has dedicated pool with same features as WASM pool
+- Native is primary extraction path, WASM is fallback
+- Health monitoring for native extractors
+- Metrics show native pool utilization
+- Performance improvement from instance reuse
+
+**Related Items:**
+- Connects to P2 item: "Implement fallback to native extraction" (already in roadmap)
+- Aligns with native-first architecture
+- Supports better scalability than single-use native instances
 ---
 
 ## 🔄 Continuous Improvement
@@ -604,7 +936,7 @@ After each sprint:
 2. Re-prioritize based on new learnings
 3. Add newly discovered TODOs
 4. Run `cargo check` and update audit findings
-5. Generate sprint report from completed issues
+5. Generate sprint report from completed issues, ensure cargo is clean
 
 ### Maintenance Schedule
 - **Weekly:** Review P1 items, adjust sprint plan

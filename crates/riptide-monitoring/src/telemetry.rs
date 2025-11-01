@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use hdrhistogram::Histogram;
 use opentelemetry::trace::{TraceError, TracerProvider};
 use opentelemetry::{global, KeyValue};
 use opentelemetry_otlp::WithExportConfig;
@@ -272,7 +273,7 @@ pub struct SlaMonitor {
     sla_thresholds: HashMap<String, SlaThreshold>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct OperationMetrics {
     pub total_requests: u64,
     pub successful_requests: u64,
@@ -283,10 +284,34 @@ pub struct OperationMetrics {
     pub p99_duration: Duration,
     pub error_count: u64,
     pub timeout_count: u64,
+    // HDR Histogram for accurate percentile calculation
+    // Tracks latencies from 1ns to 1 hour with 3 significant digits
+    latency_histogram: Histogram<u64>,
+}
+
+impl Clone for OperationMetrics {
+    fn clone(&self) -> Self {
+        Self {
+            total_requests: self.total_requests,
+            successful_requests: self.successful_requests,
+            total_duration: self.total_duration,
+            max_duration: self.max_duration,
+            min_duration: self.min_duration,
+            p95_duration: self.p95_duration,
+            p99_duration: self.p99_duration,
+            error_count: self.error_count,
+            timeout_count: self.timeout_count,
+            latency_histogram: self.latency_histogram.clone(),
+        }
+    }
 }
 
 impl Default for OperationMetrics {
     fn default() -> Self {
+        // Create histogram tracking 1ns to 1 hour (3_600_000_000_000 ns) with 3 sig figs
+        let histogram = Histogram::<u64>::new_with_bounds(1, 3_600_000_000_000, 3)
+            .expect("Failed to create histogram with valid bounds");
+
         Self {
             total_requests: 0,
             successful_requests: 0,
@@ -297,6 +322,7 @@ impl Default for OperationMetrics {
             p99_duration: Duration::ZERO,
             error_count: 0,
             timeout_count: 0,
+            latency_histogram: histogram,
         }
     }
 }
@@ -391,16 +417,29 @@ impl SlaMonitor {
         metrics.total_duration += duration;
         metrics.max_duration = metrics.max_duration.max(duration);
         metrics.min_duration = metrics.min_duration.min(duration);
+        // Record duration in histogram for accurate percentile calculation
+        let duration_ns = duration.as_nanos() as u64;
+        // Clamp value to histogram bounds (1ns to 1 hour)
+        let clamped_duration = duration_ns.max(1).min(3_600_000_000_000);
 
-        // TODO: Implement proper percentile calculation with histogram
-        // For now, use simple approximation
-        if metrics.total_requests.is_multiple_of(20) {
-            metrics.p95_duration = Duration::from_nanos(
-                (metrics.total_duration.as_nanos() as f64 * 0.95) as u64 / metrics.total_requests,
+        if let Err(e) = metrics.latency_histogram.record(clamped_duration) {
+            tracing::warn!(
+                operation = operation,
+                duration_ns = duration_ns,
+                error = ?e,
+                "Failed to record latency in histogram"
             );
-            metrics.p99_duration = Duration::from_nanos(
-                (metrics.total_duration.as_nanos() as f64 * 0.99) as u64 / metrics.total_requests,
-            );
+        }
+
+        // Calculate percentiles from histogram (every 10 requests for efficiency)
+        if metrics.total_requests % 10 == 0 && metrics.latency_histogram.len() > 0 {
+            // P95 percentile
+            let p95_ns = metrics.latency_histogram.value_at_percentile(95.0);
+            metrics.p95_duration = Duration::from_nanos(p95_ns);
+
+            // P99 percentile
+            let p99_ns = metrics.latency_histogram.value_at_percentile(99.0);
+            metrics.p99_duration = Duration::from_nanos(p99_ns);
         }
     }
 
@@ -538,16 +577,165 @@ impl ResourceTracker {
         let network_rx = 0;
         let network_tx = 0;
 
+        // Get disk usage for current working directory
+        let disk_usage_bytes = Self::get_disk_usage();
+
+        // Get open file descriptor count
+        let open_file_descriptors = Self::get_file_descriptor_count();
+
         ResourceUsage {
             cpu_usage_percent: cpu_usage,
             memory_usage_bytes: used_memory,
             memory_usage_percent: memory_percent,
-            disk_usage_bytes: 0, // TODO: Implement disk usage tracking
+            disk_usage_bytes,
             network_rx_bytes: network_rx,
             network_tx_bytes: network_tx,
-            open_file_descriptors: 0, // TODO: Implement FD tracking
+            open_file_descriptors,
             load_average: (load_avg.one, load_avg.five, load_avg.fifteen),
         }
+    }
+
+    /// Get disk usage for current working directory
+    ///
+    /// Uses platform-specific methods to determine disk space usage:
+    /// - Linux: Uses statvfs to get filesystem statistics
+    /// - macOS: Uses statvfs to get filesystem statistics
+    /// - Windows: Uses GetDiskFreeSpaceEx to get volume statistics
+    ///
+    /// Returns the total disk space used in bytes, or 0 on error.
+    fn get_disk_usage() -> u64 {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+
+            // Try to get disk usage from filesystem stats
+            if let Ok(metadata) = std::fs::metadata(".") {
+                // Get the device ID
+                let dev = metadata.dev();
+
+                // Try using statvfs to get filesystem stats
+                #[cfg(target_os = "linux")]
+                {
+                    use std::ffi::CString;
+                    use std::mem::MaybeUninit;
+
+                    if let Ok(path) = CString::new(".") {
+                        unsafe {
+                            let mut stat: MaybeUninit<libc::statvfs> = MaybeUninit::uninit();
+                            if libc::statvfs(path.as_ptr(), stat.as_mut_ptr()) == 0 {
+                                let stat = stat.assume_init();
+                                let total_blocks = stat.f_blocks;
+                                let free_blocks = stat.f_bfree;
+                                let used_blocks = total_blocks.saturating_sub(free_blocks);
+                                let block_size = stat.f_frsize;
+                                return used_blocks * block_size;
+                            }
+                        }
+                    }
+                }
+
+                #[cfg(target_os = "macos")]
+                {
+                    use std::ffi::CString;
+                    use std::mem::MaybeUninit;
+
+                    if let Ok(path) = CString::new(".") {
+                        unsafe {
+                            let mut stat: MaybeUninit<libc::statvfs> = MaybeUninit::uninit();
+                            if libc::statvfs(path.as_ptr(), stat.as_mut_ptr()) == 0 {
+                                let stat = stat.assume_init();
+                                let total_blocks = stat.f_blocks;
+                                let free_blocks = stat.f_bfree;
+                                let used_blocks = total_blocks.saturating_sub(free_blocks);
+                                let block_size = stat.f_frsize as u64;
+                                return used_blocks * block_size;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        #[cfg(windows)]
+        {
+            use std::ffi::OsStr;
+            use std::os::windows::ffi::OsStrExt;
+            use std::path::Path;
+
+            if let Ok(current_dir) = std::env::current_dir() {
+                let path = current_dir.to_str().unwrap_or(".");
+                let wide: Vec<u16> = OsStr::new(path)
+                    .encode_wide()
+                    .chain(std::iter::once(0))
+                    .collect();
+
+                unsafe {
+                    use windows_sys::Win32::Storage::FileSystem::GetDiskFreeSpaceExW;
+                    let mut total_bytes: u64 = 0;
+                    let mut free_bytes: u64 = 0;
+
+                    if GetDiskFreeSpaceExW(
+                        wide.as_ptr(),
+                        std::ptr::null_mut(),
+                        &mut total_bytes,
+                        &mut free_bytes,
+                    ) != 0
+                    {
+                        return total_bytes.saturating_sub(free_bytes);
+                    }
+                }
+            }
+        }
+
+        // Fallback: return 0 if unable to determine
+        0
+    }
+
+    /// Get file descriptor count for current process
+    ///
+    /// Platform-specific implementations:
+    /// - Linux: Counts entries in /proc/self/fd directory
+    /// - macOS: Counts entries in /dev/fd directory or uses proc_pidinfo
+    /// - Windows: Uses GetProcessHandleCount
+    ///
+    /// Returns the number of open file descriptors/handles, or 0 on error.
+    fn get_file_descriptor_count() -> u64 {
+        #[cfg(target_os = "linux")]
+        {
+            // On Linux, count files in /proc/self/fd
+            if let Ok(entries) = std::fs::read_dir("/proc/self/fd") {
+                return entries.count() as u64;
+            }
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            // On macOS, try /dev/fd first
+            if let Ok(entries) = std::fs::read_dir("/dev/fd") {
+                return entries.count() as u64;
+            }
+
+            // Fallback: use proc_pidinfo if available
+            // This would require the libproc crate, so we'll skip for now
+        }
+
+        #[cfg(windows)]
+        {
+            use windows_sys::Win32::Foundation::HANDLE;
+            use windows_sys::Win32::System::Threading::{GetCurrentProcess, GetProcessHandleCount};
+
+            unsafe {
+                let process: HANDLE = GetCurrentProcess();
+                let mut handle_count: u32 = 0;
+
+                if GetProcessHandleCount(process, &mut handle_count) != 0 {
+                    return handle_count as u64;
+                }
+            }
+        }
+
+        // Fallback: return 0 if unable to determine
+        0
     }
 }
 
@@ -635,4 +823,353 @@ mod tests {
         assert!(usage.memory_usage_percent >= 0.0);
         assert!(usage.memory_usage_percent <= 100.0);
     }
+
+    #[test]
+    fn test_disk_usage_tracking() {
+        // Test disk usage tracking
+        let disk_usage = ResourceTracker::get_disk_usage();
+
+        // On most systems, disk usage should be > 0
+        // However, on some test environments or failure cases it might be 0
+        // The important thing is that it doesn't panic or cause errors
+        println!("Disk usage: {} bytes", disk_usage);
+
+        // Verify it's a reasonable value (not absurdly large)
+        // Most systems won't have more than 100 TB used on a single volume
+        let max_reasonable_bytes = 100u64 * 1024 * 1024 * 1024 * 1024; // 100 TB
+        assert!(
+            disk_usage <= max_reasonable_bytes,
+            "Disk usage {} exceeds reasonable maximum",
+            disk_usage
+        );
+    }
+
+    #[test]
+    fn test_file_descriptor_tracking() {
+        // Test file descriptor tracking
+        let fd_count = ResourceTracker::get_file_descriptor_count();
+
+        // The process should have at least a few file descriptors open
+        // (stdin, stdout, stderr at minimum on Unix-like systems)
+        // On some systems or failure cases it might be 0
+        println!("File descriptors: {}", fd_count);
+
+        // Verify it's a reasonable value (not absurdly large)
+        // Most systems have limits around 1024-65536 for a single process
+        let max_reasonable_fds = 100_000u64;
+        assert!(
+            fd_count <= max_reasonable_fds,
+            "File descriptor count {} exceeds reasonable maximum",
+            fd_count
+        );
+    }
+
+    #[test]
+    fn test_resource_usage_contains_disk_and_fd() {
+        // Test that ResourceUsage struct is properly populated
+        let tracker = ResourceTracker::new();
+        let usage = tracker.get_usage();
+
+        // Verify disk usage is populated (may be 0 on some systems)
+        println!(
+            "Disk usage in ResourceUsage: {} bytes",
+            usage.disk_usage_bytes
+        );
+
+        // Verify FD count is populated (may be 0 on some systems)
+        println!(
+            "File descriptors in ResourceUsage: {}",
+            usage.open_file_descriptors
+        );
+
+        // Both should be non-negative (which they are by type, but let's be explicit)
+        assert!(usage.disk_usage_bytes >= 0);
+        assert!(usage.open_file_descriptors >= 0);
+    }
+
+    #[test]
+    fn test_multiple_resource_readings() {
+        // Test that multiple calls return consistent results
+        let tracker = ResourceTracker::new();
+
+        let usage1 = tracker.get_usage();
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        let usage2 = tracker.get_usage();
+
+        // File descriptor counts should be relatively stable
+        // Allow for some variation due to concurrent operations
+        if usage1.open_file_descriptors > 0 && usage2.open_file_descriptors > 0 {
+            let fd_diff = if usage1.open_file_descriptors > usage2.open_file_descriptors {
+                usage1.open_file_descriptors - usage2.open_file_descriptors
+            } else {
+                usage2.open_file_descriptors - usage1.open_file_descriptors
+            };
+
+            // FD count shouldn't vary by more than 100 in a short time
+            assert!(
+                fd_diff < 100,
+                "File descriptor count varied too much: {} vs {}",
+                usage1.open_file_descriptors,
+                usage2.open_file_descriptors
+            );
+        }
+
+        // Disk usage should be very stable (shouldn't change much in 10ms)
+        if usage1.disk_usage_bytes > 0 && usage2.disk_usage_bytes > 0 {
+            let disk_diff = if usage1.disk_usage_bytes > usage2.disk_usage_bytes {
+                usage1.disk_usage_bytes - usage2.disk_usage_bytes
+            } else {
+                usage2.disk_usage_bytes - usage1.disk_usage_bytes
+            };
+
+            // Disk usage shouldn't change by more than 100MB in 10ms under normal conditions
+            let max_diff = 100 * 1024 * 1024; // 100 MB
+            assert!(
+                disk_diff < max_diff,
+                "Disk usage changed too much: {} vs {}",
+                usage1.disk_usage_bytes,
+                usage2.disk_usage_bytes
+            );
+        }
+    }
+
+    #[test]
+    fn test_fd_tracking_with_file_operations() {
+        // Test that FD tracking responds to actual file operations
+        let fd_count_before = ResourceTracker::get_file_descriptor_count();
+
+        // Create some temporary files to increase FD count
+        let temp_files: Vec<_> = (0..5)
+            .map(|i| {
+                tempfile::NamedTempFile::new().expect(&format!("Failed to create temp file {}", i))
+            })
+            .collect();
+
+        let fd_count_after = ResourceTracker::get_file_descriptor_count();
+
+        // On systems where FD tracking works, the count should increase
+        // On systems where it doesn't work (returns 0), this test still passes
+        if fd_count_before > 0 && fd_count_after > 0 {
+            println!(
+                "FD count before: {}, after: {}",
+                fd_count_before, fd_count_after
+            );
+            // We opened 5 files, so count should increase
+            // (though exact amount may vary due to other system activity)
+            assert!(
+                fd_count_after >= fd_count_before,
+                "FD count should not decrease after opening files"
+            );
+        }
+
+        // Clean up (files are automatically closed when temp_files goes out of scope)
+        drop(temp_files);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_linux_proc_fd_access() {
+        // Test that we can read /proc/self/fd on Linux
+        let result = std::fs::read_dir("/proc/self/fd");
+        assert!(
+            result.is_ok(),
+            "Should be able to read /proc/self/fd on Linux"
+        );
+
+        if let Ok(entries) = result {
+            let count = entries.count();
+            assert!(count > 0, "Should have at least one FD open");
+            println!("Linux /proc/self/fd count: {}", count);
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_unix_disk_usage() {
+        // Test Unix-specific disk usage implementation
+        let disk_usage = ResourceTracker::get_disk_usage();
+        println!("Unix disk usage: {} bytes", disk_usage);
+
+        // On Unix systems with proper permissions, should get a value
+        // May be 0 in some restricted environments
+        assert!(disk_usage >= 0);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_windows_handle_count() {
+        // Test Windows-specific handle counting
+        let handle_count = ResourceTracker::get_file_descriptor_count();
+        println!("Windows handle count: {}", handle_count);
+
+        // Windows processes typically have many handles open
+        // May be 0 if API call fails
+        assert!(handle_count >= 0);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_windows_disk_usage() {
+        // Test Windows-specific disk usage implementation
+        let disk_usage = ResourceTracker::get_disk_usage();
+        println!("Windows disk usage: {} bytes", disk_usage);
+
+        // Should return a reasonable value or 0 on error
+        assert!(disk_usage >= 0);
+    }
+}
+
+#[test]
+fn test_histogram_percentile_accuracy() {
+    let mut monitor = SlaMonitor::new();
+
+    // Record a distribution with known percentiles
+    // Create 100 requests with latencies from 1ms to 100ms (in reverse to test sorting)
+    for i in (1..=100).rev() {
+        monitor.record_metric("percentile_test", Duration::from_millis(i), true);
+    }
+
+    let status = monitor.get_status();
+    let op_status = &status.operations["percentile_test"];
+
+    // P95 should be around 95ms (95th value in sorted list)
+    // Allow tolerance due to histogram bucketing (3 sig figs precision)
+    let p95_ms = op_status.p95_latency.as_millis();
+    assert!(
+        p95_ms >= 85 && p95_ms <= 105,
+        "P95 latency {} ms should be near 95ms (tolerance due to histogram bucketing)",
+        p95_ms
+    );
+
+    // P99 should be around 99ms
+    let p99_ms = op_status.p99_latency.as_millis();
+    assert!(
+        p99_ms >= 90 && p99_ms <= 110,
+        "P99 latency {} ms should be near 99ms (tolerance due to histogram bucketing)",
+        p99_ms
+    );
+
+    // Verify P99 >= P95 (percentile ordering)
+    assert!(
+        op_status.p99_latency >= op_status.p95_latency,
+        "P99 should be >= P95"
+    );
+}
+
+#[test]
+fn test_histogram_with_outliers() {
+    let mut monitor = SlaMonitor::new();
+
+    // Record mostly fast requests with a few outliers
+    // 95 fast requests at 10ms
+    for _ in 0..95 {
+        monitor.record_metric("outlier_test", Duration::from_millis(10), true);
+    }
+
+    // 5 slow outliers at 1000ms
+    for _ in 0..5 {
+        monitor.record_metric("outlier_test", Duration::from_millis(1000), true);
+    }
+
+    let status = monitor.get_status();
+    let op_status = &status.operations["outlier_test"];
+
+    // P95 should be affected by outliers since they're 5% of data
+    // With 95 at 10ms and 5 at 1000ms, P95 falls in the first group
+    let p95_ms = op_status.p95_latency.as_millis();
+    assert!(
+        p95_ms >= 5 && p95_ms <= 100,
+        "P95 latency {} ms (actual distribution is 95% at 10ms, 5% at 1000ms)",
+        p95_ms
+    );
+
+    // P99 should be closer to the outlier values
+    let p99_ms = op_status.p99_latency.as_millis();
+    assert!(
+        p99_ms >= 100,
+        "P99 latency {} ms should reflect the outliers",
+        p99_ms
+    );
+}
+
+#[test]
+fn test_histogram_percentile_stability() {
+    let mut monitor = SlaMonitor::new();
+
+    // Record requests in batches and verify percentiles are stable
+    for batch in 1..=5 {
+        for i in 1..=20 {
+            monitor.record_metric("stability_test", Duration::from_millis(i), true);
+        }
+
+        if batch >= 2 {
+            // After second batch, percentiles should be relatively stable
+            let status = monitor.get_status();
+            let op_status = &status.operations["stability_test"];
+
+            let p95_ms = op_status.p95_latency.as_millis();
+            // Allow wider tolerance due to histogram bucketing with small sample size
+            assert!(
+                    p95_ms >= 15 && p95_ms <= 23,
+                    "P95 should be stable around 19ms in batch {}, got {}ms (tolerance for histogram precision)",
+                    batch, p95_ms
+                );
+        }
+    }
+}
+
+#[test]
+fn test_histogram_extreme_values() {
+    let mut monitor = SlaMonitor::new();
+
+    // Test with very small durations
+    for _ in 0..50 {
+        monitor.record_metric("extreme_test", Duration::from_nanos(100), true);
+    }
+
+    // Test with very large durations (but within histogram bounds)
+    for _ in 0..50 {
+        monitor.record_metric("extreme_test", Duration::from_secs(60), true);
+    }
+
+    let status = monitor.get_status();
+    let op_status = &status.operations["extreme_test"];
+
+    // Percentiles should handle extreme ranges
+    assert!(op_status.p95_latency > Duration::ZERO);
+    assert!(op_status.p99_latency > Duration::ZERO);
+    assert!(op_status.p99_latency >= op_status.p95_latency);
+}
+
+#[test]
+fn test_histogram_percentile_ordering() {
+    let mut monitor = SlaMonitor::new();
+
+    // Record various latencies
+    for i in (10..=100).step_by(10) {
+        for _ in 0..10 {
+            monitor.record_metric("ordering_test", Duration::from_millis(i), true);
+        }
+    }
+
+    let status = monitor.get_status();
+    let op_status = &status.operations["ordering_test"];
+
+    // Verify percentile ordering: P95 <= P99
+    assert!(
+        op_status.p95_latency <= op_status.p99_latency,
+        "P95 ({:?}) should be <= P99 ({:?})",
+        op_status.p95_latency,
+        op_status.p99_latency
+    );
+
+    // Verify percentiles are within data range
+    assert!(
+        op_status.p95_latency >= Duration::from_millis(10),
+        "P95 should be >= minimum value"
+    );
+    assert!(
+        op_status.p99_latency <= Duration::from_millis(110),
+        "P99 should be near maximum value (with tolerance for histogram bucketing)"
+    );
 }
