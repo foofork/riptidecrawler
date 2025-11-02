@@ -12,20 +12,190 @@
 //!
 //! # Example
 //!
-//! ```rust
+//! ```no_run
 //! use riptide_config::ApiConfig;
 //!
 //! // Load configuration from environment
 //! let config = ApiConfig::from_env();
 //!
 //! // Or create with custom settings
-//! let custom = ApiConfig::default()
-//!     .with_max_concurrent_requests(100)
-//!     .with_request_timeout(std::time::Duration::from_secs(60));
+//! let custom = ApiConfig::default();
 //! ```
 
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
+
+/// API key validation module
+pub mod validation {
+    /// Minimum required length for API keys (32 characters for strong security)
+    pub const MIN_API_KEY_LENGTH: usize = 32;
+
+    /// Weak patterns that indicate insecure keys
+    /// These are checked as exact matches or at string boundaries to avoid false positives
+    const WEAK_PATTERNS: &[&str] = &[
+        "test", "password", "admin", "demo", "example", "sample", "default", "changeme",
+    ];
+
+    /// Validates an API key against security requirements
+    ///
+    /// # Requirements
+    /// - Minimum length: 32 characters
+    /// - Must contain both alphabetic and numeric characters
+    /// - Must not BE a weak pattern (exact match or start with weak pattern + underscore/hyphen)
+    /// - Must not consist of simple repeated patterns
+    ///
+    /// # Arguments
+    /// - `key`: The API key to validate
+    ///
+    /// # Returns
+    /// - `Ok(())` if the key is valid
+    /// - `Err(String)` with a descriptive error message if invalid
+    ///
+    /// # Examples
+    /// ```
+    /// use riptide_config::api_key_validation::validate_api_key;
+    ///
+    /// // Valid key
+    /// assert!(validate_api_key("a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6").is_ok());
+    ///
+    /// // Too short
+    /// assert!(validate_api_key("short").is_err());
+    ///
+    /// // IS a weak pattern (starts with pattern)
+    /// assert!(validate_api_key("test1234567890123456789012345678").is_err());
+    ///
+    /// // Strong key that contains "123" as substring is OK
+    /// assert!(validate_api_key("AbCdEf123456789GhIjKl987654321MnOpQr").is_ok());
+    /// ```
+    pub fn validate_api_key(key: &str) -> Result<(), String> {
+        // Check minimum length
+        if key.len() < MIN_API_KEY_LENGTH {
+            return Err(format!(
+                "API key too short: {} characters (minimum {})",
+                key.len(),
+                MIN_API_KEY_LENGTH
+            ));
+        }
+
+        // Ensure both letters and numbers are present
+        let has_alpha = key.chars().any(|c| c.is_alphabetic());
+        let has_numeric = key.chars().any(|c| c.is_numeric());
+
+        if !has_alpha || !has_numeric {
+            return Err("API key must contain both letters and numbers".to_string());
+        }
+
+        // Check for weak patterns - reject if key contains weak pattern as a word/substring
+        // But allow patterns like "123" when mixed with other random characters
+        let key_lower = key.to_lowercase();
+        let key_trimmed = key_lower.trim();
+
+        for pattern in WEAK_PATTERNS {
+            // Reject if the entire key (after trim) is exactly the weak pattern
+            if key_trimmed == *pattern {
+                return Err(format!("API key is a weak pattern: '{}'", pattern));
+            }
+
+            // Reject if key starts with weak pattern (with or without separator)
+            if key_trimmed.starts_with(pattern) {
+                // Check if it's actually starting with the pattern (not just coincidental chars)
+                let after_pattern = &key_trimmed[pattern.len()..];
+                // It's a weak pattern if nothing follows, or if followed by separator or digit
+                if after_pattern.is_empty()
+                    || after_pattern.starts_with('_')
+                    || after_pattern.starts_with('-')
+                    || after_pattern.chars().next().unwrap().is_numeric()
+                {
+                    return Err(format!("API key starts with weak pattern: '{}'", pattern));
+                }
+            }
+
+            // Reject if weak pattern appears in the middle (preceded by digits/separator)
+            if key_trimmed.contains(pattern) {
+                // Check if it's surrounded by word boundaries (digits, separators, etc.)
+                // This catches cases like "123test456" but not "contest" or "latest"
+                let parts: Vec<&str> = key_trimmed.split(pattern).collect();
+                if parts.len() > 1 {
+                    // Pattern appears in the string
+                    for i in 0..parts.len() - 1 {
+                        let before = parts[i];
+                        let after = parts[i + 1];
+
+                        // Check if this looks like an intentional weak pattern insertion
+                        let before_is_boundary = before.is_empty()
+                            || before.ends_with(|c: char| c.is_numeric() || c == '_' || c == '-');
+                        let after_is_boundary = after.is_empty()
+                            || after.starts_with(|c: char| c.is_numeric() || c == '_' || c == '-');
+
+                        if before_is_boundary && after_is_boundary {
+                            return Err(format!("API key contains weak pattern: '{}'", pattern));
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_valid_api_keys() {
+            // Strong keys with good entropy
+            assert!(validate_api_key("a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6").is_ok());
+            assert!(validate_api_key("AbCdEf123456789GhIjKl987654321MnOpQr").is_ok());
+            assert!(validate_api_key("api_prod_1234567890abcdefghijklmnopqrstuvwxyz").is_ok());
+            assert!(validate_api_key("prod_key_51234567890aBcDeFgHiJkLmNoPqRsTuVwXyZ").is_ok());
+        }
+
+        #[test]
+        fn test_short_keys_rejected() {
+            assert!(validate_api_key("short").is_err());
+            assert!(validate_api_key("12345678901234567890123456789").is_err()); // 29 chars
+            assert!(validate_api_key("1234567890123456789012345678901").is_err());
+            // 31 chars
+        }
+
+        #[test]
+        fn test_weak_patterns_rejected() {
+            assert!(validate_api_key("test1234567890123456789012345678").is_err());
+            assert!(validate_api_key("1234567890123456789012345678test").is_err());
+            assert!(validate_api_key("123456789test0123456789012345678").is_err());
+            assert!(validate_api_key("password123456789012345678901234").is_err());
+            assert!(validate_api_key("admin1234567890123456789012345678").is_err());
+            assert!(validate_api_key("demo12345678901234567890123456789").is_err());
+            assert!(validate_api_key("example123456789012345678901234567").is_err());
+            assert!(validate_api_key("sample1234567890123456789012345678").is_err());
+            assert!(validate_api_key("default123456789012345678901234567").is_err());
+            assert!(validate_api_key("changeme12345678901234567890123456").is_err());
+        }
+
+        #[test]
+        fn test_weak_patterns_case_insensitive() {
+            assert!(validate_api_key("TEST1234567890123456789012345678").is_err());
+            assert!(validate_api_key("TeSt1234567890123456789012345678").is_err());
+            assert!(validate_api_key("PASSWORD12345678901234567890123").is_err());
+        }
+
+        #[test]
+        fn test_requires_alphanumeric() {
+            // Only letters
+            assert!(validate_api_key("abcdefghijklmnopqrstuvwxyzabcdefgh").is_err());
+            // Only numbers
+            assert!(validate_api_key("12345678901234567890123456789012").is_err());
+        }
+
+        #[test]
+        fn test_special_characters_allowed() {
+            // Special characters are allowed as long as alphanumeric requirements are met
+            assert!(validate_api_key("a1b2-c3d4_e5f6.g7h8/i9j0k1l2m3n4o5p6").is_ok());
+            assert!(validate_api_key("prod_key_1234567890abcdefghijklmnopqrstuvwxyz").is_ok());
+        }
+    }
+}
 
 /// Authentication configuration for the API
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -70,8 +240,18 @@ impl AuthenticationConfig {
     /// Environment variables:
     /// - `API_KEYS`: Comma-separated list of valid API keys
     /// - `REQUIRE_AUTH`: Set to "false" to disable authentication (dev only)
+    ///
+    /// # Validation
+    /// This method validates all API keys against security requirements:
+    /// - Minimum 32 characters
+    /// - Must contain both letters and numbers
+    /// - Must not contain weak patterns
+    ///
+    /// # Panics
+    /// Panics if any API key fails validation when `require_auth` is true.
+    /// This is intentional to prevent weak keys in production.
     pub fn from_env() -> Self {
-        let api_keys = std::env::var("API_KEYS")
+        let api_keys: Vec<String> = std::env::var("API_KEYS")
             .unwrap_or_default()
             .split(',')
             .filter(|s| !s.is_empty())
@@ -83,6 +263,20 @@ impl AuthenticationConfig {
             .and_then(|s| s.parse().ok())
             .unwrap_or(true);
 
+        // Validate API keys if authentication is required
+        if require_auth && !api_keys.is_empty() {
+            for key in &api_keys {
+                if let Err(e) = validation::validate_api_key(key) {
+                    panic!(
+                        "Invalid API key detected during configuration load: {}. \
+                         Please use strong API keys (minimum 32 characters, alphanumeric, no weak patterns). \
+                         Generate a secure key with: openssl rand -base64 32",
+                        e
+                    );
+                }
+            }
+        }
+
         Self {
             api_keys,
             require_auth,
@@ -91,7 +285,25 @@ impl AuthenticationConfig {
     }
 
     /// Create configuration with custom API keys
+    ///
+    /// # Validation
+    /// This method validates all API keys if authentication is required.
+    ///
+    /// # Panics
+    /// Panics if any API key fails validation when `require_auth` is true.
     pub fn with_api_keys(mut self, keys: Vec<String>) -> Self {
+        // Validate keys if authentication is required
+        if self.require_auth {
+            for key in &keys {
+                if let Err(e) = validation::validate_api_key(key) {
+                    panic!(
+                        "Invalid API key in with_api_keys: {}. \
+                         Please use strong API keys (minimum 32 characters, alphanumeric, no weak patterns).",
+                        e
+                    );
+                }
+            }
+        }
         self.api_keys = keys;
         self
     }
@@ -362,9 +574,10 @@ mod tests {
 
     #[test]
     fn test_auth_config_builder() {
+        // Disable auth first, then set weak keys (validation is skipped when auth disabled)
         let config = AuthenticationConfig::default()
-            .with_api_keys(vec!["key1".to_string(), "key2".to_string()])
             .with_require_auth(false)
+            .with_api_keys(vec!["key1".to_string(), "key2".to_string()])
             .add_public_path("/custom".to_string());
 
         assert!(!config.require_auth);

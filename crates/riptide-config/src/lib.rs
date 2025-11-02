@@ -35,6 +35,9 @@ mod validation;
 // Re-export main types
 pub use api::{ApiConfig, AuthenticationConfig, CustomRateLimit, RateLimitConfig, RequestConfig};
 
+// Re-export api validation submodule separately to avoid conflicts
+pub use api::validation as api_key_validation;
+
 pub use builder::{
     BuilderError, BuilderResult, ConfigBuilder, ConfigValidator, ConfigValue, DefaultConfigBuilder,
     ValidationPatterns,

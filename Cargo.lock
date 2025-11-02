@@ -6524,6 +6524,7 @@ dependencies = [
  "serial_test",
  "spider_chrome",
  "spider_chromiumoxide_cdp",
+ "subtle",
  "sysinfo",
  "tempfile",
  "thiserror 1.0.69",

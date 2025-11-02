@@ -74,6 +74,7 @@ base64 = "0.22"
 hex = "0.4"
 dashmap = { workspace = true }
 serde_urlencoded = "0.7.1"
+subtle = "2.5"
 
 # jemalloc allocator for memory profiling (non-MSVC only)
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
