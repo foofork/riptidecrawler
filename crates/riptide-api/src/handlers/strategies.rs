@@ -6,7 +6,7 @@ use axum::{
     extract::{Query, State},
     response::Json,
 };
-use riptide_extraction::strategies::{ExtractionStrategy, StrategyConfig};
+use riptide_extraction::strategies::{ExtractionStrategyType, StrategyConfig};
 use riptide_types::config::CrawlOptions;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -299,7 +299,7 @@ fn build_strategy_config(
     _params: &StrategiesQueryParams,
 ) -> ApiResult<StrategyConfig> {
     // Core only supports WASM extraction strategy
-    let extraction = ExtractionStrategy::Wasm;
+    let extraction = ExtractionStrategyType::Wasm;
 
     // TODO: Use css_selectors, regex_patterns, llm_config when those strategies are implemented
     let _ = (

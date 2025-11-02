@@ -2,7 +2,7 @@ use crate::errors::{ApiError, ApiResult};
 use crate::state::AppState;
 use reqwest::Response;
 use riptide_extraction::strategies::{
-    ExtractionStrategy, PerformanceMetrics, ProcessedContent, StrategyConfig, StrategyManager,
+    ExtractionStrategyType, PerformanceMetrics, ProcessedContent, StrategyConfig, StrategyManager,
 };
 use riptide_fetch as fetch;
 use riptide_pdf::{self as pdf, utils as pdf_utils};
@@ -300,7 +300,7 @@ impl StrategiesPipelineOrchestrator {
         if let Ok(parsed_url) = Url::parse(url) {
             if let Some(_host) = parsed_url.host_str() {
                 // Website-specific strategy optimization
-                config.extraction = ExtractionStrategy::Wasm;
+                config.extraction = ExtractionStrategyType::Wasm;
             }
         }
 

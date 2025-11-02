@@ -2,8 +2,11 @@ use anyhow::{anyhow, Result};
 use reqwest::Client;
 use riptide_headless::dynamic::{DynamicConfig, DynamicRenderResult, PageAction, RenderArtifacts};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
+
+use crate::rpc_session_context::{RpcSessionContext, RpcSessionStore, SessionMetrics};
 
 /// RPC v2 client for communicating with headless browser service
 #[derive(Clone)]
@@ -11,6 +14,8 @@ pub struct RpcClient {
     client: Client,
     base_url: String,
     timeout: Duration,
+    /// Optional session store for stateful rendering
+    session_store: Option<Arc<RpcSessionStore>>,
 }
 
 impl Default for RpcClient {
@@ -26,6 +31,7 @@ impl RpcClient {
             client: Client::new(),
             base_url: "http://localhost:9123".to_string(),
             timeout: Duration::from_secs(3), // Hard cap as per requirements
+            session_store: None,
         }
     }
 
@@ -35,7 +41,63 @@ impl RpcClient {
             client: Client::new(),
             base_url,
             timeout: Duration::from_secs(3),
+            session_store: None,
         }
+    }
+
+    /// Create a new RPC client with session management enabled
+    pub fn with_session_store(base_url: String, session_store: Arc<RpcSessionStore>) -> Self {
+        Self {
+            client: Client::new(),
+            base_url,
+            timeout: Duration::from_secs(3),
+            session_store: Some(session_store),
+        }
+    }
+
+    /// Enable session management for this client
+    pub fn enable_sessions(mut self) -> Self {
+        self.session_store = Some(Arc::new(RpcSessionStore::new()));
+        self
+    }
+
+    /// Get session store if available
+    pub fn session_store(&self) -> Option<&Arc<RpcSessionStore>> {
+        self.session_store.as_ref()
+    }
+
+    /// Get or create session context
+    pub fn get_or_create_session(&self, session_id: &str) -> Option<RpcSessionContext> {
+        self.session_store
+            .as_ref()
+            .map(|store| store.get_or_create(session_id))
+    }
+
+    /// Get existing session context
+    pub fn get_session(&self, session_id: &str) -> Option<RpcSessionContext> {
+        self.session_store
+            .as_ref()
+            .and_then(|store| store.get(session_id))
+    }
+
+    /// Update session context
+    pub fn update_session(&self, session: RpcSessionContext) -> Result<()> {
+        match &self.session_store {
+            Some(store) => store.update(session),
+            None => Err(anyhow!("Session store not initialized")),
+        }
+    }
+
+    /// Remove session
+    pub fn remove_session(&self, session_id: &str) -> Option<RpcSessionContext> {
+        self.session_store
+            .as_ref()
+            .and_then(|store| store.remove(session_id))
+    }
+
+    /// Get session metrics
+    pub fn get_session_metrics(&self) -> Option<SessionMetrics> {
+        self.session_store.as_ref().map(|store| store.get_metrics())
     }
 
     /// Render a page with dynamic configuration
@@ -60,10 +122,30 @@ impl RpcClient {
     ) -> Result<DynamicRenderResult> {
         let start_time = Instant::now();
 
+        // Get or create session context if session store is enabled
+        let mut session_context: Option<RpcSessionContext> =
+            if let (Some(sid), Some(store)) = (session_id, &self.session_store) {
+                Some(store.get_or_create(sid))
+            } else {
+                None
+            };
+
+        // Check request limit if session exists
+        if let Some(ref ctx) = session_context {
+            if ctx.is_request_limit_reached() {
+                return Err(anyhow!(
+                    "Session request limit reached: {}/{}",
+                    ctx.state.request_count,
+                    ctx.config.max_requests
+                ));
+            }
+        }
+
         info!(
             url = %url,
             session_id = ?session_id,
             has_user_data_dir = user_data_dir.is_some(),
+            has_session_context = session_context.is_some(),
             "Starting dynamic render via RPC v2 with session context"
         );
 
@@ -134,6 +216,25 @@ impl RpcClient {
             html_size = result.html.len(),
             "Dynamic render completed successfully"
         );
+
+        // Update session context if enabled
+        if let Some(ref mut ctx) = session_context {
+            ctx.record_request(url, render_time_ms);
+            if let Err(e) = self.update_session(ctx.clone()) {
+                warn!(
+                    session_id = ?session_id,
+                    error = %e,
+                    "Failed to update session context after successful render"
+                );
+            } else {
+                debug!(
+                    session_id = ?session_id,
+                    request_count = ctx.state.request_count,
+                    avg_render_time_ms = ctx.state.avg_render_time_ms,
+                    "Session context updated successfully"
+                );
+            }
+        }
 
         Ok(result)
     }

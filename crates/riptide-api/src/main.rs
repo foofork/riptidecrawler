@@ -12,6 +12,7 @@ mod reliability_integration;
 mod resource_manager;
 mod routes;
 mod rpc_client;
+mod rpc_session_context;
 mod sessions;
 mod state;
 mod strategies_pipeline;

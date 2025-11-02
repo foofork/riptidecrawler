@@ -17,14 +17,12 @@
 
 // Extraction module moved to riptide-extraction
 // pub mod extraction;
+pub mod compatibility;
 pub mod implementations;
+pub mod manager;
 pub mod metadata;
 pub mod performance;
 pub mod traits;
-// Temporarily disabled for testing trait system
-// pub mod spider_implementations;
-pub mod compatibility;
-pub mod manager;
 
 // New extraction strategies
 pub mod css_strategy;
@@ -38,14 +36,12 @@ mod tests;
 
 // Re-export core extraction functionality
 // pub use extraction::trek; // Moved to riptide-extraction
+pub use compatibility::*;
 pub use implementations::*;
+pub use manager::*;
 pub use metadata::*;
 pub use performance::*;
 pub use traits::*;
-// Temporarily disabled for testing trait system
-// pub use spider_implementations::*;
-pub use compatibility::*;
-pub use manager::*;
 
 // Re-export new strategies
 pub use css_strategy::CssSelectorStrategy;
@@ -61,7 +57,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct StrategyConfig {
     /// Extraction strategy to use (core only supports Trek)
-    pub extraction: ExtractionStrategy,
+    pub extraction: ExtractionStrategyType,
     /// Performance tracking enabled
     pub enable_metrics: bool,
     /// Schema validation enabled
@@ -71,16 +67,17 @@ pub struct StrategyConfig {
 impl Default for StrategyConfig {
     fn default() -> Self {
         Self {
-            extraction: ExtractionStrategy::Wasm,
+            extraction: ExtractionStrategyType::Wasm,
             enable_metrics: true,
             validate_schema: true,
         }
     }
 }
 
-/// Available core extraction strategies
+/// Available core extraction strategy types (enum-based configuration)
+/// Note: This is different from the ExtractionStrategy trait in traits.rs
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub enum ExtractionStrategy {
+pub enum ExtractionStrategyType {
     /// Default WASM-based extraction (fastest, core implementation)
     Wasm,
     /// CSS selector-based extraction
@@ -139,7 +136,7 @@ impl StrategyManager {
         use crate::{default_patterns, regex_extract};
 
         match &self.config.extraction {
-            ExtractionStrategy::Wasm => {
+            ExtractionStrategyType::Wasm => {
                 #[cfg(feature = "wasm-extractor")]
                 {
                     // Use extraction_strategies::WasmExtractor with Option<&str> constructor
@@ -164,7 +161,7 @@ impl StrategyManager {
                     })
                 }
             }
-            ExtractionStrategy::Css => {
+            ExtractionStrategyType::Css => {
                 #[cfg(feature = "wasm-extractor")]
                 {
                     // Temporarily fallback to WASM until CssSelectorStrategy trait is implemented
@@ -187,7 +184,7 @@ impl StrategyManager {
                     })
                 }
             }
-            ExtractionStrategy::Regex => {
+            ExtractionStrategyType::Regex => {
                 // Use regex extraction from this crate
                 let patterns = default_patterns();
                 let html_result = regex_extract(html, url, &patterns).await?;
@@ -202,7 +199,7 @@ impl StrategyManager {
                     extraction_confidence: html_result.extraction_confidence,
                 })
             }
-            ExtractionStrategy::Auto => {
+            ExtractionStrategyType::Auto => {
                 #[cfg(feature = "wasm-extractor")]
                 {
                     // Auto-detect best strategy - temporarily simplified to use WASM only

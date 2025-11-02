@@ -23,7 +23,6 @@ pub struct EnhancedStrategyManager {
     /// Default extraction strategy name
     default_extraction: String,
     /// Default spider strategy name
-    #[cfg(feature = "spider")]
     default_spider: String,
     /// Performance metrics collection
     metrics: Arc<RwLock<PerformanceMetrics>>,
@@ -83,7 +82,7 @@ impl EnhancedStrategyManager {
         Self {
             registry,
             default_extraction: "wasm".to_string(),
-            #[cfg(feature = "spider")]
+
             default_spider: "breadth_first".to_string(),
             metrics: Arc::new(RwLock::new(PerformanceMetrics::new())),
             config,
@@ -97,7 +96,7 @@ impl EnhancedStrategyManager {
         Self {
             registry,
             default_extraction: "wasm".to_string(),
-            #[cfg(feature = "spider")]
+
             default_spider: "breadth_first".to_string(),
             metrics: Arc::new(RwLock::new(PerformanceMetrics::new())),
             config,
@@ -124,7 +123,7 @@ impl EnhancedStrategyManager {
     }
 
     /// Set default spider strategy
-    #[cfg(feature = "spider")]
+
     pub fn set_default_spider(&mut self, strategy_name: String) {
         self.default_spider = strategy_name;
     }
@@ -175,7 +174,7 @@ impl EnhancedStrategyManager {
         let metrics = if self.config.enable_metrics {
             let mut metrics = self.metrics.write().await;
             metrics.record_extraction(
-                &crate::strategies::ExtractionStrategy::Wasm, // Convert to enum for compatibility
+                &crate::strategies::ExtractionStrategyType::Wasm, // Convert to enum for compatibility
                 processing_time,
                 extraction_result.content.content.len(),
                 0, // No chunks in core
@@ -245,10 +244,7 @@ impl EnhancedStrategyManager {
                 .into_iter()
                 .map(|name| name.to_string())
                 .collect(),
-            #[cfg(feature = "spider")]
             spider: self.registry.read().await.list_spider_strategies(),
-            #[cfg(not(feature = "spider"))]
-            spider: Vec::new(),
         }
     }
 
@@ -323,7 +319,7 @@ pub struct EnhancedStrategyManagerBuilder {
     config: StrategyManagerConfig,
     registry: Option<StrategyRegistry>,
     default_extraction: Option<String>,
-    #[cfg(feature = "spider")]
+
     default_spider: Option<String>,
 }
 
@@ -333,7 +329,7 @@ impl EnhancedStrategyManagerBuilder {
             config: StrategyManagerConfig::default(),
             registry: None,
             default_extraction: None,
-            #[cfg(feature = "spider")]
+
             default_spider: None,
         }
     }
@@ -353,7 +349,6 @@ impl EnhancedStrategyManagerBuilder {
         self
     }
 
-    #[cfg(feature = "spider")]
     pub fn with_default_spider(mut self, strategy: String) -> Self {
         self.default_spider = Some(strategy);
         self
@@ -370,7 +365,6 @@ impl EnhancedStrategyManagerBuilder {
             manager.set_default_extraction(extraction);
         }
 
-        #[cfg(feature = "spider")]
         if let Some(spider) = self.default_spider {
             manager.set_default_spider(spider);
         }

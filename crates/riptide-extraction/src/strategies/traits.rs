@@ -12,12 +12,40 @@ use std::sync::Arc;
 // Re-export traits and types
 pub use riptide_types::ExtractionResult as RiptideExtractionResult;
 
-// Import spider types from riptide-spider crate (only when spider feature enabled)
-#[cfg(feature = "spider")]
-pub use riptide_spider::{CrawlRequest, CrawlResult, Priority};
-
 // Re-export ExtractionQuality and ExtractedContent for local use
 pub use riptide_types::{ExtractedContent, ExtractionQuality};
+
+// Spider types for the SpiderStrategy trait interface
+// These are simple type definitions. Actual implementations of SpiderStrategy are in riptide-spider.
+
+/// Priority level for crawl requests
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum Priority {
+    Low = 0,
+    Normal = 1,
+    High = 2,
+    Critical = 3,
+}
+
+/// Request to crawl a URL
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CrawlRequest {
+    pub url: String,
+    pub priority: Priority,
+    pub depth: usize,
+    pub referrer: Option<String>,
+    pub metadata: HashMap<String, String>,
+}
+
+/// Result of a crawl operation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CrawlResult {
+    pub success: bool,
+    pub status_code: Option<u16>,
+    pub extracted_data: Option<ExtractedContent>,
+    pub discovered_urls: Vec<String>,
+    pub error: Option<String>,
+}
 
 // ============================================================================
 // TRAIT DEFINITIONS
@@ -57,7 +85,7 @@ pub trait ExtractionStrategy: Send + Sync {
 
 /// Trait for spider/crawling strategy implementations
 /// Only available when the "spider" feature is enabled
-#[cfg(feature = "spider")]
+
 #[async_trait]
 pub trait SpiderStrategy: Send + Sync {
     /// Get strategy name
@@ -159,7 +187,7 @@ pub enum ResourceTier {
 
 /// Crawl statistics
 /// Only available when the "spider" feature is enabled
-#[cfg(feature = "spider")]
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CrawlStats {
     /// Total URLs discovered
@@ -177,7 +205,7 @@ pub struct CrawlStats {
 /// Strategy registry for managing all strategy implementations
 pub struct StrategyRegistry {
     extraction_strategies: HashMap<String, Arc<dyn ExtractionStrategy>>,
-    #[cfg(feature = "spider")]
+
     spider_strategies: HashMap<String, Arc<dyn SpiderStrategy>>,
 }
 
@@ -186,7 +214,7 @@ impl StrategyRegistry {
     pub fn new() -> Self {
         Self {
             extraction_strategies: HashMap::new(),
-            #[cfg(feature = "spider")]
+
             spider_strategies: HashMap::new(),
         }
     }
@@ -199,7 +227,7 @@ impl StrategyRegistry {
 
     /// Register a spider strategy
     /// Only available when the "spider" feature is enabled
-    #[cfg(feature = "spider")]
+
     pub fn register_spider(&mut self, strategy: Arc<dyn SpiderStrategy>) {
         let name = strategy.name().to_string();
         self.spider_strategies.insert(name, strategy);
@@ -212,7 +240,7 @@ impl StrategyRegistry {
 
     /// Get spider strategy by name
     /// Only available when the "spider" feature is enabled
-    #[cfg(feature = "spider")]
+
     pub fn get_spider(&self, name: &str) -> Option<&Arc<dyn SpiderStrategy>> {
         self.spider_strategies.get(name)
     }
@@ -232,7 +260,7 @@ impl StrategyRegistry {
 
     /// List all available spider strategies
     /// Only available when the "spider" feature is enabled
-    #[cfg(feature = "spider")]
+
     pub fn list_spider_strategies(&self) -> Vec<String> {
         self.spider_strategies
             .keys()

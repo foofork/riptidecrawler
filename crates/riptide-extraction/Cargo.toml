@@ -11,14 +11,8 @@ categories = ["text-processing", "web-programming"]
 [dependencies]
 # Shared types to break circular dependency
 riptide-types = { path = "../riptide-types" }
-# Spider types for strategy traits - OPTIONAL (DISABLED BY DEFAULT)
-# WARNING: Creates circular dependency: extraction → spider → reliability → pool → extraction
-# DO NOT enable unless circular dependency is resolved
-# Only enable with "spider" feature when needed for SpiderStrategy trait
-# Current status: spider_implementations.rs is disabled, no crates use this feature
-riptide-spider = { path = "../riptide-spider", optional = true }
-# Core dependencies removed to avoid circular dependency
-# riptide-core = { path = "../riptide-core" }
+# Note: riptide-spider is NOT a dependency here to avoid circular dependency
+# Spider coordination happens at riptide-api level, not within extraction layer
 anyhow.workspace = true
 async-trait.workspace = true
 serde = { workspace = true, features = ["derive"] }
@@ -62,7 +56,6 @@ wit-bindgen = "0.16"
 [dev-dependencies]
 tokio-test = "0.4"
 tempfile.workspace = true
-# P2-F1 Day 6: riptide-core eliminated - functionality distributed to specialized crates
 futures.workspace = true
 criterion = { workspace = true }
 
@@ -74,16 +67,8 @@ dom-utils = []
 table-extraction = []
 chunking = []
 
-# Spider integration feature (OPTIONAL - NOT RECOMMENDED)
-# WARNING: Creates circular dependency and is currently non-functional
-# - Enables SpiderStrategy trait from riptide-spider crate
-# - spider_implementations.rs is disabled due to missing dependencies
-# - No crates in the codebase currently use this feature
-# - Requires architecture refactoring to break circular dependency
-# DO NOT add to default features or enable unless circular dependency is resolved
-spider = ["dep:riptide-spider", "strategy-traits"]
-
-# Strategy traits for extensibility
+# Strategy traits for extensibility (SpiderStrategy trait is defined but implementations
+# are in riptide-spider to avoid circular dependency)
 strategy-traits = []
 
 # JSON-LD optimization
