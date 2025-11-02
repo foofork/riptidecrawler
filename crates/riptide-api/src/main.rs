@@ -538,7 +538,7 @@ async fn main() -> anyhow::Result<()> {
     );
 
     // Clone app_state for shutdown handler
-    let shutdown_state = app_state.clone();
+    let shutdown_state = Arc::new(app_state.clone());
 
     // Start the server
     axum::serve(listener, app)

@@ -85,15 +85,15 @@ struct ComponentMemory {
 
 /// Leak detection configuration
 #[derive(Debug, Clone)]
-struct LeakDetectionConfig {
+pub struct LeakDetectionConfig {
     /// Growth threshold percentage (default: 5%)
-    growth_threshold: f64,
+    pub growth_threshold: f64,
     /// Time window in seconds (default: 600 = 10 minutes)
-    time_window_secs: u64,
+    pub time_window_secs: u64,
     /// Maximum history samples to keep
-    max_history_samples: usize,
+    pub max_history_samples: usize,
     /// Minimum allocations to consider as leak candidate
-    min_allocations_for_leak: u64,
+    pub min_allocations_for_leak: u64,
 }
 
 impl Default for LeakDetectionConfig {
@@ -133,7 +133,7 @@ pub struct LeakCandidate {
 }
 
 /// Leak severity classification
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize)]
 pub enum LeakSeverity {
     Low,
     Medium,
@@ -430,7 +430,7 @@ impl Default for LeakDetector {
 
 impl MemoryManager {
     /// Create a new memory manager
-    pub(crate) fn new(config: ApiConfig, metrics: Arc<ResourceMetrics>) -> Result<Self> {
+    pub fn new(config: ApiConfig, metrics: Arc<ResourceMetrics>) -> Result<Self> {
         info!(
             limit_mb = config.memory.global_memory_limit_mb,
             pressure_threshold = config.memory.pressure_threshold,
