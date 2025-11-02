@@ -1,10 +1,11 @@
-//! Memory management with pressure detection and cleanup.
+//! Memory management with pressure detection, cleanup, and leak detection.
 //!
 //! Monitors system memory usage and provides:
 //! - Memory allocation/deallocation tracking (manual and jemalloc-based)
 //! - Pressure detection based on configurable thresholds
 //! - Automatic cleanup triggers
 //! - Garbage collection coordination
+//! - Memory leak detection and reporting
 //!
 //! ## jemalloc Integration
 //!
@@ -26,13 +27,14 @@
 
 use crate::config::ApiConfig;
 use crate::resource_manager::{errors::Result, metrics::ResourceMetrics};
+use std::collections::{HashMap, VecDeque};
 use std::sync::{
     atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
-    Arc,
+    Arc, RwLock,
 };
 use tracing::{info, warn};
 
-/// Memory manager with pressure detection and cleanup
+/// Memory manager with pressure detection, cleanup, and leak detection
 ///
 /// Tracks memory allocations and triggers cleanup or GC when thresholds are exceeded.
 /// All operations are thread-safe and non-blocking.
@@ -43,6 +45,387 @@ pub struct MemoryManager {
     last_cleanup: AtomicU64,
     last_gc: AtomicU64,
     metrics: Arc<ResourceMetrics>,
+    leak_detector: Arc<LeakDetector>,
+}
+
+/// Memory leak detector
+///
+/// Tracks allocation/deallocation patterns to detect memory leaks.
+/// Thread-safe and designed for concurrent access.
+pub struct LeakDetector {
+    /// Baseline memory snapshot for comparison
+    baseline: RwLock<Option<MemorySnapshot>>,
+    /// Historical memory samples
+    history: RwLock<VecDeque<MemorySnapshot>>,
+    /// Per-component allocation tracking
+    component_tracking: RwLock<HashMap<String, ComponentMemory>>,
+    /// Leak detection configuration
+    config: LeakDetectionConfig,
+}
+
+/// Memory snapshot at a point in time
+#[derive(Debug, Clone)]
+struct MemorySnapshot {
+    timestamp: u64,
+    usage_mb: usize,
+    allocations: u64,
+    deallocations: u64,
+}
+
+/// Per-component memory tracking
+#[derive(Debug, Clone)]
+struct ComponentMemory {
+    name: String,
+    allocated_mb: usize,
+    allocation_count: u64,
+    deallocation_count: u64,
+    first_seen: u64,
+    last_updated: u64,
+}
+
+/// Leak detection configuration
+#[derive(Debug, Clone)]
+struct LeakDetectionConfig {
+    /// Growth threshold percentage (default: 5%)
+    growth_threshold: f64,
+    /// Time window in seconds (default: 600 = 10 minutes)
+    time_window_secs: u64,
+    /// Maximum history samples to keep
+    max_history_samples: usize,
+    /// Minimum allocations to consider as leak candidate
+    min_allocations_for_leak: u64,
+}
+
+impl Default for LeakDetectionConfig {
+    fn default() -> Self {
+        Self {
+            growth_threshold: 5.0,
+            time_window_secs: 600,
+            max_history_samples: 100,
+            min_allocations_for_leak: 10,
+        }
+    }
+}
+
+/// Memory leak report
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct LeakReport {
+    pub has_leaks: bool,
+    pub overall_growth_rate: f64,
+    pub growth_mb_per_minute: f64,
+    pub time_window_secs: u64,
+    pub leak_candidates: Vec<LeakCandidate>,
+    pub recommendations: Vec<String>,
+    pub baseline_mb: Option<usize>,
+    pub current_mb: usize,
+    pub timestamp: u64,
+}
+
+/// Leak candidate information
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct LeakCandidate {
+    pub component: String,
+    pub allocated_mb: usize,
+    pub net_allocations: i64,
+    pub age_secs: u64,
+    pub severity: LeakSeverity,
+    pub growth_rate: f64,
+}
+
+/// Leak severity classification
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+pub enum LeakSeverity {
+    Low,
+    Medium,
+    High,
+    Critical,
+}
+
+impl LeakDetector {
+    /// Create a new leak detector with default configuration
+    pub fn new() -> Self {
+        Self::with_config(LeakDetectionConfig::default())
+    }
+
+    /// Create a new leak detector with custom configuration
+    pub fn with_config(config: LeakDetectionConfig) -> Self {
+        info!(
+            growth_threshold = config.growth_threshold,
+            time_window_secs = config.time_window_secs,
+            "Initializing leak detector"
+        );
+
+        Self {
+            baseline: RwLock::new(None),
+            history: RwLock::new(VecDeque::with_capacity(config.max_history_samples)),
+            component_tracking: RwLock::new(HashMap::new()),
+            config,
+        }
+    }
+
+    /// Set baseline memory snapshot
+    pub fn set_baseline(&self, usage_mb: usize) {
+        let snapshot = MemorySnapshot {
+            timestamp: current_timestamp_secs(),
+            usage_mb,
+            allocations: 0,
+            deallocations: 0,
+        };
+
+        if let Ok(mut baseline) = self.baseline.write() {
+            *baseline = Some(snapshot.clone());
+            info!(baseline_mb = usage_mb, "Set memory baseline");
+        }
+
+        // Also add to history
+        if let Ok(mut history) = self.history.write() {
+            history.push_back(snapshot);
+            if history.len() > self.config.max_history_samples {
+                history.pop_front();
+            }
+        }
+    }
+
+    /// Track an allocation for a specific component
+    pub fn track_allocation(&self, component: &str, size_mb: usize) {
+        let timestamp = current_timestamp_secs();
+
+        if let Ok(mut tracking) = self.component_tracking.write() {
+            tracking
+                .entry(component.to_string())
+                .and_modify(|c| {
+                    c.allocated_mb += size_mb;
+                    c.allocation_count += 1;
+                    c.last_updated = timestamp;
+                })
+                .or_insert_with(|| ComponentMemory {
+                    name: component.to_string(),
+                    allocated_mb: size_mb,
+                    allocation_count: 1,
+                    deallocation_count: 0,
+                    first_seen: timestamp,
+                    last_updated: timestamp,
+                });
+        }
+    }
+
+    /// Track a deallocation for a specific component
+    pub fn track_deallocation(&self, component: &str, size_mb: usize) {
+        let timestamp = current_timestamp_secs();
+
+        if let Ok(mut tracking) = self.component_tracking.write() {
+            if let Some(component_mem) = tracking.get_mut(component) {
+                component_mem.allocated_mb = component_mem.allocated_mb.saturating_sub(size_mb);
+                component_mem.deallocation_count += 1;
+                component_mem.last_updated = timestamp;
+            }
+        }
+    }
+
+    /// Record a memory snapshot
+    pub fn record_snapshot(&self, usage_mb: usize) {
+        let snapshot = MemorySnapshot {
+            timestamp: current_timestamp_secs(),
+            usage_mb,
+            allocations: 0,
+            deallocations: 0,
+        };
+
+        if let Ok(mut history) = self.history.write() {
+            history.push_back(snapshot);
+            if history.len() > self.config.max_history_samples {
+                history.pop_front();
+            }
+        }
+    }
+
+    /// Detect memory leaks and generate report
+    pub fn detect_leaks(&self, current_usage_mb: usize) -> LeakReport {
+        let timestamp = current_timestamp_secs();
+        let baseline = self.baseline.read().ok().and_then(|b| b.clone());
+
+        // Calculate growth rate from history
+        let (growth_rate, growth_mb_per_min) = self.calculate_growth_rate();
+
+        // Get leak candidates from component tracking
+        let leak_candidates = self.identify_leak_candidates(timestamp);
+
+        // Determine if there are leaks
+        let has_leaks = growth_rate > self.config.growth_threshold || !leak_candidates.is_empty();
+
+        // Generate recommendations
+        let recommendations = self.generate_recommendations(growth_rate, &leak_candidates);
+
+        LeakReport {
+            has_leaks,
+            overall_growth_rate: growth_rate,
+            growth_mb_per_minute: growth_mb_per_min,
+            time_window_secs: self.config.time_window_secs,
+            leak_candidates,
+            recommendations,
+            baseline_mb: baseline.map(|b| b.usage_mb),
+            current_mb: current_usage_mb,
+            timestamp,
+        }
+    }
+
+    /// Calculate memory growth rate from history
+    fn calculate_growth_rate(&self) -> (f64, f64) {
+        let history = match self.history.read() {
+            Ok(h) => h,
+            Err(_) => return (0.0, 0.0),
+        };
+
+        if history.len() < 2 {
+            return (0.0, 0.0);
+        }
+
+        let current_time = current_timestamp_secs();
+        let time_window = self.config.time_window_secs;
+
+        // Find samples within time window
+        let recent_samples: Vec<_> = history
+            .iter()
+            .filter(|s| current_time.saturating_sub(s.timestamp) <= time_window)
+            .collect();
+
+        if recent_samples.len() < 2 {
+            return (0.0, 0.0);
+        }
+
+        let oldest = recent_samples.first().unwrap();
+        let newest = recent_samples.last().unwrap();
+
+        let time_diff_secs = newest.timestamp.saturating_sub(oldest.timestamp);
+        if time_diff_secs == 0 {
+            return (0.0, 0.0);
+        }
+
+        let usage_diff = newest.usage_mb.saturating_sub(oldest.usage_mb);
+        let growth_rate = if oldest.usage_mb > 0 {
+            (usage_diff as f64 / oldest.usage_mb as f64) * 100.0
+        } else {
+            0.0
+        };
+
+        let growth_mb_per_min = (usage_diff as f64) / (time_diff_secs as f64 / 60.0);
+
+        (growth_rate, growth_mb_per_min)
+    }
+
+    /// Identify leak candidates from component tracking
+    fn identify_leak_candidates(&self, current_time: u64) -> Vec<LeakCandidate> {
+        let tracking = match self.component_tracking.read() {
+            Ok(t) => t,
+            Err(_) => return vec![],
+        };
+
+        let mut candidates = Vec::new();
+
+        for component in tracking.values() {
+            let net_allocations =
+                component.allocation_count as i64 - component.deallocation_count as i64;
+            let age_secs = current_time.saturating_sub(component.first_seen);
+
+            // Skip if insufficient allocations
+            if component.allocation_count < self.config.min_allocations_for_leak {
+                continue;
+            }
+
+            // Calculate growth rate for this component
+            let growth_rate = if component.deallocation_count > 0 {
+                (net_allocations as f64 / component.allocation_count as f64) * 100.0
+            } else {
+                100.0 // No deallocations = 100% leak
+            };
+
+            // Determine severity
+            let severity = if component.allocated_mb > 1000 || growth_rate > 80.0 {
+                LeakSeverity::Critical
+            } else if component.allocated_mb > 500 || growth_rate > 50.0 {
+                LeakSeverity::High
+            } else if component.allocated_mb > 100 || growth_rate > 20.0 {
+                LeakSeverity::Medium
+            } else {
+                LeakSeverity::Low
+            };
+
+            // Only include if there's significant growth
+            if net_allocations > 5 || growth_rate > 10.0 {
+                candidates.push(LeakCandidate {
+                    component: component.name.clone(),
+                    allocated_mb: component.allocated_mb,
+                    net_allocations,
+                    age_secs,
+                    severity,
+                    growth_rate,
+                });
+            }
+        }
+
+        // Sort by severity and size
+        candidates.sort_by(|a, b| {
+            b.severity
+                .partial_cmp(&a.severity)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| b.allocated_mb.cmp(&a.allocated_mb))
+        });
+
+        candidates
+    }
+
+    /// Generate recommendations based on leak analysis
+    fn generate_recommendations(
+        &self,
+        growth_rate: f64,
+        candidates: &[LeakCandidate],
+    ) -> Vec<String> {
+        let mut recommendations = Vec::new();
+
+        if growth_rate > self.config.growth_threshold {
+            recommendations.push(format!(
+                "Memory growth rate of {:.2}% exceeds threshold of {:.2}%",
+                growth_rate, self.config.growth_threshold
+            ));
+            recommendations.push("Consider triggering garbage collection or cleanup".to_string());
+        }
+
+        for candidate in candidates.iter().take(3) {
+            match candidate.severity {
+                LeakSeverity::Critical => {
+                    recommendations.push(format!(
+                        "CRITICAL: Component '{}' has {} MB allocated with {:.1}% growth rate",
+                        candidate.component, candidate.allocated_mb, candidate.growth_rate
+                    ));
+                }
+                LeakSeverity::High => {
+                    recommendations.push(format!(
+                        "HIGH: Component '{}' shows high memory usage ({} MB)",
+                        candidate.component, candidate.allocated_mb
+                    ));
+                }
+                LeakSeverity::Medium => {
+                    recommendations.push(format!(
+                        "MEDIUM: Monitor component '{}' ({} MB allocated)",
+                        candidate.component, candidate.allocated_mb
+                    ));
+                }
+                LeakSeverity::Low => {}
+            }
+        }
+
+        if candidates.is_empty() && growth_rate <= self.config.growth_threshold {
+            recommendations.push("No memory leaks detected".to_string());
+        }
+
+        recommendations
+    }
+}
+
+impl Default for LeakDetector {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl MemoryManager {
@@ -62,7 +445,18 @@ impl MemoryManager {
             last_cleanup: AtomicU64::new(0),
             last_gc: AtomicU64::new(0),
             metrics,
+            leak_detector: Arc::new(LeakDetector::new()),
         })
+    }
+
+    /// Get leak detector reference
+    pub fn leak_detector(&self) -> &Arc<LeakDetector> {
+        &self.leak_detector
+    }
+
+    /// Detect memory leaks
+    pub fn detect_leaks(&self) -> LeakReport {
+        self.leak_detector.detect_leaks(self.current_usage_mb())
     }
 
     /// Track a memory allocation
@@ -80,12 +474,47 @@ impl MemoryManager {
             .memory_usage_mb
             .store(new_usage, Ordering::Relaxed);
 
+        // Track in leak detector (default component)
+        self.leak_detector.track_allocation("default", size_mb);
+        self.leak_detector.record_snapshot(new_usage);
+
         // Check for memory pressure
         if self.config.is_memory_pressure(new_usage)
             && !self.pressure_detected.swap(true, Ordering::Relaxed)
         {
             warn!(
                 current_mb = new_usage,
+                limit_mb = self.config.memory.global_memory_limit_mb,
+                threshold = self.config.memory.pressure_threshold,
+                "Memory pressure detected"
+            );
+        }
+    }
+
+    /// Track a memory allocation for a specific component
+    ///
+    /// # Arguments
+    /// * `component` - Component name for tracking
+    /// * `size_mb` - Size of allocation in megabytes
+    pub fn track_allocation_by_component(&self, component: &str, size_mb: usize) {
+        let current = self.current_usage.fetch_add(size_mb, Ordering::Relaxed);
+        let new_usage = current + size_mb;
+
+        self.metrics
+            .memory_usage_mb
+            .store(new_usage, Ordering::Relaxed);
+
+        // Track in leak detector with component name
+        self.leak_detector.track_allocation(component, size_mb);
+        self.leak_detector.record_snapshot(new_usage);
+
+        // Check for memory pressure
+        if self.config.is_memory_pressure(new_usage)
+            && !self.pressure_detected.swap(true, Ordering::Relaxed)
+        {
+            warn!(
+                current_mb = new_usage,
+                component = component,
                 limit_mb = self.config.memory.global_memory_limit_mb,
                 threshold = self.config.memory.pressure_threshold,
                 "Memory pressure detected"
@@ -107,12 +536,50 @@ impl MemoryManager {
             .memory_usage_mb
             .store(new_usage, Ordering::Relaxed);
 
+        // Track in leak detector (default component)
+        self.leak_detector.track_deallocation("default", size_mb);
+        self.leak_detector.record_snapshot(new_usage);
+
         // Update pressure status
         if !self.config.is_memory_pressure(new_usage)
             && self.pressure_detected.swap(false, Ordering::Relaxed)
         {
             info!(current_mb = new_usage, "Memory pressure cleared");
         }
+    }
+
+    /// Track a memory deallocation for a specific component
+    ///
+    /// # Arguments
+    /// * `component` - Component name for tracking
+    /// * `size_mb` - Size of deallocation in megabytes
+    pub fn track_deallocation_by_component(&self, component: &str, size_mb: usize) {
+        let current = self.current_usage.fetch_sub(size_mb, Ordering::Relaxed);
+        let new_usage = current.saturating_sub(size_mb);
+
+        self.metrics
+            .memory_usage_mb
+            .store(new_usage, Ordering::Relaxed);
+
+        // Track in leak detector with component name
+        self.leak_detector.track_deallocation(component, size_mb);
+        self.leak_detector.record_snapshot(new_usage);
+
+        // Update pressure status
+        if !self.config.is_memory_pressure(new_usage)
+            && self.pressure_detected.swap(false, Ordering::Relaxed)
+        {
+            info!(
+                current_mb = new_usage,
+                component = component,
+                "Memory pressure cleared"
+            );
+        }
+    }
+
+    /// Set memory baseline for leak detection
+    pub fn set_leak_baseline(&self) {
+        self.leak_detector.set_baseline(self.current_usage_mb());
     }
 
     /// Check if system is under memory pressure

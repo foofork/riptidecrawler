@@ -11,6 +11,7 @@
 //! - **DOM Utils**: Utilities for DOM traversal and manipulation
 //! - **Table Extraction**: Interface for extracting structured data from HTML tables
 //! - **Chunking**: Content chunking interface for processing large documents
+//! - **Parallel Extraction**: High-performance parallel batch processing with progress tracking
 //!
 //! ## Usage
 //!
@@ -179,6 +180,13 @@ pub use schema::{
 // Native HTML parser module (for headless-rendered content)
 pub mod native_parser;
 pub use native_parser::{NativeHtmlParser, ParserConfig};
+
+// Parallel extraction for batch processing
+pub mod parallel;
+pub use parallel::{
+    DocumentTask, ExtractionMetrics, ExtractionProgress, ParallelConfig, ParallelExtractionResult,
+    ParallelExtractor, ProgressCallback,
+};
 
 // Common types for extraction
 use serde::{Deserialize, Serialize};

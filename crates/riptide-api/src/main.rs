@@ -328,6 +328,11 @@ async fn main() -> anyhow::Result<()> {
             "/api/v1/memory/profile",
             get(handlers::memory::memory_profile_handler),
         )
+        // Memory leak detection endpoint
+        .route(
+            "/api/v1/memory/leaks",
+            get(handlers::resources::get_memory_leaks),
+        )
         // Fetch engine metrics endpoint
         .route("/fetch/metrics", get(handlers::fetch::get_fetch_metrics))
         .route(

@@ -26,6 +26,7 @@ pub mod provider;
 pub mod providers;
 pub mod registry;
 pub mod runtime_switch;
+pub mod smart_retry;
 pub mod tenant_isolation;
 pub mod timeout;
 
@@ -86,6 +87,7 @@ pub use registry::{LlmRegistry, ProviderConfig};
 pub use runtime_switch::{
     GradualRolloutConfig, RuntimeSwitchConfig, RuntimeSwitchManager, SwitchState,
 };
+pub use smart_retry::{RetryConfig, Retryable, SmartRetry, SmartRetryStrategy};
 pub use tenant_isolation::{RequestPermit, TenantIsolationManager, TenantState, TenantStatus};
 pub use timeout::{with_custom_timeout, with_timeout, TimeoutWrapper};
 

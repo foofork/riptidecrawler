@@ -218,6 +218,14 @@ pub async fn get_performance_status(
     }))
 }
 
+/// Get memory leak detection report
+pub async fn get_memory_leaks(
+    State(state): State<AppState>,
+) -> Result<Json<crate::resource_manager::memory_manager::LeakReport>, StatusCode> {
+    let report = state.resource_manager.memory_manager.detect_leaks();
+    Ok(Json(report))
+}
+
 /// Get PDF semaphore status
 pub async fn get_pdf_semaphore_status(
     State(state): State<AppState>,
