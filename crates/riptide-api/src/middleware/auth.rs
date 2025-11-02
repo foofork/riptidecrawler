@@ -12,6 +12,41 @@ use tracing::{debug, warn};
 
 use crate::state::AppState;
 
+/// Constant-time string comparison to prevent timing attacks.
+///
+/// This function compares two strings in constant time, ensuring that
+/// the comparison time does not leak information about the strings' contents.
+/// This is critical for API key validation to prevent timing-based attacks
+/// where an attacker could determine the correct key character by character
+/// by measuring response times.
+///
+/// # Security
+///
+/// - Always compares all bytes regardless of early mismatches
+/// - Uses bitwise OR to accumulate differences
+/// - Returns only after comparing the entire length
+///
+/// # Arguments
+///
+/// * `a` - First string to compare (e.g., provided API key)
+/// * `b` - Second string to compare (e.g., valid API key)
+///
+/// # Returns
+///
+/// `true` if the strings are equal, `false` otherwise
+fn constant_time_compare(a: &str, b: &str) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+
+    let mut result = 0u8;
+    for (byte_a, byte_b) in a.bytes().zip(b.bytes()) {
+        result |= byte_a ^ byte_b;
+    }
+
+    result == 0
+}
+
 /// Authentication configuration
 #[derive(Clone)]
 pub struct AuthConfig {
@@ -40,9 +75,11 @@ impl AuthConfig {
 
         let public_paths = vec![
             "/health".to_string(),
+            "/healthz".to_string(), // Kubernetes-style health check
             "/metrics".to_string(),
             "/api/v1/health".to_string(),
             "/api/v1/metrics".to_string(),
+            "/api/health/detailed".to_string(),
         ];
 
         Self {
@@ -61,9 +98,11 @@ impl AuthConfig {
             require_auth: true,
             public_paths: Arc::new(vec![
                 "/health".to_string(),
+                "/healthz".to_string(), // Kubernetes-style health check
                 "/metrics".to_string(),
                 "/api/v1/health".to_string(),
                 "/api/v1/metrics".to_string(),
+                "/api/health/detailed".to_string(),
             ]),
         }
     }
@@ -84,10 +123,39 @@ impl AuthConfig {
         keys.remove(key);
     }
 
-    /// Check if a key is valid
+    /// Check if a key is valid using constant-time comparison.
+    ///
+    /// This method performs a constant-time comparison against all valid API keys
+    /// to prevent timing attacks. The comparison time does not leak information
+    /// about which characters in the key are correct.
+    ///
+    /// # Security
+    ///
+    /// - Uses constant-time comparison for each key
+    /// - Always checks all keys to prevent early exit timing leaks
+    /// - Does not short-circuit on first match
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The API key to validate
+    ///
+    /// # Returns
+    ///
+    /// `true` if the key matches any valid key, `false` otherwise
     pub async fn is_valid_key(&self, key: &str) -> bool {
         let keys = self.valid_api_keys.read().await;
-        keys.contains(key)
+
+        // Use constant-time comparison to prevent timing attacks
+        // We check all keys even after finding a match to maintain constant timing
+        let mut is_valid = false;
+        for valid_key in keys.iter() {
+            if constant_time_compare(key, valid_key) {
+                is_valid = true;
+                // Continue checking to maintain constant time
+            }
+        }
+
+        is_valid
     }
 
     /// Check if authentication is required
@@ -118,10 +186,18 @@ impl Default for AuthConfig {
 ///
 /// ## Public Paths
 /// The following paths don't require authentication:
-/// - /health
-/// - /metrics
-/// - /api/v1/health
-/// - /api/v1/metrics
+/// - /health - Health check endpoint
+/// - /healthz - Kubernetes-style health check
+/// - /metrics - Prometheus metrics endpoint
+/// - /api/v1/health - Versioned health endpoint
+/// - /api/v1/metrics - Versioned metrics endpoint
+/// - /api/health/detailed - Detailed health diagnostics
+///
+/// ## Security Features
+/// - **Constant-time comparison**: API key validation uses constant-time comparison
+///   to prevent timing attacks that could leak information about valid keys
+/// - **Secure headers**: Failed authentication includes WWW-Authenticate header
+/// - **Audit logging**: All authentication attempts are logged for security monitoring
 pub async fn auth_middleware(
     State(state): State<AppState>,
     request: Request,
@@ -152,13 +228,21 @@ pub async fn auth_middleware(
         }
     };
 
-    // Validate API key
+    // Validate API key using constant-time comparison
     if !state.auth_config.is_valid_key(&api_key).await {
-        warn!(path = %path, "Invalid API key");
+        warn!(
+            path = %path,
+            key_prefix = &api_key.chars().take(4).collect::<String>(),
+            "Invalid API key - authentication failed"
+        );
         return Err(unauthorized_response("Invalid API key"));
     }
 
-    debug!(path = %path, "Authentication successful");
+    debug!(
+        path = %path,
+        key_prefix = &api_key.chars().take(4).collect::<String>(),
+        "Authentication successful"
+    );
 
     // Proceed with the request
     Ok(next.run(request).await)
@@ -216,6 +300,31 @@ mod tests {
     use axum::http::Request;
 
     #[test]
+    fn test_constant_time_compare() {
+        // Test equal strings
+        assert!(constant_time_compare("secret123", "secret123"));
+        assert!(constant_time_compare("", ""));
+
+        // Test unequal strings of same length
+        assert!(!constant_time_compare("secret123", "secret124"));
+        assert!(!constant_time_compare("aaaa", "aaab"));
+
+        // Test unequal strings of different lengths
+        assert!(!constant_time_compare("secret", "secret123"));
+        assert!(!constant_time_compare("secret123", "secret"));
+
+        // Test with special characters
+        assert!(constant_time_compare(
+            "key-with-dash_123",
+            "key-with-dash_123"
+        ));
+        assert!(!constant_time_compare(
+            "key-with-dash_123",
+            "key-with-dash_124"
+        ));
+    }
+
+    #[test]
     fn test_extract_api_key_from_header() {
         // Test X-API-Key header
         let request = Request::builder()
@@ -240,9 +349,15 @@ mod tests {
     async fn test_auth_config() {
         let config = AuthConfig::with_api_keys(vec!["key1".to_string(), "key2".to_string()]);
 
+        // Test valid keys with constant-time comparison
         assert!(config.is_valid_key("key1").await);
         assert!(config.is_valid_key("key2").await);
         assert!(!config.is_valid_key("key3").await);
+
+        // Test invalid keys (should not match)
+        assert!(!config.is_valid_key("key").await); // Shorter
+        assert!(!config.is_valid_key("key11").await); // One char different
+        assert!(!config.is_valid_key("KEY1").await); // Case sensitive
 
         // Test add/remove
         config.add_api_key("key3".to_string()).await;
@@ -256,9 +371,31 @@ mod tests {
     fn test_public_paths() {
         let config = AuthConfig::new();
 
+        // Test all public paths
         assert!(config.is_public_path("/health"));
+        assert!(config.is_public_path("/healthz"));
         assert!(config.is_public_path("/metrics"));
         assert!(config.is_public_path("/api/v1/health"));
+        assert!(config.is_public_path("/api/v1/metrics"));
+        assert!(config.is_public_path("/api/health/detailed"));
+
+        // Test protected paths
         assert!(!config.is_public_path("/api/v1/extract"));
+        assert!(!config.is_public_path("/crawl"));
+        assert!(!config.is_public_path("/api/v1/crawl"));
+    }
+
+    #[test]
+    fn test_auth_config_from_env() {
+        // Note: This test relies on environment variables not being set
+        // In production, API_KEYS and REQUIRE_AUTH would be configured
+        let config = AuthConfig::new();
+
+        // Default should require auth
+        assert!(config.requires_auth());
+
+        // Should have standard public paths
+        assert!(config.is_public_path("/health"));
+        assert!(config.is_public_path("/healthz"));
     }
 }

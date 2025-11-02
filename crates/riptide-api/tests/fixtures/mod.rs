@@ -6,6 +6,7 @@
 pub mod tables;
 pub mod sessions;
 pub mod test_data;
+pub mod auth;
 
 /// Fixture management for integration tests
 pub struct FixtureManager {

@@ -26,12 +26,15 @@
 //!     .with_timeout(std::time::Duration::from_secs(30));
 //! ```
 
+mod api;
 mod builder;
 mod env;
 mod spider;
 mod validation;
 
 // Re-export main types
+pub use api::{ApiConfig, AuthenticationConfig, CustomRateLimit, RateLimitConfig, RequestConfig};
+
 pub use builder::{
     BuilderError, BuilderResult, ConfigBuilder, ConfigValidator, ConfigValue, DefaultConfigBuilder,
     ValidationPatterns,
