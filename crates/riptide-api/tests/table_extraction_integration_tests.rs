@@ -1283,8 +1283,8 @@ async fn test_concurrent_extractions_performance() {
         let body_clone = serde_json::to_string(&request_body).unwrap();
 
         let handle = tokio::spawn(async move {
-            app_clone
-                .clone()
+            let app_service = app_clone.as_ref().clone();
+            app_service
                 .oneshot(
                     Request::builder()
                         .method("POST")

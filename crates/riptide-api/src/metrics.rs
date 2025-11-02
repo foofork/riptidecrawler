@@ -54,6 +54,11 @@ pub struct RipTideMetrics {
     pub streaming_error_rate: Gauge,
     pub streaming_memory_usage_bytes: Gauge,
     pub streaming_connection_duration: Histogram,
+    pub streaming_bytes_total: Counter,
+    pub streaming_duration_seconds: HistogramVec,
+    pub streaming_errors_total: IntCounterVec,
+    pub streaming_throughput_bytes_per_sec: Gauge,
+    pub streaming_latency_seconds: HistogramVec,
 
     /// Spider crawling metrics
     pub spider_crawls_total: Counter,
@@ -326,6 +331,56 @@ impl RipTideMetrics {
             .buckets(vec![
                 0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 5.0, 10.0, 30.0, 60.0, 300.0,
             ]),
+        )?;
+
+        // Enhanced streaming metrics for comprehensive observability
+        let streaming_bytes_total = Counter::with_opts(
+            Opts::new(
+                "riptide_streaming_bytes_total",
+                "Total bytes transferred in streaming operations",
+            )
+            .const_label("service", "riptide-api"),
+        )?;
+
+        let streaming_duration_seconds = HistogramVec::new(
+            HistogramOpts::new(
+                "riptide_streaming_duration_seconds",
+                "Stream processing duration by status (success/failure)",
+            )
+            .const_label("service", "riptide-api")
+            .buckets(vec![
+                0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0, 120.0,
+            ]),
+            &["status"],
+        )?;
+
+        let streaming_errors_total = IntCounterVec::new(
+            Opts::new(
+                "riptide_streaming_errors_total",
+                "Total streaming errors by error type",
+            )
+            .const_label("service", "riptide-api"),
+            &["error_type"],
+        )?;
+
+        let streaming_throughput_bytes_per_sec = Gauge::with_opts(
+            Opts::new(
+                "riptide_streaming_throughput_bytes_per_sec",
+                "Current streaming throughput in bytes per second",
+            )
+            .const_label("service", "riptide-api"),
+        )?;
+
+        let streaming_latency_seconds = HistogramVec::new(
+            HistogramOpts::new(
+                "riptide_streaming_latency_seconds",
+                "Streaming operation latency percentiles by operation type",
+            )
+            .const_label("service", "riptide-api")
+            .buckets(vec![
+                0.0001, 0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0,
+            ]),
+            &["operation"],
         )?;
 
         // Spider crawling metrics
@@ -812,6 +867,11 @@ impl RipTideMetrics {
         registry.register(Box::new(streaming_error_rate.clone()))?;
         registry.register(Box::new(streaming_memory_usage_bytes.clone()))?;
         registry.register(Box::new(streaming_connection_duration.clone()))?;
+        registry.register(Box::new(streaming_bytes_total.clone()))?;
+        registry.register(Box::new(streaming_duration_seconds.clone()))?;
+        registry.register(Box::new(streaming_errors_total.clone()))?;
+        registry.register(Box::new(streaming_throughput_bytes_per_sec.clone()))?;
+        registry.register(Box::new(streaming_latency_seconds.clone()))?;
         registry.register(Box::new(spider_crawls_total.clone()))?;
         registry.register(Box::new(spider_pages_crawled.clone()))?;
         registry.register(Box::new(spider_pages_failed.clone()))?;
@@ -898,6 +958,11 @@ impl RipTideMetrics {
             streaming_error_rate,
             streaming_memory_usage_bytes,
             streaming_connection_duration,
+            streaming_bytes_total,
+            streaming_duration_seconds,
+            streaming_errors_total,
+            streaming_throughput_bytes_per_sec,
+            streaming_latency_seconds,
             spider_crawls_total,
             spider_pages_crawled,
             spider_pages_failed,
@@ -1073,6 +1138,38 @@ impl RipTideMetrics {
     /// Record streaming connection duration
     pub fn record_streaming_connection_duration(&self, duration_seconds: f64) {
         self.streaming_connection_duration.observe(duration_seconds);
+    }
+
+    /// Record streaming bytes transferred
+    pub fn record_streaming_bytes(&self, bytes: usize) {
+        self.streaming_bytes_total.inc_by(bytes as f64);
+    }
+
+    /// Record streaming operation duration with status
+    pub fn record_streaming_duration(&self, duration_seconds: f64, success: bool) {
+        let status = if success { "success" } else { "failure" };
+        self.streaming_duration_seconds
+            .with_label_values(&[status])
+            .observe(duration_seconds);
+    }
+
+    /// Record streaming error by type
+    pub fn record_streaming_error_by_type(&self, error_type: &str) {
+        self.streaming_errors_total
+            .with_label_values(&[error_type])
+            .inc();
+    }
+
+    /// Update streaming throughput
+    pub fn update_streaming_throughput(&self, bytes_per_sec: f64) {
+        self.streaming_throughput_bytes_per_sec.set(bytes_per_sec);
+    }
+
+    /// Record streaming operation latency
+    pub fn record_streaming_latency(&self, operation: &str, duration_seconds: f64) {
+        self.streaming_latency_seconds
+            .with_label_values(&[operation])
+            .observe(duration_seconds);
     }
 
     /// Record spider crawl start

@@ -81,9 +81,27 @@ pub enum ApiError {
 
     /// Request payload too large (413 Payload Too Large)
     /// Used by payload_limit middleware to enforce request size limits
-    #[allow(dead_code)] // Reserved for future payload limit middleware
     #[error("Request payload too large: {message}")]
     PayloadTooLarge { message: String },
+
+    /// Invalid Content-Type header (415 Unsupported Media Type)
+    #[error("Invalid Content-Type: {content_type}. {message}")]
+    InvalidContentType {
+        content_type: String,
+        message: String,
+    },
+
+    /// Missing required header (400 Bad Request)
+    #[error("Missing required header: {header}")]
+    MissingRequiredHeader { header: String },
+
+    /// Invalid header value (400 Bad Request)
+    #[error("Invalid header value for {header}: {message}")]
+    InvalidHeaderValue { header: String, message: String },
+
+    /// Invalid request parameter (400 Bad Request)
+    #[error("Invalid parameter {parameter}: {message}")]
+    InvalidParameter { parameter: String, message: String },
 }
 
 impl ApiError {
@@ -201,6 +219,10 @@ impl ApiError {
             ApiError::PipelineError { .. } => StatusCode::INTERNAL_SERVER_ERROR,
             ApiError::ConfigError { .. } => StatusCode::INTERNAL_SERVER_ERROR,
             ApiError::InternalError { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+            ApiError::InvalidContentType { .. } => StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            ApiError::MissingRequiredHeader { .. } => StatusCode::BAD_REQUEST,
+            ApiError::InvalidHeaderValue { .. } => StatusCode::BAD_REQUEST,
+            ApiError::InvalidParameter { .. } => StatusCode::BAD_REQUEST,
         }
     }
 
@@ -222,6 +244,10 @@ impl ApiError {
             ApiError::TimeoutError { .. } => "timeout_error",
             ApiError::NotFound { .. } => "not_found",
             ApiError::PayloadTooLarge { .. } => "payload_too_large",
+            ApiError::InvalidContentType { .. } => "invalid_content_type",
+            ApiError::MissingRequiredHeader { .. } => "missing_required_header",
+            ApiError::InvalidHeaderValue { .. } => "invalid_header_value",
+            ApiError::InvalidParameter { .. } => "invalid_parameter",
         }
     }
 

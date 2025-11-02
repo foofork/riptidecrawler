@@ -3,6 +3,7 @@ use crate::state::AppState;
 use reqwest::Response;
 use riptide_events::{BaseEvent, EventSeverity};
 use riptide_fetch as fetch;
+use riptide_intelligence::smart_retry::{RetryConfig, SmartRetry, SmartRetryStrategy};
 use riptide_pdf::{self as pdf, utils as pdf_utils};
 use riptide_reliability::gate::{decide, score, Decision, GateFeatures};
 use riptide_types::config::CrawlOptions;
@@ -118,6 +119,30 @@ pub struct GateDecisionStats {
     pub headless: usize,
 }
 
+/// Retry configuration for pipeline operations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PipelineRetryConfig {
+    /// Maximum retry attempts
+    pub max_retries: usize,
+    /// Initial delay in milliseconds
+    pub initial_delay_ms: u64,
+    /// Maximum delay in milliseconds
+    pub max_delay_ms: u64,
+    /// Override strategy (None = auto-select based on error)
+    pub strategy: Option<SmartRetryStrategy>,
+}
+
+impl Default for PipelineRetryConfig {
+    fn default() -> Self {
+        Self {
+            max_retries: 3,
+            initial_delay_ms: 100,
+            max_delay_ms: 30_000,
+            strategy: None, // Auto-select
+        }
+    }
+}
+
 /// Core pipeline orchestrator for the fetch -> gate -> extract workflow.
 ///
 /// This orchestrator handles the complete crawling pipeline:
@@ -132,12 +157,92 @@ pub struct GateDecisionStats {
 pub struct PipelineOrchestrator {
     state: AppState,
     options: CrawlOptions,
+    retry_config: PipelineRetryConfig,
 }
 
 impl PipelineOrchestrator {
     /// Create a new pipeline orchestrator with the given state and options.
     pub fn new(state: AppState, options: CrawlOptions) -> Self {
-        Self { state, options }
+        Self::with_retry_config(state, options, PipelineRetryConfig::default())
+    }
+
+    /// Create a new pipeline orchestrator with custom retry configuration.
+    pub fn with_retry_config(
+        state: AppState,
+        options: CrawlOptions,
+        retry_config: PipelineRetryConfig,
+    ) -> Self {
+        Self {
+            state,
+            options,
+            retry_config,
+        }
+    }
+
+    /// Select retry strategy based on error type.
+    ///
+    /// Maps API errors to appropriate retry strategies:
+    /// - Rate limit (429) / Timeout → Exponential (aggressive backoff)
+    /// - Network errors (502, 503, 504) → Linear (steady retry)
+    /// - Resource exhaustion → Fibonacci (controlled backoff)
+    /// - Unknown errors → Adaptive (smart strategy switching)
+    fn select_retry_strategy(&self, error: &ApiError) -> Option<SmartRetryStrategy> {
+        // If strategy override is set, use it
+        if let Some(strategy) = self.retry_config.strategy {
+            return Some(strategy);
+        }
+
+        // Auto-select based on error type
+        match error {
+            // Rate limit and timeout errors → Exponential backoff
+            ApiError::TimeoutError { .. } => Some(SmartRetryStrategy::Exponential),
+            ApiError::RateLimited { .. } => Some(SmartRetryStrategy::Exponential),
+
+            // Network errors (502, 503, 504) → Linear backoff
+            ApiError::FetchError { message, .. } => {
+                if message.contains("502")
+                    || message.contains("503")
+                    || message.contains("504")
+                    || message.contains("network")
+                    || message.contains("connection")
+                {
+                    Some(SmartRetryStrategy::Linear)
+                } else {
+                    Some(SmartRetryStrategy::Adaptive)
+                }
+            }
+
+            // Resource exhaustion → Fibonacci backoff
+            ApiError::ExtractionError { message } => {
+                if message.contains("resources exhausted")
+                    || message.contains("memory")
+                    || message.contains("ResourceExhausted")
+                {
+                    Some(SmartRetryStrategy::Fibonacci)
+                } else {
+                    Some(SmartRetryStrategy::Adaptive)
+                }
+            }
+
+            // Dependency errors (circuit breaker, service unavailable) → NO retry
+            ApiError::DependencyError { .. } => None,
+
+            // Unknown errors → Adaptive strategy
+            _ => Some(SmartRetryStrategy::Adaptive),
+        }
+    }
+
+    /// Create SmartRetry instance from pipeline configuration
+    fn create_smart_retry(&self, strategy: SmartRetryStrategy) -> SmartRetry {
+        let retry_config = RetryConfig {
+            max_attempts: self.retry_config.max_retries as u32,
+            initial_delay_ms: self.retry_config.initial_delay_ms,
+            max_delay_ms: self.retry_config.max_delay_ms,
+            jitter: 0.25, // 25% jitter for retry variance
+            backoff_multiplier: 2.0,
+        };
+
+        SmartRetry::with_config(strategy, retry_config)
     }
 
     /// Execute the complete pipeline for a single URL.
@@ -571,40 +676,69 @@ impl PipelineOrchestrator {
     }
 
     /// Fetch content with content type detection for PDF handling.
+    /// Uses smart retry for transient failures.
     async fn fetch_content_with_type(
         &self,
         url: &str,
     ) -> ApiResult<(Response, Vec<u8>, Option<String>)> {
+        // Clone url for closure
+        let url_clone = url.to_string();
+        let state_clone = self.state.clone();
         let fetch_timeout = Duration::from_secs(15);
-        let response = timeout(fetch_timeout, fetch::get(&self.state.http_client, url))
-            .await
-            .map_err(|_| ApiError::timeout("content_fetch", format!("Timeout fetching {}", url)))?
-            .map_err(|e| ApiError::fetch(url, e.to_string()))?;
 
-        // Extract content type before consuming response
-        let content_type = response
-            .headers()
-            .get("content-type")
-            .and_then(|ct| ct.to_str().ok())
-            .map(|s| s.to_string());
-
-        let content_bytes = timeout(fetch_timeout, response.bytes())
+        // Wrapper to convert intelligence errors to API errors
+        let fetch_operation = || async {
+            let response = timeout(
+                fetch_timeout,
+                fetch::get(&state_clone.http_client, &url_clone),
+            )
             .await
-            .map_err(|_| {
-                ApiError::timeout(
-                    "content_read",
-                    format!("Timeout reading content from {}", url),
-                )
+            .map_err(|_| riptide_intelligence::IntelligenceError::Timeout {
+                timeout_ms: fetch_timeout.as_millis() as u64,
             })?
-            .map_err(|e| ApiError::fetch(url, format!("Failed to read response body: {}", e)))?
-            .to_vec();
+            .map_err(|e| {
+                riptide_intelligence::IntelligenceError::Network(format!("Fetch failed: {}", e))
+            })?;
 
-        // Recreate response for status code (since we consumed it for bytes)
-        let response = fetch::get(&self.state.http_client, url)
-            .await
-            .map_err(|e| ApiError::fetch(url, e.to_string()))?;
+            // Extract content type before consuming response
+            let content_type = response
+                .headers()
+                .get("content-type")
+                .and_then(|ct| ct.to_str().ok())
+                .map(|s| s.to_string());
 
-        Ok((response, content_bytes, content_type))
+            let content_bytes = timeout(fetch_timeout, response.bytes())
+                .await
+                .map_err(|_| riptide_intelligence::IntelligenceError::Timeout {
+                    timeout_ms: fetch_timeout.as_millis() as u64,
+                })?
+                .map_err(|e| {
+                    riptide_intelligence::IntelligenceError::Network(format!(
+                        "Failed to read response: {}",
+                        e
+                    ))
+                })?
+                .to_vec();
+
+            // Recreate response for status code (since we consumed it for bytes)
+            let response = fetch::get(&state_clone.http_client, &url_clone)
+                .await
+                .map_err(|e| {
+                    riptide_intelligence::IntelligenceError::Network(format!("Fetch failed: {}", e))
+                })?;
+
+            Ok((response, content_bytes, content_type))
+        };
+
+        // Try with retry using Adaptive strategy (default for fetch)
+        let retry = self.create_smart_retry(SmartRetryStrategy::Adaptive);
+        retry.execute(fetch_operation).await.map_err(|e| match e {
+            riptide_intelligence::IntelligenceError::Timeout { .. } => {
+                ApiError::timeout("content_fetch", format!("Timeout fetching {}", url))
+            }
+            riptide_intelligence::IntelligenceError::Network(msg) => ApiError::fetch(url, msg),
+            _ => ApiError::fetch(url, e.to_string()),
+        })
     }
 
     /// Process PDF content using the PDF pipeline.
@@ -927,6 +1061,7 @@ impl Clone for PipelineOrchestrator {
         Self {
             state: self.state.clone(),
             options: self.options.clone(),
+            retry_config: self.retry_config.clone(),
         }
     }
 }
