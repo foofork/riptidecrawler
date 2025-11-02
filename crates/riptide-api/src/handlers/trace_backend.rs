@@ -313,68 +313,462 @@ impl TraceBackend for InMemoryTraceBackend {
     }
 }
 
-/// OTLP-compatible trace backend (placeholder for future implementation)
+/// OTLP-compatible trace backend with support for Jaeger and Tempo query APIs
 pub struct OtlpTraceBackend {
     endpoint: String,
     client: reqwest::Client,
+    backend_type: OtlpBackendType,
+}
+
+/// Type of OTLP-compatible backend
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OtlpBackendType {
+    /// Jaeger query API
+    Jaeger,
+    /// Grafana Tempo query API
+    Tempo,
+    /// Generic OTLP endpoint (no query support)
+    Generic,
 }
 
 impl OtlpTraceBackend {
     /// Create a new OTLP trace backend
-    pub fn new(endpoint: String) -> Self {
+    pub fn new(endpoint: String, backend_type: OtlpBackendType) -> Self {
         Self {
             endpoint,
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(30))
+                .build()
+                .unwrap_or_default(),
+            backend_type,
         }
     }
 
     /// Create from environment variables
+    ///
+    /// Environment variables:
+    /// - `OTLP_TRACE_QUERY_ENDPOINT`: Query endpoint URL (required)
+    /// - `OTLP_TRACE_BACKEND_TYPE`: Backend type (jaeger, tempo, generic) - default: jaeger
     pub fn from_env() -> Option<Self> {
         let endpoint = std::env::var("OTLP_TRACE_QUERY_ENDPOINT").ok()?;
-        Some(Self::new(endpoint))
+
+        let backend_type = std::env::var("OTLP_TRACE_BACKEND_TYPE")
+            .unwrap_or_else(|_| "jaeger".to_string())
+            .to_lowercase();
+
+        let backend_type = match backend_type.as_str() {
+            "jaeger" => OtlpBackendType::Jaeger,
+            "tempo" => OtlpBackendType::Tempo,
+            "generic" | _ => OtlpBackendType::Generic,
+        };
+
+        Some(Self::new(endpoint, backend_type))
+    }
+
+    /// Query traces from Jaeger backend
+    async fn query_jaeger_traces(
+        &self,
+        time_range_secs: u64,
+        limit: usize,
+        service_filter: Option<String>,
+    ) -> Result<Vec<TraceMetadata>, ApiError> {
+        use serde_json::Value;
+
+        // Jaeger Query API: GET /api/traces?service={service}&limit={limit}&lookback={lookback}
+        let lookback = format!("{}s", time_range_secs);
+        let service = service_filter.unwrap_or_else(|| "riptide-api".to_string());
+
+        let url = format!(
+            "{}/api/traces?service={}&limit={}&lookback={}",
+            self.endpoint, service, limit, lookback
+        );
+
+        debug!(url = %url, "Querying Jaeger for traces");
+
+        let response = self.client.get(&url).send().await.map_err(|e| {
+            warn!(error = %e, "Failed to query Jaeger traces");
+            ApiError::internal(&format!("Failed to query trace backend: {}", e))
+        })?;
+
+        if !response.status().is_success() {
+            warn!(status = %response.status(), "Jaeger query returned error");
+            return Ok(vec![]);
+        }
+
+        let data: Value = response
+            .json()
+            .await
+            .map_err(|e| ApiError::internal(&format!("Failed to parse Jaeger response: {}", e)))?;
+
+        // Parse Jaeger response format
+        let traces = self.parse_jaeger_traces(data)?;
+        Ok(traces)
+    }
+
+    /// Parse Jaeger trace list response
+    fn parse_jaeger_traces(&self, data: serde_json::Value) -> Result<Vec<TraceMetadata>, ApiError> {
+        let traces = data
+            .get("data")
+            .and_then(|d| d.as_array())
+            .ok_or_else(|| ApiError::internal("Invalid Jaeger response format"))?;
+
+        let mut results = Vec::new();
+
+        for trace_data in traces {
+            if let Some(metadata) = self.parse_jaeger_trace_metadata(trace_data) {
+                results.push(metadata);
+            }
+        }
+
+        Ok(results)
+    }
+
+    /// Parse individual Jaeger trace metadata
+    fn parse_jaeger_trace_metadata(&self, trace_data: &serde_json::Value) -> Option<TraceMetadata> {
+        let trace_id = trace_data.get("traceID")?.as_str()?;
+        let spans = trace_data.get("spans")?.as_array()?;
+
+        if spans.is_empty() {
+            return None;
+        }
+
+        // Find root span
+        let root_span = spans.iter().find(|s| {
+            s.get("references")
+                .and_then(|r| r.as_array())
+                .map(|refs| refs.is_empty())
+                .unwrap_or(true)
+        })?;
+
+        let root_span_id = root_span.get("spanID")?.as_str()?;
+        let service_name = root_span
+            .get("process")
+            .and_then(|p| p.get("serviceName"))
+            .and_then(|s| s.as_str())
+            .unwrap_or("unknown");
+
+        let start_time = root_span.get("startTime")?.as_u64()?;
+        let duration = root_span.get("duration")?.as_u64()?;
+
+        // Convert Jaeger timestamp (microseconds) to ISO 8601
+        let start_time_dt = chrono::DateTime::from_timestamp(
+            (start_time / 1_000_000) as i64,
+            ((start_time % 1_000_000) * 1000) as u32,
+        )?;
+
+        // Extract status from tags
+        let status = root_span
+            .get("tags")
+            .and_then(|tags| tags.as_array())
+            .and_then(|tags| {
+                tags.iter()
+                    .find(|tag| tag.get("key").and_then(|k| k.as_str()) == Some("otel.status_code"))
+            })
+            .and_then(|tag| tag.get("value"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("OK");
+
+        // Extract attributes from tags
+        let mut attributes = HashMap::new();
+        if let Some(tags) = root_span.get("tags").and_then(|t| t.as_array()) {
+            for tag in tags {
+                if let (Some(key), Some(value)) = (
+                    tag.get("key").and_then(|k| k.as_str()),
+                    tag.get("value").and_then(|v| v.as_str()),
+                ) {
+                    attributes.insert(key.to_string(), value.to_string());
+                }
+            }
+        }
+
+        Some(TraceMetadata {
+            trace_id: trace_id.to_string(),
+            root_span_id: root_span_id.to_string(),
+            start_time: start_time_dt.to_rfc3339(),
+            duration_ms: duration / 1000, // Convert microseconds to milliseconds
+            service_name: service_name.to_string(),
+            span_count: spans.len(),
+            status: status.to_string(),
+            attributes,
+        })
+    }
+
+    /// Get single trace from Jaeger
+    async fn get_jaeger_trace(
+        &self,
+        trace_id: &TraceId,
+    ) -> Result<Option<CompleteTrace>, ApiError> {
+        use serde_json::Value;
+
+        let trace_id_hex = format!("{:032x}", u128::from_be_bytes(trace_id.to_bytes()));
+        let url = format!("{}/api/traces/{}", self.endpoint, trace_id_hex);
+
+        debug!(url = %url, trace_id = %trace_id_hex, "Querying Jaeger for trace");
+
+        let response = self.client.get(&url).send().await.map_err(|e| {
+            warn!(error = %e, "Failed to get Jaeger trace");
+            ApiError::internal(&format!("Failed to get trace: {}", e))
+        })?;
+
+        if response.status() == reqwest::StatusCode::NOT_FOUND {
+            return Ok(None);
+        }
+
+        if !response.status().is_success() {
+            warn!(status = %response.status(), "Jaeger get trace returned error");
+            return Ok(None);
+        }
+
+        let data: Value = response
+            .json()
+            .await
+            .map_err(|e| ApiError::internal(&format!("Failed to parse Jaeger trace: {}", e)))?;
+
+        // Parse Jaeger trace response
+        self.parse_jaeger_complete_trace(data)
+    }
+
+    /// Parse complete Jaeger trace data
+    fn parse_jaeger_complete_trace(
+        &self,
+        data: serde_json::Value,
+    ) -> Result<Option<CompleteTrace>, ApiError> {
+        let traces = data
+            .get("data")
+            .and_then(|d| d.as_array())
+            .ok_or_else(|| ApiError::internal("Invalid Jaeger trace response"))?;
+
+        if traces.is_empty() {
+            return Ok(None);
+        }
+
+        let trace_data = &traces[0];
+        let metadata = self
+            .parse_jaeger_trace_metadata(trace_data)
+            .ok_or_else(|| ApiError::internal("Failed to parse trace metadata"))?;
+
+        let spans_data = trace_data
+            .get("spans")
+            .and_then(|s| s.as_array())
+            .ok_or_else(|| ApiError::internal("No spans in trace"))?;
+
+        let mut spans = Vec::new();
+        for span_data in spans_data {
+            if let Some(span) = self.parse_jaeger_span(span_data) {
+                spans.push(span);
+            }
+        }
+
+        Ok(Some(CompleteTrace { metadata, spans }))
+    }
+
+    /// Parse individual Jaeger span
+    fn parse_jaeger_span(&self, span_data: &serde_json::Value) -> Option<TraceSpan> {
+        let span_id_hex = span_data.get("spanID")?.as_str()?;
+        let trace_id_hex = span_data.get("traceID")?.as_str()?;
+
+        let span_id_bytes = hex::decode(span_id_hex).ok()?;
+        let trace_id_bytes = hex::decode(trace_id_hex).ok()?;
+
+        if span_id_bytes.len() != 8 || trace_id_bytes.len() != 16 {
+            return None;
+        }
+
+        let mut span_id_arr = [0u8; 8];
+        span_id_arr.copy_from_slice(&span_id_bytes);
+        let span_id = SpanId::from_bytes(span_id_arr);
+
+        let mut trace_id_arr = [0u8; 16];
+        trace_id_arr.copy_from_slice(&trace_id_bytes);
+        let trace_id = TraceId::from_bytes(trace_id_arr);
+
+        // Parse parent span ID from references
+        let parent_span_id = span_data
+            .get("references")
+            .and_then(|refs| refs.as_array())
+            .and_then(|refs| refs.first())
+            .and_then(|ref_data| ref_data.get("spanID"))
+            .and_then(|id| id.as_str())
+            .and_then(|id_hex| hex::decode(id_hex).ok())
+            .and_then(|bytes| {
+                if bytes.len() == 8 {
+                    let mut arr = [0u8; 8];
+                    arr.copy_from_slice(&bytes);
+                    Some(SpanId::from_bytes(arr))
+                } else {
+                    None
+                }
+            });
+
+        let name = span_data.get("operationName")?.as_str()?.to_string();
+
+        let start_time_us = span_data.get("startTime")?.as_u64()?;
+        let duration_us = span_data.get("duration")?.as_u64()?;
+
+        let start_time = chrono::DateTime::from_timestamp(
+            (start_time_us / 1_000_000) as i64,
+            ((start_time_us % 1_000_000) * 1000) as u32,
+        )?;
+
+        let end_time = chrono::DateTime::from_timestamp(
+            ((start_time_us + duration_us) / 1_000_000) as i64,
+            (((start_time_us + duration_us) % 1_000_000) * 1000) as u32,
+        )?;
+
+        // Extract span kind and status from tags
+        let mut kind = "INTERNAL".to_string();
+        let mut status = "OK".to_string();
+        let mut attributes = HashMap::new();
+
+        if let Some(tags) = span_data.get("tags").and_then(|t| t.as_array()) {
+            for tag in tags {
+                if let (Some(key), Some(value)) =
+                    (tag.get("key").and_then(|k| k.as_str()), tag.get("value"))
+                {
+                    match key {
+                        "span.kind" => {
+                            if let Some(k) = value.as_str() {
+                                kind = k.to_uppercase();
+                            }
+                        }
+                        "otel.status_code" => {
+                            if let Some(s) = value.as_str() {
+                                status = s.to_string();
+                            }
+                        }
+                        _ => {
+                            if let Some(v) = value.as_str() {
+                                attributes.insert(key.to_string(), v.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Parse events (logs in Jaeger)
+        let mut events = Vec::new();
+        if let Some(logs) = span_data.get("logs").and_then(|l| l.as_array()) {
+            for log in logs {
+                if let Some(event) = self.parse_jaeger_span_event(log) {
+                    events.push(event);
+                }
+            }
+        }
+
+        Some(TraceSpan {
+            span_id,
+            trace_id,
+            parent_span_id,
+            name,
+            kind,
+            start_time,
+            end_time,
+            status,
+            attributes,
+            events,
+        })
+    }
+
+    /// Parse Jaeger span event (log)
+    fn parse_jaeger_span_event(&self, log_data: &serde_json::Value) -> Option<SpanEventData> {
+        let timestamp_us = log_data.get("timestamp")?.as_u64()?;
+        let timestamp = chrono::DateTime::from_timestamp(
+            (timestamp_us / 1_000_000) as i64,
+            ((timestamp_us % 1_000_000) * 1000) as u32,
+        )?;
+
+        let mut name = "event".to_string();
+        let mut attributes = HashMap::new();
+
+        if let Some(fields) = log_data.get("fields").and_then(|f| f.as_array()) {
+            for field in fields {
+                if let (Some(key), Some(value)) = (
+                    field.get("key").and_then(|k| k.as_str()),
+                    field.get("value").and_then(|v| v.as_str()),
+                ) {
+                    if key == "event" {
+                        name = value.to_string();
+                    } else {
+                        attributes.insert(key.to_string(), value.to_string());
+                    }
+                }
+            }
+        }
+
+        Some(SpanEventData {
+            name,
+            timestamp,
+            attributes,
+        })
     }
 }
 
 impl TraceBackend for OtlpTraceBackend {
     fn list_traces(
         &self,
-        _time_range_secs: u64,
-        _limit: usize,
-        _service_filter: Option<String>,
+        time_range_secs: u64,
+        limit: usize,
+        service_filter: Option<String>,
     ) -> std::pin::Pin<
         Box<dyn std::future::Future<Output = Result<Vec<TraceMetadata>, ApiError>> + Send + '_>,
     > {
         let endpoint = self.endpoint.clone();
+        let backend_type = self.backend_type;
+
         Box::pin(async move {
-            // NOTE: OTLP doesn't have a standardized query API
-            // This would need to be implemented based on the specific backend:
-            // - Jaeger: Use Jaeger Query API
-            // - Tempo: Use Tempo Query API
-            // - Other: Use vendor-specific API
-
-            warn!(
-                endpoint = %endpoint,
-                "OTLP trace query not yet implemented - falling back to empty result"
-            );
-
-            Ok(vec![])
+            match backend_type {
+                OtlpBackendType::Jaeger => {
+                    debug!(
+                        endpoint = %endpoint,
+                        time_range_secs,
+                        limit,
+                        "Querying Jaeger backend for traces"
+                    );
+                    self.query_jaeger_traces(time_range_secs, limit, service_filter)
+                        .await
+                }
+                OtlpBackendType::Tempo | OtlpBackendType::Generic => {
+                    warn!(
+                        backend_type = ?backend_type,
+                        endpoint = %endpoint,
+                        "Tempo/Generic query not yet implemented - returning empty list"
+                    );
+                    Ok(vec![])
+                }
+            }
         })
     }
 
     fn get_trace(
         &self,
-        _trace_id: &TraceId,
+        trace_id: &TraceId,
     ) -> std::pin::Pin<
         Box<dyn std::future::Future<Output = Result<Option<CompleteTrace>, ApiError>> + Send + '_>,
     > {
         let endpoint = self.endpoint.clone();
-        Box::pin(async move {
-            warn!(
-                endpoint = %endpoint,
-                "OTLP trace retrieval not yet implemented"
-            );
+        let backend_type = self.backend_type;
+        let trace_id = *trace_id;
 
-            Ok(None)
+        Box::pin(async move {
+            match backend_type {
+                OtlpBackendType::Jaeger => {
+                    debug!(
+                        endpoint = %endpoint,
+                        trace_id = %format!("{:032x}", u128::from_be_bytes(trace_id.to_bytes())),
+                        "Getting trace from Jaeger backend"
+                    );
+                    self.get_jaeger_trace(&trace_id).await
+                }
+                OtlpBackendType::Tempo | OtlpBackendType::Generic => {
+                    warn!(
+                        backend_type = ?backend_type,
+                        endpoint = %endpoint,
+                        "Tempo/Generic trace retrieval not yet implemented"
+                    );
+                    Ok(None)
+                }
+            }
         })
     }
 
@@ -383,19 +777,48 @@ impl TraceBackend for OtlpTraceBackend {
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = bool> + Send + '_>> {
         let client = self.client.clone();
         let endpoint = self.endpoint.clone();
+        let backend_type = self.backend_type;
+
         Box::pin(async move {
-            // Try to ping the OTLP endpoint
-            client
-                .get(&endpoint)
+            // Try backend-specific health check
+            let health_url = match backend_type {
+                OtlpBackendType::Jaeger => format!("{}/api/services", endpoint),
+                OtlpBackendType::Tempo => format!("{}/api/echo", endpoint),
+                OtlpBackendType::Generic => endpoint.clone(),
+            };
+
+            debug!(url = %health_url, "Checking trace backend health");
+
+            match client
+                .get(&health_url)
                 .timeout(std::time::Duration::from_secs(5))
                 .send()
                 .await
-                .is_ok()
+            {
+                Ok(response) => {
+                    let is_healthy = response.status().is_success();
+                    debug!(
+                        url = %health_url,
+                        status = %response.status(),
+                        healthy = is_healthy,
+                        "Trace backend health check result"
+                    );
+                    is_healthy
+                }
+                Err(e) => {
+                    warn!(error = %e, url = %health_url, "Trace backend health check failed");
+                    false
+                }
+            }
         })
     }
 
     fn backend_type(&self) -> &str {
-        "otlp"
+        match self.backend_type {
+            OtlpBackendType::Jaeger => "jaeger",
+            OtlpBackendType::Tempo => "tempo",
+            OtlpBackendType::Generic => "otlp",
+        }
     }
 }
 

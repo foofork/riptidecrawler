@@ -21,7 +21,7 @@ pub struct CompatibleStrategyManager {
 /// Legacy config structure for backward compatibility
 #[derive(Debug, Clone)]
 pub struct LegacyStrategyConfig {
-    pub extraction: crate::strategies::ExtractionStrategy,
+    pub extraction: crate::strategies::ExtractionStrategyType,
     pub enable_metrics: bool,
     pub validate_schema: bool,
 }
@@ -29,7 +29,7 @@ pub struct LegacyStrategyConfig {
 impl Default for LegacyStrategyConfig {
     fn default() -> Self {
         Self {
-            extraction: crate::strategies::ExtractionStrategy::Wasm,
+            extraction: crate::strategies::ExtractionStrategyType::Wasm,
             enable_metrics: true,
             validate_schema: true,
         }
@@ -109,13 +109,13 @@ pub fn create_default_strategies() -> StrategyRegistry {
 
 /// Migration helper for converting old enum-based configs to trait-based
 pub fn migrate_extraction_strategy(
-    strategy: &crate::strategies::ExtractionStrategy,
+    strategy: &crate::strategies::ExtractionStrategyType,
 ) -> Arc<dyn ExtractionStrategy> {
     match strategy {
-        crate::strategies::ExtractionStrategy::Wasm => Arc::new(WasmExtractionStrategy),
-        crate::strategies::ExtractionStrategy::Css => Arc::new(WasmExtractionStrategy), // Fallback to WASM for now
-        crate::strategies::ExtractionStrategy::Regex => Arc::new(WasmExtractionStrategy), // Fallback to WASM for now
-        crate::strategies::ExtractionStrategy::Auto => Arc::new(WasmExtractionStrategy), // Fallback to WASM for now
+        crate::strategies::ExtractionStrategyType::Wasm => Arc::new(WasmExtractionStrategy),
+        crate::strategies::ExtractionStrategyType::Css => Arc::new(WasmExtractionStrategy), // Fallback to WASM for now
+        crate::strategies::ExtractionStrategyType::Regex => Arc::new(WasmExtractionStrategy), // Fallback to WASM for now
+        crate::strategies::ExtractionStrategyType::Auto => Arc::new(WasmExtractionStrategy), // Fallback to WASM for now
     }
 }
 
@@ -194,7 +194,7 @@ mod tests {
 
     #[test]
     fn test_migration_strategy() {
-        let strategy = crate::strategies::ExtractionStrategy::Wasm;
+        let strategy = crate::strategies::ExtractionStrategyType::Wasm;
         let trait_strategy = migrate_extraction_strategy(&strategy);
 
         assert_eq!(trait_strategy.name(), "wasm");

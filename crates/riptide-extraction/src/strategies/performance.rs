@@ -1,6 +1,6 @@
 //! Performance metrics and benchmarking for extraction strategies
 
-use crate::strategies::ExtractionStrategy;
+use crate::strategies::ExtractionStrategyType;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -48,7 +48,7 @@ pub struct BenchmarkConfig {
     pub iterations: usize,
     pub warmup_iterations: usize,
     pub test_content_sizes: Vec<usize>,
-    pub strategies_to_test: Vec<ExtractionStrategy>,
+    pub strategies_to_test: Vec<ExtractionStrategyType>,
     pub measure_memory: bool,
     pub detailed_timing: bool,
 }
@@ -102,7 +102,7 @@ impl PerformanceMetrics {
     /// Record extraction performance
     pub fn record_extraction(
         &mut self,
-        strategy: &ExtractionStrategy,
+        strategy: &ExtractionStrategyType,
         duration: Duration,
         content_size: usize,
         _chunk_count: usize, // Ignored, chunking handled by other crates
@@ -120,7 +120,7 @@ impl PerformanceMetrics {
     }
 
     /// Record extraction failure
-    pub fn record_failure(&mut self, strategy: &ExtractionStrategy, duration: Duration) {
+    pub fn record_failure(&mut self, strategy: &ExtractionStrategyType, duration: Duration) {
         let strategy_name = strategy_name(strategy);
         let metrics = self
             .strategy_metrics
@@ -271,7 +271,7 @@ impl Default for BenchmarkConfig {
             iterations: 100,
             warmup_iterations: 10,
             test_content_sizes: vec![1024, 10240, 102400, 1048576], // 1KB to 1MB
-            strategies_to_test: vec![ExtractionStrategy::Wasm],
+            strategies_to_test: vec![ExtractionStrategyType::Wasm],
             measure_memory: true,
             detailed_timing: true,
         }
@@ -309,7 +309,7 @@ pub async fn run_benchmarks(config: BenchmarkConfig) -> Result<Vec<BenchmarkResu
 
 /// Benchmark a specific strategy
 async fn benchmark_strategy(
-    strategy: &ExtractionStrategy,
+    strategy: &ExtractionStrategyType,
     content: &str,
     config: &BenchmarkConfig,
 ) -> Result<BenchmarkResult> {
@@ -409,25 +409,25 @@ struct ExtractionResult {
 
 /// Run single extraction for benchmarking
 async fn run_single_extraction(
-    strategy: &ExtractionStrategy,
+    strategy: &ExtractionStrategyType,
     _content: &str,
 ) -> Result<ExtractionResult> {
     // Simplified extraction for benchmarking
     match strategy {
-        ExtractionStrategy::Wasm => {
+        ExtractionStrategyType::Wasm => {
             // Trek extraction moved to riptide-extraction
             // Returning mock result for testing
             Ok(ExtractionResult { quality: 80.0 })
         }
-        ExtractionStrategy::Css => {
+        ExtractionStrategyType::Css => {
             // CSS extraction moved to riptide-extraction
             Ok(ExtractionResult { quality: 75.0 })
         }
-        ExtractionStrategy::Regex => {
+        ExtractionStrategyType::Regex => {
             // Regex extraction moved to riptide-extraction
             Ok(ExtractionResult { quality: 70.0 })
         }
-        ExtractionStrategy::Auto => {
+        ExtractionStrategyType::Auto => {
             // Auto selection uses Trek as default
             Ok(ExtractionResult { quality: 80.0 })
         }
@@ -497,12 +497,12 @@ fn get_memory_usage_mb() -> f64 {
 }
 
 /// Get strategy name for metrics
-fn strategy_name(strategy: &ExtractionStrategy) -> String {
+fn strategy_name(strategy: &ExtractionStrategyType) -> String {
     match strategy {
-        ExtractionStrategy::Wasm => "wasm".to_string(),
-        ExtractionStrategy::Css => "css".to_string(),
-        ExtractionStrategy::Regex => "regex".to_string(),
-        ExtractionStrategy::Auto => "auto".to_string(),
+        ExtractionStrategyType::Wasm => "wasm".to_string(),
+        ExtractionStrategyType::Css => "css".to_string(),
+        ExtractionStrategyType::Regex => "regex".to_string(),
+        ExtractionStrategyType::Auto => "auto".to_string(),
     }
 }
 

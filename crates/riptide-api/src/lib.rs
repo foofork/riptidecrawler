@@ -14,6 +14,7 @@ pub mod reliability_integration;
 pub mod resource_manager;
 pub mod routes;
 pub mod rpc_client;
+pub mod rpc_session_context;
 pub mod sessions;
 pub mod state;
 pub mod strategies_pipeline;

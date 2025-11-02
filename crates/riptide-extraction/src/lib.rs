@@ -110,7 +110,14 @@ pub use riptide_types::ExtractedDoc;
 pub use html_parser::{Link, Media, MediaType, Metadata};
 
 // Re-export strategies (moved from riptide-core)
-pub use strategies::{ExtractionStrategy, PerformanceMetrics, StrategyManager};
+// Note: ExtractionStrategy is a TRAIT defined in strategies::traits
+// ExtractionStrategyType is an ENUM for configuration
+pub use strategies::{
+    ExtractionStrategy,     // Trait for implementing custom extractors
+    ExtractionStrategyType, // Enum for selecting built-in strategies
+    PerformanceMetrics,
+    StrategyManager,
+};
 
 // Re-export confidence (Phase 2D)
 pub use composition::{CompositionMode, StrategyComposer};
