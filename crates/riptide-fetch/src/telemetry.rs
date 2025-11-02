@@ -421,7 +421,7 @@ impl SlaMonitor {
         // Record duration in histogram for accurate percentile calculation
         let duration_ns = duration.as_nanos() as u64;
         // Clamp value to histogram bounds (1ns to 1 hour)
-        let clamped_duration = duration_ns.max(1).min(3_600_000_000_000);
+        let clamped_duration = duration_ns.clamp(1, 3_600_000_000_000);
 
         if let Err(e) = metrics.latency_histogram.record(clamped_duration) {
             tracing::warn!(
@@ -433,7 +433,7 @@ impl SlaMonitor {
         }
 
         // Calculate percentiles from histogram (every 10 requests for efficiency)
-        if metrics.total_requests % 10 == 0 && metrics.latency_histogram.len() > 0 {
+        if metrics.total_requests.is_multiple_of(10) && !metrics.latency_histogram.is_empty() {
             // P95 percentile
             let p95_ns = metrics.latency_histogram.value_at_percentile(95.0);
             metrics.p95_duration = Duration::from_nanos(p95_ns);
@@ -843,7 +843,7 @@ fn test_histogram_percentile_accuracy() {
     // Allow some tolerance due to histogram bucketing
     let p95_ms = op_status.p95_latency.as_millis();
     assert!(
-        p95_ms >= 90 && p95_ms <= 100,
+        (90..=100).contains(&p95_ms),
         "P95 latency {} ms should be near 95ms",
         p95_ms
     );
@@ -851,7 +851,7 @@ fn test_histogram_percentile_accuracy() {
     // P99 should be around 99ms
     let p99_ms = op_status.p99_latency.as_millis();
     assert!(
-        p99_ms >= 95 && p99_ms <= 105,
+        (95..=105).contains(&p99_ms),
         "P99 latency {} ms should be near 99ms",
         p99_ms
     );
@@ -878,7 +878,7 @@ fn test_histogram_with_outliers() {
     // P95 should still be around 10ms (not affected by the 5% outliers)
     let p95_ms = op_status.p95_latency.as_millis();
     assert!(
-        p95_ms >= 8 && p95_ms <= 20,
+        (8..=20).contains(&p95_ms),
         "P95 latency {} ms should be near 10ms despite outliers",
         p95_ms
     );
@@ -909,7 +909,7 @@ fn test_histogram_percentile_stability() {
 
             let p95_ms = op_status.p95_latency.as_millis();
             assert!(
-                p95_ms >= 17 && p95_ms <= 21,
+                (17..=21).contains(&p95_ms),
                 "P95 should be stable around 19ms in batch {}, got {}ms",
                 batch,
                 p95_ms

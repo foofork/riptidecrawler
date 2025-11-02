@@ -218,7 +218,7 @@ async fn test_eviction_counter_prometheus_integration() {
     let metric_families = registry.gather();
     let eviction_metric = metric_families
         .iter()
-        .find(|mf| mf.get_name() == "riptide_cache_evictions_total");
+        .find(|mf| mf.name() == "riptide_cache_evictions_total");
 
     assert!(eviction_metric.is_some());
 }

@@ -420,7 +420,7 @@ impl SlaMonitor {
         // Record duration in histogram for accurate percentile calculation
         let duration_ns = duration.as_nanos() as u64;
         // Clamp value to histogram bounds (1ns to 1 hour)
-        let clamped_duration = duration_ns.max(1).min(3_600_000_000_000);
+        let clamped_duration = duration_ns.clamp(1, 3_600_000_000_000);
 
         if let Err(e) = metrics.latency_histogram.record(clamped_duration) {
             tracing::warn!(
@@ -432,7 +432,7 @@ impl SlaMonitor {
         }
 
         // Calculate percentiles from histogram (every 10 requests for efficiency)
-        if metrics.total_requests % 10 == 0 && metrics.latency_histogram.len() > 0 {
+        if metrics.total_requests.is_multiple_of(10) && !metrics.latency_histogram.is_empty() {
             // P95 percentile
             let p95_ns = metrics.latency_histogram.value_at_percentile(95.0);
             metrics.p95_duration = Duration::from_nanos(p95_ns);
@@ -611,7 +611,7 @@ impl ResourceTracker {
             // Try to get disk usage from filesystem stats
             if let Ok(metadata) = std::fs::metadata(".") {
                 // Get the device ID
-                let dev = metadata.dev();
+                let _dev = metadata.dev();
 
                 // Try using statvfs to get filesystem stats
                 #[cfg(target_os = "linux")]

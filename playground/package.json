@@ -7,7 +7,14 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "clean": "../scripts/cleanup-disk.sh",
+    "clean:aggressive": "../scripts/cleanup-disk.sh --aggressive",
+    "clean:preview": "../scripts/cleanup-disk.sh --dry-run",
+    "prebuild": "../scripts/pre-build-check.sh",
+    "disk:check": "../scripts/disk-monitor.sh",
+    "disk:report": "../scripts/disk-monitor.sh --report",
+    "disk:smart": "../scripts/smart-cleanup.sh"
   },
   "dependencies": {
     "@codemirror/lang-javascript": "^6.2.4",

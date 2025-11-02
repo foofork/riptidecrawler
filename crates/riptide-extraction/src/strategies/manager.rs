@@ -123,7 +123,6 @@ impl EnhancedStrategyManager {
     }
 
     /// Set default spider strategy
-
     pub fn set_default_spider(&mut self, strategy_name: String) {
         self.default_spider = strategy_name;
     }

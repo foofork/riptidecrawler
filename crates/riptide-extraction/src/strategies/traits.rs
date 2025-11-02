@@ -227,7 +227,6 @@ impl StrategyRegistry {
 
     /// Register a spider strategy
     /// Only available when the "spider" feature is enabled
-
     pub fn register_spider(&mut self, strategy: Arc<dyn SpiderStrategy>) {
         let name = strategy.name().to_string();
         self.spider_strategies.insert(name, strategy);
@@ -240,7 +239,6 @@ impl StrategyRegistry {
 
     /// Get spider strategy by name
     /// Only available when the "spider" feature is enabled
-
     pub fn get_spider(&self, name: &str) -> Option<&Arc<dyn SpiderStrategy>> {
         self.spider_strategies.get(name)
     }
@@ -260,7 +258,6 @@ impl StrategyRegistry {
 
     /// List all available spider strategies
     /// Only available when the "spider" feature is enabled
-
     pub fn list_spider_strategies(&self) -> Vec<String> {
         self.spider_strategies
             .keys()

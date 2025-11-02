@@ -31,7 +31,7 @@
 
 use crate::extraction_strategies::ContentExtractor;
 use crate::native_parser::{NativeHtmlParser, ParserConfig};
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use riptide_types::ExtractedContent;
 
@@ -46,7 +46,7 @@ use crate::extraction_strategies::WasmExtractor;
 pub enum UnifiedExtractor {
     /// WASM-based extractor (only available with `wasm-extractor` feature)
     #[cfg(feature = "wasm-extractor")]
-    Wasm(WasmExtractor),
+    Wasm(Box<WasmExtractor>),
 
     /// Native Rust parser (always available)
     Native(NativeExtractor),
@@ -110,7 +110,7 @@ impl UnifiedExtractor {
                             path = %path,
                             "WASM extractor initialized successfully"
                         );
-                        return Ok(Self::Wasm(extractor));
+                        return Ok(Self::Wasm(Box::new(extractor)));
                     }
                     Err(e) => {
                         tracing::warn!(

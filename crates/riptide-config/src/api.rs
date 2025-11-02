@@ -97,9 +97,7 @@ pub mod validation {
             }
 
             // Reject if key starts with weak pattern (with or without separator)
-            if key_trimmed.starts_with(pattern) {
-                // Check if it's actually starting with the pattern (not just coincidental chars)
-                let after_pattern = &key_trimmed[pattern.len()..];
+            if let Some(after_pattern) = key_trimmed.strip_prefix(pattern) {
                 // It's a weak pattern if nothing follows, or if followed by separator or digit
                 if after_pattern.is_empty()
                     || after_pattern.starts_with('_')

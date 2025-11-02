@@ -1,4 +1,7 @@
+use anyhow::anyhow;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
+use tracing::{debug, error, info, warn};
 
 #[cfg(feature = "wasm-pool")]
 use riptide_extraction::validate_before_instantiation;

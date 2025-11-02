@@ -1,0 +1,148 @@
+name: Disk Space Management
+
+on:
+  schedule:
+    # Run cleanup every day at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      cleanup_type:
+        description: 'Cleanup type'
+        required: true
+        default: 'standard'
+        type: choice
+        options:
+          - standard
+          - aggressive
+          - smart
+      dry_run:
+        description: 'Dry run (preview only)'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  disk-cleanup:
+    name: Clean Build Artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check disk space before cleanup
+        run: |
+          echo "::group::Disk Space Before Cleanup"
+          df -h
+          du -sh target 2>/dev/null || echo "No target directory"
+          du -sh */node_modules 2>/dev/null || echo "No node_modules"
+          echo "::endgroup::"
+
+      - name: Make scripts executable
+        run: |
+          chmod +x scripts/cleanup-disk.sh
+          chmod +x scripts/smart-cleanup.sh
+          chmod +x scripts/disk-monitor.sh
+
+      - name: Run disk monitor
+        continue-on-error: true
+        run: ./scripts/disk-monitor.sh --report
+
+      - name: Run cleanup
+        run: |
+          CLEANUP_TYPE="${{ github.event.inputs.cleanup_type || 'smart' }}"
+          DRY_RUN="${{ github.event.inputs.dry_run || 'false' }}"
+
+          echo "Cleanup type: $CLEANUP_TYPE"
+          echo "Dry run: $DRY_RUN"
+
+          if [ "$DRY_RUN" = "true" ]; then
+            DRY_RUN_FLAG="--dry-run"
+          else
+            DRY_RUN_FLAG=""
+          fi
+
+          case $CLEANUP_TYPE in
+            standard)
+              ./scripts/cleanup-disk.sh $DRY_RUN_FLAG
+              ;;
+            aggressive)
+              ./scripts/cleanup-disk.sh --aggressive $DRY_RUN_FLAG
+              ;;
+            smart)
+              ./scripts/smart-cleanup.sh $DRY_RUN_FLAG
+              ;;
+          esac
+
+      - name: Check disk space after cleanup
+        run: |
+          echo "::group::Disk Space After Cleanup"
+          df -h
+          du -sh target 2>/dev/null || echo "No target directory"
+          echo "::endgroup::"
+
+      - name: Create cleanup report
+        if: always()
+        run: |
+          echo "# Disk Cleanup Report" > cleanup-report.md
+          echo "" >> cleanup-report.md
+          echo "**Date:** $(date)" >> cleanup-report.md
+          echo "**Cleanup Type:** ${{ github.event.inputs.cleanup_type || 'smart' }}" >> cleanup-report.md
+          echo "**Dry Run:** ${{ github.event.inputs.dry_run || 'false' }}" >> cleanup-report.md
+          echo "" >> cleanup-report.md
+          echo "## Disk Usage" >> cleanup-report.md
+          echo '```' >> cleanup-report.md
+          df -h >> cleanup-report.md
+          echo '```' >> cleanup-report.md
+
+      - name: Upload cleanup report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cleanup-report
+          path: cleanup-report.md
+          retention-days: 30
+
+  pre-build-check:
+    name: Pre-Build Disk Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Make scripts executable
+        run: chmod +x scripts/pre-build-check.sh
+
+      - name: Run pre-build check
+        run: ./scripts/pre-build-check.sh
+
+      - name: Comment on PR with disk status
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const { execSync } = require('child_process');
+
+            const diskUsage = execSync('df -h .').toString();
+            const targetSize = execSync('du -sh target 2>/dev/null || echo "N/A"').toString().trim();
+
+            const comment = `## 💾 Disk Space Status
+
+            **Target Directory:** ${targetSize}
+
+            \`\`\`
+            ${diskUsage}
+            \`\`\`
+
+            ✅ Pre-build disk space check passed.
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

@@ -1,1 +1,27 @@
-{}
+{
+  "name": "eventmesh-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EventMesh workspace with disk space management tools",
+  "scripts": {
+    "clean": "./scripts/cleanup-disk.sh",
+    "clean:aggressive": "./scripts/cleanup-disk.sh --aggressive",
+    "clean:preview": "./scripts/cleanup-disk.sh --dry-run",
+    "disk:check": "./scripts/disk-monitor.sh",
+    "disk:report": "./scripts/disk-monitor.sh --report",
+    "disk:smart": "./scripts/smart-cleanup.sh",
+    "prebuild": "./scripts/pre-build-check.sh",
+    "build": "cargo build",
+    "build:release": "cargo build --release",
+    "test": "cargo test",
+    "lint": "cargo clippy",
+    "format": "cargo fmt"
+  },
+  "keywords": [
+    "eventmesh",
+    "disk-management",
+    "build-tools"
+  ],
+  "author": "EventMesh Team",
+  "license": "MIT"
+}

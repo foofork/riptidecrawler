@@ -389,7 +389,6 @@ impl ParallelExtractor {
         config: &ParallelConfig,
     ) -> ParallelExtractionResult {
         let mut retry_count = 0;
-        let mut last_error: Option<String> = None;
         let start = Instant::now();
 
         loop {
@@ -399,7 +398,7 @@ impl ParallelExtractor {
             )
             .await;
 
-            match result {
+            let error_msg = match result {
                 Ok(Ok(doc)) => {
                     return ParallelExtractionResult {
                         task_id: task.id,
@@ -409,17 +408,19 @@ impl ParallelExtractor {
                         retry_count,
                     };
                 }
-                Ok(Err(e)) => {
-                    last_error = Some(format!("Extraction error: {}", e));
-                }
-                Err(_) => {
-                    last_error = Some("Timeout".to_string());
-                }
-            }
+                Ok(Err(e)) => format!("Extraction error: {}", e),
+                Err(_) => "Timeout".to_string(),
+            };
 
             // Check retry
             if !config.retry_failed || retry_count >= config.max_retries {
-                break;
+                return ParallelExtractionResult {
+                    task_id: task.id,
+                    url: task.url,
+                    result: Err(error_msg),
+                    duration: start.elapsed(),
+                    retry_count,
+                };
             }
 
             retry_count += 1;
@@ -428,14 +429,6 @@ impl ParallelExtractor {
             let delay = config.initial_retry_delay.as_millis() as f64
                 * config.retry_backoff_multiplier.powi(retry_count as i32 - 1);
             tokio::time::sleep(Duration::from_millis(delay as u64)).await;
-        }
-
-        ParallelExtractionResult {
-            task_id: task.id,
-            url: task.url,
-            result: Err(last_error.unwrap_or_else(|| "Unknown error".to_string())),
-            duration: start.elapsed(),
-            retry_count,
         }
     }
 

@@ -11,6 +11,15 @@ use scraper::{ElementRef, Html, Selector};
 
 use super::models::*;
 
+/// Type alias for table section extraction result
+/// Contains: (headers, sub_headers, body_rows, footer_rows)
+type TableSections = (
+    Vec<TableCell>,
+    Vec<Vec<TableCell>>,
+    Vec<TableRow>,
+    Vec<TableRow>,
+);
+
 /// Main table extractor
 pub struct TableExtractor {
     config: TableExtractionConfig,
@@ -205,15 +214,7 @@ impl TableExtractor {
 
     /// Extract table sections (thead, tbody, tfoot) with multi-level header support
     /// This is a cohesive function that handles complex section extraction logic
-    fn extract_table_sections(
-        &self,
-        table_element: ElementRef,
-    ) -> Result<(
-        Vec<TableCell>,
-        Vec<Vec<TableCell>>,
-        Vec<TableRow>,
-        Vec<TableRow>,
-    )> {
+    fn extract_table_sections(&self, table_element: ElementRef) -> Result<TableSections> {
         // Extract headers from thead (with multi-level support)
         let (headers, sub_headers) = self.extract_multi_level_headers(table_element)?;
 

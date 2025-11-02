@@ -2,10 +2,25 @@
 use wasmtime::{component::*, Engine};
 
 #[cfg(feature = "wasm-pool")]
+use super::config::ExtractorConfig;
+
+#[cfg(feature = "wasm-pool")]
 use super::models::{CircuitBreakerState, PooledInstance};
 
 #[cfg(feature = "wasm-pool")]
+use riptide_events::{Event, EventBus, EventEmitter, PoolEvent, PoolOperation};
+
+#[cfg(feature = "wasm-pool")]
+use std::env;
+
+#[cfg(feature = "wasm-pool")]
+use std::sync::{Arc, Mutex};
+
+#[cfg(feature = "wasm-pool")]
 use std::sync::atomic::{AtomicUsize, Ordering};
+
+#[cfg(feature = "wasm-pool")]
+use std::time::Duration;
 
 #[cfg(feature = "wasm-pool")]
 use async_trait::async_trait;
@@ -14,7 +29,7 @@ use async_trait::async_trait;
 use tracing::{debug, info, warn};
 
 #[cfg(feature = "wasm-pool")]
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
 
 #[cfg(feature = "wasm-pool")]
 wasmtime::component::bindgen!({

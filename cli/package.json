@@ -33,7 +33,14 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "lint": "eslint src bin",
     "format": "prettier --write \"src/**/*.js\" \"bin/**/*.js\"",
-    "prepublishOnly": "npm run lint && npm test"
+    "prepublishOnly": "npm run lint && npm test",
+    "clean": "../scripts/cleanup-disk.sh",
+    "clean:aggressive": "../scripts/cleanup-disk.sh --aggressive",
+    "clean:preview": "../scripts/cleanup-disk.sh --dry-run",
+    "prebuild": "../scripts/pre-build-check.sh",
+    "disk:check": "../scripts/disk-monitor.sh",
+    "disk:report": "../scripts/disk-monitor.sh --report",
+    "disk:smart": "../scripts/smart-cleanup.sh"
   },
   "dependencies": {
     "commander": "^11.1.0",
