@@ -31,7 +31,7 @@
 
 use crate::extraction_strategies::ContentExtractor;
 use crate::native_parser::{NativeHtmlParser, ParserConfig};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use riptide_types::ExtractedContent;
 
