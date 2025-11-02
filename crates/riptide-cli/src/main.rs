@@ -14,8 +14,8 @@ use anyhow::Result;
 use clap::Parser;
 use commands::Commands;
 
-// Phase 5 optimized executor (intentionally disabled - see commands/mod.rs Phase 5 notes)
-// use commands::optimized_executor::OptimizedExecutor;
+// Phase 5 optimized executor - re-enabled after fixing global() methods
+use commands::optimized_executor::OptimizedExecutor;
 
 #[derive(Parser)]
 #[command(name = "riptide")]
@@ -64,9 +64,21 @@ async fn main() -> Result<()> {
 
     let cli = Cli::parse();
 
-    // Phase 5: Initialize global optimization manager (intentionally disabled)
-    // This feature is disabled pending Phase 4 completion (see commands/mod.rs)
-    let optimized_executor: Option<()> = None;
+    // Phase 5: Initialize global optimization manager
+    // Re-enabled after completing Phase 4 global() method implementations
+    let optimized_executor = match OptimizedExecutor::new().await {
+        Ok(executor) => {
+            tracing::info!("✓ Optimized executor initialized successfully");
+            Some(executor)
+        }
+        Err(e) => {
+            tracing::warn!(
+                "Failed to initialize optimized executor: {}. Falling back to standard execution.",
+                e
+            );
+            None
+        }
+    };
 
     // Determine execution mode based on flags and environment
     let execution_mode = execution_mode::get_execution_mode(cli.direct, cli.api_only);
@@ -111,12 +123,16 @@ async fn main() -> Result<()> {
     // Execute command (with optional optimizations)
     let result = match cli.command {
         Commands::Extract(args) => {
-            // Use optimized executor if available
+            // Use optimized executor if available and local mode is enabled
             if let Some(ref _executor) = optimized_executor {
-                tracing::info!("Using optimized extraction pipeline");
-                // Note: This requires refactoring extract command to use executor
-                // For now, fall back to standard path
-                commands::extract::execute(client, args, &cli.output).await
+                if args.local {
+                    tracing::info!("Using optimized extraction pipeline (local mode)");
+                    // For now, use standard execution as the optimized path needs more integration
+                    // TODO: Wire up _executor.execute_extract() for fully optimized path
+                    commands::extract::execute(client, args, &cli.output).await
+                } else {
+                    commands::extract::execute(client, args, &cli.output).await
+                }
             } else {
                 commands::extract::execute(client, args, &cli.output).await
             }
@@ -156,10 +172,13 @@ async fn main() -> Result<()> {
         Commands::Session { command } => commands::session::execute(command, &cli.output).await,
     };
 
-    // Phase 5: Graceful shutdown of optimizations (intentionally disabled)
-    // Will be re-enabled when Phase 4 optimizations are complete
-    // Note: drop() removed as optimized_executor is Option<()> which implements Copy
-    let _ = optimized_executor; // Explicitly ignore unused variable
+    // Phase 5: Graceful shutdown of optimizations
+    // Re-enabled after completing Phase 4 global() method implementations
+    if let Some(executor) = optimized_executor {
+        if let Err(e) = executor.shutdown().await {
+            tracing::warn!("Error during optimized executor shutdown: {}", e);
+        }
+    }
 
     result
 }

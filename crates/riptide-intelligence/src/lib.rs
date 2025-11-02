@@ -19,6 +19,7 @@ pub mod failover;
 pub mod fallback;
 pub mod health;
 pub mod hot_reload;
+pub mod llm_client_pool;
 pub mod metrics;
 pub mod plugin;
 pub mod provider;
@@ -68,6 +69,7 @@ pub use health::{HealthMonitor, HealthMonitorBuilder};
 pub use hot_reload::{
     ConfigChangeEvent, HotReloadConfig, HotReloadManager, ReloadStatus, ValidationStatus,
 };
+pub use llm_client_pool::{LlmClientPool, LlmClientPoolConfig, LlmClientPoolStats};
 pub use metrics::{
     AggregatedMetrics, LlmOpsDashboard, MetricsCollector, RequestMetrics, TimeWindow,
 };

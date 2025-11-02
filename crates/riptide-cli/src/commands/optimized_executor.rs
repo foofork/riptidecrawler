@@ -67,22 +67,24 @@ impl OptimizedExecutor {
 
         tracing::info!("✓ All optimization modules initialized");
 
+        // Initialize WASM AOT cache (async operation)
+        #[cfg(feature = "wasm-extractor")]
+        let wasm_aot = riptide_cache::wasm::get_global_aot_cache().await?;
+        #[cfg(not(feature = "wasm-extractor"))]
+        let wasm_aot = Arc::new(()); // Placeholder for non-wasm builds
+
+        // Initialize WASM cache (sync operation)
+        #[cfg(feature = "wasm-extractor")]
+        let wasm_cache = WasmCache::get_global();
+        #[cfg(not(feature = "wasm-extractor"))]
+        let wasm_cache = Arc::new(()); // Placeholder for non-wasm builds
+
         Ok(Self {
             browser_pool,
-
-            #[cfg(feature = "wasm-extractor")]
-            wasm_aot: riptide_cache::wasm::get_global_aot_cache(),
-            #[cfg(not(feature = "wasm-extractor"))]
-            wasm_aot: Arc::new(()), // Placeholder for non-wasm builds
-
+            wasm_aot,
             timeout_mgr,
             engine_cache,
-
-            #[cfg(feature = "wasm-extractor")]
-            wasm_cache: WasmCache::get_global(),
-            #[cfg(not(feature = "wasm-extractor"))]
-            wasm_cache: Arc::new(()), // Placeholder for non-wasm builds
-
+            wasm_cache,
             perf_monitor,
         })
     }

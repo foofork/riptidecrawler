@@ -22,8 +22,7 @@ use uuid::Uuid;
 use riptide_events::{CrawlEvent, CrawlOperation, EventBus, EventEmitter, ExtractionMode};
 
 use crate::{
-    CompletionRequest, CompletionResponse, FailoverManager, IntelligenceError, LlmProvider,
-    LlmRegistry, Message,
+    CompletionRequest, FailoverManager, IntelligenceError, LlmClientPool, LlmRegistry, Message,
 };
 
 /// Priority levels for AI enhancement tasks
@@ -184,6 +183,7 @@ pub struct BackgroundAiProcessor {
     running: Arc<std::sync::atomic::AtomicBool>,
     llm_registry: Option<Arc<LlmRegistry>>,
     llm_failover: Option<Arc<FailoverManager>>,
+    llm_client_pool: Option<Arc<LlmClientPool>>,
     rate_limiter: Arc<RateLimiter>,
 }
 
@@ -205,6 +205,7 @@ impl BackgroundAiProcessor {
             running: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             llm_registry: None,
             llm_failover: None,
+            llm_client_pool: None,
         }
     }
 
@@ -223,6 +224,12 @@ impl BackgroundAiProcessor {
     /// Set the LLM failover manager for high availability
     pub fn with_llm_failover(mut self, failover: Arc<FailoverManager>) -> Self {
         self.llm_failover = Some(failover);
+        self
+    }
+
+    /// Set the LLM client pool for efficient resource management
+    pub fn with_llm_client_pool(mut self, client_pool: Arc<LlmClientPool>) -> Self {
+        self.llm_client_pool = Some(client_pool);
         self
     }
 
@@ -250,6 +257,7 @@ impl BackgroundAiProcessor {
             let worker_timeout = self.config.worker_timeout;
             let llm_registry = self.llm_registry.clone();
             let llm_failover = self.llm_failover.clone();
+            let llm_client_pool = self.llm_client_pool.clone();
             let rate_limiter = self.rate_limiter.clone();
             let llm_config = (
                 self.config.llm_model.clone(),
@@ -290,6 +298,7 @@ impl BackgroundAiProcessor {
                             worker_timeout,
                             llm_registry.clone(),
                             llm_failover.clone(),
+                            llm_client_pool.clone(),
                             rate_limiter.clone(),
                             llm_config.clone(),
                         )
@@ -376,6 +385,7 @@ impl BackgroundAiProcessor {
         timeout: Duration,
         llm_registry: Option<Arc<LlmRegistry>>,
         llm_failover: Option<Arc<FailoverManager>>,
+        llm_client_pool: Option<Arc<LlmClientPool>>,
         rate_limiter: Arc<RateLimiter>,
         llm_config: (String, u32, f32, Duration, Duration, f64),
     ) -> Result<()> {
@@ -401,7 +411,14 @@ impl BackgroundAiProcessor {
         // Process with timeout
         let result = tokio::time::timeout(
             timeout,
-            Self::enhance_content(&task, llm_registry, llm_failover, rate_limiter, llm_config),
+            Self::enhance_content(
+                &task,
+                llm_registry,
+                llm_failover,
+                llm_client_pool,
+                rate_limiter,
+                llm_config,
+            ),
         )
         .await;
 
@@ -509,15 +526,63 @@ impl BackgroundAiProcessor {
     }
 
     /// Enhance content using LLM with rate limiting and exponential backoff
+    ///
+    /// This method integrates with the LLM client pool for efficient resource management,
+    /// circuit breaker for fault tolerance, and failover for high availability.
     async fn enhance_content(
         task: &AiTask,
         llm_registry: Option<Arc<LlmRegistry>>,
         llm_failover: Option<Arc<FailoverManager>>,
+        llm_client_pool: Option<Arc<LlmClientPool>>,
         rate_limiter: Arc<RateLimiter>,
         llm_config: (String, u32, f32, Duration, Duration, f64),
     ) -> Result<String> {
         let (model, max_tokens, temperature, initial_backoff, max_backoff, backoff_multiplier) =
             llm_config;
+
+        // Build the LLM request
+        let messages = vec![
+            Message::system(
+                "You are an AI content enhancer. Analyze and enhance the given web content by extracting key information, improving clarity, and adding structured insights."
+            ),
+            Message::user(format!(
+                "URL: {}\n\nContent:\n{}",
+                task.url, task.content
+            )),
+        ];
+
+        let request = CompletionRequest::new(model.clone(), messages)
+            .with_max_tokens(max_tokens)
+            .with_temperature(temperature);
+
+        // INTEGRATION POINT: Use LLM client pool if available (provides connection pooling,
+        // circuit breaker, timeout handling, and automatic retries)
+        if let Some(client_pool) = llm_client_pool {
+            debug!(
+                "Using LLM client pool for task {} with provider: {}",
+                task.task_id, model
+            );
+
+            match client_pool.complete(request, &model).await {
+                Ok(response) => {
+                    debug!(
+                        "LLM client pool enhancement successful for task {}",
+                        task.task_id
+                    );
+                    return Ok(response.content);
+                }
+                Err(e) => {
+                    error!("LLM client pool failed for task {}: {}", task.task_id, e);
+                    return Err(anyhow::anyhow!("LLM client pool enhancement failed: {}", e));
+                }
+            }
+        }
+
+        // FALLBACK: Use legacy path if client pool not configured
+        debug!(
+            "LLM client pool not configured, using legacy enhancement path for task {}",
+            task.task_id
+        );
 
         // If no LLM registry is configured, return placeholder
         let Some(registry) = llm_registry else {
@@ -532,26 +597,26 @@ impl BackgroundAiProcessor {
         // Apply rate limiting before making request
         rate_limiter.acquire().await;
 
-        // Build the LLM request
-        let messages = vec![
-            Message::system(
-                "You are an AI content enhancer. Analyze and enhance the given web content by extracting key information, improving clarity, and adding structured insights."
-            ),
-            Message::user(format!(
-                "URL: {}\n\nContent:\n{}",
-                task.url, task.content
-            )),
-        ];
-
-        let request = CompletionRequest::new(model, messages)
-            .with_max_tokens(max_tokens)
-            .with_temperature(temperature);
-
-        // Try to get response with exponential backoff
+        // Try to get response with exponential backoff (legacy path)
         let mut backoff = initial_backoff;
         let mut last_error: Option<IntelligenceError> = None;
 
         for attempt in 0..task.max_retries {
+            // Build the LLM request for each retry (in case it needs to be modified)
+            let messages = vec![
+                Message::system(
+                    "You are an AI content enhancer. Analyze and enhance the given web content by extracting key information, improving clarity, and adding structured insights."
+                ),
+                Message::user(format!(
+                    "URL: {}\n\nContent:\n{}",
+                    task.url, task.content
+                )),
+            ];
+
+            let request = CompletionRequest::new(model.clone(), messages)
+                .with_max_tokens(max_tokens)
+                .with_temperature(temperature);
+
             // Try with failover manager first if available
             let result = if let Some(failover) = &llm_failover {
                 failover.complete_with_failover(request.clone()).await
