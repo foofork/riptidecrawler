@@ -6671,7 +6671,6 @@ dependencies = [
  "parking_lot",
  "regex",
  "reqwest 0.12.24",
- "riptide-spider",
  "riptide-types",
  "schemars",
  "scraper",
