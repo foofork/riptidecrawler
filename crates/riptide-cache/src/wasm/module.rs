@@ -18,6 +18,8 @@
 //! - **Timeout protection** for loading operations
 
 #[cfg(feature = "wasm-extractor")]
+use anyhow::{anyhow, Result};
+#[cfg(feature = "wasm-extractor")]
 use once_cell::sync::OnceCell;
 #[cfg(feature = "wasm-extractor")]
 use riptide_extraction::wasm_extraction::WasmExtractor;

@@ -15,62 +15,53 @@ name = "riptide"
 path = "src/main.rs"
 
 [dependencies]
-# Core dependencies
+# Core (6 dependencies)
 anyhow.workspace = true
-async-trait.workspace = true
 clap.workspace = true
 tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+serde_yaml = "0.9"
+
+# HTTP (2 dependencies)
 reqwest.workspace = true
 url.workspace = true
 
-# Local extraction support
-# Phase 1: WASM Optional - Use native-parser by default
-riptide-extraction = { path = "../riptide-extraction", default-features = false, features = ["css-extraction", "regex-extraction", "dom-utils", "chunking", "native-parser"] }
-riptide-reliability = { path = "../riptide-reliability" }
-riptide-stealth = { path = "../riptide-stealth" }
-riptide-pdf = { path = "../riptide-pdf" }
-riptide-browser = { path = "../riptide-browser" }
-riptide-workers = { path = "../riptide-workers" }
-riptide-cache = { path = "../riptide-cache" }
-
-# CLI-specific
+# CLI utilities (5 dependencies)
 colored = "2.1"
 indicatif = "0.17"
 comfy-table = "7.1"
-dialoguer = "0.11"
-csv = "1.3"
+dirs = "5.0"
+ctrlc = "3.4"
+
+# Config (2 dependencies)
+env_logger.workspace = true
+chrono.workspace = true
+
+# Logging and telemetry
+tracing.workspace = true
+opentelemetry.workspace = true
+
+# Async utilities
+futures.workspace = true
+async-trait.workspace = true
 
 # Utilities
-chrono.workspace = true
-humantime = "2.1"
+once_cell.workspace = true
+rand.workspace = true
 urlencoding = "2.1"
-env_logger.workspace = true
-scraper = "0.20"
-dirs = "5.0"
-serde_yaml = "0.9"
-ctrlc = "3.4"
-rand = "0.8"
-futures.workspace = true
-
-# Metrics and observability
-once_cell = "1.19"
-opentelemetry = "0.24"
-tracing.workspace = true
-
-# System checks
-num_cpus = "1.16"
-
-# P2-F1 Day 4-5: Migrated from riptide-core to specific crates
-riptide-types = { path = "../riptide-types" }
-riptide-monitoring = { path = "../riptide-monitoring" }
-
-# Phase 4 P0 Optimizations
-sha2 = "0.10"
 uuid.workspace = true
-spider_chrome = "2.37.128"
-# Note: chromiumoxide types come from riptide-headless's dependency
+
+# Internal riptide crates
+riptide-reliability = { path = "../riptide-reliability" }
+riptide-stealth = { path = "../riptide-stealth" }
+riptide-browser = { path = "../riptide-browser" }
+riptide-monitoring = { path = "../riptide-monitoring" }
+riptide-workers = { path = "../riptide-workers" }
+riptide-extraction = { path = "../riptide-extraction" }
+
+# Optional browser feature
+chromiumoxide = { version = "0.7", optional = true }
 
 [dev-dependencies]
 tempfile = "3.13"
@@ -79,7 +70,6 @@ assert_fs = "1.0"
 predicates = "3.0"
 
 [features]
-default = ["pdf"]
-pdf = ["riptide-pdf/pdf"]
-# Phase 1: WASM Optional - Feature flag for WASM extraction
-wasm-extractor = ["riptide-extraction/wasm-extractor", "riptide-cache/wasm-extractor"]
+default = []
+browser = ["chromiumoxide"]
+wasm-extractor = []

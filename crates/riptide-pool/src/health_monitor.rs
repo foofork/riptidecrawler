@@ -1,6 +1,16 @@
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
+use tokio::time::{interval, timeout, Duration};
+use tracing::{debug, error, info, warn};
 
+// Core imports needed throughout the file
+use crate::config::{ExtractorConfig, PerformanceMetrics};
+use riptide_events::{EventBus, HealthEvent, HealthStatus, MetricType, MetricsEvent};
+
+// Feature-gated pool import
 #[cfg(feature = "wasm-pool")]
 use crate::AdvancedInstancePool;
 

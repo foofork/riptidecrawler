@@ -2,25 +2,46 @@
 use wasmtime::{component::*, Engine};
 
 #[cfg(feature = "wasm-pool")]
-use super::config::ExtractorConfig;
+use super::config::{ExtractorConfig, PerformanceMetrics, WasmResourceTracker};
 
 #[cfg(feature = "wasm-pool")]
 use super::models::{CircuitBreakerState, PooledInstance};
 
 #[cfg(feature = "wasm-pool")]
-use riptide_events::{Event, EventBus, EventEmitter, PoolEvent, PoolOperation};
+use riptide_events::{Event, EventBus, EventEmitter, PoolEvent, PoolMetrics, PoolOperation};
+
+#[cfg(feature = "wasm-pool")]
+use riptide_types::config::ExtractionMode;
+
+#[cfg(feature = "wasm-pool")]
+use riptide_types::extracted::{ExtractedDoc, ParserMetadata};
+
+#[cfg(feature = "wasm-pool")]
+use std::collections::VecDeque;
 
 #[cfg(feature = "wasm-pool")]
 use std::env;
 
 #[cfg(feature = "wasm-pool")]
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+
+#[cfg(feature = "wasm-pool")]
+use tokio::sync::Mutex;
 
 #[cfg(feature = "wasm-pool")]
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 #[cfg(feature = "wasm-pool")]
-use std::time::Duration;
+use std::time::{Duration, Instant};
+
+#[cfg(feature = "wasm-pool")]
+use tokio::sync::Semaphore;
+
+#[cfg(feature = "wasm-pool")]
+use tokio::time::{sleep, timeout};
+
+#[cfg(feature = "wasm-pool")]
+use uuid::Uuid;
 
 #[cfg(feature = "wasm-pool")]
 use async_trait::async_trait;

@@ -118,7 +118,7 @@ impl RetryStats {
         Self::default()
     }
 
-    fn success_rate(&self) -> f32 {
+    pub fn success_rate(&self) -> f32 {
         if self.total_attempts == 0 {
             0.0
         } else {

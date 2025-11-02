@@ -452,6 +452,7 @@ impl EventAwarePoolFactory {
                     active_instances: active,
                     total_instances: total,
                     pending_acquisitions: pool_clone
+                        .pool
                         .pending_acquisitions
                         .load(std::sync::atomic::Ordering::Relaxed),
                     success_rate: if performance_metrics.total_extractions > 0 {
