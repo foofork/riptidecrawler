@@ -1,12 +1,13 @@
-use super::types::{Session, SessionConfig, SessionError, SessionStats};
+use super::types::{CleanupStats, Session, SessionConfig, SessionError, SessionStats};
 use anyhow::Result;
 use serde_json;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant, SystemTime};
 use tokio::fs;
 use tokio::sync::RwLock;
+use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info, warn};
 
 /// Thread-safe session storage with TTL and cleanup mechanisms
@@ -20,6 +21,9 @@ pub struct SessionStorage {
 
     /// Statistics tracking
     stats: Arc<RwLock<SessionStorageStats>>,
+
+    /// Cancellation token for graceful shutdown
+    shutdown_token: CancellationToken,
 }
 
 /// Internal storage statistics
@@ -39,6 +43,12 @@ struct SessionStorageStats {
 
     /// Disk usage in bytes
     disk_usage_bytes: u64,
+
+    /// Total memory freed by cleanup (estimated)
+    total_memory_freed_bytes: u64,
+
+    /// Last cleanup statistics
+    last_cleanup_stats: Option<CleanupStats>,
 }
 
 impl SessionStorage {
@@ -61,6 +71,7 @@ impl SessionStorage {
             sessions: Arc::new(RwLock::new(HashMap::new())),
             config,
             stats: Arc::new(RwLock::new(SessionStorageStats::default())),
+            shutdown_token: CancellationToken::new(),
         };
 
         // Load existing sessions from disk
@@ -183,8 +194,15 @@ impl SessionStorage {
         Ok(())
     }
 
-    /// Clean up expired sessions
+    /// Clean up expired sessions and return detailed statistics
     pub async fn cleanup_expired(&self) -> Result<usize> {
+        let cleanup_stats = self.cleanup_expired_with_stats().await?;
+        Ok(cleanup_stats.sessions_removed)
+    }
+
+    /// Clean up expired sessions with detailed statistics
+    pub async fn cleanup_expired_with_stats(&self) -> Result<CleanupStats> {
+        let start_time = Instant::now();
         let now = SystemTime::now();
         let mut expired_sessions = Vec::new();
 
@@ -193,14 +211,18 @@ impl SessionStorage {
             let sessions = self.sessions.read().await;
             for (id, session) in sessions.iter() {
                 if session.expires_at <= now {
-                    expired_sessions.push(id.clone());
+                    expired_sessions.push((id.clone(), session.clone()));
                 }
             }
         }
 
+        // Calculate estimated memory usage of expired sessions
+        let estimated_memory_per_session: u64 = 8192; // ~8KB per session (conservative estimate)
+        let memory_freed = (expired_sessions.len() as u64) * estimated_memory_per_session;
+
         // Remove expired sessions
         let mut removed_count = 0;
-        for session_id in expired_sessions {
+        for (session_id, _session) in expired_sessions {
             if let Err(e) = self.remove_session(&session_id).await {
                 warn!(
                     session_id = %session_id,
@@ -212,19 +234,43 @@ impl SessionStorage {
             }
         }
 
+        // Get remaining session count
+        let remaining_count = {
+            let sessions = self.sessions.read().await;
+            sessions.len()
+        };
+
+        let cleanup_duration_ms = start_time.elapsed().as_millis() as u64;
+
+        let cleanup_stats = CleanupStats {
+            sessions_removed: removed_count,
+            sessions_remaining: remaining_count,
+            memory_freed_bytes: memory_freed,
+            cleanup_duration_ms,
+            timestamp: now,
+        };
+
         // Update statistics
         {
             let mut stats = self.stats.write().await;
             stats.sessions_expired += removed_count as u64;
             stats.cleanup_operations += 1;
             stats.last_cleanup = Some(now);
+            stats.total_memory_freed_bytes += memory_freed;
+            stats.last_cleanup_stats = Some(cleanup_stats.clone());
         }
 
         if removed_count > 0 {
-            info!(expired_count = removed_count, "Cleaned up expired sessions");
+            info!(
+                expired_count = removed_count,
+                remaining_count = remaining_count,
+                memory_freed_kb = memory_freed / 1024,
+                duration_ms = cleanup_duration_ms,
+                "Cleaned up expired sessions"
+            );
         }
 
-        Ok(removed_count)
+        Ok(cleanup_stats)
     }
 
     /// Get session statistics
@@ -257,6 +303,12 @@ impl SessionStorage {
             avg_session_age_seconds: avg_age_seconds,
             sessions_created_last_hour,
         })
+    }
+
+    /// Get last cleanup statistics
+    pub async fn get_last_cleanup_stats(&self) -> Option<CleanupStats> {
+        let storage_stats = self.stats.read().await;
+        storage_stats.last_cleanup_stats.clone()
     }
 
     /// Get all active session IDs
@@ -434,29 +486,56 @@ impl SessionStorage {
         Ok(())
     }
 
-    /// Start background cleanup task
+    /// Start background cleanup task with graceful shutdown support
     fn start_cleanup_task(&self) {
         let storage = self.clone();
         let cleanup_interval = self.config.cleanup_interval;
+        let shutdown_token = self.shutdown_token.clone();
 
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(cleanup_interval);
+            info!(
+                interval_seconds = cleanup_interval.as_secs(),
+                "Started background session cleanup task"
+            );
 
             loop {
-                interval.tick().await;
+                tokio::select! {
+                    _ = interval.tick() => {
+                        if let Err(e) = storage.cleanup_expired_with_stats().await {
+                            error!(
+                                error = %e,
+                                "Background cleanup task failed"
+                            );
+                        }
+                    }
+                    _ = shutdown_token.cancelled() => {
+                        info!("Session cleanup task received shutdown signal, performing final cleanup");
 
-                if let Err(e) = storage.cleanup_expired().await {
-                    error!(
-                        error = %e,
-                        "Background cleanup task failed"
-                    );
+                        // Perform final cleanup before shutdown
+                        if let Ok(stats) = storage.cleanup_expired_with_stats().await {
+                            info!(
+                                sessions_removed = stats.sessions_removed,
+                                memory_freed_kb = stats.memory_freed_bytes / 1024,
+                                "Final cleanup completed before shutdown"
+                            );
+                        }
+
+                        info!("Session cleanup task shutdown complete");
+                        break;
+                    }
                 }
             }
         });
 
         debug!(
             interval_seconds = cleanup_interval.as_secs(),
-            "Started background session cleanup task"
+            "Background session cleanup task started"
         );
+    }
+
+    /// Signal the cleanup task to shutdown gracefully
+    pub fn shutdown(&self) {
+        self.shutdown_token.cancel();
     }
 }

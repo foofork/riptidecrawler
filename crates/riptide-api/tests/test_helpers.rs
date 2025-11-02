@@ -113,6 +113,11 @@ pub fn create_test_router(state: AppState) -> Router {
         .nest("/api/v1/llm", routes::llm::llm_routes())
         // Content chunking routes
         .nest("/api/v1/content", routes::chunking::chunking_routes())
+        // Memory profiling endpoint
+        .route(
+            "/api/v1/memory/profile",
+            get(handlers::memory::memory_profile_handler),
+        )
         .with_state(state)
         .layer(CorsLayer::permissive())
 }

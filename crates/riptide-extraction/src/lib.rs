@@ -109,6 +109,12 @@ pub use riptide_types::ExtractedDoc;
 // Re-export HTML parser types (moved from riptide-core)
 pub use html_parser::{Link, Media, MediaType, Metadata};
 
+// Enhanced link extraction with context and classification
+pub mod enhanced_link_extraction;
+pub use enhanced_link_extraction::{
+    EnhancedLinkExtractor, ExtractedLink, LinkExtractionConfig, LinkType,
+};
+
 // Re-export strategies (moved from riptide-core)
 // Note: ExtractionStrategy is a TRAIT defined in strategies::traits
 // ExtractionStrategyType is an ENUM for configuration

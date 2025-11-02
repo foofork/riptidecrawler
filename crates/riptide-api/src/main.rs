@@ -323,6 +323,11 @@ async fn main() -> anyhow::Result<()> {
             "/resources/pdf/semaphore",
             get(handlers::resources::get_pdf_semaphore_status),
         )
+        // Memory profiling endpoint for production observability
+        .route(
+            "/api/v1/memory/profile",
+            get(handlers::memory::memory_profile_handler),
+        )
         // Fetch engine metrics endpoint
         .route("/fetch/metrics", get(handlers::fetch::get_fetch_metrics))
         .route(
@@ -527,9 +532,12 @@ async fn main() -> anyhow::Result<()> {
         "RipTide API server successfully started and ready to accept connections"
     );
 
+    // Clone app_state for shutdown handler
+    let shutdown_state = app_state.clone();
+
     // Start the server
     axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
+        .with_graceful_shutdown(shutdown_signal(shutdown_state))
         .await?;
 
     tracing::info!("RipTide API server shutdown complete");
@@ -539,8 +547,9 @@ async fn main() -> anyhow::Result<()> {
 /// Graceful shutdown signal handler.
 ///
 /// Listens for SIGTERM and SIGINT signals to gracefully shutdown the server.
-/// This allows for proper cleanup of connections and resources.
-async fn shutdown_signal() {
+/// This allows for proper cleanup of connections and resources including
+/// the session cleanup background task.
+async fn shutdown_signal(app_state: Arc<AppState>) {
     use tokio::signal;
 
     let ctrl_c = async {
@@ -574,4 +583,13 @@ async fn shutdown_signal() {
             tracing::info!("Received SIGTERM, initiating graceful shutdown");
         },
     }
+
+    // Shutdown session cleanup task
+    tracing::info!("Shutting down session cleanup task");
+    app_state.session_manager.shutdown();
+
+    // Give background tasks a moment to complete final cleanup
+    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+
+    tracing::info!("All cleanup tasks completed");
 }

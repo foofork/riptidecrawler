@@ -31,6 +31,37 @@ pub struct SessionConfig {
     pub encrypt_session_data: bool,
 }
 
+/// Statistics from a cleanup operation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CleanupStats {
+    /// Number of sessions removed
+    pub sessions_removed: usize,
+
+    /// Number of sessions remaining
+    pub sessions_remaining: usize,
+
+    /// Estimated memory freed in bytes
+    pub memory_freed_bytes: u64,
+
+    /// Duration of cleanup operation
+    pub cleanup_duration_ms: u64,
+
+    /// Timestamp of cleanup
+    pub timestamp: SystemTime,
+}
+
+impl Default for CleanupStats {
+    fn default() -> Self {
+        Self {
+            sessions_removed: 0,
+            sessions_remaining: 0,
+            memory_freed_bytes: 0,
+            cleanup_duration_ms: 0,
+            timestamp: SystemTime::now(),
+        }
+    }
+}
+
 impl Default for SessionConfig {
     fn default() -> Self {
         Self {
@@ -41,6 +72,46 @@ impl Default for SessionConfig {
             persist_cookies: true,
             encrypt_session_data: false,
         }
+    }
+}
+
+impl SessionConfig {
+    /// Load session configuration from environment variables
+    pub fn from_env() -> Self {
+        let mut config = Self::default();
+
+        // SESSION_TTL_SECS - default session time-to-live
+        if let Ok(val) = std::env::var("SESSION_TTL_SECS") {
+            if let Ok(secs) = val.parse::<u64>() {
+                config.default_ttl = Duration::from_secs(secs);
+            }
+        }
+
+        // SESSION_CLEANUP_INTERVAL_SECS - how often to run cleanup
+        if let Ok(val) = std::env::var("SESSION_CLEANUP_INTERVAL_SECS") {
+            if let Ok(secs) = val.parse::<u64>() {
+                config.cleanup_interval = Duration::from_secs(secs);
+            }
+        }
+
+        // SESSION_MAX_SESSIONS - maximum concurrent sessions
+        if let Ok(val) = std::env::var("SESSION_MAX_SESSIONS") {
+            if let Ok(max) = val.parse::<usize>() {
+                config.max_sessions = max;
+            }
+        }
+
+        // SESSION_BASE_DIR - base directory for session data
+        if let Ok(val) = std::env::var("SESSION_BASE_DIR") {
+            config.base_data_dir = PathBuf::from(val);
+        }
+
+        // SESSION_PERSIST_COOKIES - enable/disable cookie persistence
+        if let Ok(val) = std::env::var("SESSION_PERSIST_COOKIES") {
+            config.persist_cookies = val.to_lowercase() == "true";
+        }
+
+        config
     }
 }
 

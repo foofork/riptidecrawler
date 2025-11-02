@@ -4,6 +4,7 @@ pub mod processors;
 pub mod queue;
 pub mod scheduler;
 pub mod service;
+pub mod state;
 pub mod worker;
 
 pub use job::{Job, JobPriority, JobResult, JobStatus, JobType, PdfExtractionOptions, RetryConfig};
@@ -16,6 +17,9 @@ pub use processors::{
 pub use queue::{JobQueue, QueueConfig, QueueStats};
 pub use scheduler::{JobScheduler, ScheduledJob, SchedulerConfig, SchedulerStats};
 pub use service::{WorkerService, WorkerServiceConfig, WorkerServiceHealth};
+pub use state::{
+    JobState, StateTransitionError, StateTransitionGuard, TransitionMetrics, WorkerState,
+};
 pub use worker::{
     JobProcessor, Worker, WorkerConfig, WorkerPool, WorkerPoolStats, WorkerStatsSnapshot,
 };
@@ -27,6 +31,7 @@ pub mod prelude {
     pub use crate::queue::{JobQueue, QueueConfig};
     pub use crate::scheduler::{JobScheduler, ScheduledJob};
     pub use crate::service::{WorkerService, WorkerServiceConfig};
+    pub use crate::state::{JobState, StateTransitionGuard, WorkerState};
     pub use crate::worker::{JobProcessor, WorkerConfig, WorkerPool};
     pub use async_trait::async_trait;
 }

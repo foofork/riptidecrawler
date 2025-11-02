@@ -10,6 +10,7 @@ pub mod extract;
 pub mod fetch;
 pub mod health;
 pub mod llm;
+pub mod memory; // Memory profiling endpoint for production observability
 pub mod monitoring;
 pub mod pdf;
 pub mod pipeline_metrics; // Enhanced pipeline metrics visualization

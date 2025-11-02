@@ -6,7 +6,9 @@
 //! - Middleware applied to all routes (main.rs)
 
 use super::storage::SessionStorage;
-use super::types::{Cookie, CookieJar, Session, SessionConfig, SessionError, SessionStats};
+use super::types::{
+    CleanupStats, Cookie, CookieJar, Session, SessionConfig, SessionError, SessionStats,
+};
 use anyhow::Result;
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
@@ -254,9 +256,24 @@ impl SessionManager {
         self.storage.cleanup_expired().await
     }
 
+    /// Clean up expired sessions with detailed statistics
+    pub async fn cleanup_expired_with_stats(&self) -> Result<CleanupStats> {
+        self.storage.cleanup_expired_with_stats().await
+    }
+
     /// Get session statistics
     pub async fn get_stats(&self) -> Result<SessionStats> {
         self.storage.get_stats().await
+    }
+
+    /// Get last cleanup statistics
+    pub async fn get_last_cleanup_stats(&self) -> Option<CleanupStats> {
+        self.storage.get_last_cleanup_stats().await
+    }
+
+    /// Signal the session manager to shutdown gracefully
+    pub fn shutdown(&self) {
+        self.storage.shutdown();
     }
 
     /// List all active session IDs

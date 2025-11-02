@@ -11,6 +11,11 @@ use anyhow::{Context, Result};
 use scraper::{Html, Selector};
 use url::Url;
 
+// Re-export enhanced link extraction
+pub use crate::enhanced_link_extraction::{
+    EnhancedLinkExtractor, ExtractedLink, LinkExtractionConfig, LinkType,
+};
+
 /// Extracted metadata from HTML document
 #[derive(Debug, Clone, Default)]
 pub struct Metadata {
