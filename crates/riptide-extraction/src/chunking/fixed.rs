@@ -68,16 +68,17 @@ async fn chunk_by_tokens(
 ) -> Result<()> {
     let words: Vec<&str> = content.split_whitespace().collect();
     let mut current_chunk = String::new();
-    let mut current_tokens = 0;
+    let mut current_tokens: usize = 0;
     let mut start_pos = 0;
     let mut word_start = 0;
-    let mut chunk_index = 0;
+    let mut chunk_index: usize = 0;
 
     for (word_idx, word) in words.iter().enumerate() {
         let word_tokens = utils::count_tokens(word);
 
         // If adding this word would exceed token limit, create a chunk
-        if current_tokens + word_tokens > token_size && !current_chunk.is_empty() {
+        // Use saturating addition to prevent overflow
+        if current_tokens.saturating_add(word_tokens) > token_size && !current_chunk.is_empty() {
             let chunk = create_fixed_chunk(
                 &current_chunk,
                 start_pos,
@@ -92,7 +93,7 @@ async fn chunk_by_tokens(
             start_pos = find_word_position(content, word_start);
             current_chunk.clear();
             current_tokens = 0;
-            chunk_index += 1;
+            chunk_index = chunk_index.saturating_add(1);
             word_start = word_idx;
         }
 
@@ -101,7 +102,7 @@ async fn chunk_by_tokens(
             current_chunk.push(' ');
         }
         current_chunk.push_str(word);
-        current_tokens += word_tokens;
+        current_tokens = current_tokens.saturating_add(word_tokens);
     }
 
     // Add final chunk if there's remaining content
@@ -131,7 +132,7 @@ async fn chunk_by_characters(
     let mut chunk_index = 0;
 
     while start_pos < content.len() {
-        let mut end_pos = (start_pos + char_size).min(content.len());
+        let mut end_pos = start_pos.saturating_add(char_size).min(content.len());
 
         // If preserving sentences, adjust to sentence boundary
         if config.preserve_sentences && end_pos < content.len() {
@@ -140,12 +141,12 @@ async fn chunk_by_characters(
 
         // If preserving sentences failed to find a good boundary, try word boundary
         if config.preserve_sentences && end_pos <= start_pos {
-            end_pos = find_word_boundary(content, start_pos + char_size);
+            end_pos = find_word_boundary(content, start_pos.saturating_add(char_size));
         }
 
         // Ensure we make progress
         if end_pos <= start_pos {
-            end_pos = (start_pos + char_size).min(content.len());
+            end_pos = start_pos.saturating_add(char_size).min(content.len());
         }
 
         let chunk_content = &content[start_pos..end_pos];
@@ -162,7 +163,7 @@ async fn chunk_by_characters(
         chunks.push(chunk);
 
         start_pos = end_pos;
-        chunk_index += 1;
+        chunk_index = chunk_index.saturating_add(1);
     }
 
     Ok(())

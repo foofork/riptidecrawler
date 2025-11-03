@@ -185,6 +185,8 @@ impl UnifiedExtractor {
                 // Native parser calculates quality based on content presence
                 let has_title = html.contains("<title>");
                 let has_content = html.contains("<p>") || html.contains("<article>");
+                // Safe conversion: bounded by min(10000) so always fits in f64
+                #[allow(clippy::cast_precision_loss)]
                 let length_score = (html.len().min(10000) as f64) / 10000.0;
 
                 let base_score = if has_title && has_content {
@@ -314,7 +316,8 @@ impl crate::extraction_strategies::ContentExtractor for NativeExtractor {
             summary: doc.description,
             url: url.to_string(),
             strategy_used: "native_parser".to_string(),
-            extraction_confidence: (doc.quality_score.unwrap_or(50) as f64) / 100.0,
+            // Safe conversion: quality_score is u8 (0-100), always fits in f64
+            extraction_confidence: f64::from(doc.quality_score.unwrap_or(50)) / 100.0,
         })
     }
 
@@ -322,6 +325,8 @@ impl crate::extraction_strategies::ContentExtractor for NativeExtractor {
         // Calculate quality based on content heuristics
         let has_title = html.contains("<title>");
         let has_content = html.contains("<p>") || html.contains("<article>");
+        // Safe conversion: bounded by min(10000) so always fits in f64
+        #[allow(clippy::cast_precision_loss)]
         let length_score = (html.len().min(10000) as f64) / 10000.0;
 
         let base_score = if has_title && has_content {

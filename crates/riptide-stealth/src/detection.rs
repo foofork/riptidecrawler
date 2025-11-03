@@ -37,8 +37,13 @@ impl DetectionScore {
             return 0.0;
         }
 
+        // Note: usize to f32 conversion loses precision for very large values (> 2^24)
+        // but check counts are always small, so this is safe
+        #[allow(clippy::cast_precision_loss)]
         let failed_checks = checks.values().filter(|&&v| v).count() as f32;
-        failed_checks / checks.len() as f32
+        #[allow(clippy::cast_precision_loss)]
+        let total_checks = checks.len() as f32;
+        failed_checks / total_checks
     }
 
     /// Determine risk level from score

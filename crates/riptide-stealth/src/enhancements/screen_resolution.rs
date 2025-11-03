@@ -96,7 +96,7 @@ impl ScreenResolutionManager {
         };
 
         let avail_width = screen_width;
-        let avail_height = screen_height - taskbar_height;
+        let avail_height = screen_height.saturating_sub(taskbar_height);
 
         // Window size: typically maximized or slightly smaller
         let (outer_width, outer_height) = if rng.gen_bool(0.8) {
@@ -106,10 +106,30 @@ impl ScreenResolutionManager {
             // Non-maximized window (80-95% of available space)
             let width_factor = 0.8 + (rng.gen::<f32>() * 0.15);
             let height_factor = 0.8 + (rng.gen::<f32>() * 0.15);
-            (
-                (avail_width as f32 * width_factor) as u32,
-                (avail_height as f32 * height_factor) as u32,
-            )
+
+            // Note: u32 to f32 conversion loses precision for values > 2^24 (~16M)
+            // but screen dimensions are always < 100000px, so this is safe
+            #[allow(clippy::cast_precision_loss)]
+            let avail_width_f32 = avail_width as f32;
+            #[allow(clippy::cast_precision_loss)]
+            let avail_height_f32 = avail_height as f32;
+
+            #[allow(clippy::cast_precision_loss)]
+            let u32_max_f32 = u32::MAX as f32;
+            let new_width = (avail_width_f32 * width_factor)
+                .round()
+                .clamp(0.0, u32_max_f32);
+            let new_height = (avail_height_f32 * height_factor)
+                .round()
+                .clamp(0.0, u32_max_f32);
+
+            // Safe conversions: values are clamped, rounded, and always positive
+            #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+            let width = new_width as u32;
+            #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+            let height = new_height as u32;
+
+            (width, height)
         };
 
         // Inner size = outer size minus browser chrome (address bar, tabs, etc)
@@ -117,8 +137,8 @@ impl ScreenResolutionManager {
         let chrome_height: u32 = rng.gen_range(120..140);
         let chrome_width: u32 = 0; // No horizontal chrome
 
-        let inner_width = outer_width - chrome_width;
-        let inner_height = outer_height - chrome_height;
+        let inner_width = outer_width.saturating_sub(chrome_width);
+        let inner_height = outer_height.saturating_sub(chrome_height);
 
         let resolution = ScreenResolution {
             screen_width,

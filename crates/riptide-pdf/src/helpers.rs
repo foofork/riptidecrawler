@@ -158,9 +158,9 @@ pub fn convert_to_markdown(_pdf_data: &[u8]) -> Result<String> {
 pub fn write_output(content: &str, output_path: Option<&str>) -> Result<()> {
     if let Some(path) = output_path {
         std::fs::write(path, content).context("Failed to write output file")?;
-        println!("Output written to: {}", path);
+        println!("Output written to: {path}");
     } else {
-        println!("{}", content);
+        println!("{content}");
     }
     Ok(())
 }
@@ -189,20 +189,23 @@ pub fn parse_page_range(range: &str) -> Result<Vec<u32>> {
             // Range like "1-5"
             let parts: Vec<&str> = part.split('-').collect();
             if parts.len() != 2 {
-                anyhow::bail!("Invalid page range: {}", part);
+                anyhow::bail!("Invalid page range: {part}");
             }
 
-            let start: u32 = parts[0]
+            let start_str = parts[0];
+            let start: u32 = start_str
                 .trim()
                 .parse()
-                .context(format!("Invalid page number: {}", parts[0]))?;
-            let end: u32 = parts[1]
+                .with_context(|| format!("Invalid page number: {start_str}"))?;
+
+            let end_str = parts[1];
+            let end: u32 = end_str
                 .trim()
                 .parse()
-                .context(format!("Invalid page number: {}", parts[1]))?;
+                .with_context(|| format!("Invalid page number: {end_str}"))?;
 
             if start > end {
-                anyhow::bail!("Invalid range: {} - start must be <= end", part);
+                anyhow::bail!("Invalid range: {part} - start must be <= end");
             }
 
             pages.extend(start..=end);
@@ -210,7 +213,7 @@ pub fn parse_page_range(range: &str) -> Result<Vec<u32>> {
             // Single page
             let page: u32 = part
                 .parse()
-                .context(format!("Invalid page number: {}", part))?;
+                .with_context(|| format!("Invalid page number: {part}"))?;
             pages.push(page);
         }
     }

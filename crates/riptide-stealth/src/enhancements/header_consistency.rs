@@ -224,7 +224,7 @@ impl HeaderConsistencyManager {
     /// Extract version from user agent
     fn extract_version(user_agent: &str, prefix: &str) -> Option<String> {
         if let Some(start) = user_agent.find(prefix) {
-            let version_start = start + prefix.len();
+            let version_start = start.saturating_add(prefix.len());
             let version_str = &user_agent[version_start..];
 
             // Find the end of the version (space or end of string)

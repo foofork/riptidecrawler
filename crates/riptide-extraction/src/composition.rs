@@ -140,6 +140,8 @@ impl ResultMerger for UnionMerger {
             }
         }
 
+        // Safe conversion: filtered.len() can be large on 64-bit but division will always fit in f64
+        #[allow(clippy::cast_precision_loss)]
         let avg_confidence = total_confidence / filtered.len() as f64;
 
         Ok(ExtractionResult {
@@ -151,11 +153,26 @@ impl ResultMerger for UnionMerger {
                 } else {
                     Some(combined_summary.trim().to_string())
                 },
-                url: filtered[0].content.url.clone(),
+                url: filtered
+                    .first()
+                    .map(|r| r.content.url.clone())
+                    .unwrap_or_default(),
                 strategy_used: "union_merger".to_string(),
                 extraction_confidence: avg_confidence,
             },
-            quality: filtered[0].quality.clone(),
+            quality: filtered.first().map_or_else(
+                || {
+                    // Default quality when no results available
+                    riptide_types::ExtractionQuality {
+                        content_length: 0,
+                        title_quality: 50.0,
+                        content_quality: 50.0,
+                        structure_score: 50.0,
+                        metadata_completeness: 50.0,
+                    }
+                },
+                |r| r.quality.clone(),
+            ),
             performance: None,
             metadata,
         })
@@ -218,7 +235,7 @@ impl ResultMerger for BestContentMerger {
             filtered
                 .iter()
                 .max_by_key(|r| r.content.content.len())
-                .unwrap()
+                .ok_or_else(|| anyhow!("No valid content found in results"))?
         } else {
             filtered
                 .iter()
@@ -228,7 +245,7 @@ impl ResultMerger for BestContentMerger {
                         .partial_cmp(&b.content.extraction_confidence)
                         .unwrap_or(std::cmp::Ordering::Equal)
                 })
-                .unwrap()
+                .ok_or_else(|| anyhow!("No valid content found in results"))?
         };
 
         // Find best summary
@@ -535,7 +552,10 @@ impl StrategyComposer {
         let mut strategy_times = HashMap::new();
 
         // Try primary strategy
-        let primary = &self.strategies[0];
+        let primary = self
+            .strategies
+            .first()
+            .ok_or_else(|| anyhow!("No primary strategy found"))?;
         let primary_start = Instant::now();
 
         match timeout(
@@ -566,7 +586,10 @@ impl StrategyComposer {
         }
 
         // Fallback to secondary strategy
-        let secondary = &self.strategies[1];
+        let secondary = self
+            .strategies
+            .get(1)
+            .ok_or_else(|| anyhow!("No fallback strategy found"))?;
         let secondary_start = Instant::now();
 
         let result = timeout(
@@ -640,7 +663,7 @@ impl StrategyComposer {
                     .partial_cmp(&b.content.extraction_confidence)
                     .unwrap_or(std::cmp::Ordering::Equal)
             })
-            .unwrap();
+            .ok_or_else(|| anyhow!("No valid results to compare"))?;
 
         let strategies_succeeded = strategy_times.len();
 

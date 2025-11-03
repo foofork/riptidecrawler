@@ -133,6 +133,7 @@ impl VertexAIProvider {
     }
 
     /// Set access token (would typically be obtained through Google Cloud authentication)
+    #[must_use]
     pub fn with_access_token(mut self, token: String) -> Self {
         self.access_token = Some(token);
         self

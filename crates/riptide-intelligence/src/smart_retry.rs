@@ -250,7 +250,7 @@ impl SmartRetry {
                 let mut a = 1u64;
                 let mut b = 1u64;
                 for _ in 2..=n {
-                    let temp = a + b;
+                    let temp = a.saturating_add(b);
                     a = b;
                     b = temp;
                 }
@@ -275,22 +275,24 @@ impl SmartRetry {
                 Ok(result) => {
                     // Success - update stats and return
                     let mut stats = self.stats.write();
-                    stats.total_attempts += attempt + 1;
+                    stats.total_attempts = stats
+                        .total_attempts
+                        .saturating_add(attempt.saturating_add(1));
                     if attempt > 0 {
-                        stats.successful_retries += 1;
+                        stats.successful_retries = stats.successful_retries.saturating_add(1);
                     }
                     stats.last_success_time = Some(Instant::now());
 
                     debug!(
                         "Operation succeeded after {} attempt(s) using {:?} strategy",
-                        attempt + 1,
+                        attempt.saturating_add(1),
                         current_strategy
                     );
 
                     return Ok(result);
                 }
                 Err(error) => {
-                    attempt += 1;
+                    attempt = attempt.saturating_add(1);
                     last_error = Some(error.clone());
 
                     // Check if we should retry this error
@@ -310,8 +312,8 @@ impl SmartRetry {
                         );
 
                         let mut stats = self.stats.write();
-                        stats.total_attempts += attempt;
-                        stats.failed_retries += 1;
+                        stats.total_attempts = stats.total_attempts.saturating_add(attempt);
+                        stats.failed_retries = stats.failed_retries.saturating_add(1);
                         stats.last_failure_time = Some(Instant::now());
 
                         return Err(error);
@@ -327,12 +329,16 @@ impl SmartRetry {
                             current_strategy = new_strategy;
 
                             let mut stats = self.stats.write();
-                            stats.strategy_switches += 1;
+                            stats.strategy_switches = stats.strategy_switches.saturating_add(1);
                         }
                     }
 
                     // Calculate and apply delay
-                    let delay = self.calculate_delay(attempt - 1, current_strategy, Some(&error));
+                    let delay = self.calculate_delay(
+                        attempt.saturating_sub(1),
+                        current_strategy,
+                        Some(&error),
+                    );
 
                     debug!(
                         "Retry attempt {}/{} after {:?} using {:?} strategy",
@@ -366,7 +372,7 @@ impl SmartRetry {
         for (idx, strategy) in fallback_strategies.iter().enumerate() {
             info!(
                 "Trying fallback strategy {}/{}: {:?}",
-                idx + 1,
+                idx.saturating_add(1),
                 fallback_strategies.len(),
                 strategy
             );
@@ -376,7 +382,7 @@ impl SmartRetry {
 
             if result.is_ok() {
                 let mut stats = self.stats.write();
-                stats.strategy_switches += 1;
+                stats.strategy_switches = stats.strategy_switches.saturating_add(1);
                 return result;
             }
         }

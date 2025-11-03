@@ -93,32 +93,36 @@ impl PdfMemoryBenchmark {
         let pdfs_processed = if result.is_ok() { 1 } else { 0 };
 
         let mut metrics = HashMap::new();
-        metrics.insert(
-            "initial_memory_mb".to_string(),
-            initial_memory as f64 / (1024.0 * 1024.0),
-        );
-        metrics.insert(
-            "final_memory_mb".to_string(),
-            final_memory as f64 / (1024.0 * 1024.0),
-        );
-        metrics.insert(
-            "memory_spike_mb".to_string(),
-            memory_spike as f64 / (1024.0 * 1024.0),
-        );
+        // Safe conversions: u64 to f64 for display purposes (may lose precision for very large values)
+        #[allow(clippy::cast_precision_loss)]
+        {
+            metrics.insert(
+                "initial_memory_mb".to_string(),
+                initial_memory as f64 / (1024.0 * 1024.0),
+            );
+            metrics.insert(
+                "final_memory_mb".to_string(),
+                final_memory as f64 / (1024.0 * 1024.0),
+            );
+            metrics.insert(
+                "memory_spike_mb".to_string(),
+                memory_spike as f64 / (1024.0 * 1024.0),
+            );
 
-        if let Ok(processing_result) = result {
-            metrics.insert(
-                "pages_processed".to_string(),
-                processing_result.stats.pages_processed as f64,
-            );
-            metrics.insert(
-                "images_extracted".to_string(),
-                processing_result.stats.images_extracted as f64,
-            );
-            metrics.insert(
-                "processing_time_ms".to_string(),
-                processing_result.stats.processing_time_ms as f64,
-            );
+            if let Ok(processing_result) = result {
+                metrics.insert(
+                    "pages_processed".to_string(),
+                    f64::from(processing_result.stats.pages_processed),
+                );
+                metrics.insert(
+                    "images_extracted".to_string(),
+                    f64::from(processing_result.stats.images_extracted),
+                );
+                metrics.insert(
+                    "processing_time_ms".to_string(),
+                    processing_result.stats.processing_time_ms as f64,
+                );
+            }
         }
 
         MemoryBenchmarkResults {
@@ -133,7 +137,10 @@ impl PdfMemoryBenchmark {
             concurrent_operations: 1,
             success_rate,
             avg_memory_per_pdf: if pdfs_processed > 0 {
-                memory_spike as f64 / pdfs_processed as f64
+                // Safe conversion: u64 to f64 for calculation (may lose precision)
+                #[allow(clippy::cast_precision_loss)]
+                let result = memory_spike as f64 / f64::from(pdfs_processed);
+                result
             } else {
                 0.0
             },
@@ -217,36 +224,43 @@ impl PdfMemoryBenchmark {
             }
         }
 
-        let success_rate = successful_tasks as f64 / concurrent_count as f64;
+        // Safe conversions for metrics calculation
+        #[allow(clippy::cast_precision_loss)]
+        let success_rate = f64::from(successful_tasks) / concurrent_count as f64;
+
+        #[allow(clippy::cast_precision_loss)]
         let avg_memory_per_pdf = if successful_tasks > 0 {
-            memory_spike as f64 / successful_tasks as f64
+            memory_spike as f64 / f64::from(successful_tasks)
         } else {
             0.0
         };
 
         let mut metrics = HashMap::new();
-        metrics.insert(
-            "initial_memory_mb".to_string(),
-            initial_memory as f64 / (1024.0 * 1024.0),
-        );
-        metrics.insert(
-            "final_memory_mb".to_string(),
-            final_memory as f64 / (1024.0 * 1024.0),
-        );
-        metrics.insert(
-            "memory_spike_mb".to_string(),
-            memory_spike as f64 / (1024.0 * 1024.0),
-        );
-        metrics.insert("successful_tasks".to_string(), successful_tasks as f64);
-        metrics.insert(
-            "memory_limit_failures".to_string(),
-            memory_limit_failures as f64,
-        );
-        metrics.insert("total_pages".to_string(), total_pages as f64);
-        metrics.insert(
-            "concurrency_effectiveness".to_string(),
-            (successful_tasks as f64 / processing_time.as_secs_f64()).min(2.0),
-        ); // Max 2 concurrent
+        #[allow(clippy::cast_precision_loss)]
+        {
+            metrics.insert(
+                "initial_memory_mb".to_string(),
+                initial_memory as f64 / (1024.0 * 1024.0),
+            );
+            metrics.insert(
+                "final_memory_mb".to_string(),
+                final_memory as f64 / (1024.0 * 1024.0),
+            );
+            metrics.insert(
+                "memory_spike_mb".to_string(),
+                memory_spike as f64 / (1024.0 * 1024.0),
+            );
+            metrics.insert("successful_tasks".to_string(), f64::from(successful_tasks));
+            metrics.insert(
+                "memory_limit_failures".to_string(),
+                f64::from(memory_limit_failures),
+            );
+            metrics.insert("total_pages".to_string(), f64::from(total_pages));
+            metrics.insert(
+                "concurrency_effectiveness".to_string(),
+                (f64::from(successful_tasks) / processing_time.as_secs_f64()).min(2.0),
+            ); // Max 2 concurrent
+        }
 
         MemoryBenchmarkResults {
             test_name,
@@ -257,7 +271,8 @@ impl PdfMemoryBenchmark {
             within_limits,
             processing_time,
             pdfs_processed: successful_tasks,
-            concurrent_operations: concurrent_count as u32,
+            // Safe conversion: usize to u32 with saturation (concurrent count is typically small)
+            concurrent_operations: u32::try_from(concurrent_count).unwrap_or(u32::MAX),
             success_rate,
             avg_memory_per_pdf,
             metrics,
@@ -316,42 +331,49 @@ impl PdfMemoryBenchmark {
         let memory_spike = peak_memory.saturating_sub(initial_memory);
         let within_limits = memory_spike <= 200 * 1024 * 1024;
 
-        let success_rate = successful_iterations as f64 / iterations as f64;
+        // Safe conversions for metrics calculation
+        #[allow(clippy::cast_precision_loss)]
+        let success_rate = f64::from(successful_iterations) / iterations as f64;
+
+        #[allow(clippy::cast_precision_loss)]
         let avg_memory_per_pdf = if successful_iterations > 0 {
-            memory_spike as f64 / successful_iterations as f64
+            memory_spike as f64 / f64::from(successful_iterations)
         } else {
             0.0
         };
 
         let mut metrics = HashMap::new();
-        metrics.insert(
-            "initial_memory_mb".to_string(),
-            initial_memory as f64 / (1024.0 * 1024.0),
-        );
-        metrics.insert(
-            "final_memory_mb".to_string(),
-            final_memory as f64 / (1024.0 * 1024.0),
-        );
-        metrics.insert(
-            "peak_memory_mb".to_string(),
-            peak_memory as f64 / (1024.0 * 1024.0),
-        );
-        metrics.insert(
-            "memory_spike_mb".to_string(),
-            memory_spike as f64 / (1024.0 * 1024.0),
-        );
-        metrics.insert(
-            "successful_iterations".to_string(),
-            successful_iterations as f64,
-        );
-        metrics.insert(
-            "memory_growth_mb".to_string(),
-            (final_memory.saturating_sub(initial_memory)) as f64 / (1024.0 * 1024.0),
-        );
-        metrics.insert(
-            "avg_time_per_iteration_ms".to_string(),
-            processing_time.as_millis() as f64 / iterations as f64,
-        );
+        #[allow(clippy::cast_precision_loss)]
+        {
+            metrics.insert(
+                "initial_memory_mb".to_string(),
+                initial_memory as f64 / (1024.0 * 1024.0),
+            );
+            metrics.insert(
+                "final_memory_mb".to_string(),
+                final_memory as f64 / (1024.0 * 1024.0),
+            );
+            metrics.insert(
+                "peak_memory_mb".to_string(),
+                peak_memory as f64 / (1024.0 * 1024.0),
+            );
+            metrics.insert(
+                "memory_spike_mb".to_string(),
+                memory_spike as f64 / (1024.0 * 1024.0),
+            );
+            metrics.insert(
+                "successful_iterations".to_string(),
+                f64::from(successful_iterations),
+            );
+            metrics.insert(
+                "memory_growth_mb".to_string(),
+                (final_memory.saturating_sub(initial_memory)) as f64 / (1024.0 * 1024.0),
+            );
+            metrics.insert(
+                "avg_time_per_iteration_ms".to_string(),
+                processing_time.as_millis() as f64 / iterations as f64,
+            );
+        }
 
         MemoryBenchmarkResults {
             test_name,
@@ -379,10 +401,11 @@ impl PdfMemoryBenchmark {
         for pages in &[10, 50, 100, 500] {
             println!("📄 Testing single PDF with {} pages", pages);
             let result = self.benchmark_single_pdf(*pages).await;
+            #[allow(clippy::cast_precision_loss)]
+            let memory_spike_mb = result.memory_spike as f64 / (1024.0 * 1024.0);
             println!(
                 "   Memory spike: {:.1} MB, Within limits: {}",
-                result.memory_spike as f64 / (1024.0 * 1024.0),
-                result.within_limits
+                memory_spike_mb, result.within_limits
             );
             results.push(result);
         }

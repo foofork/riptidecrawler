@@ -91,7 +91,11 @@ impl UserAgentManager {
                 &self.config.agents[index]
             }
             RotationStrategy::Sequential => {
-                self.current_index = (self.current_index + 1) % self.config.agents.len();
+                self.current_index = self
+                    .current_index
+                    .saturating_add(1)
+                    .checked_rem(self.config.agents.len())
+                    .unwrap_or(0);
                 &self.config.agents[self.current_index]
             }
             RotationStrategy::Sticky => {
@@ -107,8 +111,14 @@ impl UserAgentManager {
             }
             RotationStrategy::DomainBased => {
                 // Simple domain-based selection using hash
-                let domain_hash = self.request_count.wrapping_mul(37) as usize;
-                let index = domain_hash % self.config.agents.len();
+                // Use wrapping operations to avoid overflow, then convert to usize
+                // On 32-bit systems, truncation is acceptable for hash distribution
+                let domain_hash = self.request_count.wrapping_mul(37);
+                #[allow(clippy::cast_possible_truncation)]
+                let hash_usize = domain_hash as usize;
+                let index = hash_usize
+                    .checked_rem(self.config.agents.len())
+                    .unwrap_or(0);
                 &self.config.agents[index]
             }
         }
@@ -151,7 +161,7 @@ impl UserAgentManager {
 
     /// Increment request count for domain-based strategy
     pub fn increment_request_count(&mut self) {
-        self.request_count += 1;
+        self.request_count = self.request_count.saturating_add(1);
     }
 
     /// Get agent count

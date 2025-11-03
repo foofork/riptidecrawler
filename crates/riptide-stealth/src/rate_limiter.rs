@@ -68,8 +68,8 @@ impl DomainState {
 
     /// Record successful request and adapt speed
     fn record_success(&mut self, timing: &DomainTiming) {
-        self.success_count += 1;
-        self.consecutive_successes += 1;
+        self.success_count = self.success_count.saturating_add(1);
+        self.consecutive_successes = self.consecutive_successes.saturating_add(1);
         self.consecutive_failures = 0;
 
         // Reset backoff on success
@@ -88,14 +88,16 @@ impl DomainState {
 
     /// Record failed request and apply exponential backoff
     fn record_failure(&mut self, timing: &DomainTiming, is_rate_limit_error: bool) {
-        self.failure_count += 1;
-        self.consecutive_failures += 1;
+        self.failure_count = self.failure_count.saturating_add(1);
+        self.consecutive_failures = self.consecutive_failures.saturating_add(1);
         self.consecutive_successes = 0;
 
         if is_rate_limit_error {
             // Exponential backoff for rate limit errors (429, 503)
-            self.current_backoff =
-                (self.current_backoff * 2).min(Duration::from_millis(timing.max_delay_ms));
+            self.current_backoff = self
+                .current_backoff
+                .saturating_mul(2)
+                .min(Duration::from_millis(timing.max_delay_ms));
 
             // Also slow down future requests
             self.delay_multiplier = (self.delay_multiplier * 1.5).min(3.0); // Slow down, but not more than 3x
@@ -117,8 +119,14 @@ impl DomainState {
 
     /// Get current delay with adaptive multiplier
     fn calculate_delay(&self, timing: &DomainTiming) -> Duration {
-        let base_delay = Duration::from_millis((timing.min_delay_ms + timing.max_delay_ms) / 2);
+        // Use saturating_add to safely calculate the average
+        let avg_delay = timing
+            .min_delay_ms
+            .saturating_add(timing.max_delay_ms)
+            .checked_div(2)
+            .unwrap_or(timing.min_delay_ms);
 
+        let base_delay = Duration::from_millis(avg_delay);
         let adaptive_delay = base_delay.mul_f64(self.delay_multiplier);
 
         // Ensure delay is within configured bounds
@@ -169,15 +177,24 @@ impl RateLimiter {
         let time_passed = now.duration_since(state.last_refill).as_secs_f64();
 
         // Calculate tokens per second based on RPM limit
+        // Note: u32 to f64 loses precision beyond 2^53, but RPM values are always small
+        #[allow(clippy::cast_precision_loss)]
         let tokens_per_second = if let Some(rpm) = timing.rpm_limit {
-            rpm as f64 / 60.0
+            (rpm as f64) / 60.0
         } else {
             // Default to burst_size requests per (max_delay * burst_size) window
-            timing.burst_size as f64 / (timing.max_delay_ms as f64 / 1000.0)
+            // Note: u32 and u64 to f64 conversions are safe for typical timing values
+            #[allow(clippy::cast_precision_loss)]
+            let burst_f64 = timing.burst_size as f64;
+            #[allow(clippy::cast_precision_loss)]
+            let max_delay_f64 = timing.max_delay_ms as f64;
+            burst_f64 / (max_delay_f64 / 1000.0)
         };
 
         let tokens_to_add = time_passed * tokens_per_second;
-        state.tokens = (state.tokens + tokens_to_add).min(timing.burst_size as f64);
+        #[allow(clippy::cast_precision_loss)]
+        let max_tokens = timing.burst_size as f64;
+        state.tokens = (state.tokens + tokens_to_add).min(max_tokens);
         state.last_refill = now;
 
         // Check if we have tokens available
@@ -237,15 +254,27 @@ impl RateLimiter {
 
     /// Get statistics for a specific domain
     pub fn get_domain_stats(&self, domain: &str) -> Option<DomainStats> {
-        self.domain_state.get(domain).map(|state| DomainStats {
-            success_count: state.success_count,
-            failure_count: state.failure_count,
-            consecutive_successes: state.consecutive_successes,
-            consecutive_failures: state.consecutive_failures,
-            current_backoff_ms: state.current_backoff.as_millis() as u64,
-            delay_multiplier: state.delay_multiplier,
-            available_tokens: state.tokens,
-            last_request_age: state.last_request.elapsed(),
+        self.domain_state.get(domain).map(|state| {
+            // Convert Duration to milliseconds safely
+            // Duration::as_millis() returns u128, but timing values are always < u64::MAX
+            let backoff_ms = state.current_backoff.as_millis();
+            #[allow(clippy::cast_possible_truncation)]
+            let backoff_u64 = if backoff_ms > u64::MAX as u128 {
+                u64::MAX // Clamp to max value (extremely unlikely for timing)
+            } else {
+                backoff_ms as u64
+            };
+
+            DomainStats {
+                success_count: state.success_count,
+                failure_count: state.failure_count,
+                consecutive_successes: state.consecutive_successes,
+                consecutive_failures: state.consecutive_failures,
+                current_backoff_ms: backoff_u64,
+                delay_multiplier: state.delay_multiplier,
+                available_tokens: state.tokens,
+                last_request_age: state.last_request.elapsed(),
+            }
         })
     }
 
@@ -254,6 +283,15 @@ impl RateLimiter {
         self.domain_state
             .iter()
             .map(|entry| {
+                // Convert Duration to milliseconds safely
+                let backoff_ms = entry.value().current_backoff.as_millis();
+                #[allow(clippy::cast_possible_truncation)]
+                let backoff_u64 = if backoff_ms > u64::MAX as u128 {
+                    u64::MAX
+                } else {
+                    backoff_ms as u64
+                };
+
                 (
                     entry.key().clone(),
                     DomainStats {
@@ -261,7 +299,7 @@ impl RateLimiter {
                         failure_count: entry.value().failure_count,
                         consecutive_successes: entry.value().consecutive_successes,
                         consecutive_failures: entry.value().consecutive_failures,
-                        current_backoff_ms: entry.value().current_backoff.as_millis() as u64,
+                        current_backoff_ms: backoff_u64,
                         delay_multiplier: entry.value().delay_multiplier,
                         available_tokens: entry.value().tokens,
                         last_request_age: entry.value().last_request.elapsed(),

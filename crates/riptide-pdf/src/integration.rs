@@ -63,10 +63,12 @@ impl PdfPipelineIntegration {
         );
 
         // Validate size against ROADMAP limits
-        if pdf_bytes.len() as u64 > self.config.max_size_bytes {
+        // Safe conversion: usize to u64 cannot fail (u64 is at least as large)
+        let file_size = u64::try_from(pdf_bytes.len()).unwrap_or(u64::MAX);
+        if file_size > self.config.max_size_bytes {
             self.metrics.record_processing_failure(false);
             return Err(PdfError::FileTooLarge {
-                size: pdf_bytes.len() as u64,
+                size: file_size,
                 max_size: self.config.max_size_bytes,
             });
         }
@@ -159,7 +161,8 @@ impl PdfPipelineIntegration {
 
         // Calculate reading time
         let text_content = result.text.unwrap_or_default();
-        let word_count = text_content.split_whitespace().count() as u32;
+        // Safe conversion: usize to u32 with saturation (word counts rarely exceed u32::MAX)
+        let word_count = u32::try_from(text_content.split_whitespace().count()).unwrap_or(u32::MAX);
         let reading_time = Some(utils::estimate_reading_time(word_count));
 
         ExtractedDoc {
@@ -232,9 +235,11 @@ impl PdfPipelineIntegration {
         use super::types::ProgressUpdate;
 
         // Send started event
+        // Safe conversion: usize to u64 cannot fail
+        let file_size = u64::try_from(pdf_bytes.len()).unwrap_or(u64::MAX);
         let _ = progress_sender.send(ProgressUpdate::Started {
             total_pages: 0, // Will be updated once document loads
-            file_size: pdf_bytes.len() as u64,
+            file_size,
             timestamp: chrono::Utc::now().to_rfc3339(),
         });
 
@@ -242,6 +247,9 @@ impl PdfPipelineIntegration {
         let progress_callback = {
             let sender = progress_sender.clone();
             Some(Box::new(move |current_page: u32, total_pages: u32| {
+                // Safe conversion: u32 to f32 for percentage calculation
+                // Precision loss is acceptable for page counts when calculating percentages
+                #[allow(clippy::cast_precision_loss)]
                 let percentage = if total_pages > 0 {
                     (current_page as f32 / total_pages as f32) * 100.0
                 } else {
@@ -280,8 +288,9 @@ impl PdfPipelineIntegration {
                 Ok(extracted_doc)
             }
             Err(e) => {
+                let error_msg = format!("{e:?}");
                 let _ = progress_sender.send(ProgressUpdate::Failed {
-                    error: format!("{:?}", e),
+                    error: error_msg,
                     timestamp: chrono::Utc::now().to_rfc3339(),
                 });
                 Err(e)

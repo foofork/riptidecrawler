@@ -101,7 +101,12 @@ impl BehaviorSimulator {
 
         // Calculate number of steps based on distance (more steps for longer distances)
         let num_steps = steps.unwrap_or_else(|| {
-            let base_steps = (distance / 10.0) as usize;
+            // Distance is always positive, safe to convert to usize for small screen coordinates
+            // Screen coordinates are typically < 10000px, so distance / 10 is well within usize range
+            let base_steps_f64 = (distance / 10.0).round().clamp(30.0, 100.0);
+            // Safe conversion: value is clamped to reasonable range (30-100), always positive
+            #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+            let base_steps = base_steps_f64 as usize;
             base_steps.clamp(30, 100)
         });
 
@@ -113,7 +118,10 @@ impl BehaviorSimulator {
         let mut delays = Vec::with_capacity(num_steps);
 
         for i in 0..=num_steps {
-            let t = i as f64 / num_steps as f64;
+            // Convert step index to normalized position (0.0 to 1.0)
+            // Note: usize to f64 conversion loses precision beyond 2^53, but num_steps is always small (< 1000)
+            #[allow(clippy::cast_precision_loss)]
+            let t = (i as f64) / (num_steps as f64);
 
             // Calculate point on Cubic Bézier curve
             let point = self.cubic_bezier(t, &start, &control1, &control2, &end);
@@ -122,11 +130,18 @@ impl BehaviorSimulator {
             // Variable delay: slower at start/end, faster in middle
             let speed_factor = self.ease_in_out_cubic(t);
             let base_delay = 10.0; // Base delay in ms
-            let delay = (base_delay * (1.0 + (1.0 - speed_factor))).round() as u64;
+            let delay_f64 = (base_delay * (1.0 + (1.0 - speed_factor))).round();
 
             // Add random jitter (±30%)
             let jitter = self.rng.gen_range(0.7..=1.3);
-            let final_delay = (delay as f64 * jitter).round() as u64;
+            // Note: u64::MAX as f64 loses precision, but we only care about reasonable timing values
+            #[allow(clippy::cast_precision_loss)]
+            let u64_max_f64 = u64::MAX as f64;
+            let final_delay_f64 = (delay_f64 * jitter).round().clamp(5.0, u64_max_f64);
+
+            // Safe conversion: values are clamped to reasonable delay range, rounded, always positive
+            #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+            let final_delay = final_delay_f64 as u64;
 
             delays.push(final_delay.max(5)); // Minimum 5ms delay
         }
@@ -206,12 +221,20 @@ impl BehaviorSimulator {
         // Duration scales with distance (but not linearly)
         // Short scrolls: 200-400ms
         // Long scrolls: 500-1000ms
+        // Note: u32 to f64 conversion loses precision beyond 2^53, but scroll distances are < 100000px
+        #[allow(clippy::cast_precision_loss)]
         let base_duration = 200.0 + (distance as f64).sqrt() * 10.0;
-        let duration_ms = base_duration.clamp(200.0, 1000.0) as u64;
+        let duration_f64 = base_duration.clamp(200.0, 1000.0);
 
         // Add random jitter to duration (±20%)
         let jitter = self.rng.gen_range(0.8..=1.2);
-        let final_duration = (duration_ms as f64 * jitter).round() as u64;
+        #[allow(clippy::cast_precision_loss)]
+        let u64_max_f64 = u64::MAX as f64;
+        let final_duration_f64 = (duration_f64 * jitter).round().clamp(0.0, u64_max_f64);
+
+        // Safe conversion: duration is always in reasonable millisecond range, rounded, always positive
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        let final_duration = final_duration_f64 as u64;
 
         // Random reading pause after scroll (500ms to 3s)
         let pause_after_ms = self.rng.gen_range(500..=3000);
@@ -288,10 +311,19 @@ impl BehaviorSimulator {
     /// Humans don't always scroll to exact positions - they overshoot
     /// or undershoot slightly
     pub fn add_scroll_offset(&mut self, target: u32, max_offset: u32) -> u32 {
-        let offset = self.rng.gen_range(0..=max_offset) as i32;
-        let direction = if self.rng.gen_bool(0.5) { 1 } else { -1 };
+        let offset = self.rng.gen_range(0..=max_offset);
+        let direction = if self.rng.gen_bool(0.5) { 1i32 } else { -1i32 };
 
-        ((target as i32) + (offset * direction)).max(0) as u32
+        // Calculate offset with safe arithmetic
+        // u32 max is ~4 billion, scroll positions are always < i32::MAX
+        let target_i32 = target.min(i32::MAX as u32) as i32;
+        let offset_i32 = offset.min(i32::MAX as u32) as i32;
+
+        let result = target_i32.saturating_add(offset_i32.saturating_mul(direction));
+        // Result is clamped to non-negative values, safe to cast
+        #[allow(clippy::cast_sign_loss)]
+        let result_u32 = result.max(0) as u32;
+        result_u32
     }
 }
 

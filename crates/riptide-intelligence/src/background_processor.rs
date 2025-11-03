@@ -48,6 +48,7 @@ pub struct AiTask {
 }
 
 impl AiTask {
+    #[must_use]
     pub fn new(url: String, content: String) -> Self {
         Self {
             task_id: Uuid::new_v4().to_string(),
@@ -61,16 +62,19 @@ impl AiTask {
         }
     }
 
+    #[must_use]
     pub fn with_priority(mut self, priority: TaskPriority) -> Self {
         self.priority = priority;
         self
     }
 
+    #[must_use]
     pub fn with_timeout(mut self, timeout: Duration) -> Self {
         self.timeout = timeout;
         self
     }
 
+    #[must_use]
     pub fn can_retry(&self) -> bool {
         self.retry_count < self.max_retries
     }
@@ -210,24 +214,28 @@ impl BackgroundAiProcessor {
     }
 
     /// Set the event bus for event emission
+    #[must_use]
     pub fn with_event_bus(mut self, event_bus: Arc<EventBus>) -> Self {
         self.event_bus = Some(event_bus);
         self
     }
 
     /// Set the LLM registry for AI processing
+    #[must_use]
     pub fn with_llm_registry(mut self, registry: Arc<LlmRegistry>) -> Self {
         self.llm_registry = Some(registry);
         self
     }
 
     /// Set the LLM failover manager for high availability
+    #[must_use]
     pub fn with_llm_failover(mut self, failover: Arc<FailoverManager>) -> Self {
         self.llm_failover = Some(failover);
         self
     }
 
     /// Set the LLM client pool for efficient resource management
+    #[must_use]
     pub fn with_llm_client_pool(mut self, client_pool: Arc<LlmClientPool>) -> Self {
         self.llm_client_pool = Some(client_pool);
         self
@@ -639,7 +647,7 @@ impl BackgroundAiProcessor {
                     debug!(
                         "LLM enhancement successful for task {} (attempt {})",
                         task.task_id,
-                        attempt + 1
+                        attempt.saturating_add(1)
                     );
                     return Ok(response.content);
                 }
@@ -664,11 +672,11 @@ impl BackgroundAiProcessor {
                         IntelligenceError::Network(_)
                         | IntelligenceError::Provider(_)
                         | IntelligenceError::Timeout { .. } => {
-                            if attempt < task.max_retries - 1 {
+                            if attempt < task.max_retries.saturating_sub(1) {
                                 warn!(
                                     "Transient error for task {} (attempt {}): {}, retrying in {:?}",
                                     task.task_id,
-                                    attempt + 1,
+                                    attempt.saturating_add(1),
                                     e,
                                     backoff
                                 );
@@ -691,12 +699,13 @@ impl BackgroundAiProcessor {
         }
 
         // All retries exhausted
+        let error_msg = last_error
+            .map(|e| e.to_string())
+            .unwrap_or_else(|| "Unknown error".to_string());
         Err(anyhow::anyhow!(
             "LLM enhancement failed after {} attempts: {}",
             task.max_retries,
-            last_error
-                .map(|e| e.to_string())
-                .unwrap_or_else(|| "Unknown error".to_string())
+            error_msg
         ))
     }
 

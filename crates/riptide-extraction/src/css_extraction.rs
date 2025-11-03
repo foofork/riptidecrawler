@@ -458,14 +458,14 @@ impl CssJsonExtractor {
     /// Calculate confidence score based on selector matches and quality
     pub fn confidence_score(&self, html: &str) -> f64 {
         let document = Html::parse_document(html);
-        let mut found_selectors = 0;
+        let mut found_selectors: usize = 0;
         let mut quality_score = 0.0;
         let total_selectors = self.selectors.len();
 
         for (field, config) in &self.selectors {
             if let Ok(selector) = self.parse_enhanced_selector(&config.selector) {
                 if let Some(element) = document.select(&selector).next() {
-                    found_selectors += 1;
+                    found_selectors = found_selectors.saturating_add(1);
 
                     // Calculate quality based on content length and field importance
                     let content = element.text().collect::<String>();
@@ -476,6 +476,8 @@ impl CssJsonExtractor {
                         _ => 0.1,
                     };
 
+                    // Safe conversion: content length is bounded by min(500) so always fits in f64
+                    #[allow(clippy::cast_precision_loss)]
                     let content_quality = (content.len().min(500) as f64 / 500.0).min(1.0);
                     quality_score += field_weight * content_quality;
                 }
@@ -485,7 +487,12 @@ impl CssJsonExtractor {
         if total_selectors == 0 {
             0.5
         } else {
-            let match_ratio = found_selectors as f64 / total_selectors as f64;
+            // Safe conversion: practical selector counts will fit in f64
+            #[allow(clippy::cast_precision_loss)]
+            let found = found_selectors as f64;
+            #[allow(clippy::cast_precision_loss)]
+            let total = total_selectors as f64;
+            let match_ratio = found / total;
             (match_ratio * 0.6 + quality_score * 0.4).min(0.95)
         }
     }

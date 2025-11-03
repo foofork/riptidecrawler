@@ -626,17 +626,11 @@ impl RuntimeSwitchManager {
         for condition in conditions {
             match condition {
                 SwitchCondition::ManualTrigger => return true,
-                SwitchCondition::ErrorRateAbove {
-                    threshold: _,
-                    window: _,
-                } => {
+                SwitchCondition::ErrorRateAbove { .. } => {
                     // Implementation would check actual error rates
                     continue;
                 }
-                SwitchCondition::LatencyAbove {
-                    threshold: _,
-                    window: _,
-                } => {
+                SwitchCondition::LatencyAbove { .. } => {
                     // Implementation would check actual latency
                     continue;
                 }

@@ -237,7 +237,10 @@ impl HtmlProcessor for DefaultHtmlProcessor {
         // Check for content elements
         if let Ok(selector) = scraper::Selector::parse("p, div, article, section") {
             let count = document.select(&selector).count();
-            score += (count as f64 * 0.1).min(0.5);
+            // Safe conversion: practical element counts will fit in f64
+            #[allow(clippy::cast_precision_loss)]
+            let count_f64 = count as f64;
+            score += (count_f64 * 0.1).min(0.5);
         }
 
         // Check for structured data
@@ -397,7 +400,11 @@ async fn chunk_content_impl(
                 let start_pos = if start == 0 {
                     0
                 } else {
-                    content.find(chunk_tokens[0]).unwrap_or(0)
+                    // Safe: chunk_tokens is a slice of tokens, use first() to avoid panic
+                    chunk_tokens
+                        .first()
+                        .and_then(|token| content.find(token))
+                        .unwrap_or(0)
                 };
                 let end_pos = if end >= tokens.len() {
                     content.len()

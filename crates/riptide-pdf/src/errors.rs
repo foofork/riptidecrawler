@@ -34,35 +34,29 @@ pub enum PdfError {
 impl std::fmt::Display for PdfError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PdfError::InvalidPdf { message } => write!(f, "Invalid PDF: {}", message),
+            PdfError::InvalidPdf { message } => write!(f, "Invalid PDF: {message}"),
             PdfError::EncryptedPdf => write!(f, "PDF is encrypted and cannot be processed"),
             PdfError::FileTooLarge { size, max_size } => {
                 write!(
                     f,
-                    "PDF file too large: {} bytes (max: {} bytes)",
-                    size, max_size
+                    "PDF file too large: {size} bytes (max: {max_size} bytes)"
                 )
             }
-            PdfError::CorruptedPdf { message } => write!(f, "Corrupted PDF: {}", message),
+            PdfError::CorruptedPdf { message } => write!(f, "Corrupted PDF: {message}"),
             PdfError::Timeout { timeout_seconds } => {
-                write!(
-                    f,
-                    "PDF processing timeout after {} seconds",
-                    timeout_seconds
-                )
+                write!(f, "PDF processing timeout after {timeout_seconds} seconds")
             }
             PdfError::MemoryLimit { used, limit } => {
                 write!(
                     f,
-                    "Memory limit exceeded: {} bytes used (limit: {} bytes)",
-                    used, limit
+                    "Memory limit exceeded: {used} bytes used (limit: {limit} bytes)"
                 )
             }
             PdfError::UnsupportedVersion { version } => {
-                write!(f, "Unsupported PDF version: {}", version)
+                write!(f, "Unsupported PDF version: {version}")
             }
-            PdfError::ProcessingError { message } => write!(f, "Processing error: {}", message),
-            PdfError::IoError { message } => write!(f, "IO error: {}", message),
+            PdfError::ProcessingError { message } => write!(f, "Processing error: {message}"),
+            PdfError::IoError { message } => write!(f, "IO error: {message}"),
         }
     }
 }

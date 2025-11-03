@@ -58,7 +58,7 @@ impl TiktokenCache {
             // Update access counter for LRU
             let access_count = {
                 let mut counter = self.access_counter.lock();
-                *counter += 1;
+                *counter = counter.saturating_add(1);
                 *counter
             };
 
@@ -89,7 +89,7 @@ impl TiktokenCache {
         // Store in cache
         let access_count = {
             let mut counter = self.access_counter.lock();
-            *counter += 1;
+            *counter = counter.saturating_add(1);
             *counter
         };
 
@@ -170,7 +170,12 @@ impl TiktokenCache {
 
 impl Default for TiktokenCache {
     fn default() -> Self {
-        Self::new().expect("Failed to create default TiktokenCache")
+        Self::new().unwrap_or_else(|e| {
+            // Log the error and return a minimal working cache
+            eprintln!("Warning: Failed to create default TiktokenCache: {e}");
+            // Fallback to a minimal capacity cache
+            Self::with_capacity(100).expect("Failed to create fallback TiktokenCache")
+        })
     }
 }
 
@@ -189,8 +194,13 @@ static GLOBAL_CACHE: OnceLock<TiktokenCache> = OnceLock::new();
 
 /// Get or initialize the global token cache
 fn get_global_cache() -> &'static TiktokenCache {
-    GLOBAL_CACHE
-        .get_or_init(|| TiktokenCache::new().expect("Failed to initialize global tiktoken cache"))
+    GLOBAL_CACHE.get_or_init(|| {
+        TiktokenCache::new().unwrap_or_else(|e| {
+            eprintln!("Warning: Failed to initialize global tiktoken cache: {e}");
+            // Fallback to a minimal capacity cache
+            TiktokenCache::with_capacity(100).expect("Failed to create fallback tiktoken cache")
+        })
+    })
 }
 
 /// Count tokens for text using the global cache (convenience function)

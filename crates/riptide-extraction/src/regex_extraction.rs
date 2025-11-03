@@ -101,33 +101,43 @@ impl RegexExtractor {
     /// Calculate confidence score based on pattern matches
     pub fn confidence_score(&self, html: &str) -> f64 {
         let text = strip_html_tags(html);
-        let mut matched_required = 0;
-        let mut total_required = 0;
-        let mut matched_optional = 0;
-        let mut total_optional = 0;
+        let mut matched_required: usize = 0;
+        let mut total_required: usize = 0;
+        let mut matched_optional: usize = 0;
+        let mut total_optional: usize = 0;
 
         for pattern in &self.patterns {
             if pattern.required {
-                total_required += 1;
+                total_required = total_required.saturating_add(1);
                 if pattern.regex.is_match(&text) {
-                    matched_required += 1;
+                    matched_required = matched_required.saturating_add(1);
                 }
             } else {
-                total_optional += 1;
+                total_optional = total_optional.saturating_add(1);
                 if pattern.regex.is_match(&text) {
-                    matched_optional += 1;
+                    matched_optional = matched_optional.saturating_add(1);
                 }
             }
         }
 
         let required_score = if total_required > 0 {
-            matched_required as f64 / total_required as f64
+            // Safe conversion: practical pattern counts will fit in f64
+            #[allow(clippy::cast_precision_loss)]
+            let matched = matched_required as f64;
+            #[allow(clippy::cast_precision_loss)]
+            let total = total_required as f64;
+            matched / total
         } else {
             1.0
         };
 
         let optional_score = if total_optional > 0 {
-            matched_optional as f64 / total_optional as f64
+            // Safe conversion: practical pattern counts will fit in f64
+            #[allow(clippy::cast_precision_loss)]
+            let matched = matched_optional as f64;
+            #[allow(clippy::cast_precision_loss)]
+            let total = total_optional as f64;
+            matched / total
         } else {
             0.5
         };

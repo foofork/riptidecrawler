@@ -229,7 +229,12 @@ impl RegexConfidenceScorer {
     ) -> ConfidenceScore {
         // Compute ratio of matched patterns
         let ratio = if total_patterns > 0 {
-            pattern_matches as f64 / total_patterns as f64
+            // Safe conversion: practical pattern counts will fit in f64
+            #[allow(clippy::cast_precision_loss)]
+            let matches = pattern_matches as f64;
+            #[allow(clippy::cast_precision_loss)]
+            let total = total_patterns as f64;
+            matches / total
         } else {
             0.0
         };
@@ -255,7 +260,8 @@ pub fn quality_score_to_confidence(quality: Option<u8>) -> ConfidenceScore {
     match quality {
         Some(q) => {
             // Old quality_score was 0-10, normalize to 0.0-1.0
-            let normalized = q as f64 / 10.0;
+            // Safe conversion: u8 always fits in f64
+            let normalized = f64::from(q) / 10.0;
             ConfidenceScore::new(normalized, "legacy_quality")
         }
         None => ConfidenceScore::new(0.5, "unknown"), // Default medium confidence

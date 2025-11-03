@@ -191,6 +191,8 @@ impl ConfidenceScore {
     ///
     /// Applies a decay function to reduce confidence for old cached results
     pub fn adjusted_for_age(&self, age: std::time::Duration) -> f64 {
+        // Safe conversion: u64 seconds will fit in f64 without precision loss up to 2^53
+        #[allow(clippy::cast_precision_loss)]
         let age_seconds = age.as_secs() as f64;
         let decay_factor = (-age_seconds / 86400.0 * 0.1).exp(); // 10% decay per day
         (self.value * decay_factor).clamp(0.0, 1.0)
@@ -269,6 +271,8 @@ impl ConfidenceScore {
 
     /// Aggregate using harmonic mean (penalizes low scores)
     pub fn aggregate_harmonic(scores: &[ConfidenceScore]) -> Self {
+        // Safe conversion: practical number of scores will fit in f64
+        #[allow(clippy::cast_precision_loss)]
         let n = scores.len() as f64;
         let sum_reciprocals: f64 = scores
             .iter()
@@ -289,7 +293,10 @@ impl ConfidenceScore {
     fn recompute_from_components(&mut self) {
         if !self.components.is_empty() {
             let sum: f64 = self.components.values().sum();
-            self.value = (sum / self.components.len() as f64).clamp(0.0, 1.0);
+            // Safe conversion: practical number of components will fit in f64
+            #[allow(clippy::cast_precision_loss)]
+            let count = self.components.len() as f64;
+            self.value = (sum / count).clamp(0.0, 1.0);
         }
     }
 }
@@ -337,7 +344,10 @@ impl ConfidenceScoreBuilder {
 
         let value = if !self.components.is_empty() {
             let sum: f64 = self.components.values().sum();
-            sum / self.components.len() as f64
+            // Safe conversion: practical number of components will fit in f64
+            #[allow(clippy::cast_precision_loss)]
+            let count = self.components.len() as f64;
+            sum / count
         } else {
             self.base_score.unwrap_or(0.0)
         };

@@ -135,7 +135,7 @@ impl StealthController {
 
     /// Calculate delay before next request
     pub fn calculate_delay(&mut self) -> std::time::Duration {
-        self.request_count += 1;
+        self.request_count = self.request_count.saturating_add(1);
         let mut rng = rand::thread_rng();
 
         let base_delay = self
@@ -143,16 +143,30 @@ impl StealthController {
             .request_randomization
             .timing_jitter
             .base_delay_ms;
-        let jitter_range = (base_delay as f64
+
+        // Calculate jitter range with safe f64 conversion
+        // Note: u64 to f64 conversion loses precision beyond 2^53, but timing values
+        // in milliseconds are well within safe range (< 2^32 for any reasonable timeout)
+        #[allow(clippy::cast_precision_loss)]
+        let jitter_range_f64 = (base_delay as f64)
             * self
                 .config
                 .request_randomization
                 .timing_jitter
-                .jitter_percentage) as u64;
+                .jitter_percentage;
+
+        // Convert back to u64 with safe clamping (f64 is always positive here due to multiplication)
+        // Max jitter is limited by base_delay * jitter_percentage, which should be reasonable
+        #[allow(clippy::cast_precision_loss)]
+        let u64_max_f64 = u64::MAX as f64;
+        // Safe conversion: value is clamped, rounded, and always positive
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        let jitter_range = jitter_range_f64.round().min(u64_max_f64) as u64;
+
         let jitter = rng.gen_range(0..=jitter_range);
 
         let total_delay = if rng.gen_bool(0.5) {
-            base_delay + jitter
+            base_delay.saturating_add(jitter)
         } else {
             base_delay.saturating_sub(jitter)
         };
@@ -178,13 +192,13 @@ impl StealthController {
             let height_variance = rng.gen_range(0..=variance);
 
             if rng.gen_bool(0.5) {
-                width += width_variance;
+                width = width.saturating_add(width_variance);
             } else {
                 width = width.saturating_sub(width_variance);
             }
 
             if rng.gen_bool(0.5) {
-                height += height_variance;
+                height = height.saturating_add(height_variance);
             } else {
                 height = height.saturating_sub(height_variance);
             }
@@ -301,7 +315,7 @@ impl StealthController {
     /// Mark that a request was made
     pub fn mark_request_sent(&mut self) {
         self.last_request_time = Instant::now();
-        self.request_count += 1;
+        self.request_count = self.request_count.saturating_add(1);
     }
 
     /// Update configuration

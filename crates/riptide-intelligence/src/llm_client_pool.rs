@@ -417,14 +417,14 @@ impl LlmClientPool {
                     }
 
                     // Retry for retryable errors
-                    if attempt < self.config.max_retry_attempts - 1 {
+                    if attempt < self.config.max_retry_attempts.saturating_sub(1) {
                         match &e {
                             IntelligenceError::Network(_)
                             | IntelligenceError::Timeout { .. }
                             | IntelligenceError::RateLimit { .. } => {
                                 warn!(
                                     "Request failed (attempt {}): {}, retrying in {:?}",
-                                    attempt + 1,
+                                    attempt.saturating_add(1),
                                     e,
                                     backoff
                                 );
@@ -443,14 +443,14 @@ impl LlmClientPool {
                 }
                 Err(_) => {
                     // Timeout occurred
-                    last_error = Some(IntelligenceError::Timeout {
-                        timeout_ms: self.config.request_timeout.as_millis() as u64,
-                    });
+                    let timeout_ms =
+                        u64::try_from(self.config.request_timeout.as_millis()).unwrap_or(u64::MAX);
+                    last_error = Some(IntelligenceError::Timeout { timeout_ms });
 
-                    if attempt < self.config.max_retry_attempts - 1 {
+                    if attempt < self.config.max_retry_attempts.saturating_sub(1) {
                         warn!(
                             "Request timeout (attempt {}), retrying in {:?}",
-                            attempt + 1,
+                            attempt.saturating_add(1),
                             backoff
                         );
                         tokio::time::sleep(backoff).await;
