@@ -277,14 +277,18 @@ async fn process_stream(
 
 /// Validate command arguments
 fn validate_args(args: &SearchArgs) -> Result<()> {
-    // Validate limit
-    if args.limit < 1 || args.limit > 1000 {
-        anyhow::bail!("Limit must be between 1 and 1000");
+    // Prevent nonsensical values
+    if args.limit == 0 {
+        anyhow::bail!("Limit must be at least 1");
     }
 
-    // Validate timeout
-    if args.timeout < 1 || args.timeout > 300 {
-        anyhow::bail!("Timeout must be between 1 and 300 seconds");
+    if args.timeout == 0 {
+        anyhow::bail!("Timeout must be at least 1 second");
+    }
+
+    // Prevent empty query (server can't search for nothing)
+    if args.query.trim().is_empty() {
+        anyhow::bail!("Search query cannot be empty");
     }
 
     Ok(())
@@ -502,8 +506,8 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_args_invalid_limit() {
-        let mut args = SearchArgs {
+    fn test_validate_args_limit_zero() {
+        let args = SearchArgs {
             query: "test".to_string(),
             limit: 0,
             stream: false,
@@ -512,17 +516,11 @@ mod tests {
             output_file: None,
         };
         assert!(validate_args(&args).is_err());
-
-        args.limit = 1001;
-        assert!(validate_args(&args).is_err());
-
-        args.limit = 100;
-        assert!(validate_args(&args).is_ok());
     }
 
     #[test]
-    fn test_validate_args_invalid_timeout() {
-        let mut args = SearchArgs {
+    fn test_validate_args_timeout_zero() {
+        let args = SearchArgs {
             query: "test".to_string(),
             limit: 10,
             stream: false,
@@ -531,12 +529,19 @@ mod tests {
             output_file: None,
         };
         assert!(validate_args(&args).is_err());
+    }
 
-        args.timeout = 301;
+    #[test]
+    fn test_validate_args_empty_query() {
+        let args = SearchArgs {
+            query: "   ".to_string(),
+            limit: 10,
+            stream: false,
+            include_content: false,
+            timeout: 30,
+            output_file: None,
+        };
         assert!(validate_args(&args).is_err());
-
-        args.timeout = 60;
-        assert!(validate_args(&args).is_ok());
     }
 
     #[test]

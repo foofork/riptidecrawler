@@ -3,7 +3,7 @@
 /// This command renders URLs with JavaScript execution, waits for dynamic content,
 /// and optionally captures screenshots of the rendered page.
 use crate::client::ApiClient;
-use crate::output::{self, OutputFormat};
+use crate::output::{self, format_size, sanitize_filename, OutputFormat};
 use anyhow::{Context, Result};
 use base64::{engine::general_purpose, Engine as _};
 use clap::Args;
@@ -147,7 +147,7 @@ pub async fn execute(client: ApiClient, args: RenderArgs, output_format: String)
 
 /// Validate command arguments
 fn validate_args(args: &RenderArgs) -> Result<()> {
-    // Validate viewport format
+    // Validate viewport format - UX check to prevent typos
     if !args.viewport.contains('x') {
         anyhow::bail!(
             "Invalid viewport format '{}'. Expected format: WIDTHxHEIGHT (e.g., 1920x1080)",
@@ -155,14 +155,14 @@ fn validate_args(args: &RenderArgs) -> Result<()> {
         );
     }
 
-    // Validate wait time (max 60 seconds)
-    if args.wait > 60000 {
-        anyhow::bail!("Wait time must not exceed 60000ms (60 seconds)");
+    // Prevent nonsensical timeout
+    if args.timeout == 0 {
+        anyhow::bail!("Timeout must be at least 1 second");
     }
 
-    // Validate timeout
-    if args.timeout < 1 || args.timeout > 300 {
-        anyhow::bail!("Timeout must be between 1 and 300 seconds");
+    // Prevent empty URL list
+    if args.urls.is_empty() {
+        anyhow::bail!("At least one URL is required");
     }
 
     Ok(())
@@ -181,7 +181,8 @@ fn parse_viewport(viewport: &str) -> Result<ViewportSize> {
     let width = parts[0].parse::<u32>().context("Invalid viewport width")?;
     let height = parts[1].parse::<u32>().context("Invalid viewport height")?;
 
-    // Validate reasonable viewport dimensions
+    // NOTE: Keep viewport dimension checks - they provide good UX by catching typos
+    // like "192x108" instead of "1920x1080" before sending to server
     if !(320..=7680).contains(&width) {
         anyhow::bail!("Viewport width must be between 320 and 7680 pixels");
     }
@@ -225,10 +226,9 @@ fn save_screenshots(response: &RenderResponse) -> Result<()> {
 /// Generate a safe filename from a URL
 fn generate_screenshot_filename(url: &str) -> String {
     // Extract domain and path for filename
-    let clean_url = url
-        .replace("https://", "")
-        .replace("http://", "")
-        .replace(['/', ':', '?', '&'], "_");
+    let clean_url = url.replace("https://", "").replace("http://", "");
+
+    let sanitized = sanitize_filename(&clean_url);
 
     // Truncate if too long and add timestamp for uniqueness
     let timestamp = std::time::SystemTime::now()
@@ -236,10 +236,10 @@ fn generate_screenshot_filename(url: &str) -> String {
         .unwrap()
         .as_secs();
 
-    let base = if clean_url.len() > 50 {
-        &clean_url[..50]
+    let base = if sanitized.len() > 50 {
+        &sanitized[..50]
     } else {
-        &clean_url
+        &sanitized
     };
 
     format!("screenshot_{}_{}.png", base, timestamp)
@@ -381,23 +381,6 @@ fn print_summary(summary: &RenderSummary) {
     );
 }
 
-/// Format byte size in human-readable form
-fn format_size(size: usize) -> String {
-    const KB: usize = 1024;
-    const MB: usize = KB * 1024;
-    const GB: usize = MB * 1024;
-
-    if size >= GB {
-        format!("{:.2} GB", size as f64 / GB as f64)
-    } else if size >= MB {
-        format!("{:.2} MB", size as f64 / MB as f64)
-    } else if size >= KB {
-        format!("{:.2} KB", size as f64 / KB as f64)
-    } else {
-        format!("{} B", size)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -457,21 +440,8 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_args_excessive_wait() {
+    fn test_validate_args_timeout_zero() {
         let args = RenderArgs {
-            urls: vec!["https://example.com".to_string()],
-            wait: 70000,
-            screenshot: true,
-            viewport: "1920x1080".to_string(),
-            timeout: 30,
-            output_file: None,
-        };
-        assert!(validate_args(&args).is_err());
-    }
-
-    #[test]
-    fn test_validate_args_timeout_bounds() {
-        let mut args = RenderArgs {
             urls: vec!["https://example.com".to_string()],
             wait: 2000,
             screenshot: true,
@@ -480,12 +450,19 @@ mod tests {
             output_file: None,
         };
         assert!(validate_args(&args).is_err());
+    }
 
-        args.timeout = 301;
+    #[test]
+    fn test_validate_args_empty_urls() {
+        let args = RenderArgs {
+            urls: vec![],
+            wait: 2000,
+            screenshot: true,
+            viewport: "1920x1080".to_string(),
+            timeout: 30,
+            output_file: None,
+        };
         assert!(validate_args(&args).is_err());
-
-        args.timeout = 30;
-        assert!(validate_args(&args).is_ok());
     }
 
     #[test]

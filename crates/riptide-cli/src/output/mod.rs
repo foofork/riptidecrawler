@@ -10,11 +10,13 @@ mod json;
 mod stream;
 mod table;
 mod text;
+mod utils;
 
 pub use json::JsonFormatter;
 pub use stream::StreamFormatter;
 pub use table::TableFormatter;
 pub use text::TextFormatter;
+pub use utils::*;
 
 use anyhow::Result;
 use colored::*;

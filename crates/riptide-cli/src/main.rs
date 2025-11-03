@@ -74,11 +74,6 @@ enum Commands {
     /// Checks API connectivity, pool health, and system resource usage.
     Doctor(commands::doctor::DoctorArgs),
 
-    /// Configuration management
-    ///
-    /// View, set, or reset CLI configuration settings.
-    Config(commands::config::ConfigArgs),
-
     /// Session management for authenticated crawling
     ///
     /// Manage browser sessions for sites requiring authentication.
@@ -118,10 +113,6 @@ async fn run() -> Result<()> {
         }
         Commands::Render(args) => commands::render::execute(client, args, cli.output).await,
         Commands::Doctor(args) => commands::doctor::execute(client, args, cli.output).await,
-        Commands::Config(args) => {
-            // Config command doesn't need API client
-            commands::config::execute(args).await
-        }
         Commands::Session(args) => commands::session::execute(client, args, cli.output).await,
     }
 }
@@ -175,9 +166,6 @@ mod tests {
 
         let doctor = Cli::parse_from(["riptide", "doctor"]);
         assert!(matches!(doctor.command, Commands::Doctor(_)));
-
-        let config = Cli::parse_from(["riptide", "config", "list"]);
-        assert!(matches!(config.command, Commands::Config(_)));
 
         let session = Cli::parse_from(["riptide", "session", "list"]);
         assert!(matches!(session.command, Commands::Session(_)));

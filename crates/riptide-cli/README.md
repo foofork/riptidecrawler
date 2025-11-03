@@ -253,46 +253,35 @@ riptide -vv crawl --url "https://example.com"
 
 ### Environment Variables
 
+Configure the CLI using environment variables:
+
 ```bash
-# API connection
-export RIPTIDE_API_URL="http://localhost:8080"
-export RIPTIDE_API_KEY="your-api-key"
+# API connection (required for API mode)
+export RIPTIDE_BASE_URL="http://localhost:8080"  # API server URL
+export RIPTIDE_API_KEY="your-api-key"            # Optional Bearer token
 
-# Output configuration
-export RIPTIDE_OUTPUT_DIR="/path/to/output"
-export RIPTIDE_OUTPUT_FORMAT="json"  # json, table, text
-
-# Operational mode
-export RIPTIDE_MODE="api-first"      # api-first, direct, api-only
+# Output directories
+export RIPTIDE_OUTPUT_DIR="/path/to/output"      # Base output directory
+export RIPTIDE_CACHE_DIR="/path/to/cache"        # Cache directory
+export RIPTIDE_LOGS_DIR="/path/to/logs"          # Logs directory
 
 # Logging
-export RUST_LOG="info"
-export RIPTIDE_LOG_FILE="/path/to/riptide.log"
+export RUST_LOG="info"                            # Log level (error, warn, info, debug, trace)
+export RIPTIDE_LOG_LEVEL="info"                   # Alternative log level
 ```
 
-### Configuration File
+**Environment Variable Priority:**
 
-Create `~/.riptide/config.toml`:
+Command-line flags override environment variables. For example:
+```bash
+# Environment sets default
+export RIPTIDE_BASE_URL="http://localhost:8080"
 
-```toml
-[api]
-url = "http://localhost:8080"
-key = "your-api-key"
-timeout = 30
-
-[output]
-directory = "/path/to/output"
-format = "json"
-
-[crawl]
-default_depth = 3
-max_pages = 100
-concurrency = 10
-
-[extraction]
-default_strategy = "chain:css"
-show_confidence = true
+# Flag overrides for this command only
+riptide --url "http://api.example.com:9000" extract "https://example.com"
 ```
+
+**Note:** Local configuration files (`~/.config/riptide/config.yaml`) are no longer supported. Use environment variables or command-line flags instead.
 
 ## Examples
 

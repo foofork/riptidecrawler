@@ -1,4 +1,3 @@
-pub mod config;
 pub mod doctor;
 /// Command modules for the RipTide CLI
 ///
@@ -9,6 +8,6 @@ pub mod doctor;
 pub mod extract;
 pub mod render;
 pub mod search;
-pub mod session; // Local session management (existing)
+pub mod session; // API-based session management
 pub mod session_api;
-pub mod spider; // API-based session management (new)
+pub mod spider;

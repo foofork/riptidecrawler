@@ -3,7 +3,7 @@
 /// This command crawls websites starting from a seed URL and following links
 /// up to a specified depth with various crawling strategies.
 use crate::client::ApiClient;
-use crate::output::{self, OutputFormat};
+use crate::output::{self, format_size, truncate_text, OutputFormat};
 use anyhow::{Context, Result};
 use clap::Args;
 use serde::{Deserialize, Serialize};
@@ -148,59 +148,26 @@ pub async fn execute(client: ApiClient, args: SpiderArgs, output_format: String)
 
 /// Validate command arguments
 fn validate_args(args: &SpiderArgs) -> Result<()> {
-    // Validate URL format
+    // Basic URL format check - prevents obviously broken requests
     if !args.seed.starts_with("http://") && !args.seed.starts_with("https://") {
         anyhow::bail!("Seed URL must start with http:// or https://");
     }
 
-    // Validate strategy
-    let valid_strategies = ["breadth_first", "depth_first", "best_first"];
-    if !valid_strategies.contains(&args.strategy.as_str()) {
-        anyhow::bail!(
-            "Invalid strategy '{}'. Must be one of: {}",
-            args.strategy,
-            valid_strategies.join(", ")
-        );
+    // Prevent nonsensical values
+    if args.depth == 0 {
+        anyhow::bail!("Depth must be at least 1");
     }
 
-    // Validate depth
-    if args.depth == 0 || args.depth > 10 {
-        anyhow::bail!("Depth must be between 1 and 10");
+    if args.pages == 0 {
+        anyhow::bail!("Pages must be at least 1");
     }
 
-    // Validate pages
-    if args.pages == 0 || args.pages > 10000 {
-        anyhow::bail!("Pages must be between 1 and 10000");
+    if args.concurrency == 0 {
+        anyhow::bail!("Concurrency must be at least 1");
     }
 
-    // Validate concurrency
-    if args.concurrency < 1 || args.concurrency > 50 {
-        anyhow::bail!("Concurrency must be between 1 and 50");
-    }
-
-    // Validate timeout
-    if args.timeout < 1 || args.timeout > 300 {
-        anyhow::bail!("Timeout must be between 1 and 300 seconds");
-    }
-
-    // Validate cache mode
-    let valid_cache_modes = ["auto", "read_write", "read_only", "write_only", "disabled"];
-    if !valid_cache_modes.contains(&args.cache.as_str()) {
-        anyhow::bail!(
-            "Invalid cache mode '{}'. Must be one of: {}",
-            args.cache,
-            valid_cache_modes.join(", ")
-        );
-    }
-
-    // Validate robots.txt handling
-    let valid_robots_modes = ["respect", "ignore"];
-    if !valid_robots_modes.contains(&args.robots.as_str()) {
-        anyhow::bail!(
-            "Invalid robots mode '{}'. Must be one of: {}",
-            args.robots,
-            valid_robots_modes.join(", ")
-        );
+    if args.timeout == 0 {
+        anyhow::bail!("Timeout must be at least 1 second");
     }
 
     Ok(())
@@ -350,32 +317,6 @@ fn print_summary(summary: &CrawlSummary) {
     println!("  Total Time: {}ms", summary.total_time_ms);
 }
 
-/// Format byte size in human-readable form
-fn format_size(size: usize) -> String {
-    const KB: usize = 1024;
-    const MB: usize = KB * 1024;
-    const GB: usize = MB * 1024;
-
-    if size >= GB {
-        format!("{:.2} GB", size as f64 / GB as f64)
-    } else if size >= MB {
-        format!("{:.2} MB", size as f64 / MB as f64)
-    } else if size >= KB {
-        format!("{:.2} KB", size as f64 / KB as f64)
-    } else {
-        format!("{} B", size)
-    }
-}
-
-/// Truncate text to a maximum length with ellipsis
-fn truncate_text(text: &str, max_len: usize) -> String {
-    if text.len() <= max_len {
-        text.to_string()
-    } else {
-        format!("{}...", &text[..max_len.saturating_sub(3)])
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -413,24 +354,8 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_args_invalid_strategy() {
+    fn test_validate_args_depth_zero() {
         let args = SpiderArgs {
-            seed: "https://example.com".to_string(),
-            depth: 3,
-            pages: 100,
-            strategy: "invalid".to_string(),
-            concurrency: 5,
-            timeout: 30,
-            cache: "auto".to_string(),
-            output_file: None,
-            robots: "respect".to_string(),
-        };
-        assert!(validate_args(&args).is_err());
-    }
-
-    #[test]
-    fn test_validate_args_depth_bounds() {
-        let mut args = SpiderArgs {
             seed: "https://example.com".to_string(),
             depth: 0,
             pages: 100,
@@ -442,17 +367,11 @@ mod tests {
             robots: "respect".to_string(),
         };
         assert!(validate_args(&args).is_err());
-
-        args.depth = 11;
-        assert!(validate_args(&args).is_err());
-
-        args.depth = 5;
-        assert!(validate_args(&args).is_ok());
     }
 
     #[test]
-    fn test_validate_args_pages_bounds() {
-        let mut args = SpiderArgs {
+    fn test_validate_args_pages_zero() {
+        let args = SpiderArgs {
             seed: "https://example.com".to_string(),
             depth: 3,
             pages: 0,
@@ -464,17 +383,11 @@ mod tests {
             robots: "respect".to_string(),
         };
         assert!(validate_args(&args).is_err());
-
-        args.pages = 10001;
-        assert!(validate_args(&args).is_err());
-
-        args.pages = 500;
-        assert!(validate_args(&args).is_ok());
     }
 
     #[test]
-    fn test_validate_args_concurrency_bounds() {
-        let mut args = SpiderArgs {
+    fn test_validate_args_concurrency_zero() {
+        let args = SpiderArgs {
             seed: "https://example.com".to_string(),
             depth: 3,
             pages: 100,
@@ -486,42 +399,20 @@ mod tests {
             robots: "respect".to_string(),
         };
         assert!(validate_args(&args).is_err());
-
-        args.concurrency = 51;
-        assert!(validate_args(&args).is_err());
-
-        args.concurrency = 10;
-        assert!(validate_args(&args).is_ok());
     }
 
     #[test]
-    fn test_validate_args_invalid_cache_mode() {
+    fn test_validate_args_timeout_zero() {
         let args = SpiderArgs {
             seed: "https://example.com".to_string(),
             depth: 3,
             pages: 100,
             strategy: "breadth_first".to_string(),
             concurrency: 5,
-            timeout: 30,
-            cache: "invalid".to_string(),
-            output_file: None,
-            robots: "respect".to_string(),
-        };
-        assert!(validate_args(&args).is_err());
-    }
-
-    #[test]
-    fn test_validate_args_invalid_robots_mode() {
-        let args = SpiderArgs {
-            seed: "https://example.com".to_string(),
-            depth: 3,
-            pages: 100,
-            strategy: "breadth_first".to_string(),
-            concurrency: 5,
-            timeout: 30,
+            timeout: 0,
             cache: "auto".to_string(),
             output_file: None,
-            robots: "invalid".to_string(),
+            robots: "respect".to_string(),
         };
         assert!(validate_args(&args).is_err());
     }

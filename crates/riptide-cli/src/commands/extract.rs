@@ -3,7 +3,7 @@
 /// This command extracts content from URLs using various strategies.
 /// It's the ONLY command that provides full strategy control (auto/css/wasm/llm/multi).
 use crate::client::ApiClient;
-use crate::output::{self, OutputFormat};
+use crate::output::{self, format_size, OutputFormat};
 use anyhow::{Context, Result};
 use clap::Args;
 use serde::{Deserialize, Serialize};
@@ -151,39 +151,14 @@ pub async fn execute(client: ApiClient, args: ExtractArgs, output_format: String
 
 /// Validate command arguments
 fn validate_args(args: &ExtractArgs) -> Result<()> {
-    // Validate strategy
-    let valid_strategies = ["auto", "css", "wasm", "llm", "multi"];
-    if !valid_strategies.contains(&args.strategy.as_str()) {
-        anyhow::bail!(
-            "Invalid strategy '{}'. Must be one of: {}",
-            args.strategy,
-            valid_strategies.join(", ")
-        );
-    }
-
-    // CSS strategy requires selector
+    // CSS strategy requires selector - critical for proper request
     if args.strategy == "css" && args.selector.is_none() {
         anyhow::bail!("CSS strategy requires --selector argument");
     }
 
-    // Validate quality threshold
-    if args.quality_threshold < 0.0 || args.quality_threshold > 1.0 {
-        anyhow::bail!("Quality threshold must be between 0.0 and 1.0");
-    }
-
-    // Validate concurrency
-    if args.concurrency < 1 || args.concurrency > 100 {
-        anyhow::bail!("Concurrency must be between 1 and 100");
-    }
-
-    // Validate cache mode
-    let valid_cache_modes = ["auto", "read_write", "read_only", "write_only", "disabled"];
-    if !valid_cache_modes.contains(&args.cache.as_str()) {
-        anyhow::bail!(
-            "Invalid cache mode '{}'. Must be one of: {}",
-            args.cache,
-            valid_cache_modes.join(", ")
-        );
+    // Prevent empty URL list (server can't handle this meaningfully)
+    if args.urls.is_empty() {
+        anyhow::bail!("At least one URL is required");
     }
 
     Ok(())
@@ -312,23 +287,6 @@ fn print_summary(summary: &ExtractSummary) {
     println!("  Total Size: {}", format_size(summary.total_size));
 }
 
-/// Format byte size in human-readable form
-fn format_size(size: usize) -> String {
-    const KB: usize = 1024;
-    const MB: usize = KB * 1024;
-    const GB: usize = MB * 1024;
-
-    if size >= GB {
-        format!("{:.2} GB", size as f64 / GB as f64)
-    } else if size >= MB {
-        format!("{:.2} MB", size as f64 / MB as f64)
-    } else if size >= KB {
-        format!("{:.2} KB", size as f64 / KB as f64)
-    } else {
-        format!("{} B", size)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -350,22 +308,6 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_args_invalid_strategy() {
-        let args = ExtractArgs {
-            urls: vec!["https://example.com".to_string()],
-            strategy: "invalid".to_string(),
-            selector: None,
-            pattern: None,
-            quality_threshold: 0.7,
-            timeout: 30000,
-            concurrency: 5,
-            cache: "auto".to_string(),
-            output_file: None,
-        };
-        assert!(validate_args(&args).is_err());
-    }
-
-    #[test]
     fn test_validate_args_css_requires_selector() {
         let args = ExtractArgs {
             urls: vec!["https://example.com".to_string()],
@@ -382,25 +324,19 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_args_quality_threshold_bounds() {
-        let mut args = ExtractArgs {
-            urls: vec!["https://example.com".to_string()],
+    fn test_validate_args_empty_urls() {
+        let args = ExtractArgs {
+            urls: vec![],
             strategy: "multi".to_string(),
             selector: None,
             pattern: None,
-            quality_threshold: -0.1,
+            quality_threshold: 0.7,
             timeout: 30000,
             concurrency: 5,
             cache: "auto".to_string(),
             output_file: None,
         };
         assert!(validate_args(&args).is_err());
-
-        args.quality_threshold = 1.1;
-        assert!(validate_args(&args).is_err());
-
-        args.quality_threshold = 0.5;
-        assert!(validate_args(&args).is_ok());
     }
 
     #[test]

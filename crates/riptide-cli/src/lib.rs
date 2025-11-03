@@ -2,7 +2,7 @@
 //!
 //! This library provides the core functionality for the RipTide CLI tool,
 //! exposing modules for API interaction, command execution, output formatting,
-//! configuration management, and error handling.
+//! and error handling.
 //!
 //! # Architecture
 //!
@@ -12,7 +12,7 @@
 //! - **commands**: Command handlers for each CLI subcommand (extract, spider, search, etc.)
 //! - **output**: Output formatters for JSON, text, and table formats
 //! - **error**: Error types and exit code mapping
-//! - **config**: Configuration file management for persistent settings
+//! - **config**: Output directory helpers and environment variable management
 //!
 //! # Example Usage
 //!
@@ -52,7 +52,6 @@ pub mod api_client {
 
 // Re-export commonly used types for convenience
 pub use client::ApiClient;
-pub use commands::config::Config;
 pub use error::ExitCode;
 
 /// CLI version information
