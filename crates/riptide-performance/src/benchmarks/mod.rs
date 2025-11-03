@@ -12,6 +12,10 @@ use std::time::{Duration, Instant};
 use tracing::info;
 use uuid::Uuid;
 
+use crate::utils::safe_conversions::{
+    calculate_percentile_index, count_to_f64_divisor, u128_nanos_to_u64,
+};
+
 // Re-export extraction benchmark types
 pub use extraction_benchmark::{
     BenchmarkStatistics, ComparativeBenchmarkReport, ExtractionBenchmark,
@@ -158,7 +162,11 @@ impl BenchmarkRunner {
                         // Calculate percentage change in performance (negative = regression)
                         let baseline_avg = baseline_result.average_duration.as_nanos() as f64;
                         let current_avg = result.average_duration.as_nanos() as f64;
-                        ((baseline_avg - current_avg) / baseline_avg) * 100.0
+                        if baseline_avg > 0.0 {
+                            ((baseline_avg - current_avg) / baseline_avg) * 100.0
+                        } else {
+                            0.0
+                        }
                     } else {
                         0.0
                     };
@@ -393,14 +401,21 @@ impl BenchmarkRunner {
         durations.sort();
 
         let total_nanos: u128 = durations.iter().map(|d| d.as_nanos()).sum();
-        let average_duration = Duration::from_nanos((total_nanos / durations.len() as u128) as u64);
-        let min_duration = durations[0];
-        let max_duration = durations[durations.len() - 1];
-        let median_duration = durations[durations.len() / 2];
-        let p95_index = (durations.len() as f32 * 0.95) as usize;
-        let p99_index = (durations.len() as f32 * 0.99) as usize;
-        let p95_duration = durations[p95_index.min(durations.len() - 1)];
-        let p99_duration = durations[p99_index.min(durations.len() - 1)];
+        let average_duration = if durations.is_empty() {
+            Duration::from_nanos(0)
+        } else {
+            Duration::from_nanos(u128_nanos_to_u64(total_nanos / durations.len() as u128))
+        };
+        let min_duration = durations.first().copied().unwrap_or_default();
+        let max_duration = durations.last().copied().unwrap_or_default();
+        let median_duration = durations
+            .get(durations.len() / 2)
+            .copied()
+            .unwrap_or_default();
+        let p95_index = calculate_percentile_index(durations.len(), 0.95);
+        let p99_index = calculate_percentile_index(durations.len(), 0.99);
+        let p95_duration = durations.get(p95_index).copied().unwrap_or_default();
+        let p99_duration = durations.get(p99_index).copied().unwrap_or_default();
 
         let throughput_ops_sec = durations.len() as f64 / total_duration.as_secs_f64();
 
@@ -410,7 +425,7 @@ impl BenchmarkRunner {
             .fold(0.0, f64::max);
 
         let memory_average_mb = memory_samples.iter().map(|(_, after)| *after).sum::<f64>()
-            / memory_samples.len() as f64;
+            / count_to_f64_divisor(memory_samples.len());
 
         // Simulate CPU usage (would be measured in real implementation)
         let cpu_usage_percent = 45.0; // Placeholder

@@ -174,17 +174,18 @@ impl HeadlessLauncher {
         // Update statistics
         {
             let mut stats = self.stats.write().await;
-            stats.total_requests += 1;
-            stats.successful_requests += 1;
-            stats.avg_response_time_ms = (stats.avg_response_time_ms
-                * (stats.successful_requests - 1) as f64
+            stats.total_requests = stats.total_requests.saturating_add(1);
+            stats.successful_requests = stats.successful_requests.saturating_add(1);
+            // Calculate running average safely
+            let prev_count = stats.successful_requests.saturating_sub(1);
+            stats.avg_response_time_ms = (stats.avg_response_time_ms * prev_count as f64
                 + duration.as_millis() as f64)
                 / stats.successful_requests as f64;
 
             if stealth_preset.is_some() && stealth_preset != Some(StealthPreset::None) {
-                stats.stealth_requests += 1;
+                stats.stealth_requests = stats.stealth_requests.saturating_add(1);
             } else {
-                stats.non_stealth_requests += 1;
+                stats.non_stealth_requests = stats.non_stealth_requests.saturating_add(1);
             }
         }
 
@@ -765,7 +766,7 @@ impl<'a> Drop for LaunchSession<'a> {
                 let launcher_stats = self.launcher.stats.clone();
                 async move {
                     let mut stats = launcher_stats.write().await;
-                    stats.failed_requests += 1;
+                    stats.failed_requests = stats.failed_requests.saturating_add(1);
                 }
             });
         }

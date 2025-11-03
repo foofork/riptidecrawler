@@ -272,7 +272,7 @@ impl PooledBrowser {
     /// Update usage statistics
     #[allow(dead_code)] // Method for future use
     pub fn update_stats(&mut self, memory_usage_mb: u64) {
-        self.stats.total_uses += 1;
+        self.stats.total_uses = self.stats.total_uses.saturating_add(1);
         self.stats.memory_usage_mb = memory_usage_mb;
         self.stats.last_used = Some(Instant::now());
         self.last_used = Instant::now();
@@ -303,7 +303,7 @@ impl PooledBrowser {
             Err(_) => {
                 error!(browser_id = %self.id, "Browser health check timed out");
                 self.health = BrowserHealth::Timeout;
-                self.stats.timeouts += 1;
+                self.stats.timeouts = self.stats.timeouts.saturating_add(1);
             }
         }
 
@@ -359,12 +359,12 @@ impl PooledBrowser {
             Ok(Err(e)) => {
                 error!(browser_id = %self.id, error = %e, "Full health check failed");
                 self.health = BrowserHealth::Unhealthy;
-                self.stats.crashes += 1;
+                self.stats.crashes = self.stats.crashes.saturating_add(1);
             }
             Err(_) => {
                 error!(browser_id = %self.id, "Full health check timed out");
                 self.health = BrowserHealth::Timeout;
-                self.stats.timeouts += 1;
+                self.stats.timeouts = self.stats.timeouts.saturating_add(1);
             }
         }
 
@@ -445,7 +445,7 @@ impl BrowserPool {
 
         // Create initial browser instances (continue on failures for graceful degradation)
         let mut initial_browsers = VecDeque::new();
-        let mut failed_count = 0;
+        let mut failed_count: usize = 0;
         for i in 0..config.initial_pool_size {
             match PooledBrowser::new(browser_config.clone(), config.profile_base_dir.as_deref())
                 .await
@@ -457,9 +457,9 @@ impl BrowserPool {
                     initial_browsers.push_back(browser);
                 }
                 Err(e) => {
-                    failed_count += 1;
+                    failed_count = failed_count.saturating_add(1);
                     warn!(
-                        attempt = i + 1,
+                        attempt = i.saturating_add(1),
                         error = %e,
                         "Failed to create initial browser instance (will continue)"
                     );
@@ -776,8 +776,8 @@ impl BrowserPool {
         in_use: &Arc<RwLock<HashMap<String, PooledBrowser>>>,
         event_sender: &mpsc::UnboundedSender<PoolEvent>,
     ) {
-        let mut healthy_count = 0;
-        let mut unhealthy_count = 0;
+        let mut healthy_count: usize = 0;
+        let mut unhealthy_count: usize = 0;
 
         let soft_limit = if config.enable_memory_limits {
             config.memory_soft_limit_mb
@@ -800,13 +800,13 @@ impl BrowserPool {
                     .await;
                 match health {
                     BrowserHealth::Healthy => {
-                        healthy_count += 1;
-                        i += 1;
+                        healthy_count = healthy_count.saturating_add(1);
+                        i = i.saturating_add(1);
                     }
                     _ => {
                         if let Some(mut browser) = available_browsers.remove(i) {
                             browser.cleanup().await;
-                            unhealthy_count += 1;
+                            unhealthy_count = unhealthy_count.saturating_add(1);
 
                             let _ = event_sender.send(PoolEvent::BrowserRemoved {
                                 id: browser.id.clone(),
@@ -834,7 +834,7 @@ impl BrowserPool {
                     });
                 }
             }
-            healthy_count += in_use_browsers.len();
+            healthy_count = healthy_count.saturating_add(in_use_browsers.len());
         }
 
         let _ = event_sender.send(PoolEvent::HealthCheckCompleted {
@@ -895,9 +895,9 @@ impl BrowserPool {
                         soft_limit_mb = config.memory_soft_limit_mb,
                         "Browser memory usage high - cleanup recommended"
                     );
-                    i += 1;
+                    i = i.saturating_add(1);
                 } else {
-                    i += 1;
+                    i = i.saturating_add(1);
                 }
             }
         }
@@ -954,7 +954,7 @@ impl BrowserPool {
             if browser.is_expired(config.max_lifetime) || browser.is_idle(config.idle_timeout) {
                 let Some(mut browser) = available_browsers.remove(i) else {
                     error!(index = i, "Failed to remove expired browser at index");
-                    i += 1;
+                    i = i.saturating_add(1);
                     continue;
                 };
                 browser.cleanup().await;
@@ -972,7 +972,7 @@ impl BrowserPool {
 
                 debug!(browser_id = %browser.id, reason = reason, "Browser removed from pool");
             } else {
-                i += 1;
+                i = i.saturating_add(1);
             }
         }
     }
@@ -996,8 +996,8 @@ impl BrowserPool {
                 "Expanding pool to maintain minimum size"
             );
 
-            let mut created = 0;
-            let mut failed = 0;
+            let mut created: usize = 0;
+            let mut failed: usize = 0;
 
             // Try to create all needed browsers with exponential backoff on failures
             for attempt in 0..needed {
@@ -1009,19 +1009,22 @@ impl BrowserPool {
                             id: browser.id.clone(),
                         });
                         available_browsers.push_back(browser);
-                        created += 1;
+                        created = created.saturating_add(1);
                     }
                     Err(e) => {
-                        failed += 1;
+                        failed = failed.saturating_add(1);
                         warn!(
-                            attempt = attempt + 1,
+                            attempt = attempt.saturating_add(1),
                             error = %e,
                             "Failed to create browser for pool maintenance (continuing with remaining attempts)"
                         );
 
                         // Add small delay before next attempt to avoid rapid failures
-                        if attempt < needed - 1 {
-                            tokio::time::sleep(Duration::from_millis(100 * (failed as u64))).await;
+                        if attempt < needed.saturating_sub(1) {
+                            tokio::time::sleep(Duration::from_millis(
+                                100u64.saturating_mul(failed as u64),
+                            ))
+                            .await;
                         }
                     }
                 }

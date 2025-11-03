@@ -114,7 +114,7 @@ impl HybridBrowserFallback {
             // Update metrics
             {
                 let mut metrics = self.metrics.write().await;
-                metrics.spider_chrome_attempts += 1;
+                metrics.spider_chrome_attempts = metrics.spider_chrome_attempts.saturating_add(1);
             }
 
             // Try spider-chrome first
@@ -123,7 +123,8 @@ impl HybridBrowserFallback {
                     // Success with spider-chrome
                     {
                         let mut metrics = self.metrics.write().await;
-                        metrics.spider_chrome_success += 1;
+                        metrics.spider_chrome_success =
+                            metrics.spider_chrome_success.saturating_add(1);
                     }
 
                     info!(
@@ -143,8 +144,10 @@ impl HybridBrowserFallback {
 
                     {
                         let mut metrics = self.metrics.write().await;
-                        metrics.spider_chrome_failures += 1;
-                        metrics.chromiumoxide_fallbacks += 1;
+                        metrics.spider_chrome_failures =
+                            metrics.spider_chrome_failures.saturating_add(1);
+                        metrics.chromiumoxide_fallbacks =
+                            metrics.chromiumoxide_fallbacks.saturating_add(1);
                     }
                 }
             }
@@ -232,7 +235,7 @@ impl HybridBrowserFallback {
         // Update metrics
         {
             let mut metrics = self.metrics.write().await;
-            metrics.chromiumoxide_success += 1;
+            metrics.chromiumoxide_success = metrics.chromiumoxide_success.saturating_add(1);
         }
 
         info!(

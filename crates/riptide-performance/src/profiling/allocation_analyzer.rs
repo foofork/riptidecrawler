@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use tracing::{debug, info};
 
 use super::AllocationInfo;
+use crate::utils::safe_conversions::{count_to_f64_divisor, f64_to_u64_safe, usize_to_u64};
 
 /// Analyzer for allocation patterns and top allocators
 pub struct AllocationAnalyzer {
@@ -82,10 +83,10 @@ impl AllocationAnalyzer {
             });
 
         allocator_stats.total_allocations += 1;
-        allocator_stats.total_bytes += size as u64;
+        allocator_stats.total_bytes += usize_to_u64(size);
         allocator_stats.largest_allocation = allocator_stats.largest_allocation.max(size);
-        allocator_stats.average_size =
-            allocator_stats.total_bytes as f64 / allocator_stats.total_allocations as f64;
+        allocator_stats.average_size = allocator_stats.total_bytes as f64
+            / count_to_f64_divisor(allocator_stats.total_allocations as usize);
 
         // Keep recent allocations for pattern analysis
         allocator_stats.recent_allocations.push(allocation.clone());
@@ -105,9 +106,9 @@ impl AllocationAnalyzer {
             });
 
         operation_stats.count += 1;
-        operation_stats.total_bytes += size as u64;
-        operation_stats.average_size =
-            operation_stats.total_bytes as f64 / operation_stats.count as f64;
+        operation_stats.total_bytes += usize_to_u64(size);
+        operation_stats.average_size = operation_stats.total_bytes as f64
+            / count_to_f64_divisor(operation_stats.count as usize);
         *operation_stats
             .components
             .entry(component.clone())
@@ -194,15 +195,16 @@ impl AllocationAnalyzer {
         if total_allocations > 0 {
             let small_percentage = (self.size_distribution.tiny + self.size_distribution.small)
                 as f64
-                / total_allocations as f64
+                / count_to_f64_divisor(total_allocations as usize)
                 * 100.0;
 
             if small_percentage > 80.0 {
                 recommendations.push("High percentage of small allocations detected. Consider implementing object pools for frequently allocated small objects.".to_string());
             }
 
-            let huge_percentage =
-                self.size_distribution.huge as f64 / total_allocations as f64 * 100.0;
+            let huge_percentage = self.size_distribution.huge as f64
+                / count_to_f64_divisor(total_allocations as usize)
+                * 100.0;
 
             if huge_percentage > 5.0 {
                 recommendations.push("Significant number of huge allocations (>16MB) detected. Consider streaming or chunking for large data processing.".to_string());
@@ -224,7 +226,7 @@ impl AllocationAnalyzer {
 
         for (operation, count, avg_size) in &top_operations[..3.min(top_operations.len())] {
             if *count > 10000 {
-                recommendations.push(format!("Operation '{}' called very frequently ({} times, avg {}bytes). Consider batching or caching.", operation, count, *avg_size as u64));
+                recommendations.push(format!("Operation '{}' called very frequently ({} times, avg {}bytes). Consider batching or caching.", operation, count, f64_to_u64_safe(*avg_size)));
             }
         }
 
@@ -250,7 +252,8 @@ impl AllocationAnalyzer {
         for (component, stats) in &self.allocator_stats {
             // Simple fragmentation metric: ratio of largest to average allocation
             if stats.average_size > 0.0 {
-                let fragmentation_ratio = stats.largest_allocation as f64 / stats.average_size;
+                let fragmentation_ratio =
+                    stats.largest_allocation as f64 / stats.average_size.max(1.0);
                 fragmentation.insert(component.clone(), fragmentation_ratio);
             }
         }
@@ -297,14 +300,15 @@ impl AllocationAnalyzer {
         // Efficiency factors
         let size_efficiency = if total_size > 0 {
             // Prefer medium-sized allocations (more efficient than many tiny or few huge)
-            let medium_ratio = self.size_distribution.medium as f64 / total_size as f64;
+            let medium_ratio =
+                self.size_distribution.medium as f64 / count_to_f64_divisor(total_size as usize);
             (medium_ratio * 2.0).min(1.0)
         } else {
             1.0
         };
 
         // Component concentration (prefer fewer components doing more work)
-        let component_count = self.allocator_stats.len() as f64;
+        let component_count = count_to_f64_divisor(self.allocator_stats.len());
         let concentration_efficiency = if component_count > 0.0 {
             (20.0 / component_count).min(1.0)
         } else {

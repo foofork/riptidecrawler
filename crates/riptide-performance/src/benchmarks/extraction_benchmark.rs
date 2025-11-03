@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
+use crate::utils::safe_conversions::{calculate_percentile_index, count_to_f64_divisor, safe_rate};
+
 /// Extraction engine type
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ExtractionEngine {
@@ -120,7 +122,7 @@ impl ExtractionBenchmarkRunner {
         let total_runs = engine_results.len();
         let successful_runs = engine_results.iter().filter(|r| r.success).count();
         let failed_runs = total_runs - successful_runs;
-        let success_rate = successful_runs as f64 / total_runs as f64;
+        let success_rate = successful_runs as f64 / count_to_f64_divisor(total_runs);
 
         // Collect timing data
         let mut durations: Vec<f64> = engine_results
@@ -129,7 +131,7 @@ impl ExtractionBenchmarkRunner {
             .collect();
         durations.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
-        let avg_duration_ms = durations.iter().sum::<f64>() / durations.len() as f64;
+        let avg_duration_ms = durations.iter().sum::<f64>() / count_to_f64_divisor(durations.len());
         let min_duration_ms = *durations.first().unwrap_or(&0.0);
         let max_duration_ms = *durations.last().unwrap_or(&0.0);
         let p50_duration_ms = percentile(&durations, 0.50);
@@ -138,15 +140,15 @@ impl ExtractionBenchmarkRunner {
 
         // Memory statistics
         let avg_memory_peak_mb = engine_results.iter().map(|r| r.memory_peak_mb).sum::<f64>()
-            / engine_results.len() as f64;
+            / count_to_f64_divisor(engine_results.len());
         let max_memory_peak_mb = engine_results
             .iter()
             .map(|r| r.memory_peak_mb)
             .fold(0.0_f64, |max, val| max.max(val));
 
         // CPU statistics
-        let avg_cpu_percent =
-            engine_results.iter().map(|r| r.cpu_percent).sum::<f64>() / engine_results.len() as f64;
+        let avg_cpu_percent = engine_results.iter().map(|r| r.cpu_percent).sum::<f64>()
+            / count_to_f64_divisor(engine_results.len());
         let max_cpu_percent = engine_results
             .iter()
             .map(|r| r.cpu_percent)
@@ -155,7 +157,7 @@ impl ExtractionBenchmarkRunner {
         // Throughput (pages per second)
         let total_time_sec: f64 = durations.iter().sum::<f64>() / 1000.0;
         let throughput_pages_per_sec = if total_time_sec > 0.0 {
-            successful_runs as f64 / total_time_sec
+            safe_rate(successful_runs, total_time_sec)
         } else {
             0.0
         };
@@ -246,7 +248,7 @@ fn percentile(sorted_data: &[f64], p: f64) -> f64 {
         return 0.0;
     }
 
-    let idx = ((sorted_data.len() as f64 - 1.0) * p) as usize;
+    let idx = calculate_percentile_index(sorted_data.len(), p);
     sorted_data[idx]
 }
 

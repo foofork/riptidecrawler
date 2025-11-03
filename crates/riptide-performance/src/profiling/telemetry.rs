@@ -18,6 +18,7 @@ use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
 
 use super::{AllocationInfo, LeakAnalysis, LeakInfo, MemorySnapshot};
+use crate::utils::safe_conversions::{bytes_to_mb, count_to_f64_divisor, usize_to_u64};
 
 /// Configuration for telemetry export
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -187,8 +188,8 @@ impl MemoryTelemetryExporter {
         }
 
         debug!(
-            rss_mb = snapshot.rss_bytes as f64 / 1024.0 / 1024.0,
-            heap_mb = snapshot.heap_bytes as f64 / 1024.0 / 1024.0,
+            rss_mb = bytes_to_mb(snapshot.rss_bytes),
+            heap_mb = bytes_to_mb(snapshot.heap_bytes),
             "Exporting memory snapshot to telemetry"
         );
 
@@ -249,7 +250,7 @@ impl MemoryTelemetryExporter {
 
         // Export leak count
         leak_count_counter.add(
-            analysis.potential_leaks.len() as u64,
+            usize_to_u64(analysis.potential_leaks.len()),
             &[KeyValue::new("status", "detected")],
         );
 
@@ -319,8 +320,8 @@ impl MemoryTelemetryExporter {
             .init();
 
         // Calculate statistics
-        let total_count = allocations.len() as u64;
-        let total_bytes: u64 = allocations.iter().map(|a| a.size as u64).sum();
+        let total_count = usize_to_u64(allocations.len());
+        let total_bytes: u64 = allocations.iter().map(|a| usize_to_u64(a.size)).sum();
 
         let mut labels = Vec::new();
         if let Some(component) = component {
@@ -336,7 +337,7 @@ impl MemoryTelemetryExporter {
             let mut alloc_labels = labels.clone();
             alloc_labels.push(KeyValue::new("operation", allocation.operation.clone()));
 
-            allocation_histogram.record(allocation.size as u64, &alloc_labels);
+            allocation_histogram.record(usize_to_u64(allocation.size), &alloc_labels);
         }
 
         // Calculate and export efficiency score
@@ -423,7 +424,7 @@ impl MemoryTelemetryExporter {
 
     /// Calculate leak severity level
     fn calculate_leak_severity(&self, leak: &LeakInfo) -> String {
-        let size_mb = leak.total_size_bytes as f64 / 1024.0 / 1024.0;
+        let size_mb = bytes_to_mb(leak.total_size_bytes);
         let growth_mb_h = leak.growth_rate / 1024.0 / 1024.0 * 3600.0;
 
         if size_mb > 100.0 || growth_mb_h > 50.0 {
@@ -445,7 +446,7 @@ impl MemoryTelemetryExporter {
         }
 
         let total_size: usize = allocations.iter().map(|a| a.size).sum();
-        let avg_size = total_size as f64 / allocations.len() as f64;
+        let avg_size = total_size as f64 / count_to_f64_divisor(allocations.len());
 
         // Efficiency based on:
         // 1. Prefer medium-sized allocations (4KB-64KB)
@@ -465,7 +466,7 @@ impl MemoryTelemetryExporter {
             .iter()
             .filter(|a| a.size % a.alignment == 0)
             .count();
-        let alignment_efficiency = well_aligned as f64 / allocations.len() as f64;
+        let alignment_efficiency = well_aligned as f64 / count_to_f64_divisor(allocations.len());
 
         // Overall efficiency
         (size_efficiency + alignment_efficiency) / 2.0

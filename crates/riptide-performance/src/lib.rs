@@ -23,6 +23,7 @@ pub mod limits;
 pub mod monitoring;
 pub mod optimization;
 pub mod profiling;
+pub mod utils;
 
 // Phase 4 performance validation module
 pub mod phase4_validation {

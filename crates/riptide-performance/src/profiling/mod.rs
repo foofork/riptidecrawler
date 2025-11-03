@@ -21,6 +21,8 @@ use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
 use uuid::Uuid;
 
+use crate::utils::safe_conversions::{bytes_to_mb, count_to_f64_divisor, seconds_to_f64_divisor};
+
 use allocation_analyzer::AllocationAnalyzer;
 use flamegraph_generator::FlamegraphGenerator;
 use leak_detector::LeakDetector;
@@ -277,14 +279,14 @@ impl MemoryProfiler {
         Ok(snapshots
             .iter()
             .filter(|s| s.timestamp >= cutoff)
-            .map(|s| (s.timestamp, s.rss_bytes as f64 / 1024.0 / 1024.0))
+            .map(|s| (s.timestamp, bytes_to_mb(s.rss_bytes)))
             .collect())
     }
 
     /// Check if memory usage is within thresholds
     pub async fn check_memory_thresholds(&self) -> Result<Vec<String>> {
         let snapshot = self.get_current_snapshot().await?;
-        let memory_mb = snapshot.rss_bytes as f64 / 1024.0 / 1024.0;
+        let memory_mb = bytes_to_mb(snapshot.rss_bytes);
 
         let mut alerts = Vec::new();
 
@@ -366,23 +368,22 @@ impl MemoryProfiler {
         }
 
         // Calculate summary statistics
-        let memory_values: Vec<f64> = snapshots
-            .iter()
-            .map(|s| s.rss_bytes as f64 / 1024.0 / 1024.0)
-            .collect();
+        let memory_values: Vec<f64> = snapshots.iter().map(|s| bytes_to_mb(s.rss_bytes)).collect();
 
         let peak_memory_mb = memory_values.iter().fold(0.0_f64, |max, &val| max.max(val));
 
-        let average_memory_mb = memory_values.iter().sum::<f64>() / memory_values.len() as f64;
+        let average_memory_mb =
+            memory_values.iter().sum::<f64>() / count_to_f64_divisor(memory_values.len());
 
         // Calculate growth rate
         let memory_growth_rate_mb_s = if snapshots.len() >= 2 {
             let first = &snapshots[0];
             let last = &snapshots[snapshots.len() - 1];
-            let time_diff = (last.timestamp - first.timestamp).num_seconds() as f64;
-            let memory_diff = (last.rss_bytes as f64 - first.rss_bytes as f64) / 1024.0 / 1024.0;
+            let time_diff =
+                seconds_to_f64_divisor((last.timestamp - first.timestamp).num_seconds());
+            let memory_diff = bytes_to_mb(last.rss_bytes) - bytes_to_mb(first.rss_bytes);
 
-            if time_diff > 0.0 {
+            if time_diff > 1.0 {
                 memory_diff / time_diff
             } else {
                 0.0
@@ -431,7 +432,7 @@ impl MemoryProfiler {
         // Generate memory timeline
         let memory_timeline: Vec<(chrono::DateTime<chrono::Utc>, f64)> = snapshots
             .iter()
-            .map(|s| (s.timestamp, s.rss_bytes as f64 / 1024.0 / 1024.0))
+            .map(|s| (s.timestamp, bytes_to_mb(s.rss_bytes)))
             .collect();
 
         // Generate recommendations

@@ -214,7 +214,7 @@ impl ConnectionStats {
         sorted.sort();
         let idx = ((percentile / 100.0) * sorted.len() as f64).floor() as usize;
         sorted
-            .get(idx.min(sorted.len() - 1))
+            .get(idx.min(sorted.len().saturating_sub(1)))
             .copied()
             .unwrap_or_default()
     }
@@ -300,10 +300,10 @@ impl PooledConnection {
     pub fn mark_used(&mut self) {
         self.last_used = Instant::now();
         self.stats.last_used = Some(Instant::now());
-        self.stats.total_commands += 1;
+        self.stats.total_commands = self.stats.total_commands.saturating_add(1);
         // Track reuse (excluding first use)
         if self.stats.total_commands > 1 {
-            self.stats.connection_reuse_count += 1;
+            self.stats.connection_reuse_count = self.stats.connection_reuse_count.saturating_add(1);
         }
     }
 
@@ -1004,22 +1004,24 @@ impl CdpConnectionPool {
         let connections = self.connections.read().await;
         let wait_queues = self.wait_queues.lock().await;
 
-        let mut total_connections = 0;
-        let mut in_use_connections = 0;
-        let mut browsers_with_connections = 0;
+        let mut total_connections: usize = 0;
+        let mut in_use_connections: usize = 0;
+        let mut browsers_with_connections: usize = 0;
         let mut all_latencies = Vec::new();
         let mut total_commands = 0u64;
         let mut total_reuse_count = 0u64;
 
         for browser_connections in connections.values() {
-            browsers_with_connections += 1;
-            total_connections += browser_connections.len();
-            in_use_connections += browser_connections.iter().filter(|c| c.in_use).count();
+            browsers_with_connections = browsers_with_connections.saturating_add(1);
+            total_connections = total_connections.saturating_add(browser_connections.len());
+            in_use_connections = in_use_connections
+                .saturating_add(browser_connections.iter().filter(|c| c.in_use).count());
 
             for conn in browser_connections {
                 all_latencies.extend(conn.stats.command_latencies.clone());
-                total_commands += conn.stats.total_commands;
-                total_reuse_count += conn.stats.connection_reuse_count;
+                total_commands = total_commands.saturating_add(conn.stats.total_commands);
+                total_reuse_count =
+                    total_reuse_count.saturating_add(conn.stats.connection_reuse_count);
             }
         }
 
@@ -1027,22 +1029,24 @@ impl CdpConnectionPool {
         let (avg_latency, p50, p95, p99) = if !all_latencies.is_empty() {
             all_latencies.sort();
             let sum: Duration = all_latencies.iter().sum();
-            let avg = sum / all_latencies.len() as u32;
+            // Saturating cast for safety (very large arrays won't overflow)
+            let len_u32 = (all_latencies.len() as u32).max(1);
+            let avg = sum / len_u32;
 
-            let p50_idx = (all_latencies.len() as f64 * 0.50) as usize;
-            let p95_idx = (all_latencies.len() as f64 * 0.95) as usize;
-            let p99_idx = (all_latencies.len() as f64 * 0.99) as usize;
+            let p50_idx = ((all_latencies.len() as f64) * 0.50) as usize;
+            let p95_idx = ((all_latencies.len() as f64) * 0.95) as usize;
+            let p99_idx = ((all_latencies.len() as f64) * 0.99) as usize;
 
             (
                 avg,
                 *all_latencies
-                    .get(p50_idx.min(all_latencies.len() - 1))
+                    .get(p50_idx.min(all_latencies.len().saturating_sub(1)))
                     .unwrap_or(&Duration::from_secs(0)),
                 *all_latencies
-                    .get(p95_idx.min(all_latencies.len() - 1))
+                    .get(p95_idx.min(all_latencies.len().saturating_sub(1)))
                     .unwrap_or(&Duration::from_secs(0)),
                 *all_latencies
-                    .get(p99_idx.min(all_latencies.len() - 1))
+                    .get(p99_idx.min(all_latencies.len().saturating_sub(1)))
                     .unwrap_or(&Duration::from_secs(0)),
             )
         } else {
