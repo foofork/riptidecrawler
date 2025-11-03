@@ -422,7 +422,7 @@ impl StrategyComposer {
         let mut last_error = None;
 
         for (strategies_executed, strategy) in self.strategies.iter().enumerate() {
-            let strategies_executed = strategies_executed + 1;
+            let strategies_executed = strategies_executed.saturating_add(1);
             let strategy_start = Instant::now();
 
             match timeout(

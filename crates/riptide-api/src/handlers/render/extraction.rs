@@ -66,7 +66,9 @@ pub(super) async fn extract_with_extraction_facade(
         url: extracted.url.clone(),
         title: extracted.title.clone(),
         text: extracted.text.clone(),
-        quality_score: Some((extracted.confidence * 100.0).min(100.0) as u8),
+        quality_score: Some(crate::utils::safe_conversions::confidence_to_quality_score(
+            extracted.confidence,
+        )),
         links: extracted.links.clone(),
         byline: extracted.metadata.get("author").cloned(),
         published_iso: extracted.metadata.get("published_date").cloned(),
@@ -75,7 +77,9 @@ pub(super) async fn extract_with_extraction_facade(
         parser_metadata: None,
         language: extracted.metadata.get("language").cloned(),
         reading_time: None,
-        word_count: Some(extracted.text.split_whitespace().count() as u32),
+        word_count: Some(crate::utils::safe_conversions::word_count_to_u32(
+            extracted.text.split_whitespace().count(),
+        )),
         categories: Vec::new(),
         site_name: extracted.metadata.get("site_name").cloned(),
         description: extracted.metadata.get("description").cloned(),

@@ -148,7 +148,10 @@ impl PerformanceMonitor {
 
         let avg_render_time = if !render_times.is_empty() {
             let sum: Duration = render_times.iter().sum();
-            sum / render_times.len() as u32
+            // Safe division: use saturating conversion to avoid overflow
+            // If len() > u32::MAX, saturate to u32::MAX for division
+            let count = u32::try_from(render_times.len()).unwrap_or(u32::MAX);
+            sum / count
         } else {
             Duration::ZERO
         };

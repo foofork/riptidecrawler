@@ -381,12 +381,12 @@ async fn test_single_row_headers_without_thead() -> Result<()> {
     // The body should contain all rows that aren't headers
     // Since we extracted the first row as headers, remaining rows are body
     // But the current implementation counts all non-thead rows when no thead exists
-    assert!(table.rows.len() >= 1);
+    assert!(!table.rows.is_empty());
     // Find the row with "John" - it should be in the body
     let john_row = table
         .rows
         .iter()
-        .find(|r| r.cells.get(0).map(|c| c.content.as_str()) == Some("John"));
+        .find(|r| r.cells.first().map(|c| c.content.as_str()) == Some("John"));
     assert!(john_row.is_some(), "Should find John in body rows");
 
     Ok(())

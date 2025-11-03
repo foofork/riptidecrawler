@@ -84,8 +84,12 @@ impl WasmExtractorTrait for WasmExtractorAdapter {
             media: Vec::new(),
             language: None,
             reading_time: None,
-            quality_score: Some((extracted_content.extraction_confidence * 100.0) as u8),
-            word_count: Some(extracted_content.content.split_whitespace().count() as u32),
+            quality_score: Some(crate::utils::safe_conversions::confidence_to_quality_score(
+                extracted_content.extraction_confidence,
+            )),
+            word_count: Some(crate::utils::safe_conversions::word_count_to_u32(
+                extracted_content.content.split_whitespace().count(),
+            )),
             categories: Vec::new(),
             site_name: None,
             parser_metadata: None, // ExtractedContent doesn't have parser metadata

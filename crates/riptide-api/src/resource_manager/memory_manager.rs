@@ -293,8 +293,13 @@ impl LeakDetector {
             return (0.0, 0.0);
         }
 
-        let oldest = recent_samples.first().unwrap();
-        let newest = recent_samples.last().unwrap();
+        // SAFETY: We already checked that recent_samples.len() >= 2 above
+        let oldest = recent_samples
+            .first()
+            .expect("recent_samples guaranteed to have at least 2 elements");
+        let newest = recent_samples
+            .last()
+            .expect("recent_samples guaranteed to have at least 2 elements");
 
         let time_diff_secs = newest.timestamp.saturating_sub(oldest.timestamp);
         if time_diff_secs == 0 {
@@ -711,7 +716,10 @@ impl MemoryManager {
         })?;
 
         let rss_bytes = process.memory();
-        Ok((rss_bytes / 1024) as usize) // Convert to MB
+        // Convert bytes to MB, ensuring the result fits in usize
+        // On 32-bit platforms, saturate at usize::MAX if value exceeds capacity
+        let rss_mb = rss_bytes / 1024;
+        Ok(usize::try_from(rss_mb).unwrap_or(usize::MAX))
     }
 
     /// Get current heap allocated memory in megabytes
@@ -747,7 +755,10 @@ impl MemoryManager {
         })?;
 
         let virtual_bytes = process.virtual_memory();
-        Ok((virtual_bytes / 1024) as usize) // Convert to MB
+        // Convert bytes to MB, ensuring the result fits in usize
+        // On 32-bit platforms, saturate at usize::MAX if value exceeds capacity
+        let virtual_mb = virtual_bytes / 1024;
+        Ok(usize::try_from(virtual_mb).unwrap_or(usize::MAX))
     }
 
     /// Check memory pressure using real memory metrics

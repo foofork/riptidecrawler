@@ -359,7 +359,12 @@ impl StreamConfig {
             self.buffer.min_size
         } else if message_rate > 100.0 {
             // High message rate, use larger buffer
-            (self.buffer.default_size as f64 * 1.5) as usize
+            // Safe: multiply then saturate to usize::MAX if overflow
+            self.buffer
+                .default_size
+                .saturating_mul(3)
+                .checked_div(2)
+                .unwrap_or(self.buffer.default_size)
         } else {
             self.buffer.default_size
         }

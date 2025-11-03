@@ -8,7 +8,7 @@
 //! - Pressure status calculation
 
 use axum::{
-    body::Body,
+    body::{to_bytes, Body},
     http::{Request, StatusCode},
 };
 use serde_json::Value;
@@ -32,7 +32,7 @@ async fn test_memory_profile_endpoint_returns_valid_json() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = to_bytes(response.into_body()).await.unwrap();
     let json: Value = serde_json::from_slice(&body).expect("Response should be valid JSON");
 
     // Verify required fields exist
@@ -73,7 +73,7 @@ async fn test_memory_profile_component_breakdown() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = to_bytes(response.into_body()).await.unwrap();
     let json: Value = serde_json::from_slice(&body).unwrap();
 
     let by_component = json
@@ -140,7 +140,7 @@ async fn test_memory_profile_pressure_status() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = to_bytes(response.into_body()).await.unwrap();
     let json: Value = serde_json::from_slice(&body).unwrap();
 
     let pressure = json
@@ -173,7 +173,7 @@ async fn test_memory_profile_stats_structure() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = to_bytes(response.into_body()).await.unwrap();
     let json: Value = serde_json::from_slice(&body).unwrap();
 
     let stats = json.get("stats").expect("stats field should exist");
@@ -263,7 +263,7 @@ async fn test_memory_metrics_are_reasonable() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = to_bytes(response.into_body()).await.unwrap();
     let json: Value = serde_json::from_slice(&body).unwrap();
 
     let current_usage_mb = json["current_usage_mb"]
@@ -322,7 +322,7 @@ async fn test_timestamp_format() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = to_bytes(response.into_body()).await.unwrap();
     let json: Value = serde_json::from_slice(&body).unwrap();
 
     let timestamp = json
@@ -355,7 +355,7 @@ async fn test_multiple_requests_consistency() {
         .await
         .unwrap();
 
-    let body1 = hyper::body::to_bytes(response1.into_body()).await.unwrap();
+    let body1 = to_bytes(response1.into_body()).await.unwrap();
     let json1: Value = serde_json::from_slice(&body1).unwrap();
 
     // Small delay
@@ -371,7 +371,7 @@ async fn test_multiple_requests_consistency() {
         .await
         .unwrap();
 
-    let body2 = hyper::body::to_bytes(response2.into_body()).await.unwrap();
+    let body2 = to_bytes(response2.into_body()).await.unwrap();
     let json2: Value = serde_json::from_slice(&body2).unwrap();
 
     // Both responses should have valid structure
@@ -408,7 +408,7 @@ async fn test_jemalloc_stats_when_enabled() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = to_bytes(response.into_body()).await.unwrap();
     let json: Value = serde_json::from_slice(&body).unwrap();
 
     // When jemalloc feature is enabled, jemalloc field should exist

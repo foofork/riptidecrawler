@@ -8,10 +8,7 @@
 //! 5. Edge cases are handled correctly
 
 use anyhow::Result;
-use riptide_extraction::{
-    extraction_strategies::ContentExtractor, unified_extractor::UnifiedExtractor,
-    UnifiedExtractor as UnifiedExtractorAlias,
-};
+use riptide_extraction::unified_extractor::UnifiedExtractor;
 
 // Test HTML samples
 const SAMPLE_HTML: &str = r#"
@@ -279,10 +276,7 @@ async fn test_content_matches_expected() -> Result<()> {
         assert!(
             result.content.contains(phrase)
                 || result.title.contains(phrase)
-                || result
-                    .summary
-                    .as_ref()
-                    .map_or(false, |s| s.contains(phrase)),
+                || result.summary.as_ref().is_some_and(|s| s.contains(phrase)),
             "Expected to find '{}' in extracted content",
             phrase
         );
@@ -439,7 +433,7 @@ async fn test_complex_html_structure() -> Result<()> {
 async fn test_url_resolution() -> Result<()> {
     println!("🧪 Test 11: URL resolution in extracted content");
 
-    let extractor = UnifiedExtractor::new(None).await?;
+    let _extractor = UnifiedExtractor::new(None).await?;
 
     // Using native parser directly to check link/media extraction
     use riptide_extraction::native_parser::NativeHtmlParser;
@@ -560,7 +554,7 @@ async fn test_strategy_name() -> Result<()> {
 async fn test_parallel_extraction() -> Result<()> {
     println!("🧪 Test 14: Parallel extraction safety");
 
-    let extractor = UnifiedExtractor::new(None).await?;
+    let _extractor = UnifiedExtractor::new(None).await?;
 
     // Extract multiple URLs in parallel
     let urls = vec![

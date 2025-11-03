@@ -233,7 +233,7 @@ fn generate_screenshot_filename(url: &str) -> String {
     // Truncate if too long and add timestamp for uniqueness
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
+        .expect("System time should be after UNIX_EPOCH")
         .as_secs();
 
     let base = if sanitized.len() > 50 {

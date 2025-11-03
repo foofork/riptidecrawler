@@ -358,17 +358,17 @@ pub struct CliSpec {
 impl Default for ErrorMapping {
     fn default() -> Self {
         let mut mappings = HashMap::new();
-        mappings.insert(200, 0); // OK
-        mappings.insert(201, 0); // Created
-        mappings.insert(204, 0); // No Content
-        mappings.insert(400, 4); // Bad Request -> validation_error
-        mappings.insert(401, 3); // Unauthorized -> auth_error
-        mappings.insert(403, 3); // Forbidden -> auth_error
-        mappings.insert(404, 5); // Not Found -> not_found
-        mappings.insert(500, 1); // Internal Server Error -> error
-        mappings.insert(502, 2); // Bad Gateway -> network_error
-        mappings.insert(503, 2); // Service Unavailable -> network_error
-        mappings.insert(504, 2); // Gateway Timeout -> network_error
+        mappings.insert(200_u16, 0_i32); // OK
+        mappings.insert(201_u16, 0_i32); // Created
+        mappings.insert(204_u16, 0_i32); // No Content
+        mappings.insert(400_u16, 4_i32); // Bad Request -> validation_error
+        mappings.insert(401_u16, 3_i32); // Unauthorized -> auth_error
+        mappings.insert(403_u16, 3_i32); // Forbidden -> auth_error
+        mappings.insert(404_u16, 5_i32); // Not Found -> not_found
+        mappings.insert(500_u16, 1_i32); // Internal Server Error -> error
+        mappings.insert(502_u16, 2_i32); // Bad Gateway -> network_error
+        mappings.insert(503_u16, 2_i32); // Service Unavailable -> network_error
+        mappings.insert(504_u16, 2_i32); // Gateway Timeout -> network_error
 
         Self { mappings }
     }

@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicU32, AtomicU64, AtomicU8, Ordering::Relaxed};
 use std::sync::Arc;
-use tokio::sync::Semaphore;
+use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum State {
@@ -46,15 +46,18 @@ pub struct RealClock;
 impl Clock for RealClock {
     fn now_ms(&self) -> u64 {
         use std::time::{SystemTime, UNIX_EPOCH};
-        SystemTime::now()
+        let duration = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap_or_else(|e| {
                 tracing::error!("System time is before Unix epoch: {}", e);
                 // Fallback: return 0 for current time if system clock is broken
                 // This allows the circuit breaker to continue functioning
                 std::time::Duration::from_secs(0)
-            })
-            .as_millis() as u64
+            });
+
+        // Safe conversion: saturate to u64::MAX if duration exceeds u64 milliseconds
+        // This handles the theoretical case where as_millis() returns u128 > u64::MAX
+        u64::try_from(duration.as_millis()).unwrap_or(u64::MAX)
     }
 }
 
@@ -71,12 +74,15 @@ pub struct CircuitBreaker {
 
 impl CircuitBreaker {
     pub fn new(cfg: Config, clock: Arc<dyn Clock>) -> Arc<Self> {
+        // Safe: u32 always fits in usize on all platforms (usize >= 16 bits)
+        let permit_count = cfg.half_open_max_in_flight as usize;
+
         Arc::new(Self {
             state: AtomicU8::new(State::Closed as u8),
             failures: AtomicU32::new(0),
             successes: AtomicU32::new(0),
             open_until_ms: AtomicU64::new(0),
-            half_open_permits: Arc::new(Semaphore::new(cfg.half_open_max_in_flight as usize)),
+            half_open_permits: Arc::new(Semaphore::new(permit_count)),
             cfg,
             clock,
         })
@@ -88,7 +94,7 @@ impl CircuitBreaker {
     }
 
     /// Returns Ok(permit_guard) if allowed to proceed; Err if short-circuited
-    pub fn try_acquire(&self) -> Result<Option<tokio::sync::OwnedSemaphorePermit>, &'static str> {
+    pub fn try_acquire(&self) -> Result<Option<OwnedSemaphorePermit>, &'static str> {
         match self.state() {
             State::Closed => Ok(None),
             State::Open => {
@@ -124,6 +130,7 @@ impl CircuitBreaker {
                     self.failures.store(0, Relaxed);
                     self.successes.store(0, Relaxed);
                     // refill semaphore (in case previous failures consumed)
+                    // Safe: u32 always fits in usize on all platforms
                     let def = self.cfg.half_open_max_in_flight as usize;
                     let deficit = def.saturating_sub(self.half_open_permits.available_permits());
                     if deficit > 0 {
@@ -160,6 +167,7 @@ impl CircuitBreaker {
         let until = self.clock.now_ms() + self.cfg.open_cooldown_ms;
         self.open_until_ms.store(until, Relaxed);
         // reset half-open permits for the next time we enter HalfOpen
+        // Safe: u32 always fits in usize on all platforms
         let def = self.cfg.half_open_max_in_flight as usize;
         let avail = self.half_open_permits.available_permits();
         if avail < def {

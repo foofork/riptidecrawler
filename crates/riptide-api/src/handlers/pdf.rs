@@ -220,7 +220,9 @@ pub async fn process_pdf(
                 url: extracted.url.clone(),
                 title: extracted.title.clone(),
                 text: extracted.text.clone(),
-                quality_score: Some((extracted.confidence * 100.0).min(100.0) as u8),
+                quality_score: Some(crate::utils::safe_conversions::confidence_to_quality_score(
+                    extracted.confidence,
+                )),
                 links: extracted.links.clone(),
                 byline: extracted.metadata.get("author").cloned(),
                 published_iso: extracted.metadata.get("published_date").cloned(),
@@ -228,7 +230,9 @@ pub async fn process_pdf(
                 media: extracted.images.clone(), // media is Vec<String>, not Vec<Media>
                 language: extracted.metadata.get("language").cloned(),
                 reading_time: None,
-                word_count: Some(word_count as u32),
+                word_count: Some(crate::utils::safe_conversions::word_count_to_u32(
+                    word_count,
+                )),
                 categories: Vec::new(),
                 site_name: None,
                 parser_metadata: None,
@@ -716,7 +720,9 @@ pub async fn upload_pdf(
                 url: url.unwrap_or(extracted.url.clone()),
                 title: extracted.title.clone(),
                 text: extracted.text.clone(),
-                quality_score: Some((extracted.confidence * 100.0).min(100.0) as u8),
+                quality_score: Some(crate::utils::safe_conversions::confidence_to_quality_score(
+                    extracted.confidence,
+                )),
                 links: extracted.links.clone(),
                 byline: extracted.metadata.get("author").cloned(),
                 published_iso: extracted.metadata.get("published_date").cloned(),
@@ -724,7 +730,9 @@ pub async fn upload_pdf(
                 media: extracted.images.clone(),
                 language: extracted.metadata.get("language").cloned(),
                 reading_time: None,
-                word_count: Some(word_count as u32),
+                word_count: Some(crate::utils::safe_conversions::word_count_to_u32(
+                    word_count,
+                )),
                 categories: Vec::new(),
                 site_name: None,
                 parser_metadata: None,

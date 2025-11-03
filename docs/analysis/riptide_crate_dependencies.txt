@@ -1,0 +1,412 @@
+# Riptide Crate Dependencies - ASCII Tree Diagram
+# Generated: 2025-11-03
+# Total Crates: 26 workspace members
+
+================================================================================
+LEGEND:
+  → Internal workspace dependency
+  ⚡ External critical dependency
+  🔄 Circular dependency (RESOLVED via abstraction)
+  📦 Leaf crate (no internal dependencies)
+  🌳 Root crate (many dependents)
+  🔗 Highly coupled crate
+================================================================================
+
+## FOUNDATION LAYER (No internal dependencies - Pure Leaf Crates)
+================================================================================
+
+📦 riptide-types
+   Description: Shared types, traits, and error definitions
+   Internal Deps: NONE
+   External Deps:
+     ⚡ serde, serde_json - Serialization
+     ⚡ tokio - Async runtime
+     ⚡ thiserror, anyhow - Error handling
+     ⚡ chrono, uuid, url - Utilities
+   Dependents: 24 crates (MOST DEPENDED ON - Foundation for everything)
+
+📦 riptide-config
+   Description: Configuration management
+   Internal Deps: riptide-types
+   External Deps:
+     ⚡ serde, serde_json
+     ⚡ regex, url, once_cell
+   Dependents: 3 crates (spider, fetch, api)
+
+📦 riptide-stealth
+   Description: Anti-detection for browser automation
+   Internal Deps: NONE
+   External Deps:
+     ⚡ serde, serde_json
+     ⚡ rand, dashmap
+   Dependents: 4 crates (browser, headless, facade, api)
+
+📦 riptide-test-utils
+   Description: Testing utilities
+   Internal Deps: NONE
+   External Deps:
+     ⚡ tokio, serde, tempfile
+     ⚡ axum, tower (optional)
+   Dependents: 0 (dev dependency only)
+
+================================================================================
+## CORE INFRASTRUCTURE LAYER
+================================================================================
+
+🌳 riptide-monitoring
+   Description: Telemetry, metrics, observability
+   Internal Deps: riptide-types
+   External Deps:
+     ⚡ opentelemetry, opentelemetry-otlp - Telemetry
+     ⚡ sysinfo, psutil - System monitoring
+     ⚡ prometheus (optional)
+     ⚡ hdrhistogram - Performance metrics
+   Dependents: 4 crates (events, reliability, api, facade)
+
+🌳 riptide-fetch
+   Description: HTTP/network layer
+   Internal Deps:
+     → riptide-types
+     → riptide-config
+   External Deps:
+     ⚡ reqwest - HTTP client
+     ⚡ hyper, http, bytes
+     ⚡ opentelemetry - Telemetry
+     ⚡ robotstxt, xml
+   Dependents: 4 crates (spider, reliability, facade, api)
+
+🔗 riptide-events
+   Description: Event bus and messaging
+   Internal Deps:
+     → riptide-types
+     → riptide-monitoring
+   External Deps:
+     ⚡ tokio, futures
+     ⚡ opentelemetry
+   Dependents: 7 crates (pool, cache, reliability, intelligence, workers, search, api)
+
+================================================================================
+## BROWSER AUTOMATION LAYER
+================================================================================
+
+riptide-browser-abstraction
+   Description: Browser abstraction layer
+   Internal Deps: riptide-types
+   External Deps:
+     ⚡ spider_chrome - High-performance CDP
+     ⚡ spider_chromiumoxide_cdp - CDP types
+   Dependents: 1 crate (browser)
+
+riptide-browser
+   Description: Browser pool management and launcher
+   Internal Deps:
+     → riptide-browser-abstraction
+     → riptide-stealth
+   External Deps:
+     ⚡ spider_chrome
+     ⚡ spider_chromiumoxide_cdp
+     ⚡ tempfile
+   Dependents: 3 crates (headless, facade, api)
+
+riptide-headless
+   Description: Headless browser API endpoints
+   Internal Deps:
+     → riptide-browser
+     → riptide-stealth
+   External Deps:
+     ⚡ axum - Web framework
+     ⚡ spider_chrome
+   Dependents: 1 crate (api)
+
+================================================================================
+## EXTRACTION & PROCESSING LAYER
+================================================================================
+
+🔗 riptide-extraction
+   Description: HTML processing and content extraction
+   Internal Deps: riptide-types
+   External Deps:
+     ⚡ scraper - CSS selector engine
+     ⚡ lol_html - Streaming HTML parser
+     ⚡ regex - Pattern matching
+     ⚡ wasmtime, wasmtime-wasi (optional) - WASM execution
+     ⚡ tiktoken-rs - Token counting
+   Features:
+     - native-parser (default)
+     - wasm-extractor (opt-in)
+   Dependents: 9 crates (HIGH COUPLING)
+
+riptide-pdf
+   Description: PDF processing
+   Internal Deps: riptide-types
+   External Deps:
+     ⚡ pdfium-render - PDF rendering
+     ⚡ lopdf - PDF parsing
+   Dependents: 3 crates (facade, workers, api)
+
+riptide-pool
+   Description: Instance pooling for extractors
+   Internal Deps:
+     → riptide-types
+     → riptide-events
+     → riptide-extraction (optional)
+   External Deps:
+     ⚡ wasmtime (optional)
+     ⚡ scraper
+   Features:
+     - native-pool (default)
+     - wasm-pool (opt-in)
+   Dependents: 2 crates (cache, reliability)
+
+================================================================================
+## SPIDER & CRAWLING LAYER
+================================================================================
+
+🔗 riptide-spider
+   Description: Web crawler/spider engine
+   Internal Deps:
+     → riptide-types
+     → riptide-config
+     → riptide-fetch
+   External Deps:
+     ⚡ spider - Spider library
+     ⚡ robotstxt - robots.txt parser
+     ⚡ xml - Sitemap parsing
+     ⚡ wasmtime - WASM execution
+     ⚡ sysinfo, psutil - Resource monitoring
+   Dependents: 2 crates (facade, api)
+
+================================================================================
+## RELIABILITY & CACHING LAYER
+================================================================================
+
+🔄 riptide-reliability (Circular Dependency RESOLVED)
+   Description: Circuit breakers, retry patterns, fault tolerance
+   Internal Deps:
+     → riptide-types
+     → riptide-fetch
+     → riptide-events (optional)
+     → riptide-monitoring (optional)
+     → riptide-pool (optional)
+   Resolution: Uses HtmlParser trait abstraction from riptide-types
+   External Deps:
+     ⚡ reqwest, uuid
+   Dependents: 3 crates (intelligence, workers, api)
+
+riptide-cache
+   Description: Cache management system
+   Internal Deps:
+     → riptide-types
+     → riptide-pool
+     → riptide-events
+     → riptide-extraction
+   External Deps:
+     ⚡ redis - Distributed caching
+     ⚡ sha2 - Cache key hashing
+     ⚡ dashmap - Concurrent hashmap
+   Features:
+     - distributed, warming
+     - wasm-pool, wasm-extractor (opt-in)
+   Dependents: 3 crates (facade, workers, api)
+
+riptide-persistence
+   Description: Advanced persistence with Redis/DragonflyDB
+   Internal Deps: NONE (standalone)
+   External Deps:
+     ⚡ redis - Primary backend
+     ⚡ blake3, sha2 - Hashing
+     ⚡ lz4_flex, zstd (optional) - Compression
+   Dependents: 1 crate (api)
+
+================================================================================
+## INTELLIGENCE & SEARCH LAYER
+================================================================================
+
+riptide-intelligence
+   Description: LLM abstraction layer
+   Internal Deps:
+     → riptide-reliability
+     → riptide-types
+     → riptide-events
+   External Deps:
+     ⚡ reqwest - HTTP client for providers
+     ⚡ tiktoken-rs - Token counting
+     ⚡ dashmap, arc-swap
+   Features: openai, anthropic, groq
+   Dependents: 1 crate (api)
+
+riptide-search
+   Description: Search provider abstraction
+   Internal Deps: NONE
+   External Deps:
+     ⚡ reqwest - HTTP client
+     ⚡ regex, url
+   Dependents: 2 crates (facade, api)
+
+================================================================================
+## SECURITY & MONITORING LAYER
+================================================================================
+
+riptide-security
+   Description: Security middleware and PII handling
+   Internal Deps: riptide-types
+   External Deps:
+     ⚡ sha2, base64, hex - Cryptography
+     ⚡ governor - Rate limiting
+   Features: api-keys, audit, budget, middleware, pii
+   Dependents: 0 (used via API)
+
+riptide-performance
+   Description: Performance monitoring and profiling
+   Internal Deps: NONE
+   External Deps:
+     ⚡ tikv-jemalloc-ctl - Memory profiling
+     ⚡ pprof - Profiling
+     ⚡ tokio-metrics - Runtime metrics
+     ⚡ opentelemetry
+   Features: jemalloc, memory-profiling, bottleneck-analysis
+   Dependents: 1 crate (api)
+
+================================================================================
+## HIGH-LEVEL API LAYER
+================================================================================
+
+🔗 riptide-facade
+   Description: High-level unified API
+   Internal Deps:
+     → riptide-types
+     → riptide-fetch
+     → riptide-extraction
+     → riptide-pdf
+     → riptide-cache
+     → riptide-browser
+     → riptide-stealth
+     → riptide-monitoring (optional)
+     → riptide-spider
+     → riptide-search
+   External Deps:
+     ⚡ scraper
+     ⚡ spider_chromiumoxide_cdp
+   Dependents: 1 crate (api)
+
+🌳 riptide-api (Root Service - Highest Complexity)
+   Description: REST API server (main application)
+   Internal Deps (16 total - HIGHEST):
+     → riptide-types
+     → riptide-spider
+     → riptide-fetch
+     → riptide-security (not shown in current deps, should be added)
+     → riptide-monitoring
+     → riptide-events
+     → riptide-pool (via extraction)
+     → riptide-extraction
+     → riptide-search
+     → riptide-config
+     → riptide-intelligence
+     → riptide-workers
+     → riptide-browser
+     → riptide-headless
+     → riptide-performance
+     → riptide-persistence
+     → riptide-monitoring
+     → riptide-facade
+     → riptide-pdf
+     → riptide-stealth
+     → riptide-cache
+     → riptide-reliability
+   External Deps:
+     ⚡ axum - Web framework
+     ⚡ redis - Job queue
+     ⚡ wasmtime - WASM execution
+     ⚡ prometheus - Metrics
+   Dependents: NONE (top-level application)
+
+📦 riptide-cli (Thin Client)
+   Description: Command-line interface (API client)
+   Internal Deps: NONE (Phase 1 thin CLI - all logic in API)
+   External Deps:
+     ⚡ clap - CLI parsing
+     ⚡ reqwest - HTTP client
+     ⚡ colored, indicatif, comfy-table - UI
+   Dependents: NONE (standalone binary)
+
+riptide-workers
+   Description: Background job processing
+   Internal Deps:
+     → riptide-types
+     → riptide-reliability
+     → riptide-extraction
+     → riptide-cache
+     → riptide-pdf
+   External Deps:
+     ⚡ redis - Job queue
+     ⚡ cron - Scheduling
+   Dependents: 1 crate (api)
+
+riptide-streaming
+   Description: SSE/WebSocket streaming
+   Internal Deps: riptide-extraction
+   External Deps:
+     ⚡ axum - WebSocket support
+     ⚡ tokio-stream
+     ⚡ async-stream
+   Dependents: 0 (used via API)
+
+================================================================================
+## DEPENDENCY STATISTICS
+================================================================================
+
+MOST DEPENDED ON (Foundation crates):
+  1. riptide-types: 24 dependents
+  2. riptide-events: 7 dependents
+  3. riptide-monitoring: 4 dependents
+  4. riptide-fetch: 4 dependents
+  5. riptide-extraction: 9 dependents (high coupling concern)
+
+MOST DEPENDENCIES (Complex crates):
+  1. riptide-api: 16+ internal dependencies
+  2. riptide-facade: 10 internal dependencies
+  3. riptide-reliability: 5 internal dependencies
+  4. riptide-cache: 4 internal dependencies
+
+LEAF CRATES (No internal dependencies):
+  - riptide-types (foundation)
+  - riptide-stealth
+  - riptide-test-utils
+  - riptide-persistence
+  - riptide-search
+  - riptide-performance
+  - riptide-security
+  - riptide-cli (thin client)
+
+CRITICAL EXTERNAL DEPENDENCIES:
+  ⚡ tokio - Async runtime (26/26 crates)
+  ⚡ serde/serde_json - Serialization (26/26 crates)
+  ⚡ reqwest - HTTP client (10 crates)
+  ⚡ spider_chrome/spider_chromiumoxide_cdp - Browser automation (5 crates)
+  ⚡ redis - Caching/job queue (4 crates)
+  ⚡ axum - Web framework (5 crates)
+  ⚡ wasmtime - WASM execution (5 crates)
+  ⚡ opentelemetry - Observability (5 crates)
+
+CIRCULAR DEPENDENCIES:
+  ✅ RESOLVED: riptide-reliability ←→ riptide-extraction
+     - Resolution: HtmlParser trait abstraction in riptide-types
+     - Reliability uses trait, extraction implements it
+
+OVERLAPPING FUNCTIONALITY:
+  - Browser automation: riptide-browser + riptide-browser-abstraction + riptide-headless
+    → Could consolidate into single crate
+  - Caching: riptide-cache + riptide-persistence
+    → Different use cases but some overlap
+
+ARCHITECTURAL RECOMMENDATIONS:
+  1. ✅ Good separation: Foundation layer (types, config, stealth) is clean
+  2. ✅ Good abstraction: Circular dependency resolved via traits
+  3. ⚠️  High coupling: riptide-extraction used by 9 crates
+  4. ⚠️  API complexity: riptide-api depends on 16+ crates
+  5. ✅ Thin CLI: riptide-cli properly separated from business logic
+  6. ⚠️  Browser crates: Consider consolidating 3 browser crates
+  7. ✅ WASM optional: Good feature flags for opt-in WASM usage
+
+================================================================================

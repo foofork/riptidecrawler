@@ -1,0 +1,1098 @@
+{
+  "metadata": {
+    "generated": "2025-11-03",
+    "agent": "Configuration Analyst",
+    "codebase": "EventMesh/RipTide",
+    "total_env_vars": 150,
+    "total_feature_flags": 45
+  },
+  "environment_variables": {
+    "search_provider": [
+      {
+        "key": "SEARCH_BACKEND",
+        "default": "none",
+        "type": "string",
+        "values": ["serper", "none", "searxng"],
+        "source": "crates/riptide-search/src/lib.rs:298",
+        "used_by": ["riptide-search", "riptide-api"],
+        "description": "Search backend to use: serper (Google via Serper.dev), none (URL parsing only), or searxng (self-hosted)"
+      },
+      {
+        "key": "SERPER_API_KEY",
+        "default": null,
+        "type": "string",
+        "source": "crates/riptide-search/src/lib.rs:303",
+        "used_by": ["riptide-search"],
+        "description": "API key for Serper.dev (required when SEARCH_BACKEND=serper)"
+      },
+      {
+        "key": "SEARXNG_BASE_URL",
+        "default": null,
+        "type": "string",
+        "source": "crates/riptide-search/src/lib.rs:307",
+        "used_by": ["riptide-search"],
+        "description": "Base URL for SearXNG instance (required when SEARCH_BACKEND=searxng)"
+      },
+      {
+        "key": "SEARCH_TIMEOUT",
+        "default": "30",
+        "type": "u64",
+        "source": "crates/riptide-search/src/lib.rs:310",
+        "used_by": ["riptide-search"],
+        "description": "Timeout for search operations in seconds"
+      },
+      {
+        "key": "SEARCH_ENABLE_URL_PARSING",
+        "default": "true",
+        "type": "bool",
+        "source": "crates/riptide-search/src/lib.rs:314",
+        "used_by": ["riptide-search"],
+        "description": "Enable URL parsing for None provider"
+      },
+      {
+        "key": "CIRCUIT_BREAKER_FAILURE_THRESHOLD",
+        "default": "50",
+        "type": "u32",
+        "source": "crates/riptide-search/src/lib.rs:318",
+        "used_by": ["riptide-search", "riptide-fetch"],
+        "description": "Circuit breaker failure threshold percentage (0-100)"
+      },
+      {
+        "key": "CIRCUIT_BREAKER_MIN_REQUESTS",
+        "default": "5",
+        "type": "u32",
+        "source": "crates/riptide-search/src/lib.rs:322",
+        "used_by": ["riptide-search"],
+        "description": "Minimum requests before circuit breaker can open"
+      },
+      {
+        "key": "CIRCUIT_BREAKER_RECOVERY_TIMEOUT",
+        "default": "60",
+        "type": "u64",
+        "source": "crates/riptide-search/src/lib.rs:326",
+        "used_by": ["riptide-search"],
+        "description": "Circuit breaker recovery timeout in seconds"
+      }
+    ],
+    "reliability": [
+      {
+        "key": "RELIABILITY_MAX_RETRIES",
+        "default": "3",
+        "type": "usize",
+        "source": "crates/riptide-reliability/src/reliability.rs:57",
+        "used_by": ["riptide-reliability"],
+        "description": "Maximum number of retry attempts for failed operations"
+      },
+      {
+        "key": "RELIABILITY_TIMEOUT_SECS",
+        "default": "10",
+        "type": "u64",
+        "source": "crates/riptide-reliability/src/reliability.rs:62",
+        "used_by": ["riptide-reliability"],
+        "description": "Timeout for reliability operations in seconds"
+      },
+      {
+        "key": "RELIABILITY_GRACEFUL_DEGRADATION",
+        "default": "true",
+        "type": "bool",
+        "source": "crates/riptide-reliability/src/reliability.rs:67",
+        "used_by": ["riptide-reliability"],
+        "description": "Enable graceful degradation on failures"
+      },
+      {
+        "key": "RELIABILITY_QUALITY_THRESHOLD",
+        "default": "0.6",
+        "type": "f64",
+        "source": "crates/riptide-reliability/src/reliability.rs:72",
+        "used_by": ["riptide-reliability"],
+        "description": "Quality score threshold for extraction results (0.0-1.0)"
+      }
+    ],
+    "api_authentication": [
+      {
+        "key": "API_KEYS",
+        "default": "",
+        "type": "Vec<String>",
+        "source": "crates/riptide-config/src/api.rs:252",
+        "used_by": ["riptide-api", "riptide-config"],
+        "description": "Comma-separated list of valid API keys (minimum 32 chars each)",
+        "validation": "Strong keys required: 32+ chars, alphanumeric, no weak patterns"
+      },
+      {
+        "key": "REQUIRE_AUTH",
+        "default": "true",
+        "type": "bool",
+        "source": "crates/riptide-config/src/api.rs:259",
+        "used_by": ["riptide-api", "riptide-config"],
+        "description": "Require API authentication for all requests"
+      },
+      {
+        "key": "MAX_CONCURRENT_REQUESTS",
+        "default": "100",
+        "type": "usize",
+        "source": "crates/riptide-config/src/api.rs:355",
+        "used_by": ["riptide-api"],
+        "description": "Maximum concurrent requests allowed"
+      },
+      {
+        "key": "RATE_LIMIT_PER_MINUTE",
+        "default": "60",
+        "type": "usize",
+        "source": "crates/riptide-config/src/api.rs:360",
+        "used_by": ["riptide-api"],
+        "description": "Rate limit requests per minute"
+      },
+      {
+        "key": "ENABLE_RATE_LIMITING",
+        "default": "true",
+        "type": "bool",
+        "source": "crates/riptide-config/src/api.rs:365",
+        "used_by": ["riptide-api"],
+        "description": "Enable rate limiting globally"
+      },
+      {
+        "key": "REQUEST_TIMEOUT_SECS",
+        "default": "30",
+        "type": "u64",
+        "source": "crates/riptide-config/src/api.rs:447",
+        "used_by": ["riptide-api"],
+        "description": "Default timeout for API requests in seconds"
+      },
+      {
+        "key": "MAX_PAYLOAD_SIZE",
+        "default": "52428800",
+        "type": "usize",
+        "source": "crates/riptide-config/src/api.rs:453",
+        "description": "Maximum payload size in bytes (50MB default)",
+        "used_by": ["riptide-api"]
+      },
+      {
+        "key": "ENABLE_CORS",
+        "default": "true",
+        "type": "bool",
+        "source": "crates/riptide-config/src/api.rs:458",
+        "used_by": ["riptide-api"],
+        "description": "Enable CORS support"
+      },
+      {
+        "key": "ENABLE_COMPRESSION",
+        "default": "true",
+        "type": "bool",
+        "source": "crates/riptide-config/src/api.rs:463",
+        "used_by": ["riptide-api"],
+        "description": "Enable response compression"
+      },
+      {
+        "key": "BIND_ADDRESS",
+        "default": "0.0.0.0:8080",
+        "type": "string",
+        "source": "crates/riptide-config/src/api.rs:524",
+        "used_by": ["riptide-api"],
+        "description": "Server bind address and port"
+      }
+    ],
+    "llm_providers": [
+      {
+        "key": "OPENAI_API_KEY",
+        "default": null,
+        "type": "string",
+        "source": "crates/riptide-intelligence/src/config.rs:533",
+        "used_by": ["riptide-intelligence"],
+        "description": "OpenAI API key for LLM integration"
+      },
+      {
+        "key": "RIPTIDE_PROVIDER_OPENAI_API_KEY",
+        "default": null,
+        "type": "string",
+        "source": "crates/riptide-intelligence/src/config.rs:533",
+        "used_by": ["riptide-intelligence"],
+        "description": "Alternative OpenAI API key with RIPTIDE_ prefix"
+      },
+      {
+        "key": "OPENAI_BASE_URL",
+        "default": "https://api.openai.com/v1",
+        "type": "string",
+        "source": "crates/riptide-intelligence/src/config.rs:581",
+        "used_by": ["riptide-intelligence"],
+        "description": "OpenAI API base URL"
+      },
+      {
+        "key": "ANTHROPIC_API_KEY",
+        "default": null,
+        "type": "string",
+        "source": "crates/riptide-intelligence/src/config.rs:540",
+        "used_by": ["riptide-intelligence"],
+        "description": "Anthropic/Claude API key"
+      },
+      {
+        "key": "RIPTIDE_PROVIDER_ANTHROPIC_API_KEY",
+        "default": null,
+        "type": "string",
+        "source": "crates/riptide-intelligence/src/config.rs:541",
+        "used_by": ["riptide-intelligence"],
+        "description": "Alternative Anthropic API key with RIPTIDE_ prefix"
+      },
+      {
+        "key": "AZURE_OPENAI_KEY",
+        "default": null,
+        "type": "string",
+        "source": "crates/riptide-intelligence/src/config.rs:548",
+        "used_by": ["riptide-intelligence"],
+        "description": "Azure OpenAI API key"
+      },
+      {
+        "key": "RIPTIDE_PROVIDER_AZURE_API_KEY",
+        "default": null,
+        "type": "string",
+        "source": "crates/riptide-intelligence/src/config.rs:549",
+        "used_by": ["riptide-intelligence"],
+        "description": "Alternative Azure OpenAI API key with RIPTIDE_ prefix"
+      },
+      {
+        "key": "AZURE_OPENAI_ENDPOINT",
+        "default": null,
+        "type": "string",
+        "source": "crates/riptide-intelligence/src/config.rs:615",
+        "used_by": ["riptide-intelligence"],
+        "description": "Azure OpenAI endpoint URL"
+      },
+      {
+        "key": "RIPTIDE_PROVIDER_AZURE_BASE_URL",
+        "default": null,
+        "type": "string",
+        "source": "crates/riptide-intelligence/src/config.rs:616",
+        "used_by": ["riptide-intelligence"],
+        "description": "Alternative Azure endpoint with RIPTIDE_ prefix"
+      },
+      {
+        "key": "OLLAMA_BASE_URL",
+        "default": "http://localhost:11434",
+        "type": "string",
+        "source": "crates/riptide-intelligence/src/config.rs:636",
+        "used_by": ["riptide-intelligence"],
+        "description": "Ollama local LLM server URL"
+      }
+    ],
+    "telemetry": [
+      {
+        "key": "OTEL_EXPORTER_OTLP_ENDPOINT",
+        "default": null,
+        "type": "string",
+        "source": "crates/riptide-fetch/src/telemetry.rs:114",
+        "used_by": ["riptide-fetch", "riptide-monitoring"],
+        "description": "OpenTelemetry OTLP exporter endpoint"
+      },
+      {
+        "key": "ENVIRONMENT",
+        "default": "development",
+        "type": "string",
+        "source": "crates/riptide-fetch/src/telemetry.rs:122",
+        "used_by": ["riptide-fetch", "riptide-monitoring"],
+        "description": "Environment name for telemetry"
+      },
+      {
+        "key": "HOSTNAME",
+        "default": "unknown",
+        "type": "string",
+        "source": "crates/riptide-fetch/src/telemetry.rs:126",
+        "used_by": ["riptide-fetch", "riptide-monitoring"],
+        "description": "Hostname for telemetry metadata"
+      },
+      {
+        "key": "OTEL_TRACE_SAMPLE_RATE",
+        "default": "1.0",
+        "type": "f64",
+        "source": "crates/riptide-fetch/src/telemetry.rs:144",
+        "used_by": ["riptide-fetch", "riptide-monitoring"],
+        "description": "OpenTelemetry trace sampling rate (0.0-1.0)"
+      }
+    ],
+    "redis_persistence": [
+      {
+        "key": "REDIS_URL",
+        "default": "redis://localhost:6379/0",
+        "type": "string",
+        "source": ".env.example:150",
+        "used_by": ["riptide-persistence", "riptide-api", "riptide-cache"],
+        "description": "Redis connection URL for caching and persistence"
+      },
+      {
+        "key": "REDIS_POOL_SIZE",
+        "default": "10",
+        "type": "usize",
+        "source": ".env.example:683",
+        "used_by": ["riptide-persistence"],
+        "description": "Redis connection pool size"
+      },
+      {
+        "key": "REDIS_CONNECTION_TIMEOUT_MS",
+        "default": "5000",
+        "type": "u64",
+        "source": ".env.example:686",
+        "used_by": ["riptide-persistence"],
+        "description": "Redis connection timeout in milliseconds"
+      },
+      {
+        "key": "REDIS_COMMAND_TIMEOUT_MS",
+        "default": "5000",
+        "type": "u64",
+        "source": ".env.example:689",
+        "used_by": ["riptide-persistence"],
+        "description": "Redis command execution timeout in milliseconds"
+      },
+      {
+        "key": "REDIS_CLUSTER_MODE",
+        "default": "false",
+        "type": "bool",
+        "source": ".env.example:692",
+        "used_by": ["riptide-persistence"],
+        "description": "Enable Redis Cluster mode"
+      }
+    ],
+    "performance": [
+      {
+        "key": "RIPTIDE_MAX_CONCURRENT_RENDERS",
+        "default": "10",
+        "type": "usize",
+        "source": ".env.example:273",
+        "used_by": ["riptide-api"],
+        "description": "Maximum concurrent render operations"
+      },
+      {
+        "key": "RIPTIDE_MAX_CONCURRENT_PDF",
+        "default": "2",
+        "type": "usize",
+        "source": ".env.example:276",
+        "used_by": ["riptide-api", "riptide-pdf"],
+        "description": "Maximum concurrent PDF operations"
+      },
+      {
+        "key": "RIPTIDE_MAX_CONCURRENT_WASM",
+        "default": "4",
+        "type": "usize",
+        "source": ".env.example:279",
+        "used_by": ["riptide-api", "riptide-pool"],
+        "description": "Maximum concurrent WASM instances"
+      },
+      {
+        "key": "RIPTIDE_RENDER_TIMEOUT_SECS",
+        "default": "3",
+        "type": "u64",
+        "source": ".env.example:298",
+        "used_by": ["riptide-api", "riptide-headless"],
+        "description": "Hard timeout for render operations (3s requirement)"
+      },
+      {
+        "key": "RIPTIDE_MEMORY_SOFT_LIMIT_MB",
+        "default": "400",
+        "type": "usize",
+        "source": ".env.example:408",
+        "used_by": ["riptide-api", "riptide-performance"],
+        "description": "Memory soft limit - trigger warnings in MB"
+      },
+      {
+        "key": "RIPTIDE_MEMORY_HARD_LIMIT_MB",
+        "default": "500",
+        "type": "usize",
+        "source": ".env.example:411",
+        "used_by": ["riptide-api", "riptide-performance"],
+        "description": "Memory hard limit - reject requests in MB"
+      }
+    ],
+    "spider_crawler": [
+      {
+        "key": "SPIDER_ENABLE",
+        "default": "true",
+        "type": "bool",
+        "source": ".env.example:570",
+        "used_by": ["riptide-api", "riptide-spider"],
+        "description": "Enable spider/crawler functionality globally (SYSTEM-LEVEL)"
+      },
+      {
+        "key": "SPIDER_BASE_URL",
+        "default": null,
+        "type": "string",
+        "source": ".env.example:573",
+        "used_by": ["riptide-spider"],
+        "description": "Base URL for spider operations (optional default, SYSTEM-LEVEL)"
+      }
+    ],
+    "wasm_runtime": [
+      {
+        "key": "RIPTIDE_WASM_PATH",
+        "default": "./target/wasm32-wasi/release/riptide-extraction.wasm",
+        "type": "string",
+        "source": ".env.example:141",
+        "used_by": ["riptide-cli", "riptide-pool"],
+        "description": "Path to WASM module for extraction operations"
+      },
+      {
+        "key": "RIPTIDE_WASM_INSTANCES_PER_WORKER",
+        "default": "1",
+        "type": "usize",
+        "source": ".env.example:458",
+        "used_by": ["riptide-pool"],
+        "description": "WASM instances per worker (requirement: single instance)"
+      },
+      {
+        "key": "POOL_MAX_INSTANCES",
+        "default": "4",
+        "type": "usize",
+        "source": ".env.example:879",
+        "used_by": ["riptide-pool"],
+        "description": "Maximum number of WASM instances in pool"
+      },
+      {
+        "key": "POOL_MEMORY_LIMIT_PAGES",
+        "default": "256",
+        "type": "usize",
+        "source": ".env.example:888",
+        "used_by": ["riptide-pool"],
+        "description": "WASM memory limit in pages (1 page = 64KB)"
+      }
+    ],
+    "headless_browser": [
+      {
+        "key": "HEADLESS_URL",
+        "default": null,
+        "type": "string",
+        "source": ".env.example:176",
+        "used_by": ["riptide-api", "riptide-headless"],
+        "description": "Headless browser service URL (optional - Docker uses service name)"
+      },
+      {
+        "key": "RIPTIDE_HEADLESS_MAX_POOL_SIZE",
+        "default": "3",
+        "type": "usize",
+        "source": ".env.example:348",
+        "used_by": ["riptide-headless"],
+        "description": "Maximum browser pool size (requirement: pool cap = 3)"
+      },
+      {
+        "key": "CHROME_FLAGS",
+        "default": null,
+        "type": "string",
+        "source": ".env.example:384",
+        "used_by": ["riptide-headless"],
+        "description": "Custom Chrome launch flags (overrides all defaults if set)"
+      },
+      {
+        "key": "XDG_CONFIG_HOME",
+        "default": "/tmp/.chromium",
+        "type": "string",
+        "source": ".env.example:391",
+        "used_by": ["riptide-headless"],
+        "description": "Chrome 128+ fix for crashpad_handler error"
+      },
+      {
+        "key": "XDG_CACHE_HOME",
+        "default": "/tmp/.chromium",
+        "type": "string",
+        "source": ".env.example:392",
+        "used_by": ["riptide-headless"],
+        "description": "Chrome 128+ fix for crashpad_handler error"
+      }
+    ],
+    "cache_configuration": [
+      {
+        "key": "CACHE_DEFAULT_TTL_SECONDS",
+        "default": "86400",
+        "type": "u64",
+        "source": ".env.example:711",
+        "used_by": ["riptide-cache", "riptide-persistence"],
+        "description": "Default cache TTL in seconds (24 hours)"
+      },
+      {
+        "key": "CACHE_MAX_ENTRY_SIZE_BYTES",
+        "default": "20971520",
+        "type": "usize",
+        "source": ".env.example:714",
+        "used_by": ["riptide-cache"],
+        "description": "Maximum cache entry size in bytes (20MB)"
+      },
+      {
+        "key": "CACHE_ENABLE_COMPRESSION",
+        "default": "true",
+        "type": "bool",
+        "source": ".env.example:723",
+        "used_by": ["riptide-cache", "riptide-persistence"],
+        "description": "Enable cache compression"
+      },
+      {
+        "key": "CACHE_COMPRESSION_ALGORITHM",
+        "default": "lz4",
+        "type": "string",
+        "values": ["lz4", "zstd", "none"],
+        "source": ".env.example:729",
+        "used_by": ["riptide-cache", "riptide-persistence"],
+        "description": "Compression algorithm: lz4, zstd, or none"
+      },
+      {
+        "key": "CACHE_EVICTION_POLICY",
+        "default": "LRU",
+        "type": "string",
+        "values": ["LRU", "LFU", "TTL", "Random"],
+        "source": ".env.example:741",
+        "used_by": ["riptide-cache"],
+        "description": "Cache eviction policy"
+      }
+    ],
+    "logging": [
+      {
+        "key": "RUST_LOG",
+        "default": "info",
+        "type": "string",
+        "values": ["error", "warn", "info", "debug", "trace"],
+        "source": ".env.example:979",
+        "used_by": ["all crates"],
+        "description": "Logging level for Rust tracing"
+      },
+      {
+        "key": "RUST_BACKTRACE",
+        "default": "0",
+        "type": "string",
+        "values": ["0", "1", "full"],
+        "source": ".env.example:52",
+        "used_by": ["all crates"],
+        "description": "Enable stack traces on errors (0=off, 1=on, full=verbose)"
+      }
+    ]
+  },
+  "feature_flags": {
+    "extraction": [
+      {
+        "name": "css-extraction",
+        "default": true,
+        "crate": "riptide-extraction",
+        "source": "crates/riptide-extraction/Cargo.toml:64",
+        "description": "Enable CSS selector-based extraction",
+        "dependencies": []
+      },
+      {
+        "name": "regex-extraction",
+        "default": true,
+        "crate": "riptide-extraction",
+        "source": "crates/riptide-extraction/Cargo.toml:65",
+        "description": "Enable regex pattern extraction",
+        "dependencies": []
+      },
+      {
+        "name": "dom-utils",
+        "default": true,
+        "crate": "riptide-extraction",
+        "source": "crates/riptide-extraction/Cargo.toml:66",
+        "description": "Enable DOM manipulation utilities",
+        "dependencies": []
+      },
+      {
+        "name": "chunking",
+        "default": true,
+        "crate": "riptide-extraction",
+        "source": "crates/riptide-extraction/Cargo.toml:68",
+        "description": "Enable text chunking for LLM processing",
+        "dependencies": []
+      },
+      {
+        "name": "table-extraction",
+        "default": false,
+        "crate": "riptide-extraction",
+        "source": "crates/riptide-extraction/Cargo.toml:67",
+        "description": "Enable HTML table extraction",
+        "dependencies": []
+      },
+      {
+        "name": "native-parser",
+        "default": true,
+        "crate": "riptide-extraction",
+        "source": "crates/riptide-extraction/Cargo.toml:78",
+        "description": "Use native Rust parser (default, fast, always available)",
+        "dependencies": []
+      },
+      {
+        "name": "wasm-extractor",
+        "default": false,
+        "crate": "riptide-extraction",
+        "source": "crates/riptide-extraction/Cargo.toml:79",
+        "description": "Enable WASM-based extraction (opt-in, requires wasmtime)",
+        "dependencies": ["dep:wasmtime", "dep:wasmtime-wasi"]
+      },
+      {
+        "name": "jsonld-shortcircuit",
+        "default": false,
+        "crate": "riptide-extraction",
+        "source": "crates/riptide-extraction/Cargo.toml:75",
+        "description": "Phase 10: Early return for complete JSON-LD schemas",
+        "dependencies": []
+      },
+      {
+        "name": "strategy-traits",
+        "default": false,
+        "crate": "riptide-extraction",
+        "source": "crates/riptide-extraction/Cargo.toml:72",
+        "description": "Strategy traits for extensibility (SpiderStrategy)",
+        "dependencies": []
+      }
+    ],
+    "api": [
+      {
+        "name": "events",
+        "default": false,
+        "crate": "riptide-api",
+        "source": "crates/riptide-api/Cargo.toml:107",
+        "description": "EventEmitter/ResultTransformer in handlers (WIP)",
+        "dependencies": []
+      },
+      {
+        "name": "sessions",
+        "default": false,
+        "crate": "riptide-api",
+        "source": "crates/riptide-api/Cargo.toml:108",
+        "description": "Session management system (WIP)",
+        "dependencies": []
+      },
+      {
+        "name": "streaming",
+        "default": false,
+        "crate": "riptide-api",
+        "source": "crates/riptide-api/Cargo.toml:109",
+        "description": "SSE/WebSocket/NDJSON streaming (WIP)",
+        "dependencies": []
+      },
+      {
+        "name": "telemetry",
+        "default": false,
+        "crate": "riptide-api",
+        "source": "crates/riptide-api/Cargo.toml:110",
+        "description": "Telemetry configuration (WIP)",
+        "dependencies": []
+      },
+      {
+        "name": "persistence",
+        "default": false,
+        "crate": "riptide-api",
+        "source": "crates/riptide-api/Cargo.toml:111",
+        "description": "Advanced caching and multi-tenancy (WIP)",
+        "dependencies": []
+      },
+      {
+        "name": "jemalloc",
+        "default": false,
+        "crate": "riptide-api",
+        "source": "crates/riptide-api/Cargo.toml:112",
+        "description": "Real memory monitoring via jemalloc allocator",
+        "dependencies": ["riptide-performance/jemalloc", "tikv-jemallocator", "tikv-jemalloc-ctl"]
+      },
+      {
+        "name": "profiling-full",
+        "default": false,
+        "crate": "riptide-api",
+        "source": "crates/riptide-api/Cargo.toml:113",
+        "description": "Full profiling with flamegraphs (dev only)",
+        "dependencies": ["jemalloc", "riptide-performance/bottleneck-analysis-full"]
+      },
+      {
+        "name": "full",
+        "default": false,
+        "crate": "riptide-api",
+        "source": "crates/riptide-api/Cargo.toml:120",
+        "description": "Full feature set for production (when ready)",
+        "dependencies": ["events", "sessions", "streaming", "telemetry", "persistence", "jemalloc"]
+      }
+    ],
+    "performance": [
+      {
+        "name": "memory-profiling",
+        "default": true,
+        "crate": "riptide-performance",
+        "source": "crates/riptide-performance/Cargo.toml:89",
+        "description": "Memory profiling with jemalloc",
+        "dependencies": ["tikv-jemalloc-ctl", "pprof", "memory-stats"]
+      },
+      {
+        "name": "bottleneck-analysis",
+        "default": true,
+        "crate": "riptide-performance",
+        "source": "crates/riptide-performance/Cargo.toml:90",
+        "description": "Bottleneck detection without flamegraph",
+        "dependencies": ["criterion"]
+      },
+      {
+        "name": "bottleneck-analysis-full",
+        "default": false,
+        "crate": "riptide-performance",
+        "source": "crates/riptide-performance/Cargo.toml:91",
+        "description": "Full bottleneck analysis with flamegraphs (dev only)",
+        "dependencies": ["bottleneck-analysis", "flamegraph"]
+      },
+      {
+        "name": "cache-optimization",
+        "default": true,
+        "crate": "riptide-performance",
+        "source": "crates/riptide-performance/Cargo.toml:92",
+        "description": "Cache performance optimization",
+        "dependencies": ["moka", "redis"]
+      },
+      {
+        "name": "resource-limits",
+        "default": true,
+        "crate": "riptide-performance",
+        "source": "crates/riptide-performance/Cargo.toml:93",
+        "description": "Resource limiting with governor",
+        "dependencies": ["governor"]
+      },
+      {
+        "name": "jemalloc",
+        "default": false,
+        "crate": "riptide-performance",
+        "source": "crates/riptide-performance/Cargo.toml:96",
+        "description": "Enable jemalloc control interface",
+        "dependencies": ["tikv-jemalloc-ctl"]
+      },
+      {
+        "name": "production",
+        "default": false,
+        "crate": "riptide-performance",
+        "source": "crates/riptide-performance/Cargo.toml:100",
+        "description": "Production feature set (excludes flamegraph)",
+        "dependencies": ["jemalloc", "memory-profiling", "bottleneck-analysis", "cache-optimization", "resource-limits"]
+      },
+      {
+        "name": "development",
+        "default": false,
+        "crate": "riptide-performance",
+        "source": "crates/riptide-performance/Cargo.toml:102",
+        "description": "Development feature set (includes flamegraph)",
+        "dependencies": ["jemalloc", "memory-profiling", "bottleneck-analysis-full", "cache-optimization"]
+      }
+    ],
+    "reliability": [
+      {
+        "name": "reliability-patterns",
+        "default": true,
+        "crate": "riptide-reliability",
+        "source": "crates/riptide-reliability/Cargo.toml:48",
+        "description": "Reliability patterns via trait abstraction",
+        "dependencies": []
+      },
+      {
+        "name": "events",
+        "default": true,
+        "crate": "riptide-reliability",
+        "source": "crates/riptide-reliability/Cargo.toml:51",
+        "description": "Event bus integration for circuit breaker notifications",
+        "dependencies": ["riptide-events", "riptide-pool"]
+      },
+      {
+        "name": "monitoring",
+        "default": true,
+        "crate": "riptide-reliability",
+        "source": "crates/riptide-reliability/Cargo.toml:53",
+        "description": "Monitoring integration for metrics",
+        "dependencies": ["riptide-monitoring"]
+      },
+      {
+        "name": "full",
+        "default": false,
+        "crate": "riptide-reliability",
+        "source": "crates/riptide-reliability/Cargo.toml:55",
+        "description": "Full integration with all optional features",
+        "dependencies": ["events", "monitoring", "reliability-patterns"]
+      }
+    ],
+    "intelligence": [
+      {
+        "name": "openai",
+        "default": true,
+        "crate": "riptide-intelligence",
+        "source": "crates/riptide-intelligence/Cargo.toml:63",
+        "description": "OpenAI provider support",
+        "dependencies": []
+      },
+      {
+        "name": "anthropic",
+        "default": true,
+        "crate": "riptide-intelligence",
+        "source": "crates/riptide-intelligence/Cargo.toml:64",
+        "description": "Anthropic/Claude provider support",
+        "dependencies": []
+      },
+      {
+        "name": "groq",
+        "default": true,
+        "crate": "riptide-intelligence",
+        "source": "crates/riptide-intelligence/Cargo.toml:65",
+        "description": "Groq provider support",
+        "dependencies": []
+      },
+      {
+        "name": "all-providers",
+        "default": false,
+        "crate": "riptide-intelligence",
+        "source": "crates/riptide-intelligence/Cargo.toml:66",
+        "description": "All LLM providers enabled",
+        "dependencies": ["openai", "anthropic", "groq"]
+      },
+      {
+        "name": "mock",
+        "default": false,
+        "crate": "riptide-intelligence",
+        "source": "crates/riptide-intelligence/Cargo.toml:67",
+        "description": "Mock provider for testing",
+        "dependencies": []
+      }
+    ],
+    "persistence": [
+      {
+        "name": "compression",
+        "default": true,
+        "crate": "riptide-persistence",
+        "source": "crates/riptide-persistence/Cargo.toml:48",
+        "description": "Enable compression (lz4, zstd)",
+        "dependencies": ["dep:lz4_flex", "dep:zstd"]
+      },
+      {
+        "name": "metrics",
+        "default": true,
+        "crate": "riptide-persistence",
+        "source": "crates/riptide-persistence/Cargo.toml:49",
+        "description": "Enable Prometheus metrics",
+        "dependencies": ["dep:prometheus"]
+      }
+    ],
+    "monitoring": [
+      {
+        "name": "telemetry",
+        "default": true,
+        "crate": "riptide-monitoring",
+        "source": "crates/riptide-monitoring/Cargo.toml:62",
+        "description": "Telemetry collection and export",
+        "dependencies": []
+      },
+      {
+        "name": "collector",
+        "default": true,
+        "crate": "riptide-monitoring",
+        "source": "crates/riptide-monitoring/Cargo.toml:63",
+        "description": "Metrics collector",
+        "dependencies": []
+      },
+      {
+        "name": "alerts",
+        "default": true,
+        "crate": "riptide-monitoring",
+        "source": "crates/riptide-monitoring/Cargo.toml:64",
+        "description": "Alert generation",
+        "dependencies": []
+      },
+      {
+        "name": "health",
+        "default": true,
+        "crate": "riptide-monitoring",
+        "source": "crates/riptide-monitoring/Cargo.toml:65",
+        "description": "Health checks",
+        "dependencies": []
+      },
+      {
+        "name": "reports",
+        "default": false,
+        "crate": "riptide-monitoring",
+        "source": "crates/riptide-monitoring/Cargo.toml:66",
+        "description": "Report generation",
+        "dependencies": []
+      },
+      {
+        "name": "time-series",
+        "default": false,
+        "crate": "riptide-monitoring",
+        "source": "crates/riptide-monitoring/Cargo.toml:67",
+        "description": "Time-series data support",
+        "dependencies": []
+      },
+      {
+        "name": "prometheus",
+        "default": false,
+        "crate": "riptide-monitoring",
+        "source": "crates/riptide-monitoring/Cargo.toml:68",
+        "description": "Prometheus exporter",
+        "dependencies": ["dep:prometheus", "dep:lazy_static"]
+      }
+    ],
+    "pdf": [
+      {
+        "name": "pdf",
+        "default": true,
+        "crate": "riptide-pdf",
+        "source": "crates/riptide-pdf/Cargo.toml:52",
+        "description": "PDF processing support",
+        "dependencies": ["pdfium-render", "lopdf"]
+      },
+      {
+        "name": "benchmarks",
+        "default": false,
+        "crate": "riptide-pdf",
+        "source": "crates/riptide-pdf/Cargo.toml:53",
+        "description": "PDF benchmark suite",
+        "dependencies": []
+      }
+    ],
+    "stealth": [
+      {
+        "name": "stealth",
+        "default": true,
+        "crate": "riptide-stealth",
+        "source": "crates/riptide-stealth/Cargo.toml:26",
+        "description": "Bot detection evasion",
+        "dependencies": []
+      },
+      {
+        "name": "full-stealth",
+        "default": false,
+        "crate": "riptide-stealth",
+        "source": "crates/riptide-stealth/Cargo.toml:28",
+        "description": "Full stealth capabilities",
+        "dependencies": ["stealth"]
+      },
+      {
+        "name": "benchmark-debug",
+        "default": false,
+        "crate": "riptide-stealth",
+        "source": "crates/riptide-stealth/Cargo.toml:29",
+        "description": "Debug output in benchmarks",
+        "dependencies": []
+      }
+    ],
+    "security": [
+      {
+        "name": "api-keys",
+        "default": true,
+        "crate": "riptide-security",
+        "source": "crates/riptide-security/Cargo.toml:47",
+        "description": "API key authentication",
+        "dependencies": []
+      },
+      {
+        "name": "audit",
+        "default": true,
+        "crate": "riptide-security",
+        "source": "crates/riptide-security/Cargo.toml:48",
+        "description": "Audit logging",
+        "dependencies": []
+      },
+      {
+        "name": "budget",
+        "default": true,
+        "crate": "riptide-security",
+        "source": "crates/riptide-security/Cargo.toml:49",
+        "description": "Budget tracking",
+        "dependencies": []
+      },
+      {
+        "name": "middleware",
+        "default": true,
+        "crate": "riptide-security",
+        "source": "crates/riptide-security/Cargo.toml:50",
+        "description": "Security middleware",
+        "dependencies": []
+      },
+      {
+        "name": "pii",
+        "default": true,
+        "crate": "riptide-security",
+        "source": "crates/riptide-security/Cargo.toml:51",
+        "description": "PII detection and masking",
+        "dependencies": []
+      }
+    ],
+    "streaming": [
+      {
+        "name": "reports",
+        "default": true,
+        "crate": "riptide-streaming",
+        "source": "crates/riptide-streaming/Cargo.toml:75",
+        "description": "Report generation",
+        "dependencies": []
+      },
+      {
+        "name": "cli",
+        "default": true,
+        "crate": "riptide-streaming",
+        "source": "crates/riptide-streaming/Cargo.toml:76",
+        "description": "CLI interface",
+        "dependencies": []
+      }
+    ]
+  },
+  "configuration_patterns": {
+    "from_env_methods": {
+      "description": "Configuration structs that load from environment variables",
+      "implementations": [
+        "AdvancedSearchConfig::from_env() - crates/riptide-search/src/lib.rs:296",
+        "ReliabilityConfig::from_env() - crates/riptide-reliability/src/reliability.rs:56",
+        "AuthenticationConfig::from_env() - crates/riptide-config/src/api.rs:251",
+        "RateLimitConfig::from_env() - crates/riptide-config/src/api.rs:354",
+        "RequestConfig::from_env() - crates/riptide-config/src/api.rs:446",
+        "ApiConfig::from_env() - crates/riptide-config/src/api.rs:522",
+        "ExtractorConfig::from_env() - crates/riptide-pool/src/config.rs:49",
+        "NativePoolConfig::from_env() - crates/riptide-pool tests",
+        "PersistenceConfig::from_env() - crates/riptide-persistence tests"
+      ],
+      "pattern": "Standard pattern for loading configuration from environment variables with sensible defaults"
+    },
+    "env_prefixes": {
+      "RIPTIDE_": "Main application prefix for RipTide-specific configuration",
+      "SEARCH_": "Search provider configuration",
+      "REDIS_": "Redis persistence configuration",
+      "CACHE_": "Cache-specific configuration",
+      "POOL_": "WASM pool configuration",
+      "TELEMETRY_": "Telemetry and observability",
+      "SECURITY_": "Security and encryption",
+      "TENANT_": "Multi-tenancy configuration",
+      "PERF_": "Performance tuning",
+      "SPIDER_": "Web crawler configuration",
+      "ENHANCED_PIPELINE_": "Enhanced processing pipeline"
+    },
+    "validation": {
+      "api_keys": {
+        "minimum_length": 32,
+        "pattern": "alphanumeric",
+        "weak_patterns_rejected": true,
+        "source": "crates/riptide-config/src/validation.rs"
+      },
+      "urls": {
+        "max_length_check": "RIPTIDE_MAX_URL_LENGTH",
+        "blocked_patterns": "configurable",
+        "private_ip_blocking": "optional",
+        "source": "crates/riptide-config/src/validation.rs:144"
+      }
+    }
+  },
+  "priority_and_precedence": {
+    "system_level": {
+      "description": "Infrastructure and global settings set via environment variables",
+      "examples": [
+        "SPIDER_ENABLE - enable/disable functionality",
+        "WORKER_POOL_SIZE - resource allocation",
+        "REDIS_URL - service URLs",
+        "Feature toggles and logging"
+      ],
+      "source": ".env.example lines 60-67"
+    },
+    "request_level": {
+      "description": "Per-operation parameters sent via API requests",
+      "examples": [
+        "max_depth, max_pages - per crawl settings",
+        "timeout, concurrency - per request",
+        "selectors, formats - content-specific"
+      ],
+      "warning": "Do not set request-level parameters in .env - reduces flexibility",
+      "source": ".env.example lines 72-79"
+    }
+  },
+  "notes": {
+    "dotenv_usage": "No explicit dotenv loading found - configuration loaded via std::env::var",
+    "graceful_degradation": "System falls back to 'none' backend if API keys missing",
+    "docker_defaults": "Docker Compose overrides many settings via service names",
+    "chrome_fixes": "XDG_CONFIG_HOME and XDG_CACHE_HOME required for Chrome 128+",
+    "wasm_optional": "WASM extraction is opt-in via feature flags, native parser is default"
+  }
+}

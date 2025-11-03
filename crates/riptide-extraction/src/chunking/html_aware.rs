@@ -595,7 +595,8 @@ mod tests {
     async fn test_large_element_chunking() {
         let html = r#"<div>Very long content that exceeds token limits. This should be split into multiple chunks. Each chunk should preserve sentence boundaries. The content continues for many more sentences to test the chunking behavior.</div>"#;
         let document = Html::parse_document(html);
-        let div_selector = scraper::Selector::parse("div").unwrap();
+        let div_selector =
+            scraper::Selector::parse("div").expect("hardcoded CSS selector should be valid");
         let element = document.select(&div_selector).next().unwrap();
 
         let config = ChunkingConfig {

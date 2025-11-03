@@ -48,9 +48,9 @@ pub async fn rate_limit_middleware(
         let mut response = api_error.into_response();
 
         // Add Retry-After header
-        response
-            .headers_mut()
-            .insert("Retry-After", "60".parse().unwrap());
+        if let Ok(retry_value) = "60".parse() {
+            response.headers_mut().insert("Retry-After", retry_value);
+        }
 
         return Err(response);
     }
@@ -71,9 +71,9 @@ pub async fn rate_limit_middleware(
             let mut response = api_error.into_response();
 
             // Add Retry-After header
-            response
-                .headers_mut()
-                .insert("Retry-After", "30".parse().unwrap());
+            if let Ok(retry_value) = "30".parse() {
+                response.headers_mut().insert("Retry-After", retry_value);
+            }
 
             return Err(response.into_response());
         }

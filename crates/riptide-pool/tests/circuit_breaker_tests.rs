@@ -366,10 +366,10 @@ async fn test_failover_sequence_primary_to_secondary() {
     }
 
     // Verify circuit is open
-    let is_open = match *circuit_state.lock().await {
-        CircuitBreakerState::Open { .. } => true,
-        _ => false,
-    };
+    let is_open = matches!(
+        *circuit_state.lock().await,
+        CircuitBreakerState::Open { .. }
+    );
     assert!(is_open, "Circuit should be open after primary failure");
 
     // Step 3: Get next available instance (should be secondary)
@@ -598,7 +598,7 @@ async fn test_concurrent_failover_multiple_failures() {
         failure_count: Arc<Mutex<u64>>,
     }
 
-    let instances = vec![
+    let instances = [
         MockInstance {
             id: "instance-1".to_string(),
             is_healthy: Arc::new(Mutex::new(true)),

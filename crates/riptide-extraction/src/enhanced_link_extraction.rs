@@ -328,7 +328,8 @@ impl EnhancedLinkExtractor {
 
     /// Extract full text content from document for context matching
     fn extract_full_text(&self, document: &Html) -> String {
-        let body_selector = Selector::parse("body").unwrap();
+        let body_selector =
+            Selector::parse("body").expect("hardcoded CSS selector should be valid");
         if let Some(body) = document.select(&body_selector).next() {
             body.text()
                 .collect::<Vec<_>>()

@@ -182,7 +182,7 @@ impl TrackedWasmInstance {
         }
 
         self.last_used = Instant::now();
-        self.usage_count += 1;
+        self.usage_count = self.usage_count.saturating_add(1);
         self.update_access_frequency();
     }
 
@@ -356,7 +356,7 @@ impl StratifiedInstancePool {
                 if let Some(mut instance) = self.warm.remove(best_idx) {
                     instance.pool_tier = 0;
                     self.hot.push_back(instance);
-                    promoted_count += 1;
+                    promoted_count = promoted_count.saturating_add(1);
                     self.promotions.fetch_add(1, Ordering::Relaxed);
                 }
             } else {
@@ -382,13 +382,20 @@ impl StratifiedInstancePool {
             warm_hits: self.warm_hits.load(Ordering::Relaxed),
             cold_misses: self.cold_misses.load(Ordering::Relaxed),
             promotions: self.promotions.load(Ordering::Relaxed),
-            total_instances: self.hot.len() + self.warm.len() + self.cold.len(),
+            total_instances: self
+                .hot
+                .len()
+                .saturating_add(self.warm.len())
+                .saturating_add(self.cold.len()),
         }
     }
 
     /// Get total number of instances across all tiers
     pub fn total_count(&self) -> usize {
-        self.hot.len() + self.warm.len() + self.cold.len()
+        self.hot
+            .len()
+            .saturating_add(self.warm.len())
+            .saturating_add(self.cold.len())
     }
 
     /// Clear all tiers
@@ -405,18 +412,18 @@ impl StratifiedInstancePool {
         // Remove from cold tier first (least valuable)
         let cold_len = self.cold.len();
         self.cold.retain(|instance| !instance.is_idle(idle_timeout));
-        removed_count += cold_len - self.cold.len();
+        removed_count = removed_count.saturating_add(cold_len.saturating_sub(self.cold.len()));
 
         // Remove from warm tier
         let warm_len = self.warm.len();
         self.warm.retain(|instance| !instance.is_idle(idle_timeout));
-        removed_count += warm_len - self.warm.len();
+        removed_count = removed_count.saturating_add(warm_len.saturating_sub(self.warm.len()));
 
         // Remove from hot tier only if severely idle
         let hot_len = self.hot.len();
         self.hot
-            .retain(|instance| !instance.is_idle(idle_timeout * 2));
-        removed_count += hot_len - self.hot.len();
+            .retain(|instance| !instance.is_idle(idle_timeout.saturating_mul(2)));
+        removed_count = removed_count.saturating_add(hot_len.saturating_sub(self.hot.len()));
 
         removed_count
     }
@@ -477,8 +484,8 @@ impl MemoryManager {
 
         // P2-1: Initialize stratified pool with hot/warm tiers
         // Hot tier: 25% of max_instances, Warm tier: 50% of max_instances
-        let hot_capacity = (config.max_instances / 4).max(1);
-        let warm_capacity = (config.max_instances / 2).max(2);
+        let hot_capacity = config.max_instances.checked_div(4).unwrap_or(0).max(1);
+        let warm_capacity = config.max_instances.checked_div(2).unwrap_or(0).max(2);
 
         let stratified_pool = Arc::new(Mutex::new(StratifiedInstancePool::new(
             hot_capacity,
@@ -882,7 +889,7 @@ impl MemoryManager {
 
             instances_affected = removed_count;
             // Approximate memory freed (we don't have exact values after removal)
-            memory_freed = removed_count as u64 * 50; // Estimate 50MB per instance
+            memory_freed = (removed_count as u64).saturating_mul(50); // Estimate 50MB per instance
 
             total_memory_usage.fetch_sub(memory_freed, Ordering::Relaxed);
             total_instances.fetch_sub(removed_count, Ordering::Relaxed);

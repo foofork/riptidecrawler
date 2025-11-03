@@ -134,7 +134,8 @@ struct PooledNativeInstance {
     failure_count: u32,
     /// Last used timestamp
     last_used: Instant,
-    /// Creation timestamp
+    /// Creation timestamp (for future diagnostics)
+    #[allow(dead_code)]
     created_at: Instant,
     /// Memory usage estimate (bytes)
     memory_usage: usize,
@@ -200,14 +201,14 @@ impl PooledNativeInstance {
 
     /// Record successful usage
     fn record_success(&mut self) {
-        self.use_count += 1;
+        self.use_count = self.use_count.saturating_add(1);
         self.last_used = Instant::now();
     }
 
     /// Record failed usage
     fn record_failure(&mut self) {
-        self.use_count += 1;
-        self.failure_count += 1;
+        self.use_count = self.use_count.saturating_add(1);
+        self.failure_count = self.failure_count.saturating_add(1);
         self.last_used = Instant::now();
     }
 
@@ -240,6 +241,8 @@ enum CircuitBreakerState {
     Closed {
         failure_count: u32,
         success_count: u32,
+        /// Last failure timestamp (for future recovery diagnostics)
+        #[allow(dead_code)]
         last_failure: Option<Instant>,
     },
     Open {
@@ -451,11 +454,11 @@ impl NativeExtractorPool {
     async fn record_extraction_result(&self, success: bool, duration: Duration) {
         {
             let mut metrics = self.metrics.lock().await;
-            metrics.total_extractions += 1;
+            metrics.total_extractions = metrics.total_extractions.saturating_add(1);
             if success {
-                metrics.successful_extractions += 1;
+                metrics.successful_extractions = metrics.successful_extractions.saturating_add(1);
             } else {
-                metrics.failed_extractions += 1;
+                metrics.failed_extractions = metrics.failed_extractions.saturating_add(1);
             }
 
             let new_time = duration.as_millis() as f64;
@@ -473,19 +476,27 @@ impl NativeExtractorPool {
                 success_count,
                 ..
             } => {
-                let new_failure_count = if success { 0 } else { failure_count + 1 };
+                let new_failure_count = if success {
+                    0
+                } else {
+                    failure_count.saturating_add(1)
+                };
                 let new_success_count = if success {
-                    success_count + 1
+                    success_count.saturating_add(1)
                 } else {
                     *success_count
                 };
-                let total_requests = new_failure_count + new_success_count;
+                let total_requests = new_failure_count.saturating_add(new_success_count);
 
                 if total_requests >= 10 {
                     let failure_rate = (new_failure_count as f64 / total_requests as f64) * 100.0;
                     if failure_rate >= self.config.circuit_breaker_failure_threshold as f64 {
                         warn!(failure_rate, "Native pool circuit breaker opened");
-                        self.metrics.lock().await.circuit_breaker_trips += 1;
+                        {
+                            let mut metrics = self.metrics.lock().await;
+                            metrics.circuit_breaker_trips =
+                                metrics.circuit_breaker_trips.saturating_add(1);
+                        }
 
                         CircuitBreakerState::Open {
                             opened_at: Instant::now(),
@@ -543,7 +554,7 @@ impl NativeExtractorPool {
                     }
                 } else {
                     CircuitBreakerState::HalfOpen {
-                        test_requests: test_requests + 1,
+                        test_requests: test_requests.saturating_add(1),
                         start_time: *start_time,
                     }
                 }
@@ -555,9 +566,9 @@ impl NativeExtractorPool {
 
     async fn record_timeout(&self) {
         let mut metrics = self.metrics.lock().await;
-        metrics.timeout_count += 1;
-        metrics.total_extractions += 1;
-        metrics.failed_extractions += 1;
+        metrics.timeout_count = metrics.timeout_count.saturating_add(1);
+        metrics.total_extractions = metrics.total_extractions.saturating_add(1);
+        metrics.failed_extractions = metrics.failed_extractions.saturating_add(1);
     }
 
     async fn update_semaphore_wait_time(&self, wait_time: Duration) {

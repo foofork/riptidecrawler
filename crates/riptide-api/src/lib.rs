@@ -21,4 +21,5 @@ pub mod strategies_pipeline;
 pub mod streaming;
 pub mod telemetry_config;
 pub mod tests;
+pub mod utils;
 pub mod validation;

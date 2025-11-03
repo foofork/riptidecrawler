@@ -117,10 +117,12 @@ pub async fn chunk_content(
         ));
     }
 
-    if params.window_size.is_some() && params.window_size.unwrap() < params.overlap_size {
-        return Err(ApiError::validation(
-            "window_size must be greater than overlap_size",
-        ));
+    if let Some(window_size) = params.window_size {
+        if window_size < params.overlap_size {
+            return Err(ApiError::validation(
+                "window_size must be greater than overlap_size",
+            ));
+        }
     }
 
     // Create chunking config

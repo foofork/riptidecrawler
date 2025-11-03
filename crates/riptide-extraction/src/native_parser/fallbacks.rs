@@ -53,9 +53,11 @@ impl FallbackStrategy {
 
     fn strip_html_tags(html: &str) -> String {
         use regex::Regex;
-        let tag_regex = Regex::new(r"<[^>]*>").unwrap();
-        let script_regex = Regex::new(r"(?s)<script[^>]*>.*?</script>").unwrap();
-        let style_regex = Regex::new(r"(?s)<style[^>]*>.*?</style>").unwrap();
+        let tag_regex = Regex::new(r"<[^>]*>").expect("hardcoded regex pattern should be valid");
+        let script_regex = Regex::new(r"(?s)<script[^>]*>.*?</script>")
+            .expect("hardcoded regex pattern should be valid");
+        let style_regex = Regex::new(r"(?s)<style[^>]*>.*?</style>")
+            .expect("hardcoded regex pattern should be valid");
 
         // Remove scripts and styles first
         let without_scripts = script_regex.replace_all(html, " ");
@@ -65,7 +67,7 @@ impl FallbackStrategy {
         let text = tag_regex.replace_all(&without_styles, " ");
 
         // Clean up whitespace
-        let whitespace_regex = Regex::new(r"\s+").unwrap();
+        let whitespace_regex = Regex::new(r"\s+").expect("hardcoded regex pattern should be valid");
         whitespace_regex.replace_all(&text, " ").trim().to_string()
     }
 }

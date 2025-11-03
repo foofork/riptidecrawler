@@ -78,8 +78,8 @@ impl From<BasicExtractedDoc> for ExtractedContent {
             strategy_used: "wasm_extraction".to_string(),
             extraction_confidence: doc
                 .quality_score
-                .map(|score| score as f64 / 100.0)
-                .unwrap_or(0.8),
+                .map(|score| score as f64 / 100.0_f64)
+                .unwrap_or(0.8_f64),
         }
     }
 }

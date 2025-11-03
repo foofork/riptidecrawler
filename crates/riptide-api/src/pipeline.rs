@@ -45,7 +45,9 @@ fn convert_extracted_content(content: riptide_types::ExtractedContent, url: &str
         url: url.to_string(),
         title: Some(content.title),
         text: content.content.clone(),
-        quality_score: Some((content.extraction_confidence * 100.0) as u8),
+        quality_score: Some(crate::utils::safe_conversions::confidence_to_quality_score(
+            content.extraction_confidence,
+        )),
         links: Vec::new(),
         byline: None,
         published_iso: None,
@@ -54,7 +56,9 @@ fn convert_extracted_content(content: riptide_types::ExtractedContent, url: &str
         parser_metadata: None, // ExtractedContent doesn't have parser metadata
         language: None,
         reading_time: None,
-        word_count: Some(content.content.split_whitespace().count() as u32),
+        word_count: Some(crate::utils::safe_conversions::word_count_to_u32(
+            content.content.split_whitespace().count(),
+        )),
         categories: Vec::new(),
         site_name: None,
         description: content.summary,

@@ -37,7 +37,7 @@ use std::time::Duration;
 
 /// Check if WASM component exists
 fn wasm_component_exists() -> bool {
-    let paths = vec![
+    let paths = [
         "/workspaces/eventmesh/target/wasm32-wasip2/release/riptide_extractor_wasm.wasm",
         "./target/wasm32-wasip2/release/riptide_extractor_wasm.wasm",
     ];
@@ -262,7 +262,7 @@ fn test_wasm_component_availability() {
     }
 
     // This test always passes - it's informational
-    assert!(true);
+    Ok(())
 }
 
 // ============================================================================

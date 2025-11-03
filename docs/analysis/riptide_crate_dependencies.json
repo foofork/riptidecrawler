@@ -1,0 +1,951 @@
+{
+  "metadata": {
+    "generated": "2025-11-03",
+    "total_crates": 26,
+    "analysis_type": "workspace_dependency_graph"
+  },
+  "crates": {
+    "riptide-types": {
+      "layer": "foundation",
+      "description": "Shared types, traits, and error definitions",
+      "internal_dependencies": [],
+      "external_dependencies": [
+        "serde",
+        "serde_json",
+        "tokio",
+        "thiserror",
+        "anyhow",
+        "async-trait",
+        "url",
+        "chrono",
+        "uuid",
+        "sha2"
+      ],
+      "dependents": [
+        "riptide-config",
+        "riptide-monitoring",
+        "riptide-fetch",
+        "riptide-events",
+        "riptide-browser-abstraction",
+        "riptide-browser",
+        "riptide-extraction",
+        "riptide-pdf",
+        "riptide-pool",
+        "riptide-spider",
+        "riptide-reliability",
+        "riptide-cache",
+        "riptide-security",
+        "riptide-intelligence",
+        "riptide-workers",
+        "riptide-persistence",
+        "riptide-facade",
+        "riptide-api"
+      ],
+      "dependent_count": 24,
+      "metrics": {
+        "coupling": "high",
+        "role": "foundation",
+        "stability": "stable"
+      }
+    },
+    "riptide-config": {
+      "layer": "foundation",
+      "description": "Configuration management",
+      "internal_dependencies": ["riptide-types"],
+      "external_dependencies": [
+        "serde",
+        "serde_json",
+        "anyhow",
+        "thiserror",
+        "regex",
+        "url",
+        "once_cell",
+        "tracing"
+      ],
+      "dependents": ["riptide-spider", "riptide-fetch", "riptide-api"],
+      "dependent_count": 3
+    },
+    "riptide-stealth": {
+      "layer": "foundation",
+      "description": "Anti-detection measures for browser automation",
+      "internal_dependencies": [],
+      "external_dependencies": [
+        "serde",
+        "serde_json",
+        "rand",
+        "tracing",
+        "dashmap"
+      ],
+      "dependents": [
+        "riptide-browser",
+        "riptide-headless",
+        "riptide-facade",
+        "riptide-api"
+      ],
+      "dependent_count": 4,
+      "metrics": {
+        "coupling": "low",
+        "role": "leaf",
+        "stability": "stable"
+      }
+    },
+    "riptide-monitoring": {
+      "layer": "infrastructure",
+      "description": "Telemetry, metrics, and observability",
+      "internal_dependencies": ["riptide-types"],
+      "external_dependencies": [
+        "opentelemetry",
+        "opentelemetry-otlp",
+        "opentelemetry_sdk",
+        "opentelemetry-semantic-conventions",
+        "tracing-opentelemetry",
+        "tracing-subscriber",
+        "sysinfo",
+        "psutil",
+        "hdrhistogram",
+        "prometheus"
+      ],
+      "dependents": [
+        "riptide-events",
+        "riptide-reliability",
+        "riptide-facade",
+        "riptide-api"
+      ],
+      "dependent_count": 4,
+      "metrics": {
+        "coupling": "medium",
+        "role": "infrastructure",
+        "stability": "stable"
+      }
+    },
+    "riptide-fetch": {
+      "layer": "infrastructure",
+      "description": "HTTP/network layer",
+      "internal_dependencies": ["riptide-types", "riptide-config"],
+      "external_dependencies": [
+        "reqwest",
+        "hyper",
+        "http",
+        "bytes",
+        "url",
+        "opentelemetry",
+        "robotstxt",
+        "xml",
+        "sysinfo",
+        "psutil",
+        "hdrhistogram"
+      ],
+      "dependents": [
+        "riptide-spider",
+        "riptide-reliability",
+        "riptide-facade",
+        "riptide-api"
+      ],
+      "dependent_count": 4,
+      "metrics": {
+        "coupling": "medium",
+        "role": "infrastructure",
+        "stability": "stable"
+      }
+    },
+    "riptide-events": {
+      "layer": "infrastructure",
+      "description": "Event bus and messaging system",
+      "internal_dependencies": ["riptide-types", "riptide-monitoring"],
+      "external_dependencies": [
+        "tokio",
+        "futures",
+        "opentelemetry",
+        "serde",
+        "uuid"
+      ],
+      "dependents": [
+        "riptide-pool",
+        "riptide-cache",
+        "riptide-reliability",
+        "riptide-intelligence",
+        "riptide-workers",
+        "riptide-search",
+        "riptide-api"
+      ],
+      "dependent_count": 7,
+      "metrics": {
+        "coupling": "high",
+        "role": "infrastructure",
+        "stability": "stable"
+      }
+    },
+    "riptide-browser-abstraction": {
+      "layer": "browser",
+      "description": "Browser abstraction layer",
+      "internal_dependencies": ["riptide-types"],
+      "external_dependencies": [
+        "spider_chrome",
+        "spider_chromiumoxide_cdp",
+        "async-trait",
+        "anyhow",
+        "thiserror",
+        "tokio",
+        "tracing",
+        "serde"
+      ],
+      "dependents": ["riptide-browser"],
+      "dependent_count": 1
+    },
+    "riptide-browser": {
+      "layer": "browser",
+      "description": "Browser pool management and launcher",
+      "internal_dependencies": [
+        "riptide-browser-abstraction",
+        "riptide-stealth"
+      ],
+      "external_dependencies": [
+        "spider_chrome",
+        "spider_chromiumoxide_cdp",
+        "tokio",
+        "futures",
+        "tempfile",
+        "uuid"
+      ],
+      "dependents": ["riptide-headless", "riptide-facade", "riptide-api"],
+      "dependent_count": 3
+    },
+    "riptide-headless": {
+      "layer": "browser",
+      "description": "Headless browser API endpoints",
+      "internal_dependencies": ["riptide-browser", "riptide-stealth"],
+      "external_dependencies": [
+        "axum",
+        "spider_chrome",
+        "base64",
+        "futures",
+        "tower",
+        "tower-http"
+      ],
+      "dependents": ["riptide-api"],
+      "dependent_count": 1
+    },
+    "riptide-extraction": {
+      "layer": "extraction",
+      "description": "HTML processing and content extraction",
+      "internal_dependencies": ["riptide-types"],
+      "external_dependencies": [
+        "scraper",
+        "lol_html",
+        "regex",
+        "url",
+        "wasmtime",
+        "wasmtime-wasi",
+        "tiktoken-rs",
+        "dashmap",
+        "parking_lot",
+        "csv",
+        "chrono",
+        "schemars"
+      ],
+      "dependents": [
+        "riptide-pool",
+        "riptide-cache",
+        "riptide-workers",
+        "riptide-streaming",
+        "riptide-facade",
+        "riptide-api"
+      ],
+      "dependent_count": 9,
+      "features": {
+        "default": [
+          "css-extraction",
+          "regex-extraction",
+          "dom-utils",
+          "chunking",
+          "native-parser"
+        ],
+        "optional": ["wasm-extractor", "table-extraction", "jsonld-shortcircuit"]
+      },
+      "metrics": {
+        "coupling": "very_high",
+        "role": "core_service",
+        "stability": "stable",
+        "concern": "High coupling - used by 9 crates"
+      }
+    },
+    "riptide-pdf": {
+      "layer": "extraction",
+      "description": "PDF processing capabilities",
+      "internal_dependencies": ["riptide-types"],
+      "external_dependencies": [
+        "pdfium-render",
+        "lopdf",
+        "sysinfo",
+        "psutil",
+        "regex",
+        "url",
+        "reqwest"
+      ],
+      "dependents": ["riptide-facade", "riptide-workers", "riptide-api"],
+      "dependent_count": 3
+    },
+    "riptide-pool": {
+      "layer": "extraction",
+      "description": "Instance pooling for extractors",
+      "internal_dependencies": [
+        "riptide-types",
+        "riptide-events",
+        "riptide-extraction"
+      ],
+      "external_dependencies": ["wasmtime", "scraper", "tokio", "uuid"],
+      "dependents": ["riptide-cache", "riptide-reliability"],
+      "dependent_count": 2,
+      "features": {
+        "default": ["native-pool"],
+        "optional": ["wasm-pool"]
+      }
+    },
+    "riptide-spider": {
+      "layer": "spider",
+      "description": "Web crawler/spider engine",
+      "internal_dependencies": [
+        "riptide-types",
+        "riptide-config",
+        "riptide-fetch"
+      ],
+      "external_dependencies": [
+        "spider",
+        "robotstxt",
+        "xml",
+        "wasmtime",
+        "wasmtime-wasi",
+        "sysinfo",
+        "psutil",
+        "regex",
+        "dashmap",
+        "uuid",
+        "chrono",
+        "schemars",
+        "libc"
+      ],
+      "dependents": ["riptide-facade", "riptide-api"],
+      "dependent_count": 2,
+      "metrics": {
+        "coupling": "medium",
+        "role": "core_service",
+        "stability": "stable"
+      }
+    },
+    "riptide-reliability": {
+      "layer": "reliability",
+      "description": "Circuit breakers, retry patterns, fault tolerance",
+      "internal_dependencies": [
+        "riptide-types",
+        "riptide-fetch",
+        "riptide-events",
+        "riptide-monitoring",
+        "riptide-pool"
+      ],
+      "external_dependencies": [
+        "tokio",
+        "reqwest",
+        "uuid",
+        "chrono",
+        "url",
+        "dirs"
+      ],
+      "dependents": [
+        "riptide-intelligence",
+        "riptide-workers",
+        "riptide-api"
+      ],
+      "dependent_count": 3,
+      "features": {
+        "default": ["events", "monitoring", "reliability-patterns"],
+        "resolution": "Circular dependency resolved via HtmlParser trait abstraction in riptide-types"
+      },
+      "metrics": {
+        "coupling": "medium",
+        "role": "infrastructure",
+        "stability": "stable",
+        "note": "Circular dependency with extraction resolved via trait abstraction"
+      }
+    },
+    "riptide-cache": {
+      "layer": "reliability",
+      "description": "Cache management system",
+      "internal_dependencies": [
+        "riptide-types",
+        "riptide-pool",
+        "riptide-events",
+        "riptide-extraction"
+      ],
+      "external_dependencies": [
+        "redis",
+        "sha2",
+        "dashmap",
+        "chrono",
+        "reqwest",
+        "url",
+        "dirs",
+        "once_cell"
+      ],
+      "dependents": ["riptide-facade", "riptide-workers", "riptide-api"],
+      "dependent_count": 3,
+      "features": {
+        "default": [],
+        "optional": ["distributed", "warming", "wasm-pool", "wasm-extractor"]
+      }
+    },
+    "riptide-security": {
+      "layer": "security",
+      "description": "Security middleware and PII handling",
+      "internal_dependencies": ["riptide-types"],
+      "external_dependencies": [
+        "sha2",
+        "base64",
+        "hex",
+        "governor",
+        "rand",
+        "regex",
+        "uuid",
+        "reqwest",
+        "chrono"
+      ],
+      "dependents": [],
+      "dependent_count": 0,
+      "features": {
+        "default": ["api-keys", "audit", "budget", "middleware", "pii"]
+      },
+      "metrics": {
+        "coupling": "low",
+        "role": "middleware",
+        "stability": "stable"
+      }
+    },
+    "riptide-persistence": {
+      "layer": "reliability",
+      "description": "Advanced persistence with Redis/DragonflyDB",
+      "internal_dependencies": [],
+      "external_dependencies": [
+        "redis",
+        "blake3",
+        "sha2",
+        "lz4_flex",
+        "zstd",
+        "crc32fast",
+        "dashmap",
+        "parking_lot",
+        "notify",
+        "prometheus"
+      ],
+      "dependents": ["riptide-api"],
+      "dependent_count": 1,
+      "features": {
+        "default": ["compression", "metrics"]
+      },
+      "metrics": {
+        "coupling": "low",
+        "role": "leaf",
+        "stability": "stable"
+      }
+    },
+    "riptide-intelligence": {
+      "layer": "intelligence",
+      "description": "LLM abstraction layer with safety guarantees",
+      "internal_dependencies": [
+        "riptide-reliability",
+        "riptide-types",
+        "riptide-events"
+      ],
+      "external_dependencies": [
+        "reqwest",
+        "tiktoken-rs",
+        "dashmap",
+        "arc-swap",
+        "parking_lot",
+        "sha2",
+        "dirs",
+        "serde_yaml",
+        "toml",
+        "notify",
+        "base64"
+      ],
+      "dependents": ["riptide-api"],
+      "dependent_count": 1,
+      "features": {
+        "default": ["openai", "anthropic", "groq"],
+        "all": ["openai", "anthropic", "groq", "mock"]
+      }
+    },
+    "riptide-search": {
+      "layer": "intelligence",
+      "description": "Search provider abstraction",
+      "internal_dependencies": [],
+      "external_dependencies": [
+        "reqwest",
+        "regex",
+        "url",
+        "tokio",
+        "once_cell",
+        "tracing"
+      ],
+      "dependents": ["riptide-facade", "riptide-api"],
+      "dependent_count": 2,
+      "metrics": {
+        "coupling": "low",
+        "role": "leaf",
+        "stability": "stable"
+      }
+    },
+    "riptide-performance": {
+      "layer": "monitoring",
+      "description": "Performance monitoring and profiling",
+      "internal_dependencies": [],
+      "external_dependencies": [
+        "tikv-jemalloc-ctl",
+        "pprof",
+        "memory-stats",
+        "criterion",
+        "flamegraph",
+        "tokio-metrics",
+        "sysinfo",
+        "psutil",
+        "opentelemetry",
+        "axum",
+        "redis",
+        "moka",
+        "governor"
+      ],
+      "dependents": ["riptide-api"],
+      "dependent_count": 1,
+      "features": {
+        "default": ["memory-profiling", "cache-optimization", "resource-limits"],
+        "production": [
+          "jemalloc",
+          "memory-profiling",
+          "bottleneck-analysis",
+          "cache-optimization",
+          "resource-limits"
+        ],
+        "development": [
+          "jemalloc",
+          "memory-profiling",
+          "bottleneck-analysis-full",
+          "cache-optimization"
+        ]
+      },
+      "metrics": {
+        "coupling": "low",
+        "role": "leaf",
+        "stability": "stable"
+      }
+    },
+    "riptide-workers": {
+      "layer": "workers",
+      "description": "Background job processing",
+      "internal_dependencies": [
+        "riptide-types",
+        "riptide-reliability",
+        "riptide-extraction",
+        "riptide-cache",
+        "riptide-pdf"
+      ],
+      "external_dependencies": [
+        "redis",
+        "cron",
+        "dashmap",
+        "parking_lot",
+        "num_cpus",
+        "rand",
+        "reqwest"
+      ],
+      "dependents": ["riptide-api"],
+      "dependent_count": 1,
+      "features": {
+        "optional": ["wasm-extractor"]
+      }
+    },
+    "riptide-streaming": {
+      "layer": "streaming",
+      "description": "SSE/WebSocket streaming",
+      "internal_dependencies": ["riptide-extraction"],
+      "external_dependencies": [
+        "axum",
+        "tokio-stream",
+        "async-stream",
+        "pin-project-lite",
+        "tokio-util",
+        "handlebars",
+        "base64",
+        "plotters",
+        "image",
+        "utoipa"
+      ],
+      "dependents": [],
+      "dependent_count": 0,
+      "features": {
+        "default": ["reports", "cli"]
+      }
+    },
+    "riptide-test-utils": {
+      "layer": "testing",
+      "description": "Testing utilities",
+      "internal_dependencies": [],
+      "external_dependencies": ["tokio", "serde", "tempfile", "axum", "tower"],
+      "dependents": [],
+      "dependent_count": 0,
+      "features": {
+        "optional": ["http-mock"]
+      },
+      "metrics": {
+        "coupling": "none",
+        "role": "dev_dependency",
+        "stability": "stable"
+      }
+    },
+    "riptide-facade": {
+      "layer": "api",
+      "description": "High-level unified API",
+      "internal_dependencies": [
+        "riptide-types",
+        "riptide-fetch",
+        "riptide-extraction",
+        "riptide-pdf",
+        "riptide-cache",
+        "riptide-browser",
+        "riptide-stealth",
+        "riptide-monitoring",
+        "riptide-spider",
+        "riptide-search"
+      ],
+      "external_dependencies": [
+        "scraper",
+        "spider_chromiumoxide_cdp",
+        "tokio",
+        "tracing"
+      ],
+      "dependents": ["riptide-api"],
+      "dependent_count": 1,
+      "features": {
+        "optional": ["wasm-extractor"]
+      },
+      "metrics": {
+        "coupling": "very_high",
+        "role": "integration",
+        "stability": "stable",
+        "dependency_count": 10
+      }
+    },
+    "riptide-api": {
+      "layer": "api",
+      "description": "REST API server (main application)",
+      "internal_dependencies": [
+        "riptide-types",
+        "riptide-spider",
+        "riptide-fetch",
+        "riptide-monitoring",
+        "riptide-events",
+        "riptide-extraction",
+        "riptide-search",
+        "riptide-config",
+        "riptide-intelligence",
+        "riptide-workers",
+        "riptide-browser",
+        "riptide-headless",
+        "riptide-performance",
+        "riptide-persistence",
+        "riptide-facade",
+        "riptide-pdf",
+        "riptide-stealth",
+        "riptide-cache",
+        "riptide-reliability"
+      ],
+      "external_dependencies": [
+        "axum",
+        "redis",
+        "wasmtime",
+        "prometheus",
+        "spider_chromiumoxide_cdp",
+        "spider_chrome",
+        "axum-prometheus"
+      ],
+      "dependents": [],
+      "dependent_count": 0,
+      "features": {
+        "default": ["native-parser"],
+        "optional": [
+          "events",
+          "sessions",
+          "streaming",
+          "telemetry",
+          "persistence",
+          "jemalloc",
+          "profiling-full",
+          "wasm-extractor"
+        ]
+      },
+      "metrics": {
+        "coupling": "very_high",
+        "role": "root_application",
+        "stability": "active_development",
+        "dependency_count": 19,
+        "concern": "Highest complexity - depends on 16+ internal crates"
+      }
+    },
+    "riptide-cli": {
+      "layer": "api",
+      "description": "Command-line interface (thin client)",
+      "internal_dependencies": [],
+      "external_dependencies": [
+        "clap",
+        "reqwest",
+        "url",
+        "colored",
+        "indicatif",
+        "comfy-table",
+        "dirs",
+        "ctrlc",
+        "base64",
+        "futures-util",
+        "tokio-util",
+        "env_logger",
+        "chrono",
+        "serde_yaml"
+      ],
+      "dependents": [],
+      "dependent_count": 0,
+      "features": {
+        "note": "Phase 1 thin CLI - all business logic moved to API server"
+      },
+      "metrics": {
+        "coupling": "none",
+        "role": "standalone_client",
+        "stability": "stable",
+        "dependency_count": 0,
+        "note": "Properly decoupled - communicates via HTTP with API server"
+      }
+    }
+  },
+  "dependency_matrix": {
+    "description": "Adjacency matrix showing internal dependencies",
+    "rows": [
+      "types",
+      "config",
+      "stealth",
+      "security",
+      "persistence",
+      "search",
+      "performance",
+      "test-utils",
+      "monitoring",
+      "fetch",
+      "events",
+      "browser-abs",
+      "browser",
+      "headless",
+      "extraction",
+      "pdf",
+      "pool",
+      "spider",
+      "reliability",
+      "cache",
+      "intelligence",
+      "workers",
+      "streaming",
+      "facade",
+      "api",
+      "cli"
+    ],
+    "matrix": [
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0],
+      [1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    ],
+    "note": "1 = depends on column, 0 = no dependency"
+  },
+  "external_dependencies": {
+    "critical": {
+      "tokio": {
+        "usage_count": 26,
+        "description": "Async runtime - used by all crates"
+      },
+      "serde": {
+        "usage_count": 26,
+        "description": "Serialization - used by all crates"
+      },
+      "reqwest": {
+        "usage_count": 10,
+        "description": "HTTP client",
+        "used_by": [
+          "fetch",
+          "spider",
+          "reliability",
+          "cache",
+          "intelligence",
+          "workers",
+          "streaming",
+          "api",
+          "cli"
+        ]
+      },
+      "spider_chrome": {
+        "usage_count": 5,
+        "description": "High-performance CDP browser automation",
+        "used_by": [
+          "browser-abstraction",
+          "browser",
+          "headless",
+          "facade",
+          "api"
+        ]
+      },
+      "redis": {
+        "usage_count": 4,
+        "description": "Cache and job queue backend",
+        "used_by": ["cache", "persistence", "workers", "api"]
+      },
+      "axum": {
+        "usage_count": 5,
+        "description": "Web framework",
+        "used_by": [
+          "headless",
+          "streaming",
+          "performance",
+          "test-utils",
+          "api"
+        ]
+      },
+      "wasmtime": {
+        "usage_count": 5,
+        "description": "WASM runtime",
+        "used_by": ["spider", "extraction", "pool", "api"]
+      },
+      "opentelemetry": {
+        "usage_count": 5,
+        "description": "Observability and telemetry",
+        "used_by": ["monitoring", "fetch", "events", "performance", "api"]
+      }
+    }
+  },
+  "analysis": {
+    "circular_dependencies": {
+      "count": 0,
+      "resolved": [
+        {
+          "crates": ["riptide-reliability", "riptide-extraction"],
+          "resolution": "HtmlParser trait abstraction in riptide-types allows dependency injection"
+        }
+      ]
+    },
+    "highly_coupled_crates": [
+      {
+        "name": "riptide-extraction",
+        "dependents": 9,
+        "concern": "Very high coupling - core extraction used by many crates"
+      },
+      {
+        "name": "riptide-events",
+        "dependents": 7,
+        "concern": "High coupling - event bus used across layers"
+      },
+      {
+        "name": "riptide-api",
+        "dependencies": 19,
+        "concern": "Highest complexity - depends on most internal crates"
+      },
+      {
+        "name": "riptide-facade",
+        "dependencies": 10,
+        "concern": "High integration complexity"
+      }
+    ],
+    "leaf_crates": [
+      "riptide-types",
+      "riptide-stealth",
+      "riptide-test-utils",
+      "riptide-persistence",
+      "riptide-search",
+      "riptide-performance",
+      "riptide-security",
+      "riptide-cli"
+    ],
+    "root_crates": [
+      {
+        "name": "riptide-types",
+        "dependents": 24,
+        "role": "Foundation for entire system"
+      },
+      {
+        "name": "riptide-events",
+        "dependents": 7,
+        "role": "Event bus infrastructure"
+      },
+      {
+        "name": "riptide-monitoring",
+        "dependents": 4,
+        "role": "Observability infrastructure"
+      }
+    ],
+    "architectural_layers": {
+      "foundation": ["types", "config", "stealth", "security", "test-utils"],
+      "infrastructure": ["monitoring", "fetch", "events", "performance"],
+      "browser": ["browser-abstraction", "browser", "headless"],
+      "extraction": ["extraction", "pdf", "pool"],
+      "spider": ["spider"],
+      "reliability": [
+        "reliability",
+        "cache",
+        "persistence"
+      ],
+      "intelligence": ["intelligence", "search"],
+      "workers": ["workers", "streaming"],
+      "api": ["facade", "api", "cli"]
+    },
+    "recommendations": [
+      {
+        "priority": "high",
+        "item": "Consider splitting riptide-extraction to reduce coupling (9 dependents)"
+      },
+      {
+        "priority": "medium",
+        "item": "Evaluate consolidating browser-abstraction, browser, and headless into single crate"
+      },
+      {
+        "priority": "low",
+        "item": "Consider feature flags to reduce riptide-api dependency count"
+      },
+      {
+        "priority": "completed",
+        "item": "✅ Circular dependency resolved via trait abstraction"
+      },
+      {
+        "priority": "completed",
+        "item": "✅ Thin CLI properly decoupled from business logic"
+      },
+      {
+        "priority": "completed",
+        "item": "✅ WASM made optional via feature flags"
+      }
+    ]
+  }
+}

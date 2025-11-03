@@ -164,8 +164,17 @@ impl DynamicBuffer {
 
         if is_backpressure && current_capacity > self.config.min_size {
             // Shrink buffer to reduce memory usage for slow clients
-            let new_capacity = ((current_capacity as f64 * self.config.shrink_factor) as usize)
-                .max(self.config.min_size);
+            // Safe conversion: validate shrink_factor is finite, use integer math
+            let new_capacity = if self.config.shrink_factor.is_finite()
+                && self.config.shrink_factor > 0.0
+                && self.config.shrink_factor < 1.0
+            {
+                let shrunk = (current_capacity as f64 * self.config.shrink_factor).ceil();
+                usize::try_from(shrunk as u64).unwrap_or(current_capacity)
+            } else {
+                current_capacity
+            }
+            .max(self.config.min_size);
 
             if new_capacity != current_capacity {
                 self.current_capacity.store(new_capacity, Ordering::Relaxed);
@@ -192,7 +201,14 @@ impl DynamicBuffer {
             // Grow buffer if we're dropping messages
             if drop_ratio > 0.01 {
                 // More than 1% drop rate
-                let new_capacity = ((current_capacity as f64 * self.config.growth_factor) as usize)
+                // Safe conversion: validate growth_factor is finite, use integer math
+                let new_capacity =
+                    if self.config.growth_factor.is_finite() && self.config.growth_factor >= 1.0 {
+                        let grown = (current_capacity as f64 * self.config.growth_factor).ceil();
+                        usize::try_from(grown as u64).unwrap_or(current_capacity)
+                    } else {
+                        current_capacity
+                    }
                     .min(self.config.max_size);
 
                 if new_capacity != current_capacity {
@@ -319,14 +335,24 @@ impl BackpressureHandler {
         // If performance is good (low drop rate), increase threshold
         // If performance is bad (high drop rate), decrease threshold
         if performance_ratio > 0.95 {
-            self.drop_threshold = (self.drop_threshold as f64 * 1.1) as usize;
+            // Safe: use saturating multiplication to avoid overflow
+            self.drop_threshold = self
+                .drop_threshold
+                .saturating_mul(11)
+                .checked_div(10)
+                .unwrap_or(self.drop_threshold);
             debug!(
                 connection_id = %self.connection_id,
                 new_threshold = self.drop_threshold,
                 "Increased drop threshold due to good performance"
             );
         } else if performance_ratio < 0.8 {
-            self.drop_threshold = (self.drop_threshold as f64 * 0.9) as usize;
+            // Safe: use saturating multiplication to avoid overflow
+            self.drop_threshold = self
+                .drop_threshold
+                .saturating_mul(9)
+                .checked_div(10)
+                .unwrap_or(self.drop_threshold);
             debug!(
                 connection_id = %self.connection_id,
                 new_threshold = self.drop_threshold,

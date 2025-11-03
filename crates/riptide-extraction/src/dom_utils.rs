@@ -110,15 +110,16 @@ impl DomTraverser {
         let selector = Selector::parse("*")
             .map_err(|e| anyhow::anyhow!("Invalid universal selector: {}", e))?;
         let all_elements = self.document.select(&selector);
-        let mut tag_counts = HashMap::new();
-        let mut total_text_length = 0;
+        let mut tag_counts: HashMap<String, usize> = HashMap::new();
+        let mut total_text_length: usize = 0;
 
         for element in all_elements {
             let tag = element.value().name();
-            *tag_counts.entry(tag.to_string()).or_insert(0) += 1;
+            let count = tag_counts.entry(tag.to_string()).or_insert(0);
+            *count = count.saturating_add(1);
 
             let text = element.text().collect::<String>();
-            total_text_length += text.len();
+            total_text_length = total_text_length.saturating_add(text.len());
         }
 
         let has_tables = tag_counts.contains_key("table");

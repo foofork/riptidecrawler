@@ -19,6 +19,7 @@ mod strategies_pipeline;
 mod streaming;
 mod telemetry_config;
 mod tests;
+mod utils;
 mod validation;
 
 // Configure jemalloc allocator for memory profiling (non-MSVC targets only)

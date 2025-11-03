@@ -268,7 +268,7 @@ async fn chunk_content_impl(
             let mut index = 0;
 
             while start < content.len() {
-                let end = (start + size).min(content.len());
+                let end = start.saturating_add(size).min(content.len());
                 let chunk_content = &content[start..end];
 
                 chunks.push(ContentChunk {
@@ -283,16 +283,20 @@ async fn chunk_content_impl(
                     break;
                 }
 
-                start = if overlap < size { end - overlap } else { end };
-                index += 1;
+                start = if overlap < size {
+                    end.saturating_sub(overlap)
+                } else {
+                    end
+                };
+                index = index.saturating_add(1);
             }
         }
         ChunkingMode::Sentence { max_sentences } => {
             let sentences: Vec<&str> = content.split(['.', '!', '?']).collect();
             let mut current_chunk = String::new();
-            let mut sentence_count = 0;
-            let mut start_pos = 0;
-            let mut index = 0;
+            let mut sentence_count: usize = 0;
+            let mut start_pos: usize = 0;
+            let mut index: usize = 0;
 
             for sentence in sentences {
                 if sentence.trim().is_empty() {
@@ -300,7 +304,7 @@ async fn chunk_content_impl(
                 }
 
                 if sentence_count >= max_sentences && !current_chunk.is_empty() {
-                    let end_pos = start_pos + current_chunk.len();
+                    let end_pos = start_pos.saturating_add(current_chunk.len());
                     chunks.push(ContentChunk {
                         content: current_chunk.trim().to_string(),
                         index,
@@ -312,14 +316,14 @@ async fn chunk_content_impl(
                     current_chunk.clear();
                     sentence_count = 0;
                     start_pos = end_pos;
-                    index += 1;
+                    index = index.saturating_add(1);
                 }
 
                 if !current_chunk.is_empty() {
                     current_chunk.push(' ');
                 }
                 current_chunk.push_str(sentence.trim());
-                sentence_count += 1;
+                sentence_count = sentence_count.saturating_add(1);
             }
 
             if !current_chunk.is_empty() {
@@ -335,9 +339,9 @@ async fn chunk_content_impl(
         ChunkingMode::Paragraph { max_paragraphs } => {
             let paragraphs: Vec<&str> = content.split("\n\n").collect();
             let mut current_chunk = String::new();
-            let mut paragraph_count = 0;
-            let mut start_pos = 0;
-            let mut index = 0;
+            let mut paragraph_count: usize = 0;
+            let mut start_pos: usize = 0;
+            let mut index: usize = 0;
 
             for paragraph in paragraphs {
                 if paragraph.trim().is_empty() {
@@ -345,7 +349,7 @@ async fn chunk_content_impl(
                 }
 
                 if paragraph_count >= max_paragraphs && !current_chunk.is_empty() {
-                    let end_pos = start_pos + current_chunk.len();
+                    let end_pos = start_pos.saturating_add(current_chunk.len());
                     chunks.push(ContentChunk {
                         content: current_chunk.trim().to_string(),
                         index,
@@ -357,14 +361,14 @@ async fn chunk_content_impl(
                     current_chunk.clear();
                     paragraph_count = 0;
                     start_pos = end_pos;
-                    index += 1;
+                    index = index.saturating_add(1);
                 }
 
                 if !current_chunk.is_empty() {
                     current_chunk.push_str("\n\n");
                 }
                 current_chunk.push_str(paragraph.trim());
-                paragraph_count += 1;
+                paragraph_count = paragraph_count.saturating_add(1);
             }
 
             if !current_chunk.is_empty() {
@@ -386,7 +390,7 @@ async fn chunk_content_impl(
             let mut index = 0;
 
             while start < tokens.len() {
-                let end = (start + max_tokens).min(tokens.len());
+                let end = start.saturating_add(max_tokens).min(tokens.len());
                 let chunk_tokens = &tokens[start..end];
                 let chunk_content = chunk_tokens.join(" ");
 
@@ -398,7 +402,7 @@ async fn chunk_content_impl(
                 let end_pos = if end >= tokens.len() {
                     content.len()
                 } else {
-                    start_pos + chunk_content.len()
+                    start_pos.saturating_add(chunk_content.len())
                 };
 
                 chunks.push(ContentChunk {
@@ -414,11 +418,11 @@ async fn chunk_content_impl(
                 }
 
                 start = if overlap < max_tokens {
-                    end - overlap
+                    end.saturating_sub(overlap)
                 } else {
                     end
                 };
-                index += 1;
+                index = index.saturating_add(1);
             }
         }
         ChunkingMode::Semantic {
@@ -427,14 +431,14 @@ async fn chunk_content_impl(
             // Simple implementation - split by double newlines (paragraphs)
             // In a real implementation, this would use semantic similarity
             let paragraphs: Vec<&str> = content.split("\n\n").collect();
-            let mut start_pos = 0;
+            let mut start_pos: usize = 0;
 
             for (index, paragraph) in paragraphs.iter().enumerate() {
                 if paragraph.trim().is_empty() {
                     continue;
                 }
 
-                let end_pos = start_pos + paragraph.len();
+                let end_pos = start_pos.saturating_add(paragraph.len());
                 chunks.push(ContentChunk {
                     content: paragraph.trim().to_string(),
                     index,
@@ -443,7 +447,7 @@ async fn chunk_content_impl(
                     metadata: HashMap::new(),
                 });
 
-                start_pos = end_pos + 2; // Account for double newline
+                start_pos = end_pos.saturating_add(2); // Account for double newline
             }
         }
     }

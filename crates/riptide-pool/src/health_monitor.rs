@@ -278,7 +278,7 @@ impl PoolHealthMonitor {
                 Ok(mut history) => {
                     history.push(status.clone());
                     // Keep only last 100 entries
-                    if history.len() > 100 {
+                    while history.len() > 100 {
                         history.remove(0);
                     }
                 }
@@ -286,7 +286,7 @@ impl PoolHealthMonitor {
                     warn!("Health history mutex poisoned, attempting recovery");
                     let mut history = poisoned.into_inner();
                     history.push(status.clone());
-                    if history.len() > 100 {
+                    while history.len() > 100 {
                         history.remove(0);
                     }
                 }
@@ -503,8 +503,10 @@ impl PoolHealthMonitor {
 
             // Create detailed health check completed event with healthy/unhealthy counts
             let healthy_instances = status.available_instances;
-            let unhealthy_instances =
-                status.max_instances - status.available_instances - status.active_instances;
+            let unhealthy_instances = status
+                .max_instances
+                .saturating_sub(status.available_instances)
+                .saturating_sub(status.active_instances);
 
             let mut event = HealthEvent::new(
                 format!("pool_health_{}", self.monitor_id),

@@ -320,7 +320,13 @@ impl ParallelExtractor {
                     };
 
                     // Acquire semaphore permit
-                    let _permit = semaphore.acquire().await.unwrap();
+                    let _permit = match semaphore.acquire().await {
+                        Ok(permit) => permit,
+                        Err(_) => {
+                            // Semaphore was closed, stop processing
+                            break;
+                        }
+                    };
 
                     // Update in-progress count
                     {
@@ -464,7 +470,21 @@ impl ParallelExtractor {
                 let tx = tx.clone();
 
                 join_set.spawn(async move {
-                    let _permit = semaphore.acquire().await.unwrap();
+                    let _permit = match semaphore.acquire().await {
+                        Ok(permit) => permit,
+                        Err(_) => {
+                            // Semaphore closed, send error result
+                            let error_result = ParallelExtractionResult {
+                                task_id: task.id,
+                                url: task.url.clone(),
+                                result: Err("Extraction cancelled - semaphore closed".to_string()),
+                                duration: Duration::from_secs(0),
+                                retry_count: 0,
+                            };
+                            let _ = tx.send(error_result).await;
+                            return;
+                        }
+                    };
                     let result = Self::process_task_with_retry(task, &extractor, &config).await;
                     let _ = tx.send(result).await;
                 });
@@ -700,7 +720,7 @@ mod tests {
 
         let _ = extractor.extract_batch(documents).await.unwrap();
 
-        let count = progress_count.lock().unwrap();
+        let count = progress_count.lock().expect("mutex should not be poisoned");
         // Progress callback is called for each completion, should be at least 1
         assert!(
             *count >= 1,

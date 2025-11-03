@@ -1,0 +1,646 @@
+{
+  "observability_catalog": {
+    "version": "1.0.0",
+    "generated": "2025-11-03T08:40:29Z",
+    "project": "EventMesh / RipTide",
+    "summary": {
+      "total_components": 8,
+      "logging_infrastructure": "tracing crate with OpenTelemetry",
+      "metrics_backend": "Prometheus",
+      "tracing_backend": "OpenTelemetry OTLP",
+      "health_check_endpoints": 15,
+      "profiling_capabilities": "jemalloc, pprof, flamegraph"
+    },
+    "components": {
+      "logging": {
+        "framework": "tracing",
+        "description": "Structured logging with levels (error, warn, info, debug, trace)",
+        "key_macros": [
+          "tracing::info!",
+          "tracing::warn!",
+          "tracing::error!",
+          "tracing::debug!",
+          "tracing::trace!"
+        ],
+        "log_levels": [
+          "error - Critical errors requiring immediate attention",
+          "warn - Warnings about potential issues",
+          "info - General informational messages",
+          "debug - Detailed debug information",
+          "trace - Very detailed trace information"
+        ],
+        "structured_fields": {
+          "enabled": true,
+          "examples": [
+            "tracing::info!(pool_size = pool_size, \"Pool initialized\")",
+            "tracing::warn!(error = %e, \"Failed to emit event\")",
+            "tracing::debug!(instance_id = %instance.id, \"Instance created\")"
+          ]
+        },
+        "configuration": {
+          "env_var": "RUST_LOG",
+          "default_level": "info",
+          "format": "json or text (configurable)"
+        },
+        "major_logging_areas": [
+          "riptide-pool - Instance lifecycle, health checks, metrics",
+          "riptide-intelligence - Provider health, failover, config loading",
+          "riptide-monitoring - Telemetry initialization, data collection",
+          "riptide-performance - Profiling sessions, memory tracking",
+          "riptide-persistence - Tenant operations, cache evictions"
+        ]
+      },
+      "metrics": {
+        "backend": "Prometheus",
+        "description": "Production-grade metrics collection with Prometheus integration",
+        "crates_used": [
+          "prometheus = \"0.14\"",
+          "prometheus-client (in some modules)"
+        ],
+        "metric_types": {
+          "counters": [
+            "eviction_total (by reason)",
+            "cache_hits_total",
+            "cache_misses_total",
+            "extraction_total",
+            "circuit_breaker_trips"
+          ],
+          "gauges": [
+            "pool_size",
+            "active_instances",
+            "memory_usage_bytes",
+            "pending_acquisitions",
+            "health_score"
+          ],
+          "histograms": [
+            "extraction_duration_seconds",
+            "semaphore_wait_time_ms",
+            "processing_time_ms",
+            "allocation_size_bytes"
+          ]
+        },
+        "major_metric_categories": [
+          {
+            "category": "Pool Metrics",
+            "metrics": [
+              "pool_size - Current pool size",
+              "active_instances - Number of active instances",
+              "available_instances - Available for acquisition",
+              "pending_acquisitions - Waiting for instances",
+              "total_acquisitions - Total acquire operations",
+              "success_rate - Acquisition success percentage",
+              "avg_acquisition_time_ms - Average wait time"
+            ],
+            "location": "riptide-pool/src/pool.rs"
+          },
+          {
+            "category": "Extraction Metrics",
+            "metrics": [
+              "total_extractions - Total extraction attempts",
+              "successful_extractions - Successful completions",
+              "failed_extractions - Failed attempts",
+              "fallback_extractions - Fallback usage count",
+              "avg_processing_time_ms - Average extraction time",
+              "extraction_duration_histogram - Duration distribution"
+            ],
+            "location": "riptide-pool/src/pool.rs"
+          },
+          {
+            "category": "Circuit Breaker Metrics",
+            "metrics": [
+              "circuit_breaker_trips - Number of trips",
+              "circuit_state - Current state (open/closed/half-open)",
+              "failure_rate - Current failure percentage"
+            ],
+            "location": "riptide-pool/src/pool.rs, riptide-intelligence/src/circuit_breaker.rs"
+          },
+          {
+            "category": "Cache Metrics",
+            "metrics": [
+              "cache_hits_total - Cache hit count",
+              "cache_misses_total - Cache miss count",
+              "eviction_total - Evictions by reason (TTL, LRU, size, error)",
+              "cache_size_bytes - Current cache size",
+              "hit_rate - Cache hit percentage"
+            ],
+            "location": "riptide-persistence/src/metrics.rs"
+          },
+          {
+            "category": "Tenant Metrics",
+            "metrics": [
+              "tenant_operations_total - Operations per tenant",
+              "tenant_data_transfer_bytes - Data transfer per tenant",
+              "tenant_quota_usage - Resource usage vs quota"
+            ],
+            "location": "riptide-persistence/src/tenant.rs"
+          },
+          {
+            "category": "Memory Metrics",
+            "metrics": [
+              "memory_allocated_bytes - Current allocation",
+              "memory_resident_bytes - Resident set size",
+              "allocation_count - Number of allocations",
+              "deallocation_count - Number of deallocations",
+              "leak_candidates - Potential memory leaks"
+            ],
+            "location": "riptide-performance/src/profiling/"
+          }
+        ],
+        "prometheus_integration": {
+          "registry": "prometheus::Registry",
+          "exporter": "Built-in HTTP endpoint",
+          "format": "Prometheus text format",
+          "endpoint": "/metrics (typical)"
+        },
+        "collection_intervals": {
+          "default": "60 seconds",
+          "configurable": "via metrics_interval_seconds",
+          "realtime": "On-demand via API endpoints"
+        }
+      },
+      "tracing": {
+        "backend": "OpenTelemetry",
+        "description": "Distributed tracing with OpenTelemetry OTLP export",
+        "dependencies": [
+          "opentelemetry = workspace",
+          "opentelemetry-otlp = workspace",
+          "opentelemetry_sdk = workspace",
+          "opentelemetry-semantic-conventions = workspace",
+          "tracing-opentelemetry = workspace"
+        ],
+        "configuration": {
+          "otlp_endpoint": {
+            "env_var": "OTEL_EXPORTER_OTLP_ENDPOINT",
+            "default": "http://localhost:4317",
+            "protocol": "gRPC (OTLP)"
+          },
+          "service_metadata": [
+            "SERVICE_NAME - Service identifier",
+            "SERVICE_VERSION - Version from Cargo.toml"
+          ],
+          "propagation": "TraceContextPropagator (W3C Trace Context)",
+          "sampling": "Configurable sampler (default: always on)"
+        },
+        "span_creation": {
+          "macro": "telemetry_span!",
+          "examples": [
+            "let _span = telemetry_span!(\"operation_name\")",
+            "let _span = telemetry_span!(\"operation\", url = %url, user_id = %id)"
+          ],
+          "automatic_fields": [
+            "timestamp",
+            "trace_id",
+            "span_id",
+            "parent_span_id",
+            "duration"
+          ]
+        },
+        "trace_attributes": {
+          "common": [
+            "http.method",
+            "http.url",
+            "http.status_code",
+            "db.operation",
+            "cache.key",
+            "pool.instance_id"
+          ],
+          "custom": "Arbitrary key-value pairs via span attributes"
+        },
+        "tracer_usage": {
+          "global_tracer": "global::tracer(\"riptide-crawler\")",
+          "location": "riptide-monitoring/src/telemetry.rs",
+          "integration": "tracing_opentelemetry::layer()"
+        },
+        "exporters": {
+          "otlp": {
+            "protocol": "gRPC",
+            "batch_processing": true,
+            "runtime": "tokio"
+          }
+        },
+        "major_traced_operations": [
+          "HTTP requests (riptide-fetch)",
+          "Database operations (riptide-persistence)",
+          "Pool acquisitions (riptide-pool)",
+          "Extraction workflows (riptide-extraction)",
+          "LLM requests (riptide-intelligence)"
+        ]
+      },
+      "health_checks": {
+        "description": "Comprehensive health monitoring across all services",
+        "endpoints": [
+          {
+            "path": "/health",
+            "method": "GET",
+            "response_format": "JSON",
+            "components_checked": [
+              "API server",
+              "Database connectivity",
+              "Cache availability",
+              "External services"
+            ],
+            "location": "riptide-api/src/main.rs, riptide-streaming/src/api_handlers.rs"
+          },
+          {
+            "path": "/healthz",
+            "method": "GET",
+            "response_format": "JSON with detailed status",
+            "components_checked": [
+              "redis - Redis cache connectivity",
+              "extractor - WASM extractor availability",
+              "http_client - HTTP client functionality",
+              "headless_service - Browser pool (optional)",
+              "spider_engine - Spider service (optional)",
+              "worker_service - Background workers (optional)"
+            ],
+            "location": "riptide-api, riptide-headless"
+          },
+          {
+            "path": "/api/health/detailed",
+            "method": "GET",
+            "response_format": "Detailed JSON diagnostics",
+            "includes": [
+              "Component statuses",
+              "Dependency health",
+              "System metrics",
+              "Version information",
+              "Uptime statistics"
+            ]
+          }
+        ],
+        "health_status_values": [
+          "healthy - All systems operational",
+          "degraded - Some non-critical issues",
+          "unhealthy - Critical failures present"
+        ],
+        "component_health_checks": {
+          "redis": {
+            "check": "PING command",
+            "timeout": "5 seconds",
+            "failure_action": "Mark as unhealthy"
+          },
+          "wasm_extractor": {
+            "check": "Instance creation test",
+            "timeout": "10 seconds",
+            "failure_action": "Mark as unhealthy"
+          },
+          "http_client": {
+            "check": "Basic connectivity test",
+            "timeout": "5 seconds"
+          },
+          "provider_health": {
+            "check": "Provider-specific health_check() method",
+            "location": "riptide-search/src/lib.rs",
+            "interface": "async fn health_check(&self) -> Result<()>"
+          }
+        },
+        "health_monitoring": {
+          "background_tasks": true,
+          "check_interval": "Configurable (default 60s)",
+          "automatic_remediation": [
+            "Instance replacement on health failure",
+            "Circuit breaker trips on degraded health",
+            "Failover to backup providers"
+          ],
+          "locations": [
+            "riptide-pool/src/health.rs - Pool health monitoring",
+            "riptide-intelligence/src/health.rs - Provider health",
+            "riptide-api/src/health.rs - Overall system health"
+          ]
+        },
+        "health_metrics": {
+          "health_score": "0.0 to 1.0 (1.0 = perfect health)",
+          "health_checks_performed": "Counter of total checks",
+          "unhealthy_instances": "Current unhealthy count",
+          "degraded_components": "List of degraded components"
+        }
+      },
+      "profiling": {
+        "description": "Production-ready memory and CPU profiling with minimal overhead",
+        "allocator": {
+          "name": "jemalloc",
+          "feature_flag": "jemalloc",
+          "purpose": "Enhanced memory profiling and allocation statistics",
+          "stats_crate": "tikv-jemalloc-ctl",
+          "configuration": "MALLOC_CONF environment variable"
+        },
+        "profiling_types": {
+          "memory_profiling": {
+            "enabled_by": "memory-profiling feature flag",
+            "capabilities": [
+              "Real-time memory tracking",
+              "Allocation size histograms",
+              "Leak detection",
+              "Heap snapshots",
+              "RSS and virtual memory tracking"
+            ],
+            "overhead": "< 2% in production",
+            "implementation": "riptide-performance/src/profiling/memory.rs"
+          },
+          "cpu_profiling": {
+            "tool": "pprof",
+            "output_format": "protobuf (pprof format)",
+            "features": [
+              "CPU time sampling",
+              "Stack trace collection",
+              "Hot path identification"
+            ],
+            "implementation": "riptide-performance/src/profiling/cpu.rs"
+          },
+          "flamegraph_generation": {
+            "feature_flag": "bottleneck-analysis-full",
+            "note": "EXCLUDED from CI builds (CDDL-1.0 license)",
+            "usage": "Development only",
+            "tool": "flamegraph crate + inferno",
+            "implementation": "riptide-performance/src/profiling/flamegraph.rs"
+          }
+        },
+        "profiling_endpoints": [
+          {
+            "path": "/api/profiling/memory",
+            "method": "GET",
+            "returns": "Current memory usage, allocations, RSS",
+            "format": "JSON"
+          },
+          {
+            "path": "/api/profiling/cpu",
+            "method": "GET",
+            "returns": "CPU usage statistics and sampling data",
+            "format": "JSON"
+          },
+          {
+            "path": "/api/profiling/bottlenecks",
+            "method": "GET",
+            "returns": "Identified performance bottlenecks",
+            "format": "JSON with analysis"
+          },
+          {
+            "path": "/api/profiling/allocations",
+            "method": "GET",
+            "returns": "Allocation statistics by component",
+            "format": "JSON histogram"
+          },
+          {
+            "path": "/api/profiling/leak-detection",
+            "method": "POST",
+            "action": "Trigger leak detection analysis",
+            "returns": "Leak candidates and analysis"
+          },
+          {
+            "path": "/api/profiling/snapshot",
+            "method": "POST",
+            "action": "Capture heap snapshot",
+            "returns": "Snapshot metadata and storage location"
+          }
+        ],
+        "profiling_sessions": {
+          "session_management": "UUID-based session IDs",
+          "start": "MemoryProfiler::start_profiling()",
+          "stop": "MemoryProfiler::stop_profiling()",
+          "data_export": "Protobuf format for pprof compatibility",
+          "telemetry_export": "OpenTelemetry metrics integration"
+        },
+        "leak_detection": {
+          "algorithm": "Allocation lifetime tracking",
+          "threshold": "Configurable leak detection window",
+          "reporting": [
+            "Leak candidates",
+            "Allocation sources",
+            "Growth trends"
+          ],
+          "implementation": "riptide-performance/src/profiling/leak_detector.rs"
+        },
+        "allocation_analysis": {
+          "tracking": [
+            "Top allocators by size",
+            "Top operations by count",
+            "Allocation size distribution"
+          ],
+          "histograms": "Size-bucketed allocation histograms",
+          "implementation": "riptide-performance/src/profiling/allocation_analyzer.rs"
+        },
+        "performance_overhead": {
+          "target": "< 2%",
+          "measurement": "Continuous monitoring",
+          "optimization": "Sampling-based collection"
+        }
+      },
+      "diagnostics": {
+        "description": "Comprehensive system diagnostics and validation tools",
+        "cli_commands": [
+          {
+            "command": "riptide doctor",
+            "purpose": "System health diagnostics",
+            "checks": [
+              "API connectivity",
+              "Pool health",
+              "System resource usage",
+              "Dependency status"
+            ],
+            "output_formats": [
+              "Human-readable summary",
+              "JSON (with --json flag)"
+            ],
+            "location": "riptide-cli/src/commands/doctor.rs"
+          },
+          {
+            "command": "riptide wasm health",
+            "purpose": "WASM extractor health check",
+            "checks": [
+              "Instance creation",
+              "Extraction capability",
+              "Resource limits"
+            ]
+          }
+        ],
+        "validation_framework": {
+          "location": "riptide-monitoring/src/validation/",
+          "capabilities": [
+            "System resource validation",
+            "Configuration validation",
+            "Performance baseline profiling",
+            "Dependency health checks"
+          ],
+          "checks_module": "riptide-monitoring/src/validation/checks.rs"
+        },
+        "diagnostic_data": {
+          "system_metrics": [
+            "CPU usage",
+            "Memory usage (RSS, virtual)",
+            "Disk I/O",
+            "Network connectivity"
+          ],
+          "application_metrics": [
+            "Pool utilization",
+            "Cache hit rates",
+            "Request latencies",
+            "Error rates"
+          ],
+          "dependency_status": [
+            "Redis connectivity",
+            "External API availability",
+            "Browser pool health"
+          ]
+        },
+        "remediation_guidance": {
+          "enabled": true,
+          "provides": [
+            "Error explanations",
+            "Fix suggestions",
+            "Configuration recommendations",
+            "Troubleshooting steps"
+          ],
+          "location": "doctor.rs print_remediation()"
+        }
+      }
+    },
+    "instrumentation_patterns": {
+      "logging_best_practices": [
+        "Use structured fields for queryable data",
+        "Include context (instance_id, pool_id, tenant_id)",
+        "Log at appropriate levels (error for failures, info for lifecycle)",
+        "Avoid logging sensitive data (use data sanitization)"
+      ],
+      "metric_collection": [
+        "Record metrics at operation completion",
+        "Use appropriate metric types (counter for events, gauge for state)",
+        "Include relevant labels (component, operation_type)",
+        "Batch metric updates for performance"
+      ],
+      "tracing_spans": [
+        "Create spans for major operations",
+        "Include relevant attributes (url, user_id, etc.)",
+        "Use hierarchical span structure",
+        "Keep spans focused on logical operations"
+      ]
+    },
+    "export_formats": {
+      "logs": [
+        "JSON (structured logging)",
+        "Text (human-readable)",
+        "OTLP (via tracing-opentelemetry)"
+      ],
+      "metrics": [
+        "Prometheus text format (/metrics endpoint)",
+        "JSON (via API endpoints)",
+        "OTLP (future enhancement)"
+      ],
+      "traces": [
+        "OTLP over gRPC",
+        "Protobuf (pprof format for profiling data)"
+      ],
+      "profiling_data": [
+        "Protobuf (pprof format)",
+        "JSON (memory snapshots)",
+        "Flamegraph SVG (development only)"
+      ]
+    },
+    "configuration": {
+      "logging": {
+        "env_vars": [
+          "RUST_LOG - Log level filter (error, warn, info, debug, trace)"
+        ],
+        "config_file": "Not currently used for logging",
+        "default_level": "info"
+      },
+      "metrics": {
+        "env_vars": [],
+        "config_file": "config.toml - metrics_interval_seconds",
+        "collection_interval": "60 seconds (default)"
+      },
+      "tracing": {
+        "env_vars": [
+          "OTEL_EXPORTER_OTLP_ENDPOINT - OTLP collector endpoint"
+        ],
+        "config_file": "Not currently used",
+        "default_endpoint": "http://localhost:4317"
+      },
+      "profiling": {
+        "env_vars": [
+          "MALLOC_CONF - jemalloc configuration"
+        ],
+        "feature_flags": [
+          "memory-profiling - Enable memory profiling",
+          "bottleneck-analysis - Enable bottleneck detection",
+          "bottleneck-analysis-full - Include flamegraph (dev only)"
+        ],
+        "config_file": "config/performance.toml"
+      }
+    },
+    "integration_points": {
+      "prometheus": {
+        "scrape_endpoint": "/metrics",
+        "format": "Prometheus text format",
+        "metrics_exported": "All application metrics"
+      },
+      "grafana": {
+        "data_source": "Prometheus",
+        "dashboards": "Custom dashboards recommended",
+        "alerting": "Via Prometheus alerts"
+      },
+      "jaeger": {
+        "protocol": "OTLP",
+        "endpoint": "Configurable via OTEL_EXPORTER_OTLP_ENDPOINT",
+        "trace_format": "OpenTelemetry"
+      },
+      "elastic_apm": {
+        "protocol": "OTLP (compatible)",
+        "integration": "Via OpenTelemetry collector"
+      }
+    },
+    "feature_flags": {
+      "metrics": {
+        "flag": "metrics",
+        "default": "enabled",
+        "dependencies": ["prometheus"]
+      },
+      "memory-profiling": {
+        "flag": "memory-profiling",
+        "default": "disabled",
+        "dependencies": ["tikv-jemalloc-ctl", "pprof", "memory-stats"]
+      },
+      "bottleneck-analysis": {
+        "flag": "bottleneck-analysis",
+        "default": "disabled",
+        "dependencies": ["criterion"]
+      },
+      "bottleneck-analysis-full": {
+        "flag": "bottleneck-analysis-full",
+        "default": "disabled (CI builds)",
+        "dependencies": ["bottleneck-analysis", "flamegraph"],
+        "note": "Development only - CDDL-1.0 license"
+      },
+      "jemalloc": {
+        "flag": "jemalloc",
+        "default": "disabled",
+        "purpose": "Enhanced memory profiling",
+        "platform": "non-MSVC only"
+      }
+    },
+    "security_considerations": {
+      "data_sanitization": {
+        "enabled": true,
+        "scope": [
+          "Sensitive URLs",
+          "API keys",
+          "User credentials",
+          "Personal information"
+        ],
+        "implementation": "riptide-monitoring/src/telemetry.rs::sanitize_data()"
+      },
+      "authentication": {
+        "health_endpoints": "Public (no auth required)",
+        "metrics_endpoint": "Public (Prometheus standard)",
+        "profiling_endpoints": "Should be protected in production",
+        "diagnostic_endpoints": "Should be protected in production"
+      }
+    },
+    "performance_characteristics": {
+      "logging_overhead": "< 1% (structured logging)",
+      "metrics_overhead": "< 1% (Prometheus)",
+      "tracing_overhead": "1-3% (with sampling)",
+      "profiling_overhead": "< 2% (memory profiling)",
+      "total_observability_overhead": "< 5% (all systems enabled)"
+    }
+  }
+}

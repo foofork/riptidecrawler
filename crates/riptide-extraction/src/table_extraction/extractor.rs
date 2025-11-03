@@ -501,7 +501,9 @@ impl TableExtractor {
         }
 
         // The last row becomes the main headers (most specific)
-        let main_headers = all_header_rows.pop().unwrap();
+        let main_headers = all_header_rows
+            .pop()
+            .ok_or_else(|| anyhow::anyhow!("No header rows found in table"))?;
 
         // All preceding rows are sub-headers (hierarchical levels)
         let sub_headers = all_header_rows;

@@ -216,7 +216,8 @@ impl HtmlLinkExtractor {
 
     /// Extract plain text content from document
     fn extract_text_content(&self, document: &Html) -> String {
-        let text_selector = Selector::parse("body").unwrap();
+        let text_selector = Selector::parse("body")
+            .expect("hardcoded CSS selector should be valid");
         document
             .select(&text_selector)
             .next()
@@ -320,7 +321,8 @@ impl HtmlLinkExtractor {
 
     /// Check for form indicators
     fn has_form_indicators(&self, document: &Html) -> bool {
-        let form_selector = Selector::parse("form").unwrap();
+        let form_selector = Selector::parse("form")
+            .expect("hardcoded CSS selector should be valid");
         document.select(&form_selector).count() > 0
     }
 
@@ -405,7 +407,8 @@ impl HtmlLinkExtractor {
         for selector_str in &nav_selectors {
             if let Ok(selector) = Selector::parse(selector_str) {
                 if let Some(nav_elem) = document.select(&selector).next() {
-                    let link_selector = Selector::parse("a").unwrap();
+                    let link_selector = Selector::parse("a")
+                        .expect("hardcoded CSS selector should be valid");
                     let items: Vec<String> = nav_elem
                         .select(&link_selector)
                         .filter_map(|a| a.text().next())
@@ -471,7 +474,8 @@ impl HtmlLinkExtractor {
         let mut indicators = Vec::new();
 
         // Look for date/time elements
-        let time_selector = Selector::parse("time").unwrap();
+        let time_selector = Selector::parse("time")
+            .expect("hardcoded CSS selector should be valid");
         for time_elem in document.select(&time_selector) {
             if let Some(datetime) = time_elem.value().attr("datetime") {
                 indicators.push(format!("datetime:{}", datetime));
