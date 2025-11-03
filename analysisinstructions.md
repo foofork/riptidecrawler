@@ -39,7 +39,7 @@ A single structured Markdown document titled
 It should contain the following sections (each section must be filled in):
 
 #### **1️⃣ Crates Table**
-
+Example:
 | Crate          | Path           | Purpose (as implemented)    | Key Exports          | External Dependencies       | Internal Dependencies              |
 | -------------- | -------------- | --------------------------- | -------------------- | --------------------------- | ---------------------------------- |
 | `riptide-core` | `/crates/core` | Handles main pipeline logic | `Pipeline`, `Runner` | `tokio`, `reqwest`, `redis` | `riptide-fetch`, `riptide-extract` |
