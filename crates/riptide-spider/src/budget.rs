@@ -185,7 +185,11 @@ impl BudgetUsage {
         if limit_value == 0 {
             0.0
         } else {
-            (current_value as f64 / limit_value as f64).min(1.0_f64)
+            // Safe conversion: u64 to f64 may lose precision for very large values
+            // but is acceptable for budget tracking purposes
+            #[allow(clippy::cast_precision_loss)]
+            let ratio = (current_value as f64 / limit_value as f64).min(1.0_f64);
+            ratio
         }
     }
 }
@@ -286,7 +290,10 @@ impl BudgetViolation {
         if self.limit_value == 0 {
             100.0
         } else {
-            (self.current_value as f64 / self.limit_value as f64) * 100.0
+            // Safe conversion: u64 to f64 for percentage calculation
+            #[allow(clippy::cast_precision_loss)]
+            let percentage = (self.current_value as f64 / self.limit_value as f64) * 100.0;
+            percentage
         }
     }
 }
@@ -432,7 +439,8 @@ impl BudgetManager {
                 .or_insert_with(|| HostBudget::new(host.to_string(), self.config.per_host.clone()));
 
             host_budget.usage.current_depth = host_budget.usage.current_depth.max(depth);
-            host_budget.usage.concurrent_requests += 1;
+            host_budget.usage.concurrent_requests =
+                host_budget.usage.concurrent_requests.saturating_add(1);
             host_budget.last_activity = Instant::now();
         }
 
@@ -466,8 +474,12 @@ impl BudgetManager {
             if let Some(host) = url.host_str() {
                 let mut host_budgets = self.host_budgets.write().await;
                 if let Some(host_budget) = host_budgets.get_mut(host) {
-                    host_budget.usage.pages_crawled += 1;
-                    host_budget.usage.bandwidth_used += content_size as u64;
+                    host_budget.usage.pages_crawled =
+                        host_budget.usage.pages_crawled.saturating_add(1);
+                    // Safe conversion: usize to u64 for bandwidth tracking
+                    let content_u64 = u64::try_from(content_size).unwrap_or(u64::MAX);
+                    host_budget.usage.bandwidth_used =
+                        host_budget.usage.bandwidth_used.saturating_add(content_u64);
                     host_budget.usage.concurrent_requests =
                         host_budget.usage.concurrent_requests.saturating_sub(1);
                     host_budget.last_activity = Instant::now();

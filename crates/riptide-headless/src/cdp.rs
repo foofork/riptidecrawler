@@ -71,12 +71,15 @@ pub async fn render(
                 timeout_ms = render_timeout.as_millis(),
                 "Headless render timed out"
             );
+            // Safe truncation: timeout is 3 seconds (3000ms), well within u64 range
+            #[allow(clippy::cast_possible_truncation)]
+            let duration_ms = render_timeout.as_millis() as u64;
             Err((
                 StatusCode::REQUEST_TIMEOUT,
                 Json(RenderErrorResp {
                     error: "Render timeout exceeded".to_string(),
                     request_id: Some(request_id),
-                    duration_ms: render_timeout.as_millis() as u64,
+                    duration_ms,
                 }),
             ))
         }
@@ -89,7 +92,11 @@ async fn exec_actions(page: &Page, actions: &[PageAction]) -> anyhow::Result<()>
         match action {
             PageAction::WaitForCss { css, timeout_ms } => {
                 // Implement deadline-based timeout similar to WaitForJs
-                let deadline = Instant::now() + Duration::from_millis(timeout_ms.unwrap_or(5000));
+                // Safe: timeout is clamped to reasonable values, checked_add prevents overflow
+                let timeout_duration = Duration::from_millis(timeout_ms.unwrap_or(5000));
+                let deadline = Instant::now()
+                    .checked_add(timeout_duration)
+                    .unwrap_or_else(Instant::now); // Fallback to now if overflow (extremely unlikely)
                 loop {
                     // Attempt to find the element
                     match timeout(Duration::from_millis(100), page.find_element(css)).await {
@@ -109,7 +116,11 @@ async fn exec_actions(page: &Page, actions: &[PageAction]) -> anyhow::Result<()>
                 }
             }
             PageAction::WaitForJs { expr, timeout_ms } => {
-                let deadline = Instant::now() + Duration::from_millis(timeout_ms.unwrap_or(5000));
+                // Safe: timeout is clamped to reasonable values, checked_add prevents overflow
+                let timeout_duration = Duration::from_millis(timeout_ms.unwrap_or(5000));
+                let deadline = Instant::now()
+                    .checked_add(timeout_duration)
+                    .unwrap_or_else(Instant::now); // Fallback to now if overflow (extremely unlikely)
                 loop {
                     let result = page.evaluate(expr.as_str()).await?;
                     let ok: bool = result.into_value().unwrap_or_else(|e| {
@@ -139,8 +150,13 @@ async fn exec_actions(page: &Page, actions: &[PageAction]) -> anyhow::Result<()>
                         page.evaluate(scroll_js.as_str()),
                     )
                     .await
-                    .map_err(|_| anyhow::anyhow!("Scroll step {} timed out", i + 1))??;
-                    debug!("Scrolled step {}/{}: {}px", i + 1, steps, step_px);
+                    .map_err(|_| {
+                        // Safe: i is a bounded loop counter (steps is u32), saturating_add prevents overflow
+                        let step_num = i.saturating_add(1);
+                        anyhow::anyhow!("Scroll step {} timed out", step_num)
+                    })??;
+                    let step_num = i.saturating_add(1);
+                    debug!("Scrolled step {}/{}: {}px", step_num, steps, step_px);
                     sleep(Duration::from_millis(*delay_ms)).await;
                 }
             }
@@ -180,9 +196,11 @@ async fn exec_actions(page: &Page, actions: &[PageAction]) -> anyhow::Result<()>
 
                 // Type with per-character timeout protection
                 let char_delay = delay_ms.unwrap_or(20);
+                // Safe: char_delay is reasonable (default 20ms), saturating_add prevents overflow
+                let char_timeout = char_delay.saturating_add(100); // Add 100ms buffer for operation
                 for ch in text.chars() {
                     timeout(
-                        Duration::from_millis(char_delay + 100), // Add 100ms buffer for operation
+                        Duration::from_millis(char_timeout),
                         element.type_str(&ch.to_string()),
                     )
                     .await

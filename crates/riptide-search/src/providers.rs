@@ -131,7 +131,9 @@ impl SerperProvider {
                     .ok_or_else(|| anyhow::anyhow!("Missing URL in search result"))?
                     .to_string();
 
-                let mut hit = SearchHit::new(url, (index + 1) as u32);
+                // Safe rank calculation: index is from search results (limited to 100), saturating add prevents overflow
+                let rank = u32::try_from(index).unwrap_or(u32::MAX).saturating_add(1);
+                let mut hit = SearchHit::new(url, rank);
 
                 if let Some(title) = result.get("title").and_then(|v| v.as_str()) {
                     hit = hit.with_title(title.to_string());

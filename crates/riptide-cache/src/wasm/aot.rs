@@ -125,7 +125,7 @@ impl WasmAotCache {
                 if compiled_path.exists() {
                     // Update access statistics
                     entry.last_accessed = Self::current_timestamp();
-                    entry.access_count += 1;
+                    entry.access_count = entry.access_count.saturating_add(1);
 
                     debug!(
                         source = wasm_path,
@@ -204,6 +204,9 @@ impl WasmAotCache {
         let compile_time = start.elapsed();
 
         // Create cache entry
+        #[allow(clippy::cast_possible_truncation)]
+        let compile_time_ms = compile_time.as_millis().min(u64::MAX as u128) as u64;
+
         let entry = CacheEntry {
             source_path: source_path.to_string(),
             source_hash: source_hash.to_string(),
@@ -211,7 +214,7 @@ impl WasmAotCache {
             compiled_at: Self::current_timestamp(),
             last_accessed: Self::current_timestamp(),
             access_count: 1,
-            compile_time_ms: compile_time.as_millis() as u64,
+            compile_time_ms,
         };
 
         // Add to cache
@@ -293,7 +296,7 @@ impl WasmAotCache {
         for entry in cache.values() {
             let compiled_path = self.cache_dir.join(&entry.compiled_file);
             if let Ok(metadata) = std::fs::metadata(&compiled_path) {
-                total_size_bytes += metadata.len();
+                total_size_bytes = total_size_bytes.saturating_add(metadata.len());
             }
         }
 
@@ -334,7 +337,7 @@ impl WasmAotCache {
                     .metadata()
                     .map(|m| m.len())
                     .unwrap_or(0);
-                total_size += size;
+                total_size = total_size.saturating_add(size);
                 (
                     hash.clone(),
                     entry.last_accessed,
@@ -349,14 +352,14 @@ impl WasmAotCache {
             entries_by_access.sort_by_key(|(_, last_accessed, _, _)| *last_accessed);
 
             let mut removed_size = 0u64;
-            let target_removal = total_size - self.config.max_cache_size_bytes;
+            let target_removal = total_size.saturating_sub(self.config.max_cache_size_bytes);
 
             for (hash, _, size, compiled_file) in entries_by_access {
                 if removed_size >= target_removal {
                     break;
                 }
                 entries_to_remove.push((hash, compiled_file));
-                removed_size += size;
+                removed_size = removed_size.saturating_add(size);
             }
         }
 

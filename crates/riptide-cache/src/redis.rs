@@ -323,13 +323,13 @@ impl CacheManager {
     /// Warm the cache with frequently accessed keys
     /// This should be called at startup or after cache clear operations
     pub async fn warm_cache(&mut self, frequent_keys: Vec<String>) -> Result<u32> {
-        let mut warmed_count = 0;
+        let mut warmed_count = 0u32;
 
         for key in frequent_keys {
             // Check if key exists, if not it will be populated on first access
             let exists: bool = self.conn.exists(&key).await?;
             if exists {
-                warmed_count += 1;
+                warmed_count = warmed_count.saturating_add(1);
                 debug!(key = %key, "Cache key already warmed");
             } else {
                 debug!(key = %key, "Cache key will be populated on first access");

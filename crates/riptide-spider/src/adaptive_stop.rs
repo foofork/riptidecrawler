@@ -129,8 +129,13 @@ pub struct ContentMetrics {
 impl ContentMetrics {
     /// Calculate content gain score
     pub fn gain_score(&self, weights: &AdaptiveStopConfig) -> f64 {
+        // Safe conversion: usize to f64 may lose precision for very large values (>2^52)
+        // but this is acceptable for content metrics which won't reach such sizes
+        #[allow(clippy::cast_precision_loss)]
         let text_score = self.unique_text_chars as f64 * weights.text_content_weight;
+        #[allow(clippy::cast_precision_loss)]
         let link_score = self.link_count as f64 * weights.link_richness_weight;
+        #[allow(clippy::cast_precision_loss)]
         let size_score = (self.content_size as f64).ln().max(0.0_f64) * weights.content_size_weight;
 
         text_score + link_score + size_score
@@ -271,7 +276,7 @@ impl AdaptiveStopEngine {
         // Update pages analyzed
         {
             let mut pages = self.pages_analyzed.write().await;
-            *pages += 1;
+            *pages = pages.saturating_add(1);
         }
 
         // Track analysis performance
@@ -416,6 +421,8 @@ impl AdaptiveStopEngine {
         if self.config.enable_quality_scoring {
             let quality_scores = self.quality_scores.read().await;
             if quality_scores.len() >= 3 {
+                // Safe conversion: quality_scores.len() is small (VecDeque bounded)
+                #[allow(clippy::cast_precision_loss)]
                 let avg_quality: f64 =
                     quality_scores.iter().sum::<f64>() / quality_scores.len() as f64;
 
@@ -493,8 +500,11 @@ impl AdaptiveStopEngine {
             }
 
             let word_count = text.split_whitespace().count();
-            let sentence_count =
-                text.matches('.').count() + text.matches('!').count() + text.matches('?').count();
+            let sentence_count = text
+                .matches('.')
+                .count()
+                .saturating_add(text.matches('!').count())
+                .saturating_add(text.matches('?').count());
 
             // Basic readability heuristics
             if word_count > 100 {
@@ -558,6 +568,8 @@ impl AdaptiveStopEngine {
         let samples = self.site_analysis_samples.read().await;
         if samples.len() >= 5 {
             let recent_samples = &samples[samples.len().saturating_sub(5)..];
+            // Safe conversion: usize to f64 for content metrics
+            #[allow(clippy::cast_precision_loss)]
             let avg_unique_chars: f64 = recent_samples
                 .iter()
                 .map(|s| s.metrics.unique_text_chars as f64)
@@ -661,18 +673,22 @@ impl AdaptiveStopEngine {
         }
 
         // Content-based analysis
+        // Safe conversion: usize to f64 for content metrics
+        #[allow(clippy::cast_precision_loss)]
         let avg_unique_chars: f64 = samples
             .iter()
             .map(|s| s.metrics.unique_text_chars as f64)
             .sum::<f64>()
             / samples.len() as f64;
 
+        #[allow(clippy::cast_precision_loss)]
         let avg_links: f64 = samples
             .iter()
             .map(|s| s.metrics.link_count as f64)
             .sum::<f64>()
             / samples.len() as f64;
 
+        #[allow(clippy::cast_precision_loss)]
         let avg_quality: f64 =
             samples.iter().map(|s| s.metrics.quality_score).sum::<f64>() / samples.len() as f64;
 
@@ -754,7 +770,9 @@ impl AdaptiveStopEngine {
             Duration::from_millis(0)
         } else {
             let total: Duration = analysis_times.iter().sum();
-            total / analysis_times.len() as u32
+            // Safe: analysis_times.len() is bounded by VecDeque limit (100)
+            let len = u32::try_from(analysis_times.len()).unwrap_or(u32::MAX);
+            total / len
         };
 
         AdaptiveStopStats {

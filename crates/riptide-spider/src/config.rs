@@ -505,21 +505,36 @@ impl SpiderConfig {
     /// Estimate memory usage based on configuration
     pub fn estimate_memory_usage(&self) -> usize {
         // Base memory usage
-        let mut memory = 1024 * 1024; // 1MB base
+        let mut memory: usize = 1024 * 1024; // 1MB base
 
         // Add memory for URL processing
         if self.url_processing.enable_deduplication {
-            memory += self.url_processing.bloom_filter_capacity * 8; // Bloom filter bits
-            memory += self.url_processing.max_exact_urls * 256; // URL storage estimate
+            memory = memory.saturating_add(
+                self.url_processing
+                    .bloom_filter_capacity
+                    .saturating_mul(8_usize),
+            ); // Bloom filter bits
+            memory =
+                memory.saturating_add(self.url_processing.max_exact_urls.saturating_mul(256_usize));
+            // URL storage estimate
         }
 
         // Add memory for concurrency
-        memory += self.performance.max_concurrent_global * 1024; // Per-request overhead
-        memory += self.performance.max_concurrent_per_host * 512; // Per-host tracking
+        memory = memory.saturating_add(
+            self.performance
+                .max_concurrent_global
+                .saturating_mul(1024_usize),
+        ); // Per-request overhead
+        memory = memory.saturating_add(
+            self.performance
+                .max_concurrent_per_host
+                .saturating_mul(512_usize),
+        ); // Per-host tracking
 
         // Add frontier memory estimate
         if let Some(max_pages) = self.max_pages {
-            memory += max_pages * 128; // Frontier entry estimate
+            memory = memory.saturating_add(max_pages.saturating_mul(128_usize));
+            // Frontier entry estimate
         }
 
         memory

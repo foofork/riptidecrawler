@@ -91,7 +91,7 @@ impl CrawlRequest {
 
     /// Increment retry count
     pub fn increment_retry(&mut self) {
-        self.retry_count += 1;
+        self.retry_count = self.retry_count.saturating_add(1);
     }
 }
 
@@ -240,19 +240,19 @@ impl HostState {
 
     /// Record a successful request
     pub fn record_success(&mut self) {
-        self.pages_crawled += 1;
+        self.pages_crawled = self.pages_crawled.saturating_add(1);
         self.last_success = Some(Instant::now());
         if self.in_flight > 0 {
-            self.in_flight -= 1;
+            self.in_flight = self.in_flight.saturating_sub(1);
         }
     }
 
     /// Record a failed request
     pub fn record_error(&mut self, error: String) {
-        self.error_count += 1;
+        self.error_count = self.error_count.saturating_add(1);
         self.last_error = Some(Instant::now());
         if self.in_flight > 0 {
-            self.in_flight -= 1;
+            self.in_flight = self.in_flight.saturating_sub(1);
         }
 
         // Consider blocking if too many errors
@@ -270,17 +270,20 @@ impl HostState {
                 self.host
             ));
         }
-        self.in_flight += 1;
+        self.in_flight = self.in_flight.saturating_add(1);
         Ok(())
     }
 
     /// Calculate success rate
     pub fn success_rate(&self) -> f64 {
-        let total = self.pages_crawled + self.error_count;
+        let total = self.pages_crawled.saturating_add(self.error_count);
         if total == 0 {
             1.0
         } else {
-            self.pages_crawled as f64 / total as f64
+            // Safe conversion: u64 to f64 for success rate calculation
+            #[allow(clippy::cast_precision_loss)]
+            let rate = self.pages_crawled as f64 / total as f64;
+            rate
         }
     }
 }

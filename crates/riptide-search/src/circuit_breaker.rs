@@ -111,7 +111,9 @@ impl CircuitMetrics {
             return 0;
         }
 
-        (failed * 100) / total
+        // Use saturating multiplication and checked division to prevent overflow/div-by-zero
+        // Division is safe because total > 0 (checked above), but we use checked_div for clippy
+        failed.saturating_mul(100).checked_div(total).unwrap_or(0)
     }
 
     fn should_trip(&self, config: &CircuitBreakerConfig) -> bool {
@@ -128,7 +130,8 @@ impl CircuitMetrics {
             .unwrap_or_default()
             .as_secs();
 
-        (now - last_failure) >= config.recovery_timeout.as_secs()
+        // Use saturating subtraction to prevent underflow
+        now.saturating_sub(last_failure) >= config.recovery_timeout.as_secs()
     }
 
     fn reset(&self) {

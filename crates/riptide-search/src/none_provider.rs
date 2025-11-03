@@ -92,7 +92,9 @@ impl SearchProvider for NoneProvider {
             .take(limit as usize)
             .enumerate()
             .map(|(index, url)| {
-                SearchHit::new(url.clone(), (index + 1) as u32)
+                // Safe rank calculation: index is bounded by limit (max u32), saturating add prevents overflow
+                let rank = u32::try_from(index).unwrap_or(u32::MAX).saturating_add(1);
+                SearchHit::new(url.clone(), rank)
                     .with_metadata("source".to_string(), "query".to_string())
             })
             .collect();
