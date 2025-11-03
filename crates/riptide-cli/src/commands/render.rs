@@ -182,10 +182,10 @@ fn parse_viewport(viewport: &str) -> Result<ViewportSize> {
     let height = parts[1].parse::<u32>().context("Invalid viewport height")?;
 
     // Validate reasonable viewport dimensions
-    if width < 320 || width > 7680 {
+    if !(320..=7680).contains(&width) {
         anyhow::bail!("Viewport width must be between 320 and 7680 pixels");
     }
-    if height < 240 || height > 4320 {
+    if !(240..=4320).contains(&height) {
         anyhow::bail!("Viewport height must be between 240 and 4320 pixels");
     }
 
@@ -228,10 +228,7 @@ fn generate_screenshot_filename(url: &str) -> String {
     let clean_url = url
         .replace("https://", "")
         .replace("http://", "")
-        .replace('/', "_")
-        .replace(':', "_")
-        .replace('?', "_")
-        .replace('&', "_");
+        .replace(['/', ':', '?', '&'], "_");
 
     // Truncate if too long and add timestamp for uniqueness
     let timestamp = std::time::SystemTime::now()

@@ -54,6 +54,7 @@ pub fn format<T: Serialize>(data: &T, output_format: OutputFormat) -> Result<Str
 }
 
 /// Print formatted data to stdout
+#[allow(dead_code)]
 pub fn print<T: Serialize>(data: &T, output_format: OutputFormat) -> Result<()> {
     let output = format(data, output_format)?;
     println!("{}", output);

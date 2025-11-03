@@ -350,7 +350,7 @@ fn print_remediation(deps: &DependencyStatus) {
         for (i, (component, steps)) in remediation_steps.iter().enumerate() {
             println!("{}. {} Issues:", i + 1, component.bold());
             for (j, step) in steps.iter().enumerate() {
-                println!("   {}) {}", ('a' as u8 + j as u8) as char, step);
+                println!("   {}) {}", (b'a' + j as u8) as char, step);
             }
             println!();
         }

@@ -225,8 +225,7 @@ async fn process_stream(
 
     // Convert response to async stream of bytes
     let stream = response.bytes_stream();
-    let stream =
-        stream.map(|result| result.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e)));
+    let stream = stream.map(|result| result.map_err(std::io::Error::other));
 
     // Convert to AsyncRead
     let async_read = tokio_util::io::StreamReader::new(stream);
