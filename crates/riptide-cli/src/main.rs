@@ -139,7 +139,7 @@ mod tests {
 
     #[test]
     fn test_default_values() {
-        let cli = Cli::parse_from(&["riptide", "extract", "--url", "https://example.com"]);
+        let cli = Cli::parse_from(["riptide", "extract", "https://example.com"]);
         assert_eq!(cli.url, "http://localhost:8080");
         assert_eq!(cli.output, "text");
         assert!(!cli.quiet);
@@ -151,7 +151,7 @@ mod tests {
         std::env::set_var("RIPTIDE_BASE_URL", "https://api.example.com");
         std::env::set_var("RIPTIDE_API_KEY", "test-key-123");
 
-        let cli = Cli::parse_from(&["riptide", "extract", "--url", "https://example.com"]);
+        let cli = Cli::parse_from(["riptide", "extract", "https://example.com"]);
         assert_eq!(cli.url, "https://api.example.com");
         assert_eq!(cli.api_key, Some("test-key-123".to_string()));
 
@@ -161,25 +161,25 @@ mod tests {
 
     #[test]
     fn test_all_commands_present() {
-        let extract = Cli::parse_from(&["riptide", "extract", "--url", "https://example.com"]);
+        let extract = Cli::parse_from(["riptide", "extract", "https://example.com"]);
         assert!(matches!(extract.command, Commands::Extract(_)));
 
-        let spider = Cli::parse_from(&["riptide", "spider", "--seed", "https://example.com"]);
+        let spider = Cli::parse_from(["riptide", "spider", "https://example.com"]);
         assert!(matches!(spider.command, Commands::Spider(_)));
 
-        let search = Cli::parse_from(&["riptide", "search", "--query", "test"]);
+        let search = Cli::parse_from(["riptide", "search", "test"]);
         assert!(matches!(search.command, Commands::Search(_)));
 
-        let render = Cli::parse_from(&["riptide", "render", "--url", "https://example.com"]);
+        let render = Cli::parse_from(["riptide", "render", "https://example.com"]);
         assert!(matches!(render.command, Commands::Render(_)));
 
-        let doctor = Cli::parse_from(&["riptide", "doctor"]);
+        let doctor = Cli::parse_from(["riptide", "doctor"]);
         assert!(matches!(doctor.command, Commands::Doctor(_)));
 
-        let config = Cli::parse_from(&["riptide", "config", "show"]);
+        let config = Cli::parse_from(["riptide", "config", "list"]);
         assert!(matches!(config.command, Commands::Config(_)));
 
-        let session = Cli::parse_from(&["riptide", "session", "list"]);
+        let session = Cli::parse_from(["riptide", "session", "list"]);
         assert!(matches!(session.command, Commands::Session(_)));
     }
 }

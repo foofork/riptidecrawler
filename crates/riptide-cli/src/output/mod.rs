@@ -77,19 +77,9 @@ pub fn print_success(message: &str) {
     println!("{} {}", "✓".green().bold(), message);
 }
 
-/// Print error message with ✗ symbol
-pub fn print_error(message: &str) {
-    eprintln!("{} {}", "✗".red().bold(), message);
-}
-
 /// Print info message with ℹ symbol
 pub fn print_info(message: &str) {
     println!("{} {}", "ℹ".blue().bold(), message);
-}
-
-/// Print warning message with ⚠ symbol
-pub fn print_warning(message: &str) {
-    println!("{} {}", "⚠".yellow().bold(), message);
 }
 
 /// Create a new table with headers
@@ -102,55 +92,6 @@ pub fn create_table(headers: Vec<&str>) -> Table {
             .map(|h| Cell::new(h).set_alignment(CellAlignment::Center)),
     );
     table
-}
-
-/// Format duration in seconds to human-readable string
-pub fn format_duration(seconds: u64) -> String {
-    if seconds < 60 {
-        format!("{}s", seconds)
-    } else if seconds < 3600 {
-        format!("{}m {}s", seconds / 60, seconds % 60)
-    } else {
-        format!("{}h {}m", seconds / 3600, (seconds % 3600) / 60)
-    }
-}
-
-/// Format bytes to human-readable string (B, KB, MB, GB, etc.)
-pub fn format_bytes(bytes: u64) -> String {
-    const UNITS: [&str; 6] = ["B", "KB", "MB", "GB", "TB", "PB"];
-    let mut size = bytes as f64;
-    let mut unit_idx = 0;
-
-    while size >= 1024.0 && unit_idx < UNITS.len() - 1 {
-        size /= 1024.0;
-        unit_idx += 1;
-    }
-
-    format!("{:.2} {}", size, UNITS[unit_idx])
-}
-
-/// Format confidence score (0.0-1.0) as colored percentage
-pub fn format_confidence(score: f64) -> String {
-    let percentage = (score * 100.0) as u32;
-    let color = if percentage >= 90 {
-        "green"
-    } else if percentage >= 70 {
-        "yellow"
-    } else {
-        "red"
-    };
-
-    format!("{}%", percentage.to_string().color(color))
-}
-
-/// Print key-value pair with colored key
-pub fn print_key_value(key: &str, value: &str) {
-    println!("{}: {}", key.cyan().bold(), value);
-}
-
-/// Print section title with formatting
-pub fn print_section(title: &str) {
-    println!("\n{}", title.bold().underline());
 }
 
 #[cfg(test)]

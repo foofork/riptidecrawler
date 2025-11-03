@@ -90,42 +90,6 @@ impl TextFormatter {
             "✗".red().to_string()
         }
     }
-
-    /// Format success message
-    pub fn success(message: &str) -> String {
-        if std::env::var("NO_COLOR").is_ok() {
-            format!("✓ {}", message)
-        } else {
-            format!("{} {}", "✓".green(), message)
-        }
-    }
-
-    /// Format error message
-    pub fn error(message: &str) -> String {
-        if std::env::var("NO_COLOR").is_ok() {
-            format!("✗ {}", message)
-        } else {
-            format!("{} {}", "✗".red(), message)
-        }
-    }
-
-    /// Format info message
-    pub fn info(message: &str) -> String {
-        if std::env::var("NO_COLOR").is_ok() {
-            format!("ℹ {}", message)
-        } else {
-            format!("{} {}", "ℹ".blue(), message)
-        }
-    }
-
-    /// Format warning message
-    pub fn warning(message: &str) -> String {
-        if std::env::var("NO_COLOR").is_ok() {
-            format!("⚠ {}", message)
-        } else {
-            format!("{} {}", "⚠".yellow(), message)
-        }
-    }
 }
 
 #[cfg(test)]
@@ -183,46 +147,5 @@ mod tests {
     fn test_format_bool() {
         assert!(TextFormatter::format_bool(true).contains('✓'));
         assert!(TextFormatter::format_bool(false).contains('✗'));
-    }
-
-    #[test]
-    fn test_success_message() {
-        let msg = TextFormatter::success("Operation completed");
-        assert!(msg.contains('✓'));
-        assert!(msg.contains("Operation completed"));
-    }
-
-    #[test]
-    fn test_error_message() {
-        let msg = TextFormatter::error("Operation failed");
-        assert!(msg.contains('✗'));
-        assert!(msg.contains("Operation failed"));
-    }
-
-    #[test]
-    fn test_info_message() {
-        let msg = TextFormatter::info("Processing...");
-        assert!(msg.contains('ℹ'));
-        assert!(msg.contains("Processing..."));
-    }
-
-    #[test]
-    fn test_warning_message() {
-        let msg = TextFormatter::warning("Deprecated feature");
-        assert!(msg.contains('⚠'));
-        assert!(msg.contains("Deprecated feature"));
-    }
-
-    #[test]
-    fn test_no_color_env() {
-        std::env::set_var("NO_COLOR", "1");
-        colored::control::set_override(false);
-
-        let msg = TextFormatter::success("test");
-        // Should not contain ANSI codes when NO_COLOR is set
-        assert!(!msg.contains("\x1b["));
-
-        std::env::remove_var("NO_COLOR");
-        colored::control::unset_override();
     }
 }

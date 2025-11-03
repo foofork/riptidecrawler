@@ -53,7 +53,7 @@ pub mod api_client {
 // Re-export commonly used types for convenience
 pub use client::ApiClient;
 pub use commands::config::Config;
-pub use error::{CliError, ExitCode};
+pub use error::ExitCode;
 
 /// CLI version information
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

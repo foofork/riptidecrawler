@@ -13,12 +13,6 @@ impl JsonFormatter {
         let json = serde_json::to_string_pretty(data)?;
         Ok(json)
     }
-
-    /// Format data as compact JSON (single line)
-    pub fn format_compact<T: Serialize>(data: &T) -> Result<String> {
-        let json = serde_json::to_string(data)?;
-        Ok(json)
-    }
 }
 
 #[cfg(test)]
@@ -44,16 +38,6 @@ mod tests {
         assert!(result.contains("  \"status\""));
         assert!(result.contains("  \"results\""));
         assert!(result.contains("    \"count\""));
-    }
-
-    #[test]
-    fn test_format_compact() {
-        let data = json!({"status": "success", "count": 42});
-        let result = JsonFormatter::format_compact(&data).unwrap();
-
-        // Should be single line
-        assert!(!result.contains('\n'));
-        assert!(result.contains("\"status\":\"success\""));
     }
 
     #[test]
