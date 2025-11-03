@@ -6603,6 +6603,7 @@ dependencies = [
  "anyhow",
  "assert_cmd",
  "assert_fs",
+ "base64 0.21.7",
  "chrono",
  "clap",
  "colored 2.2.0",
@@ -6610,6 +6611,7 @@ dependencies = [
  "ctrlc",
  "dirs 5.0.1",
  "env_logger",
+ "futures-util",
  "indicatif 0.17.11",
  "predicates",
  "reqwest 0.12.24",
@@ -6619,6 +6621,7 @@ dependencies = [
  "tempfile",
  "thiserror 1.0.69",
  "tokio",
+ "tokio-util",
  "url",
 ]
 

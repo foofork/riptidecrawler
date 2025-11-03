@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-#[derive(clap::Subcommand)]
+#[derive(Debug, Clone, clap::Subcommand)]
 pub enum SessionApiCommands {
     /// Create new session
     Create {

@@ -31,12 +31,17 @@ serde_yaml = "0.9"
 reqwest.workspace = true
 url.workspace = true
 
-# CLI Utilities (5 dependencies)
+# CLI Utilities (6 dependencies)
 colored = "2.1"
 indicatif = "0.17"
 comfy-table = "7.1"
 dirs = "5.0"
 ctrlc = "3.4"
+base64 = "0.21"
+
+# Async utilities (for streaming support - 2 dependencies)
+futures-util = "0.3"
+tokio-util = { version = "0.7", features = ["io"] }
 
 # Config & Logging (2 dependencies)
 env_logger.workspace = true
