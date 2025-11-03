@@ -2,7 +2,7 @@
 //!
 //! Parses cli.yaml files and validates their structure for CLI generation.
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -219,11 +219,59 @@ impl Default for ExitCodes {
 }
 
 /// HTTP status code to exit code mapping
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ErrorMapping {
     /// Maps HTTP status codes to CLI exit codes
     #[serde(flatten)]
     pub mappings: HashMap<u16, i32>,
+}
+
+impl<'de> Deserialize<'de> for ErrorMapping {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::de::Error;
+        use std::collections::HashMap as Map;
+
+        let map: Map<serde_yaml::Value, i32> = Map::deserialize(deserializer)?;
+        let mut mappings = HashMap::new();
+
+        for (key, value) in map {
+            match key {
+                serde_yaml::Value::Number(n) => {
+                    if let Some(code) = n.as_u64() {
+                        if code <= u16::MAX as u64 {
+                            mappings.insert(code as u16, value);
+                        } else {
+                            return Err(D::Error::custom(format!(
+                                "HTTP status code {} out of range",
+                                code
+                            )));
+                        }
+                    } else {
+                        return Err(D::Error::custom("Invalid HTTP status code"));
+                    }
+                }
+                serde_yaml::Value::String(s) => {
+                    // Handle string keys like "connection_refused", "timeout", etc.
+                    // These are not HTTP status codes, so we skip them for now
+                    // They should be handled separately in the spec
+                    if s.parse::<u16>().is_ok() {
+                        return Err(D::Error::custom(format!(
+                            "HTTP status code should be unquoted number, not string: {:?}",
+                            s
+                        )));
+                    }
+                    // Skip non-numeric string keys (they might be error types like "connection_refused")
+                    continue;
+                }
+                _ => return Err(D::Error::custom("Invalid error_mapping key type")),
+            }
+        }
+
+        Ok(ErrorMapping { mappings })
+    }
 }
 
 impl ErrorMapping {
@@ -336,11 +384,11 @@ impl SpecParser {
         let contents = fs::read_to_string(path)
             .map_err(|e| ParserError::ReadError(format!("{}: {}", path.display(), e)))?;
 
-        Self::from_str(&contents)
+        Self::parse_str(&contents)
     }
 
     /// Parse CLI specification from YAML string
-    pub fn from_str(yaml: &str) -> Result<CliSpec, ParserError> {
+    pub fn parse_str(yaml: &str) -> Result<CliSpec, ParserError> {
         let spec: CliSpec =
             serde_yaml::from_str(yaml).map_err(|e| ParserError::YamlError(e.to_string()))?;
 
@@ -567,7 +615,7 @@ error_mapping:
     #[test]
     fn test_parse_valid_spec() {
         let yaml = create_test_spec();
-        let spec = SpecParser::from_str(&yaml).expect("Failed to parse spec");
+        let spec = SpecParser::parse_str(&yaml).expect("Failed to parse spec");
 
         assert_eq!(spec.version, "1.0.0");
         assert_eq!(spec.name, "eventctl");
@@ -594,7 +642,7 @@ name: "test"
 about: "test"
 commands: []
 "#;
-        let result = SpecParser::from_str(yaml);
+        let result = SpecParser::parse_str(yaml);
         assert!(result.is_err());
     }
 
@@ -606,7 +654,7 @@ name: "test"
 about: "test"
 commands: []
 "#;
-        let result = SpecParser::from_str(yaml);
+        let result = SpecParser::parse_str(yaml);
         assert!(result.is_err());
         if let Err(ParserError::ValidationError(msg)) = result {
             assert!(msg.contains("At least one command"));
@@ -626,14 +674,14 @@ commands:
       method: GET
       endpoint: "invalid"
 "#;
-        let result = SpecParser::from_str(yaml);
+        let result = SpecParser::parse_str(yaml);
         assert!(result.is_err());
     }
 
     #[test]
     fn test_find_command() {
         let yaml = create_test_spec();
-        let spec = SpecParser::from_str(&yaml).expect("Failed to parse");
+        let spec = SpecParser::parse_str(&yaml).expect("Failed to parse");
 
         let cmd = SpecParser::find_command(&spec, "events").expect("Command not found");
         assert_eq!(cmd.name, "events");
@@ -645,7 +693,7 @@ commands:
     #[test]
     fn test_all_command_names() {
         let yaml = create_test_spec();
-        let spec = SpecParser::from_str(&yaml).expect("Failed to parse");
+        let spec = SpecParser::parse_str(&yaml).expect("Failed to parse");
 
         let names = SpecParser::all_command_names(&spec);
         assert!(names.contains(&"events".to_string()));
@@ -656,7 +704,7 @@ commands:
     #[test]
     fn test_error_mapping() {
         let yaml = create_test_spec();
-        let spec = SpecParser::from_str(&yaml).expect("Failed to parse");
+        let spec = SpecParser::parse_str(&yaml).expect("Failed to parse");
 
         assert_eq!(spec.error_mapping.get_exit_code(200), Some(0));
         assert_eq!(spec.error_mapping.get_exit_code(404), Some(5));
@@ -696,7 +744,7 @@ commands:
       method: PATCH
       endpoint: "/test"
 "#;
-        let spec = SpecParser::from_str(yaml).expect("Failed to parse");
+        let spec = SpecParser::parse_str(yaml).expect("Failed to parse");
 
         assert_eq!(spec.commands[0].api.method, HttpMethod::Get);
         assert_eq!(spec.commands[1].api.method, HttpMethod::Post);
@@ -719,7 +767,7 @@ commands:
       endpoint: "/test"
       requires: ["missing_param"]
 "#;
-        let result = SpecParser::from_str(yaml);
+        let result = SpecParser::parse_str(yaml);
         assert!(result.is_err());
         if let Err(ParserError::ValidationError(msg)) = result {
             assert!(msg.contains("missing_param"));
@@ -740,7 +788,7 @@ commands:
     #[test]
     fn test_api_mapping() {
         let yaml = create_test_spec();
-        let spec = SpecParser::from_str(&yaml).expect("Failed to parse");
+        let spec = SpecParser::parse_str(&yaml).expect("Failed to parse");
 
         let api = spec.api.as_ref().expect("API config missing");
         assert_eq!(api.base_url, "http://localhost:8080");

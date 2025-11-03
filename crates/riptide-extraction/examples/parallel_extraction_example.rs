@@ -68,23 +68,23 @@ async fn main() -> anyhow::Result<()> {
 
     let documents = vec![
         (
-            "https://example.com/doc1",
+            "https://example.com/doc1".to_string(),
             create_sample_html("Document 1", "First document content"),
         ),
         (
-            "https://example.com/doc2",
+            "https://example.com/doc2".to_string(),
             create_sample_html("Document 2", "Second document content"),
         ),
         (
-            "https://example.com/doc3",
+            "https://example.com/doc3".to_string(),
             create_sample_html("Document 3", "Third document content"),
         ),
         (
-            "https://example.com/doc4",
+            "https://example.com/doc4".to_string(),
             create_sample_html("Document 4", "Fourth document content"),
         ),
         (
-            "https://example.com/doc5",
+            "https://example.com/doc5".to_string(),
             create_sample_html("Document 5", "Fifth document content"),
         ),
     ];
@@ -171,15 +171,15 @@ async fn main() -> anyhow::Result<()> {
 
     let documents = vec![
         (
-            "https://news.example.com/1",
+            "https://news.example.com/1".to_string(),
             create_sample_html("News Article 1", "Breaking news content"),
         ),
         (
-            "https://news.example.com/2",
+            "https://news.example.com/2".to_string(),
             create_sample_html("News Article 2", "Technology update"),
         ),
         (
-            "https://news.example.com/3",
+            "https://news.example.com/3".to_string(),
             create_sample_html("News Article 3", "Sports highlights"),
         ),
     ];

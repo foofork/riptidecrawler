@@ -15,6 +15,10 @@ name = "riptide"
 path = "src/main.rs"
 
 [dependencies]
+# ===== THIN CLI - ONLY 15 CORE DEPENDENCIES =====
+# Business logic belongs in API server, NOT in CLI
+# See: /docs/CLI-REFACTORING-PLAN.md Phase 1
+
 # Core (6 dependencies)
 anyhow.workspace = true
 clap.workspace = true
@@ -23,53 +27,44 @@ serde.workspace = true
 serde_json.workspace = true
 serde_yaml = "0.9"
 
-# HTTP (2 dependencies)
+# HTTP Client (2 dependencies)
 reqwest.workspace = true
 url.workspace = true
 
-# CLI utilities (5 dependencies)
+# CLI Utilities (5 dependencies)
 colored = "2.1"
 indicatif = "0.17"
 comfy-table = "7.1"
 dirs = "5.0"
 ctrlc = "3.4"
 
-# Config (2 dependencies)
+# Config & Logging (2 dependencies)
 env_logger.workspace = true
 chrono.workspace = true
 
-# Logging and telemetry
-tracing.workspace = true
-opentelemetry.workspace = true
+# Error Handling
+thiserror = "1.0"
 
-# Async utilities
-futures.workspace = true
-async-trait.workspace = true
-
-# Utilities
-once_cell.workspace = true
-rand.workspace = true
-urlencoding = "2.1"
-uuid.workspace = true
-
-# Internal riptide crates
-riptide-reliability = { path = "../riptide-reliability" }
-riptide-stealth = { path = "../riptide-stealth" }
-riptide-browser = { path = "../riptide-browser" }
-riptide-monitoring = { path = "../riptide-monitoring" }
-riptide-workers = { path = "../riptide-workers" }
-riptide-extraction = { path = "../riptide-extraction" }
-
-# Optional browser feature
-chromiumoxide = { version = "0.7", optional = true }
+# ===== REMOVED - Business logic now in API server =====
+# Previously removed in commit a1cac80, mistakenly re-added in 13035be
+# Removing again for Phase 1 thin CLI:
+#
+# riptide-extraction    # Content extraction → API server
+# riptide-browser       # Browser automation → API server
+# riptide-pdf           # PDF processing → API server
+# riptide-workers       # Job processing → API server
+# riptide-cache         # Cache management → API server
+# riptide-reliability   # Retry/circuit breaker → API server
+# riptide-stealth       # Anti-detection → API server
+# riptide-monitoring    # Metrics collection → API server
+#
+# tracing, opentelemetry  # Heavy telemetry → not needed in thin CLI
+# futures, async-trait    # Not needed for simple HTTP calls
+# once_cell, rand, uuid   # Utility bloat
+# chromiumoxide           # Browser automation → API server
 
 [dev-dependencies]
 tempfile = "3.13"
 assert_cmd = "2.0"
 assert_fs = "1.0"
 predicates = "3.0"
-
-[features]
-default = []
-browser = ["chromiumoxide"]
-wasm-extractor = []

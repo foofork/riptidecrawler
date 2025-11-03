@@ -31,9 +31,12 @@
 
 use crate::extraction_strategies::ContentExtractor;
 use crate::native_parser::{NativeHtmlParser, ParserConfig};
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use riptide_types::ExtractedContent;
+
+#[cfg(feature = "wasm-extractor")]
+use anyhow::anyhow;
 
 #[cfg(feature = "wasm-extractor")]
 use crate::extraction_strategies::WasmExtractor;

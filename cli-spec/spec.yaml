@@ -64,17 +64,17 @@ exit_codes:
 # HTTP status code to exit code mapping
 error_mapping:
   # 4xx client errors -> exit code 1 (user error)
-  "400": 1  # Bad Request
-  "401": 1  # Unauthorized
-  "403": 1  # Forbidden
-  "404": 1  # Not Found
-  "429": 1  # Too Many Requests
+  400: 1  # Bad Request
+  401: 1  # Unauthorized
+  403: 1  # Forbidden
+  404: 1  # Not Found
+  429: 1  # Too Many Requests
 
   # 5xx server errors -> exit code 2 (server error)
-  "500": 2  # Internal Server Error
-  "502": 2  # Bad Gateway
-  "503": 2  # Service Unavailable
-  "504": 2  # Gateway Timeout
+  500: 2  # Internal Server Error
+  502: 2  # Bad Gateway
+  503: 2  # Service Unavailable
+  504: 2  # Gateway Timeout
 
   # Network errors -> exit code 1 (user/network error)
   connection_refused: 1

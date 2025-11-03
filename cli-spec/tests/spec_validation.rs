@@ -255,7 +255,8 @@ fn test_api_endpoint_mapping() {
     ];
 
     for (cmd_name, expected_method, expected_path) in expected_mappings {
-        let cmd = get_command(&spec, cmd_name).expect(&format!("Command '{}' not found", cmd_name));
+        let cmd = get_command(&spec, cmd_name)
+            .unwrap_or_else(|| panic!("Command '{}' not found", cmd_name));
 
         // Config and session may not have API mappings (local/multiple endpoints)
         if cmd_name == "config" || cmd_name == "session" {
@@ -288,7 +289,8 @@ fn test_streaming_endpoints_identified() {
     let streaming_commands = vec![("search", "/deepsearch/stream")];
 
     for (cmd_name, expected_stream_path) in streaming_commands {
-        let cmd = get_command(&spec, cmd_name).expect(&format!("Command '{}' not found", cmd_name));
+        let cmd = get_command(&spec, cmd_name)
+            .unwrap_or_else(|| panic!("Command '{}' not found", cmd_name));
 
         assert_eq!(
             cmd.api.streaming_variant.as_deref(),
@@ -308,7 +310,8 @@ fn test_no_unexpected_streaming_endpoints() {
     let non_streaming = vec!["spider", "render", "doctor"];
 
     for cmd_name in non_streaming {
-        let cmd = get_command(&spec, cmd_name).expect(&format!("Command '{}' not found", cmd_name));
+        let cmd = get_command(&spec, cmd_name)
+            .unwrap_or_else(|| panic!("Command '{}' not found", cmd_name));
 
         assert!(
             cmd.api.streaming_variant.is_none(),

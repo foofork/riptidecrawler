@@ -1,8 +1,0 @@
-{
-  "total_allocations": 1024,
-  "by_type": {
-    "string": 512,
-    "array": 256,
-    "object": 256
-  }
-}
