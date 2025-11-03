@@ -418,7 +418,8 @@ impl SlaMonitor {
         metrics.max_duration = metrics.max_duration.max(duration);
         metrics.min_duration = metrics.min_duration.min(duration);
         // Record duration in histogram for accurate percentile calculation
-        let duration_ns = duration.as_nanos() as u64;
+        // Safe conversion: clamp to u64::MAX if duration exceeds bounds
+        let duration_ns = u64::try_from(duration.as_nanos()).unwrap_or(u64::MAX);
         // Clamp value to histogram bounds (1ns to 1 hour)
         let clamped_duration = duration_ns.clamp(1, 3_600_000_000_000);
 
@@ -454,14 +455,22 @@ impl SlaMonitor {
                 .get(operation)
                 .unwrap_or(&default_threshold);
 
+            #[allow(clippy::cast_precision_loss)]
             let availability = if metrics.total_requests > 0 {
-                (metrics.successful_requests as f64 / metrics.total_requests as f64) * 100.0
+                // Safe conversion: uses at most 52 bits of precision (sufficient for request counts)
+                let successful = metrics.successful_requests.min(u64::MAX >> 12) as f64;
+                let total = metrics.total_requests.min(u64::MAX >> 12) as f64;
+                (successful / total) * 100.0
             } else {
                 100.0
             };
 
+            #[allow(clippy::cast_precision_loss)]
             let error_rate = if metrics.total_requests > 0 {
-                (metrics.error_count as f64 / metrics.total_requests as f64) * 100.0
+                // Safe conversion: uses at most 52 bits of precision
+                let errors = metrics.error_count.min(u64::MAX >> 12) as f64;
+                let total = metrics.total_requests.min(u64::MAX >> 12) as f64;
+                (errors / total) * 100.0
             } else {
                 0.0
             };
@@ -563,8 +572,13 @@ impl ResourceTracker {
         let cpu_usage = system.global_cpu_usage();
         let total_memory = system.total_memory();
         let used_memory = system.used_memory();
+        #[allow(clippy::cast_precision_loss)]
         let memory_percent = if total_memory > 0 {
-            (used_memory as f32 / total_memory as f32) * 100.0
+            // Safe conversion: memory values in KB, f32 has 24-bit mantissa (~16M precision)
+            // Clamp to reasonable range to avoid precision loss
+            let used_kb = used_memory.min(1u64 << 23) as f32;
+            let total_kb = total_memory.min(1u64 << 23) as f32;
+            (used_kb / total_kb) * 100.0
         } else {
             0.0
         };

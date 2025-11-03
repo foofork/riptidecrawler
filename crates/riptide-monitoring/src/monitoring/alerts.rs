@@ -270,22 +270,25 @@ impl AlertManager {
     }
 
     /// Get metric value from performance metrics
+    #[allow(clippy::cast_precision_loss)]
     fn get_metric_value(&self, metrics: &PerformanceMetrics, metric_name: &str) -> f64 {
         match metric_name {
             "error_rate" => metrics.error_rate,
-            "cpu_usage_percent" => metrics.cpu_usage_percent as f64,
-            "health_score" => metrics.health_score as f64,
+            "cpu_usage_percent" => f64::from(metrics.cpu_usage_percent),
+            "health_score" => f64::from(metrics.health_score),
             "p95_extraction_time_ms" => metrics.p95_extraction_time_ms,
             "p99_extraction_time_ms" => metrics.p99_extraction_time_ms,
             "avg_extraction_time_ms" => metrics.avg_extraction_time_ms,
-            "memory_usage_bytes" => metrics.memory_usage_bytes as f64,
+            // Safe: memory bytes clamped to maintain precision (52-bit mantissa)
+            "memory_usage_bytes" => (metrics.memory_usage_bytes.min(u64::MAX >> 12)) as f64,
             "requests_per_second" => metrics.requests_per_second,
-            "circuit_breaker_trips" => metrics.circuit_breaker_trips as f64,
+            // Safe: counter values clamped for precision
+            "circuit_breaker_trips" => (metrics.circuit_breaker_trips.min(u64::MAX >> 12)) as f64,
             "timeout_rate" => metrics.timeout_rate,
             "cache_hit_ratio" => metrics.cache_hit_ratio,
-            "total_extractions" => metrics.total_extractions as f64,
-            "successful_extractions" => metrics.successful_extractions as f64,
-            "failed_extractions" => metrics.failed_extractions as f64,
+            "total_extractions" => (metrics.total_extractions.min(u64::MAX >> 12)) as f64,
+            "successful_extractions" => (metrics.successful_extractions.min(u64::MAX >> 12)) as f64,
+            "failed_extractions" => (metrics.failed_extractions.min(u64::MAX >> 12)) as f64,
             _ => 0.0,
         }
     }

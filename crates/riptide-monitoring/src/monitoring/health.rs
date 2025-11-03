@@ -30,7 +30,8 @@ impl HealthCalculator {
         // Deduct points for high CPU usage
         if metrics.cpu_usage_percent > self.thresholds.cpu_usage_warning {
             let excess = metrics.cpu_usage_percent - self.thresholds.cpu_usage_warning;
-            score -= excess as f64 * 0.5;
+            // Safe: f32→f64 is lossless (f64 has wider range and higher precision)
+            score -= f64::from(excess) * 0.5;
 
             if metrics.cpu_usage_percent > self.thresholds.cpu_usage_critical {
                 score -= 10.0;
@@ -57,7 +58,10 @@ impl HealthCalculator {
 
         // Deduct points for circuit breaker trips
         if metrics.circuit_breaker_trips > 0 {
-            score -= (metrics.circuit_breaker_trips as f64).min(20.0);
+            // Safe: u64→f64 with clamping to maintain precision
+            #[allow(clippy::cast_precision_loss)]
+            let trips = (metrics.circuit_breaker_trips.min(u64::MAX >> 12)) as f64;
+            score -= trips.min(20.0);
         }
 
         // Deduct points for high timeout rate
@@ -70,7 +74,11 @@ impl HealthCalculator {
             score += 5.0;
         }
 
-        score.clamp(0.0_f64, 100.0_f64) as f32
+        // Safe: score is clamped to 0-100 range, f32 conversion is lossless for this range
+        #[allow(clippy::cast_possible_truncation)]
+        {
+            score.clamp(0.0_f64, 100.0_f64) as f32
+        }
     }
 
     /// Generate health summary text

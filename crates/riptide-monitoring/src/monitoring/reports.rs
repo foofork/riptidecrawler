@@ -51,11 +51,15 @@ pub struct ReportGenerator {
 
 impl ReportGenerator {
     /// Create a new report generator
+    #[must_use]
     pub fn new(health_calculator: HealthCalculator) -> Self {
         Self { health_calculator }
     }
 
     /// Generate a performance report
+    ///
+    /// # Errors
+    /// Returns error if metrics cannot be retrieved or locks cannot be acquired
     pub async fn generate_report(
         &self,
         collector: &MetricsCollector,
@@ -135,7 +139,7 @@ impl ReportGenerator {
 
     /// Calculate trend direction (lower values are better)
     fn calculate_trend(&self, buffer: &TimeSeriesBuffer, duration: Duration) -> TrendDirection {
-        let _half_duration = duration / 2; // TODO: use for percentile calc or remove
+        let _half_duration = duration / 2;
 
         // Get all data for the full period
         let all_data = buffer.get_recent_data(duration);
@@ -152,12 +156,16 @@ impl ReportGenerator {
             return TrendDirection::Unknown;
         }
 
-        let first_half: f64 =
-            first_half_data.iter().map(|p| p.value).sum::<f64>() / first_half_data.len() as f64;
-        let second_half: f64 =
-            second_half_data.iter().map(|p| p.value).sum::<f64>() / second_half_data.len() as f64;
+        let first_half: f64 = first_half_data.iter().map(|p| p.value).sum::<f64>();
+        #[allow(clippy::cast_precision_loss)]
+        let first_half_avg = first_half / first_half_data.len() as f64;
 
-        let change_percent = ((second_half - first_half) / first_half.abs().max(0.001_f64)) * 100.0;
+        let second_half: f64 = second_half_data.iter().map(|p| p.value).sum::<f64>();
+        #[allow(clippy::cast_precision_loss)]
+        let second_half_avg = second_half / second_half_data.len() as f64;
+
+        let change_percent =
+            ((second_half_avg - first_half_avg) / first_half_avg.abs().max(0.001_f64)) * 100.0;
 
         if change_percent < -5.0 {
             TrendDirection::Improving // Values decreasing
@@ -198,6 +206,7 @@ pub struct MetricSummary {
 
 impl MetricSummary {
     /// Create a metric summary from time series data
+    #[must_use]
     pub fn from_time_series(
         name: String,
         current_value: f64,
@@ -233,7 +242,7 @@ mod tests {
         // Add improving trend data (decreasing values)
         // Add more data points to have a proper first half and second half
         for i in (0..20).rev() {
-            buffer.add_point(i as f64 * 10.0, HashMap::new());
+            buffer.add_point(f64::from(i) * 10.0, HashMap::new());
         }
 
         let generator = ReportGenerator::new(HealthCalculator::new(HealthThresholds::default()));
@@ -251,7 +260,7 @@ mod tests {
 
         // Add test data
         for i in 0..100 {
-            buffer.add_point(i as f64, HashMap::new());
+            buffer.add_point(f64::from(i), HashMap::new());
         }
 
         let summary = MetricSummary::from_time_series(

@@ -451,7 +451,7 @@ mod tests {
         let handler = Arc::new(LoggingEventHandler::new());
 
         // Register and then unregister
-        bus.register_handler(handler).await.unwrap();
+        assert!(bus.register_handler(handler).await.is_ok());
         let result = bus.unregister_handler("logging_handler").await;
         assert!(result.is_ok());
 

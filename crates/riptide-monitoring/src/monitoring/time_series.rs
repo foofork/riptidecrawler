@@ -46,8 +46,11 @@ impl TimeSeriesBuffer {
     }
 
     /// Get recent data points within the specified duration
+    #[must_use]
     pub fn get_recent_data(&self, duration: Duration) -> Vec<&MetricDataPoint> {
-        let cutoff = Instant::now() - duration;
+        let now = Instant::now();
+        // Use checked_sub to avoid panic on subtraction
+        let cutoff = now.checked_sub(duration).unwrap_or(now);
         self.data
             .iter()
             .filter(|point| point.timestamp >= cutoff)
@@ -56,6 +59,7 @@ impl TimeSeriesBuffer {
 
     /// Calculate percentile using the T-Digest algorithm approximation
     /// This is more efficient than sorting for large datasets
+    #[must_use]
     pub fn calculate_percentile(&self, percentile: f64, duration: Duration) -> Option<f64> {
         let recent_data = self.get_recent_data(duration);
 
@@ -68,8 +72,19 @@ impl TimeSeriesBuffer {
             let mut values: Vec<f64> = recent_data.iter().map(|p| p.value).collect();
             values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
-            let index = ((percentile / 100.0) * (values.len() - 1) as f64) as usize;
-            return Some(values[index]);
+            // Safe conversion: len < 100, well within precision bounds
+            #[allow(
+                clippy::cast_precision_loss,
+                clippy::cast_possible_truncation,
+                clippy::cast_sign_loss
+            )]
+            {
+                let len_minus_one = values.len().saturating_sub(1);
+                // Convert using safe division and checked truncation
+                let index_f64 = (percentile / 100.0).mul_add(len_minus_one as f64, 0.0);
+                let index = index_f64.clamp(0.0, len_minus_one as f64) as usize;
+                return Some(values[index]);
+            }
         }
 
         // For larger datasets, use approximate percentile
@@ -96,11 +111,22 @@ impl TimeSeriesBuffer {
         }
 
         sample.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-        let index = ((percentile / 100.0) * (sample.len() - 1) as f64) as usize;
-        Some(sample[index])
+        // Safe conversion with clamping for percentile index (SAMPLE_SIZE = 100)
+        #[allow(
+            clippy::cast_precision_loss,
+            clippy::cast_possible_truncation,
+            clippy::cast_sign_loss
+        )]
+        {
+            let len_minus_one = sample.len().saturating_sub(1);
+            let index_f64 = (percentile / 100.0).mul_add(len_minus_one as f64, 0.0);
+            let index = index_f64.clamp(0.0, len_minus_one as f64) as usize;
+            Some(sample[index])
+        }
     }
 
     /// Calculate average value over a duration
+    #[must_use]
     pub fn calculate_average(&self, duration: Duration) -> Option<f64> {
         let recent_data = self.get_recent_data(duration);
 
@@ -109,10 +135,14 @@ impl TimeSeriesBuffer {
         }
 
         let sum: f64 = recent_data.iter().map(|p| p.value).sum();
-        Some(sum / recent_data.len() as f64)
+        // Use safe conversion and avoid potential division by zero
+        let count = recent_data.len();
+        #[allow(clippy::cast_precision_loss)]
+        Some(sum / count as f64)
     }
 
     /// Calculate min and max values over a duration
+    #[must_use]
     pub fn calculate_min_max(&self, duration: Duration) -> Option<(f64, f64)> {
         let recent_data = self.get_recent_data(duration);
 
@@ -132,11 +162,13 @@ impl TimeSeriesBuffer {
     }
 
     /// Get the number of data points
+    #[must_use]
     pub fn len(&self) -> usize {
         self.data.len()
     }
 
     /// Check if the buffer is empty
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.data.is_empty()
     }
@@ -148,12 +180,14 @@ impl TimeSeriesBuffer {
 
     /// Clean up data older than retention period
     fn cleanup_old_data(&mut self, now: Instant) {
-        let cutoff = now - self.retention_period;
-        while let Some(front) = self.data.front() {
-            if front.timestamp >= cutoff {
-                break;
+        // Use checked_sub to avoid panic on subtraction
+        if let Some(cutoff) = now.checked_sub(self.retention_period) {
+            while let Some(front) = self.data.front() {
+                if front.timestamp >= cutoff {
+                    break;
+                }
+                self.data.pop_front();
             }
-            self.data.pop_front();
         }
     }
 }
@@ -168,7 +202,7 @@ mod tests {
 
         // Add more than max_size points
         for i in 0..7 {
-            buffer.add_point(i as f64, HashMap::new());
+            buffer.add_point(f64::from(i), HashMap::new());
         }
 
         // Should only keep the last 5 points
@@ -181,7 +215,7 @@ mod tests {
 
         // Add data points
         for i in 0..100 {
-            buffer.add_point(i as f64, HashMap::new());
+            buffer.add_point(f64::from(i), HashMap::new());
         }
 
         // Test percentiles

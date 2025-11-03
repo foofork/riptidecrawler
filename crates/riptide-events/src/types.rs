@@ -175,7 +175,11 @@ impl ExtractionEvent {
     }
 
     pub fn with_duration(mut self, duration: Duration) -> Self {
-        self.duration_ms = Some(duration.as_millis() as u64);
+        // Safe conversion: clamp to u64::MAX if duration exceeds it (~584 million years)
+        #[allow(clippy::cast_possible_truncation)]
+        {
+            self.duration_ms = Some(duration.as_millis().min(u64::MAX as u128) as u64);
+        }
         self
     }
 
@@ -473,7 +477,11 @@ impl CrawlEvent {
     }
 
     pub fn with_duration(mut self, duration: Duration) -> Self {
-        self.duration_ms = Some(duration.as_millis() as u64);
+        // Safe conversion: clamp to u64::MAX if duration exceeds it (~584 million years)
+        #[allow(clippy::cast_possible_truncation)]
+        {
+            self.duration_ms = Some(duration.as_millis().min(u64::MAX as u128) as u64);
+        }
         self
     }
 
@@ -760,7 +768,7 @@ mod tests {
             "system_manager",
         );
 
-        let json = event.to_json().unwrap();
+        let json = event.to_json().expect("Event should serialize to JSON");
         assert!(json.contains("startup"));
         assert!(json.contains("system_manager"));
     }

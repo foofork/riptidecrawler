@@ -161,13 +161,12 @@ impl MetricsEventHandler {
         if let Ok(json_str) = event.to_json() {
             if let Ok(pool_event) = serde_json::from_str::<crate::PoolEvent>(&json_str) {
                 // Record pool operation metrics
+                // Safe conversion: timestamp_millis() returns i64, but actual timestamps are positive
+                #[allow(clippy::cast_sign_loss)]
+                let timestamp = event.timestamp().timestamp_millis().max(0) as u64;
                 let _ = self
                     .metrics_collector
-                    .record_pool_operation(
-                        pool_event.operation.as_str(),
-                        1.0,
-                        event.timestamp().timestamp_millis() as u64,
-                    )
+                    .record_pool_operation(pool_event.operation.as_str(), 1.0, timestamp)
                     .await;
 
                 // If metrics are included, record them
@@ -280,7 +279,8 @@ impl EventHandler for MetricsEventHandler {
         self.config.event_types.iter().any(|pattern| {
             pattern == "*"
                 || pattern == event_type
-                || (pattern.ends_with('*') && event_type.starts_with(&pattern[..pattern.len() - 1]))
+                || (pattern.ends_with('*')
+                    && event_type.starts_with(&pattern[..pattern.len().saturating_sub(1)]))
         })
     }
 
@@ -445,7 +445,7 @@ impl ComponentHealth {
     }
 
     pub fn health_score(&self) -> f64 {
-        let total = self.success_count + self.failure_count;
+        let total = self.success_count.saturating_add(self.failure_count);
         if total == 0 {
             return 1.0;
         }
@@ -508,16 +508,18 @@ impl HealthEventHandler {
             return crate::HealthStatus::Healthy;
         }
 
-        let mut critical_count = 0;
-        let mut unhealthy_count = 0;
-        let mut degraded_count = 0;
+        let mut critical_count = 0_usize;
+        let mut unhealthy_count = 0_usize;
+        let mut degraded_count = 0_usize;
         let total_count = health_state.len();
 
         for health in health_state.values() {
             match health.status {
-                crate::HealthStatus::Critical => critical_count += 1,
-                crate::HealthStatus::Unhealthy => unhealthy_count += 1,
-                crate::HealthStatus::Degraded => degraded_count += 1,
+                crate::HealthStatus::Critical => critical_count = critical_count.saturating_add(1),
+                crate::HealthStatus::Unhealthy => {
+                    unhealthy_count = unhealthy_count.saturating_add(1)
+                }
+                crate::HealthStatus::Degraded => degraded_count = degraded_count.saturating_add(1),
                 crate::HealthStatus::Healthy => {}
             }
         }
@@ -563,18 +565,21 @@ impl HealthEventHandler {
 
         health.last_updated = Utc::now();
 
-        // Update based on event severity
+        // Update based on event severity using saturating operations
         match event.severity() {
             EventSeverity::Error | EventSeverity::Critical => {
-                health.failure_count += 1;
+                health.failure_count = health.failure_count.saturating_add(1);
                 if health.status == crate::HealthStatus::Healthy {
                     health.status = crate::HealthStatus::Degraded;
                 }
             }
             _ => {
-                health.success_count += 1;
+                health.success_count = health.success_count.saturating_add(1);
                 // Gradually improve health on successful events
-                if health.failure_count > 0 && health.success_count > health.failure_count * 2 {
+                // Use saturating_mul to avoid overflow in comparison
+                if health.failure_count > 0
+                    && health.success_count > health.failure_count.saturating_mul(2)
+                {
                     health.status = crate::HealthStatus::Healthy;
                 }
             }
@@ -596,7 +601,8 @@ impl EventHandler for HealthEventHandler {
         self.config.event_types.iter().any(|pattern| {
             pattern == "*"
                 || pattern == event_type
-                || (pattern.ends_with('*') && event_type.starts_with(&pattern[..pattern.len() - 1]))
+                || (pattern.ends_with('*')
+                    && event_type.starts_with(&pattern[..pattern.len().saturating_sub(1)]))
         })
     }
 
@@ -689,11 +695,11 @@ mod tests {
 
         // Add a healthy component
         let healthy_event = BaseEvent::new("test.event", "component1", EventSeverity::Info);
-        handler.handle(&healthy_event).await.unwrap();
+        assert!(handler.handle(&healthy_event).await.is_ok());
 
         // Add an unhealthy component
         let error_event = BaseEvent::new("test.error", "component2", EventSeverity::Error);
-        handler.handle(&error_event).await.unwrap();
+        assert!(handler.handle(&error_event).await.is_ok());
 
         // System should still be healthy since only one component has issues
         assert_eq!(handler.get_system_health(), crate::HealthStatus::Degraded);

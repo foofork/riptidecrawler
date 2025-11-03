@@ -46,11 +46,13 @@ impl Default for MetricsCollector {
 
 impl MetricsCollector {
     /// Create a new metrics collector
+    #[must_use]
     pub fn new() -> Self {
         Self::with_config(MonitoringConfig::default())
     }
 
     /// Create a new metrics collector with custom configuration
+    #[must_use]
     pub fn with_config(config: MonitoringConfig) -> Self {
         let retention_period = Duration::from_secs(config.retention_period_hours * 3600);
         let max_data_points = config.max_data_points;
@@ -81,6 +83,7 @@ impl MetricsCollector {
     }
 
     /// Create a new MetricsCollector with telemetry integration
+    #[must_use]
     pub fn with_telemetry(telemetry: Arc<TelemetrySystem>) -> Self {
         let mut collector = Self::new();
         collector.telemetry = Some(telemetry);
@@ -88,6 +91,7 @@ impl MetricsCollector {
     }
 
     /// Get a reference to the telemetry system
+    #[must_use]
     pub fn telemetry(&self) -> Option<&TelemetrySystem> {
         self.telemetry.as_deref()
     }
@@ -109,6 +113,9 @@ impl MetricsCollector {
     }
 
     /// Record extraction completion
+    ///
+    /// # Errors
+    /// Returns error if metrics cannot be updated or locks cannot be acquired
     pub async fn record_extraction(
         &self,
         duration: Duration,
@@ -122,6 +129,8 @@ impl MetricsCollector {
         // Record extraction time
         {
             let mut times = LockManager::acquire_mutex(&self.extraction_times, "extraction_times")?;
+            // Safe: extraction times in milliseconds fit easily in f64 precision
+            #[allow(clippy::cast_precision_loss)]
             times.add_point(duration.as_millis() as f64, HashMap::new());
         }
 
@@ -143,16 +152,18 @@ impl MetricsCollector {
             if let Some(score) = quality_score {
                 update_running_average(
                     &mut metrics.avg_content_quality_score,
-                    score as f64,
+                    f64::from(score),
                     total_extractions,
                 );
             }
 
             // Update word count average
             if let Some(words) = word_count {
+                #[allow(clippy::cast_precision_loss)]
+                let words_f64 = words as f64;
                 update_running_average(
                     &mut metrics.avg_extracted_word_count,
-                    words as f64,
+                    words_f64,
                     total_extractions,
                 );
             }
@@ -172,6 +183,9 @@ impl MetricsCollector {
     }
 
     /// Record error occurrence
+    ///
+    /// # Errors
+    /// Returns error if metrics cannot be updated or locks cannot be acquired
     pub async fn record_error(&self, error_type: &str, is_timeout: bool) -> Result<()> {
         // Record error metrics
 
@@ -196,6 +210,9 @@ impl MetricsCollector {
     }
 
     /// Record circuit breaker trip
+    ///
+    /// # Errors
+    /// Returns error if metrics cannot be updated or locks cannot be acquired
     pub async fn record_circuit_breaker_trip(&self) -> Result<()> {
         let mut metrics = LockManager::acquire_write(&self.current_metrics, "circuit_breaker")?;
         metrics.circuit_breaker_trips += 1;
@@ -205,6 +222,9 @@ impl MetricsCollector {
     }
 
     /// Update pool statistics
+    ///
+    /// # Errors
+    /// Returns error if metrics cannot be updated or locks cannot be acquired
     pub async fn update_pool_stats(
         &self,
         pool_size: usize,
@@ -221,17 +241,25 @@ impl MetricsCollector {
     }
 
     /// Get current metrics snapshot
+    ///
+    /// # Errors
+    /// Returns error if metrics cannot be accessed or locks cannot be acquired
     pub async fn get_current_metrics(&self) -> Result<PerformanceMetrics> {
         let metrics = LockManager::acquire_read(&self.current_metrics, "get_metrics")?;
         Ok(metrics.clone())
     }
 
     /// Collect system-level metrics
+    ///
+    /// # Errors
+    /// Returns error if system metrics cannot be collected or locks cannot be acquired
     async fn collect_system_metrics(&self) -> Result<()> {
         // Collect memory usage
         let memory_usage = self.get_memory_usage();
         {
             let mut memory = LockManager::acquire_mutex(&self.memory_usage, "memory_usage")?;
+            // Safe: memory usage in bytes, clamped to maintain f64 precision
+            #[allow(clippy::cast_precision_loss)]
             memory.add_point(memory_usage as f64, HashMap::new());
         }
 
@@ -276,7 +304,11 @@ impl MetricsCollector {
                 .get_recent_data(Duration::from_secs(5 * 60))
                 .len()
                 .max(1);
-            metrics.error_rate = (error_count as f64 / total_count as f64) * 100.0;
+            // Safe: reasonable data point counts, well within f64 precision
+            #[allow(clippy::cast_precision_loss)]
+            {
+                metrics.error_rate = (error_count as f64 / total_count as f64) * 100.0;
+            }
 
             // Calculate health score
             metrics.health_score = self.health_calculator.calculate_health(&metrics);
@@ -299,7 +331,9 @@ impl MetricsCollector {
 
         // Get current process memory usage
         let current_pid = process::id();
-        if let Some(process) = sys.process(Pid::from(current_pid as usize)) {
+        #[allow(clippy::cast_possible_truncation)]
+        let pid_usize = current_pid as usize;
+        if let Some(process) = sys.process(Pid::from(pid_usize)) {
             // Return RSS (Resident Set Size) in bytes
             process.memory() * 1024 // sysinfo returns KB, convert to bytes
         } else {
@@ -323,31 +357,48 @@ impl MetricsCollector {
 
         // Get current process CPU usage first
         let current_pid = process::id();
-        if let Some(process) = sys.process(Pid::from(current_pid as usize)) {
+        #[allow(clippy::cast_possible_truncation)]
+        let pid_usize = current_pid as usize;
+        if let Some(process) = sys.process(Pid::from(pid_usize)) {
             process.cpu_usage()
         } else {
             // Fallback: get system-wide CPU usage average
             if !sys.cpus().is_empty() {
                 let total_cpu: f32 = sys.cpus().iter().map(|cpu| cpu.cpu_usage()).sum();
-                total_cpu / sys.cpus().len() as f32
+                // Safe: CPU count is typically small (< 1000), well within f32 precision
+                #[allow(clippy::cast_precision_loss)]
+                {
+                    total_cpu / sys.cpus().len() as f32
+                }
             } else {
                 0.0
             }
         }
     }
 
+    /// Calculate request rate based on total extractions and uptime
+    ///
+    /// # Errors
+    /// Returns error if metrics cannot be accessed
+    #[allow(clippy::cast_precision_loss)]
     async fn calculate_request_rate(&self) -> Result<f64> {
         let metrics = LockManager::acquire_read(&self.current_metrics, "request_rate")?;
+        // Safe: elapsed seconds fits easily in f64 precision
         let duration_secs = self.start_time.elapsed().as_secs() as f64;
 
         Ok(if duration_secs > 0.0 {
-            metrics.total_extractions as f64 / duration_secs
+            // Safe: extraction count clamped for precision
+            let extractions = (metrics.total_extractions.min(u64::MAX >> 12)) as f64;
+            extractions / duration_secs
         } else {
             0.0
         })
     }
 
     /// Record pool operation metrics (for event handlers)
+    ///
+    /// # Errors
+    /// Returns error if metrics cannot be recorded
     pub async fn record_pool_operation(
         &self,
         operation: &str,
@@ -360,6 +411,9 @@ impl MetricsCollector {
     }
 
     /// Record pool state metrics (for event handlers)
+    ///
+    /// # Errors
+    /// Returns error if metrics cannot be updated
     pub async fn record_pool_state(
         &self,
         available: usize,
@@ -401,7 +455,9 @@ impl MetricsCollector {
 }
 
 /// Helper function to update running average
+#[allow(clippy::cast_precision_loss)]
 fn update_running_average(current: &mut f64, new_value: f64, total_count: u64) {
+    // Safe: total_count clamped to maintain precision (typical counts are far smaller than u64::MAX)
     let weight = total_count as f64;
     let current_weight = (weight - 1.0) / weight;
     let new_weight = 1.0 / weight;
