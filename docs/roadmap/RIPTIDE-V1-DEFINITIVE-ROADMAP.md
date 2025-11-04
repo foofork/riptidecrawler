@@ -8,42 +8,54 @@
 
 **⚠️ IMPORTANT:** This is THE roadmap. All other roadmap documents are superseded and archived.
 
-# 🚨 RIPTIDE DEV CHECKLIST - PASTE AT SESSION START
+# 🚨 START HERE - PASTE AT SESSION START
 
-## Before ANYTHING:
+## Pre-Flight (30 seconds)
 ```bash
-# Check disk (MUST have >5GB free)
-df -h / | head -2
-
-# Clean if needed
-[ $(df / | awk 'END{print $4}') -lt 5000000 ] && cargo clean
+df -h / | head -2  # MUST have >5GB free
+git branch --show-current  # Verify correct branch (see "Branches & Disk" below)
 ```
 
-## Every Build:
+## Every Build
 ```bash
-# Use swarm (4x faster)
-ruv-swarm build --parallel 4
-
-# Quality gates (MUST pass - ZERO warnings)
-RUSTFLAGS="-D warnings" cargo build --workspace
-cargo clippy --all -- -D warnings
-cargo check --workspace
+ruv-swarm build --parallel 4  # Use swarm (4x faster)
+RUSTFLAGS="-D warnings" cargo clippy --all -- -D warnings  # ZERO warnings
+cargo test -p [crate-changed]  # Test what you changed
 ```
 
-## Golden Rules:
-1. **WRAP** the 1,596 lines in `pipeline.rs` - DON'T rebuild
-2. **CHECK** if code exists before creating: `rg "function_name"`
-3. **TEST** after changes: `cargo test -p [crate-changed]`
-4. **FOLLOW** Week 0-2.5 first (utils → errors → config)
+## Golden Rules
+1. **WRAP** working code (1,596 lines in `pipeline.rs`) - DON'T rebuild
+2. **CHECK** first: `rg "function_name"` before creating
+3. **FOLLOW** order: Week 0-2.5 (utils → errors → config) then later phases
+4. **COMMIT** error-free: All quality gates pass before pushing
 
-## If Build Fails:
+## Decision Tree: WRAP vs CREATE
+- Code exists + works? → **WRAP IT**
+- Duplicated 3+ times? → **CREATE NEW** consolidated
+- >1,500 production lines? → **WRAP IT** (e.g., pipeline.rs)
+- New feature? → **CREATE NEW**
+
+## Branches & Disk
+**Branch Names (use EXACTLY these):**
+- **Week 0-2.5** (Phase 0: Foundation) → `main` (no PR, direct commits)
+- **Week 2.5-5.5** (Spider decoupling) → `feature/phase1-spider-decoupling`
+- **Week 5.5-9** (Composition traits) → `feature/phase1-composition`
+- **Week 9-13** (Python SDK) → `feature/phase2-python-sdk`
+- **Week 13-14** (Events schema) → `feature/phase2-events-schema`
+- **Week 14-16** (Testing) → `feature/phase3-testing`
+- **Week 16-18** (Docs + Launch) → `feature/phase3-launch`
+
+**Disk:** <30GB total, >5GB free minimum (`df -h /`)
+**PR:** All quality gates pass + >80% test coverage
+
+## Agent Recovery (if lost)
 ```bash
-cargo clean && df -h /  # Check space
-cargo build -p riptide-types  # Test minimal
-cargo build --workspace -j 2  # Slow rebuild
+git branch --show-current && df -h / | tail -1  # Where am I + disk OK?
+rg "^## Week [0-9]" docs/roadmap/RIPTIDE-V1-DEFINITIVE-ROADMAP.md  # What's the plan?
 ```
 
-**Remember:** REFACTORING not REWRITING. Check disk. Use swarm. Run clippy.
+**Remember:** REFACTOR not REWRITE. Check disk. Use swarm. Zero warnings.
+
 ---
 
 ## 🎯 v1.0 Success Criteria
