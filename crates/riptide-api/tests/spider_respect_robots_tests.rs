@@ -59,9 +59,10 @@ async fn create_test_app() -> axum::Router {
     }
 }
 
+// TODO: Re-enable test_helpers when available
 // Reference the parent test_helpers module for shared utilities
-#[path = "../test_helpers.rs"]
-mod test_helpers;
+// #[path = "../test_helpers.rs"]
+// mod test_helpers;
 
 #[tokio::test]
 async fn test_respect_robots_default_is_true() {
@@ -172,12 +173,18 @@ async fn test_respect_robots_with_pages_mode() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Deserialize as SpiderResultPages directly (it contains the fields we need)
-    let result: SpiderResultPages =
-        serde_json::from_slice(&axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap())
-            .unwrap();
+    let result: SpiderResultPages = serde_json::from_slice(
+        &axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
 
     // Should have valid response with pages
-    assert!(!result.pages.is_empty(), "Should have at least one page in the result");
+    assert!(
+        !result.pages.is_empty(),
+        "Should have at least one page in the result"
+    );
 
     // Verify pages have basic structure
     for page in &result.pages {
@@ -216,8 +223,14 @@ async fn test_respect_robots_with_urls_mode() {
 async fn test_respect_robots_parameter_parsing() {
     // Test that the parameter is correctly parsed from request
     let test_cases = vec![
-        (json!({"seed_urls": ["https://example.com"], "respect_robots": true}), true),
-        (json!({"seed_urls": ["https://example.com"], "respect_robots": false}), false),
+        (
+            json!({"seed_urls": ["https://example.com"], "respect_robots": true}),
+            true,
+        ),
+        (
+            json!({"seed_urls": ["https://example.com"], "respect_robots": false}),
+            false,
+        ),
         (json!({"seed_urls": ["https://example.com"]}), true), // default
     ];
 
@@ -373,11 +386,16 @@ async fn test_respect_robots_true_uses_default_facade() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Verify response contains expected fields
-    let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
 
     // Should have result with discovered_urls when using urls mode
-    assert!(json.get("result").is_some(), "Response should contain result field");
+    assert!(
+        json.get("result").is_some(),
+        "Response should contain result field"
+    );
 }
 
 /// Test respect_robots parameter isolation from other options

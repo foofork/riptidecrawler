@@ -5,6 +5,7 @@
 //! This module defines the routing configuration for domain profile management
 //! and engine caching endpoints.
 
+#[cfg(feature = "llm")]
 use crate::handlers::profiles;
 use crate::state::AppState;
 use axum::{
@@ -64,6 +65,7 @@ use axum::{
 /// // Get caching metrics
 /// GET /api/v1/profiles/metrics
 /// ```
+#[cfg(feature = "llm")]
 pub fn profile_routes() -> Router<AppState> {
     Router::new()
         // Profile CRUD operations
@@ -82,6 +84,12 @@ pub fn profile_routes() -> Router<AppState> {
         // Cache management
         .route("/:domain/warm", post(profiles::warm_cache))
         .route("/clear", delete(profiles::clear_all_caches))
+}
+
+/// Create stub profile routes when feature is disabled
+#[cfg(not(feature = "llm"))]
+pub fn profile_routes() -> Router<AppState> {
+    Router::new()
 }
 
 #[cfg(test)]

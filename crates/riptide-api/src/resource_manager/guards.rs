@@ -6,6 +6,7 @@
 use crate::resource_manager::{
     memory_manager::MemoryManager, metrics::ResourceMetrics, wasm_manager::WasmInstanceManager,
 };
+#[cfg(feature = "browser")]
 use riptide_headless::pool::BrowserCheckout;
 use std::sync::Arc;
 use tokio::sync::OwnedSemaphorePermit;
@@ -14,6 +15,7 @@ use tokio::sync::OwnedSemaphorePermit;
 ///
 /// Holds all resources needed for a render operation and ensures
 /// proper cleanup through RAII (Drop trait).
+#[cfg(feature = "browser")]
 pub struct RenderResourceGuard {
     /// Browser checkout for render operations
     #[allow(dead_code)] // RAII guard field, accessed by browser() method
@@ -25,6 +27,7 @@ pub struct RenderResourceGuard {
     metrics: Arc<ResourceMetrics>,
 }
 
+#[cfg(feature = "browser")]
 impl RenderResourceGuard {
     /// Create a new render resource guard
     pub(crate) fn new(
@@ -64,6 +67,7 @@ impl RenderResourceGuard {
     // directly without storing in a guard.
 }
 
+#[cfg(feature = "browser")]
 impl std::fmt::Debug for RenderResourceGuard {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("RenderResourceGuard")
@@ -74,6 +78,7 @@ impl std::fmt::Debug for RenderResourceGuard {
     }
 }
 
+#[cfg(feature = "browser")]
 impl Drop for RenderResourceGuard {
     fn drop(&mut self) {
         let memory_manager = self.memory_manager.clone();

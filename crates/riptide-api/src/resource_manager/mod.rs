@@ -59,7 +59,9 @@ pub mod wasm_manager;
 #[allow(unused_imports)] // Helper functions reserved for future use
 pub use errors::{exhausted_error, timeout_error, ResourceManagerError, Result};
 #[allow(unused_imports)] // WasmGuard reserved for future public API
-pub use guards::{PdfResourceGuard, RenderResourceGuard, WasmGuard};
+#[cfg(feature = "browser")]
+pub use guards::RenderResourceGuard;
+pub use guards::{PdfResourceGuard, WasmGuard};
 #[allow(unused_imports)] // MemoryStats reserved for monitoring endpoints
 pub use memory_manager::{MemoryManager, MemoryStats};
 #[allow(unused_imports)] // MetricsSnapshot reserved for monitoring endpoints
