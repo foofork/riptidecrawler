@@ -3,7 +3,7 @@
 //! This module defines the core traits that enable extensibility
 //! and abstraction across the Riptide framework.
 
-use crate::errors::Result;
+use crate::error::Result;
 use crate::types::{BrowserConfig, ExtractionRequest, ExtractionResult, ScrapedContent, Url};
 use async_trait::async_trait;
 

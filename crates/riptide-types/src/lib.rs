@@ -12,7 +12,7 @@
 pub mod component;
 pub mod conditional;
 pub mod config;
-pub mod errors;
+pub mod error;
 pub mod extracted;
 pub mod extractors;
 pub mod reliability;
@@ -26,7 +26,7 @@ pub use conditional::{
     CacheValidation, ConditionalRequest, ConditionalResponse,
 };
 pub use config::{ChunkingConfig, ExtractionMode, OutputFormat, RenderMode, TopicChunkingConfig};
-pub use errors::{Result, RiptideError};
+pub use error::{Result, RiptideError, StrategyError};
 pub use extracted::{
     BasicExtractedDoc, ComponentInfo, ContentChunk, ExtractedContent, ExtractedDoc,
     ExtractionQuality, ExtractionStats, HealthStatus, ParserMetadata,
