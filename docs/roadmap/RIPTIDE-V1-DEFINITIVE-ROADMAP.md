@@ -8,13 +8,42 @@
 
 **⚠️ IMPORTANT:** This is THE roadmap. All other roadmap documents are superseded and archived.
 
-**Supporting documents:**
-- ✅ `VALIDATION-SYNTHESIS.md` (why corrections were made)
-- ✅ `/docs/validation/` (4 detailed validation reports)
-- ✅ `/docs/analysis/` (6 swarm analysis reports)
+# 🚨 RIPTIDE DEV CHECKLIST - PASTE AT SESSION START
 
-**Validation confidence:** 95% (exceptional for 18-week project)
+## Before ANYTHING:
+```bash
+# Check disk (MUST have >5GB free)
+df -h / | head -2
 
+# Clean if needed
+[ $(df / | awk 'END{print $4}') -lt 5000000 ] && cargo clean
+```
+
+## Every Build:
+```bash
+# Use swarm (4x faster)
+ruv-swarm build --parallel 4
+
+# Quality gates (MUST pass - ZERO warnings)
+RUSTFLAGS="-D warnings" cargo build --workspace
+cargo clippy --all -- -D warnings
+cargo check --workspace
+```
+
+## Golden Rules:
+1. **WRAP** the 1,596 lines in `pipeline.rs` - DON'T rebuild
+2. **CHECK** if code exists before creating: `rg "function_name"`
+3. **TEST** after changes: `cargo test -p [crate-changed]`
+4. **FOLLOW** Week 0-2.5 first (utils → errors → config)
+
+## If Build Fails:
+```bash
+cargo clean && df -h /  # Check space
+cargo build -p riptide-types  # Test minimal
+cargo build --workspace -j 2  # Slow rebuild
+```
+
+**Remember:** REFACTORING not REWRITING. Check disk. Use swarm. Run clippy.
 ---
 
 ## 🎯 v1.0 Success Criteria
