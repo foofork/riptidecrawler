@@ -18,12 +18,7 @@ Extract structured data from any website with intelligent routing, multi-provide
 
 - 🚧 **API v1.0 is in active development** - Breaking changes expected
 - 🔄 **Major refactoring underway** - See [RipTide v1.0 Roadmap](docs/roadmap/RIPTIDE-V1-DEFINITIVE-ROADMAP.md)
-- ⚡ **18-week timeline to production** - Currently in Phase 0 (foundations)
-- 🧪 **Experimental features** - Many APIs will change before v1.0
 
-**Use at your own risk!** Wait for v1.0 release (18 weeks) for production use.
-
-**Want to contribute?** Check the [roadmap](docs/roadmap/) for current priorities and validated next steps.
 
 ---
 
