@@ -26,8 +26,9 @@ cargo test -p [crate-changed]  # Test what you changed
 ## Golden Rules
 1. **WRAP** working code (1,596 lines in `pipeline.rs`) - DON'T rebuild
 2. **CHECK** first: `rg "function_name"` before creating
-3. **FOLLOW** order: Week 0-2.5 (utils → errors → config) then later phases
-4. **COMMIT** error-free: All quality gates pass before pushing
+3. **TWO PHASES**: CREATE consolidated code → MIGRATE existing usage (BOTH required)
+4. **VERIFY** migration: `rg "old_pattern"` must return 0 files after Phase B
+5. **COMMIT** error-free: All quality gates pass before pushing
 
 ## Decision Tree: WRAP vs CREATE
 - Code exists + works? → **WRAP IT**
@@ -111,17 +112,19 @@ cd /workspaces/eventmesh
 cargo new --lib crates/riptide-utils
 ```
 
-**1. Redis Connection Pooling** (2 days)
+**1. Redis Connection Pooling** (2 days - TWO PHASES)
 
-**ACTION: CREATE NEW** (don't move existing code)
+**ACTION: Phase 1a = CREATE NEW, Phase 1b = MIGRATE (MANDATORY)**
 
-**Find existing implementations:**
+**Phase 1a: Create RedisPool** (1 day)
+
+**Find existing implementations first:**
 ```bash
-# Verified: 3 implementations exist
+# MUST verify before creating: 3 implementations exist
 rg "redis::Client::open|ConnectionManager::new" --type rust -l
 ```
 
-**Expected files:**
+**Expected duplicate locations:**
 - `crates/riptide-workers/src/scheduler.rs:193`
 - `crates/riptide-workers/src/queue.rs:56`
 - `crates/riptide-persistence/tests/integration/mod.rs:92`
@@ -211,35 +214,69 @@ async fn test_redis_pool_reuses_connections() {
 // REFACTOR: Add error handling
 ```
 
-**Migration commands:**
+**Phase 1a Acceptance:**
+- [ ] RedisPool compiles: `cargo build -p riptide-utils`
+- [ ] Tests pass: `cargo test -p riptide-utils redis`
+- [ ] Health checks work (PING every 30s)
+- [ ] Connection pooling verified (10+ concurrent)
+
+**Phase 1b: Migrate Existing Usage** (0.5 days - MANDATORY)
+
+**⚠️ CRITICAL: Phase 1b is NOT optional. Must complete BEFORE moving to next task.**
+
+**Verification command (MUST return 3 files):**
 ```bash
-# Update imports in 3 crates
+# These files MUST still have old Redis code before migration
+rg "redis::Client::open|ConnectionManager::new" --type rust -l | \
+  grep -v riptide-utils | grep -v target
+# Expected output: scheduler.rs, queue.rs, mod.rs
+```
+
+**Migration commands (run EXACTLY these):**
+```bash
+# 1. Update scheduler.rs
 sd "redis::Client::open" "riptide_utils::redis::RedisPool::new" \
   crates/riptide-workers/src/scheduler.rs
 
+# 2. Update queue.rs
 sd "redis::Client::open" "riptide_utils::redis::RedisPool::new" \
   crates/riptide-workers/src/queue.rs
 
-# Update tests
+# 3. Update integration tests
 sd "redis::Client::open" "riptide_utils::redis::RedisPool::new" \
   crates/riptide-persistence/tests/integration/mod.rs
+
+# 4. Add imports to all 3 files
+# Add: use riptide_utils::redis::RedisPool;
 ```
 
-**Acceptance:**
-- [ ] RedisPool compiles and tests pass
-- [ ] Health checks working (PING every 30s)
-- [ ] All 3 usages migrated to utils
-- [ ] Connection pooling verified (10+ concurrent connections)
-- [ ] Retry logic with exponential backoff works
-- [ ] ~150 lines removed from crates
-
-**2. HTTP Client Factory** (1 day)
-
-**ACTION: CREATE NEW** (existing code is duplicated test setup, not production)
-
-**Find existing implementations:**
+**Verification (MUST run after migration):**
 ```bash
-# Verified: 8+ test files with duplicate client setup
+# Should return ZERO files (except riptide-utils itself)
+rg "redis::Client::open" --type rust -l | grep -v riptide-utils | grep -v target | wc -l
+# Expected: 0
+
+# Verify builds still work
+cargo test -p riptide-workers
+cargo test -p riptide-persistence --test integration
+```
+
+**Phase 1b Acceptance (ALL required):**
+- [ ] `rg "redis::Client::open"` returns 0 files (outside utils)
+- [ ] All 3 files now use `RedisPool::new`
+- [ ] `cargo test -p riptide-workers` passes
+- [ ] `cargo test -p riptide-persistence` passes
+- [ ] ~150 lines removed (verify with `git diff --stat`)
+
+**2. HTTP Client Factory** (1 day - TWO PHASES)
+
+**ACTION: Phase 2a = CREATE NEW, Phase 2b = MIGRATE (MANDATORY)**
+
+**Phase 2a: Create HTTP Client Factory** (0.5 days)
+
+**Find existing implementations first:**
+```bash
+# MUST verify before creating: 8+ test files with duplicate setup
 rg "reqwest::Client::builder" --type rust -l tests/
 ```
 
@@ -269,19 +306,59 @@ pub fn create_custom_client(timeout_secs: u64, user_agent: &str) -> Result<Clien
 }
 ```
 
-**Acceptance:**
-- [ ] HTTP client factory works
-- [ ] 8+ test files updated to use utils
-- [ ] ~80 lines of duplicate code removed
+**Phase 2a Acceptance:**
+- [ ] HTTP factory compiles: `cargo build -p riptide-utils`
+- [ ] Tests pass: `cargo test -p riptide-utils http`
+- [ ] Client pool settings work (timeout, user-agent, max idle)
 
-**3. Retry Logic Consolidation** (2-3 days)
+**Phase 2b: Migrate Test Files** (0.5 days - MANDATORY)
 
-**ACTION: REFACTOR** (extract from riptide-fetch, generalize, move to utils)
+**⚠️ CRITICAL: Phase 2b is NOT optional. Must update all test files.**
 
-**Find existing implementations:**
+**Verification (MUST return 8+ files):**
 ```bash
-# Verified: 125+ files with retry patterns (exceeds "40+" estimate)
+# Count duplicate HTTP clients in tests
+rg "reqwest::Client::builder" --type rust tests/ -l | wc -l
+# Expected: 8+
+```
+
+**Migration commands:**
+```bash
+# Find all test files with HTTP duplication
+TEST_FILES=$(rg "reqwest::Client::builder" --type rust tests/ -l)
+
+# Update each file to use utils (example for first few)
+# Manual review required for test-specific configurations
+# Replace: reqwest::Client::builder()...build()
+# With: riptide_utils::http::create_default_client()
+```
+
+**Verification after migration:**
+```bash
+# Should be significantly reduced (target: <3 remaining)
+rg "reqwest::Client::builder" --type rust tests/ -l | wc -l
+
+# All tests should still pass
+cargo test --workspace
+```
+
+**Phase 2b Acceptance (ALL required):**
+- [ ] 8+ test files updated to use `create_default_client()`
+- [ ] Remaining duplicates <3 (special cases documented)
+- [ ] `cargo test --workspace` passes
+- [ ] ~80 lines removed (verify with `git diff --stat`)
+
+**3. Retry Logic Consolidation** (2-3 days - TWO PHASES)
+
+**ACTION: Phase 3a = REFACTOR (extract from riptide-fetch), Phase 3b = MIGRATE high-priority**
+
+**Phase 3a: Extract and Generalize Retry Logic** (1.5 days)
+
+**Find existing implementations first:**
+```bash
+# MUST verify scale: 125+ files with retry patterns
 rg "for.*attempt|retry.*loop|exponential.*backoff" --type rust -l | wc -l
+# Expected: 125+
 ```
 
 **Identify canonical implementation:**
@@ -341,22 +418,60 @@ impl RetryPolicy {
 }
 ```
 
-**Migration strategy:**
-```bash
-# Phase 1: High-priority replacements (10 files in Week 0)
-# - riptide-fetch (keep, use as reference)
-# - riptide-intelligence (update to use utils)
-# - riptide-workers (update to use utils)
-# - riptide-spider (update to use utils)
+**Phase 3a Acceptance:**
+- [ ] RetryPolicy compiles: `cargo build -p riptide-utils`
+- [ ] Tests pass: `cargo test -p riptide-utils retry`
+- [ ] Exponential backoff verified
+- [ ] Generic async function support works
 
-# Phase 2: Remaining files (defer to Week 1-2 as cleanup)
+**Phase 3b: Migrate High-Priority Files** (1 day - MANDATORY)
+
+**⚠️ CRITICAL: Phase 3b migrates 10 high-priority files. Remaining 115 files deferred to Week 1-2.**
+
+**High-priority targets:**
+- `crates/riptide-intelligence/**/*.rs` (LLM retry logic)
+- `crates/riptide-workers/**/*.rs` (worker retry)
+- `crates/riptide-spider/**/*.rs` (spider retry)
+
+**Verification (count before migration):**
+```bash
+# Count retry patterns in high-priority crates
+rg "for.*attempt|retry.*loop" --type rust -l \
+  crates/riptide-{intelligence,workers,spider} | wc -l
+# Expected: 10+
 ```
 
-**Acceptance:**
-- [ ] RetryPolicy works with exponential backoff
-- [ ] 10+ high-priority files updated
-- [ ] Remaining 115 files documented for future cleanup
+**Migration strategy:**
+```bash
+# 1. Update riptide-intelligence
+find crates/riptide-intelligence -name "*.rs" -exec \
+  sed -i 's/old_retry_pattern/riptide_utils::retry::RetryPolicy::default()/g' {} \;
+
+# 2. Update riptide-workers (similar)
+# 3. Update riptide-spider (similar)
+
+# Add imports to each migrated file:
+# use riptide_utils::retry::RetryPolicy;
+```
+
+**Verification after migration:**
+```bash
+# Should be reduced by ~10 files
+rg "for.*attempt|retry.*loop" --type rust -l \
+  crates/riptide-{intelligence,workers,spider} | wc -l
+
+# High-priority crates should build
+cargo test -p riptide-intelligence
+cargo test -p riptide-workers
+cargo test -p riptide-spider
+```
+
+**Phase 3b Acceptance (ALL required):**
+- [ ] 10+ high-priority files migrated to RetryPolicy
+- [ ] Remaining 115 files documented for Week 1-2 cleanup
+- [ ] High-priority crates tests pass
 - [ ] ~400 lines of high-priority duplicates removed
+- [ ] Migration status saved to `docs/phase0/retry-migration-status.md`
 
 **4. Time Utilities** (0.5 days)
 
