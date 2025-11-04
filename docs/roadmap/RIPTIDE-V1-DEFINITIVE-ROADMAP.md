@@ -114,22 +114,25 @@ cargo new --lib crates/riptide-utils
 
 **1. Redis Connection Pooling** (2 days - TWO PHASES)
 
-**ACTION: Phase 1a = CREATE NEW, Phase 1b = MIGRATE (MANDATORY)**
+**ACTION: Phase 1a = REFACTOR existing → consolidated RedisPool, Phase 1b = MIGRATE (MANDATORY)**
 
-**Phase 1a: Create RedisPool** (1 day)
+**Phase 1a: Extract and Consolidate RedisPool** (1 day)
 
-**Find existing implementations first:**
+**Find existing implementations first (VERIFIED 2025-11-04: 10+ files):**
 ```bash
-# MUST verify before creating: 3 implementations exist
-rg "redis::Client::open|ConnectionManager::new" --type rust -l
+# Verify all Redis usage in codebase
+rg "redis::Client::open|ConnectionManager::new|get_multiplexed_async_connection" --type rust -l | grep -v target
+# Expected: 10+ files (not just 3)
 ```
 
-**Expected duplicate locations:**
-- `crates/riptide-workers/src/scheduler.rs:193`
-- `crates/riptide-workers/src/queue.rs:56`
-- `crates/riptide-persistence/tests/integration/mod.rs:92`
+**Source locations to extract patterns from:**
+- `crates/riptide-workers/src/scheduler.rs:193` (basic connection setup)
+- `crates/riptide-workers/src/queue.rs:56` (connection with retry)
+- `crates/riptide-cache/src/redis.rs` (pooling and connection management - 393 lines!)
+- `crates/riptide-persistence/tests/integration/mod.rs:92` (test connection setup)
+- Plus 6+ files in riptide-persistence/src/*.rs
 
-**Create NEW consolidated implementation with health checks:**
+**REFACTOR these patterns into consolidated RedisPool with health checks:**
 ```rust
 // crates/riptide-utils/src/redis.rs
 
@@ -220,33 +223,38 @@ async fn test_redis_pool_reuses_connections() {
 - [ ] Health checks work (PING every 30s)
 - [ ] Connection pooling verified (10+ concurrent)
 
-**Phase 1b: Migrate Existing Usage** (0.5 days - MANDATORY)
+**Phase 1b: Migrate Existing Usage** (1 day - MANDATORY)
 
-**⚠️ CRITICAL: Phase 1b is NOT optional. Must complete BEFORE moving to next task.**
+**⚠️ CRITICAL: Phase 1b is NOT optional. Must migrate ALL 10+ files BEFORE moving to next task.**
 
-**Verification command (MUST return 3 files):**
+**Verification command (MUST return 10+ files before migration):**
 ```bash
 # These files MUST still have old Redis code before migration
-rg "redis::Client::open|ConnectionManager::new" --type rust -l | \
+rg "redis::Client::open|ConnectionManager::new|get_multiplexed_async_connection" --type rust -l | \
   grep -v riptide-utils | grep -v target
-# Expected output: scheduler.rs, queue.rs, mod.rs
+# Expected: 10+ files including:
+#   - riptide-workers: scheduler.rs, queue.rs
+#   - riptide-persistence: cache.rs, state.rs, tenant.rs, sync.rs, tests/integration/mod.rs
+#   - riptide-cache: redis.rs, manager.rs
 ```
 
-**Migration commands (run EXACTLY these):**
+**Migration commands (update ALL files found above):**
 ```bash
-# 1. Update scheduler.rs
+# PRIORITY 1: riptide-workers (scheduler, queue)
 sd "redis::Client::open" "riptide_utils::redis::RedisPool::new" \
-  crates/riptide-workers/src/scheduler.rs
-
-# 2. Update queue.rs
-sd "redis::Client::open" "riptide_utils::redis::RedisPool::new" \
+  crates/riptide-workers/src/scheduler.rs \
   crates/riptide-workers/src/queue.rs
 
-# 3. Update integration tests
+# PRIORITY 2: riptide-persistence (4 source files + 1 test)
 sd "redis::Client::open" "riptide_utils::redis::RedisPool::new" \
+  crates/riptide-persistence/src/{cache,state,tenant,sync}.rs \
   crates/riptide-persistence/tests/integration/mod.rs
 
-# 4. Add imports to all 3 files
+# PRIORITY 3: riptide-cache (redis wrapper - may need manual refactor)
+# Review: crates/riptide-cache/src/redis.rs (393 lines)
+# Decision: Keep as thin wrapper over RedisPool OR consolidate into utils
+
+# 4. Add imports to all migrated files
 # Add: use riptide_utils::redis::RedisPool;
 ```
 
@@ -262,25 +270,32 @@ cargo test -p riptide-persistence --test integration
 ```
 
 **Phase 1b Acceptance (ALL required):**
-- [ ] `rg "redis::Client::open"` returns 0 files (outside utils)
-- [ ] All 3 files now use `RedisPool::new`
+- [ ] `rg "redis::Client::open"` returns 0 files (outside utils and riptide-cache)
+- [ ] All 10+ files now use `RedisPool::new` OR decision documented for riptide-cache
 - [ ] `cargo test -p riptide-workers` passes
 - [ ] `cargo test -p riptide-persistence` passes
-- [ ] ~150 lines removed (verify with `git diff --stat`)
+- [ ] `cargo test -p riptide-cache` passes (if migrated)
+- [ ] ~500 lines removed (verify with `git diff --stat` - not 150, corrected for 10 files)
 
 **2. HTTP Client Factory** (1 day - TWO PHASES)
 
-**ACTION: Phase 2a = CREATE NEW, Phase 2b = MIGRATE (MANDATORY)**
+**ACTION: Phase 2a = EXTRACT common patterns → factory, Phase 2b = MIGRATE tests (IF duplication exists)**
 
-**Phase 2a: Create HTTP Client Factory** (0.5 days)
+**Phase 2a: Extract HTTP Client Factory** (0.5 days)
 
-**Find existing implementations first:**
+**Find and verify duplication first (VERIFY 2025-11-04: check if duplication actually exists):**
 ```bash
-# MUST verify before creating: 8+ test files with duplicate setup
-rg "reqwest::Client::builder" --type rust -l tests/
+# Find all reqwest usage (19 files found, but duplication unclear)
+rg "reqwest::Client::builder|Client::new" --type rust -l tests/
+# Expected: 19 test files, but VERIFY if they have duplicate configuration
+
+# Check for actual duplication (timeouts, headers, pooling):
+rg "timeout|user_agent|pool_idle_timeout" tests/ -A 3 | head -50
 ```
 
-**Create NEW consolidated implementation:**
+**Note:** Swarm analysis (2025-11-04) found 19 test files but couldn't verify actual duplication. Most use simple `Client::new()`. **Verify duplication exists before creating factory.**
+
+**If duplication confirmed, EXTRACT common patterns into factory:**
 ```rust
 // crates/riptide-utils/src/http.rs
 
@@ -356,9 +371,9 @@ cargo test --workspace
 
 **Find existing implementations first:**
 ```bash
-# MUST verify scale: 125+ files with retry patterns
-rg "for.*attempt|retry.*loop|exponential.*backoff" --type rust -l | wc -l
-# Expected: 125+
+# MUST verify scale: ~36 files with retry patterns (VERIFIED 2025-11-04)
+rg "for.*attempt|retry.*loop|exponential.*backoff" --type rust -l | grep -v target | wc -l
+# Expected: 36 (not 125+ - that was overestimated)
 ```
 
 **Identify canonical implementation:**
@@ -426,19 +441,19 @@ impl RetryPolicy {
 
 **Phase 3b: Migrate High-Priority Files** (1 day - MANDATORY)
 
-**⚠️ CRITICAL: Phase 3b migrates 10 high-priority files. Remaining 115 files deferred to Week 1-2.**
+**⚠️ CRITICAL: Phase 3b migrates 7 high-priority files. Remaining 29 files deferred to Week 1-2.**
 
-**High-priority targets:**
-- `crates/riptide-intelligence/**/*.rs` (LLM retry logic)
-- `crates/riptide-workers/**/*.rs` (worker retry)
-- `crates/riptide-spider/**/*.rs` (spider retry)
+**High-priority targets (VERIFIED 2025-11-04: 7 files):**
+- `crates/riptide-intelligence/src/{smart_retry,circuit_breaker,fallback,background_processor,llm_client_pool}.rs` (5 files)
+- `crates/riptide-workers/src/job.rs` (1 file)
+- `crates/riptide-intelligence/tests/smart_retry_tests.rs` (1 file)
 
 **Verification (count before migration):**
 ```bash
-# Count retry patterns in high-priority crates
+# Count retry patterns in high-priority crates (VERIFIED: 7 files)
 rg "for.*attempt|retry.*loop" --type rust -l \
-  crates/riptide-{intelligence,workers,spider} | wc -l
-# Expected: 10+
+  crates/riptide-{intelligence,workers,spider} | grep -v target
+# Expected: 7 (not 10+ - corrected count)
 ```
 
 **Migration strategy:**
@@ -467,11 +482,25 @@ cargo test -p riptide-spider
 ```
 
 **Phase 3b Acceptance (ALL required):**
-- [ ] 10+ high-priority files migrated to RetryPolicy
-- [ ] Remaining 115 files documented for Week 1-2 cleanup
-- [ ] High-priority crates tests pass
-- [ ] ~400 lines of high-priority duplicates removed
-- [ ] Migration status saved to `docs/phase0/retry-migration-status.md`
+- [ ] 7 high-priority files migrated to RetryPolicy (exact count verified)
+- [ ] Remaining 29 files documented for Week 1-2 cleanup
+- [ ] High-priority crates tests pass: `cargo test -p riptide-{intelligence,workers}`
+- [ ] ~250 lines of high-priority duplicates removed (not 400 - corrected estimate)
+- [ ] CREATE migration tracking at `docs/phase0/retry-migration-status.md`:
+  ```markdown
+  # Retry Migration Status
+
+  ## Phase 3b Complete (7/36 files)
+  - ✅ riptide-intelligence: 5 files
+  - ✅ riptide-workers: 1 file
+  - ✅ Tests: 1 file
+
+  ## Remaining (29/36 files - Week 1-2)
+  - riptide-fetch: 4 files
+  - riptide-api: 6 files
+  - riptide-extraction: 3 files
+  - Other crates: 16 files
+  ```
 
 **4. Time Utilities** (0.5 days)
 
