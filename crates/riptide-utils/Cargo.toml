@@ -1,0 +1,44 @@
+[package]
+name = "riptide-utils"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Shared utilities for Riptide EventMesh"
+
+[dependencies]
+# Async runtime
+tokio = { workspace = true }
+
+# Redis client
+redis = { workspace = true }
+
+# HTTP client
+reqwest = { workspace = true }
+
+# Rate limiting
+governor = { workspace = true }
+nonzero_ext = "0.3"
+
+# Time utilities
+chrono = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+# Testing utilities
+tokio-test = "0.4"
+mockito = "1.2"
+wiremock = { workspace = true }
+
+[features]
+default = []

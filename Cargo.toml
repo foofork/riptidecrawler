@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "crates/riptide-types",
+  "crates/riptide-utils",  # Phase 0 Week 0-1: Shared utilities
   # P2-F1 Day 6: riptide-core ELIMINATED - functionality distributed to specialized crates
   "crates/riptide-spider",  # P1-C2: Spider/crawler engine (extracted from core)
   "crates/riptide-fetch",   # P1-C2: HTTP/network layer (extracted from core)

@@ -1,10 +1,18 @@
-use anyhow::{anyhow, Result};
-use std::collections::{HashMap, VecDeque};
-use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
-use std::sync::Arc;
 use std::time::{Duration, Instant};
+
+#[cfg(feature = "wasm-pool")]
+use anyhow::{anyhow, Result};
+#[cfg(feature = "wasm-pool")]
+use std::collections::{HashMap, VecDeque};
+#[cfg(feature = "wasm-pool")]
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+#[cfg(feature = "wasm-pool")]
+use std::sync::Arc;
+#[cfg(feature = "wasm-pool")]
 use tokio::sync::{mpsc, watch, Mutex, RwLock};
+#[cfg(feature = "wasm-pool")]
 use tokio::time::interval;
+#[cfg(feature = "wasm-pool")]
 use tracing::{debug, error, info, warn};
 
 #[cfg(feature = "wasm-pool")]

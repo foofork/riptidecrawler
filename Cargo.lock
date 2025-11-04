@@ -7220,6 +7220,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "riptide-utils"
+version = "0.9.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "governor",
+ "mockito",
+ "nonzero_ext",
+ "redis",
+ "reqwest 0.12.24",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-test",
+ "tracing",
+ "wiremock",
+]
+
+[[package]]
 name = "riptide-workers"
 version = "0.9.0"
 dependencies = [

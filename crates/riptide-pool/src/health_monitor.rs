@@ -1,13 +1,21 @@
-use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 use std::time::Instant;
+
+#[cfg(feature = "wasm-pool")]
+use anyhow::Result;
+#[cfg(feature = "wasm-pool")]
+use std::collections::HashMap;
+#[cfg(feature = "wasm-pool")]
+use std::sync::{Arc, Mutex};
+#[cfg(feature = "wasm-pool")]
 use tokio::time::{interval, timeout, Duration};
+#[cfg(feature = "wasm-pool")]
 use tracing::{debug, error, info, warn};
 
 // Core imports needed throughout the file
+#[cfg(feature = "wasm-pool")]
 use crate::config::{ExtractorConfig, PerformanceMetrics};
+#[cfg(feature = "wasm-pool")]
 use riptide_events::{EventBus, HealthEvent, HealthStatus, MetricType, MetricsEvent};
 
 // Feature-gated pool import

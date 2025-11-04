@@ -1,8 +1,9 @@
 //! Core data structures for instance pool management.
 
-use std::sync::Arc;
 use std::time::Instant;
-use uuid::Uuid;
+
+#[cfg(feature = "wasm-pool")]
+use std::sync::Arc;
 
 #[cfg(feature = "wasm-pool")]
 use wasmtime::{component::*, Engine, Store};
