@@ -100,12 +100,54 @@ pub async fn spider_crawl(
     // Record spider crawl start
     state.metrics.record_spider_crawl_start();
 
+    // Handle respect_robots parameter
+    let respect_robots = body.respect_robots.unwrap_or(true);
+
+    // Log warning if robots.txt respect is explicitly disabled
+    if !respect_robots {
+        tracing::warn!(
+            seed_urls = ?seed_urls,
+            "Robots.txt respect disabled - ensure you have permission to crawl these sites"
+        );
+    }
+
     // Perform the crawl using SpiderFacade
-    let crawl_summary = spider_facade.crawl(seed_urls).await.map_err(|e| {
-        // Record failed spider crawl
-        metrics.record_spider_crawl_failure();
-        ApiError::internal(format!("Spider crawl failed: {}", e))
-    })?;
+    // If respect_robots differs from the default facade config, create a custom facade
+    let crawl_summary = if respect_robots {
+        // Use default facade (respects robots.txt)
+        spider_facade.crawl(seed_urls).await.map_err(|e| {
+            metrics.record_spider_crawl_failure();
+            ApiError::internal(format!("Spider crawl failed: {}", e))
+        })?
+    } else {
+        // Create custom facade with robots.txt disabled
+        use riptide_facade::facades::spider::SpiderFacade;
+        use riptide_spider::SpiderConfig;
+
+        // Get the first seed URL as base_url for config
+        let base_url = seed_urls
+            .first()
+            .ok_or_else(|| ApiError::validation("At least one seed URL required"))?
+            .clone();
+
+        // Create custom config with respect_robots disabled
+        let custom_config = SpiderConfig::new(base_url.clone())
+            .with_respect_robots(false)
+            .with_max_depth(body.max_depth)
+            .with_max_pages(body.max_pages);
+
+        let custom_facade = SpiderFacade::from_config(custom_config)
+            .await
+            .map_err(|e| {
+                metrics.record_spider_crawl_failure();
+                ApiError::internal(format!("Failed to create custom spider facade: {}", e))
+            })?;
+
+        custom_facade.crawl(seed_urls).await.map_err(|e| {
+            metrics.record_spider_crawl_failure();
+            ApiError::internal(format!("Spider crawl failed: {}", e))
+        })?
+    };
 
     // Record successful spider crawl completion
     metrics.record_spider_crawl(
