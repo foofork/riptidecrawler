@@ -13,16 +13,16 @@ use std::path::PathBuf;
 /// Main configuration structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RiptideConfig {
-    pub api: ApiConfig,
+    pub api: StreamingApiConfig,
     pub streaming: StreamingConfig,
     pub reports: ReportsConfig,
     pub cli: CliConfig,
     pub logging: LoggingConfig,
 }
 
-/// API configuration
+/// Streaming API configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ApiConfig {
+pub struct StreamingApiConfig {
     pub host: String,
     pub port: u16,
     pub timeout_seconds: u64,
@@ -402,7 +402,7 @@ impl Default for ConfigManager {
 
         Self {
             config: RiptideConfig {
-                api: ApiConfig {
+                api: StreamingApiConfig {
                     host: "localhost".to_string(),
                     port: 8080,
                     timeout_seconds: 30,

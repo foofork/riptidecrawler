@@ -172,6 +172,7 @@ impl<'a> SpiderConfigBuilder<'a> {
     }
 
     #[allow(dead_code)] // Reserved for future spider configuration
+    #[cfg(feature = "spider")]
     pub fn build(self) -> Result<riptide_spider::SpiderConfig, ApiError> {
         // Start with base configuration
         let mut config = riptide_spider::SpiderConfig::new(self.seed_url);

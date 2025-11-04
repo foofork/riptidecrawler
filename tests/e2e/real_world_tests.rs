@@ -3,16 +3,18 @@
 
 use riptide_html::Extractor;
 use riptide_pdf::PdfProcessor;
+use riptide_utils::http::{HttpClientFactory, HttpConfig};
 use std::time::Instant;
 
 #[tokio::test]
 async fn test_real_world_html_extraction_wikipedia() {
     println!("\n🌐 TEST: Real-world HTML extraction from Wikipedia");
 
-    let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (compatible; RipTideBot/1.0)")
-        .build()
-        .unwrap();
+    let config = HttpConfig {
+        user_agent: "Mozilla/5.0 (compatible; RipTideBot/1.0)".to_string(),
+        ..HttpConfig::default()
+    };
+    let client = HttpClientFactory::create(config).unwrap();
 
     let url = "https://en.wikipedia.org/wiki/Rust_(programming_language)";
     let start = Instant::now();
@@ -46,10 +48,11 @@ async fn test_real_world_html_extraction_wikipedia() {
 async fn test_real_world_html_extraction_github() {
     println!("\n🌐 TEST: Real-world HTML extraction from GitHub");
 
-    let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (compatible; RipTideBot/1.0)")
-        .build()
-        .unwrap();
+    let config = HttpConfig {
+        user_agent: "Mozilla/5.0 (compatible; RipTideBot/1.0)".to_string(),
+        ..HttpConfig::default()
+    };
+    let client = HttpClientFactory::create(config).unwrap();
 
     let url = "https://github.com/rust-lang/rust";
     let start = Instant::now();
@@ -81,10 +84,11 @@ async fn test_real_world_html_extraction_github() {
 async fn test_real_world_html_extraction_news() {
     println!("\n🌐 TEST: Real-world HTML extraction from news site");
 
-    let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (compatible; RipTideBot/1.0)")
-        .build()
-        .unwrap();
+    let config = HttpConfig {
+        user_agent: "Mozilla/5.0 (compatible; RipTideBot/1.0)".to_string(),
+        ..HttpConfig::default()
+    };
+    let client = HttpClientFactory::create(config).unwrap();
 
     let url = "https://www.bbc.com/news";
     let start = Instant::now();
@@ -116,10 +120,11 @@ async fn test_real_world_html_extraction_news() {
 async fn test_real_world_pdf_extraction() {
     println!("\n📄 TEST: Real-world PDF extraction from live URL");
 
-    let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (compatible; RipTideBot/1.0)")
-        .build()
-        .unwrap();
+    let config = HttpConfig {
+        user_agent: "Mozilla/5.0 (compatible; RipTideBot/1.0)".to_string(),
+        ..HttpConfig::default()
+    };
+    let client = HttpClientFactory::create(config).unwrap();
 
     // Using a sample PDF from the web
     let url = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
@@ -150,10 +155,11 @@ async fn test_real_world_pdf_extraction() {
 async fn test_concurrent_crawling() {
     println!("\n🕷️  TEST: Concurrent crawling of multiple URLs");
 
-    let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (compatible; RipTideBot/1.0)")
-        .build()
-        .unwrap();
+    let config = HttpConfig {
+        user_agent: "Mozilla/5.0 (compatible; RipTideBot/1.0)".to_string(),
+        ..HttpConfig::default()
+    };
+    let client = HttpClientFactory::create(config).unwrap();
 
     let urls = vec![
         "https://httpbin.org/html",
@@ -202,10 +208,11 @@ async fn test_concurrent_crawling() {
 async fn test_link_extraction_and_depth() {
     println!("\n🔗 TEST: Link extraction and crawling depth");
 
-    let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (compatible; RipTideBot/1.0)")
-        .build()
-        .unwrap();
+    let config = HttpConfig {
+        user_agent: "Mozilla/5.0 (compatible; RipTideBot/1.0)".to_string(),
+        ..HttpConfig::default()
+    };
+    let client = HttpClientFactory::create(config).unwrap();
 
     let url = "https://httpbin.org/links/10";
     println!("📥 Fetching page with links: {}", url);
@@ -240,11 +247,12 @@ async fn test_link_extraction_and_depth() {
 async fn test_error_handling() {
     println!("\n⚠️  TEST: Error handling for invalid URLs");
 
-    let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (compatible; RipTideBot/1.0)")
-        .timeout(std::time::Duration::from_secs(5))
-        .build()
-        .unwrap();
+    let config = HttpConfig {
+        user_agent: "Mozilla/5.0 (compatible; RipTideBot/1.0)".to_string(),
+        timeout_ms: 5000,
+        ..HttpConfig::default()
+    };
+    let client = HttpClientFactory::create(config).unwrap();
 
     // Test 404
     println!("Testing 404 error...");
@@ -265,10 +273,11 @@ async fn test_error_handling() {
 async fn test_content_type_detection() {
     println!("\n📋 TEST: Content-type detection");
 
-    let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (compatible; RipTideBot/1.0)")
-        .build()
-        .unwrap();
+    let config = HttpConfig {
+        user_agent: "Mozilla/5.0 (compatible; RipTideBot/1.0)".to_string(),
+        ..HttpConfig::default()
+    };
+    let client = HttpClientFactory::create(config).unwrap();
 
     // Test HTML
     let response = client.get("https://httpbin.org/html").send().await.unwrap();

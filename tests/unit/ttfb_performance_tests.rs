@@ -13,6 +13,7 @@ use tokio::time::{sleep, timeout};
 use futures::stream::StreamExt;
 use serde_json::Value;
 use bytes::Bytes;
+use riptide_utils::http::{HttpClientFactory, HttpConfig};
 
 /// TTFB test framework
 struct TTFBTestFramework {
@@ -22,12 +23,13 @@ struct TTFBTestFramework {
 
 impl TTFBTestFramework {
     fn new() -> Self {
+        let config = HttpConfig {
+            timeout_ms: 30000,
+            ..HttpConfig::default()
+        };
         Self {
             base_url: "http://localhost:8080".to_string(),
-            client: reqwest::Client::builder()
-                .timeout(Duration::from_secs(30))
-                .build()
-                .expect("Failed to create HTTP client"),
+            client: HttpClientFactory::create(config).expect("Failed to create HTTP client"),
         }
     }
 

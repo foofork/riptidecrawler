@@ -196,7 +196,7 @@ pub mod validation {
 }
 
 /// Authentication configuration for the API
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct AuthenticationConfig {
     /// Whether authentication is required (default: true)
     /// Set to false only in development environments
@@ -212,6 +212,31 @@ pub struct AuthenticationConfig {
 
     /// Paths that don't require authentication
     pub public_paths: Vec<String>,
+}
+
+impl std::fmt::Debug for AuthenticationConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AuthenticationConfig")
+            .field("require_auth", &self.require_auth)
+            .field(
+                "api_keys",
+                &self
+                    .api_keys
+                    .iter()
+                    .map(|key| {
+                        let chars: Vec<char> = key.chars().collect();
+                        if chars.len() <= 4 {
+                            format!("{}...", key)
+                        } else {
+                            format!("{}...", chars[..4].iter().collect::<String>())
+                        }
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .field("constant_time_comparison", &self.constant_time_comparison)
+            .field("public_paths", &self.public_paths)
+            .finish()
+    }
 }
 
 impl Default for AuthenticationConfig {

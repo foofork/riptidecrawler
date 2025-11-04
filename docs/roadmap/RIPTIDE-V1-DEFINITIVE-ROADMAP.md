@@ -57,6 +57,16 @@ rg "^## Week [0-9]" docs/roadmap/RIPTIDE-V1-DEFINITIVE-ROADMAP.md  # What's the 
 
 **Remember:** REFACTOR not REWRITE. Check disk. Use swarm. Zero warnings. Update Roadmap with progress after any commits.
 
+## 📋 File Operations Reference
+
+**CRITICAL:** Before ANY file operation (MOVE/WRAP/EXTRACT), consult:
+→ **[FILE-OPERATIONS-REFERENCE.md](./FILE-OPERATIONS-REFERENCE.md)**
+
+**Quick lookup:**
+- MOVE which files? → See reference doc
+- WRAP which code? → See reference doc (pipeline.rs: 1,596 lines ❌ DO NOT MODIFY)
+- EXTRACT from where? → See reference doc with exact line numbers
+
 ---
 
 ## 🎯 v1.0 Success Criteria

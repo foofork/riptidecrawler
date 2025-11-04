@@ -48,19 +48,19 @@ tracing-subscriber = { workspace = true }
 riptide-pdf = { path = "../riptide-pdf", features = ["pdf"] }
 riptide-stealth = { path = "../riptide-stealth", features = ["stealth"] }
 # Phase 1: WASM Optional - Use native-parser by default, wasm-extractor opt-in
-riptide-extraction = { path = "../riptide-extraction", default-features = false, features = ["css-extraction", "regex-extraction", "dom-utils", "chunking", "native-parser"] }
+riptide-extraction = { path = "../riptide-extraction", default-features = false, features = ["css-extraction", "regex-extraction", "dom-utils", "chunking"], optional = true }
 riptide-types = { path = "../riptide-types" }
 riptide-reliability = { path = "../riptide-reliability", features = ["reliability-patterns"] }
-riptide-fetch = { path = "../riptide-fetch" }
+riptide-fetch = { path = "../riptide-fetch", optional = true }
 riptide-cache = { path = "../riptide-cache" }
-riptide-spider = { path = "../riptide-spider" }
+riptide-spider = { path = "../riptide-spider", optional = true }
 riptide-events = { path = "../riptide-events" }
 riptide-config = { path = "../riptide-config" }
-riptide-intelligence = { path = "../riptide-intelligence" }
-riptide-workers = { path = "../riptide-workers" }
-riptide-browser = { path = "../riptide-browser" }
-riptide-headless = { path = "../riptide-headless" }
-riptide-search = { path = "../riptide-search" }
+riptide-intelligence = { path = "../riptide-intelligence", optional = true }
+riptide-workers = { path = "../riptide-workers", optional = true }
+riptide-browser = { path = "../riptide-browser", optional = true }
+riptide-headless = { path = "../riptide-headless", optional = true }
+riptide-search = { path = "../riptide-search", optional = true }
 riptide-performance = { path = "../riptide-performance" }
 riptide-persistence = { path = "../riptide-persistence" }
 riptide-monitoring = { path = "../riptide-monitoring", features = ["collector"] }
@@ -102,7 +102,17 @@ serial_test = "3.2"
 lazy_static = "1.4"
 
 [features]
-default = ["native-parser"]
+default = ["spider", "extraction", "fetch", "native-parser"]
+
+# Core feature gates for optional dependencies
+spider = ["dep:riptide-spider"]
+extraction = ["dep:riptide-extraction"]
+fetch = ["dep:riptide-fetch"]
+browser = ["dep:riptide-browser", "dep:riptide-headless"]
+llm = ["dep:riptide-intelligence"]
+workers = ["dep:riptide-workers"]
+search = ["dep:riptide-search"]
+
 # WIP feature gates for scaffolding code not yet fully wired
 events = []           # EventEmitter/ResultTransformer in handlers/shared
 sessions = []         # Session management system
@@ -113,8 +123,8 @@ jemalloc = ["riptide-performance/jemalloc", "tikv-jemallocator", "tikv-jemalloc-
 profiling-full = ["jemalloc", "riptide-performance/bottleneck-analysis-full"]  # Full profiling with flamegraphs (dev only)
 
 # WASM Optional - Feature flags for extraction strategies
-native-parser = ["riptide-extraction/native-parser"]     # Native Rust parser (default, fast)
-wasm-extractor = ["riptide-extraction/wasm-extractor"]   # WASM-based extraction (opt-in)
+native-parser = ["extraction", "riptide-extraction/native-parser"]     # Native Rust parser (default, fast)
+wasm-extractor = ["extraction", "riptide-extraction/wasm-extractor"]   # WASM-based extraction (opt-in)
 
 # Full feature set for production (when ready)
-full = ["events", "sessions", "streaming", "telemetry", "persistence", "jemalloc"]
+full = ["spider", "extraction", "fetch", "browser", "llm", "workers", "search", "events", "sessions", "streaming", "telemetry", "persistence", "jemalloc"]

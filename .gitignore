@@ -310,6 +310,13 @@ pdfium-*.tgz
 pdfium-*.tar.gz
 
 # ===========================================
+# Test Fixtures (Optional Development)
+# ===========================================
+# Local test fixtures are optional for development
+# CI uses recorded responses instead
+test/fixtures/riptide-test-sites/
+
+# ===========================================
 # Evaluation & Test Results
 # ===========================================
 # All evaluation results (test output, extraction results, etc.)

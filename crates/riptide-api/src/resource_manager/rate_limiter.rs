@@ -7,7 +7,7 @@
 //! - Automatic cleanup of stale host buckets
 //! - Lock-free concurrent access via DashMap
 
-use crate::config::ApiConfig;
+use crate::config::RiptideApiConfig;
 use crate::resource_manager::metrics::ResourceMetrics;
 use dashmap::DashMap;
 use std::{
@@ -26,7 +26,7 @@ use tracing::{debug, warn};
 /// Uses DashMap for lock-free concurrent access, eliminating contention
 /// and improving throughput under high load.
 pub struct PerHostRateLimiter {
-    config: ApiConfig,
+    config: RiptideApiConfig,
     host_buckets: Arc<DashMap<String, HostBucket>>,
     cleanup_task: Mutex<Option<tokio::task::JoinHandle<()>>>,
     metrics: Arc<ResourceMetrics>,
@@ -54,7 +54,7 @@ impl PerHostRateLimiter {
     /// Create a new rate limiter
     ///
     /// Note: Call `start_cleanup_task()` after wrapping in Arc
-    pub(crate) fn new(config: ApiConfig, metrics: Arc<ResourceMetrics>) -> Self {
+    pub(crate) fn new(config: RiptideApiConfig, metrics: Arc<ResourceMetrics>) -> Self {
         debug!(
             rps = config.rate_limiting.requests_per_second_per_host,
             burst = config.rate_limiting.burst_capacity_per_host,

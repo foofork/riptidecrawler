@@ -8,7 +8,7 @@
 //! - Concurrent access
 
 use anyhow::Result;
-use riptide_api::config::ApiConfig;
+use riptide_api::config::RiptideApiConfig;
 use riptide_api::resource_manager::ResourceManager;
 use std::sync::Arc;
 use std::time::Duration;

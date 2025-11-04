@@ -9,6 +9,9 @@ use std::sync::Arc;
 use wasmtime::{component::*, Engine, Store};
 
 #[cfg(feature = "wasm-pool")]
+use uuid::Uuid;
+
+#[cfg(feature = "wasm-pool")]
 use crate::config::{ExtractorConfig, WasmResourceTracker};
 
 /// Enhanced pooled instance with comprehensive tracking

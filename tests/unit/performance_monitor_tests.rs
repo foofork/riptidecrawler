@@ -7,7 +7,7 @@
 //! - Performance tracking
 
 use anyhow::Result;
-use riptide_api::config::ApiConfig;
+use riptide_api::config::RiptideApiConfig;
 use riptide_api::resource_manager::ResourceManager;
 use std::time::Duration;
 

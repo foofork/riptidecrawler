@@ -1,0 +1,53 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//RipTide Test Fixtures//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Sample Events Calendar
+X-WR-TIMEZONE:America/Los_Angeles
+
+BEGIN:VEVENT
+UID:tech-conference-2025@example.com
+DTSTAMP:20250101T120000Z
+DTSTART:20250315T090000Z
+DTEND:20250317T180000Z
+SUMMARY:Tech Conference 2025
+DESCRIPTION:Annual technology conference featuring the latest in software development\, AI\, and cloud computing
+LOCATION:Moscone Center\, San Francisco\, CA
+URL:https://example.com/events/tech-conference-2025
+ORGANIZER;CN=Tech Events Inc:mailto:events@example.com
+STATUS:CONFIRMED
+CATEGORIES:Technology,Conference
+GEO:37.7749;-122.4194
+END:VEVENT
+
+BEGIN:VEVENT
+UID:developer-meetup@example.com
+DTSTAMP:20250115T120000Z
+DTSTART:20250401T180000Z
+DTEND:20250401T200000Z
+SUMMARY:Developer Meetup
+DESCRIPTION:Monthly developer meetup - Share ideas\, network\, and learn from peers
+LOCATION:Online (Zoom)
+URL:https://example.com/events/developer-meetup
+ORGANIZER;CN=Dev Community:mailto:meetup@example.com
+STATUS:CONFIRMED
+CATEGORIES:Meetup,Networking
+END:VEVENT
+
+BEGIN:VEVENT
+UID:ai-workshop-2025@example.com
+DTSTAMP:20250120T120000Z
+DTSTART:20250510T100000Z
+DTEND:20250510T160000Z
+SUMMARY:AI Workshop 2025
+DESCRIPTION:Hands-on workshop on artificial intelligence and machine learning
+LOCATION:Tech Hub\, 123 Main St\, Seattle\, WA 98101
+URL:https://example.com/events/ai-workshop
+ORGANIZER;CN=AI Community:mailto:ai@example.com
+STATUS:CONFIRMED
+CATEGORIES:Workshop,AI,Education
+GEO:47.6062;-122.3321
+END:VEVENT
+
+END:VCALENDAR

@@ -2,6 +2,7 @@ use crate::job::{Job, JobResult, JobStatus};
 use anyhow::{Context, Result};
 use chrono::Utc;
 use redis::{aio::MultiplexedConnection, AsyncCommands};
+use riptide_utils::redis::{RedisConfig, RedisPool};
 use serde_json;
 use std::collections::HashMap;
 use tokio::sync::RwLock;
@@ -53,12 +54,15 @@ impl JobQueue {
     /// Create a new job queue instance
     pub async fn new(redis_url: &str, config: QueueConfig) -> Result<Self> {
         info!("Connecting to Redis at {}", redis_url);
-        let client = redis::Client::open(redis_url).context("Failed to create Redis client")?;
-
-        let redis = client
-            .get_multiplexed_async_connection()
+        let redis_config = RedisConfig {
+            url: redis_url.to_string(),
+            ..RedisConfig::default()
+        };
+        let pool = RedisPool::new(redis_config)
             .await
-            .context("Failed to create Redis connection manager")?;
+            .context("Failed to create Redis pool")?;
+
+        let redis = pool.get_connection();
 
         info!("Successfully connected to Redis for job queue");
 

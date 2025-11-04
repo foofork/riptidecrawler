@@ -214,7 +214,7 @@ pub trait SearchProvider: Send + Sync + std::fmt::Debug {
 }
 
 /// Configuration for search provider creation and behavior.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct SearchConfig {
     /// The search backend to use
     pub backend: SearchBackend,
@@ -226,6 +226,28 @@ pub struct SearchConfig {
     pub timeout_seconds: u64,
     /// Whether to enable URL parsing from query for None backend
     pub enable_url_parsing: bool,
+}
+
+impl fmt::Debug for SearchConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SearchConfig")
+            .field("backend", &self.backend)
+            .field(
+                "api_key",
+                &self.api_key.as_ref().map(|key| {
+                    let chars: Vec<char> = key.chars().collect();
+                    if chars.len() <= 4 {
+                        format!("{}...", key)
+                    } else {
+                        format!("{}...", chars[..4].iter().collect::<String>())
+                    }
+                }),
+            )
+            .field("base_url", &self.base_url)
+            .field("timeout_seconds", &self.timeout_seconds)
+            .field("enable_url_parsing", &self.enable_url_parsing)
+            .finish()
+    }
 }
 
 impl Default for SearchConfig {
@@ -241,7 +263,7 @@ impl Default for SearchConfig {
 }
 
 /// Advanced configuration for search provider creation with circuit breaker settings.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct AdvancedSearchConfig {
     /// The search backend to use
     pub backend: SearchBackend,
@@ -255,6 +277,29 @@ pub struct AdvancedSearchConfig {
     pub enable_url_parsing: bool,
     /// Circuit breaker configuration
     pub circuit_breaker: CircuitBreakerConfigOptions,
+}
+
+impl fmt::Debug for AdvancedSearchConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("AdvancedSearchConfig")
+            .field("backend", &self.backend)
+            .field(
+                "api_key",
+                &self.api_key.as_ref().map(|key| {
+                    let chars: Vec<char> = key.chars().collect();
+                    if chars.len() <= 4 {
+                        format!("{}...", key)
+                    } else {
+                        format!("{}...", chars[..4].iter().collect::<String>())
+                    }
+                }),
+            )
+            .field("base_url", &self.base_url)
+            .field("timeout_seconds", &self.timeout_seconds)
+            .field("enable_url_parsing", &self.enable_url_parsing)
+            .field("circuit_breaker", &self.circuit_breaker)
+            .finish()
+    }
 }
 
 /// Circuit breaker configuration options.

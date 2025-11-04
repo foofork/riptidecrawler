@@ -25,7 +25,7 @@
 //! Without jemalloc, the module falls back to manual tracking via
 //! `track_allocation()` and `track_deallocation()`.
 
-use crate::config::ApiConfig;
+use crate::config::RiptideApiConfig;
 use crate::resource_manager::{errors::Result, metrics::ResourceMetrics};
 use std::collections::{HashMap, VecDeque};
 use std::sync::{
@@ -39,7 +39,7 @@ use tracing::{info, warn};
 /// Tracks memory allocations and triggers cleanup or GC when thresholds are exceeded.
 /// All operations are thread-safe and non-blocking.
 pub struct MemoryManager {
-    config: ApiConfig,
+    config: RiptideApiConfig,
     current_usage: AtomicUsize,
     pressure_detected: AtomicBool,
     last_cleanup: AtomicU64,
@@ -435,7 +435,7 @@ impl Default for LeakDetector {
 
 impl MemoryManager {
     /// Create a new memory manager
-    pub fn new(config: ApiConfig, metrics: Arc<ResourceMetrics>) -> Result<Self> {
+    pub fn new(config: RiptideApiConfig, metrics: Arc<ResourceMetrics>) -> Result<Self> {
         info!(
             limit_mb = config.memory.global_memory_limit_mb,
             pressure_threshold = config.memory.pressure_threshold,

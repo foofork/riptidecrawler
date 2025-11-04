@@ -43,11 +43,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_render_timeout_handling() {
-        use crate::config::ApiConfig;
+        use crate::config::RiptideApiConfig;
         use std::time::Duration;
 
         // Test that timeout configuration is properly read and applied
-        let config = ApiConfig::default();
+        let config = RiptideApiConfig::default();
 
         // Verify default timeout is 3 seconds (requirement)
         assert_eq!(config.performance.render_timeout_secs, 3);

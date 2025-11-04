@@ -17,6 +17,7 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 redis = { workspace = true }
 riptide-types = { path = "../riptide-types" }
+riptide-utils = { path = "../riptide-utils" }
 riptide-reliability = { path = "../riptide-reliability" }
 riptide-extraction = { path = "../riptide-extraction" }
 riptide-cache = { path = "../riptide-cache" }

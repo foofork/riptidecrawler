@@ -10,6 +10,7 @@
 use crate::common::{assert_error_contains, with_timeout};
 use crate::config::TestConfig;
 use reqwest;
+use riptide_utils::http::{HttpClientFactory, HttpConfig};
 use serde_json::{json, Value};
 use std::time::Duration;
 use tokio::time::sleep;
@@ -191,10 +192,11 @@ async fn test_real_url_extractions() {
         .await
         .expect("Failed to start API server");
 
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()
-        .expect("Failed to create HTTP client");
+    let config = HttpConfig {
+        timeout_ms: 30000,
+        ..HttpConfig::default()
+    };
+    let client = HttpClientFactory::create(config).expect("Failed to create HTTP client");
 
     let mut success_count = 0;
     let mut error_count = 0;
@@ -363,10 +365,11 @@ async fn test_error_handling_timeout() {
         .expect("Failed to start API server");
 
     let result = with_timeout(Duration::from_secs(5), async {
-        let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(2))
-            .build()
-            .expect("Failed to create client");
+        let config = HttpConfig {
+            timeout_ms: 2000,
+            ..HttpConfig::default()
+        };
+        let client = HttpClientFactory::create(config).expect("Failed to create client");
 
         // Use a URL that might timeout (very slow responding)
         let response = client
@@ -474,10 +477,11 @@ async fn test_concurrent_extractions() {
         .await
         .expect("Failed to start API server");
 
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()
-        .expect("Failed to create HTTP client");
+    let config = HttpConfig {
+        timeout_ms: 30000,
+        ..HttpConfig::default()
+    };
+    let client = HttpClientFactory::create(config).expect("Failed to create HTTP client");
 
     // Test concurrent extractions
     let mut handles = Vec::new();
@@ -598,10 +602,11 @@ async fn test_no_crashes_or_panics() {
         .await
         .expect("Failed to start API server");
 
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(10))
-        .build()
-        .expect("Failed to create HTTP client");
+    let config = HttpConfig {
+        timeout_ms: 10000,
+        ..HttpConfig::default()
+    };
+    let client = HttpClientFactory::create(config).expect("Failed to create HTTP client");
 
     // Send various edge case requests
     let edge_cases = vec![

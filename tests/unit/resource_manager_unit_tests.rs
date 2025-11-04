@@ -8,7 +8,7 @@
 //! - Error handling
 
 use anyhow::Result;
-use riptide_api::config::ApiConfig;
+use riptide_api::config::RiptideApiConfig;
 use riptide_api::resource_manager::{ResourceManager, ResourceResult};
 use std::time::Duration;
 use tokio::time::sleep;
@@ -16,7 +16,7 @@ use tokio::time::sleep;
 #[tokio::test]
 async fn test_resource_manager_initialization() -> Result<()> {
     // Test that ResourceManager initializes with default config
-    let config = ApiConfig::default();
+    let config = RiptideApiConfig::default();
     let manager = ResourceManager::new(config.clone()).await?;
 
     // Verify initial state
@@ -35,7 +35,7 @@ async fn test_resource_manager_initialization() -> Result<()> {
 #[tokio::test]
 async fn test_resource_manager_custom_config() -> Result<()> {
     // Test ResourceManager with custom configuration
-    let mut config = ApiConfig::default();
+    let mut config = RiptideApiConfig::default();
     config.headless.max_pool_size = 5;
     config.pdf.max_concurrent = 3;
     config.memory.global_memory_limit_mb = 1024;
@@ -52,7 +52,7 @@ async fn test_resource_manager_custom_config() -> Result<()> {
 #[tokio::test]
 async fn test_acquire_render_resources_success() -> Result<()> {
     // Test successful render resource acquisition
-    let config = ApiConfig::default();
+    let config = RiptideApiConfig::default();
     let manager = ResourceManager::new(config).await?;
 
     let result = manager
@@ -75,7 +75,7 @@ async fn test_acquire_render_resources_success() -> Result<()> {
 #[tokio::test]
 async fn test_acquire_pdf_resources_success() -> Result<()> {
     // Test successful PDF resource acquisition
-    let config = ApiConfig::default();
+    let config = RiptideApiConfig::default();
     let manager = ResourceManager::new(config.clone()).await?;
 
     let result = manager.acquire_pdf_resources().await?;
@@ -95,7 +95,7 @@ async fn test_acquire_pdf_resources_success() -> Result<()> {
 #[tokio::test]
 async fn test_pdf_semaphore_exhaustion() -> Result<()> {
     // Test PDF semaphore reaches capacity
-    let mut config = ApiConfig::default();
+    let mut config = RiptideApiConfig::default();
     config.pdf.max_concurrent = 2;
 
     let manager = ResourceManager::new(config).await?;
@@ -128,7 +128,7 @@ async fn test_pdf_semaphore_exhaustion() -> Result<()> {
 #[tokio::test]
 async fn test_memory_pressure_blocks_acquisition() -> Result<()> {
     // Test that memory pressure blocks resource acquisition
-    let mut config = ApiConfig::default();
+    let mut config = RiptideApiConfig::default();
     config.memory.global_memory_limit_mb = 100;
     config.memory.pressure_threshold = 0.5; // 50% threshold
 
@@ -150,7 +150,7 @@ async fn test_memory_pressure_blocks_acquisition() -> Result<()> {
 #[tokio::test]
 async fn test_invalid_url_handling() -> Result<()> {
     // Test that invalid URLs are handled properly
-    let config = ApiConfig::default();
+    let config = RiptideApiConfig::default();
     let manager = ResourceManager::new(config).await?;
 
     let result = manager.acquire_render_resources("not-a-valid-url").await;
@@ -163,7 +163,7 @@ async fn test_invalid_url_handling() -> Result<()> {
 #[tokio::test]
 async fn test_resource_cleanup_on_timeout() -> Result<()> {
     // Test cleanup behavior on timeout
-    let config = ApiConfig::default();
+    let config = RiptideApiConfig::default();
     let manager = ResourceManager::new(config).await?;
 
     let initial_status = manager.get_resource_status().await;
@@ -180,7 +180,7 @@ async fn test_resource_cleanup_on_timeout() -> Result<()> {
 #[tokio::test]
 async fn test_resource_status_reporting() -> Result<()> {
     // Test that resource status is accurately reported
-    let config = ApiConfig::default();
+    let config = RiptideApiConfig::default();
     let manager = ResourceManager::new(config.clone()).await?;
 
     let status = manager.get_resource_status().await;
@@ -199,7 +199,7 @@ async fn test_resource_status_reporting() -> Result<()> {
 #[tokio::test]
 async fn test_multiple_resource_acquisitions() -> Result<()> {
     // Test multiple concurrent resource acquisitions
-    let config = ApiConfig::default();
+    let config = RiptideApiConfig::default();
     let manager = ResourceManager::new(config).await?;
 
     let urls = vec![
@@ -234,7 +234,7 @@ async fn test_multiple_resource_acquisitions() -> Result<()> {
 #[tokio::test]
 async fn test_resource_guard_drop_cleanup() -> Result<()> {
     // Test that dropping guards properly cleans up resources
-    let config = ApiConfig::default();
+    let config = RiptideApiConfig::default();
     let manager = ResourceManager::new(config).await?;
 
     let initial_status = manager.get_resource_status().await;
@@ -264,7 +264,7 @@ async fn test_resource_guard_drop_cleanup() -> Result<()> {
 #[tokio::test]
 async fn test_concurrent_pdf_acquisitions() -> Result<()> {
     // Test concurrent PDF resource acquisitions
-    let mut config = ApiConfig::default();
+    let mut config = RiptideApiConfig::default();
     config.pdf.max_concurrent = 3;
 
     let manager = ResourceManager::new(config).await?;
@@ -301,7 +301,7 @@ async fn test_concurrent_pdf_acquisitions() -> Result<()> {
 #[tokio::test]
 async fn test_extract_host_from_various_urls() -> Result<()> {
     // Test URL parsing for different formats
-    let config = ApiConfig::default();
+    let config = RiptideApiConfig::default();
     let manager = ResourceManager::new(config).await?;
 
     let test_urls = vec![
@@ -331,7 +331,7 @@ async fn test_extract_host_from_various_urls() -> Result<()> {
 #[tokio::test]
 async fn test_metrics_tracking() -> Result<()> {
     // Test that metrics are properly tracked
-    let config = ApiConfig::default();
+    let config = RiptideApiConfig::default();
     let manager = ResourceManager::new(config).await?;
 
     // Track initial metrics
@@ -351,7 +351,7 @@ async fn test_metrics_tracking() -> Result<()> {
 #[tokio::test]
 async fn test_zero_config_values() -> Result<()> {
     // Test edge case with minimum config values
-    let mut config = ApiConfig::default();
+    let mut config = RiptideApiConfig::default();
     config.pdf.max_concurrent = 1;
     config.headless.max_pool_size = 1;
 

@@ -17,8 +17,8 @@ anyhow = { workspace = true }
 # Async traits
 async-trait = { workspace = true }
 
-# Tokio runtime (for CircuitBreaker)
-tokio = { workspace = true, features = ["sync"] }
+# Tokio runtime (for CircuitBreaker and timeout enforcement)
+tokio = { workspace = true, features = ["sync", "time"] }
 
 # Logging (for CircuitBreaker)
 tracing = { workspace = true }
@@ -34,6 +34,9 @@ uuid = { workspace = true }
 
 # Cryptographic hashing for ETags
 sha2 = "0.10"
+
+# Secret redaction for secure Debug implementations
+secrecy = "0.10"
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }

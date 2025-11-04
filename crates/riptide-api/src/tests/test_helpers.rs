@@ -3,7 +3,7 @@
 //! This module provides test fixtures and builders for creating test instances
 //! of complex types that are difficult to construct manually in tests.
 
-use crate::config::ApiConfig;
+use crate::config::RiptideApiConfig;
 use crate::health::HealthChecker;
 use crate::metrics::RipTideMetrics;
 use crate::state::{AppConfig, AppState};
@@ -38,7 +38,7 @@ impl AppStateBuilder {
 
     /// Set custom ApiConfig
     #[allow(dead_code)]
-    pub fn with_api_config(mut self, api_config: ApiConfig) -> Self {
+    pub fn with_api_config(mut self, api_config: RiptideApiConfig) -> Self {
         self.api_config = Some(api_config);
         self
     }

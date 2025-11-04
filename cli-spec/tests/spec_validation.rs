@@ -88,7 +88,7 @@ pub struct Command {
     pub about: String,
 
     #[serde(default)]
-    pub api: ApiConfig,
+    pub api: CliApiConfig,
 
     #[serde(default)]
     pub args: Vec<Argument>,
@@ -104,7 +104,7 @@ pub struct Command {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
-pub struct ApiConfig {
+pub struct CliApiConfig {
     pub method: Option<String>,
     pub path: Option<String>,
     pub streaming_variant: Option<String>,

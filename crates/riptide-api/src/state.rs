@@ -1,4 +1,4 @@
-use crate::config::ApiConfig;
+use crate::config::RiptideApiConfig;
 use crate::health::HealthChecker;
 use crate::metrics::RipTideMetrics;
 use crate::resource_manager::ResourceManager;
@@ -10,24 +10,34 @@ use riptide_cache::CacheManager;
 #[cfg(feature = "wasm-extractor")]
 use riptide_cache::CacheWarmingConfig;
 use riptide_events::{EventBus, EventBusConfig, EventSeverity};
+#[cfg(feature = "fetch")]
 use riptide_fetch::{http_client, FetchEngine};
 use riptide_pdf::PdfMetricsCollector;
 use riptide_reliability::CircuitBreakerState;
 use riptide_reliability::{ReliabilityConfig, ReliableExtractor};
+#[cfg(feature = "spider")]
 use riptide_spider::{Spider, SpiderConfig};
 // TelemetrySystem is in riptide_monitoring, not riptide_core
+#[cfg(feature = "extraction")]
 use riptide_extraction::UnifiedExtractor;
 use riptide_monitoring::TelemetrySystem;
 // Facade types imported explicitly to avoid conflicts
 use riptide_facade::facades::ExtractionFacade;
-use riptide_facade::facades::{SearchFacade, SpiderFacade};
-use riptide_facade::{BrowserFacade, ScraperFacade};
+#[cfg(feature = "search")]
+use riptide_facade::facades::SearchFacade;
+#[cfg(feature = "spider")]
+use riptide_facade::facades::SpiderFacade;
+#[cfg(feature = "browser")]
+use riptide_facade::BrowserFacade;
+use riptide_facade::ScraperFacade;
+#[cfg(feature = "browser")]
 use riptide_headless::launcher::HeadlessLauncher;
 use riptide_monitoring::{
     AlertCondition, AlertManager, AlertRule, AlertSeverity, HealthCalculator, MetricsCollector,
     MonitoringConfig, PerformanceMetrics,
 };
 use riptide_performance::PerformanceManager;
+#[cfg(feature = "workers")]
 use riptide_workers::{WorkerService, WorkerServiceConfig};
 use std::sync::Arc;
 use std::time::Duration;
@@ -50,6 +60,7 @@ pub struct AppState {
 
     /// Unified extractor for content processing (WASM or native)
     /// TODO: Future wiring for learned extractor patterns
+    #[cfg(feature = "extraction")]
     #[allow(dead_code)]
     pub extractor: Arc<UnifiedExtractor>,
 
@@ -61,7 +72,7 @@ pub struct AppState {
     pub config: AppConfig,
 
     /// API configuration with resource controls
-    pub api_config: ApiConfig,
+    pub api_config: RiptideApiConfig,
 
     /// Comprehensive resource manager
     pub resource_manager: Arc<ResourceManager>,
@@ -83,6 +94,7 @@ pub struct AppState {
     pub telemetry: Option<Arc<TelemetrySystem>>,
 
     /// Spider engine for deep crawling
+    #[cfg(feature = "spider")]
     pub spider: Option<Arc<Spider>>,
 
     /// PDF metrics collector for monitoring PDF processing
@@ -90,6 +102,7 @@ pub struct AppState {
     pub pdf_metrics: Arc<PdfMetricsCollector>,
 
     /// Worker service for background job processing
+    #[cfg(feature = "workers")]
     pub worker_service: Arc<WorkerService>,
 
     /// Event bus for centralized event coordination
@@ -106,6 +119,7 @@ pub struct AppState {
     pub monitoring_system: Arc<MonitoringSystem>,
 
     /// FetchEngine for HTTP operations with per-host circuit breakers and rate limiting
+    #[cfg(feature = "fetch")]
     #[allow(dead_code)] // Public API - used for HTTP fetch operations with rate limiting
     pub fetch_engine: Arc<FetchEngine>,
 
@@ -120,10 +134,12 @@ pub struct AppState {
     pub cache_warmer_enabled: bool,
 
     /// Headless browser launcher with connection pooling and stealth support
+    #[cfg(feature = "browser")]
     pub browser_launcher: Option<Arc<HeadlessLauncher>>,
 
     /// Browser facade for simplified browser automation
     /// Only available when using local Chrome mode (headless_url not configured)
+    #[cfg(feature = "browser")]
     pub browser_facade: Option<Arc<BrowserFacade>>,
 
     /// Extraction facade for content extraction with multiple strategies
@@ -133,9 +149,11 @@ pub struct AppState {
     pub scraper_facade: Arc<ScraperFacade>,
 
     /// Spider facade for web crawling operations
+    #[cfg(feature = "spider")]
     pub spider_facade: Option<Arc<SpiderFacade>>,
 
     /// Search facade for web search operations
+    #[cfg(feature = "search")]
     pub search_facade: Option<Arc<SearchFacade>>,
 
     /// Trace backend for distributed trace storage and retrieval
@@ -176,6 +194,7 @@ pub struct AppConfig {
     pub spider_config: Option<SpiderConfig>,
 
     /// Worker service configuration
+    #[cfg(feature = "workers")]
     pub worker_config: WorkerServiceConfig,
 
     /// Event bus configuration
@@ -349,7 +368,11 @@ impl Default for AppConfig {
                 .unwrap_or(0.3),
             headless_url: std::env::var("HEADLESS_URL").ok(),
             session_config: SessionConfig::default(),
+            #[cfg(feature = "spider")]
             spider_config: AppConfig::init_spider_config(),
+            #[cfg(not(feature = "spider"))]
+            spider_config: None,
+            #[cfg(feature = "workers")]
             worker_config: AppConfig::init_worker_config(),
             event_bus_config: EventBusConfig::default(),
             circuit_breaker_config: CircuitBreakerConfig::default(),
@@ -365,6 +388,7 @@ impl Default for AppConfig {
 
 impl AppConfig {
     /// Initialize spider configuration based on environment variables
+    #[cfg(feature = "spider")]
     fn init_spider_config() -> Option<SpiderConfig> {
         // Check if spider is enabled
         let spider_enabled = std::env::var("SPIDER_ENABLE")
@@ -469,6 +493,7 @@ impl AppConfig {
     }
 
     /// Initialize worker service configuration based on environment variables
+    #[cfg(feature = "workers")]
     fn init_worker_config() -> WorkerServiceConfig {
         use riptide_workers::{QueueConfig, SchedulerConfig, WorkerConfig};
 
@@ -568,7 +593,7 @@ impl AppState {
     #[allow(dead_code)] // Public API - alternative constructor with custom API config
     pub async fn new_with_api_config(
         config: AppConfig,
-        api_config: ApiConfig,
+        api_config: RiptideApiConfig,
         metrics: Arc<RipTideMetrics>,
         health_checker: Arc<HealthChecker>,
     ) -> Result<Self> {
@@ -583,7 +608,7 @@ impl AppState {
         health_checker: Arc<HealthChecker>,
         telemetry: Option<Arc<TelemetrySystem>>,
     ) -> Result<Self> {
-        let api_config = ApiConfig::from_env();
+        let api_config = RiptideApiConfig::from_env();
         Self::new_with_telemetry_and_api_config(
             config,
             api_config,
@@ -597,7 +622,7 @@ impl AppState {
     /// Initialize the application state with telemetry and custom API configuration
     pub async fn new_with_telemetry_and_api_config(
         config: AppConfig,
-        api_config: ApiConfig,
+        api_config: RiptideApiConfig,
         metrics: Arc<RipTideMetrics>,
         health_checker: Arc<HealthChecker>,
         telemetry: Option<Arc<TelemetrySystem>>,
@@ -619,17 +644,21 @@ impl AppState {
         tracing::info!("Redis connection established: {}", config.redis_url);
 
         // Initialize unified extractor with automatic fallback
-        let wasm_path = std::env::var("WASM_EXTRACTOR_PATH").ok();
-        let extractor = Arc::new(
-            UnifiedExtractor::new(wasm_path.as_deref())
-                .await
-                .context("Failed to initialize content extractor")?,
-        );
-        tracing::info!(
-            extractor_type = extractor.extractor_type(),
-            wasm_available = UnifiedExtractor::wasm_available(),
-            "Content extractor initialized"
-        );
+        #[cfg(feature = "extraction")]
+        let extractor = {
+            let wasm_path = std::env::var("WASM_EXTRACTOR_PATH").ok();
+            let ext = Arc::new(
+                UnifiedExtractor::new(wasm_path.as_deref())
+                    .await
+                    .context("Failed to initialize content extractor")?,
+            );
+            tracing::info!(
+                extractor_type = ext.extractor_type(),
+                wasm_available = UnifiedExtractor::wasm_available(),
+                "Content extractor initialized"
+            );
+            ext
+        };
 
         // Initialize ReliableExtractor with retry and circuit breaker logic
         let reliable_extractor = Arc::new(
@@ -720,12 +749,16 @@ impl AppState {
         tracing::info!("PDF metrics collector initialized for monitoring PDF processing");
 
         // Initialize worker service for background job processing
-        tracing::info!("Initializing worker service for background jobs");
-        let worker_service = WorkerService::new(config.worker_config.clone())
-            .await
-            .map_err(|e| anyhow::anyhow!("Failed to initialize worker service: {}", e))?;
-        let worker_service = Arc::new(worker_service);
-        tracing::info!("Worker service initialized successfully");
+        #[cfg(feature = "workers")]
+        let worker_service = {
+            tracing::info!("Initializing worker service for background jobs");
+            let ws = WorkerService::new(config.worker_config.clone())
+                .await
+                .map_err(|e| anyhow::anyhow!("Failed to initialize worker service: {}", e))?;
+            let ws = Arc::new(ws);
+            tracing::info!("Worker service initialized successfully");
+            ws
+        };
 
         // Initialize event bus with configuration
         tracing::info!("Initializing event bus for centralized event coordination");
@@ -805,14 +838,18 @@ impl AppState {
         );
 
         // Initialize FetchEngine with configuration
-        tracing::info!(
-            "Initializing FetchEngine for HTTP operations with per-host circuit breakers"
-        );
-        let fetch_engine = Arc::new(
-            FetchEngine::new()
-                .map_err(|e| anyhow::anyhow!("Failed to initialize FetchEngine: {}", e))?,
-        );
-        tracing::info!("FetchEngine initialized successfully");
+        #[cfg(feature = "fetch")]
+        let fetch_engine = {
+            tracing::info!(
+                "Initializing FetchEngine for HTTP operations with per-host circuit breakers"
+            );
+            let fe = Arc::new(
+                FetchEngine::new()
+                    .map_err(|e| anyhow::anyhow!("Failed to initialize FetchEngine: {}", e))?,
+            );
+            tracing::info!("FetchEngine initialized successfully");
+            fe
+        };
 
         // Initialize PerformanceManager for resource limiting and monitoring
         tracing::info!("Initializing PerformanceManager for resource limiting and profiling");
@@ -1020,6 +1057,7 @@ impl AppState {
         };
 
         // Initialize search facade with backend from environment or default to None
+        #[cfg(feature = "search")]
         let search_facade = {
             // Read search backend from environment with fallback to None
             let backend_str = std::env::var("RIPTIDE_SEARCH_BACKEND")
@@ -1121,6 +1159,7 @@ impl AppState {
         Ok(Self {
             http_client,
             cache,
+            #[cfg(feature = "extraction")]
             extractor,
             reliable_extractor,
             config,
@@ -1131,22 +1170,29 @@ impl AppState {
             session_manager,
             streaming,
             telemetry,
+            #[cfg(feature = "spider")]
             spider,
             pdf_metrics,
+            #[cfg(feature = "workers")]
             worker_service,
             event_bus,
             circuit_breaker,
             performance_metrics,
             monitoring_system,
+            #[cfg(feature = "fetch")]
             fetch_engine,
             performance_manager,
             auth_config,
             cache_warmer_enabled,
+            #[cfg(feature = "browser")]
             browser_launcher,
+            #[cfg(feature = "browser")]
             browser_facade,
             extraction_facade,
             scraper_facade,
+            #[cfg(feature = "spider")]
             spider_facade,
+            #[cfg(feature = "search")]
             search_facade,
             trace_backend,
             #[cfg(feature = "persistence")]
@@ -1359,25 +1405,28 @@ impl AppState {
         };
 
         let config = AppConfig::default();
-        let api_config = ApiConfig::default();
+        let api_config = RiptideApiConfig::default();
 
         // Try to load WASM extractor from default path, or skip
-        let wasm_path =
-            std::env::var("WASM_EXTRACTOR_PATH").unwrap_or_else(|_| config.wasm_path.clone());
+        #[cfg(feature = "extraction")]
+        let extractor = {
+            let wasm_path =
+                std::env::var("WASM_EXTRACTOR_PATH").unwrap_or_else(|_| config.wasm_path.clone());
 
-        let extractor = match UnifiedExtractor::new(Some(&wasm_path)).await {
-            Ok(ext) => Arc::new(ext),
-            Err(e) => {
-                eprintln!(
-                    "Warning: Content extractor initialization failed ({}), using default native extractor",
-                    e
-                );
-                // Fall back to native extractor
-                Arc::new(
-                    UnifiedExtractor::new(None)
-                        .await
-                        .expect("Native extractor should always work"),
-                )
+            match UnifiedExtractor::new(Some(&wasm_path)).await {
+                Ok(ext) => Arc::new(ext),
+                Err(e) => {
+                    eprintln!(
+                        "Warning: Content extractor initialization failed ({}), using default native extractor",
+                        e
+                    );
+                    // Fall back to native extractor
+                    Arc::new(
+                        UnifiedExtractor::new(None)
+                            .await
+                            .expect("Native extractor should always work"),
+                    )
+                }
             }
         };
 
@@ -1406,12 +1455,15 @@ impl AppState {
 
         let pdf_metrics = Arc::new(PdfMetricsCollector::new());
 
-        let worker_config = WorkerServiceConfig::default();
-        let worker_service = Arc::new(
-            WorkerService::new(worker_config)
-                .await
-                .expect("Failed to create worker service"),
-        );
+        #[cfg(feature = "workers")]
+        let worker_service = {
+            let worker_config = WorkerServiceConfig::default();
+            Arc::new(
+                WorkerService::new(worker_config)
+                    .await
+                    .expect("Failed to create worker service"),
+            )
+        };
 
         let event_bus = Arc::new(EventBus::new());
 
@@ -1423,12 +1475,14 @@ impl AppState {
         // For tests, we can skip complex initialization and panic if needed
         // Tests should either skip features or set appropriate env vars
 
+        #[cfg(feature = "fetch")]
         let fetch_engine = Arc::new(FetchEngine::new().expect("Failed to create fetch engine"));
         let performance_manager =
             Arc::new(PerformanceManager::new().expect("Failed to create performance manager"));
         let auth_config = AuthConfig::default();
         let cache_warmer_enabled = false;
 
+        #[cfg(feature = "browser")]
         let browser_launcher = Some(Arc::new(
             HeadlessLauncher::new()
                 .await
@@ -1436,6 +1490,7 @@ impl AppState {
         ));
 
         let facade_config = riptide_facade::RiptideConfig::default();
+        #[cfg(feature = "browser")]
         let browser_facade = Some(Arc::new(
             BrowserFacade::new(facade_config.clone())
                 .await
@@ -1455,6 +1510,7 @@ impl AppState {
         Self {
             http_client,
             cache,
+            #[cfg(feature = "extraction")]
             extractor,
             reliable_extractor,
             config,
@@ -1465,22 +1521,29 @@ impl AppState {
             session_manager,
             streaming,
             telemetry: None,
+            #[cfg(feature = "spider")]
             spider: None,
             pdf_metrics,
+            #[cfg(feature = "workers")]
             worker_service,
             event_bus,
             circuit_breaker,
             performance_metrics,
             monitoring_system,
+            #[cfg(feature = "fetch")]
             fetch_engine,
             performance_manager,
             auth_config,
             cache_warmer_enabled,
+            #[cfg(feature = "browser")]
             browser_launcher,
+            #[cfg(feature = "browser")]
             browser_facade,
             extraction_facade,
             scraper_facade,
+            #[cfg(feature = "spider")]
             spider_facade: None,
+            #[cfg(feature = "search")]
             search_facade: None,
             trace_backend: None,
             #[cfg(feature = "persistence")]

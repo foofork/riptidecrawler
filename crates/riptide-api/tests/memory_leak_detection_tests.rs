@@ -8,7 +8,7 @@
 //! - Concurrent tracking
 //! - Performance validation
 
-use riptide_api::config::ApiConfig;
+use riptide_api::config::RiptideApiConfig;
 use riptide_api::resource_manager::{
     memory_manager::{LeakDetector, LeakSeverity, MemoryManager},
     metrics::ResourceMetrics,
@@ -17,8 +17,8 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-fn test_config() -> ApiConfig {
-    let mut config = ApiConfig::default();
+fn test_config() -> RiptideApiConfig {
+    let mut config = RiptideApiConfig::default();
     config.memory.global_memory_limit_mb = 10000;
     config.memory.pressure_threshold = 0.8;
     config.memory.gc_trigger_threshold_mb = 9000;

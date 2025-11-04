@@ -22,7 +22,8 @@ pub struct BrowserConfig {
     pub viewport_width: u32,
     /// Viewport height
     pub viewport_height: u32,
-    /// Browser timeout in milliseconds
+    /// Hard timeout for browser operations in milliseconds (default: 3000ms/3s)
+    /// If operation exceeds timeout, falls back to static content
     pub timeout_ms: u64,
     /// Additional browser arguments
     pub args: Vec<String>,
@@ -35,7 +36,7 @@ impl Default for BrowserConfig {
             user_agent: None,
             viewport_width: 1920,
             viewport_height: 1080,
-            timeout_ms: 30000,
+            timeout_ms: 3000, // Hard timeout: 3 seconds
             args: Vec::new(),
         }
     }

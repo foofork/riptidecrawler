@@ -1330,6 +1330,7 @@ impl RipTideMetrics {
     }
 
     /// Update worker metrics from WorkerService stats (Phase 4B Feature 5)
+    #[cfg(feature = "workers")]
     pub fn update_worker_stats(&self, stats: &riptide_workers::WorkerPoolStats) {
         self.worker_pool_size.set(stats.total_workers as f64);
         self.worker_pool_healthy.set(stats.healthy_workers as f64);
@@ -1355,6 +1356,7 @@ impl RipTideMetrics {
     }
 
     /// Update worker metrics from comprehensive snapshot (Phase 4B Feature 5)
+    #[cfg(feature = "workers")]
     pub fn update_worker_metrics(&self, metrics: &riptide_workers::WorkerMetricsSnapshot) {
         // Update pool stats
         self.worker_pool_size.set(metrics.total_workers as f64);

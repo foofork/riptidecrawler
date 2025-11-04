@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Golden Test: Event with JSON-LD</title>
+
+    <!-- Schema.org Event markup (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Event",
+      "name": "Tech Conference 2025",
+      "description": "Annual technology conference featuring the latest in software development, AI, and cloud computing",
+      "startDate": "2025-03-15T09:00:00-07:00",
+      "endDate": "2025-03-17T18:00:00-07:00",
+      "eventStatus": "https://schema.org/EventScheduled",
+      "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+      "location": {
+        "@type": "Place",
+        "name": "Moscone Center",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "747 Howard St",
+          "addressLocality": "San Francisco",
+          "addressRegion": "CA",
+          "postalCode": "94103",
+          "addressCountry": "US"
+        },
+        "geo": {
+          "@type": "GeoCoordinates",
+          "latitude": "37.7749",
+          "longitude": "-122.4194"
+        }
+      },
+      "organizer": {
+        "@type": "Organization",
+        "name": "Tech Events Inc",
+        "url": "https://example.com/organizers/tech-events",
+        "email": "events@example.com"
+      },
+      "offers": {
+        "@type": "Offer",
+        "url": "https://example.com/tickets/tech-conference-2025",
+        "price": "299",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock",
+        "validFrom": "2025-01-01T00:00:00-07:00"
+      },
+      "performer": [
+        {
+          "@type": "Person",
+          "name": "Dr. Jane Smith",
+          "jobTitle": "Keynote Speaker"
+        },
+        {
+          "@type": "Person",
+          "name": "John Doe",
+          "jobTitle": "Panel Moderator"
+        }
+      ],
+      "image": "https://example.com/images/tech-conference-2025.jpg",
+      "url": "https://example.com/events/tech-conference-2025"
+    }
+    </script>
+</head>
+<body>
+    <main>
+        <article class="event">
+            <h1>Tech Conference 2025</h1>
+
+            <div class="event-meta">
+                <p class="description">
+                    Annual technology conference featuring the latest in software development,
+                    AI, and cloud computing
+                </p>
+
+                <dl class="event-details">
+                    <dt>Date:</dt>
+                    <dd>
+                        <time datetime="2025-03-15T09:00:00-07:00" class="start-date">March 15, 2025 9:00 AM</time>
+                        -
+                        <time datetime="2025-03-17T18:00:00-07:00" class="end-date">March 17, 2025 6:00 PM</time>
+                    </dd>
+
+                    <dt>Location:</dt>
+                    <dd class="location">
+                        Moscone Center<br>
+                        747 Howard St<br>
+                        San Francisco, CA 94103
+                    </dd>
+
+                    <dt>Organizer:</dt>
+                    <dd class="organizer">
+                        <a href="https://example.com/organizers/tech-events">Tech Events Inc</a><br>
+                        <a href="mailto:events@example.com">events@example.com</a>
+                    </dd>
+
+                    <dt>Price:</dt>
+                    <dd class="price">$299 USD</dd>
+                </dl>
+            </div>
+
+            <div class="event-actions">
+                <a href="https://example.com/tickets/tech-conference-2025" class="btn-register">Register Now</a>
+                <a href="https://example.com/events/tech-conference-2025" class="btn-info">More Info</a>
+            </div>
+
+            <section class="speakers">
+                <h2>Featured Speakers</h2>
+                <ul>
+                    <li>
+                        <strong>Dr. Jane Smith</strong> - Keynote Speaker
+                    </li>
+                    <li>
+                        <strong>John Doe</strong> - Panel Moderator
+                    </li>
+                </ul>
+            </section>
+        </article>
+    </main>
+</body>
+</html>

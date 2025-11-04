@@ -4,6 +4,7 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use cron::Schedule;
 use dashmap::DashMap;
+use riptide_utils::redis::{RedisConfig, RedisPool};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -189,12 +190,14 @@ impl JobScheduler {
         let redis_client = if config.persist_schedules && redis_url.is_some() {
             let url = redis_url
                 .ok_or_else(|| anyhow::anyhow!("Redis URL required for persisted schedules"))?;
-            let client =
-                redis::Client::open(url).context("Failed to create Redis client for scheduler")?;
-            let connection = client
-                .get_multiplexed_async_connection()
+            let redis_config = RedisConfig {
+                url: url.to_string(),
+                ..RedisConfig::default()
+            };
+            let pool = RedisPool::new(redis_config)
                 .await
-                .context("Failed to connect to Redis for scheduler")?;
+                .context("Failed to create Redis pool for scheduler")?;
+            let connection = pool.get_connection();
             Some(Arc::new(tokio::sync::Mutex::new(connection)))
         } else {
             None

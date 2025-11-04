@@ -83,7 +83,7 @@ use tracing::{debug, error, info, warn};
 use url::Url;
 
 // Internal dependencies
-use crate::config::ApiConfig;
+use crate::config::RiptideApiConfig;
 use riptide_headless::pool::{BrowserPool, BrowserPoolConfig};
 
 /// Comprehensive resource manager coordinating all sub-managers
@@ -98,7 +98,7 @@ use riptide_headless::pool::{BrowserPool, BrowserPoolConfig};
 #[derive(Clone)]
 pub struct ResourceManager {
     /// Configuration
-    config: ApiConfig,
+    config: RiptideApiConfig,
     /// Headless browser pool manager (None when using external headless service)
     pub browser_pool: Option<Arc<BrowserPool>>,
     /// Per-host rate limiter
@@ -176,7 +176,7 @@ impl ResourceManager {
     /// # Returns
     /// * `Ok(ResourceManager)` - Successfully initialized manager
     /// * `Err(_)` - Initialization failed (browser pool, etc.)
-    pub async fn new(config: ApiConfig) -> errors::Result<Self> {
+    pub async fn new(config: RiptideApiConfig) -> errors::Result<Self> {
         Self::new_with_headless_url(config, None).await
     }
 
@@ -185,7 +185,7 @@ impl ResourceManager {
     /// When headless_url is provided, local browser pool creation is skipped
     /// as the API will use the headless service for rendering instead.
     pub async fn new_with_headless_url(
-        config: ApiConfig,
+        config: RiptideApiConfig,
         headless_url: Option<String>,
     ) -> errors::Result<Self> {
         info!("Initializing comprehensive resource manager");

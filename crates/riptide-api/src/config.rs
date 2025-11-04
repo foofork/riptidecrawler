@@ -6,10 +6,10 @@
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-/// Global API configuration with resource management
+/// Global RipTide API configuration with resource management
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(not(feature = "wasm-extractor"), derive(Default))]
-pub struct ApiConfig {
+pub struct RiptideApiConfig {
     /// Resource management configuration
     pub resources: ResourceConfig,
     /// Performance and timeout configuration
@@ -304,9 +304,9 @@ impl Default for SearchProviderConfig {
     }
 }
 
-// Manual Default implementation for ApiConfig when wasm-extractor feature is enabled
+// Manual Default implementation for RiptideApiConfig when wasm-extractor feature is enabled
 #[cfg(feature = "wasm-extractor")]
-impl Default for ApiConfig {
+impl Default for RiptideApiConfig {
     fn default() -> Self {
         Self {
             resources: ResourceConfig::default(),
@@ -321,7 +321,7 @@ impl Default for ApiConfig {
     }
 }
 
-impl ApiConfig {
+impl RiptideApiConfig {
     /// Load configuration from environment variables with comprehensive support
     pub fn from_env() -> Self {
         let mut config = Self::default();
@@ -729,7 +729,7 @@ mod tests {
 
     #[test]
     fn test_default_config() {
-        let config = ApiConfig::default();
+        let config = RiptideApiConfig::default();
 
         // Test requirements
         assert_eq!(config.headless.max_pool_size, 3); // Pool cap = 3
@@ -745,21 +745,21 @@ mod tests {
 
     #[test]
     fn test_config_validation() {
-        let mut config = ApiConfig::default();
+        let mut config = RiptideApiConfig::default();
         assert!(config.validate().is_ok());
 
         // Test invalid resource settings
         config.resources.max_concurrent_renders = 0;
         assert!(config.validate().is_err());
 
-        config = ApiConfig::default();
+        config = RiptideApiConfig::default();
         config.rate_limiting.jitter_factor = 1.5; // > 1.0
         assert!(config.validate().is_err());
     }
 
     #[test]
     fn test_timeout_selection() {
-        let config = ApiConfig::default();
+        let config = RiptideApiConfig::default();
 
         assert_eq!(config.get_timeout("render"), Duration::from_secs(3));
 
@@ -768,7 +768,7 @@ mod tests {
 
     #[test]
     fn test_memory_pressure_detection() {
-        let config = ApiConfig::default();
+        let config = RiptideApiConfig::default();
 
         // Below threshold
         assert!(!config.is_memory_pressure(1000)); // 1GB < 85% of 2GB
@@ -779,7 +779,7 @@ mod tests {
 
     #[test]
     fn test_jittered_delay() {
-        let config = ApiConfig::default();
+        let config = RiptideApiConfig::default();
 
         let delay1 = config.calculate_jittered_delay();
         let delay2 = config.calculate_jittered_delay();

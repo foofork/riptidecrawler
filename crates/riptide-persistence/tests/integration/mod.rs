@@ -89,8 +89,12 @@ fn create_test_persistence_config() -> PersistenceConfig {
 
 /// Clean up test data
 async fn cleanup_test_data(redis_url: &str, key_prefix: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let client = redis::Client::open(redis_url)?;
-    let mut conn = client.get_async_connection().await?;
+    let redis_config = riptide_utils::redis::RedisConfig {
+        url: redis_url.to_string(),
+        ..riptide_utils::redis::RedisConfig::default()
+    };
+    let pool = riptide_utils::redis::RedisPool::new(redis_config).await?;
+    let mut conn = pool.get_connection();
 
     let pattern = format!("{}*", key_prefix);
     let keys: Vec<String> = redis::cmd("KEYS")

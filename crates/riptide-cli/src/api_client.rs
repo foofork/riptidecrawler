@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use std::time::Duration;
 
 /// API client for RipTide server operations
@@ -8,6 +9,26 @@ pub struct RiptideApiClient {
     base_url: String,
     api_key: Option<String>,
     client: Client,
+}
+
+impl fmt::Debug for RiptideApiClient {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RiptideApiClient")
+            .field("base_url", &self.base_url)
+            .field(
+                "api_key",
+                &self.api_key.as_ref().map(|key| {
+                    let chars: Vec<char> = key.chars().collect();
+                    if chars.len() <= 4 {
+                        format!("{}...", key)
+                    } else {
+                        format!("{}...", chars[..4].iter().collect::<String>())
+                    }
+                }),
+            )
+            .field("client", &"<reqwest::Client>")
+            .finish()
+    }
 }
 
 /// Request for rendering a web page

@@ -267,7 +267,6 @@ impl SmartRetry {
     {
         let mut attempt = 0u32;
         let mut current_strategy = self.default_strategy;
-        let mut last_error: Option<IntelligenceError> = None;
 
         loop {
             // Execute the operation
@@ -293,7 +292,6 @@ impl SmartRetry {
                 }
                 Err(error) => {
                     attempt = attempt.saturating_add(1);
-                    last_error = Some(error.clone());
 
                     // Check if we should retry this error
                     let should_retry = self.classify_error(&error);
@@ -395,7 +393,7 @@ impl SmartRetry {
     pub async fn execute_with_circuit_breaker<F, T, Fut>(
         &self,
         circuit_breaker: &CircuitBreaker,
-        mut operation: F,
+        operation: F,
     ) -> Result<T>
     where
         F: FnMut() -> Fut,

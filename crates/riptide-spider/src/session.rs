@@ -78,7 +78,7 @@ impl Default for SessionConfig {
 }
 
 /// Login credentials and configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct LoginConfig {
     /// Login URL
     pub login_url: Url,
@@ -100,6 +100,33 @@ pub struct LoginConfig {
     pub pre_login_steps: Vec<PreLoginStep>,
     /// Post-login validation URL
     pub validation_url: Option<Url>,
+}
+
+impl std::fmt::Debug for LoginConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Redact password to show only first 4 chars
+        let redacted_password = {
+            let chars: Vec<char> = self.password.chars().collect();
+            if chars.len() <= 4 {
+                format!("{}...", self.password)
+            } else {
+                format!("{}...", chars[..4].iter().collect::<String>())
+            }
+        };
+
+        f.debug_struct("LoginConfig")
+            .field("login_url", &self.login_url)
+            .field("username_field", &self.username_field)
+            .field("password_field", &self.password_field)
+            .field("username", &self.username)
+            .field("password", &redacted_password)
+            .field("additional_fields", &self.additional_fields)
+            .field("success_indicators", &self.success_indicators)
+            .field("failure_indicators", &self.failure_indicators)
+            .field("pre_login_steps", &self.pre_login_steps)
+            .field("validation_url", &self.validation_url)
+            .finish()
+    }
 }
 
 /// Pre-login step configuration

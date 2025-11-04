@@ -59,10 +59,10 @@ async fn test_render_handler_error_resilience() {
 
 #[tokio::test]
 async fn test_resource_manager_time_handling_robustness() {
-    use riptide_api::config::ApiConfig;
+    use riptide_api::config::RiptideApiConfig;
     use riptide_api::resource_manager::ResourceManager;
 
-    let config = ApiConfig::default();
+    let config = RiptideApiConfig::default();
     let resource_manager = ResourceManager::new(config)
         .await
         .expect("Failed to create resource manager");
@@ -138,10 +138,10 @@ async fn test_url_parsing_edge_cases() {
 
 #[tokio::test]
 async fn test_memory_pressure_handling() {
-    use riptide_api::config::ApiConfig;
+    use riptide_api::config::RiptideApiConfig;
     use riptide_api::resource_manager::ResourceManager;
 
-    let mut config = ApiConfig::default();
+    let mut config = RiptideApiConfig::default();
     config.memory.global_memory_limit_mb = 1; // Very low limit to trigger pressure
     config.memory.pressure_threshold = 0.5;
 

@@ -344,7 +344,7 @@ impl StratifiedInstancePool {
 
     /// Promote warm instances to hot tier based on usage patterns
     pub fn promote_warm_to_hot(&mut self) {
-        let mut promoted_count = 0;
+        let mut promoted_count: usize = 0;
 
         // Check if hot tier has space
         while self.hot.len() < self.hot_capacity && !self.warm.is_empty() {
@@ -415,7 +415,7 @@ impl StratifiedInstancePool {
 
     /// Remove idle instances from all tiers and return count removed
     pub fn remove_idle(&mut self, idle_timeout: Duration) -> usize {
-        let mut removed_count = 0;
+        let mut removed_count: usize = 0;
 
         // Remove from cold tier first (least valuable)
         let cold_len = self.cold.len();

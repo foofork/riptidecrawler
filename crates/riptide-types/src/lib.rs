@@ -16,6 +16,7 @@ pub mod error;
 pub mod extracted;
 pub mod extractors;
 pub mod reliability;
+pub mod secrets;
 pub mod traits;
 pub mod types;
 

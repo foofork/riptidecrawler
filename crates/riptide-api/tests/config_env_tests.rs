@@ -1,6 +1,6 @@
 //! Unit tests for environment variable configuration parsing in riptide-api
 
-use riptide_api::config::ApiConfig;
+use riptide_api::config::RiptideApiConfig;
 use serial_test::serial;
 use std::env;
 
@@ -37,7 +37,7 @@ fn test_resource_config_from_env() {
             ("RIPTIDE_HEALTH_CHECK_INTERVAL_SECS", "45"),
         ],
         || {
-            let config = ApiConfig::from_env();
+            let config = RiptideApiConfig::from_env();
             assert_eq!(config.resources.max_concurrent_renders, 20);
             assert_eq!(config.resources.max_concurrent_pdf, 5);
             assert_eq!(config.resources.max_concurrent_wasm, 8);
@@ -63,7 +63,7 @@ fn test_performance_config_from_env() {
             ("RIPTIDE_DEGRADATION_THRESHOLD", "0.9"),
         ],
         || {
-            let config = ApiConfig::from_env();
+            let config = RiptideApiConfig::from_env();
             assert_eq!(config.performance.render_timeout_secs, 5);
             assert_eq!(config.performance.pdf_timeout_secs, 20);
             assert_eq!(config.performance.wasm_timeout_secs, 10);
@@ -89,7 +89,7 @@ fn test_rate_limiting_config_from_env() {
             ("RIPTIDE_RATE_LIMIT_MAX_TRACKED_HOSTS", "5000"),
         ],
         || {
-            let config = ApiConfig::from_env();
+            let config = RiptideApiConfig::from_env();
             assert!(!config.rate_limiting.enabled);
             assert_eq!(config.rate_limiting.requests_per_second_per_host, 2.5);
             assert_eq!(config.rate_limiting.jitter_factor, 0.2);
@@ -118,7 +118,7 @@ fn test_memory_config_from_env() {
             ("RIPTIDE_MEMORY_ENABLE_PROACTIVE_MONITORING", "false"),
         ],
         || {
-            let config = ApiConfig::from_env();
+            let config = RiptideApiConfig::from_env();
             assert_eq!(config.memory.max_memory_per_request_mb, 512);
             assert_eq!(config.memory.global_memory_limit_mb, 4096);
             assert_eq!(config.memory.memory_soft_limit_mb, 800);
@@ -149,7 +149,7 @@ fn test_headless_config_from_env() {
             ("RIPTIDE_HEADLESS_MAX_RETRIES", "5"),
         ],
         || {
-            let config = ApiConfig::from_env();
+            let config = RiptideApiConfig::from_env();
             assert_eq!(config.headless.max_pool_size, 5);
             assert_eq!(config.headless.min_pool_size, 2);
             assert_eq!(config.headless.idle_timeout_secs, 600);
@@ -176,7 +176,7 @@ fn test_pdf_config_from_env() {
             ("RIPTIDE_PDF_QUEUE_TIMEOUT_SECS", "120"),
         ],
         || {
-            let config = ApiConfig::from_env();
+            let config = RiptideApiConfig::from_env();
             assert_eq!(config.pdf.max_concurrent, 4);
             assert_eq!(config.pdf.processing_timeout_secs, 60);
             assert_eq!(config.pdf.max_file_size_mb, 200);
@@ -203,7 +203,7 @@ fn test_wasm_config_from_env() {
             ("RIPTIDE_WASM_RESTART_THRESHOLD", "20"),
         ],
         || {
-            let config = ApiConfig::from_env();
+            let config = RiptideApiConfig::from_env();
             assert_eq!(config.wasm.instances_per_worker, 2);
             assert_eq!(config.wasm.module_timeout_secs, 20);
             assert_eq!(config.wasm.max_memory_mb, 256);
@@ -231,7 +231,7 @@ fn test_search_config_from_env() {
             ),
         ],
         || {
-            let config = ApiConfig::from_env();
+            let config = RiptideApiConfig::from_env();
             assert_eq!(config.search.backend, "searxng");
             assert_eq!(config.search.timeout_secs, 60);
             assert!(!config.search.enable_url_parsing);
@@ -254,8 +254,8 @@ fn test_default_config_when_no_env_vars() {
         env::remove_var(key);
     }
 
-    let config = ApiConfig::from_env();
-    let default = ApiConfig::default();
+    let config = RiptideApiConfig::from_env();
+    let default = RiptideApiConfig::default();
 
     assert_eq!(
         config.resources.max_concurrent_renders,
@@ -281,8 +281,8 @@ fn test_invalid_env_var_values_use_defaults() {
             ("RIPTIDE_ENABLE_MONITORING", "maybe"),
         ],
         || {
-            let config = ApiConfig::from_env();
-            let default = ApiConfig::default();
+            let config = RiptideApiConfig::from_env();
+            let default = RiptideApiConfig::default();
 
             // Should fall back to defaults when parsing fails
             assert_eq!(
@@ -309,7 +309,7 @@ fn test_config_validation_with_env_vars() {
             ("RIPTIDE_SEARCH_BACKEND", "serper"),
         ],
         || {
-            let config = ApiConfig::from_env();
+            let config = RiptideApiConfig::from_env();
             assert!(config.validate().is_ok());
         },
     );
@@ -340,7 +340,7 @@ fn test_all_sections_loaded_together() {
     env_vars.push(("RIPTIDE_WASM_INSTANCES_PER_WORKER", "2"));
 
     with_env_vars(env_vars, || {
-        let config = ApiConfig::from_env();
+        let config = RiptideApiConfig::from_env();
         assert_eq!(config.resources.max_concurrent_renders, 15);
         assert_eq!(config.performance.render_timeout_secs, 4);
         assert_eq!(config.rate_limiting.requests_per_second_per_host, 1.5); // Default value
