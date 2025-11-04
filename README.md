@@ -12,6 +12,21 @@ Extract structured data from any website with intelligent routing, multi-provide
 
 ---
 
+## ⚠️ NOT READY FOR PRIME TIME
+
+**This project is undergoing major refactoring and is NOT production-ready:**
+
+- 🚧 **API v1.0 is in active development** - Breaking changes expected
+- 🔄 **Major refactoring underway** - See [RipTide v1.0 Roadmap](docs/roadmap/RIPTIDE-V1-DEFINITIVE-ROADMAP.md)
+- ⚡ **18-week timeline to production** - Currently in Phase 0 (foundations)
+- 🧪 **Experimental features** - Many APIs will change before v1.0
+
+**Use at your own risk!** Wait for v1.0 release (18 weeks) for production use.
+
+**Want to contribute?** Check the [roadmap](docs/roadmap/) for current priorities and validated next steps.
+
+---
+
 ## ✨ Why RipTide?
 
 - 🚀 **Blazing Fast** - Native Rust extraction (2-5ms) with optional WASM sandboxing
@@ -478,27 +493,33 @@ See **[CONTRIBUTING.md](CONTRIBUTING.md)** for detailed guidelines.
 
 ## 🗺️ Roadmap
 
-### Current Version (0.9.0)
-- ✅ WASM-powered extraction with Component Model
-- ✅ 8 LLM providers with automatic failover
-- ✅ Real-time streaming (NDJSON, SSE, WebSocket)
-- ✅ Deep spider crawling with relevance scoring
-- ✅ Session management and artifact storage
+### ⭐ RipTide v1.0 Roadmap (THE PLAN)
 
-### Upcoming (1.0.0)
-- 🔄 GraphQL API support
-- 🔄 Distributed crawling with job queue
-- 🔄 Machine learning-based extraction hints
-- 🔄 Enhanced anti-detection capabilities
-- 🔄 Performance benchmarks and optimizations
+**Status:** ✅ Validated (95% confidence) by 4-agent swarm
+**Timeline:** 18 weeks to production-ready v1.0
+**Current Phase:** Phase 0 - Foundations (Week 0-2.5)
 
-### Future
-- 🎯 Kubernetes operator for auto-scaling
-- 🎯 Browser extension for manual extraction
-- 🎯 Visual extraction rule builder
-- 🎯 Data pipeline integrations (Kafka, S3, etc.)
+See **[RIPTIDE-V1-DEFINITIVE-ROADMAP.md](docs/roadmap/RIPTIDE-V1-DEFINITIVE-ROADMAP.md)** for the complete validated roadmap.
 
-See **[ROADMAP.md](ROADMAP.md)** for detailed plans.
+**Key Goals:**
+1. ✅ Extract in 1 line: `client.extract(url)`
+2. ✅ Spider without extract: `client.spider(url)`
+3. ✅ Extract without spider: `client.extract_html(html)`
+4. ✅ Compose flexibly: `client.spider(url).and_extract()`
+5. ✅ Use from Python: `pip install riptide`
+
+**If yes to all 5 → Ship v1.0 🚀**
+
+### Phases Overview
+- **Phase 0 (Week 0-2.5):** Utils consolidation, config system, health endpoints
+- **Phase 1 (Week 2.5-9):** Spider decoupling, facades, composable APIs
+- **Phase 2 (Week 9-14):** LLM facades, Python SDK, events schema
+- **Phase 3 (Week 14-18):** Integration testing, documentation, launch
+
+### Supporting Documentation
+- [Validation Synthesis](docs/roadmap/VALIDATION-SYNTHESIS.md) - Why corrections were made
+- [UX Vision](docs/roadmap/riptide-v1-ux-design.md) - User experience design
+- [Breaking Changes](docs/roadmap/BREAKING-CHANGES-MIGRATION.md) - Migration guide
 
 ---
 

@@ -174,12 +174,23 @@ Quick reference materials and glossary.
 
 Historical documents, phase reports, and internal analysis.
 
-- **Project History** - Phase reports (150+ documents)
-- **Decisions** - Historical decision-making
-- **Analysis** - Research and investigation
-- **Reports** - Completion and validation reports
+- **Project History** - Phase reports, validation reports, quality reports (150+ documents)
+- **Analysis** - Strategic research and investigation
+- **Reports** - Completion and validation reports organized by phase
 
 **Audience:** Maintainers and project historians
+
+### Roadmap
+**[→ Go to Roadmap](./roadmap/)**
+
+RipTide v1.0 development roadmap and planning documents.
+
+- **[RIPTIDE-V1-DEFINITIVE-ROADMAP.md](./roadmap/RIPTIDE-V1-DEFINITIVE-ROADMAP.md)** - THE validated 18-week roadmap
+- **[Validation Reports](./roadmap/)** - 95% confidence validation by 4-agent swarm
+- **[UX Vision](./roadmap/riptide-v1-ux-design.md)** - User experience design
+- **[Breaking Changes](./roadmap/BREAKING-CHANGES-MIGRATION.md)** - Migration guide
+
+**Timeline:** 18 weeks to v1.0 | **Status:** Phase 0 (Foundations)
 
 ---
 
@@ -234,11 +245,15 @@ Historical documents, phase reports, and internal analysis.
 
 ## 🏗️ Project Status
 
-**Version:** v2.1.0
-**Status:** Production-ready (Phases 1-10 complete)
+**Version:** v0.9.0 (v1.0 in development)
+**Status:** ⚠️ NOT PRODUCTION READY - Major refactoring underway
 **Workspace:** 27 specialized Rust crates
+**Timeline:** 18 weeks to v1.0 (currently in Phase 0)
 
-### What's Implemented
+### ⚠️ Current Development Status
+🚧 **API v1.0 is in active development** - See [RipTide v1.0 Roadmap](./roadmap/RIPTIDE-V1-DEFINITIVE-ROADMAP.md)
+
+**What's Implemented (Existing):**
 ✅ Web crawling (static & dynamic sites)
 ✅ Content extraction (CSS, Regex, WASM, LLM)
 ✅ Real-time streaming (NDJSON, SSE, WebSocket)
@@ -247,26 +262,34 @@ Historical documents, phase reports, and internal analysis.
 ✅ Multi-provider LLM (OpenAI, Anthropic, Google, etc.)
 ✅ Stealth mode (anti-detection)
 ✅ Monitoring (Prometheus, OpenTelemetry)
-✅ Production deployment (Docker, Kubernetes)
+
+**What's Being Refactored (v1.0):**
+🔄 Composable API design (spider-only, extract-only, compose)
+🔄 Facade pattern (wrap existing orchestrators)
+🔄 Python SDK (PyO3)
+🔄 Event schema system
+🔄 Health & observability improvements
+🔄 Configuration system consolidation
 
 ### Current Roadmap
-See [COMPREHENSIVE-ROADMAP.md](./00-getting-started/COMPREHENSIVE-ROADMAP.md) for details.
+**Primary:** [RIPTIDE-V1-DEFINITIVE-ROADMAP.md](./roadmap/RIPTIDE-V1-DEFINITIVE-ROADMAP.md) - THE validated 18-week plan
 
-**Next Phase:** Production optimization and scaling
+**Next Phase:** Phase 0 - Foundations (Week 0-2.5) - Utils consolidation, config system, health endpoints
 
 ---
 
 ## 📊 Documentation Stats
 
-- **Total Documents:** 200+ files
+- **Total Documents:** 200+ files (recently reorganized from 140+ in root)
 - **API Routes:** 120+ total (59 primary endpoints documented)
 - **Code Examples:** 50+ examples
 - **Crate Coverage:** 27/27 crates (100%)
 - **Test Coverage:** ~75%
-- **Archived Documents:** 157 historical files
+- **Organized Structure:** 127 files moved from root to proper subdirectories
 
-**Last Updated:** 2025-10-26
+**Last Updated:** 2025-11-04 (major cleanup)
 **Quality Score:** 9/10
+**Organization:** Clean structure with only README.md in root
 
 ---
 
