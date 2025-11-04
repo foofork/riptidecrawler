@@ -1,4 +1,4 @@
-# RipTide Alpha
+# RipTide - Refactoring Underway
 
 [![Version](https://img.shields.io/badge/version-0.9.0-blue.svg)](CHANGELOG.md)
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
