@@ -6,12 +6,14 @@
 //! - **HTTP**: HTTP client factory with connection pooling
 //! - **Retry**: Retry policies with exponential backoff
 //! - **Rate Limiting**: Token bucket rate limiting
+//! - **Circuit Breaker**: Fault tolerance with circuit breaker pattern
 //! - **Time**: Time utilities and timestamp conversions
 //! - **Error**: Common error types and result aliases
 
 #![deny(missing_docs)]
 #![warn(clippy::all)]
 
+pub mod circuit_breaker;
 pub mod error;
 pub mod http;
 pub mod rate_limit;
@@ -20,6 +22,7 @@ pub mod retry;
 pub mod time;
 
 // Re-export commonly used types
+pub use circuit_breaker::{CircuitBreaker, CircuitBreakerConfig, CircuitState};
 pub use error::{Error, Result};
 pub use http::{HttpClientFactory, HttpConfig};
 pub use rate_limit::{RateLimiterBuilder, SimpleRateLimiter};
