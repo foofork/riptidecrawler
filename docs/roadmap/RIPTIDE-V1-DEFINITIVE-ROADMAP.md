@@ -54,7 +54,7 @@ git branch --show-current && df -h / | tail -1  # Where am I + disk OK?
 rg "^## Week [0-9]" docs/roadmap/RIPTIDE-V1-DEFINITIVE-ROADMAP.md  # What's the plan?
 ```
 
-**Remember:** REFACTOR not REWRITE. Check disk. Use swarm. Zero warnings.
+**Remember:** REFACTOR not REWRITE. Check disk. Use swarm. Zero warnings. Update Roadmap with progress after any commits.
 
 ---
 
