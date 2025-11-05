@@ -2,17 +2,45 @@
 //!
 //! Python bindings for the Riptide web scraping framework using PyO3.
 //!
-//! ## PyO3 Spike - Async Runtime Integration Test
+//! ## Overview
 //!
-//! This module tests whether tokio async runtime works correctly with PyO3.
-//! This is a critical validation step before proceeding with full Python SDK.
+//! This library provides Python bindings for the Riptide web scraping framework,
+//! allowing you to extract content, spider websites, and crawl multiple URLs
+//! from Python with the full power of Rust's performance and safety.
 //!
-//! **Acceptance Criteria:**
-//! 1. ✅ Async runtime works in PyO3
-//! 2. ✅ No deadlocks or panics
-//! 3. ✅ Go/no-go decision on Python SDK approach
+//! ## Features
+//!
+//! - **extract()** - Extract content from a single URL
+//! - **spider()** - Discover URLs by crawling a website
+//! - **crawl()** - Batch process multiple URLs in parallel
+//! - **Document** - Rich document type with metadata
+//! - **Async runtime** - Tokio async runtime managed automatically
+//!
+//! ## Python Example
+//!
+//! ```python
+//! import riptide
+//!
+//! # Create RipTide instance
+//! rt = riptide.RipTide()
+//!
+//! # Extract content
+//! doc = rt.extract("https://example.com")
+//! print(doc.title, doc.text)
+//!
+//! # Spider for URLs
+//! urls = rt.spider("https://example.com", max_depth=2)
+//!
+//! # Batch crawl
+//! docs = rt.crawl(urls)
+//! ```
 
 use pyo3::prelude::*;
+
+// Modules
+mod document;
+mod errors;
+mod riptide_class;
 use pyo3::types::{PyDict, PyList};
 use std::sync::Arc;
 use tokio::runtime::Runtime;
@@ -193,18 +221,22 @@ impl RipTideSpike {
 /// Python module for Riptide
 #[pymodule]
 fn riptide(_py: Python, m: &PyModule) -> PyResult<()> {
-    // Add spike test functions
+    // Production classes
+    m.add_class::<riptide_class::PyRipTide>()?;
+    m.add_class::<document::PyDocument>()?;
+
+    // Spike test functions (kept for testing)
     m.add_function(wrap_pyfunction!(test_async_basic, m)?)?;
     m.add_function(wrap_pyfunction!(test_async_concurrent, m)?)?;
     m.add_function(wrap_pyfunction!(test_async_timeout, m)?)?;
     m.add_function(wrap_pyfunction!(test_async_error_handling, m)?)?;
 
-    // Add spike test class
+    // Spike test class (kept for testing)
     m.add_class::<RipTideSpike>()?;
 
     // Module metadata
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
-    m.add("__doc__", "PyO3 Spike: Testing async runtime integration for Riptide Python bindings")?;
+    m.add("__doc__", "Riptide Python Bindings - High-performance web scraping for Python")?;
 
     Ok(())
 }
