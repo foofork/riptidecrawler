@@ -6737,6 +6737,8 @@ name = "riptide-facade"
 version = "0.9.0"
 dependencies = [
  "anyhow",
+ "async-trait",
+ "chrono",
  "futures",
  "riptide-browser",
  "riptide-cache",
