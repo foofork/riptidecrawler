@@ -4,6 +4,7 @@
 //! interfaces for common web scraping tasks.
 
 pub mod browser;
+pub mod crawl_facade;
 pub mod extractor;
 pub mod intelligence;
 pub mod pipeline;
@@ -14,6 +15,7 @@ pub mod spider;
 pub use browser::{
     BrowserAction, BrowserFacade, BrowserSession, Cookie, ImageFormat, ScreenshotOptions,
 };
+pub use crawl_facade::{CrawlFacade, CrawlMode, CrawlResult};
 pub use extractor::{
     ExtractedData, ExtractionFacade, ExtractionStrategy, FieldSpec, FieldType,
     HtmlExtractionOptions, PdfExtractionOptions, Schema,

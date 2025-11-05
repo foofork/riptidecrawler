@@ -23,6 +23,8 @@ members = [
   "crates/riptide-performance",
   "crates/riptide-browser-abstraction",  # Phase 1 Week 3 - Browser abstraction layer
   "crates/riptide-facade",  # P1-C3: High-level facade API
+  "crates/riptide-py",  # Phase 2: Python bindings (PyO3)
+  "crates/riptide-schemas",  # Phase 2: Event and data schemas with versioning
   "wasm/riptide-extractor-wasm", "crates/riptide-test-utils", "crates/riptide-config", "crates/riptide-cache", "crates/riptide-reliability", "crates/riptide-browser",
   "cli-spec",  # CLI specification parser and validator
 ]

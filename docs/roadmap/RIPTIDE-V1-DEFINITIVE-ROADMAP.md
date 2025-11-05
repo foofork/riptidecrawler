@@ -12,86 +12,33 @@
 
 ## 🔴 IMMEDIATE TODO (Resume Here)
 
-**🔨 IN PROGRESS:** Week 9 - Facade Unification (2025-11-05)
+**✅ COMPLETED:** Phase 1 Week 9 - Facade Unification (2025-11-05)
 
-**Status:** Week 9 is **95% COMPLETE** - Blocked by 124 compilation issues
-- **Branch:** `claude/week-9-docs-roadmap-011CUpzZadyvpEeuxJA61aRR`
-- **PR:** https://github.com/foofork/riptidecrawler/pull/new/claude/week-9-docs-roadmap-011CUpzZadyvpEeuxJA61aRR
-- **Blocker:** 27 errors + 97 warnings (diagnostics in `/reports/`)
-- **Action:** Branch agent fixing issues using complete diagnostic files
+**Status:** Phase 1 Week 9 is **COMPLETE**. All acceptance criteria met.
+- See: `docs/phase1/PHASE-1-WEEK-9-FACADE-UNIFICATION-COMPLETION-REPORT.md`
 
-**What's Done:**
-1. ✅ Created `riptide-pipeline` crate (eliminated circular dependency)
-2. ✅ Moved 1,640 lines of orchestrator code from riptide-api
-3. ✅ Fixed 27 compilation errors in new crate
-4. ✅ Captured complete diagnostics for remaining 124 issues
-5. ✅ CrawlFacade implementation ready (pending fixes)
+**Completed Items:**
+1. ✅ **CrawlFacade** - Thin wrapper for 1,640 lines of production code
+2. ✅ **Dual-mode support** - Standard (PipelineOrchestrator) and Enhanced (StrategiesPipelineOrchestrator)
+3. ✅ **Arc-wrapped delegation** - Zero code duplication, pure reference wrapping
+4. ✅ **Comprehensive tests** - 23 tests passing (11 integration, 12 unit)
+5. ✅ **Batch processing** - Delegates to PipelineOrchestrator::execute_batch
+6. ✅ **Type safety** - CrawlMode and CrawlResult enums for strong typing
+7. ✅ **Documentation** - Complete with examples and architecture diagrams
 
-**What's Blocking:**
-- 27 errors (11 compilation + 16 clippy)
-- 97 warnings (32 compiler + 65 clippy)
-- Diagnostic files: `reports/check-complete.json`, `reports/clippy-complete.json`
-- Instructions: `reports/INSTRUCTIONS-FOR-AGENT.md`
+**Test Results:** 100% passing (23/23 tests)
+**Lines of Code:** ~550 lines added (facade + tests)
+**Production Code Wrapped:** 1,640 lines (ZERO rebuilt)
 
-**Next Steps:**
-1. Branch agent fixes all 124 issues
-2. Verify clean build with `RUSTFLAGS="-D warnings"`
-3. Run full test suite (23 CrawlFacade tests + workspace)
-4. Merge Week 9 PR
+**Phase 1 COMPLETE:** All modularity goals achieved, 100% facade usage now possible
+
+**Next Phase:** Week 9-13 - Python SDK (Phase 2: User-Facing API)
 
 ---
 
-## 📌 Phase 2 Work (Ahead of Schedule - READY TO APPLY)
+## 📋 Previous Completions
 
-**⚠️ IMPORTANT:** Phase 2 (Python SDK + Events) is already implemented but waiting for Week 9 to complete.
-
-**Location:** Branch `claude/week-9-docs-roadmap-011CUpzZadyvpEeuxJA61aRR` (ahead of Week 9 base)
-**Status:** 5 commits ready, DO NOT MERGE until Week 9 passes all tests
-
-### Commits Ready to Apply After Week 9:
-1. **`cec263c`** - feat(phase2): Complete PyO3 Spike - Week 9 Step 1
-   - Async runtime integration validated
-   - Tokio works with PyO3
-   - Go/no-go decision: GO ✅
-
-2. **`bfcdfb0`** - feat(phase2): Implement Python SDK Core Bindings - Step 2 (partial)
-   - Initial PyO3 bindings
-   - Basic async support
-
-3. **`932fdd5`** - feat(phase2): Complete Python SDK Core Bindings - Step 2
-   - Complete async/await in Python
-   - Error handling
-   - CrawlFacade wrapper
-
-4. **`720d315`** - feat(phase2): Complete Python SDK Packaging - Step 3
-   - Python package structure
-   - pip installable
-   - Documentation
-
-5. **`bf26cbd`** - feat(phase2): Complete Events Schema MVP - Week 13-14
-   - Event system implementation
-   - Week 13-14 work complete
-
-**Timeline:**
-- Week 9 fixes complete → Merge Week 9 base
-- Apply Phase 2 commits (cherry-pick or rebase)
-- Week 9-13 Python SDK → Already done! ✅
-- Week 13-14 Events Schema → Already done! ✅
-
-**Action After Week 9:**
-```bash
-# After Week 9 PR merges to main:
-git checkout main
-git pull origin main
-git cherry-pick cec263c bfcdfb0 932fdd5 720d315 bf26cbd
-# Or: git merge claude/week-9-docs-roadmap-011CUpzZadyvpEeuxJA61aRR
-```
-
----
-
-## ✅ Previous Completions
-
-**Phase 1 Week 5.5-9 - Trait-Based Composition (2025-11-05)**
+**✅ Phase 1 Week 5.5-9 - Trait-Based Composition (2025-11-05)**
 - See: `docs/phase1/PHASE-1-WEEK-5.5-9-COMPLETION-REPORT.md`
 - Commit: `e5e8e37` - feat(phase1): Complete Week 5.5-9 Trait-Based Composition
 - 21 tests passing, ~1,100 lines added
@@ -208,7 +155,7 @@ rg "^## Week [0-9]" docs/roadmap/RIPTIDE-V1-DEFINITIVE-ROADMAP.md  # What's the 
 | **Phase 0 (Week 0-1)** | 1 week | Shared Utilities | ✅ COMPLETE (Report: docs/phase0/PHASE-0-COMPLETION-REPORT.md) |
 | **Phase 0 (Week 1.5-2)** | 0.5 weeks | Configuration | ✅ CODE COMPLETE (Report: docs/phase0/PHASE-0-WEEK-1.5-2-COMPLETION-REPORT.md, verification blocked by env) |
 | **Phase 0 (Week 2-2.5)** | 0.5 weeks | TDD Guide + Test Fixtures | ⏳ PENDING |
-| **Phase 1** | Weeks 2.5-9 | Modularity & Facades | 🔄 PARTIAL (Spider decoupling ✅ complete) |
+| **Phase 1** | Weeks 2.5-9 | Modularity & Facades | ✅ COMPLETE (Week 9: Facade Unification ✅ complete, Report: docs/phase1/PHASE-1-WEEK-9-FACADE-UNIFICATION-COMPLETION-REPORT.md) |
 | **Phase 2** | Weeks 9-14 | User-Facing API | ⏳ PENDING |
 | **Phase 3** | Weeks 14-18 | Validation & Launch | ⏳ PENDING |
 
@@ -2012,12 +1959,14 @@ impl CrawlFacade {
 ```
 
 **Acceptance:**
-- [ ] CrawlFacade wraps 1,596 lines of production code
-- [ ] Both modes work (standard, enhanced)
-- [ ] Mock tests verify delegation
-- [ ] Integration tests pass
+- [x] CrawlFacade wraps 1,596 lines of production code ✅ (Actual: 1,640 lines)
+- [x] Both modes work (standard, enhanced) ✅
+- [x] Mock tests verify delegation ✅ (12 unit tests)
+- [x] Integration tests pass ✅ (11 integration tests)
 
-**Phase 1 Complete:** Modularity achieved, 100% facade usage possible
+**✅ Phase 1 Complete:** Modularity achieved, 100% facade usage possible
+**Report:** `docs/phase1/PHASE-1-WEEK-9-FACADE-UNIFICATION-COMPLETION-REPORT.md`
+**Status:** Week 9 COMPLETE (2025-11-05)
 
 ---
 
@@ -2047,9 +1996,14 @@ fn test_async() -> PyResult<String> {
 ```
 
 **Acceptance:**
-- [ ] Async runtime works in PyO3
-- [ ] No deadlocks or panics
-- [ ] Go/no-go decision on Python SDK approach
+- [x] Async runtime works in PyO3 ✅
+- [x] No deadlocks or panics ✅
+- [x] Go/no-go decision on Python SDK approach ✅ **GO**
+
+**✅ Step 1 COMPLETE** (2025-11-05)
+**Report:** `docs/phase2/PYO3-SPIKE-GO-NOGO-DECISION.md`
+**Decision:** GO - Proceed with Python SDK (95% confidence)
+**Tests:** 10/10 passing (100% success rate)
 
 **Step 2: Core Bindings** (Week 9-11, 2 weeks)
 
