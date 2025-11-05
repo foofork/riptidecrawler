@@ -29,10 +29,7 @@ macro_rules! feature_stub {
         }
     };
     ($handler_name:ident, $feature:expr, PathJson) => {
-        pub async fn $handler_name(
-            _path: Path<String>,
-            _body: Json<Value>,
-        ) -> impl IntoResponse {
+        pub async fn $handler_name(_path: Path<String>, _body: Json<Value>) -> impl IntoResponse {
             ApiError::feature_not_enabled($feature)
         }
     };

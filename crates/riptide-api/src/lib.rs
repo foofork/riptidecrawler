@@ -9,6 +9,7 @@ pub mod metrics;
 pub mod middleware;
 pub mod models;
 pub mod pipeline;
+pub mod strategies_pipeline;
 // pub mod pipeline_dual;  // Temporarily disabled - requires ai_processor module from riptide-intelligence
 pub mod pipeline_enhanced;
 pub mod reliability_integration;
@@ -18,7 +19,6 @@ pub mod rpc_client;
 pub mod rpc_session_context;
 pub mod sessions;
 pub mod state;
-pub mod strategies_pipeline;
 pub mod streaming;
 pub mod telemetry_config;
 pub mod tests;

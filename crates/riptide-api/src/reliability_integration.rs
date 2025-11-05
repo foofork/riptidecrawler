@@ -7,11 +7,8 @@ use riptide_reliability::reliability::ReliabilityMetricsRecorder;
 
 #[cfg(feature = "wasm-extractor")]
 use {
-    anyhow::Result,
-    riptide_types::extractors::WasmExtractor as WasmExtractorTrait,
-    riptide_types::ExtractedDoc,
-    std::sync::Arc,
-    std::time::Instant,
+    anyhow::Result, riptide_types::extractors::WasmExtractor as WasmExtractorTrait,
+    riptide_types::ExtractedDoc, std::sync::Arc, std::time::Instant,
 };
 
 /// Adapter to make riptide_extraction::UnifiedExtractor compatible with the reliability trait

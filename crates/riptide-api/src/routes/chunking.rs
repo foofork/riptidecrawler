@@ -17,6 +17,5 @@ pub fn chunking_routes() -> Router<AppState> {
 pub fn chunking_routes() -> Router<AppState> {
     use crate::handlers::stubs::*;
 
-    Router::new()
-        .route("/chunk", post(extraction_chunk_stub))
+    Router::new().route("/chunk", post(extraction_chunk_stub))
 }

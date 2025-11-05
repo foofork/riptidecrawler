@@ -3808,6 +3808,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "indoc"
+version = "2.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "79cf5c93f93228cf8efb3ba362535fb11199ac548a09ce117c9b1adc3030d706"
+dependencies = [
+ "rustversion",
+]
+
+[[package]]
 name = "inferno"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4383,6 +4392,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "744133e4a0e0a658e1374cf3bf8e415c4052a15a111acd372764c55b4177d490"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "memoffset"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a"
+dependencies = [
+ "autocfg",
 ]
 
 [[package]]
@@ -5909,6 +5927,69 @@ dependencies = [
 ]
 
 [[package]]
+name = "pyo3"
+version = "0.20.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53bdbb96d49157e65d45cc287af5f32ffadd5f4761438b527b055fb0d4bb8233"
+dependencies = [
+ "cfg-if",
+ "indoc",
+ "libc",
+ "memoffset",
+ "parking_lot",
+ "portable-atomic",
+ "pyo3-build-config",
+ "pyo3-ffi",
+ "pyo3-macros",
+ "unindent",
+]
+
+[[package]]
+name = "pyo3-build-config"
+version = "0.20.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "deaa5745de3f5231ce10517a1f5dd97d53e5a2fd77aa6b5842292085831d48d7"
+dependencies = [
+ "once_cell",
+ "target-lexicon 0.12.16",
+]
+
+[[package]]
+name = "pyo3-ffi"
+version = "0.20.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "62b42531d03e08d4ef1f6e85a2ed422eb678b8cd62b762e53891c05faf0d4afa"
+dependencies = [
+ "libc",
+ "pyo3-build-config",
+]
+
+[[package]]
+name = "pyo3-macros"
+version = "0.20.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7305c720fa01b8055ec95e484a6eca7a83c841267f0dd5280f0c8b8551d2c158"
+dependencies = [
+ "proc-macro2",
+ "pyo3-macros-backend",
+ "quote",
+ "syn 2.0.108",
+]
+
+[[package]]
+name = "pyo3-macros-backend"
+version = "0.20.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c7e9b68bb9c3149c5b0cade5d07f953d6d125eb4337723c4ccdb665f1f96185"
+dependencies = [
+ "heck 0.4.1",
+ "proc-macro2",
+ "pyo3-build-config",
+ "quote",
+ "syn 2.0.108",
+]
+
+[[package]]
 name = "qoi"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6498,7 +6579,6 @@ dependencies = [
  "riptide-config",
  "riptide-events",
  "riptide-extraction",
- "riptide-facade",
  "riptide-fetch",
  "riptide-headless",
  "riptide-intelligence",
@@ -6506,6 +6586,7 @@ dependencies = [
  "riptide-pdf",
  "riptide-performance",
  "riptide-persistence",
+ "riptide-pipeline",
  "riptide-reliability",
  "riptide-search",
  "riptide-spider",
@@ -6740,12 +6821,14 @@ dependencies = [
  "async-trait",
  "chrono",
  "futures",
+ "riptide-api",
  "riptide-browser",
  "riptide-cache",
  "riptide-extraction",
  "riptide-fetch",
  "riptide-monitoring",
  "riptide-pdf",
+ "riptide-pipeline",
  "riptide-search",
  "riptide-spider",
  "riptide-stealth",
@@ -7006,6 +7089,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "riptide-pipeline"
+version = "0.9.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "futures",
+ "mockall 0.13.1",
+ "reqwest 0.12.24",
+ "riptide-cache",
+ "riptide-events",
+ "riptide-extraction",
+ "riptide-fetch",
+ "riptide-intelligence",
+ "riptide-monitoring",
+ "riptide-pdf",
+ "riptide-reliability",
+ "riptide-types",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-test",
+ "tracing",
+ "url",
+]
+
+[[package]]
 name = "riptide-pool"
 version = "0.9.0"
 dependencies = [
@@ -7026,6 +7138,23 @@ dependencies = [
  "uuid",
  "wasmtime 37.0.2",
  "wasmtime-wasi",
+]
+
+[[package]]
+name = "riptide-py"
+version = "1.0.0"
+dependencies = [
+ "anyhow",
+ "pyo3",
+ "pyo3-build-config",
+ "riptide-api",
+ "riptide-facade",
+ "riptide-types",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -7051,6 +7180,20 @@ dependencies = [
  "tracing",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "riptide-schemas"
+version = "1.0.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "riptide-types",
+ "schemars",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
 ]
 
 [[package]]
@@ -9274,6 +9417,12 @@ name = "unicode-xid"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
+
+[[package]]
+name = "unindent"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7264e107f553ccae879d21fbea1d6724ac785e8c3bfc762137959b5802826ef3"
 
 [[package]]
 name = "unit-prefix"

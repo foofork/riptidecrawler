@@ -162,9 +162,7 @@ impl SpiderBuilder {
     /// ```
     pub fn build(self) -> BuiltSpider {
         let config = self.config.unwrap_or_default();
-        let extractor = self
-            .extractor
-            .unwrap_or_else(|| Box::new(BasicExtractor));
+        let extractor = self.extractor.unwrap_or_else(|| Box::new(BasicExtractor));
 
         BuiltSpider {
             config,

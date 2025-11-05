@@ -35,10 +35,10 @@ pub mod shared; // Shared utilities for handlers (reduces duplication)
 #[cfg(feature = "spider")]
 pub mod spider;
 pub mod stealth;
-pub mod stubs; // HTTP 501 stubs for disabled features
 #[cfg(feature = "extraction")]
 pub mod strategies;
 pub mod streaming; // NDJSON streaming endpoints for real-time data delivery
+pub mod stubs; // HTTP 501 stubs for disabled features
 #[cfg(feature = "extraction")]
 pub mod tables;
 pub mod telemetry;

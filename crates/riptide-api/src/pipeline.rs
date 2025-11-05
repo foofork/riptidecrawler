@@ -760,13 +760,10 @@ impl PipelineOrchestrator {
     ) -> ApiResult<(Response, Vec<u8>, Option<String>)> {
         let fetch_timeout = Duration::from_secs(15);
 
-        let response = timeout(
-            fetch_timeout,
-            fetch::get(&self.state.http_client, url),
-        )
-        .await
-        .map_err(|_| ApiError::timeout("content_fetch", format!("Timeout fetching {}", url)))?
-        .map_err(|e| ApiError::fetch(url, format!("Fetch failed: {}", e)))?;
+        let response = timeout(fetch_timeout, fetch::get(&self.state.http_client, url))
+            .await
+            .map_err(|_| ApiError::timeout("content_fetch", format!("Timeout fetching {}", url)))?
+            .map_err(|e| ApiError::fetch(url, format!("Fetch failed: {}", e)))?;
 
         // Extract content type before consuming response
         let content_type = response
@@ -777,7 +774,12 @@ impl PipelineOrchestrator {
 
         let content_bytes = timeout(fetch_timeout, response.bytes())
             .await
-            .map_err(|_| ApiError::timeout("content_fetch", format!("Timeout reading response from {}", url)))?
+            .map_err(|_| {
+                ApiError::timeout(
+                    "content_fetch",
+                    format!("Timeout reading response from {}", url),
+                )
+            })?
             .map_err(|e| ApiError::fetch(url, format!("Failed to read response: {}", e)))?
             .to_vec();
 

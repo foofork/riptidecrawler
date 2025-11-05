@@ -290,7 +290,12 @@ pub async fn get_telemetry_status(
 
     // Get worker service health (feature-gated)
     #[cfg(feature = "workers")]
-    let (worker_overall_healthy, worker_queue_healthy, worker_pool_healthy, worker_scheduler_healthy) = {
+    let (
+        worker_overall_healthy,
+        worker_queue_healthy,
+        worker_pool_healthy,
+        worker_scheduler_healthy,
+    ) = {
         let worker_health = state.worker_service.health_check().await;
         (
             worker_health.overall_healthy,
@@ -300,7 +305,12 @@ pub async fn get_telemetry_status(
         )
     };
     #[cfg(not(feature = "workers"))]
-    let (worker_overall_healthy, worker_queue_healthy, worker_pool_healthy, worker_scheduler_healthy) = {
+    let (
+        worker_overall_healthy,
+        worker_queue_healthy,
+        worker_pool_healthy,
+        worker_scheduler_healthy,
+    ) = {
         // Stub values when workers feature is disabled
         (true, true, true, true)
     };

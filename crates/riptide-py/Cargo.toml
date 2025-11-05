@@ -38,11 +38,3 @@ tokio = { workspace = true, features = ["test-util"] }
 
 [build-dependencies]
 pyo3-build-config = "0.20"
-
-[[example]]
-name = "spike_async"
-crate-type = ["cdylib"]
-
-[[test]]
-name = "async_integration"
-harness = true
