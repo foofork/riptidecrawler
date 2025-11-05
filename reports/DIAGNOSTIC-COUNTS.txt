@@ -1,0 +1,29 @@
+============================================================
+COMPLETE DIAGNOSTIC COUNTS
+============================================================
+Generated: 2025-11-05
+Commands: cargo check/clippy --all-targets --all-features --keep-going
+
+ERRORS TO FIX:
+  Compilation Errors:    11
+  Clippy Errors:         16
+  ────────────────────────────────────────────────────────
+  TOTAL ERRORS:          27
+
+WARNINGS TO FIX:
+  Compiler Warnings:     32
+  Clippy Warnings:       65
+  ────────────────────────────────────────────────────────
+  TOTAL WARNINGS:        97
+
+============================================================
+GRAND TOTAL:             124 issues to fix
+============================================================
+
+DIAGNOSTIC FILES:
+  check-complete.json    1.1M - All compiler diagnostics
+  clippy-complete.json   1.2M - All clippy diagnostics
+
+INSTRUCTIONS:
+  See INSTRUCTIONS-FOR-AGENT.md for how to parse and fix
+============================================================
