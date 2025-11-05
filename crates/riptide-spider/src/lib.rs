@@ -21,6 +21,7 @@
 
 pub mod adaptive_stop;
 pub mod budget;
+pub mod builder;
 pub mod config;
 pub mod core;
 pub mod extractor;
@@ -44,6 +45,7 @@ pub use riptide_types::reliability::circuit::CircuitBreaker;
 // Re-export main types
 pub use adaptive_stop::AdaptiveStopEngine;
 pub use budget::BudgetManager;
+pub use builder::{BuiltSpider, SpiderBuilder};
 pub use config::SpiderConfig;
 pub use core::{CrawlState, PerformanceMetrics, Spider, SpiderResult};
 pub use extractor::{BasicExtractor, ContentExtractor, NoOpExtractor};

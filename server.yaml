@@ -1,0 +1,89 @@
+# RipTide v1.0 Server Configuration
+# Environment variables override these settings using ${VAR:default} syntax
+
+# Redis Configuration
+redis:
+  url: ${REDIS_URL:redis://localhost:6379}
+  pool_size: ${REDIS_POOL_SIZE:10}
+  connection_timeout_secs: ${REDIS_TIMEOUT:5}
+  retry_attempts: ${REDIS_RETRY:3}
+  health_check_interval_secs: 30
+
+# Extraction Configuration
+extraction:
+  # Extraction strategies to enable (ICS, JSON-LD, CSS, Regex, Rules, LLM, Browser, WASM)
+  strategies: [ics, json_ld, rules, css, regex]
+
+  # Headless browser (expensive, use only when needed)
+  headless: ${USE_HEADLESS:false}
+  headless_timeout_secs: ${HEADLESS_TIMEOUT:3}
+
+  # LLM extraction (requires API keys)
+  llm: ${USE_LLM:false}
+  llm_provider: ${LLM_PROVIDER:openai}
+
+  # General extraction timeout
+  timeout_secs: ${EXTRACT_TIMEOUT:30}
+
+  # Auto-select best strategy based on content
+  auto_strategy: ${AUTO_STRATEGY:true}
+
+# Rate Limiting Configuration
+rate_limit:
+  enabled: ${RATE_LIMIT_ENABLED:true}
+  requests_per_minute: ${RATE_LIMIT_RPM:60}
+
+# Circuit Breaker Configuration
+circuit_breaker:
+  enabled: ${CIRCUIT_BREAKER_ENABLED:true}
+  failure_threshold: ${CB_FAILURE_THRESHOLD:5}
+  timeout_secs: ${CB_TIMEOUT:60}
+  half_open_max_calls: ${CB_HALF_OPEN:3}
+
+# Server Configuration
+server:
+  bind_address: ${BIND_ADDRESS:0.0.0.0:8080}
+  workers: ${SERVER_WORKERS:4}
+  max_connections: ${MAX_CONNECTIONS:1000}
+  request_timeout_secs: ${REQUEST_TIMEOUT:120}
+
+# Health Check Configuration
+health:
+  check_interval_secs: 30
+  timeout_secs: 5
+
+# Profile Presets (v1.0: Single global profile - multi-profile deferred to v1.1)
+# Default profile settings (fast, free - suitable for 80% of users)
+profile:
+  name: ${PROFILE:default}
+  headless: false
+  llm: false
+  max_pages: ${MAX_PAGES:10}
+  max_depth: ${MAX_DEPTH:2}
+  respect_robots: ${RESPECT_ROBOTS:true}
+
+# Note: Additional profiles (standard, premium) deferred to v1.1
+# profiles:
+#   standard:  # Balanced (15% of users)
+#     headless: auto  # Only when needed
+#     llm: false
+#     max_pages: 50
+#   premium:  # Best quality (5% of users)
+#     headless: true
+#     llm: true
+#     max_pages: 1000
+
+# Logging Configuration
+logging:
+  level: ${LOG_LEVEL:info}
+  format: ${LOG_FORMAT:json}
+  redact_secrets: true
+
+# Feature Flags (v1.0)
+features:
+  spider: true
+  extraction: true
+  fetch: true
+  browser: ${FEATURE_BROWSER:false}
+  llm: ${FEATURE_LLM:false}
+  streaming: ${FEATURE_STREAMING:true}
