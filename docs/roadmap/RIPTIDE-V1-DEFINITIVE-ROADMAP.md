@@ -12,26 +12,89 @@
 
 ## 🔴 IMMEDIATE TODO (Resume Here)
 
-**✅ COMPLETED:** Phase 1 Week 5.5-9 Trait-Based Composition (2025-11-05)
+**🔨 IN PROGRESS:** Week 9 - Facade Unification (2025-11-05)
 
-**Status:** Phase 1 Week 5.5-9 is **COMPLETE**. All acceptance criteria met.
+**Status:** Week 9 is **95% COMPLETE** - Blocked by 124 compilation issues
+- **Branch:** `claude/week-9-docs-roadmap-011CUpzZadyvpEeuxJA61aRR`
+- **PR:** https://github.com/foofork/riptidecrawler/pull/new/claude/week-9-docs-roadmap-011CUpzZadyvpEeuxJA61aRR
+- **Blocker:** 27 errors + 97 warnings (diagnostics in `/reports/`)
+- **Action:** Branch agent fixing issues using complete diagnostic files
+
+**What's Done:**
+1. ✅ Created `riptide-pipeline` crate (eliminated circular dependency)
+2. ✅ Moved 1,640 lines of orchestrator code from riptide-api
+3. ✅ Fixed 27 compilation errors in new crate
+4. ✅ Captured complete diagnostics for remaining 124 issues
+5. ✅ CrawlFacade implementation ready (pending fixes)
+
+**What's Blocking:**
+- 27 errors (11 compilation + 16 clippy)
+- 97 warnings (32 compiler + 65 clippy)
+- Diagnostic files: `reports/check-complete.json`, `reports/clippy-complete.json`
+- Instructions: `reports/INSTRUCTIONS-FOR-AGENT.md`
+
+**Next Steps:**
+1. Branch agent fixes all 124 issues
+2. Verify clean build with `RUSTFLAGS="-D warnings"`
+3. Run full test suite (23 CrawlFacade tests + workspace)
+4. Merge Week 9 PR
+
+---
+
+## 📌 Phase 2 Work (Ahead of Schedule - READY TO APPLY)
+
+**⚠️ IMPORTANT:** Phase 2 (Python SDK + Events) is already implemented but waiting for Week 9 to complete.
+
+**Location:** Branch `claude/week-9-docs-roadmap-011CUpzZadyvpEeuxJA61aRR` (ahead of Week 9 base)
+**Status:** 5 commits ready, DO NOT MERGE until Week 9 passes all tests
+
+### Commits Ready to Apply After Week 9:
+1. **`cec263c`** - feat(phase2): Complete PyO3 Spike - Week 9 Step 1
+   - Async runtime integration validated
+   - Tokio works with PyO3
+   - Go/no-go decision: GO ✅
+
+2. **`bfcdfb0`** - feat(phase2): Implement Python SDK Core Bindings - Step 2 (partial)
+   - Initial PyO3 bindings
+   - Basic async support
+
+3. **`932fdd5`** - feat(phase2): Complete Python SDK Core Bindings - Step 2
+   - Complete async/await in Python
+   - Error handling
+   - CrawlFacade wrapper
+
+4. **`720d315`** - feat(phase2): Complete Python SDK Packaging - Step 3
+   - Python package structure
+   - pip installable
+   - Documentation
+
+5. **`bf26cbd`** - feat(phase2): Complete Events Schema MVP - Week 13-14
+   - Event system implementation
+   - Week 13-14 work complete
+
+**Timeline:**
+- Week 9 fixes complete → Merge Week 9 base
+- Apply Phase 2 commits (cherry-pick or rebase)
+- Week 9-13 Python SDK → Already done! ✅
+- Week 13-14 Events Schema → Already done! ✅
+
+**Action After Week 9:**
+```bash
+# After Week 9 PR merges to main:
+git checkout main
+git pull origin main
+git cherry-pick cec263c bfcdfb0 932fdd5 720d315 bf26cbd
+# Or: git merge claude/week-9-docs-roadmap-011CUpzZadyvpEeuxJA61aRR
+```
+
+---
+
+## ✅ Previous Completions
+
+**Phase 1 Week 5.5-9 - Trait-Based Composition (2025-11-05)**
 - See: `docs/phase1/PHASE-1-WEEK-5.5-9-COMPLETION-REPORT.md`
 - Commit: `e5e8e37` - feat(phase1): Complete Week 5.5-9 Trait-Based Composition
-
-**Completed Items:**
-1. ✅ **Core traits** - Spider, Extractor, Chainable with BoxStream
-2. ✅ **DTO layer** - Document, StructuredData decoupled from internals
-3. ✅ **Mock implementations** - MockSpider, MockExtractor for testing
-4. ✅ **Comprehensive tests** - 21 tests passing (11 integration, 10 unit)
-5. ✅ **Error patterns** - 3 documented patterns (filter, handle, fail-fast)
-6. ✅ **Performance benchmarks** - BoxStream overhead measurement
-7. ✅ **Documentation** - ERROR_HANDLING_PATTERNS.md created
-
-**Test Results:** 100% passing (21/21 tests)
-**Lines of Code:** ~1,100 lines added
-**Zero warnings** - Clean build
-
-**Next Phase:** Week 9 - Facade Unification (wrap PipelineOrchestrator)
+- 21 tests passing, ~1,100 lines added
 
 ---
 
