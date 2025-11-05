@@ -1,223 +1,183 @@
-//! Spider result types - separated raw and enriched results
+//! # Crawl Results
 //!
-//! This module separates spider results into:
-//! - `RawCrawlResult`: Pure spider results (no extraction)
-//! - `EnrichedCrawlResult`: Raw results + extracted content
+//! Type definitions for raw and enriched crawl results.
+//!
+//! The spider produces two distinct result types:
+//! - **RawCrawlResult**: HTTP response data without processing
+//! - **EnrichedCrawlResult**: Processed result with extracted links and text
 //!
 //! This separation enables:
-//! - Spider-only mode (pure URL discovery)
-//! - Flexible extraction (plugin any extractor)
-//! - Clear boundaries (spider != extraction)
+//! - Deferred content processing for performance
+//! - Pluggable extraction strategies via ContentExtractor trait
+//! - Pipeline-based processing architectures
+//! - Caching raw results before extraction
+//!
+//! ## Architecture
+//!
+//! ```text
+//! HTTP Response → RawCrawlResult → enrich() → EnrichedCrawlResult
+//!                                      ↓
+//!                              ContentExtractor
+//! ```
+//!
+//! ## Example
+//!
+//! ```rust,no_run
+//! use riptide_spider::results::{RawCrawlResult, enrich};
+//! use riptide_spider::extractor::BasicExtractor;
+//! use url::Url;
+//! use http::{StatusCode, HeaderMap};
+//!
+//! let raw = RawCrawlResult {
+//!     url: Url::parse("https://example.com").unwrap(),
+//!     html: "<html><body><a href='/page'>Link</a></body></html>".to_string(),
+//!     status: StatusCode::OK,
+//!     headers: HeaderMap::new(),
+//! };
+//!
+//! let extractor = BasicExtractor;
+//! let enriched = enrich(raw, &extractor);
+//!
+//! assert!(enriched.extracted_urls.len() > 0);
+//! assert!(enriched.text_content.is_some());
+//! ```
 
 use crate::extractor::ContentExtractor;
-use http::HeaderMap;
-use http::StatusCode;
-use serde::{Deserialize, Serialize};
-use std::time::Duration;
+use http::{HeaderMap, StatusCode};
 use url::Url;
 
-/// RawCrawlResult - Spider result without extraction
+/// Raw crawl result containing unprocessed HTTP response data.
 ///
-/// Contains only the raw HTTP response data from spidering.
-/// No link extraction, no text extraction - pure spider output.
+/// This is the direct output from the HTTP fetch layer, before any
+/// content extraction or processing occurs.
 ///
-/// # Use Cases
-/// - Spider-only mode (URL discovery without extraction)
-/// - Deferring extraction to later pipeline stages
-/// - Streaming raw results for parallel processing
-/// - Storage before extraction (e.g., distributed crawling)
+/// ## Fields
 ///
-/// # Examples
+/// - `url`: The URL that was fetched
+/// - `html`: Raw HTML response body
+/// - `status`: HTTP status code (200, 404, etc.)
+/// - `headers`: HTTP response headers
 ///
-/// ```
-/// use riptide_spider::results::RawCrawlResult;
-/// use url::Url;
+/// ## Design Notes
 ///
-/// let result = RawCrawlResult {
-///     url: Url::parse("https://example.com").unwrap(),
-///     html: "<html>...</html>".to_string(),
-///     status: http::StatusCode::OK,
-///     headers: http::HeaderMap::new(),
-///     content_type: Some("text/html".to_string()),
-///     content_size: 1024,
-///     processing_time: std::time::Duration::from_millis(150),
-/// };
-/// ```
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// This type is intentionally minimal and fast to construct. All
+/// expensive processing (link extraction, text parsing) is deferred
+/// to the enrichment step.
+///
+/// The separation allows:
+/// - Immediate URL queueing without blocking on extraction
+/// - Batch processing of raw results
+/// - Caching raw responses before extraction
+/// - Different extraction strategies on the same raw data
+#[derive(Debug, Clone)]
 pub struct RawCrawlResult {
-    /// The URL that was crawled
+    /// The URL that was successfully fetched
     pub url: Url,
 
-    /// Raw HTML content
+    /// Raw HTML content from the HTTP response body
     pub html: String,
 
-    /// HTTP status code
-    #[serde(with = "http_serde::status_code")]
+    /// HTTP status code from the response
     pub status: StatusCode,
 
-    /// HTTP response headers
-    #[serde(with = "http_serde::header_map")]
+    /// HTTP response headers (Content-Type, Cache-Control, etc.)
     pub headers: HeaderMap,
-
-    /// Content-Type header value
-    pub content_type: Option<String>,
-
-    /// Size of content in bytes
-    pub content_size: usize,
-
-    /// Time spent processing this request
-    pub processing_time: Duration,
 }
 
-impl RawCrawlResult {
-    /// Create a new raw result from HTTP response
-    pub fn new(
-        url: Url,
-        html: String,
-        status: StatusCode,
-        headers: HeaderMap,
-        processing_time: Duration,
-    ) -> Self {
-        let content_size = html.len();
-        let content_type = headers
-            .get("content-type")
-            .and_then(|v| v.to_str().ok())
-            .map(|s| s.to_string());
+/// Enriched crawl result containing extracted and processed content.
+///
+/// This is the output after applying a ContentExtractor to a RawCrawlResult.
+/// It contains all the raw data plus extracted links and text content.
+///
+/// ## Fields
+///
+/// - `raw`: The original raw crawl result
+/// - `extracted_urls`: Links found in the HTML content
+/// - `text_content`: Extracted plain text (if extraction succeeded)
+///
+/// ## Design Notes
+///
+/// This type contains the raw result by value, allowing downstream
+/// consumers to access both the original response data and the
+/// extracted content without additional lookups.
+///
+/// The `text_content` is optional because:
+/// - Some extractors may not implement text extraction
+/// - Some pages may have no meaningful text content
+/// - Extraction may fail on malformed HTML
+#[derive(Debug, Clone)]
+pub struct EnrichedCrawlResult {
+    /// The original raw crawl result
+    pub raw: RawCrawlResult,
 
-        Self {
-            url,
-            html,
-            status,
-            headers,
-            content_type,
-            content_size,
-            processing_time,
-        }
-    }
+    /// URLs extracted from the HTML content by the ContentExtractor
+    pub extracted_urls: Vec<Url>,
 
-    /// Check if the response was successful (2xx status)
-    pub fn is_success(&self) -> bool {
-        self.status.is_success()
-    }
-
-    /// Check if this is an HTML document
-    pub fn is_html(&self) -> bool {
-        self.content_type
-            .as_ref()
-            .map(|ct| ct.contains("text/html"))
-            .unwrap_or(false)
-    }
+    /// Plain text content extracted from the HTML (if available)
+    pub text_content: Option<String>,
 }
 
-/// EnrichedCrawlResult - Raw result + extracted content
+/// Enrich a raw crawl result using a content extractor.
 ///
-/// Combines raw spider results with extracted links and text.
-/// Created by applying a ContentExtractor to a RawCrawlResult.
+/// This function transforms a RawCrawlResult into an EnrichedCrawlResult
+/// by applying the provided ContentExtractor to extract links and text.
 ///
-/// # Examples
+/// # Arguments
 ///
-/// ```
+/// * `raw` - The raw crawl result to enrich
+/// * `extractor` - The content extractor implementation to use
+///
+/// # Returns
+///
+/// An EnrichedCrawlResult containing the original raw data plus
+/// extracted links and text content.
+///
+/// # Example
+///
+/// ```rust,no_run
 /// use riptide_spider::results::{RawCrawlResult, enrich};
-/// use riptide_spider::extractor::BasicExtractor;
+/// use riptide_spider::extractor::{BasicExtractor, NoOpExtractor};
 /// use url::Url;
-/// use http::StatusCode;
+/// use http::{StatusCode, HeaderMap};
 ///
 /// let raw = RawCrawlResult {
 ///     url: Url::parse("https://example.com").unwrap(),
-///     html: "<html><a href='/page'>Link</a><p>Text</p></html>".to_string(),
+///     html: "<html><body>Content</body></html>".to_string(),
 ///     status: StatusCode::OK,
-///     headers: http::HeaderMap::new(),
-///     content_type: Some("text/html".to_string()),
-///     content_size: 1024,
-///     processing_time: std::time::Duration::from_millis(150),
+///     headers: HeaderMap::new(),
 /// };
 ///
-/// let extractor = BasicExtractor;
-/// let enriched = enrich(raw, &extractor);
-///
-/// assert!(enriched.extracted_urls.len() > 0);
-/// assert!(enriched.text_content.is_some());
-/// ```
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EnrichedCrawlResult {
-    /// Raw spider result (no extraction)
-    pub raw: RawCrawlResult,
-
-    /// URLs extracted from the content
-    pub extracted_urls: Vec<Url>,
-
-    /// Text content extracted from HTML
-    pub text_content: Option<String>,
-
-    /// Extraction strategy used
-    pub extraction_strategy: String,
-}
-
-impl EnrichedCrawlResult {
-    /// Get the URL from the raw result
-    pub fn url(&self) -> &Url {
-        &self.raw.url
-    }
-
-    /// Get the HTML from the raw result
-    pub fn html(&self) -> &str {
-        &self.raw.html
-    }
-
-    /// Get the status code
-    pub fn status(&self) -> StatusCode {
-        self.raw.status
-    }
-
-    /// Check if extraction found any links
-    pub fn has_links(&self) -> bool {
-        !self.extracted_urls.is_empty()
-    }
-
-    /// Check if extraction found any text
-    pub fn has_text(&self) -> bool {
-        self.text_content.is_some()
-    }
-}
-
-/// Enrich a raw result by applying an extractor
-///
-/// Takes a `RawCrawlResult` and applies a `ContentExtractor` to produce
-/// an `EnrichedCrawlResult` with extracted links and text.
-///
-/// # Arguments
-/// * `raw` - Raw spider result (no extraction)
-/// * `extractor` - Content extractor implementation
-///
-/// # Returns
-/// Enriched result with extracted content
-///
-/// # Examples
-///
-/// ```
-/// use riptide_spider::results::{RawCrawlResult, enrich};
-/// use riptide_spider::extractor::{BasicExtractor, NoOpExtractor};
-///
-/// let raw: RawCrawlResult = /* ... */;
-///
-/// // With extraction
+/// // Use BasicExtractor for normal extraction
 /// let enriched = enrich(raw.clone(), &BasicExtractor);
-/// assert!(enriched.has_links());
+/// assert!(enriched.text_content.is_some());
 ///
-/// // Without extraction (spider-only)
-/// let noop = enrich(raw, &NoOpExtractor);
-/// assert!(!noop.has_links());
+/// // Use NoOpExtractor for spider-only mode
+/// let enriched_noop = enrich(raw, &NoOpExtractor);
+/// assert!(enriched_noop.extracted_urls.is_empty());
+/// assert!(enriched_noop.text_content.is_none());
 /// ```
+///
+/// # Performance
+///
+/// This function delegates all extraction work to the ContentExtractor.
+/// Performance characteristics depend on the chosen extractor:
+///
+/// - **BasicExtractor**: Fast regex-based extraction, minimal allocations
+/// - **NoOpExtractor**: Zero-cost, returns empty results immediately
+/// - **Custom extractors**: Varies based on implementation
+///
+/// For high-throughput scenarios, consider:
+/// - Batching enrichment operations
+/// - Using parallel extraction with rayon
+/// - Caching extractor state (compiled regexes, parsers)
 pub fn enrich(raw: RawCrawlResult, extractor: &dyn ContentExtractor) -> EnrichedCrawlResult {
     let extracted_urls = extractor.extract_links(&raw.html, &raw.url);
     let text_content = extractor.extract_text(&raw.html);
-    let extraction_strategy = extractor.strategy_name().to_string();
 
     EnrichedCrawlResult {
         raw,
         extracted_urls,
         text_content,
-        extraction_strategy,
     }
 }
 
@@ -226,77 +186,138 @@ mod tests {
     use super::*;
     use crate::extractor::{BasicExtractor, NoOpExtractor};
 
-    fn create_test_raw_result() -> RawCrawlResult {
+    fn create_raw_result(url: &str, html: &str) -> RawCrawlResult {
         RawCrawlResult {
-            url: Url::parse("https://example.com").unwrap(),
-            html: r#"<html><a href="/page1">Link 1</a><p>Hello world</p></html>"#.to_string(),
+            url: Url::parse(url).unwrap(),
+            html: html.to_string(),
             status: StatusCode::OK,
             headers: HeaderMap::new(),
-            content_type: Some("text/html".to_string()),
-            content_size: 100,
-            processing_time: Duration::from_millis(50),
         }
     }
 
     #[test]
     fn test_raw_result_creation() {
-        let result = create_test_raw_result();
+        let raw = create_raw_result("https://example.com", "<html><body>Test</body></html>");
 
-        assert_eq!(result.url.as_str(), "https://example.com/");
-        assert!(result.is_success());
-        assert!(result.is_html());
-        assert_eq!(result.content_size, 100);
+        assert_eq!(raw.url.as_str(), "https://example.com/");
+        assert!(raw.html.contains("Test"));
+        assert_eq!(raw.status, StatusCode::OK);
     }
 
     #[test]
     fn test_enrich_with_basic_extractor() {
-        let raw = create_test_raw_result();
-        let extractor = BasicExtractor;
+        let html = r#"<html>
+            <body>
+                <a href="/page1">Link 1</a>
+                <a href="https://example.com/page2">Link 2</a>
+                <p>Some text content</p>
+            </body>
+        </html>"#;
 
+        let raw = create_raw_result("https://example.com", html);
+        let extractor = BasicExtractor;
         let enriched = enrich(raw, &extractor);
 
-        // Should have extracted links
-        assert!(enriched.has_links());
-        assert_eq!(enriched.extracted_urls.len(), 1);
+        // Should extract links
+        assert_eq!(enriched.extracted_urls.len(), 2);
         assert_eq!(
             enriched.extracted_urls[0].as_str(),
             "https://example.com/page1"
         );
+        assert_eq!(
+            enriched.extracted_urls[1].as_str(),
+            "https://example.com/page2"
+        );
 
-        // Should have extracted text
-        assert!(enriched.has_text());
-        let text = enriched.text_content.as_ref().unwrap();
-        assert!(text.contains("Hello world"));
-
-        // Strategy name
-        assert_eq!(enriched.extraction_strategy, "basic");
+        // Should extract text
+        assert!(enriched.text_content.is_some());
+        let text = enriched.text_content.unwrap();
+        assert!(text.contains("Link 1"));
+        assert!(text.contains("Some text content"));
     }
 
     #[test]
     fn test_enrich_with_noop_extractor() {
-        let raw = create_test_raw_result();
-        let extractor = NoOpExtractor;
+        let html = r#"<html><body><a href="/page">Link</a></body></html>"#;
 
+        let raw = create_raw_result("https://example.com", html);
+        let extractor = NoOpExtractor;
         let enriched = enrich(raw, &extractor);
 
-        // Should NOT have extracted anything
-        assert!(!enriched.has_links());
+        // NoOp extractor should return empty results
         assert_eq!(enriched.extracted_urls.len(), 0);
-
-        assert!(!enriched.has_text());
         assert!(enriched.text_content.is_none());
-
-        // Strategy name
-        assert_eq!(enriched.extraction_strategy, "noop");
     }
 
     #[test]
-    fn test_enriched_accessors() {
-        let raw = create_test_raw_result();
-        let enriched = enrich(raw, &BasicExtractor);
+    fn test_enrich_preserves_raw_data() {
+        let url = "https://example.com/test";
+        let html = "<html><body>Test</body></html>";
+        let raw = create_raw_result(url, html);
 
-        assert_eq!(enriched.url().as_str(), "https://example.com/");
-        assert!(enriched.html().contains("<html>"));
-        assert_eq!(enriched.status(), StatusCode::OK);
+        let extractor = BasicExtractor;
+        let enriched = enrich(raw, &extractor);
+
+        // Check that raw data is preserved
+        assert_eq!(enriched.raw.url.as_str(), "https://example.com/test");
+        assert_eq!(enriched.raw.html, html);
+        assert_eq!(enriched.raw.status, StatusCode::OK);
+    }
+
+    #[test]
+    fn test_enrich_empty_html() {
+        let raw = create_raw_result("https://example.com", "");
+        let extractor = BasicExtractor;
+        let enriched = enrich(raw, &extractor);
+
+        assert_eq!(enriched.extracted_urls.len(), 0);
+        assert!(enriched.text_content.is_none());
+    }
+
+    #[test]
+    fn test_enrich_malformed_html() {
+        let html = r#"<html><body><a href="/good"><a href="bad url"><p>Text"#;
+        let raw = create_raw_result("https://example.com", html);
+        let extractor = BasicExtractor;
+        let enriched = enrich(raw, &extractor);
+
+        // Should extract valid URLs and text despite malformed HTML
+        assert!(enriched.extracted_urls.len() >= 1);
+        assert!(enriched.text_content.is_some());
+    }
+
+    #[test]
+    fn test_different_status_codes() {
+        let mut raw = create_raw_result("https://example.com", "<html></html>");
+
+        raw.status = StatusCode::NOT_FOUND;
+        let enriched = enrich(raw.clone(), &BasicExtractor);
+        assert_eq!(enriched.raw.status, StatusCode::NOT_FOUND);
+
+        raw.status = StatusCode::INTERNAL_SERVER_ERROR;
+        let enriched = enrich(raw, &BasicExtractor);
+        assert_eq!(enriched.raw.status, StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[test]
+    fn test_results_are_clone() {
+        let raw = create_raw_result("https://example.com", "<html></html>");
+        let raw_clone = raw.clone();
+        assert_eq!(raw.url, raw_clone.url);
+
+        let enriched = enrich(raw, &BasicExtractor);
+        let enriched_clone = enriched.clone();
+        assert_eq!(enriched.raw.url, enriched_clone.raw.url);
+    }
+
+    #[test]
+    fn test_results_are_debug() {
+        let raw = create_raw_result("https://example.com", "<html></html>");
+        let debug_str = format!("{:?}", raw);
+        assert!(debug_str.contains("RawCrawlResult"));
+
+        let enriched = enrich(raw, &BasicExtractor);
+        let debug_str = format!("{:?}", enriched);
+        assert!(debug_str.contains("EnrichedCrawlResult"));
     }
 }
