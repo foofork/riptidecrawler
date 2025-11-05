@@ -1,0 +1,39 @@
+{
+  "name": "RipTide Development",
+  "image": "mcr.microsoft.com/devcontainers/rust:latest",
+
+  // Container environment variables (EXDEV fix for rustup)
+  "containerEnv": {
+    "RUSTUP_HOME": "/home/codespace/.rustup",
+    "CARGO_HOME": "/home/codespace/.cargo",
+    "TMPDIR": "/home/codespace/.rustup/tmp",
+    "RUSTUP_PERMIT_COPY_RENAME": "1",
+    "PATH": "/home/codespace/.cargo/bin:${containerEnv:PATH}"
+  },
+
+  // Features to install
+  "features": {
+    "ghcr.io/devcontainers/features/rust:1": {
+      "version": "latest",
+      "profile": "default"
+    }
+  },
+
+  // Forward ports for development
+  "forwardPorts": [8080, 3000],
+
+  // Post-create command
+  "postCreateCommand": "bash -c 'mkdir -p $RUSTUP_HOME/tmp && rustup default stable'",
+
+  // VS Code extensions
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "vadimcn.vscode-lldb",
+        "serayuzgur.crates",
+        "tamasfe.even-better-toml"
+      ]
+    }
+  }
+}
