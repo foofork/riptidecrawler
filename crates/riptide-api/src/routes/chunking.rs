@@ -12,7 +12,11 @@ pub fn chunking_routes() -> Router<AppState> {
 }
 
 /// Create stub chunking routes when feature is disabled
+/// Returns HTTP 501 "Not Implemented" for all chunking endpoints
 #[cfg(not(feature = "extraction"))]
 pub fn chunking_routes() -> Router<AppState> {
+    use crate::handlers::stubs::*;
+
     Router::new()
+        .route("/chunk", post(extraction_chunk_stub))
 }

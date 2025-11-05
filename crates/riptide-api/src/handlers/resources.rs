@@ -81,6 +81,7 @@ pub async fn get_resource_status(
 ) -> Result<Json<ResourceStatusResponse>, StatusCode> {
     let resource_status = state.resource_manager.get_resource_status().await;
 
+    #[cfg(feature = "browser")]
     let (total_capacity, in_use, available) = match &state.resource_manager.browser_pool {
         Some(pool) => {
             let stats = pool.get_stats().await;
@@ -88,6 +89,9 @@ pub async fn get_resource_status(
         }
         None => (0, 0, 0), // No local pool when using headless service
     };
+
+    #[cfg(not(feature = "browser"))]
+    let (total_capacity, in_use, available) = (0, 0, 0);
 
     Ok(Json(ResourceStatusResponse {
         browser_pool: BrowserPoolStatus {
@@ -144,6 +148,7 @@ pub async fn get_resource_status(
 pub async fn get_browser_pool_status(
     State(state): State<AppState>,
 ) -> Result<Json<BrowserPoolStatus>, StatusCode> {
+    #[cfg(feature = "browser")]
     let (total_capacity, in_use, available) = match &state.resource_manager.browser_pool {
         Some(pool) => {
             let stats = pool.get_stats().await;
@@ -151,6 +156,9 @@ pub async fn get_browser_pool_status(
         }
         None => (0, 0, 0), // No local pool when using headless service
     };
+
+    #[cfg(not(feature = "browser"))]
+    let (total_capacity, in_use, available) = (0, 0, 0);
 
     Ok(Json(BrowserPoolStatus {
         total_capacity,

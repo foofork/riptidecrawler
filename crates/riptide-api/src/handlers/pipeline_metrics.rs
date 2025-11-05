@@ -139,7 +139,7 @@ pub async fn get_pipeline_metrics(
     State(state): State<AppState>,
 ) -> Result<Json<EnhancedPipelineMetrics>, ApiError> {
     // Collect metrics from the metrics system
-    let metrics = &state.metrics;
+    // Note: metrics variable removed as it's not yet used (placeholder implementation)
 
     // Get phase timing stats from Prometheus metrics
     // In production, this would query the actual Prometheus registry
@@ -215,14 +215,14 @@ pub async fn get_pipeline_metrics(
 /// This is useful for A/B testing and gradual rollout.
 #[tracing::instrument(
     name = "toggle_pipeline",
-    skip(state),
+    skip(_state),
     fields(
         http.method = "POST",
         http.route = "/api/metrics/pipeline/toggle"
     )
 )]
 pub async fn toggle_enhanced_pipeline(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Json(request): Json<ToggleRequest>,
 ) -> Result<Json<ToggleResponse>, ApiError> {
     // Note: In production, this would require authentication and authorization

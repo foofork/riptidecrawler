@@ -20,7 +20,15 @@ pub fn llm_routes() -> Router<AppState> {
 }
 
 /// Create stub LLM routes when feature is disabled
+/// Returns HTTP 501 "Not Implemented" for all LLM endpoints
 #[cfg(not(feature = "llm"))]
 pub fn llm_routes() -> Router<AppState> {
+    use crate::handlers::stubs::*;
+
     Router::new()
+        .route("/providers", get(llm_list_providers_stub))
+        .route("/providers/current", get(llm_get_current_provider_stub))
+        .route("/providers/switch", post(llm_switch_provider_stub))
+        .route("/config", get(llm_get_config_stub))
+        .route("/config", post(llm_update_config_stub))
 }

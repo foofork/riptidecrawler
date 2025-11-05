@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 use reqwest::Client;
+#[cfg(feature = "browser")]
 use riptide_headless::dynamic::{DynamicConfig, DynamicRenderResult, PageAction, RenderArtifacts};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -101,6 +102,7 @@ impl RpcClient {
     }
 
     /// Render a page with dynamic configuration
+    #[cfg(feature = "browser")]
     pub async fn render_dynamic(
         &self,
         url: &str,
@@ -111,7 +113,21 @@ impl RpcClient {
             .await
     }
 
+    /// Stub implementation when browser feature is not enabled
+    #[cfg(not(feature = "browser"))]
+    pub async fn render_dynamic(
+        &self,
+        _url: &str,
+        _config: &serde_json::Value,
+        _stealth_config: Option<&riptide_stealth::StealthConfig>,
+    ) -> Result<serde_json::Value> {
+        Err(anyhow!(
+            "Browser feature not enabled in build. Recompile with --features browser to use render_dynamic."
+        ))
+    }
+
     /// Render a page with dynamic configuration and session persistence
+    #[cfg(feature = "browser")]
     pub async fn render_dynamic_with_session(
         &self,
         url: &str,
@@ -239,6 +255,21 @@ impl RpcClient {
         Ok(result)
     }
 
+    /// Stub implementation when browser feature is not enabled
+    #[cfg(not(feature = "browser"))]
+    pub async fn render_dynamic_with_session(
+        &self,
+        _url: &str,
+        _config: &serde_json::Value,
+        _stealth_config: Option<&riptide_stealth::StealthConfig>,
+        _session_id: Option<&str>,
+        _user_data_dir: Option<&str>,
+    ) -> Result<serde_json::Value> {
+        Err(anyhow!(
+            "Browser feature not enabled in build. Recompile with --features browser to use render_dynamic_with_session."
+        ))
+    }
+
     /// Health check for the headless service
     pub async fn health_check(&self) -> Result<()> {
         let response = tokio::time::timeout(
@@ -332,6 +363,7 @@ struct HeadlessArtifactsOut {
 }
 
 /// Convert riptide-core PageActions to headless browser format
+#[cfg(feature = "browser")]
 fn convert_actions(actions: &[PageAction]) -> Vec<HeadlessPageAction> {
     actions
         .iter()
@@ -381,6 +413,7 @@ fn convert_actions(actions: &[PageAction]) -> Vec<HeadlessPageAction> {
 }
 
 /// Convert headless artifacts to riptide-core format
+#[cfg(feature = "browser")]
 #[allow(dead_code)] // Artifacts conversion disabled, may be re-enabled later
 fn convert_artifacts(artifacts: HeadlessArtifactsOut) -> Option<RenderArtifacts> {
     if artifacts.screenshot_b64.is_none() && artifacts.mhtml_b64.is_none() {
@@ -406,6 +439,7 @@ fn convert_artifacts(artifacts: HeadlessArtifactsOut) -> Option<RenderArtifacts>
 }
 
 /// Extract action names for tracking
+#[cfg(feature = "browser")]
 fn extract_action_names(actions: &[PageAction]) -> Vec<String> {
     actions
         .iter()
@@ -423,6 +457,7 @@ fn extract_action_names(actions: &[PageAction]) -> Vec<String> {
 }
 
 #[cfg(test)]
+#[cfg(feature = "browser")]
 mod tests {
     use super::*;
     use riptide_headless::dynamic::{PageAction, WaitCondition};

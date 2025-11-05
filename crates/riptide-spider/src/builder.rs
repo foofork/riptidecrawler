@@ -164,7 +164,7 @@ impl SpiderBuilder {
         let config = self.config.unwrap_or_default();
         let extractor = self
             .extractor
-            .unwrap_or_else(|| Box::new(BasicExtractor::default()));
+            .unwrap_or_else(|| Box::new(BasicExtractor));
 
         BuiltSpider {
             config,
