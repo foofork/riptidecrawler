@@ -10,7 +10,7 @@ use crate::state::AppState;
 use axum::{extract::State, http::StatusCode, Json};
 use serde::Serialize;
 
-#[cfg(feature = "jemalloc")]
+#[cfg(all(feature = "jemalloc", not(target_env = "msvc")))]
 use crate::jemalloc_stats::JemallocStats;
 
 /// Complete resource status overview

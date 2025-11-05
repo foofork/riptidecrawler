@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::time::Instant;
 use tracing::{info, warn};
 
-#[cfg(feature = "jemalloc")]
+#[cfg(all(feature = "jemalloc", not(target_env = "msvc")))]
 use crate::jemalloc_stats::JemallocStats;
 
 /// Metrics collection and management for RipTide API

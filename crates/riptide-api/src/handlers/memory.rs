@@ -41,7 +41,7 @@ use crate::state::AppState;
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use serde::Serialize;
 
-#[cfg(feature = "jemalloc")]
+#[cfg(all(feature = "jemalloc", not(target_env = "msvc")))]
 use crate::jemalloc_stats::JemallocStats;
 
 /// Memory profile response with detailed usage breakdown
