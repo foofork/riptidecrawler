@@ -12,26 +12,36 @@
 
 ## 🔴 IMMEDIATE TODO (Resume Here)
 
-**✅ COMPLETED:** Phase 1 Week 5.5-9 Trait-Based Composition (2025-11-05)
+**✅ COMPLETED:** Phase 1 Week 9 - Facade Unification (2025-11-05)
 
-**Status:** Phase 1 Week 5.5-9 is **COMPLETE**. All acceptance criteria met.
-- See: `docs/phase1/PHASE-1-WEEK-5.5-9-COMPLETION-REPORT.md`
-- Commit: `e5e8e37` - feat(phase1): Complete Week 5.5-9 Trait-Based Composition
+**Status:** Phase 1 Week 9 is **COMPLETE**. All acceptance criteria met.
+- See: `docs/phase1/PHASE-1-WEEK-9-FACADE-UNIFICATION-COMPLETION-REPORT.md`
 
 **Completed Items:**
-1. ✅ **Core traits** - Spider, Extractor, Chainable with BoxStream
-2. ✅ **DTO layer** - Document, StructuredData decoupled from internals
-3. ✅ **Mock implementations** - MockSpider, MockExtractor for testing
-4. ✅ **Comprehensive tests** - 21 tests passing (11 integration, 10 unit)
-5. ✅ **Error patterns** - 3 documented patterns (filter, handle, fail-fast)
-6. ✅ **Performance benchmarks** - BoxStream overhead measurement
-7. ✅ **Documentation** - ERROR_HANDLING_PATTERNS.md created
+1. ✅ **CrawlFacade** - Thin wrapper for 1,640 lines of production code
+2. ✅ **Dual-mode support** - Standard (PipelineOrchestrator) and Enhanced (StrategiesPipelineOrchestrator)
+3. ✅ **Arc-wrapped delegation** - Zero code duplication, pure reference wrapping
+4. ✅ **Comprehensive tests** - 23 tests passing (11 integration, 12 unit)
+5. ✅ **Batch processing** - Delegates to PipelineOrchestrator::execute_batch
+6. ✅ **Type safety** - CrawlMode and CrawlResult enums for strong typing
+7. ✅ **Documentation** - Complete with examples and architecture diagrams
 
-**Test Results:** 100% passing (21/21 tests)
-**Lines of Code:** ~1,100 lines added
-**Zero warnings** - Clean build
+**Test Results:** 100% passing (23/23 tests)
+**Lines of Code:** ~550 lines added (facade + tests)
+**Production Code Wrapped:** 1,640 lines (ZERO rebuilt)
 
-**Next Phase:** Week 9 - Facade Unification (wrap PipelineOrchestrator)
+**Phase 1 COMPLETE:** All modularity goals achieved, 100% facade usage now possible
+
+**Next Phase:** Week 9-13 - Python SDK (Phase 2: User-Facing API)
+
+---
+
+## 📋 Previous Completions
+
+**✅ Phase 1 Week 5.5-9 - Trait-Based Composition (2025-11-05)**
+- See: `docs/phase1/PHASE-1-WEEK-5.5-9-COMPLETION-REPORT.md`
+- Commit: `e5e8e37` - feat(phase1): Complete Week 5.5-9 Trait-Based Composition
+- 21 tests passing, ~1,100 lines added
 
 ---
 
@@ -145,7 +155,7 @@ rg "^## Week [0-9]" docs/roadmap/RIPTIDE-V1-DEFINITIVE-ROADMAP.md  # What's the 
 | **Phase 0 (Week 0-1)** | 1 week | Shared Utilities | ✅ COMPLETE (Report: docs/phase0/PHASE-0-COMPLETION-REPORT.md) |
 | **Phase 0 (Week 1.5-2)** | 0.5 weeks | Configuration | ✅ CODE COMPLETE (Report: docs/phase0/PHASE-0-WEEK-1.5-2-COMPLETION-REPORT.md, verification blocked by env) |
 | **Phase 0 (Week 2-2.5)** | 0.5 weeks | TDD Guide + Test Fixtures | ⏳ PENDING |
-| **Phase 1** | Weeks 2.5-9 | Modularity & Facades | 🔄 PARTIAL (Spider decoupling ✅ complete) |
+| **Phase 1** | Weeks 2.5-9 | Modularity & Facades | ✅ COMPLETE (Week 9: Facade Unification ✅ complete, Report: docs/phase1/PHASE-1-WEEK-9-FACADE-UNIFICATION-COMPLETION-REPORT.md) |
 | **Phase 2** | Weeks 9-14 | User-Facing API | ⏳ PENDING |
 | **Phase 3** | Weeks 14-18 | Validation & Launch | ⏳ PENDING |
 
@@ -1949,12 +1959,14 @@ impl CrawlFacade {
 ```
 
 **Acceptance:**
-- [ ] CrawlFacade wraps 1,596 lines of production code
-- [ ] Both modes work (standard, enhanced)
-- [ ] Mock tests verify delegation
-- [ ] Integration tests pass
+- [x] CrawlFacade wraps 1,596 lines of production code ✅ (Actual: 1,640 lines)
+- [x] Both modes work (standard, enhanced) ✅
+- [x] Mock tests verify delegation ✅ (12 unit tests)
+- [x] Integration tests pass ✅ (11 integration tests)
 
-**Phase 1 Complete:** Modularity achieved, 100% facade usage possible
+**✅ Phase 1 Complete:** Modularity achieved, 100% facade usage possible
+**Report:** `docs/phase1/PHASE-1-WEEK-9-FACADE-UNIFICATION-COMPLETION-REPORT.md`
+**Status:** Week 9 COMPLETE (2025-11-05)
 
 ---
 

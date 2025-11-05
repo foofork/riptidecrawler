@@ -44,8 +44,9 @@ pub use config::RiptideConfig;
 pub use dto::{Document, Event, Product, StructuredData, ToDto};
 pub use error::{RiptideError, RiptideResult};
 pub use facades::{
-    BrowserAction, BrowserFacade, BrowserSession, Cookie, CrawlSummary, ImageFormat,
-    PipelineFacade, ScraperFacade, ScreenshotOptions, SearchFacade, SpiderFacade, SpiderPreset,
+    BrowserAction, BrowserFacade, BrowserSession, Cookie, CrawlFacade, CrawlMode, CrawlResult,
+    CrawlSummary, ImageFormat, PipelineFacade, ScraperFacade, ScreenshotOptions, SearchFacade,
+    SpiderFacade, SpiderPreset,
 };
 pub use traits::{
     Chainable, Content, ExtractChain, ExtractOpts, ExtractionStrategy, Extractor, Spider,
