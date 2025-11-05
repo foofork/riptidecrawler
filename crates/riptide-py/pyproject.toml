@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "riptidecrawler"
-version = "0.1.0"
+version = "1.0.0"
 description = "Python bindings for Riptide web scraping framework"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -29,9 +29,10 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/riptidecrawler"
-Repository = "https://github.com/yourusername/riptidecrawler"
-Documentation = "https://docs.riptidecrawler.io"
+Homepage = "https://github.com/foofork/riptidecrawler"
+Repository = "https://github.com/foofork/riptidecrawler"
+Documentation = "https://github.com/foofork/riptidecrawler#readme"
+Issues = "https://github.com/foofork/riptidecrawler/issues"
 
 [tool.maturin]
 features = []
