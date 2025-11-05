@@ -3,12 +3,16 @@
 //! This module provides the integration between riptide-core's ReliableExtractor
 //! and riptide-extraction's UnifiedExtractor, implementing the trait adapter pattern.
 
-use anyhow::Result;
 use riptide_reliability::reliability::ReliabilityMetricsRecorder;
-use riptide_types::extractors::WasmExtractor as WasmExtractorTrait;
-use riptide_types::ExtractedDoc;
-use std::sync::Arc;
-use std::time::Instant;
+
+#[cfg(feature = "wasm-extractor")]
+use {
+    anyhow::Result,
+    riptide_types::extractors::WasmExtractor as WasmExtractorTrait,
+    riptide_types::ExtractedDoc,
+    std::sync::Arc,
+    std::time::Instant,
+};
 
 /// Adapter to make riptide_extraction::UnifiedExtractor compatible with the reliability trait
 #[cfg(feature = "wasm-extractor")]

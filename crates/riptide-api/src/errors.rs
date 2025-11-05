@@ -102,6 +102,11 @@ pub enum ApiError {
     /// Invalid request parameter (400 Bad Request)
     #[error("Invalid parameter {parameter}: {message}")]
     InvalidParameter { parameter: String, message: String },
+
+    /// Feature not enabled in this build (501 Not Implemented)
+    /// Used when optional features are disabled at compile time
+    #[error("Feature '{feature}' is not enabled in this build")]
+    FeatureNotEnabled { feature: String },
 }
 
 impl ApiError {
@@ -201,6 +206,13 @@ impl ApiError {
         }
     }
 
+    /// Create a feature not enabled error.
+    pub fn feature_not_enabled<S: Into<String>>(feature: S) -> Self {
+        Self::FeatureNotEnabled {
+            feature: feature.into(),
+        }
+    }
+
     /// Get the appropriate HTTP status code for this error.
     pub fn status_code(&self) -> StatusCode {
         match self {
@@ -223,6 +235,7 @@ impl ApiError {
             ApiError::MissingRequiredHeader { .. } => StatusCode::BAD_REQUEST,
             ApiError::InvalidHeaderValue { .. } => StatusCode::BAD_REQUEST,
             ApiError::InvalidParameter { .. } => StatusCode::BAD_REQUEST,
+            ApiError::FeatureNotEnabled { .. } => StatusCode::NOT_IMPLEMENTED,
         }
     }
 
@@ -248,6 +261,7 @@ impl ApiError {
             ApiError::MissingRequiredHeader { .. } => "missing_required_header",
             ApiError::InvalidHeaderValue { .. } => "invalid_header_value",
             ApiError::InvalidParameter { .. } => "invalid_parameter",
+            ApiError::FeatureNotEnabled { .. } => "feature_not_enabled",
         }
     }
 

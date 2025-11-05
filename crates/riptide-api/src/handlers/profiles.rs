@@ -5,6 +5,8 @@
 //! This module provides RESTful API endpoints for managing domain profiles
 //! and their cached engine preferences for warm-start optimization.
 
+#![cfg(feature = "llm")]
+
 use crate::errors::ApiError;
 use crate::state::AppState;
 use axum::{

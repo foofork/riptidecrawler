@@ -3,6 +3,8 @@
 //! This module implements LLM provider management endpoints that utilize riptide-intelligence's
 //! multi-provider system for runtime configuration and provider switching.
 
+#![cfg(feature = "llm")]
+
 use crate::errors::{ApiError, ApiResult};
 use crate::state::AppState;
 use axum::{

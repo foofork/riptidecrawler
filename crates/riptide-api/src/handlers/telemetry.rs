@@ -288,15 +288,32 @@ pub async fn get_telemetry_status(
         }
     };
 
-    // Get worker service health
-    let worker_health = state.worker_service.health_check().await;
+    // Get worker service health (feature-gated)
+    #[cfg(feature = "workers")]
+    let (worker_overall_healthy, worker_queue_healthy, worker_pool_healthy, worker_scheduler_healthy) = {
+        let worker_health = state.worker_service.health_check().await;
+        (
+            worker_health.overall_healthy,
+            worker_health.queue_healthy,
+            worker_health.worker_pool_healthy,
+            worker_health.scheduler_healthy,
+        )
+    };
+    #[cfg(not(feature = "workers"))]
+    let (worker_overall_healthy, worker_queue_healthy, worker_pool_healthy, worker_scheduler_healthy) = {
+        // Stub values when workers feature is disabled
+        (true, true, true, true)
+    };
 
     // Get spider state if available
+    #[cfg(feature = "spider")]
     let spider_active = if let Some(ref spider) = state.spider {
         spider.get_crawl_state().await.active
     } else {
         false
     };
+    #[cfg(not(feature = "spider"))]
+    let spider_active = false;
 
     let status = serde_json::json!({
         "enabled": config.enabled,
@@ -341,13 +358,13 @@ pub async fn get_telemetry_status(
                 "state": circuit_breaker_state,
             },
             "worker_service": {
-                "healthy": worker_health.overall_healthy,
-                "queue_healthy": worker_health.queue_healthy,
-                "pool_healthy": worker_health.worker_pool_healthy,
-                "scheduler_healthy": worker_health.scheduler_healthy,
+                "healthy": worker_overall_healthy,
+                "queue_healthy": worker_queue_healthy,
+                "pool_healthy": worker_pool_healthy,
+                "scheduler_healthy": worker_scheduler_healthy,
             },
             "spider": {
-                "enabled": state.spider.is_some(),
+                "enabled": cfg!(feature = "spider") && state.spider.is_some(),
                 "active": spider_active,
             },
             "telemetry_system": {

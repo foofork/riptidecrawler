@@ -3,6 +3,7 @@ use crate::state::AppState;
 use reqwest::Response;
 use riptide_events::{BaseEvent, EventSeverity};
 use riptide_fetch as fetch;
+#[cfg(feature = "llm")]
 use riptide_intelligence::smart_retry::{RetryConfig, SmartRetry, SmartRetryStrategy};
 use riptide_pdf::{self as pdf, utils as pdf_utils};
 use riptide_reliability::gate::{decide, score, Decision, GateFeatures};
@@ -133,6 +134,7 @@ pub struct PipelineRetryConfig {
     /// Maximum delay in milliseconds
     pub max_delay_ms: u64,
     /// Override strategy (None = auto-select based on error)
+    #[cfg(feature = "llm")]
     pub strategy: Option<SmartRetryStrategy>,
 }
 
@@ -142,6 +144,7 @@ impl Default for PipelineRetryConfig {
             max_retries: 3,
             initial_delay_ms: 100,
             max_delay_ms: 30_000,
+            #[cfg(feature = "llm")]
             strategy: None, // Auto-select
         }
     }
@@ -190,6 +193,7 @@ impl PipelineOrchestrator {
     /// - Network errors (502, 503, 504) → Linear (steady retry)
     /// - Resource exhaustion → Fibonacci (controlled backoff)
     /// - Unknown errors → Adaptive (smart strategy switching)
+    #[cfg(feature = "llm")]
     fn select_retry_strategy(&self, error: &ApiError) -> Option<SmartRetryStrategy> {
         // If strategy override is set, use it
         if let Some(strategy) = self.retry_config.strategy {
@@ -237,6 +241,7 @@ impl PipelineOrchestrator {
     }
 
     /// Create SmartRetry instance from pipeline configuration
+    #[cfg(feature = "llm")]
     fn create_smart_retry(&self, strategy: SmartRetryStrategy) -> SmartRetry {
         let retry_config = RetryConfig {
             max_attempts: self.retry_config.max_retries as u32,
@@ -680,7 +685,8 @@ impl PipelineOrchestrator {
     }
 
     /// Fetch content with content type detection for PDF handling.
-    /// Uses smart retry for transient failures.
+    /// Uses smart retry for transient failures when llm feature is enabled.
+    #[cfg(feature = "llm")]
     async fn fetch_content_with_type(
         &self,
         url: &str,
@@ -743,6 +749,44 @@ impl PipelineOrchestrator {
             riptide_intelligence::IntelligenceError::Network(msg) => ApiError::fetch(url, msg),
             _ => ApiError::fetch(url, e.to_string()),
         })
+    }
+
+    /// Fetch content with content type detection for PDF handling.
+    /// Simple implementation without smart retry when llm feature is disabled.
+    #[cfg(not(feature = "llm"))]
+    async fn fetch_content_with_type(
+        &self,
+        url: &str,
+    ) -> ApiResult<(Response, Vec<u8>, Option<String>)> {
+        let fetch_timeout = Duration::from_secs(15);
+
+        let response = timeout(
+            fetch_timeout,
+            fetch::get(&self.state.http_client, url),
+        )
+        .await
+        .map_err(|_| ApiError::timeout("content_fetch", format!("Timeout fetching {}", url)))?
+        .map_err(|e| ApiError::fetch(url, format!("Fetch failed: {}", e)))?;
+
+        // Extract content type before consuming response
+        let content_type = response
+            .headers()
+            .get("content-type")
+            .and_then(|ct| ct.to_str().ok())
+            .map(|s| s.to_string());
+
+        let content_bytes = timeout(fetch_timeout, response.bytes())
+            .await
+            .map_err(|_| ApiError::timeout("content_fetch", format!("Timeout reading response from {}", url)))?
+            .map_err(|e| ApiError::fetch(url, format!("Failed to read response: {}", e)))?
+            .to_vec();
+
+        // Recreate response for status code (since we consumed it for bytes)
+        let response = fetch::get(&self.state.http_client, url)
+            .await
+            .map_err(|e| ApiError::fetch(url, format!("Fetch failed: {}", e)))?;
+
+        Ok((response, content_bytes, content_type))
     }
 
     /// Process PDF content using the PDF pipeline.

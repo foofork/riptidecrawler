@@ -533,10 +533,14 @@ impl HealthChecker {
             0.0
         };
 
+        #[cfg(feature = "browser")]
         let active_connections = match &state.resource_manager.browser_pool {
             Some(pool) => pool.get_stats().await.in_use as u32,
             None => 0, // No local browser pool when using headless service
         };
+
+        #[cfg(not(feature = "browser"))]
+        let active_connections = 0;
 
         SystemMetrics {
             memory_usage_bytes,

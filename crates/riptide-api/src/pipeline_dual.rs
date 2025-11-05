@@ -10,6 +10,8 @@
 //! - Results are correlated and merged via event system
 //! - No performance penalty for baseline extraction
 
+#![cfg(feature = "llm")]
+
 use crate::errors::{ApiError, ApiResult};
 use crate::state::AppState;
 use anyhow::Result;

@@ -50,6 +50,7 @@ pub struct StealthTestResult {
 ///
 /// This endpoint allows dynamic configuration of stealth features
 /// for the BrowserFacade and HybridHeadlessLauncher.
+#[cfg(feature = "browser")]
 pub async fn configure_stealth(
     State(state): State<AppState>,
     Json(request): Json<StealthConfigRequest>,
@@ -99,10 +100,24 @@ pub async fn configure_stealth(
         .into_response()
 }
 
+/// Stub implementation when browser feature is not enabled
+#[cfg(not(feature = "browser"))]
+pub async fn configure_stealth(
+    State(_state): State<AppState>,
+    Json(_request): Json<StealthConfigRequest>,
+) -> Response {
+    ApiError::invalid_request(
+        "Browser feature not enabled in build. Stealth configuration requires browser feature. \
+        Recompile with --features browser to use stealth features.",
+    )
+    .into_response()
+}
+
 /// Test stealth capabilities
 ///
 /// This endpoint launches a test browser session and checks
 /// for common detection points.
+#[cfg(feature = "browser")]
 pub async fn test_stealth(State(state): State<AppState>) -> Response {
     // Check if browser facade is available
     let facade = match state.browser_facade.as_ref() {
@@ -185,10 +200,21 @@ pub async fn test_stealth(State(state): State<AppState>) -> Response {
     (StatusCode::OK, Json(result)).into_response()
 }
 
+/// Stub implementation when browser feature is not enabled
+#[cfg(not(feature = "browser"))]
+pub async fn test_stealth(State(_state): State<AppState>) -> Response {
+    ApiError::invalid_request(
+        "Browser feature not enabled in build. Stealth testing requires browser feature. \
+        Recompile with --features browser to use stealth features.",
+    )
+    .into_response()
+}
+
 /// Get stealth capabilities
 ///
 /// Returns information about available stealth features
 /// and current configuration.
+#[cfg(feature = "browser")]
 pub async fn get_stealth_capabilities(State(state): State<AppState>) -> Response {
     // Check if browser facade is available
     let facade = match state.browser_facade.as_ref() {
@@ -226,4 +252,14 @@ pub async fn get_stealth_capabilities(State(state): State<AppState>) -> Response
     };
 
     (StatusCode::OK, Json(capabilities)).into_response()
+}
+
+/// Stub implementation when browser feature is not enabled
+#[cfg(not(feature = "browser"))]
+pub async fn get_stealth_capabilities(State(_state): State<AppState>) -> Response {
+    ApiError::invalid_request(
+        "Browser feature not enabled in build. Stealth capabilities requires browser feature. \
+        Recompile with --features browser to use stealth features.",
+    )
+    .into_response()
 }

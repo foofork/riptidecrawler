@@ -883,6 +883,7 @@ impl AppState {
         }
 
         // Initialize headless browser launcher with pooling (only if no headless service URL)
+        #[cfg(feature = "browser")]
         let browser_launcher = if let Some(url) = &config.headless_url {
             if !url.is_empty() {
                 tracing::info!(
@@ -980,6 +981,7 @@ impl AppState {
             .with_stealth_preset("Medium");
 
         // Initialize browser facade only if not using headless service
+        #[cfg(feature = "browser")]
         let browser_facade = if let Some(url) = &config.headless_url {
             if !url.is_empty() {
                 tracing::info!(
@@ -1273,34 +1275,50 @@ impl AppState {
         };
 
         // Check spider engine health if available
-        health.spider = if let Some(spider) = &self.spider {
-            let spider_state = spider.get_crawl_state().await;
-            if spider_state.active {
-                DependencyHealth::Healthy
+        #[cfg(feature = "spider")]
+        {
+            health.spider = if let Some(spider) = &self.spider {
+                let spider_state = spider.get_crawl_state().await;
+                if spider_state.active {
+                    DependencyHealth::Healthy
+                } else {
+                    // Spider is available but not actively crawling
+                    DependencyHealth::Healthy
+                }
             } else {
-                // Spider is available but not actively crawling
+                // Spider is disabled, consider it healthy (not an error condition)
                 DependencyHealth::Healthy
-            }
-        } else {
-            // Spider is disabled, consider it healthy (not an error condition)
-            DependencyHealth::Healthy
-        };
+            };
+        }
+        #[cfg(not(feature = "spider"))]
+        {
+            // Spider feature disabled - consider healthy (not an error)
+            health.spider = DependencyHealth::Healthy;
+        }
 
         // Check worker service health
-        health.worker_service = {
-            let worker_health = self.worker_service.health_check().await;
-            if worker_health.overall_healthy {
-                DependencyHealth::Healthy
-            } else {
-                health.healthy = false;
-                DependencyHealth::Unhealthy(format!(
-                    "Worker service unhealthy: queue={}, pool={}, scheduler={}",
-                    worker_health.queue_healthy,
-                    worker_health.worker_pool_healthy,
-                    worker_health.scheduler_healthy
-                ))
-            }
-        };
+        #[cfg(feature = "workers")]
+        {
+            health.worker_service = {
+                let worker_health = self.worker_service.health_check().await;
+                if worker_health.overall_healthy {
+                    DependencyHealth::Healthy
+                } else {
+                    health.healthy = false;
+                    DependencyHealth::Unhealthy(format!(
+                        "Worker service unhealthy: queue={}, pool={}, scheduler={}",
+                        worker_health.queue_healthy,
+                        worker_health.worker_pool_healthy,
+                        worker_health.scheduler_healthy
+                    ))
+                }
+            };
+        }
+        #[cfg(not(feature = "workers"))]
+        {
+            // Workers feature disabled - consider healthy (not an error)
+            health.worker_service = DependencyHealth::Healthy;
+        }
 
         // Check circuit breaker health
         health.circuit_breaker = {

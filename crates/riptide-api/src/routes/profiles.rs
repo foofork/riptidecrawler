@@ -87,9 +87,28 @@ pub fn profile_routes() -> Router<AppState> {
 }
 
 /// Create stub profile routes when feature is disabled
+/// Returns HTTP 501 "Not Implemented" for all profile endpoints
 #[cfg(not(feature = "llm"))]
 pub fn profile_routes() -> Router<AppState> {
+    use crate::handlers::stubs::*;
+
     Router::new()
+        // Profile CRUD operations - return 501
+        .route("/", post(profile_create_stub))
+        .route("/", get(profile_list_stub))
+        .route("/:domain", get(profile_get_stub))
+        .route("/:domain", put(profile_update_stub))
+        .route("/:domain", delete(profile_delete_stub))
+        // Statistics and analytics - return 501
+        .route("/:domain/stats", get(profile_stats_stub))
+        .route("/metrics", get(profile_metrics_stub))
+        // Batch operations - return 501
+        .route("/batch", post(profile_batch_create_stub))
+        // Search - return 501
+        .route("/search", get(profile_search_stub))
+        // Cache management - return 501
+        .route("/:domain/warm", post(profile_warm_cache_stub))
+        .route("/clear", delete(profile_clear_caches_stub))
 }
 
 #[cfg(test)]

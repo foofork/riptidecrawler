@@ -33,6 +33,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tower::ServiceExt;
 
+mod test_helpers;
+
 // ============================================================================
 // Test Helper: TestResponse Structure
 // ============================================================================
@@ -52,17 +54,9 @@ struct TestResponse<T> {
 /// Create test application with full or minimal dependencies
 /// Falls back to minimal if SpiderFacade is not available
 async fn create_test_app() -> axum::Router {
-    // Attempt to create app from parent test_helpers module
-    // This reuses the existing test infrastructure
-    match crate::test_helpers::create_test_app().await {
-        app => app,
-    }
+    // Use the imported test_helpers module
+    test_helpers::create_test_app().await
 }
-
-// TODO: Re-enable test_helpers when available
-// Reference the parent test_helpers module for shared utilities
-// #[path = "../test_helpers.rs"]
-// mod test_helpers;
 
 #[tokio::test]
 async fn test_respect_robots_default_is_true() {

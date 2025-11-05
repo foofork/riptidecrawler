@@ -86,6 +86,7 @@ use url::Url;
 
 // Internal dependencies
 use crate::config::RiptideApiConfig;
+#[cfg(feature = "browser")]
 use riptide_headless::pool::{BrowserPool, BrowserPoolConfig};
 
 /// Comprehensive resource manager coordinating all sub-managers
@@ -102,6 +103,7 @@ pub struct ResourceManager {
     /// Configuration
     config: RiptideApiConfig,
     /// Headless browser pool manager (None when using external headless service)
+    #[cfg(feature = "browser")]
     pub browser_pool: Option<Arc<BrowserPool>>,
     /// Per-host rate limiter
     pub rate_limiter: Arc<PerHostRateLimiter>,
@@ -195,6 +197,7 @@ impl ResourceManager {
         let metrics = Arc::new(ResourceMetrics::new());
 
         // Initialize browser pool only if headless service is NOT configured
+        #[cfg(feature = "browser")]
         let browser_pool = if headless_url.is_some() {
             info!("Headless service URL configured - skipping local browser pool initialization");
             None
@@ -274,23 +277,34 @@ impl ResourceManager {
         // Initialize performance monitor
         let performance_monitor = Arc::new(PerformanceMonitor::new(metrics.clone())?);
 
-        if browser_pool.is_some() {
-            info!(
-                headless_pool_cap = config.headless.max_pool_size,
-                pdf_semaphore = config.pdf.max_concurrent,
-                rate_limit_rps = config.rate_limiting.requests_per_second_per_host,
-                "Resource manager initialized with local browser pool"
-            );
-        } else {
-            info!(
-                pdf_semaphore = config.pdf.max_concurrent,
-                rate_limit_rps = config.rate_limiting.requests_per_second_per_host,
-                "Resource manager initialized with headless service (no local browser pool)"
-            );
+        #[cfg(feature = "browser")]
+        {
+            if browser_pool.is_some() {
+                info!(
+                    headless_pool_cap = config.headless.max_pool_size,
+                    pdf_semaphore = config.pdf.max_concurrent,
+                    rate_limit_rps = config.rate_limiting.requests_per_second_per_host,
+                    "Resource manager initialized with local browser pool"
+                );
+            } else {
+                info!(
+                    pdf_semaphore = config.pdf.max_concurrent,
+                    rate_limit_rps = config.rate_limiting.requests_per_second_per_host,
+                    "Resource manager initialized with headless service (no local browser pool)"
+                );
+            }
         }
+
+        #[cfg(not(feature = "browser"))]
+        info!(
+            pdf_semaphore = config.pdf.max_concurrent,
+            rate_limit_rps = config.rate_limiting.requests_per_second_per_host,
+            "Resource manager initialized without browser feature (browser feature not enabled in build)"
+        );
 
         Ok(Self {
             config,
+            #[cfg(feature = "browser")]
             browser_pool,
             rate_limiter,
             pdf_semaphore,
@@ -319,6 +333,7 @@ impl ResourceManager {
     /// * `MemoryPressure` - System under memory pressure
     /// * `ResourceExhausted` - Browser pool exhausted
     /// * `Timeout` - Resource acquisition timed out
+    #[cfg(feature = "browser")]
     pub async fn acquire_render_resources(
         &self,
         url: &str,
@@ -393,6 +408,17 @@ impl ResourceManager {
             self.memory_manager.clone(),
             self.metrics.clone(),
         )))
+    }
+
+    /// Stub implementation when browser feature is not enabled
+    #[cfg(not(feature = "browser"))]
+    pub async fn acquire_render_resources(
+        &self,
+        _url: &str,
+    ) -> errors::Result<ResourceResult<RenderResourceGuard>> {
+        Err(ResourceManagerError::Configuration(
+            "Browser feature not enabled in build. Recompile with --features browser to use render resources.".to_string()
+        ))
     }
 
     /// Acquire resources for PDF operation
@@ -483,12 +509,21 @@ impl ResourceManager {
     /// # Returns
     /// A `ResourceStatus` struct containing current metrics for all resources
     pub async fn get_resource_status(&self) -> ResourceStatus {
-        let (pool_available, pool_total) = match &self.browser_pool {
-            Some(pool) => {
-                let stats = pool.get_stats().await;
-                (stats.available, stats.total_capacity)
+        let (pool_available, pool_total) = {
+            #[cfg(feature = "browser")]
+            {
+                match &self.browser_pool {
+                    Some(pool) => {
+                        let stats = pool.get_stats().await;
+                        (stats.available, stats.total_capacity)
+                    }
+                    None => (0, 0), // No local pool when using headless service
+                }
             }
-            None => (0, 0), // No local pool when using headless service
+            #[cfg(not(feature = "browser"))]
+            {
+                (0, 0) // Browser feature not enabled
+            }
         };
 
         ResourceStatus {
@@ -589,8 +624,11 @@ mod tests {
         let manager = ResourceManager::new(config).await.unwrap();
 
         // Test that all sub-managers are accessible
-        if let Some(pool) = &manager.browser_pool {
-            assert!(pool.get_stats().await.total_capacity > 0);
+        #[cfg(feature = "browser")]
+        {
+            if let Some(pool) = &manager.browser_pool {
+                assert!(pool.get_stats().await.total_capacity > 0);
+            }
         }
         assert_eq!(manager.wasm_manager.instance_count().await, 0);
         assert_eq!(manager.memory_manager.current_usage_mb(), 0);

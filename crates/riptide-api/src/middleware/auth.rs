@@ -739,6 +739,7 @@ fn rate_limited_response(retry_after: Duration) -> Response {
 #[allow(dead_code)]
 mod tests {
     use super::*;
+    #[allow(unused_imports)]
     use axum::http::Request;
 
     #[test]

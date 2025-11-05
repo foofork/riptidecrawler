@@ -17,7 +17,12 @@ pub fn table_routes() -> Router<AppState> {
 }
 
 /// Create stub table routes when feature is disabled
+/// Returns HTTP 501 "Not Implemented" for all table endpoints
 #[cfg(not(feature = "extraction"))]
 pub fn table_routes() -> Router<AppState> {
+    use crate::handlers::stubs::*;
+
     Router::new()
+        .route("/extract", post(extraction_tables_stub))
+        .route("/:id/export", get(table_export_stub))
 }

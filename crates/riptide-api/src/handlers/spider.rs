@@ -242,7 +242,7 @@ pub async fn spider_crawl(
                 .discovered_urls
                 .iter()
                 .enumerate()
-                .map(|(idx, url)| {
+                .map(|(_idx, url)| {
                     let mut page = CrawledPage::new(
                         url.clone(),
                         0, // Depth information not available without full page data
