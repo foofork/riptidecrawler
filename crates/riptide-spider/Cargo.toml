@@ -28,6 +28,7 @@ futures.workspace = true
 reqwest.workspace = true
 url.workspace = true
 http.workspace = true
+http-serde = "2.1"
 
 # Spider-specific
 robotstxt = "0.2"

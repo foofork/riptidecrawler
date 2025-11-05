@@ -21,13 +21,16 @@
 
 pub mod adaptive_stop;
 pub mod budget;
+pub mod builder;
 pub mod config;
 pub mod core;
+pub mod extractor;
 pub mod frontier;
 pub mod memory_manager;
 pub mod query_aware;
 pub mod query_aware_benchmark;
 pub mod query_aware_tests;
+pub mod results;
 pub mod robots;
 pub mod session;
 pub mod sitemap;
@@ -42,13 +45,16 @@ pub use riptide_types::reliability::circuit::CircuitBreaker;
 // Re-export main types
 pub use adaptive_stop::AdaptiveStopEngine;
 pub use budget::BudgetManager;
+pub use builder::{BuiltSpider, SpiderBuilder};
 pub use config::SpiderConfig;
 pub use core::{CrawlState, PerformanceMetrics, Spider, SpiderResult};
+pub use extractor::{BasicExtractor, ContentExtractor, NoOpExtractor};
 pub use frontier::FrontierManager;
 pub use query_aware::{
     BM25Scorer, ContentSimilarityAnalyzer, DomainDiversityAnalyzer, QueryAwareConfig,
     QueryAwareScorer, QueryAwareStats, UrlSignalAnalyzer,
 };
+pub use results::{enrich, EnrichedCrawlResult, RawCrawlResult};
 pub use session::SessionManager;
 pub use sitemap::SitemapParser;
 pub use strategy::{CrawlingStrategy, StrategyEngine};
