@@ -16,7 +16,7 @@
 
 **Status:** Phase 0 Week 1.5-2 is **CODE COMPLETE**. All implementation work finished by 7-agent swarm.
 - See: `docs/phase0/PHASE-0-WEEK-1.5-2-COMPLETION-REPORT.md`
-- Commit: `248580e` - feat(phase0): Complete Week 1.5-2 Configuration & Feature Gates
+- Commit: `e84901c` - feat(phase0): Complete Week 1.5-2 Configuration & Feature Gates with 7-agent swarm (merged PR #6)
 
 **Completed Items:**
 1. ✅ **Fixed test_helpers module** - Blocker resolved (Agent 1)
@@ -156,7 +156,7 @@ rg "^## Week [0-9]" docs/roadmap/RIPTIDE-V1-DEFINITIVE-ROADMAP.md  # What's the 
 ## 🔥 Phase 0: Critical Foundation (Weeks 0-2.5)
 
 **✅ Week 0-1: COMPLETE** (2025-11-04) - Shared Utilities
-**🔄 Week 1.5-2: IN PROGRESS** (2025-11-04) - Configuration (partial feature gates)
+**✅ Week 1.5-2: COMPLETE** (2025-11-05) - Configuration & Feature Gates (7-agent swarm, PR #6)
 **⏳ Week 2-2.5: PENDING** - TDD Guide + Test Fixtures
 
 ### Week 0-1: Consolidation (5-7 days) ✅ COMPLETE
