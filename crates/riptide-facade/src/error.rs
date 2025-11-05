@@ -16,13 +16,28 @@ pub enum RiptideError {
     #[error("Fetch error: {0}")]
     Fetch(String),
 
+    /// Network/fetch error with URL
+    #[error("Fetch error for URL {url}: {message}")]
+    FetchError { url: String, message: String },
+
     /// Extraction error
     #[error("Extraction error: {0}")]
     Extraction(String),
 
+    /// Extraction error with message
+    #[error("Extraction error: {message}")]
+    ExtractionError { message: String },
+
     /// Invalid URL
     #[error("Invalid URL: {0}")]
     InvalidUrl(#[from] url::ParseError),
+
+    /// URL parse error with context
+    #[error("Failed to parse URL '{url}': {source}")]
+    UrlParseError {
+        url: String,
+        source: url::ParseError,
+    },
 
     /// Timeout error
     #[error("Operation timed out")]

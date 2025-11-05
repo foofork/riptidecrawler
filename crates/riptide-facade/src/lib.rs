@@ -32,17 +32,24 @@
 
 pub mod builder;
 pub mod config;
+pub mod dto;
 pub mod error;
 pub mod facades;
 pub mod prelude;
+pub mod traits;
 
 // Re-export core types
 pub use builder::RiptideBuilder;
 pub use config::RiptideConfig;
+pub use dto::{Document, Event, Product, StructuredData, ToDto};
 pub use error::{RiptideError, RiptideResult};
 pub use facades::{
     BrowserAction, BrowserFacade, BrowserSession, Cookie, CrawlSummary, ImageFormat,
     PipelineFacade, ScraperFacade, ScreenshotOptions, SearchFacade, SpiderFacade, SpiderPreset,
+};
+pub use traits::{
+    Chainable, Content, ExtractChain, ExtractOpts, ExtractionStrategy, Extractor, Spider,
+    SpiderOpts,
 };
 
 /// Main entry point for the Riptide facade API.
