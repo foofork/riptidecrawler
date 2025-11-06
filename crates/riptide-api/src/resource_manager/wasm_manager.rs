@@ -55,6 +55,7 @@ impl WasmInstanceManager {
     ///
     /// # Returns
     /// A `WasmGuard` that keeps the instance alive
+    #[allow(dead_code)]
     pub(crate) async fn acquire_instance(self: &Arc<Self>, worker_id: &str) -> Result<WasmGuard> {
         let mut instances = self.worker_instances.write().await;
 

@@ -8,6 +8,7 @@ authors.workspace = true
 [dependencies]
 # Internal dependencies
 riptide-types = { path = "../riptide-types" }
+riptide-pipeline = { path = "../riptide-pipeline" }
 riptide-api = { path = "../riptide-api" }
 riptide-fetch = { path = "../riptide-fetch" }
 # Phase 1: WASM Optional - Use native-parser by default

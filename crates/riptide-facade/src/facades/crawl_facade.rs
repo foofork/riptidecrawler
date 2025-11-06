@@ -9,10 +9,14 @@
 //! The facade delegates all work to the existing, production-ready orchestrators.
 
 use crate::error::{RiptideError, RiptideResult};
-use riptide_api::pipeline::{PipelineOrchestrator, PipelineResult};
+// Import orchestrators from riptide-api (implementation)
+use riptide_api::pipeline::PipelineOrchestrator;
 use riptide_api::state::AppState;
-use riptide_api::strategies_pipeline::{StrategiesPipelineOrchestrator, StrategiesPipelineResult};
+use riptide_api::strategies_pipeline::StrategiesPipelineOrchestrator;
+
+// Import types from riptide-pipeline (breaks circular dependency)
 use riptide_extraction::strategies::StrategyConfig;
+use riptide_pipeline::{PipelineResult, StrategiesPipelineResult};
 use riptide_types::config::CrawlOptions;
 use std::sync::Arc;
 
@@ -179,7 +183,10 @@ impl CrawlFacade {
                     .execute_single(url)
                     .await
                     .map_err(|e| RiptideError::Other(e.into()))?;
-                Ok(CrawlResult::Enhanced(result))
+
+                // Convert from riptide_api::StrategiesPipelineResult to riptide_pipeline::StrategiesPipelineResult
+                // Using the From implementation defined in riptide-api
+                Ok(CrawlResult::Enhanced(result.into()))
             }
         }
     }

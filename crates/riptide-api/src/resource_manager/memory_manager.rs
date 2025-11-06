@@ -65,10 +65,13 @@ pub struct LeakDetector {
 
 /// Memory snapshot at a point in time
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct MemorySnapshot {
     timestamp: u64,
     usage_mb: usize,
+    #[allow(dead_code)]
     allocations: u64,
+    #[allow(dead_code)]
     deallocations: u64,
 }
 

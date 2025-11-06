@@ -359,7 +359,7 @@ impl OtlpTraceBackend {
         let backend_type = match backend_type.as_str() {
             "jaeger" => OtlpBackendType::Jaeger,
             "tempo" => OtlpBackendType::Tempo,
-            "generic" | _ => OtlpBackendType::Generic,
+            _ => OtlpBackendType::Generic,
         };
 
         Some(Self::new(endpoint, backend_type))
@@ -387,7 +387,7 @@ impl OtlpTraceBackend {
 
         let response = self.client.get(&url).send().await.map_err(|e| {
             warn!(error = %e, "Failed to query Jaeger traces");
-            ApiError::internal(&format!("Failed to query trace backend: {}", e))
+            ApiError::internal(format!("Failed to query trace backend: {}", e))
         })?;
 
         if !response.status().is_success() {
@@ -398,7 +398,7 @@ impl OtlpTraceBackend {
         let data: Value = response
             .json()
             .await
-            .map_err(|e| ApiError::internal(&format!("Failed to parse Jaeger response: {}", e)))?;
+            .map_err(|e| ApiError::internal(format!("Failed to parse Jaeger response: {}", e)))?;
 
         // Parse Jaeger response format
         let traces = self.parse_jaeger_traces(data)?;
@@ -507,7 +507,7 @@ impl OtlpTraceBackend {
 
         let response = self.client.get(&url).send().await.map_err(|e| {
             warn!(error = %e, "Failed to get Jaeger trace");
-            ApiError::internal(&format!("Failed to get trace: {}", e))
+            ApiError::internal(format!("Failed to get trace: {}", e))
         })?;
 
         if response.status() == reqwest::StatusCode::NOT_FOUND {
@@ -522,7 +522,7 @@ impl OtlpTraceBackend {
         let data: Value = response
             .json()
             .await
-            .map_err(|e| ApiError::internal(&format!("Failed to parse Jaeger trace: {}", e)))?;
+            .map_err(|e| ApiError::internal(format!("Failed to parse Jaeger trace: {}", e)))?;
 
         // Parse Jaeger trace response
         self.parse_jaeger_complete_trace(data)

@@ -64,7 +64,8 @@ riptide-search = { path = "../riptide-search", optional = true }
 riptide-performance = { path = "../riptide-performance" }
 riptide-persistence = { path = "../riptide-persistence" }
 riptide-monitoring = { path = "../riptide-monitoring", features = ["collector"] }
-riptide-facade = { path = "../riptide-facade" }
+riptide-pipeline = { path = "../riptide-pipeline" }
+# riptide-facade = { path = "../riptide-facade" }  # REMOVED: Caused circular dependency
 spider_chromiumoxide_cdp = { workspace = true }
 spider_chrome = { workspace = true }
 wasmtime = { workspace = true }

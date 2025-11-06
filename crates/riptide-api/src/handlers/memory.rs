@@ -180,14 +180,14 @@ pub async fn memory_profile_handler(
         .resource_manager
         .memory_manager
         .get_current_rss()
-        .unwrap_or_else(|_| memory_stats.current_usage_mb);
+        .unwrap_or(memory_stats.current_usage_mb);
 
     // Get heap allocated for total tracking
     let heap_allocated_mb = state
         .resource_manager
         .memory_manager
         .get_heap_allocated()
-        .unwrap_or_else(|_| current_rss_mb);
+        .unwrap_or(current_rss_mb);
 
     // Calculate peak usage from resource metrics
     let peak_usage_mb = state

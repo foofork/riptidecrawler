@@ -173,6 +173,7 @@ pub struct WasmGuard {
 
 impl WasmGuard {
     /// Create a new WASM guard
+    #[allow(dead_code)]
     pub(crate) fn new(manager: Arc<WasmInstanceManager>) -> Self {
         Self { manager }
     }

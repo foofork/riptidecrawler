@@ -8,9 +8,9 @@
 //! - Single WASM instance per worker
 //! - Memory cleanup on timeouts
 
-use crate::config::RiptideApiConfig;
 use crate::resource_manager::{ResourceManager, ResourceResult};
 use anyhow::Result;
+use riptide_config::ApiConfig;
 use std::time::{Duration, Instant};
 
 #[tokio::test]

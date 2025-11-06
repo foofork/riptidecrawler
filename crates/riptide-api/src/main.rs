@@ -198,17 +198,25 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/v1/crawl/stream", post(handlers::crawl_stream)) // v1 alias
         // Extract endpoint - NEW v1.1 feature
         .route("/api/v1/extract", post(handlers::extract))
-        .route("/extract", post(handlers::extract)) // Root alias for backward compatibility
-        // Search endpoint - NEW v1.1 feature
+        .route("/extract", post(handlers::extract)); // Root alias for backward compatibility
+
+    // Search endpoint - NEW v1.1 feature (feature-gated)
+    #[cfg(feature = "search")]
+    let app = app
         .route("/api/v1/search", get(handlers::search))
-        .route("/search", get(handlers::search)) // Root alias for backward compatibility
-        // DeepSearch
+        .route("/search", get(handlers::search)); // Root alias for backward compatibility
+
+    // DeepSearch (feature-gated)
+    #[cfg(feature = "search")]
+    let app = app
         .route("/deepsearch", post(handlers::deepsearch))
         .route("/deepsearch/stream", post(handlers::deepsearch_stream))
         .route(
             "/api/v1/deepsearch/stream",
             post(handlers::deepsearch_stream),
-        ) // v1 alias
+        ); // v1 alias
+
+    let app = app
         // PDF processing endpoints with progress tracking
         .nest("/pdf", routes::pdf::pdf_routes())
         // Stealth configuration and testing endpoints
@@ -278,11 +286,17 @@ async fn main() -> anyhow::Result<()> {
         .route(
             "/sessions/:session_id/cookies/:domain/:name",
             axum::routing::delete(handlers::sessions::delete_cookie),
-        )
-        // Worker management endpoints
+        );
+
+    // Worker management endpoints (feature-gated)
+    #[cfg(feature = "workers")]
+    let app = app
         .route("/workers/jobs", post(handlers::workers::submit_job))
-        .route("/workers/jobs", get(handlers::workers::list_jobs))
-        // Browser management endpoints
+        .route("/workers/jobs", get(handlers::workers::list_jobs));
+
+    // Browser management endpoints (feature-gated)
+    #[cfg(feature = "browser")]
+    let app = app
         .route(
             "/api/v1/browser/session",
             post(handlers::browser::create_browser_session),
@@ -298,7 +312,9 @@ async fn main() -> anyhow::Result<()> {
         .route(
             "/api/v1/browser/session/:id",
             axum::routing::delete(handlers::browser::close_browser_session),
-        )
+        );
+
+    let app = app
         // Resource monitoring endpoints
         .route(
             "/resources/status",
@@ -335,7 +351,11 @@ async fn main() -> anyhow::Result<()> {
             get(handlers::resources::get_memory_leaks),
         )
         // Fetch engine metrics endpoint
-        .route("/fetch/metrics", get(handlers::fetch::get_fetch_metrics))
+        .route("/fetch/metrics", get(handlers::fetch::get_fetch_metrics));
+
+    // More worker endpoints (feature-gated)
+    #[cfg(feature = "workers")]
+    let app = app
         .route(
             "/workers/jobs/:job_id",
             get(handlers::workers::get_job_status),
@@ -367,7 +387,9 @@ async fn main() -> anyhow::Result<()> {
         .route(
             "/workers/schedule/:job_id",
             axum::routing::delete(handlers::workers::delete_scheduled_job),
-        )
+        );
+
+    let app = app
         // Monitoring system endpoints
         .route(
             "/monitoring/health-score",
@@ -498,9 +520,15 @@ async fn main() -> anyhow::Result<()> {
 
     // Create separate router for session-aware routes
     // SessionLayer must be applied BEFORE with_state for proper type inference
+    #[cfg(feature = "browser")]
     let session_routes = Router::new()
         .route("/render", post(handlers::render))
         .route("/api/v1/render", post(handlers::render))
+        .layer(SessionLayer::new(app_state.session_manager.clone()))
+        .with_state(app_state.clone());
+
+    #[cfg(not(feature = "browser"))]
+    let session_routes = Router::new()
         .layer(SessionLayer::new(app_state.session_manager.clone()))
         .with_state(app_state.clone());
 

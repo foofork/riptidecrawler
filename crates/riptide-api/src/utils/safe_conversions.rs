@@ -33,7 +33,7 @@ pub fn confidence_to_quality_score(confidence: f64) -> u8 {
 
     // Safe: score is guaranteed to be in range [0.0, 100.0] after clamping
     // round() ensures it's an integer value, so conversion to u8 is safe
-    score.min(100.0).max(0.0) as u8
+    score.clamp(0.0, 100.0) as u8
 }
 
 /// Safely convert word count (usize) to u32 with saturation

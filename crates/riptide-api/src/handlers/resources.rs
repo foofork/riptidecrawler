@@ -146,10 +146,10 @@ pub async fn get_resource_status(
 
 /// Get browser pool specific status
 pub async fn get_browser_pool_status(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> Result<Json<BrowserPoolStatus>, StatusCode> {
     #[cfg(feature = "browser")]
-    let (total_capacity, in_use, available) = match &state.resource_manager.browser_pool {
+    let (total_capacity, in_use, available) = match &_state.resource_manager.browser_pool {
         Some(pool) => {
             let stats = pool.get_stats().await;
             (stats.total_capacity, stats.in_use, stats.available)

@@ -9,7 +9,6 @@ use riptide_pdf::{self as pdf, utils as pdf_utils};
 use riptide_reliability::gate::{decide, score, Decision, GateFeatures};
 use riptide_types::config::CrawlOptions;
 use riptide_types::{ExtractedDoc, RenderMode};
-use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
 use tokio::time::timeout;
 use tracing::{debug, error, info, warn};
@@ -67,85 +66,29 @@ fn convert_extracted_content(content: riptide_types::ExtractedContent, url: &str
     }
 }
 
-/// Pipeline execution result containing the extracted document and metadata.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PipelineResult {
-    /// The extracted document content
-    pub document: ExtractedDoc,
+// Re-export public types from riptide-pipeline to maintain API compatibility
+pub use riptide_pipeline::{GateDecisionStats, PipelineResult, PipelineRetryConfig, PipelineStats};
 
-    /// Whether the content was served from cache
-    pub from_cache: bool,
-
-    /// The decision made by the gate (Raw, ProbesFirst, Headless)
-    pub gate_decision: String,
-
-    /// Content quality score from the gate analysis
-    pub quality_score: f32,
-
-    /// Total processing time in milliseconds
-    pub processing_time_ms: u64,
-
-    /// Cache key used for this URL
-    pub cache_key: String,
-
-    /// HTTP status code from the original fetch
-    pub http_status: u16,
-}
-
-/// Pipeline execution statistics for monitoring and optimization.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PipelineStats {
-    /// Total URLs processed
-    pub total_processed: usize,
-
-    /// Number of cache hits
-    pub cache_hits: usize,
-
-    /// Number of successful extractions
-    pub successful_extractions: usize,
-
-    /// Number of failed extractions
-    pub failed_extractions: usize,
-
-    /// Gate decision breakdown
-    pub gate_decisions: GateDecisionStats,
-
-    /// Average processing time in milliseconds
-    pub avg_processing_time_ms: f64,
-
-    /// Total processing time in milliseconds
-    pub total_processing_time_ms: u64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct GateDecisionStats {
-    pub raw: usize,
-    pub probes_first: usize,
-    pub headless: usize,
-}
-
-/// Retry configuration for pipeline operations
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PipelineRetryConfig {
-    /// Maximum retry attempts
-    pub max_retries: usize,
-    /// Initial delay in milliseconds
-    pub initial_delay_ms: u64,
-    /// Maximum delay in milliseconds
-    pub max_delay_ms: u64,
-    /// Override strategy (None = auto-select based on error)
-    #[cfg(feature = "llm")]
+// Internal retry config extension for llm feature
+#[cfg(feature = "llm")]
+#[derive(Debug, Clone)]
+pub(crate) struct InternalRetryConfig {
+    pub base: PipelineRetryConfig,
     pub strategy: Option<SmartRetryStrategy>,
 }
 
-impl Default for PipelineRetryConfig {
-    fn default() -> Self {
+#[cfg(feature = "llm")]
+impl From<PipelineRetryConfig> for InternalRetryConfig {
+    fn from(config: PipelineRetryConfig) -> Self {
         Self {
-            max_retries: 3,
-            initial_delay_ms: 100,
-            max_delay_ms: 30_000,
-            #[cfg(feature = "llm")]
-            strategy: None, // Auto-select
+            base: config.clone(),
+            strategy: config.strategy.as_ref().and_then(|s| match s.as_str() {
+                "exponential" => Some(SmartRetryStrategy::Exponential),
+                "linear" => Some(SmartRetryStrategy::Linear),
+                "fibonacci" => Some(SmartRetryStrategy::Fibonacci),
+                "adaptive" => Some(SmartRetryStrategy::Adaptive),
+                _ => None,
+            }),
         }
     }
 }
@@ -164,6 +107,9 @@ impl Default for PipelineRetryConfig {
 pub struct PipelineOrchestrator {
     state: AppState,
     options: CrawlOptions,
+    #[cfg(feature = "llm")]
+    retry_config: InternalRetryConfig,
+    #[cfg(not(feature = "llm"))]
     retry_config: PipelineRetryConfig,
 }
 
@@ -182,6 +128,9 @@ impl PipelineOrchestrator {
         Self {
             state,
             options,
+            #[cfg(feature = "llm")]
+            retry_config: retry_config.into(),
+            #[cfg(not(feature = "llm"))]
             retry_config,
         }
     }
@@ -196,8 +145,8 @@ impl PipelineOrchestrator {
     #[cfg(feature = "llm")]
     fn select_retry_strategy(&self, error: &ApiError) -> Option<SmartRetryStrategy> {
         // If strategy override is set, use it
-        if let Some(strategy) = self.retry_config.strategy {
-            return Some(strategy);
+        if let Some(strategy) = &self.retry_config.strategy {
+            return Some(*strategy);
         }
 
         // Auto-select based on error type
@@ -244,9 +193,9 @@ impl PipelineOrchestrator {
     #[cfg(feature = "llm")]
     fn create_smart_retry(&self, strategy: SmartRetryStrategy) -> SmartRetry {
         let retry_config = RetryConfig {
-            max_attempts: self.retry_config.max_retries as u32,
-            initial_delay_ms: self.retry_config.initial_delay_ms,
-            max_delay_ms: self.retry_config.max_delay_ms,
+            max_attempts: self.retry_config.base.max_retries as u32,
+            initial_delay_ms: self.retry_config.base.initial_delay_ms,
+            max_delay_ms: self.retry_config.base.max_delay_ms,
             jitter: 0.25, // 25% jitter for retry variance
             backoff_multiplier: 2.0,
         };
@@ -1108,10 +1057,24 @@ impl PipelineOrchestrator {
 // Implement Clone for PipelineOrchestrator to support concurrent execution
 impl Clone for PipelineOrchestrator {
     fn clone(&self) -> Self {
-        Self {
-            state: self.state.clone(),
-            options: self.options.clone(),
-            retry_config: self.retry_config.clone(),
+        #[cfg(feature = "llm")]
+        {
+            Self {
+                state: self.state.clone(),
+                options: self.options.clone(),
+                retry_config: InternalRetryConfig {
+                    base: self.retry_config.base.clone(),
+                    strategy: self.retry_config.strategy,
+                },
+            }
+        }
+        #[cfg(not(feature = "llm"))]
+        {
+            Self {
+                state: self.state.clone(),
+                options: self.options.clone(),
+                retry_config: self.retry_config.clone(),
+            }
         }
     }
 }

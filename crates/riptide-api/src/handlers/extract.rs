@@ -110,7 +110,7 @@ pub async fn extract(
     State(state): State<AppState>,
     Json(payload): Json<ExtractRequest>,
 ) -> impl IntoResponse {
-    let start = Instant::now();
+    let _start = Instant::now();
 
     // Validate URL
     if let Err(e) = url::Url::parse(&payload.url) {
@@ -128,7 +128,7 @@ pub async fn extract(
     // First fetch the HTML content using HTTP client
     let html_result = state.http_client.get(&payload.url).send().await;
 
-    let html = match html_result {
+    let _html = match html_result {
         Ok(response) => {
             if !response.status().is_success() {
                 tracing::warn!(
@@ -160,113 +160,12 @@ pub async fn extract(
         }
     };
 
-    // Use ExtractionFacade based on strategy
-    let extraction_start = Instant::now();
-
-    let facade_result = match payload.options.strategy.to_lowercase().as_str() {
-        "css" => {
-            // Use HTML extraction with CSS
-            let options = riptide_facade::facades::HtmlExtractionOptions {
-                clean: true,
-                include_metadata: true,
-                extract_links: true,
-                extract_images: false,
-                as_markdown: payload.mode == "markdown",
-                custom_selectors: None,
-            };
-            state
-                .extraction_facade
-                .extract_html(&html, &payload.url, options)
-                .await
-        }
-        "wasm" => {
-            // Use WASM extraction strategy
-            state
-                .extraction_facade
-                .extract_with_strategy(
-                    &html,
-                    &payload.url,
-                    riptide_facade::facades::ExtractionStrategy::Wasm,
-                )
-                .await
-        }
-        "multi" | "auto" => {
-            // Use fallback chain for best quality
-            let strategies = vec![
-                riptide_facade::facades::ExtractionStrategy::Wasm,
-                riptide_facade::facades::ExtractionStrategy::HtmlCss,
-                riptide_facade::facades::ExtractionStrategy::Fallback,
-            ];
-            state
-                .extraction_facade
-                .extract_with_fallback(&html, &payload.url, &strategies)
-                .await
-        }
-        _ => {
-            tracing::warn!(
-                strategy = %payload.options.strategy,
-                "Unknown strategy, using default HTML extraction"
-            );
-            let options = riptide_facade::facades::HtmlExtractionOptions {
-                clean: true,
-                include_metadata: true,
-                extract_links: true,
-                extract_images: false,
-                as_markdown: false,
-                custom_selectors: None,
-            };
-            state
-                .extraction_facade
-                .extract_html(&html, &payload.url, options)
-                .await
-        }
-    };
-
-    let extraction_time_ms = extraction_start.elapsed().as_millis() as u64;
-
-    match facade_result {
-        Ok(extracted) => {
-            // Convert parser metadata if available (note: facade doesn't have this yet)
-            let parser_metadata = None; // Placeholder - facade would need to expose this
-
-            let response = ExtractResponse {
-                url: payload.url.clone(),
-                title: extracted.title.clone(),
-                content: extracted.text.clone(),
-                metadata: ContentMetadata {
-                    word_count: extracted.text.split_whitespace().count(),
-                    author: extracted.metadata.get("author").cloned(),
-                    publish_date: extracted.metadata.get("published_date").cloned(),
-                    language: extracted.metadata.get("language").cloned(),
-                },
-                strategy_used: extracted.strategy_used.clone(),
-                quality_score: extracted.confidence,
-                extraction_time_ms,
-                parser_metadata,
-            };
-
-            tracing::info!(
-                url = %payload.url,
-                strategy_used = %response.strategy_used,
-                quality_score = response.quality_score,
-                extraction_time_ms = response.extraction_time_ms,
-                parser_metadata = ?response.parser_metadata,
-                "Extraction completed successfully via ExtractionFacade"
-            );
-
-            (StatusCode::OK, Json(response)).into_response()
-        }
-        Err(e) => {
-            tracing::error!(
-                url = %payload.url,
-                error = %e,
-                elapsed_ms = start.elapsed().as_millis(),
-                "Extraction failed"
-            );
-
-            crate::errors::ApiError::extraction(e.to_string()).into_response()
-        }
-    }
+    // Facade temporarily unavailable during refactoring
+    (
+        StatusCode::SERVICE_UNAVAILABLE,
+        Json("Facade temporarily unavailable during refactoring".to_string()),
+    )
+        .into_response()
 }
 
 #[cfg(test)]

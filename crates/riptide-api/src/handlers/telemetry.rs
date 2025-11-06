@@ -227,7 +227,7 @@ pub async fn get_trace_tree(
     let trace = trace_backend
         .get_trace(&trace_id)
         .await?
-        .ok_or_else(|| ApiError::not_found(&format!("Trace {} not found", trace_id_str)))?;
+        .ok_or_else(|| ApiError::not_found(format!("Trace {} not found", trace_id_str)))?;
 
     // Build trace tree from flat span list
     use crate::handlers::trace_backend::build_trace_tree;

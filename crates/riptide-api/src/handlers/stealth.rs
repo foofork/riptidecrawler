@@ -3,12 +3,10 @@
 
 use axum::{
     extract::State,
-    http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 
 use crate::errors::ApiError;
 use crate::state::AppState;

@@ -1,7 +1,7 @@
-///! Session context management for RPC client stateful rendering
-///!
-///! This module provides session persistence infrastructure for the RPC client,
-///! enabling stateful rendering workflows with session management.
+//! Session context management for RPC client stateful rendering
+//!
+//! This module provides session persistence infrastructure for the RPC client,
+//! enabling stateful rendering workflows with session management.
 use anyhow::{anyhow, Result};
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};

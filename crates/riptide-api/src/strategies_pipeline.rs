@@ -10,10 +10,16 @@ use riptide_reliability::gate::{decide, score, Decision, GateFeatures};
 use riptide_types::config::CrawlOptions;
 use riptide_types::RenderMode;
 use serde::{Deserialize, Serialize};
+use serde_json;
 use std::time::{Duration, Instant};
 use tokio::time::timeout;
 use tracing::{debug, info, warn};
 use url::Url;
+
+// Re-export StrategiesPipelineResult type for compatibility
+// Note: The actual implementation uses ProcessedContent from riptide-extraction
+// which cannot be serialized in riptide-pipeline, so we keep a local definition
+// and provide conversion to the riptide-pipeline type when needed
 
 /// Enhanced pipeline result with strategies integration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,6 +50,25 @@ pub struct StrategiesPipelineResult {
 
     /// Performance metrics if enabled
     pub performance_metrics: Option<PerformanceMetrics>,
+}
+
+// Conversion to riptide-pipeline type for facade layer
+impl From<StrategiesPipelineResult> for riptide_pipeline::StrategiesPipelineResult {
+    fn from(result: StrategiesPipelineResult) -> Self {
+        riptide_pipeline::StrategiesPipelineResult {
+            processed_content: serde_json::to_value(&result.processed_content).ok(),
+            from_cache: result.from_cache,
+            gate_decision: result.gate_decision,
+            quality_score: result.quality_score,
+            processing_time_ms: result.processing_time_ms,
+            cache_key: result.cache_key,
+            http_status: result.http_status,
+            strategy_config: serde_json::to_value(&result.strategy_config).ok(),
+            performance_metrics: result
+                .performance_metrics
+                .and_then(|m| serde_json::to_value(&m).ok()),
+        }
+    }
 }
 
 /// Pipeline orchestrator with strategies integration

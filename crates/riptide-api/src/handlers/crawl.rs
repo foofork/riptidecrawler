@@ -286,6 +286,7 @@ pub async fn crawl(
 }
 
 /// Handle spider crawl as part of regular crawl endpoint
+#[allow(unused_variables)]
 pub(super) async fn handle_spider_crawl(
     state: &AppState,
     urls: &[String],
@@ -293,90 +294,104 @@ pub(super) async fn handle_spider_crawl(
 ) -> Result<Json<CrawlResponse>, ApiError> {
     use super::shared::spider::parse_seed_urls;
 
-    // Check if spider facade is enabled
-    let spider_facade = state
-        .spider_facade
-        .as_ref()
-        .ok_or_else(|| ApiError::ConfigError {
-            message:
-                "SpiderFacade is not enabled. Set SPIDER_ENABLE=true to enable spider crawling."
-                    .to_string(),
-        })?;
+    // Spider facade temporarily removed during refactoring
+    // TODO: Re-implement spider crawling after facade unification
+    return Err(ApiError::ConfigError {
+        message: "Spider crawling temporarily unavailable during facade refactoring.".to_string(),
+    });
 
-    // Parse and validate URLs using shared utility
-    let seed_urls = parse_seed_urls(urls)?;
+    // ===== UNREACHABLE CODE BELOW - Kept for future reference during refactoring =====
+    #[allow(unreachable_code)]
+    {
+        // Parse and validate URLs using shared utility
+        let seed_urls = parse_seed_urls(urls)?;
 
-    // Build spider config using shared builder
-    let _spider_config =
-        SpiderConfigBuilder::new(state, seed_urls[0].clone()).from_crawl_options(options);
+        // Build spider config using shared builder
+        let _spider_config =
+            SpiderConfigBuilder::new(state, seed_urls[0].clone()).from_crawl_options(options);
 
-    debug!("Using spider crawl via SpiderFacade with provided options");
+        debug!("Using spider crawl via SpiderFacade with provided options");
 
-    // Create metrics recorder
-    let metrics = MetricsRecorder::new(state);
+        // Create metrics recorder
+        let metrics = MetricsRecorder::new(state);
 
-    // Perform the crawl using SpiderFacade (requires owned Vec<Url>)
-    let spider_result = spider_facade.crawl(seed_urls).await.map_err(|e| {
-        // Record failed spider crawl
-        metrics.record_spider_crawl_failure();
-        ApiError::internal(format!("Spider crawl failed: {}", e))
-    })?;
+        // Perform the crawl using SpiderFacade (requires owned Vec<Url>)
+        // REMOVED: let spider_result = spider_facade.crawl(seed_urls).await...
 
-    // Record successful spider crawl completion
-    metrics.record_spider_crawl(
-        spider_result.pages_crawled,
-        spider_result.pages_failed,
-        std::time::Duration::from_secs_f64(spider_result.duration_secs),
-    );
+        // Placeholder struct for unreachable code to compile
+        #[allow(dead_code)]
+        struct PlaceholderSpiderResult {
+            pages_crawled: u64,
+            pages_failed: u64,
+            duration_secs: f64,
+            domains: Vec<String>,
+            stop_reason: String,
+        }
+        let spider_result = PlaceholderSpiderResult {
+            pages_crawled: 0,
+            pages_failed: 0,
+            duration_secs: 0.0,
+            domains: Vec::new(),
+            stop_reason: String::new(),
+        };
 
-    // Convert spider result to standard crawl response format
-    let mut crawl_results = Vec::new();
+        // Record successful spider crawl completion
+        metrics.record_spider_crawl(
+            spider_result.pages_crawled,
+            spider_result.pages_failed,
+            std::time::Duration::from_secs_f64(spider_result.duration_secs),
+        );
 
-    // Since spider returns its own result format, we need to create compatible results
-    // For now, we'll create placeholder results - in a full implementation,
-    // you'd need to collect the actual crawled pages from spider
-    for (index, url) in urls.iter().enumerate() {
-        crawl_results.push(CrawlResult {
-            url: url.clone(),
-            status: 200, // Placeholder - spider would provide actual status
-            from_cache: false,
-            gate_decision: "spider_crawl".to_string(),
-            quality_score: 0.8, // Placeholder
-            processing_time_ms: (spider_result.duration_secs * 1000.0) as u64 / urls.len() as u64,
-            document: None, // Spider would need to return actual documents
-            error: None,
-            cache_key: format!("spider_{}", index),
-        });
-    }
+        // Convert spider result to standard crawl response format
+        let mut crawl_results = Vec::new();
 
-    let statistics = CrawlStatistics {
-        total_processing_time_ms: (spider_result.duration_secs * 1000.0) as u64,
-        avg_processing_time_ms: (spider_result.duration_secs * 1000.0) / urls.len() as f64,
-        gate_decisions: GateDecisionBreakdown {
-            raw: 0,
-            probes_first: 0,
-            headless: 0,
-            cached: 0,
-        },
-        cache_hit_rate: 0.0,
-    };
+        // Since spider returns its own result format, we need to create compatible results
+        // For now, we'll create placeholder results - in a full implementation,
+        // you'd need to collect the actual crawled pages from spider
+        for (index, url) in urls.iter().enumerate() {
+            crawl_results.push(CrawlResult {
+                url: url.clone(),
+                status: 200, // Placeholder - spider would provide actual status
+                from_cache: false,
+                gate_decision: "spider_crawl".to_string(),
+                quality_score: 0.8, // Placeholder
+                processing_time_ms: (spider_result.duration_secs * 1000.0) as u64
+                    / urls.len() as u64,
+                document: None, // Spider would need to return actual documents
+                error: None,
+                cache_key: format!("spider_{}", index),
+            });
+        }
 
-    let response = CrawlResponse {
-        total_urls: urls.len(),
-        successful: spider_result.pages_crawled as usize,
-        failed: spider_result.pages_failed as usize,
-        from_cache: 0,
-        results: crawl_results,
-        statistics,
-    };
+        let statistics = CrawlStatistics {
+            total_processing_time_ms: (spider_result.duration_secs * 1000.0) as u64,
+            avg_processing_time_ms: (spider_result.duration_secs * 1000.0) / urls.len() as f64,
+            gate_decisions: GateDecisionBreakdown {
+                raw: 0,
+                probes_first: 0,
+                headless: 0,
+                cached: 0,
+            },
+            cache_hit_rate: 0.0,
+        };
 
-    info!(
-        pages_crawled = spider_result.pages_crawled,
-        pages_failed = spider_result.pages_failed,
-        domains = spider_result.domains.len(),
-        stop_reason = %spider_result.stop_reason,
-        "Spider crawl completed via regular crawl endpoint"
-    );
+        let response = CrawlResponse {
+            total_urls: urls.len(),
+            successful: spider_result.pages_crawled as usize,
+            failed: spider_result.pages_failed as usize,
+            from_cache: 0,
+            results: crawl_results,
+            statistics,
+        };
 
-    Ok(Json(response))
+        info!(
+            pages_crawled = spider_result.pages_crawled,
+            pages_failed = spider_result.pages_failed,
+            domains = spider_result.domains.len(),
+            stop_reason = %spider_result.stop_reason,
+            "Spider crawl completed via regular crawl endpoint"
+        );
+
+        Ok(Json(response))
+    } // End of unreachable block
 }

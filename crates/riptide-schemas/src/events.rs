@@ -31,7 +31,7 @@ let v2_event = EventV2Adapter::from_v1(v1_event)?;
 */
 
 use chrono::{DateTime, Utc};
-use riptide_types::RiptideResult;
+use riptide_types::Result;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -233,7 +233,7 @@ impl Default for Organizer {
 /// ```
 pub trait SchemaAdapter<T> {
     /// Convert from V1 schema to target schema
-    fn from_v1(event: Event) -> RiptideResult<T>;
+    fn from_v1(event: Event) -> Result<T>;
 
     /// Convert to V1 schema from source schema
     fn to_v1(value: &T) -> Event;
@@ -247,7 +247,7 @@ pub trait SchemaAdapter<T> {
 pub struct EventV2Adapter;
 
 impl SchemaAdapter<Event> for EventV2Adapter {
-    fn from_v1(event: Event) -> RiptideResult<Event> {
+    fn from_v1(event: Event) -> Result<Event> {
         // Identity for now, will evolve in v1.1+
         Ok(event)
     }

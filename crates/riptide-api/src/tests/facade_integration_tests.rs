@@ -12,7 +12,6 @@
 //! Most tests use mocks and don't require real resources. Tests marked with
 //! `#[ignore]` require actual browser/network resources and should be run explicitly.
 
-use crate::config::RiptideApiConfig;
 use crate::handlers::browser::{BrowserAction, CreateSessionRequest};
 use crate::handlers::extract::{ExtractOptions, ExtractRequest};
 use crate::health::HealthChecker;

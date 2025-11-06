@@ -21,15 +21,17 @@ use riptide_spider::{Spider, SpiderConfig};
 #[cfg(feature = "extraction")]
 use riptide_extraction::UnifiedExtractor;
 use riptide_monitoring::TelemetrySystem;
-// Facade types imported explicitly to avoid conflicts
-use riptide_facade::facades::ExtractionFacade;
-#[cfg(feature = "search")]
-use riptide_facade::facades::SearchFacade;
-#[cfg(feature = "spider")]
-use riptide_facade::facades::SpiderFacade;
-#[cfg(feature = "browser")]
-use riptide_facade::BrowserFacade;
-use riptide_facade::ScraperFacade;
+// Facade types removed to break circular dependency
+// Facades are now used through riptide-facade crate directly
+// #[cfg(feature = "extraction")]
+// use riptide_facade::facades::ExtractionFacade;
+// #[cfg(feature = "search")]
+// use riptide_facade::facades::SearchFacade;
+// #[cfg(feature = "spider")]
+// use riptide_facade::facades::SpiderFacade;
+// #[cfg(feature = "browser")]
+// use riptide_facade::BrowserFacade;
+// use riptide_facade::ScraperFacade;
 #[cfg(feature = "browser")]
 use riptide_headless::launcher::HeadlessLauncher;
 use riptide_monitoring::{
@@ -139,22 +141,27 @@ pub struct AppState {
 
     /// Browser facade for simplified browser automation
     /// Only available when using local Chrome mode (headless_url not configured)
-    #[cfg(feature = "browser")]
-    pub browser_facade: Option<Arc<BrowserFacade>>,
+    /// REMOVED: Caused circular dependency with riptide-facade
+    // #[cfg(feature = "browser")]
+    // pub browser_facade: Option<Arc<BrowserFacade>>,
 
     /// Extraction facade for content extraction with multiple strategies
-    pub extraction_facade: Arc<ExtractionFacade>,
+    /// REMOVED: Caused circular dependency with riptide-facade
+    // pub extraction_facade: Arc<ExtractionFacade>,
 
     /// Scraper facade for simple HTTP operations
-    pub scraper_facade: Arc<ScraperFacade>,
+    /// REMOVED: Caused circular dependency with riptide-facade
+    // pub scraper_facade: Arc<ScraperFacade>,
 
     /// Spider facade for web crawling operations
-    #[cfg(feature = "spider")]
-    pub spider_facade: Option<Arc<SpiderFacade>>,
+    /// REMOVED: Caused circular dependency with riptide-facade
+    // #[cfg(feature = "spider")]
+    // pub spider_facade: Option<Arc<SpiderFacade>>,
 
     /// Search facade for web search operations
-    #[cfg(feature = "search")]
-    pub search_facade: Option<Arc<SearchFacade>>,
+    /// REMOVED: Caused circular dependency with riptide-facade
+    // #[cfg(feature = "search")]
+    // pub search_facade: Option<Arc<SearchFacade>>,
 
     /// Trace backend for distributed trace storage and retrieval
     pub trace_backend: Option<Arc<dyn crate::handlers::trace_backend::TraceBackend>>,
@@ -975,154 +982,154 @@ impl AppState {
 
         // Create facade configuration from existing config
         // NOTE: Using default timeout since reliability_config is feature-gated
-        let facade_config = riptide_facade::RiptideConfig::default()
-            .with_timeout(Duration::from_secs(30)) // Default timeout since reliability_config is disabled
-            .with_stealth_enabled(true) // Stealth enabled by default (Medium preset)
-            .with_stealth_preset("Medium");
+        // REMOVED: Caused circular dependency with riptide-facade
+        // let facade_config = riptide_facade::RiptideConfig::default()
+        //     .with_timeout(Duration::from_secs(30)) // Default timeout since reliability_config is disabled
+        //     .with_stealth_enabled(true) // Stealth enabled by default (Medium preset)
+        //     .with_stealth_preset("Medium");
 
         // Initialize browser facade only if not using headless service
-        #[cfg(feature = "browser")]
-        let browser_facade = if let Some(url) = &config.headless_url {
-            if !url.is_empty() {
-                tracing::info!(
-                    headless_url = %url,
-                    "Headless service URL configured - skipping BrowserFacade initialization (requires local Chrome)"
-                );
-                None
-            } else {
-                tracing::info!("HEADLESS_URL is empty - initializing BrowserFacade for local browser automation");
-                match BrowserFacade::new(facade_config.clone()).await {
-                    Ok(facade) => {
-                        tracing::info!("BrowserFacade initialized successfully");
-                        Some(Arc::new(facade))
-                    }
-                    Err(e) => {
-                        tracing::error!(error = %e, "Failed to initialize BrowserFacade");
-                        return Err(anyhow::anyhow!("Failed to initialize BrowserFacade: {}", e));
-                    }
-                }
-            }
-        } else {
-            tracing::info!("Initializing BrowserFacade for local browser automation");
-            match BrowserFacade::new(facade_config.clone()).await {
-                Ok(facade) => {
-                    tracing::info!("BrowserFacade initialized successfully");
-                    Some(Arc::new(facade))
-                }
-                Err(e) => {
-                    tracing::error!(error = %e, "Failed to initialize BrowserFacade");
-                    return Err(anyhow::anyhow!("Failed to initialize BrowserFacade: {}", e));
-                }
-            }
-        };
+        // #[cfg(feature = "browser")]
+        // let browser_facade = if let Some(url) = &config.headless_url {
+        //     if !url.is_empty() {
+        //         tracing::info!(
+        //             headless_url = %url,
+        //             "Headless service URL configured - skipping BrowserFacade initialization (requires local Chrome)"
+        //         );
+        //         None
+        //     } else {
+        //         tracing::info!("HEADLESS_URL is empty - initializing BrowserFacade for local browser automation");
+        //         match BrowserFacade::new(facade_config.clone()).await {
+        //             Ok(facade) => {
+        //                 tracing::info!("BrowserFacade initialized successfully");
+        //                 Some(Arc::new(facade))
+        //             }
+        //             Err(e) => {
+        //                 tracing::error!(error = %e, "Failed to initialize BrowserFacade");
+        //                 return Err(anyhow::anyhow!("Failed to initialize BrowserFacade: {}", e));
+        //             }
+        //         }
+        //     }
+        // } else {
+        //     tracing::info!("Initializing BrowserFacade for local browser automation");
+        //     match BrowserFacade::new(facade_config.clone()).await {
+        //         Ok(facade) => {
+        //             tracing::info!("BrowserFacade initialized successfully");
+        //             Some(Arc::new(facade))
+        //         }
+        //         Err(e) => {
+        //             tracing::error!(error = %e, "Failed to initialize BrowserFacade");
+        //             return Err(anyhow::anyhow!("Failed to initialize BrowserFacade: {}", e));
+        //         }
+        //     }
+        // };
 
         // Initialize extraction facade
-        let extraction_facade = Arc::new(
-            ExtractionFacade::new(facade_config.clone())
-                .await
-                .map_err(|e| {
-                    tracing::error!(error = %e, "Failed to initialize ExtractionFacade");
-                    anyhow::anyhow!("Failed to initialize ExtractionFacade: {}", e)
-                })?,
-        );
-        tracing::info!("ExtractionFacade initialized successfully");
+        // REMOVED: Caused circular dependency with riptide-facade
+        // let extraction_facade = Arc::new(
+        //     ExtractionFacade::new(facade_config.clone())
+        //         .await
+        //         .map_err(|e| {
+        //             tracing::error!(error = %e, "Failed to initialize ExtractionFacade");
+        //             anyhow::anyhow!("Failed to initialize ExtractionFacade: {}", e)
+        //         })?,
+        // );
+        // tracing::info!("ExtractionFacade initialized successfully");
 
         // Initialize scraper facade
-        let scraper_facade = Arc::new(ScraperFacade::new(facade_config.clone()).await.map_err(
-            |e| {
-                tracing::error!(error = %e, "Failed to initialize ScraperFacade");
-                anyhow::anyhow!("Failed to initialize ScraperFacade: {}", e)
-            },
-        )?);
-        tracing::info!("ScraperFacade initialized successfully");
+        // REMOVED: Caused circular dependency with riptide-facade
+        // let scraper_facade = Arc::new(ScraperFacade::new(facade_config.clone()).await.map_err(
+        //     |e| {
+        //         tracing::error!(error = %e, "Failed to initialize ScraperFacade");
+        //         anyhow::anyhow!("Failed to initialize ScraperFacade: {}", e)
+        //     },
+        // )?);
+        // tracing::info!("ScraperFacade initialized successfully");
 
         // Initialize spider facade if spider is enabled
-        let spider_facade = if config.spider_config.is_some() {
-            tracing::info!("Initializing SpiderFacade for simplified spider operations");
-            let spider_config = config
-                .spider_config
-                .as_ref()
-                .ok_or_else(|| anyhow::anyhow!("Spider config expected but not found"))?;
-            match SpiderFacade::from_config(spider_config.clone()).await {
-                Ok(facade) => {
-                    tracing::info!("SpiderFacade initialized successfully");
-                    Some(Arc::new(facade))
-                }
-                Err(e) => {
-                    tracing::warn!(error = %e, "Failed to initialize SpiderFacade, spider operations will use direct engine");
-                    None
-                }
-            }
-        } else {
-            tracing::debug!("SpiderFacade disabled (spider not enabled)");
-            None
-        };
+        // REMOVED: Caused circular dependency with riptide-facade
+        // let spider_facade = if config.spider_config.is_some() {
+        //     tracing::info!("Initializing SpiderFacade for simplified spider operations");
+        //     let spider_config = config
+        //         .spider_config
+        //         .as_ref()
+        //         .ok_or_else(|| anyhow::anyhow!("Spider config expected but not found"))?;
+        //     match SpiderFacade::from_config(spider_config.clone()).await {
+        //         Ok(facade) => {
+        //             tracing::info!("SpiderFacade initialized successfully");
+        //             Some(Arc::new(facade))
+        //         }
+        //         Err(e) => {
+        //             tracing::warn!(error = %e, "Failed to initialize SpiderFacade, spider operations will use direct engine");
+        //             None
+        //         }
+        //     }
+        // } else {
+        //     tracing::debug!("SpiderFacade disabled (spider not enabled)");
+        //     None
+        // };
 
         // Initialize search facade with backend from environment or default to None
-        #[cfg(feature = "search")]
-        let search_facade = {
-            // Read search backend from environment with fallback to None
-            let backend_str = std::env::var("RIPTIDE_SEARCH_BACKEND")
-                .or_else(|_| std::env::var("SEARCH_BACKEND"))
-                .unwrap_or_else(|_| "none".to_string());
-
-            let backend: riptide_search::SearchBackend = backend_str.parse().unwrap_or_else(|e| {
-                tracing::warn!(
-                    error = %e,
-                    backend = %backend_str,
-                    "Invalid search backend specified, falling back to 'none'"
-                );
-                riptide_search::SearchBackend::None
-            });
-
-            tracing::info!(backend = %backend, "Initializing SearchFacade");
-
-            // Try to initialize with the specified backend
-            match SearchFacade::new(backend.clone()).await {
-                Ok(facade) => {
-                    tracing::info!(backend = %backend, "SearchFacade initialized successfully");
-                    Some(Arc::new(facade))
-                }
-                Err(e) => {
-                    tracing::warn!(
-                        error = %e,
-                        backend = %backend,
-                        "Failed to initialize SearchFacade with specified backend"
-                    );
-
-                    // If not already using None backend, try falling back to None
-                    if backend != riptide_search::SearchBackend::None {
-                        tracing::info!(
-                            "Attempting fallback to 'none' backend for graceful degradation"
-                        );
-                        match SearchFacade::new(riptide_search::SearchBackend::None).await {
-                            Ok(facade) => {
-                                tracing::info!(
-                                    "SearchFacade initialized successfully with fallback 'none' backend. \
-                                     Search functionality will work with URL parsing only."
-                                );
-                                Some(Arc::new(facade))
-                            }
-                            Err(fallback_err) => {
-                                tracing::error!(
-                                    error = %fallback_err,
-                                    "Failed to initialize SearchFacade even with 'none' backend fallback. \
-                                     Search endpoint will be unavailable."
-                                );
-                                None
-                            }
-                        }
-                    } else {
-                        // Already tried None backend and it failed
-                        tracing::error!(
-                            "Failed to initialize SearchFacade with 'none' backend. \
-                             Search endpoint will be unavailable."
-                        );
-                        None
-                    }
-                }
-            }
-        };
+        // #[cfg(feature = "search")]
+        // let search_facade = {
+        // Read search backend from environment with fallback to None
+        //     let backend_str = std::env::var("RIPTIDE_SEARCH_BACKEND")
+        //         .or_else(|_| std::env::var("SEARCH_BACKEND"))
+        //         .unwrap_or_else(|_| "none".to_string());
+        //         //     let backend: riptide_search::SearchBackend = backend_str.parse().unwrap_or_else(|e| {
+        //         tracing::warn!(
+        //             error = %e,
+        //             backend = %backend_str,
+        //             "Invalid search backend specified, falling back to 'none'"
+        //         );
+        //         riptide_search::SearchBackend::None
+        //     });
+        //         //     tracing::info!(backend = %backend, "Initializing SearchFacade");
+        //             // Try to initialize with the specified backend
+        //     match SearchFacade::new(backend.clone()).await {
+        //         Ok(facade) => {
+        //             tracing::info!(backend = %backend, "SearchFacade initialized successfully");
+        //             Some(Arc::new(facade))
+        //         }
+        //         Err(e) => {
+        //             tracing::warn!(
+        //                 error = %e,
+        //                 backend = %backend,
+        //                 "Failed to initialize SearchFacade with specified backend"
+        //             );
+        //                     // If not already using None backend, try falling back to None
+        //             if backend != riptide_search::SearchBackend::None {
+        //                 tracing::info!(
+        //                     "Attempting fallback to 'none' backend for graceful degradation"
+        //                 );
+        //                 match SearchFacade::new(riptide_search::SearchBackend::None).await {
+        //                     Ok(facade) => {
+        //                         tracing::info!(
+        //                             "SearchFacade initialized successfully with fallback 'none' backend. \
+        //                              Search functionality will work with URL parsing only."
+        //                         );
+        //                         Some(Arc::new(facade))
+        //                     }
+        //                     Err(fallback_err) => {
+        //                         tracing::error!(
+        //                             error = %fallback_err,
+        //                             "Failed to initialize SearchFacade even with 'none' backend fallback. \
+        //                              Search endpoint will be unavailable."
+        //                         );
+        //                         None
+        //                     }
+        //                 }
+        //             } else {
+        // Already tried None backend and it failed
+        //                 tracing::error!(
+        //                     "Failed to initialize SearchFacade with 'none' backend. \
+        //                      Search endpoint will be unavailable."
+        //                 );
+        //                 None
+        //             }
+        //         }
+        //     }
+        // };
 
         tracing::info!("Application state initialization complete with resource controls, event bus, circuit breaker, monitoring, fetch engine, performance manager, authentication, cache warming, browser launcher, and facade layer");
 
@@ -1188,14 +1195,15 @@ impl AppState {
             cache_warmer_enabled,
             #[cfg(feature = "browser")]
             browser_launcher,
-            #[cfg(feature = "browser")]
-            browser_facade,
-            extraction_facade,
-            scraper_facade,
-            #[cfg(feature = "spider")]
-            spider_facade,
-            #[cfg(feature = "search")]
-            search_facade,
+            // Facades removed to break circular dependency
+            // #[cfg(feature = "browser")]
+            // browser_facade,
+            // extraction_facade,
+            // scraper_facade,
+            // #[cfg(feature = "spider")]
+            // spider_facade,
+            // #[cfg(feature = "search")]
+            // search_facade,
             trace_backend,
             #[cfg(feature = "persistence")]
             persistence_adapter: None, // TODO: Initialize actual persistence adapter when integrated
@@ -1507,23 +1515,24 @@ impl AppState {
                 .expect("Failed to create browser launcher"),
         ));
 
-        let facade_config = riptide_facade::RiptideConfig::default();
-        #[cfg(feature = "browser")]
-        let browser_facade = Some(Arc::new(
-            BrowserFacade::new(facade_config.clone())
-                .await
-                .expect("Failed to create browser facade"),
-        ));
-        let extraction_facade = Arc::new(
-            ExtractionFacade::new(facade_config.clone())
-                .await
-                .expect("Failed to create extraction facade"),
-        );
-        let scraper_facade = Arc::new(
-            ScraperFacade::new(facade_config.clone())
-                .await
-                .expect("Failed to create scraper facade"),
-        );
+        // Facades removed to break circular dependency
+        // let facade_config = riptide_facade::RiptideConfig::default();
+        // #[cfg(feature = "browser")]
+        // let browser_facade = Some(Arc::new(
+        //     BrowserFacade::new(facade_config.clone())
+        //         .await
+        //         .expect("Failed to create browser facade"),
+        // ));
+        // let extraction_facade = Arc::new(
+        //     ExtractionFacade::new(facade_config.clone())
+        //         .await
+        //         .expect("Failed to create extraction facade"),
+        // );
+        // let scraper_facade = Arc::new(
+        //     ScraperFacade::new(facade_config.clone())
+        //         .await
+        //         .expect("Failed to create scraper facade"),
+        // );
 
         Self {
             http_client,
@@ -1555,14 +1564,15 @@ impl AppState {
             cache_warmer_enabled,
             #[cfg(feature = "browser")]
             browser_launcher,
-            #[cfg(feature = "browser")]
-            browser_facade,
-            extraction_facade,
-            scraper_facade,
-            #[cfg(feature = "spider")]
-            spider_facade: None,
-            #[cfg(feature = "search")]
-            search_facade: None,
+            // Facades removed to break circular dependency
+            // #[cfg(feature = "browser")]
+            // browser_facade,
+            // extraction_facade,
+            // scraper_facade,
+            // #[cfg(feature = "spider")]
+            // spider_facade: None,
+            // #[cfg(feature = "search")]
+            // search_facade: None,
             trace_backend: None,
             #[cfg(feature = "persistence")]
             persistence_adapter: None, // TODO: Initialize actual persistence adapter when integrated

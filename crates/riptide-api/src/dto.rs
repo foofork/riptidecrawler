@@ -66,30 +66,9 @@ pub struct SpiderResultUrls {
     pub discovered_urls: Vec<String>,
 }
 
-impl From<&riptide_facade::facades::spider::CrawlSummary> for SpiderResultStats {
-    fn from(summary: &riptide_facade::facades::spider::CrawlSummary) -> Self {
-        Self {
-            pages_crawled: summary.pages_crawled,
-            pages_failed: summary.pages_failed,
-            duration_seconds: summary.duration_secs,
-            stop_reason: summary.stop_reason.clone(),
-            domains: summary.domains.clone(),
-        }
-    }
-}
-
-impl From<&riptide_facade::facades::spider::CrawlSummary> for SpiderResultUrls {
-    fn from(summary: &riptide_facade::facades::spider::CrawlSummary) -> Self {
-        Self {
-            pages_crawled: summary.pages_crawled,
-            pages_failed: summary.pages_failed,
-            duration_seconds: summary.duration_secs,
-            stop_reason: summary.stop_reason.clone(),
-            domains: summary.domains.clone(),
-            discovered_urls: summary.discovered_urls.clone(),
-        }
-    }
-}
+// Facade integration removed - These types are now constructed directly
+// from spider crawl results in handlers/spider.rs
+// TODO: Re-implement conversion from spider::CrawlResult when spider integration is complete
 
 /// A single crawled page with all available information
 #[derive(Serialize, Debug, Clone)]

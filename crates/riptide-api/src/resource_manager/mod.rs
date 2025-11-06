@@ -74,14 +74,11 @@ pub use rate_limiter::{HostStats, PerHostRateLimiter};
 pub use wasm_manager::{WasmInstanceManager, WasmInstanceStats};
 
 // Standard library imports
-use std::{
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::{sync::Arc, time::Duration};
 
 // External dependencies
 use tokio::{sync::Semaphore, time::timeout};
-use tracing::{debug, error, info, warn};
+use tracing::{info, warn};
 use url::Url;
 
 // Internal dependencies
@@ -190,7 +187,7 @@ impl ResourceManager {
     /// as the API will use the headless service for rendering instead.
     pub async fn new_with_headless_url(
         config: RiptideApiConfig,
-        headless_url: Option<String>,
+        _headless_url: Option<String>,
     ) -> errors::Result<Self> {
         info!("Initializing comprehensive resource manager");
 
@@ -415,7 +412,7 @@ impl ResourceManager {
     pub async fn acquire_render_resources(
         &self,
         _url: &str,
-    ) -> errors::Result<ResourceResult<RenderResourceGuard>> {
+    ) -> errors::Result<ResourceResult<PdfResourceGuard>> {
         Err(ResourceManagerError::Configuration(
             "Browser feature not enabled in build. Recompile with --features browser to use render resources.".to_string()
         ))
@@ -548,6 +545,7 @@ impl ResourceManager {
     // Helper methods
 
     /// Extract host from URL for rate limiting
+    #[allow(dead_code)]
     fn extract_host(&self, url: &str) -> errors::Result<String> {
         let parsed = Url::parse(url)?;
         Ok(parsed
@@ -557,6 +555,7 @@ impl ResourceManager {
     }
 
     /// Get current worker ID for WASM instance management
+    #[allow(dead_code)]
     fn get_worker_id(&self) -> String {
         format!("worker_{:?}", std::thread::current().id())
     }

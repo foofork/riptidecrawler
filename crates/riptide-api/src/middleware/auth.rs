@@ -349,6 +349,7 @@ fn get_key_prefix(key: &str) -> String {
 /// # Returns
 ///
 /// `true` if the strings are equal, `false` otherwise
+#[allow(dead_code)]
 fn constant_time_compare(a: &str, b: &str) -> bool {
     if a.len() != b.len() {
         return false;
@@ -738,7 +739,6 @@ fn rate_limited_response(retry_after: Duration) -> Response {
 
 #[allow(dead_code)]
 mod tests {
-    use super::*;
     #[allow(unused_imports)]
     use axum::http::Request;
 

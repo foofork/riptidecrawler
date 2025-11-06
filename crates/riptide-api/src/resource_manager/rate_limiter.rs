@@ -26,9 +26,11 @@ use tracing::{debug, warn};
 /// Uses DashMap for lock-free concurrent access, eliminating contention
 /// and improving throughput under high load.
 pub struct PerHostRateLimiter {
+    #[allow(dead_code)]
     config: RiptideApiConfig,
     host_buckets: Arc<DashMap<String, HostBucket>>,
     cleanup_task: Mutex<Option<tokio::task::JoinHandle<()>>>,
+    #[allow(dead_code)]
     metrics: Arc<ResourceMetrics>,
 }
 
@@ -43,6 +45,7 @@ struct HostBucket {
     /// Available tokens (fractional for smooth rate limiting)
     tokens: f64,
     /// Last time tokens were refilled
+    #[allow(dead_code)]
     last_refill: Instant,
     /// Total requests from this host
     request_count: u64,
@@ -129,6 +132,7 @@ impl PerHostRateLimiter {
     /// # Returns
     /// * `Ok(())` - Request allowed
     /// * `Err(Duration)` - Rate limited, retry after duration
+    #[allow(dead_code)]
     pub(crate) async fn check_rate_limit(&self, host: &str) -> std::result::Result<(), Duration> {
         if !self.config.rate_limiting.enabled {
             return Ok(());

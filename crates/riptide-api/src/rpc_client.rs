@@ -4,8 +4,8 @@ use reqwest::Client;
 use riptide_headless::dynamic::{DynamicConfig, DynamicRenderResult, PageAction, RenderArtifacts};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
-use tracing::{debug, info, warn};
+use std::time::Duration;
+use tracing::debug;
 
 use crate::rpc_session_context::{RpcSessionContext, RpcSessionStore, SessionMetrics};
 
@@ -14,6 +14,7 @@ use crate::rpc_session_context::{RpcSessionContext, RpcSessionStore, SessionMetr
 pub struct RpcClient {
     client: Client,
     base_url: String,
+    #[allow(dead_code)]
     timeout: Duration,
     /// Optional session store for stateful rendering
     session_store: Option<Arc<RpcSessionStore>>,
@@ -294,6 +295,7 @@ impl RpcClient {
 
 /// Request format for headless browser service
 #[derive(Debug, Serialize)]
+#[allow(dead_code)]
 struct HeadlessRenderRequest {
     url: String,
     /// Session ID for browser profile persistence
@@ -308,6 +310,7 @@ struct HeadlessRenderRequest {
 
 /// Timeout configuration for headless browser
 #[derive(Debug, Serialize)]
+#[allow(dead_code)]
 struct HeadlessTimeouts {
     nav_ms: Option<u64>,
     idle_after_dcl_ms: Option<u64>,
@@ -316,6 +319,7 @@ struct HeadlessTimeouts {
 
 /// Artifacts configuration for headless browser
 #[derive(Debug, Serialize)]
+#[allow(dead_code)]
 struct HeadlessArtifacts {
     screenshot: bool,
     mhtml: bool,
@@ -324,6 +328,7 @@ struct HeadlessArtifacts {
 /// Page action format for headless browser
 #[derive(Debug, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
+#[allow(dead_code)]
 enum HeadlessPageAction {
     WaitForCss {
         css: String,
@@ -348,6 +353,7 @@ enum HeadlessPageAction {
 
 /// Response format from headless browser service
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct HeadlessRenderResponse {
     #[allow(dead_code)] // May be used for URL tracking in future
     final_url: String,

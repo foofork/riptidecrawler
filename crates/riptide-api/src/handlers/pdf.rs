@@ -13,7 +13,7 @@ use base64::prelude::*;
 use futures_util::stream::Stream;
 use riptide_pdf::types::{ProgressReceiver, ProgressUpdate};
 use serde::{Deserialize, Serialize};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info, warn};
 
 use crate::{
     errors::ApiError,
@@ -76,7 +76,7 @@ pub async fn process_pdf(
     State(state): State<AppState>,
     Json(request): Json<PdfProcessRequest>,
 ) -> Result<Json<PdfProcessResponse>, ApiError> {
-    let start_time = std::time::Instant::now();
+    let _start_time = std::time::Instant::now();
 
     // Extract PDF data from request
     let pdf_data = request
@@ -148,122 +148,10 @@ pub async fn process_pdf(
         }
     };
 
-    // Determine timeout duration (allow per-request override)
-    let pdf_timeout = if let Some(timeout_secs) = request.timeout {
-        std::time::Duration::from_secs(timeout_secs)
-    } else {
-        state.api_config.get_timeout("pdf")
-    };
-
-    // Use ExtractionFacade for PDF processing
-    let processing_start = std::time::Instant::now();
-
-    let pdf_options = riptide_facade::facades::PdfExtractionOptions {
-        extract_text: true,
-        extract_metadata: true,
-        extract_images: false,
-        include_page_numbers: true,
-    };
-
-    let pdf_result = tokio::time::timeout(
-        pdf_timeout,
-        state.extraction_facade.extract_pdf(&pdf_data, pdf_options),
-    )
-    .await;
-
-    match pdf_result {
-        Err(_) => {
-            // Timeout occurred
-            state.metrics.record_error(ErrorType::Http);
-            warn!(
-                "PDF processing timed out after {}ms",
-                pdf_timeout.as_millis()
-            );
-            Err(ApiError::timeout(
-                "PDF processing",
-                "PDF processing exceeded maximum time limit",
-            ))
-        }
-        Ok(Err(e)) => {
-            // Processing error
-            let processing_time = processing_start.elapsed();
-            state.metrics.record_error(ErrorType::Wasm);
-            warn!(
-                processing_time_ms = processing_time.as_millis(),
-                error = %e,
-                "PDF processing failed"
-            );
-            Err(ApiError::internal(format!("PDF processing failed: {}", e)))
-        }
-        Ok(Ok(extracted)) => {
-            let processing_time = processing_start.elapsed();
-            let total_time = start_time.elapsed();
-
-            // Calculate processing rate based on word count
-            let word_count = extracted.text.split_whitespace().count();
-            let pages_per_second = if processing_time.as_secs() > 0 {
-                word_count as f64 / processing_time.as_secs_f64()
-            } else {
-                0.0
-            };
-
-            // Record metrics
-            state.metrics.record_http_request(
-                "POST",
-                "/pdf/process",
-                200,
-                total_time.as_secs_f64(),
-            );
-
-            // Create ExtractedDoc from facade result
-            let document = riptide_types::ExtractedDoc {
-                url: extracted.url.clone(),
-                title: extracted.title.clone(),
-                text: extracted.text.clone(),
-                quality_score: Some(crate::utils::safe_conversions::confidence_to_quality_score(
-                    extracted.confidence,
-                )),
-                links: extracted.links.clone(),
-                byline: extracted.metadata.get("author").cloned(),
-                published_iso: extracted.metadata.get("published_date").cloned(),
-                markdown: extracted.markdown.clone(),
-                media: extracted.images.clone(), // media is Vec<String>, not Vec<Media>
-                language: extracted.metadata.get("language").cloned(),
-                reading_time: None,
-                word_count: Some(crate::utils::safe_conversions::word_count_to_u32(
-                    word_count,
-                )),
-                categories: Vec::new(),
-                site_name: None,
-                parser_metadata: None,
-                description: extracted.metadata.get("description").cloned(),
-                html: None,
-            };
-
-            let stats = ProcessingStats {
-                processing_time_ms: processing_time.as_millis() as u64,
-                file_size: pdf_data.len() as u64,
-                pages_processed: 1,                 // Estimated from document
-                memory_used: pdf_data.len() as u64, // Approximate
-                pages_per_second,
-                progress_overhead_us: None, // No progress callback used
-            };
-
-            info!(
-                processing_time_ms = stats.processing_time_ms,
-                file_size = stats.file_size,
-                pages_per_second = stats.pages_per_second,
-                "PDF processing completed successfully via ExtractionFacade"
-            );
-
-            Ok(Json(PdfProcessResponse {
-                success: true,
-                document: Some(document),
-                error: None,
-                stats,
-            }))
-        }
-    }
+    // Facade temporarily unavailable during refactoring
+    Err(ApiError::internal(
+        "Facade temporarily unavailable during refactoring".to_string(),
+    ))
 }
 
 /// Streaming PDF processing endpoint
@@ -499,7 +387,7 @@ pub async fn upload_pdf(
     State(state): State<AppState>,
     mut multipart: Multipart,
 ) -> Result<Json<PdfProcessResponse>, ApiError> {
-    let start_time = std::time::Instant::now();
+    let _start_time = std::time::Instant::now();
 
     let mut pdf_data: Option<Vec<u8>> = None;
     let mut filename: Option<String> = None;
@@ -654,117 +542,10 @@ pub async fn upload_pdf(
         }
     };
 
-    // Determine timeout duration (use default)
-    let pdf_timeout = state.api_config.get_timeout("pdf");
-
-    // Use ExtractionFacade for PDF processing
-    let processing_start = std::time::Instant::now();
-
-    let pdf_options = riptide_facade::facades::PdfExtractionOptions {
-        extract_text: true,
-        extract_metadata: true,
-        extract_images: false,
-        include_page_numbers: true,
-    };
-
-    let pdf_result = tokio::time::timeout(
-        pdf_timeout,
-        state.extraction_facade.extract_pdf(&pdf_data, pdf_options),
-    )
-    .await;
-
-    match pdf_result {
-        Err(_) => {
-            // Timeout occurred
-            state.metrics.record_error(ErrorType::Http);
-            warn!(
-                "PDF processing timed out after {}ms",
-                pdf_timeout.as_millis()
-            );
-            Err(ApiError::timeout(
-                "PDF processing",
-                "PDF processing exceeded maximum time limit",
-            ))
-        }
-        Ok(Err(e)) => {
-            // Processing error
-            let processing_time = processing_start.elapsed();
-            state.metrics.record_error(ErrorType::Wasm);
-            error!(
-                processing_time_ms = processing_time.as_millis(),
-                error = %e,
-                filename = filename.as_deref(),
-                "PDF processing failed for uploaded file"
-            );
-            Err(ApiError::internal(format!("PDF processing failed: {}", e)))
-        }
-        Ok(Ok(extracted)) => {
-            let processing_time = processing_start.elapsed();
-            let total_time = start_time.elapsed();
-
-            // Calculate processing rate based on word count
-            let word_count = extracted.text.split_whitespace().count();
-            let pages_per_second = if processing_time.as_secs() > 0 {
-                word_count as f64 / processing_time.as_secs_f64()
-            } else {
-                0.0
-            };
-
-            // Record metrics
-            state
-                .metrics
-                .record_http_request("POST", "/pdf/upload", 200, total_time.as_secs_f64());
-
-            // Create ExtractedDoc from facade result
-            let document = riptide_types::ExtractedDoc {
-                url: url.unwrap_or(extracted.url.clone()),
-                title: extracted.title.clone(),
-                text: extracted.text.clone(),
-                quality_score: Some(crate::utils::safe_conversions::confidence_to_quality_score(
-                    extracted.confidence,
-                )),
-                links: extracted.links.clone(),
-                byline: extracted.metadata.get("author").cloned(),
-                published_iso: extracted.metadata.get("published_date").cloned(),
-                markdown: extracted.markdown.clone(),
-                media: extracted.images.clone(),
-                language: extracted.metadata.get("language").cloned(),
-                reading_time: None,
-                word_count: Some(crate::utils::safe_conversions::word_count_to_u32(
-                    word_count,
-                )),
-                categories: Vec::new(),
-                site_name: None,
-                parser_metadata: None,
-                description: extracted.metadata.get("description").cloned(),
-                html: None,
-            };
-
-            let stats = ProcessingStats {
-                processing_time_ms: processing_time.as_millis() as u64,
-                file_size: pdf_data.len() as u64,
-                pages_processed: 1,
-                memory_used: pdf_data.len() as u64,
-                pages_per_second,
-                progress_overhead_us: None,
-            };
-
-            info!(
-                processing_time_ms = stats.processing_time_ms,
-                file_size = stats.file_size,
-                pages_per_second = stats.pages_per_second,
-                filename = filename.as_deref(),
-                "PDF upload and processing completed successfully"
-            );
-
-            Ok(Json(PdfProcessResponse {
-                success: true,
-                document: Some(document),
-                error: None,
-                stats,
-            }))
-        }
-    }
+    // Facade temporarily unavailable during refactoring
+    Err(ApiError::internal(
+        "Facade temporarily unavailable during refactoring".to_string(),
+    ))
 }
 
 /// Request type enum for handling both JSON and multipart requests
