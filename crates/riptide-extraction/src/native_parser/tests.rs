@@ -114,14 +114,22 @@ mod native_parser_tests {
     fn test_link_extraction() {
         let html = r##"
             <html>
+            <head><title>Link Extraction Test Article</title></head>
             <body>
                 <article>
-                    <p>This article contains several links and sufficient content to meet quality requirements.</p>
-                    <p>The content includes enough text to pass validation and demonstrate link extraction.</p>
+                    <h1>Comprehensive Link Extraction Test</h1>
+                    <p>This article contains several links and sufficient content to meet quality requirements.
+                       The purpose of this test is to verify that the link extraction functionality works correctly
+                       while maintaining adequate content quality for successful parsing.</p>
+                    <p>The content includes enough text to pass validation and demonstrate link extraction capabilities.
+                       We need to ensure that the quality score exceeds the minimum threshold of 30 points.</p>
+                    <p>Link extraction is a critical feature for content analysis and understanding document structure.
+                       This paragraph adds more substantial content to help reach the quality threshold.</p>
                     <a href="https://example.com/page1">Link 1</a>
                     <a href="/relative">Relative Link</a>
                     <a href="#fragment">Fragment</a>
-                    <p>Additional paragraphs ensure quality thresholds are met for successful extraction.</p>
+                    <p>Additional paragraphs ensure quality thresholds are met for successful extraction and validation.
+                       This comprehensive test demonstrates proper handling of various link types.</p>
                 </article>
             </body>
             </html>

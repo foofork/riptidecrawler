@@ -394,8 +394,22 @@ mod tests {
     async fn test_extraction_basic() {
         let extractor = UnifiedExtractor::new(None).await.unwrap();
 
-        let html =
-            "<html><head><title>Test</title></head><body><h1>Test</h1><p>Content</p></body></html>";
+        let html = r#"
+            <html>
+            <head><title>Test Article</title></head>
+            <body>
+                <article>
+                    <h1>Test Article Title</h1>
+                    <p>This is a comprehensive test article with substantial content to ensure it meets
+                       the minimum quality threshold requirements for successful extraction.</p>
+                    <p>Multiple paragraphs are included to increase the word count and quality score,
+                       demonstrating that the extraction functionality works correctly with adequate content.</p>
+                    <p>Additional text helps verify that the unified extractor properly handles
+                       well-formatted HTML documents with sufficient content depth and quality.</p>
+                </article>
+            </body>
+            </html>
+        "#;
         let result = extractor.extract(html, "https://example.com").await;
 
         assert!(result.is_ok());

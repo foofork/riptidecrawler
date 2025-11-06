@@ -55,6 +55,10 @@ impl TiktokenCache {
     pub async fn count_tokens(&self, text: &str) -> Result<usize> {
         // Fast path: check cache first
         if let Some(entry) = self.cache.get(text) {
+            let count = entry.count;
+            // Drop the entry reference before acquiring write lock
+            drop(entry);
+
             // Update access counter for LRU
             let access_count = {
                 let mut counter = self.access_counter.lock();
@@ -69,7 +73,7 @@ impl TiktokenCache {
             });
 
             debug!("Token count cache hit for {} chars", text.len());
-            return Ok(entry.count);
+            return Ok(count);
         }
 
         // Slow path: compute token count
