@@ -148,10 +148,73 @@ pub async fn process_pdf(
         }
     };
 
-    // Facade temporarily unavailable during refactoring
-    Err(ApiError::internal(
-        "Facade temporarily unavailable during refactoring".to_string(),
-    ))
+    // Phase 2C.2: Call extraction facade for PDF processing (restored after circular dependency fix)
+    let pdf_options = riptide_facade::facades::PdfExtractionOptions {
+        extract_text: true,
+        extract_metadata: true,
+        extract_images: false,
+        include_page_numbers: true,
+    };
+
+    let start_time = std::time::Instant::now();
+
+    match state
+        .extraction_facade
+        .extract_pdf(&pdf_data, pdf_options)
+        .await
+    {
+        Ok(extracted) => {
+            debug!(
+                text_length = extracted.text.len(),
+                confidence = extracted.confidence,
+                "PDF extraction completed successfully"
+            );
+
+            // Convert ExtractedData to ExtractedDoc
+            let doc = riptide_types::ExtractedDoc {
+                url: extracted.url.clone(),
+                title: extracted.title.clone(),
+                text: extracted.text.clone(),
+                quality_score: Some((extracted.confidence * 100.0) as u8),
+                links: vec![],
+                byline: extracted.metadata.get("author").cloned(),
+                published_iso: extracted.metadata.get("publish_date").cloned(),
+                markdown: extracted.markdown.clone(),
+                media: vec![],
+                language: extracted.metadata.get("language").cloned(),
+                reading_time: None,
+                word_count: Some(extracted.text.split_whitespace().count() as u32),
+                categories: vec![],
+                site_name: None,
+                description: None,
+                html: None,
+                parser_metadata: None,
+            };
+
+            let stats = ProcessingStats {
+                processing_time_ms: start_time.elapsed().as_millis() as u64,
+                file_size: pdf_data.len() as u64,
+                pages_processed: 0, // TODO: Get from PDF processor
+                memory_used: 0,     // TODO: Track memory usage
+                pages_per_second: 0.0,
+                progress_overhead_us: None,
+            };
+
+            let response = PdfProcessResponse {
+                success: true,
+                document: Some(doc),
+                error: None,
+                stats,
+            };
+
+            Ok(Json(response))
+        }
+        Err(e) => {
+            state.metrics.record_error(ErrorType::Http);
+            tracing::error!(error = %e, "PDF extraction failed");
+            Err(ApiError::from(e))
+        }
+    }
 }
 
 /// Streaming PDF processing endpoint
@@ -542,10 +605,73 @@ pub async fn upload_pdf(
         }
     };
 
-    // Facade temporarily unavailable during refactoring
-    Err(ApiError::internal(
-        "Facade temporarily unavailable during refactoring".to_string(),
-    ))
+    // Phase 2C.2: Call extraction facade for PDF processing (restored after circular dependency fix)
+    let pdf_options = riptide_facade::facades::PdfExtractionOptions {
+        extract_text: true,
+        extract_metadata: true,
+        extract_images: false,
+        include_page_numbers: true,
+    };
+
+    let start_time = std::time::Instant::now();
+
+    match state
+        .extraction_facade
+        .extract_pdf(&pdf_data, pdf_options)
+        .await
+    {
+        Ok(extracted) => {
+            debug!(
+                text_length = extracted.text.len(),
+                confidence = extracted.confidence,
+                "PDF extraction completed successfully"
+            );
+
+            // Convert ExtractedData to ExtractedDoc
+            let doc = riptide_types::ExtractedDoc {
+                url: extracted.url.clone(),
+                title: extracted.title.clone(),
+                text: extracted.text.clone(),
+                quality_score: Some((extracted.confidence * 100.0) as u8),
+                links: vec![],
+                byline: extracted.metadata.get("author").cloned(),
+                published_iso: extracted.metadata.get("publish_date").cloned(),
+                markdown: extracted.markdown.clone(),
+                media: vec![],
+                language: extracted.metadata.get("language").cloned(),
+                reading_time: None,
+                word_count: Some(extracted.text.split_whitespace().count() as u32),
+                categories: vec![],
+                site_name: None,
+                description: None,
+                html: None,
+                parser_metadata: None,
+            };
+
+            let stats = ProcessingStats {
+                processing_time_ms: start_time.elapsed().as_millis() as u64,
+                file_size: pdf_data.len() as u64,
+                pages_processed: 0, // TODO: Get from PDF processor
+                memory_used: 0,     // TODO: Track memory usage
+                pages_per_second: 0.0,
+                progress_overhead_us: None,
+            };
+
+            let response = PdfProcessResponse {
+                success: true,
+                document: Some(doc),
+                error: None,
+                stats,
+            };
+
+            Ok(Json(response))
+        }
+        Err(e) => {
+            state.metrics.record_error(ErrorType::Http);
+            tracing::error!(error = %e, "PDF extraction failed");
+            Err(ApiError::from(e))
+        }
+    }
 }
 
 /// Request type enum for handling both JSON and multipart requests

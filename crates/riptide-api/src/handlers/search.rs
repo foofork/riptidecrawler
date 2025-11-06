@@ -9,59 +9,12 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
-use serde::{Deserialize, Serialize};
 use std::time::Instant;
 
 use crate::state::AppState;
 
-/// Search query parameters
-#[derive(Debug, Deserialize)]
-pub struct SearchQuery {
-    /// Search query string
-    pub q: String,
-    /// Number of results
-    #[serde(default = "default_limit")]
-    pub limit: u32,
-    /// Country code
-    #[serde(default = "default_country")]
-    pub country: String,
-    /// Language code
-    #[serde(default = "default_language")]
-    pub language: String,
-    /// Force specific provider
-    pub provider: Option<String>,
-}
-
-fn default_limit() -> u32 {
-    10
-}
-
-fn default_country() -> String {
-    "us".to_string()
-}
-
-fn default_language() -> String {
-    "en".to_string()
-}
-
-/// Search result
-#[derive(Debug, Serialize)]
-pub struct SearchResult {
-    pub title: String,
-    pub url: String,
-    pub snippet: String,
-    pub position: u32,
-}
-
-/// Search response
-#[derive(Debug, Serialize)]
-pub struct SearchResponse {
-    pub query: String,
-    pub results: Vec<SearchResult>,
-    pub total_results: usize,
-    pub provider_used: String,
-    pub search_time_ms: u64,
-}
+// Import HTTP DTOs from riptide-types (Phase 2C.1 - breaking circular dependency)
+use riptide_types::{SearchQuery, SearchResponse, SearchResult};
 
 /// Search using configured providers
 ///

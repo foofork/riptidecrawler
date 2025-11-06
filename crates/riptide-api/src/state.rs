@@ -146,22 +146,22 @@ pub struct AppState {
     // pub browser_facade: Option<Arc<BrowserFacade>>,
 
     /// Extraction facade for content extraction with multiple strategies
-    /// REMOVED: Caused circular dependency with riptide-facade
-    // pub extraction_facade: Arc<ExtractionFacade>,
+    /// Phase 2C.2: Restored after eliminating circular dependency via trait abstraction
+    pub extraction_facade: Arc<riptide_facade::facades::ExtractionFacade>,
 
     /// Scraper facade for simple HTTP operations
-    /// REMOVED: Caused circular dependency with riptide-facade
-    // pub scraper_facade: Arc<ScraperFacade>,
+    /// Phase 2C.2: Restored after eliminating circular dependency via trait abstraction
+    pub scraper_facade: Arc<riptide_facade::facades::ScraperFacade>,
 
     /// Spider facade for web crawling operations
-    /// REMOVED: Caused circular dependency with riptide-facade
-    // #[cfg(feature = "spider")]
-    // pub spider_facade: Option<Arc<SpiderFacade>>,
+    /// Phase 2C.2: Restored after eliminating circular dependency via trait abstraction
+    #[cfg(feature = "spider")]
+    pub spider_facade: Option<Arc<riptide_facade::facades::SpiderFacade>>,
 
     /// Search facade for web search operations
-    /// REMOVED: Caused circular dependency with riptide-facade
-    // #[cfg(feature = "search")]
-    // pub search_facade: Option<Arc<SearchFacade>>,
+    /// Phase 2C.2: Restored after eliminating circular dependency via trait abstraction
+    #[cfg(feature = "search")]
+    pub search_facade: Option<Arc<riptide_facade::facades::SearchFacade>>,
 
     /// Trace backend for distributed trace storage and retrieval
     pub trace_backend: Option<Arc<dyn crate::handlers::trace_backend::TraceBackend>>,
@@ -1165,6 +1165,29 @@ impl AppState {
         #[cfg(not(feature = "wasm-extractor"))]
         let cache_warmer_enabled = false;
 
+        // Initialize facades (Phase 2C.2: Restored after breaking circular dependency)
+        tracing::debug!("Initializing facades with trait-based dependencies");
+
+        let facade_config = riptide_facade::config::RiptideConfig::default();
+
+        let extraction_facade = Arc::new(
+            riptide_facade::facades::ExtractionFacade::new(facade_config.clone())
+                .await
+                .map_err(|e| anyhow::anyhow!("Failed to initialize ExtractionFacade: {}", e))?,
+        );
+
+        let scraper_facade = Arc::new(
+            riptide_facade::facades::ScraperFacade::new(facade_config.clone())
+                .await
+                .map_err(|e| anyhow::anyhow!("Failed to initialize ScraperFacade: {}", e))?,
+        );
+
+        #[cfg(feature = "spider")]
+        let spider_facade = None; // TODO: Initialize SpiderFacade when needed
+
+        #[cfg(feature = "search")]
+        let search_facade = None; // TODO: Initialize SearchFacade when search backend configured
+
         Ok(Self {
             http_client,
             cache,
@@ -1195,15 +1218,13 @@ impl AppState {
             cache_warmer_enabled,
             #[cfg(feature = "browser")]
             browser_launcher,
-            // Facades removed to break circular dependency
-            // #[cfg(feature = "browser")]
-            // browser_facade,
-            // extraction_facade,
-            // scraper_facade,
-            // #[cfg(feature = "spider")]
-            // spider_facade,
-            // #[cfg(feature = "search")]
-            // search_facade,
+            // Facades initialized above (Phase 2C.2)
+            extraction_facade,
+            scraper_facade,
+            #[cfg(feature = "spider")]
+            spider_facade,
+            #[cfg(feature = "search")]
+            search_facade,
             trace_backend,
             #[cfg(feature = "persistence")]
             persistence_adapter: None, // TODO: Initialize actual persistence adapter when integrated
@@ -1515,24 +1536,25 @@ impl AppState {
                 .expect("Failed to create browser launcher"),
         ));
 
-        // Facades removed to break circular dependency
-        // let facade_config = riptide_facade::RiptideConfig::default();
-        // #[cfg(feature = "browser")]
-        // let browser_facade = Some(Arc::new(
-        //     BrowserFacade::new(facade_config.clone())
-        //         .await
-        //         .expect("Failed to create browser facade"),
-        // ));
-        // let extraction_facade = Arc::new(
-        //     ExtractionFacade::new(facade_config.clone())
-        //         .await
-        //         .expect("Failed to create extraction facade"),
-        // );
-        // let scraper_facade = Arc::new(
-        //     ScraperFacade::new(facade_config.clone())
-        //         .await
-        //         .expect("Failed to create scraper facade"),
-        // );
+        // Initialize facades (Phase 2C.2: Restored after breaking circular dependency)
+        let facade_config = riptide_facade::RiptideConfig::default();
+
+        let extraction_facade = Arc::new(
+            riptide_facade::facades::ExtractionFacade::new(facade_config.clone())
+                .await
+                .expect("Failed to create extraction facade"),
+        );
+        let scraper_facade = Arc::new(
+            riptide_facade::facades::ScraperFacade::new(facade_config.clone())
+                .await
+                .expect("Failed to create scraper facade"),
+        );
+
+        #[cfg(feature = "spider")]
+        let spider_facade = None; // TODO: Initialize for tests
+
+        #[cfg(feature = "search")]
+        let search_facade = None; // TODO: Initialize for tests
 
         Self {
             http_client,
@@ -1564,15 +1586,13 @@ impl AppState {
             cache_warmer_enabled,
             #[cfg(feature = "browser")]
             browser_launcher,
-            // Facades removed to break circular dependency
-            // #[cfg(feature = "browser")]
-            // browser_facade,
-            // extraction_facade,
-            // scraper_facade,
-            // #[cfg(feature = "spider")]
-            // spider_facade: None,
-            // #[cfg(feature = "search")]
-            // search_facade: None,
+            // Facades restored (Phase 2C.2: Circular dependency eliminated via trait abstraction)
+            extraction_facade,
+            scraper_facade,
+            #[cfg(feature = "spider")]
+            spider_facade,
+            #[cfg(feature = "search")]
+            search_facade,
             trace_backend: None,
             #[cfg(feature = "persistence")]
             persistence_adapter: None, // TODO: Initialize actual persistence adapter when integrated

@@ -66,7 +66,7 @@ riptide-performance = { path = "../riptide-performance" }
 riptide-persistence = { path = "../riptide-persistence" }
 riptide-monitoring = { path = "../riptide-monitoring", features = ["collector"] }
 riptide-pipeline = { path = "../riptide-pipeline" }
-# riptide-facade = { path = "../riptide-facade" }  # REMOVED: Caused circular dependency
+riptide-facade = { path = "../riptide-facade" }  # Phase 2C.2: Circular dependency eliminated via trait abstraction
 spider_chromiumoxide_cdp = { workspace = true }
 spider_chrome = { workspace = true }
 wasmtime = { workspace = true }

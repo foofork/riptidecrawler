@@ -378,5 +378,37 @@ impl From<serde_json::Error> for ApiError {
     }
 }
 
+// Phase 2C.2: Convert facade errors to API errors (restored after circular dependency fix)
+impl From<riptide_facade::RiptideError> for ApiError {
+    fn from(err: riptide_facade::RiptideError) -> Self {
+        use riptide_facade::RiptideError;
+        match err {
+            RiptideError::Config(msg) => ApiError::ConfigError { message: msg },
+            RiptideError::Fetch(msg) => ApiError::FetchError {
+                url: "".to_string(),
+                message: msg,
+            },
+            RiptideError::FetchError { url, message } => ApiError::FetchError { url, message },
+            RiptideError::Extraction(msg) => ApiError::ExtractionError { message: msg },
+            RiptideError::ExtractionError { message } => ApiError::ExtractionError { message },
+            RiptideError::InvalidUrl(e) => ApiError::InvalidUrl {
+                url: "".to_string(),
+                message: e.to_string(),
+            },
+            RiptideError::UrlParseError { url, source } => ApiError::InvalidUrl {
+                url,
+                message: source.to_string(),
+            },
+            RiptideError::Timeout => ApiError::TimeoutError {
+                operation: "request".to_string(),
+                message: "Operation timed out".to_string(),
+            },
+            RiptideError::Other(err) => ApiError::InternalError {
+                message: err.to_string(),
+            },
+        }
+    }
+}
+
 /// Result type alias for API operations.
 pub type ApiResult<T> = Result<T, ApiError>;

@@ -4,101 +4,12 @@
 //! the multi-strategy extraction pipeline and riptide-facade.
 
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use serde::{Deserialize, Serialize};
 use std::time::Instant;
 
 use crate::state::AppState;
 
-/// Extract endpoint request payload
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ExtractRequest {
-    /// URL to extract content from
-    pub url: String,
-    /// Extraction mode (standard, article, product, etc.)
-    #[serde(default = "default_mode")]
-    pub mode: String,
-    /// Extraction options
-    #[serde(default)]
-    pub options: ExtractOptions,
-}
-
-fn default_mode() -> String {
-    "standard".to_string()
-}
-
-/// Extraction options
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ExtractOptions {
-    /// Strategy to use (auto, css, wasm, llm, multi)
-    #[serde(default = "default_strategy")]
-    pub strategy: String,
-    /// Minimum quality threshold (0.0-1.0)
-    #[serde(default = "default_quality_threshold")]
-    pub quality_threshold: f64,
-    /// Timeout in milliseconds
-    #[serde(default = "default_timeout")]
-    #[allow(dead_code)]
-    pub timeout_ms: u64,
-}
-
-impl Default for ExtractOptions {
-    fn default() -> Self {
-        Self {
-            strategy: default_strategy(),
-            quality_threshold: default_quality_threshold(),
-            timeout_ms: default_timeout(),
-        }
-    }
-}
-
-fn default_strategy() -> String {
-    "multi".to_string()
-}
-
-fn default_quality_threshold() -> f64 {
-    0.7
-}
-
-fn default_timeout() -> u64 {
-    30000
-}
-
-/// Extract response
-#[derive(Debug, Serialize)]
-pub struct ExtractResponse {
-    pub url: String,
-    pub title: Option<String>,
-    pub content: String,
-    pub metadata: ContentMetadata,
-    pub strategy_used: String,
-    pub quality_score: f64,
-    pub extraction_time_ms: u64,
-    /// Parser metadata for observability (optional)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub parser_metadata: Option<ParserMetadata>,
-}
-
-/// Content metadata
-#[derive(Debug, Default, Serialize)]
-pub struct ContentMetadata {
-    pub author: Option<String>,
-    pub publish_date: Option<String>,
-    pub word_count: usize,
-    pub language: Option<String>,
-}
-
-/// Parser metadata for observability
-#[derive(Debug, Serialize)]
-pub struct ParserMetadata {
-    pub parser_used: String,
-    pub confidence_score: f64,
-    pub fallback_occurred: bool,
-    pub parse_time_ms: u64,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub extraction_path: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub primary_error: Option<String>,
-}
+// Import HTTP DTOs from riptide-types (Phase 2C.1 - breaking circular dependency)
+use riptide_types::ExtractRequest;
 
 /// Extract content from a URL using multi-strategy extraction
 ///
@@ -160,37 +71,61 @@ pub async fn extract(
         }
     };
 
-    // Facade temporarily unavailable during refactoring
-    (
-        StatusCode::SERVICE_UNAVAILABLE,
-        Json("Facade temporarily unavailable during refactoring".to_string()),
-    )
-        .into_response()
+    // Phase 2C.2: Call extraction facade (restored after circular dependency fix)
+    let html_options = riptide_facade::facades::HtmlExtractionOptions {
+        as_markdown: payload.options.strategy == "markdown",
+        clean: true,
+        include_metadata: true,
+        extract_links: false,
+        extract_images: false,
+        custom_selectors: None,
+    };
+
+    match state
+        .extraction_facade
+        .extract_html(&_html, &payload.url, html_options)
+        .await
+    {
+        Ok(extracted) => {
+            tracing::info!(
+                url = %payload.url,
+                confidence = extracted.confidence,
+                strategy = %extracted.strategy_used,
+                text_length = extracted.text.len(),
+                "Extraction completed successfully"
+            );
+
+            // Convert ExtractedData to ExtractResponse
+            let metadata = riptide_types::ContentMetadata {
+                author: extracted.metadata.get("author").cloned(),
+                publish_date: extracted.metadata.get("publish_date").cloned(),
+                word_count: extracted.text.split_whitespace().count(),
+                language: extracted.metadata.get("language").cloned(),
+            };
+
+            let response = riptide_types::ExtractResponse {
+                url: extracted.url.clone(),
+                title: extracted.title.clone(),
+                content: extracted.text.clone(),
+                metadata,
+                strategy_used: extracted.strategy_used.clone(),
+                quality_score: extracted.confidence,
+                extraction_time_ms: _start.elapsed().as_millis() as u64,
+                parser_metadata: None,
+            };
+
+            (StatusCode::OK, Json(response)).into_response()
+        }
+        Err(e) => {
+            tracing::error!(url = %payload.url, error = %e, "Extraction failed");
+            crate::errors::ApiError::from(e).into_response()
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_default_mode() {
-        assert_eq!(default_mode(), "standard");
-    }
-
-    #[test]
-    fn test_default_strategy() {
-        assert_eq!(default_strategy(), "multi");
-    }
-
-    #[test]
-    fn test_default_quality_threshold() {
-        assert_eq!(default_quality_threshold(), 0.7);
-    }
-
-    #[test]
-    fn test_default_timeout() {
-        assert_eq!(default_timeout(), 30000);
-    }
 
     #[test]
     fn test_extract_request_deserialization() {

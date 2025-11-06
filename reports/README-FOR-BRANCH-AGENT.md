@@ -1,172 +1,77 @@
-# Diagnostic Package for Branch Agent
+# Branch Agent Diagnostic Package
+
 **Branch:** `claude/week-9-docs-roadmap-011CUpzZadyvpEeuxJA61aRR`
-**Date:** 2025-11-05
-**Created By:** Main branch diagnostic swarm
+**Date:** 2025-11-06
 
-## 🎯 Your Mission
+## 🚨 CRITICAL: DO NOT RUN BUILD TOOLS
 
-You're smart and capable - you just don't have access to build tools in your environment. We've captured **complete diagnostic data** from the build system so you can systematically fix all compilation errors and warnings.
+**❌ NEVER RUN: `cargo`, `clippy`, `cargo build`, `cargo check`, `cargo test`**
 
-## 📦 Diagnostic Files Delivered
+Your environment does not support Rust compilation. All diagnostic data has been pre-captured for you in JSON format. Use the pre-generated reports below - do NOT attempt to rebuild them.
 
-### 1. **clippy-raw.json** (1,317 lines)
-Complete clippy output in JSON format.
-```bash
-# Contains all lint warnings and suggestions
-# Parse with: jq '.message.message' clippy-raw.json
-# Estimated warnings: ~10 (unused imports/variables)
-```
+## 🎯 Mission
 
-### 2. **check-raw.json** (1,363 lines)
-Complete compiler diagnostic output in JSON format.
-```bash
-# Contains all compilation errors and warnings
-# Parse with: jq '.message.message' check-raw.json
-# Known errors: 1 (type mismatch in riptide-pool test)
-```
+Fix compilation errors and warnings using the complete diagnostic JSON files provided.
 
-### 3. **toolchain.txt** (10 lines)
-Build environment information:
-- Rust: 1.90.0 (2025-09-14)
-- Cargo: 1.90.0
-- LLVM: 20.1.8
+## 📦 Provided Files
 
-### 4. **DIAGNOSTIC-SUMMARY.md** (This file)
-Human-readable analysis with:
-- Quick error summary (1 error, 7 warnings)
-- Known issues and suggested fixes
-- Architecture context
-- Success criteria
+1. **clippy-raw.json** - Complete lint diagnostics with fix suggestions
+2. **check-raw.json** - Complete compiler errors/warnings with locations
+3. **toolchain.txt** - Build environment details (Rust 1.90.0)
+4. **DIAGNOSTIC-SUMMARY.md** - Human-readable issue breakdown
 
-## 🔍 Quick Analysis
+## 🔍 Issues to Fix
 
-We've already analyzed the diagnostics for you:
+**1 Error:**
+- `crates/riptide-pool/tests/wasm_component_integration_tests.rs:265`
+- Test function returns `Ok(())` - should return nothing or not use `#[test]`
 
-**1 Compilation Error:**
-- File: `crates/riptide-pool/tests/wasm_component_integration_tests.rs:265`
-- Issue: Function marked `#[test]` returns `Ok(())` instead of `()`
-- Fix: Change `Ok(())` to just nothing (remove the line) or remove `Ok()` wrapper
+**~7 Warnings (unused imports/variables):**
+- Remove unused imports: `NoOpExtractor`, `Arc`, `Duration`, `sleep`, `black_box`
+- Prefix unused variables: `config` → `_config`, `large_html` → `_large_html`
 
-**7 Warnings (unused imports/variables):**
-- `NoOpExtractor` - remove import
-- `std::sync::Arc` - remove import
-- `std::time::Duration` - remove import
-- `tokio::time::sleep` - remove import
-- `black_box` - remove import
-- `config` variable - prefix with `_config`
-- `large_html` variable - prefix with `_large_html`
+## 🛠️ Workflow
 
-## 🛠️ How to Use These Files
+1. **Parse JSON for exact locations:**
+   ```bash
+   # Find errors
+   jq -r 'select(.message.level=="error") | "\(.message.spans[0].file_name):\(.message.spans[0].line_start)"' check-raw.json
 
-### Parse JSON Diagnostics
-```bash
-# Extract all error messages
-jq -r 'select(.message.level=="error") | .message.message' check-raw.json
+   # Find warnings
+   jq -r 'select(.message.level=="warning") | .message.message' check-raw.json
+   ```
 
-# Extract all warnings
-jq -r 'select(.message.level=="warning") | .message.message' check-raw.json | sort -u
+2. **Fix in order:**
+   - Compilation error first (test return type)
+   - Remove unused imports
+   - Prefix unused variables with `_`
 
-# Get file locations for errors
-jq -r 'select(.message.level=="error") | .message.spans[0] | "\(.file_name):\(.line_start)"' check-raw.json
-
-# Pretty print a specific error
-jq 'select(.message.level=="error")' check-raw.json | head -n 50
-```
-
-### Work Through Systematically
-1. **Fix the compilation error first** (line 265 in riptide-pool test)
-2. **Remove unused imports** (5 imports to clean up)
-3. **Fix unused variables** (prefix with underscore: `_config`, `_large_html`)
-4. **Verify your changes** (we'll run build after you commit)
+3. **Commit changes** - Main branch will verify with full build
 
 ## ✅ Success Criteria
 
-Your work is done when:
 - Zero compilation errors
-- Zero warnings (project requires `RUSTFLAGS="-D warnings"`)
-- All existing tests still pass
+- Zero warnings (`RUSTFLAGS="-D warnings"`)
 - No new issues introduced
+- Main branch will verify with full build + tests after your commit
 
-## 📋 The Big Picture
+## 🎯 Quick Reference
 
-You're finishing the work to resolve the circular dependency:
+**Search for issues:**
+```bash
+rg "use.*NoOpExtractor" crates/    # Find unused imports
+rg "let config =" crates/           # Find unused variables
+```
 
-**What We Did:**
-1. ✅ Created `riptide-pipeline` crate to break circular dependency
-2. ✅ Moved 1,640 lines of orchestrator code from riptide-api
-3. ✅ Fixed 27 compilation errors in the new crate
-4. ✅ Captured complete diagnostics for you
+**Parse JSON exactly:**
+```bash
+jq -r 'select(.message.level=="error")' check-raw.json
+```
 
-**What You Need To Do:**
-1. Fix 1 type mismatch error in riptide-pool test
-2. Clean up 7 warnings (unused imports/variables)
-3. Commit your fixes
-
-**After You Commit its up to us:**
-- We'll run full workspace build so you don't have to
-- We'll run all tests (23 CrawlFacade tests + full suite)
-- We'll verify clippy passes with zero warnings
-- If all passes, Week 9 is COMPLETE! 🎉
-
-## 🎯 Specific Files to Edit
-
-Based on diagnostic analysis, you'll likely need to edit:
-
-1. **crates/riptide-pool/tests/wasm_component_integration_tests.rs**
-   - Line 265: Remove `Ok(())` or change function to not use `#[test]`
-
-2. **Files with unused imports** (search diagnostics for exact locations):
-   - Remove `use riptide_types::NoOpExtractor;`
-   - Remove `use std::sync::Arc;` (where unused)
-   - Remove `use std::time::Duration;` (where unused)
-   - Remove `use tokio::time::sleep;` (where unused)
-   - Remove `use std::hint::black_box;` (where unused)
-
-3. **Files with unused variables** (search diagnostics for exact locations):
-   - Change `config` to `_config` or remove if truly unused
-   - Change `large_html` to `_large_html` or remove if truly unused
-
-## 💡 Pro Tips
-
-1. **Search before fixing:**
-   ```bash
-   # Find all occurrences of an unused import
-   rg "use.*NoOpExtractor" crates/
-
-   # Find unused variables
-   rg "let config =" crates/
-   ```
-
-2. **Be conservative:**
-   - If you're not sure about removing code, prefix variables with `_` first
-   - Only remove imports if they're definitely not used anywhere in that file
-
-3. **Trust the diagnostics:**
-   - The JSON files have exact file paths and line numbers
-   - Every warning has a suggested fix in the JSON
-
-4. **Work incrementally:**
-   - Fix one category of issues at a time (error first, then warnings)
-   - Commit after each logical group of fixes
-
-## 📚 Reference Documentation
-
-Context documents in `/workspaces/eventmesh/docs/phase1/`:
-- `WEEK-9-CRITICAL-ISSUE-CIRCULAR-DEPENDENCY.md` - Why we created riptide-pipeline
-- `ARCHITECTURE-DECISION-CIRCULAR-DEPENDENCY-FIX.md` - Implementation plan
-- `COMPILATION-FIX-LOG.md` - The 27 errors we already fixed
-- `PHASE-1-WEEK-9-FACADE-UNIFICATION-COMPLETION-REPORT.md` - Week 9 goals
-
-## 🚀 You've Got This!
-
-You're smart, methodical, and have all the diagnostic data you need. The issues are straightforward:
-- 1 simple type error (remove `Ok()` wrapper)
-- 7 trivial warnings (remove unused code)
-
-After you fix these, Week 9 will be **COMPLETE** and Phase 1 of the Riptide V1 roadmap will be finished! 🎊
+**Context docs:** `/workspaces/eventmesh/docs/phase1/`
+- `WEEK-9-CRITICAL-ISSUE-CIRCULAR-DEPENDENCY.md`
+- `ARCHITECTURE-DECISION-CIRCULAR-DEPENDENCY-FIX.md`
 
 ---
 
-**Questions?** Review the JSON diagnostics - they have detailed suggestions for every issue.
-**Stuck?** Check DIAGNOSTIC-SUMMARY.md for human-readable analysis.
-**Ready?** Start with line 265 in wasm_component_integration_tests.rs!
+**Start here:** Fix line 265 in `wasm_component_integration_tests.rs` first, then tackle warnings systematically.
