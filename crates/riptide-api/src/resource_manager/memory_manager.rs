@@ -830,9 +830,10 @@ fn current_timestamp_secs() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::RiptideApiConfig;
 
-    fn test_config() -> ApiConfig {
-        let mut config = ApiConfig::default();
+    fn test_config() -> RiptideApiConfig {
+        let mut config = RiptideApiConfig::default();
         config.memory.global_memory_limit_mb = 1000;
         config.memory.pressure_threshold = 0.8; // 80%
         config.memory.gc_trigger_threshold_mb = 900;

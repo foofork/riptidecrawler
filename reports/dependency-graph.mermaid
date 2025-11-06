@@ -1,0 +1,385 @@
+%% RipTide Dependency Flow Analysis - Visual Graphs
+%% Generated: 2025-11-06
+
+---
+title: Current Architecture with Violations
+---
+
+graph TB
+    subgraph API["🌐 API LAYER"]
+        api[riptide-api]
+    end
+
+    subgraph FACADE["🎭 FACADE LAYER"]
+        facade[riptide-facade]
+    end
+
+    subgraph DOMAIN["💼 DOMAIN LAYER"]
+        spider[riptide-spider]
+        fetch[riptide-fetch]
+        extraction[riptide-extraction]
+        browser[riptide-browser]
+        pipeline[riptide-pipeline]
+        pool[riptide-pool]
+        intelligence[riptide-intelligence]
+        search[riptide-search]
+    end
+
+    subgraph INFRA["🗄️ INFRASTRUCTURE"]
+        cache[riptide-cache<br/>Redis]
+        persistence[riptide-persistence<br/>Database]
+        monitoring[riptide-monitoring<br/>Telemetry]
+    end
+
+    subgraph FOUNDATION["📦 FOUNDATION"]
+        types[riptide-types]
+        config[riptide-config]
+        events[riptide-events]
+        reliability[riptide-reliability]
+    end
+
+    %% API dependencies (correct)
+    api --> facade
+    api --> spider
+    api --> extraction
+    api --> cache
+    api --> persistence
+    api --> pipeline
+
+    %% Facade dependencies (VIOLATION - should use traits)
+    facade --> pipeline
+    facade --> fetch
+    facade --> extraction
+    facade --> cache
+    facade --> browser
+    facade --> spider
+    facade --> search
+
+    %% Domain sideways dependencies (VIOLATIONS)
+    spider --> fetch
+    spider -.->|"⚠️ circular risk"| cache
+
+    %% Pipeline violations (VIOLATIONS)
+    pipeline --> cache
+    pipeline --> fetch
+    pipeline --> extraction
+    pipeline --> intelligence
+    pipeline -.->|"⚠️ direct Redis"| cache
+
+    %% Cache violations (VIOLATIONS)
+    cache --> pool
+    cache --> extraction
+    cache -.->|"⚠️ circular"| extraction
+
+    %% Foundation (correct)
+    api --> types
+    facade --> types
+    spider --> types
+    fetch --> types
+    extraction --> types
+    browser --> types
+    pipeline --> types
+    cache --> types
+    persistence --> types
+
+    api --> events
+    facade --> events
+    pipeline --> events
+    cache --> events
+
+    spider --> config
+    fetch --> config
+
+    %% Styling
+    classDef violation fill:#ff6b6b,stroke:#c92a2a,stroke-width:3px
+    classDef warning fill:#ffd93d,stroke:#f59f00,stroke-width:2px
+    classDef correct fill:#51cf66,stroke:#2f9e44,stroke-width:2px
+
+    class facade,pipeline,cache violation
+    class spider,fetch warning
+    class api,types,events correct
+
+    %% Annotations
+    linkStyle 8,9,10,11,12,13 stroke:#ff6b6b,stroke-width:3px
+    linkStyle 14,15 stroke:#ffd93d,stroke-width:2px,stroke-dasharray: 5 5
+    linkStyle 16,17,18,19,20 stroke:#ff6b6b,stroke-width:3px
+    linkStyle 21,22,23 stroke:#ff6b6b,stroke-width:3px,stroke-dasharray: 5 5
+
+---
+title: Ideal Architecture After Refactoring
+---
+
+graph TB
+    subgraph API["🌐 API LAYER"]
+        api[riptide-api<br/>Dependency Injection]
+    end
+
+    subgraph FACADE["🎭 FACADE LAYER"]
+        facade[riptide-facade<br/>Uses Traits Only]
+    end
+
+    subgraph DOMAIN["💼 DOMAIN LAYER - Implements Traits"]
+        spider[riptide-spider<br/>→ CrawlStrategy]
+        fetch[riptide-fetch<br/>→ HttpClient]
+        extraction[riptide-extraction<br/>→ ExtractionStrategy]
+        browser[riptide-browser<br/>→ BrowserStrategy]
+        pipeline[riptide-pipeline<br/>→ Orchestrator]
+        pool[riptide-pool<br/>→ PoolManager]
+        intelligence[riptide-intelligence<br/>→ LLMProvider]
+        search[riptide-search<br/>→ SearchProvider]
+    end
+
+    subgraph INFRA["🗄️ INFRASTRUCTURE - Implements Traits"]
+        cache[riptide-cache<br/>→ KeyValueStore]
+        persistence[riptide-persistence<br/>→ Repository]
+        monitoring[riptide-monitoring<br/>→ MetricsStore]
+    end
+
+    subgraph FOUNDATION["📦 FOUNDATION - Defines Traits"]
+        types[riptide-types<br/>ALL TRAITS HERE]
+        config[riptide-config]
+        events[riptide-events]
+        reliability[riptide-reliability]
+    end
+
+    %% API injects implementations
+    api -->|"injects implementations"| facade
+
+    %% Facade uses ONLY traits from types
+    facade -->|"trait: CrawlStrategy"| types
+    facade -->|"trait: ExtractionStrategy"| types
+    facade -->|"trait: KeyValueStore"| types
+    facade -->|"trait: Orchestrator"| types
+
+    %% Domain implements traits
+    spider -.->|"implements"| types
+    fetch -.->|"implements"| types
+    extraction -.->|"implements"| types
+    browser -.->|"implements"| types
+    pipeline -.->|"implements"| types
+    intelligence -.->|"implements"| types
+
+    %% Infrastructure implements traits
+    cache -.->|"implements"| types
+    persistence -.->|"implements"| types
+    monitoring -.->|"implements"| types
+
+    %% Foundation usage (all layers)
+    api --> types
+    api --> events
+    facade --> types
+    facade --> events
+
+    %% No sideways dependencies!
+    %% No domain-to-infrastructure dependencies!
+
+    %% Styling
+    classDef clean fill:#51cf66,stroke:#2f9e44,stroke-width:3px
+    classDef trait fill:#4dabf7,stroke:#1971c2,stroke-width:2px
+    classDef foundation fill:#9775fa,stroke:#6741d9,stroke-width:2px
+
+    class api,facade clean
+    class spider,fetch,extraction,browser,pipeline,intelligence trait
+    class cache,persistence,monitoring trait
+    class types,events foundation
+
+    %% Clean dependency lines
+    linkStyle 0 stroke:#51cf66,stroke-width:3px
+    linkStyle 1,2,3,4 stroke:#4dabf7,stroke-width:2px
+    linkStyle 5,6,7,8,9,10 stroke:#4dabf7,stroke-width:2px,stroke-dasharray: 3 3
+    linkStyle 11,12,13 stroke:#4dabf7,stroke-width:2px,stroke-dasharray: 3 3
+
+---
+title: Dependency Violations - Detailed View
+---
+
+graph LR
+    subgraph V1["VIOLATION 1: ✅ RESOLVED"]
+        api1[riptide-api]
+        facade1[riptide-facade]
+        api1 -.->|"Phase 2C.2: REMOVED"| facade1
+        facade1 -->|"now uses traits"| api1
+    end
+
+    subgraph V2["VIOLATION 2: Facade → 8+ Domain Deps"]
+        facade2[riptide-facade]
+        facade2 --> spider2[spider]
+        facade2 --> fetch2[fetch]
+        facade2 --> extraction2[extraction]
+        facade2 --> browser2[browser]
+        facade2 --> pdf2[pdf]
+        facade2 --> cache2[cache]
+        facade2 --> search2[search]
+        facade2 --> stealth2[stealth]
+    end
+
+    subgraph V3["VIOLATION 3: Cache → Domain"]
+        cache3[riptide-cache<br/>Infrastructure]
+        cache3 --> pool3[riptide-pool<br/>Domain]
+        cache3 --> extraction3[riptide-extraction<br/>Domain]
+        extraction3 -.->|"circular risk"| cache3
+    end
+
+    subgraph V4["VIOLATION 4: Pipeline → Infrastructure"]
+        pipeline4[riptide-pipeline<br/>Domain]
+        pipeline4 -->|"direct dependency"| redis4[Redis<br/>redis crate]
+    end
+
+    classDef resolved fill:#51cf66,stroke:#2f9e44
+    classDef violation fill:#ff6b6b,stroke:#c92a2a,stroke-width:3px
+    classDef warning fill:#ffd93d,stroke:#f59f00
+
+    class api1,facade1 resolved
+    class facade2,cache3,pipeline4 violation
+    class spider2,fetch2,extraction2 warning
+
+---
+title: Refactoring Phases - Timeline
+---
+
+gantt
+    title RipTide Architecture Refactoring Roadmap
+    dateFormat YYYY-MM-DD
+    section Phase 1: Foundation
+    Extract Traits to riptide-types    :p1, 2025-11-06, 5d
+    facade_traits.rs                    :p1a, 2025-11-06, 2d
+    storage_traits.rs                   :p1b, 2025-11-08, 2d
+    http_traits.rs, pipeline_traits.rs  :p1c, 2025-11-09, 1d
+
+    section Phase 2: Infrastructure
+    Refactor riptide-cache              :p2a, 2025-11-11, 3d
+    Refactor riptide-persistence        :p2b, 2025-11-12, 2d
+    Test infrastructure layer           :p2c, 2025-11-14, 1d
+
+    section Phase 3: Pipeline
+    Remove Redis from pipeline          :p3a, 2025-11-15, 2d
+    Implement trait usage               :p3b, 2025-11-16, 2d
+    Test pipeline layer                 :p3c, 2025-11-18, 1d
+
+    section Phase 4: Domain
+    Implement domain traits             :p4a, 2025-11-19, 4d
+    spider, fetch, extraction           :p4b, 2025-11-19, 2d
+    browser, intelligence               :p4c, 2025-11-21, 2d
+    Test all domain crates              :p4d, 2025-11-23, 1d
+
+    section Phase 5: Facade
+    Remove domain deps from facade      :p5a, 2025-11-24, 3d
+    Use trait objects                   :p5b, 2025-11-25, 2d
+    Test facade with mocks              :p5c, 2025-11-27, 1d
+
+    section Phase 6: API
+    Dependency injection in API         :p6a, 2025-11-28, 2d
+    Integration testing                 :p6b, 2025-11-30, 2d
+    Final validation                    :p6c, 2025-12-02, 1d
+
+---
+title: Trait Abstraction Strategy
+---
+
+graph TD
+    subgraph TYPES["riptide-types (Foundation)"]
+        ft[facade_traits.rs]
+        st[storage_traits.rs]
+        ht[http_traits.rs]
+        pt[pipeline_traits.rs]
+    end
+
+    subgraph TRAITS["Trait Definitions"]
+        ft --> cs[CrawlStrategy]
+        ft --> es[ExtractionStrategy]
+        ft --> bs[BrowserStrategy]
+
+        st --> kvs[KeyValueStore]
+        st --> repo[Repository]
+        st --> cl[CacheLayer]
+
+        ht --> hc[HttpClient]
+        ht --> rb[RequestBuilder]
+
+        pt --> ps[PipelineStep]
+        pt --> orch[Orchestrator]
+    end
+
+    subgraph IMPL["Implementations"]
+        cs -.->|"impl by"| spider[riptide-spider]
+        es -.->|"impl by"| extraction[riptide-extraction]
+        bs -.->|"impl by"| browser[riptide-browser]
+
+        kvs -.->|"impl by"| cache[riptide-cache]
+        repo -.->|"impl by"| persistence[riptide-persistence]
+
+        hc -.->|"impl by"| fetch[riptide-fetch]
+
+        ps -.->|"impl by"| pipeline[riptide-pipeline]
+        orch -.->|"impl by"| pipeline
+    end
+
+    subgraph USAGE["Usage (Facade)"]
+        facade[riptide-facade]
+        facade -->|"uses trait"| cs
+        facade -->|"uses trait"| es
+        facade -->|"uses trait"| kvs
+        facade -->|"uses trait"| orch
+    end
+
+    classDef foundation fill:#9775fa,stroke:#6741d9,stroke-width:2px
+    classDef trait fill:#4dabf7,stroke:#1971c2,stroke-width:2px
+    classDef impl fill:#51cf66,stroke:#2f9e44,stroke-width:2px
+    classDef usage fill:#ff8787,stroke:#c92a2a,stroke-width:2px
+
+    class TYPES foundation
+    class cs,es,bs,kvs,repo,hc,ps,orch trait
+    class spider,extraction,browser,cache,persistence,fetch,pipeline impl
+    class facade usage
+
+---
+title: Testing Strategy - Layer Isolation
+---
+
+graph TB
+    subgraph UT["Unit Tests (Per Crate)"]
+        ut1[cargo test -p riptide-types]
+        ut2[cargo test -p riptide-cache]
+        ut3[cargo test -p riptide-pipeline]
+        ut4[cargo test -p riptide-spider]
+    end
+
+    subgraph MT["Mock Tests (Facade)"]
+        mt1[Mock: CrawlStrategy]
+        mt2[Mock: KeyValueStore]
+        mt3[Mock: Orchestrator]
+        facade_test[cargo test -p riptide-facade<br/>--features mock-domain]
+        mt1 --> facade_test
+        mt2 --> facade_test
+        mt3 --> facade_test
+    end
+
+    subgraph IT["Integration Tests (Full Stack)"]
+        it1[Real: Spider + Fetch]
+        it2[Real: Cache + Redis]
+        it3[Real: Pipeline + Extraction]
+        api_test[cargo test -p riptide-api<br/>--features full]
+        it1 --> api_test
+        it2 --> api_test
+        it3 --> api_test
+    end
+
+    subgraph AV["Architecture Validation"]
+        av1[cargo tree --duplicates]
+        av2[cargo clippy -D warnings]
+        av3[Check no circular deps]
+    end
+
+    UT --> MT
+    MT --> IT
+    IT --> AV
+
+    classDef unit fill:#74c0fc,stroke:#1971c2
+    classDef mock fill:#ffd43b,stroke:#f59f00
+    classDef integration fill:#51cf66,stroke:#2f9e44
+    classDef validate fill:#ff8787,stroke:#c92a2a
+
+    class ut1,ut2,ut3,ut4 unit
+    class mt1,mt2,mt3,facade_test mock
+    class it1,it2,it3,api_test integration
+    class av1,av2,av3 validate

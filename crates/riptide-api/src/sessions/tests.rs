@@ -1,9 +1,9 @@
 //! Comprehensive tests for session cleanup functionality
 
 use super::storage::SessionStorage;
-use super::types::{Session, SessionConfig};
+use super::types::SessionConfig;
 use std::path::PathBuf;
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 use tokio;
 
 /// Create a unique test configuration with isolated storage

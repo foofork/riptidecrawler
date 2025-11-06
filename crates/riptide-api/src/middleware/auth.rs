@@ -668,7 +668,7 @@ pub async fn auth_middleware(
 }
 
 /// Extract API key from request headers
-fn extract_api_key(request: &Request) -> Option<String> {
+pub(crate) fn extract_api_key(request: &Request) -> Option<String> {
     // Try X-API-Key header
     if let Some(api_key) = request
         .headers()
@@ -737,9 +737,10 @@ fn rate_limited_response(retry_after: Duration) -> Response {
         .into_response()
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 mod tests {
-    #[allow(unused_imports)]
+    use super::*;
+    use axum::body::Body;
     use axum::http::Request;
 
     #[test]

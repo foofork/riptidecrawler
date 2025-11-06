@@ -8,15 +8,15 @@
 //! - Single WASM instance per worker
 //! - Memory cleanup on timeouts
 
+use crate::config::RiptideApiConfig;
 use crate::resource_manager::{ResourceManager, ResourceResult};
 use anyhow::Result;
-use riptide_config::ApiConfig;
 use std::time::{Duration, Instant};
 
 #[tokio::test]
 #[ignore = "Requires Chrome/Chromium to be installed"]
 async fn test_headless_browser_pool_cap() -> Result<()> {
-    let mut config = ApiConfig::default();
+    let mut config = RiptideApiConfig::default();
     config.headless.max_pool_size = 3; // Requirement verification
 
     let manager = ResourceManager::new(config).await?;
@@ -77,7 +77,7 @@ async fn test_headless_browser_pool_cap() -> Result<()> {
 #[tokio::test]
 #[ignore = "Requires Chrome/Chromium to be installed"]
 async fn test_render_timeout_hard_cap() -> Result<()> {
-    let mut config = ApiConfig::default();
+    let mut config = RiptideApiConfig::default();
     config.performance.render_timeout_secs = 3; // Requirement verification
 
     let manager = ResourceManager::new(config).await?;
@@ -119,7 +119,7 @@ async fn test_render_timeout_hard_cap() -> Result<()> {
 #[tokio::test(start_paused = true)]
 #[ignore = "Requires Chrome/Chromium to be installed"]
 async fn test_per_host_rate_limiting() -> Result<()> {
-    let mut config = ApiConfig::default();
+    let mut config = RiptideApiConfig::default();
     config.rate_limiting.enabled = true;
     config.rate_limiting.requests_per_second_per_host = 1.5; // Requirement verification
     config.rate_limiting.jitter_factor = 0.1; // 10% jitter
@@ -183,7 +183,7 @@ async fn test_per_host_rate_limiting() -> Result<()> {
 #[tokio::test]
 #[ignore = "Requires Chrome/Chromium to be installed"]
 async fn test_pdf_semaphore_concurrent_limit() -> Result<()> {
-    let mut config = ApiConfig::default();
+    let mut config = RiptideApiConfig::default();
     config.pdf.max_concurrent = 2; // Requirement verification
 
     let manager = ResourceManager::new(config).await?;
@@ -210,7 +210,7 @@ async fn test_pdf_semaphore_concurrent_limit() -> Result<()> {
 #[tokio::test]
 #[ignore = "Requires Chrome/Chromium to be installed"]
 async fn test_memory_pressure_detection() -> Result<()> {
-    let mut config = ApiConfig::default();
+    let mut config = RiptideApiConfig::default();
     config.memory.global_memory_limit_mb = 100;
     config.memory.pressure_threshold = 0.8; // 80% threshold
 
@@ -243,7 +243,7 @@ async fn test_memory_pressure_detection() -> Result<()> {
 #[tokio::test]
 #[cfg(feature = "wasm-extractor")]
 async fn test_wasm_single_instance_per_worker() -> Result<()> {
-    let mut config = ApiConfig::default();
+    let mut config = RiptideApiConfig::default();
     config.wasm.instances_per_worker = 1; // Requirement verification
 
     let manager = ResourceManager::new(config).await?;
@@ -272,7 +272,7 @@ async fn test_wasm_single_instance_per_worker() -> Result<()> {
 
 #[tokio::test]
 async fn test_timeout_cleanup_triggers() -> Result<()> {
-    let config = ApiConfig::default();
+    let config = RiptideApiConfig::default();
     let manager = ResourceManager::new(config).await?;
 
     // Get initial cleanup count
@@ -300,7 +300,7 @@ async fn test_timeout_cleanup_triggers() -> Result<()> {
 #[tokio::test]
 #[ignore = "Requires Chrome/Chromium to be installed"]
 async fn test_resource_status_monitoring() -> Result<()> {
-    let config = ApiConfig::default();
+    let config = RiptideApiConfig::default();
     let manager = ResourceManager::new(config).await?;
 
     let status = manager.get_resource_status().await;
@@ -319,7 +319,7 @@ async fn test_resource_status_monitoring() -> Result<()> {
 
 #[tokio::test]
 async fn test_jitter_variance() -> Result<()> {
-    let mut config = ApiConfig::default();
+    let mut config = RiptideApiConfig::default();
     config.rate_limiting.requests_per_second_per_host = 1.5;
     config.rate_limiting.jitter_factor = 0.2; // 20% jitter
 
@@ -358,21 +358,21 @@ async fn test_jitter_variance() -> Result<()> {
 #[tokio::test]
 async fn test_configuration_validation() -> Result<()> {
     // Valid configuration
-    let valid_config = ApiConfig::default();
+    let valid_config = RiptideApiConfig::default();
     assert!(valid_config.validate().is_ok());
 
     // Invalid: zero concurrent renders
-    let mut invalid_config = ApiConfig::default();
+    let mut invalid_config = RiptideApiConfig::default();
     invalid_config.resources.max_concurrent_renders = 0;
     assert!(invalid_config.validate().is_err());
 
     // Invalid: jitter factor > 1.0
-    let mut invalid_config = ApiConfig::default();
+    let mut invalid_config = RiptideApiConfig::default();
     invalid_config.rate_limiting.jitter_factor = 1.5;
     assert!(invalid_config.validate().is_err());
 
     // Invalid: memory pressure threshold > 1.0
-    let mut invalid_config = ApiConfig::default();
+    let mut invalid_config = RiptideApiConfig::default();
     invalid_config.memory.pressure_threshold = 1.5;
     assert!(invalid_config.validate().is_err());
 
@@ -382,7 +382,7 @@ async fn test_configuration_validation() -> Result<()> {
 #[tokio::test]
 #[ignore = "Requires Chrome/Chromium to be installed"]
 async fn test_concurrent_operations_stress() -> Result<()> {
-    let config = ApiConfig::default();
+    let config = RiptideApiConfig::default();
     let manager = ResourceManager::new(config).await?;
 
     // Spawn multiple concurrent operations
@@ -450,7 +450,7 @@ async fn test_concurrent_operations_stress() -> Result<()> {
 #[tokio::test]
 #[ignore = "Requires Chrome/Chromium to be installed"]
 async fn test_complete_resource_pipeline() -> Result<()> {
-    let config = ApiConfig::default();
+    let config = RiptideApiConfig::default();
     let manager = ResourceManager::new(config).await?;
 
     println!("Testing complete resource control pipeline...");

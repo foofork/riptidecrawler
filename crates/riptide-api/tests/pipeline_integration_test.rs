@@ -9,6 +9,7 @@
 use riptide_api::pipeline::PipelineOrchestrator;
 use riptide_api::state::AppState;
 use riptide_types::config::CrawlOptions;
+use std::sync::Arc;
 
 mod test_helpers;
 

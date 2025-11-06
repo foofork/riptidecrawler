@@ -90,7 +90,7 @@ pub fn create_test_router(state: AppState) -> Router {
     use riptide_api::streaming::sse::crawl_sse;
     use riptide_api::streaming::websocket::crawl_websocket;
 
-    Router::new()
+    let mut app = Router::new()
         // Health endpoint - standardized on /healthz
         .route("/healthz", get(handlers::health))
         // Metrics - both root and v1 paths
@@ -99,9 +99,15 @@ pub fn create_test_router(state: AppState) -> Router {
         // Crawl endpoints - both root and v1 paths
         .route("/api/v1/crawl", post(handlers::crawl))
         // Extract endpoint - NEW v1.1 (v1 path primary)
-        .route("/api/v1/extract", post(handlers::extract))
-        // Search endpoint - NEW v1.1 (v1 path primary)
-        .route("/api/v1/search", get(handlers::search))
+        .route("/api/v1/extract", post(handlers::extract));
+
+    // Search endpoint - NEW v1.1 (v1 path primary)
+    #[cfg(feature = "search")]
+    {
+        app = app.route("/api/v1/search", get(handlers::search));
+    }
+
+    app
         // Streaming endpoints (test-enabled)
         .route("/crawl/stream", post(crawl_stream))
         .route("/deepsearch/stream", post(deepsearch_stream))

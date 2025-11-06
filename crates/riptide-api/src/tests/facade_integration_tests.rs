@@ -12,14 +12,18 @@
 //! Most tests use mocks and don't require real resources. Tests marked with
 //! `#[ignore]` require actual browser/network resources and should be run explicitly.
 
+use crate::config::RiptideApiConfig;
+#[cfg(feature = "browser")]
 use crate::handlers::browser::{BrowserAction, CreateSessionRequest};
-use crate::handlers::extract::{ExtractOptions, ExtractRequest};
 use crate::health::HealthChecker;
 use crate::metrics::RipTideMetrics;
 use crate::state::{AppConfig, AppState};
 use anyhow::Result;
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{extract::State, Json};
 use http_body_util::BodyExt;
+use riptide_types::ExtractOptions;
+#[cfg(feature = "extraction")]
+use riptide_types::ExtractRequest;
 use std::sync::Arc;
 use wiremock::{
     matchers::{method, path},
@@ -43,14 +47,9 @@ async fn create_test_app_state() -> Result<AppState> {
         ..Default::default()
     };
 
-    let api_config = ApiConfig {
-        headless: crate::config::HeadlessConfig {
-            max_pool_size: 2,
-            idle_timeout_secs: 60,
-            ..Default::default()
-        },
-        ..Default::default()
-    };
+    let mut api_config = RiptideApiConfig::default();
+    api_config.headless.max_pool_size = 2;
+    api_config.headless.idle_timeout_secs = 60;
 
     let metrics = Arc::new(RipTideMetrics::new()?);
     let health_checker = Arc::new(HealthChecker::new());
@@ -171,6 +170,7 @@ async fn test_app_state_config_validation() {
 
 #[tokio::test]
 #[ignore = "Requires browser launcher"]
+#[cfg(feature = "browser")]
 async fn test_browser_session_creation() {
     let state = create_test_app_state().await.unwrap();
 
@@ -191,6 +191,7 @@ async fn test_browser_session_creation() {
 }
 
 #[tokio::test]
+#[cfg(feature = "browser")]
 async fn test_browser_action_deserialization() {
     // Test various browser action types deserialize correctly
     let actions = vec![
@@ -208,6 +209,7 @@ async fn test_browser_action_deserialization() {
 
 #[tokio::test]
 #[ignore = "Requires browser launcher"]
+#[cfg(feature = "browser")]
 async fn test_browser_pool_status() {
     let state = create_test_app_state().await.unwrap();
 
@@ -223,6 +225,7 @@ async fn test_browser_pool_status() {
 
 #[tokio::test]
 #[ignore = "Requires browser launcher"]
+#[cfg(feature = "browser")]
 async fn test_browser_session_lifecycle() {
     let state = create_test_app_state().await.unwrap();
 
@@ -258,6 +261,7 @@ async fn test_browser_session_lifecycle() {
 // ============================================================================
 
 #[tokio::test]
+#[cfg(feature = "extraction")]
 async fn test_extract_request_validation() {
     // Test invalid URL
     let invalid_request = ExtractRequest {
@@ -286,6 +290,7 @@ async fn test_extract_options_defaults() {
 }
 
 #[tokio::test]
+#[cfg(feature = "extraction")]
 async fn test_extract_request_deserialization() {
     let json = r#"{
         "url": "https://example.com",
@@ -308,6 +313,7 @@ async fn test_extract_request_deserialization() {
 
 #[tokio::test]
 #[ignore = "Requires Redis and WASM"]
+#[cfg(feature = "extraction")]
 async fn test_extract_handler_with_mock_server() {
     let mock_server = create_mock_server().await;
     let html = r#"
@@ -368,6 +374,7 @@ async fn test_fetch_handler_returns_metrics() {
 // ============================================================================
 
 #[tokio::test]
+#[cfg(feature = "extraction")]
 async fn test_extract_handler_invalid_url_error() {
     // Test that invalid URLs are properly rejected
     let json = r#"{"url": "not-a-url", "mode": "standard"}"#;
@@ -429,6 +436,7 @@ async fn test_timeout_handling() {
 
 #[tokio::test]
 #[ignore = "Requires Redis"]
+#[cfg(feature = "browser")]
 async fn test_app_state_drop_cleanup() {
     // Create and immediately drop state
     {
@@ -440,6 +448,7 @@ async fn test_app_state_drop_cleanup() {
 
 #[tokio::test]
 #[ignore = "Requires browser launcher"]
+#[cfg(feature = "browser")]
 async fn test_browser_session_auto_cleanup() {
     let state = create_test_app_state().await.unwrap();
 
@@ -517,6 +526,7 @@ async fn test_concurrent_fetch_operations() {
 
 #[tokio::test]
 #[ignore = "Requires browser launcher"]
+#[cfg(feature = "browser")]
 async fn test_concurrent_browser_sessions() {
     let state = create_test_app_state().await.unwrap();
 
@@ -549,6 +559,7 @@ async fn test_concurrent_browser_sessions() {
 
 #[tokio::test]
 #[ignore = "Requires Redis and WASM"]
+#[cfg(feature = "extraction")]
 async fn test_multi_facade_workflow() {
     let mock_server = create_mock_server().await;
     let html = "<html><head><title>Test</title></head><body>Content</body></html>";
@@ -579,6 +590,7 @@ async fn test_multi_facade_workflow() {
 
 #[tokio::test]
 #[ignore = "Requires browser launcher and Redis"]
+#[cfg(all(feature = "browser", feature = "extraction"))]
 async fn test_browser_to_extraction_workflow() {
     let state = create_test_app_state().await.unwrap();
 

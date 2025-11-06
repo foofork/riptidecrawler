@@ -137,8 +137,9 @@ pub async fn spider_status(
     // Build response
     let response = SpiderStatusResponse {
         state,
-        performance: None,    // TODO: Get performance metrics from facade
-        frontier_stats: None, // TODO: Get frontier stats from facade
+        performance: None,         // TODO: Get performance metrics from facade
+        frontier_stats: None,      // TODO: Get frontier stats from facade
+        adaptive_stop_stats: None, // TODO: Get adaptive stop stats from facade
     };
 
     Ok(Json(response))

@@ -3,17 +3,17 @@
 //! This module provides test fixtures and builders for creating test instances
 //! of complex types that are difficult to construct manually in tests.
 
+use crate::config::RiptideApiConfig;
 use crate::health::HealthChecker;
 use crate::metrics::RipTideMetrics;
 use crate::state::{AppConfig, AppState};
 use anyhow::Result;
-use riptide_config::ApiConfig;
 use std::sync::Arc;
 
 /// Test builder for AppState
 pub struct AppStateBuilder {
     config: Option<AppConfig>,
-    api_config: Option<ApiConfig>,
+    api_config: Option<RiptideApiConfig>,
     metrics: Option<Arc<RipTideMetrics>>,
     health_checker: Option<Arc<HealthChecker>>,
 }
@@ -36,7 +36,7 @@ impl AppStateBuilder {
         self
     }
 
-    /// Set custom ApiConfig
+    /// Set custom RiptideApiConfig
     #[allow(dead_code)]
     pub fn with_api_config(mut self, api_config: RiptideApiConfig) -> Self {
         self.api_config = Some(api_config);

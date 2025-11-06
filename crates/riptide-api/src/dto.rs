@@ -1,6 +1,6 @@
 // Import HTTP DTOs from riptide-types (Phase 2C.1 - breaking circular dependency)
 // Re-export for backward compatibility
-pub use riptide_types::{CrawledPage, ResultMode};
+pub use riptide_types::{CrawledPage, ResultMode, SpiderResultStats, SpiderResultUrls};
 
 use serde::{Deserialize, Serialize};
 
@@ -144,6 +144,7 @@ impl SpiderResultPages {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use riptide_types::{SpiderResultStats, SpiderResultUrls};
 
     #[test]
     fn test_result_mode_default_is_stats() {
