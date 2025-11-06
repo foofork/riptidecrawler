@@ -180,660 +180,32 @@ rg "^## Week [0-9]" docs/roadmap/RIPTIDE-V1-DEFINITIVE-ROADMAP.md  # What's the 
 
 ### Week 0-1: Consolidation (5-7 days) ✅ COMPLETE
 
-#### W0.1: Create riptide-utils Crate (P0 BLOCKER)
-
-**Effort:** 6-7 days (adjusted from 4 days)
-**Impact:** Remove ~2,580 lines of duplication
-**Blocks:** ALL other work
-
-**Create crate:**
-```bash
-cd /workspaces/eventmesh
-cargo new --lib crates/riptide-utils
-```
-
-**1. Redis Connection Pooling** (2 days - TWO PHASES)
-
-**ACTION: Phase 1a = REFACTOR existing → consolidated RedisPool, Phase 1b = MIGRATE (MANDATORY)**
-
-**Phase 1a: Extract and Consolidate RedisPool** (1 day)
-
-**Find existing implementations first (VERIFIED 2025-11-04: 10+ files):**
-```bash
-# Verify all Redis usage in codebase
-rg "redis::Client::open|ConnectionManager::new|get_multiplexed_async_connection" --type rust -l | grep -v target
-# Expected: 10+ files (not just 3)
-```
-
-**Source locations to extract patterns from:**
-- `crates/riptide-workers/src/scheduler.rs:193` (basic connection setup)
-- `crates/riptide-workers/src/queue.rs:56` (connection with retry)
-- `crates/riptide-cache/src/redis.rs` (pooling and connection management - 393 lines!)
-- `crates/riptide-persistence/tests/integration/mod.rs:92` (test connection setup)
-- Plus 6+ files in riptide-persistence/src/*.rs
-
-**REFACTOR these patterns into consolidated RedisPool with health checks:**
-```rust
-// crates/riptide-utils/src/redis.rs
-
-use redis::aio::ConnectionManager;
-use std::sync::Arc;
-use tokio::time::{interval, Duration};
-
-pub struct RedisPool {
-    manager: Arc<ConnectionManager>,
-    config: RedisConfig,
-}
-
-pub struct RedisConfig {
-    pub max_connections: usize,
-    pub connection_timeout: Duration,
-    pub retry_attempts: u32,
-    pub health_check_interval: Duration,
-}
-
-impl Default for RedisConfig {
-    fn default() -> Self {
-        Self {
-            max_connections: 10,
-            connection_timeout: Duration::from_secs(5),
-            retry_attempts: 3,
-            health_check_interval: Duration::from_secs(30),
-        }
-    }
-}
-
-impl RedisPool {
-    pub async fn new(url: &str, config: RedisConfig) -> Result<Self> {
-        let client = redis::Client::open(url)?;
-        let manager = ConnectionManager::new(client).await?;
-
-        let pool = Self {
-            manager: Arc::new(manager),
-            config,
-        };
-
-        // Start health check background task
-        pool.start_health_checks();
-
-        Ok(pool)
-    }
-
-    pub async fn get(&self) -> Result<ConnectionManager> {
-        Ok(self.manager.as_ref().clone())
-    }
-
-    fn start_health_checks(&self) {
-        let manager = self.manager.clone();
-        let interval_duration = self.config.health_check_interval;
-
-        tokio::spawn(async move {
-            let mut interval = interval(interval_duration);
-            loop {
-                interval.tick().await;
-                // PING command to verify connection health
-                if let Err(e) = redis::cmd("PING").query_async::<_, ()>(&mut manager.clone()).await {
-                    tracing::warn!("Redis health check failed: {}", e);
-                }
-            }
-        });
-    }
-}
-```
-
-**TDD Approach:**
-```rust
-// RED: Write test first
-#[tokio::test]
-async fn test_redis_pool_reuses_connections() {
-    let pool = RedisPool::new("redis://localhost:6379").await.unwrap();
-    let conn1 = pool.get().await.unwrap();
-    let conn2 = pool.get().await.unwrap();
-    // Both should share same underlying connection
-    assert!(Arc::ptr_eq(&conn1.inner(), &conn2.inner()));
-}
-
-// GREEN: Implement above code
-// REFACTOR: Add error handling
-```
-
-**Phase 1a Acceptance:**
-- [x] RedisPool compiles: `cargo build -p riptide-utils` ✅
-- [x] Tests pass: `cargo test -p riptide-utils redis` ✅
-- [x] Health checks work (PING every 30s) ✅
-- [x] Connection pooling verified (10+ concurrent) ✅
-
-**Phase 1b: Migrate Existing Usage** (1 day - MANDATORY)
-
-**⚠️ CRITICAL: Phase 1b is NOT optional. Must migrate ALL 10+ files BEFORE moving to next task.**
-
-**Verification command (MUST return 10+ files before migration):**
-```bash
-# These files MUST still have old Redis code before migration
-rg "redis::Client::open|ConnectionManager::new|get_multiplexed_async_connection" --type rust -l | \
-  grep -v riptide-utils | grep -v target
-# Expected: 10+ files including:
-#   - riptide-workers: scheduler.rs, queue.rs
-#   - riptide-persistence: cache.rs, state.rs, tenant.rs, sync.rs, tests/integration/mod.rs
-#   - riptide-cache: redis.rs, manager.rs
-```
-
-**Migration commands (update ALL files found above):**
-```bash
-# PRIORITY 1: riptide-workers (scheduler, queue)
-sd "redis::Client::open" "riptide_utils::redis::RedisPool::new" \
-  crates/riptide-workers/src/scheduler.rs \
-  crates/riptide-workers/src/queue.rs
-
-# PRIORITY 2: riptide-persistence (4 source files + 1 test)
-sd "redis::Client::open" "riptide_utils::redis::RedisPool::new" \
-  crates/riptide-persistence/src/{cache,state,tenant,sync}.rs \
-  crates/riptide-persistence/tests/integration/mod.rs
-
-# PRIORITY 3: riptide-cache (redis wrapper - may need manual refactor)
-# Review: crates/riptide-cache/src/redis.rs (393 lines)
-# Decision: Keep as thin wrapper over RedisPool OR consolidate into utils
-
-# 4. Add imports to all migrated files
-# Add: use riptide_utils::redis::RedisPool;
-```
-
-**Verification (MUST run after migration):**
-```bash
-# Should return ZERO files (except riptide-utils itself)
-rg "redis::Client::open" --type rust -l | grep -v riptide-utils | grep -v target | wc -l
-# Expected: 0
-
-# Verify builds still work
-cargo test -p riptide-workers
-cargo test -p riptide-persistence --test integration
-```
-
-**Phase 1b Acceptance (ALL required):**
-- [x] `rg "redis::Client::open"` returns 0 files (outside utils and riptide-cache) ✅
-- [x] All 10+ files now use `RedisPool::new` OR decision documented for riptide-cache ✅
-- [x] `cargo test -p riptide-workers` passes ✅
-- [x] `cargo test -p riptide-persistence` passes ✅
-- [x] `cargo test -p riptide-cache` passes (if migrated) ✅
-- [x] ~150 lines removed (actual: see PHASE-0-COMPLETION-REPORT.md) ✅
-
-**2. HTTP Client Factory** (1 day - TWO PHASES)
-
-**ACTION: Phase 2a = EXTRACT common patterns → factory, Phase 2b = MIGRATE tests (IF duplication exists)**
-
-**Phase 2a: Extract HTTP Client Factory** (0.5 days)
-
-**Find and verify duplication first (VERIFY 2025-11-04: check if duplication actually exists):**
-```bash
-# Find all reqwest usage (19 files found, but duplication unclear)
-rg "reqwest::Client::builder|Client::new" --type rust -l tests/
-# Expected: 19 test files, but VERIFY if they have duplicate configuration
-
-# Check for actual duplication (timeouts, headers, pooling):
-rg "timeout|user_agent|pool_idle_timeout" tests/ -A 3 | head -50
-```
-
-**Note:** Swarm analysis (2025-11-04) found 19 test files but couldn't verify actual duplication. Most use simple `Client::new()`. **Verify duplication exists before creating factory.**
-
-**If duplication confirmed, EXTRACT common patterns into factory:**
-```rust
-// crates/riptide-utils/src/http.rs
-
-use reqwest::Client;
-use std::time::Duration;
-
-pub fn create_default_client() -> Result<Client> {
-    Client::builder()
-        .timeout(Duration::from_secs(30))
-        .user_agent("RipTide/1.0.0")
-        .pool_max_idle_per_host(10)
-        .build()
-        .map_err(Into::into)
-}
-
-pub fn create_custom_client(timeout_secs: u64, user_agent: &str) -> Result<Client> {
-    Client::builder()
-        .timeout(Duration::from_secs(timeout_secs))
-        .user_agent(user_agent)
-        .pool_max_idle_per_host(10)
-        .build()
-        .map_err(Into::into)
-}
-```
-
-**Phase 2a Acceptance:**
-- [x] HTTP factory compiles: `cargo build -p riptide-utils` ✅
-- [x] Tests pass: `cargo test -p riptide-utils http` ✅
-- [x] Client pool settings work (timeout, user-agent, max idle) ✅
-
-**Phase 2b: Migrate Test Files** (0.5 days - MANDATORY)
-
-**⚠️ CRITICAL: Phase 2b is NOT optional. Must update all test files.**
-
-**Verification (MUST return 8+ files):**
-```bash
-# Count duplicate HTTP clients in tests
-rg "reqwest::Client::builder" --type rust tests/ -l | wc -l
-# Expected: 8+
-```
-
-**Migration commands:**
-```bash
-# Find all test files with HTTP duplication
-TEST_FILES=$(rg "reqwest::Client::builder" --type rust tests/ -l)
-
-# Update each file to use utils (example for first few)
-# Manual review required for test-specific configurations
-# Replace: reqwest::Client::builder()...build()
-# With: riptide_utils::http::create_default_client()
-```
-
-**Verification after migration:**
-```bash
-# Should be significantly reduced (target: <3 remaining)
-rg "reqwest::Client::builder" --type rust tests/ -l | wc -l
-
-# All tests should still pass
-cargo test --workspace
-```
-
-**Phase 2b Acceptance (ALL required):**
-- [x] 3 test files updated with 13 HTTP client instances migrated ✅
-- [x] Remaining duplicates documented (special cases) ✅
-- [x] `cargo test --workspace` passes ✅
-- [x] ~53 lines removed (actual: see PHASE-0-COMPLETION-REPORT.md) ✅
-
-**3. Retry Logic Consolidation** (2-3 days - TWO PHASES)
-
-**ACTION: Phase 3a = REFACTOR (extract from riptide-fetch), Phase 3b = MIGRATE high-priority**
-
-**Phase 3a: Extract and Generalize Retry Logic** (1.5 days)
-
-**Find existing implementations first:**
-```bash
-# MUST verify scale: ~36 files with retry patterns (VERIFIED 2025-11-04)
-rg "for.*attempt|retry.*loop|exponential.*backoff" --type rust -l | grep -v target | wc -l
-# Expected: 36 (not 125+ - that was overestimated)
-```
-
-**Identify canonical implementation:**
-```bash
-# Use riptide-fetch as canonical (most complete)
-cat crates/riptide-fetch/src/fetch.rs | grep -A 20 "retry"
-```
-
-**REFACTOR existing riptide-fetch retry logic into generalized implementation:**
-```rust
-// crates/riptide-utils/src/retry.rs
-
-use std::time::Duration;
-use tokio::time::sleep;
-
-pub struct RetryPolicy {
-    max_attempts: u32,
-    initial_delay: Duration,
-    max_delay: Duration,
-    backoff_factor: f64,
-}
-
-impl Default for RetryPolicy {
-    fn default() -> Self {
-        Self {
-            max_attempts: 3,
-            initial_delay: Duration::from_millis(100),
-            max_delay: Duration::from_secs(30),
-            backoff_factor: 2.0,
-        }
-    }
-}
-
-impl RetryPolicy {
-    pub async fn execute<F, Fut, T, E>(&self, mut operation: F) -> Result<T, E>
-    where
-        F: FnMut() -> Fut,
-        Fut: Future<Output = Result<T, E>>,
-    {
-        let mut delay = self.initial_delay;
-
-        for attempt in 0..self.max_attempts {
-            match operation().await {
-                Ok(result) => return Ok(result),
-                Err(e) => {
-                    if attempt == self.max_attempts - 1 {
-                        return Err(e);
-                    }
-                    sleep(delay).await;
-                    delay = (delay * self.backoff_factor as u32).min(self.max_delay);
-                }
-            }
-        }
-
-        unreachable!("Loop should exit via return")
-    }
-}
-```
-
-**Phase 3a Acceptance:**
-- [x] RetryPolicy compiles: `cargo build -p riptide-utils` ✅
-- [x] Tests pass: `cargo test -p riptide-utils retry` ✅
-- [x] Exponential backoff verified ✅
-- [x] Generic async function support works ✅
-
-**Phase 3b: Migrate High-Priority Files** (1 day - MANDATORY)
-
-**⚠️ CRITICAL: Phase 3b migrates 7 high-priority files. Remaining 29 files deferred to Week 1-2.**
-
-**High-priority targets (VERIFIED 2025-11-04: 7 files):**
-- `crates/riptide-intelligence/src/{smart_retry,circuit_breaker,fallback,background_processor,llm_client_pool}.rs` (5 files)
-- `crates/riptide-workers/src/job.rs` (1 file)
-- `crates/riptide-intelligence/tests/smart_retry_tests.rs` (1 file)
-
-**Verification (count before migration):**
-```bash
-# Count retry patterns in high-priority crates (VERIFIED: 7 files)
-rg "for.*attempt|retry.*loop" --type rust -l \
-  crates/riptide-{intelligence,workers,spider} | grep -v target
-# Expected: 7 (not 10+ - corrected count)
-```
-
-**Migration strategy:**
-```bash
-# 1. Update riptide-intelligence
-find crates/riptide-intelligence -name "*.rs" -exec \
-  sed -i 's/old_retry_pattern/riptide_utils::retry::RetryPolicy::default()/g' {} \;
-
-# 2. Update riptide-workers (similar)
-# 3. Update riptide-spider (similar)
-
-# Add imports to each migrated file:
-# use riptide_utils::retry::RetryPolicy;
-```
-
-**Verification after migration:**
-```bash
-# Should be reduced by ~10 files
-rg "for.*attempt|retry.*loop" --type rust -l \
-  crates/riptide-{intelligence,workers,spider} | wc -l
-
-# High-priority crates should build
-cargo test -p riptide-intelligence
-cargo test -p riptide-workers
-cargo test -p riptide-spider
-```
-
-**Phase 3b Acceptance (ALL required):**
-- [x] 7 high-priority files analyzed (1 migration candidate identified) ✅
-- [x] Remaining files documented for Week 1-2 cleanup ✅
-- [x] High-priority crates tests pass: `cargo test -p riptide-{intelligence,workers}` ✅
-- [x] Migration analysis complete (SmartRetry preserved as specialized) ✅
-- [x] CREATE migration tracking at `docs/phase0/retry-migration-status.md` ✅
-  ```markdown
-  # Retry Migration Status
-
-  ## Phase 3b Complete (7/36 files)
-  - ✅ riptide-intelligence: 5 files
-  - ✅ riptide-workers: 1 file
-  - ✅ Tests: 1 file
-
-  ## Remaining (29/36 files - Week 1-2)
-  - riptide-fetch: 4 files
-  - riptide-api: 6 files
-  - riptide-extraction: 3 files
-  - Other crates: 16 files
-  ```
-
-**4. Time Utilities** (0.5 days)
-
-**Consolidated implementation:**
-```rust
-// crates/riptide-utils/src/time.rs
-
-use chrono::{DateTime, Utc};
-
-pub fn now() -> DateTime<Utc> {
-    Utc::now()
-}
-
-pub fn now_unix() -> i64 {
-    Utc::now().timestamp()
-}
-
-pub fn format_iso8601(dt: DateTime<Utc>) -> String {
-    dt.to_rfc3339()
-}
-
-pub fn parse_iso8601(s: &str) -> Result<DateTime<Utc>> {
-    DateTime::parse_from_rfc3339(s)
-        .map(|dt| dt.with_timezone(&Utc))
-        .map_err(Into::into)
-}
-```
-
-**5. Error Re-exports** (0.5 days)
-
-```rust
-// crates/riptide-utils/src/error.rs
-
-pub use riptide_types::{RiptideError, Result};
-```
-
-**6. Rate Limiting (Token Bucket)** (1 day)
-
-**Implementation:**
-```rust
-// crates/riptide-utils/src/rate_limit.rs
-
-use redis::aio::ConnectionManager;
-use std::time::Duration;
-
-pub struct TokenBucket {
-    redis: ConnectionManager,
-    rate_limit_key: String,
-    max_tokens: u32,
-    refill_rate: u32, // tokens per minute
-}
-
-impl TokenBucket {
-    pub async fn new(
-        redis: ConnectionManager,
-        identifier: &str,
-        max_tokens: u32,
-        refill_rate: u32,
-    ) -> Self {
-        Self {
-            redis,
-            rate_limit_key: format!("rate_limit:{}", identifier),
-            max_tokens,
-            refill_rate,
-        }
-    }
-
-    /// Check if request is allowed, return (allowed, remaining, reset_time)
-    pub async fn check(&mut self) -> Result<(bool, u32, Duration)> {
-        // Lua script for atomic token bucket check
-        let script = r#"
-            local key = KEYS[1]
-            local max_tokens = tonumber(ARGV[1])
-            local refill_rate = tonumber(ARGV[2])
-            local now = tonumber(ARGV[3])
-
-            local bucket = redis.call('HMGET', key, 'tokens', 'last_refill')
-            local tokens = tonumber(bucket[1]) or max_tokens
-            local last_refill = tonumber(bucket[2]) or now
-
-            -- Refill tokens based on elapsed time
-            local elapsed = now - last_refill
-            local refilled = math.floor(elapsed * refill_rate / 60)
-            tokens = math.min(max_tokens, tokens + refilled)
-
-            if tokens >= 1 then
-                tokens = tokens - 1
-                redis.call('HMSET', key, 'tokens', tokens, 'last_refill', now)
-                redis.call('EXPIRE', key, 3600)
-                return {1, tokens, 60 / refill_rate}
-            else
-                return {0, 0, (60 - elapsed) / refill_rate}
-            end
-        "#;
-
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)?
-            .as_secs();
-
-        let result: Vec<i64> = redis::Script::new(script)
-            .key(&self.rate_limit_key)
-            .arg(self.max_tokens)
-            .arg(self.refill_rate)
-            .arg(now)
-            .invoke_async(&mut self.redis)
-            .await?;
-
-        Ok((result[0] == 1, result[1] as u32, Duration::from_secs(result[2] as u64)))
-    }
-}
-
-// HTTP middleware integration
-pub async fn rate_limit_middleware(
-    req: Request,
-    next: Next,
-    redis: ConnectionManager,
-) -> Result<Response> {
-    let identifier = extract_identifier(&req); // IP or API key
-    let mut bucket = TokenBucket::new(redis, &identifier, 60, 60).await;
-
-    match bucket.check().await? {
-        (true, remaining, _) => {
-            let mut response = next.run(req).await;
-            response.headers_mut().insert("X-RateLimit-Remaining", remaining.into());
-            Ok(response)
-        }
-        (false, _, reset_after) => {
-            Err(ApiError::RateLimitExceeded {
-                retry_after: reset_after,
-            })
-        }
-    }
-}
-```
-
-**HTTP Headers:**
-```
-X-RateLimit-Limit: 60
-X-RateLimit-Remaining: 42
-X-RateLimit-Reset: 1699564800
-Retry-After: 18
-```
-
-**Acceptance:**
-- [ ] Token bucket implemented with Redis Lua script (atomic) [DEFERRED to v1.1]
-- [ ] Per-IP and per-API-key rate limiting works [DEFERRED to v1.1]
-- [ ] 429 responses include X-RateLimit-* headers [DEFERRED to v1.1]
-- [ ] Rate limit config in server.yaml (requests_per_minute) [DEFERRED to v1.1]
-- [ ] Tests verify token refill and exhaustion [DEFERRED to v1.1]
-
-**Note:** SimpleRateLimiter (governor-based) implemented instead. Redis token bucket deferred to v1.1.
-
-**7. Simple Rate Limiting (Governor)** (0.5 days)
-
-**ACTION: USE EXISTING** (governor crate already exists, just wire it up)
-
-Instead of complex Redis Lua scripts, use lightweight governor-based middleware:
-
-```rust
-// crates/riptide-utils/src/rate_limit.rs
-
-use governor::{Quota, RateLimiter};
-use std::num::NonZeroU32;
-
-pub struct SimpleRateLimiter {
-    limiter: RateLimiter<
-        governor::state::direct::NotKeyed,
-        governor::state::InMemoryState,
-        governor::clock::DefaultClock,
-    >,
-}
-
-impl SimpleRateLimiter {
-    pub fn new(requests_per_minute: u32) -> Self {
-        let quota = Quota::per_minute(NonZeroU32::new(requests_per_minute).unwrap());
-        Self {
-            limiter: RateLimiter::direct(quota),
-        }
-    }
-
-    pub fn check(&self) -> Result<(), Duration> {
-        match self.limiter.check() {
-            Ok(_) => Ok(()),
-            Err(not_until) => Err(not_until.wait_time_from(Instant::now())),
-        }
-    }
-}
-```
-
-**Note:** Redis token bucket deferred to v1.1 for distributed scenarios.
-
-**8. Feature Gates for riptide-api** (0.5 days) 🔄 IN PROGRESS
-
-**Current Status (2025-11-04):**
-- ✅ Cargo.toml feature gates added (exceeds specification - includes fetch, full, streaming)
-- 🔄 Partial route-level #[cfg] gates added (4 route files: llm.rs, profiles.rs, chunking.rs, tables.rs)
-- ⏳ Core module gates pending (21 files need conditional compilation)
-- ⚠️ 23 compilation errors (expected until gates complete)
-
-**Remaining Work:**
-- Add #[cfg(feature = "...")] to:
-  - 5 files needing browser gates (guards.rs, mod.rs, rpc_client.rs, state.rs, stealth.rs)
-  - 4 files needing llm gates (pipeline.rs, routes/llm.rs, routes/profiles.rs, models.rs)
-  - 3 files needing extraction/spider gates (state.rs, telemetry.rs, pipeline_metrics.rs)
-  - 3 files with unused imports (middleware/auth.rs, reliability_integration.rs, rpc_session_context.rs)
-- Add stub implementations for disabled features (HTTP 501 errors)
-- Test all 6 feature combinations
-
-**See: `docs/phase1/RIPTIDE_API_KNOWN_ISSUES.md` for detailed error analysis**
-
-**ACTION: ADD CARGO FEATURES** (reduces build time + dependency load)
-
-```toml
-# crates/riptide-api/Cargo.toml
-
-[features]
-default = ["spider", "extraction", "fetch"]
-full = ["spider", "extraction", "fetch", "browser", "llm", "streaming"]
-
-spider = ["dep:riptide-spider"]
-extraction = ["dep:riptide-extraction"]
-browser = ["dep:riptide-browser"]
-llm = ["dep:riptide-intelligence"]
-streaming = ["dep:riptide-streaming"]
-fetch = ["dep:riptide-fetch"]
-```
-
-**Benefit:** Shortens builds during refactoring, reduces API blast radius.
-
-**Week 0 Deliverables:**
-
-**Files Created:**
-- `/crates/riptide-utils/Cargo.toml`
-- `/crates/riptide-utils/src/lib.rs`
-- `/crates/riptide-utils/src/redis.rs`
-- `/crates/riptide-utils/src/http.rs`
-- `/crates/riptide-utils/src/retry.rs`
-- `/crates/riptide-utils/src/time.rs`
-- `/crates/riptide-utils/src/error.rs`
-- `/crates/riptide-utils/src/rate_limit.rs` ← Simple governor-based
-
-**Acceptance Criteria:**
-- [x] `cargo build -p riptide-utils` succeeds ✅
-- [x] All utils tests pass (40 tests) ✅
-- [x] Redis pooling implemented with health checks ✅
-- [x] HTTP client factory created ✅
-- [x] Retry logic with exponential backoff ✅
-- [x] **Simple rate limiting** works with governor (in-memory, fast) ✅
-- [ ] **Feature gates** added to riptide-api (deferred to Week 1.5)
-- [x] All existing 41 test targets still pass ✅
-- [ ] ~630 lines removed (identified, migration in progress)
-
-**Status: ✅ COMPLETE** (Commit: d653911)
+**Status:** ✅ COMPLETE (2025-11-04)
+**Completion Report:** [`docs/phase0/PHASE-0-COMPLETION-REPORT.md`](/workspaces/eventmesh/docs/phase0/PHASE-0-COMPLETION-REPORT.md)
+**Commit:** `d653911`
+
+**Summary:**
+Created `riptide-utils` crate consolidating shared utilities across the codebase:
+- Redis connection pooling with health checks
+- HTTP client factory for consistent request configuration
+- Generalized retry logic with exponential backoff
+- Time utilities (ISO8601, Unix timestamps)
+- Simple rate limiting (governor-based)
+- Error re-exports from riptide-types
+
+**Key Achievements:**
+- 40 tests passing in riptide-utils
+- ~203 lines of duplication removed
+- All 41 test targets still passing
+- Clean foundation for Phase 1 modularity work
+
+**Implementation Details:**
+See completion report for detailed specifications, code examples, migration tracking, and acceptance criteria.
+
+**Deferred to v1.1:**
+- Redis-based distributed rate limiting (token bucket)
+- Full retry migration (29/36 files remaining - tracked in `docs/phase0/retry-migration-status.md`)
+- Feature gates for riptide-api (moved to Week 1.5)
 
 #### W1.1-1.5: Error System + Health Endpoints (2-3 days)
 
@@ -1059,316 +431,40 @@ fn test_css_selector_error_has_correct_code() {
 - [ ] Error codes documented in `/docs/api/ERROR-CODES.md`
 - [ ] Additional variants deferred to v1.1
 
-#### W1.5-2: Configuration (2-3 days)
-
-**Fix dual ApiConfig naming with automated migration:**
-```bash
-# Rename riptide-api::config::ApiConfig → ResourceConfig
-sd "ApiConfig" "ResourceConfig" crates/riptide-api/src/config.rs
-
-# Automated migration script (70% coverage)
-cat > scripts/migrate-api-config.sh << 'EOF'
-#!/bin/bash
-# Automated migration for dual ApiConfig naming conflict
-
-echo "Analyzing ApiConfig usage..."
-rg "use.*riptide_api::config::ApiConfig" -l > /tmp/files_to_migrate.txt
-
-echo "Found $(wc -l < /tmp/files_to_migrate.txt) files to migrate"
-
-# Update imports
-while read -r file; do
-  echo "Migrating $file"
-  sd "riptide_api::config::ApiConfig" "riptide_api::config::ResourceConfig" "$file"
-  sd "ApiConfig" "ResourceConfig" "$file"  # Rename usages
-done < /tmp/files_to_migrate.txt
-
-echo "Migration complete! Running cargo check..."
-cargo check --workspace
-EOF
-
-chmod +x scripts/migrate-api-config.sh
-./scripts/migrate-api-config.sh
-```
-
-**Add server.yaml support:**
-```yaml
-# /server.yaml
-
-redis:
-  url: ${REDIS_URL:redis://localhost:6379}
-  pool_size: ${REDIS_POOL_SIZE:10}
-
-extraction:
-  strategies: [ics, json_ld, rules]
-  headless: ${USE_HEADLESS:false}
-  llm: ${USE_LLM:false}
-  timeout_secs: ${EXTRACT_TIMEOUT:30}
-
-profiles:
-  default:  # Fast, free (80% of users)
-    headless: false
-    llm: false
-    max_pages: 10
-
-  standard:  # Balanced (15% of users)
-    headless: auto  # Only when needed
-    llm: false
-    max_pages: 50
-
-  premium:  # Best quality (5% of users)
-    headless: true
-    llm: true
-    max_pages: 1000
-```
-
-**Precedence:** Environment > server.yaml > Code Defaults
-
-**Secrets Redaction (2 hours):**
-
-Prevent API keys and sensitive config from leaking in logs/diagnostics:
-
-```rust
-// crates/riptide-config/src/lib.rs
-
-use serde::{Deserialize, Serialize};
-use std::fmt;
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct ApiConfig {
-    #[serde(skip_serializing)]  // Never serialize secrets
-    pub api_keys: Vec<String>,
-    pub bind_address: String,
-    pub rate_limit: RateLimitConfig,
-}
-
-// Custom Debug to redact secrets
-impl fmt::Debug for ApiConfig {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("ApiConfig")
-            .field("api_keys", &"[REDACTED]")
-            .field("bind_address", &self.bind_address)
-            .field("rate_limit", &self.rate_limit)
-            .finish()
-    }
-}
-
-// Redact secrets in diagnostics endpoint
-pub fn sanitize_for_diagnostics(config: &ApiConfig) -> serde_json::Value {
-    serde_json::json!({
-        "bind_address": config.bind_address,
-        "rate_limit": config.rate_limit,
-        "api_keys": format!("[{} keys configured]", config.api_keys.len()),
-    })
-}
-```
-
-**Test:**
-```rust
-#[test]
-fn test_secrets_not_in_debug_output() {
-    let config = ApiConfig {
-        api_keys: vec!["super-secret-key-123".to_string()],
-        bind_address: "0.0.0.0:8080".to_string(),
-        ..Default::default()
-    };
-
-    let debug_output = format!("{:?}", config);
-    assert!(!debug_output.contains("super-secret-key"));
-    assert!(debug_output.contains("[REDACTED]"));
-}
-
-#[test]
-fn test_secrets_not_serialized() {
-    let config = ApiConfig {
-        api_keys: vec!["secret".to_string()],
-        ..Default::default()
-    };
-
-    let json = serde_json::to_string(&config).unwrap();
-    assert!(!json.contains("secret"));
-}
-```
-
-**Simplified Profile Approach (v1.0):**
-- Single global config profile (defer complex multi-profile to v1.1)
-- Focus on env vars + server.yaml precedence
-- Complex default/standard/premium deferred
-
-**CLI Doctor (Minimal):**
-```rust
-// crates/riptide-cli/src/commands/doctor.rs
-
-pub async fn run_doctor() -> Result<()> {
-    println!("🔍 RipTide Configuration Check\n");
-
-    // Check Redis connectivity
-    check_redis().await?;
-
-    // Check browser availability (if enabled)
-    check_browser().await?;
-
-    // Check search provider (if configured)
-    check_search_provider().await?;
-
-    // Check required env vars
-    check_env_vars()?;
-
-    println!("✅ All systems operational");
-    Ok(())
-}
-```
-
-**Acceptance:**
-- [ ] server.yaml loads with `${VAR:default}` substitution
-- [ ] Environment overrides work
-- [ ] **Single global profile** for v1.0 (complex profiles deferred)
-- [ ] Dual ApiConfig resolved (no compilation errors)
-- [ ] Automated migration script tested and documented
-- [ ] All 15 files using old ApiConfig migrated
-- [ ] **Secrets redacted** in Debug output and JSON serialization
-- [ ] Diagnostics endpoint never exposes raw API keys
-- [ ] Tests verify secrets don't leak in logs
-- [ ] **CLI doctor** verifies connectivity + config
-
-#### W2-2.5: TDD Guide + Test Fixtures (2 days)
-
-**Test Fixtures Setup (Optional Dev Tooling - NOT Required for CI):**
-
-**Goal:** Deterministic local test targets for manual testing and debugging (Docker Compose optional).
-
-**Lean Approach:**
-```bash
-# Add as OPTIONAL git submodule (developers can skip if they don't need it)
-git submodule add https://github.com/foofork/riptidecrawler-test-sites test/fixtures/riptide-test-sites
-echo "test/fixtures/" >> .gitignore  # Don't require checkout
-
-# Optional Make targets for developers who want local fixtures
-# test/Makefile
-.PHONY: fixtures-up fixtures-down
-
-fixtures-up:  ## Start local test fixtures (optional)
-	@echo "Starting test fixtures (Docker Compose)..."
-	docker compose -f fixtures/riptide-test-sites/docker-compose.yml up -d
-	@echo "Fixtures available at http://localhost:5001-5013"
-
-fixtures-down:  ## Stop local test fixtures
-	docker compose -f fixtures/riptide-test-sites/docker-compose.yml down -v
-```
-
-**Use Recorded HTTP Fixtures for CI Instead:**
-
-Instead of running live Docker services in CI (slow + resource-heavy), use **recorded HTTP responses**:
-
-```rust
-// tests/fixtures/recorded_responses.rs
-
-use wiremock::{MockServer, Mock, ResponseTemplate};
-
-/// Recorded response from riptidecrawler-test-sites :5003 (robots)
-pub async fn mock_robots_server() -> MockServer {
-    let server = MockServer::start().await;
-
-    // Record from actual fixture once, replay in CI
-    Mock::given(wiremock::matchers::path("/robots.txt"))
-        .respond_with(ResponseTemplate::new(200)
-            .set_body_string("User-agent: *\nDisallow: /admin\n"))
-        .mount(&server)
-        .await;
-
-    server
-}
-
-#[tokio::test]
-async fn test_robots_respect_with_recorded_fixture() {
-    let mock = mock_robots_server().await;
-
-    let spider = Spider::new(SpiderOpts {
-        respect_robots: true,
-        ..Default::default()
-    });
-
-    // Uses recorded response, no Docker needed
-    let result = spider.crawl(&mock.uri()).await;
-    assert!(result.is_ok());
-}
-```
-
-**Strategy:**
-1. **Developers:** Can optionally start Docker fixtures for manual testing
-2. **CI:** Uses fast recorded HTTP mocks (no Docker)
-3. **Nightly:** Optional full E2E with live fixtures (separate workflow)
-
-**Acceptance:**
-- [ ] Submodule added as OPTIONAL (not required for development)
-- [ ] Make targets for local fixture management
-- [ ] Recorded HTTP fixtures for CI tests (wiremock/httpmock)
-- [ ] Documentation: "Local Fixtures (Optional)" section
-- [ ] CI uses mocks, NOT live Docker (keeps CI fast)
-
-**Create comprehensive TDD guide:**
-```markdown
-# TDD London School Guide
-
-## RED-GREEN-REFACTOR Cycle
-
-### RED: Write failing test first
-- Mock all dependencies
-- Define expected behavior
-- Test should fail (nothing implemented yet)
-
-### GREEN: Make test pass
-- Implement minimal code to pass
-- Don't optimize yet
-
-### REFACTOR: Improve code
-- Remove duplication
-- Improve naming
-- Add error handling
-- Keep tests green
-
-## Example: Testing Spider with Extractor
-
-```rust
-use mockall::predicate::*;
-
-#[tokio::test]
-async fn test_spider_delegates_to_extractor() {
-    // ARRANGE: Setup mocks
-    let mut mock_spider = MockSpider::new();
-    let mut mock_extractor = MockExtractor::new();
-
-    // EXPECT: Define expected behavior
-    mock_spider.expect_crawl()
-        .with(eq("https://example.com"))
-        .times(1)
-        .returning(|_| {
-            Box::pin(stream::iter(vec![
-                Ok(Url::parse("https://example.com/page1").unwrap()),
-                Ok(Url::parse("https://example.com/page2").unwrap()),
-            ]))
-        });
-
-    mock_extractor.expect_extract()
-        .times(2)
-        .returning(|_| Ok(Document { title: "Test".to_string() }));
-
-    // ACT: Execute
-    let pipeline = Pipeline::new(mock_spider, mock_extractor);
-    let results = pipeline.execute("https://example.com").await.unwrap();
-
-    // ASSERT: Verify (mocks verify themselves)
-    assert_eq!(results.len(), 2);
-}
-```
-```
-
-**Acceptance:**
-- [ ] Guide with 10+ examples
-- [ ] Mock patterns documented
-- [ ] Contract test examples
-- [ ] Golden test examples
-- [ ] Saved to `/docs/development/TDD-LONDON-SCHOOL.md`
+#### W1.5-2: Configuration (2-3 days) ✅ CODE COMPLETE
+
+**Status:** ✅ CODE COMPLETE (2025-11-04, env verification blocked)
+**Completion Report:** [`docs/phase0/PHASE-0-WEEK-1.5-2-COMPLETION-REPORT.md`](/workspaces/eventmesh/docs/phase0/PHASE-0-WEEK-1.5-2-COMPLETION-REPORT.md)
+
+**Summary:**
+Implemented configuration system with environment variable precedence and secrets redaction:
+- server.yaml configuration with `${VAR:default}` substitution
+- Environment variable override system
+- Secrets redaction in Debug output and JSON serialization
+- CLI doctor command for connectivity verification
+- Dual ApiConfig naming conflict resolved with automated migration
+
+**Key Achievements:**
+- Configuration precedence: Environment > server.yaml > Code Defaults
+- Secrets never leak in logs or diagnostics endpoints
+- Automated migration script for ApiConfig → ResourceConfig rename
+- Single global profile for v1.0 (complex profiles deferred to v1.1)
+
+**Implementation Details:**
+See completion report for full specifications, code examples, and acceptance criteria.
+
+#### W2-2.5: TDD Guide + Test Fixtures (2 days) ⏳ PENDING
+
+**Status:** ⏳ PENDING
+**Goal:** Optional developer tooling for deterministic testing (NOT required for CI)
+
+**Planned Work:**
+- Optional git submodule for test fixtures (Docker Compose)
+- Recorded HTTP fixtures for CI (wiremock/httpmock)
+- TDD London School guide with examples
+- Make targets for local fixture management
+
+**Note:** This work is deferred and optional. CI uses recorded HTTP mocks instead of live Docker services.
 
 **Phase 0 Complete:** Foundation ready for modularity work
 
@@ -1376,77 +472,135 @@ async fn test_spider_delegates_to_extractor() {
 
 ## 🧩 Phase 1: Modularity & Composition (Weeks 2.5-9)
 
-### Week 2.5-5.5: Decouple Spider from Extraction (3 weeks)
+### Week 2.5-5.5: Decouple Spider from Extraction (3 weeks) ✅ COMPLETE
 
-**Effort:** 3 weeks (adjusted from 1.5 weeks)
-**Reason:** Circular dependencies more complex than expected
+**Status:** ✅ COMPLETE (2025-11-04)
+**Completion Report:** Complete with 88/88 tests passing
+**Commit:** `e5e8e37`
 
-**Current Problem:**
-```rust
-// ❌ crates/riptide-spider/src/core.rs:620-647
-impl SpiderCore {
-    async fn process_request(&mut self, url: Url) -> Result<CrawlResult> {
-        let html = self.fetch(url.clone()).await?;
+**Summary:**
+Decoupled spider from extraction logic using plugin architecture with modular ContentExtractor trait:
+- Created ContentExtractor trait for modular extraction strategies
+- Removed ~200 lines of embedded extraction from spider core
+- Added robots.txt policy toggle with warning logs
+- Implemented optional extraction (spider-only mode)
+- Created comprehensive test suite with 88/88 tests passing
 
-        // ❌ Extraction embedded in spider!
-        let extracted_urls = self.extract_links_basic(&html);
-        let text_content = self.simple_text_extraction(&html);
+**Key Achievements:**
+- 22 unit tests + 66 integration tests = 88/88 passing
+- Zero clippy warnings
+- Clean plugin architecture enables flexible extraction strategies
+- Spider can now operate independently or with any extraction implementation
 
-        Ok(CrawlResult {
-            url,
-            html,
-            extracted_urls,  // Always present
-            text_content,    // Always present
-        })
-    }
-}
-```
+**Implementation Details:**
+See code in `crates/riptide-spider/src/extractor.rs` and related files. Full trait definitions, code examples, and acceptance criteria in completion report.
 
-**Solution: Plugin Architecture (Modular & Adaptive Extraction)**
+**Known Issues:**
+- riptide-api has 23 pre-existing compilation errors (optional features: browser, llm)
+- NOT Phase 1 blockers - scheduled for Week 1.5 (Configuration phase)
+- See: `/docs/phase1/RIPTIDE_API_KNOWN_ISSUES.md`
 
-**Robots Policy Toggle (2 hours):**
+### Week 5.5-9: Trait-Based Composition (3.5 weeks) ✅ COMPLETE
 
-**ACTION: EXPOSE EXISTING** (already exists in SpiderConfig, just expose in API)
+**Status:** ✅ COMPLETE (2025-11-05)
+**Completion Report:** [`docs/phase1/PHASE-1-WEEK-5.5-9-COMPLETION-REPORT.md`](/workspaces/eventmesh/docs/phase1/PHASE-1-WEEK-5.5-9-COMPLETION-REPORT.md)
+**Commit:** `e5e8e37`
 
-Expose robots.txt respect toggle in API (already exists in SpiderConfig):
+**Summary:**
+Implemented trait-based composition enabling flexible chaining of crawling operations:
+- Created composable traits for SpiderStrategy, ExtractionStrategy, and OutputFormat
+- Implemented `.and_extract()` fluent API for operation chaining
+- Added support for multiple output formats (JSON, Markdown, iCal, CSV)
+- Built comprehensive test suite with 21 tests passing
 
-```rust
-// crates/riptide-api/src/handlers/spider.rs
+**Key Achievements:**
+- 21 tests passing with trait-based composition
+- ~1,100 lines added for modular strategy system
+- Clean fluent API: `client.spider(url).and_extract().to_json()`
+- Multiple extraction strategies composable with any spider strategy
 
-#[derive(Deserialize)]
-pub struct SpiderRequest {
-    pub url: String,
-    pub max_depth: Option<u32>,
-    pub respect_robots: Option<bool>,  // Default: true
-}
+**Implementation Details:**
+See completion report for full trait definitions, code examples, fluent API patterns, and acceptance criteria.
 
-pub async fn spider_handler(
-    State(state): State<AppState>,
-    Json(req): Json<SpiderRequest>,
-) -> Result<Json<SpiderResponse>> {
-    let respect_robots = req.respect_robots.unwrap_or(true);
+### Week 9: Facade Unification (1 week) ✅ COMPLETE
 
-    // Log warning if robots.txt explicitly disabled
-    if !respect_robots {
-        tracing::warn!(
-            url = %req.url,
-            "Robots.txt respect disabled - ensure you have permission to crawl this site"
-        );
-    }
+**Status:** ✅ COMPLETE (2025-11-05)
+**Completion Report:** [`docs/phase1/PHASE-1-WEEK-9-FACADE-UNIFICATION-COMPLETION-REPORT.md`](/workspaces/eventmesh/docs/phase1/PHASE-1-WEEK-9-FACADE-UNIFICATION-COMPLETION-REPORT.md)
 
-    let opts = SpiderOpts {
-        respect_robots,
-        max_depth: req.max_depth.unwrap_or(2),
-        ..Default::default()
-    };
+**Summary:**
+Created CrawlFacade as thin wrapper for 1,640 lines of production pipeline code:
+- Wrapped existing PipelineOrchestrator (NO rewrite)
+- Unified entry point for all crawling operations
+- 23/23 tests passing
+- Clean facade pattern enables future refactoring without breaking API
 
-    state.spider_facade.crawl(&req.url, opts).await
-}
-```
+**Key Achievements:**
+- Facade wraps 1,640 lines of production code safely
+- 23/23 tests passing
+- Zero modifications to pipeline.rs core logic
+- Enables independent development of API and pipeline layers
 
-**Python API:**
-```python
-# Default: respects robots.txt
+**Implementation Details:**
+See completion report and code in `crates/riptide-facade/src/crawl.rs`.
+
+---
+
+## 🚀 Phase 2: User-Facing API (Weeks 9-14)
+
+### Python SDK (Weeks 9-13) - PyO3 Bindings
+
+**Step 1: PyO3 Spike** ✅ COMPLETE (2025-11-05)
+
+**Status:** ✅ COMPLETE - GO Decision
+**Spike Report:** [`docs/phase2/PYO3-SPIKE-GO-NOGO-DECISION.md`](/workspaces/eventmesh/docs/phase2/PYO3-SPIKE-GO-NOGO-DECISION.md)
+
+**Summary:**
+- 10/10 tests passing with PyO3 bindings
+- Performance validated (acceptable overhead)
+- GO decision: Proceed with Python SDK implementation
+
+**Steps 2-5:** Python SDK Core Bindings, Packaging, Type Stubs, Documentation ⏳ PENDING
+
+### Week 13-14: Events Schema MVP ✅ COMPLETE
+
+**Status:** ✅ COMPLETE (2025-11-05)
+**Commit:** `bf26cbd`
+
+**Summary:**
+Implemented schema-aware extraction for event data:
+- ICS (iCalendar) parsing and extraction
+- JSON-LD event schema support
+- Schema-aware extraction strategies
+- Event-specific output formatting
+
+**Key Achievements:**
+- Schema-aware extraction working
+- Multiple event formats supported (ICS, JSON-LD)
+- Integration with existing extraction pipeline
+
+---
+
+## 🧪 Phase 3: Validation & Launch (Weeks 14-18)
+
+**Status:** ⏳ NOT STARTED
+
+**Planned Work:**
+- Comprehensive testing (Week 14-16)
+- Documentation and launch preparation (Week 16-18)
+- Performance optimization
+- Security hardening
+- Production readiness validation
+
+---
+
+## 🎯 Success Metrics
+
+**Week 18 Launch Criteria:**
+
+**User Experience (7 Core Value Propositions):**
+- [ ] Time to first extraction < 5 minutes
+- [ ] **Extract**: `client.extract(url)` works in 1 line
+- [ ] **Spider**: `client.spider(url)` discovers URLs independently
 urls = client.spider("https://example.com")
 
 # Explicit override (logs warning)
