@@ -132,16 +132,34 @@ mod tests {
     #[async_trait]
     impl PipelineExecutor for MockPipelineExecutor {
         async fn execute_single(&self, _url: &str) -> RiptideResult<PipelineResult> {
+            use crate::ExtractedDoc;
+
             Ok(PipelineResult {
-                url: "https://example.com".to_string(),
+                document: ExtractedDoc {
+                    url: "https://example.com".to_string(),
+                    title: Some("Test Document".to_string()),
+                    text: "Test content".to_string(),
+                    quality_score: Some(90),
+                    links: vec![],
+                    byline: None,
+                    published_iso: None,
+                    markdown: None,
+                    parser_metadata: None,
+                    media: vec![],
+                    language: None,
+                    reading_time: None,
+                    word_count: Some(2),
+                    categories: vec![],
+                    site_name: None,
+                    description: None,
+                    html: None,
+                },
                 from_cache: false,
                 gate_decision: "Raw".to_string(),
                 quality_score: 0.9,
                 processing_time_ms: 100,
                 cache_key: "test-key".to_string(),
                 http_status: 200,
-                content_type: "text/html".to_string(),
-                extracted_doc: None,
             })
         }
 
@@ -151,12 +169,13 @@ mod tests {
         ) -> (Vec<Option<PipelineResult>>, PipelineStats) {
             let results = urls.iter().map(|_| None).collect();
             let stats = PipelineStats {
-                total_urls: urls.len() as u64,
-                successful: 0,
-                failed: 0,
-                cached: 0,
-                duration_ms: 0,
+                total_processed: urls.len(),
+                cache_hits: 0,
+                successful_extractions: 0,
+                failed_extractions: 0,
                 gate_decisions: Default::default(),
+                avg_processing_time_ms: 0.0,
+                total_processing_time_ms: 0,
             };
             (results, stats)
         }
