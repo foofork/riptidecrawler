@@ -12,20 +12,20 @@
 
 ## 🔴 IMMEDIATE TODO (Resume Here)
 
-**🔥 PRIORITY:** Phase 2C Architectural Refactoring (IN PROGRESS)
+**🔥 PRIORITY:** Phase 3 Comprehensive Testing (STARTING NOW)
 
 **Current Status:**
-- **Circular Dependency:** riptide-api ↔ riptide-facade **PARTIALLY RESOLVED** ⚠️
-- **Previous Fix:** `9343421` created `riptide-pipeline` crate, but **6 handlers still disabled**
-- **Root Cause:** HTTP DTOs in wrong crate (riptide-api instead of riptide-types)
-- **Impact:** Extract, Search, Spider, PDF endpoints returning 503/500 errors
+- **Phase 2C.2 COMPLETE** ✅ All 6 disabled handlers restored with facade integration
+- **All Endpoints Functional:** Extract, Search, Spider (3 handlers), PDF, Crawl now operational
+- **Clean Architecture:** API → Facade → Domain → Types (no circular dependencies)
+- **Ready for Testing:** SpiderFacade, SearchFacade, ExtractionFacade, BrowserFacade operational
 
-**Blocked Work:**
-- ❌ Python SDK integration testing (needs working handlers)
-- ❌ Phase 3A facade restoration (prerequisites not met)
-- ❌ All user-facing API work (core endpoints broken)
+**Unblocked Work:**
+- ✅ Python SDK integration testing (handlers working)
+- ✅ Phase 3 comprehensive testing (starting now)
+- ✅ All user-facing API work (core endpoints functional)
 
-**Next Phase:** Complete Phase 2C refactoring (16-24 hours) to unblock all facade work
+**Next Phase:** Phase 3 Comprehensive Testing (Week 14-16) to validate all functionality
 
 ---
 
@@ -45,7 +45,7 @@
 
 **✅ Week 13-14 Events Schema** (2025-11-05) - ICS + JSON-LD support. Commit: `bf26cbd`
 
-**⚠️ Partial: Circular Dependency** (2025-11-06) - `riptide-pipeline` created but 6 handlers still disabled. See: `docs/architecture/REFACTORING-PLAN.md` | Commit: `9343421`
+**✅ Phase 2C.2 Handler Restoration** (2025-11-06) - All 6 disabled endpoints restored with facade integration. See: `docs/architecture/REFACTORING-PLAN.md` | Commits: `9343421`, `d638f69`
 
 ---
 
