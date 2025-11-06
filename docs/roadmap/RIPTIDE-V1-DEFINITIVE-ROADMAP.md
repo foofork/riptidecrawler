@@ -12,25 +12,42 @@
 
 ## 🔴 IMMEDIATE TODO (Resume Here)
 
-**✅ COMPLETED:** Circular Dependency Resolution (2025-11-06)
+**🔥 PRIORITY:** Phase 2C Architectural Refactoring (IN PROGRESS)
 
-**Latest Achievement:**
-- **Commit:** `9343421` - Circular dependency between riptide-api ↔ riptide-facade **RESOLVED** ✅
-- **Architecture:** Created `riptide-pipeline` crate with shared types
-- **Quality:** 45 clippy warnings fixed, ZERO compilation errors, clean cargo tree
-- **Impact:** Enables independent development of API and facade layers
+**Current Status:**
+- **Circular Dependency:** riptide-api ↔ riptide-facade **PARTIALLY RESOLVED** ⚠️
+- **Previous Fix:** `9343421` created `riptide-pipeline` crate, but **6 handlers still disabled**
+- **Root Cause:** HTTP DTOs in wrong crate (riptide-api instead of riptide-types)
+- **Impact:** Extract, Search, Spider, PDF endpoints returning 503/500 errors
 
-**Previous Completions:**
-- ✅ Phase 1 Week 9 - Facade Unification (CrawlFacade, 23/23 tests passing)
-- ✅ Phase 2 Steps 1-3 - Python SDK PyO3 Spike (10/10 tests, GO decision)
-- ✅ Week 13-14 - Events Schema MVP (schema-aware extraction)
+**Blocked Work:**
+- ❌ Python SDK integration testing (needs working handlers)
+- ❌ Phase 3A facade restoration (prerequisites not met)
+- ❌ All user-facing API work (core endpoints broken)
 
-**Architecture Status:**
-- **Phase 1 COMPLETE:** All modularity goals achieved, 100% facade usage now possible
-- **Phase 2 ACTIVE:** Python SDK foundation in place, Events Schema MVP complete
-- **Dependencies:** Clean one-way flow, no circular references
+**Next Phase:** Complete Phase 2C refactoring (16-24 hours) to unblock all facade work
 
-**Next Phase:** Continue Phase 2 - Complete Python SDK packaging and integration testing
+---
+
+## 📋 Previous Completions
+
+**✅ Phase 1 Week 9 - Facade Unification** (2025-11-05)
+- Commit: `e5e8e37` - CrawlFacade complete, 23/23 tests passing
+- See: `docs/phase1/PHASE-1-WEEK-9-FACADE-UNIFICATION-COMPLETION-REPORT.md`
+
+**✅ Phase 2 Steps 1-3 - Python SDK PyO3 Spike** (2025-11-05)
+- 10/10 tests passing, GO decision
+- See: `docs/phase2/PYO3-SPIKE-GO-NOGO-DECISION.md`
+
+**✅ Week 13-14 - Events Schema MVP** (2025-11-05)
+- Commit: `bf26cbd` - Schema-aware extraction
+- ICS + JSON-LD event support
+
+**⚠️ Partial Resolution: Circular Dependency** (2025-11-06)
+- Commit: `9343421` - Created riptide-pipeline, but incomplete fix
+- **Problem:** HTTP DTOs still in riptide-api (wrong location)
+- **Result:** 6 handlers commented out, returning errors
+- See: `docs/architecture/REFACTORING-PLAN.md`
 
 ---
 
@@ -155,7 +172,7 @@ rg "^## Week [0-9]" docs/roadmap/RIPTIDE-V1-DEFINITIVE-ROADMAP.md  # What's the 
 
 ---
 
-## 📊 Timeline Overview (18 Weeks)
+## 📊 Timeline Overview (18 Weeks + Phase 2C)
 
 | Phase | Duration | Goal | Status |
 |-------|----------|------|--------|
@@ -163,12 +180,15 @@ rg "^## Week [0-9]" docs/roadmap/RIPTIDE-V1-DEFINITIVE-ROADMAP.md  # What's the 
 | **Phase 0 (Week 1.5-2)** | 0.5 weeks | Configuration | ✅ CODE COMPLETE (Report: docs/phase0/PHASE-0-WEEK-1.5-2-COMPLETION-REPORT.md, verification blocked by env) |
 | **Phase 0 (Week 2-2.5)** | 0.5 weeks | TDD Guide + Test Fixtures | ⏳ PENDING |
 | **Phase 1** | Weeks 2.5-9 | Modularity & Facades | ✅ COMPLETE (Week 9: Facade Unification ✅ complete, Report: docs/phase1/PHASE-1-WEEK-9-FACADE-UNIFICATION-COMPLETION-REPORT.md) |
-| **Phase 2** | Weeks 9-14 | User-Facing API | ⏳ PENDING |
+| **Phase 2C** 🔥 | 16-24 hours | **Architectural Refactoring (PRIORITY)** | 🔄 **IN PROGRESS** - BLOCKS all facade work |
+| **Phase 2** | Weeks 9-14 | User-Facing API | 🚫 **BLOCKED BY Phase 2C** |
 | **Phase 3** | Weeks 14-18 | Validation & Launch | ⏳ PENDING |
 
-**Critical Path:** utils → errors → modularity → facades → Python SDK → launch
+**Critical Path:** utils → errors → modularity → facades → **🔥 Phase 2C refactoring** → Python SDK → launch
 
-**Key Adjustment:** +2 weeks vs original estimate (62% → 75% confidence)
+**Key Adjustment:** +1-2 days for Phase 2C architectural fix (circular dependency resolution)
+
+**⚠️ IMPORTANT:** Phase 2C must complete before Phase 2 Python SDK integration testing can proceed. 6 critical handlers currently disabled.
 
 ---
 
@@ -470,6 +490,238 @@ See completion report for full specifications, code examples, and acceptance cri
 
 ---
 
+## 🔥 Phase 2C: Architectural Refactoring (PRIORITY - IN PROGRESS)
+
+**Duration:** 16-24 hours (Week 2C.1-2C.2: 2025-11-06 to 2025-11-20)
+**Status:** 🔄 ACTIVE - BLOCKS ALL FACADE WORK
+**Blocking:** Phase 2 Python SDK integration, Phase 3A facades, all handler endpoints
+**Documentation:** `/docs/architecture/REFACTORING-PLAN.md`, `/docs/architecture/TYPE-MIGRATION-ANALYSIS.md`
+
+### Overview
+
+Critical architectural fix to break circular dependency between riptide-api and riptide-facade. Previous attempt (`9343421`) created `riptide-pipeline` crate but left HTTP DTOs in wrong location, resulting in **6 disabled handlers** returning 503/500 errors.
+
+### Root Cause
+
+The circular dependency stems from **incorrect type ownership**:
+1. **HTTP request/response DTOs live in riptide-api** (should be in riptide-types)
+2. **riptide-facade depends on riptide-api** for these types (wrong direction)
+3. **riptide-api tries to use facades** (correct direction, but blocked by #2)
+
+**Result:** Facades commented out in AppState (state.rs:142-165), handlers return errors
+
+### Solution: Two-Phase Type Migration + Facade Restoration
+
+Implement proper **Rust layering** with one-way dependency flow:
+
+```
+riptide-api (HTTP handlers - thin)
+    ↓ depends on
+riptide-facade (orchestration/use-cases)
+    ↓ depends on
+[spider, extraction, search, pdf] (domain logic)
+    ↓ depends on
+riptide-types (shared contracts) ← NO UPWARD DEPENDENCIES
+```
+
+**Key Principle:** Dependencies flow **DOWN ONLY**. API → Application → Domain → Types
+
+### Week 2C.1: Type Migration (6-8 hours)
+
+**Goal:** Break circular dependency by moving HTTP DTOs to foundation layer
+
+#### Files to Create/Modify
+
+**New File:**
+- `crates/riptide-types/src/http_types.rs` (~300 lines)
+
+**Modified:**
+- `crates/riptide-types/src/lib.rs` (add http_types export)
+- `crates/riptide-facade/Cargo.toml` (remove riptide-api dependency)
+- `crates/riptide-facade/src/*.rs` (update imports to use riptide-types)
+- `crates/riptide-api/src/handlers/*.rs` (update imports to use riptide-types)
+
+#### Types to Move (11 core DTOs, ~300-400 lines)
+
+**Extract Endpoint:**
+- `ExtractRequest` (extract.rs:14-23)
+- `ExtractResponse` (extract.rs:67-79)
+- `ExtractOptions` (extract.rs:30-42)
+- `ContentMetadata` (extract.rs:82+)
+- `ParserMetadata` (extract.rs:77+)
+
+**Search Endpoint:**
+- `SearchRequest` (search.rs)
+- `SearchResponse` (search.rs)
+
+**Spider Endpoint:**
+- `SpiderResultStats` (dto.rs:26-43)
+- `SpiderResultUrls` (dto.rs:45-67)
+- `CrawledPage` (dto.rs:74-100)
+- `ResultMode` (dto.rs:4-23, enum)
+
+#### Task Checklist
+
+- [ ] Create `crates/riptide-types/src/http_types.rs` with 11 DTO types
+- [ ] Add `pub mod http_types; pub use http_types::*;` to riptide-types/lib.rs
+- [ ] Remove `riptide-api = { path = "../riptide-api" }` from riptide-facade/Cargo.toml
+- [ ] Update imports in riptide-facade: `use riptide_types::http_types::{ExtractRequest, ...}`
+- [ ] Update imports in riptide-api handlers: `use riptide_types::http_types::{...}`
+- [ ] Verify: `cargo tree -p riptide-facade | grep riptide-api` (should be empty)
+- [ ] Build: `RUSTFLAGS="-D warnings" cargo build --workspace`
+- [ ] Test: `cargo test -p riptide-types`
+
+**Success Criteria:**
+- ✅ No circular dependency in cargo tree
+- ✅ All types in riptide-types/http_types.rs
+- ✅ Zero clippy warnings
+- ✅ All tests pass
+
+### Week 2C.2: Facade Restoration (10-16 hours)
+
+**Goal:** Re-enable 6 disabled handlers by restoring facades in AppState
+
+#### Files to Modify
+
+**AppState Initialization:**
+- `crates/riptide-api/src/state.rs:142-165` (uncomment facades)
+- `crates/riptide-api/src/state.rs:980+` (initialize facades)
+- `crates/riptide-api/Cargo.toml` (restore riptide-facade dependency)
+
+**Handler Restoration (6 files):**
+- `crates/riptide-api/src/handlers/extract.rs:163-168`
+- `crates/riptide-api/src/handlers/search.rs:93-98`
+- `crates/riptide-api/src/handlers/spider.rs:83-86, 94-97, 105-108` (3 handlers)
+- `crates/riptide-api/src/handlers/pdf.rs:151-154`
+- `crates/riptide-api/src/handlers/crawl.rs:298-301` (remove unreachable guard)
+
+#### Task Checklist
+
+**State.rs Changes:**
+- [ ] Uncomment facade fields in AppState struct (lines 142-165)
+- [ ] Initialize ExtractionFacade in AppState::new() (~line 980)
+- [ ] Initialize ScraperFacade in AppState::new()
+- [ ] Initialize SpiderFacade (feature-gated) in AppState::new()
+- [ ] Initialize SearchFacade (feature-gated) in AppState::new()
+- [ ] Initialize BrowserFacade (feature-gated) in AppState::new()
+
+**Handler Restoration:**
+- [ ] Restore extract handler: replace 503 stub with facade call
+- [ ] Restore search handler: replace 503 stub with facade call
+- [ ] Restore spider_crawl handler: replace 500 stub with facade call
+- [ ] Restore spider_status handler: replace 500 stub with facade call
+- [ ] Restore spider_control handler: replace 500 stub with facade call
+- [ ] Restore pdf_process handler: replace 500 stub with facade call
+- [ ] Remove unreachable code guard in crawl handler (line 298)
+
+**Testing:**
+- [ ] Build: `cargo build --workspace`
+- [ ] Tests: `cargo test -p riptide-api`
+- [ ] Clippy: `cargo clippy --all -- -D warnings`
+- [ ] Smoke test: `curl -X POST http://localhost:3000/api/v1/extract -d '{"url":"https://example.com"}'`
+
+**Success Criteria:**
+- ✅ All 6 handlers return real data (not 503/500)
+- ✅ Facades initialized in AppState
+- ✅ cargo test -p riptide-api passes
+- ✅ Manual API smoke test works
+- ✅ Zero clippy warnings
+
+### Dependency Graph Transformation
+
+**BEFORE (Circular - BROKEN):**
+```
+riptide-api  ←──────────┐ 🔴 CIRCULAR!
+    ↓                    │
+riptide-facade ──────────┘
+    ↓
+riptide-pipeline (partial fix)
+    ↓
+riptide-types
+```
+
+**AFTER (Acyclic - CORRECT):**
+```
+riptide-api (HTTP handlers - thin layer)
+    ↓ uses
+riptide-facade (orchestration/business logic)
+    ↓ uses
+[spider, extraction, search, pdf] (domain engines)
+    ↓ uses
+riptide-types (pure data contracts)
+    ⚠️ NO UPWARD DEPENDENCIES
+```
+
+### Rust Layering Best Practices Applied
+
+1. **API Layer (riptide-api):** Thin HTTP handlers, routing only
+2. **Application Layer (riptide-facade):** Orchestration, workflows, composition
+3. **Domain Layer:** Business logic in specialized crates (spider, extraction, etc.)
+4. **Data Contracts (riptide-types):** Shared types, errors, configs - NO business logic
+
+**Dependency Flow:** ONE-WAY DOWN ✅
+
+### Architectural Best Practice Notes
+
+**For All New Handlers (Post-Refactor):**
+- ✅ Keep handlers thin (HTTP concerns only: validation, serialization, auth)
+- ✅ Business logic belongs in facades (riptide-facade layer)
+- ✅ Domain logic belongs in specialized crates (riptide-spider, riptide-extraction)
+- ✅ Shared types belong in riptide-types (contracts, errors, DTOs)
+- ❌ NEVER import upward (types can't depend on domain, domain can't depend on facade, facade can't depend on API)
+
+**Type Ownership Decision Tree:**
+```
+Is it pure data (no behavior)?
+├─ YES → Used by 2+ crates?
+│        ├─ YES → riptide-types ✅
+│        └─ NO → Keep in current crate
+└─ NO → Contains business logic?
+         ├─ YES → Orchestration? → riptide-facade
+         │        └─ Domain? → Domain crate (spider, extraction, etc.)
+         └─ NO → HTTP/transport? → riptide-api
+```
+
+### Risk Assessment
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Type mismatches after move | HIGH | Incremental compilation per phase |
+| Facade init failures | HIGH | Graceful fallbacks, detailed logging |
+| Test breakage | MEDIUM | Update tests per phase, preserve coverage |
+| Import path errors | LOW | Compiler catches, IDE auto-fix |
+
+### Files Modified Summary
+
+**Phase 1 (Type Migration) - ~300 lines moved:**
+- `crates/riptide-types/src/http_types.rs` (NEW, 300 lines)
+- `crates/riptide-types/src/lib.rs` (exports)
+- `crates/riptide-facade/Cargo.toml` (remove api dep)
+- `crates/riptide-facade/src/*.rs` (import updates)
+- `crates/riptide-api/src/handlers/*.rs` (import updates)
+
+**Phase 2 (Restoration) - 6 handlers fixed:**
+- `crates/riptide-api/Cargo.toml` (restore facade dep)
+- `crates/riptide-api/src/state.rs` (uncomment + initialize)
+- `crates/riptide-api/src/handlers/extract.rs` (restore)
+- `crates/riptide-api/src/handlers/search.rs` (restore)
+- `crates/riptide-api/src/handlers/spider.rs` (restore 3 handlers)
+- `crates/riptide-api/src/handlers/pdf.rs` (restore)
+- `crates/riptide-api/src/handlers/crawl.rs` (remove guard)
+
+### Documentation
+
+- **Refactoring Plan:** `/docs/architecture/REFACTORING-PLAN.md`
+- **Type Analysis:** `/docs/architecture/TYPE-MIGRATION-ANALYSIS.md` (342 types analyzed)
+- **Completion Report:** TBD after Phase 2C.2
+
+### Commits
+
+- **Phase 1:** TBD (type migration complete)
+- **Phase 2:** TBD (facade restoration complete)
+
+---
+
 ## 🧩 Phase 1: Modularity & Composition (Weeks 2.5-9)
 
 ### Week 2.5-5.5: Decouple Spider from Extraction (3 weeks) ✅ COMPLETE
@@ -559,7 +811,14 @@ See completion report and code in `crates/riptide-facade/src/crawl.rs`.
 - Performance validated (acceptable overhead)
 - GO decision: Proceed with Python SDK implementation
 
-**Steps 2-5:** Python SDK Core Bindings, Packaging, Type Stubs, Documentation ⏳ PENDING
+**Steps 2-5:** Python SDK Core Bindings, Packaging, Type Stubs, Documentation 🚫 **BLOCKED BY Phase 2C**
+
+**Blocking Reason:** Python SDK integration tests require working handler endpoints (extract, search, spider). Phase 2C must complete before integration testing can proceed.
+
+**Prerequisites:**
+- ✅ Phase 2C.1 complete (type migration)
+- ✅ Phase 2C.2 complete (facades functional)
+- ✅ All 6 handlers returning real data
 
 ### Week 13-14: Events Schema MVP ✅ COMPLETE
 
@@ -1723,15 +1982,20 @@ nightly-e2e:
 
 ```
 Week 0: utils → Week 1: errors → Week 2.5-5.5: modularity →
-Week 5.5-9: composition → Week 9-13: Python SDK → Week 14-18: validation
+Week 5.5-9: composition → **🔥 Phase 2C: arch refactor (16-24h)** →
+Week 9-13: Python SDK → Week 14-18: validation
 ```
 
 **Checkpoints:**
-- Week 2.5: Foundation complete
-- Week 5.5: Spider decoupled
-- Week 9: Composition works
-- Week 13: Python SDK works
+- Week 2.5: Foundation complete ✅
+- Week 5.5: Spider decoupled ✅
+- Week 9: Composition works ✅
+- **Phase 2C.1:** Type migration complete (6-8 hours) ⏳
+- **Phase 2C.2:** Facades restored, 6 handlers working (10-16 hours) ⏳
+- Week 13: Python SDK works (blocked until Phase 2C complete)
 - Week 18: Launch ready
+
+**⚠️ BLOCKER:** Phase 2C must complete before Python SDK integration testing can proceed.
 
 ---
 
