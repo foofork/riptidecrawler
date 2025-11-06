@@ -1,5 +1,6 @@
 use crate::errors::{ApiError, ApiResult};
 use crate::state::AppState;
+use async_trait::async_trait;
 use reqwest::Response;
 use riptide_extraction::strategies::{
     ExtractionStrategyType, PerformanceMetrics, ProcessedContent, StrategyConfig, StrategyManager,
@@ -546,5 +547,36 @@ impl Clone for StrategiesPipelineOrchestrator {
             options: self.options.clone(),
             strategy_config: self.strategy_config.clone(),
         }
+    }
+}
+
+// ============================================================================
+// Trait Implementations (Phase 2C.2)
+// ============================================================================
+
+use riptide_types::pipeline::StrategiesPipelineExecutor;
+
+/// Implement StrategiesPipelineExecutor trait for facade layer integration
+///
+/// This implementation wraps the existing execute_single method,
+/// converting ApiError to RiptideError for the trait's error type.
+#[async_trait]
+impl StrategiesPipelineExecutor for StrategiesPipelineOrchestrator {
+    async fn execute_single(
+        &self,
+        url: &str,
+    ) -> riptide_types::Result<riptide_types::pipeline::StrategiesPipelineResult> {
+        // Call the existing impl method and convert to riptide-types format
+        let result = StrategiesPipelineOrchestrator::execute_single(self, url)
+            .await
+            .map_err(|e| {
+                riptide_types::RiptideError::Other(anyhow::anyhow!(
+                    "Strategies pipeline execution failed: {}",
+                    e
+                ))
+            })?;
+
+        // Convert from riptide-api's StrategiesPipelineResult to riptide-types version
+        Ok(result.into())
     }
 }

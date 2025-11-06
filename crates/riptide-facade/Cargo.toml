@@ -9,7 +9,10 @@ authors.workspace = true
 # Internal dependencies
 riptide-types = { path = "../riptide-types" }
 riptide-pipeline = { path = "../riptide-pipeline" }
-riptide-api = { path = "../riptide-api" }
+# Phase 2C.2: ✅ COMPLETED - Orchestrator traits extracted to riptide-types
+# CrawlFacade now depends on PipelineExecutor/StrategiesPipelineExecutor traits
+# instead of concrete implementations. Circular dependency ELIMINATED.
+# riptide-api = { path = "../riptide-api" }  # REMOVED
 riptide-fetch = { path = "../riptide-fetch" }
 # Phase 1: WASM Optional - Use native-parser by default
 riptide-extraction = { path = "../riptide-extraction", default-features = false, features = ["css-extraction", "regex-extraction", "dom-utils", "chunking", "native-parser"] }

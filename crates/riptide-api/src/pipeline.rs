@@ -1,5 +1,6 @@
 use crate::errors::{ApiError, ApiResult};
 use crate::state::AppState;
+use async_trait::async_trait;
 use reqwest::Response;
 use riptide_events::{BaseEvent, EventSeverity};
 use riptide_fetch as fetch;
@@ -1076,5 +1077,44 @@ impl Clone for PipelineOrchestrator {
                 retry_config: self.retry_config.clone(),
             }
         }
+    }
+}
+
+// ============================================================================
+// Trait Implementations (Phase 2C.2)
+// ============================================================================
+
+use riptide_types::pipeline::PipelineExecutor;
+
+/// Implement PipelineExecutor trait for facade layer integration
+///
+/// This implementation wraps the existing execute_single and execute_batch methods,
+/// converting ApiError to RiptideError for the trait's error type.
+#[async_trait]
+impl PipelineExecutor for PipelineOrchestrator {
+    async fn execute_single(
+        &self,
+        url: &str,
+    ) -> riptide_types::Result<riptide_types::pipeline::PipelineResult> {
+        // Call the existing impl method via explicit path to avoid recursion
+        PipelineOrchestrator::execute_single(self, url)
+            .await
+            .map_err(|e| {
+                riptide_types::RiptideError::Other(anyhow::anyhow!(
+                    "Pipeline execution failed: {}",
+                    e
+                ))
+            })
+    }
+
+    async fn execute_batch(
+        &self,
+        urls: &[String],
+    ) -> (
+        Vec<Option<riptide_types::pipeline::PipelineResult>>,
+        riptide_types::pipeline::PipelineStats,
+    ) {
+        // Delegate to existing implementation
+        PipelineOrchestrator::execute_batch(self, urls).await
     }
 }

@@ -15,6 +15,8 @@ pub mod config;
 pub mod error;
 pub mod extracted;
 pub mod extractors;
+pub mod http_types;
+pub mod pipeline;
 pub mod reliability;
 pub mod secrets;
 pub mod traits;
@@ -31,6 +33,15 @@ pub use error::{Result, RiptideError, StrategyError};
 pub use extracted::{
     BasicExtractedDoc, ComponentInfo, ContentChunk, ExtractedContent, ExtractedDoc,
     ExtractionQuality, ExtractionStats, HealthStatus, ParserMetadata,
+};
+pub use http_types::{
+    ContentMetadata, CrawledPage, ExtractOptions, ExtractRequest, ExtractResponse,
+    ParserMetadataHttp, ResultMode, SearchQuery, SearchResponse, SearchResult, SpiderResultStats,
+    SpiderResultUrls,
+};
+pub use pipeline::{
+    CombinedPipelineExecutor, GateDecisionStats, PipelineExecutor, PipelineResult,
+    PipelineRetryConfig, PipelineStats, StrategiesPipelineExecutor, StrategiesPipelineResult,
 };
 pub use traits::{Browser, Extractor, Scraper};
 pub use types::{
