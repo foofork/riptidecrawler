@@ -6498,7 +6498,6 @@ dependencies = [
  "riptide-config",
  "riptide-events",
  "riptide-extraction",
- "riptide-facade",
  "riptide-fetch",
  "riptide-headless",
  "riptide-intelligence",
@@ -6506,6 +6505,7 @@ dependencies = [
  "riptide-pdf",
  "riptide-performance",
  "riptide-persistence",
+ "riptide-pipeline",
  "riptide-reliability",
  "riptide-search",
  "riptide-spider",
@@ -6740,12 +6740,14 @@ dependencies = [
  "async-trait",
  "chrono",
  "futures",
+ "riptide-api",
  "riptide-browser",
  "riptide-cache",
  "riptide-extraction",
  "riptide-fetch",
  "riptide-monitoring",
  "riptide-pdf",
+ "riptide-pipeline",
  "riptide-search",
  "riptide-spider",
  "riptide-stealth",
@@ -7031,6 +7033,7 @@ dependencies = [
  "tokio-test",
  "tracing",
  "url",
+ "uuid",
 ]
 
 [[package]]

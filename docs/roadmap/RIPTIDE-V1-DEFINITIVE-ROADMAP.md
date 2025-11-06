@@ -4,7 +4,7 @@
 **Status:** ✅ VALIDATED (95% confidence)
 **Timeline:** 18 weeks to production-ready v1.0
 **Validation:** 4-agent swarm verification complete
-**Last Updated:** 2025-11-04
+**Last Updated:** 2025-11-06
 
 **⚠️ IMPORTANT:** This is THE roadmap. All other roadmap documents are superseded and archived.
 
@@ -12,31 +12,38 @@
 
 ## 🔴 IMMEDIATE TODO (Resume Here)
 
-**✅ COMPLETED:** Phase 1 Week 9 + Phase 2 Python SDK & Events (2025-11-05)
+**✅ COMPLETED:** Circular Dependency Resolution (2025-11-06)
 
-**Status:** Week 9 + Phase 2 Steps 1-3 + Week 13-14 **COMPLETE** and merged to main!
-- See: `docs/phase1/PHASE-1-WEEK-9-FACADE-UNIFICATION-COMPLETION-REPORT.md`
+**Latest Achievement:**
+- **Commit:** `9343421` - Circular dependency between riptide-api ↔ riptide-facade **RESOLVED** ✅
+- **Architecture:** Created `riptide-pipeline` crate with shared types
+- **Quality:** 45 clippy warnings fixed, ZERO compilation errors, clean cargo tree
+- **Impact:** Enables independent development of API and facade layers
 
-**Completed Items:**
-1. ✅ **CrawlFacade** - Thin wrapper for 1,640 lines of production code
-2. ✅ **Dual-mode support** - Standard (PipelineOrchestrator) and Enhanced (StrategiesPipelineOrchestrator)
-3. ✅ **Arc-wrapped delegation** - Zero code duplication, pure reference wrapping
-4. ✅ **Comprehensive tests** - 23 tests passing (11 integration, 12 unit)
-5. ✅ **Batch processing** - Delegates to PipelineOrchestrator::execute_batch
-6. ✅ **Type safety** - CrawlMode and CrawlResult enums for strong typing
-7. ✅ **Documentation** - Complete with examples and architecture diagrams
+**Previous Completions:**
+- ✅ Phase 1 Week 9 - Facade Unification (CrawlFacade, 23/23 tests passing)
+- ✅ Phase 2 Steps 1-3 - Python SDK PyO3 Spike (10/10 tests, GO decision)
+- ✅ Week 13-14 - Events Schema MVP (schema-aware extraction)
 
-**Test Results:** 100% passing (23/23 tests)
-**Lines of Code:** ~550 lines added (facade + tests)
-**Production Code Wrapped:** 1,640 lines (ZERO rebuilt)
+**Architecture Status:**
+- **Phase 1 COMPLETE:** All modularity goals achieved, 100% facade usage now possible
+- **Phase 2 ACTIVE:** Python SDK foundation in place, Events Schema MVP complete
+- **Dependencies:** Clean one-way flow, no circular references
 
-**Phase 1 COMPLETE:** All modularity goals achieved, 100% facade usage now possible
-
-**Next Phase:** Week 9-13 - Python SDK (Phase 2: User-Facing API)
+**Next Phase:** Continue Phase 2 - Complete Python SDK packaging and integration testing
 
 ---
 
 ## 📋 Previous Completions
+
+**✅ Circular Dependency Resolution (2025-11-06)**
+- Commit: `9343421` - fix: Break circular dependency between riptide-api and riptide-facade
+- **Problem Solved:** riptide-api ↔ riptide-facade circular dependency (RESOLVED ✅)
+- **Solution:** Created `riptide-pipeline` crate with shared type definitions
+- **Architecture:** Clean one-way dependency: riptide-api → riptide-facade
+- **Quality:** 45 clippy warnings fixed, ZERO compilation errors
+- **Tests:** 2/2 tests passing in riptide-pipeline
+- See: `docs/REVIEWER-REPORT-CIRCULAR-DEPENDENCY.md`
 
 **✅ Phase 1 Week 5.5-9 - Trait-Based Composition (2025-11-05)**
 - See: `docs/phase1/PHASE-1-WEEK-5.5-9-COMPLETION-REPORT.md`
