@@ -1182,11 +1182,53 @@ impl AppState {
                 .map_err(|e| anyhow::anyhow!("Failed to initialize ScraperFacade: {}", e))?,
         );
 
+        // Initialize SpiderFacade with Development preset (suitable for local testing)
         #[cfg(feature = "spider")]
-        let spider_facade = None; // TODO: Initialize SpiderFacade when needed
+        let spider_facade = {
+            use url::Url;
+            let base_url =
+                Url::parse("https://example.com").expect("Failed to parse default spider base URL");
+            match riptide_facade::facades::SpiderFacade::from_preset(
+                riptide_facade::facades::SpiderPreset::Development,
+                base_url,
+            )
+            .await
+            {
+                Ok(facade) => {
+                    tracing::info!("SpiderFacade initialized with Development preset");
+                    Some(Arc::new(facade))
+                }
+                Err(e) => {
+                    tracing::warn!(error = %e, "Failed to initialize SpiderFacade, spider endpoints will be unavailable");
+                    None
+                }
+            }
+        };
 
+        // Initialize SearchFacade if SERPER_API_KEY is available
         #[cfg(feature = "search")]
-        let search_facade = None; // TODO: Initialize SearchFacade when search backend configured
+        let search_facade = {
+            if let Ok(api_key) = std::env::var("SERPER_API_KEY") {
+                match riptide_facade::facades::SearchFacade::with_api_key(
+                    riptide_search::SearchBackend::Serper,
+                    Some(api_key),
+                )
+                .await
+                {
+                    Ok(facade) => {
+                        tracing::info!("SearchFacade initialized with Serper backend");
+                        Some(Arc::new(facade))
+                    }
+                    Err(e) => {
+                        tracing::warn!(error = %e, "Failed to initialize SearchFacade, search endpoint will be unavailable");
+                        None
+                    }
+                }
+            } else {
+                tracing::info!("SERPER_API_KEY not found, search endpoint will be unavailable. Set SERPER_API_KEY to enable search.");
+                None
+            }
+        };
 
         Ok(Self {
             http_client,
@@ -1550,11 +1592,24 @@ impl AppState {
                 .expect("Failed to create scraper facade"),
         );
 
+        // Initialize SpiderFacade for tests
         #[cfg(feature = "spider")]
-        let spider_facade = None; // TODO: Initialize for tests
+        let spider_facade = {
+            use url::Url;
+            let base_url = Url::parse("https://example.com").expect("Test URL parse failed");
+            Some(Arc::new(
+                riptide_facade::facades::SpiderFacade::from_preset(
+                    riptide_facade::facades::SpiderPreset::Development,
+                    base_url,
+                )
+                .await
+                .expect("Failed to create spider facade for tests"),
+            ))
+        };
 
+        // SearchFacade not initialized for tests (requires external API key)
         #[cfg(feature = "search")]
-        let search_facade = None; // TODO: Initialize for tests
+        let search_facade = None;
 
         Self {
             http_client,

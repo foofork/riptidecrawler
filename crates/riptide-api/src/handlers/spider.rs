@@ -80,10 +80,35 @@ pub async fn spider_crawl(
         "Received spider crawl request"
     );
 
-    // Facade temporarily unavailable during refactoring
-    Err::<Json<()>, ApiError>(ApiError::internal(
-        "Facade temporarily unavailable during refactoring",
-    ))
+    // Phase 2C.2: Call SpiderFacade (restored after circular dependency fix)
+    let spider_facade = _state
+        .spider_facade
+        .as_ref()
+        .ok_or_else(|| ApiError::ConfigError {
+            message:
+                "SpiderFacade not initialized. Spider functionality requires the 'spider' feature."
+                    .to_string(),
+        })?;
+
+    // Parse seed URLs
+    let seed_urls: Result<Vec<url::Url>, _> =
+        body.seed_urls.iter().map(|s| url::Url::parse(s)).collect();
+
+    let seed_urls = seed_urls.map_err(|e| ApiError::InvalidUrl {
+        url: "".to_string(),
+        message: format!("Invalid seed URL: {}", e),
+    })?;
+
+    // Call spider facade
+    let summary = spider_facade
+        .crawl(seed_urls)
+        .await
+        .map_err(|e| ApiError::InternalError {
+            message: format!("Spider crawl failed: {}", e),
+        })?;
+
+    // Return response
+    Ok(Json(summary))
 }
 
 /// Get spider status and metrics
@@ -91,10 +116,32 @@ pub async fn spider_status(
     State(_state): State<AppState>,
     Json(_body): Json<SpiderStatusRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    // Facade temporarily unavailable during refactoring
-    Err::<Json<()>, ApiError>(ApiError::internal(
-        "Facade temporarily unavailable during refactoring",
-    ))
+    // Phase 2C.2: Call SpiderFacade (restored after circular dependency fix)
+    let spider_facade = _state
+        .spider_facade
+        .as_ref()
+        .ok_or_else(|| ApiError::ConfigError {
+            message:
+                "SpiderFacade not initialized. Spider functionality requires the 'spider' feature."
+                    .to_string(),
+        })?;
+
+    // Get current state
+    let state = spider_facade
+        .get_state()
+        .await
+        .map_err(|e| ApiError::InternalError {
+            message: format!("Failed to get spider state: {}", e),
+        })?;
+
+    // Build response
+    let response = SpiderStatusResponse {
+        state,
+        performance: None,    // TODO: Get performance metrics from facade
+        frontier_stats: None, // TODO: Get frontier stats from facade
+    };
+
+    Ok(Json(response))
 }
 
 /// Spider control endpoint for start/stop/reset operations
@@ -102,8 +149,47 @@ pub async fn spider_control(
     State(_state): State<AppState>,
     Json(_body): Json<SpiderControlRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    // Facade temporarily unavailable during refactoring
-    Err::<Json<()>, ApiError>(ApiError::internal(
-        "Facade temporarily unavailable during refactoring",
-    ))
+    // Phase 2C.2: Call SpiderFacade (restored after circular dependency fix)
+    let spider_facade = _state
+        .spider_facade
+        .as_ref()
+        .ok_or_else(|| ApiError::ConfigError {
+            message:
+                "SpiderFacade not initialized. Spider functionality requires the 'spider' feature."
+                    .to_string(),
+        })?;
+
+    // Execute action
+    match _body.action.as_str() {
+        "stop" => {
+            spider_facade
+                .stop()
+                .await
+                .map_err(|e| ApiError::InternalError {
+                    message: format!("Failed to stop spider: {}", e),
+                })?;
+            Ok(Json(serde_json::json!({
+                "success": true,
+                "message": "Spider stopped successfully"
+            })))
+        }
+        "reset" => {
+            spider_facade
+                .reset()
+                .await
+                .map_err(|e| ApiError::InternalError {
+                    message: format!("Failed to reset spider: {}", e),
+                })?;
+            Ok(Json(serde_json::json!({
+                "success": true,
+                "message": "Spider reset successfully"
+            })))
+        }
+        _ => Err(ApiError::ValidationError {
+            message: format!(
+                "Invalid action: '{}'. Must be 'stop' or 'reset'",
+                _body.action
+            ),
+        }),
+    }
 }

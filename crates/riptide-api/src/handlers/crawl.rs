@@ -286,19 +286,113 @@ pub async fn crawl(
 }
 
 /// Handle spider crawl as part of regular crawl endpoint
-#[allow(unused_variables)]
 pub(super) async fn handle_spider_crawl(
     state: &AppState,
     urls: &[String],
-    options: &riptide_types::config::CrawlOptions,
+    _options: &riptide_types::config::CrawlOptions,
 ) -> Result<Json<CrawlResponse>, ApiError> {
     use super::shared::spider::parse_seed_urls;
 
-    // Spider facade temporarily removed during refactoring
-    // TODO: Re-implement spider crawling after facade unification
-    return Err(ApiError::ConfigError {
-        message: "Spider crawling temporarily unavailable during facade refactoring.".to_string(),
-    });
+    // Phase 2C.2: Restore spider crawl using SpiderFacade (restored after circular dependency fix)
+    let spider_facade = state
+        .spider_facade
+        .as_ref()
+        .ok_or_else(|| ApiError::ConfigError {
+            message:
+                "SpiderFacade not initialized. Spider functionality requires the 'spider' feature."
+                    .to_string(),
+        })?;
+
+    // Parse and validate URLs using shared utility
+    let seed_urls = parse_seed_urls(urls)?;
+
+    debug!(
+        seed_count = seed_urls.len(),
+        "Using spider crawl via SpiderFacade"
+    );
+
+    // Create metrics recorder
+    let metrics = MetricsRecorder::new(state);
+
+    // Perform the crawl using SpiderFacade
+    let spider_result =
+        spider_facade
+            .crawl(seed_urls)
+            .await
+            .map_err(|e| ApiError::InternalError {
+                message: format!("Spider crawl failed: {}", e),
+            })?;
+
+    // Record successful spider crawl completion
+    metrics.record_spider_crawl(
+        spider_result.pages_crawled,
+        spider_result.pages_failed,
+        std::time::Duration::from_secs_f64(spider_result.duration_secs),
+    );
+
+    // Convert spider result to standard crawl response format
+    let mut crawl_results = Vec::new();
+
+    // Create results for discovered URLs
+    // Note: Spider returns summary data, not individual page documents
+    for (index, discovered_url) in spider_result.discovered_urls.iter().enumerate() {
+        let is_successful = index < spider_result.pages_crawled as usize;
+        crawl_results.push(CrawlResult {
+            url: discovered_url.clone(),
+            status: if is_successful { 200 } else { 0 },
+            from_cache: false,
+            gate_decision: "spider_crawl".to_string(),
+            quality_score: if is_successful { 0.8 } else { 0.0 },
+            processing_time_ms: (spider_result.duration_secs * 1000.0) as u64
+                / spider_result.pages_crawled.max(1),
+            document: None, // Spider summary doesn't include full documents
+            error: if !is_successful {
+                Some(ErrorInfo {
+                    error_type: "spider_crawl_failed".to_string(),
+                    message: "Page failed during spider crawl".to_string(),
+                    retryable: true,
+                })
+            } else {
+                None
+            },
+            cache_key: format!("spider:v1:{}", index),
+        });
+    }
+
+    let statistics = CrawlStatistics {
+        total_processing_time_ms: (spider_result.duration_secs * 1000.0) as u64,
+        avg_processing_time_ms: if !spider_result.discovered_urls.is_empty() {
+            (spider_result.duration_secs * 1000.0) / spider_result.discovered_urls.len() as f64
+        } else {
+            0.0
+        },
+        gate_decisions: GateDecisionBreakdown {
+            raw: spider_result.pages_crawled as usize,
+            probes_first: 0,
+            headless: 0,
+            cached: 0,
+        },
+        cache_hit_rate: 0.0,
+    };
+
+    let response = CrawlResponse {
+        total_urls: spider_result.discovered_urls.len(),
+        successful: spider_result.pages_crawled as usize,
+        failed: spider_result.pages_failed as usize,
+        from_cache: 0,
+        results: crawl_results,
+        statistics,
+    };
+
+    info!(
+        pages_crawled = spider_result.pages_crawled,
+        pages_failed = spider_result.pages_failed,
+        domains = spider_result.domains.len(),
+        stop_reason = %spider_result.stop_reason,
+        "Spider crawl completed via regular crawl endpoint"
+    );
+
+    return Ok(Json(response));
 
     // ===== UNREACHABLE CODE BELOW - Kept for future reference during refactoring =====
     #[allow(unreachable_code)]

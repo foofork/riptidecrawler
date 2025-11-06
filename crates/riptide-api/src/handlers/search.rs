@@ -43,12 +43,58 @@ pub async fn search(State(state): State<AppState>, Query(params): Query<SearchQu
         "Processing search request"
     );
 
-    // Facade temporarily unavailable during refactoring
-    (
-        StatusCode::SERVICE_UNAVAILABLE,
-        Json("Facade temporarily unavailable during refactoring".to_string()),
-    )
-        .into_response()
+    // Phase 2C.2: Call SearchFacade (restored after circular dependency fix)
+    let search_facade = match state.search_facade.as_ref() {
+        Some(facade) => facade,
+        None => {
+            tracing::warn!("SearchFacade not initialized. Set SERPER_API_KEY environment variable to enable search.");
+            return crate::errors::ApiError::ConfigError {
+                message: "Search functionality not available. SERPER_API_KEY not configured."
+                    .to_string(),
+            }
+            .into_response();
+        }
+    };
+
+    // Call search facade
+    let hits = match search_facade
+        .search_with_options(&params.q, limit as u32, &params.country, &params.language)
+        .await
+    {
+        Ok(hits) => hits,
+        Err(e) => {
+            tracing::error!(error = %e, "Search failed");
+            return crate::errors::ApiError::from(e).into_response();
+        }
+    };
+
+    // Map SearchHit to SearchResult
+    let results: Vec<SearchResult> = hits
+        .into_iter()
+        .enumerate()
+        .map(|(idx, hit)| SearchResult {
+            title: hit.title,
+            url: hit.link,
+            snippet: hit.snippet.unwrap_or_default(),
+            position: (idx + 1) as u32,
+        })
+        .collect();
+
+    let response = SearchResponse {
+        query: params.q.clone(),
+        results,
+        total_results: results.len() as u32,
+        search_time_ms: start.elapsed().as_millis() as u64,
+    };
+
+    tracing::info!(
+        query = %params.q,
+        results_count = response.total_results,
+        search_time_ms = response.search_time_ms,
+        "Search completed successfully"
+    );
+
+    (StatusCode::OK, Json(response)).into_response()
 }
 
 #[cfg(test)]
