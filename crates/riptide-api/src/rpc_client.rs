@@ -5,7 +5,10 @@ use reqwest::Client;
 use riptide_headless::dynamic::{DynamicConfig, DynamicRenderResult, PageAction, RenderArtifacts};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+#[cfg(not(feature = "browser"))]
 use std::time::Duration;
+#[cfg(feature = "browser")]
+use std::time::{Duration, Instant};
 use tracing::debug;
 
 use crate::rpc_session_context::{RpcSessionContext, RpcSessionStore, SessionMetrics};

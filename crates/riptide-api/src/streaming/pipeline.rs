@@ -38,6 +38,7 @@ impl StreamingPipeline {
     }
 
     /// Execute crawl streaming pipeline
+    #[cfg(feature = "fetch")]
     pub async fn execute_crawl_stream<T, F>(
         &self,
         body: CrawlBody,
@@ -173,6 +174,7 @@ impl StreamingPipeline {
     }
 
     /// Execute deep search streaming pipeline
+    #[cfg(feature = "fetch")]
     pub async fn execute_deepsearch_stream<T, F>(
         &self,
         body: DeepSearchBody,

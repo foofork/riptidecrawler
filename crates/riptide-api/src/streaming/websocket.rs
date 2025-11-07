@@ -247,7 +247,20 @@ impl WebSocketHandler {
             .map_err(|e| StreamingError::invalid_request(format!("Invalid JSON: {}", e)))?;
 
         match request.request_type.as_str() {
+            #[cfg(feature = "fetch")]
             "crawl" => self.handle_crawl_request(request, sender).await,
+            #[cfg(not(feature = "fetch"))]
+            "crawl" => {
+                let error_msg = WebSocketMessage {
+                    message_type: "error".to_string(),
+                    data: serde_json::json!({
+                        "error_type": "feature_disabled",
+                        "message": "Crawl feature is not enabled in this build"
+                    }),
+                    timestamp: chrono::Utc::now().to_rfc3339(),
+                };
+                self.send_message(sender, &error_msg).await
+            }
             "ping" => self.handle_ping_request(sender).await,
             "status" => self.handle_status_request(sender).await,
             _ => {
@@ -265,6 +278,7 @@ impl WebSocketHandler {
     }
 
     /// Handle crawl request
+    #[cfg(feature = "fetch")]
     async fn handle_crawl_request(
         &self,
         request: WebSocketRequest,

@@ -86,6 +86,7 @@ impl SseStreamingHandler {
     }
 
     /// Handle SSE crawl streaming
+    #[cfg(feature = "fetch")]
     pub async fn handle_crawl_stream(
         &self,
         body: CrawlBody,

@@ -377,10 +377,16 @@ impl Default for AppConfig {
                 .unwrap_or(0.3),
             headless_url: std::env::var("HEADLESS_URL").ok(),
             session_config: SessionConfig::default(),
-            #[cfg(feature = "spider")]
-            spider_config: AppConfig::init_spider_config(),
-            #[cfg(not(feature = "spider"))]
-            spider_config: None,
+            spider_config: {
+                #[cfg(feature = "spider")]
+                {
+                    AppConfig::init_spider_config()
+                }
+                #[cfg(not(feature = "spider"))]
+                {
+                    None
+                }
+            },
             #[cfg(feature = "workers")]
             worker_config: AppConfig::init_worker_config(),
             event_bus_config: EventBusConfig::default(),
@@ -754,7 +760,7 @@ impl AppState {
         };
 
         #[cfg(not(feature = "spider"))]
-        let spider: Option<Arc<riptide_spider::Spider>> = None;
+        let spider = None;
 
         // Initialize comprehensive resource manager with headless URL
         let resource_manager =

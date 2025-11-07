@@ -76,7 +76,13 @@ pub use rate_limiter::{HostStats, PerHostRateLimiter};
 pub use wasm_manager::{WasmInstanceManager, WasmInstanceStats};
 
 // Standard library imports
+#[cfg(not(feature = "browser"))]
 use std::{sync::Arc, time::Duration};
+#[cfg(feature = "browser")]
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 // External dependencies
 use tokio::{sync::Semaphore, time::timeout};
@@ -199,7 +205,7 @@ impl ResourceManager {
 
         // Initialize browser pool only if headless service is NOT configured
         #[cfg(feature = "browser")]
-        let browser_pool = if headless_url.is_some() {
+        let browser_pool = if _headless_url.is_some() {
             info!("Headless service URL configured - skipping local browser pool initialization");
             None
         } else {
