@@ -1,16 +1,17 @@
 name: Build Python Wheels
 
 on:
-  push:
-    branches:
-      - main
-      - 'claude/**'
-    tags:
-      - 'v*'
-  pull_request:
-    branches:
-      - main
-  workflow_dispatch:
+  workflow_dispatch:  # Manual trigger only
+  # Automatic triggers disabled to save CI resources
+  # push:
+  #   branches:
+  #     - main
+  #     - 'claude/**'
+  #   tags:
+  #     - 'v*'
+  # pull_request:
+  #   branches:
+  #     - main
 
 permissions:
   contents: read
