@@ -431,9 +431,11 @@ mod tests {
 
     #[test]
     fn test_session_context_expiry() {
-        let mut config = SessionConfig::default();
-        config.ttl = Duration::from_millis(10);
-        config.auto_renew = false;
+        let config = SessionConfig {
+            ttl: Duration::from_millis(10),
+            auto_renew: false,
+            ..Default::default()
+        };
 
         let session = RpcSessionContext::with_config(config);
         assert!(!session.is_expired());
@@ -444,9 +446,11 @@ mod tests {
 
     #[test]
     fn test_session_context_touch() {
-        let mut config = SessionConfig::default();
-        config.ttl = Duration::from_millis(100);
-        config.auto_renew = true;
+        let config = SessionConfig {
+            ttl: Duration::from_millis(100),
+            auto_renew: true,
+            ..Default::default()
+        };
 
         let mut session = RpcSessionContext::with_config(config);
         let initial_expiry = session.expires_at;
@@ -529,9 +533,11 @@ mod tests {
 
     #[test]
     fn test_session_store_cleanup() {
-        let mut config = SessionConfig::default();
-        config.ttl = Duration::from_millis(50);
-        config.auto_renew = false;
+        let config = SessionConfig {
+            ttl: Duration::from_millis(50),
+            auto_renew: false,
+            ..Default::default()
+        };
 
         let store = RpcSessionStore::with_config(config);
 
@@ -571,8 +577,10 @@ mod tests {
 
     #[test]
     fn test_request_limit() {
-        let mut config = SessionConfig::default();
-        config.max_requests = 2;
+        let config = SessionConfig {
+            max_requests: 2,
+            ..Default::default()
+        };
 
         let mut session = RpcSessionContext::with_config(config);
         assert!(!session.is_request_limit_reached());

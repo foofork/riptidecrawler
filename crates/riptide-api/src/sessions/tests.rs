@@ -8,10 +8,11 @@ use tokio;
 
 /// Create a unique test configuration with isolated storage
 fn create_test_config(test_name: &str) -> SessionConfig {
-    let mut config = SessionConfig::default();
-    // Use a unique directory for each test to avoid interference
-    config.base_data_dir = PathBuf::from(format!("/tmp/riptide-test-sessions-{}", test_name));
-    config
+    SessionConfig {
+        // Use a unique directory for each test to avoid interference
+        base_data_dir: PathBuf::from(format!("/tmp/riptide-test-sessions-{}", test_name)),
+        ..Default::default()
+    }
 }
 
 #[tokio::test]
@@ -376,7 +377,7 @@ async fn test_session_config_from_env() {
     assert_eq!(config.default_ttl, Duration::from_secs(7200));
     assert_eq!(config.cleanup_interval, Duration::from_secs(600));
     assert_eq!(config.max_sessions, 500);
-    assert_eq!(config.persist_cookies, false);
+    assert!(!config.persist_cookies);
 
     // Clean up environment
     std::env::remove_var("SESSION_TTL_SECS");
