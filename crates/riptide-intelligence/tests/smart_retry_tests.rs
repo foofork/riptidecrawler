@@ -290,19 +290,25 @@ async fn test_configuration_validation() {
     assert!(config.validate().is_ok());
 
     // Invalid max_attempts
-    let mut config = RetryConfig::default();
-    config.max_attempts = 0;
+    let config = RetryConfig {
+        max_attempts: 0,
+        ..Default::default()
+    };
     assert!(config.validate().is_err());
 
     // Invalid jitter
-    let mut config = RetryConfig::default();
-    config.jitter = 1.5;
+    let config = RetryConfig {
+        jitter: 1.5,
+        ..Default::default()
+    };
     assert!(config.validate().is_err());
 
     // Invalid delay range
-    let mut config = RetryConfig::default();
-    config.max_delay_ms = 50;
-    config.initial_delay_ms = 100;
+    let config = RetryConfig {
+        max_delay_ms: 50,
+        initial_delay_ms: 100,
+        ..Default::default()
+    };
     assert!(config.validate().is_err());
 }
 

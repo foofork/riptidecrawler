@@ -316,7 +316,7 @@ mod tests {
     fn test_f32_to_f64() {
         assert_eq!(f32_to_f64(0.0), 0.0);
         assert_eq!(f32_to_f64(1.5), 1.5);
-        assert!((f32_to_f64(3.14159) - 3.14159).abs() < 0.00001);
+        assert!((f32_to_f64(std::f32::consts::PI) - std::f64::consts::PI).abs() < 0.00001);
     }
 
     #[test]

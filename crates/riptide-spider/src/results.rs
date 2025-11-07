@@ -282,7 +282,7 @@ mod tests {
         let enriched = enrich(raw, &extractor);
 
         // Should extract valid URLs and text despite malformed HTML
-        assert!(enriched.extracted_urls.len() >= 1);
+        assert!(!enriched.extracted_urls.is_empty());
         assert!(enriched.text_content.is_some());
     }
 

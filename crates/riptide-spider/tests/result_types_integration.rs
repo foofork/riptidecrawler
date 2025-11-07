@@ -181,7 +181,7 @@ fn test_enrich_with_different_extractors_on_same_raw() {
 
     // Enrich with BasicExtractor
     let enriched_basic = enrich(raw.clone(), &BasicExtractor);
-    assert!(enriched_basic.extracted_urls.len() > 0);
+    assert!(!enriched_basic.extracted_urls.is_empty());
     assert!(enriched_basic.text_content.is_some());
 
     // Enrich with NoOpExtractor (same raw data)

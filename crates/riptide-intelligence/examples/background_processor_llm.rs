@@ -7,8 +7,8 @@
 
 #[cfg(feature = "mock")]
 use riptide_intelligence::{
-    AiProcessorConfig, AiTask, BackgroundAiProcessor, FailoverConfig, FailoverManager,
-    FailoverStrategy, HealthMonitorBuilder, LlmRegistry, MockLlmProvider, ProviderConfig,
+    failover::FailoverStrategy, AiProcessorConfig, AiTask, BackgroundAiProcessor, FailoverConfig,
+    FailoverManager, HealthMonitorBuilder, LlmRegistry, MockLlmProvider, ProviderConfig,
     ProviderPriority, TaskPriority,
 };
 
@@ -39,8 +39,8 @@ async fn main() -> anyhow::Result<()> {
     println!("🏥 Step 2: Setting up Health Monitoring...");
     let health_monitor = Arc::new(
         HealthMonitorBuilder::new()
-            .check_interval(Duration::from_secs(30))
-            .timeout(Duration::from_secs(5))
+            .with_interval(Duration::from_secs(30))
+            .with_timeout(Duration::from_secs(5))
             .build(),
     );
     println!("   ✓ Health monitor configured\n");
@@ -156,7 +156,7 @@ async fn main() -> anyhow::Result<()> {
         }
 
         // Show statistics periodically
-        if start.elapsed().as_secs() % 5 == 0 {
+        if start.elapsed().as_secs().is_multiple_of(5) {
             let stats = processor.stats().await;
             println!(
                 "   📊 Stats: Queue={}, Active={}/{}, Running={}",

@@ -177,7 +177,7 @@ fn test_swap_extractors_on_same_content() {
 
     // First extraction with BasicExtractor
     let enriched_basic = enrich(raw.clone(), &BasicExtractor);
-    assert!(enriched_basic.extracted_urls.len() > 0);
+    assert!(!enriched_basic.extracted_urls.is_empty());
     assert!(enriched_basic.text_content.is_some());
 
     // Second extraction with NoOpExtractor (same raw data)
@@ -401,7 +401,7 @@ fn test_extraction_strategy_selection() {
 
     // For general HTML, use BasicExtractor
     let enriched_basic = enrich(raw.clone(), &BasicExtractor);
-    assert!(enriched_basic.extracted_urls.len() > 0);
+    assert!(!enriched_basic.extracted_urls.is_empty());
 
     // For URL discovery only, use NoOpExtractor
     let enriched_noop = enrich(raw, &NoOpExtractor);

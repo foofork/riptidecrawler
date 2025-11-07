@@ -204,7 +204,7 @@ pub struct BuiltSpider {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::extractor::{BasicExtractor, NoOpExtractor};
+    use crate::extractor::BasicExtractor;
 
     #[test]
     fn test_builder_with_basic_extractor() {
