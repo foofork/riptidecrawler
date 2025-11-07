@@ -73,8 +73,8 @@ pub async fn search(State(state): State<AppState>, Query(params): Query<SearchQu
         .into_iter()
         .enumerate()
         .map(|(idx, hit)| SearchResult {
-            title: hit.title,
-            url: hit.link,
+            title: hit.title.unwrap_or_default(),
+            url: hit.url,
             snippet: hit.snippet.unwrap_or_default(),
             position: (idx + 1) as u32,
         })
@@ -83,7 +83,8 @@ pub async fn search(State(state): State<AppState>, Query(params): Query<SearchQu
     let response = SearchResponse {
         query: params.q.clone(),
         results,
-        total_results: results.len() as u32,
+        total_results: results.len(),
+        provider_used: "riptide-search".to_string(),
         search_time_ms: start.elapsed().as_millis() as u64,
     };
 

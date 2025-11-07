@@ -50,10 +50,17 @@ pub struct StealthTestResult {
 /// for the BrowserFacade and HybridHeadlessLauncher.
 #[cfg(feature = "browser")]
 pub async fn configure_stealth(
-    State(state): State<AppState>,
-    Json(request): Json<StealthConfigRequest>,
+    State(_state): State<AppState>,
+    Json(_request): Json<StealthConfigRequest>,
 ) -> Response {
-    // Check if browser facade is available
+    // browser_facade was removed due to circular dependency
+    ApiError::invalid_request(
+        "Browser facade temporarily unavailable due to refactoring. \
+        Stealth configuration will be restored in a future update.",
+    )
+    .into_response()
+
+    /* Original implementation - disabled until browser_facade is restored
     let facade = match state.browser_facade.as_ref() {
         Some(f) => f,
         None => {
@@ -96,6 +103,7 @@ pub async fn configure_stealth(
         })),
     )
         .into_response()
+    */
 }
 
 /// Stub implementation when browser feature is not enabled
@@ -116,8 +124,15 @@ pub async fn configure_stealth(
 /// This endpoint launches a test browser session and checks
 /// for common detection points.
 #[cfg(feature = "browser")]
-pub async fn test_stealth(State(state): State<AppState>) -> Response {
-    // Check if browser facade is available
+pub async fn test_stealth(State(_state): State<AppState>) -> Response {
+    // browser_facade was removed due to circular dependency
+    ApiError::invalid_request(
+        "Browser facade temporarily unavailable due to refactoring. \
+        Stealth testing will be restored in a future update.",
+    )
+    .into_response()
+
+    /* Original implementation - disabled until browser_facade is restored
     let facade = match state.browser_facade.as_ref() {
         Some(f) => f,
         None => {
@@ -196,6 +211,7 @@ pub async fn test_stealth(State(state): State<AppState>) -> Response {
     };
 
     (StatusCode::OK, Json(result)).into_response()
+    */
 }
 
 /// Stub implementation when browser feature is not enabled
@@ -213,8 +229,15 @@ pub async fn test_stealth(State(_state): State<AppState>) -> Response {
 /// Returns information about available stealth features
 /// and current configuration.
 #[cfg(feature = "browser")]
-pub async fn get_stealth_capabilities(State(state): State<AppState>) -> Response {
-    // Check if browser facade is available
+pub async fn get_stealth_capabilities(State(_state): State<AppState>) -> Response {
+    // browser_facade was removed due to circular dependency
+    ApiError::invalid_request(
+        "Browser facade temporarily unavailable due to refactoring. \
+        Stealth capabilities will be restored in a future update.",
+    )
+    .into_response()
+
+    /* Original implementation - disabled until browser_facade is restored
     let facade = match state.browser_facade.as_ref() {
         Some(f) => f,
         None => {
@@ -250,6 +273,7 @@ pub async fn get_stealth_capabilities(State(state): State<AppState>) -> Response
     };
 
     (StatusCode::OK, Json(capabilities)).into_response()
+    */
 }
 
 /// Stub implementation when browser feature is not enabled

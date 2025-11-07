@@ -76,7 +76,10 @@ pub use rate_limiter::{HostStats, PerHostRateLimiter};
 pub use wasm_manager::{WasmInstanceManager, WasmInstanceStats};
 
 // Standard library imports
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 // External dependencies
 use tokio::{sync::Semaphore, time::timeout};
@@ -189,7 +192,7 @@ impl ResourceManager {
     /// as the API will use the headless service for rendering instead.
     pub async fn new_with_headless_url(
         config: RiptideApiConfig,
-        _headless_url: Option<String>,
+        headless_url: Option<String>,
     ) -> errors::Result<Self> {
         info!("Initializing comprehensive resource manager");
 
