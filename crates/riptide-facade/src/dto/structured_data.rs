@@ -72,7 +72,6 @@ pub struct Product {
     pub images: Vec<String>,
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -58,10 +58,10 @@ pub mod wasm_manager;
 // Re-export public types for backward compatibility
 #[allow(unused_imports)] // Helper functions reserved for future use
 pub use errors::{exhausted_error, timeout_error, ResourceManagerError, Result};
+pub use guards::PdfResourceGuard;
 #[allow(unused_imports)] // WasmGuard reserved for future public API
 #[cfg(feature = "browser")]
 pub use guards::RenderResourceGuard;
-pub use guards::PdfResourceGuard;
 #[allow(unused_imports)] // WasmGuard reserved for future public API
 pub use guards::WasmGuard;
 #[allow(unused_imports)] // MemoryStats reserved for monitoring endpoints
