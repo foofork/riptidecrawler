@@ -4,7 +4,6 @@ use super::storage::SessionStorage;
 use super::types::SessionConfig;
 use std::path::PathBuf;
 use std::time::Duration;
-use tokio;
 
 /// Create a unique test configuration with isolated storage
 fn create_test_config(test_name: &str) -> SessionConfig {

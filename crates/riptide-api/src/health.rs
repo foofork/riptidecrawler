@@ -811,8 +811,8 @@ mod tests {
         assert!(!health_response.status.is_empty());
         assert!(!health_response.version.is_empty());
         assert!(!health_response.timestamp.is_empty());
-        // Uptime should be non-negative (always true for u64, but documents expectation)
-        assert!(health_response.uptime == 0 || health_response.uptime > 0);
+        // Verify uptime exists (u64 is always >= 0 by definition)
+        let _ = health_response.uptime;
     }
 
     #[tokio::test]
@@ -840,8 +840,8 @@ mod tests {
 
         // Verify metrics are collected
         assert!(metrics.memory_usage_bytes > 0);
-        // Total requests should be non-negative (always true for u64, but documents expectation)
-        assert!(metrics.total_requests == 0 || metrics.total_requests > 0);
+        // Verify total_requests exists (u64 is always >= 0 by definition)
+        let _ = metrics.total_requests;
         assert!(metrics.requests_per_second >= 0.0);
         assert!(metrics.avg_response_time_ms >= 0.0);
     }

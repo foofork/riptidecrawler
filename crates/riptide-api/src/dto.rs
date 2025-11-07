@@ -97,7 +97,7 @@ impl FieldFilter {
 
 /// Pages result for spider crawl operations (Phase 2)
 #[allow(dead_code)]
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SpiderResultPages {
     /// Total pages crawled
     pub pages_crawled: u64,

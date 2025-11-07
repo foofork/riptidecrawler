@@ -65,7 +65,7 @@ async fn test_gradual_leak_detection() {
 
     // Simulate gradual leak over time
     let mut current_usage = 100;
-    for i in 0..20 {
+    for _ in 0..20 {
         detector.track_allocation("leaky_component", 5);
         current_usage += 5;
         detector.record_snapshot(current_usage);

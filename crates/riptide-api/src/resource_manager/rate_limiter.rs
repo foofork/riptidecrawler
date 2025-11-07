@@ -256,17 +256,18 @@ mod tests {
     use crate::config::{RateLimitingConfig, RiptideApiConfig};
 
     fn test_config() -> RiptideApiConfig {
-        let mut config = RiptideApiConfig::default();
-        config.rate_limiting = RateLimitingConfig {
-            enabled: true,
-            requests_per_second_per_host: 2.0,
-            burst_capacity_per_host: 5,
-            jitter_factor: 0.0, // Disable jitter for predictable testing
-            window_duration_secs: 60,
-            cleanup_interval_secs: 300,
-            max_tracked_hosts: 1000,
-        };
-        config
+        RiptideApiConfig {
+            rate_limiting: RateLimitingConfig {
+                enabled: true,
+                requests_per_second_per_host: 2.0,
+                burst_capacity_per_host: 5,
+                jitter_factor: 0.0, // Disable jitter for predictable testing
+                window_duration_secs: 60,
+                cleanup_interval_secs: 300,
+                max_tracked_hosts: 1000,
+            },
+            ..Default::default()
+        }
     }
 
     #[tokio::test]

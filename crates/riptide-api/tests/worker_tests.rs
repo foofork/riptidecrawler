@@ -1,8 +1,11 @@
 //! TDD London School Tests for Worker Management (Feature 5: Phase 4B)
 //!
 //! Simplified tests focusing on behavior verification and contracts
+//!
+//! NOTE: These tests are currently disabled because riptide-workers is not a default
+//! dependency of riptide-api. Enable the "workers" feature to run these tests.
 
-#[cfg(test)]
+#[cfg(all(test, feature = "workers"))]
 mod worker_behavior_tests {
     use riptide_workers::{WorkerMetricsSnapshot, WorkerPoolStats, WorkerServiceHealth};
     use std::collections::HashMap;

@@ -471,7 +471,6 @@ async fn test_authentication_with_different_route_methods() {
 #[tokio::test]
 async fn test_auth_config_disable_authentication() {
     // Setup: Create auth config with auth disabled
-    let mut auth_config = AuthConfig::new();
     // Simulate REQUIRE_AUTH=false via environment
     std::env::set_var("REQUIRE_AUTH", "false");
     let auth_config = AuthConfig::new();

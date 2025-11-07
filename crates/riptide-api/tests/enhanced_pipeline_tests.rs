@@ -1,4 +1,3 @@
-use riptide_api::metrics::RipTideMetrics;
 /// Comprehensive tests for enhanced pipeline orchestrator
 ///
 /// This test suite validates:
@@ -9,9 +8,8 @@ use riptide_api::metrics::RipTideMetrics;
 /// 5. Concurrency and performance characteristics
 use riptide_api::pipeline::PipelineOrchestrator;
 use riptide_api::pipeline_enhanced::{EnhancedPipelineOrchestrator, PhaseTiming};
-use riptide_api::state::{AppConfig, AppState, EnhancedPipelineConfig};
+use riptide_api::state::AppState;
 use riptide_types::config::CrawlOptions;
-use std::sync::Arc;
 
 #[cfg(test)]
 mod enhanced_pipeline_tests {
@@ -117,8 +115,10 @@ mod enhanced_pipeline_tests {
     async fn test_enhanced_pipeline_batch_concurrency() {
         // Test that enhanced pipeline handles concurrent batch processing correctly
         let state = create_test_state();
-        let mut options = CrawlOptions::default();
-        options.concurrency = 5;
+        let options = CrawlOptions {
+            concurrency: 5,
+            ..Default::default()
+        };
 
         let orchestrator = EnhancedPipelineOrchestrator::new(state, options);
 
@@ -203,8 +203,6 @@ mod enhanced_pipeline_tests {
 
 #[cfg(test)]
 mod integration_tests {
-    use super::*;
-
     #[tokio::test]
     #[ignore] // Requires full integration test environment
     async fn test_enhanced_pipeline_end_to_end() {

@@ -2,15 +2,17 @@
 //!
 //! Tests session state management, cookie persistence, and session expiration handling
 
+#[cfg(feature = "browser")]
 use riptide_api::rpc_client::RpcClient;
 use riptide_api::sessions::manager::SessionManager;
 use riptide_api::sessions::types::{Cookie, SessionConfig};
+#[cfg(feature = "browser")]
 use riptide_headless::dynamic::DynamicConfig;
-use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 
 /// Test session persistence with RPC client
 #[tokio::test]
+#[cfg(feature = "browser")]
 async fn test_session_persistence_integration() {
     let temp_dir =
         std::env::temp_dir().join(format!("riptide-session-test-{}", uuid::Uuid::new_v4()));

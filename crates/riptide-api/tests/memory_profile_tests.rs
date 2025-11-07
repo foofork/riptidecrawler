@@ -8,9 +8,10 @@
 //! - Pressure status calculation
 
 use axum::{
-    body::{to_bytes, Body},
+    body::Body,
     http::{Request, StatusCode},
 };
+use http_body_util::BodyExt;
 use serde_json::Value;
 use tower::ServiceExt;
 
@@ -32,7 +33,7 @@ async fn test_memory_profile_endpoint_returns_valid_json() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
     let json: Value = serde_json::from_slice(&body).expect("Response should be valid JSON");
 
     // Verify required fields exist
@@ -73,7 +74,7 @@ async fn test_memory_profile_component_breakdown() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
     let json: Value = serde_json::from_slice(&body).unwrap();
 
     let by_component = json
@@ -116,12 +117,9 @@ async fn test_memory_profile_component_breakdown() {
         .as_u64()
         .expect("other should be a number");
 
-    // All components should be >= 0
-    assert!(extraction >= 0);
-    assert!(api >= 0);
-    assert!(cache >= 0);
-    assert!(browser >= 0);
-    assert!(other >= 0);
+    // All components are u64, so they are always >= 0 by definition
+    // Just verify they were successfully parsed as numbers
+    let _ = (extraction, api, cache, browser, other);
 }
 
 #[tokio::test]
@@ -140,7 +138,7 @@ async fn test_memory_profile_pressure_status() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
     let json: Value = serde_json::from_slice(&body).unwrap();
 
     let pressure = json
@@ -173,7 +171,7 @@ async fn test_memory_profile_stats_structure() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
     let json: Value = serde_json::from_slice(&body).unwrap();
 
     let stats = json.get("stats").expect("stats field should exist");
@@ -203,14 +201,12 @@ async fn test_memory_profile_stats_structure() {
 
     // Verify reasonable values
     assert!(
-        usage_percentage >= 0.0 && usage_percentage <= 100.0,
+        (0.0..=100.0).contains(&usage_percentage),
         "usage_percentage should be between 0 and 100, got: {}",
         usage_percentage
     );
-    assert!(
-        is_under_pressure == true || is_under_pressure == false,
-        "is_under_pressure should be a boolean"
-    );
+    // is_under_pressure is already verified to be a boolean by type system
+    let _ = is_under_pressure;
 }
 
 #[tokio::test]
@@ -263,7 +259,7 @@ async fn test_memory_metrics_are_reasonable() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
     let json: Value = serde_json::from_slice(&body).unwrap();
 
     let current_usage_mb = json["current_usage_mb"]
@@ -322,7 +318,7 @@ async fn test_timestamp_format() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
     let json: Value = serde_json::from_slice(&body).unwrap();
 
     let timestamp = json
@@ -355,7 +351,7 @@ async fn test_multiple_requests_consistency() {
         .await
         .unwrap();
 
-    let body1 = to_bytes(response1.into_body()).await.unwrap();
+    let body1 = response1.into_body().collect().await.unwrap().to_bytes();
     let json1: Value = serde_json::from_slice(&body1).unwrap();
 
     // Small delay
@@ -371,7 +367,7 @@ async fn test_multiple_requests_consistency() {
         .await
         .unwrap();
 
-    let body2 = to_bytes(response2.into_body()).await.unwrap();
+    let body2 = response2.into_body().collect().await.unwrap().to_bytes();
     let json2: Value = serde_json::from_slice(&body2).unwrap();
 
     // Both responses should have valid structure
@@ -408,7 +404,7 @@ async fn test_jemalloc_stats_when_enabled() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
     let json: Value = serde_json::from_slice(&body).unwrap();
 
     // When jemalloc feature is enabled, jemalloc field should exist

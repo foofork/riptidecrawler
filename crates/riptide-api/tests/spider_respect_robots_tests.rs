@@ -24,11 +24,7 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use riptide_api::{
-    dto::{ResultMode, SpiderResultPages},
-    handlers::spider::SpiderCrawlQuery,
-    models::SpiderCrawlBody,
-};
+use riptide_api::dto::SpiderResultPages;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tower::ServiceExt;
@@ -41,6 +37,7 @@ mod test_helpers;
 
 /// Generic test response wrapper for deserialization
 /// Used to capture API responses with consistent structure
+#[allow(dead_code)]
 #[derive(Debug, Deserialize, Serialize)]
 struct TestResponse<T> {
     #[serde(flatten)]
@@ -439,7 +436,7 @@ async fn test_respect_robots_isolated_from_other_options() {
 /// London School: Contract verification - API accepts only valid types
 #[tokio::test]
 async fn test_respect_robots_type_validation() {
-    let app = create_test_app().await;
+    let _app = create_test_app().await;
 
     // Valid boolean values should work
     let valid_cases = vec![

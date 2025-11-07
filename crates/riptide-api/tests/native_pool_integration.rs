@@ -3,7 +3,6 @@
 //! Tests end-to-end extraction flows, failover scenarios, and state integration.
 
 use anyhow::Result;
-use std::sync::Arc;
 
 // ==========================
 // END-TO-END EXTRACTION TESTS

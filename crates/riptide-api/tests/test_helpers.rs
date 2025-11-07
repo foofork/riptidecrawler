@@ -19,6 +19,7 @@ use tower_http::cors::CorsLayer;
 ///
 /// Note: This function will attempt to connect to Redis and other services.
 /// Returns Result to allow tests to handle missing dependencies gracefully.
+#[allow(dead_code)]
 pub async fn create_test_state() -> AppState {
     // Initialize test config using AppConfig::default() with test overrides
     let mut config = riptide_api::state::AppConfig::default();
@@ -90,7 +91,7 @@ pub fn create_test_router(state: AppState) -> Router {
     use riptide_api::streaming::sse::crawl_sse;
     use riptide_api::streaming::websocket::crawl_websocket;
 
-    let mut app = Router::new()
+    let app = Router::new()
         // Health endpoint - standardized on /healthz
         .route("/healthz", get(handlers::health))
         // Metrics - both root and v1 paths

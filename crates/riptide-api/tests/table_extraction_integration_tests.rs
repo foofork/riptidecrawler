@@ -678,7 +678,7 @@ async fn test_extract_preserve_formatting_flag() {
 #[tokio::test]
 async fn test_export_csv_with_headers() {
     let app = create_test_app().await;
-    let state = create_test_state().await;
+    let _state = create_test_state().await;
 
     // First extract a table
     let html = r#"
@@ -723,7 +723,7 @@ async fn test_export_csv_with_headers() {
     let export_response = app
         .oneshot(
             Request::builder()
-                .uri(&format!(
+                .uri(format!(
                     "/api/v1/tables/{}/export?format=csv&include_headers=true",
                     table_id
                 ))
@@ -784,7 +784,7 @@ async fn test_export_csv_without_headers() {
     let export_response = app
         .oneshot(
             Request::builder()
-                .uri(&format!(
+                .uri(format!(
                     "/api/v1/tables/{}/export?format=csv&include_headers=false",
                     table_id
                 ))
@@ -844,7 +844,7 @@ async fn test_export_markdown_with_metadata() {
     let export_response = app
         .oneshot(
             Request::builder()
-                .uri(&format!(
+                .uri(format!(
                     "/api/v1/tables/{}/export?format=markdown&include_metadata=true",
                     table_id
                 ))
@@ -899,7 +899,7 @@ async fn test_export_markdown_without_metadata() {
     let export_response = app
         .oneshot(
             Request::builder()
-                .uri(&format!(
+                .uri(format!(
                     "/api/v1/tables/{}/export?format=markdown&include_metadata=false",
                     table_id
                 ))
@@ -971,10 +971,7 @@ async fn test_export_invalid_format_validation_error() {
     let response = app
         .oneshot(
             Request::builder()
-                .uri(&format!(
-                    "/api/v1/tables/{}/export?format=invalid",
-                    table_id
-                ))
+                .uri(format!("/api/v1/tables/{}/export?format=invalid", table_id))
                 .body(Body::empty())
                 .unwrap(),
         )

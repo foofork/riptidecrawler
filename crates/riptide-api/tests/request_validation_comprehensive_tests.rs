@@ -10,7 +10,7 @@
 use axum::{
     body::Body,
     extract::Request,
-    http::{header, Method, StatusCode, Uri},
+    http::{header, Method, StatusCode},
     middleware,
     response::Response,
     routing::{get, post},

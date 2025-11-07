@@ -399,11 +399,7 @@ async fn test_timing_attack_resistance() {
     // Assert: Timing difference should be minimal (< 10ms)
     // Note: This is a basic check - real timing attack resistance requires
     // constant-time comparison which depends on the hash comparison implementation
-    let timing_diff = if avg_valid > avg_invalid {
-        avg_valid - avg_invalid
-    } else {
-        avg_invalid - avg_valid
-    };
+    let timing_diff = avg_valid.abs_diff(avg_invalid);
 
     println!(
         "Timing: valid={:?}, invalid={:?}, diff={:?}",
