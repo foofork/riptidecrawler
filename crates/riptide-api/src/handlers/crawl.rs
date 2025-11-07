@@ -289,7 +289,7 @@ pub async fn crawl(
 pub(super) async fn handle_spider_crawl(
     state: &AppState,
     urls: &[String],
-    options: &riptide_types::config::CrawlOptions,
+    _options: &riptide_types::config::CrawlOptions,
 ) -> Result<Json<CrawlResponse>, ApiError> {
     use super::shared::spider::parse_seed_urls;
 
@@ -402,7 +402,7 @@ pub(super) async fn handle_spider_crawl(
 
         // Build spider config using shared builder
         let _spider_config =
-            SpiderConfigBuilder::new(state, seed_urls[0].clone()).from_crawl_options(options);
+            SpiderConfigBuilder::new(state, seed_urls[0].clone()).from_crawl_options(_options);
 
         debug!("Using spider crawl via SpiderFacade with provided options");
 

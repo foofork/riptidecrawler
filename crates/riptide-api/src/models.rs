@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use crate::state::DependencyHealth;
+#[cfg(feature = "spider")]
 use riptide_spider::{CrawlState, PerformanceMetrics};
 pub use riptide_types::config::CrawlOptions;
 pub use riptide_types::ExtractedDoc;
@@ -411,12 +412,15 @@ pub struct SpiderStatusResponse {
     pub state: CrawlState,
 
     /// Performance metrics (if requested)
+    #[cfg(feature = "spider")]
     pub performance: Option<PerformanceMetrics>,
 
     /// Frontier statistics
+    #[cfg(feature = "spider")]
     pub frontier_stats: Option<riptide_spider::types::FrontierMetrics>,
 
     /// Adaptive stop statistics
+    #[cfg(feature = "spider")]
     pub adaptive_stop_stats: Option<riptide_spider::adaptive_stop::AdaptiveStopStats>,
 }
 

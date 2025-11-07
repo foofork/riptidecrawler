@@ -3,6 +3,7 @@ use crate::state::AppState;
 use async_trait::async_trait;
 use reqwest::Response;
 use riptide_events::{BaseEvent, EventSeverity};
+#[cfg(feature = "fetch")]
 use riptide_fetch as fetch;
 #[cfg(feature = "llm")]
 use riptide_intelligence::smart_retry::{RetryConfig, SmartRetry, SmartRetryStrategy};

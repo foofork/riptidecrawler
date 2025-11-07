@@ -132,8 +132,10 @@ pub struct SearchResponse {
 /// Result mode for spider crawl operations
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum ResultMode {
     /// Return statistics only (default, backward compatible)
+    #[default]
     Stats,
     /// Return discovered URLs list
     Urls,
@@ -143,12 +145,6 @@ pub enum ResultMode {
     Stream,
     /// Store results for async retrieval (not yet implemented)
     Store,
-}
-
-impl Default for ResultMode {
-    fn default() -> Self {
-        Self::Stats
-    }
 }
 
 /// Statistics result for spider crawl operations (backward compatible)

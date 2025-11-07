@@ -426,52 +426,60 @@ impl HealthChecker {
         let start_time = Instant::now();
 
         // Check if spider engine is initialized
-        if let Some(spider) = &state.spider {
-            // Add timeout protection (2 seconds max)
-            match tokio::time::timeout(std::time::Duration::from_secs(2), spider.get_crawl_state())
+        #[cfg(feature = "spider")]
+        {
+            if let Some(spider) = &state.spider {
+                // Add timeout protection (2 seconds max)
+                match tokio::time::timeout(
+                    std::time::Duration::from_secs(2),
+                    spider.get_crawl_state(),
+                )
                 .await
-            {
-                Ok(crawl_state) => {
-                    let response_time = start_time.elapsed().as_millis() as u64;
+                {
+                    Ok(crawl_state) => {
+                        let response_time = start_time.elapsed().as_millis() as u64;
 
-                    // Spider is healthy if it can respond to state queries
-                    // Additional checks for active crawling status
-                    let status_message = if crawl_state.active {
-                        format!(
-                            "Spider engine operational (active crawl: {} pages, {} domains)",
-                            crawl_state.pages_crawled,
-                            crawl_state.active_domains.len()
-                        )
-                    } else {
-                        "Spider engine operational (idle)".to_string()
-                    };
+                        // Spider is healthy if it can respond to state queries
+                        // Additional checks for active crawling status
+                        let status_message = if crawl_state.active {
+                            format!(
+                                "Spider engine operational (active crawl: {} pages, {} domains)",
+                                crawl_state.pages_crawled,
+                                crawl_state.active_domains.len()
+                            )
+                        } else {
+                            "Spider engine operational (idle)".to_string()
+                        };
 
-                    ServiceHealth {
-                        status: "healthy".to_string(),
-                        message: Some(status_message),
-                        response_time_ms: Some(response_time),
-                        last_check: chrono::Utc::now().to_rfc3339(),
+                        return ServiceHealth {
+                            status: "healthy".to_string(),
+                            message: Some(status_message),
+                            response_time_ms: Some(response_time),
+                            last_check: chrono::Utc::now().to_rfc3339(),
+                        };
                     }
-                }
-                Err(_) => {
-                    // Timeout occurred - spider is unresponsive
-                    error!("Spider health check timed out after 2 seconds");
-                    ServiceHealth {
-                        status: "unhealthy".to_string(),
-                        message: Some("Spider engine unresponsive (timeout after 2s)".to_string()),
-                        response_time_ms: Some(2000),
-                        last_check: chrono::Utc::now().to_rfc3339(),
+                    Err(_) => {
+                        // Timeout occurred - spider is unresponsive
+                        error!("Spider health check timed out after 2 seconds");
+                        return ServiceHealth {
+                            status: "unhealthy".to_string(),
+                            message: Some(
+                                "Spider engine unresponsive (timeout after 2s)".to_string(),
+                            ),
+                            response_time_ms: Some(2000),
+                            last_check: chrono::Utc::now().to_rfc3339(),
+                        };
                     }
                 }
             }
-        } else {
-            // Spider not initialized (should not reach here due to outer check, but defensive)
-            ServiceHealth {
-                status: "not_configured".to_string(),
-                message: Some("Spider engine not initialized".to_string()),
-                response_time_ms: None,
-                last_check: chrono::Utc::now().to_rfc3339(),
-            }
+        }
+
+        // Spider not initialized or feature not enabled
+        ServiceHealth {
+            status: "not_configured".to_string(),
+            message: Some("Spider engine not initialized or feature not enabled".to_string()),
+            response_time_ms: None,
+            last_check: chrono::Utc::now().to_rfc3339(),
         }
     }
 

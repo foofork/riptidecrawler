@@ -5,6 +5,7 @@ use reqwest::Response;
 use riptide_extraction::strategies::{
     ExtractionStrategyType, PerformanceMetrics, ProcessedContent, StrategyConfig, StrategyManager,
 };
+#[cfg(feature = "fetch")]
 use riptide_fetch as fetch;
 use riptide_pdf::{self as pdf, utils as pdf_utils};
 use riptide_reliability::gate::{decide, score, Decision, GateFeatures};

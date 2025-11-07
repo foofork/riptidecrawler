@@ -643,7 +643,10 @@ impl AppState {
             .map_err(|e| anyhow::anyhow!("Invalid API configuration: {}", e))?;
 
         // Initialize HTTP client with optimized settings
+        #[cfg(feature = "fetch")]
         let http_client = http_client()?;
+        #[cfg(not(feature = "fetch"))]
+        let http_client = Client::new();
         tracing::debug!("HTTP client initialized");
 
         // Establish Redis connection
@@ -1460,7 +1463,10 @@ impl AppState {
     pub async fn new_test_minimal() -> Self {
         use std::sync::Arc;
         use tokio::sync::Mutex;
+        #[cfg(feature = "fetch")]
         let http_client = http_client().expect("Failed to create HTTP client");
+        #[cfg(not(feature = "fetch"))]
+        let http_client = Client::new();
 
         // Use Redis URL from env or default (tests should skip Redis-dependent features)
         let redis_url =
