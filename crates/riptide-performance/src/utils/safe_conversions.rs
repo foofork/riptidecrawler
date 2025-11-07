@@ -113,8 +113,9 @@ pub fn calculate_percentile_index(len: usize, percentile: f64) -> usize {
     // Clamp percentile to valid range
     let percentile = percentile.clamp(0.0, 1.0);
 
-    // Calculate index with proper rounding
-    let index = ((len - 1) as f64 * percentile).round() as usize;
+    // Calculate index using floor method
+    // Use len * percentile for correct percentile calculation
+    let index = (len as f64 * percentile).floor() as usize;
 
     // Ensure index is within bounds
     index.min(len - 1)
@@ -142,12 +143,12 @@ pub fn seconds_to_f64_divisor(seconds: i64) -> f64 {
 /// * `value` - Float value
 ///
 /// # Returns
-/// * Value as u64, or 0 if value is negative/NaN/infinite
+/// * Value as u64, or 0 if value is negative/NaN, u64::MAX if positive infinity
 #[inline]
 pub fn f64_to_u64_safe(value: f64) -> u64 {
-    if !value.is_finite() || value < 0.0 {
+    if value.is_nan() || value < 0.0 {
         0
-    } else if value > u64::MAX as f64 {
+    } else if value >= u64::MAX as f64 || value.is_infinite() {
         u64::MAX
     } else {
         value.round() as u64

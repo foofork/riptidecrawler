@@ -117,6 +117,20 @@ impl RpcSessionContext {
         }
     }
 
+    /// Create session from existing session ID with custom config
+    pub fn from_session_id_with_config(session_id: String, config: SessionConfig) -> Self {
+        let now = SystemTime::now();
+
+        Self {
+            session_id,
+            created_at: now,
+            last_accessed: now,
+            expires_at: now + config.ttl,
+            state: SessionState::default(),
+            config,
+        }
+    }
+
     /// Check if session has expired
     pub fn is_expired(&self) -> bool {
         SystemTime::now() > self.expires_at
@@ -228,8 +242,11 @@ impl RpcSessionStore {
             }
         }
 
-        // Create new session
-        let session = RpcSessionContext::from_session_id(session_id.to_string());
+        // Create new session with the store's default config
+        let session = RpcSessionContext::from_session_id_with_config(
+            session_id.to_string(),
+            self.default_config.clone(),
+        );
         self.sessions
             .insert(session_id.to_string(), session.clone());
 
