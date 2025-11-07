@@ -330,6 +330,7 @@ impl WebSocketHandler {
     }
 
     /// Stream crawl results over WebSocket with backpressure handling
+    #[cfg(feature = "fetch")]
     async fn stream_crawl_websocket(
         &self,
         body: CrawlBody,

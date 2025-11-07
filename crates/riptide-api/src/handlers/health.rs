@@ -101,16 +101,29 @@ pub async fn health(State(state): State<AppState>) -> Result<impl IntoResponse, 
         extractor: health_status.extractor.into(),
         http_client: health_status.http_client.into(),
         headless_service: headless_health,
-        spider_engine: state.spider.as_ref().map(|_| ServiceHealth {
-            status: health_status.spider.to_string(),
-            message: Some(match health_status.spider {
-                crate::state::DependencyHealth::Healthy => "Spider engine ready".to_string(),
-                crate::state::DependencyHealth::Unhealthy(ref msg) => msg.clone(),
-                crate::state::DependencyHealth::Unknown => "Spider status unknown".to_string(),
-            }),
-            response_time_ms: None,
-            last_check: timestamp.clone(),
-        }),
+        spider_engine: {
+            #[cfg(feature = "spider")]
+            {
+                state.spider.as_ref().map(|_| ServiceHealth {
+                    status: health_status.spider.to_string(),
+                    message: Some(match health_status.spider {
+                        crate::state::DependencyHealth::Healthy => {
+                            "Spider engine ready".to_string()
+                        }
+                        crate::state::DependencyHealth::Unhealthy(ref msg) => msg.clone(),
+                        crate::state::DependencyHealth::Unknown => {
+                            "Spider status unknown".to_string()
+                        }
+                    }),
+                    response_time_ms: None,
+                    last_check: timestamp.clone(),
+                })
+            }
+            #[cfg(not(feature = "spider"))]
+            {
+                None
+            }
+        },
         worker_service: Some(ServiceHealth {
             status: health_status.worker_service.to_string(),
             message: Some(match health_status.worker_service {

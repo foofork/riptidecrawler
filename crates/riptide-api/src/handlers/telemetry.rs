@@ -325,6 +325,18 @@ pub async fn get_telemetry_status(
     #[cfg(not(feature = "spider"))]
     let spider_active = false;
 
+    // Check spider enabled status (must be outside macro due to cfg! limitations)
+    let spider_enabled = {
+        #[cfg(feature = "spider")]
+        {
+            state.spider.is_some()
+        }
+        #[cfg(not(feature = "spider"))]
+        {
+            false
+        }
+    };
+
     let status = serde_json::json!({
         "enabled": config.enabled,
         "service_name": config.service_name,
@@ -374,7 +386,7 @@ pub async fn get_telemetry_status(
                 "scheduler_healthy": worker_scheduler_healthy,
             },
             "spider": {
-                "enabled": cfg!(feature = "spider") && state.spider.is_some(),
+                "enabled": spider_enabled,
                 "active": spider_active,
             },
             "telemetry_system": {

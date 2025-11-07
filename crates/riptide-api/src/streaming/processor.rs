@@ -199,6 +199,7 @@ impl StreamProcessor {
     }
 
     /// Process URLs concurrently and return a receiver for results
+    #[cfg(feature = "fetch")]
     pub async fn process_urls_concurrent(
         &self,
         urls: Vec<String>,

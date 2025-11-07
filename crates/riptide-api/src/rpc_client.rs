@@ -5,7 +5,7 @@ use reqwest::Client;
 use riptide_headless::dynamic::{DynamicConfig, DynamicRenderResult, PageAction, RenderArtifacts};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tracing::debug;
 
 use crate::rpc_session_context::{RpcSessionContext, RpcSessionStore, SessionMetrics};

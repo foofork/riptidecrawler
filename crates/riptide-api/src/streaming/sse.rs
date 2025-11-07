@@ -135,6 +135,7 @@ impl SseStreamingHandler {
 }
 
 /// Orchestrate SSE crawl operation with proper event formatting
+#[cfg(feature = "fetch")]
 async fn orchestrate_crawl_sse(
     app: AppState,
     body: CrawlBody,

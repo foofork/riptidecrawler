@@ -173,10 +173,19 @@ impl HealthChecker {
         let worker_health = self.check_worker_service_health(state).await;
 
         // Spider engine health check (if enabled)
-        let spider_health = if state.spider.is_some() {
-            Some(self.check_spider_health(state).await)
-        } else {
-            None
+        let spider_health = {
+            #[cfg(feature = "spider")]
+            {
+                if state.spider.is_some() {
+                    Some(self.check_spider_health(state).await)
+                } else {
+                    None
+                }
+            }
+            #[cfg(not(feature = "spider"))]
+            {
+                None
+            }
         };
 
         DependencyStatus {

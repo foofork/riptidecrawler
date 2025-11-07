@@ -123,6 +123,7 @@ pub struct StrategiesQueryParams {
 }
 
 /// Crawl with strategies pipeline
+#[cfg(feature = "fetch")]
 pub async fn strategies_crawl(
     State(state): State<AppState>,
     Query(params): Query<StrategiesQueryParams>,

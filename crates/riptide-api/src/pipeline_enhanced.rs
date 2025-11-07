@@ -67,6 +67,7 @@ impl EnhancedPipelineOrchestrator {
     }
 
     /// Execute single URL with enhanced metrics (delegates to standard pipeline)
+    #[cfg(feature = "fetch")]
     pub async fn execute_single_enhanced(&self, url: &str) -> ApiResult<EnhancedPipelineResult> {
         if !self.config.enable_enhanced_pipeline {
             // If enhanced pipeline is disabled, use standard pipeline and convert result

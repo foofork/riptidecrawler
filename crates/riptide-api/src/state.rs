@@ -199,6 +199,7 @@ pub struct AppConfig {
     pub session_config: SessionConfig,
 
     /// Spider configuration for deep crawling
+    #[cfg(feature = "spider")]
     pub spider_config: Option<SpiderConfig>,
 
     /// Worker service configuration
@@ -753,7 +754,7 @@ impl AppState {
         };
 
         #[cfg(not(feature = "spider"))]
-        let spider = None;
+        let spider: Option<Arc<riptide_spider::Spider>> = None;
 
         // Initialize comprehensive resource manager with headless URL
         let resource_manager =

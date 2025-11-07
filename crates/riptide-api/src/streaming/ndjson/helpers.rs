@@ -24,6 +24,7 @@ use tracing::{debug, error, info, warn};
 /// - Stream results as they complete (no batching)
 /// - Zero unwrap/expect error handling
 /// - Buffer management with specified limits
+#[cfg(feature = "fetch")]
 pub async fn orchestrate_crawl_stream_optimized(
     app: AppState,
     body: CrawlBody,
@@ -277,6 +278,7 @@ pub async fn orchestrate_crawl_stream_optimized(
 /// - Stream search results as they become available
 /// - Content extraction streaming in parallel
 /// - Zero unwrap/expect error handling
+#[cfg(feature = "fetch")]
 pub async fn orchestrate_deepsearch_stream_optimized(
     app: AppState,
     body: DeepSearchBody,
