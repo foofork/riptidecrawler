@@ -289,7 +289,7 @@ pub async fn crawl(
 pub(super) async fn handle_spider_crawl(
     state: &AppState,
     urls: &[String],
-    _options: &riptide_types::config::CrawlOptions,
+    options: &riptide_types::config::CrawlOptions,
 ) -> Result<Json<CrawlResponse>, ApiError> {
     use super::shared::spider::parse_seed_urls;
 

@@ -1,9 +1,10 @@
+#![allow(dead_code)]
+
 /// Enhanced pipeline orchestrator with comprehensive phase timing and metrics.
 ///
 /// This module provides production-ready enhanced pipeline orchestration with:
 /// - Detailed phase timing for fetch, gate, wasm, and render operations
 /// - Enhanced metrics collection and performance monitoring
-#![allow(dead_code)]
 /// - Debug logging for each pipeline phase
 /// - Phase visualization data for analysis
 /// - Backward compatibility with standard PipelineOrchestrator
