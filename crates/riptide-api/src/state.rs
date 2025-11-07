@@ -8,8 +8,9 @@ use crate::streaming::StreamingModule;
 use anyhow::{Context, Result};
 use reqwest::Client;
 use riptide_cache::CacheManager;
-#[cfg(feature = "wasm-extractor")]
-use riptide_cache::CacheWarmingConfig;
+// CacheWarmingConfig requires wasm-pool feature which is not available in riptide-api
+// #[cfg(feature = "wasm-pool")]
+// use riptide_cache::CacheWarmingConfig;
 use riptide_events::{EventBus, EventBusConfig, EventSeverity};
 #[cfg(feature = "fetch")]
 use riptide_fetch::{http_client, FetchEngine};
@@ -222,10 +223,9 @@ pub struct AppConfig {
     /// Enhanced pipeline configuration
     pub enhanced_pipeline_config: EnhancedPipelineConfig,
 
-    /// Cache warming configuration (only with wasm-extractor feature)
-    #[cfg(feature = "wasm-extractor")]
-    pub cache_warming_config: CacheWarmingConfig,
-
+    // Cache warming configuration removed - requires wasm-pool feature which is not available
+    // #[cfg(feature = "wasm-extractor")]
+    // pub cache_warming_config: CacheWarmingConfig,
     /// Engine selection configuration (Phase 10)
     pub engine_selection_config: EngineSelectionConfig,
 }
@@ -377,16 +377,8 @@ impl Default for AppConfig {
                 .unwrap_or(0.3),
             headless_url: std::env::var("HEADLESS_URL").ok(),
             session_config: SessionConfig::default(),
-            spider_config: {
-                #[cfg(feature = "spider")]
-                {
-                    AppConfig::init_spider_config()
-                }
-                #[cfg(not(feature = "spider"))]
-                {
-                    None
-                }
-            },
+            #[cfg(feature = "spider")]
+            spider_config: AppConfig::init_spider_config(),
             #[cfg(feature = "workers")]
             worker_config: AppConfig::init_worker_config(),
             event_bus_config: EventBusConfig::default(),
@@ -394,8 +386,7 @@ impl Default for AppConfig {
             reliability_config: ReliabilityConfig::from_env(),
             monitoring_config: MonitoringConfig::default(),
             enhanced_pipeline_config: EnhancedPipelineConfig::default(),
-            #[cfg(feature = "wasm-extractor")]
-            cache_warming_config: CacheWarmingConfig::default(),
+            // cache_warming_config removed - requires wasm-pool feature
             engine_selection_config: EngineSelectionConfig::default(),
         }
     }
@@ -760,7 +751,7 @@ impl AppState {
         };
 
         #[cfg(not(feature = "spider"))]
-        let spider = None;
+        let spider: Option<Arc<dyn std::any::Any + Send + Sync>> = None;
 
         // Initialize comprehensive resource manager with headless URL
         let resource_manager =
@@ -904,14 +895,14 @@ impl AppState {
             "Authentication configuration initialized"
         );
 
-        // Note: CacheWarmer initialization to be added in future
-        #[cfg(feature = "wasm-extractor")]
-        {
-            let cache_warmer_enabled = config.cache_warming_config.enabled;
-            if cache_warmer_enabled {
-                tracing::info!("CacheWarmer feature flag enabled (full implementation pending)");
-            }
-        }
+        // Note: CacheWarmer initialization to be added in future (requires wasm-pool feature)
+        // #[cfg(feature = "wasm-extractor")]
+        // {
+        //     let cache_warmer_enabled = config.cache_warming_config.enabled;
+        //     if cache_warmer_enabled {
+        //         tracing::info!("CacheWarmer feature flag enabled (full implementation pending)");
+        //     }
+        // }
 
         // Initialize headless browser launcher with pooling (only if no headless service URL)
         #[cfg(feature = "browser")]
@@ -1183,10 +1174,10 @@ impl AppState {
             }
         };
 
-        // Determine cache warmer enabled status
-        #[cfg(feature = "wasm-extractor")]
-        let cache_warmer_enabled = config.cache_warming_config.enabled;
-        #[cfg(not(feature = "wasm-extractor"))]
+        // Determine cache warmer enabled status (disabled - requires wasm-pool feature)
+        // #[cfg(feature = "wasm-extractor")]
+        // let cache_warmer_enabled = config.cache_warming_config.enabled;
+        // #[cfg(not(feature = "wasm-extractor"))]
         let cache_warmer_enabled = false;
 
         // Initialize facades (Phase 2C.2: Restored after breaking circular dependency)

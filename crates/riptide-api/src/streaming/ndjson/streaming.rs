@@ -83,22 +83,32 @@ impl NdjsonStreamingHandler {
                 BackpressureHandler::new(request_id.clone(), buffer_clone);
 
             // Use enhanced orchestration with zero-error approach
-            let orchestration_result = orchestrate_crawl_stream_optimized(
-                app_clone,
-                body_clone,
-                tx,
-                start_time,
-                request_id.clone(),
-                &mut backpressure_handler,
-                config_clone,
-            )
-            .await;
+            #[cfg(feature = "fetch")]
+            {
+                let orchestration_result = orchestrate_crawl_stream_optimized(
+                    app_clone,
+                    body_clone,
+                    tx,
+                    start_time,
+                    request_id.clone(),
+                    &mut backpressure_handler,
+                    config_clone,
+                )
+                .await;
 
-            if let Err(e) = orchestration_result {
+                if let Err(e) = orchestration_result {
+                    error!(
+                        request_id = %request_id,
+                        error = %e,
+                        "NDJSON crawl stream orchestration error"
+                    );
+                }
+            }
+            #[cfg(not(feature = "fetch"))]
+            {
                 error!(
                     request_id = %request_id,
-                    error = %e,
-                    "NDJSON crawl stream orchestration error"
+                    "NDJSON crawl stream not available: fetch feature disabled"
                 );
             }
         });
@@ -139,22 +149,32 @@ impl NdjsonStreamingHandler {
                 BackpressureHandler::new(request_id.clone(), buffer_clone);
 
             // Use enhanced orchestration with zero-error approach
-            let orchestration_result = orchestrate_deepsearch_stream_optimized(
-                app_clone,
-                body_clone,
-                tx,
-                start_time,
-                request_id.clone(),
-                &mut backpressure_handler,
-                config_clone,
-            )
-            .await;
+            #[cfg(feature = "fetch")]
+            {
+                let orchestration_result = orchestrate_deepsearch_stream_optimized(
+                    app_clone,
+                    body_clone,
+                    tx,
+                    start_time,
+                    request_id.clone(),
+                    &mut backpressure_handler,
+                    config_clone,
+                )
+                .await;
 
-            if let Err(e) = orchestration_result {
+                if let Err(e) = orchestration_result {
+                    error!(
+                        request_id = %request_id,
+                        error = %e,
+                        "NDJSON deep search stream orchestration error"
+                    );
+                }
+            }
+            #[cfg(not(feature = "fetch"))]
+            {
                 error!(
                     request_id = %request_id,
-                    error = %e,
-                    "NDJSON deep search stream orchestration error"
+                    "NDJSON deep search stream not available: fetch feature disabled"
                 );
             }
         });

@@ -51,18 +51,32 @@ pub async fn crawl_sse(State(app): State<AppState>, Json(body): Json<CrawlBody>)
     // Create SSE handler
     let sse_handler = SseStreamingHandler::new(app.clone(), request_id.clone());
 
-    match sse_handler.handle_crawl_stream(body, start_time).await {
-        Ok(response) => response.into_response(),
-        Err(e) => {
-            let error_json = serde_json::json!({
-                "error": {
-                    "type": "streaming_error",
-                    "message": e.to_string(),
-                    "retryable": true
-                }
-            });
-            StreamingErrorResponse::sse(error_json).into_response()
+    #[cfg(feature = "fetch")]
+    {
+        match sse_handler.handle_crawl_stream(body, start_time).await {
+            Ok(response) => response.into_response(),
+            Err(e) => {
+                let error_json = serde_json::json!({
+                    "error": {
+                        "type": "streaming_error",
+                        "message": e.to_string(),
+                        "retryable": true
+                    }
+                });
+                StreamingErrorResponse::sse(error_json).into_response()
+            }
         }
+    }
+    #[cfg(not(feature = "fetch"))]
+    {
+        let error_json = serde_json::json!({
+            "error": {
+                "type": "feature_disabled",
+                "message": "Fetch feature is not enabled in this build",
+                "retryable": false
+            }
+        });
+        StreamingErrorResponse::sse(error_json).into_response()
     }
 }
 
