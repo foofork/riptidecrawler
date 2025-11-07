@@ -8,7 +8,6 @@ authors.workspace = true
 [dependencies]
 # Internal dependencies
 riptide-types = { path = "../riptide-types" }
-riptide-pipeline = { path = "../riptide-pipeline" }
 # Phase 2C.2: ✅ COMPLETED - Orchestrator traits extracted to riptide-types
 # CrawlFacade now depends on PipelineExecutor/StrategiesPipelineExecutor traits
 # instead of concrete implementations. Circular dependency ELIMINATED.

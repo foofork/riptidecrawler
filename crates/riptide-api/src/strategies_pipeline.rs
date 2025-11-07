@@ -53,10 +53,10 @@ pub struct StrategiesPipelineResult {
     pub performance_metrics: Option<PerformanceMetrics>,
 }
 
-// Conversion to riptide-pipeline type for facade layer
-impl From<StrategiesPipelineResult> for riptide_pipeline::StrategiesPipelineResult {
+// Conversion to riptide-types::pipeline type for facade layer
+impl From<StrategiesPipelineResult> for riptide_types::pipeline::StrategiesPipelineResult {
     fn from(result: StrategiesPipelineResult) -> Self {
-        riptide_pipeline::StrategiesPipelineResult {
+        riptide_types::pipeline::StrategiesPipelineResult {
             processed_content: serde_json::to_value(&result.processed_content).ok(),
             from_cache: result.from_cache,
             gate_decision: result.gate_decision,

@@ -6507,7 +6507,6 @@ dependencies = [
  "riptide-pdf",
  "riptide-performance",
  "riptide-persistence",
- "riptide-pipeline",
  "riptide-reliability",
  "riptide-search",
  "riptide-spider",
@@ -6748,7 +6747,6 @@ dependencies = [
  "riptide-fetch",
  "riptide-monitoring",
  "riptide-pdf",
- "riptide-pipeline",
  "riptide-search",
  "riptide-spider",
  "riptide-stealth",
@@ -7006,35 +7004,6 @@ dependencies = [
  "tracing-subscriber",
  "uuid",
  "zstd",
-]
-
-[[package]]
-name = "riptide-pipeline"
-version = "0.9.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "futures",
- "mockall 0.13.1",
- "redis",
- "reqwest 0.12.24",
- "riptide-cache",
- "riptide-events",
- "riptide-extraction",
- "riptide-fetch",
- "riptide-intelligence",
- "riptide-pdf",
- "riptide-reliability",
- "riptide-types",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 1.0.69",
- "tokio",
- "tokio-test",
- "tracing",
- "url",
- "uuid",
 ]
 
 [[package]]

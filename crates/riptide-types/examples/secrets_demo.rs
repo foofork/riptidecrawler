@@ -25,7 +25,7 @@ fn main() {
     println!();
 
     // Multiple secrets
-    let secrets = vec![
+    let secrets = [
         "key1_secret_value".to_string(),
         "key2_different_value".to_string(),
         "key3_another_secret".to_string(),

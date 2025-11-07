@@ -68,8 +68,10 @@ fn convert_extracted_content(content: riptide_types::ExtractedContent, url: &str
     }
 }
 
-// Re-export public types from riptide-pipeline to maintain API compatibility
-pub use riptide_pipeline::{GateDecisionStats, PipelineResult, PipelineRetryConfig, PipelineStats};
+// Re-export public types from riptide-types::pipeline to maintain API compatibility
+pub use riptide_types::pipeline::{
+    GateDecisionStats, PipelineResult, PipelineRetryConfig, PipelineStats,
+};
 
 // Internal retry config extension for llm feature
 #[cfg(feature = "llm")]

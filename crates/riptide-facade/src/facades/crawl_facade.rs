@@ -160,8 +160,8 @@ impl CrawlFacade {
                     .await
                     .map_err(|e| RiptideError::Other(e.into()))?;
 
-                // Convert from riptide_api::StrategiesPipelineResult to riptide_pipeline::StrategiesPipelineResult
-                // Using the From implementation defined in riptide-api
+                // Result is already in the correct type (riptide_types::pipeline::StrategiesPipelineResult)
+                // from the strategies pipeline executor
                 Ok(CrawlResult::Enhanced(result))
             }
         }
