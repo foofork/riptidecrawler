@@ -2,6 +2,7 @@
 ///
 /// This module provides endpoints for retrieving and visualizing enhanced pipeline metrics,
 /// including detailed phase timing data, gate decision statistics, and performance trends.
+#![allow(dead_code)]
 use crate::errors::ApiError;
 use crate::state::AppState;
 use axum::{extract::State, Json};

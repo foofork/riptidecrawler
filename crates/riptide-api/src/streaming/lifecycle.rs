@@ -1,6 +1,7 @@
 //! Stream lifecycle management and event handling.
 //!
 //! This module provides sophisticated lifecycle management for streaming operations,
+#![allow(dead_code)]
 //! including event handlers for connection establishment, data flow, errors, and cleanup.
 //!
 //! ## Metrics Tracking

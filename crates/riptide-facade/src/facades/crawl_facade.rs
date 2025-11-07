@@ -31,7 +31,7 @@ pub enum CrawlMode {
 #[derive(Debug, Clone)]
 pub enum CrawlResult {
     /// Result from standard pipeline
-    Standard(PipelineResult),
+    Standard(Box<PipelineResult>),
     /// Result from strategies pipeline
     Enhanced(StrategiesPipelineResult),
 }
@@ -150,7 +150,7 @@ impl CrawlFacade {
                     .execute_single(url)
                     .await
                     .map_err(|e| RiptideError::Other(e.into()))?;
-                Ok(CrawlResult::Standard(result))
+                Ok(CrawlResult::Standard(Box::new(result)))
             }
             CrawlMode::Enhanced => {
                 // Delegate to existing 525 lines
@@ -162,7 +162,7 @@ impl CrawlFacade {
 
                 // Convert from riptide_api::StrategiesPipelineResult to riptide_pipeline::StrategiesPipelineResult
                 // Using the From implementation defined in riptide-api
-                Ok(CrawlResult::Enhanced(result.into()))
+                Ok(CrawlResult::Enhanced(result))
             }
         }
     }

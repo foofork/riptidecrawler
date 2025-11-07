@@ -1,6 +1,7 @@
 //! Buffer management and backpressure handling for streaming operations.
 //!
 //! This module provides dynamic buffer sizing, backpressure detection, and
+#![allow(dead_code)]
 //! adaptive throttling to handle varying client connection speeds.
 
 use super::error::StreamingResult;

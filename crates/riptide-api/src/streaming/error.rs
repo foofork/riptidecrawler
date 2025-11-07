@@ -1,6 +1,7 @@
 //! Error types for streaming operations.
 //!
 //! This module provides comprehensive error handling for all streaming operations
+#![allow(dead_code)]
 //! including buffer overflow, connection failures, and processing errors.
 
 use crate::errors::ApiError;

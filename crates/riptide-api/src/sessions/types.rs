@@ -1,7 +1,7 @@
 //! Session types and data structures
 //!
 //! ACTIVELY USED: Core types for session management system integrated throughout the API
-
+#![allow(dead_code)]
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;

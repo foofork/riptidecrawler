@@ -402,9 +402,9 @@ impl SmartRetry {
         // Check circuit breaker state first
         match circuit_breaker.state() {
             CircuitState::Open => {
-                return Err(IntelligenceError::CircuitOpen {
+                Err(IntelligenceError::CircuitOpen {
                     reason: "Circuit breaker is open, skipping retry".to_string(),
-                });
+                })
             }
             _ => {
                 // Circuit is closed or half-open, proceed with retry logic

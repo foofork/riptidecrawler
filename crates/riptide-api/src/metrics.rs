@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use axum_prometheus::{metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayer};
 use prometheus::{
     Counter, Gauge, GaugeVec, Histogram, HistogramOpts, HistogramVec, IntCounterVec, Opts, Registry,

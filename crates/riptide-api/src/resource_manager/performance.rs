@@ -3,6 +3,7 @@
 //! Tracks system performance metrics including:
 //! - Render operation timing
 //! - Timeout detection
+#![allow(dead_code)]
 //! - Performance degradation scoring
 //! - Success/failure rates
 

@@ -11,7 +11,6 @@ use riptide_reliability::gate::{decide, score, Decision, GateFeatures};
 use riptide_types::config::CrawlOptions;
 use riptide_types::RenderMode;
 use serde::{Deserialize, Serialize};
-use serde_json;
 use std::time::{Duration, Instant};
 use tokio::time::timeout;
 use tracing::{debug, info, warn};

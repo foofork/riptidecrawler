@@ -85,6 +85,7 @@ pub enum ApiError {
     PayloadTooLarge { message: String },
 
     /// Invalid Content-Type header (415 Unsupported Media Type)
+    #[allow(dead_code)]
     #[error("Invalid Content-Type: {content_type}. {message}")]
     InvalidContentType {
         content_type: String,
@@ -92,14 +93,17 @@ pub enum ApiError {
     },
 
     /// Missing required header (400 Bad Request)
+    #[allow(dead_code)]
     #[error("Missing required header: {header}")]
     MissingRequiredHeader { header: String },
 
     /// Invalid header value (400 Bad Request)
+    #[allow(dead_code)]
     #[error("Invalid header value for {header}: {message}")]
     InvalidHeaderValue { header: String, message: String },
 
     /// Invalid request parameter (400 Bad Request)
+    #[allow(dead_code)]
     #[error("Invalid parameter {parameter}: {message}")]
     InvalidParameter { parameter: String, message: String },
 

@@ -2,6 +2,7 @@
 //!
 //! This module provides session persistence infrastructure for the RPC client,
 //! enabling stateful rendering workflows with session management.
+#![allow(dead_code)]
 use anyhow::{anyhow, Result};
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};

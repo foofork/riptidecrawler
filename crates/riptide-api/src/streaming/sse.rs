@@ -1,6 +1,7 @@
 //! Server-Sent Events (SSE) streaming implementation.
 //!
 //! This module provides SSE endpoints for real-time streaming with automatic
+#![allow(dead_code)]
 //! keep-alive, reconnection handling, and proper event formatting.
 
 use super::buffer::{BackpressureHandler, BufferManager};

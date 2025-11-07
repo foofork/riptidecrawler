@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::errors::{ApiError, ApiResult};
 use crate::models::{CrawlBody, DeepSearchBody};
 use riptide_config::CommonValidator;

@@ -20,7 +20,7 @@ pub enum StructuredData {
 }
 
 /// Event data structure
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct Event {
     /// Event title/name
     pub title: String,
@@ -45,7 +45,7 @@ pub struct Event {
 }
 
 /// Product data structure
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct Product {
     /// Product name
     pub name: String,
@@ -72,34 +72,6 @@ pub struct Product {
     pub images: Vec<String>,
 }
 
-impl Default for Event {
-    fn default() -> Self {
-        Self {
-            title: String::new(),
-            description: String::new(),
-            start_date: None,
-            end_date: None,
-            location: None,
-            organizer: None,
-            url: None,
-        }
-    }
-}
-
-impl Default for Product {
-    fn default() -> Self {
-        Self {
-            name: String::new(),
-            description: String::new(),
-            price: None,
-            currency: None,
-            availability: None,
-            brand: None,
-            sku: None,
-            images: Vec::new(),
-        }
-    }
-}
 
 #[cfg(test)]
 mod tests {

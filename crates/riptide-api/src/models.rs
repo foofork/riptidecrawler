@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::state::DependencyHealth;
 use riptide_spider::{CrawlState, PerformanceMetrics};
 pub use riptide_types::config::CrawlOptions;

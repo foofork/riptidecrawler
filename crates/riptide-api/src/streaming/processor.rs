@@ -1,6 +1,7 @@
 //! Stream processing logic and utilities.
 //!
 //! This module contains common processing logic shared across different
+#![allow(dead_code)]
 //! streaming protocols (NDJSON, SSE, WebSocket) including result conversion,
 //! progress tracking, and performance monitoring.
 

@@ -1,6 +1,7 @@
 //! WebSocket streaming implementation for real-time bidirectional communication.
 //!
 //! This module provides WebSocket endpoints for real-time streaming with
+#![allow(dead_code)]
 //! backpressure handling, connection management, and message routing.
 
 use super::buffer::{BackpressureHandler, BufferManager};

@@ -1,6 +1,7 @@
 //! Pipeline orchestration for streaming operations.
 //!
 //! This module provides high-level orchestration logic for coordinating
+#![allow(dead_code)]
 //! streaming operations across different protocols and managing the
 //! interaction between processors, buffers, and output streams.
 

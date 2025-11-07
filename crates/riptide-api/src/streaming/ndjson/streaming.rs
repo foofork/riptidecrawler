@@ -1,6 +1,7 @@
 //! Core NDJSON streaming logic and handler implementation.
 //!
 //! This module contains the main streaming handler struct and its implementation methods.
+#![allow(dead_code)]
 
 use super::helpers::{orchestrate_crawl_stream_optimized, orchestrate_deepsearch_stream_optimized};
 use crate::models::{CrawlBody, DeepSearchBody};

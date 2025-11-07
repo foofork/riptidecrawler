@@ -3,6 +3,7 @@
 //! Monitors system memory usage and provides:
 //! - Memory allocation/deallocation tracking (manual and jemalloc-based)
 //! - Pressure detection based on configurable thresholds
+#![allow(dead_code)]
 //! - Automatic cleanup triggers
 //! - Garbage collection coordination
 //! - Memory leak detection and reporting

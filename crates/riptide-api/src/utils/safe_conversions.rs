@@ -1,6 +1,7 @@
 //! Safe conversion utilities to avoid dangerous `as` casts
 //!
 //! Provides validated conversion functions that handle edge cases properly.
+#![allow(dead_code)]
 
 /// Safely convert a confidence score (0.0-1.0 float) to a quality score (0-100 u8)
 ///

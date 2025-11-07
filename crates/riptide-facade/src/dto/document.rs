@@ -84,7 +84,7 @@ impl Document {
         md.push_str(&format!("**Extracted:** {}\n\n", self.extracted_at));
         md.push_str("## Content\n\n");
         md.push_str(&self.content);
-        md.push_str("\n");
+        md.push('\n');
         md
     }
 }

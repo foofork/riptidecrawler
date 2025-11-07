@@ -2,7 +2,7 @@
 //!
 //! This module provides HTTP handlers for deep crawling operations using
 //! the riptide-facade SpiderFacade for simplified spider engine access.
-
+#![allow(dead_code)]
 use crate::dto::ResultMode;
 use crate::errors::ApiError;
 use crate::models::*;

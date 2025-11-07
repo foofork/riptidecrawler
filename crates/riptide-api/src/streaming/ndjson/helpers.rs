@@ -1,6 +1,7 @@
 //! Helper functions and utilities for NDJSON streaming.
 //!
 //! This module contains orchestration functions, serialization helpers, and web search utilities.
+#![allow(dead_code)]
 
 use super::progress::{estimate_completion, OperationProgress};
 use crate::errors::{ApiError, ApiResult};

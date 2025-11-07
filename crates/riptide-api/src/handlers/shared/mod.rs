@@ -1,5 +1,5 @@
 //! Shared utilities for handlers to reduce code duplication
-
+#![allow(dead_code)]
 pub mod spider;
 
 use crate::errors::ApiError;

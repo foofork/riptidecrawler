@@ -3,6 +3,7 @@
 //! This module provides HTTP handlers for NDJSON streaming endpoints,
 //! supporting both batch crawling and deep search operations with
 //! real-time progress updates and backpressure handling.
+#![allow(dead_code)]
 
 use crate::models::{CrawlBody, DeepSearchBody};
 use crate::state::AppState;

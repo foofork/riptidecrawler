@@ -1,4 +1,5 @@
 //! Trace Backend Integration (TELEM-005)
+#![allow(dead_code)]
 //!
 //! This module provides trace storage and retrieval capabilities for distributed tracing.
 //! It supports OTLP-compatible backends and provides in-memory storage for development.

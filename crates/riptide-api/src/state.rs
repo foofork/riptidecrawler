@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::config::RiptideApiConfig;
 use crate::health::HealthChecker;
 use crate::metrics::RipTideMetrics;

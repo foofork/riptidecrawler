@@ -2,6 +2,7 @@
 //!
 //! This module provides HTTP 501 "Not Implemented" responses for endpoints
 //! that are disabled at compile time via feature flags.
+#![allow(dead_code)]
 
 use crate::errors::ApiError;
 use axum::{

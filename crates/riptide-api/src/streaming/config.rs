@@ -1,6 +1,7 @@
 //! Configuration for streaming operations.
 //!
 //! This module provides centralized configuration for all streaming
+#![allow(dead_code)]
 //! protocols including NDJSON, SSE, and WebSocket endpoints.
 
 use serde::{Deserialize, Serialize};

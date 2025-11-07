@@ -1,6 +1,6 @@
 // Stealth configuration handlers - P1-C1 Week 2 Day 8-10
 // Full implementation with HybridHeadlessLauncher integration
-
+#![allow(dead_code)]
 use axum::{
     extract::State,
     response::{IntoResponse, Response},

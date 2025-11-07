@@ -1,6 +1,7 @@
 //! Axum endpoint handlers for NDJSON streaming operations.
 //!
 //! This module contains the HTTP handlers for crawl and deepsearch streaming endpoints.
+#![allow(dead_code)]
 
 use super::streaming::NdjsonStreamingHandler;
 use crate::errors::ApiError;

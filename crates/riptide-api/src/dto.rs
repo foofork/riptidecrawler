@@ -1,10 +1,11 @@
 // Import HTTP DTOs from riptide-types (Phase 2C.1 - breaking circular dependency)
 // Re-export for backward compatibility
-pub use riptide_types::{CrawledPage, ResultMode, SpiderResultStats, SpiderResultUrls};
+pub use riptide_types::{CrawledPage, ResultMode};
 
 use serde::{Deserialize, Serialize};
 
 // API-specific extensions for field filtering
+#[allow(dead_code)]
 pub trait CrawledPageExt {
     fn apply_field_filter(&mut self, include: Option<&FieldFilter>, exclude: Option<&FieldFilter>);
 }
@@ -71,6 +72,7 @@ impl CrawledPageExt for CrawledPage {
 }
 
 /// Field filter for selecting specific fields in responses
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct FieldFilter {
     fields: Vec<String>,
@@ -91,6 +93,7 @@ impl FieldFilter {
 }
 
 /// Pages result for spider crawl operations (Phase 2)
+#[allow(dead_code)]
 #[derive(Serialize, Debug)]
 pub struct SpiderResultPages {
     /// Total pages crawled

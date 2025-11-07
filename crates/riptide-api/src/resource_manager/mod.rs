@@ -61,7 +61,9 @@ pub use errors::{exhausted_error, timeout_error, ResourceManagerError, Result};
 #[allow(unused_imports)] // WasmGuard reserved for future public API
 #[cfg(feature = "browser")]
 pub use guards::RenderResourceGuard;
-pub use guards::{PdfResourceGuard, WasmGuard};
+pub use guards::PdfResourceGuard;
+#[allow(unused_imports)] // WasmGuard reserved for future public API
+pub use guards::WasmGuard;
 #[allow(unused_imports)] // MemoryStats reserved for monitoring endpoints
 pub use memory_manager::{MemoryManager, MemoryStats};
 #[allow(unused_imports)] // MetricsSnapshot reserved for monitoring endpoints
