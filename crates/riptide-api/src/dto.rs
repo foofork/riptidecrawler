@@ -7,11 +7,13 @@ use serde::{Deserialize, Serialize};
 // API-specific extensions for field filtering
 #[allow(dead_code)]
 pub trait CrawledPageExt {
+    #[allow(dead_code)]
     fn apply_field_filter(&mut self, include: Option<&FieldFilter>, exclude: Option<&FieldFilter>);
 }
 
 impl CrawledPageExt for CrawledPage {
     /// Apply field filtering based on include/exclude parameters
+    #[allow(dead_code)]
     fn apply_field_filter(&mut self, include: Option<&FieldFilter>, exclude: Option<&FieldFilter>) {
         // If include is specified, only keep those fields
         if let Some(filter) = include {
@@ -80,6 +82,7 @@ pub struct FieldFilter {
 
 impl FieldFilter {
     /// Create a new field filter from comma-separated string
+    #[allow(dead_code)]
     pub fn parse(s: &str) -> Self {
         Self {
             fields: s.split(',').map(|f| f.trim().to_string()).collect(),
@@ -126,6 +129,7 @@ fn default_api_version() -> String {
 
 impl SpiderResultPages {
     /// Apply field filtering to all pages
+    #[allow(dead_code)]
     pub fn apply_field_filter(
         &mut self,
         include: Option<&FieldFilter>,
@@ -137,6 +141,7 @@ impl SpiderResultPages {
     }
 
     /// Truncate content in all pages
+    #[allow(dead_code)]
     pub fn truncate_content(&mut self, max_content_bytes: usize) {
         for page in &mut self.pages {
             page.truncate_content(max_content_bytes);

@@ -105,6 +105,7 @@ pub struct ResourceManager {
     #[cfg(feature = "browser")]
     pub browser_pool: Option<Arc<BrowserPool>>,
     /// Per-host rate limiter
+    #[allow(dead_code)]
     pub rate_limiter: Arc<PerHostRateLimiter>,
     /// PDF processing semaphore
     pub pdf_semaphore: Arc<Semaphore>,
@@ -132,6 +133,7 @@ pub enum ResourceResult<T> {
     /// All resources of requested type are exhausted
     ResourceExhausted,
     /// Rate limit exceeded, retry after duration
+    #[allow(dead_code)]
     RateLimited {
         /// Duration to wait before retrying
         retry_after: Duration,
@@ -333,6 +335,7 @@ impl ResourceManager {
     /// * `ResourceExhausted` - Browser pool exhausted
     /// * `Timeout` - Resource acquisition timed out
     #[cfg(feature = "browser")]
+    #[allow(dead_code)]
     pub async fn acquire_render_resources(
         &self,
         url: &str,
@@ -411,6 +414,7 @@ impl ResourceManager {
 
     /// Stub implementation when browser feature is not enabled
     #[cfg(not(feature = "browser"))]
+    #[allow(dead_code)]
     pub async fn acquire_render_resources(
         &self,
         _url: &str,
@@ -479,6 +483,7 @@ impl ResourceManager {
     ///
     /// # Arguments
     /// * `operation_type` - Type of operation that timed out (for logging)
+    #[allow(dead_code)]
     pub async fn cleanup_on_timeout(&self, operation_type: &str) {
         warn!(operation = %operation_type, "Performing timeout cleanup");
 

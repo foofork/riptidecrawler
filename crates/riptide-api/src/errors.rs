@@ -23,6 +23,7 @@ pub enum ApiError {
 
     /// Rate limiting errors (429 Too Many Requests)
     #[error("Rate limit exceeded: {message}")]
+    #[allow(dead_code)]
     RateLimited { message: String },
 
     /// Authentication/authorization errors (401/403)
