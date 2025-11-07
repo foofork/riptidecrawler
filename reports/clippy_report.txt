@@ -1,0 +1,1744 @@
+warning: calling `push_str()` using a single-character string literal
+  --> crates/riptide-facade/src/dto/document.rs:87:9
+   |
+87 |         md.push_str("\n");
+   |         ^^^^^^^^^^^^^^^^^ help: consider using `push` with a character literal: `md.push('\n')`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#single_char_add_str
+   = note: `#[warn(clippy::single_char_add_str)]` on by default
+
+
+warning: this `impl` can be derived
+  --> crates/riptide-facade/src/dto/structured_data.rs:75:1
+   |
+75 | / impl Default for Event {
+76 | |     fn default() -> Self {
+77 | |         Self {
+78 | |             title: String::new(),
+...  |
+87 | | }
+   | |_^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#derivable_impls
+   = note: `#[warn(clippy::derivable_impls)]` on by default
+help: replace the manual implementation with a derive attribute
+   |
+24 + #[derive(Default)]
+25 ~ pub struct Event {
+   |
+
+
+warning: this `impl` can be derived
+   --> crates/riptide-facade/src/dto/structured_data.rs:89:1
+    |
+ 89 | / impl Default for Product {
+ 90 | |     fn default() -> Self {
+ 91 | |         Self {
+ 92 | |             name: String::new(),
+...   |
+102 | | }
+    | |_^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#derivable_impls
+help: replace the manual implementation with a derive attribute
+    |
+ 49 + #[derive(Default)]
+ 50 ~ pub struct Product {
+    |
+
+
+warning: unneeded `return` statement
+   --> crates/riptide-intelligence/src/smart_retry.rs:405:17
+    |
+405 | / ...   return Err(IntelligenceError::CircuitOpen {
+406 | | ...       reason: "Circuit breaker is open, skipping retry".to_str...
+407 | | ...   });
+    | |________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_return
+    = note: `#[warn(clippy::needless_return)]` on by default
+help: remove `return`
+    |
+405 ~                 Err(IntelligenceError::CircuitOpen {
+406 +                     reason: "Circuit breaker is open, skipping retry".to_string(),
+407 ~                 })
+    |
+
+
+warning: large size difference between variants
+  --> crates/riptide-facade/src/facades/crawl_facade.rs:32:1
+   |
+32 | / pub enum CrawlResult {
+33 | |     /// Result from standard pipeline
+34 | |     Standard(PipelineResult),
+   | |     ------------------------ the largest variant contains at least 496 bytes
+35 | |     /// Result from strategies pipeline
+36 | |     Enhanced(StrategiesPipelineResult),
+   | |     ---------------------------------- the second-largest variant contains at least 160 bytes
+37 | | }
+   | |_^ the entire enum is at least 496 bytes
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#large_enum_variant
+   = note: `#[warn(clippy::large_enum_variant)]` on by default
+help: consider boxing the large fields or introducing indirection in some other way to reduce the total size of the enum
+   |
+34 -     Standard(PipelineResult),
+34 +     Standard(Box<PipelineResult>),
+   |
+
+
+warning: useless conversion to the same type: `riptide_types::StrategiesPipelineResult`
+   --> crates/riptide-facade/src/facades/crawl_facade.rs:165:42
+    |
+165 |                 Ok(CrawlResult::Enhanced(result.into()))
+    |                                          ^^^^^^^^^^^^^ help: consider removing `.into()`: `result`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#useless_conversion
+    = note: `#[warn(clippy::useless_conversion)]` on by default
+
+
+warning: unused variable: `options`
+   --> crates/riptide-api/src/handlers/crawl.rs:292:5
+    |
+292 |     options: &riptide_types::config::CrawlOptions,
+    |     ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_options`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+
+warning: unused imports: `SpiderResultStats` and `SpiderResultUrls`
+ --> crates/riptide-api/src/dto.rs:3:50
+  |
+3 | ...ge, ResultMode, SpiderResultStats, SpiderResultUrls};
+  |                    ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+
+warning: unused import: `WasmGuard`
+  --> crates/riptide-api/src/resource_manager/mod.rs:64:36
+   |
+64 | pub use guards::{PdfResourceGuard, WasmGuard};
+   |                                    ^^^^^^^^^
+
+
+warning: this import is redundant
+  --> crates/riptide-api/src/strategies_pipeline.rs:14:1
+   |
+14 | use serde_json;
+   | ^^^^^^^^^^^^^^^ help: remove it entirely
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#single_component_path_imports
+   = note: `#[warn(clippy::single_component_path_imports)]` on by default
+
+
+warning: unused variable: `options`
+   --> crates/riptide-api/src/handlers/crawl.rs:292:5
+    |
+292 |     options: &riptide_types::config::CrawlOptions,
+    |     ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_options`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+
+warning: trait `CrawledPageExt` is never used
+ --> crates/riptide-api/src/dto.rs:8:11
+  |
+8 | pub trait CrawledPageExt {
+  |           ^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` on by default
+
+
+warning: struct `FieldFilter` is never constructed
+  --> crates/riptide-api/src/dto.rs:75:12
+   |
+75 | pub struct FieldFilter {
+   |            ^^^^^^^^^^^
+
+
+warning: associated items `parse` and `has_field` are never used
+  --> crates/riptide-api/src/dto.rs:81:12
+   |
+79 | impl FieldFilter {
+   | ---------------- associated items in this implementation
+80 |     /// Create a new field filter from comma-separated string
+81 |     pub fn parse(s: &str) -> Self {
+   |            ^^^^^
+...
+88 |     pub fn has_field(&self, field: &str) -> bool {
+   |            ^^^^^^^^^
+
+
+warning: struct `SpiderResultPages` is never constructed
+  --> crates/riptide-api/src/dto.rs:95:12
+   |
+95 | pub struct SpiderResultPages {
+   |            ^^^^^^^^^^^^^^^^^
+
+
+warning: methods `apply_field_filter` and `truncate_content` are never used
+   --> crates/riptide-api/src/dto.rs:126:12
+    |
+124 | impl SpiderResultPages {
+    | ---------------------- methods in this implementation
+125 |     /// Apply field filtering to all pages
+126 |     pub fn apply_field_filter(
+    |            ^^^^^^^^^^^^^^^^^^
+...
+137 |     pub fn truncate_content(&mut self, max_content_bytes: usize) {
+    |            ^^^^^^^^^^^^^^^^
+
+
+warning: variants `InvalidContentType`, `MissingRequiredHeader`, `InvalidHeaderValue`, and `InvalidParameter` are never constructed
+   --> crates/riptide-api/src/errors.rs:89:5
+    |
+ 15 | pub enum ApiError {
+    |          -------- variants in this enum
+...
+ 89 |     InvalidContentType {
+    |     ^^^^^^^^^^^^^^^^^^
+...
+ 96 |     MissingRequiredHeader { header: String },
+    |     ^^^^^^^^^^^^^^^^^^^^^
+...
+100 |     InvalidHeaderValue { header: String, message: String },
+    |     ^^^^^^^^^^^^^^^^^^
+...
+104 |     InvalidParameter { parameter: String, message: String },
+    |     ^^^^^^^^^^^^^^^^
+    |
+    = note: `ApiError` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+
+warning: struct `EnhancedPipelineMetrics` is never constructed
+  --> crates/riptide-api/src/handlers/pipeline_metrics.rs:13:12
+   |
+13 | pub struct EnhancedPipelineMetrics {
+   |            ^^^^^^^^^^^^^^^^^^^^^^^
+
+
+warning: struct `PhaseTimingStats` is never constructed
+  --> crates/riptide-api/src/handlers/pipeline_metrics.rs:32:12
+   |
+32 | pub struct PhaseTimingStats {
+   |            ^^^^^^^^^^^^^^^^
+
+
+warning: struct `PhasePercentiles` is never constructed
+  --> crates/riptide-api/src/handlers/pipeline_metrics.rs:51:12
+   |
+51 | pub struct PhasePercentiles {
+   |            ^^^^^^^^^^^^^^^^
+
+
+warning: struct `GateDecisionBreakdown` is never constructed
+  --> crates/riptide-api/src/handlers/pipeline_metrics.rs:65:12
+   |
+65 | pub struct GateDecisionBreakdown {
+   |            ^^^^^^^^^^^^^^^^^^^^^
+
+
+warning: struct `PerformanceStats` is never constructed
+  --> crates/riptide-api/src/handlers/pipeline_metrics.rs:81:12
+   |
+81 | pub struct PerformanceStats {
+   |            ^^^^^^^^^^^^^^^^
+
+
+warning: struct `PipelineConfigStatus` is never constructed
+   --> crates/riptide-api/src/handlers/pipeline_metrics.rs:103:12
+    |
+103 | pub struct PipelineConfigStatus {
+    |            ^^^^^^^^^^^^^^^^^^^^
+
+
+warning: struct `TimeoutConfig` is never constructed
+   --> crates/riptide-api/src/handlers/pipeline_metrics.rs:119:12
+    |
+119 | pub struct TimeoutConfig {
+    |            ^^^^^^^^^^^^^
+
+
+warning: function `get_pipeline_metrics` is never used
+   --> crates/riptide-api/src/handlers/pipeline_metrics.rs:138:14
+    |
+138 | pub async fn get_pipeline_metrics(
+    |              ^^^^^^^^^^^^^^^^^^^^
+
+
+warning: function `toggle_enhanced_pipeline` is never used
+   --> crates/riptide-api/src/handlers/pipeline_metrics.rs:224:14
+    |
+224 | pub async fn toggle_enhanced_pipeline(
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+warning: struct `ToggleRequest` is never constructed
+   --> crates/riptide-api/src/handlers/pipeline_metrics.rs:249:12
+    |
+249 | pub struct ToggleRequest {
+    |            ^^^^^^^^^^^^^
+
+
+warning: struct `ToggleResponse` is never constructed
+   --> crates/riptide-api/src/handlers/pipeline_metrics.rs:254:12
+    |
+254 | pub struct ToggleResponse {
+    |            ^^^^^^^^^^^^^^
+
+
+warning: methods `record_spider_crawl_failure`, `update_frontier_size`, and `record_http_request` are never used
+  --> crates/riptide-api/src/handlers/shared/mod.rs:48:12
+   |
+13 | impl<'a> MetricsRecorder<'a> {
+   | ---------------------------- methods in this implementation
+...
+48 |     pub fn record_spider_crawl_failure(&self) {
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+53 |     pub fn update_frontier_size(&self, size: usize) {
+   |            ^^^^^^^^^^^^^^^^^^^^
+...
+58 |     pub fn record_http_request(
+   |            ^^^^^^^^^^^^^^^^^^^
+
+
+warning: fields `result_mode`, `include`, `exclude`, and `max_content_bytes` are never read
+  --> crates/riptide-api/src/handlers/spider.rs:30:9
+   |
+27 | pub struct SpiderCrawlQuery {
+   |            ---------------- fields in this struct
+...
+30 |     pub result_mode: ResultMode,
+   |         ^^^^^^^^^^^
+...
+33 |     pub include: Option<String>,
+   |         ^^^^^^^
+...
+36 |     pub exclude: Option<String>,
+   |         ^^^^^^^
+...
+39 |     pub max_content_bytes: Option<usize>,
+   |         ^^^^^^^^^^^^^^^^^
+   |
+   = note: `SpiderCrawlQuery` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+
+warning: fields `enabled` and `preset` are never read
+  --> crates/riptide-api/src/handlers/stealth.rs:18:9
+   |
+16 | pub struct StealthConfigRequest {
+   |            -------------------- fields in this struct
+17 |     /// Enable or disable stealth features
+18 |     pub enabled: Option<bool>,
+   |         ^^^^^^^
+19 |     /// Stealth preset (None, Low, Medium, High)
+20 |     pub preset: Option<String>,
+   |         ^^^^^^
+   |
+   = note: `StealthConfigRequest` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+
+warning: struct `StealthCapabilities` is never constructed
+  --> crates/riptide-api/src/handlers/stealth.rs:25:12
+   |
+25 | pub struct StealthCapabilities {
+   |            ^^^^^^^^^^^^^^^^^^^
+
+
+warning: struct `StealthTestResult` is never constructed
+  --> crates/riptide-api/src/handlers/stealth.rs:38:12
+   |
+38 | pub struct StealthTestResult {
+   |            ^^^^^^^^^^^^^^^^^
+
+
+warning: function `deepsearch_stream` is never used
+   --> crates/riptide-api/src/handlers/streaming.rs:128:14
+    |
+128 | pub async fn deepsearch_stream(
+    |              ^^^^^^^^^^^^^^^^^
+
+
+warning: function `extraction_extract_stub` is never used
+  --> crates/riptide-api/src/handlers/stubs.rs:64:15
+   |
+64 | feature_stub!(extraction_extract_stub, "extraction", Json);
+   |               ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: this warning originates in the macro `feature_stub` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+
+warning: function `extraction_chunk_stub` is never used
+  --> crates/riptide-api/src/handlers/stubs.rs:65:15
+   |
+65 | feature_stub!(extraction_chunk_stub, "extraction", Json);
+   |               ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: this warning originates in the macro `feature_stub` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+
+warning: function `extraction_tables_stub` is never used
+  --> crates/riptide-api/src/handlers/stubs.rs:66:15
+   |
+66 | feature_stub!(extraction_tables_stub, "extraction", Json);
+   |               ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: this warning originates in the macro `feature_stub` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+
+warning: function `extraction_strategies_stub` is never used
+  --> crates/riptide-api/src/handlers/stubs.rs:67:15
+   |
+67 | feature_stub!(extraction_strategies_stub, "extraction", Json);
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: this warning originates in the macro `feature_stub` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+
+warning: function `table_export_stub` is never used
+  --> crates/riptide-api/src/handlers/stubs.rs:68:15
+   |
+68 | feature_stub!(table_export_stub, "extraction", Path);
+   |               ^^^^^^^^^^^^^^^^^
+   |
+   = note: this warning originates in the macro `feature_stub` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+
+warning: function `browser_render_stub` is never used
+  --> crates/riptide-api/src/handlers/stubs.rs:71:15
+   |
+71 | feature_stub!(browser_render_stub, "browser", Json);
+   |               ^^^^^^^^^^^^^^^^^^^
+   |
+   = note: this warning originates in the macro `feature_stub` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+
+warning: function `spider_crawl_stub` is never used
+  --> crates/riptide-api/src/handlers/stubs.rs:74:15
+   |
+74 | feature_stub!(spider_crawl_stub, "spider", Json);
+   |               ^^^^^^^^^^^^^^^^^
+   |
+   = note: this warning originates in the macro `feature_stub` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+
+warning: function `spider_stream_stub` is never used
+  --> crates/riptide-api/src/handlers/stubs.rs:75:15
+   |
+75 | feature_stub!(spider_stream_stub, "spider", Json);
+   |               ^^^^^^^^^^^^^^^^^^
+   |
+   = note: this warning originates in the macro `feature_stub` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+
+warning: function `search_query_stub` is never used
+  --> crates/riptide-api/src/handlers/stubs.rs:78:15
+   |
+78 | feature_stub!(search_query_stub, "search", Json);
+   |               ^^^^^^^^^^^^^^^^^
+   |
+   = note: this warning originates in the macro `feature_stub` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+
+warning: function `deepsearch_query_stub` is never used
+  --> crates/riptide-api/src/handlers/stubs.rs:79:15
+   |
+79 | feature_stub!(deepsearch_query_stub, "search", Json);
+   |               ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: this warning originates in the macro `feature_stub` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+
+warning: function `deepsearch_stream_stub` is never used
+  --> crates/riptide-api/src/handlers/stubs.rs:80:15
+   |
+80 | feature_stub!(deepsearch_stream_stub, "search", Json);
+   |               ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: this warning originates in the macro `feature_stub` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+
+warning: function `workers_submit_stub` is never used
+  --> crates/riptide-api/src/handlers/stubs.rs:83:15
+   |
+83 | feature_stub!(workers_submit_stub, "workers", Json);
+   |               ^^^^^^^^^^^^^^^^^^^
+   |
+   = note: this warning originates in the macro `feature_stub` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+
+warning: function `workers_status_stub` is never used
+  --> crates/riptide-api/src/handlers/stubs.rs:84:15
+   |
+84 | feature_stub!(workers_status_stub, "workers", Path);
+   |               ^^^^^^^^^^^^^^^^^^^
+   |
+   = note: this warning originates in the macro `feature_stub` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+
+warning: function `fetch_content_stub` is never used
+  --> crates/riptide-api/src/handlers/stubs.rs:87:15
+   |
+87 | feature_stub!(fetch_content_stub, "fetch", Json);
+   |               ^^^^^^^^^^^^^^^^^^
+   |
+   = note: this warning originates in the macro `feature_stub` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+
+warning: function `admin_cache_clear_stub` is never used
+  --> crates/riptide-api/src/handlers/stubs.rs:90:15
+   |
+90 | feature_stub!(admin_cache_clear_stub, "persistence");
+   |               ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: this warning originates in the macro `feature_stub` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+
+warning: function `admin_stats_stub` is never used
+  --> crates/riptide-api/src/handlers/stubs.rs:91:15
+   |
+91 | feature_stub!(admin_stats_stub, "persistence");
+   |               ^^^^^^^^^^^^^^^^
+   |
+   = note: this warning originates in the macro `feature_stub` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+
+warning: field `trace_id` is never read
+  --> crates/riptide-api/src/handlers/trace_backend.rs:55:9
+   |
+53 | pub struct TraceSpan {
+   |            --------- field in this struct
+54 |     pub span_id: SpanId,
+55 |     pub trace_id: TraceId,
+   |         ^^^^^^^^
+   |
+   = note: `TraceSpan` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+
+warning: multiple fields are never read
+   --> crates/riptide-api/src/metrics.rs:64:9
+    |
+ 15 | pub struct RipTideMetrics {
+    |            -------------- fields in this struct
+...
+ 64 |     pub spider_crawls_total: Counter,
+    |         ^^^^^^^^^^^^^^^^^^^
+...
+ 68 |     pub spider_frontier_size: Gauge,
+    |         ^^^^^^^^^^^^^^^^^^^^
+...
+100 |     pub worker_pool_size: Gauge,
+    |         ^^^^^^^^^^^^^^^^
+101 |     pub worker_pool_healthy: Gauge,
+    |         ^^^^^^^^^^^^^^^^^^^
+...
+105 |     pub worker_jobs_retried: Counter,
+    |         ^^^^^^^^^^^^^^^^^^^
+...
+109 |     pub worker_queue_depth: Gauge,
+    |         ^^^^^^^^^^^^^^^^^^
+...
+143 |     pub jemalloc_allocated_bytes: Gauge, // Total allocated bytes
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+144 |     pub jemalloc_active_bytes: Gauge,    // Active bytes in pages
+    |         ^^^^^^^^^^^^^^^^^^^^^
+145 |     pub jemalloc_resident_bytes: Gauge,  // Resident physical memory
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+146 |     pub jemalloc_metadata_bytes: Gauge,  // Metadata overhead
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+147 |     pub jemalloc_mapped_bytes: Gauge,    // Total mapped bytes
+    |         ^^^^^^^^^^^^^^^^^^^^^
+148 |     pub jemalloc_retained_bytes: Gauge,  // Retained for future allocs
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+149 |     pub jemalloc_fragmentation_ratio: Gauge, // Active/Allocated ratio
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+150 |     pub jemalloc_metadata_ratio: Gauge,  // Metadata overhead ratio
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `RipTideMetrics` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+
+warning: methods `record_spider_crawl_start` and `update_spider_frontier_size` are never used
+    --> crates/riptide-api/src/metrics.rs:1176:12
+     |
+ 153 | impl RipTideMetrics {
+     | ------------------- methods in this implementation
+...
+1176 |     pub fn record_spider_crawl_start(&self) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+1201 |     pub fn update_spider_frontier_size(&self, size: usize) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+warning: method `cleanup_expired` is never used
+   --> crates/riptide-api/src/middleware/auth.rs:131:18
+    |
+ 38 | impl AuthRateLimiter {
+    | -------------------- method in this implementation
+...
+131 |     pub async fn cleanup_expired(&self) {
+    |                  ^^^^^^^^^^^^^^^
+
+
+warning: struct `DeepSearchBody` is never constructed
+   --> crates/riptide-api/src/models.rs:117:12
+    |
+117 | pub struct DeepSearchBody {
+    |            ^^^^^^^^^^^^^^
+
+
+warning: struct `DeepSearchResponse` is never constructed
+   --> crates/riptide-api/src/models.rs:139:12
+    |
+139 | pub struct DeepSearchResponse {
+    |            ^^^^^^^^^^^^^^^^^^
+
+
+warning: struct `SearchResult` is never constructed
+   --> crates/riptide-api/src/models.rs:161:12
+    |
+161 | pub struct SearchResult {
+    |            ^^^^^^^^^^^^
+
+
+warning: struct `SpiderCrawlResponseStats` is never constructed
+   --> crates/riptide-api/src/models.rs:334:12
+    |
+334 | pub struct SpiderCrawlResponseStats {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+warning: struct `SpiderCrawlResponseUrls` is never constructed
+   --> crates/riptide-api/src/models.rs:347:12
+    |
+347 | pub struct SpiderCrawlResponseUrls {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^
+
+
+warning: struct `SpiderApiResult` is never constructed
+   --> crates/riptide-api/src/models.rs:360:12
+    |
+360 | pub struct SpiderApiResult {
+    |            ^^^^^^^^^^^^^^^
+
+
+warning: struct `SpiderApiResultUrls` is never constructed
+   --> crates/riptide-api/src/models.rs:379:12
+    |
+379 | pub struct SpiderApiResultUrls {
+    |            ^^^^^^^^^^^^^^^^^^^
+
+
+warning: field `include_metrics` is never read
+   --> crates/riptide-api/src/models.rs:403:9
+    |
+401 | pub struct SpiderStatusRequest {
+    |            ------------------- field in this struct
+402 |     /// Whether to include detailed metrics
+403 |     pub include_metrics: Option<bool>,
+    |         ^^^^^^^^^^^^^^^
+    |
+    = note: `SpiderStatusRequest` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+
+warning: method `execute_single_enhanced` is never used
+  --> crates/riptide-api/src/pipeline_enhanced.rs:68:18
+   |
+51 | impl EnhancedPipelineOrchestrator {
+   | --------------------------------- method in this implementation
+...
+68 |     pub async fn execute_single_enhanced(&self, url: &str) -> ApiResu...
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^
+
+
+warning: field `rate_limiter` is never read
+   --> crates/riptide-api/src/resource_manager/mod.rs:106:9
+    |
+ 99 | pub struct ResourceManager {
+    |            --------------- field in this struct
+...
+106 |     pub rate_limiter: Arc<PerHostRateLimiter>,
+    |         ^^^^^^^^^^^^
+    |
+    = note: `ResourceManager` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+
+warning: variant `RateLimited` is never constructed
+   --> crates/riptide-api/src/resource_manager/mod.rs:133:5
+    |
+125 | pub enum ResourceResult<T> {
+    |          -------------- variant in this enum
+...
+133 |     RateLimited {
+    |     ^^^^^^^^^^^
+    |
+    = note: `ResourceResult` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+
+warning: methods `acquire_render_resources` and `cleanup_on_timeout` are never used
+   --> crates/riptide-api/src/resource_manager/mod.rs:412:18
+    |
+169 | impl ResourceManager {
+    | -------------------- methods in this implementation
+...
+412 |     pub async fn acquire_render_resources(
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+480 |     pub async fn cleanup_on_timeout(&self, operation_type: &str) {
+    |                  ^^^^^^^^^^^^^^^^^^
+
+
+warning: method `set_baseline` is never used
+   --> crates/riptide-api/src/resource_manager/memory_manager.rs:170:12
+    |
+147 | impl LeakDetector {
+    | ----------------- method in this implementation
+...
+170 |     pub fn set_baseline(&self, usage_mb: usize) {
+    |            ^^^^^^^^^^^^
+
+
+warning: multiple methods are never used
+   --> crates/riptide-api/src/resource_manager/memory_manager.rs:461:12
+    |
+439 | impl MemoryManager {
+    | ------------------ methods in this implementation
+...
+461 |     pub fn leak_detector(&self) -> &Arc<LeakDetector> {
+    |            ^^^^^^^^^^^^^
+...
+507 |     pub fn track_allocation_by_component(&self, component: &str, siz...
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+564 |     pub fn track_deallocation_by_component(&self, component: &str, s...
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+589 |     pub fn set_leak_baseline(&self) {
+    |            ^^^^^^^^^^^^^^^^^
+...
+620 |     pub async fn trigger_cleanup(&self) {
+    |                  ^^^^^^^^^^^^^^^
+...
+637 |     pub async fn trigger_gc(&self) {
+    |                  ^^^^^^^^^^
+...
+651 |     pub fn should_trigger_gc(&self) -> bool {
+    |            ^^^^^^^^^^^^^^^^^
+
+
+warning: method `record_render_operation` is never used
+  --> crates/riptide-api/src/resource_manager/performance.rs:97:18
+   |
+29 | impl PerformanceMonitor {
+   | ----------------------- method in this implementation
+...
+97 |     pub async fn record_render_operation(
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^
+
+
+warning: struct `RpcClient` is never constructed
+  --> crates/riptide-api/src/rpc_client.rs:14:12
+   |
+14 | pub struct RpcClient {
+   |            ^^^^^^^^^
+
+
+warning: multiple associated items are never used
+   --> crates/riptide-api/src/rpc_client.rs:31:12
+    |
+ 29 | impl RpcClient {
+    | -------------- associated items in this implementation
+ 30 |     /// Create a new RPC client with default configuration
+ 31 |     pub fn new() -> Self {
+    |            ^^^
+...
+ 41 |     pub fn with_url(base_url: String) -> Self {
+    |            ^^^^^^^^
+...
+ 51 |     pub fn with_session_store(base_url: String, session_store: Arc<R...
+    |            ^^^^^^^^^^^^^^^^^^
+...
+ 61 |     pub fn enable_sessions(mut self) -> Self {
+    |            ^^^^^^^^^^^^^^^
+...
+ 67 |     pub fn session_store(&self) -> Option<&Arc<RpcSessionStore>> {
+    |            ^^^^^^^^^^^^^
+...
+ 72 |     pub fn get_or_create_session(&self, session_id: &str) -> Option<...
+    |            ^^^^^^^^^^^^^^^^^^^^^
+...
+ 79 |     pub fn get_session(&self, session_id: &str) -> Option<RpcSession...
+    |            ^^^^^^^^^^^
+...
+ 86 |     pub fn update_session(&self, session: RpcSessionContext) -> Resu...
+    |            ^^^^^^^^^^^^^^
+...
+ 94 |     pub fn remove_session(&self, session_id: &str) -> Option<RpcSess...
+    |            ^^^^^^^^^^^^^^
+...
+101 |     pub fn get_session_metrics(&self) -> Option<SessionMetrics> {
+    |            ^^^^^^^^^^^^^^^^^^^
+...
+119 |     pub async fn render_dynamic(
+    |                  ^^^^^^^^^^^^^^
+...
+261 |     pub async fn render_dynamic_with_session(
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+275 |     pub async fn health_check(&self) -> Result<()> {
+    |                  ^^^^^^^^^^^^
+
+
+warning: struct `RpcSessionContext` is never constructed
+  --> crates/riptide-api/src/rpc_session_context.rs:15:12
+   |
+15 | pub struct RpcSessionContext {
+   |            ^^^^^^^^^^^^^^^^^
+
+
+warning: struct `SessionState` is never constructed
+  --> crates/riptide-api/src/rpc_session_context.rs:37:12
+   |
+37 | pub struct SessionState {
+   |            ^^^^^^^^^^^^
+
+
+warning: struct `SessionConfig` is never constructed
+  --> crates/riptide-api/src/rpc_session_context.rs:59:12
+   |
+59 | pub struct SessionConfig {
+   |            ^^^^^^^^^^^^^
+
+
+warning: multiple associated items are never used
+   --> crates/riptide-api/src/rpc_session_context.rs:86:12
+    |
+ 84 | impl RpcSessionContext {
+    | ---------------------- associated items in this implementation
+ 85 |     /// Create a new session context with default configuration
+ 86 |     pub fn new() -> Self {
+    |            ^^^
+...
+ 91 |     pub fn with_config(config: SessionConfig) -> Self {
+    |            ^^^^^^^^^^^
+...
+106 |     pub fn from_session_id(session_id: String) -> Self {
+    |            ^^^^^^^^^^^^^^^
+...
+121 |     pub fn from_session_id_with_config(session_id: String, config: S...
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+135 |     pub fn is_expired(&self) -> bool {
+    |            ^^^^^^^^^^
+...
+140 |     pub fn touch(&mut self) {
+    |            ^^^^^
+...
+148 |     pub fn record_request(&mut self, url: &str, render_time_ms: u64) {
+    |            ^^^^^^^^^^^^^^
+...
+161 |     pub fn record_error(&mut self, error: String) {
+    |            ^^^^^^^^^^^^
+...
+167 |     pub fn is_request_limit_reached(&self) -> bool {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+175 |     pub fn get_metadata(&self, key: &str) -> Option<&String> {
+    |            ^^^^^^^^^^^^
+...
+180 |     pub fn set_metadata(&mut self, key: String, value: String) {
+    |            ^^^^^^^^^^^^
+...
+185 |     pub fn age_seconds(&self) -> u64 {
+    |            ^^^^^^^^^^^
+
+
+warning: struct `RpcSessionStore` is never constructed
+   --> crates/riptide-api/src/rpc_session_context.rs:201:12
+    |
+201 | pub struct RpcSessionStore {
+    |            ^^^^^^^^^^^^^^^
+
+
+warning: multiple associated items are never used
+   --> crates/riptide-api/src/rpc_session_context.rs:211:12
+    |
+209 | impl RpcSessionStore {
+    | -------------------- associated items in this implementation
+210 |     /// Create a new session store with default configuration
+211 |     pub fn new() -> Self {
+    |            ^^^
+...
+219 |     pub fn with_config(config: SessionConfig) -> Self {
+    |            ^^^^^^^^^^^
+...
+227 |     pub fn get_or_create(&self, session_id: &str) -> RpcSessionConte...
+    |            ^^^^^^^^^^^^^
+...
+263 |     pub fn get(&self, session_id: &str) -> Option<RpcSessionContext> {
+    |            ^^^
+...
+272 |     pub fn update(&self, session: RpcSessionContext) -> Result<()> {
+    |            ^^^^^^
+...
+293 |     pub fn remove(&self, session_id: &str) -> Option<RpcSessionConte...
+    |            ^^^^^^
+...
+302 |     pub fn cleanup_expired(&self) -> usize {
+    |            ^^^^^^^^^^^^^^^
+...
+324 |     pub fn session_count(&self) -> usize {
+    |            ^^^^^^^^^^^^^
+...
+329 |     pub fn list_sessions(&self) -> Vec<String> {
+    |            ^^^^^^^^^^^^^
+...
+337 |     pub fn start_cleanup_task(&self, interval: Duration) {
+    |            ^^^^^^^^^^^^^^^^^^
+
+
+warning: struct `SessionMetrics` is never constructed
+   --> crates/riptide-api/src/rpc_session_context.rs:368:12
+    |
+368 | pub struct SessionMetrics {
+    |            ^^^^^^^^^^^^^^
+
+
+warning: method `get_metrics` is never used
+   --> crates/riptide-api/src/rpc_session_context.rs:387:12
+    |
+385 | impl RpcSessionStore {
+    | -------------------- method in this implementation
+386 |     /// Get aggregated session metrics
+387 |     pub fn get_metrics(&self) -> SessionMetrics {
+    |            ^^^^^^^^^^^
+
+
+warning: associated function `from_env` is never used
+  --> crates/riptide-api/src/sessions/types.rs:80:12
+   |
+78 | impl SessionConfig {
+   | ------------------ associated function in this implementation
+79 |     /// Load session configuration from environment variables
+80 |     pub fn from_env() -> Self {
+   |            ^^^^^^^^
+
+
+warning: field `scraper_facade` is never read
+   --> crates/riptide-api/src/state.rs:154:9
+    |
+ 56 | pub struct AppState {
+    |            -------- field in this struct
+...
+154 |     pub scraper_facade: Arc<riptide_facade::facades::ScraperFacade>,
+    |         ^^^^^^^^^^^^^^
+    |
+    = note: `AppState` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+
+warning: field `max_slow_sends` is never read
+  --> crates/riptide-api/src/streaming/buffer.rs:30:9
+   |
+16 | pub struct BufferConfig {
+   |            ------------ field in this struct
+...
+30 |     pub max_slow_sends: usize,
+   |         ^^^^^^^^^^^^^^
+   |
+   = note: `BufferConfig` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+
+warning: method `reset_stats` is never used
+   --> crates/riptide-api/src/streaming/buffer.rs:245:18
+    |
+ 76 | impl DynamicBuffer {
+    | ------------------ method in this implementation
+...
+245 |     pub async fn reset_stats(&self) {
+    |                  ^^^^^^^^^^^
+
+
+warning: methods `metrics` and `connection_id` are never used
+   --> crates/riptide-api/src/streaming/buffer.rs:400:12
+    |
+272 | impl BackpressureHandler {
+    | ------------------------ methods in this implementation
+...
+400 |     pub fn metrics(&self) -> &BackpressureMetrics {
+    |            ^^^^^^^
+...
+405 |     pub fn connection_id(&self) -> &str {
+    |            ^^^^^^^^^^^^^
+
+
+warning: method `remove_buffer` is never used
+   --> crates/riptide-api/src/streaming/buffer.rs:436:18
+    |
+416 | impl BufferManager {
+    | ------------------ method in this implementation
+...
+436 |     pub async fn remove_buffer(&self, connection_id: &str) {
+    |                  ^^^^^^^^^^^^^
+
+
+warning: methods `optimal_buffer_size` and `is_streaming_healthy` are never used
+   --> crates/riptide-api/src/streaming/config.rs:357:12
+    |
+255 | impl StreamConfig {
+    | ----------------- methods in this implementation
+...
+357 |     pub fn optimal_buffer_size(&self, is_slow_connection: bool, mess...
+    |            ^^^^^^^^^^^^^^^^^^^
+...
+374 |     pub fn is_streaming_healthy(&self, current_connections: usize, e...
+    |            ^^^^^^^^^^^^^^^^^^^^
+
+
+warning: variants `BufferOverflow`, `Connection`, `BackpressureExceeded`, `ClientDisconnected`, `InvalidRequest`, and `Timeout` are never constructed
+  --> crates/riptide-api/src/streaming/error.rs:14:5
+   |
+11 | pub enum StreamingError {
+   |          -------------- variants in this enum
+...
+14 |     BufferOverflow { message: String },
+   |     ^^^^^^^^^^^^^^
+...
+18 |     Connection { message: String },
+   |     ^^^^^^^^^^
+...
+33 |     BackpressureExceeded { connection_id: String },
+   |     ^^^^^^^^^^^^^^^^^^^^
+...
+37 |     ClientDisconnected { reason: String },
+   |     ^^^^^^^^^^^^^^^^^^
+...
+48 |     InvalidRequest { message: String },
+   |     ^^^^^^^^^^^^^^
+...
+52 |     Timeout { seconds: u64 },
+   |     ^^^^^^^
+   |
+   = note: `StreamingError` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+
+warning: multiple associated items are never used
+   --> crates/riptide-api/src/streaming/error.rs:57:12
+    |
+ 55 | impl StreamingError {
+    | ------------------- associated items in this implementation
+ 56 |     /// Create a buffer overflow error
+ 57 |     pub fn buffer_overflow(message: impl Into<String>) -> Self {
+    |            ^^^^^^^^^^^^^^^
+...
+ 64 |     pub fn connection(message: impl Into<String>) -> Self {
+    |            ^^^^^^^^^^
+...
+ 78 |     pub fn backpressure_exceeded(connection_id: impl Into<String>) -...
+    |            ^^^^^^^^^^^^^^^^^^^^^
+...
+ 85 |     pub fn client_disconnected(reason: impl Into<String>) -> Self {
+    |            ^^^^^^^^^^^^^^^^^^^
+...
+ 92 |     pub fn invalid_request(message: impl Into<String>) -> Self {
+    |            ^^^^^^^^^^^^^^^
+...
+ 99 |     pub fn timeout(seconds: u64) -> Self {
+    |            ^^^^^^^
+...
+104 |     pub fn is_retryable(&self) -> bool {
+    |            ^^^^^^^^^^^^
+...
+119 |     pub fn is_client_error(&self) -> bool {
+    |            ^^^^^^^^^^^^^^^
+
+
+warning: struct `ConnectionContext` is never constructed
+   --> crates/riptide-api/src/streaming/error.rs:158:12
+    |
+158 | pub struct ConnectionContext {
+    |            ^^^^^^^^^^^^^^^^^
+
+
+warning: enum `ClientType` is never used
+   --> crates/riptide-api/src/streaming/error.rs:166:10
+    |
+166 | pub enum ClientType {
+    |          ^^^^^^^^^^
+
+
+warning: enum `RecoveryStrategy` is never used
+   --> crates/riptide-api/src/streaming/error.rs:184:10
+    |
+184 | pub enum RecoveryStrategy {
+    |          ^^^^^^^^^^^^^^^^
+
+
+warning: method `recovery_strategy` is never used
+   --> crates/riptide-api/src/streaming/error.rs:197:12
+    |
+195 | impl StreamingError {
+    | ------------------- method in this implementation
+196 |     /// Get the recommended recovery strategy for this error
+197 |     pub fn recovery_strategy(&self) -> RecoveryStrategy {
+    |            ^^^^^^^^^^^^^^^^^
+
+
+warning: multiple variants are never constructed
+   --> crates/riptide-api/src/streaming/lifecycle.rs:75:5
+    |
+ 73 | pub enum LifecycleEvent {
+    |          -------------- variants in this enum
+ 74 |     /// Stream connection established
+ 75 |     ConnectionEstablished {
+    |     ^^^^^^^^^^^^^^^^^^^^^
+...
+ 81 |     StreamStarted {
+    |     ^^^^^^^^^^^^^
+...
+ 88 |     ProgressUpdate {
+    |     ^^^^^^^^^^^^^^
+...
+ 97 |     StreamError {
+    |     ^^^^^^^^^^^
+...
+105 |     StreamCompleted {
+    |     ^^^^^^^^^^^^^^^
+...
+112 |     StreamTerminated {
+    |     ^^^^^^^^^^^^^^^^
+...
+119 |     ConnectionClosed {
+    |     ^^^^^^^^^^^^^^^^
+    |
+    = note: `LifecycleEvent` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+
+warning: fields `event_tx` and `active_connections` are never read
+   --> crates/riptide-api/src/streaming/lifecycle.rs:143:5
+    |
+141 | pub struct StreamLifecycleManager {
+    |            ---------------------- fields in this struct
+142 |     /// Event channel sender
+143 |     event_tx: mpsc::UnboundedSender<LifecycleEvent>,
+    |     ^^^^^^^^
+144 |     /// Active connections tracking
+145 |     active_connections: Arc<tokio::sync::RwLock<std::collections::Ha...
+    |     ^^^^^^^^^^^^^^^^^^
+
+
+warning: multiple fields are never read
+   --> crates/riptide-api/src/streaming/lifecycle.rs:151:9
+    |
+150 | pub struct ConnectionInfo {
+    |            -------------- fields in this struct
+151 |     pub connection_id: String,
+    |         ^^^^^^^^^^^^^
+152 |     pub protocol: String,
+    |         ^^^^^^^^
+153 |     pub connection_start: Instant, // Renamed from start_time to mat...
+    |         ^^^^^^^^^^^^^^^^
+154 |     pub bytes_sent: usize,
+    |         ^^^^^^^^^^
+155 |     pub messages_sent: usize,
+    |         ^^^^^^^^^^^^^
+156 |     pub current_request_id: Option<String>,
+    |         ^^^^^^^^^^^^^^^^^^
+157 |     pub stream_start: Option<Instant>,
+    |         ^^^^^^^^^^^^
+158 |     pub content_type: Option<String>,
+    |         ^^^^^^^^^^^^
+    |
+    = note: `ConnectionInfo` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+
+warning: multiple methods are never used
+   --> crates/riptide-api/src/streaming/lifecycle.rs:186:12
+    |
+161 | impl StreamLifecycleManager {
+    | --------------------------- methods in this implementation
+...
+186 |     pub fn emit_event(&self, event: LifecycleEvent) {
+    |            ^^^^^^^^^^
+...
+193 |     pub async fn connection_established(&self, connection_id: String...
+    |                  ^^^^^^^^^^^^^^^^^^^^^^
+...
+221 |     pub async fn stream_started(
+    |                  ^^^^^^^^^^^^^^
+...
+251 |     pub async fn progress_update(
+    |                  ^^^^^^^^^^^^^^^
+...
+272 |     pub async fn stream_error(
+    |                  ^^^^^^^^^^^^
+...
+290 |     pub async fn stream_completed(
+    |                  ^^^^^^^^^^^^^^^^
+...
+318 |     pub async fn stream_terminated(
+    |                  ^^^^^^^^^^^^^^^^^
+...
+335 |     pub async fn connection_closed(&self, connection_id: String) {
+    |                  ^^^^^^^^^^^^^^^^^
+...
+352 |     pub async fn update_connection_stats(&self, connection_id: &str,...
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^
+...
+360 |     pub async fn set_content_type(&self, connection_id: &str, conten...
+    |                  ^^^^^^^^^^^^^^^^
+...
+367 |     pub async fn active_connection_count(&self) -> usize {
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^
+...
+372 |     pub async fn get_connection_info(&self, connection_id: &str) -> ...
+    |                  ^^^^^^^^^^^^^^^^^^^
+
+
+warning: method `is_recoverable` is never used
+   --> crates/riptide-api/src/streaming/lifecycle.rs:608:12
+    |
+606 | impl StreamingError {
+    | ------------------- method in this implementation
+607 |     /// Check if the error is recoverable
+608 |     pub fn is_recoverable(&self) -> bool {
+    |            ^^^^^^^^^^^^^^
+
+
+warning: function `crawl_stream` is never used
+  --> crates/riptide-api/src/streaming/ndjson/handlers.rs:24:14
+   |
+24 | pub async fn crawl_stream(
+   |              ^^^^^^^^^^^^
+
+
+warning: function `deepsearch_stream` is never used
+  --> crates/riptide-api/src/streaming/ndjson/handlers.rs:76:14
+   |
+76 | pub async fn deepsearch_stream(
+   |              ^^^^^^^^^^^^^^^^^
+
+
+warning: function `create_error_response` is never used
+   --> crates/riptide-api/src/streaming/ndjson/handlers.rs:122:4
+    |
+122 | fn create_error_response(error: ApiError) -> Response {
+    |    ^^^^^^^^^^^^^^^^^^^^^
+
+
+warning: function `orchestrate_deepsearch_stream_optimized` is never used
+   --> crates/riptide-api/src/streaming/ndjson/helpers.rs:279:14
+    |
+279 | pub async fn orchestrate_deepsearch_stream_optimized(
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+warning: function `perform_web_search` is never used
+   --> crates/riptide-api/src/streaming/ndjson/helpers.rs:601:10
+    |
+601 | async fn perform_web_search(
+    |          ^^^^^^^^^^^^^^^^^^
+
+
+warning: struct `DeepSearchMetadata` is never constructed
+   --> crates/riptide-api/src/streaming/ndjson/helpers.rs:701:8
+    |
+701 | struct DeepSearchMetadata {
+    |        ^^^^^^^^^^^^^^^^^^
+
+
+warning: struct `DeepSearchResult` is never constructed
+   --> crates/riptide-api/src/streaming/ndjson/helpers.rs:709:8
+    |
+709 | struct DeepSearchResult {
+    |        ^^^^^^^^^^^^^^^^
+
+
+warning: struct `DeepSearchSummary` is never constructed
+   --> crates/riptide-api/src/streaming/ndjson/helpers.rs:717:8
+    |
+717 | struct DeepSearchSummary {
+    |        ^^^^^^^^^^^^^^^^^
+
+
+warning: associated items `new` and `handle_deepsearch_stream` are never used
+   --> crates/riptide-api/src/streaming/ndjson/streaming.rs:31:12
+    |
+ 29 | impl NdjsonStreamingHandler {
+    | --------------------------- associated items in this implementation
+ 30 |     /// Create a new NDJSON streaming handler
+ 31 |     pub fn new(app: AppState, request_id: String) -> Self {
+    |            ^^^
+...
+119 |     pub async fn handle_deepsearch_stream(
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+warning: fields `app`, `config`, `buffer_manager`, and `request_id` are never read
+  --> crates/riptide-api/src/streaming/pipeline.rs:22:5
+   |
+21 | pub struct StreamingPipeline {
+   |            ----------------- fields in this struct
+22 |     app: AppState,
+   |     ^^^
+23 |     config: StreamConfig,
+   |     ^^^^^^
+24 |     buffer_manager: Arc<BufferManager>,
+   |     ^^^^^^^^^^^^^^
+25 |     request_id: String,
+   |     ^^^^^^^^^^
+
+
+warning: methods `execute_crawl_stream`, `execute_deepsearch_stream`, `send_event`, `perform_web_search`, `config`, and `request_id` are never used
+   --> crates/riptide-api/src/streaming/pipeline.rs:40:18
+    |
+ 28 | impl StreamingPipeline {
+    | ---------------------- methods in this implementation
+...
+ 40 |     pub async fn execute_crawl_stream<T, F>(
+    |                  ^^^^^^^^^^^^^^^^^^^^
+...
+175 |     pub async fn execute_deepsearch_stream<T, F>(
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+375 |     async fn send_event<T, F>(
+    |              ^^^^^^^^^^
+...
+414 |     async fn perform_web_search(
+    |              ^^^^^^^^^^^^^^^^^^
+...
+476 |     pub fn config(&self) -> &StreamConfig {
+    |            ^^^^^^
+...
+481 |     pub fn request_id(&self) -> &str {
+    |            ^^^^^^^^^^
+
+
+warning: enum `StreamEvent` is never used
+   --> crates/riptide-api/src/streaming/pipeline.rs:488:10
+    |
+488 | pub enum StreamEvent {
+    |          ^^^^^^^^^^^
+
+
+warning: struct `StreamMetadata` is never constructed
+   --> crates/riptide-api/src/streaming/pipeline.rs:501:12
+    |
+501 | pub struct StreamMetadata {
+    |            ^^^^^^^^^^^^^^
+
+
+warning: struct `StreamResultData` is never constructed
+   --> crates/riptide-api/src/streaming/pipeline.rs:510:12
+    |
+510 | pub struct StreamResultData {
+    |            ^^^^^^^^^^^^^^^^
+
+
+warning: struct `DeepSearchMetadata` is never constructed
+   --> crates/riptide-api/src/streaming/pipeline.rs:518:12
+    |
+518 | pub struct DeepSearchMetadata {
+    |            ^^^^^^^^^^^^^^^^^^
+
+
+warning: struct `DeepSearchResultData` is never constructed
+   --> crates/riptide-api/src/streaming/pipeline.rs:526:12
+    |
+526 | pub struct DeepSearchResultData {
+    |            ^^^^^^^^^^^^^^^^^^^^
+
+
+warning: struct `DeepSearchSummary` is never constructed
+   --> crates/riptide-api/src/streaming/pipeline.rs:534:12
+    |
+534 | pub struct DeepSearchSummary {
+    |            ^^^^^^^^^^^^^^^^^
+
+
+warning: struct `StreamErrorData` is never constructed
+   --> crates/riptide-api/src/streaming/pipeline.rs:543:12
+    |
+543 | pub struct StreamErrorData {
+    |            ^^^^^^^^^^^^^^^
+
+
+warning: struct `StreamExecutionSummary` is never constructed
+   --> crates/riptide-api/src/streaming/pipeline.rs:552:12
+    |
+552 | pub struct StreamExecutionSummary {
+    |            ^^^^^^^^^^^^^^^^^^^^^^
+
+
+warning: struct `StreamProcessor` is never constructed
+  --> crates/riptide-api/src/streaming/processor.rs:16:12
+   |
+16 | pub struct StreamProcessor {
+   |            ^^^^^^^^^^^^^^^
+
+
+warning: struct `ProcessingStats` is never constructed
+  --> crates/riptide-api/src/streaming/processor.rs:29:12
+   |
+29 | pub struct ProcessingStats {
+   |            ^^^^^^^^^^^^^^^
+
+
+warning: methods `update`, `success_rate`, `cache_hit_rate`, `throughput`, and `progress_percentage` are never used
+   --> crates/riptide-api/src/streaming/processor.rs:42:12
+    |
+ 40 | impl ProcessingStats {
+    | -------------------- methods in this implementation
+ 41 |     /// Update statistics with a new result
+ 42 |     pub fn update(&mut self, processing_time_ms: u64, from_cache: bo...
+    |            ^^^^^^
+...
+ 74 |     pub fn success_rate(&self) -> f64 {
+    |            ^^^^^^^^^^^^
+...
+ 84 |     pub fn cache_hit_rate(&self) -> f64 {
+    |            ^^^^^^^^^^^^^^
+...
+ 93 |     pub fn throughput(&self, elapsed_duration: Duration) -> f64 {
+    |            ^^^^^^^^^^
+...
+103 |     pub fn progress_percentage(&self) -> f64 {
+    |            ^^^^^^^^^^^^^^^^^^^
+
+
+warning: multiple associated items are never used
+   --> crates/riptide-api/src/streaming/processor.rs:114:12
+    |
+112 | impl StreamProcessor {
+    | -------------------- associated items in this implementation
+113 |     /// Create a new stream processor
+114 |     pub fn new(pipeline: PipelineOrchestrator, request_id: String, t...
+    |            ^^^
+...
+127 |     pub async fn start(&mut self) -> StreamingResult<()> {
+    |                  ^^^^^
+...
+152 |     pub async fn flush(&mut self) -> StreamingResult<()> {
+    |                  ^^^^^
+...
+179 |     pub async fn close(&mut self) -> StreamingResult<()> {
+    |                  ^^^^^
+...
+201 |     pub async fn process_urls_concurrent(
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^
+...
+250 |     pub fn convert_to_crawl_result(&mut self, processed_result: Proc...
+    |            ^^^^^^^^^^^^^^^^^^^^^^^
+...
+305 |     pub fn create_progress(&self) -> StreamProgress {
+    |            ^^^^^^^^^^^^^^^
+...
+318 |     pub fn create_operation_progress(&self, current_item: Option<Str...
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+335 |     pub fn create_summary(&self) -> StreamSummary {
+    |            ^^^^^^^^^^^^^^
+...
+352 |     pub fn estimate_completion(&self) -> Option<String> {
+    |            ^^^^^^^^^^^^^^^^^^^
+...
+369 |     pub fn should_send_progress_update(&self, update_interval: usize...
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+375 |     pub fn stats(&self) -> &ProcessingStats {
+    |            ^^^^^
+...
+380 |     pub fn log_completion(&self) {
+    |            ^^^^^^^^^^^^^^
+
+
+warning: struct `ProcessedResult` is never constructed
+   --> crates/riptide-api/src/streaming/processor.rs:399:12
+    |
+399 | pub struct ProcessedResult {
+    |            ^^^^^^^^^^^^^^^
+
+
+warning: struct `StreamProgress` is never constructed
+   --> crates/riptide-api/src/streaming/processor.rs:408:12
+    |
+408 | pub struct StreamProgress {
+    |            ^^^^^^^^^^^^^^
+
+
+warning: struct `StreamSummary` is never constructed
+   --> crates/riptide-api/src/streaming/processor.rs:420:12
+    |
+420 | pub struct StreamSummary {
+    |            ^^^^^^^^^^^^^
+
+
+warning: struct `OperationProgress` is never constructed
+   --> crates/riptide-api/src/streaming/processor.rs:436:12
+    |
+436 | pub struct OperationProgress {
+    |            ^^^^^^^^^^^^^^^^^
+
+
+warning: struct `PerformanceMonitor` is never constructed
+   --> crates/riptide-api/src/streaming/processor.rs:449:12
+    |
+449 | pub struct PerformanceMonitor {
+    |            ^^^^^^^^^^^^^^^^^^
+
+
+warning: struct `PerformanceCheckpoint` is never constructed
+   --> crates/riptide-api/src/streaming/processor.rs:455:12
+    |
+455 | pub struct PerformanceCheckpoint {
+    |            ^^^^^^^^^^^^^^^^^^^^^
+
+
+warning: associated items `new`, `checkpoint`, and `analyze` are never used
+   --> crates/riptide-api/src/streaming/processor.rs:464:12
+    |
+462 | impl PerformanceMonitor {
+    | ----------------------- associated items in this implementation
+463 |     /// Create a new performance monitor
+464 |     pub fn new() -> Self {
+    |            ^^^
+...
+472 |     pub fn checkpoint(&mut self, name: impl Into<String>, items_proc...
+    |            ^^^^^^^^^^
+...
+482 |     pub fn analyze(&self) -> PerformanceAnalysis {
+    |            ^^^^^^^
+
+
+warning: struct `PerformanceAnalysis` is never constructed
+   --> crates/riptide-api/src/streaming/processor.rs:524:12
+    |
+524 | pub struct PerformanceAnalysis {
+    |            ^^^^^^^^^^^^^^^^^^^
+
+
+warning: struct `PhaseDuration` is never constructed
+   --> crates/riptide-api/src/streaming/processor.rs:533:12
+    |
+533 | pub struct PhaseDuration {
+    |            ^^^^^^^^^^^^^
+
+
+warning: function `crawl_sse` is never used
+  --> crates/riptide-api/src/streaming/sse.rs:27:14
+   |
+27 | pub async fn crawl_sse(State(app): State<AppState>, Json(body): Json<...
+   |              ^^^^^^^^^
+
+
+warning: struct `SseStreamingHandler` is never constructed
+  --> crates/riptide-api/src/streaming/sse.rs:69:12
+   |
+69 | pub struct SseStreamingHandler {
+   |            ^^^^^^^^^^^^^^^^^^^
+
+
+warning: associated items `new` and `handle_crawl_stream` are never used
+  --> crates/riptide-api/src/streaming/sse.rs:78:12
+   |
+76 | impl SseStreamingHandler {
+   | ------------------------ associated items in this implementation
+77 |     /// Create a new SSE streaming handler
+78 |     pub fn new(app: AppState, request_id: String) -> Self {
+   |            ^^^
+...
+88 |     pub async fn handle_crawl_stream(
+   |                  ^^^^^^^^^^^^^^^^^^^
+
+
+warning: function `orchestrate_crawl_sse` is never used
+   --> crates/riptide-api/src/streaming/sse.rs:137:10
+    |
+137 | async fn orchestrate_crawl_sse(
+    |          ^^^^^^^^^^^^^^^^^^^^^
+
+
+warning: function `send_sse_event` is never used
+   --> crates/riptide-api/src/streaming/sse.rs:348:10
+    |
+348 | async fn send_sse_event<T: Serialize>(
+    |          ^^^^^^^^^^^^^^
+
+
+warning: function `calculate_throughput` is never used
+   --> crates/riptide-api/src/streaming/sse.rs:398:4
+    |
+398 | fn calculate_throughput(start_time: Instant, processed: usize) -> f64 {
+    |    ^^^^^^^^^^^^^^^^^^^^
+
+
+warning: function `estimate_completion` is never used
+   --> crates/riptide-api/src/streaming/sse.rs:408:4
+    |
+408 | fn estimate_completion(start_time: Instant, completed: usize, total:...
+    |    ^^^^^^^^^^^^^^^^^^^
+
+
+warning: struct `SseMetadata` is never constructed
+   --> crates/riptide-api/src/streaming/sse.rs:427:8
+    |
+427 | struct SseMetadata {
+    |        ^^^^^^^^^^^
+
+
+warning: struct `SseProgress` is never constructed
+   --> crates/riptide-api/src/streaming/sse.rs:437:8
+    |
+437 | struct SseProgress {
+    |        ^^^^^^^^^^^
+
+
+warning: struct `SseResult` is never constructed
+   --> crates/riptide-api/src/streaming/sse.rs:446:8
+    |
+446 | struct SseResult {
+    |        ^^^^^^^^^
+
+
+warning: struct `SseStatus` is never constructed
+   --> crates/riptide-api/src/streaming/sse.rs:454:8
+    |
+454 | struct SseStatus {
+    |        ^^^^^^^^^
+
+
+warning: struct `SseCompletion` is never constructed
+   --> crates/riptide-api/src/streaming/sse.rs:464:8
+    |
+464 | struct SseCompletion {
+    |        ^^^^^^^^^^^^^
+
+
+warning: function `crawl_websocket` is never used
+  --> crates/riptide-api/src/streaming/websocket.rs:27:14
+   |
+27 | pub async fn crawl_websocket(
+   |              ^^^^^^^^^^^^^^^
+
+
+warning: function `handle_websocket` is never used
+  --> crates/riptide-api/src/streaming/websocket.rs:35:14
+   |
+35 | pub async fn handle_websocket(socket: WebSocket, app: AppState) {
+   |              ^^^^^^^^^^^^^^^^
+
+
+warning: struct `WebSocketHandler` is never constructed
+  --> crates/riptide-api/src/streaming/websocket.rs:59:12
+   |
+59 | pub struct WebSocketHandler {
+   |            ^^^^^^^^^^^^^^^^
+
+
+warning: multiple associated items are never used
+   --> crates/riptide-api/src/streaming/websocket.rs:69:18
+    |
+ 67 | impl WebSocketHandler {
+    | --------------------- associated items in this implementation
+ 68 |     /// Create a new WebSocket handler
+ 69 |     pub async fn new(app: AppState, context: ConnectionContext) -> S...
+    |                  ^^^
+...
+ 83 |     pub async fn handle_session(
+    |                  ^^^^^^^^^^^^^^
+...
+189 |     async fn register_connection(&self) {
+    |              ^^^^^^^^^^^^^^^^^^^
+...
+204 |     async fn update_connection_ping(&self) {
+    |              ^^^^^^^^^^^^^^^^^^^^^^
+...
+212 |     async fn cleanup_connection(&self) {
+    |              ^^^^^^^^^^^^^^^^^^
+...
+221 |     async fn send_welcome_message(
+    |              ^^^^^^^^^^^^^^^^^^^^
+...
+240 |     async fn handle_text_message(
+    |              ^^^^^^^^^^^^^^^^^^^
+...
+267 |     async fn handle_crawl_request(
+    |              ^^^^^^^^^^^^^^^^^^^^
+...
+294 |     async fn handle_ping_request(
+    |              ^^^^^^^^^^^^^^^^^^^
+...
+310 |     async fn handle_status_request(
+    |              ^^^^^^^^^^^^^^^^^^^^^
+...
+332 |     async fn stream_crawl_websocket(
+    |              ^^^^^^^^^^^^^^^^^^^^^^
+...
+483 |     async fn send_message(
+    |              ^^^^^^^^^^^^
+...
+507 |     async fn send_message_with_backpressure(
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+546 |     async fn is_connection_healthy(&self) -> bool {
+    |              ^^^^^^^^^^^^^^^^^^^^^
+
+
+warning: struct `ConnectionInfo` is never constructed
+   --> crates/riptide-api/src/streaming/websocket.rs:558:12
+    |
+558 | pub struct ConnectionInfo {
+    |            ^^^^^^^^^^^^^^
+
+
+warning: struct `WebSocketRequest` is never constructed
+   --> crates/riptide-api/src/streaming/websocket.rs:569:12
+    |
+569 | pub struct WebSocketRequest {
+    |            ^^^^^^^^^^^^^^^^
+
+
+warning: struct `WebSocketMessage` is never constructed
+   --> crates/riptide-api/src/streaming/websocket.rs:576:12
+    |
+576 | pub struct WebSocketMessage {
+    |            ^^^^^^^^^^^^^^^^
+
+
+warning: function `count_to_u32` is never used
+  --> crates/riptide-api/src/utils/safe_conversions.rs:67:8
+   |
+67 | pub fn count_to_u32(count: usize) -> u32 {
+   |        ^^^^^^^^^^^^
+
+
+warning: constant `MAX_QUERY_LENGTH` is never used
+ --> crates/riptide-api/src/validation.rs:9:7
+  |
+9 | const MAX_QUERY_LENGTH: usize = 500;
+  |       ^^^^^^^^^^^^^^^^
+
+
+warning: constant `MAX_SEARCH_LIMIT` is never used
+  --> crates/riptide-api/src/validation.rs:12:7
+   |
+12 | const MAX_SEARCH_LIMIT: u32 = 50;
+   |       ^^^^^^^^^^^^^^^^
+
+
+warning: function `validate_deepsearch_request` is never used
+  --> crates/riptide-api/src/validation.rs:83:8
+   |
+83 | pub fn validate_deepsearch_request(body: &DeepSearchBody) -> ApiResul...
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+warning: function `validate_query_content` is never used
+   --> crates/riptide-api/src/validation.rs:172:4
+    |
+172 | fn validate_query_content(query: &str) -> ApiResult<()> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^
+
+
