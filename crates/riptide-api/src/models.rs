@@ -332,6 +332,7 @@ pub struct SpiderCrawlBody {
 }
 
 /// Response for spider crawl operations with statistics
+#[cfg(feature = "spider")]
 #[derive(Serialize, Debug)]
 pub struct SpiderCrawlResponseStats {
     /// Spider crawl result statistics
@@ -345,6 +346,7 @@ pub struct SpiderCrawlResponseStats {
 }
 
 /// Response for spider crawl operations with URLs
+#[cfg(feature = "spider")]
 #[derive(Serialize, Debug)]
 pub struct SpiderCrawlResponseUrls {
     /// Spider crawl result with URLs
@@ -406,13 +408,13 @@ pub struct SpiderStatusRequest {
 }
 
 /// Response for spider status
+#[cfg(feature = "spider")]
 #[derive(Serialize, Debug)]
 pub struct SpiderStatusResponse {
     /// Current crawl state
     pub state: CrawlState,
 
     /// Performance metrics (if requested)
-    #[cfg(feature = "spider")]
     pub performance: Option<PerformanceMetrics>,
 
     /// Frontier statistics

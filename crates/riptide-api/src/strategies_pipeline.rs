@@ -116,6 +116,7 @@ impl StrategiesPipelineOrchestrator {
     /// 6. Metadata extraction
     /// 7. Performance metrics collection
     /// 8. Result caching
+    #[cfg(feature = "fetch")]
     pub async fn execute_single(&self, url: &str) -> ApiResult<StrategiesPipelineResult> {
         let start_time = Instant::now();
         let cache_key = self.generate_cache_key(url);
@@ -336,6 +337,7 @@ impl StrategiesPipelineOrchestrator {
     }
 
     /// Fetch content with type detection
+    #[cfg(feature = "fetch")]
     async fn fetch_content_with_type(
         &self,
         url: &str,

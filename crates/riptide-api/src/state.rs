@@ -706,6 +706,7 @@ impl AppState {
         );
 
         // Initialize Spider if enabled
+        #[cfg(feature = "spider")]
         let spider = if let Some(ref spider_config) = config.spider_config {
             tracing::info!("Initializing Spider engine for deep crawling");
 
@@ -713,7 +714,16 @@ impl AppState {
             match Spider::new(spider_config).await {
                 Ok(spider_engine) => {
                     let spider_with_integrations = spider_engine
-                        .with_fetch_engine(Arc::new(riptide_fetch::FetchEngine::new()?))
+                        .with_fetch_engine(Arc::new({
+                            #[cfg(feature = "fetch")]
+                            {
+                                riptide_fetch::FetchEngine::new()?
+                            }
+                            #[cfg(not(feature = "fetch"))]
+                            {
+                                anyhow::bail!("fetch feature required for spider integration")
+                            }
+                        }))
                         .with_memory_manager(Arc::new({
                             let mut wasmtime_config = wasmtime::Config::new();
                             wasmtime_config.wasm_component_model(true);
@@ -741,6 +751,9 @@ impl AppState {
             tracing::debug!("Spider engine disabled");
             None
         };
+
+        #[cfg(not(feature = "spider"))]
+        let spider = None;
 
         // Initialize comprehensive resource manager with headless URL
         let resource_manager =

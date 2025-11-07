@@ -226,6 +226,7 @@ impl PipelineOrchestrator {
     /// - Extraction failures
     /// - Cache errors
     /// - Timeouts
+    #[cfg(feature = "fetch")]
     pub async fn execute_single(&self, url: &str) -> ApiResult<PipelineResult> {
         let start_time = Instant::now();
         let cache_key = self.generate_cache_key(url);
@@ -637,7 +638,7 @@ impl PipelineOrchestrator {
 
     /// Fetch content with content type detection for PDF handling.
     /// Uses smart retry for transient failures when llm feature is enabled.
-    #[cfg(feature = "llm")]
+    #[cfg(all(feature = "llm", feature = "fetch"))]
     async fn fetch_content_with_type(
         &self,
         url: &str,
@@ -704,7 +705,7 @@ impl PipelineOrchestrator {
 
     /// Fetch content with content type detection for PDF handling.
     /// Simple implementation without smart retry when llm feature is disabled.
-    #[cfg(not(feature = "llm"))]
+    #[cfg(all(not(feature = "llm"), feature = "fetch"))]
     async fn fetch_content_with_type(
         &self,
         url: &str,
