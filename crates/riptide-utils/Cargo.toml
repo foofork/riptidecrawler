@@ -9,6 +9,7 @@ description = "Shared utilities for Riptide EventMesh"
 [dependencies]
 # Async runtime
 tokio = { workspace = true }
+async-trait = { workspace = true }
 
 # Redis client
 redis = { workspace = true }
@@ -33,6 +34,9 @@ tracing = { workspace = true }
 # Serialization
 serde = { workspace = true }
 serde_json = { workspace = true }
+
+# Internal dependencies
+riptide-types = { path = "../riptide-types" }
 
 [dev-dependencies]
 # Testing utilities

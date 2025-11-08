@@ -59,9 +59,25 @@ pub enum RiptideError {
     #[error("Cache operation failed: {0}")]
     Cache(String),
 
+    /// Cache error (alias for compatibility)
+    #[error("Cache operation failed: {0}")]
+    CacheError(String),
+
     /// Storage error
     #[error("Storage operation failed: {0}")]
     Storage(String),
+
+    /// Database error
+    #[error("Database operation failed: {0}")]
+    DatabaseError(String),
+
+    /// Validation error
+    #[error("Validation failed: {0}")]
+    ValidationError(String),
+
+    /// Serialization error
+    #[error("Serialization failed: {0}")]
+    SerializationError(String),
 
     /// Resource not found
     #[error("Resource not found: {0}")]

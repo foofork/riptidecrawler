@@ -35,6 +35,7 @@ use crate::error::Result as RiptideResult;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::SystemTime;
 
 /// Unique identifier for event subscriptions
@@ -148,9 +149,11 @@ pub trait EventBus: Send + Sync {
     ///
     /// Handlers remain active until explicitly unsubscribed.
     /// Failed handler invocations should be retried based on backend policy.
-    async fn subscribe<H>(&self, handler: H) -> RiptideResult<SubscriptionId>
-    where
-        H: EventHandler + Send + Sync + 'static;
+    ///
+    /// # Object Safety
+    ///
+    /// This method uses `Arc<dyn EventHandler>` to maintain trait object safety.
+    async fn subscribe(&self, handler: Arc<dyn EventHandler>) -> RiptideResult<SubscriptionId>;
 
     /// Unsubscribe from events
     ///

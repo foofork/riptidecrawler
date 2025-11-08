@@ -21,6 +21,7 @@
 
 pub mod circuit_breaker;
 pub mod error;
+pub mod health_registry;
 pub mod http;
 pub mod redis;
 pub mod retry;
@@ -31,6 +32,7 @@ pub use circuit_breaker::{
     guarded_call, CircuitBreaker, Clock, Config as CircuitConfig, RealClock, State as CircuitState,
 };
 pub use error::{Error, Result};
+pub use health_registry::{InMemoryHealthRegistry, SimpleHealthCheck};
 pub use http::{HttpClientFactory, HttpConfig};
 pub use redis::{RedisConfig, RedisPool};
 pub use retry::RetryPolicy;

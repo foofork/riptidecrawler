@@ -10,6 +10,12 @@
 #[cfg(feature = "idempotency")]
 pub mod redis_idempotency;
 
+#[cfg(feature = "idempotency")]
+pub mod redis_session_storage;
+
 // Re-export adapters when features are enabled
 #[cfg(feature = "idempotency")]
 pub use redis_idempotency::RedisIdempotencyStore;
+
+#[cfg(feature = "idempotency")]
+pub use redis_session_storage::RedisSessionStorage;

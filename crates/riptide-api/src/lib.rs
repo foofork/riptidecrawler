@@ -1,3 +1,4 @@
+pub mod composition; // Sprint 1.3: Dependency Injection composition root
 pub mod config;
 pub mod dto;
 pub mod errors;
@@ -25,3 +26,6 @@ pub mod telemetry_config;
 pub mod tests;
 pub mod utils;
 pub mod validation;
+
+// Sprint 1.3: Re-export composition root types for convenience
+pub use composition::{ApplicationContext, ApplicationContextBuilder, DiConfig};

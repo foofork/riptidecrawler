@@ -15,6 +15,7 @@ pub mod profile;
 pub mod render_strategy;
 pub mod scraper;
 pub mod search;
+pub mod session;
 pub mod spider;
 pub mod table;
 
@@ -39,6 +40,7 @@ pub use profile::{
 pub use render_strategy::RenderStrategyFacade;
 pub use scraper::ScraperFacade;
 pub use search::SearchFacade;
+pub use session::{SessionConfig, SessionEvent, SessionFacade};
 pub use spider::{CrawlSummary, SpiderFacade, SpiderPreset};
 pub use table::{
     TableCacheService, TableExtractionOptions as FacadeTableExtractionOptions, TableFacade,

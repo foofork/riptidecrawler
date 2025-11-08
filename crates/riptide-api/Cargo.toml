@@ -53,7 +53,7 @@ riptide-extraction = { path = "../riptide-extraction", default-features = false,
 riptide-types = { path = "../riptide-types" }
 riptide-reliability = { path = "../riptide-reliability", features = ["reliability-patterns"] }
 riptide-fetch = { path = "../riptide-fetch", optional = true }
-riptide-cache = { path = "../riptide-cache" }
+riptide-cache = { path = "../riptide-cache" }  # Sprint 1.3: Idempotency feature disabled due to redis-script issues
 riptide-spider = { path = "../riptide-spider", optional = true }
 riptide-events = { path = "../riptide-events" }
 riptide-config = { path = "../riptide-config" }
@@ -78,6 +78,11 @@ dashmap = { workspace = true }
 serde_urlencoded = "0.7.1"
 subtle = "2.5"
 urlencoding = "2.1.3"
+config = "0.14"  # Sprint 1.3: Configuration management
+toml = "0.8"     # Sprint 1.3: TOML parsing for DI config
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid", "json"] }  # Sprint 1.3: PostgreSQL driver
+# TODO Sprint 1.4: Add Redis connection pooling when riptide-cache idempotency is fixed
+# deadpool-redis = { version = "0.18", features = ["rt_tokio_1"] }  # Sprint 1.3: Redis connection pooling
 
 # jemalloc allocator for memory profiling (non-MSVC only)
 [target.'cfg(not(target_env = "msvc"))'.dependencies]

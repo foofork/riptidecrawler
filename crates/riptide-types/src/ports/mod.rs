@@ -59,6 +59,12 @@ pub mod features;
 pub mod idempotency;
 pub mod infrastructure;
 pub mod repository;
+pub mod session;
+
+// Sprint 1.5 ports
+pub mod health;
+pub mod http;
+pub mod metrics;
 
 // Re-export all ports for convenience
 pub use cache::{CacheStats, CacheStorage};
@@ -67,9 +73,13 @@ pub use features::{
     BrowserDriver, BrowserSession, PdfMetadata, PdfProcessor, ScriptResult, SearchDocument,
     SearchEngine, SearchQuery, SearchResult,
 };
+pub use health::{HealthCheck, HealthRegistry, HealthStatus};
+pub use http::{HttpClient, HttpRequest, HttpResponse};
 pub use idempotency::{IdempotencyStore, IdempotencyToken};
 pub use infrastructure::{
     Clock, DeterministicEntropy, Entropy, FakeClock, SystemClock, SystemEntropy,
 };
 pub use memory_cache::InMemoryCache;
+pub use metrics::{BusinessMetrics, MetricsCollector, MetricsRegistry};
 pub use repository::{Repository, RepositoryFilter, Transaction, TransactionManager};
+pub use session::{Session, SessionFilter, SessionStorage};

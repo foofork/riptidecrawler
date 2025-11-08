@@ -8,6 +8,7 @@
 //! - `postgres_repository`: PostgreSQL implementation of `Repository<T>`
 //! - `postgres_transaction`: PostgreSQL transaction management
 //! - `outbox_event_bus`: Transactional Outbox pattern for event publishing
+//! - `prometheus_metrics`: Prometheus metrics collector
 
 #[cfg(feature = "postgres")]
 pub mod postgres_repository;
@@ -18,6 +19,11 @@ pub mod postgres_transaction;
 #[cfg(feature = "postgres")]
 pub mod outbox_event_bus;
 
+#[cfg(feature = "postgres")]
+pub mod postgres_session_storage;
+
+pub mod prometheus_metrics;
+
 // Re-export adapters when features are enabled
 #[cfg(feature = "postgres")]
 pub use postgres_repository::PostgresRepository;
@@ -27,3 +33,8 @@ pub use postgres_transaction::{PostgresTransaction, PostgresTransactionManager};
 
 #[cfg(feature = "postgres")]
 pub use outbox_event_bus::{OutboxEventBus, OutboxPublisher};
+
+#[cfg(feature = "postgres")]
+pub use postgres_session_storage::PostgresSessionStorage;
+
+pub use prometheus_metrics::PrometheusMetrics;
