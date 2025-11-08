@@ -17,10 +17,11 @@ anyhow = { workspace = true }
 # Async traits
 async-trait = { workspace = true }
 
-# Tokio runtime (for CircuitBreaker and timeout enforcement)
+# Tokio runtime (minimal features for async abstractions only)
+# NOTE: sync for RwLock, time for timeout helpers - NOT for circuit breaker
 tokio = { workspace = true, features = ["sync", "time"] }
 
-# Logging (for CircuitBreaker)
+# Logging
 tracing = { workspace = true }
 
 # URL handling
@@ -43,9 +44,6 @@ serde_bytes = "0.11"
 
 # Base64 encoding for binary data in JSON
 base64 = "0.22"
-
-[dev-dependencies]
-tokio = { workspace = true, features = ["test-util"] }
 
 [lib]
 name = "riptide_types"

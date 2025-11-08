@@ -39,7 +39,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tracing::{debug, error, info, warn};
 
-use riptide_types::reliability::circuit::{self, CircuitBreaker, Config as CircuitConfig};
+use riptide_utils::circuit_breaker::{self as circuit, CircuitBreaker, Config as CircuitConfig};
 use riptide_utils::retry::RetryPolicy;
 
 /// HTTP client configuration

@@ -11,12 +11,12 @@
 //!
 //! Two circuit breaker implementations are provided:
 //!
-//! ### 1. Atomic Circuit Breaker (`circuit`)
+//! ### 1. Atomic Circuit Breaker (`circuit_breaker`)
 //!
 //! A lightweight, lock-free circuit breaker using atomic operations for high-performance scenarios:
 //!
 //! ```rust,ignore
-//! use riptide_types::reliability::circuit::{CircuitBreaker, Config, RealClock};
+//! use riptide_reliability::circuit_breaker::{CircuitBreaker, Config, RealClock};
 //! use std::sync::Arc;
 //!
 //! let cb = CircuitBreaker::new(
@@ -139,8 +139,7 @@
 //! manager.record_success("https://example.com/page", start.elapsed()).await;
 //! ```
 
-// Circuit breaker canonical implementation is in riptide-types::reliability::circuit
-// This crate provides pool-specific wrapper in circuit_breaker_pool
+// Circuit breaker canonical implementation is in riptide-utils (shared infrastructure)
 pub mod circuit_breaker_pool;
 pub mod engine_selection;
 pub mod gate;
@@ -149,12 +148,10 @@ pub mod http_client;
 pub mod reliability;
 pub mod timeout;
 
-// Re-export canonical circuit breaker from riptide-types
-// NOTE: Circuit breaker stays in riptide-types to avoid circular dependency:
-//   - riptide-fetch needs circuit breakers
-//   - riptide-reliability depends on riptide-fetch
-//   - Therefore: canonical circuit must be in shared base crate (riptide-types)
-pub use riptide_types::reliability::circuit::{
+// Re-export canonical circuit breaker from riptide-utils (shared infrastructure)
+// ARCHITECTURE: Circuit breaker lives in riptide-utils to avoid circular dependencies
+// while keeping infrastructure separate from domain (riptide-types)
+pub use riptide_utils::circuit_breaker::{
     guarded_call, CircuitBreaker, Clock, Config as CircuitConfig, RealClock, State,
 };
 

@@ -11,9 +11,10 @@ categories = ["web-programming"]
 [dependencies]
 # Shared types to avoid circular dependencies
 riptide-types = { path = "../riptide-types" }
+riptide-utils = { path = "../riptide-utils" }
 riptide-config = { path = "../riptide-config" }
 riptide-fetch = { path = "../riptide-fetch" }
-# Note: riptide-reliability removed - circuit breaker functionality moved to native implementation
+# Note: riptide-reliability removed - circuit breaker functionality moved to riptide-utils
 
 # Core dependencies
 anyhow.workspace = true

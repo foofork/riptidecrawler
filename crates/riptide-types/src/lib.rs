@@ -1,12 +1,41 @@
-//! # Riptide Types
+//! # Riptide Types - Domain Layer
 //!
 //! Shared type definitions for the Riptide web scraping framework.
 //!
 //! This crate provides:
-//! - Common data structures used across all Riptide crates
-//! - Trait definitions for extensibility
-//! - Error types for consistent error handling
-//! - Type aliases for common patterns
+//! - **Domain types**: Common data structures used across all Riptide crates
+//! - **Port traits**: Backend-agnostic interfaces for dependency inversion
+//! - **Error types**: Consistent error handling across the system
+//! - **Type aliases**: Common patterns and convenience types
+//!
+//! # Architecture
+//!
+//! This crate represents the **Domain Layer** in our hexagonal architecture:
+//!
+//! ```text
+//! ┌─────────────────────────────────────────┐
+//! │  Domain Layer (riptide-types)           │
+//! │  - Pure business logic                  │
+//! │  - Port trait definitions               │
+//! │  - NO infrastructure dependencies       │
+//! └─────────────────────────────────────────┘
+//!              ↑ uses                ↑ implements
+//!              │                     │
+//! ┌────────────┴──────────┐   ┌────┴──────────────┐
+//! │ Application Layer     │   │ Infrastructure    │
+//! │ (riptide-facade)      │   │ (riptide-*)       │
+//! │ - Use-case workflows  │   │ - Concrete adapters│
+//! └───────────────────────┘   └───────────────────┘
+//! ```
+//!
+//! # Port Interfaces
+//!
+//! The `ports` module defines backend-agnostic traits:
+//! - `Repository<T>`: Generic data persistence
+//! - `EventBus`: Domain event publishing
+//! - `IdempotencyStore`: Duplicate request prevention
+//! - `BrowserDriver`, `PdfProcessor`, `SearchEngine`: Feature capabilities
+//! - `Clock`, `Entropy`, `CacheStorage`: Infrastructure abstractions
 
 // Public modules
 pub mod component;
@@ -17,8 +46,7 @@ pub mod extracted;
 pub mod extractors;
 pub mod http_types;
 pub mod pipeline;
-pub mod ports; // Port interfaces for dependency inversion
-pub mod reliability;
+pub mod ports; // Port interfaces for hexagonal architecture
 pub mod secrets;
 pub mod traits;
 pub mod types;
@@ -48,6 +76,15 @@ pub use traits::{Browser, Extractor, Scraper};
 pub use types::{
     BrowserConfig, ExtractionConfig, ExtractionRequest, ExtractionResult, ScrapedContent,
     ScrapingOptions, Url,
+};
+
+// Re-export port traits for dependency injection
+pub use ports::{
+    BrowserDriver, BrowserSession, CacheStorage, Clock, DeterministicEntropy, DomainEvent, Entropy,
+    EventBus, EventHandler, FakeClock, IdempotencyStore, IdempotencyToken, InMemoryCache,
+    PdfMetadata, PdfProcessor, Repository, RepositoryFilter, ScriptResult, SearchDocument,
+    SearchEngine, SearchQuery as PortSearchQuery, SearchResult as PortSearchResult, SubscriptionId,
+    SystemClock, SystemEntropy, Transaction, TransactionManager,
 };
 
 // Re-export third-party types for convenience

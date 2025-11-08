@@ -23,8 +23,8 @@ pub mod fetch;
 pub mod robots;
 pub mod telemetry;
 
-// Re-export circuit breaker from riptide-types
-pub use riptide_types::reliability::circuit::{
+// Re-export circuit breaker from riptide-utils
+pub use riptide_utils::circuit_breaker::{
     CircuitBreaker, Config as CircuitConfig, RealClock, State as CircuitState,
 };
 

@@ -39,8 +39,8 @@ pub mod types;
 pub mod url_utils;
 pub mod wasm_validation;
 
-// Re-export circuit breaker from riptide-types
-pub use riptide_types::reliability::circuit::CircuitBreaker;
+// Re-export circuit breaker from riptide-utils
+pub use riptide_utils::circuit_breaker::CircuitBreaker;
 
 // Re-export robots from riptide-fetch (Sprint 0.4.1 - deduplication)
 pub use riptide_fetch::robots::{RobotsConfig, RobotsManager};

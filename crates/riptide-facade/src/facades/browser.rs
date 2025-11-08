@@ -15,7 +15,7 @@ use riptide_browser::launcher::{HeadlessLauncher, LaunchSession, LauncherConfig}
 use riptide_extraction::native_parser::{NativeHtmlParser, ParserConfig};
 use riptide_fetch::ReliableHttpClient;
 use riptide_stealth::StealthPreset;
-use riptide_types::reliability::circuit::{CircuitBreaker, Config as CircuitConfig, RealClock};
+use riptide_utils::circuit_breaker::{CircuitBreaker, Config as CircuitConfig, RealClock};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
@@ -1119,7 +1119,7 @@ mod tests {
     // W1.2: Test circuit breaker initialization
     #[tokio::test]
     async fn test_circuit_breaker_initialized() {
-        use riptide_types::reliability::circuit::State;
+        use riptide_utils::circuit_breaker::State;
 
         let config = RiptideConfig::default();
         let facade = BrowserFacade::new(config).await.unwrap();
@@ -1141,7 +1141,7 @@ mod tests {
     // W1.2: Test circuit breaker opens after failures
     #[tokio::test]
     async fn test_circuit_breaker_opens_after_failures() {
-        use riptide_types::reliability::circuit::State;
+        use riptide_utils::circuit_breaker::State;
 
         let config = RiptideConfig::default();
         let facade = BrowserFacade::new(config).await.unwrap();
@@ -1168,7 +1168,7 @@ mod tests {
     // W1.2: Test circuit breaker success recording
     #[tokio::test]
     async fn test_circuit_breaker_success_recording() {
-        use riptide_types::reliability::circuit::State;
+        use riptide_utils::circuit_breaker::State;
 
         let config = RiptideConfig::default();
         let facade = BrowserFacade::new(config).await.unwrap();
@@ -1239,7 +1239,7 @@ mod tests {
     // W1.2: Test circuit breaker state transitions
     #[tokio::test]
     async fn test_circuit_breaker_state_transitions() {
-        use riptide_types::reliability::circuit::State;
+        use riptide_utils::circuit_breaker::State;
 
         let config = RiptideConfig::default();
         let facade = BrowserFacade::new(config).await.unwrap();
@@ -1286,7 +1286,7 @@ mod tests {
     // W1.2: Test circuit breaker automatic recovery via HalfOpen state
     #[tokio::test]
     async fn test_circuit_breaker_reset() {
-        use riptide_types::reliability::circuit::{Config as CircuitConfig, RealClock, State};
+        use riptide_utils::circuit_breaker::{Config as CircuitConfig, RealClock, State};
         use std::sync::Arc;
 
         // Create a circuit with very short cooldown for testing

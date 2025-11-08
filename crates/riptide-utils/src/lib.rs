@@ -13,11 +13,13 @@
 //! - `riptide-api` for HTTP middleware rate limiting
 //! - Use the `governor` crate directly for generic rate limiting
 //!
-//! **Note**: Circuit breaker functionality has been moved to `riptide-reliability` crate.
+//! **Note**: Circuit breaker functionality is provided in the `circuit_breaker` module.
+//! This is infrastructure-level shared code that avoids circular dependencies.
 
 #![deny(missing_docs)]
 #![warn(clippy::all)]
 
+pub mod circuit_breaker;
 pub mod error;
 pub mod http;
 pub mod redis;
@@ -25,6 +27,9 @@ pub mod retry;
 pub mod time;
 
 // Re-export commonly used types
+pub use circuit_breaker::{
+    guarded_call, CircuitBreaker, Clock, Config as CircuitConfig, RealClock, State as CircuitState,
+};
 pub use error::{Error, Result};
 pub use http::{HttpClientFactory, HttpConfig};
 pub use redis::{RedisConfig, RedisPool};

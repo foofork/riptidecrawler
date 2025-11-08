@@ -2,7 +2,7 @@
 //!
 //! This module provides the production-ready, lock-free circuit breaker using atomics
 //! and semaphores. Moved from `riptide-types::reliability::circuit` to properly
-//! separate types from behavior.
+//! separate infrastructure from domain layer (ports/adapters pattern).
 //!
 //! ## Features
 //! - Lock-free implementation using atomics
@@ -13,7 +13,7 @@
 //!
 //! ## Usage
 //! ```rust,no_run
-//! use riptide_types::reliability::circuit::{CircuitBreaker, Config, RealClock};
+//! use riptide_reliability::circuit_breaker::{CircuitBreaker, Config, RealClock};
 //! use std::sync::Arc;
 //!
 //! let config = Config::default();
@@ -34,10 +34,14 @@ use std::sync::atomic::{AtomicU32, AtomicU64, AtomicU8, Ordering::Relaxed};
 use std::sync::Arc;
 use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
+/// Circuit breaker state
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum State {
+    /// Circuit is closed, allowing all requests
     Closed = 0,
+    /// Circuit is open, rejecting all requests
     Open = 1,
+    /// Circuit is half-open, allowing limited trial requests
     HalfOpen = 2,
 }
 
@@ -51,11 +55,15 @@ impl From<u8> for State {
     }
 }
 
+/// Circuit breaker configuration
 #[derive(Clone, Debug)]
 pub struct Config {
-    pub failure_threshold: u32,       // N failures → Open
-    pub open_cooldown_ms: u64,        // time in Open
-    pub half_open_max_in_flight: u32, // number of trial calls allowed
+    /// Number of failures before opening the circuit
+    pub failure_threshold: u32,
+    /// Time in milliseconds to wait before transitioning from Open to HalfOpen
+    pub open_cooldown_ms: u64,
+    /// Maximum number of trial calls allowed in HalfOpen state
+    pub half_open_max_in_flight: u32,
 }
 
 impl Default for Config {
@@ -68,10 +76,13 @@ impl Default for Config {
     }
 }
 
+/// Clock abstraction for testability
 pub trait Clock: Send + Sync + std::fmt::Debug {
+    /// Get current time in milliseconds since epoch
     fn now_ms(&self) -> u64;
 }
 
+/// Real system clock implementation
 #[derive(Default, Debug)]
 pub struct RealClock;
 
@@ -93,6 +104,10 @@ impl Clock for RealClock {
     }
 }
 
+/// Lock-free circuit breaker implementation
+///
+/// Uses atomic operations and semaphores for high-performance fault tolerance.
+/// Implements the circuit breaker pattern with three states: Closed, Open, and HalfOpen.
 #[derive(Debug)]
 pub struct CircuitBreaker {
     state: AtomicU8,
@@ -105,6 +120,16 @@ pub struct CircuitBreaker {
 }
 
 impl CircuitBreaker {
+    /// Create a new circuit breaker with the given configuration and clock
+    ///
+    /// # Arguments
+    ///
+    /// * `cfg` - Circuit breaker configuration
+    /// * `clock` - Clock implementation for time-based operations
+    ///
+    /// # Returns
+    ///
+    /// An Arc-wrapped circuit breaker instance
     pub fn new(cfg: Config, clock: Arc<dyn Clock>) -> Arc<Self> {
         // Safe: u32 always fits in usize on all platforms (usize >= 16 bits)
         let permit_count = cfg.half_open_max_in_flight as usize;
@@ -120,6 +145,7 @@ impl CircuitBreaker {
         })
     }
 
+    /// Get the current state of the circuit breaker
     #[inline]
     pub fn state(&self) -> State {
         self.state.load(Relaxed).into()
@@ -148,6 +174,9 @@ impl CircuitBreaker {
         }
     }
 
+    /// Record a successful operation
+    ///
+    /// This resets failure counters and may transition from HalfOpen to Closed state
     #[inline]
     pub fn on_success(&self) {
         match self.state() {
@@ -174,6 +203,9 @@ impl CircuitBreaker {
         }
     }
 
+    /// Record a failed operation
+    ///
+    /// This increments failure counters and may trip the circuit to Open state
     #[inline]
     pub fn on_failure(&self) {
         match self.state() {
@@ -191,6 +223,7 @@ impl CircuitBreaker {
         }
     }
 
+    /// Trip the circuit breaker to Open state
     #[inline]
     fn trip_open(&self) {
         self.state.store(State::Open as u8, Relaxed);
@@ -207,12 +240,23 @@ impl CircuitBreaker {
         }
     }
 
+    /// Get the current failure count
     pub fn failure_count(&self) -> u32 {
         self.failures.load(Relaxed)
     }
 }
 
 /// Helper function to wrap async calls with circuit breaker protection
+///
+/// # Arguments
+///
+/// * `cb` - The circuit breaker instance
+/// * `f` - The async function to execute with protection
+///
+/// # Returns
+///
+/// * `Ok(T)` - The result of the successful operation
+/// * `Err` - Circuit breaker rejected the call or the operation failed
 pub async fn guarded_call<T, E, F, Fut>(cb: &Arc<CircuitBreaker>, f: F) -> Result<T, anyhow::Error>
 where
     F: FnOnce() -> Fut,

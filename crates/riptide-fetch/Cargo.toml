@@ -9,8 +9,9 @@ keywords = ["http", "fetch", "network", "web"]
 categories = ["web-programming", "network-programming"]
 
 [dependencies]
-# Shared types
+# Shared types and utilities
 riptide-types = { path = "../riptide-types" }
+riptide-utils = { path = "../riptide-utils" }
 riptide-config = { path = "../riptide-config" }
 
 # Core dependencies

@@ -1,5 +1,5 @@
 // Quick test to verify circuit breaker fixes
-use riptide_types::reliability::circuit::{CircuitBreaker, Config, RealClock, State};
+use riptide_utils::circuit_breaker::{CircuitBreaker, Config, RealClock, State};
 use std::sync::Arc;
 
 #[test]
