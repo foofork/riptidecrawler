@@ -112,7 +112,7 @@ impl RiptideBuilder {
     ///     .header("X-API-Key", "secret");
     /// ```
     pub fn header(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        self.config.headers.push((key.into(), value.into()));
+        self.config.metadata.insert(key.into(), value.into());
         self
     }
 
@@ -282,9 +282,9 @@ mod tests {
     #[test]
     fn test_builder_header() {
         let builder = RiptideBuilder::new().header("X-Custom", "value");
-        let headers = &builder.get_config().headers;
-        assert_eq!(headers.len(), 1);
-        assert_eq!(headers[0], ("X-Custom".to_string(), "value".to_string()));
+        let metadata = &builder.get_config().metadata;
+        assert_eq!(metadata.len(), 1);
+        assert_eq!(metadata.get("X-Custom"), Some(&"value".to_string()));
     }
 
     #[test]
@@ -302,7 +302,7 @@ mod tests {
         assert_eq!(config.timeout, Duration::from_secs(45));
         assert_eq!(config.max_redirects, 7);
         assert!(!config.verify_ssl);
-        assert_eq!(config.headers.len(), 1);
+        assert_eq!(config.metadata.len(), 1);
         assert_eq!(config.max_body_size, 2048);
     }
 }

@@ -13,8 +13,6 @@ use axum::{
     Json,
 };
 use serde::Deserialize;
-use std::time::Instant;
-use tracing::info;
 
 // Unused imports removed - parse_seed_urls and MetricsRecorder not used yet
 
@@ -70,36 +68,26 @@ pub async fn spider_crawl(
     Query(_query): Query<SpiderCrawlQuery>,
     Json(body): Json<SpiderCrawlBody>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let _start_time = Instant::now();
-
-    info!(
-        seed_count = body.seed_urls.len(),
-        max_depth = body.max_depth,
-        max_pages = body.max_pages,
-        strategy = body.strategy.as_deref(),
-        "Received spider crawl request"
-    );
-
-    // Phase 2C.2: Call SpiderFacade (restored after circular dependency fix)
+    // Get spider facade
     let spider_facade = _state
         .spider_facade
         .as_ref()
         .ok_or_else(|| ApiError::ConfigError {
-            message:
-                "SpiderFacade not initialized. Spider functionality requires the 'spider' feature."
-                    .to_string(),
+            message: "SpiderFacade not initialized".to_string(),
         })?;
 
     // Parse seed URLs
-    let seed_urls: Result<Vec<url::Url>, _> =
-        body.seed_urls.iter().map(|s| url::Url::parse(s)).collect();
+    let seed_urls: Vec<url::Url> = body
+        .seed_urls
+        .iter()
+        .map(|s| url::Url::parse(s))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| ApiError::InvalidUrl {
+            url: "".to_string(),
+            message: format!("Invalid seed URL: {}", e),
+        })?;
 
-    let seed_urls = seed_urls.map_err(|e| ApiError::InvalidUrl {
-        url: "".to_string(),
-        message: format!("Invalid seed URL: {}", e),
-    })?;
-
-    // Call spider facade
+    // Execute crawl via facade
     let summary = spider_facade
         .crawl(seed_urls)
         .await
@@ -107,7 +95,6 @@ pub async fn spider_crawl(
             message: format!("Spider crawl failed: {}", e),
         })?;
 
-    // Return response
     Ok(Json(summary))
 }
 
@@ -116,30 +103,29 @@ pub async fn spider_status(
     State(_state): State<AppState>,
     Json(_body): Json<SpiderStatusRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    // Phase 2C.2: Call SpiderFacade (restored after circular dependency fix)
+    // Get spider facade
     let spider_facade = _state
         .spider_facade
         .as_ref()
         .ok_or_else(|| ApiError::ConfigError {
-            message:
-                "SpiderFacade not initialized. Spider functionality requires the 'spider' feature."
-                    .to_string(),
+            message: "SpiderFacade not initialized".to_string(),
         })?;
 
-    // Get current state
-    let state = spider_facade
-        .get_state()
-        .await
-        .map_err(|e| ApiError::InternalError {
-            message: format!("Failed to get spider state: {}", e),
-        })?;
+    // Get status from facade
+    let (state, performance) =
+        spider_facade
+            .get_status()
+            .await
+            .map_err(|e| ApiError::InternalError {
+                message: format!("Failed to get spider status: {}", e),
+            })?;
 
     // Build response
     let response = SpiderStatusResponse {
         state,
-        performance: None,         // TODO: Get performance metrics from facade
-        frontier_stats: None,      // TODO: Get frontier stats from facade
-        adaptive_stop_stats: None, // TODO: Get adaptive stop stats from facade
+        performance,
+        frontier_stats: None,
+        adaptive_stop_stats: None,
     };
 
     Ok(Json(response))
@@ -150,47 +136,25 @@ pub async fn spider_control(
     State(_state): State<AppState>,
     Json(_body): Json<SpiderControlRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    // Phase 2C.2: Call SpiderFacade (restored after circular dependency fix)
+    // Get spider facade
     let spider_facade = _state
         .spider_facade
         .as_ref()
         .ok_or_else(|| ApiError::ConfigError {
-            message:
-                "SpiderFacade not initialized. Spider functionality requires the 'spider' feature."
-                    .to_string(),
+            message: "SpiderFacade not initialized".to_string(),
         })?;
 
-    // Execute action
-    match _body.action.as_str() {
-        "stop" => {
-            spider_facade
-                .stop()
-                .await
-                .map_err(|e| ApiError::InternalError {
-                    message: format!("Failed to stop spider: {}", e),
-                })?;
-            Ok(Json(serde_json::json!({
-                "success": true,
-                "message": "Spider stopped successfully"
-            })))
-        }
-        "reset" => {
-            spider_facade
-                .reset()
-                .await
-                .map_err(|e| ApiError::InternalError {
-                    message: format!("Failed to reset spider: {}", e),
-                })?;
-            Ok(Json(serde_json::json!({
-                "success": true,
-                "message": "Spider reset successfully"
-            })))
-        }
-        _ => Err(ApiError::ValidationError {
-            message: format!(
-                "Invalid action: '{}'. Must be 'stop' or 'reset'",
-                _body.action
-            ),
-        }),
-    }
+    // Execute control action via facade
+    let message =
+        spider_facade
+            .control(&_body.action)
+            .await
+            .map_err(|e| ApiError::ValidationError {
+                message: e.to_string(),
+            })?;
+
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "message": message
+    })))
 }

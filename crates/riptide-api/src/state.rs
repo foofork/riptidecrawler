@@ -554,17 +554,16 @@ impl AppConfig {
 }
 
 impl AppState {
-    /// Initialize the application state with all required components.
+    /// Initialize the application state with all required components including facades.
     ///
-    /// This method sets up the HTTP client, establishes Redis connection,
-    /// initializes the WASM extractor, and validates all dependencies.
+    /// This is the main entry point for creating a fully initialized AppState.
+    /// It calls `new_base()` followed by `with_facades()` to construct the complete state.
     ///
     /// # Arguments
     ///
     /// * `config` - Application configuration
     /// * `metrics` - Prometheus metrics collector
     /// * `health_checker` - Health checker for enhanced diagnostics
-    /// * `telemetry` - Optional telemetry system for observability
     ///
     /// # Returns
     ///
@@ -576,6 +575,7 @@ impl AppState {
     /// - Redis connection cannot be established
     /// - WASM extractor cannot be loaded
     /// - Configuration is invalid
+    /// - Facade initialization fails
     ///
     /// # Examples
     ///
@@ -592,41 +592,62 @@ impl AppState {
         metrics: Arc<RipTideMetrics>,
         health_checker: Arc<HealthChecker>,
     ) -> Result<Self> {
-        Self::new_with_telemetry(config, metrics, health_checker, None).await
+        Self::new_with_facades(config, metrics, health_checker, None).await
     }
 
-    /// Initialize with custom API configuration
-    #[allow(dead_code)] // Public API - alternative constructor with custom API config
-    pub async fn new_with_api_config(
-        config: AppConfig,
-        api_config: RiptideApiConfig,
-        metrics: Arc<RipTideMetrics>,
-        health_checker: Arc<HealthChecker>,
-    ) -> Result<Self> {
-        Self::new_with_telemetry_and_api_config(config, api_config, metrics, health_checker, None)
-            .await
-    }
-
-    /// Initialize the application state with telemetry integration
-    pub async fn new_with_telemetry(
+    /// Initialize AppState with facades and optional telemetry (public convenience method).
+    ///
+    /// This method creates a complete AppState with all facades initialized.
+    /// It's the recommended way to create AppState in production.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - Application configuration
+    /// * `metrics` - Prometheus metrics collector
+    /// * `health_checker` - Health checker for enhanced diagnostics
+    /// * `telemetry` - Optional telemetry system for observability
+    ///
+    /// # Returns
+    ///
+    /// A configured `AppState` with all facades initialized.
+    pub async fn new_with_facades(
         config: AppConfig,
         metrics: Arc<RipTideMetrics>,
         health_checker: Arc<HealthChecker>,
         telemetry: Option<Arc<TelemetrySystem>>,
     ) -> Result<Self> {
         let api_config = RiptideApiConfig::from_env();
-        Self::new_with_telemetry_and_api_config(
-            config,
-            api_config,
-            metrics,
-            health_checker,
-            telemetry,
-        )
-        .await
+        let base_state =
+            Self::new_base(config, api_config, metrics, health_checker, telemetry).await?;
+        base_state.with_facades().await
     }
 
-    /// Initialize the application state with telemetry and custom API configuration
-    pub async fn new_with_telemetry_and_api_config(
+    /// Initialize base AppState without facades.
+    ///
+    /// This method creates the core AppState with all infrastructure components
+    /// but without facade layer initialization. Use `with_facades()` to add facades
+    /// after construction, or use `new_with_facades()` for complete initialization.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - Application configuration
+    /// * `api_config` - API-specific configuration with resource controls
+    /// * `metrics` - Prometheus metrics collector
+    /// * `health_checker` - Health checker for enhanced diagnostics
+    /// * `telemetry` - Optional telemetry system for observability
+    ///
+    /// # Returns
+    ///
+    /// An `AppState` with all core components initialized but facades set to default/placeholder values.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Redis connection cannot be established
+    /// - WASM extractor cannot be loaded
+    /// - Configuration is invalid
+    /// - Core component initialization fails
+    pub async fn new_base(
         config: AppConfig,
         api_config: RiptideApiConfig,
         metrics: Arc<RipTideMetrics>,
@@ -1180,70 +1201,34 @@ impl AppState {
         // #[cfg(not(feature = "wasm-extractor"))]
         let cache_warmer_enabled = false;
 
-        // Initialize facades (Phase 2C.2: Restored after breaking circular dependency)
-        tracing::debug!("Initializing facades with trait-based dependencies");
+        // Initialize placeholder facades (will be replaced by with_facades() method)
+        tracing::debug!("Initializing placeholder facades for base AppState");
 
         let facade_config = riptide_facade::config::RiptideConfig::default();
 
+        // Create minimal placeholder facades for base state
         let extraction_facade = Arc::new(
             riptide_facade::facades::ExtractionFacade::new(facade_config.clone())
                 .await
-                .map_err(|e| anyhow::anyhow!("Failed to initialize ExtractionFacade: {}", e))?,
+                .map_err(|e| {
+                    anyhow::anyhow!("Failed to initialize placeholder ExtractionFacade: {}", e)
+                })?,
         );
 
         let scraper_facade = Arc::new(
             riptide_facade::facades::ScraperFacade::new(facade_config.clone())
                 .await
-                .map_err(|e| anyhow::anyhow!("Failed to initialize ScraperFacade: {}", e))?,
+                .map_err(|e| {
+                    anyhow::anyhow!("Failed to initialize placeholder ScraperFacade: {}", e)
+                })?,
         );
 
-        // Initialize SpiderFacade with Development preset (suitable for local testing)
+        // Optional facades are None in base state - will be initialized by with_facades()
         #[cfg(feature = "spider")]
-        let spider_facade = {
-            use url::Url;
-            let base_url =
-                Url::parse("https://example.com").expect("Failed to parse default spider base URL");
-            match riptide_facade::facades::SpiderFacade::from_preset(
-                riptide_facade::facades::SpiderPreset::Development,
-                base_url,
-            )
-            .await
-            {
-                Ok(facade) => {
-                    tracing::info!("SpiderFacade initialized with Development preset");
-                    Some(Arc::new(facade))
-                }
-                Err(e) => {
-                    tracing::warn!(error = %e, "Failed to initialize SpiderFacade, spider endpoints will be unavailable");
-                    None
-                }
-            }
-        };
+        let spider_facade = None;
 
-        // Initialize SearchFacade if SERPER_API_KEY is available
         #[cfg(feature = "search")]
-        let search_facade = {
-            if let Ok(api_key) = std::env::var("SERPER_API_KEY") {
-                match riptide_facade::facades::SearchFacade::with_api_key(
-                    riptide_search::SearchBackend::Serper,
-                    Some(api_key),
-                )
-                .await
-                {
-                    Ok(facade) => {
-                        tracing::info!("SearchFacade initialized with Serper backend");
-                        Some(Arc::new(facade))
-                    }
-                    Err(e) => {
-                        tracing::warn!(error = %e, "Failed to initialize SearchFacade, search endpoint will be unavailable");
-                        None
-                    }
-                }
-            } else {
-                tracing::info!("SERPER_API_KEY not found, search endpoint will be unavailable. Set SERPER_API_KEY to enable search.");
-                None
-            }
-        };
+        let search_facade = None;
 
         Ok(Self {
             http_client,
@@ -1286,6 +1271,93 @@ impl AppState {
             #[cfg(feature = "persistence")]
             persistence_adapter: None, // TODO: Initialize actual persistence adapter when integrated
         })
+    }
+
+    /// Initialize facades for an existing base AppState.
+    ///
+    /// This method takes an existing base AppState (created with `new_base()`) and
+    /// initializes all facade components with proper configuration. This allows for
+    /// two-phase initialization where the core infrastructure is set up first,
+    /// then facades are added.
+    ///
+    /// # Returns
+    ///
+    /// A new `AppState` with all facades properly initialized.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if facade initialization fails.
+    pub async fn with_facades(mut self) -> Result<Self> {
+        tracing::info!("Initializing facades for AppState");
+
+        let facade_config = riptide_facade::config::RiptideConfig::default();
+
+        // Initialize extraction facade
+        self.extraction_facade = Arc::new(
+            riptide_facade::facades::ExtractionFacade::new(facade_config.clone())
+                .await
+                .map_err(|e| anyhow::anyhow!("Failed to initialize ExtractionFacade: {}", e))?,
+        );
+        tracing::info!("ExtractionFacade initialized successfully");
+
+        // Initialize scraper facade
+        self.scraper_facade = Arc::new(
+            riptide_facade::facades::ScraperFacade::new(facade_config.clone())
+                .await
+                .map_err(|e| anyhow::anyhow!("Failed to initialize ScraperFacade: {}", e))?,
+        );
+        tracing::info!("ScraperFacade initialized successfully");
+
+        // Initialize SpiderFacade with Development preset (suitable for local testing)
+        #[cfg(feature = "spider")]
+        {
+            use url::Url;
+            let base_url =
+                Url::parse("https://example.com").expect("Failed to parse default spider base URL");
+            self.spider_facade = match riptide_facade::facades::SpiderFacade::from_preset(
+                riptide_facade::facades::SpiderPreset::Development,
+                base_url,
+            )
+            .await
+            {
+                Ok(facade) => {
+                    tracing::info!("SpiderFacade initialized with Development preset");
+                    Some(Arc::new(facade))
+                }
+                Err(e) => {
+                    tracing::warn!(error = %e, "Failed to initialize SpiderFacade, spider endpoints will be unavailable");
+                    None
+                }
+            };
+        }
+
+        // Initialize SearchFacade if SERPER_API_KEY is available
+        #[cfg(feature = "search")]
+        {
+            self.search_facade = if let Ok(api_key) = std::env::var("SERPER_API_KEY") {
+                match riptide_facade::facades::SearchFacade::with_api_key(
+                    riptide_search::SearchBackend::Serper,
+                    Some(api_key),
+                )
+                .await
+                {
+                    Ok(facade) => {
+                        tracing::info!("SearchFacade initialized with Serper backend");
+                        Some(Arc::new(facade))
+                    }
+                    Err(e) => {
+                        tracing::warn!(error = %e, "Failed to initialize SearchFacade, search endpoint will be unavailable");
+                        None
+                    }
+                }
+            } else {
+                tracing::info!("SERPER_API_KEY not found, search endpoint will be unavailable. Set SERPER_API_KEY to enable search.");
+                None
+            };
+        }
+
+        tracing::info!("All facades initialized successfully");
+        Ok(self)
     }
 
     /// Check the health of all application dependencies with telemetry.

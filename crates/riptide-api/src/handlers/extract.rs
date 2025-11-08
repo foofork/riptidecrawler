@@ -14,64 +14,22 @@ use riptide_types::ExtractRequest;
 /// Extract content from a URL using multi-strategy extraction
 ///
 /// This endpoint provides a unified interface for content extraction,
-/// using the existing strategies pipeline internally.
+/// delegating to the ExtractionFacade for all business logic.
 #[axum::debug_handler]
 #[tracing::instrument(skip(state), fields(url = %payload.url, mode = %payload.mode))]
 pub async fn extract(
     State(state): State<AppState>,
     Json(payload): Json<ExtractRequest>,
 ) -> impl IntoResponse {
-    let _start = Instant::now();
+    let start = Instant::now();
 
-    // Validate URL
+    // Validate URL format (HTTP concern)
     if let Err(e) = url::Url::parse(&payload.url) {
-        tracing::warn!(url = %payload.url, error = %e, "Invalid URL provided");
+        tracing::warn!(url = %payload.url, error = %e, "Invalid URL format");
         return crate::errors::ApiError::invalid_url(&payload.url, e.to_string()).into_response();
     }
 
-    tracing::info!(
-        url = %payload.url,
-        strategy = %payload.options.strategy,
-        quality_threshold = payload.options.quality_threshold,
-        "Processing extraction request via ExtractionFacade"
-    );
-
-    // First fetch the HTML content using HTTP client
-    let html_result = state.http_client.get(&payload.url).send().await;
-
-    let _html = match html_result {
-        Ok(response) => {
-            if !response.status().is_success() {
-                tracing::warn!(
-                    url = %payload.url,
-                    status = %response.status(),
-                    "HTTP request failed"
-                );
-                return crate::errors::ApiError::fetch(
-                    &payload.url,
-                    format!("Server returned status: {}", response.status()),
-                )
-                .into_response();
-            }
-            match response.text().await {
-                Ok(text) => text,
-                Err(e) => {
-                    tracing::error!(url = %payload.url, error = %e, "Failed to read response body");
-                    return crate::errors::ApiError::fetch(
-                        &payload.url,
-                        format!("Failed to read response body: {}", e),
-                    )
-                    .into_response();
-                }
-            }
-        }
-        Err(e) => {
-            tracing::error!(url = %payload.url, error = %e, "Failed to fetch URL");
-            return crate::errors::ApiError::from(e).into_response();
-        }
-    };
-
-    // Phase 2C.2: Call extraction facade (restored after circular dependency fix)
+    // Build extraction options from request
     let html_options = riptide_facade::facades::HtmlExtractionOptions {
         as_markdown: payload.options.strategy == "markdown",
         clean: true,
@@ -81,45 +39,31 @@ pub async fn extract(
         custom_selectors: None,
     };
 
+    // Delegate to facade (handles fetch + extraction)
     match state
         .extraction_facade
-        .extract_html(&_html, &payload.url, html_options)
+        .extract_from_url(&payload.url, html_options)
         .await
     {
         Ok(extracted) => {
-            tracing::info!(
-                url = %payload.url,
-                confidence = extracted.confidence,
-                strategy = %extracted.strategy_used,
-                text_length = extracted.text.len(),
-                "Extraction completed successfully"
-            );
-
-            // Convert ExtractedData to ExtractResponse
-            let metadata = riptide_types::ContentMetadata {
-                author: extracted.metadata.get("author").cloned(),
-                publish_date: extracted.metadata.get("publish_date").cloned(),
-                word_count: extracted.text.split_whitespace().count(),
-                language: extracted.metadata.get("language").cloned(),
-            };
-
             let response = riptide_types::ExtractResponse {
                 url: extracted.url.clone(),
                 title: extracted.title.clone(),
                 content: extracted.text.clone(),
-                metadata,
-                strategy_used: extracted.strategy_used.clone(),
+                metadata: riptide_types::ContentMetadata {
+                    author: extracted.metadata.get("author").cloned(),
+                    publish_date: extracted.metadata.get("publish_date").cloned(),
+                    word_count: extracted.text.split_whitespace().count(),
+                    language: extracted.metadata.get("language").cloned(),
+                },
+                strategy_used: extracted.strategy_used,
                 quality_score: extracted.confidence,
-                extraction_time_ms: _start.elapsed().as_millis() as u64,
+                extraction_time_ms: start.elapsed().as_millis() as u64,
                 parser_metadata: None,
             };
-
             (StatusCode::OK, Json(response)).into_response()
         }
-        Err(e) => {
-            tracing::error!(url = %payload.url, error = %e, "Extraction failed");
-            crate::errors::ApiError::from(e).into_response()
-        }
+        Err(e) => crate::errors::ApiError::from(e).into_response(),
     }
 }
 

@@ -1,7 +1,7 @@
 //! Integration tests for smart retry logic
 
 use riptide_intelligence::smart_retry::{RetryConfig, SmartRetry, SmartRetryStrategy};
-use riptide_intelligence::{CircuitBreaker, CircuitBreakerConfig, IntelligenceError};
+use riptide_intelligence::IntelligenceError;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::Instant;

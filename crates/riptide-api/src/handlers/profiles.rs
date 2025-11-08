@@ -15,6 +15,10 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use riptide_facade::facades::profile::{
+    ProfileConfigRequest as FacadeConfigRequest, ProfileFacade,
+    ProfileMetadataRequest as FacadeMetadataRequest,
+};
 use riptide_intelligence::domain_profiling::{DomainProfile, ProfileManager};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info};
@@ -175,76 +179,23 @@ pub async fn create_profile(
     State(_state): State<AppState>,
     Json(request): Json<CreateProfileRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    info!("Creating domain profile for: {}", request.domain);
-
     // Validate domain
     if request.domain.is_empty() {
         return Err(ApiError::validation("Domain cannot be empty"));
     }
 
-    // Create new profile
-    let mut profile = ProfileManager::create(request.domain.clone());
+    // Convert request DTOs to facade types
+    let facade = ProfileFacade::new();
+    let config = request.config.map(convert_config_to_facade);
+    let metadata = request.metadata.map(convert_metadata_to_facade);
 
-    // Apply optional configuration
-    if let Some(config) = request.config {
-        profile.update_config(|c| {
-            if let Some(level) = config.stealth_level {
-                c.stealth_level = level;
-            }
-            if let Some(limit) = config.rate_limit {
-                c.rate_limit = limit;
-            }
-            if let Some(respect) = config.respect_robots_txt {
-                c.respect_robots_txt = respect;
-            }
-            if let Some(strategy) = config.ua_strategy {
-                c.ua_strategy = strategy;
-            }
-            if let Some(threshold) = config.confidence_threshold {
-                c.confidence_threshold = threshold;
-            }
-            if let Some(js) = config.enable_javascript {
-                c.enable_javascript = js;
-            }
-            if let Some(timeout) = config.request_timeout_secs {
-                c.request_timeout_secs = timeout;
-            }
-        });
-    }
-
-    // Apply optional metadata
-    if let Some(metadata) = request.metadata {
-        profile.update_metadata(|m| {
-            if let Some(desc) = metadata.description {
-                m.description = Some(desc);
-            }
-            if let Some(tags) = metadata.tags {
-                m.tags = tags;
-            }
-            if let Some(author) = metadata.author {
-                m.author = Some(author);
-            }
-        });
-    }
-
-    // Validate profile
-    ProfileManager::validate(&profile).map_err(|e| {
-        error!("Profile validation failed: {}", e);
-        ApiError::validation(format!("Invalid profile: {}", e))
-    })?;
-
-    // Save profile
-    let save_path = ProfileManager::save(&profile, None).map_err(|e| {
-        error!("Failed to save profile: {}", e);
-        ApiError::InternalError {
-            message: format!("Failed to save profile: {}", e),
-        }
-    })?;
-
-    info!(
-        "Profile created successfully: {} at {:?}",
-        profile.domain, save_path
-    );
+    // Create profile via facade
+    let profile = facade
+        .create_with_config(request.domain, config, metadata)
+        .map_err(|e| {
+            error!("Failed to create profile: {}", e);
+            ApiError::validation(format!("Failed to create profile: {}", e))
+        })?;
 
     Ok((StatusCode::CREATED, Json(profile)))
 }
@@ -278,72 +229,20 @@ pub async fn update_profile(
     Path(domain): Path<String>,
     Json(request): Json<UpdateProfileRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    info!("Updating profile for domain: {}", domain);
+    // Convert request DTOs to facade types
+    let facade = ProfileFacade::new();
+    let config = request.config.map(convert_config_to_facade);
+    let metadata = request.metadata.map(convert_metadata_to_facade);
 
-    // Load existing profile
-    let mut profile = ProfileManager::load(&domain).map_err(|e| {
-        error!("Failed to load profile {}: {}", domain, e);
-        ApiError::NotFound {
-            resource: format!("Profile not found: {}", domain),
-        }
-    })?;
-
-    // Apply configuration updates
-    if let Some(config) = request.config {
-        profile.update_config(|c| {
-            if let Some(level) = config.stealth_level {
-                c.stealth_level = level;
+    // Update profile via facade
+    let profile = facade
+        .update_profile(&domain, config, metadata)
+        .map_err(|e| {
+            error!("Failed to update profile: {}", e);
+            ApiError::InternalError {
+                message: format!("Failed to update profile: {}", e),
             }
-            if let Some(limit) = config.rate_limit {
-                c.rate_limit = limit;
-            }
-            if let Some(respect) = config.respect_robots_txt {
-                c.respect_robots_txt = respect;
-            }
-            if let Some(strategy) = config.ua_strategy {
-                c.ua_strategy = strategy;
-            }
-            if let Some(threshold) = config.confidence_threshold {
-                c.confidence_threshold = threshold;
-            }
-            if let Some(js) = config.enable_javascript {
-                c.enable_javascript = js;
-            }
-            if let Some(timeout) = config.request_timeout_secs {
-                c.request_timeout_secs = timeout;
-            }
-        });
-    }
-
-    // Apply metadata updates
-    if let Some(metadata) = request.metadata {
-        profile.update_metadata(|m| {
-            if let Some(desc) = metadata.description {
-                m.description = Some(desc);
-            }
-            if let Some(tags) = metadata.tags {
-                m.tags = tags;
-            }
-            if let Some(author) = metadata.author {
-                m.author = Some(author);
-            }
-        });
-    }
-
-    // Validate and save
-    ProfileManager::validate(&profile).map_err(|e| {
-        error!("Profile validation failed: {}", e);
-        ApiError::validation(format!("Invalid profile: {}", e))
-    })?;
-
-    ProfileManager::save(&profile, None).map_err(|e| {
-        error!("Failed to save profile: {}", e);
-        ApiError::InternalError {
-            message: format!("Failed to save profile: {}", e),
-        }
-    })?;
-
-    info!("Profile updated successfully: {}", domain);
+        })?;
 
     Ok(Json(profile))
 }
@@ -466,29 +365,34 @@ pub async fn batch_create_profiles(
     State(_state): State<AppState>,
     Json(request): Json<BatchCreateRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    info!("Batch creating {} profiles", request.profiles.len());
+    // Convert requests to facade format
+    let facade = ProfileFacade::new();
+    let requests: Vec<_> = request
+        .profiles
+        .into_iter()
+        .map(|req| {
+            (
+                req.domain,
+                req.config.map(convert_config_to_facade),
+                req.metadata.map(convert_metadata_to_facade),
+            )
+        })
+        .collect();
 
-    let mut created = Vec::new();
-    let mut failed = Vec::new();
+    // Execute batch create via facade
+    let result = facade.batch_create(requests);
 
-    for profile_req in request.profiles {
-        let domain = profile_req.domain.clone();
-        match create_profile_internal(&_state, profile_req).await {
-            Ok(_) => created.push(domain),
-            Err(e) => failed.push(BatchFailure {
-                domain,
-                error: e.to_string(),
-            }),
-        }
-    }
-
-    let response = BatchCreateResponse { created, failed };
-
-    info!(
-        "Batch create completed: {} created, {} failed",
-        response.created.len(),
-        response.failed.len()
-    );
+    let response = BatchCreateResponse {
+        created: result.created,
+        failed: result
+            .failed
+            .into_iter()
+            .map(|f| BatchFailure {
+                domain: f.domain,
+                error: f.error,
+            })
+            .collect(),
+    };
 
     Ok((StatusCode::CREATED, Json(response)))
 }
@@ -530,55 +434,21 @@ pub async fn warm_cache(
     Path(domain): Path<String>,
     Json(request): Json<WarmCacheRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    info!(
-        "Warming cache for domain: {} with URL: {}",
-        domain, request.url
-    );
-
-    // Load profile
-    let mut profile = ProfileManager::load(&domain).map_err(|e| {
-        error!("Failed to load profile {}: {}", domain, e);
-        ApiError::NotFound {
-            resource: format!("Profile not found: {}", domain),
-        }
-    })?;
-
-    // For now, this is a placeholder for actual cache warming logic
-    // In production, this would:
-    // 1. Fetch and analyze the URL
-    // 2. Determine optimal engine
-    // 3. Cache the engine preference
-    //
-    // Since we don't have the full extraction pipeline here,
-    // we'll simulate by setting a mock cache
-
-    use riptide_reliability::engine_selection::Engine;
-
-    // Simulate successful analysis (in production, use actual analyzer)
-    let simulated_engine = Engine::Wasm; // Default to WASM
-    let simulated_confidence = 0.85; // High confidence
-
-    profile.cache_engine(simulated_engine, simulated_confidence);
-
-    // Save updated profile
-    ProfileManager::save(&profile, None).map_err(|e| {
-        error!("Failed to save profile: {}", e);
+    // Warm cache via facade
+    let facade = ProfileFacade::new();
+    let (engine, confidence, message) = facade.warm_cache(&domain, &request.url).map_err(|e| {
+        error!("Failed to warm cache: {}", e);
         ApiError::InternalError {
-            message: format!("Failed to save profile: {}", e),
+            message: format!("Failed to warm cache: {}", e),
         }
     })?;
-
-    info!(
-        "Cache warmed successfully for {}: engine={:?}, confidence={}",
-        domain, simulated_engine, simulated_confidence
-    );
 
     let response = WarmCacheResponse {
         success: true,
-        domain: domain.clone(),
-        cached_engine: Some(format!("{:?}", simulated_engine)),
-        confidence: Some(simulated_confidence),
-        message: format!("Cache warmed successfully for domain: {}", domain),
+        domain,
+        cached_engine: Some(format!("{:?}", engine)),
+        confidence: Some(confidence),
+        message,
     };
 
     Ok(Json(response))
@@ -691,59 +561,24 @@ pub async fn get_caching_metrics(
 // Helper Functions
 // ============================================================================
 
-/// Internal helper for creating a profile (used by batch operations)
-async fn create_profile_internal(
-    _state: &AppState,
-    request: CreateProfileRequest,
-) -> Result<DomainProfile, ApiError> {
-    let mut profile = ProfileManager::create(request.domain.clone());
-
-    if let Some(config) = request.config {
-        profile.update_config(|c| {
-            if let Some(level) = config.stealth_level {
-                c.stealth_level = level;
-            }
-            if let Some(limit) = config.rate_limit {
-                c.rate_limit = limit;
-            }
-            if let Some(respect) = config.respect_robots_txt {
-                c.respect_robots_txt = respect;
-            }
-            if let Some(strategy) = config.ua_strategy {
-                c.ua_strategy = strategy;
-            }
-            if let Some(threshold) = config.confidence_threshold {
-                c.confidence_threshold = threshold;
-            }
-            if let Some(js) = config.enable_javascript {
-                c.enable_javascript = js;
-            }
-            if let Some(timeout) = config.request_timeout_secs {
-                c.request_timeout_secs = timeout;
-            }
-        });
+/// Convert API config request to facade config request
+fn convert_config_to_facade(config: ProfileConfigRequest) -> FacadeConfigRequest {
+    FacadeConfigRequest {
+        stealth_level: config.stealth_level,
+        rate_limit: config.rate_limit,
+        respect_robots_txt: config.respect_robots_txt,
+        ua_strategy: config.ua_strategy,
+        confidence_threshold: config.confidence_threshold,
+        enable_javascript: config.enable_javascript,
+        request_timeout_secs: config.request_timeout_secs,
     }
+}
 
-    if let Some(metadata) = request.metadata {
-        profile.update_metadata(|m| {
-            if let Some(desc) = metadata.description {
-                m.description = Some(desc);
-            }
-            if let Some(tags) = metadata.tags {
-                m.tags = tags;
-            }
-            if let Some(author) = metadata.author {
-                m.author = Some(author);
-            }
-        });
+/// Convert API metadata request to facade metadata request
+fn convert_metadata_to_facade(metadata: ProfileMetadataRequest) -> FacadeMetadataRequest {
+    FacadeMetadataRequest {
+        description: metadata.description,
+        tags: metadata.tags,
+        author: metadata.author,
     }
-
-    ProfileManager::validate(&profile)
-        .map_err(|e| ApiError::validation(format!("Invalid profile: {}", e)))?;
-
-    ProfileManager::save(&profile, None).map_err(|e| ApiError::InternalError {
-        message: format!("Failed to save profile: {}", e),
-    })?;
-
-    Ok(profile)
 }

@@ -139,9 +139,11 @@
 //! manager.record_success("https://example.com/page", start.elapsed()).await;
 //! ```
 
+pub mod circuit;
 pub mod circuit_breaker;
 pub mod engine_selection;
 pub mod gate;
+pub mod http_client;
 #[cfg(feature = "reliability-patterns")]
 pub mod reliability;
 pub mod timeout;
@@ -173,6 +175,7 @@ pub use engine_selection::{
     ContentAnalysis, Engine, EngineCacheable, EngineSelectionFlags,
 };
 pub use gate::{decide, score, should_use_headless, Decision, GateFeatures};
+pub use http_client::{FetchOptions, HttpClientService, HttpConfig};
 #[cfg(feature = "reliability-patterns")]
 pub use reliability::{
     ExtractionMode, ReliabilityConfig, ReliabilityMetrics, ReliabilityMetricsRecorder,

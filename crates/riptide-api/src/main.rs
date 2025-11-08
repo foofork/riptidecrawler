@@ -1,6 +1,7 @@
 mod config;
 mod dto;
 mod errors;
+mod facades;
 mod handlers;
 mod health;
 mod metrics;

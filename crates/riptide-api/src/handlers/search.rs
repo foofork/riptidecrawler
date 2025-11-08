@@ -1,7 +1,6 @@
 //! Search integration handler using SearchFacade
 //!
-//! Provides search functionality using riptide-facade SearchFacade with
-//! support for multiple search providers (Serper, None, SearXNG).
+//! Thin handler that delegates to SearchFacade for business logic.
 
 use axum::{
     extract::{Query, State},
@@ -12,63 +11,37 @@ use axum::{
 use std::time::Instant;
 
 use crate::state::AppState;
-
-// Import HTTP DTOs from riptide-types (Phase 2C.1 - breaking circular dependency)
 use riptide_types::{SearchQuery, SearchResponse, SearchResult};
 
-/// Search using configured providers
-///
-/// This endpoint provides search functionality using the riptide-search
-/// provider infrastructure. It supports multiple providers with automatic
-/// fallback capabilities.
-#[tracing::instrument(skip(state), fields(query = %params.q, limit = params.limit))]
+/// Search using configured providers (thin handler pattern)
+#[tracing::instrument(skip(state))]
 pub async fn search(State(state): State<AppState>, Query(params): Query<SearchQuery>) -> Response {
     let start = Instant::now();
-
-    // Validate query
-    if params.q.trim().is_empty() {
-        tracing::warn!("Empty search query provided");
-        return crate::errors::ApiError::validation("Search query cannot be empty").into_response();
-    }
-
-    // Validate and cap limit
-    let limit = params.limit.clamp(1, 50);
-
-    tracing::info!(
-        query = %params.q,
-        limit = limit,
-        country = %params.country,
-        language = %params.language,
-        provider = ?params.provider,
-        "Processing search request"
-    );
-
-    // Phase 2C.2: Call SearchFacade (restored after circular dependency fix)
-    let search_facade = match state.search_facade.as_ref() {
-        Some(facade) => facade,
-        None => {
-            tracing::warn!("SearchFacade not initialized. Set SERPER_API_KEY environment variable to enable search.");
-            return crate::errors::ApiError::ConfigError {
-                message: "Search functionality not available. SERPER_API_KEY not configured."
-                    .to_string(),
-            }
-            .into_response();
-        }
+    let facade = match state.search_facade.as_ref() {
+        Some(f) => f,
+        None => return config_error().into_response(),
     };
 
-    // Call search facade
-    let hits = match search_facade
-        .search_with_options(&params.q, limit as u32, &params.country, &params.language)
+    match facade
+        .search_validated(&params.q, params.limit, &params.country, &params.language)
         .await
     {
-        Ok(hits) => hits,
-        Err(e) => {
-            tracing::error!(error = %e, "Search failed");
-            return crate::errors::ApiError::from(e).into_response();
-        }
-    };
+        Ok(hits) => build_response(params.q, hits, start).into_response(),
+        Err(e) => crate::errors::ApiError::from(e).into_response(),
+    }
+}
 
-    // Map SearchHit to SearchResult
+fn config_error() -> crate::errors::ApiError {
+    crate::errors::ApiError::ConfigError {
+        message: "Search functionality not available. SERPER_API_KEY not configured.".to_string(),
+    }
+}
+
+fn build_response(
+    query: String,
+    hits: Vec<riptide_search::SearchHit>,
+    start: Instant,
+) -> (StatusCode, Json<SearchResponse>) {
     let results: Vec<SearchResult> = hits
         .into_iter()
         .enumerate()
@@ -80,23 +53,16 @@ pub async fn search(State(state): State<AppState>, Query(params): Query<SearchQu
         })
         .collect();
 
-    let total_results = results.len();
-    let response = SearchResponse {
-        query: params.q.clone(),
-        results,
-        total_results,
-        provider_used: "riptide-search".to_string(),
-        search_time_ms: start.elapsed().as_millis() as u64,
-    };
-
-    tracing::info!(
-        query = %params.q,
-        results_count = response.total_results,
-        search_time_ms = response.search_time_ms,
-        "Search completed successfully"
-    );
-
-    (StatusCode::OK, Json(response)).into_response()
+    (
+        StatusCode::OK,
+        Json(SearchResponse {
+            query,
+            total_results: results.len(),
+            results,
+            provider_used: "riptide-search".to_string(),
+            search_time_ms: start.elapsed().as_millis() as u64,
+        }),
+    )
 }
 
 #[cfg(test)]
@@ -104,18 +70,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_default_limit() {
-        assert_eq!(default_limit(), 10);
-    }
-
-    #[test]
-    fn test_default_country() {
-        assert_eq!(default_country(), "us");
-    }
-
-    #[test]
-    fn test_default_language() {
-        assert_eq!(default_language(), "en");
+    fn test_config_error() {
+        let error = config_error();
+        match error {
+            crate::errors::ApiError::ConfigError { message } => {
+                assert!(message.contains("Search functionality not available"));
+            }
+            _ => panic!("Expected ConfigError"),
+        }
     }
 
     #[test]

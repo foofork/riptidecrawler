@@ -6738,15 +6738,23 @@ name = "riptide-facade"
 version = "0.9.0"
 dependencies = [
  "anyhow",
+ "async-stream",
  "async-trait",
+ "axum",
+ "base64 0.22.1",
  "chrono",
  "futures",
+ "futures-util",
+ "reqwest 0.12.24",
  "riptide-browser",
  "riptide-cache",
  "riptide-extraction",
  "riptide-fetch",
+ "riptide-headless",
+ "riptide-intelligence",
  "riptide-monitoring",
  "riptide-pdf",
+ "riptide-reliability",
  "riptide-search",
  "riptide-spider",
  "riptide-stealth",
@@ -6760,6 +6768,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+ "uuid",
  "wiremock",
 ]
 
@@ -6842,8 +6851,11 @@ dependencies = [
  "notify",
  "parking_lot",
  "rand 0.8.5",
+ "regex",
  "reqwest 0.12.24",
  "riptide-events",
+ "riptide-extraction",
+ "riptide-headless",
  "riptide-reliability",
  "riptide-types",
  "serde",
@@ -7043,6 +7055,7 @@ dependencies = [
  "riptide-monitoring",
  "riptide-pool",
  "riptide-types",
+ "riptide-utils",
  "serde",
  "serde_json",
  "tempfile",
@@ -7223,9 +7236,11 @@ version = "0.9.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "base64 0.22.1",
  "chrono",
  "secrecy",
  "serde",
+ "serde_bytes",
  "serde_json",
  "sha2",
  "thiserror 1.0.69",
@@ -7734,6 +7749,16 @@ checksum = "f3a1a3341211875ef120e117ea7fd5228530ae7e7036a779fdc9117be6b3282c"
 dependencies = [
  "ordered-float",
  "serde",
+]
+
+[[package]]
+name = "serde_bytes"
+version = "0.11.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5d440709e79d88e51ac01c4b72fc6cb7314017bb7da9eeff678aa94c10e3ea8"
+dependencies = [
+ "serde",
+ "serde_core",
 ]
 
 [[package]]

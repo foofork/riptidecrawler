@@ -201,3 +201,111 @@ ignore = [
 unknown-registry = "warn"
 unknown-git = "warn"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+
+# ===================================================================
+# CLEAN ARCHITECTURE LAYER BOUNDARY ENFORCEMENT
+# ===================================================================
+# Enforces separation of concerns and dependency inversion principle
+# Based on: API → Application → Domain ←→ Infrastructure pattern
+# See: docs/architecture/ROADMAP_CLARIFICATIONS.md
+
+[[bans.deny]]
+# Domain layer (riptide-types) must remain pure
+# No dependencies on higher layers or infrastructure
+name = "riptide-api"
+wrappers = ["riptide-types"]
+reason = "Domain layer cannot depend on API layer (violates dependency inversion)"
+
+[[bans.deny]]
+name = "riptide-facade"
+wrappers = ["riptide-types"]
+reason = "Domain layer cannot depend on Application layer (violates dependency inversion)"
+
+[[bans.deny]]
+name = "riptide-reliability"
+wrappers = ["riptide-types"]
+reason = "Domain layer cannot depend on Infrastructure (use ports/traits instead)"
+
+[[bans.deny]]
+name = "riptide-cache"
+wrappers = ["riptide-types"]
+reason = "Domain layer cannot depend on caching infrastructure"
+
+[[bans.deny]]
+name = "riptide-browser"
+wrappers = ["riptide-types"]
+reason = "Domain layer cannot depend on browser infrastructure"
+
+[[bans.deny]]
+name = "riptide-fetch"
+wrappers = ["riptide-types"]
+reason = "Domain layer cannot depend on HTTP infrastructure"
+
+[[bans.deny]]
+name = "riptide-pool"
+wrappers = ["riptide-types"]
+reason = "Domain layer cannot depend on resource pooling infrastructure"
+
+[[bans.deny]]
+name = "riptide-persistence"
+wrappers = ["riptide-types"]
+reason = "Domain layer cannot depend on persistence infrastructure"
+
+# Application layer (riptide-facade) must use ports, not implementations
+[[bans.deny]]
+name = "actix-web"
+wrappers = ["riptide-facade"]
+reason = "Application layer cannot depend on HTTP frameworks (violates ports & adapters)"
+
+[[bans.deny]]
+name = "axum"
+wrappers = ["riptide-facade"]
+reason = "Application layer cannot depend on HTTP frameworks (violates ports & adapters)"
+
+[[bans.deny]]
+name = "redis"
+wrappers = ["riptide-facade"]
+reason = "Application layer cannot depend on Redis directly (use CacheStorage port)"
+
+[[bans.deny]]
+name = "sqlx"
+wrappers = ["riptide-facade"]
+reason = "Application layer cannot depend on databases directly (use Repository port)"
+
+[[bans.deny]]
+name = "tokio-postgres"
+wrappers = ["riptide-facade"]
+reason = "Application layer cannot depend on databases directly (use Repository port)"
+
+[[bans.deny]]
+name = "reqwest"
+wrappers = ["riptide-facade"]
+reason = "Application layer cannot depend on HTTP clients directly (use ports)"
+
+# API layer must delegate to application layer (facades)
+# Direct infrastructure access bypasses business logic
+[[bans.deny]]
+name = "redis"
+wrappers = ["riptide-api"]
+reason = "API handlers should call facades, not access Redis directly"
+
+[[bans.deny]]
+name = "sqlx"
+wrappers = ["riptide-api"]
+reason = "API handlers should call facades, not access databases directly"
+
+# Redis usage must be scoped to specific infrastructure crates only
+[[bans.deny]]
+name = "redis"
+wrappers = ["riptide-utils"]
+reason = "Redis should only be in riptide-cache and riptide-persistence"
+
+[[bans.deny]]
+name = "redis"
+wrappers = ["riptide-intelligence"]
+reason = "Redis should only be in riptide-cache and riptide-persistence"
+
+[[bans.deny]]
+name = "redis"
+wrappers = ["riptide-performance"]
+reason = "Redis should only be in riptide-cache and riptide-persistence (workers is exception for job queues)"

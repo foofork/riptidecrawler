@@ -186,6 +186,54 @@ impl SpiderFacade {
         Ok(spider.get_performance_metrics().await)
     }
 
+    /// Get comprehensive status including state and metrics.
+    ///
+    /// # Returns
+    ///
+    /// Returns a tuple of (CrawlState, Option<PerformanceMetrics>).
+    ///
+    /// # Errors
+    ///
+    /// This method should not fail under normal circumstances.
+    pub async fn get_status(&self) -> Result<(CrawlState, Option<PerformanceMetrics>)> {
+        let spider = self.spider.lock().await;
+        let state = spider.get_crawl_state().await;
+        let metrics = Some(spider.get_performance_metrics().await);
+        Ok((state, metrics))
+    }
+
+    /// Execute control action (stop or reset).
+    ///
+    /// # Arguments
+    ///
+    /// * `action` - The control action: "stop" or "reset"
+    ///
+    /// # Returns
+    ///
+    /// Returns success message on completion.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Invalid action is provided
+    /// - Operation fails
+    pub async fn control(&self, action: &str) -> Result<String> {
+        match action {
+            "stop" => {
+                self.stop().await?;
+                Ok("Spider stopped successfully".to_string())
+            }
+            "reset" => {
+                self.reset().await?;
+                Ok("Spider reset successfully".to_string())
+            }
+            _ => Err(anyhow::anyhow!(
+                "Invalid action: '{}'. Must be 'stop' or 'reset'",
+                action
+            )),
+        }
+    }
+
     /// Stop the current crawl operation.
     ///
     /// # Errors

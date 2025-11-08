@@ -23,6 +23,10 @@ riptide-monitoring = { path = "../riptide-monitoring", optional = true }
 riptide-spider = { path = "../riptide-spider" }
 riptide-search = { path = "../riptide-search" }
 riptide-utils = { path = "../riptide-utils" }
+riptide-intelligence = { path = "../riptide-intelligence", optional = true }
+riptide-reliability = { path = "../riptide-reliability" }
+riptide-headless = { path = "../riptide-headless" }
+uuid = { version = "1.18.1", features = ["v4"] }
 
 # Error handling
 anyhow.workspace = true
@@ -46,11 +50,24 @@ chrono.workspace = true
 # URL handling
 url.workspace = true
 
+# HTTP client
+reqwest = { workspace = true }
+
 # HTML parsing
 scraper.workspace = true
 
+# Base64 encoding for binary data
+base64 = "0.22"
+
 # Browser automation
 spider_chromiumoxide_cdp = { workspace = true }
+
+# HTTP framework (for PDF multipart handling)
+axum = { workspace = true, features = ["multipart"] }
+
+# Async streaming (for PDF progress streams)
+async-stream = "0.3"
+futures-util = "0.3"
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }
@@ -63,6 +80,7 @@ spider_chromiumoxide_cdp = { workspace = true }
 default = []
 # Phase 1: WASM Optional - Feature flag for WASM extraction
 wasm-extractor = ["riptide-extraction/wasm-extractor", "riptide-cache/wasm-extractor"]
+llm = ["riptide-intelligence"]
 
 [lib]
 path = "src/lib.rs"

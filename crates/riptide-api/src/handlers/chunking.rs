@@ -238,7 +238,7 @@ fn validate_and_create_chunking_mode(
 /// - Sentence: Split by sentence boundaries
 /// - Topic: Semantic topic-based chunking
 /// - HTML-aware: Preserve HTML structure
-pub(super) async fn apply_content_chunking(
+pub(crate) async fn apply_content_chunking(
     mut document: ExtractedDoc,
     chunking_config: &ChunkingConfig,
 ) -> ApiResult<ExtractedDoc> {

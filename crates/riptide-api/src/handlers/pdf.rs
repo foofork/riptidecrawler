@@ -3,17 +3,19 @@
 //! This module provides HTTP endpoints for PDF processing with real-time progress streaming.
 //! It integrates with the RipTide PDF processing pipeline and provides both synchronous
 //! and streaming endpoints for different use cases.
+//!
+//! **Architecture:**
+//! - Handlers are thin wrappers around riptide_facade::PdfFacade
+//! - All business logic (validation, decoding, processing) is in the facade
+//! - Handlers only manage HTTP-specific concerns (resource acquisition, response building)
 
 use axum::{
     extract::{Multipart, State},
     response::Response,
     Json,
 };
-use base64::prelude::*;
-use futures_util::stream::Stream;
-use riptide_pdf::types::{ProgressReceiver, ProgressUpdate};
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info, warn};
+use tracing::info;
 
 use crate::{
     errors::ApiError,
@@ -48,25 +50,12 @@ pub struct PdfProcessResponse {
     /// Error message (if failed)
     pub error: Option<String>,
     /// Processing statistics
-    pub stats: ProcessingStats,
+    pub stats: riptide_facade::facades::ProcessingStats,
 }
 
-/// Processing statistics for metrics
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ProcessingStats {
-    /// Total processing time in milliseconds
-    pub processing_time_ms: u64,
-    /// File size in bytes
-    pub file_size: u64,
-    /// Number of pages processed
-    pub pages_processed: u32,
-    /// Memory usage in bytes
-    pub memory_used: u64,
-    /// Pages per second processing rate
-    pub pages_per_second: f64,
-    /// Progress callback overhead in microseconds
-    pub progress_overhead_us: Option<u64>,
-}
+/// Processing statistics (re-exported from facade)
+#[cfg(test)]
+pub type ProcessingStats = riptide_facade::facades::ProcessingStats;
 
 /// Synchronous PDF processing endpoint
 ///
@@ -76,137 +65,37 @@ pub async fn process_pdf(
     State(state): State<AppState>,
     Json(request): Json<PdfProcessRequest>,
 ) -> Result<Json<PdfProcessResponse>, ApiError> {
-    let _start_time = std::time::Instant::now();
-
     // Extract PDF data from request
     let pdf_data = request
         .pdf_data
         .ok_or_else(|| ApiError::validation("PDF data is required"))?;
 
-    let decoded_data = BASE64_STANDARD.decode(&pdf_data).map_err(|e| {
-        state.metrics.record_error(ErrorType::Http);
-        ApiError::validation(format!("Invalid base64 PDF data: {}", e))
-    })?;
-
-    let (pdf_data, filename, _url) = (decoded_data, request.filename, request.url);
-
-    debug!(
-        file_size = pdf_data.len(),
-        filename = filename.as_deref(),
-        "Processing PDF file"
-    );
-
-    // Validate file size
-    if pdf_data.len() > 50 * 1024 * 1024 {
-        // 50MB limit
-        state.metrics.record_error(ErrorType::Http);
-        return Err(ApiError::validation("PDF file too large (max 50MB)"));
-    }
-
     // Acquire PDF processing resources (semaphore + memory tracking)
-    let _pdf_guard = match state.resource_manager.acquire_pdf_resources().await {
-        Ok(ResourceResult::Success(guard)) => guard,
-        Ok(ResourceResult::Timeout) => {
-            state.metrics.record_error(ErrorType::Http);
-            return Err(ApiError::timeout(
-                "Resource acquisition",
-                "Timeout acquiring PDF processing resources",
-            ));
-        }
-        Ok(ResourceResult::ResourceExhausted) => {
-            state.metrics.record_error(ErrorType::Http);
-            return Err(ApiError::internal(
-                "PDF processing resources exhausted, please try again later",
-            ));
-        }
-        Ok(ResourceResult::MemoryPressure) => {
-            state.metrics.record_error(ErrorType::Http);
-            return Err(ApiError::internal(
-                "System under memory pressure, please try again later",
-            ));
-        }
-        Ok(ResourceResult::RateLimited { retry_after }) => {
-            state.metrics.record_error(ErrorType::Http);
-            return Err(ApiError::internal(format!(
-                "Rate limited, retry after {}ms",
-                retry_after.as_millis()
-            )));
-        }
-        Ok(ResourceResult::Error(msg)) => {
-            state.metrics.record_error(ErrorType::Http);
-            return Err(ApiError::internal(format!(
-                "Failed to acquire PDF resources: {}",
-                msg
-            )));
-        }
-        Err(e) => {
-            state.metrics.record_error(ErrorType::Http);
-            return Err(ApiError::internal(format!(
-                "Failed to acquire PDF resources: {}",
-                e
-            )));
-        }
-    };
+    let _pdf_guard = acquire_pdf_resources(&state).await?;
 
-    // Phase 2C.2: Call extraction facade for PDF processing (restored after circular dependency fix)
-    let pdf_options = riptide_facade::facades::PdfExtractionOptions {
+    // Use PdfFacade for all business logic
+    let pdf_facade = riptide_facade::facades::PdfFacade::new();
+    let options = riptide_facade::facades::PdfProcessOptions {
         extract_text: true,
         extract_metadata: true,
         extract_images: false,
         include_page_numbers: true,
+        filename: request.filename,
+        url: request.url,
+        timeout: request.timeout,
     };
 
-    let start_time = std::time::Instant::now();
-
-    match state
-        .extraction_facade
-        .extract_pdf(&pdf_data, pdf_options)
+    match pdf_facade
+        .process_pdf(riptide_facade::facades::PdfInput::Base64(pdf_data), options)
         .await
     {
-        Ok(extracted) => {
-            debug!(
-                text_length = extracted.text.len(),
-                confidence = extracted.confidence,
-                "PDF extraction completed successfully"
-            );
-
-            // Convert ExtractedData to ExtractedDoc
-            let doc = riptide_types::ExtractedDoc {
-                url: extracted.url.clone(),
-                title: extracted.title.clone(),
-                text: extracted.text.clone(),
-                quality_score: Some((extracted.confidence * 100.0) as u8),
-                links: vec![],
-                byline: extracted.metadata.get("author").cloned(),
-                published_iso: extracted.metadata.get("publish_date").cloned(),
-                markdown: extracted.markdown.clone(),
-                media: vec![],
-                language: extracted.metadata.get("language").cloned(),
-                reading_time: None,
-                word_count: Some(extracted.text.split_whitespace().count() as u32),
-                categories: vec![],
-                site_name: None,
-                description: None,
-                html: None,
-                parser_metadata: None,
-            };
-
-            let stats = ProcessingStats {
-                processing_time_ms: start_time.elapsed().as_millis() as u64,
-                file_size: pdf_data.len() as u64,
-                pages_processed: 0, // TODO: Get from PDF processor
-                memory_used: 0,     // TODO: Track memory usage
-                pages_per_second: 0.0,
-                progress_overhead_us: None,
-            };
-
+        Ok(result) => {
             let response = PdfProcessResponse {
                 success: true,
-                document: Some(doc),
+                document: Some(result.document),
                 error: None,
-                stats,
+                stats: result.stats,
             };
-
             Ok(Json(response))
         }
         Err(e) => {
@@ -232,51 +121,31 @@ pub async fn process_pdf_stream(
         .pdf_data
         .ok_or_else(|| ApiError::validation("PDF data is required"))?;
 
-    let decoded_data = BASE64_STANDARD.decode(&pdf_data).map_err(|e| {
-        state.metrics.record_error(ErrorType::Http);
-        ApiError::validation(format!("Invalid base64 PDF data: {}", e))
-    })?;
+    // Use PdfFacade for streaming logic
+    let pdf_facade = riptide_facade::facades::PdfFacade::new();
+    let options = riptide_facade::facades::PdfProcessOptions {
+        extract_text: true,
+        extract_metadata: true,
+        extract_images: false,
+        include_page_numbers: true,
+        filename: request.filename.clone(),
+        url: request.url,
+        timeout: request.timeout,
+    };
 
-    let (pdf_data, filename, _) = (decoded_data, request.filename, request.url);
+    let (progress_receiver, file_size, filename) = pdf_facade
+        .process_pdf_stream(riptide_facade::facades::PdfInput::Base64(pdf_data), options)
+        .await
+        .map_err(|e| {
+            state.metrics.record_error(ErrorType::Http);
+            ApiError::from(e)
+        })?;
 
-    debug!(
-        file_size = pdf_data.len(),
-        filename = filename.as_deref(),
-        "Starting streaming PDF processing"
-    );
-
-    // Validate file size
-    if pdf_data.len() > 50 * 1024 * 1024 {
-        state.metrics.record_error(ErrorType::Http);
-        return Err(ApiError::validation("PDF file too large (max 50MB)"));
-    }
-
-    // For streaming, we still need to use the PDF integration directly for progress tracking
-    // ExtractionFacade doesn't support streaming progress yet
-    let pdf_integration = riptide_pdf::integration::create_pdf_integration_for_pipeline();
-    let (progress_sender, progress_receiver) = pdf_integration.create_progress_channel();
-
-    // Check if file is actually a PDF
-    if !pdf_integration.should_process_as_pdf(None, None, Some(&pdf_data)) {
-        state.metrics.record_error(ErrorType::Http);
-        return Err(ApiError::validation("File does not appear to be a PDF"));
-    }
-
-    // Spawn PDF processing task
-    let pdf_data_clone = pdf_data.clone();
-
-    tokio::spawn(async move {
-        let _ = pdf_integration
-            .process_pdf_bytes_with_progress(&pdf_data_clone, progress_sender)
-            .await;
-    });
-
-    // Create progress stream with enhanced metrics tracking
-    let enhanced_stream = create_enhanced_progress_stream(
+    // Create enhanced progress stream using facade
+    let enhanced_stream = riptide_facade::facades::PdfFacade::create_enhanced_stream(
         progress_receiver,
         start_time,
-        pdf_data.len() as u64,
-        state.clone(),
+        file_size,
     );
 
     // Build streaming response
@@ -285,150 +154,63 @@ pub async fn process_pdf_stream(
             "x-pdf-filename",
             filename.unwrap_or_else(|| "document.pdf".to_string()),
         )
-        .header("x-pdf-size", pdf_data.len().to_string())
+        .header("x-pdf-size", file_size.to_string())
         .build(enhanced_stream);
 
-    info!(
-        file_size = pdf_data.len(),
-        "Started streaming PDF processing"
-    );
+    info!(file_size = file_size, "Started streaming PDF processing");
 
     Ok(response)
 }
 
-/// Enhanced progress stream with metrics collection
-fn create_enhanced_progress_stream(
-    mut progress_receiver: ProgressReceiver,
-    start_time: std::time::Instant,
-    _file_size: u64,
-    state: AppState,
-) -> impl Stream<Item = EnhancedProgressUpdate> {
-    let mut pages_processed = 0u32;
-    let mut progress_callback_start: Option<std::time::Instant> = None;
-    let mut total_progress_overhead_us = 0u64;
-    let mut progress_count = 0u64;
-
-    async_stream::stream! {
-        while let Some(update) = progress_receiver.recv().await {
-            let callback_start = std::time::Instant::now();
-
-            // Track progress callback overhead
-            if let Some(start) = progress_callback_start {
-                total_progress_overhead_us += start.elapsed().as_micros() as u64;
-                progress_count += 1;
-            }
-            progress_callback_start = Some(callback_start);
-
-            // Update metrics based on progress type
-            match &update {
-                ProgressUpdate::Progress(progress) => {
-                    pages_processed = progress.current_page;
-
-                    // Calculate pages per second
-                    let elapsed = start_time.elapsed();
-                    let pages_per_second = if elapsed.as_secs() > 0 {
-                        pages_processed as f64 / elapsed.as_secs_f64()
-                    } else {
-                        0.0
-                    };
-
-                    // Yield enhanced progress update
-                    yield EnhancedProgressUpdate {
-                        update: update.clone(),
-                        pages_per_second,
-                        average_progress_overhead_us: if progress_count > 0 {
-                            Some(total_progress_overhead_us / progress_count)
-                        } else {
-                            None
-                        },
-                        memory_usage_mb: None, // Will be populated by processor if available
-                    };
-                }
-                ProgressUpdate::Completed { .. } => {
-                    // Calculate final statistics
-                    let total_time = start_time.elapsed();
-                    let pages_per_second = if total_time.as_secs() > 0 {
-                        pages_processed as f64 / total_time.as_secs_f64()
-                    } else {
-                        0.0
-                    };
-
-                    // Record final metrics
-                    state.metrics.record_http_request(
-                        "POST",
-                        "/pdf/process-stream",
-                        200,
-                        total_time.as_secs_f64(),
-                    );
-
-                    yield EnhancedProgressUpdate {
-                        update: update.clone(),
-                        pages_per_second,
-                        average_progress_overhead_us: if progress_count > 0 {
-                            Some(total_progress_overhead_us / progress_count)
-                        } else {
-                            None
-                        },
-                        memory_usage_mb: None,
-                    };
-                    break;
-                }
-                ProgressUpdate::Failed { .. } => {
-                    // Record failed processing
-                    state.metrics.record_http_request(
-                        "POST",
-                        "/pdf/process-stream",
-                        500,
-                        start_time.elapsed().as_secs_f64(),
-                    );
-
-                    yield EnhancedProgressUpdate {
-                        update: update.clone(),
-                        pages_per_second: 0.0,
-                        average_progress_overhead_us: if progress_count > 0 {
-                            Some(total_progress_overhead_us / progress_count)
-                        } else {
-                            None
-                        },
-                        memory_usage_mb: None,
-                    };
-                    break;
-                }
-                _ => {
-                    yield EnhancedProgressUpdate {
-                        update: update.clone(),
-                        pages_per_second: 0.0,
-                        average_progress_overhead_us: None,
-                        memory_usage_mb: None,
-                    };
-                }
-            }
+/// Helper function to acquire PDF processing resources
+///
+/// Handles all resource acquisition error cases and converts them to ApiError.
+async fn acquire_pdf_resources(
+    state: &AppState,
+) -> Result<crate::resource_manager::PdfResourceGuard, ApiError> {
+    match state.resource_manager.acquire_pdf_resources().await {
+        Ok(ResourceResult::Success(guard)) => Ok(guard),
+        Ok(ResourceResult::Timeout) => {
+            state.metrics.record_error(ErrorType::Http);
+            Err(ApiError::timeout(
+                "Resource acquisition",
+                "Timeout acquiring PDF processing resources",
+            ))
         }
-
-        // Send final keep-alive to ensure stream completion
-        yield EnhancedProgressUpdate {
-            update: ProgressUpdate::KeepAlive {
-                timestamp: chrono::Utc::now().to_rfc3339(),
-            },
-            pages_per_second: 0.0,
-            average_progress_overhead_us: None,
-            memory_usage_mb: None,
-        };
+        Ok(ResourceResult::ResourceExhausted) => {
+            state.metrics.record_error(ErrorType::Http);
+            Err(ApiError::internal(
+                "PDF processing resources exhausted, please try again later",
+            ))
+        }
+        Ok(ResourceResult::MemoryPressure) => {
+            state.metrics.record_error(ErrorType::Http);
+            Err(ApiError::internal(
+                "System under memory pressure, please try again later",
+            ))
+        }
+        Ok(ResourceResult::RateLimited { retry_after }) => {
+            state.metrics.record_error(ErrorType::Http);
+            Err(ApiError::internal(format!(
+                "Rate limited, retry after {}ms",
+                retry_after.as_millis()
+            )))
+        }
+        Ok(ResourceResult::Error(msg)) => {
+            state.metrics.record_error(ErrorType::Http);
+            Err(ApiError::internal(format!(
+                "Failed to acquire PDF resources: {}",
+                msg
+            )))
+        }
+        Err(e) => {
+            state.metrics.record_error(ErrorType::Http);
+            Err(ApiError::internal(format!(
+                "Failed to acquire PDF resources: {}",
+                e
+            )))
+        }
     }
-}
-
-/// Enhanced progress update with performance metrics
-#[derive(Debug, Clone, Serialize)]
-pub struct EnhancedProgressUpdate {
-    /// The original progress update
-    #[serde(flatten)]
-    pub update: ProgressUpdate,
-    /// Current processing rate (pages per second)
-    pub pages_per_second: f64,
-    /// Average progress callback overhead in microseconds
-    pub average_progress_overhead_us: Option<u64>,
-    /// Current memory usage in MB (if available)
-    pub memory_usage_mb: Option<f64>,
 }
 
 /// Multipart PDF upload and processing endpoint
@@ -440,7 +222,6 @@ pub struct EnhancedProgressUpdate {
 /// - `file`: PDF file (required)
 /// - `filename`: Optional filename override
 /// - `url`: Optional URL to associate with the document
-/// - `stream_progress`: Optional boolean to enable streaming response
 ///
 /// # File Validation
 /// - Maximum file size: 50MB
@@ -448,227 +229,27 @@ pub struct EnhancedProgressUpdate {
 /// - File must have valid PDF structure
 pub async fn upload_pdf(
     State(state): State<AppState>,
-    mut multipart: Multipart,
+    multipart: Multipart,
 ) -> Result<Json<PdfProcessResponse>, ApiError> {
-    let _start_time = std::time::Instant::now();
-
-    let mut pdf_data: Option<Vec<u8>> = None;
-    let mut filename: Option<String> = None;
-    let mut url: Option<String> = None;
-    let mut stream_progress = false;
-
-    // Process multipart fields
-    while let Some(field) = multipart.next_field().await.map_err(|e| {
-        state.metrics.record_error(ErrorType::Http);
-        ApiError::validation(format!("Failed to read multipart field: {}", e))
-    })? {
-        let field_name = field.name().unwrap_or("").to_string();
-
-        match field_name.as_str() {
-            "file" => {
-                let content_type = field.content_type().unwrap_or("").to_string();
-                let field_filename = field.file_name().map(|s| s.to_string());
-
-                // Read file data
-                let data = field.bytes().await.map_err(|e| {
-                    state.metrics.record_error(ErrorType::Http);
-                    ApiError::validation(format!("Failed to read file data: {}", e))
-                })?;
-
-                // Validate file size
-                if data.len() > 50 * 1024 * 1024 {
-                    // 50MB limit
-                    state.metrics.record_error(ErrorType::Http);
-                    return Err(ApiError::validation("PDF file too large (max 50MB)"));
-                }
-
-                if data.is_empty() {
-                    state.metrics.record_error(ErrorType::Http);
-                    return Err(ApiError::validation("Uploaded file is empty"));
-                }
-
-                // Validate PDF magic bytes (%PDF-)
-                if data.len() < 5 || &data[0..4] != b"%PDF" {
-                    state.metrics.record_error(ErrorType::Http);
-                    return Err(ApiError::validation(
-                        "File does not appear to be a valid PDF",
-                    ));
-                }
-
-                // Validate content type if provided
-                if !content_type.is_empty()
-                    && !content_type.contains("application/pdf")
-                    && !content_type.contains("application/octet-stream")
-                {
-                    warn!(
-                        content_type = %content_type,
-                        "Unexpected content type for PDF upload, accepting based on magic bytes"
-                    );
-                }
-
-                pdf_data = Some(data.to_vec());
-                if filename.is_none() {
-                    filename = field_filename;
-                }
-
-                debug!(
-                    file_size = data.len(),
-                    filename = filename.as_deref(),
-                    content_type = %content_type,
-                    "Received PDF file upload"
-                );
-            }
-            "filename" => {
-                let value = field.text().await.map_err(|e| {
-                    ApiError::validation(format!("Failed to read filename field: {}", e))
-                })?;
-                if !value.is_empty() {
-                    filename = Some(value);
-                }
-            }
-            "url" => {
-                let value = field.text().await.map_err(|e| {
-                    ApiError::validation(format!("Failed to read url field: {}", e))
-                })?;
-                if !value.is_empty() {
-                    url = Some(value);
-                }
-            }
-            "stream_progress" => {
-                let value = field.text().await.map_err(|e| {
-                    ApiError::validation(format!("Failed to read stream_progress field: {}", e))
-                })?;
-                stream_progress = value.parse::<bool>().unwrap_or(false);
-            }
-            _ => {
-                debug!(field_name = %field_name, "Ignoring unknown multipart field");
-            }
-        }
-    }
-
-    // Ensure we received a file
-    let pdf_data = pdf_data.ok_or_else(|| {
-        state.metrics.record_error(ErrorType::Http);
-        ApiError::validation("No PDF file provided in 'file' field")
-    })?;
-
-    debug!(
-        file_size = pdf_data.len(),
-        filename = filename.as_deref(),
-        url = url.as_deref(),
-        stream_progress = stream_progress,
-        "Processing uploaded PDF file"
-    );
-
     // Acquire PDF processing resources
-    let _pdf_guard = match state.resource_manager.acquire_pdf_resources().await {
-        Ok(ResourceResult::Success(guard)) => guard,
-        Ok(ResourceResult::Timeout) => {
-            state.metrics.record_error(ErrorType::Http);
-            return Err(ApiError::timeout(
-                "Resource acquisition",
-                "Timeout acquiring PDF processing resources",
-            ));
-        }
-        Ok(ResourceResult::ResourceExhausted) => {
-            state.metrics.record_error(ErrorType::Http);
-            return Err(ApiError::internal(
-                "PDF processing resources exhausted, please try again later",
-            ));
-        }
-        Ok(ResourceResult::MemoryPressure) => {
-            state.metrics.record_error(ErrorType::Http);
-            return Err(ApiError::internal(
-                "System under memory pressure, please try again later",
-            ));
-        }
-        Ok(ResourceResult::RateLimited { retry_after }) => {
-            state.metrics.record_error(ErrorType::Http);
-            return Err(ApiError::internal(format!(
-                "Rate limited, retry after {}ms",
-                retry_after.as_millis()
-            )));
-        }
-        Ok(ResourceResult::Error(msg)) => {
-            state.metrics.record_error(ErrorType::Http);
-            return Err(ApiError::internal(format!(
-                "Failed to acquire PDF resources: {}",
-                msg
-            )));
-        }
-        Err(e) => {
-            state.metrics.record_error(ErrorType::Http);
-            return Err(ApiError::internal(format!(
-                "Failed to acquire PDF resources: {}",
-                e
-            )));
-        }
-    };
+    let _pdf_guard = acquire_pdf_resources(&state).await?;
 
-    // Phase 2C.2: Call extraction facade for PDF processing (restored after circular dependency fix)
-    let pdf_options = riptide_facade::facades::PdfExtractionOptions {
-        extract_text: true,
-        extract_metadata: true,
-        extract_images: false,
-        include_page_numbers: true,
-    };
+    // Use PdfFacade for multipart processing
+    let pdf_facade = riptide_facade::facades::PdfFacade::new();
 
-    let start_time = std::time::Instant::now();
-
-    match state
-        .extraction_facade
-        .extract_pdf(&pdf_data, pdf_options)
-        .await
-    {
-        Ok(extracted) => {
-            debug!(
-                text_length = extracted.text.len(),
-                confidence = extracted.confidence,
-                "PDF extraction completed successfully"
-            );
-
-            // Convert ExtractedData to ExtractedDoc
-            let doc = riptide_types::ExtractedDoc {
-                url: extracted.url.clone(),
-                title: extracted.title.clone(),
-                text: extracted.text.clone(),
-                quality_score: Some((extracted.confidence * 100.0) as u8),
-                links: vec![],
-                byline: extracted.metadata.get("author").cloned(),
-                published_iso: extracted.metadata.get("publish_date").cloned(),
-                markdown: extracted.markdown.clone(),
-                media: vec![],
-                language: extracted.metadata.get("language").cloned(),
-                reading_time: None,
-                word_count: Some(extracted.text.split_whitespace().count() as u32),
-                categories: vec![],
-                site_name: None,
-                description: None,
-                html: None,
-                parser_metadata: None,
-            };
-
-            let stats = ProcessingStats {
-                processing_time_ms: start_time.elapsed().as_millis() as u64,
-                file_size: pdf_data.len() as u64,
-                pages_processed: 0, // TODO: Get from PDF processor
-                memory_used: 0,     // TODO: Track memory usage
-                pages_per_second: 0.0,
-                progress_overhead_us: None,
-            };
-
+    match pdf_facade.process_multipart(multipart).await {
+        Ok(result) => {
             let response = PdfProcessResponse {
                 success: true,
-                document: Some(doc),
+                document: Some(result.document),
                 error: None,
-                stats,
+                stats: result.stats,
             };
-
             Ok(Json(response))
         }
         Err(e) => {
             state.metrics.record_error(ErrorType::Http);
-            tracing::error!(error = %e, "PDF extraction failed");
+            tracing::error!(error = %e, "PDF upload processing failed");
             Err(ApiError::from(e))
         }
     }
@@ -705,6 +286,7 @@ mod tests {
 
     #[test]
     fn test_enhanced_progress_update_serialization() {
+        use riptide_facade::facades::EnhancedProgressUpdate;
         use riptide_pdf::types::*;
 
         let update = EnhancedProgressUpdate {

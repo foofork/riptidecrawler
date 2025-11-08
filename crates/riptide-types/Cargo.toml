@@ -38,6 +38,12 @@ sha2 = "0.10"
 # Secret redaction for secure Debug implementations
 secrecy = "0.10"
 
+# Serde bytes for efficient binary data serialization
+serde_bytes = "0.11"
+
+# Base64 encoding for binary data in JSON
+base64 = "0.22"
+
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }
 

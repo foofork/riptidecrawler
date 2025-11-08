@@ -43,6 +43,10 @@ pub enum RiptideError {
     #[error("Operation timed out")]
     Timeout,
 
+    /// Validation error
+    #[error("Validation error: {0}")]
+    Validation(String),
+
     /// Generic error
     #[error("Riptide error: {0}")]
     Other(#[from] anyhow::Error),
@@ -59,6 +63,14 @@ impl RiptideError {
         Self::Extraction(msg.into())
     }
 
+    /// Create a new fetch error with URL context.
+    pub fn fetch(url: impl Into<String>, msg: impl Into<String>) -> Self {
+        Self::FetchError {
+            url: url.into(),
+            message: msg.into(),
+        }
+    }
+
     /// Create a new spider error.
     pub fn spider(msg: impl Into<String>) -> Self {
         Self::Other(anyhow::anyhow!("Spider error: {}", msg.into()))
@@ -67,5 +79,10 @@ impl RiptideError {
     /// Create a new search error.
     pub fn search(msg: impl Into<String>) -> Self {
         Self::Other(anyhow::anyhow!("Search error: {}", msg.into()))
+    }
+
+    /// Create a new validation error.
+    pub fn validation(msg: impl Into<String>) -> Self {
+        Self::Validation(msg.into())
     }
 }

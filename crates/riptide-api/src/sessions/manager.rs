@@ -281,6 +281,36 @@ impl SessionManager {
         self.storage.list_sessions().await
     }
 
+    /// List sessions with optional filtering by expiration status
+    ///
+    /// # Arguments
+    ///
+    /// * `include_expired` - If false, filters out expired sessions
+    ///
+    /// # Returns
+    ///
+    /// Vector of session IDs matching the filter criteria
+    pub async fn list_sessions_filtered(&self, include_expired: bool) -> Vec<String> {
+        let session_ids = self.storage.list_sessions().await;
+
+        if include_expired {
+            return session_ids;
+        }
+
+        // Filter out expired sessions
+        let mut active_sessions = Vec::new();
+        for session_id in session_ids {
+            if let Ok(Some(session)) = self.get_session(&session_id).await {
+                let now = std::time::SystemTime::now();
+                if session.expires_at > now {
+                    active_sessions.push(session_id);
+                }
+            }
+        }
+
+        active_sessions
+    }
+
     /// Import cookies from a Netscape format cookie file
     pub async fn import_cookies_from_file(
         &self,

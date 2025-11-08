@@ -188,6 +188,25 @@ impl ExtractionFacade {
         })
     }
 
+    /// Extract content from URL (fetch + extract)
+    pub async fn extract_from_url(
+        &self,
+        url: &str,
+        options: HtmlExtractionOptions,
+    ) -> Result<ExtractedData> {
+        // Fetch HTML content using riptide-fetch
+        let fetcher = riptide_fetch::FetchEngine::new()
+            .map_err(|e| RiptideError::fetch(url, e.to_string()))?;
+
+        let html = fetcher
+            .fetch_text(url)
+            .await
+            .map_err(|e| RiptideError::fetch(url, e.to_string()))?;
+
+        // Extract content
+        self.extract_html(&html, url, options).await
+    }
+
     /// Extract content from HTML with options
     pub async fn extract_html(
         &self,

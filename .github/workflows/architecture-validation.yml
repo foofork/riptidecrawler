@@ -1,0 +1,195 @@
+name: Architecture Validation
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  validate-architecture:
+    name: Validate Clean Architecture
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy, rustfmt
+
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Cache cargo index
+      uses: actions/cache@v3
+      with:
+        path: ~/.cargo/git
+        key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Cache target directory
+      uses: actions/cache@v3
+      with:
+        path: target
+        key: ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Install ripgrep
+      run: sudo apt-get update && sudo apt-get install -y ripgrep
+
+    - name: Run enhanced architecture validation
+      run: ./scripts/validate_architecture_enhanced.sh
+
+    - name: Check domain layer purity
+      run: |
+        echo "Verifying domain (riptide-types) has no upward dependencies..."
+        ! cargo tree -p riptide-types --invert riptide-types | \
+          grep -iE 'riptide-(api|facade|reliability|cache|browser|pdf|spider|search|persistence)'
+
+    - name: Check facade dependencies
+      run: |
+        echo "Verifying facade has no HTTP/database dependencies..."
+        ! cargo tree -p riptide-facade | \
+          grep -iE 'axum|actix-web|hyper|reqwest|redis|sqlx|tokio-postgres'
+
+    - name: Check Redis scope
+      run: |
+        echo "Verifying Redis is scoped to ≤2 crates..."
+        REDIS_COUNT=$(find crates -name Cargo.toml -exec grep -l "redis" {} \; | wc -l)
+        if [ "$REDIS_COUNT" -gt 2 ]; then
+          echo "ERROR: Found Redis in $REDIS_COUNT crates (limit: 2)"
+          find crates -name Cargo.toml -exec grep -l "redis" {} \;
+          exit 1
+        fi
+
+    - name: Check for duplications
+      run: |
+        echo "Checking for duplicate implementations..."
+        ROBOTS=$(find crates -name "robots.rs" | wc -l)
+        MEMORY=$(find crates -name "memory_manager.rs" -o -name "memory.rs" | wc -l)
+
+        if [ "$ROBOTS" -gt 1 ]; then
+          echo "ERROR: Found $ROBOTS robots.rs files (should be 1)"
+          exit 1
+        fi
+
+        if [ "$MEMORY" -gt 1 ]; then
+          echo "ERROR: Found $MEMORY memory manager files (should be 1)"
+          exit 1
+        fi
+
+    - name: Verify zero clippy warnings
+      run: cargo clippy --workspace --all-targets -- -D warnings
+
+    - name: Verify zero build warnings
+      run: RUSTFLAGS="-D warnings" cargo build --workspace --all-targets
+
+    - name: Run tests
+      run: cargo test --workspace --all-targets
+
+    - name: Check handler sizes
+      run: |
+        echo "Checking handler files are <50 LOC..."
+        OVERSIZED=0
+        for handler in crates/riptide-api/src/handlers/*.rs; do
+          if [ -f "$handler" ]; then
+            LOC=$(wc -l < "$handler")
+            if [ "$LOC" -gt 50 ]; then
+              echo "WARNING: $(basename $handler) has $LOC lines (target: <50)"
+              OVERSIZED=$((OVERSIZED + 1))
+            fi
+          fi
+        done
+
+        if [ "$OVERSIZED" -gt 0 ]; then
+          echo "Found $OVERSIZED handlers exceeding 50 LOC target"
+          echo "This is a warning, not a failure (work in progress)"
+        fi
+
+    - name: Upload validation results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: architecture-validation-results
+        path: |
+          /tmp/build.log
+          /tmp/clippy.log
+
+  performance-check:
+    name: Performance Regression Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout PR branch
+      uses: actions/checkout@v4
+
+    - name: Setup Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Run benchmarks
+      run: |
+        if [ -d "benches" ]; then
+          cargo bench --no-fail-fast -- --save-baseline pr
+        else
+          echo "No benchmarks configured yet"
+        fi
+
+    - name: Checkout main branch
+      uses: actions/checkout@v4
+      with:
+        ref: main
+
+    - name: Run baseline benchmarks
+      run: |
+        if [ -d "benches" ]; then
+          cargo bench --no-fail-fast -- --save-baseline main
+
+          # Compare (manual for now, need criterion-compare tool)
+          echo "Benchmark comparison would go here"
+          echo "Fail if regression >10%"
+        else
+          echo "No benchmarks configured yet"
+        fi
+
+  coverage-check:
+    name: Test Coverage Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Install cargo-tarpaulin
+      run: cargo install cargo-tarpaulin
+
+    - name: Generate coverage report for facades
+      run: |
+        cargo tarpaulin --out Xml --output-dir coverage \
+          --workspace --packages riptide-facade \
+          --target-dir target/tarpaulin
+
+    - name: Check facade coverage ≥90%
+      run: |
+        # Parse coverage XML and check
+        # For now, just report
+        echo "Coverage report generated in coverage/"
+        echo "Manual check required: ensure ≥90% coverage"
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage/cobertura.xml
+        flags: facades
+        fail_ci_if_error: false

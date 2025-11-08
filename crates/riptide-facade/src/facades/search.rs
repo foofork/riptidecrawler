@@ -186,6 +186,74 @@ impl SearchFacade {
         })
     }
 
+    /// Perform a web search with validation and business rules.
+    ///
+    /// This method provides the main search functionality with:
+    /// - Query validation (non-empty after trimming)
+    /// - Limit clamping (1-50 results)
+    /// - Sensible defaults for country and locale
+    ///
+    /// # Parameters
+    ///
+    /// * `query` - The search query string
+    /// * `limit` - Maximum number of results (clamped to 1-50)
+    /// * `country` - ISO country code for localization
+    /// * `locale` - Language locale
+    ///
+    /// # Returns
+    ///
+    /// A vector of search results ordered by relevance (rank).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Query is empty or only whitespace
+    /// - The search request fails
+    /// - Network issues occur
+    /// - API rate limits are exceeded
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use riptide_facade::SearchFacade;
+    /// use riptide_search::SearchBackend;
+    ///
+    /// # async fn example() -> anyhow::Result<()> {
+    /// let facade = SearchFacade::new(SearchBackend::Serper).await?;
+    /// let results = facade.search_validated(
+    ///     "rust async programming",
+    ///     20,
+    ///     "us",
+    ///     "en"
+    /// ).await?;
+    ///
+    /// for hit in results {
+    ///     println!("#{}: {}", hit.rank, hit.url);
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn search_validated(
+        &self,
+        query: &str,
+        limit: usize,
+        country: &str,
+        locale: &str,
+    ) -> Result<Vec<SearchHit>> {
+        // Validate query (trim, not empty)
+        let query = query.trim();
+        if query.is_empty() {
+            return Err(anyhow::anyhow!("Query cannot be empty"));
+        }
+
+        // Clamp limit (business rule: 1-50)
+        let limit = limit.clamp(1, 50) as u32;
+
+        // Execute search
+        self.search_with_options(query, limit, country, locale)
+            .await
+    }
+
     /// Perform a web search with default options.
     ///
     /// This is a convenience method that uses sensible defaults:

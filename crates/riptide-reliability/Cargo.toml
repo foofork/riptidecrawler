@@ -15,6 +15,7 @@ riptide-fetch = { path = "../riptide-fetch" }
 riptide-events = { path = "../riptide-events", optional = true }
 riptide-monitoring = { path = "../riptide-monitoring", optional = true }
 riptide-pool = { path = "../riptide-pool", optional = true }
+riptide-utils = { path = "../riptide-utils" }
 
 # Core dependencies
 tokio = { workspace = true }

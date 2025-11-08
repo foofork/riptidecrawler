@@ -6,6 +6,35 @@ pub use riptide_types::config::CrawlOptions;
 pub use riptide_types::ExtractedDoc;
 use serde::{Deserialize, Serialize};
 
+/// HTTP method for API requests (transport layer).
+/// This type belongs in the API/handler layer, NOT in facades.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum HttpMethod {
+    Get,
+    Post,
+    Put,
+    Delete,
+    Patch,
+    Head,
+    Options,
+}
+
+// Re-export FetchOperation from facade for conversion
+pub use riptide_facade::FetchOperation;
+
+/// Conversion from domain FetchOperation to HTTP method.
+/// This allows handlers to translate domain operations into HTTP.
+impl From<FetchOperation> for HttpMethod {
+    fn from(op: FetchOperation) -> Self {
+        match op {
+            FetchOperation::Retrieve => HttpMethod::Get,
+            FetchOperation::Submit => HttpMethod::Post,
+            FetchOperation::Update => HttpMethod::Put,
+            FetchOperation::Remove => HttpMethod::Delete,
+        }
+    }
+}
+
 /// Request body for crawling multiple URLs
 #[derive(Deserialize, Debug, Clone)]
 pub struct CrawlBody {

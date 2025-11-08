@@ -1,6 +1,7 @@
 pub mod config;
 pub mod dto;
 pub mod errors;
+pub mod facades; // Sprint 3.2: Handler business logic facades
 pub mod handlers;
 pub mod health;
 #[cfg(all(feature = "jemalloc", not(target_env = "msvc")))]

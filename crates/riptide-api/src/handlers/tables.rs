@@ -11,15 +11,11 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use riptide_extraction::table_extraction::{
-    extract_tables_advanced, AdvancedTableData, TableExtractionConfig,
-};
+use riptide_extraction::table_extraction::{extract_tables_advanced, TableExtractionConfig};
+use riptide_facade::facades::{FacadeTableExtractionOptions, TableFacade};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::Arc;
 use std::time::Instant;
 use tracing::{debug, info};
-use uuid::Uuid;
 
 /// Request body for table extraction
 #[derive(Deserialize, Debug, Clone)]
@@ -120,16 +116,11 @@ pub struct ExportQuery {
     pub include_metadata: bool,
 }
 
-/// In-memory storage for extracted tables (temporary)
-/// In production, this would be replaced with Redis or database storage
-static TABLE_STORAGE: std::sync::OnceLock<
-    Arc<tokio::sync::Mutex<HashMap<String, AdvancedTableData>>>,
-> = std::sync::OnceLock::new();
+/// Global table facade for table operations
+static TABLE_FACADE: std::sync::OnceLock<TableFacade> = std::sync::OnceLock::new();
 
-fn get_table_storage() -> Arc<tokio::sync::Mutex<HashMap<String, AdvancedTableData>>> {
-    TABLE_STORAGE
-        .get_or_init(|| Arc::new(tokio::sync::Mutex::new(HashMap::new())))
-        .clone()
+fn get_table_facade() -> &'static TableFacade {
+    TABLE_FACADE.get_or_init(TableFacade::new)
 }
 
 /// Extract tables from HTML content
@@ -197,65 +188,34 @@ pub async fn extract_tables(
 
     info!(tables_found = tables.len(), "Table extraction completed");
 
-    // Store tables temporarily for export and create summaries
-    let storage = get_table_storage();
-    let mut storage_guard = storage.lock().await;
-    let mut table_summaries = Vec::new();
+    // Use facade to store tables and create summaries
+    let facade = get_table_facade();
+    let facade_options = FacadeTableExtractionOptions {
+        include_headers: options.include_headers,
+        detect_data_types: options.detect_data_types,
+    };
 
-    for table in tables {
-        // Generate unique ID for this extraction session
-        let export_id = Uuid::new_v4().to_string();
+    let table_summaries = facade.store_and_summarize(tables, &facade_options).await;
 
-        // Get sample data and headers based on options
-        let (headers, sample_data) = if options.include_headers {
-            let headers: Vec<String> = table
-                .headers
-                .main
-                .iter()
-                .map(|cell| cell.content.clone())
-                .collect();
-
-            let sample_data: Vec<Vec<String>> = table
-                .rows
-                .iter()
-                .take(3)
-                .map(|row| row.cells.iter().map(|cell| cell.content.clone()).collect())
-                .collect();
-
-            (headers, sample_data)
-        } else {
-            (vec![], vec![])
-        };
-
-        // Detect data types if enabled
-        let data_types = if options.detect_data_types {
-            detect_column_types(&table)
-        } else {
-            vec![]
-        };
-
-        let summary = TableSummary {
-            id: export_id.clone(),
-            rows: table.structure.total_rows,
-            columns: table.structure.total_columns,
-            headers: headers.clone(),
-            data: sample_data,
+    // Convert facade summaries to API summaries
+    let table_summaries: Vec<TableSummary> = table_summaries
+        .into_iter()
+        .map(|s| TableSummary {
+            id: s.id,
+            rows: s.rows,
+            columns: s.columns,
+            headers: s.headers,
+            data: s.data,
             metadata: TableMetadata {
-                has_headers: !headers.is_empty(),
-                data_types,
-                has_complex_structure: table.structure.has_complex_structure,
-                caption: table.caption.clone(),
-                css_classes: table.metadata.classes.clone(),
-                html_id: table.metadata.id.clone(),
+                has_headers: s.metadata.has_headers,
+                data_types: s.metadata.data_types,
+                has_complex_structure: s.metadata.has_complex_structure,
+                caption: s.metadata.caption,
+                css_classes: s.metadata.css_classes,
+                html_id: s.metadata.html_id,
             },
-        };
-
-        // Store the full table data for export
-        storage_guard.insert(export_id, table);
-        table_summaries.push(summary);
-    }
-
-    drop(storage_guard);
+        })
+        .collect();
 
     let processing_time_ms = start_time.elapsed().as_millis() as u64;
     let total_tables = table_summaries.len();
@@ -315,16 +275,11 @@ pub async fn export_table(
         ));
     }
 
-    // Retrieve table from storage
-    let storage = get_table_storage();
-    let storage_guard = storage.lock().await;
-    let table = storage_guard
-        .get(&table_id)
-        .ok_or_else(|| {
-            ApiError::not_found(format!("Table with ID '{}' not found or expired", table_id))
-        })?
-        .clone();
-    drop(storage_guard);
+    // Retrieve table from facade
+    let facade = get_table_facade();
+    let table = facade.get_table(&table_id).await.ok_or_else(|| {
+        ApiError::not_found(format!("Table with ID '{}' not found or expired", table_id))
+    })?;
 
     debug!(
         table_id = %table_id,
@@ -386,104 +341,6 @@ pub async fn export_table(
         .into_response())
 }
 
-/// Detect column data types from table data (simplified implementation)
-fn detect_column_types(table: &AdvancedTableData) -> Vec<String> {
-    let mut column_types = Vec::new();
-
-    if table.rows.is_empty() {
-        return column_types;
-    }
-
-    let num_columns = table.structure.total_columns;
-
-    for col_index in 0..num_columns {
-        let mut sample_values = Vec::new();
-
-        // Collect sample values from this column
-        for row in table.rows.iter().take(10) {
-            // Sample first 10 rows
-            if let Some(cell) = row.cells.get(col_index) {
-                sample_values.push(&cell.content);
-            }
-        }
-
-        // Detect type based on sample values
-        let detected_type = detect_type_from_samples(&sample_values);
-        column_types.push(detected_type);
-    }
-
-    column_types
-}
-
-/// Detect data type from sample values
-fn detect_type_from_samples(samples: &[&String]) -> String {
-    if samples.is_empty() {
-        return "unknown".to_string();
-    }
-
-    let mut numeric_count = 0;
-    let mut date_count = 0;
-    let mut boolean_count = 0;
-
-    for &sample in samples {
-        let trimmed = sample.trim();
-
-        if trimmed.is_empty() {
-            continue;
-        }
-
-        // Check for boolean
-        if ["true", "false", "yes", "no", "1", "0"].contains(&trimmed.to_lowercase().as_str()) {
-            boolean_count += 1;
-        }
-        // Check for numeric (integer or float)
-        else if trimmed.parse::<f64>().is_ok() {
-            numeric_count += 1;
-        }
-        // Check for date-like patterns (simplified)
-        else if is_date_like(trimmed) {
-            date_count += 1;
-        }
-    }
-
-    let total_samples = samples.len();
-    let threshold = (total_samples as f64 * 0.7) as usize; // 70% threshold
-
-    if numeric_count >= threshold {
-        "number"
-    } else if date_count >= threshold {
-        "date"
-    } else if boolean_count >= threshold {
-        "boolean"
-    } else {
-        "string"
-    }
-    .to_string()
-}
-
-/// Simple date detection (basic patterns)
-fn is_date_like(text: &str) -> bool {
-    // Very basic date pattern detection
-    use regex::Regex;
-
-    let date_patterns = [
-        r"\d{4}-\d{2}-\d{2}",       // YYYY-MM-DD
-        r"\d{2}/\d{2}/\d{4}",       // MM/DD/YYYY
-        r"\d{2}-\d{2}-\d{4}",       // MM-DD-YYYY
-        r"\d{1,2}/\d{1,2}/\d{2,4}", // M/D/YY or MM/DD/YYYY
-    ];
-
-    for pattern in &date_patterns {
-        if let Ok(regex) = Regex::new(pattern) {
-            if regex.is_match(text) {
-                return true;
-            }
-        }
-    }
-
-    false
-}
-
 impl Default for TableExtractionOptions {
     fn default() -> Self {
         Self {
@@ -495,47 +352,5 @@ impl Default for TableExtractionOptions {
             min_size: None,
             headers_only: false,
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_detect_type_from_samples() {
-        // Test numeric detection
-        let s1 = "123".to_string();
-        let s2 = "45.6".to_string();
-        let s3 = "0".to_string();
-        let numeric_samples = vec![&s1, &s2, &s3];
-        assert_eq!(detect_type_from_samples(&numeric_samples), "number");
-
-        // Test string detection
-        let s4 = "hello".to_string();
-        let s5 = "world".to_string();
-        let s6 = "test".to_string();
-        let string_samples = vec![&s4, &s5, &s6];
-        assert_eq!(detect_type_from_samples(&string_samples), "string");
-
-        // Test boolean detection
-        let s7 = "true".to_string();
-        let s8 = "false".to_string();
-        let s9 = "yes".to_string();
-        let boolean_samples = vec![&s7, &s8, &s9];
-        assert_eq!(detect_type_from_samples(&boolean_samples), "boolean");
-
-        // Test empty samples
-        let empty_samples = vec![];
-        assert_eq!(detect_type_from_samples(&empty_samples), "unknown");
-    }
-
-    #[test]
-    fn test_is_date_like() {
-        assert!(is_date_like("2023-12-25"));
-        assert!(is_date_like("12/25/2023"));
-        assert!(is_date_like("25-12-2023"));
-        assert!(!is_date_like("hello world"));
-        assert!(!is_date_like("123"));
     }
 }

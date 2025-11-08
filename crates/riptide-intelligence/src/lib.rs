@@ -12,6 +12,10 @@ pub mod background_processor;
 // Sprint 2: Domain profiling intelligence module
 pub mod domain_profiling;
 
+// Sprint 3.3: Table and content analysis modules
+pub mod content_analyzer;
+pub mod table_analyzer;
+
 pub mod circuit_breaker;
 pub mod config;
 pub mod dashboard;
@@ -45,6 +49,7 @@ pub use config::{
     ConfigLoader, CostTrackingConfig, IntelligenceConfig, MetricsConfig, ProviderDiscovery,
     RuntimeConfig, TenantIsolationConfig, TenantLimits,
 };
+pub use content_analyzer::ContentAnalyzer;
 pub use dashboard::{
     Alert, DashboardGenerator, DetailedCostAnalysis, EnhancedLlmOpsDashboard,
     ProviderCostBreakdown, Recommendation, TenantCostBreakdown,
@@ -88,6 +93,7 @@ pub use runtime_switch::{
     GradualRolloutConfig, RuntimeSwitchConfig, RuntimeSwitchManager, SwitchState,
 };
 pub use smart_retry::{RetryConfig, Retryable, SmartRetry, SmartRetryStrategy};
+pub use table_analyzer::TableAnalyzer;
 pub use tenant_isolation::{RequestPermit, TenantIsolationManager, TenantState, TenantStatus};
 pub use timeout::{with_custom_timeout, with_timeout, TimeoutWrapper};
 

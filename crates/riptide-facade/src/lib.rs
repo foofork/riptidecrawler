@@ -38,6 +38,9 @@ pub mod facades;
 pub mod prelude;
 pub mod traits;
 
+// Re-export important domain types for API layer
+pub use facades::pipeline::FetchOperation;
+
 // Re-export core types
 pub use builder::RiptideBuilder;
 pub use config::RiptideConfig;

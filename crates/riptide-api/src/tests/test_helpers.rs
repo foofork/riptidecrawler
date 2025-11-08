@@ -71,14 +71,7 @@ impl AppStateBuilder {
             .health_checker
             .unwrap_or_else(|| Arc::new(HealthChecker::new()));
 
-        AppState::new_with_telemetry_and_api_config(
-            config,
-            api_config,
-            metrics,
-            health_checker,
-            None,
-        )
-        .await
+        AppState::new_base(config, api_config, metrics, health_checker, None).await
     }
 }
 

@@ -260,12 +260,15 @@ impl PipelineFacade {
 
     /// Create a PDF extraction pipeline.
     pub async fn pdf_extraction_pipeline(&self, url: &str) -> RiptideResult<Pipeline> {
+        let mut metadata = HashMap::new();
+        metadata.insert("Accept".to_string(), "application/pdf".to_string());
+
         self.builder()
             .add_stage(PipelineStage::Fetch {
                 url: url.to_string(),
                 options: FetchOptions {
-                    method: HttpMethod::Get,
-                    headers: vec![("Accept".to_string(), "application/pdf".to_string())],
+                    operation: FetchOperation::Retrieve,
+                    metadata,
                     timeout: Duration::from_secs(60),
                 },
             })
@@ -421,27 +424,40 @@ impl PipelineStage {
 }
 
 /// Options for fetch stage.
+/// Uses domain types instead of HTTP-specific types.
 #[derive(Debug, Clone)]
 pub struct FetchOptions {
-    pub method: HttpMethod,
-    pub headers: Vec<(String, String)>,
+    /// Operation type (domain-level)
+    pub operation: FetchOperation,
+    /// Generic metadata (not HTTP headers)
+    pub metadata: HashMap<String, String>,
+    /// Operation timeout
     pub timeout: Duration,
 }
 
 impl Default for FetchOptions {
     fn default() -> Self {
         Self {
-            method: HttpMethod::Get,
-            headers: Vec::new(),
+            operation: FetchOperation::Retrieve,
+            metadata: HashMap::new(),
             timeout: Duration::from_secs(30),
         }
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum HttpMethod {
-    Get,
-    Post,
+/// Domain operation type for fetch operations.
+/// This is facade-layer terminology, agnostic to HTTP protocol.
+/// Conversion to HTTP methods happens in the handler/API layer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FetchOperation {
+    /// Retrieve data (maps to HTTP GET in handlers)
+    Retrieve,
+    /// Submit data (maps to HTTP POST in handlers)
+    Submit,
+    /// Update data (maps to HTTP PUT in handlers)
+    Update,
+    /// Remove data (maps to HTTP DELETE in handlers)
+    Remove,
 }
 
 /// Strategy for extraction stage.

@@ -12,6 +12,9 @@ license = "MIT OR Apache-2.0"
 riptide-reliability = { path = "../riptide-reliability" }
 riptide-types = { path = "../riptide-types" }
 riptide-events = { path = "../riptide-events" }
+# Sprint 3.3: Intelligence service dependencies
+riptide-extraction = { path = "../riptide-extraction", default-features = false, features = ["native-parser"] }
+riptide-headless = { path = "../riptide-headless" }
 
 # Workspace dependencies
 tokio = { workspace = true }
@@ -23,6 +26,7 @@ tracing = { workspace = true }
 uuid = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
+regex = { workspace = true }
 
 # Specific versions for intelligence features
 dashmap = { workspace = true }
