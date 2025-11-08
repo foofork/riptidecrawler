@@ -17,6 +17,7 @@ pub mod extracted;
 pub mod extractors;
 pub mod http_types;
 pub mod pipeline;
+pub mod ports; // Port interfaces for dependency inversion
 pub mod reliability;
 pub mod secrets;
 pub mod traits;

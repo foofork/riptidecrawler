@@ -15,7 +15,7 @@ use riptide_browser::launcher::{HeadlessLauncher, LaunchSession, LauncherConfig}
 use riptide_extraction::native_parser::{NativeHtmlParser, ParserConfig};
 use riptide_fetch::ReliableHttpClient;
 use riptide_stealth::StealthPreset;
-use riptide_utils::circuit_breaker::{CircuitBreaker, CircuitBreakerConfig};
+use riptide_types::reliability::circuit::{CircuitBreaker, Config as CircuitConfig, RealClock};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
@@ -242,12 +242,12 @@ impl BrowserFacade {
             .map_err(|e| RiptideError::config(format!("Failed to initialize launcher: {}", e)))?;
 
         // Initialize circuit breaker with 3 failure threshold
-        let circuit_config = CircuitBreakerConfig {
+        let circuit_config = CircuitConfig {
             failure_threshold: 3,
-            timeout: Duration::from_secs(30),
-            success_threshold: 2,
+            open_cooldown_ms: 30_000, // 30 seconds
+            half_open_max_in_flight: 2,
         };
-        let circuit_breaker = CircuitBreaker::with_config(circuit_config);
+        let circuit_breaker = CircuitBreaker::new(circuit_config, Arc::new(RealClock));
 
         // Initialize native parser for fallback
         let native_parser = NativeHtmlParser::with_config(ParserConfig {
@@ -270,7 +270,7 @@ impl BrowserFacade {
         Ok(Self {
             config: Arc::new(config),
             launcher: Arc::new(launcher),
-            circuit_breaker: Arc::new(circuit_breaker),
+            circuit_breaker,
             native_parser: Arc::new(native_parser),
             http_client: Arc::new(http_client),
         })
@@ -555,14 +555,18 @@ impl BrowserFacade {
     /// # }
     /// ```
     pub async fn render_with_timeout(&self, url: &str) -> RiptideResult<String> {
-        // Check circuit breaker first
-        if !self.circuit_breaker.is_available().await {
-            warn!(
-                url = %url,
-                "Circuit breaker open, falling back to static HTTP fetch"
-            );
-            return self.fallback_static_fetch(url).await;
-        }
+        // Check circuit breaker first - try to acquire permit
+        let _permit = match self.circuit_breaker.try_acquire() {
+            Ok(permit) => permit,
+            Err(_) => {
+                // Circuit is open or saturated, fallback immediately
+                warn!(
+                    url = %url,
+                    "Circuit breaker open/saturated, falling back to static HTTP fetch"
+                );
+                return self.fallback_static_fetch(url).await;
+            }
+        };
 
         // Hard timeout: 3s max for headless browser
         let timeout_duration = Duration::from_secs(3);
@@ -570,7 +574,7 @@ impl BrowserFacade {
         match tokio::time::timeout(timeout_duration, self.try_browser_render(url)).await {
             Ok(Ok(result)) => {
                 // Success - record with circuit breaker
-                self.circuit_breaker.record_success().await;
+                self.circuit_breaker.on_success();
                 Ok(result)
             }
             Ok(Err(e)) => {
@@ -580,7 +584,7 @@ impl BrowserFacade {
                     error = %e,
                     "Browser render failed, falling back to static fetch"
                 );
-                self.circuit_breaker.record_failure().await;
+                self.circuit_breaker.on_failure();
                 self.fallback_static_fetch(url).await
             }
             Err(_timeout) => {
@@ -590,7 +594,7 @@ impl BrowserFacade {
                     timeout_ms = %timeout_duration.as_millis(),
                     "Browser render timeout, falling back to static fetch"
                 );
-                self.circuit_breaker.record_failure().await;
+                self.circuit_breaker.on_failure();
                 self.fallback_static_fetch(url).await
             }
         }
@@ -1115,51 +1119,85 @@ mod tests {
     // W1.2: Test circuit breaker initialization
     #[tokio::test]
     async fn test_circuit_breaker_initialized() {
+        use riptide_types::reliability::circuit::State;
+
         let config = RiptideConfig::default();
         let facade = BrowserFacade::new(config).await.unwrap();
 
-        // Circuit should be available initially
+        // Circuit should be in Closed state initially (available)
+        assert_eq!(
+            facade.circuit_breaker.state(),
+            State::Closed,
+            "Circuit breaker should be in Closed state initially"
+        );
+
+        // Should be able to acquire permits
         assert!(
-            facade.circuit_breaker.is_available().await,
-            "Circuit breaker should be available initially"
+            facade.circuit_breaker.try_acquire().is_ok(),
+            "Circuit breaker should allow operations initially"
         );
     }
 
     // W1.2: Test circuit breaker opens after failures
     #[tokio::test]
     async fn test_circuit_breaker_opens_after_failures() {
+        use riptide_types::reliability::circuit::State;
+
         let config = RiptideConfig::default();
         let facade = BrowserFacade::new(config).await.unwrap();
 
-        // Record 3 failures (threshold)
-        facade.circuit_breaker.record_failure().await;
-        facade.circuit_breaker.record_failure().await;
-        facade.circuit_breaker.record_failure().await;
+        // Record 3 failures (threshold is 3 in the facade initialization)
+        facade.circuit_breaker.on_failure();
+        facade.circuit_breaker.on_failure();
+        facade.circuit_breaker.on_failure();
 
         // Circuit should be open
+        assert_eq!(
+            facade.circuit_breaker.state(),
+            State::Open,
+            "Circuit breaker should be in Open state after threshold failures"
+        );
+
+        // Should reject operations
         assert!(
-            !facade.circuit_breaker.is_available().await,
-            "Circuit breaker should be open after 3 failures"
+            facade.circuit_breaker.try_acquire().is_err(),
+            "Circuit breaker should reject operations when open"
         );
     }
 
     // W1.2: Test circuit breaker success recording
     #[tokio::test]
     async fn test_circuit_breaker_success_recording() {
+        use riptide_types::reliability::circuit::State;
+
         let config = RiptideConfig::default();
         let facade = BrowserFacade::new(config).await.unwrap();
 
-        // Record some failures
-        facade.circuit_breaker.record_failure().await;
-        facade.circuit_breaker.record_failure().await;
+        // Record some failures (not enough to open circuit)
+        facade.circuit_breaker.on_failure();
+        facade.circuit_breaker.on_failure();
 
         // Record success - should reset failure count
-        facade.circuit_breaker.record_success().await;
+        facade.circuit_breaker.on_success();
 
-        // Circuit should still be available
+        // Circuit should still be in Closed state
+        assert_eq!(
+            facade.circuit_breaker.state(),
+            State::Closed,
+            "Circuit should be in Closed state after success"
+        );
+
+        // Should still accept operations
         assert!(
-            facade.circuit_breaker.is_available().await,
-            "Circuit should be available after success"
+            facade.circuit_breaker.try_acquire().is_ok(),
+            "Circuit should allow operations after success"
+        );
+
+        // Failure count should be reset to 0
+        assert_eq!(
+            facade.circuit_breaker.failure_count(),
+            0,
+            "Failure count should be reset to 0 after success"
         );
     }
 
@@ -1201,28 +1239,25 @@ mod tests {
     // W1.2: Test circuit breaker state transitions
     #[tokio::test]
     async fn test_circuit_breaker_state_transitions() {
-        use riptide_utils::circuit_breaker::CircuitState;
+        use riptide_types::reliability::circuit::State;
 
         let config = RiptideConfig::default();
         let facade = BrowserFacade::new(config).await.unwrap();
 
         // Initial state: Closed
-        let state = facade.circuit_breaker.get_state().await;
-        assert_eq!(
-            state,
-            CircuitState::Closed,
-            "Initial state should be Closed"
-        );
+        let state = facade.circuit_breaker.state();
+        assert_eq!(state, State::Closed, "Initial state should be Closed");
 
         // After failures: Open
-        facade.circuit_breaker.record_failure().await;
-        facade.circuit_breaker.record_failure().await;
-        facade.circuit_breaker.record_failure().await;
+        facade.circuit_breaker.on_failure();
+        facade.circuit_breaker.on_failure();
+        facade.circuit_breaker.on_failure();
 
-        let state = facade.circuit_breaker.get_state().await;
-        assert!(
-            matches!(state, CircuitState::Open { .. }),
-            "State should be Open after failures"
+        let state = facade.circuit_breaker.state();
+        assert_eq!(
+            state,
+            State::Open,
+            "State should be Open after threshold failures"
         );
     }
 
@@ -1247,52 +1282,52 @@ mod tests {
     }
 
     // W1.2: Test circuit breaker failure count tracking
-    #[tokio::test]
-    async fn test_circuit_breaker_failure_count() {
-        let config = RiptideConfig::default();
-        let facade = BrowserFacade::new(config).await.unwrap();
 
-        // Initial count should be 0
-        assert_eq!(
-            facade.circuit_breaker.get_failure_count().await,
-            0,
-            "Initial failure count should be 0"
-        );
-
-        // Record failures
-        facade.circuit_breaker.record_failure().await;
-        facade.circuit_breaker.record_failure().await;
-
-        assert_eq!(
-            facade.circuit_breaker.get_failure_count().await,
-            2,
-            "Failure count should be 2"
-        );
-    }
-
-    // W1.2: Test circuit breaker reset
+    // W1.2: Test circuit breaker automatic recovery via HalfOpen state
     #[tokio::test]
     async fn test_circuit_breaker_reset() {
-        use riptide_utils::circuit_breaker::CircuitState;
+        use riptide_types::reliability::circuit::{Config as CircuitConfig, RealClock, State};
+        use std::sync::Arc;
 
-        let config = RiptideConfig::default();
-        let facade = BrowserFacade::new(config).await.unwrap();
+        // Create a circuit with very short cooldown for testing
+        let circuit_config = CircuitConfig {
+            failure_threshold: 3,
+            open_cooldown_ms: 1, // 1ms cooldown for quick testing
+            half_open_max_in_flight: 2,
+        };
+        let circuit = CircuitBreaker::new(circuit_config, Arc::new(RealClock));
 
         // Open the circuit
-        facade.circuit_breaker.record_failure().await;
-        facade.circuit_breaker.record_failure().await;
-        facade.circuit_breaker.record_failure().await;
+        circuit.on_failure();
+        circuit.on_failure();
+        circuit.on_failure();
 
-        assert!(!facade.circuit_breaker.is_available().await);
+        assert_eq!(circuit.state(), State::Open, "Circuit should be Open");
 
-        // Reset
-        facade.circuit_breaker.reset().await;
+        // Wait for cooldown period to expire
+        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+
+        // Try to acquire - should transition to HalfOpen
+        let result = circuit.try_acquire();
+        assert!(
+            result.is_ok(),
+            "Should transition to HalfOpen after cooldown"
+        );
+        assert_eq!(
+            circuit.state(),
+            State::HalfOpen,
+            "Circuit should be HalfOpen"
+        );
+
+        // Record success - should close the circuit
+        circuit.on_success();
 
         // Should be closed again
-        assert!(facade.circuit_breaker.is_available().await);
         assert_eq!(
-            facade.circuit_breaker.get_state().await,
-            CircuitState::Closed
+            circuit.state(),
+            State::Closed,
+            "Circuit should be Closed after success in HalfOpen"
         );
+        assert_eq!(circuit.failure_count(), 0, "Failure count should be reset");
     }
 }

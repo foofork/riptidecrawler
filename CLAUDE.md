@@ -2,7 +2,7 @@
 
 ## Before ANYTHING:
 ```bash
-# Check disk (MUST have >5GB free)
+# Check disk (MUST have >15GB free, avoid full workspace builds until the end of a phase and ensure maximum space is available before running full build.)
 df -h / | head -2
 
 # Clean if needed

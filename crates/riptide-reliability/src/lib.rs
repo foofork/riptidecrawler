@@ -139,8 +139,9 @@
 //! manager.record_success("https://example.com/page", start.elapsed()).await;
 //! ```
 
-pub mod circuit;
-pub mod circuit_breaker;
+// Circuit breaker canonical implementation is in riptide-types::reliability::circuit
+// This crate provides pool-specific wrapper in circuit_breaker_pool
+pub mod circuit_breaker_pool;
 pub mod engine_selection;
 pub mod gate;
 pub mod http_client;
@@ -148,8 +149,11 @@ pub mod http_client;
 pub mod reliability;
 pub mod timeout;
 
-// Re-export circuit breaker from riptide-types (now the canonical location)
-// CircuitBreaker has moved to riptide-types to avoid circular dependencies
+// Re-export canonical circuit breaker from riptide-types
+// NOTE: Circuit breaker stays in riptide-types to avoid circular dependency:
+//   - riptide-fetch needs circuit breakers
+//   - riptide-reliability depends on riptide-fetch
+//   - Therefore: canonical circuit must be in shared base crate (riptide-types)
 pub use riptide_types::reliability::circuit::{
     guarded_call, CircuitBreaker, Clock, Config as CircuitConfig, RealClock, State,
 };
@@ -158,7 +162,7 @@ pub use riptide_types::reliability::circuit::{
 // These traits break circular dependencies via dependency injection
 pub use riptide_types::extractors::{HtmlParser, WasmExtractor};
 
-// Backward compatibility aliases
+// Backward compatibility aliases for circuit breaker
 pub use guarded_call as types_guarded_call;
 pub use CircuitBreaker as AtomicCircuitBreaker;
 pub use CircuitBreaker as TypesCircuitBreaker;
@@ -167,7 +171,7 @@ pub use Clock as TypesClock;
 pub use RealClock as TypesRealClock;
 pub use State as TypesCircuitState;
 
-pub use circuit_breaker::{
+pub use circuit_breaker_pool::{
     record_extraction_result, CircuitBreakerState, ExtractionResult as CircuitExtractionResult,
 };
 pub use engine_selection::{

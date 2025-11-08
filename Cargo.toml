@@ -24,7 +24,6 @@ members = [
   "crates/riptide-browser-abstraction",  # Phase 1 Week 3 - Browser abstraction layer
   "crates/riptide-facade",  # P1-C3: High-level facade API
   "wasm/riptide-extractor-wasm", "crates/riptide-test-utils", "crates/riptide-config", "crates/riptide-cache", "crates/riptide-reliability", "crates/riptide-browser",
-  "cli-spec",  # CLI specification parser and validator
 ]
 resolver = "2"
 

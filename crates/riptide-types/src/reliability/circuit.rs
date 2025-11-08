@@ -1,3 +1,35 @@
+//! Canonical lock-free circuit breaker implementation
+//!
+//! This module provides the production-ready, lock-free circuit breaker using atomics
+//! and semaphores. Moved from `riptide-types::reliability::circuit` to properly
+//! separate types from behavior.
+//!
+//! ## Features
+//! - Lock-free implementation using atomics
+//! - Three states: Closed, Open, HalfOpen
+//! - Configurable failure thresholds and timeouts
+//! - Semaphore-based permit management in HalfOpen state
+//! - Testable via Clock trait abstraction
+//!
+//! ## Usage
+//! ```rust,no_run
+//! use riptide_types::reliability::circuit::{CircuitBreaker, Config, RealClock};
+//! use std::sync::Arc;
+//!
+//! let config = Config::default();
+//! let cb = CircuitBreaker::new(config, Arc::new(RealClock));
+//!
+//! match cb.try_acquire() {
+//!     Ok(_permit) => {
+//!         // Proceed with operation
+//!         // cb.on_success() or cb.on_failure()
+//!     }
+//!     Err(_) => {
+//!         // Circuit is open, fail fast
+//!     }
+//! }
+//! ```
+
 use std::sync::atomic::{AtomicU32, AtomicU64, AtomicU8, Ordering::Relaxed};
 use std::sync::Arc;
 use tokio::sync::{OwnedSemaphorePermit, Semaphore};

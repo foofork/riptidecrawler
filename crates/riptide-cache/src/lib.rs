@@ -47,7 +47,8 @@
 pub mod key;
 pub mod manager;
 pub mod redis;
-// pub mod integrated;  // Temporarily disabled: circular dependency with riptide-core
+pub mod redis_storage; // CacheStorage trait adapter
+                       // pub mod integrated;  // Temporarily disabled: circular dependency with riptide-core
 pub mod warming;
 pub mod warming_integration;
 pub mod wasm;
@@ -65,10 +66,11 @@ pub use redis::{
     CacheManager as RedisCacheManager, CacheMetadata as RedisCacheMetadata,
     CacheStats as RedisCacheStats, ConditionalResult as RedisConditionalResult,
 };
-// pub use integrated::{
-//     CachedContent, CacheCheckResult, IntegratedCacheConfig, IntegratedCacheManager,
-//     IntegratedCacheStats, create_optimized_integrated_cache_manager,
-// };
+pub use redis_storage::RedisStorage; // Port adapter for CacheStorage trait
+                                     // pub use integrated::{
+                                     //     CachedContent, CacheCheckResult, IntegratedCacheConfig, IntegratedCacheManager,
+                                     //     IntegratedCacheStats, create_optimized_integrated_cache_manager,
+                                     // };
 #[cfg(feature = "wasm-pool")]
 pub use warming::{
     CacheWarmingConfig, CacheWarmingManager, CacheWarmingOperation, CacheWarmingPoolExt,

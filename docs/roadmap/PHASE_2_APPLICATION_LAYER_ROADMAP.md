@@ -45,7 +45,7 @@ cargo check -p [affected-crate]
 - ❌ NO commits with clippy warnings
 - ❌ NO commits with compilation errors
 - ❌ NO #[ignore] on tests without tracking issue
-- ✅ Each phase MUST be fully complete before moving to next
+- ✅ Each phase MUST be fully complete before moving to next, update status along the way.
 
 ---
 

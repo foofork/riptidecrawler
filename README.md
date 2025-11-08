@@ -17,7 +17,7 @@ Extract structured data from any website with intelligent routing, multi-provide
 **This project is undergoing major refactoring and is NOT production-ready:**
 
 - 🚧 **API v1.0 is in active development** - Breaking changes expected
-- 🔄 **Major refactoring underway** - See [RipTide v1.0 Roadmap](docs/roadmap/RIPTIDE-V1-DEFINITIVE-ROADMAP.md)
+- 🔄 **Major refactoring underway** - See [RipTide Roadmap](/docs/architecture/ENHANCED_LAYERING_ROADMAP.md)
 
 
 ---

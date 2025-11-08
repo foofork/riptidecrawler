@@ -1,4 +1,3 @@
-use crate::robots::RobotsConfig;
 use crate::{
     adaptive_stop::AdaptiveStopConfig,
     budget::BudgetConfig,
@@ -8,6 +7,7 @@ use crate::{
     strategy::AdaptiveCriteria as StrategyAdaptiveCriteria,
     types::{SitemapConfig, StrategyConfig},
 };
+use riptide_fetch::robots::RobotsConfig;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use url::Url;

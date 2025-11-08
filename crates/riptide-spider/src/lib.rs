@@ -31,7 +31,7 @@ pub mod query_aware;
 pub mod query_aware_benchmark;
 pub mod query_aware_tests;
 pub mod results;
-pub mod robots;
+// NOTE: robots module removed - now re-exported from riptide-fetch (Sprint 0.4.1)
 pub mod session;
 pub mod sitemap;
 pub mod strategy;
@@ -41,6 +41,9 @@ pub mod wasm_validation;
 
 // Re-export circuit breaker from riptide-types
 pub use riptide_types::reliability::circuit::CircuitBreaker;
+
+// Re-export robots from riptide-fetch (Sprint 0.4.1 - deduplication)
+pub use riptide_fetch::robots::{RobotsConfig, RobotsManager};
 
 // Re-export main types
 pub use adaptive_stop::AdaptiveStopEngine;
