@@ -5,25 +5,35 @@
 use super::session::{SessionConfig, SessionFacade};
 use crate::metrics::BusinessMetrics;
 use riptide_types::error::Result as RiptideResult;
-use riptide_types::ports::{Clock, IdempotencyStore, Session, SessionStorage};
+use riptide_types::ports::{
+    Clock, EventBus, IdempotencyStore, Session, SessionStorage, TransactionManager,
+};
 use std::sync::Arc;
 
 /// Wrapper for SessionFacade with integrated metrics
-pub struct MetricsSessionFacade {
-    facade: SessionFacade,
+pub struct MetricsSessionFacade<TM>
+where
+    TM: TransactionManager,
+{
+    facade: SessionFacade<TM>,
     metrics: Arc<BusinessMetrics>,
 }
 
-impl MetricsSessionFacade {
+impl<TM> MetricsSessionFacade<TM>
+where
+    TM: TransactionManager,
+{
     /// Create a new metrics-enabled session facade
     pub fn new(
         storage: Arc<dyn SessionStorage>,
+        tx_manager: Arc<TM>,
+        event_bus: Arc<dyn EventBus>,
         idempotency: Arc<dyn IdempotencyStore>,
         clock: Arc<dyn Clock>,
         metrics: Arc<BusinessMetrics>,
     ) -> Self {
         Self {
-            facade: SessionFacade::new(storage, idempotency, clock),
+            facade: SessionFacade::new(storage, tx_manager, event_bus, idempotency, clock),
             metrics,
         }
     }
@@ -31,13 +41,22 @@ impl MetricsSessionFacade {
     /// Create with custom configuration
     pub fn with_config(
         storage: Arc<dyn SessionStorage>,
+        tx_manager: Arc<TM>,
+        event_bus: Arc<dyn EventBus>,
         idempotency: Arc<dyn IdempotencyStore>,
         clock: Arc<dyn Clock>,
         config: SessionConfig,
         metrics: Arc<BusinessMetrics>,
     ) -> Self {
         Self {
-            facade: SessionFacade::with_config(storage, idempotency, clock, config),
+            facade: SessionFacade::with_config(
+                storage,
+                tx_manager,
+                event_bus,
+                idempotency,
+                clock,
+                config,
+            ),
             metrics,
         }
     }
@@ -66,15 +85,8 @@ impl MetricsSessionFacade {
         result
     }
 
-    /// Get current active session count
-    pub async fn active_session_count(&self) -> RiptideResult<i64> {
-        let count = self.facade.active_session_count().await?;
-        self.metrics.record_session_active(count);
-        Ok(count)
-    }
-
     /// Get reference to underlying facade
-    pub fn facade(&self) -> &SessionFacade {
+    pub fn facade(&self) -> &SessionFacade<TM> {
         &self.facade
     }
 }

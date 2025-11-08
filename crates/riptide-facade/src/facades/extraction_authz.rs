@@ -4,14 +4,14 @@
 //! It demonstrates how to integrate authorization policies into facade methods.
 
 use crate::authorization::{AuthorizationContext, AuthorizationPolicy, Resource};
-use crate::facades::extraction::{ExtractedDoc, UrlExtractionFacade, UrlExtractionOptions};
-use riptide_types::error::Result as RiptideResult;
+use crate::facades::extraction::{ExtractedDoc, Result, UrlExtractionFacade, UrlExtractionOptions};
 use std::sync::Arc;
 
 /// Extension trait for UrlExtractionFacade to add authorization methods.
 ///
 /// This follows the Extension Object pattern to add authorization without
 /// modifying the existing facade structure.
+#[allow(async_fn_in_trait)]
 pub trait AuthorizedExtractionFacade {
     /// Extract content from URL with authorization checks.
     ///
@@ -36,7 +36,7 @@ pub trait AuthorizedExtractionFacade {
         options: UrlExtractionOptions,
         authz_ctx: &AuthorizationContext,
         policies: &[Arc<dyn AuthorizationPolicy>],
-    ) -> RiptideResult<ExtractedDoc>;
+    ) -> Result<ExtractedDoc>;
 
     /// Extract from HTML with authorization checks.
     async fn extract_html_with_authorization(
@@ -46,7 +46,7 @@ pub trait AuthorizedExtractionFacade {
         options: UrlExtractionOptions,
         authz_ctx: &AuthorizationContext,
         policies: &[Arc<dyn AuthorizationPolicy>],
-    ) -> RiptideResult<ExtractedDoc>;
+    ) -> Result<ExtractedDoc>;
 }
 
 impl AuthorizedExtractionFacade for UrlExtractionFacade {
@@ -56,7 +56,7 @@ impl AuthorizedExtractionFacade for UrlExtractionFacade {
         options: UrlExtractionOptions,
         authz_ctx: &AuthorizationContext,
         policies: &[Arc<dyn AuthorizationPolicy>],
-    ) -> RiptideResult<ExtractedDoc> {
+    ) -> Result<ExtractedDoc> {
         // 1. Authorization checks - BEFORE business logic
         authorize_url_access(url, authz_ctx, policies)?;
 
@@ -78,7 +78,7 @@ impl AuthorizedExtractionFacade for UrlExtractionFacade {
         options: UrlExtractionOptions,
         authz_ctx: &AuthorizationContext,
         policies: &[Arc<dyn AuthorizationPolicy>],
-    ) -> RiptideResult<ExtractedDoc> {
+    ) -> Result<ExtractedDoc> {
         // 1. Authorization checks
         authorize_url_access(url, authz_ctx, policies)?;
 
@@ -102,11 +102,13 @@ fn authorize_url_access(
     url: &str,
     authz_ctx: &AuthorizationContext,
     policies: &[Arc<dyn AuthorizationPolicy>],
-) -> RiptideResult<()> {
+) -> Result<()> {
     let resource = Resource::Url(url.to_string());
 
     for policy in policies {
-        policy.authorize(authz_ctx, &resource)?;
+        policy
+            .authorize(authz_ctx, &resource)
+            .map_err(|e| crate::error::RiptideError::validation(e.to_string()))?;
     }
 
     Ok(())

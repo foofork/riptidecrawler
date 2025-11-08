@@ -139,7 +139,8 @@ impl BusinessMetrics {
 
         // Keep only recent 1000 samples to avoid unbounded growth
         if durations.len() > 1000 {
-            durations.drain(0..durations.len() - 1000);
+            let excess = durations.len() - 1000;
+            durations.drain(0..excess);
         }
     }
 

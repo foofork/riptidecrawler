@@ -35,7 +35,7 @@ impl MetricsBrowserFacade {
     }
 
     /// Navigate to a URL (automatically records metrics)
-    pub async fn navigate(&self, session: &BrowserSession<'_>, url: &str) -> RiptideResult<String> {
+    pub async fn navigate(&self, session: &BrowserSession<'_>, url: &str) -> RiptideResult<()> {
         self.metrics.record_browser_action();
         self.facade.navigate(session, url).await
     }
@@ -52,11 +52,11 @@ impl MetricsBrowserFacade {
     }
 
     /// Execute JavaScript (automatically records metrics)
-    pub async fn execute_script<T: serde::de::DeserializeOwned>(
+    pub async fn execute_script(
         &self,
         session: &BrowserSession<'_>,
         script: &str,
-    ) -> RiptideResult<T> {
+    ) -> RiptideResult<serde_json::Value> {
         self.metrics.record_browser_action();
         self.facade.execute_script(session, script).await
     }

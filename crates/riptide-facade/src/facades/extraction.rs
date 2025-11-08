@@ -12,6 +12,7 @@ use riptide_extraction::ContentExtractor;
 use riptide_types::ExtractedContent;
 use std::collections::HashMap;
 use std::sync::Arc;
+use tokio_util::sync::CancellationToken;
 
 /// Result type alias for extraction operations
 pub type Result<T> = std::result::Result<T, RiptideError>;
@@ -120,7 +121,8 @@ impl UrlExtractionFacade {
         options: UrlExtractionOptions,
     ) -> Result<ExtractedDoc> {
         // 1. Acquire backpressure permit
-        let _guard = self.backpressure.acquire().await?;
+        let cancel_token = CancellationToken::new();
+        let _guard = self.backpressure.acquire(&cancel_token).await?;
 
         tracing::debug!(
             url = %url,
@@ -178,7 +180,8 @@ impl UrlExtractionFacade {
         options: UrlExtractionOptions,
     ) -> Result<ExtractedDoc> {
         // Acquire backpressure permit
-        let _guard = self.backpressure.acquire().await?;
+        let cancel_token = CancellationToken::new();
+        let _guard = self.backpressure.acquire(&cancel_token).await?;
 
         // Validate URL
         self.validate_url(url)?;

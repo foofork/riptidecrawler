@@ -10,7 +10,7 @@
 
 use super::{AuthorizationContext, AuthorizationPolicy, Resource};
 use riptide_types::error::{Result as RiptideResult, RiptideError};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 /// Tenant Scoping Policy - Prevents cross-tenant access.
 ///
@@ -358,6 +358,7 @@ impl AuthorizationPolicy for ResourceOwnershipPolicy {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
 
     fn create_test_context(
         user_id: &str,
