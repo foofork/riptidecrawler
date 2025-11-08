@@ -53,6 +53,10 @@ pub mod warming;
 pub mod warming_integration;
 pub mod wasm;
 
+// Infrastructure adapters implementing port traits
+#[cfg(feature = "idempotency")]
+pub mod adapters;
+
 // Re-exports for convenience
 pub use key::{
     generate_fetch_cache_key, generate_strategies_cache_key, generate_wasm_cache_key,

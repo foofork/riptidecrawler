@@ -7,6 +7,9 @@ authors = ["RipTide Team"]
 description = "Advanced persistence layer for RipTide with Redis/DragonflyDB backend, multi-tenancy, and state management"
 
 [dependencies]
+# Domain types
+riptide-types = { path = "../riptide-types" }
+
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 bytes = { workspace = true }
@@ -29,6 +32,9 @@ lz4_flex = { version = "0.11", optional = true }
 zstd = { version = "0.13", optional = true }
 crc32fast = "1.4"
 
+# PostgreSQL support for Repository and Transaction adapters
+sqlx = { version = "0.8", features = ["postgres", "runtime-tokio", "json", "chrono", "uuid"], optional = true }
+
 # For configuration hot-reload
 serde_yaml = "0.9"
 
@@ -47,6 +53,7 @@ fastrand = "2.0"
 default = ["compression", "metrics"]
 compression = ["dep:lz4_flex", "dep:zstd"]
 metrics = ["dep:prometheus"]
+postgres = ["dep:sqlx"]
 
 [[bench]]
 name = "persistence_benchmarks"

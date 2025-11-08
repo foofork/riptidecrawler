@@ -50,6 +50,10 @@ pub mod state;
 pub mod sync;
 pub mod tenant;
 
+// Infrastructure adapters implementing port traits
+#[cfg(feature = "postgres")]
+pub mod adapters;
+
 pub use cache::{
     CacheEntry, CacheMetadata, CacheStats, CacheWarmer, CompressionInfo, DistributedCache,
     PersistentCacheManager,
