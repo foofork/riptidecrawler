@@ -1,7 +1,7 @@
 # Phase 0: Pre-Refactoring Cleanup Roadmap
-**Version:** 2.0 (Enhanced)
+**Version:** 3.1 (Enhanced with Quality Gates)
 **Date:** 2025-11-08
-**Duration:** 5 days (updated from 3 days)
+**Duration:** 15.5 days (~3.1 weeks)
 **Priority:** CRITICAL - Removes duplication before refactoring
 
 ---
@@ -17,6 +17,36 @@ Phase 0 focuses on eliminating code duplication and consolidating infrastructure
 3. **Scope Redis Dependencies**: Reduce from 6 crates to maximum 2
 4. **Remove Tech Debt**: Delete obsolete admin files
 5. **Define Foundation Ports**: Create CacheStorage trait for dependency inversion
+6. **Runtime Schema Store**: Convert compile-time schemas to runtime JSON data
+
+---
+
+## 🚨 Quality Gates (MANDATORY - Every Task)
+
+**Zero-tolerance policy for errors/warnings. Every commit must:**
+
+```bash
+# 1. Tests pass (NO #[ignore], NO skipped tests)
+cargo test -p [affected-crate]  # NOT --workspace (conserve disk)
+
+# 2. Clippy clean (ZERO warnings)
+cargo clippy -p [affected-crate] -- -D warnings
+
+# 3. Cargo check passes
+cargo check -p [affected-crate]
+
+# 4. Full workspace ONLY for final phase validation
+# Use targeted builds: cargo build -p [crate] to save disk space
+```
+
+**Commit Rules:**
+- ❌ NO commits with failing tests
+- ❌ NO commits with clippy warnings
+- ❌ NO commits with compilation errors
+- ❌ NO #[ignore] on tests without tracking issue
+- ✅ Each phase MUST be fully complete before moving to next
+
+---
 
 ### Success Criteria
 
@@ -26,7 +56,9 @@ Phase 0 focuses on eliminating code duplication and consolidating infrastructure
 - ✅ Pipeline files consolidated from 4 to 2 (or less)
 - ✅ CacheStorage trait defined
 - ✅ admin_old.rs deleted
-- ✅ All tests pass after migration
+- ✅ **All tests pass (ZERO ignored)**
+- ✅ **Clippy clean (ZERO warnings)**
+- ✅ **Cargo check passes**
 
 ---
 

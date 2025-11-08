@@ -19,6 +19,35 @@ Phase 1 establishes the Ports & Adapters (Hexagonal Architecture) pattern by def
 5. **Core Infrastructure Ports**: Health, metrics, RPC ports (NEW)
 6. **Document Architecture**: Clarify facade = application layer
 
+---
+
+## 🚨 Quality Gates (MANDATORY - Every Task)
+
+**Zero-tolerance policy for errors/warnings. Every commit must:**
+
+```bash
+# 1. Tests pass (NO #[ignore], NO skipped tests)
+cargo test -p [affected-crate]  # NOT --workspace (conserve disk)
+
+# 2. Clippy clean (ZERO warnings)
+cargo clippy -p [affected-crate] -- -D warnings
+
+# 3. Cargo check passes
+cargo check -p [affected-crate]
+
+# 4. Full workspace ONLY for final phase validation
+# Use targeted builds: cargo build -p [crate] to save disk space
+```
+
+**Commit Rules:**
+- ❌ NO commits with failing tests
+- ❌ NO commits with clippy warnings
+- ❌ NO commits with compilation errors
+- ❌ NO #[ignore] on tests without tracking issue
+- ✅ Each phase MUST be fully complete before moving to next
+
+---
+
 ### Success Criteria
 
 - ✅ All ports defined (15+ traits)
@@ -27,6 +56,9 @@ Phase 1 establishes the Ports & Adapters (Hexagonal Architecture) pattern by def
 - ✅ Zero direct infra usage in facades
 - ✅ Tests use in-memory adapters
 - ✅ cargo-deny enforces layer boundaries
+- ✅ **All tests pass (ZERO ignored)**
+- ✅ **Clippy clean (ZERO warnings)**
+- ✅ **Cargo check passes**
 
 ---
 

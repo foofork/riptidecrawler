@@ -22,6 +22,33 @@ This phase remains unchanged from the original ENHANCED_LAYERING_ROADMAP.md as t
 
 ---
 
+## 🚨 Quality Gates (MANDATORY - Every Task)
+
+**Zero-tolerance policy for errors/warnings. Every commit must:**
+
+```bash
+# 1. Tests pass (NO #[ignore], NO skipped tests)
+cargo test -p [affected-crate]  # NOT --workspace (conserve disk)
+
+# 2. Clippy clean (ZERO warnings)
+cargo clippy -p [affected-crate] -- -D warnings
+
+# 3. Cargo check passes
+cargo check -p [affected-crate]
+
+# 4. Full workspace ONLY for final phase validation
+# Use targeted builds: cargo build -p [crate] to save disk space
+```
+
+**Commit Rules:**
+- ❌ NO commits with failing tests
+- ❌ NO commits with clippy warnings
+- ❌ NO commits with compilation errors
+- ❌ NO #[ignore] on tests without tracking issue
+- ✅ Each phase MUST be fully complete before moving to next
+
+---
+
 ## Prerequisites from Previous Phases
 
 **Phase 4 Must Be Complete:**
