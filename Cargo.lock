@@ -7053,6 +7053,7 @@ dependencies = [
  "spider_chromiumoxide_cdp",
  "thiserror 1.0.69",
  "tokio",
+ "tokio-util",
  "tracing",
  "url",
  "uuid",

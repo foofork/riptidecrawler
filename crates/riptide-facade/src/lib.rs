@@ -132,13 +132,16 @@
 //! }
 //! ```
 
+pub mod authorization;
 pub mod builder;
 pub mod config;
 pub mod dto;
 pub mod error;
 pub mod facades;
+pub mod metrics;
 pub mod prelude;
 pub mod traits;
+pub mod workflows;
 
 // Re-export important domain types for API layer
 pub use facades::pipeline::FetchOperation;

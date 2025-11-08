@@ -10,6 +10,7 @@
 //! - Cookie and storage management
 //! - Stealth features for anti-detection via unified HeadlessLauncher
 
+use crate::workflows::backpressure::BackpressureManager;
 use crate::{config::RiptideConfig, error::RiptideResult, RiptideError};
 use riptide_browser::launcher::{HeadlessLauncher, LaunchSession, LauncherConfig};
 use riptide_extraction::native_parser::{NativeHtmlParser, ParserConfig};
@@ -19,6 +20,7 @@ use riptide_utils::circuit_breaker::{CircuitBreaker, Config as CircuitConfig, Re
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
+use tokio_util::sync::CancellationToken;
 use tracing::warn;
 use url::Url;
 
@@ -58,14 +60,17 @@ pub struct BrowserFacade {
     #[allow(dead_code)]
     native_parser: Arc<NativeHtmlParser>,
     http_client: Arc<ReliableHttpClient>,
+    backpressure: BackpressureManager,
 }
 
 /// A managed browser session with automatic resource cleanup.
 ///
 /// The session holds a reference to the underlying browser instance
 /// and will automatically return it to the pool when dropped.
+/// The backpressure guard ensures the session count is properly managed.
 pub struct BrowserSession<'a> {
     session: LaunchSession<'a>,
+    _guard: crate::workflows::backpressure::BackpressureGuard,
 }
 
 /// Options for taking screenshots.
@@ -267,12 +272,16 @@ impl BrowserFacade {
                 RiptideError::config(format!("Failed to initialize HTTP client: {}", e))
             })?;
 
+        // Create backpressure manager for browser sessions
+        let backpressure = BackpressureManager::new(20); // Max 20 concurrent browser sessions
+
         Ok(Self {
             config: Arc::new(config),
             launcher: Arc::new(launcher),
             circuit_breaker,
             native_parser: Arc::new(native_parser),
             http_client: Arc::new(http_client),
+            backpressure,
         })
     }
 
@@ -299,6 +308,16 @@ impl BrowserFacade {
     /// # }
     /// ```
     pub async fn launch(&self) -> RiptideResult<BrowserSession<'_>> {
+        // Acquire backpressure permit for browser session
+        let cancel_token = CancellationToken::new();
+        let guard = self.backpressure.acquire(&cancel_token).await?;
+
+        tracing::debug!(
+            active = self.backpressure.active_operations(),
+            load = %format!("{:.1}%", self.backpressure.current_load() * 100.0),
+            "Acquired browser session permit"
+        );
+
         // Determine stealth preset from config
         let stealth_preset = if self.config.stealth_enabled {
             Some(match self.config.stealth_preset.to_lowercase().as_str() {
@@ -318,7 +337,10 @@ impl BrowserFacade {
             .await
             .map_err(|e| RiptideError::config(format!("Failed to launch browser: {}", e)))?;
 
-        Ok(BrowserSession { session })
+        Ok(BrowserSession {
+            session,
+            _guard: guard,
+        })
     }
 
     /// Navigate to a URL in the given browser session.

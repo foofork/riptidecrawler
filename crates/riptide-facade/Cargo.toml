@@ -34,6 +34,7 @@ thiserror.workspace = true
 
 # Async runtime
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tokio-util = "0.7"
 
 # Logging
 tracing.workspace = true

@@ -2,6 +2,7 @@
 //!
 //! This facade coordinates session operations across multiple ports:
 //! - SessionStorage: Persisting and retrieving sessions
+//! - TransactionalWorkflow: ACID guarantees with event emission
 //! - IdempotencyStore: Preventing duplicate operations
 //! - EventBus: Publishing session lifecycle events
 //! - Clock: Time management for testing
@@ -9,13 +10,17 @@
 //! # Business Rules
 //!
 //! - Sessions have configurable TTL (default: 24 hours)
-//! - Session creation is idempotent
+//! - Session creation is idempotent via TransactionalWorkflow
 //! - Session validation checks expiration
-//! - Session refresh extends expiration
-//! - Session termination publishes events
+//! - Session refresh extends expiration with transactional guarantees
+//! - Session termination publishes events atomically
 
+use crate::workflows::TransactionalWorkflow;
 use riptide_types::error::{Result as RiptideResult, RiptideError};
-use riptide_types::ports::{Clock, IdempotencyStore, Session, SessionFilter, SessionStorage};
+use riptide_types::ports::{
+    Clock, DomainEvent, EventBus, IdempotencyStore, Session, SessionFilter, SessionStorage,
+    TransactionManager,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -102,24 +107,38 @@ impl Default for SessionConfig {
     }
 }
 
-/// Session facade coordinating session management
-pub struct SessionFacade {
+/// Session facade coordinating session management with transactional workflows
+pub struct SessionFacade<TM>
+where
+    TM: TransactionManager,
+{
     storage: Arc<dyn SessionStorage>,
-    idempotency: Arc<dyn IdempotencyStore>,
+    workflow: Arc<TransactionalWorkflow<TM>>,
     clock: Arc<dyn Clock>,
     config: SessionConfig,
 }
 
-impl SessionFacade {
-    /// Create new session facade
+impl<TM> SessionFacade<TM>
+where
+    TM: TransactionManager,
+{
+    /// Create new session facade with transactional workflow
     pub fn new(
         storage: Arc<dyn SessionStorage>,
+        tx_manager: Arc<TM>,
+        event_bus: Arc<dyn EventBus>,
         idempotency: Arc<dyn IdempotencyStore>,
         clock: Arc<dyn Clock>,
     ) -> Self {
+        let workflow = Arc::new(TransactionalWorkflow::new(
+            tx_manager,
+            event_bus,
+            idempotency,
+        ));
+
         Self {
             storage,
-            idempotency,
+            workflow,
             clock,
             config: SessionConfig::default(),
         }
@@ -128,25 +147,33 @@ impl SessionFacade {
     /// Create with custom configuration
     pub fn with_config(
         storage: Arc<dyn SessionStorage>,
+        tx_manager: Arc<TM>,
+        event_bus: Arc<dyn EventBus>,
         idempotency: Arc<dyn IdempotencyStore>,
         clock: Arc<dyn Clock>,
         config: SessionConfig,
     ) -> Self {
+        let workflow = Arc::new(TransactionalWorkflow::new(
+            tx_manager,
+            event_bus,
+            idempotency,
+        ));
+
         Self {
             storage,
-            idempotency,
+            workflow,
             clock,
             config,
         }
     }
 
-    /// Create a new session with idempotency
+    /// Create a new session with transactional workflow
     #[instrument(skip(self), fields(user_id = %user_id, tenant_id = %tenant_id))]
     pub async fn create_session(&self, user_id: &str, tenant_id: &str) -> RiptideResult<Session> {
         self.create_session_with_ttl(user_id, tenant_id, None).await
     }
 
-    /// Create session with custom TTL
+    /// Create session with custom TTL using transactional workflow
     #[instrument(skip(self), fields(user_id = %user_id, tenant_id = %tenant_id))]
     pub async fn create_session_with_ttl(
         &self,
@@ -154,7 +181,7 @@ impl SessionFacade {
         tenant_id: &str,
         ttl: Option<Duration>,
     ) -> RiptideResult<Session> {
-        debug!("Creating session");
+        debug!("Creating session with transactional workflow");
 
         let ttl = ttl.unwrap_or(self.config.default_ttl);
         if ttl > self.config.max_ttl {
@@ -164,42 +191,59 @@ impl SessionFacade {
             )));
         }
 
-        // Generate unique session ID
-        let session_id = format!("session_{}", Uuid::new_v4());
-
         // Idempotency key for session creation
         let idempotency_key = format!("session_create_{}_{}", user_id, tenant_id);
-        let token = self
-            .idempotency
-            .try_acquire(&idempotency_key, ttl)
+
+        // Capture values for closure
+        let storage = self.storage.clone();
+        let clock = self.clock.clone();
+        let user_id_owned = user_id.to_string();
+        let tenant_id_owned = tenant_id.to_string();
+
+        // Execute within transactional workflow
+        self.workflow
+            .execute(&idempotency_key, move |_tx| {
+                Box::pin(async move {
+                    // Generate unique session ID
+                    let session_id = format!("session_{}", Uuid::new_v4());
+
+                    let now = clock.now();
+                    let expires_at = now + ttl;
+
+                    let session = Session {
+                        id: session_id.clone(),
+                        user_id: user_id_owned.clone(),
+                        tenant_id: tenant_id_owned.clone(),
+                        created_at: now,
+                        expires_at,
+                        metadata: HashMap::new(),
+                    };
+
+                    // Save session
+                    storage.save_session(&session).await?;
+
+                    // Prepare domain event
+                    let event = DomainEvent::new(
+                        "session.created",
+                        session_id.clone(),
+                        serde_json::json!({
+                            "session_id": session_id,
+                            "user_id": user_id_owned,
+                            "tenant_id": tenant_id_owned,
+                            "created_at": now.duration_since(SystemTime::UNIX_EPOCH)
+                                .unwrap_or_default()
+                                .as_secs(),
+                        }),
+                    );
+
+                    info!(
+                        "Session created with transactional workflow: {}",
+                        session_id
+                    );
+                    Ok((session, vec![event]))
+                })
+            })
             .await
-            .map_err(|_| {
-                RiptideError::ValidationError("Duplicate session creation request".to_string())
-            })?;
-
-        let now = self.clock.now();
-        let expires_at = now + ttl;
-
-        let session = Session {
-            id: session_id.clone(),
-            user_id: user_id.to_string(),
-            tenant_id: tenant_id.to_string(),
-            created_at: now,
-            expires_at,
-            metadata: HashMap::new(),
-        };
-
-        // Save session
-        self.storage.save_session(&session).await?;
-
-        // Release idempotency lock
-        self.idempotency.release(token).await?;
-
-        // TODO: Publish event when EventBus is object-safe or use concrete type
-        debug!("SessionCreated event: session_id={}", session_id);
-
-        info!("Session created: {}", session_id);
-        Ok(session)
     }
 
     /// Validate session exists and is not expired
@@ -318,7 +362,10 @@ impl SessionFacade {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use riptide_types::ports::{IdempotencyToken, InMemoryCache, SystemClock};
+    use async_trait::async_trait;
+    use riptide_types::ports::{
+        EventHandler, IdempotencyToken, InMemoryCache, SubscriptionId, SystemClock, Transaction,
+    };
     use std::sync::Mutex;
 
     // Mock implementations for testing
@@ -386,35 +433,141 @@ mod tests {
         }
     }
 
-    use async_trait::async_trait;
+    struct MockIdempotencyStore {
+        keys: Arc<Mutex<HashMap<String, Vec<u8>>>>,
+    }
 
-    struct MockIdempotencyStore;
+    impl MockIdempotencyStore {
+        fn new() -> Self {
+            Self {
+                keys: Arc::new(Mutex::new(HashMap::new())),
+            }
+        }
+    }
 
     #[async_trait]
     impl IdempotencyStore for MockIdempotencyStore {
-        async fn try_acquire(&self, key: &str, _ttl: Duration) -> RiptideResult<IdempotencyToken> {
-            Ok(IdempotencyToken {
-                key: key.to_string(),
-                acquired_at: SystemTime::now(),
-            })
+        async fn try_acquire(&self, key: &str, ttl: Duration) -> RiptideResult<IdempotencyToken> {
+            let mut keys = self.keys.lock().unwrap();
+            if keys.contains_key(key) {
+                return Err(RiptideError::AlreadyExists(format!(
+                    "Key {} already exists",
+                    key
+                )));
+            }
+            keys.insert(key.to_string(), Vec::new());
+            Ok(IdempotencyToken::new(key.to_string(), ttl))
         }
 
-        async fn release(&self, _token: IdempotencyToken) -> RiptideResult<()> {
+        async fn release(&self, token: IdempotencyToken) -> RiptideResult<()> {
+            let mut keys = self.keys.lock().unwrap();
+            keys.remove(&token.key);
             Ok(())
         }
 
-        async fn is_acquired(&self, _key: &str) -> RiptideResult<bool> {
-            Ok(false)
+        async fn exists(&self, key: &str) -> RiptideResult<bool> {
+            Ok(self.keys.lock().unwrap().contains_key(key))
+        }
+    }
+
+    struct MockEventBus {
+        events: Arc<Mutex<Vec<DomainEvent>>>,
+    }
+
+    impl MockEventBus {
+        fn new() -> Self {
+            Self {
+                events: Arc::new(Mutex::new(Vec::new())),
+            }
+        }
+
+        #[allow(dead_code)]
+        fn published_events(&self) -> Vec<DomainEvent> {
+            self.events.lock().unwrap().clone()
+        }
+    }
+
+    #[async_trait]
+    impl EventBus for MockEventBus {
+        async fn publish(&self, event: DomainEvent) -> RiptideResult<()> {
+            self.events.lock().unwrap().push(event);
+            Ok(())
+        }
+
+        async fn subscribe(
+            &self,
+            _handler: Arc<dyn EventHandler>,
+        ) -> RiptideResult<SubscriptionId> {
+            Ok("mock-sub".to_string())
+        }
+
+        async fn publish_batch(&self, events: Vec<DomainEvent>) -> RiptideResult<()> {
+            self.events.lock().unwrap().extend(events);
+            Ok(())
+        }
+    }
+
+    struct MockTransaction {
+        id: String,
+    }
+
+    impl MockTransaction {
+        fn new() -> Self {
+            Self {
+                id: uuid::Uuid::new_v4().to_string(),
+            }
+        }
+    }
+
+    #[async_trait]
+    impl Transaction for MockTransaction {
+        fn id(&self) -> &str {
+            &self.id
+        }
+
+        async fn execute<F, R>(&mut self, f: F) -> RiptideResult<R>
+        where
+            F: FnOnce() -> RiptideResult<R> + Send,
+            R: Send,
+        {
+            f()
+        }
+    }
+
+    struct MockTransactionManager;
+
+    #[async_trait]
+    impl TransactionManager for MockTransactionManager {
+        type Transaction = MockTransaction;
+
+        async fn begin(&self) -> RiptideResult<Self::Transaction> {
+            Ok(MockTransaction::new())
+        }
+
+        async fn commit(&self, _tx: Self::Transaction) -> RiptideResult<()> {
+            Ok(())
+        }
+
+        async fn rollback(&self, _tx: Self::Transaction) -> RiptideResult<()> {
+            Ok(())
         }
     }
 
     #[tokio::test]
     async fn test_create_session() {
         let storage = Arc::new(InMemorySessionStorage::new());
-        let idempotency = Arc::new(MockIdempotencyStore);
+        let tx_manager = Arc::new(MockTransactionManager);
+        let event_bus = Arc::new(MockEventBus::new());
+        let idempotency = Arc::new(MockIdempotencyStore::new());
         let clock = Arc::new(SystemClock);
 
-        let facade = SessionFacade::new(storage.clone(), idempotency, clock);
+        let facade = SessionFacade::new(
+            storage.clone(),
+            tx_manager,
+            event_bus.clone(),
+            idempotency,
+            clock,
+        );
 
         let session = facade
             .create_session("user-123", "tenant-456")
@@ -423,15 +576,24 @@ mod tests {
         assert_eq!(session.user_id, "user-123");
         assert_eq!(session.tenant_id, "tenant-456");
         assert!(!session.is_expired());
+
+        // Verify event was published
+        assert_eq!(event_bus.published_events().len(), 1);
+        assert_eq!(
+            event_bus.published_events()[0].event_type,
+            "session.created"
+        );
     }
 
     #[tokio::test]
     async fn test_validate_session() {
         let storage = Arc::new(InMemorySessionStorage::new());
-        let idempotency = Arc::new(MockIdempotencyStore);
+        let tx_manager = Arc::new(MockTransactionManager);
+        let event_bus = Arc::new(MockEventBus::new());
+        let idempotency = Arc::new(MockIdempotencyStore::new());
         let clock = Arc::new(SystemClock);
 
-        let facade = SessionFacade::new(storage.clone(), idempotency, clock);
+        let facade = SessionFacade::new(storage.clone(), tx_manager, event_bus, idempotency, clock);
 
         let session = facade
             .create_session("user-123", "tenant-456")
@@ -447,10 +609,12 @@ mod tests {
     #[tokio::test]
     async fn test_terminate_session() {
         let storage = Arc::new(InMemorySessionStorage::new());
-        let idempotency = Arc::new(MockIdempotencyStore);
+        let tx_manager = Arc::new(MockTransactionManager);
+        let event_bus = Arc::new(MockEventBus::new());
+        let idempotency = Arc::new(MockIdempotencyStore::new());
         let clock = Arc::new(SystemClock);
 
-        let facade = SessionFacade::new(storage.clone(), idempotency, clock);
+        let facade = SessionFacade::new(storage.clone(), tx_manager, event_bus, idempotency, clock);
 
         let session = facade
             .create_session("user-123", "tenant-456")

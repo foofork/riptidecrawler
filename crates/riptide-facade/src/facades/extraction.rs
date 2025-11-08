@@ -7,6 +7,7 @@
 
 use crate::config::RiptideConfig;
 use crate::error::RiptideError;
+use crate::workflows::backpressure::BackpressureManager;
 use riptide_extraction::ContentExtractor;
 use riptide_types::ExtractedContent;
 use std::collections::HashMap;
@@ -58,6 +59,7 @@ pub struct UrlExtractionFacade {
     gate_hi_threshold: f64,
     gate_lo_threshold: f64,
     timeout: std::time::Duration,
+    backpressure: BackpressureManager,
 }
 
 impl UrlExtractionFacade {
@@ -72,12 +74,16 @@ impl UrlExtractionFacade {
         let gate_lo_threshold = 0.3; // Default low threshold
         let timeout = config.timeout;
 
+        // Create backpressure manager with reasonable concurrency limit
+        let backpressure = BackpressureManager::new(50); // Max 50 concurrent extractions
+
         Ok(Self {
             http_client,
             extractor,
             gate_hi_threshold,
             gate_lo_threshold,
             timeout,
+            backpressure,
         })
     }
 
@@ -95,23 +101,35 @@ impl UrlExtractionFacade {
             gate_hi_threshold,
             gate_lo_threshold,
             timeout,
+            backpressure: BackpressureManager::new(50),
         }
     }
 
     /// Extract content from URL (all business logic)
     ///
     /// This method encapsulates:
-    /// 1. URL validation (domain-level checks)
-    /// 2. HTTP fetching with error handling
-    /// 3. Content extraction with strategies
-    /// 4. Quality gate application
-    /// 5. Return structured ExtractedDoc
+    /// 1. Backpressure control (limit concurrent extractions)
+    /// 2. URL validation (domain-level checks)
+    /// 3. HTTP fetching with error handling
+    /// 4. Content extraction with strategies
+    /// 5. Quality gate application
+    /// 6. Return structured ExtractedDoc
     pub async fn extract_from_url(
         &self,
         url: &str,
         options: UrlExtractionOptions,
     ) -> Result<ExtractedDoc> {
-        // 1. Validate URL (domain-level, not just format)
+        // 1. Acquire backpressure permit
+        let _guard = self.backpressure.acquire().await?;
+
+        tracing::debug!(
+            url = %url,
+            active = self.backpressure.active_operations(),
+            load = %format!("{:.1}%", self.backpressure.current_load() * 100.0),
+            "Acquired extraction permit"
+        );
+
+        // 2. Validate URL (domain-level, not just format)
         self.validate_url(url)?;
 
         tracing::info!(
@@ -121,17 +139,17 @@ impl UrlExtractionFacade {
             "Starting URL-based extraction"
         );
 
-        // 2. Fetch HTML with HTTP client + error handling
+        // 3. Fetch HTML with HTTP client + error handling
         let html = self.fetch_html(url).await?;
 
-        // 3. Apply extraction strategies
+        // 4. Apply extraction strategies
         let extracted = self.extract_with_strategies(&html, url, &options).await?;
 
-        // 4. Apply quality gates
+        // 5. Apply quality gates
         let quality_passed =
             self.apply_quality_gates(extracted.extraction_confidence, options.quality_threshold);
 
-        // 5. Return ExtractedDoc
+        // 6. Return ExtractedDoc (guard automatically released)
         Ok(ExtractedDoc {
             url: url.to_string(),
             title: Some(extracted.title.clone()),
@@ -159,6 +177,9 @@ impl UrlExtractionFacade {
         html: &str,
         options: UrlExtractionOptions,
     ) -> Result<ExtractedDoc> {
+        // Acquire backpressure permit
+        let _guard = self.backpressure.acquire().await?;
+
         // Validate URL
         self.validate_url(url)?;
 
