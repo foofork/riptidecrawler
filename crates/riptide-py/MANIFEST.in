@@ -1,9 +1,0 @@
-include README.md
-include LICENSE-MIT
-include LICENSE-APACHE
-include Cargo.toml
-include pyproject.toml
-include riptide.pyi
-recursive-include src *.rs
-recursive-include examples *.py
-recursive-include tests *.py

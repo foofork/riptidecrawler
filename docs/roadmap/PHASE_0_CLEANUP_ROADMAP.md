@@ -44,7 +44,7 @@ cargo check -p [affected-crate]
 - ❌ NO commits with clippy warnings
 - ❌ NO commits with compilation errors
 - ❌ NO #[ignore] on tests without tracking issue
-- ✅ Each phase MUST be fully complete before moving to next
+- ✅ Each phase MUST be fully complete before moving to next, update status along the way.
 
 ---
 
@@ -788,12 +788,62 @@ UPDATE: Cargo.toml (remove from workspace)
 
 ---
 
+**Task 0.5.4: Remove Redundant Python/CLI Infrastructure (0.1 days)**
+
+**Problem:** Maintenance burden of duplicate/conflicting infrastructure
+
+**Removals:**
+
+**1. Delete `crates/riptide-py` (PyO3 bindings)**
+```bash
+rm -rf crates/riptide-py
+```
+
+**Rationale:**
+- ✅ Contradicts "thin client, fat server" architecture
+- ✅ SDK (`sdk/python`) already provides Python access via HTTP API
+- ✅ PyO3 bindings = HIGH maintenance (FFI, cross-platform builds, wheels)
+- ✅ HTTP SDK = LOW maintenance (pure Python, no compilation)
+- ✅ PyO3 embeds server logic in client (violates clean architecture)
+
+**2. Delete `cli-spec/` (Unused CLI specification)**
+```bash
+rm -rf cli-spec
+```
+
+**Rationale:**
+- ✅ Not in workspace (not actively used)
+- ✅ Not referenced by `crates/riptide-cli`
+- ✅ Experimental/abandoned spec-driven design
+- ✅ Reduces confusion
+
+**Files Deleted:**
+```
+DELETE: crates/riptide-py/ (entire directory, ~72KB)
+  - src/lib.rs, document.rs, errors.rs, riptide_class.rs
+  - Cargo.toml, pyproject.toml, build.sh, etc.
+  - tests/, examples/
+DELETE: cli-spec/ (entire directory, ~68KB)
+  - cli.yaml, spec.yaml, TEST-REPORT.md
+  - src/parser.rs, validation.rs, types.rs
+  - Cargo.toml, tests/
+```
+
+**Impact:**
+- **Directories removed:** 2
+- **Maintenance burden:** Significantly reduced
+- **Architecture:** Cleaner (aligns with thin client philosophy)
+- **Python access:** Still available via `sdk/python` (riptide-sdk)
+
+---
+
 ### Sprint 0.5 Summary
 
 **Total Duration:** 1 day
 **Crates Removed:** -2 (schemas, config) or -3 (if test-utils removed)
-**LOC Impact:** 0 (reorganization, no deletion)
-**Complexity Reduction:** Fewer workspace members, clearer boundaries
+**Directories Removed:** -2 (riptide-py, cli-spec)
+**LOC Impact:** +80 LOC (runtime schema store), -140KB (redundant infrastructure)
+**Complexity Reduction:** Fewer workspace members, clearer boundaries, reduced maintenance
 
 **Validation:**
 ```bash
