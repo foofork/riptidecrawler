@@ -2,6 +2,7 @@
 # Integration Tests for RipTide Persistence Layer
 
 Comprehensive integration tests covering all persistence features with >80% coverage.
+Uses testcontainers for Redis and PostgreSQL dependencies.
 */
 
 use riptide_persistence::{
@@ -20,9 +21,14 @@ mod state_integration_tests;
 mod performance_tests;
 mod spillover_tests;
 
-/// Test helper to create Redis URL
-fn get_test_redis_url() -> String {
-    std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://localhost:6379/15".to_string())
+// Import test helpers
+mod helpers;
+use helpers::{RedisTestContainer, PostgresTestContainer};
+use testcontainers::clients::Cli;
+
+/// Test helper to get Redis container URL
+fn get_test_redis_url(container: &RedisTestContainer) -> String {
+    container.get_connection_string().to_string()
 }
 
 /// Test helper to create cache config
@@ -87,39 +93,28 @@ fn create_test_persistence_config() -> PersistenceConfig {
     }
 }
 
-/// Clean up test data
-async fn cleanup_test_data(redis_url: &str, key_prefix: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let redis_config = riptide_utils::redis::RedisConfig {
-        url: redis_url.to_string(),
-        ..riptide_utils::redis::RedisConfig::default()
-    };
-    let pool = riptide_utils::redis::RedisPool::new(redis_config).await?;
-    let mut conn = pool.get_connection();
-
+/// Clean up test data using container
+async fn cleanup_test_data(container: &RedisTestContainer, key_prefix: &str) -> Result<(), Box<dyn std::error::Error>> {
     let pattern = format!("{}*", key_prefix);
-    let keys: Vec<String> = redis::cmd("KEYS")
-        .arg(&pattern)
-        .query_async(&mut conn)
-        .await
-        .unwrap_or_default();
-
-    if !keys.is_empty() {
-        let _: u64 = redis::AsyncCommands::del(&mut conn, &keys).await?;
-    }
-
+    container.cleanup_pattern(&pattern).await?;
     Ok(())
 }
 
 #[tokio::test]
 async fn test_basic_integration_workflow() -> Result<(), Box<dyn std::error::Error>> {
-    let config = create_test_persistence_config();
+    // Set up testcontainer
+    let docker = Cli::default();
+    let redis_container = RedisTestContainer::new(&docker).await?;
+
+    let mut config = create_test_persistence_config();
+    config.redis.url = redis_container.get_connection_string().to_string();
     let redis_url = &config.redis.url;
 
     // Clean up before test
-    cleanup_test_data(redis_url, &config.cache.key_prefix).await?;
+    cleanup_test_data(&redis_container, &config.cache.key_prefix).await?;
 
     // Initialize core components (cache and state)
-    let cache_manager = PersistentCacheManager::new(redis_url, config.cache.clone()).await?;
+    let cache_manager = PersistentCacheManager::new(&config.redis.url, config.cache.clone()).await?;
     let state_manager = StateManager::new(redis_url, config.state.clone()).await?;
 
     // Test 1: Create a session (without tenant context)
@@ -176,7 +171,7 @@ async fn test_basic_integration_workflow() -> Result<(), Box<dyn std::error::Err
     assert_eq!(session.data.get("test_key").unwrap(), &serde_json::json!("test_value"));
 
     // Cleanup
-    cleanup_test_data(redis_url, &config.cache.key_prefix).await?;
+    cleanup_test_data(&redis_container, &config.cache.key_prefix).await?;
 
     println!("Basic integration test completed successfully!");
     Ok(())
@@ -184,12 +179,16 @@ async fn test_basic_integration_workflow() -> Result<(), Box<dyn std::error::Err
 
 #[tokio::test]
 async fn test_performance_targets() -> Result<(), Box<dyn std::error::Error>> {
-    let config = create_test_persistence_config();
-    let redis_url = &config.redis.url;
+    // Set up testcontainer
+    let docker = Cli::default();
+    let redis_container = RedisTestContainer::new(&docker).await?;
 
-    cleanup_test_data(redis_url, &config.cache.key_prefix).await?;
+    let mut config = create_test_persistence_config();
+    config.redis.url = redis_container.get_connection_string().to_string();
 
-    let cache_manager = PersistentCacheManager::new(redis_url, config.cache.clone()).await?;
+    cleanup_test_data(&redis_container, &config.cache.key_prefix).await?;
+
+    let cache_manager = PersistentCacheManager::new(&config.redis.url, config.cache.clone()).await?;
 
     // Test cache access time target (<5ms)
     let test_data = "test_performance_data";
@@ -208,13 +207,13 @@ async fn test_performance_targets() -> Result<(), Box<dyn std::error::Error>> {
     assert!(get_time.as_millis() < 50, "Cache get time should be under 50ms in tests");
     assert!(set_time.as_millis() < 100, "Cache set time should be under 100ms in tests");
 
-    cleanup_test_data(redis_url, &config.cache.key_prefix).await?;
+    cleanup_test_data(&redis_container, &config.cache.key_prefix).await?;
     Ok(())
 }
 
 #[tokio::test]
 async fn test_error_handling() -> Result<(), Box<dyn std::error::Error>> {
-    let config = create_test_persistence_config();
+    let mut config = create_test_persistence_config();
 
     // Test with invalid Redis URL
     let invalid_config = PersistenceConfig {
@@ -234,12 +233,16 @@ async fn test_error_handling() -> Result<(), Box<dyn std::error::Error>> {
 
 #[tokio::test]
 async fn test_compression_functionality() -> Result<(), Box<dyn std::error::Error>> {
-    let config = create_test_persistence_config();
-    let redis_url = &config.redis.url;
+    // Set up testcontainer
+    let docker = Cli::default();
+    let redis_container = RedisTestContainer::new(&docker).await?;
 
-    cleanup_test_data(redis_url, &config.cache.key_prefix).await?;
+    let mut config = create_test_persistence_config();
+    config.redis.url = redis_container.get_connection_string().to_string();
 
-    let cache_manager = PersistentCacheManager::new(redis_url, config.cache.clone()).await?;
+    cleanup_test_data(&redis_container, &config.cache.key_prefix).await?;
+
+    let cache_manager = PersistentCacheManager::new(&config.redis.url, config.cache.clone()).await?;
 
     // Create large data that should be compressed
     let large_data = "x".repeat(2048); // 2KB data, above compression threshold
@@ -250,18 +253,22 @@ async fn test_compression_functionality() -> Result<(), Box<dyn std::error::Erro
     assert!(retrieved.is_some());
     assert_eq!(retrieved.unwrap(), large_data);
 
-    cleanup_test_data(redis_url, &config.cache.key_prefix).await?;
+    cleanup_test_data(&redis_container, &config.cache.key_prefix).await?;
     Ok(())
 }
 
 #[tokio::test]
 async fn test_ttl_functionality() -> Result<(), Box<dyn std::error::Error>> {
-    let config = create_test_persistence_config();
-    let redis_url = &config.redis.url;
+    // Set up testcontainer
+    let docker = Cli::default();
+    let redis_container = RedisTestContainer::new(&docker).await?;
 
-    cleanup_test_data(redis_url, &config.cache.key_prefix).await?;
+    let mut config = create_test_persistence_config();
+    config.redis.url = redis_container.get_connection_string().to_string();
 
-    let cache_manager = PersistentCacheManager::new(redis_url, config.cache.clone()).await?;
+    cleanup_test_data(&redis_container, &config.cache.key_prefix).await?;
+
+    let cache_manager = PersistentCacheManager::new(&config.redis.url, config.cache.clone()).await?;
 
     // Set data with short TTL
     cache_manager.set(
@@ -283,6 +290,6 @@ async fn test_ttl_functionality() -> Result<(), Box<dyn std::error::Error>> {
     let expired: Option<String> = cache_manager.get("ttl_test", None).await?;
     assert!(expired.is_none());
 
-    cleanup_test_data(redis_url, &config.cache.key_prefix).await?;
+    cleanup_test_data(&redis_container, &config.cache.key_prefix).await?;
     Ok(())
 }

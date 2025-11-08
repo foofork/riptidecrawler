@@ -1,11 +1,17 @@
-//! Integration tests for Redis cache adapters
+//! Integration tests for Redis cache adapters with testcontainers
 //!
 //! Tests the concrete implementations:
 //! - RedisIdempotencyStore: IdempotencyStore implementation
 //! - RedisSessionStorage: Session storage adapter (if enabled)
 //!
-//! NOTE: These tests require Redis.
-//! Use testcontainers or set SKIP_REDIS_TESTS=1 to skip.
+//! Uses testcontainers for isolated Redis instances.
+//! Run with: `cargo test -p riptide-cache --test '*' --features idempotency`
+
+use testcontainers::clients::Cli;
+
+// Import test helpers
+mod helpers;
+use helpers::RedisTestContainer;
 
 #[cfg(test)]
 mod redis_adapter_tests {
@@ -13,7 +19,6 @@ mod redis_adapter_tests {
 
     /// Test RedisIdempotencyStore acquire token
     #[tokio::test]
-    #[ignore = "requires Redis testcontainer"]
     async fn test_redis_idempotency_acquire() {
         let store = setup_test_idempotency_store().await;
 
@@ -26,7 +31,6 @@ mod redis_adapter_tests {
     }
 
     #[tokio::test]
-    #[ignore = "requires Redis testcontainer"]
     async fn test_redis_idempotency_duplicate_prevention() {
         let store = setup_test_idempotency_store().await;
 
@@ -44,7 +48,6 @@ mod redis_adapter_tests {
     }
 
     #[tokio::test]
-    #[ignore = "requires Redis testcontainer"]
     async fn test_redis_idempotency_release() {
         let store = setup_test_idempotency_store().await;
 
@@ -64,7 +67,6 @@ mod redis_adapter_tests {
     }
 
     #[tokio::test]
-    #[ignore = "requires Redis testcontainer"]
     async fn test_redis_idempotency_ttl_expiration() {
         let store = setup_test_idempotency_store().await;
 
@@ -83,7 +85,6 @@ mod redis_adapter_tests {
     }
 
     #[tokio::test]
-    #[ignore = "requires Redis testcontainer"]
     async fn test_redis_idempotency_concurrent_acquire() {
         let store = setup_test_idempotency_store().await;
         let token = "test-token-5";
@@ -115,7 +116,6 @@ mod redis_adapter_tests {
     /// Test RedisSessionStorage operations (if feature enabled)
     #[cfg(feature = "sessions")]
     #[tokio::test]
-    #[ignore = "requires Redis testcontainer"]
     async fn test_redis_session_storage_save() {
         let storage = setup_test_session_storage().await;
 
@@ -131,7 +131,6 @@ mod redis_adapter_tests {
 
     #[cfg(feature = "sessions")]
     #[tokio::test]
-    #[ignore = "requires Redis testcontainer"]
     async fn test_redis_session_storage_retrieve() {
         let storage = setup_test_session_storage().await;
 
@@ -154,7 +153,6 @@ mod redis_adapter_tests {
 
     #[cfg(feature = "sessions")]
     #[tokio::test]
-    #[ignore = "requires Redis testcontainer"]
     async fn test_redis_session_storage_delete() {
         let storage = setup_test_session_storage().await;
 
@@ -177,7 +175,6 @@ mod redis_adapter_tests {
 
     #[cfg(feature = "sessions")]
     #[tokio::test]
-    #[ignore = "requires Redis testcontainer"]
     async fn test_redis_session_storage_ttl() {
         let storage = setup_test_session_storage().await;
 
@@ -199,7 +196,6 @@ mod redis_adapter_tests {
 
     /// Test Redis connection pooling
     #[tokio::test]
-    #[ignore = "requires Redis testcontainer"]
     async fn test_redis_connection_pool() {
         let store = setup_test_idempotency_store().await;
 
@@ -223,7 +219,6 @@ mod redis_adapter_tests {
 
     /// Test Redis error handling for connection failures
     #[tokio::test]
-    #[ignore = "requires Redis testcontainer"]
     async fn test_redis_connection_failure_handling() {
         // Create store with invalid connection
         let invalid_store = create_invalid_store();
@@ -240,7 +235,6 @@ mod redis_adapter_tests {
 
     /// Test Redis performance under load
     #[tokio::test]
-    #[ignore = "requires Redis testcontainer"]
     async fn test_redis_performance_under_load() {
         let store = setup_test_idempotency_store().await;
 

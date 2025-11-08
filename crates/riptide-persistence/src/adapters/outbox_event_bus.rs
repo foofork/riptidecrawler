@@ -60,9 +60,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::Duration;
-use tokio::time;
-use tracing::{debug, error, info, instrument, warn};
+use tracing::{debug, error, instrument, warn};
 use uuid::Uuid;
 
 /// Transactional Outbox implementation of EventBus
@@ -159,10 +157,7 @@ impl EventBus for OutboxEventBus {
         Ok(())
     }
 
-    async fn subscribe<H>(&self, _handler: H) -> RiptideResult<SubscriptionId>
-    where
-        H: EventHandler + Send + Sync + 'static,
-    {
+    async fn subscribe(&self, _handler: Arc<dyn EventHandler>) -> RiptideResult<SubscriptionId> {
         // Outbox pattern doesn't support direct subscriptions
         // Subscriptions should be handled by the message broker (e.g., RabbitMQ)
         warn!("OutboxEventBus does not support direct subscriptions");
@@ -219,6 +214,7 @@ impl EventBus for OutboxEventBus {
 }
 
 /// Outbox row structure
+#[allow(dead_code)] // Used in future publisher implementation
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 struct OutboxRow {
     id: Uuid,
@@ -233,6 +229,7 @@ struct OutboxRow {
 
 impl OutboxRow {
     /// Convert to DomainEvent
+    #[allow(dead_code)] // Used in future publisher implementation
     fn to_domain_event(&self) -> RiptideResult<DomainEvent> {
         let metadata: HashMap<String, String> = serde_json::from_value(self.metadata.clone())
             .map_err(|e| RiptideError::Custom(format!("Failed to deserialize metadata: {}", e)))?;
@@ -248,190 +245,21 @@ impl OutboxRow {
     }
 }
 
-/// Background worker that polls outbox and publishes events
-///
-/// This worker should run continuously in a background task.
-/// It polls the outbox table for unpublished events and publishes
-/// them to the actual message broker.
-pub struct OutboxPublisher {
-    /// PostgreSQL connection pool
-    pool: Arc<PgPool>,
-
-    /// Table name for event outbox
-    table_name: String,
-
-    /// Polling interval
-    poll_interval: Duration,
-
-    /// Maximum number of events to fetch per poll
-    batch_size: usize,
-
-    /// Maximum retry attempts before giving up
-    max_retries: i32,
-}
-
-impl OutboxPublisher {
-    /// Create new outbox publisher
-    ///
-    /// # Arguments
-    ///
-    /// * `pool` - PostgreSQL connection pool
-    ///
-    /// # Example
-    ///
-    /// ```rust,ignore
-    /// let publisher = OutboxPublisher::new(pool);
-    /// tokio::spawn(async move {
-    ///     publisher.run().await;
-    /// });
-    /// ```
-    pub fn new(pool: Arc<PgPool>) -> Self {
-        Self {
-            pool,
-            table_name: "event_outbox".to_string(),
-            poll_interval: Duration::from_secs(5),
-            batch_size: 100,
-            max_retries: 5,
-        }
-    }
-
-    /// Configure polling interval
-    pub fn with_poll_interval(mut self, interval: Duration) -> Self {
-        self.poll_interval = interval;
-        self
-    }
-
-    /// Configure batch size
-    pub fn with_batch_size(mut self, size: usize) -> Self {
-        self.batch_size = size;
-        self
-    }
-
-    /// Configure max retries
-    pub fn with_max_retries(mut self, retries: i32) -> Self {
-        self.max_retries = retries;
-        self
-    }
-
-    /// Run the outbox publisher (infinite loop)
-    ///
-    /// This method polls the outbox table and publishes events.
-    /// It should be run in a background task.
-    #[instrument(skip(self))]
-    pub async fn run(&self) {
-        info!(
-            poll_interval = ?self.poll_interval,
-            batch_size = self.batch_size,
-            "Starting outbox publisher"
-        );
-
-        let mut interval = time::interval(self.poll_interval);
-
-        loop {
-            interval.tick().await;
-
-            if let Err(e) = self.poll_and_publish().await {
-                error!("Error polling outbox: {:?}", e);
-            }
-        }
-    }
-
-    /// Poll outbox and publish events (single iteration)
-    #[instrument(skip(self))]
-    async fn poll_and_publish(&self) -> RiptideResult<()> {
-        debug!("Polling outbox for unpublished events");
-
-        // Fetch unpublished events
-        let query = format!(
-            "SELECT id, event_id, event_type, aggregate_id, payload, metadata, created_at, retry_count
-             FROM {}
-             WHERE published_at IS NULL AND retry_count < $1
-             ORDER BY created_at ASC
-             LIMIT $2",
-            self.table_name
-        );
-
-        let rows: Vec<OutboxRow> = sqlx::query_as::<_, OutboxRow>(&query)
-            .bind(self.max_retries)
-            .bind(self.batch_size as i64)
-            .fetch_all(&*self.pool)
-            .await
-            .map_err(|e| RiptideError::Storage(format!("Failed to fetch outbox events: {}", e)))?;
-
-        if rows.is_empty() {
-            debug!("No unpublished events in outbox");
-            return Ok(());
-        }
-
-        info!(event_count = rows.len(), "Publishing events from outbox");
-
-        for row in rows {
-            if let Err(e) = self.publish_event(&row).await {
-                error!(
-                    event_id = %row.event_id,
-                    error = ?e,
-                    "Failed to publish event"
-                );
-                self.mark_retry(&row.id).await?;
-            } else {
-                self.mark_published(&row.id).await?;
-            }
-        }
-
-        Ok(())
-    }
-
-    /// Publish a single event from outbox
-    async fn publish_event(&self, row: &OutboxRow) -> RiptideResult<()> {
-        let event = row.to_domain_event()?;
-
-        // TODO: Publish to actual message broker (RabbitMQ, Kafka, NATS, etc.)
-        // For now, just log the event
-        info!(
-            event_id = %event.id,
-            event_type = %event.event_type,
-            "Publishing event (placeholder - configure message broker)"
-        );
-
-        Ok(())
-    }
-
-    /// Mark event as published
-    async fn mark_published(&self, id: &Uuid) -> RiptideResult<()> {
-        let query = format!(
-            "UPDATE {} SET published_at = NOW() WHERE id = $1",
-            self.table_name
-        );
-
-        sqlx::query(&query)
-            .bind(id)
-            .execute(&*self.pool)
-            .await
-            .map_err(|e| {
-                RiptideError::Storage(format!("Failed to mark event as published: {}", e))
-            })?;
-
-        Ok(())
-    }
-
-    /// Increment retry count
-    async fn mark_retry(&self, id: &Uuid) -> RiptideResult<()> {
-        let query = format!(
-            "UPDATE {} SET retry_count = retry_count + 1 WHERE id = $1",
-            self.table_name
-        );
-
-        sqlx::query(&query)
-            .bind(id)
-            .execute(&*self.pool)
-            .await
-            .map_err(|e| {
-                RiptideError::Storage(format!("Failed to increment retry count: {}", e))
-            })?;
-
-        Ok(())
-    }
-}
+// DEPRECATED: OutboxPublisher has been moved to a separate module.
+//
+// The legacy OutboxPublisher in this file has been replaced with a more
+// feature-rich implementation in `outbox_publisher.rs`. The new version includes:
+//
+// - Real EventBus integration (not just placeholder logging)
+// - Exponential backoff retry logic
+// - Row-level locking for concurrent publisher safety
+// - Graceful shutdown via CancellationToken
+// - Comprehensive error handling
+//
+// Please use: `use riptide_persistence::adapters::OutboxPublisher;`
+//
+// See: crates/riptide-persistence/src/adapters/outbox_publisher.rs
+// Docs: docs/architecture/outbox-publisher-design.md
 
 #[cfg(test)]
 mod tests {
@@ -457,16 +285,5 @@ mod tests {
         assert_eq!(event.aggregate_id, "user-456");
     }
 
-    #[test]
-    fn test_outbox_publisher_configuration() {
-        let pool = Arc::new(PgPool::connect_lazy("postgres://localhost").unwrap());
-        let publisher = OutboxPublisher::new(pool)
-            .with_poll_interval(Duration::from_secs(10))
-            .with_batch_size(50)
-            .with_max_retries(3);
-
-        assert_eq!(publisher.poll_interval, Duration::from_secs(10));
-        assert_eq!(publisher.batch_size, 50);
-        assert_eq!(publisher.max_retries, 3);
-    }
+    // OutboxPublisher tests moved to outbox_publisher.rs and tests/outbox_publisher_tests.rs
 }

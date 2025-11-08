@@ -3,6 +3,7 @@
 use riptide_persistence::config::{
     CompressionAlgorithm, CoordinatorType, EvictionPolicy, PersistenceConfig, TenantIsolationLevel,
 };
+use serial_test::serial;
 use std::env;
 
 /// Helper to set and clear environment variables for testing
@@ -20,6 +21,7 @@ where
 }
 
 #[test]
+#[serial]
 fn test_redis_config_from_env() {
     with_env_vars(
         vec![
@@ -49,6 +51,7 @@ fn test_redis_config_from_env() {
 }
 
 #[test]
+#[serial]
 fn test_cache_config_from_env() {
     with_env_vars(
         vec![
@@ -85,6 +88,7 @@ fn test_cache_config_from_env() {
 }
 
 #[test]
+#[serial]
 fn test_cache_compression_algorithm_variants() {
     with_env_vars(vec![("CACHE_COMPRESSION_ALGORITHM", "lz4")], || {
         let config = PersistenceConfig::from_env();
@@ -104,6 +108,7 @@ fn test_cache_compression_algorithm_variants() {
 }
 
 #[test]
+#[serial]
 fn test_state_config_from_env() {
     with_env_vars(
         vec![
@@ -134,6 +139,7 @@ fn test_state_config_from_env() {
 }
 
 #[test]
+#[serial]
 fn test_tenant_config_from_env() {
     with_env_vars(
         vec![
@@ -160,6 +166,7 @@ fn test_tenant_config_from_env() {
 }
 
 #[test]
+#[serial]
 fn test_tenant_isolation_level_variants() {
     with_env_vars(vec![("TENANT_ISOLATION_LEVEL", "none")], || {
         let config = PersistenceConfig::from_env();
@@ -179,6 +186,7 @@ fn test_tenant_isolation_level_variants() {
 }
 
 #[test]
+#[serial]
 fn test_performance_config_from_env() {
     with_env_vars(
         vec![
@@ -210,6 +218,7 @@ fn test_performance_config_from_env() {
 }
 
 #[test]
+#[serial]
 fn test_security_config_from_env() {
     with_env_vars(
         vec![
@@ -236,6 +245,7 @@ fn test_security_config_from_env() {
 }
 
 #[test]
+#[serial]
 fn test_distributed_config_from_env() {
     with_env_vars(
         vec![
@@ -273,6 +283,7 @@ fn test_distributed_config_from_env() {
 }
 
 #[test]
+#[serial]
 fn test_distributed_config_disabled() {
     with_env_vars(vec![("DISTRIBUTED_ENABLED", "false")], || {
         let config = PersistenceConfig::from_env();
@@ -282,6 +293,7 @@ fn test_distributed_config_disabled() {
 }
 
 #[test]
+#[serial]
 fn test_coordinator_type_variants() {
     let types = vec![
         ("redis", CoordinatorType::Redis),
@@ -306,6 +318,7 @@ fn test_coordinator_type_variants() {
 }
 
 #[test]
+#[serial]
 fn test_default_config_when_no_env_vars() {
     let env_keys = vec!["REDIS_URL", "CACHE_DEFAULT_TTL_SECONDS", "TENANT_ENABLED"];
     for key in &env_keys {
@@ -324,6 +337,7 @@ fn test_default_config_when_no_env_vars() {
 }
 
 #[test]
+#[serial]
 fn test_invalid_env_var_values_use_defaults() {
     with_env_vars(
         vec![
@@ -346,6 +360,7 @@ fn test_invalid_env_var_values_use_defaults() {
 }
 
 #[test]
+#[serial]
 fn test_config_validation_with_env_vars() {
     with_env_vars(
         vec![
@@ -360,6 +375,7 @@ fn test_config_validation_with_env_vars() {
 }
 
 #[test]
+#[serial]
 fn test_all_sections_loaded_together() {
     with_env_vars(
         vec![

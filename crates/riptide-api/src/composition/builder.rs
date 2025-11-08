@@ -15,12 +15,22 @@
 //!     .build_for_testing();
 //! ```
 
-use super::{stubs::*, ApplicationContext, DiConfig, Event, User};
+use super::{DiConfig, Event, User};
+
+#[cfg(not(feature = "postgres"))]
+use super::{stubs::*, ApplicationContext};
+
+#[cfg(not(feature = "postgres"))]
 use anyhow::Result;
+
 use riptide_types::ports::infrastructure::{
     Clock, DeterministicEntropy, Entropy, FakeClock, SystemClock, SystemEntropy,
 };
-use riptide_types::{EventBus, IdempotencyStore, Repository, TransactionManager};
+use riptide_types::{EventBus, IdempotencyStore, Repository};
+
+#[cfg(not(feature = "postgres"))]
+use riptide_types::TransactionManager;
+
 use std::sync::Arc;
 
 /// Builder for ApplicationContext
@@ -248,11 +258,15 @@ impl ApplicationContextBuilder {
     ///
     /// Any dependencies not explicitly set will use in-memory implementations.
     ///
+    /// Note: This builder is only available without the `postgres` feature.
+    /// With `postgres` enabled, use `ApplicationContext::for_testing()` instead.
+    ///
     /// # Example
     ///
     /// ```rust,ignore
     /// let ctx = builder.build_for_testing();
     /// ```
+    #[cfg(not(feature = "postgres"))]
     pub fn build_for_testing(self) -> ApplicationContext {
         // Use provided implementations or default to in-memory
         let clock = self
@@ -280,7 +294,6 @@ impl ApplicationContextBuilder {
             .unwrap_or_else(|| Arc::new(InMemoryIdempotencyStore::new()));
 
         // For testing, we create a stub transaction manager
-        // In production, this would be PostgresTransactionManager
         let transaction_manager = Arc::new(InMemoryTransactionManager::new())
             as Arc<dyn TransactionManager<Transaction = InMemoryTransaction>>;
 
@@ -300,11 +313,15 @@ impl ApplicationContextBuilder {
     ///
     /// Validates that all required dependencies are set.
     ///
+    /// Note: This builder is only available without the `postgres` feature.
+    /// With `postgres` enabled, use `ApplicationContext::for_testing()` instead.
+    ///
     /// # Errors
     ///
     /// Returns error if:
     /// - Required dependencies are missing
     /// - Configuration validation fails
+    #[cfg(not(feature = "postgres"))]
     pub fn build(self) -> Result<ApplicationContext> {
         // Validate configuration
         self.config.validate()?;

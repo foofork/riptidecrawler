@@ -20,6 +20,9 @@ pub mod postgres_transaction;
 pub mod outbox_event_bus;
 
 #[cfg(feature = "postgres")]
+pub mod outbox_publisher;
+
+#[cfg(feature = "postgres")]
 pub mod postgres_session_storage;
 
 pub mod prometheus_metrics;
@@ -32,7 +35,10 @@ pub use postgres_repository::PostgresRepository;
 pub use postgres_transaction::{PostgresTransaction, PostgresTransactionManager};
 
 #[cfg(feature = "postgres")]
-pub use outbox_event_bus::{OutboxEventBus, OutboxPublisher};
+pub use outbox_event_bus::OutboxEventBus;
+
+#[cfg(feature = "postgres")]
+pub use outbox_publisher::{OutboxPublisher, OutboxRow};
 
 #[cfg(feature = "postgres")]
 pub use postgres_session_storage::PostgresSessionStorage;

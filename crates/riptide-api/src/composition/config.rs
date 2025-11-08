@@ -154,7 +154,7 @@ impl Default for RedisConfig {
 }
 
 /// Feature flags for optional functionality
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct FeatureFlags {
     /// Enable browser automation features
     #[serde(default)]
@@ -167,16 +167,6 @@ pub struct FeatureFlags {
     /// Enable search provider integration
     #[serde(default)]
     pub enable_search: bool,
-}
-
-impl Default for FeatureFlags {
-    fn default() -> Self {
-        Self {
-            enable_browser: false,
-            enable_pdf: false,
-            enable_search: false,
-        }
-    }
 }
 
 impl DiConfig {
@@ -334,12 +324,7 @@ impl DiConfig {
 
 impl Default for DiConfig {
     fn default() -> Self {
-        Self {
-            database: DatabaseConfig::default(),
-            redis: RedisConfig::default(),
-            features: FeatureFlags::default(),
-            is_testing: false,
-        }
+        Self::for_testing()
     }
 }
 

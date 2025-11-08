@@ -62,6 +62,9 @@ tokio-test = "0.4"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 mockito = "1.0"
 tempfile = "3.0"
+testcontainers = "0.15"
+testcontainers-modules = { version = "0.3", features = ["redis"] }
+anyhow = "1.0"
 
 [features]
 default = []

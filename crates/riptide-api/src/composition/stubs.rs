@@ -97,6 +97,7 @@ impl InMemoryEventBus {
         }
     }
 
+    #[allow(dead_code)]
     pub fn published_events(&self) -> Vec<DomainEvent> {
         self.events.lock().unwrap().clone()
     }
@@ -203,9 +204,11 @@ impl IdempotencyStore for InMemoryIdempotencyStore {
 // InMemoryTransactionManager
 // ============================================================================
 
+#[allow(dead_code)] // Used only without postgres feature
 pub struct InMemoryTransactionManager;
 
 impl InMemoryTransactionManager {
+    #[allow(dead_code)] // Used only without postgres feature
     pub fn new() -> Self {
         Self
     }
@@ -238,11 +241,13 @@ impl TransactionManager for InMemoryTransactionManager {
 // InMemoryTransaction
 // ============================================================================
 
+#[allow(dead_code)] // Used only without postgres feature
 pub struct InMemoryTransaction {
     id: String,
 }
 
 impl InMemoryTransaction {
+    #[allow(dead_code)] // Used only without postgres feature
     pub fn new() -> Self {
         Self {
             id: uuid::Uuid::new_v4().to_string(),

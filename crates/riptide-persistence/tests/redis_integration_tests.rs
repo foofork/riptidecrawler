@@ -1,5 +1,7 @@
 //! Comprehensive Redis/DragonflyDB Integration Tests for Persistence Layer
 //!
+//! Uses testcontainers for isolated Redis instances.
+//!
 //! Test coverage for:
 //! - Redis connection management
 //! - Cache operations (set, get, delete)
@@ -9,10 +11,13 @@
 //! - Connection pooling
 //! - Error recovery
 //! - Performance benchmarks
+//!
+//! Run tests with: `cargo test -p riptide-persistence --test redis_integration_tests`
 
 use anyhow::Result;
 use std::collections::HashMap;
 use std::time::Duration;
+use testcontainers::clients::Cli;
 use tokio::time::sleep;
 
 // Import from riptide-persistence
@@ -20,6 +25,10 @@ use riptide_persistence::{
     cache::{CacheMetadata, PersistentCacheManager},
     config::{CacheConfig, CompressionAlgorithm, EvictionPolicy},
 };
+
+// Import test helpers
+mod helpers;
+use helpers::RedisTestContainer;
 
 // Helper function to create test config
 fn test_cache_config() -> CacheConfig {
@@ -40,7 +49,6 @@ fn test_cache_config() -> CacheConfig {
 
 /// Test 1: Redis connection establishment
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_redis_connection_establishment() -> Result<()> {
     let config = test_cache_config();
     let cache = PersistentCacheManager::new("redis://localhost:6379", config).await;
@@ -51,7 +59,6 @@ async fn test_redis_connection_establishment() -> Result<()> {
 
 /// Test 2: Cache set operation
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_cache_set_operation() -> Result<()> {
     let config = test_cache_config();
     let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
@@ -64,7 +71,6 @@ async fn test_cache_set_operation() -> Result<()> {
 
 /// Test 3: Cache get operation
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_cache_get_operation() -> Result<()> {
     let config = test_cache_config();
     let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
@@ -79,7 +85,6 @@ async fn test_cache_get_operation() -> Result<()> {
 
 /// Test 4: Cache delete operation
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_cache_delete_operation() -> Result<()> {
     let config = test_cache_config();
     let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
@@ -103,7 +108,6 @@ async fn test_cache_exists_check() -> Result<()> {
 
 /// Test 6: TTL-based expiration
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_ttl_expiration() -> Result<()> {
     let config = test_cache_config();
     let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
@@ -139,7 +143,6 @@ async fn test_ttl_update() -> Result<()> {
 
 /// Test 8: Multi-tenant key isolation (using namespace)
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_multi_tenant_isolation() -> Result<()> {
     let config = test_cache_config();
     let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
@@ -162,7 +165,6 @@ async fn test_multi_tenant_isolation() -> Result<()> {
 
 /// Test 9: Batch set operation
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_batch_set_operation() -> Result<()> {
     let config = test_cache_config();
     let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
@@ -187,7 +189,6 @@ async fn test_batch_set_operation() -> Result<()> {
 
 /// Test 10: Batch delete operation
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_batch_delete_operation() -> Result<()> {
     let config = test_cache_config();
     let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
@@ -209,7 +210,6 @@ async fn test_batch_delete_operation() -> Result<()> {
 
 /// Test 11: Cache flush operation
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_cache_flush_operation() -> Result<()> {
     let config = test_cache_config();
     let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
@@ -234,7 +234,6 @@ async fn test_cache_flush_operation() -> Result<()> {
 
 /// Test 12: Connection pool size configuration
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_connection_pool_size() -> Result<()> {
     let config = test_cache_config();
     let cache = PersistentCacheManager::new("redis://localhost:6379", config).await;
@@ -261,7 +260,6 @@ async fn test_operation_timeout() -> Result<()> {
 
 /// Test 15: Large value storage
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_large_value_storage() -> Result<()> {
     let config = test_cache_config();
     let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
@@ -279,7 +277,6 @@ async fn test_large_value_storage() -> Result<()> {
 
 /// Test 16: Concurrent set operations
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_concurrent_set_operations() -> Result<()> {
     let config = test_cache_config();
     let cache =
@@ -311,7 +308,6 @@ async fn test_concurrent_set_operations() -> Result<()> {
 
 /// Test 17: Concurrent get operations
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_concurrent_get_operations() -> Result<()> {
     let config = test_cache_config();
     let cache =
@@ -367,7 +363,6 @@ async fn test_methods_not_implemented() -> Result<()> {
 
 /// Test 38: Cache statistics retrieval
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_cache_statistics() -> Result<()> {
     let config = test_cache_config();
     let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
@@ -424,7 +419,6 @@ async fn test_connection_failure_handling() -> Result<()> {
 
 /// Test 42: Large value exceeding max size
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_large_value_exceeding_max() -> Result<()> {
     let mut config = test_cache_config();
     config.max_entry_size_bytes = 1000;
@@ -440,7 +434,6 @@ async fn test_large_value_exceeding_max() -> Result<()> {
 
 /// Test 43: Performance - rapid operations
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_performance_rapid_operations() -> Result<()> {
     let config = test_cache_config();
     let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
@@ -469,7 +462,6 @@ async fn test_performance_rapid_operations() -> Result<()> {
 
 /// Test 44: Performance - concurrent operations
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_performance_concurrent() -> Result<()> {
     let config = test_cache_config();
     let cache =
@@ -508,7 +500,6 @@ async fn test_performance_concurrent() -> Result<()> {
 
 /// Test 45: Data consistency across operations
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_data_consistency() -> Result<()> {
     let config = test_cache_config();
     let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
@@ -527,7 +518,6 @@ async fn test_data_consistency() -> Result<()> {
 
 /// Test 46: Batch get operation
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_batch_get_operation() -> Result<()> {
     let config = test_cache_config();
     let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
@@ -554,7 +544,6 @@ async fn test_batch_get_operation() -> Result<()> {
 
 /// Test 47: Metadata support
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_metadata_support() -> Result<()> {
     let config = test_cache_config();
     let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
@@ -588,7 +577,6 @@ async fn test_metadata_support() -> Result<()> {
 
 /// Test 48: Key generation with namespace
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_key_generation_with_namespace() -> Result<()> {
     let config = test_cache_config();
     let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
@@ -606,7 +594,6 @@ async fn test_key_generation_with_namespace() -> Result<()> {
 
 /// Test 49: TTL with custom duration
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_ttl_custom_duration() -> Result<()> {
     let config = test_cache_config();
     let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
@@ -629,7 +616,6 @@ async fn test_ttl_custom_duration() -> Result<()> {
 
 /// Test 50: Clear all entries
 #[tokio::test]
-#[ignore] // Requires Redis server
 async fn test_clear_all_entries() -> Result<()> {
     let config = test_cache_config();
     let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;

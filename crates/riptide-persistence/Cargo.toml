@@ -20,6 +20,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
+tokio-util = { version = "0.7", features = ["codec"], optional = true }
 tracing = { workspace = true }
 uuid = { workspace = true }
 sha2 = "0.10"
@@ -48,12 +49,15 @@ criterion = { version = "0.5", features = ["html_reports"] }
 rand = "0.8"
 tracing-subscriber = "0.3"
 fastrand = "2.0"
+testcontainers = "0.15"
+testcontainers-modules = { version = "0.3", features = ["postgres", "redis"] }
+serial_test = "3.0"
 
 [features]
 default = ["compression", "metrics"]
 compression = ["dep:lz4_flex", "dep:zstd"]
 metrics = ["dep:prometheus"]
-postgres = ["dep:sqlx"]
+postgres = ["dep:sqlx", "dep:tokio-util"]
 
 [[bench]]
 name = "persistence_benchmarks"

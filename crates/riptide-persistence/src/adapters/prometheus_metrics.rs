@@ -3,9 +3,7 @@
 //! This module provides a production-ready metrics collector using Prometheus.
 //! It implements both MetricsCollector and BusinessMetrics traits.
 
-use prometheus::{
-    Counter, CounterVec, Gauge, GaugeVec, Histogram, HistogramOpts, HistogramVec, Opts, Registry,
-};
+use prometheus::{CounterVec, GaugeVec, HistogramOpts, HistogramVec, Opts, Registry};
 use riptide_types::ports::metrics::{BusinessMetrics, MetricsCollector};
 use std::sync::Arc;
 use std::time::Duration;
@@ -168,7 +166,9 @@ impl MetricsCollector for PrometheusMetrics {
 
         let counter = self.get_or_create_counter(name, &format!("{} counter", name), &label_names);
 
-        counter.with_label_values(&label_values).inc_by(value);
+        counter
+            .with_label_values(&label_values)
+            .inc_by(value as f64);
     }
 
     fn record_histogram(&self, name: &str, value: f64, tags: &[(&str, &str)]) {

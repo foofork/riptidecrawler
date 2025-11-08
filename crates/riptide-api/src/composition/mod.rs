@@ -36,19 +36,32 @@ pub mod builder;
 pub mod config;
 
 use anyhow::Result;
-use riptide_types::ports::infrastructure::{
-    Clock, DeterministicEntropy, Entropy, FakeClock, SystemClock, SystemEntropy,
-};
+use riptide_types::ports::infrastructure::{Clock, Entropy, SystemClock, SystemEntropy};
 use riptide_types::{EventBus, IdempotencyStore, Repository, TransactionManager};
+
+// Test-only imports
+#[cfg(test)]
+use riptide_types::ports::infrastructure::FakeClock;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tracing::{info, instrument};
 
 // Stub implementations for testing (would be in separate crates in production)
 mod stubs;
+
+#[cfg(not(feature = "postgres"))]
 use stubs::{
     InMemoryEventBus, InMemoryIdempotencyStore, InMemoryRepository, InMemoryTransaction,
     InMemoryTransactionManager,
+};
+
+#[cfg(feature = "postgres")]
+use stubs::{InMemoryEventBus, InMemoryIdempotencyStore, InMemoryRepository};
+
+// PostgreSQL adapters (when postgres feature is enabled)
+#[cfg(feature = "postgres")]
+use riptide_persistence::adapters::{
+    OutboxEventBus, PostgresRepository, PostgresTransaction, PostgresTransactionManager,
 };
 
 pub use builder::ApplicationContextBuilder;
@@ -69,6 +82,7 @@ pub use config::DiConfig;
 ///
 /// ```rust,ignore
 /// // Production
+/// let config = DiConfig::from_env()?;
 /// let ctx = ApplicationContext::new(&config).await?;
 ///
 /// // Testing
@@ -91,6 +105,10 @@ pub struct ApplicationContext {
 
     // === Persistence Layer ===
     /// Transaction manager for ACID operations
+    #[cfg(feature = "postgres")]
+    pub transaction_manager: Arc<dyn TransactionManager<Transaction = PostgresTransaction>>,
+
+    #[cfg(not(feature = "postgres"))]
     pub transaction_manager: Arc<dyn TransactionManager<Transaction = InMemoryTransaction>>,
 
     /// User entity repository
@@ -149,48 +167,99 @@ impl ApplicationContext {
         // Validate configuration
         config.validate()?;
 
-        // TODO: Enable PostgreSQL adapters when feature gates are configured
-        // For now, use in-memory implementations
-        info!("Using in-memory implementations (database features not enabled)");
-
-        // === Wire Transaction Manager ===
-        let transaction_manager = Arc::new(InMemoryTransactionManager::new())
-            as Arc<dyn TransactionManager<Transaction = InMemoryTransaction>>;
-        info!("Transaction manager initialized (in-memory)");
-
-        // === Wire Repositories ===
-        let user_repository =
-            Arc::new(InMemoryRepository::<User>::new()) as Arc<dyn Repository<User>>;
-        let event_repository =
-            Arc::new(InMemoryRepository::<Event>::new()) as Arc<dyn Repository<Event>>;
-        info!("Repositories initialized (in-memory)");
-
-        // === Wire Event Bus ===
-        let event_bus = Arc::new(InMemoryEventBus::new()) as Arc<dyn EventBus>;
-        info!("Event bus initialized (in-memory)");
-
-        // === Wire Idempotency Store ===
-        let idempotency_store =
-            Arc::new(InMemoryIdempotencyStore::new()) as Arc<dyn IdempotencyStore>;
-        info!("Idempotency store initialized (in-memory)");
-
         // === Wire System Ports ===
         let clock = Arc::new(SystemClock) as Arc<dyn Clock>;
         let entropy = Arc::new(SystemEntropy) as Arc<dyn Entropy>;
         info!("System ports (clock, entropy) initialized");
 
-        info!("ApplicationContext initialization complete");
+        // === Wire Persistence Adapters (feature-gated) ===
+        #[cfg(feature = "postgres")]
+        {
+            info!("Wiring PostgreSQL adapters");
 
-        Ok(Self {
-            clock,
-            entropy,
-            transaction_manager,
-            user_repository,
-            event_repository,
-            event_bus,
-            idempotency_store,
-            config: config.clone(),
-        })
+            // Create connection pool
+            let pool = Arc::new(
+                sqlx::postgres::PgPoolOptions::new()
+                    .max_connections(config.database.max_connections)
+                    .connect(&config.database.url)
+                    .await?,
+            );
+            info!("PostgreSQL connection pool established");
+
+            // Wire transaction manager
+            let transaction_manager = Arc::new(PostgresTransactionManager::new(pool.clone()))
+                as Arc<dyn TransactionManager<Transaction = PostgresTransaction>>;
+            info!("Transaction manager initialized (PostgreSQL)");
+
+            // Wire repositories
+            let user_repository = Arc::new(PostgresRepository::<User>::new(pool.clone(), "users"))
+                as Arc<dyn Repository<User>>;
+            let event_repository =
+                Arc::new(PostgresRepository::<Event>::new(pool.clone(), "events"))
+                    as Arc<dyn Repository<Event>>;
+            info!("Repositories initialized (PostgreSQL)");
+
+            // Wire event bus with outbox pattern
+            let event_bus = Arc::new(OutboxEventBus::new(pool.clone())) as Arc<dyn EventBus>;
+            info!("Event bus initialized (Outbox pattern)");
+
+            // Wire idempotency store (still in-memory for now)
+            let idempotency_store =
+                Arc::new(InMemoryIdempotencyStore::new()) as Arc<dyn IdempotencyStore>;
+            info!("Idempotency store initialized (in-memory)");
+
+            info!("ApplicationContext initialization complete (PostgreSQL mode)");
+
+            return Ok(Self {
+                clock,
+                entropy,
+                transaction_manager,
+                user_repository,
+                event_repository,
+                event_bus,
+                idempotency_store,
+                config: config.clone(),
+            });
+        }
+
+        #[cfg(not(feature = "postgres"))]
+        {
+            info!("Using in-memory implementations (postgres feature not enabled)");
+
+            // === Wire Transaction Manager ===
+            let transaction_manager = Arc::new(InMemoryTransactionManager::new())
+                as Arc<dyn TransactionManager<Transaction = InMemoryTransaction>>;
+            info!("Transaction manager initialized (in-memory)");
+
+            // === Wire Repositories ===
+            let user_repository =
+                Arc::new(InMemoryRepository::<User>::new()) as Arc<dyn Repository<User>>;
+            let event_repository =
+                Arc::new(InMemoryRepository::<Event>::new()) as Arc<dyn Repository<Event>>;
+            info!("Repositories initialized (in-memory)");
+
+            // === Wire Event Bus ===
+            let event_bus = Arc::new(InMemoryEventBus::new()) as Arc<dyn EventBus>;
+            info!("Event bus initialized (in-memory)");
+
+            // === Wire Idempotency Store ===
+            let idempotency_store =
+                Arc::new(InMemoryIdempotencyStore::new()) as Arc<dyn IdempotencyStore>;
+            info!("Idempotency store initialized (in-memory)");
+
+            info!("ApplicationContext initialization complete (in-memory mode)");
+
+            Ok(Self {
+                clock,
+                entropy,
+                transaction_manager,
+                user_repository,
+                event_repository,
+                event_bus,
+                idempotency_store,
+                config: config.clone(),
+            })
+        }
     }
 
     /// Create testing ApplicationContext with in-memory implementations
@@ -222,8 +291,75 @@ impl ApplicationContext {
     pub fn for_testing() -> Self {
         info!("Creating ApplicationContext (testing mode - in-memory)");
 
-        // Use the builder with default in-memory implementations
-        Self::builder().build_for_testing()
+        // Without postgres feature, use the builder
+        #[cfg(not(feature = "postgres"))]
+        {
+            Self::builder().build_for_testing()
+        }
+
+        // With postgres feature, manually construct with in-memory implementations
+        // Note: We use a type-erased transaction manager to avoid the type mismatch
+        #[cfg(feature = "postgres")]
+        {
+            use riptide_types::ports::infrastructure::{DeterministicEntropy, FakeClock};
+
+            let clock = Arc::new(FakeClock::at_epoch()) as Arc<dyn Clock>;
+            let entropy = Arc::new(DeterministicEntropy::new(42)) as Arc<dyn Entropy>;
+
+            // For testing with postgres feature, we create a stub that satisfies the type requirements
+            // We can't use InMemoryTransactionManager because it returns InMemoryTransaction
+            // Instead, we'll create a minimal stub inline
+            struct StubTransactionManager;
+
+            #[async_trait::async_trait]
+            impl TransactionManager for StubTransactionManager {
+                type Transaction = PostgresTransaction;
+
+                async fn begin(&self) -> riptide_types::Result<Self::Transaction> {
+                    unimplemented!(
+                        "StubTransactionManager is for testing only - don't call begin()"
+                    )
+                }
+
+                async fn commit(&self, _tx: Self::Transaction) -> riptide_types::Result<()> {
+                    unimplemented!(
+                        "StubTransactionManager is for testing only - don't call commit()"
+                    )
+                }
+
+                async fn rollback(&self, _tx: Self::Transaction) -> riptide_types::Result<()> {
+                    unimplemented!(
+                        "StubTransactionManager is for testing only - don't call rollback()"
+                    )
+                }
+            }
+
+            let transaction_manager = Arc::new(StubTransactionManager)
+                as Arc<dyn TransactionManager<Transaction = PostgresTransaction>>;
+
+            let user_repository =
+                Arc::new(InMemoryRepository::<User>::new()) as Arc<dyn Repository<User>>;
+            let event_repository =
+                Arc::new(InMemoryRepository::<Event>::new()) as Arc<dyn Repository<Event>>;
+
+            let event_bus = Arc::new(InMemoryEventBus::new()) as Arc<dyn EventBus>;
+
+            let idempotency_store =
+                Arc::new(InMemoryIdempotencyStore::new()) as Arc<dyn IdempotencyStore>;
+
+            let config = DiConfig::default();
+
+            Self {
+                clock,
+                entropy,
+                transaction_manager,
+                user_repository,
+                event_repository,
+                event_bus,
+                idempotency_store,
+                config,
+            }
+        }
     }
 
     /// Get builder for custom ApplicationContext configuration
