@@ -118,7 +118,6 @@ fn authorize_url_access(
 mod tests {
     use super::*;
     use crate::authorization::policies::{RbacPolicy, TenantScopingPolicy};
-    use crate::config::RiptideConfig;
     use riptide_extraction::fallback_extract;
     use riptide_extraction::ContentExtractor;
     use riptide_types::ExtractedContent;
@@ -269,7 +268,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_authorization_with_extraction_resource() {
-        let facade = create_test_facade();
+        let _facade = create_test_facade();
 
         // Test with an Extraction resource (has tenant_id)
         let ctx = create_test_context("user123", "tenant1", vec!["viewer"]);

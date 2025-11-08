@@ -364,7 +364,7 @@ mod tests {
     use super::*;
     use async_trait::async_trait;
     use riptide_types::ports::{
-        EventHandler, IdempotencyToken, InMemoryCache, SubscriptionId, SystemClock, Transaction,
+        EventHandler, IdempotencyToken, SubscriptionId, SystemClock, Transaction,
     };
     use std::sync::Mutex;
 

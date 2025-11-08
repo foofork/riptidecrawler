@@ -165,6 +165,10 @@ pub struct AppState {
     #[cfg(feature = "search")]
     pub search_facade: Option<Arc<riptide_facade::facades::SearchFacade>>,
 
+    /// Engine selection facade for intelligent engine selection
+    /// Phase 3 Sprint 3.1: Engine selection business logic
+    pub engine_facade: Arc<riptide_facade::facades::EngineFacade>,
+
     /// Trace backend for distributed trace storage and retrieval
     pub trace_backend: Option<Arc<dyn crate::handlers::trace_backend::TraceBackend>>,
 
@@ -1223,6 +1227,12 @@ impl AppState {
                 })?,
         );
 
+        // Initialize engine facade with cache
+        let engine_facade = Arc::new(riptide_facade::facades::EngineFacade::new(Arc::new(
+            riptide_cache::RedisCache::from_cache_manager(cache.clone()),
+        )));
+        tracing::info!("EngineFacade initialized successfully");
+
         // Optional facades are None in base state - will be initialized by with_facades()
         #[cfg(feature = "spider")]
         let spider_facade = None;
@@ -1267,6 +1277,8 @@ impl AppState {
             spider_facade,
             #[cfg(feature = "search")]
             search_facade,
+            // Engine facade (Phase 3 Sprint 3.1)
+            engine_facade,
             trace_backend,
             #[cfg(feature = "persistence")]
             persistence_adapter: None, // TODO: Initialize actual persistence adapter when integrated
@@ -1701,6 +1713,11 @@ impl AppState {
         #[cfg(feature = "search")]
         let search_facade = None;
 
+        // Initialize engine facade for tests
+        let engine_facade = Arc::new(riptide_facade::facades::EngineFacade::new(Arc::new(
+            riptide_cache::RedisCache::from_cache_manager(cache.clone()),
+        )));
+
         Self {
             http_client,
             cache,
@@ -1738,6 +1755,8 @@ impl AppState {
             spider_facade,
             #[cfg(feature = "search")]
             search_facade,
+            // Engine facade (Phase 3 Sprint 3.1)
+            engine_facade,
             trace_backend: None,
             #[cfg(feature = "persistence")]
             persistence_adapter: None, // TODO: Initialize actual persistence adapter when integrated

@@ -93,7 +93,7 @@ impl AuthorizationPolicy for TenantScopingPolicy {
                 );
 
                 return Err(RiptideError::PermissionDenied(format!(
-                    "Access denied: resource belongs to tenant '{}', user belongs to tenant '{}'",
+                    "Cross-tenant access denied: resource belongs to tenant '{}', user belongs to tenant '{}'",
                     resource_tenant_id, ctx.tenant_id
                 )));
             }
@@ -202,7 +202,7 @@ impl AuthorizationPolicy for RbacPolicy {
             );
 
             return Err(RiptideError::PermissionDenied(format!(
-                "Access denied: user must have one of these roles: {}",
+                "Access denied: user lacks required role. Must have one of these roles: {}",
                 required_roles.join(", ")
             )));
         }
@@ -397,7 +397,8 @@ mod tests {
 
         let result = policy.authorize(&ctx, &resource);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Cross-tenant"));
+        let error_msg = result.unwrap_err().to_string();
+        assert!(error_msg.contains("Permission denied") && error_msg.contains("tenant"));
     }
 
     #[test]
@@ -450,7 +451,8 @@ mod tests {
 
         let result = policy.authorize(&ctx, &resource);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("required role"));
+        let error_msg = result.unwrap_err().to_string();
+        assert!(error_msg.contains("Permission denied") && error_msg.contains("role"));
     }
 
     #[test]

@@ -134,7 +134,7 @@ pub struct ContentAnalysis {
 }
 
 /// Feature flags for engine selection refinements (Phase 10)
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, serde::Serialize, serde::Deserialize)]
 pub struct EngineSelectionFlags {
     /// Enable refined visible-text density calculation
     pub use_visible_text_density: bool,

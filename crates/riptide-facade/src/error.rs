@@ -47,6 +47,18 @@ pub enum RiptideError {
     #[error("Validation error: {0}")]
     Validation(String),
 
+    /// Cache error
+    #[error("Cache error: {0}")]
+    Cache(String),
+
+    /// Not found error
+    #[error("Not found: {0}")]
+    NotFound(String),
+
+    /// Permission denied error
+    #[error("Permission denied: {0}")]
+    PermissionDenied(String),
+
     /// Generic error
     #[error("Riptide error: {0}")]
     Other(#[from] anyhow::Error),
@@ -84,5 +96,12 @@ impl RiptideError {
     /// Create a new validation error.
     pub fn validation(msg: impl Into<String>) -> Self {
         Self::Validation(msg.into())
+    }
+}
+
+// Implement From for converting riptide_types::RiptideError to facade RiptideError
+impl From<riptide_types::error::RiptideError> for RiptideError {
+    fn from(err: riptide_types::error::RiptideError) -> Self {
+        Self::Other(anyhow::anyhow!("{}", err))
     }
 }

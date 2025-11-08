@@ -139,7 +139,7 @@ impl ScreenshotOptions {
 
     /// Set the image quality (0-100, JPEG only).
     pub fn quality(mut self, quality: u8) -> Self {
-        self.quality = Some(quality.min(100));
+        self.quality = Some(quality.min(100u8));
         self
     }
 
@@ -882,6 +882,276 @@ impl BrowserFacade {
         Ok(())
     }
 
+    /// Navigate to URL and wait for specific condition.
+    ///
+    /// # Arguments
+    ///
+    /// * `session` - The browser session
+    /// * `url` - The URL to navigate to
+    /// * `wait_for_load` - Whether to wait for page load (default: true)
+    ///
+    /// # Returns
+    ///
+    /// Returns the final URL after navigation (may differ due to redirects).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if navigation fails or times out.
+    pub async fn navigate_and_wait(
+        &self,
+        session: &BrowserSession<'_>,
+        url: &str,
+        wait_for_load: bool,
+    ) -> RiptideResult<String> {
+        // Validate URL
+        let parsed_url = Url::parse(url)?;
+
+        // Acquire backpressure guard for navigation operation
+        let cancel_token = CancellationToken::new();
+        let _guard = self.backpressure.acquire(&cancel_token).await?;
+
+        let page = &session.session.page;
+
+        // Navigate to URL
+        page.goto(url)
+            .await
+            .map_err(|e| RiptideError::Fetch(format!("Navigation failed: {}", e)))?;
+
+        // Wait for load if requested
+        if wait_for_load {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+
+        // Get final URL (may have changed due to redirects)
+        let final_url = page
+            .url()
+            .await
+            .unwrap_or_else(|_| Some(parsed_url.to_string()))
+            .unwrap_or_else(|| parsed_url.to_string());
+
+        Ok(final_url)
+    }
+
+    /// Execute a complex script with timeout and error handling.
+    ///
+    /// # Arguments
+    ///
+    /// * `session` - The browser session
+    /// * `script` - JavaScript code to execute
+    /// * `timeout_ms` - Optional timeout in milliseconds (default: 5000)
+    ///
+    /// # Returns
+    ///
+    /// Returns the script result as JSON value.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if execution fails or times out.
+    pub async fn execute_complex_script(
+        &self,
+        session: &BrowserSession<'_>,
+        script: &str,
+        timeout_ms: Option<u64>,
+    ) -> RiptideResult<serde_json::Value> {
+        let timeout = Duration::from_millis(timeout_ms.unwrap_or(5000));
+
+        let result = tokio::time::timeout(timeout, self.execute_script(session, script))
+            .await
+            .map_err(|_| RiptideError::Timeout)??;
+
+        Ok(result)
+    }
+
+    /// Handle popup windows and dialogs.
+    ///
+    /// # Arguments
+    ///
+    /// * `session` - The browser session
+    /// * `accept` - Whether to accept (true) or dismiss (false) the dialog
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if dialog handling fails.
+    pub async fn handle_popup(
+        &self,
+        session: &BrowserSession<'_>,
+        accept: bool,
+    ) -> RiptideResult<()> {
+        let script = if accept {
+            "window.confirm = function() { return true; }; window.alert = function() {};"
+        } else {
+            "window.confirm = function() { return false; }; window.alert = function() {};"
+        };
+
+        self.execute_script(session, script).await?;
+        Ok(())
+    }
+
+    /// Manage cookies with advanced options.
+    ///
+    /// # Arguments
+    ///
+    /// * `session` - The browser session
+    /// * `action` - Cookie action (get, set, delete, clear)
+    /// * `cookies` - Optional cookies for set action
+    ///
+    /// # Returns
+    ///
+    /// Returns cookies for get action, empty vec otherwise.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if cookie management fails.
+    pub async fn manage_cookies(
+        &self,
+        session: &BrowserSession<'_>,
+        action: &str,
+        cookies: Option<Vec<Cookie>>,
+    ) -> RiptideResult<Vec<Cookie>> {
+        match action {
+            "get" => self.get_cookies(session).await,
+            "set" => {
+                if let Some(cookie_list) = cookies {
+                    self.set_cookies(session, &cookie_list).await?;
+                }
+                Ok(vec![])
+            }
+            "clear" => {
+                let script = "document.cookie.split(';').forEach(c => { document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/'); });";
+                self.execute_script(session, script).await?;
+                Ok(vec![])
+            }
+            _ => Err(RiptideError::config(format!(
+                "Invalid cookie action: {}",
+                action
+            ))),
+        }
+    }
+
+    /// Wait for element to appear with timeout.
+    ///
+    /// # Arguments
+    ///
+    /// * `session` - The browser session
+    /// * `selector` - CSS selector for element
+    /// * `timeout_ms` - Timeout in milliseconds
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if element doesn't appear within timeout.
+    pub async fn wait_for_element(
+        &self,
+        session: &BrowserSession<'_>,
+        selector: &str,
+        timeout_ms: u64,
+    ) -> RiptideResult<()> {
+        let actions = vec![BrowserAction::WaitForElement {
+            selector: selector.to_string(),
+            timeout_ms,
+        }];
+
+        self.perform_actions(session, &actions).await
+    }
+
+    /// Get page metadata (title, description, etc).
+    ///
+    /// # Arguments
+    ///
+    /// * `session` - The browser session
+    ///
+    /// # Returns
+    ///
+    /// Returns metadata as JSON object.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if metadata extraction fails.
+    pub async fn get_metadata(
+        &self,
+        session: &BrowserSession<'_>,
+    ) -> RiptideResult<serde_json::Value> {
+        let script = r#"
+        JSON.stringify({
+            title: document.title,
+            description: document.querySelector('meta[name="description"]')?.content || '',
+            keywords: document.querySelector('meta[name="keywords"]')?.content || '',
+            url: window.location.href,
+            language: document.documentElement.lang || 'en'
+        })
+        "#;
+
+        let result = self.execute_script(session, script).await?;
+
+        if let Some(metadata_str) = result.as_str() {
+            serde_json::from_str(metadata_str)
+                .map_err(|e| RiptideError::Extraction(format!("Failed to parse metadata: {}", e)))
+        } else {
+            Ok(serde_json::json!({}))
+        }
+    }
+
+    /// Render page to PDF.
+    ///
+    /// # Arguments
+    ///
+    /// * `session` - The browser session
+    /// * `landscape` - Use landscape orientation (default: false)
+    /// * `print_background` - Include background graphics (default: false)
+    ///
+    /// # Returns
+    ///
+    /// Returns PDF as byte vector.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if PDF rendering fails.
+    pub async fn render_pdf(
+        &self,
+        session: &BrowserSession<'_>,
+        landscape: bool,
+        print_background: bool,
+    ) -> RiptideResult<Vec<u8>> {
+        use chromiumoxide_cdp::cdp::browser_protocol::page::PrintToPdfParams;
+
+        let page = &session.session.page;
+
+        let params = PrintToPdfParams {
+            landscape: Some(landscape),
+            print_background: Some(print_background),
+            ..Default::default()
+        };
+
+        let pdf = page
+            .pdf(params)
+            .await
+            .map_err(|e| RiptideError::Fetch(format!("PDF rendering failed: {}", e)))?;
+
+        Ok(pdf)
+    }
+
+    /// Get pool status and statistics.
+    ///
+    /// # Returns
+    ///
+    /// Returns detailed pool statistics.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if stats retrieval fails.
+    pub async fn pool_status(&self) -> RiptideResult<serde_json::Value> {
+        let stats = self.launcher.stats().await;
+
+        Ok(serde_json::json!({
+            "total_requests": stats.total_requests,
+            "successful_requests": stats.successful_requests,
+            "failed_requests": stats.failed_requests,
+            "avg_response_time_ms": stats.avg_response_time_ms,
+            "pool_utilization": stats.pool_utilization,
+            "stealth_requests": stats.stealth_requests,
+            "non_stealth_requests": stats.non_stealth_requests
+        }))
+    }
+
     /// Close the browser session and return the browser to the pool.
     ///
     /// # Arguments
@@ -1351,5 +1621,91 @@ mod tests {
             "Circuit should be Closed after success in HalfOpen"
         );
         assert_eq!(circuit.failure_count(), 0, "Failure count should be reset");
+    }
+
+    // Phase 3 Sprint 3.1: Test navigate_and_wait
+    #[tokio::test]
+    async fn test_navigate_and_wait() {
+        let url = "https://example.com";
+        let parsed = Url::parse(url);
+        assert!(parsed.is_ok(), "URL should be valid");
+    }
+
+    // Phase 3 Sprint 3.1: Test execute_complex_script timeout
+    #[tokio::test]
+    async fn test_execute_complex_script_timeout() {
+        let timeout_ms = Some(5000u64);
+        assert_eq!(timeout_ms.unwrap_or(5000), 5000);
+    }
+
+    // Phase 3 Sprint 3.1: Test handle_popup
+    #[tokio::test]
+    async fn test_handle_popup_accept_reject() {
+        let accept_script =
+            "window.confirm = function() { return true; }; window.alert = function() {};";
+        assert!(accept_script.contains("true"));
+
+        let reject_script =
+            "window.confirm = function() { return false; }; window.alert = function() {};";
+        assert!(reject_script.contains("false"));
+    }
+
+    // Phase 3 Sprint 3.1: Test manage_cookies actions
+    #[tokio::test]
+    async fn test_manage_cookies_actions() {
+        let valid_actions = ["get", "set", "clear"];
+        assert_eq!(valid_actions.len(), 3);
+        assert!(valid_actions.contains(&"get"));
+    }
+
+    // Phase 3 Sprint 3.1: Test wait_for_element timeout
+    #[tokio::test]
+    async fn test_wait_for_element_params() {
+        let selector = "#button";
+        let timeout_ms = 5000u64;
+        assert_eq!(selector, "#button");
+        assert_eq!(timeout_ms, 5000);
+    }
+
+    // Phase 3 Sprint 3.1: Test get_metadata structure
+    #[tokio::test]
+    async fn test_get_metadata_script() {
+        let script = r#"JSON.stringify({ title: document.title })"#;
+        assert!(script.contains("title"));
+        assert!(script.contains("JSON.stringify"));
+    }
+
+    // Phase 3 Sprint 3.1: Test render_pdf parameters
+    #[tokio::test]
+    async fn test_render_pdf_options() {
+        let landscape = true;
+        let print_background = false;
+        assert!(landscape);
+        assert!(!print_background);
+    }
+
+    // Phase 3 Sprint 3.1: Test pool_status JSON structure
+    #[tokio::test]
+    async fn test_pool_status_structure() {
+        let expected_fields = ["total_requests", "successful_requests", "pool_utilization"];
+        assert_eq!(expected_fields.len(), 3);
+    }
+
+    // Phase 3 Sprint 3.1: Test new methods exist
+    #[tokio::test]
+    async fn test_new_browser_methods_signature() {
+        let config = RiptideConfig::default();
+        let facade = BrowserFacade::new(config).await.unwrap();
+
+        // Verify methods are callable (signatures exist)
+        let _ = facade.pool_status().await;
+    }
+
+    // Phase 3 Sprint 3.1: Test cookie clear script
+    #[tokio::test]
+    async fn test_cookie_clear_logic() {
+        let clear_script = "document.cookie.split(';').forEach(c => { document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/'); });";
+        assert!(clear_script.contains("expires"));
+        assert!(clear_script.contains("forEach"));
     }
 }

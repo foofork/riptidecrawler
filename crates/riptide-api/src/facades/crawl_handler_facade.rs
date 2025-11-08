@@ -291,9 +291,19 @@ impl CrawlHandlerFacade {
     /// Apply content chunking if configured
     async fn apply_chunking(&self, document: ExtractedDoc, options: &CrawlOptions) -> ExtractedDoc {
         if let Some(ref chunking_config) = options.chunking_config {
-            apply_content_chunking(document.clone(), chunking_config)
-                .await
-                .unwrap_or(document)
+            apply_content_chunking(
+                document.clone(),
+                "adaptive".to_string(),
+                Some(ChunkParameters {
+                    chunk_size: 1000,
+                    overlap_size: 200,
+                    min_chunk_size: 100,
+                    preserve_sentences: true,
+                    window_size: None,
+                }),
+            )
+            .await
+            .unwrap_or(document)
         } else {
             document
         }

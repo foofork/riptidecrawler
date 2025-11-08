@@ -5,7 +5,6 @@
 pub mod extraction;
 pub mod handlers;
 pub mod models;
-pub mod processors;
 pub mod strategies;
 
 // Re-export main public API

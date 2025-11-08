@@ -253,7 +253,9 @@ impl PdfFacade {
 
         // 4. Check if file is actually a PDF
         if !pdf_integration.should_process_as_pdf(None, None, Some(&bytes)) {
-            return Err(RiptideError::validation("File does not appear to be a PDF"));
+            return Err(RiptideError::Validation(
+                "File does not appear to be a PDF".to_string(),
+            ));
         }
 
         // 5. Spawn PDF processing task
@@ -317,7 +319,7 @@ impl PdfFacade {
             PdfInput::Bytes(bytes) => Ok(bytes),
             PdfInput::Base64(encoded) => BASE64_STANDARD
                 .decode(&encoded)
-                .map_err(|e| RiptideError::validation(format!("Invalid base64 PDF data: {}", e))),
+                .map_err(|e| RiptideError::Validation(format!("Invalid base64 PDF data: {}", e))),
         }
     }
 
@@ -325,13 +327,15 @@ impl PdfFacade {
     fn validate_pdf(&self, bytes: &[u8]) -> Result<()> {
         // Validate file size
         if bytes.len() > MAX_PDF_SIZE {
-            return Err(RiptideError::validation("PDF file too large (max 50MB)"));
+            return Err(RiptideError::Validation(
+                "PDF file too large (max 50MB)".to_string(),
+            ));
         }
 
         // Validate PDF magic bytes
         if bytes.len() < 5 || &bytes[0..4] != PDF_MAGIC_BYTES {
-            return Err(RiptideError::validation(
-                "File does not appear to be a valid PDF",
+            return Err(RiptideError::Validation(
+                "File does not appear to be a valid PDF".to_string(),
             ));
         }
 
@@ -348,7 +352,7 @@ impl PdfFacade {
 
         // Process multipart fields
         while let Some(field) = multipart.next_field().await.map_err(|e| {
-            RiptideError::validation(format!("Failed to read multipart field: {}", e))
+            RiptideError::Validation(format!("Failed to read multipart field: {}", e))
         })? {
             let field_name = field.name().unwrap_or("").to_string();
 
@@ -359,22 +363,26 @@ impl PdfFacade {
 
                     // Read file data
                     let data = field.bytes().await.map_err(|e| {
-                        RiptideError::validation(format!("Failed to read file data: {}", e))
+                        RiptideError::Validation(format!("Failed to read file data: {}", e))
                     })?;
 
                     // Validate file size
                     if data.len() > MAX_PDF_SIZE {
-                        return Err(RiptideError::validation("PDF file too large (max 50MB)"));
+                        return Err(RiptideError::Validation(
+                            "PDF file too large (max 50MB)".to_string(),
+                        ));
                     }
 
                     if data.is_empty() {
-                        return Err(RiptideError::validation("Uploaded file is empty"));
+                        return Err(RiptideError::Validation(
+                            "Uploaded file is empty".to_string(),
+                        ));
                     }
 
                     // Validate PDF magic bytes
                     if data.len() < 5 || &data[0..4] != PDF_MAGIC_BYTES {
-                        return Err(RiptideError::validation(
-                            "File does not appear to be a valid PDF",
+                        return Err(RiptideError::Validation(
+                            "File does not appear to be a valid PDF".to_string(),
                         ));
                     }
 
@@ -404,7 +412,7 @@ impl PdfFacade {
                 }
                 "filename" => {
                     let value = field.text().await.map_err(|e| {
-                        RiptideError::validation(format!("Failed to read filename field: {}", e))
+                        RiptideError::Validation(format!("Failed to read filename field: {}", e))
                     })?;
                     if !value.is_empty() {
                         metadata.filename = Some(value);
@@ -412,7 +420,7 @@ impl PdfFacade {
                 }
                 "url" => {
                     let value = field.text().await.map_err(|e| {
-                        RiptideError::validation(format!("Failed to read url field: {}", e))
+                        RiptideError::Validation(format!("Failed to read url field: {}", e))
                     })?;
                     if !value.is_empty() {
                         metadata.url = Some(value);
@@ -425,8 +433,9 @@ impl PdfFacade {
         }
 
         // Ensure we received a file
-        let pdf_data = pdf_data
-            .ok_or_else(|| RiptideError::validation("No PDF file provided in 'file' field"))?;
+        let pdf_data = pdf_data.ok_or_else(|| {
+            RiptideError::Validation("No PDF file provided in 'file' field".to_string())
+        })?;
 
         Ok((pdf_data, metadata))
     }

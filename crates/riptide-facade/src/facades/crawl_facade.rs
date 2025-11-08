@@ -208,7 +208,6 @@ impl CrawlFacade {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
 
     // NOTE: Tests temporarily disabled in Phase 2C.2 because they require AppState
     // from riptide-api, which would create a circular dependency.

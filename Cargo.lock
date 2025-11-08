@@ -7047,6 +7047,7 @@ dependencies = [
  "riptide-stealth",
  "riptide-types",
  "riptide-utils",
+ "riptide-workers",
  "scraper",
  "serde",
  "serde_json",

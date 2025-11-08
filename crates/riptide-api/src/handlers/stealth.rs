@@ -224,6 +224,30 @@ pub async fn test_stealth(State(_state): State<AppState>) -> Response {
     .into_response()
 }
 
+/// Stealth features health check endpoint
+pub async fn stealth_health_check() -> axum::response::Json<serde_json::Value> {
+    use riptide_stealth::{StealthController, StealthPreset};
+
+    // Test basic stealth functionality to verify module is available
+    let _controller = StealthController::from_preset(StealthPreset::Medium);
+    axum::response::Json(serde_json::json!({
+        "status": "healthy",
+        "stealth_available": true,
+        "features": {
+            "user_agent_rotation": true,
+            "header_randomization": true,
+            "timing_jitter": true,
+            "fingerprinting_countermeasures": true,
+            "proxy_support": true,
+            "javascript_evasion": true
+        },
+        "presets": ["None", "Low", "Medium", "High"],
+        "rotation_strategies": ["Random", "Sequential", "Sticky", "DomainBased"],
+        "version": riptide_stealth::VERSION,
+        "crate_name": riptide_stealth::CRATE_NAME
+    }))
+}
+
 /// Get stealth capabilities
 ///
 /// Returns information about available stealth features

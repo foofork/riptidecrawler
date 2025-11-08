@@ -409,6 +409,9 @@ impl From<riptide_facade::RiptideError> for ApiError {
                 message: "Operation timed out".to_string(),
             },
             RiptideError::Validation(msg) => ApiError::ValidationError { message: msg },
+            RiptideError::Cache(msg) => ApiError::CacheError { message: msg },
+            RiptideError::NotFound(msg) => ApiError::NotFound { resource: msg },
+            RiptideError::PermissionDenied(msg) => ApiError::AuthenticationError { message: msg },
             RiptideError::Other(err) => ApiError::InternalError {
                 message: err.to_string(),
             },
