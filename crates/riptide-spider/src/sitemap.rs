@@ -1,9 +1,10 @@
 use crate::types::{CrawlRequest, Priority, SitemapConfig};
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
-use reqwest::Client;
+use riptide_reliability::http_client::{CircuitBreakerPreset, ReliableHttpClient};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use std::sync::Arc;
 use tracing::{debug, info, warn};
 use url::Url;
 use xml::reader::{EventReader, XmlEvent};
@@ -21,17 +22,22 @@ pub struct SitemapEntry {
 #[derive(Debug)]
 pub struct SitemapParser {
     config: SitemapConfig,
-    client: Client,
+    client: Arc<ReliableHttpClient>,
     cache: HashSet<String>,
 }
 
 impl SitemapParser {
     pub fn new(config: SitemapConfig) -> Self {
-        let client = Client::builder()
-            .user_agent(&config.user_agent)
-            .timeout(std::time::Duration::from_secs(config.timeout_seconds))
-            .build()
-            .unwrap_or_else(|_| Client::new());
+        // Use WebScraping preset for sitemap fetching
+        let client = Arc::new(
+            ReliableHttpClient::with_preset(CircuitBreakerPreset::WebScraping).unwrap_or_else(
+                |_| {
+                    // Fallback to ExternalApi if WebScraping fails
+                    ReliableHttpClient::with_preset(CircuitBreakerPreset::ExternalApi)
+                        .expect("Failed to create HTTP client")
+                },
+            ),
+        );
 
         Self {
             config,
@@ -47,7 +53,6 @@ impl SitemapParser {
         let response = self
             .client
             .get(sitemap_url)
-            .send()
             .await
             .context("Failed to fetch sitemap")?;
 
@@ -177,7 +182,6 @@ impl SitemapParser {
         let response = self
             .client
             .get(&robots_url)
-            .send()
             .await
             .context("Failed to fetch robots.txt")?;
 
@@ -220,7 +224,8 @@ impl SitemapParser {
 
     /// Check if a sitemap URL exists
     async fn check_sitemap_exists(&self, url: &str) -> bool {
-        match self.client.head(url).send().await {
+        // ReliableHttpClient doesn't have HEAD method, use GET and ignore body
+        match self.client.get(url).await {
             Ok(response) => response.status().is_success(),
             Err(_) => false,
         }

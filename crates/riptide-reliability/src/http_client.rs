@@ -233,6 +233,7 @@ impl FetchOptions {
 }
 
 /// Unified HTTP client service with integrated reliability patterns
+#[derive(Debug)]
 pub struct HttpClientService {
     client: Client,
     circuit_breaker: Arc<CircuitBreaker>,
@@ -569,6 +570,7 @@ mod tests {
 /// # Ok(())
 /// # }
 /// ```
+#[derive(Debug)]
 pub struct ReliableHttpClient {
     service: HttpClientService,
     preset: CircuitBreakerPreset,

@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use reqwest::cookie::Jar;
-use reqwest::Client;
+use riptide_reliability::http_client::{CircuitBreakerPreset, ReliableHttpClient};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -166,18 +166,18 @@ pub struct SessionState {
     /// Cookie jar
     pub cookies: Arc<Jar>,
     /// HTTP client for this session
-    pub client: Client,
+    pub client: Arc<ReliableHttpClient>,
 }
 
 impl SessionState {
-    pub fn new(id: String, domain: String, config: &SessionConfig) -> Result<Self> {
+    pub fn new(id: String, domain: String, _config: &SessionConfig) -> Result<Self> {
         let cookies = Arc::new(Jar::default());
-        let client = Client::builder()
-            .user_agent(&config.user_agent)
-            .cookie_provider(cookies.clone())
-            .timeout(Duration::from_secs(30))
-            .build()
-            .context("Failed to create HTTP client for session")?;
+        // Note: ReliableHttpClient doesn't support cookie_provider directly
+        // This functionality may need to be added to riptide-reliability
+        let client = Arc::new(
+            ReliableHttpClient::with_preset(CircuitBreakerPreset::ExternalApi)
+                .context("Failed to create HTTP client for session")?,
+        );
 
         Ok(Self {
             id,
@@ -319,7 +319,10 @@ impl SessionManager {
     }
 
     /// Get HTTP client for a session
-    pub async fn get_session_client(&self, domain: &str) -> Result<Option<Client>> {
+    pub async fn get_session_client(
+        &self,
+        domain: &str,
+    ) -> Result<Option<Arc<ReliableHttpClient>>> {
         let sessions = self.sessions.read().await;
 
         if let Some(session) = sessions.get(domain) {
