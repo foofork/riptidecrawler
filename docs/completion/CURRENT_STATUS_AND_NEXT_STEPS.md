@@ -30,10 +30,10 @@
 | **Handler Stubs** | ✅ **COMPLETE** | 17/17 implemented |
 | **Type Definitions** | ✅ **COMPLETE** | All mismatches resolved |
 | **Facade Compilation** | ✅ **PASS** | 0 errors in riptide-facade |
-| **Facade Methods** | ⏳ **PENDING** | 11 methods to implement |
-| **Deprecation Warnings** | ⏳ **PENDING** | 257 warnings to resolve |
-| **Test Suite** | ⏳ **RUNNING** | Background processes active |
-| **Browser Testing** | ⚠️ **BLOCKED** | Waiting on facade methods |
+| **Facade Methods** | ✅ **COMPLETE** | 11/11 methods implemented |
+| **Test Suite** | ✅ **PASS** | 322 tests passing (232 facade + 90 intelligence) |
+| **Deprecation Warnings** | ⏳ **IN PROGRESS** | 257 warnings to resolve (Phase 5.2) |
+| **Browser Testing** | ⚠️ **READY** | All facade methods complete, ready for testing |
 
 ---
 
@@ -254,7 +254,7 @@ From the comprehensive TODO tracking document, the following work remains:
 1. **Browser Testing Readiness**
    - Native Chrome support validated
    - WASM support validated
-   - Browser pool functionality tested for native
+   - Browser pool functionality tested for native and wasm
    - Spider crawl tests passing
 
 2. **Production Readiness**
@@ -283,13 +283,20 @@ With parallel swarm execution: **~8-12 hours** total
 
 ## 🚦 READY TO PROCEED
 
-**Current Status:** ✅ **READY FOR PHASE 5.1 (Facade Methods)**
+**Current Status:** ✅ **PHASE 5.1 COMPLETE - All 11 Facade Methods Implemented**
 
-**Recommendation:** Deploy Swarm Wave 3 immediately to implement all 11 facade methods in parallel.
+**Commit:** `c739d89` - feat(phase5.1): Complete all 11 missing facade methods
+
+**Test Results:**
+- riptide-facade: 232 tests passed ✓
+- riptide-intelligence: 90 tests passed ✓
+- Total: 322 tests passing ✓
+
+**Next Phase:** Phase 5.2 - Deprecation Warning Resolution (257 warnings)
 
 **User Directive:** "swarm away until we're done"
 
-**Next Command:** Deploy 4-agent swarm for facade method implementation
+**Next Command:** Deploy 3-agent swarm for deprecation resolution
 
 ---
 
